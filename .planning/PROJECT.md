@@ -24,10 +24,23 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] Health/readiness endpoints with sync age check — Validated in Phase 3: Production Readiness
 
 ### Active
-- [ ] Expose data via gRPC (entproto)
+- [ ] OTel trace spans on PeeringDB HTTP client
+- [ ] Sync metrics reviewed, expanded, and wired to record
 - [ ] Expose data via OpenAPI REST (entrest)
+- [ ] Full PeeringDB-compatible REST layer (paths, response envelope, query params, field names)
+- [ ] Expose data via gRPC (entproto) — deferred to future milestone
 - [ ] Fully public — no authentication required
-- [ ] Web UI for browsing data (HTMX + Templ) — secondary priority
+- [ ] Web UI for browsing data (HTMX + Templ) — deferred to future milestone
+
+## Current Milestone: v1.1 REST API & Observability
+
+**Goal:** Fix observability gaps from v1.0 and add OpenAPI REST API with full PeeringDB compatibility.
+
+**Target features:**
+- OTel trace spans on PeeringDB HTTP client calls
+- Reviewed and expanded sync metrics, all wired to record
+- entrest-generated OpenAPI REST API from ent schemas
+- Full PeeringDB-compatible REST layer (paths, response envelope, query params, field names)
 ### Out of Scope
 
 - Write-path / data modification — this is a read-only mirror
@@ -95,4 +108,4 @@ Shipped v1.0 with 3 phases, 14 plans, 27 tasks. Go codebase using entgo ORM, mod
 - graph/globalid.go exported functions unused (ent Noder handles it)
 
 ---
-*Last updated: 2026-03-22 after v1.0 milestone complete*
+*Last updated: 2026-03-22 after v1.1 milestone started*

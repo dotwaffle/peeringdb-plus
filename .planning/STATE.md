@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: PeeringDB Plus
-status: v1.0 milestone shipped
-stopped_at: Milestone v1.0 complete
-last_updated: "2026-03-22T20:00:00.000Z"
+milestone: v1.1
+milestone_name: REST API & Observability
+status: defining requirements
+stopped_at: Milestone v1.1 started
+last_updated: "2026-03-22T21:00:00.000Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 14
-  completed_plans: 14
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,13 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Planning next milestone
+**Current focus:** Defining requirements for v1.1
 
 ## Current Position
 
-Milestone: v1.0 shipped
-Phase: Complete
-Plan: Complete
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-22 — Milestone v1.1 started
 
 ## Performance Metrics
 
@@ -58,10 +59,10 @@ None.
 
 ### Blockers/Concerns
 
-None — milestone shipped.
+None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T20:00:00.000Z
-Stopped at: Milestone v1.0 complete
+Last session: 2026-03-22T21:00:00.000Z
+Stopped at: Milestone v1.1 started
 Resume file: None
