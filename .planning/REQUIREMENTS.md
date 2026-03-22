@@ -59,25 +59,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| OBS-01 | — | Pending |
-| OBS-02 | — | Pending |
-| OBS-03 | — | Pending |
-| OBS-04 | — | Pending |
-| REST-01 | — | Pending |
-| REST-02 | — | Pending |
-| REST-03 | — | Pending |
-| REST-04 | — | Pending |
-| PDBCOMPAT-01 | — | Pending |
-| PDBCOMPAT-02 | — | Pending |
-| PDBCOMPAT-03 | — | Pending |
-| PDBCOMPAT-04 | — | Pending |
-| PDBCOMPAT-05 | — | Pending |
+| OBS-01 | Phase 4 | Pending |
+| OBS-02 | Phase 4 | Pending |
+| OBS-03 | Phase 4 | Pending |
+| OBS-04 | Phase 4 | Pending |
+| REST-01 | Phase 5 | Pending |
+| REST-02 | Phase 5 | Pending |
+| REST-03 | Phase 5 | Pending |
+| REST-04 | Phase 5 | Pending |
+| PDBCOMPAT-01 | Phase 6 | Pending |
+| PDBCOMPAT-02 | Phase 6 | Pending |
+| PDBCOMPAT-03 | Phase 6 | Pending |
+| PDBCOMPAT-04 | Phase 6 | Pending |
+| PDBCOMPAT-05 | Phase 6 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13
+- Mapped to phases: 13
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-22*
-*Last updated: 2026-03-22 after initial definition*
+*Last updated: 2026-03-22 after roadmap creation*
