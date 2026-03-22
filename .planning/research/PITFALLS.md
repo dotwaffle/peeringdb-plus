@@ -1,282 +1,312 @@
 # Domain Pitfalls
 
-**Domain:** Distributed PeeringDB data mirror (SQLite/LiteFS, entgo, multi-API)
+**Domain:** Adding OTel HTTP client tracing, sync metrics, entrest REST API, and PeeringDB-compatible REST layer to existing Go/entgo/SQLite/OTel project
 **Researched:** 2026-03-22
+**Milestone:** v1.1 REST API & Observability
 
 ## Critical Pitfalls
 
-Mistakes that cause rewrites, data loss, or fundamental architecture problems.
+Mistakes that cause rewrites, broken compatibility, or fundamental integration problems.
 
-### Pitfall 1: LiteFS Is Unsupported and Pre-1.0
+### Pitfall 1: otelhttp Transport Creates One Span Per HTTP Round-Trip, Not Per Logical Request
 
-**What goes wrong:** LiteFS is in a "workable but not 100% polished state" with Fly.io explicitly stating they "are not able to provide support or guidance for this product." LiteFS Cloud was sunset in October 2024. Active development is deprioritized. Teams build on LiteFS expecting production-grade tooling and discover they are entirely on their own for debugging, operational issues, and future compatibility.
+**What goes wrong:** The PeeringDB client already implements retry logic with exponential backoff in `doWithRetry()`. Wrapping the `http.Client` transport with `otelhttp.NewTransport()` creates a new span for every individual HTTP round-trip. With 3 retries, a single logical "fetch organizations page 0" operation produces 3 sibling HTTP spans instead of one parent span with retry events. The trace tree becomes flat and unreadable -- you see dozens of HTTP client spans without understanding which are retries of the same request.
 
-**Why it happens:** LiteFS was heavily promoted by Fly.io in 2022-2023, creating strong ecosystem buzz. Many blog posts and tutorials still recommend it without noting the support status change. The technology itself works, but the organizational commitment behind it has evaporated.
+**Why it happens:** `otelhttp.NewTransport` wraps `http.RoundTripper`, which sits below the retry loop. The OpenTelemetry HTTP semantic conventions actually recommend creating a span per attempt (`http.request.resend_count` attribute), but the retry logic in `doWithRetry()` creates its own context flow. Without careful span nesting, the retry spans become orphans or flat siblings rather than children of the logical operation span.
 
-**Consequences:** No support tickets, no guaranteed bug fixes, no roadmap. If a subtle replication bug surfaces in production, the team must debug FUSE-level filesystem behavior and Consul-based leader election with zero vendor assistance. Operational knowledge must be built entirely in-house.
+**Consequences:** Traces show many HTTP client spans without grouping by logical PeeringDB fetch operation. Debugging a slow sync requires manually correlating which HTTP spans belong to the same retried request. Alert rules based on span counts produce false positives. The existing `ctx` passed through `doWithRetry` already has a parent span from the sync worker, but the transport-level spans lack the "retry attempt N of M" context.
 
 **Prevention:**
-- Accept this risk explicitly as a project decision, documented in KEY DECISIONS.
-- Pin to a specific LiteFS version and do not upgrade without testing.
-- Build comprehensive integration tests that exercise the full write-replicate-read cycle.
-- Implement a fallback plan: design the sync layer so it could target Turso, Litestream+S3, or even PostgreSQL with minimal refactoring. Keep the storage layer behind an interface.
-- Monitor the LiteFS GitHub repository for activity. If it goes fully dormant, migrate.
+- Create an explicit parent span in `FetchAll()` for the logical fetch operation (e.g., `peeringdb.fetch.{objectType}`), and a child span per page fetch in `doWithRetry()`.
+- Set the `otelhttp.NewTransport` on the `http.Client` for automatic HTTP-level spans, but ensure these are children of the per-request span from `doWithRetry()` by passing the correct `ctx` through `http.NewRequestWithContext()` -- which the code already does.
+- Add `http.request.resend_count` as an attribute on retry spans per OTel semantic conventions.
+- Do NOT wrap the entire retry loop in a single span that ends only after all retries -- this hides individual attempt durations. Instead: logical operation span > per-attempt span > HTTP transport span.
+- Test with a mock HTTP server that returns 429s to verify the span hierarchy looks correct.
 
-**Detection:** Watch for: LiteFS GitHub repo inactivity (no commits for 6+ months), Fly.io docs removing LiteFS pages, community forum threads going unanswered.
+**Detection:** Flat trace trees with many HTTP client spans at the same level. Missing parent-child relationships in trace visualization. Span counts per sync not matching expected page counts.
 
-**Phase impact:** Must be acknowledged in Phase 1 (infrastructure setup). The fallback abstraction should be designed before any sync logic is written.
+**Phase impact:** OTel HTTP client tracing task. Must design span hierarchy before instrumenting.
 
-**Confidence:** HIGH -- based on official Fly.io community statements and documentation warnings.
+**Confidence:** HIGH -- based on OpenTelemetry HTTP semantic conventions for retry instrumentation and inspection of the existing `doWithRetry()` implementation.
 
 ---
 
-### Pitfall 2: PeeringDB API Responses Don't Match Their OpenAPI Spec
+### Pitfall 2: entrest Response Format Does Not Match PeeringDB's Response Envelope
 
-**What goes wrong:** Teams generate client code from PeeringDB's published OpenAPI spec, discover it fails validation, produces incorrect types, or misses fields entirely. The actual API response shapes diverge from the spec in multiple ways: duplicate parameter definitions, request body schemas that aren't type `object`, and field presence/format differences.
+**What goes wrong:** PeeringDB wraps all API responses in `{"meta": {}, "data": [...]}`. entrest generates its own response format -- entities are returned as JSON arrays or objects directly, with pagination metadata in HTTP headers or a different JSON structure. Building both "entrest REST API" and "PeeringDB-compatible REST API" on the same codebase without recognizing they have fundamentally different response shapes leads to one of two bad outcomes: (a) trying to force entrest to produce PeeringDB-format responses, which fights the code generator, or (b) building a single endpoint that cannot satisfy both formats.
 
-**Why it happens:** PeeringDB is a Django application where the API is defined by Python serializers, not by the OpenAPI spec. The spec is generated/maintained separately and lags behind reality. PeeringDB issue #1878 documented concrete schema validation failures with openapi-generator. The production database also contains data that fails validation against their own schema (issue #637).
+**Why it happens:** These are genuinely different requirements that share some code but have different API contracts:
+- **entrest REST API**: modern OpenAPI-compliant REST with entrest's pagination, filtering, and response format. New API surface for this project.
+- **PeeringDB compat REST API**: must exactly reproduce PeeringDB's response envelope (`{"meta": {}, "data": [...]}`), URL paths (`/api/net`, `/api/fac`), query parameters (`limit`, `skip`, `depth`, `since`, `__contains`, `__in`, `__lt`), and snake_case field names.
 
-**Consequences:** Any code-generated client will produce incorrect types. Fields may be missing, have wrong types, or contain unexpected null values. Sync will fail silently (wrong data) or loudly (deserialization errors) depending on how strict the parser is.
+entrest generates field names from ent schema field names (which are Go-style: `name_long`, `org_id`), but the response structure, pagination mechanism, and filtering query parameter syntax are all entrest-specific and different from PeeringDB's conventions.
+
+**Consequences:** If treated as one API surface, neither works correctly. Existing PeeringDB API consumers (scripts, peering tools, peeringdb-py) cannot use the entrest API because the response format and query parameters differ. New users cannot use the PeeringDB compat API because it lacks entrest's richer filtering and Relay-style pagination.
 
 **Prevention:**
-- Do NOT trust the OpenAPI spec for type definitions. Instead, analyze the actual Django serializers in the PeeringDB Python source code to understand real response shapes.
-- Write a custom Go client by hand, informed by source analysis and live API response sampling.
-- Build a response validation layer that compares expected vs. actual field presence/types during sync, logging discrepancies.
-- Collect sample responses from every PeeringDB endpoint and use them as golden test fixtures.
-- Subscribe to PeeringDB release notes -- response shapes can change between versions.
+- Treat these as two separate API surfaces mounted at different paths:
+  - `/api/v1/...` for entrest-generated OpenAPI REST (new, modern)
+  - `/api/net`, `/api/fac`, `/api/ix`, etc. for PeeringDB-compatible endpoints (compat layer)
+- Build the PeeringDB compat layer as hand-written handlers that query ent directly and serialize responses in PeeringDB's envelope format. Do NOT try to wrap or transform entrest output.
+- entrest handles its own URL structure, filtering, and pagination. The compat layer handles PeeringDB's `limit`/`skip`/`depth`/`since`/`__contains`/`__in` query parameters independently.
+- Define clear interfaces: compat layer uses `*ent.Client` to query; entrest uses its generated handlers.
 
-**Detection:** Deserialization errors during sync. Fields showing as zero values when they should have data. Missing relationships. Type assertion panics.
+**Detection:** PeeringDB client tools (peeringdb-py, django-peeringdb) failing to parse responses from the compat endpoint. entrest endpoints returning data in unexpected format.
 
-**Phase impact:** This is the FIRST thing to tackle -- before writing any entgo schema. The entgo schema must reflect reality, not the published spec.
+**Phase impact:** REST API design phase. The two-surface decision must be made before any implementation begins.
 
-**Confidence:** HIGH -- confirmed via PeeringDB GitHub issues #1878, #637, #1658.
+**Confidence:** HIGH -- based on analysis of PeeringDB's documented API envelope format (`{"meta": {}, "data": [...]}`), entrest's generated response structure, and the existing PeeringDB response types in `internal/peeringdb/types.go`.
 
 ---
 
-### Pitfall 3: Full Re-Fetch Sync Hitting Rate Limits and WAL Size Limits
+### Pitfall 3: PeeringDB Field Names vs. Ent Schema Field Names -- The Compat Layer Serialization Gap
 
-**What goes wrong:** A full re-fetch downloads every PeeringDB object every sync cycle. PeeringDB rate-limits anonymous requests to 20/minute and authenticated to 40/minute. A full sync that fetches each object type sequentially may take many minutes and risks hitting throttling. Additionally, replacing all data in a single large SQLite transaction causes the WAL file to grow to the size of the entire database, and WAL mode performs poorly for transactions exceeding ~100MB and may fail entirely above ~1GB.
+**What goes wrong:** PeeringDB uses snake_case field names in JSON responses that exactly match the Django model field names: `org_id`, `name_long`, `info_prefixes4`, `irr_as_set`, `ixf_ixp_member_list_url_visible`, etc. The ent schema stores these using the same field names (verified in `ent/schema/network.go`), but ent's generated JSON serialization and entrest's output may not produce identical field names. Additionally, PeeringDB includes computed fields in responses (`ix_count`, `fac_count`, `net_count`, `org_name`) that are stored as fields in the ent schema but may not appear in all API responses from entrest.
 
-**Why it happens:** "Full re-fetch" sounds simple but has compounding costs: network (rate limits), compute (parsing), and storage (WAL growth during bulk delete+insert). The PeeringDB dataset includes organizations, networks, facilities, IXPs, and all their derived objects (netfac, netixlan, ixpfx, ixlan, poc). Deleting and reinserting all of them in one transaction is a massive write.
+**Why it happens:** entrest generates JSON output from ent's type system. While the ent schema field names match PeeringDB's (`org_id`, `name_long`), the ent-generated Go struct JSON tags and entrest's serialization may transform these names. Ent's JSON output uses the field names as defined in the schema, but edge traversal (e.g., `org_id` being both a field and a FK reference to the `organization` edge) can produce different output depending on whether the edge is eagerly loaded.
 
-**Consequences:** Rate limiting causes sync to fail partway through, leaving partial data. Large transactions cause WAL bloat, slow checkpointing, and potentially I/O errors. LiteFS must replicate these large LTX files to all replicas, causing replication lag spikes.
+The PeeringDB compat layer must also reproduce fields that PeeringDB includes but that are not standard ent fields: `org_name` on Facility/Carrier/Campus objects is a denormalized field from the Organization. PeeringDB also includes `_set` fields when `depth > 0` (e.g., `net_set`, `fac_set`) that contain nested arrays of related objects.
+
+**Consequences:** Drop-in PeeringDB compatibility fails. Existing scripts that parse PeeringDB responses by exact field name break. The `depth` parameter behavior (which changes response shape) is particularly dangerous -- PeeringDB consumers expect `depth=0` to return IDs and `depth=1` to expand sets.
 
 **Prevention:**
-- Use authenticated API access with an API key (40 req/min vs 20).
-- Batch PeeringDB queries efficiently -- use `limit`/`skip` pagination and fetch multiple IDs per request (up to 150 ASNs per query).
-- Space requests at least 2 seconds apart as PeeringDB recommends.
-- Break the sync into per-table transactions rather than one giant transaction. Sync org, then net, then fac, etc. -- each in its own transaction.
-- Consider using the `since` parameter for incremental updates after the first full sync, even though the design says "full re-fetch." The first sync must be full; subsequent ones can be incremental for efficiency.
-- Monitor WAL file size and checkpoint aggressively between table syncs.
-- Set a meaningful User-Agent header identifying the software.
+- For the PeeringDB compat layer, use custom Go structs for serialization that exactly match PeeringDB's JSON field names (the types already exist in `internal/peeringdb/types.go` -- reuse these as the response serialization format, not just the deserialization format).
+- Map ent query results to these PeeringDB response structs explicitly. Do not rely on ent's or entrest's JSON serialization.
+- For entrest's own endpoints, let entrest control its own serialization -- these are a new API, not constrained by PeeringDB format.
+- Handle `depth` parameter in the compat layer by conditionally eager-loading ent edges and including `_set` fields in the response.
+- Write golden file tests comparing actual PeeringDB API responses against compat layer responses for each of the 13 object types.
 
-**Detection:** HTTP 429 responses from PeeringDB. WAL file growing beyond 100MB. Sync taking longer than expected. Replica lag exceeding the configured LiteFS batch interval (default 1 second).
+**Detection:** Field name mismatches in JSON output. Missing computed fields. `depth` parameter producing wrong response shape. PeeringDB client libraries failing to deserialize responses.
 
-**Phase impact:** Sync strategy design (Phase 2 or whenever sync is built). Must be designed before implementation, not discovered during testing.
+**Phase impact:** PeeringDB compat layer implementation. Must define the serialization strategy before writing handlers.
 
-**Confidence:** HIGH -- PeeringDB rate limits are documented; SQLite WAL limits are in official SQLite documentation.
+**Confidence:** HIGH -- based on direct comparison of `internal/peeringdb/types.go` field names against `ent/schema/network.go` field definitions and PeeringDB API documentation.
 
 ---
 
-### Pitfall 4: PeeringDB Data Has Referential Integrity Violations
+### Pitfall 4: MeterProvider Not Initialized -- Sync Metrics Record to No-Op
 
-**What goes wrong:** The PeeringDB production database contains records with foreign key references to entities that don't exist. For example, a `netfac` record referencing a facility ID that has been deleted, or an `ixlan` referencing a non-existent IX. Syncing this data into a local database with foreign key constraints enabled causes constraint violations and sync failures.
+**What goes wrong:** The existing OTel provider (`internal/otel/provider.go`) only initializes a `TracerProvider` -- there is no `MeterProvider` setup. The sync metrics were "registered but not recorded" (per the v1.0 tech debt audit). If the v1.1 work expands metrics and wires them to `Record()` calls without first adding a `MeterProvider` to the OTel initialization, all metric recordings silently go to the OTel no-op meter. Everything compiles, tests pass, but no metrics appear in any backend.
 
-**Why it happens:** PeeringDB is a Django application that has accumulated data inconsistencies over years of operation. Their own sync tools (django-peeringdb, peeringdb-py) have documented issues with sync failures due to these inconsistencies (issues #31, #46, #17, #38).
+**Why it happens:** The OTel API is designed so that calling `otel.Meter("sync")` always returns a valid `Meter` object, even if no `MeterProvider` is configured. Instruments created from this meter accept `Add()` and `Record()` calls without error. The no-op implementation is intentional (avoids panics in library code), but it means metric recording silently drops data when the SDK is not set up.
 
-**Consequences:** If entgo schemas enforce foreign key constraints (which they should for data integrity), sync will fail on the first referential integrity violation. The sync process halts, leaving an incomplete dataset. Disabling foreign keys to work around this sacrifices data integrity guarantees.
-
-**Prevention:**
-- Sync objects in dependency order: org first, then fac/ix/net (which reference org), then derived objects (netfac, netixlan, ixpfx, ixlan) last.
-- Implement a "soft foreign key" strategy: store foreign key IDs as plain integer fields in the entgo schema, validate relationships at query time rather than insert time, and log orphaned references.
-- Alternatively, sync into a staging database without FK constraints, validate referential integrity post-sync, log violations, then swap the staging database into place.
-- Build a reconciliation report that identifies and logs all orphaned references after each sync.
-
-**Detection:** Foreign key constraint errors during sync. Missing related objects when traversing edges in the API. Sync processes that complete but with error logs showing skipped records.
-
-**Phase impact:** Entgo schema design (Phase 1) and sync implementation (Phase 2). The schema must be designed with this constraint in mind from day one.
-
-**Confidence:** HIGH -- documented in multiple PeeringDB GitHub issues with concrete error traces.
-
----
-
-### Pitfall 5: LiteFS Write Routing and Primary Election Complexity
-
-**What goes wrong:** LiteFS uses a single-writer model where only the primary node can write. All writes must be routed to the primary. The primary is determined by a Consul lease. If the primary dies unexpectedly, there's a TTL-based failover delay (default 10 seconds). During this window, writes fail. If autoscale stop/start is enabled, a stale machine can win the lease and LiteFS discards newer changes, causing data rollback.
-
-**Why it happens:** Distributed consensus is fundamentally complex. LiteFS uses Consul for leader election rather than embedding its own consensus protocol. The FUSE layer adds another abstraction that can mask failures. The system was designed for applications with mixed read/write workloads, but the failure modes around write availability are subtle.
-
-**Consequences:** For this project (read-only mirror with periodic sync writes), the impact is somewhat mitigated -- writes only happen during sync. But if sync runs on a replica node, it will fail silently or the proxy will attempt to forward it. If the primary fails during sync, the sync is lost and must retry. If autoscale is misconfigured, data can roll back to a previous state.
+**Consequences:** Developers wire up metrics, verify they compile, maybe even write unit tests that don't check the actual export pipeline, and ship. In production, no sync metrics appear in dashboards. The gap may not be noticed for days or weeks because the application works fine functionally.
 
 **Prevention:**
-- Pin the sync process to run ONLY on the primary node. Check the `.primary` file in the LiteFS directory before starting sync -- if it exists, this node is a replica and should not sync.
-- Disable autoscale stop for the primary region, or use static leasing where one specific region is always primary.
-- Configure the Consul lease TTL appropriately -- 10 seconds is reasonable for this use case since sync is infrequent.
-- Implement sync idempotency so a failed/partial sync can be safely retried.
-- Use `fly-replay` header for any write requests if using the HTTP proxy.
+- Add `MeterProvider` initialization alongside `TracerProvider` in `internal/otel/provider.go`. Return both shutdown functions.
+- Use the same autoexport pattern already planned for traces: `autoexport.NewMetricReader()` to allow environment-variable-driven metric export configuration.
+- Write a test that verifies at least one metric is actually recorded during a sync cycle by using an in-memory metric reader.
+- Verify in the integration test that `otel.GetMeterProvider()` returns a non-no-op provider.
 
-**Detection:** Sync failures with "read-only database" errors. Data appearing to revert to older state. The `.primary` file appearing/disappearing unexpectedly. Consul lease acquisition failures in logs.
+**Detection:** No metrics appearing in the OTel backend despite `Record()` calls being present in the code. Using `otel.GetMeterProvider()` and checking if it returns the default no-op provider.
 
-**Phase impact:** Infrastructure and deployment configuration (Phase 1). Must be designed before sync implementation.
+**Phase impact:** Sync metrics expansion task. The MeterProvider MUST be initialized BEFORE any metric recording code is written.
 
-**Confidence:** HIGH -- based on official LiteFS documentation and Fly.io community reports.
+**Confidence:** HIGH -- verified by reading `internal/otel/provider.go` which only creates a `TracerProvider`, and confirmed by OTel Go documentation that uninitialized meters produce no-op instruments.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 6: entproto Does Not Support M2M Edges
+### Pitfall 5: entrest and entgql Extensions May Conflict on Schema Annotations
 
-**What goes wrong:** entproto (the gRPC code generator for entgo) does not support many-to-many (M2M) edges, particularly M2M same-type edges. PeeringDB's data model has inherent M2M relationships (networks present at multiple facilities, facilities hosting multiple networks). Attempting to generate gRPC service definitions for schemas with M2M edges produces errors or generates incorrect proto definitions.
+**What goes wrong:** The existing ent schemas have `entgql.RelayConnection()`, `entgql.QueryField()`, and `entgql.OrderField()` annotations. Adding entrest as a second extension to the same `entc.Generate()` call requires its own annotations (`entrest.WithIncludeOperations()`, `entrest.WithSkip()`, etc.). Both extensions process the same schema annotations, and entrest may interpret or conflict with entgql annotations, particularly around:
+- Edge handling: entgql uses Relay connections; entrest uses its own pagination.
+- Field filtering: entgql uses `WhereInput`; entrest uses query parameters.
+- Operation scope: This project is read-only but entrest generates CRUD handlers by default.
 
-**Why it happens:** entproto generates proto messages from ent schemas, and protobuf messages cannot self-reference or easily represent join tables. The entproto codebase has a TODO comment acknowledging this gap (GitHub issue #2476).
+**Why it happens:** entgql and entrest are independent extensions with separate annotation systems. The ent extension API allows multiple extensions, but neither was designed to be aware of the other's annotations. Both generate code from the same schema definitions, and conflicts surface at code generation time (template collisions) or at runtime (handler registration conflicts).
 
 **Prevention:**
-- Design the entgo schema with entproto limitations in mind. Use intermediate "through" entities (e.g., `NetworkFacility` as a first-class entity rather than an M2M edge between `Network` and `Facility`) which maps naturally to PeeringDB's derived objects anyway.
-- Prioritize GraphQL (entgql) as the primary API surface -- it handles M2M relationships well via Relay connections.
-- For gRPC, consider hand-writing proto definitions for the M2M-heavy parts rather than relying on entproto generation.
-- Evaluate whether gRPC is truly needed for v1, or if GraphQL + REST covers the use cases.
+- Add the entrest extension to `ent/entc.go` alongside the existing entgql extension, both in the `entc.Extensions()` call.
+- Use `entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList)` on every schema to ensure only read operations are generated (this is a read-only mirror).
+- If entrest generates handler code that conflicts with existing gqlgen handlers, use `entrest.WithHandler(false)` on specific schemas and mount handlers manually.
+- Test code generation with both extensions before writing any handler mounting code. Run `go generate` and verify both GraphQL schemas and REST handlers compile.
+- Pin entrest version strictly in `go.mod` -- per GitHub issue #106, `WithIncludeOperations` may disable edges unexpectedly.
 
-**Detection:** Code generation errors mentioning edge types. Proto files with missing or incorrect repeated fields. gRPC responses that don't include expected relationship data.
+**Detection:** Code generation failures. Compilation errors in generated code. REST endpoints returning unexpected responses because entrest generated write handlers for a read-only database. Edge endpoints missing or behaving differently than expected.
 
-**Phase impact:** Schema design (Phase 1) and gRPC API surface (later phase). Must inform the entgo schema structure from the beginning.
+**Phase impact:** entrest integration task. Must validate code generation compatibility before building any REST handlers.
 
-**Confidence:** HIGH -- confirmed via ent/ent GitHub issue #2476.
+**Confidence:** MEDIUM -- entrest and entgql use separate annotation namespaces, but runtime handler conflicts and edge behavior (GitHub issue #106) are documented concerns.
 
 ---
 
-### Pitfall 7: entgo Eager Loading Generates N+1 Queries
+### Pitfall 6: PeeringDB Query Parameter Compatibility Is Much Deeper Than URL Paths
 
-**What goes wrong:** When loading edges in entgo, each edge requires a separate SQL query. A GraphQL query requesting networks with their facilities and IX presences will generate 1 query for networks + 1 query for facilities + 1 query for IX presences per network. With hundreds of networks, this becomes thousands of queries.
+**What goes wrong:** Teams implement PeeringDB URL path compatibility (`/api/net`, `/api/fac`) and basic response format, then discover that PeeringDB consumers rely heavily on the query parameter filtering syntax. PeeringDB supports Django-style query lookups: `?name__contains=Hurricane`, `?asn__in=13335,174,3356`, `?info_prefixes4__gte=1000`, `?updated__gt=2024-01-01T00:00:00Z`. These are not standard REST query parameters -- they use double-underscore suffixes (`__contains`, `__startswith`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`) that are specific to Django's ORM queryset filtering.
 
-**Why it happens:** entgo's eager loading uses `With*()` methods that execute additional queries per association. It cannot currently combine all associations into a single JOIN. The entgo team has acknowledged this will be "optimized in future versions." With SQLite, these queries are fast (local I/O, no network round trip), but the overhead is still meaningful at scale.
+**Why it happens:** PeeringDB's API is built on Django REST Framework, which automatically exposes the Django ORM's `__lookup` filter syntax as query parameters. Every field on every model can be filtered with these suffixes. Tools like peeringdb-py, peeringctl, and custom scripts use these filters extensively. A PeeringDB compat layer that doesn't support them is not actually compatible.
+
+**Consequences:** Existing PeeringDB tools that use filtered queries return full unfiltered datasets (if the params are ignored) or error out (if the params cause parse failures). Users discover incompatibility only when their scripts start returning wrong data or timing out from fetching full datasets.
 
 **Prevention:**
-- Accept that N+1 queries are less catastrophic with SQLite than with a network database -- all queries hit local disk/memory.
-- Use pagination aggressively in GraphQL (Relay cursor connections) to limit the number of root objects, which bounds the N+1 fan-out.
-- Implement query complexity analysis in the GraphQL layer to reject excessively deep/wide queries.
-- Consider caching frequently-accessed edge data at the application level if profiling shows hot paths.
-- Monitor query counts per request using OpenTelemetry spans on the entgo client.
+- Catalog the complete set of PeeringDB query parameter filters by examining the Django REST Framework viewsets in the PeeringDB source code. The key patterns are:
+  - Exact match: `?field=value`
+  - Contains: `?field__contains=value`
+  - Starts with: `?field__startswith=value`
+  - In list: `?field__in=val1,val2,val3`
+  - Numeric comparison: `?field__lt=N`, `?field__lte=N`, `?field__gt=N`, `?field__gte=N`
+  - Since timestamp: `?since=unix_timestamp`
+  - Field selection: `?fields=field1,field2`
+  - Pagination: `?limit=N&skip=N`
+  - Depth expansion: `?depth=0|1|2`
+- Translate these Django-style filters into ent predicates using the generated `Where` functions. Ent's predicate system maps well: `__contains` -> `field.Contains()`, `__in` -> `field.In()`, etc.
+- Build a generic query parameter parser that handles the `field__lookup` syntax and maps it to ent predicates dynamically.
+- Prioritize the most commonly used filters first: exact match, `__in`, `__contains`, `limit`/`skip`, `since`. The less common ones (`__startswith`, numeric comparisons) can be added incrementally.
 
-**Detection:** Slow API responses on queries with many edges. High query counts visible in OTel traces. SQLite busy timeout errors under concurrent read load.
+**Detection:** Test with real PeeringDB consumer tools (peeringdb-py `fetch_all` with filters). Compare query results against the real PeeringDB API.
 
-**Phase impact:** GraphQL API implementation (Phase 2-3). Design pagination and query limits early.
+**Phase impact:** PeeringDB compat layer implementation. The query parameter parser is the most complex component of the compat layer.
 
-**Confidence:** MEDIUM -- entgo documentation confirms the behavior; severity depends on dataset size and query patterns.
+**Confidence:** HIGH -- Django-style filter syntax is well-documented in PeeringDB API specs and confirmed by examining PeeringDB's Python source.
 
 ---
 
-### Pitfall 8: SQLite Driver Choice and Foreign Key PRAGMA Per-Connection
+### Pitfall 7: Duplicate Metric Instrument Registration Across Sync Worker Lifecycle
 
-**What goes wrong:** SQLite's `foreign_keys` PRAGMA is a per-connection setting that defaults to OFF. If any code path opens a connection without setting `PRAGMA foreign_keys = ON`, that connection can silently violate referential integrity. Additionally, choosing the wrong SQLite driver (mattn/go-sqlite3 vs modernc.org/sqlite) causes name registration conflicts, migration failures on subsequent runs, and CGO build complexity.
+**What goes wrong:** The sync worker runs on a schedule (hourly). If OTel metric instruments (counters, histograms) are created inside the `Sync()` method rather than at worker construction time, each sync cycle re-registers instruments with the same name. The OTel Go SDK handles duplicate registrations by returning the existing instrument if the definition matches exactly, but logs a warning if definitions differ (e.g., description text changes between runs). If instruments are created with slightly different parameters across code changes (description typo, unit change), the SDK returns a valid but semantically incorrect instrument.
 
-**Why it happens:** SQLite PRAGMAs are connection-scoped, not database-scoped. `journal_mode=WAL` persists, but `foreign_keys`, `busy_timeout`, and `synchronous` must be set on every new connection. The entgo SQLite dialect uses `dialect.SQLite` which maps to the driver name `sqlite3` (mattn's driver), but `modernc.org/sqlite` registers as `sqlite`. mattn's driver requires CGO; modernc doesn't but has known migration bugs (issue #2209).
+**Why it happens:** A natural pattern is to create instruments where they're used: `meter.Int64Counter("sync.objects.total")` inside `Sync()`. This works on the first call but creates duplicates on subsequent calls. The OTel specification says duplicate instrument registration MUST return a functional instrument, but it also says implementations SHOULD log a warning for conflicting definitions (same name, different description/unit/kind).
+
+**Consequences:** Log spam from duplicate registration warnings. Subtle metric bugs if instrument definitions drift between code versions. Performance overhead from repeated registration calls (minor but unnecessary).
 
 **Prevention:**
-- Use `modernc.org/sqlite` to avoid CGO dependency (critical for reproducible Docker builds on Fly.io). Pin to a tested version.
-- Write a custom `database/sql` driver wrapper or use entgo's `sql.OpenDB` with a connector that executes PRAGMAs on every new connection:
-  ```
-  PRAGMA journal_mode=WAL;
-  PRAGMA foreign_keys=ON;
-  PRAGMA busy_timeout=5000;
-  PRAGMA synchronous=NORMAL;
-  ```
-- Register the modernc driver with the name `sqlite3` to match entgo's dialect expectation, OR use entgo's `dialect.SQLite` with the correct driver name configuration.
-- Test migrations end-to-end: create schema, modify schema, verify no "invalid type INTEGER" errors on subsequent migrations.
+- Create all metric instruments once during `Worker` construction or via a `sync.Once` initializer. Store them as fields on the `Worker` struct.
+- Define instrument names, descriptions, and units as package-level constants.
+- Use the naming convention `peeringdb_plus.sync.*` for sync metrics to avoid collision with other instrumentation.
+- Standard instruments for sync:
+  - `peeringdb_plus.sync.duration` (Float64Histogram, seconds) -- full sync duration
+  - `peeringdb_plus.sync.objects.total` (Int64Counter) -- objects synced per type
+  - `peeringdb_plus.sync.errors.total` (Int64Counter) -- sync errors per type
+  - `peeringdb_plus.sync.status` (Int64UpDownCounter or Gauge) -- last sync status (success/failure)
+  - `peeringdb_plus.sync.http.requests.total` (Int64Counter) -- PeeringDB API requests made
+  - `peeringdb_plus.sync.http.duration` (Float64Histogram, seconds) -- PeeringDB API request duration
 
-**Detection:** Silent data integrity violations (missing FK enforcement). Build failures requiring GCC/CGO toolchain. Migration panics on the second `Schema.Create()` call.
+**Detection:** OTel SDK log warnings about duplicate instrument registration. Metric values not updating after first sync cycle.
 
-**Phase impact:** Project bootstrap (Phase 1). Driver and PRAGMA configuration must be correct from day one.
+**Phase impact:** Sync metrics expansion task. Instrument creation pattern must be decided before implementing individual metrics.
 
-**Confidence:** HIGH -- confirmed via entgo GitHub issues #1667, #2209 and SQLite documentation.
+**Confidence:** HIGH -- based on OTel Go SDK documentation for duplicate instrument registration behavior (GitHub issue #3229).
 
 ---
 
-### Pitfall 9: entrest Is Work-In-Progress with Breaking Changes Expected
+### Pitfall 8: LiteFS Read-Only Replicas Will Reject entrest Write Handler Attempts
 
-**What goes wrong:** entrest (lrstanley/entrest) explicitly warns: "Documentation & entrest itself are a work in progress (expect breaking changes)." Teams build their REST API surface on entrest and then face breaking changes in the generated code, API structure, or annotations between versions.
+**What goes wrong:** entrest generates CRUD handlers by default (Create, Read, Update, Delete). Even if only Read/List operations are configured via annotations, the generated OpenAPI spec may still describe write operations, and HTTP requests to those endpoints on a LiteFS replica will hit SQLite with write operations that fail because the database is read-only. On the primary, write operations will attempt to modify PeeringDB data in the local mirror, corrupting the synced dataset.
 
-**Why it happens:** entrest is a community project (not part of the official ent/contrib ecosystem like entgql and entproto). It's maintained by a single developer. The project is functional but not yet stable.
+**Why it happens:** entrest is designed for full CRUD applications. A read-only mirror is an unusual use case. If the schema annotations don't correctly exclude all write operations, or if a future entrest upgrade adds new default operations, write endpoints silently appear in the API.
+
+**Consequences:** On replicas: 500 errors with "attempt to write a readonly database" SQLite errors. On primary: data corruption if a client POSTs/PUTs to the REST API and modifies synced data, which then replicates to all replicas.
 
 **Prevention:**
-- Pin the entrest version strictly in go.mod. Do not auto-upgrade.
-- Treat entrest as a convenience for v1, not a permanent dependency. Be prepared to replace it with a hand-written REST layer if it becomes unmaintained.
-- Prioritize GraphQL (entgql, which is mature and officially maintained) as the primary API surface.
-- If REST is needed early, consider generating an OpenAPI spec from entrest but implementing handlers manually for critical endpoints.
+- Use `entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList)` at the schema level on every entity -- whitelist approach, not blacklist.
+- Add a global middleware that rejects all non-GET requests to the REST API path with 405 Method Not Allowed, as a defense-in-depth layer.
+- Verify the generated OpenAPI spec does not include POST/PUT/DELETE operations. Add a CI check that parses `openapi.json` and fails if write operations are present.
+- For the PeeringDB compat layer (hand-written), only register `GET` handlers. Use `mux.HandleFunc("GET /api/net", ...)` with method-specific routing.
 
-**Detection:** Build failures after `go get -u`. Generated code changes behavior between versions. Missing or renamed annotations.
+**Detection:** 500 errors on POST/PUT/DELETE requests. SQLite "readonly database" errors in logs. Data divergence between primary and replicas after unauthorized writes.
 
-**Phase impact:** REST API surface (later phase, Phase 3+). Not blocking for MVP if GraphQL is prioritized.
+**Phase impact:** entrest configuration and handler mounting. Must be verified during code generation, not discovered in production.
 
-**Confidence:** MEDIUM -- based on entrest's own documentation stating WIP status.
+**Confidence:** HIGH -- based on the LiteFS single-writer architecture and entrest's default CRUD generation behavior.
 
 ---
 
-### Pitfall 10: Full Re-Fetch Causes Stale Read Windows During Sync
+### Pitfall 9: otelhttp Transport Wrapping Interferes with Custom Retry Delay and Rate Limiter Timing
 
-**What goes wrong:** During a full re-fetch sync, the database is in a transitional state. If the sync deletes all records from a table before repopulating it, any API request during that window returns empty results. Even if done in a transaction, the transaction holds a write lock that blocks other writers (though readers can continue in WAL mode). If the sync takes minutes, readers see stale data from before the transaction started.
+**What goes wrong:** The PeeringDB client uses `golang.org/x/time/rate.Limiter` for rate limiting and `time.After()` for retry backoff delays. When `otelhttp.NewTransport` wraps the `http.Client.Transport`, it creates spans that include the full round-trip time. But the rate limiter's `Wait()` call happens outside the transport layer (in `doWithRetry()`), and the retry delay also happens outside the transport. If someone tries to instrument at the wrong layer -- e.g., moving rate limiting or retry logic into a custom `http.RoundTripper` to "centralize" instrumentation -- the rate limiter and retry timing break because `RoundTripper.RoundTrip()` must not have side effects beyond the single request (per `http.RoundTripper` contract).
 
-**Why it happens:** SQLite's WAL mode provides snapshot isolation -- readers see the database as it was when their read transaction began. A long-running write transaction (sync) doesn't block readers, but readers won't see the new data until the write commits. This is actually correct behavior, but the staleness window equals the sync duration.
+**Why it happens:** There's a temptation to move all HTTP-related concerns (rate limiting, retry, tracing) into the transport layer for "clean" instrumentation. But `http.RoundTripper` has a strict contract: it should not modify the request, should not follow redirects, and should not implement retry logic. Rate limiting and retry belong at a higher abstraction level.
+
+**Consequences:** If retry logic is moved into the transport: violation of `http.RoundTripper` contract, subtle bugs with request body re-reads (bodies are consumed on first read), broken context cancellation semantics. If rate limiting is moved into the transport: `Wait()` blocks inside `RoundTrip()`, which can cause unexpected timeouts and breaks the assumption that `RoundTrip()` duration equals network time.
 
 **Prevention:**
-- Use a two-database strategy: sync into a "staging" database, then atomically swap it with the "live" database. This minimizes the staleness window to the swap time rather than the sync duration.
-- If using a single database, sync per-table using UPSERT (INSERT OR REPLACE) rather than DELETE-then-INSERT. This keeps existing data available throughout.
-- If using per-table transactions, sync in dependency order and accept brief inconsistency windows between tables.
-- Add a `/health` or `/status` endpoint that reports the last successful sync timestamp and current sync state, so consumers know data freshness.
+- Keep the existing architecture: `doWithRetry()` owns rate limiting and retry logic. `otelhttp.NewTransport` wraps only the base `http.DefaultTransport` (or whatever transport is configured).
+- Layer the spans correctly:
+  1. Application layer: `FetchAll()` span (per object type)
+  2. Client layer: `doWithRetry()` span (per page/request, includes retry attempts)
+  3. Transport layer: `otelhttp.NewTransport` span (per HTTP round-trip)
+- The transport span will automatically be a child of the `doWithRetry()` span because the context flows through `http.NewRequestWithContext()`.
+- Do NOT create a custom `http.RoundTripper` that wraps retry/rate-limiting around `otelhttp.NewTransport`.
 
-**Detection:** API responses returning empty results during sync. Monitoring showing data age exceeding sync interval. User reports of missing data that reappears after sync completes.
+**Detection:** `RoundTrip()` durations that include rate-limiter wait time (should only be network time). Request bodies failing to read on retry. Context timeouts firing inside the transport layer.
 
-**Phase impact:** Sync strategy design (Phase 2). Must be decided before implementing the sync mechanism.
+**Phase impact:** OTel HTTP client tracing task. The instrumentation approach must respect the existing client architecture.
 
-**Confidence:** MEDIUM -- based on SQLite WAL semantics (documented) applied to this specific use case.
+**Confidence:** HIGH -- based on Go `http.RoundTripper` documentation and the existing `doWithRetry()` implementation in `internal/peeringdb/client.go`.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 11: OpenTelemetry in entgo Uses OpenCensus Bridge
+### Pitfall 10: entrest Field Filtering Exposes Internal Ent Fields
 
-**What goes wrong:** entgo's native tracing support uses OpenCensus, not OpenTelemetry. Since OpenCensus merged into OpenTelemetry, using entgo's built-in tracing requires the OpenCensus-to-OpenTelemetry bridge, which adds complexity and may have subtle compatibility issues.
+**What goes wrong:** entrest auto-generates endpoints for all schema fields unless explicitly skipped. Internal fields like `status` (used for soft-delete filtering), edge FK fields like `org_id` (which are ent implementation details), and computed fields stored for PeeringDB compatibility may all appear in the REST API without curation. Some of these fields have different semantics in the REST API than they do in the database (e.g., `status` is always "ok" in this mirror because deleted records are filtered during sync).
 
 **Prevention:**
-- Use the `go.opentelemetry.io/otel/bridge/opencensus` package to bridge entgo's OpenCensus traces to OpenTelemetry.
-- Instrument HTTP/gRPC/GraphQL layers directly with OTel middleware (otelhttp, otelgrpc) rather than relying solely on entgo's built-in tracing.
-- Consider writing a custom entgo hook/interceptor that creates OTel spans directly, bypassing the bridge entirely.
+- Review every field in every schema for REST API appropriateness.
+- Use `entrest.WithReadOnly(true)` on fields that should be visible but not writable (defense-in-depth alongside schema-level read-only).
+- Use `entrest.WithSkip(true)` on fields that should not appear in the REST API at all.
+- Document which fields are exposed in the OpenAPI spec and verify against expectations.
 
-**Phase impact:** Observability setup (Phase 2-3). Not blocking but adds integration complexity.
+**Phase impact:** entrest schema annotation task. Requires per-field review of all 13 schemas.
 
-**Confidence:** MEDIUM -- entgo GitHub issue #1232 confirms the OpenCensus dependency; bridge behavior needs validation.
+**Confidence:** MEDIUM -- entrest's default behavior is to expose all fields; curation is opt-out.
 
 ---
 
-### Pitfall 12: HTMX + Templ Web UI as Secondary Priority Can Become Scope Creep
+### Pitfall 11: PeeringDB `depth` Parameter Changes Response Shape Fundamentally
 
-**What goes wrong:** The web UI is listed as "secondary priority" but HTMX + Templ require server-side rendering logic, additional routes, template compilation, and CSS/styling decisions. What starts as "a simple browse UI" expands to search, filtering, comparison views, and network topology visualization -- consuming disproportionate development time.
+**What goes wrong:** PeeringDB's `depth` parameter transforms the response structure. At `depth=0`, related objects are referenced by ID. At `depth=1`, sets (one-to-many relationships) are expanded as arrays of full objects in `_set` fields. At `depth=2`, those nested objects also expand their relationships. The compat layer must implement this shape-shifting behavior, which means the JSON serialization is not a simple "marshal ent struct" -- it requires conditional field inclusion and recursive edge loading.
 
 **Prevention:**
-- Defer the web UI to a dedicated phase after all API surfaces are stable.
-- Define a strict scope for v1 UI: read-only browsing of entities with links between related objects. No search, no comparison, no visualization.
-- Use the GraphQL API as the data source for the UI (dogfooding the primary API).
-- Set a hard time-box for UI work and enforce it.
+- Start with `depth=0` only for the initial compat layer implementation. This is the most common usage and requires only flat field serialization.
+- Add `depth=1` support incrementally. Map PeeringDB's `_set` field convention to ent's `WithEdges()` eager loading.
+- Do NOT implement `depth > 1` unless demand is demonstrated. Deep nesting is expensive and rarely used.
+- Each depth level requires its own serialization path -- do not try to make one generic recursive serializer.
 
-**Phase impact:** Should be the last phase. Must not block API development.
+**Phase impact:** PeeringDB compat layer implementation. Depth support can be phased: `depth=0` first, `depth=1` later.
 
-**Confidence:** HIGH -- this is a general software engineering pattern; the specific risk is amplified by the "secondary priority" framing which invites deprioritization-then-catch-up cycles.
+**Confidence:** HIGH -- based on PeeringDB API documentation about depth parameter behavior.
 
 ---
 
-### Pitfall 13: PeeringDB `depth` Parameter Behavior Differs Between Single and List Endpoints
+### Pitfall 12: Mounting Two REST API Surfaces on the Same ServeMux Requires Careful Path Routing
 
-**What goes wrong:** PeeringDB's `depth` parameter behaves differently for single-object GET (`/api/net/1?depth=2`) vs. list GET (`/api/net?depth=2`). For single objects, depth expands both sets AND single relationships (e.g., `net_id` becomes an object). For list operations, depth ONLY expands sets, not single relationships. Teams assume uniform behavior and get different response shapes depending on the endpoint.
+**What goes wrong:** The existing `http.ServeMux` already handles `POST /sync`, `GET /health`, and the GraphQL endpoint. Adding both entrest handlers (at `/api/v1/...` or similar) and PeeringDB compat handlers (at `/api/net`, `/api/fac`, etc.) creates path routing complexity. The PeeringDB paths (`/api/net`, `/api/fac`) overlap with potential entrest paths. Additionally, readiness middleware must apply to API endpoints but not health/sync endpoints.
 
 **Prevention:**
-- Document the depth behavior difference in the sync client code.
-- For full re-fetch sync, use `depth=0` (default, no expansion) and resolve relationships via IDs. This produces the simplest, most predictable response format.
-- If depth expansion is used, have separate deserialization paths for single vs. list responses.
+- Use path prefixes to separate concerns:
+  - `/api/net`, `/api/fac`, `/api/ix`, etc. for PeeringDB compat (13 object types)
+  - `/rest/v1/...` or `/openapi/...` for entrest-generated endpoints (distinct prefix, not `/api/`)
+  - `/graphql` for GraphQL (already exists)
+  - `/health`, `/sync` for operational endpoints (already exist)
+- Consider upgrading to chi if path grouping and middleware composition become unwieldy with stdlib `ServeMux`. The existing CLAUDE.md STACK notes chi as the fallback when stdlib proves insufficient.
+- Apply readiness middleware to API groups but not operational endpoints.
+- Wrap all API handlers with `otelhttp.NewHandler()` for incoming request tracing.
 
-**Phase impact:** Sync client implementation (Phase 2).
+**Phase impact:** HTTP handler mounting task. Path structure must be decided before implementing either REST surface.
 
-**Confidence:** HIGH -- documented in PeeringDB API specs.
+**Confidence:** MEDIUM -- stdlib `ServeMux` can handle this with Go 1.22+ method routing, but middleware composition may push toward chi.
+
+---
+
+### Pitfall 13: Sync Metrics Must Record Inside the Transaction, Not Just at Completion
+
+**What goes wrong:** The natural place to record sync metrics is after `tx.Commit()` -- record total objects synced, duration, etc. But this misses per-type granularity (how many organizations vs. networks were synced) and in-progress visibility (no metrics until the full sync completes, which can take minutes). If the sync fails partway through, the per-type metrics for completed steps are lost.
+
+**Prevention:**
+- Record per-type metrics inside the sync step loop, not just at the end:
+  - After each `step.fn()` completes, record `peeringdb_plus.sync.objects.total` with attribute `type={step.name}` and value `count`.
+  - Record `peeringdb_plus.sync.step.duration` per step.
+- Record the overall sync result (success/failure) as a separate metric after the transaction commits or rolls back.
+- Use attributes (not separate metric names) to distinguish object types: `sync.objects{type="org"}`, not `sync.org.objects`.
+- The existing `objectCounts` map in `Sync()` already captures per-type counts -- just add `Record()` calls after each step.
+
+**Phase impact:** Sync metrics expansion task. Requires modifying the sync loop, not just adding metrics at the end.
+
+**Confidence:** HIGH -- based on inspection of the existing `Sync()` method structure in `internal/sync/worker.go`.
 
 ---
 
@@ -284,53 +314,47 @@ Mistakes that cause rewrites, data loss, or fundamental architecture problems.
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |-------------|---------------|------------|
-| Infrastructure / LiteFS setup | LiteFS unsupported, primary election complexity (#1, #5) | Pin version, design storage abstraction, configure static leasing |
-| Entgo schema design | PeeringDB spec mismatch (#2), FK violations (#4), entproto M2M gaps (#6) | Analyze Python source, use "through" entities, defer FK enforcement |
-| SQLite driver setup | Driver conflicts, PRAGMA per-connection (#8) | Use modernc, connection wrapper for PRAGMAs |
-| Sync implementation | Rate limits, WAL size, stale reads (#3, #10) | Per-table transactions, UPSERT strategy, staging DB |
-| GraphQL API | N+1 queries (#7) | Pagination, query complexity limits, OTel monitoring |
-| gRPC API | M2M edge generation failure (#6) | Use intermediate entities, consider hand-written protos |
-| REST API | entrest breaking changes (#9) | Pin version, treat as convenience not dependency |
-| Observability | OpenCensus bridge (#11) | Direct OTel instrumentation, bridge for entgo only |
-| Web UI | Scope creep (#12) | Strict scope, time-box, defer to last phase |
+| OTel HTTP client tracing | Span hierarchy wrong with retries (#1), transport layer violations (#9) | Design span tree before instrumenting; keep retry logic outside RoundTripper |
+| MeterProvider setup | No-op meter silently drops all metrics (#4) | Initialize MeterProvider alongside TracerProvider before any metric code |
+| Sync metrics expansion | Duplicate instrument registration (#7), metrics only at completion (#13) | Create instruments once at Worker construction; record per-step |
+| entrest integration | Extension conflicts with entgql (#5), write handlers on read-only DB (#8) | Test codegen with both extensions; whitelist read-only operations |
+| entrest field exposure | Internal fields leaked to API (#10) | Per-field review and annotation of all 13 schemas |
+| PeeringDB compat: response format | Response envelope mismatch (#2), field name gaps (#3) | Separate API surfaces; reuse existing PeeringDB types for serialization |
+| PeeringDB compat: query params | Django-style filter syntax (#6) | Build query parameter parser; prioritize common filters |
+| PeeringDB compat: depth | Response shape changes per depth (#11) | Start with depth=0; phase in depth=1 incrementally |
+| HTTP routing | Path conflicts between REST surfaces (#12) | Distinct path prefixes; consider chi for middleware grouping |
 
 ## Sources
 
-### LiteFS / Fly.io
-- [LiteFS Docs](https://fly.io/docs/litefs/)
-- [LiteFS Status Discussion](https://community.fly.io/t/what-is-the-status-of-litefs/23883)
-- [Sunsetting LiteFS Cloud](https://community.fly.io/t/sunsetting-litefs-cloud/20829)
-- [LiteFS Production Concerns (GitHub #259)](https://github.com/superfly/litefs/issues/259)
-- [LiteFS How It Works](https://fly.io/docs/litefs/how-it-works/)
-- [LiteFS Primary Detection](https://fly.io/docs/litefs/primary/)
-- [LiteFS HTTP Proxy](https://fly.io/docs/litefs/proxy/)
-- [WAL Mode in LiteFS](https://fly.io/blog/wal-mode-in-litefs/)
+### OpenTelemetry
+- [otelhttp package](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp) -- Transport wrapping, client instrumentation
+- [OTel HTTP semantic conventions](https://opentelemetry.io/docs/specs/semconv/http/http-spans/) -- Retry span conventions, `http.request.resend_count`
+- [OTel Go metrics instrumentation](https://opentelemetry.io/docs/languages/go/instrumentation/) -- Meter, instrument creation, MeterProvider setup
+- [Duplicate instrument registration (GitHub #3229)](https://github.com/open-telemetry/opentelemetry-go/issues/3229) -- Behavior on duplicate registration
+- [OTel Go 2025 goals](https://opentelemetry.io/blog/2025/go-goals/) -- Semantic convention updates
+- [otelhttp transport source](https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/instrumentation/net/http/otelhttp/transport.go) -- Transport implementation details
+- [OTel context propagation](https://opentelemetry.io/docs/concepts/context-propagation/) -- How context flows through HTTP clients
+- [otelhttp deprecations (GitHub releases)](https://github.com/open-telemetry/opentelemetry-go-contrib/releases) -- DefaultClient deprecated, use NewTransport
+
+### entrest
+- [entrest annotation reference](https://lrstanley.github.io/entrest/openapi-specs/annotation-reference/) -- WithIncludeOperations, WithSkip, WithReadOnly, WithHandler
+- [entrest getting started](https://lrstanley.github.io/entrest/guides/getting-started/) -- Extension setup, handler mounting, chi integration
+- [entrest GitHub issues](https://github.com/lrstanley/entrest/issues) -- Open issues including #106 (operations disable edges), #127 (field.Strings bug)
+- [entrest repository](https://github.com/lrstanley/entrest) -- WIP status warning, v1.0.2
 
 ### PeeringDB
-- [PeeringDB API Specs](https://docs.peeringdb.com/api_specs/)
-- [PeeringDB OpenAPI Schema Errors (GitHub #1878)](https://github.com/peeringdb/peeringdb/issues/1878)
-- [PeeringDB Sync Validation Failures (GitHub #637)](https://github.com/peeringdb/peeringdb/issues/637)
-- [peeringdb-py FK Constraint Errors (GitHub #46)](https://github.com/peeringdb/peeringdb-py/issues/46)
-- [django-peeringdb Sync Errors (GitHub #31)](https://github.com/peeringdb/django-peeringdb/issues/31)
-- [PeeringDB Query Limits Guide](https://docs.peeringdb.com/howto/work_within_peeringdbs_query_limits/)
-- [Net/ixlan Keys Missing (GitHub #1658)](https://github.com/peeringdb/peeringdb/issues/1658)
+- [PeeringDB API Specs](https://docs.peeringdb.com/api_specs/) -- Response envelope, query parameters, depth behavior
+- [PeeringDB API Documentation](https://www.peeringdb.com/apidocs/) -- Endpoint listing, object types
+- [PeeringDB query limits](https://docs.peeringdb.com/howto/work_within_peeringdbs_query_limits/) -- Rate limiting, pagination
 
-### entgo / Ent Ecosystem
-- [Ent Supported Dialects](https://entgo.io/docs/dialects/)
-- [Ent Eager Loading](https://entgo.io/docs/eager-load/)
-- [entproto M2M Same-Type Edge Issue (GitHub #2476)](https://github.com/ent/ent/issues/2476)
-- [Ent SQLite modernc Migration Bug (GitHub #2209)](https://github.com/ent/ent/issues/2209)
-- [Ent CGo-Free SQLite Discussion (GitHub #1667)](https://github.com/ent/ent/discussions/1667)
-- [Ent OpenTelemetry Issue (GitHub #1232)](https://github.com/ent/ent/issues/1232)
-- [entrest (lrstanley)](https://lrstanley.github.io/entrest/)
-- [entproto Edges Documentation](https://entgo.io/docs/grpc-edges/)
+### Ent
+- [Ent extensions](https://entgo.io/docs/extensions/) -- Multiple extension configuration
+- [entgql GraphQL integration](https://entgo.io/docs/graphql/) -- Existing annotation patterns
 
-### SQLite
-- [SQLite WAL Documentation](https://sqlite.org/wal.html)
-- [SQLite Atomic Commit](https://sqlite.org/atomiccommit.html)
-- [SQLite PRAGMAs](https://sqlite.org/pragma.html)
-- [SQLite Production Configuration (glorifiedgluer)](https://gluer.org/blog/sqlite-production-configuration/)
-- [SQLite Recommended PRAGMAs](https://highperformancesqlite.com/articles/sqlite-recommended-pragmas)
-- [Gotchas with SQLite in Production (Anze Pecar)](https://blog.pecar.me/sqlite-prod/)
-- [SQLite Concurrent Writes and Locking](https://tenthousandmeters.com/blog/sqlite-concurrent-writes-and-database-is-locked-errors/)
-- [SQLITE_BUSY Despite Timeout (Bert Hubert)](https://berthub.eu/articles/posts/a-brief-post-on-sqlite3-database-locked-despite-timeout/)
+### Codebase (verified against source)
+- `internal/otel/provider.go` -- Only TracerProvider initialized, no MeterProvider
+- `internal/peeringdb/client.go` -- `doWithRetry()` retry and rate limiting architecture
+- `internal/sync/worker.go` -- Sync loop structure, per-type step pattern
+- `ent/entc.go` -- Current extension configuration (entgql only)
+- `ent/schema/organization.go`, `ent/schema/network.go` -- Existing schema annotations
+- `internal/peeringdb/types.go` -- PeeringDB response types with JSON field names

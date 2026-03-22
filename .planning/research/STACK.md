@@ -1,211 +1,221 @@
-# Technology Stack
+# Technology Stack: v1.1 Additions
 
-**Project:** PeeringDB Plus
+**Project:** PeeringDB Plus v1.1 (REST API & Observability)
 **Researched:** 2026-03-22
+**Scope:** Stack additions/changes for OTel HTTP client tracing, expanded sync metrics, entrest REST API, and PeeringDB-compatible REST layer. Does NOT re-research validated v1.0 stack.
 
-## Recommended Stack
+## New Dependencies
 
-### Language & Runtime
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| Go | 1.26 | Application language | Project constraint. Released 2026-02-10. Green Tea GC enabled by default (10-40% lower GC overhead). Enhanced `go fix` with modernizers. Stack allocation improvements for slices. | HIGH |
-
-### ORM & Code Generation
+### OTel HTTP Client Tracing
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| entgo.io/ent | v0.14.5 | ORM / schema-first code generation | Project constraint. Schema-first with code generation produces type-safe Go clients. Ecosystem packages (entgql, entproto, entrest) generate all three API surfaces from a single schema definition. Published 2025-07-21. | HIGH |
-| entgo.io/contrib (entgql) | v0.7.0 | GraphQL API generation from ent schemas | Mature extension for ent. Generates Relay-compliant GraphQL with pagination, filtering, sorting, and eager-loading. Works with gqlgen. Published 2024-08-02, with module updates through 2025-03. | HIGH |
-| entgo.io/contrib (entproto) | v0.7.0 | Protobuf/gRPC generation from ent schemas | Generates .proto files and gRPC service implementations from ent schemas. Experimental but functional -- requires protoc toolchain. Same module as entgql. | MEDIUM |
-| github.com/lrstanley/entrest | v1.0.2 | OpenAPI REST generation from ent schemas | Generates compliant OpenAPI specs and HTTP handler implementations. Supports pagination, filtering, eager-loading, sorting. v1.0.2 published 2025-08-21. MIT licensed. Documentation warns "expect breaking changes" but module is v1.x. | MEDIUM |
-| github.com/99designs/gqlgen | latest | GraphQL server library for Go | Required by entgql. Schema-first GraphQL server with code generation. Actively maintained (last published 2026-03-09). The standard Go GraphQL server library. | HIGH |
+| go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp | v0.67.0 | HTTP client transport tracing | **Already in go.mod** (used for server-side middleware). The same package provides `otelhttp.NewTransport(base http.RoundTripper)` which wraps outgoing HTTP requests with trace spans, propagates W3C TraceContext headers, and records request duration/size metrics. Zero new dependencies needed. | HIGH |
 
-### Database & Storage
+**Integration point:** The PeeringDB `Client` struct (internal/peeringdb/client.go) currently creates a bare `&http.Client{Timeout: 30 * time.Second}`. Wrapping the transport is a one-line change:
 
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| modernc.org/sqlite | v1.36.0+ | CGo-free SQLite driver | Pure Go SQLite implementation via C-to-Go transpilation. No CGo dependency means simpler cross-compilation and deployment. Works with ent via standard database/sql interface. Bundles SQLite 3.49.0+. Actively maintained. | HIGH |
-| superfly/litefs | v0.5.14 | SQLite replication across Fly.io regions | FUSE-based filesystem that transparently replicates SQLite databases across a cluster. Intercepts writes to detect transaction boundaries and streams changes to replicas. Published 2025-04-22. | MEDIUM |
-
-**CRITICAL WARNING on LiteFS:**
-- LiteFS Cloud (managed backups) was **discontinued October 2024**
-- LiteFS itself is in **maintenance mode** with limited Fly.io support
-- Pre-1.0, APIs may change, no guaranteed roadmap
-- Fly.io states they "cannot provide support or guidance" for this product
-- Still stable and running in production, but budget extra development time for troubleshooting
-- No viable drop-in alternative exists for the same use case (edge SQLite replication)
-- **Mitigation:** Implement Litestream as backup strategy alongside LiteFS for disaster recovery
-
-### HTTP & Routing
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| net/http (stdlib) | Go 1.26 | HTTP server, base mux | Go 1.22+ ServeMux supports method-based routing and path parameters natively. Sufficient for this project's needs. No external router dependency needed for the API surfaces since entrest and gqlgen provide their own handlers. | HIGH |
-| github.com/go-chi/chi/v5 | v5.2.x | HTTP router (if needed) | Use only if net/http ServeMux proves insufficient for middleware composition. Chi is lightweight (<1000 LOC), implements standard http.Handler, and provides route grouping with middleware. Published 2026-02-05. Prefer stdlib first. | MEDIUM |
-
-**Recommendation:** Start with net/http stdlib. The generated API handlers (entgql, entrest) provide their own HTTP handlers that compose with standard middleware. Chi is a fallback if middleware composition becomes unwieldy.
-
-### gRPC
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| google.golang.org/grpc | latest | gRPC server implementation | Required by entproto-generated code. Standard gRPC-Go implementation. Higher raw performance (~20K rps) than ConnectRPC (~16K rps). entproto generates code targeting protoc-gen-go-grpc. | HIGH |
-| google.golang.org/protobuf | latest | Protocol Buffers runtime | Required by entproto and gRPC. Standard protobuf Go runtime. | HIGH |
-| buf.build/buf/cli | latest | Protobuf toolchain | Use buf instead of raw protoc for proto file management. Better dependency management, linting, breaking change detection. Recommended by project CLAUDE.md (TL-4). | MEDIUM |
-
-**Why not ConnectRPC:** entproto generates code targeting standard protoc-gen-go-grpc, not ConnectRPC. Adopting ConnectRPC would require custom code generation or manual adaptation. The read-only, machine-to-machine nature of this API doesn't benefit from ConnectRPC's HTTP/1.1 browser friendliness -- that's what the REST and GraphQL surfaces are for.
-
-### Observability
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| go.opentelemetry.io/otel | v1.35+ | OpenTelemetry API | Project constraint. Stable for traces and metrics. Published 2026-03-06. | HIGH |
-| go.opentelemetry.io/otel/sdk | v1.35+ | OpenTelemetry SDK | Trace and metric SDK. Published 2026-02-02. | HIGH |
-| go.opentelemetry.io/contrib/bridges/otelslog | latest | slog-to-OTel log bridge | Bridges stdlib slog to OpenTelemetry log pipeline. <1% overhead. Adds trace/span IDs to log records for correlation. | HIGH |
-| go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp | latest | HTTP instrumentation | Automatic span creation for incoming HTTP requests. Works with any http.Handler (chi, stdlib, etc). Published 2026-03-06. | HIGH |
-| log/slog (stdlib) | Go 1.26 | Structured logging | Stdlib structured logging. Use with otelslog bridge for OTel integration. Zero external dependency. Per project CLAUDE.md (OBS-1, OBS-5). | HIGH |
-
-**Logging strategy:** Use slog as the primary logger, bridge to OTel via otelslog. No zerolog/zap dependency needed -- slog is sufficient and keeps the dependency tree minimal per MD-1.
-
-### Web UI (Secondary Priority)
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| github.com/a-h/templ | v0.3.x | Type-safe HTML templating | Compiles .templ files to Go code with full type checking. No runtime template parsing. 5,400+ importers. Published 2026-02-28. | HIGH |
-| htmx | 2.0.8 | Frontend interactivity without JS | Server-driven UI updates via HTML attributes. Delivered as a single JS file from CDN. No build toolchain. htmx 4.0 expected mid-2026 but 2.0.x is stable. | HIGH |
-
-### PeeringDB Sync
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| net/http (stdlib) | Go 1.26 | HTTP client for PeeringDB API | Standard HTTP client is sufficient for fetching JSON from PeeringDB REST API. No need for a PeeringDB client library -- the only Go library (gmazoyer/peeringdb) is read-only, unmaintained, and doesn't handle the API spec discrepancies noted in PROJECT.md. Roll our own sync client. | HIGH |
-| encoding/json (stdlib) | Go 1.26 | JSON deserialization | Parse PeeringDB API responses. Custom unmarshaling needed to handle spec-vs-reality discrepancies. | HIGH |
-
-**Why not use a PeeringDB Go client:** No official Go client exists. The community library (github.com/gmazoyer/peeringdb) is minimal and doesn't handle the documented API response divergence from the OpenAPI spec. A custom sync client gives full control over response parsing, error handling, and retry logic.
-
-### Build & Development Tooling
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| go-task/task | v3.x | Task runner | YAML-based task definitions. Cross-platform. Checksum-based dependency tracking. Cleaner than Makefile for Go projects. Widely adopted in Go ecosystem 2025-2026. | MEDIUM |
-| golangci-lint | latest | Linter aggregator | Per project CLAUDE.md (TL-1, G-2). Runs gofumpt, staticcheck, vet, and custom linters. | HIGH |
-| govulncheck | latest | Vulnerability scanning | Per project CLAUDE.md (TL-2, CI-4). Checks dependencies for known vulnerabilities. | HIGH |
-| github.com/air-verse/air | latest | Hot reload for development | File-watching rebuild for development. Watches .go and .templ files, rebuilds and restarts. | LOW |
-
-### Testing
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| testing (stdlib) | Go 1.26 | Test framework | Standard Go testing. Table-driven tests per T-1. -race flag per T-2. | HIGH |
-| entgo.io/ent/enttest | v0.14.5 | Ent test helpers | Provides test client setup with auto-migration for SQLite. Spins up in-memory or file-backed test databases. | HIGH |
-
-### Dependency Injection
-
-**Use manual DI.** This is a read-only mirror with a straightforward dependency graph: config -> db client -> ent client -> API handlers. No framework needed. Wire or fx would be over-engineering for this scope. Revisit only if the constructor chain exceeds ~15 dependencies.
-
-## Alternatives Considered
-
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| SQLite driver | modernc.org/sqlite | mattn/go-sqlite3 | Requires CGo, complicates cross-compilation and Fly.io deployment. modernc.org works with ent. |
-| SQLite driver | modernc.org/sqlite | ncruces/go-sqlite3 (wazero) | Newer, less proven with ent. 314% faster reads in some benchmarks but uses WASM runtime (wazero) which adds complexity. modernc.org is the established CGo-free choice. |
-| Edge replication | LiteFS | Turso/LibSQL | Turso is a managed service with its own pricing. LiteFS is self-hosted on Fly.io. LibSQL is a fork of SQLite which may diverge. LiteFS keeps us on standard SQLite with ent compatibility. |
-| Edge replication | LiteFS | Litestream | Litestream is disaster recovery (backup to S3), not read replication. Does not provide edge-local read copies. Use alongside LiteFS, not instead of. |
-| HTTP router | net/http stdlib | chi v5 | Stdlib is sufficient for generated handlers. Chi adds middleware composition but is premature until proven needed. |
-| HTTP router | net/http stdlib | Fiber / Echo / Gin | Heavy frameworks with custom context types. Don't compose well with generated ent handlers that expect standard http.Handler. |
-| GraphQL | gqlgen (via entgql) | graphql-go/graphql | gqlgen is required by entgql. No choice here. |
-| gRPC | google.golang.org/grpc | ConnectRPC | entproto generates standard gRPC code. ConnectRPC would require custom codegen or manual adaptation. |
-| REST | entrest (lrstanley) | entoas (official) | entoas only generates OpenAPI specs, not HTTP handlers. entrest generates both spec and implementation. |
-| Logging | slog (stdlib) | zerolog / zap | slog is stdlib, has OTel bridge, and meets all requirements (OBS-1, OBS-5). External loggers add dependencies for marginal gains in a non-latency-critical path. |
-| Templating | templ | html/template (stdlib) | templ provides compile-time type checking, better error messages, and component composition. html/template has runtime errors and stringly-typed templates. |
-| DI | Manual | Wire / fx | Unnecessary complexity for a project with a simple, linear dependency graph. |
-| Task runner | task | Makefile | YAML syntax is clearer, cross-platform, checksum-based deps. Make works but tab-sensitivity and arcane syntax are friction. |
-
-## Version Pinning Strategy
-
-Pin all dependencies in go.mod with exact versions. Use `go mod tidy` to maintain consistency. Key pins:
-
-```
-entgo.io/ent v0.14.5
-entgo.io/contrib v0.7.0
-github.com/lrstanley/entrest v1.0.2
-github.com/99designs/gqlgen <latest at project start>
-modernc.org/sqlite v1.36.0+
-go.opentelemetry.io/otel v1.35.0+
-go.opentelemetry.io/otel/sdk v1.35.0+
-github.com/a-h/templ v0.3.x
+```go
+http: &http.Client{
+    Timeout:   30 * time.Second,
+    Transport: otelhttp.NewTransport(http.DefaultTransport),
+},
 ```
 
-## Installation
+**What it provides:**
+- Automatic span creation for each outgoing HTTP request (span kind: Client)
+- Default span name: `"HTTP GET"` (customizable via `WithSpanNameFormatter`)
+- Semantic convention attributes: `http.request.method`, `http.response.status_code`, `server.address`, `url.full`
+- Request/response size metrics
+- W3C TraceContext propagation into outgoing request headers
+- Span lifecycle extends until response body is closed or reaches EOF
+
+**What it does NOT provide (must add manually):**
+- PeeringDB-specific span attributes (object type, page number, retry attempt)
+- These should be added as span events or attributes within `doWithRetry` and `FetchAll`
+
+**No new `go get` required.** The package is already a direct dependency at v0.67.0.
+
+### Expanded Sync Metrics
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| go.opentelemetry.io/otel/metric | v1.42.0 | OTel metric instruments | **Already in go.mod.** Used to create counters, histograms, and gauges. The existing `internal/otel/metrics.go` defines `SyncDuration` and `SyncOperations` but the sync worker never calls `.Record()` or `.Add()` on them. | HIGH |
+
+**Current state:** Two metrics are registered but never recorded:
+- `pdbplus.sync.duration` (Float64Histogram) -- registered, not recorded
+- `pdbplus.sync.operations` (Int64Counter) -- registered, not recorded
+
+**Recommended expansion (no new dependencies):**
+
+| Metric | Type | Attributes | Purpose |
+|--------|------|------------|---------|
+| `pdbplus.sync.duration` | Float64Histogram | `status=success\|failed` | Total sync cycle time. **Exists, needs recording.** |
+| `pdbplus.sync.operations` | Int64Counter | `status=success\|failed` | Sync attempt count. **Exists, needs recording.** |
+| `pdbplus.sync.objects` | Int64Counter | `type=org\|net\|fac\|...`, `action=upsert\|delete` | Per-type object counts per sync. **New.** |
+| `pdbplus.sync.last_success` | Float64Gauge | (none) | Unix timestamp of last successful sync. **New.** Enables "time since last sync" alerts. |
+| `pdbplus.sync.step_duration` | Float64Histogram | `type=org\|net\|fac\|...` | Per-step timing within a sync cycle. **New.** Identifies slow object types. |
+| `pdbplus.peeringdb.request_duration` | Float64Histogram | `object_type`, `status_code` | Per-HTTP-request timing to PeeringDB API. **New.** Note: otelhttp transport also records `http.client.request.duration` but without PeeringDB-specific attributes. |
+| `pdbplus.peeringdb.retries` | Int64Counter | `object_type`, `status_code` | Retry count per object type. **New.** Surfaces API reliability issues. |
+
+**Instrument types available (all in go.opentelemetry.io/otel/metric, already imported):**
+- `Int64Counter` -- monotonically increasing (sync count, object count)
+- `Int64UpDownCounter` -- can decrease (not needed here)
+- `Float64Histogram` -- distribution of values (durations)
+- `Float64Gauge` -- point-in-time value (last sync timestamp). **Note:** `Float64Gauge` was stabilized in OTel Go SDK v1.31.0. Our v1.42.0 includes it.
+
+**No new `go get` required.**
+
+### entrest REST API Generation
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| github.com/lrstanley/entrest | v1.0.2 | OpenAPI spec + HTTP handler generation from ent schemas | Generates a complete OpenAPI 3.1 specification and a fully functional HTTP handler from ent schema definitions. Supports pagination, filtering (AND/OR predicates, field-level filters), eager-loading edges, and sorting. Published 2025-08-21. Requires ent v0.14.5 (matches our version). MIT licensed. | MEDIUM |
+
+**Why MEDIUM confidence:** Documentation warns "expect breaking changes." No official GitHub releases exist (only tagged versions on pkg.go.dev). The library is functional and v1.x semver, but the author's caveat warrants caution. The project has one primary maintainer.
+
+**Integration with existing entc.go:**
+
+The existing `ent/entc.go` uses entgql. entrest adds as a second extension:
+
+```go
+import (
+    "github.com/lrstanley/entrest"
+)
+
+restExt, err := entrest.NewExtension(&entrest.Config{
+    Handler:           entrest.HandlerStdlib,
+    DefaultOperations: []entrest.Operation{
+        entrest.OperationRead,
+        entrest.OperationList,
+    },
+})
+
+opts := []entc.Option{
+    entc.Extensions(gqlExt, restExt),
+    entc.FeatureNames("sql/upsert"),
+}
+```
+
+**Key Config options for this project:**
+
+| Config Field | Value | Why |
+|-------------|-------|-----|
+| `Handler` | `entrest.HandlerStdlib` | Uses Go 1.22+ stdlib ServeMux with path parameters via `http.Request.PathValue`. Matches our existing routing approach. No chi dependency needed. |
+| `DefaultOperations` | `[OperationRead, OperationList]` | Read-only mirror. Excludes Create, Update, Delete globally. |
+| `ItemsPerPage` | 250 | Match PeeringDB's default page size. |
+| `MaxItemsPerPage` | 1000 | Reasonable upper bound for API clients. |
+| `MinItemsPerPage` | 1 | Allow single-object fetches. |
+| `DefaultEagerLoad` | false | Opt-in via query parameter, not default (matches PeeringDB `depth=0` default). |
+| `DisablePatchJSONTag` | true | We use snake_case JSON tags on ent fields already. Do not want entrest to modify them. |
+| `StrictMutate` | false | No mutations in read-only mode; irrelevant. |
+
+**Generated output:**
+- `ent/rest.go` -- HTTP handler implementation (one handler per entity type for List and Read operations)
+- `ent/openapi.json` -- OpenAPI 3.1 specification
+- Handler mounts on stdlib mux via generated `NewHandler()` function
+
+**entrest vs. hand-rolled REST:**
+
+entrest handles the mechanical work (pagination, filtering, sorting, eager-loading, OpenAPI spec). The PeeringDB compatibility layer sits in front of (or alongside) the entrest handler, translating PeeringDB's envelope format and query parameter conventions. entrest does NOT produce PeeringDB-compatible output directly -- it produces standard REST conventions. The compat layer is a separate concern.
+
+**New `go get` required:**
+```bash
+go get github.com/lrstanley/entrest@v1.0.2
+```
+
+### PeeringDB-Compatible REST Layer
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| net/http (stdlib) | Go 1.26 | Custom HTTP handlers for PeeringDB-compatible REST | Hand-written handlers that wrap entrest-generated queries but transform the response into PeeringDB's envelope format. No external library needed. | HIGH |
+
+**No new dependencies needed.** This is an application-layer concern, not a library concern.
+
+**What makes PeeringDB REST different from standard REST (what entrest generates):**
+
+| Aspect | PeeringDB Format | entrest Format | Compat Layer Responsibility |
+|--------|-----------------|----------------|----------------------------|
+| Response envelope | `{"meta": {}, "data": [...]}` | Standard JSON array/object with pagination metadata | Wrap entrest results in `meta`/`data` envelope |
+| URL paths | `/api/net`, `/api/org`, `/api/ix` | `/organizations`, `/networks` (pluralized entity names) | Route `/api/{type}` to correct entrest entity handler |
+| Single object | `/api/net/42` returns `{"data": [{...}]}` (array with one element) | `/networks/42` returns `{...}` (single object) | Wrap single object in array within `data` key |
+| Query params | `?limit=N&skip=N&depth=N&since=N&fields=f1,f2` | `?page=N&per_page=N` (or similar pagination) | Translate PeeringDB params to entrest query format |
+| Filter syntax | `?name__contains=foo&asn__gt=100` | entrest's own filter syntax | Parse `__contains`, `__startswith`, `__lt/lte/gt/gte/in` suffixes and translate to ent predicates |
+| Field names | snake_case (matches ent schema JSON tags) | snake_case (ent field names) | Likely pass-through; verify during implementation |
+| Depth expansion | `?depth=0..4` controls nested set expansion | `?eager_load=edge1,edge2` | Map depth levels to specific edge eager-loads |
+| `_set` fields | Related objects as `net_set`, `fac_set` arrays | Edges as named relationships | Rename edge fields to `{type}_set` format |
+| `since` parameter | Unix timestamp, returns objects updated after | Not natively supported | Custom ent predicate on `updated` field |
+
+**Architecture decision:** The PeeringDB compat layer should be a thin HTTP handler that:
+1. Accepts PeeringDB-style requests (`/api/net?asn=42&limit=10`)
+2. Translates to ent queries (using the ent client directly, not going through entrest)
+3. Serializes responses in PeeringDB envelope format
+
+Using the ent client directly (rather than wrapping entrest HTTP handlers) is cleaner because the translation from PeeringDB query params to ent predicates is easier at the Go API level than at the HTTP level. The entrest-generated handler serves a separate standard REST API endpoint.
+
+## What NOT to Add
+
+| Technology | Why Not |
+|-----------|---------|
+| chi/v5 router | Not needed. Stdlib ServeMux handles entrest HandlerStdlib paths. entrest explicitly supports Go 1.22+ stdlib path matching. |
+| ConnectRPC | gRPC is deferred to a future milestone. |
+| entproto | gRPC is deferred to a future milestone. |
+| encoding/xml | PeeringDB API is JSON-only. |
+| github.com/gorilla/mux | Dead project (archived). Stdlib ServeMux supersedes it with Go 1.22+. |
+| Any JSON serialization library (jsoniter, easyjson) | encoding/json is sufficient for response serialization. PeeringDB responses are already deserialized during sync. REST API responses are ent-generated structs serialized once per request. |
+| Any query string parsing library | PeeringDB filter params (`__contains`, `__gt`, etc.) are simple enough to parse with `net/url` and string splitting. No library needed. |
+
+## Dependency Impact Analysis
+
+**New direct dependencies for v1.1:**
+
+| Dependency | New? | Transitive Impact |
+|-----------|------|-------------------|
+| `github.com/lrstanley/entrest` v1.0.2 | YES | Adds `github.com/ogen-go/ogen` (OpenAPI spec generation), `github.com/stoewer/go-strcase` (case conversion). Both are build-time only (used during `go generate`, not at runtime). |
+| `go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp` v0.67.0 | NO | Already in go.mod. Zero new dependencies. |
+| `go.opentelemetry.io/otel/metric` v1.42.0 | NO | Already in go.mod. Zero new dependencies. |
+
+**Total new runtime dependencies: 0** -- entrest generates code at build time; its dependencies are `go generate`-time only and do not appear in the compiled binary.
+
+## Version Compatibility Matrix
+
+| Component | Our Version | entrest Requires | Compatible? |
+|-----------|-------------|-----------------|-------------|
+| Go | 1.26.1 | >= 1.24.0 | YES |
+| entgo.io/ent | v0.14.5 | v0.14.5 | YES (exact match) |
+| entgo.io/contrib | v0.7.0 | N/A (no dependency) | N/A |
+| net/http ServeMux | Go 1.26 | Go 1.22+ path matching | YES |
+
+## Installation (v1.1 additions only)
 
 ```bash
-# Initialize module
-go mod init github.com/<org>/peeringdb-plus
-
-# Core ORM & code generation
-go get entgo.io/ent@v0.14.5
-go get entgo.io/contrib@v0.7.0
+# entrest (the only new dependency)
 go get github.com/lrstanley/entrest@v1.0.2
 
-# GraphQL
-go get github.com/99designs/gqlgen@latest
-
-# SQLite
-go get modernc.org/sqlite@latest
-
-# gRPC / Protobuf
-go get google.golang.org/grpc@latest
-go get google.golang.org/protobuf@latest
-
-# OpenTelemetry
-go get go.opentelemetry.io/otel@latest
-go get go.opentelemetry.io/otel/sdk@latest
-go get go.opentelemetry.io/contrib/bridges/otelslog@latest
-go get go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp@latest
-
-# Web UI
-go get github.com/a-h/templ@latest
-
-# Dev tools (install, not go get)
-go install github.com/go-task/task/v3/cmd/task@latest
-go install github.com/a-h/templ/cmd/templ@latest
-go install github.com/air-verse/air@latest
+# Everything else is already in go.mod
+go mod tidy
 ```
 
-## Risk Register
+## Risk Register (v1.1 specific)
 
 | Risk | Severity | Likelihood | Mitigation |
 |------|----------|------------|------------|
-| LiteFS maintenance mode / eventual abandonment | HIGH | MEDIUM | Implement Litestream backup alongside. Architecture should abstract storage layer so migration to Turso/LibSQL is possible. Monitor LiteFS GitHub for activity. |
-| entrest breaking changes despite v1.x | MEDIUM | MEDIUM | Pin version. The REST surface is lowest priority of the three APIs. Can fall back to manual OpenAPI spec + handler if entrest breaks. |
-| entproto experimental status | MEDIUM | LOW | entproto has been "experimental" for years but is functionally stable. gRPC surface is secondary. Can generate protos manually from ent schema if needed. |
-| modernc.org/sqlite performance vs CGo driver | LOW | LOW | For a read-only mirror with hourly syncs, modernc.org performance is more than adequate. Benchmark during phase 1 to confirm. |
-| PeeringDB API response divergence from spec | HIGH | HIGH | This is a known issue (PROJECT.md). Must analyze actual Python source code to understand real response shapes. Build custom deserializers, not generated clients. |
-| HTMX 4.0 migration | LOW | LOW | htmx 4.0 not expected as "latest" until early 2027. Build on 2.0.x. Migration path is straightforward (fetch() replaces XMLHttpRequest internally). |
+| entrest generated code incompatible with existing entgql code | MEDIUM | LOW | Both extensions operate on the same ent graph but generate independent files. entgql generates `gql_*.go`, entrest generates `rest*.go`. Run `go generate` and compile to verify before any logic work. |
+| entrest DefaultOperations does not fully suppress mutation endpoints | MEDIUM | LOW | Verify generated code contains no Create/Update/Delete handlers. If it does, add `WithExcludeOperations` annotations on each schema as backup. |
+| PeeringDB filter syntax complexity (`__contains`, `__startswith`, etc.) | MEDIUM | MEDIUM | Implement filters incrementally. Start with exact match and `__in`, add string/numeric filters in a follow-up. Most PeeringDB API consumers use exact match. |
+| entrest pagination format differs from PeeringDB `limit/skip` | LOW | HIGH | Expected difference. The PeeringDB compat layer translates `limit`/`skip` to ent `.Limit(n).Offset(n)` calls directly. |
+| otelhttp transport adds latency to PeeringDB requests | LOW | LOW | otelhttp transport overhead is <1ms per request. PeeringDB API latency is 100-500ms per request. Negligible. |
+| Sync metrics cardinality explosion from per-type attributes | LOW | LOW | 13 object types x 2 actions = 26 unique attribute combinations. Well within safe cardinality bounds. |
 
 ## Sources
 
-- [Go 1.26 Release Notes](https://go.dev/doc/go1.26) - Go 1.26 features and release date
-- [entgo.io](https://entgo.io/) - Ent ORM documentation
-- [ent/ent Releases](https://github.com/ent/ent/releases) - v0.14.5 release
-- [ent/contrib Releases](https://github.com/ent/contrib/releases) - v0.7.0 release
-- [lrstanley/entrest](https://github.com/lrstanley/entrest) - REST extension for ent
-- [pkg.go.dev entrest](https://pkg.go.dev/github.com/lrstanley/entrest) - v1.0.2 published 2025-08-21
-- [entgql docs](https://entgo.io/docs/extensions/) - GraphQL extension documentation
-- [entproto docs](https://entgo.io/docs/grpc-generating-proto/) - Protobuf generation
-- [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite) - CGo-free SQLite driver
-- [go-sqlite-bench](https://github.com/cvilsmeier/go-sqlite-bench) - SQLite driver benchmarks
-- [LiteFS Docs](https://fly.io/docs/litefs/) - Fly.io LiteFS documentation
-- [LiteFS Status Discussion](https://community.fly.io/t/what-is-the-status-of-litefs/23883) - Maintenance mode confirmation
-- [LiteFS Cloud Sunset](https://community.fly.io/t/sunsetting-litefs-cloud/20829) - Cloud service discontinuation
-- [OpenTelemetry Go](https://opentelemetry.io/docs/languages/go/) - OTel Go SDK documentation
-- [otelslog bridge](https://pkg.go.dev/go.opentelemetry.io/contrib/bridges/otelslog) - slog to OTel bridge
-- [otelhttp](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp) - HTTP instrumentation
-- [gqlgen](https://github.com/99designs/gqlgen) - GraphQL server library
-- [ConnectRPC Conformance](https://buf.build/blog/grpc-conformance-deep-dive) - gRPC vs ConnectRPC comparison
-- [templ](https://github.com/a-h/templ) - Type-safe HTML templating
-- [htmx](https://htmx.org/) - Frontend interactivity library
-- [PeeringDB API Docs](https://www.peeringdb.com/apidocs/) - Official API documentation
-- [chi router](https://github.com/go-chi/chi) - Lightweight HTTP router
-- [Taskfile](https://taskfile.dev/) - Modern task runner
+- [otelhttp Transport source](https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/instrumentation/net/http/otelhttp/transport.go) - NewTransport API and capabilities
+- [otelhttp pkg.go.dev](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp@v0.67.0) - v0.67.0 published 2026-03-06
+- [otelhttp client example](https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/instrumentation/net/http/otelhttp/example/client/client.go) - Official client transport example
+- [OTel Go metric API](https://pkg.go.dev/go.opentelemetry.io/otel/metric) - Instrument types and recording API
+- [entrest GitHub](https://github.com/lrstanley/entrest) - Source repository
+- [entrest pkg.go.dev](https://pkg.go.dev/github.com/lrstanley/entrest@v1.0.2) - v1.0.2 published 2025-08-21
+- [entrest Getting Started](https://lrstanley.github.io/entrest/guides/getting-started/) - Integration guide
+- [entrest Annotations](https://lrstanley.github.io/entrest/openapi-specs/annotation-reference/) - Operation control, read-only mode
+- [entrest config.go](https://github.com/lrstanley/entrest/blob/master/config.go) - Full Config struct definition
+- [PeeringDB API Specs](https://docs.peeringdb.com/api_specs/) - Response envelope, query params, filter syntax
+- [PeeringDB Search Guide](https://docs.peeringdb.com/howto/search/) - Filter parameter documentation

@@ -1,218 +1,173 @@
-# Feature Landscape
+# Feature Landscape: v1.1 REST API & Observability
 
-**Domain:** PeeringDB data mirror/proxy with modern API surfaces
+**Domain:** PeeringDB data mirror -- REST API surface and observability enhancements
 **Researched:** 2026-03-22
+**Scope:** Features for v1.1 milestone ONLY (OTel HTTP client tracing, sync metrics, entrest REST API, PeeringDB-compatible REST layer)
+**Existing:** entgo ORM with 13 schemas, SQLite + LiteFS, GraphQL API, OTel setup, sync worker, health/readiness endpoints, Fly.io deployment
 
 ## Table Stakes
 
-Features users expect from a PeeringDB mirror. Missing any of these means the product is not viable as a replacement data source.
+Features the v1.1 milestone must deliver. Without these, the milestone is incomplete.
 
-### Data Completeness
+### OTel HTTP Client Tracing
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| All basic objects: org, net, fac, ix, poc | These are the core PeeringDB entities. Any mirror missing one is unusable. | Med | 5 object types, each with 10-30 fields |
-| All derived objects: ixlan, ixpfx, netixlan, netfac | Derived objects hold the most operationally useful data (which networks are at which IXPs/facilities). | Med | 4 object types linking basic objects |
-| Carrier and campus objects | Added in 2024 (PeeringDB 2.43.0). 556 campuses and 8,164 carriers as of late 2024. Any modern mirror must include them. | Low | carrier, carrierfac, campus objects |
-| All fields per object with correct types | Operators rely on specific fields: ASN, peering_policy, info_type, ipaddr4/6, speed, irr_as_set, etc. | High | Must match PeeringDB's actual response shapes, not their (buggy) OpenAPI spec |
-| Deleted/status-filtered objects | PeeringDB marks objects as deleted rather than removing them. Mirror must handle status correctly. | Low | Objects have a `status` field |
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|-------------|-------|
+| Trace spans on outbound PeeringDB API calls | Known tech debt from v1.0. The PeeringDB HTTP client (`internal/peeringdb/client.go`) makes paginated API calls with retries but produces no trace spans. Without client spans, the "full-sync" parent span has no visibility into where time is spent (which API call? which retry?). Operators cannot diagnose slow syncs. | Low | Existing OTel provider, existing `http.Client` in peeringdb.Client | Use `otelhttp.NewTransport(http.DefaultTransport)` to wrap the client transport. This is a one-line change to `NewClient()` plus import. Creates spans for each outbound HTTP request with method, URL, status code, and duration as semantic attributes. |
+| Span attributes for PeeringDB object type and page | Beyond basic HTTP spans, sync debugging needs to know which object type and page number each request corresponds to. Without these attributes, spans show raw URLs but not semantic context. | Low | OTel HTTP client tracing (above) | Add `attribute.String("peeringdb.object_type", objectType)` and `attribute.Int("peeringdb.page", page)` to each request span. Set via context or span events within `FetchAll()`. |
+| Parent-child span hierarchy: full-sync -> sync-{type} -> HTTP request | The sync worker already creates `full-sync` and `sync-{type}` spans via `otel.Tracer("sync").Start()`. The HTTP client spans must nest under these as children. This happens automatically when context propagation is correct (the ctx flows from `Sync()` -> `syncOrganizations()` -> `FetchAll()` -> `doWithRetry()` -> `http.NewRequestWithContext(ctx, ...)`). | Low | Correct context propagation (already implemented) | Verify that the existing ctx flow is unbroken. The current code passes ctx correctly through all layers. |
+| Retry attempt recorded in spans | The client retries on 429/5xx with backoff. Each retry attempt should be visible in traces so operators can see transient upstream failures. | Low | OTel HTTP client tracing | otelhttp transport creates a span per HTTP request, so retries naturally appear as sibling child spans under the same parent. Add span events for retry decisions. |
 
-### Query Capabilities
+### Sync Metrics (Expanded and Wired)
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Filter by any field | PeeringDB supports `?field=value` filtering on all objects. Operators build automation around this. | Med | Must support equality matching at minimum |
-| Numeric query modifiers: __lt, __lte, __gt, __gte, __in | Used for range queries (e.g., speed >= 10000). Core filtering pattern. | Med | Maps well to GraphQL/gRPC filter types |
-| String query modifiers: __contains, __startswith, __in | Used for name/prefix searching. Essential for "find networks matching X". | Med | Consider full-text search as an upgrade |
-| Lookup by ASN | The single most common query pattern. `GET /api/net?asn=42` or equivalent. Must work. | Low | Index on ASN field |
-| Lookup by ID | Direct object retrieval by primary key. Every automation tool uses this. | Low | Primary key lookup |
-| Pagination (limit/skip) | API consumers paginate through large result sets. | Low | Standard pattern in all three API surfaces |
-| Field selection | PeeringDB supports `?fields=name,asn,info_type` to reduce response size. Automation tools depend on this. | Low | GraphQL gets this for free; REST/gRPC need explicit support |
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|-------------|-------|
+| `peeringdb.sync.duration` histogram | Known tech debt from v1.0: custom sync metrics were registered but never recorded. Sync duration is the fundamental operational metric -- how long does a full sync take? Track as a histogram to see p50/p95/p99 over time. | Low | OTel MeterProvider (must be initialized alongside TracerProvider in `internal/otel/provider.go`) | Use `meter.Float64Histogram("peeringdb.sync.duration", metric.WithUnit("s"), metric.WithDescription("Duration of full PeeringDB sync"))`. Record `time.Since(start).Seconds()` at sync completion. |
+| `peeringdb.sync.objects` counter per type | How many objects were synced in each run, broken down by type. Essential for detecting upstream data anomalies (sudden drop in network count = PeeringDB issue). | Low | OTel Meter | `meter.Int64Counter("peeringdb.sync.objects")` with `attribute.String("peeringdb.type", step.name)`. Record after each step in `Sync()`. |
+| `peeringdb.sync.errors` counter | Count of failed syncs, broken down by error type/phase. Alerts should fire when this increments. | Low | OTel Meter | `meter.Int64Counter("peeringdb.sync.errors")` with type attribute. Record in `recordFailure()`. |
+| `peeringdb.sync.status` gauge (0=idle, 1=running) | Is the sync currently running? Useful for dashboards and correlation with latency spikes. | Low | OTel Meter | `meter.Int64Gauge("peeringdb.sync.status")`. Record 1 on sync start, 0 on completion/failure. |
+| `peeringdb.sync.last_success` gauge (unix timestamp) | When did the last successful sync complete? The most direct indicator of data freshness. Pair with an alert when age exceeds threshold. | Low | OTel Meter | `meter.Float64Gauge("peeringdb.sync.last_success")`. Record `float64(time.Now().Unix())` on success. |
+| `peeringdb.sync.deletes` counter per type | How many stale objects were deleted per type per sync. Useful for detecting mass deletions (potential upstream issue). | Low | OTel Meter | Same pattern as objects counter, recorded in each sync step alongside the delete count. |
+| MeterProvider initialization | The existing `internal/otel/provider.go` only sets up a TracerProvider with stdout exporter. Must add a MeterProvider with a periodic reader. For development, use stdout metric exporter. For production, autoexport should pick up OTLP. | Med | OTel SDK (`go.opentelemetry.io/otel/sdk/metric`) | Follow the same pattern as the trace provider. Consider using `go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp` for production or `autoexport` for environment-driven selection. Return both shutdown functions. |
 
-### Data Freshness
+### entrest-Generated REST API
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Hourly (or better) sync from upstream PeeringDB | Operators need reasonably current data. Stale data = wrong peering decisions. | Med | Full re-fetch approach per PROJECT.md |
-| Expose last sync timestamp | Consumers must know data age to assess reliability. | Low | Metadata endpoint or response header |
-| `since` parameter support | PeeringDB's incremental query (`?since=<unix_timestamp>`) lets downstream caches sync efficiently. Even if our sync is full re-fetch, consumers may use `since` to detect changes. | Med | Requires tracking `updated` timestamps per object |
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|-------------|-------|
+| Read-only REST endpoints for all 13 object types | The entrest extension generates CRUD endpoints from ent schemas. Since this is a read-only mirror, configure entrest with `DefaultOperations: []Operation{OperationRead, OperationList}` to suppress create/update/delete. This produces GET /org, GET /org/{id}, GET /net, GET /net/{id}, etc. for all 13 types. | Med | entrest extension added to `ent/entc.go`, ent codegen re-run | entrest v1.0.2 supports `HandlerStdlib` which generates handlers for Go 1.22+ ServeMux. Must add `entrest.NewExtension()` alongside the existing `entgql.NewExtension()` in entc.go. |
+| OpenAPI spec auto-generation | entrest produces an `openapi.json` file alongside the generated handler code. This spec is generated from the actual ent schema, so it accurately reflects the real data model (unlike PeeringDB's buggy spec). Serve at `/openapi.json`. | Low | entrest codegen | Generated automatically. Optionally validate in CI with `go-swagger` or `oapi-codegen validate`. |
+| Pagination support | entrest generates paginated list endpoints with `page` and `per_page` query parameters. Configurable min/max/default per page via `MinItemsPerPage`, `MaxItemsPerPage`, `ItemsPerPage` in Config. | Low | entrest codegen | Set `ItemsPerPage: 20`, `MaxItemsPerPage: 250` to match PeeringDB's page sizes. |
+| Filtering by field values | entrest generates query parameter filtering when fields are annotated with `entrest.WithFilter()`. Support for equality, inequality, contains, startswith, in, lt, lte, gt, gte operators. | Med | entrest annotations on schema fields | Must add `entrest.WithFilter(entrest.FilterGroupEqual \| entrest.FilterGroupArray)` annotations to each field that should be filterable. This is per-field annotation work across 13 schemas. |
+| Sorting support | entrest generates `sort` query parameter when fields are annotated with `entrest.WithSortable(true)`. | Low | entrest annotations on schema fields | Add sortable annotations to key fields (name, created, updated, asn). |
+| Edge eager-loading | entrest supports `entrest.WithEagerLoad(true)` on edges, allowing related objects to be included in responses without extra API calls. | Low | entrest edge annotations | Selective eager-loading: set on commonly-traversed edges (organization->networks, network->network_ix_lans), not all edges. |
+| REST handler mounting on HTTP server | The generated `rest.NewServer(db, &rest.ServerConfig{})` returns a handler to mount via `srv.Handler()`. Mount under a path prefix (e.g., `/rest/` or `/v1/`). | Low | Generated rest package, HTTP mux setup in main.go | Mount alongside existing GraphQL handler. Use different path prefixes to avoid conflicts. |
+| CORS headers on REST endpoints | REST API consumers (browser apps, dashboards) need CORS. Already implemented for GraphQL; extend to REST routes. | Low | Existing CORS middleware (rs/cors) | Wrap REST handler with same CORS middleware used for GraphQL. |
 
-### API Surface Quality
+### PeeringDB-Compatible REST Layer
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| REST API returning JSON | Every PeeringDB client library, automation script, and tool speaks REST+JSON. Must be compatible. | Med | entrest generates this from entgo schema |
-| Consistent response format | PeeringDB wraps responses in `{"meta": {...}, "data": [...]}`. Consumers parse this shape. Decide: match it or use a cleaner format. | Low | Recommend cleaner format since we're not a drop-in replacement |
-| Proper HTTP status codes and error messages | Automation tools branch on status codes. 200, 400, 404, 429 at minimum. | Low | Standard HTTP semantics |
-| CORS headers | Browser-based tools and dashboards query PeeringDB data. Without CORS, web integrations break. | Low | Middleware concern |
-| HTTPS only | PeeringDB deprecated TLS < 1.2 in April 2025. Secure-by-default is expected. | Low | Fly.io handles TLS termination |
-
-### Reliability
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| High availability | PeeringDB itself suffers from single-region hosting. A mirror that is also unreliable defeats the purpose. | Med | Fly.io multi-region with LiteFS handles this |
-| No rate limiting (or very generous limits) | PeeringDB's 40 req/min limit is the #1 pain point driving people to mirrors. Removing this is table stakes for a mirror. | Low | Read-only SQLite can handle very high query rates |
-| Low latency from multiple regions | PeeringDB is single-region (AWS). Global operators need fast access. Edge deployment is expected from a mirror. | Med | Core architecture decision (Fly.io + LiteFS) |
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|-------------|-------|
+| PeeringDB URL paths: `/api/{type}` and `/api/{type}/{id}` | PeeringDB's API uses paths like `/api/net`, `/api/net/42`, `/api/org/1`. Every PeeringDB client library, automation script, and Peering Manager integration hard-codes these paths. To serve as a drop-in replacement, paths must match exactly. The 13 types are: org, net, fac, ix, poc, ixlan, ixpfx, netixlan, netfac, ixfac, carrier, carrierfac, campus. | Med | Depends on either entrest (map its paths) or custom handlers | entrest generates its own path scheme (likely `/organizations/{id}`). The PeeringDB compat layer must map PeeringDB paths to ent queries or proxy to entrest. A separate hand-written handler set under `/api/` is more predictable. |
+| PeeringDB response envelope: `{"meta": {}, "data": [...]}` | PeeringDB wraps all responses in `{"meta": {"status": ..., "message": ...}, "data": [...]}`. The data field is always an array, even for single-object lookups (which return an array of one). Client libraries parse this envelope. | Med | Custom JSON response serialization | entrest generates its own response format (not PeeringDB's envelope). The compat layer must serialize responses into PeeringDB's envelope format. Write a `writeResponse(w, data)` helper. |
+| PeeringDB query params: `limit`, `skip`, `depth`, `fields`, `since` | PeeringDB uses `limit` and `skip` (not `page`/`per_page`), `depth` for nested relationship expansion, `fields` for field selection, and `since` for incremental queries. These are different from entrest's generated query parameters. | High | Custom query parameter parsing, ent queries | `depth=0` is default (flat objects). `depth=1` expands relationship sets to IDs. `depth=2` expands to full objects. This maps to ent's `.WithEdges()` pattern but requires careful implementation per type. Start with `depth=0` (flat) and `depth=2` (eager-loaded edges). |
+| PeeringDB field filter params: `?asn=42`, `?name__contains=Equinix` | PeeringDB supports filtering by any field via query parameters: exact match (`?asn=42`), `__contains`, `__startswith`, `__in` (comma-separated), `__lt`, `__lte`, `__gt`, `__gte`. These translate to ent Where predicates. | High | Custom query parameter parsing, ent predicate construction | Must parse query params, identify field names, strip Django-style suffixes (`__contains`), and build ent Where predicates dynamically. Consider a generic "PeeringDB filter to ent predicate" translator function. |
+| PeeringDB field names in JSON responses | PeeringDB uses snake_case field names matching Python conventions: `org_id`, `info_type`, `irr_as_set`, `ipaddr4`, `ixf_ixp_member_list_url_visible`. entrest/ent may generate different JSON field names (e.g., camelCase or different naming). The compat layer must output PeeringDB-matching field names. | Med | Custom JSON serialization or field mapping | The ent schema fields already use snake_case names (matching PeeringDB) because the sync client maps them that way. Verify that the serializer preserves these names. If ent/entrest transforms them, add custom JSON tags or a response transformer. |
+| Single-object GET returns array of one | PeeringDB `GET /api/net/42` returns `{"data": [{ ...network... }]}` -- an array containing one object, not the object directly. This is non-standard but every PeeringDB client depends on it. | Low | Custom JSON serialization | Always wrap in array. |
 
 ## Differentiators
 
-Features that set PeeringDB Plus apart. Not expected from a basic mirror, but create compelling reasons to switch.
+Features that go beyond baseline expectations for these v1.1 additions.
 
-### Modern API Surfaces
+### Observability Excellence
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| GraphQL API | PeeringDB has no GraphQL. GraphQL enables clients to request exactly the fields they need, traverse relationships in a single query (e.g., "give me all networks at IX 42 with their facilities"), and introspect the schema. Eliminates the N+1 query problem that plagues PeeringDB's REST API (e.g., netixlan returns only net_id, forcing extra lookups). | High | entgql generates from entgo schema. This is the flagship differentiator. |
-| gRPC API | No PeeringDB gRPC exists. Enables strongly-typed, high-performance programmatic access. Useful for automation pipelines, service meshes, and Go/Python/Rust clients. Protobuf schemas serve as machine-readable contracts. | High | entproto generates from entgo schema |
-| OpenAPI-compliant REST | PeeringDB's own OpenAPI spec has known bugs (issue #1878: duplicate parameters, invalid requestBody schemas, code generation fails). A correct, validated OpenAPI spec is itself a differentiator. | Med | entrest generates from entgo schema; validate spec in CI |
+| Feature | Value Proposition | Complexity | Dependencies | Notes |
+|---------|-------------------|------------|-------------|-------|
+| Correlated traces + metrics across sync lifecycle | Link a specific sync trace (with HTTP client spans) to the metric data points recorded during that sync. Achievable via exemplars or shared trace/span IDs in metric attributes. No PeeringDB mirror offers this. | Med | Both tracing and metrics implemented | Use `metric.WithAttributes(attribute.String("trace_id", span.SpanContext().TraceID().String()))` on metric recordings within sync. |
+| HTTP server request tracing with otelhttp | Wrap the HTTP server handler with `otelhttp.NewHandler()` for automatic incoming request spans. Already listed in STACK.md but not yet implemented. Covers all API surfaces (GraphQL, REST, compat layer). | Low | otelhttp package (already in go.mod) | One-line wrapper: `handler = otelhttp.NewHandler(handler, "peeringdb-plus")`. |
 
-### Query Power
+### Dual REST API Surfaces
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Relationship traversal in single query | PeeringDB requires multiple API calls to walk relationships (net -> netixlan -> ix). GraphQL resolves this naturally. Even REST can support `?include=` or `?expand=` patterns. | Med | GraphQL handles this natively; REST needs explicit design |
-| Full-text search across objects | PeeringDB's search is basic field matching. Full-text search across names, descriptions, and notes would enable "find anything mentioning 'Equinix'" type queries. | Med | SQLite FTS5 is excellent for this |
-| Cross-object queries | "Find all networks present at both IX-A and IX-B" or "Find all facilities in Germany with networks that have open peering policy." PeeringDB cannot do this without multiple round trips. | High | GraphQL with proper relationship modeling makes this natural |
-| ASN comparison | PeeringDB added basic ASN comparison in mid-2025. A richer version with facility/IX overlap analysis would differentiate. | Med | Query pattern over netixlan and netfac joins |
-
-### Data Presentation
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Schema introspection | GraphQL introspection and gRPC reflection let clients discover the API shape programmatically. PeeringDB's self-describing API docs (apidocs) are rendered HTML, not machine-queryable. | Low | Built into GraphQL and gRPC by default |
-| Accurate, validated API documentation | PeeringDB's OpenAPI spec does not match actual responses (GitHub issue #1658, #1878). Generating docs from the actual entgo schema guarantees accuracy. | Low | Entrest + OpenAPI spec validation in CI |
-| Structured data exports (JSON, CSV) | PeeringDB added this recently but it's limited to search results. Offering bulk exports per object type is valuable for researchers (CAIDA mirrors PeeringDB daily for this reason). | Low | Endpoint that streams full object lists |
-| Geographic queries | PeeringDB supports radius search from the web UI but not the API. Offering geo-queries (facilities within X km of a point) via API would serve network planning use cases. | High | Requires geospatial indexing (lat/long fields exist on fac objects) |
-
-### Operations and Observability
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| OpenTelemetry traces/metrics/logs | No PeeringDB mirror offers observability. Users can see query performance, error rates, and data freshness. Operators can debug integration issues. | Med | Already required per PROJECT.md |
-| Health/readiness endpoints | Standard Kubernetes/Fly.io health checks. Lets consumers programmatically verify the mirror is healthy and data is fresh. | Low | `/healthz`, `/readyz` with sync age checks |
-| Query performance metrics | Expose p50/p95/p99 latency per endpoint. Demonstrates the performance advantage over upstream PeeringDB. | Low | OpenTelemetry histograms |
-
-### Developer Experience
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Interactive GraphQL playground | GraphiQL or similar embedded explorer. Lets operators discover and test queries without writing code. | Low | Standard middleware for GraphQL servers |
-| Generated, type-safe client SDKs | From the OpenAPI spec and protobuf definitions, generate Go, Python, TypeScript clients. PeeringDB's only official client is Python (peeringdb-py). | Med | OpenAPI and protobuf code generation tooling |
-| Webhook/callback on data changes | Notify subscribers when specific objects change. Eliminates polling. | High | Requires change tracking infrastructure; defer to later phase |
-
-### Web UI
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Browse and search PeeringDB data in a web interface | PeeringDB's web UI is functional but dated. A modern, fast UI would attract casual users and demonstrate the product. | High | HTMX + Templ per PROJECT.md; secondary priority |
-| Network/facility/IX detail pages | Display rich object pages with all related data (networks at a facility, IXPs a network peers at, etc.) | Med | Template rendering from entgo queries |
-| Visual network comparison | Side-by-side comparison of two networks showing shared IXPs and facilities. PeeringDB added basic comparison in 2025; a better version differentiates. | Med | Query pattern + presentation |
+| Feature | Value Proposition | Complexity | Dependencies | Notes |
+|---------|-------------------|------------|-------------|-------|
+| Modern REST at `/v1/` (entrest) + compat at `/api/` (PeeringDB paths) | Two REST surfaces serving different audiences. `/v1/` with clean pagination, OpenAPI spec, and modern conventions. `/api/` with PeeringDB-compatible paths and envelope for drop-in replacement. Users can migrate from `/api/` to `/v1/` at their own pace. | Low (architecture) | Both REST surfaces implemented | Mount both on the same HTTP server with different path prefixes. Document the differences. |
+| Generated OpenAPI spec at `/openapi.json` | Machine-readable API contract for the modern REST surface. PeeringDB's own OpenAPI spec is broken (GitHub #1878). A correct spec enables client code generation in any language. | Low | entrest codegen | Serve the generated `openapi.json`. Validate in CI. |
 
 ## Anti-Features
 
-Features to explicitly NOT build. These would increase complexity without proportional value, or would conflict with the project's read-only mirror architecture.
+Features to explicitly NOT build in v1.1.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| Write/mutation API | PeeringDB is the authoritative source. Accepting writes creates data conflicts, requires auth, and contradicts the mirror model. | Read-only mirror. Link to PeeringDB for edits. |
-| User accounts and authentication | Adds enormous complexity (registration, password management, permissions, abuse prevention). The value prop is fast public access. | Fully public, no auth. Consider optional API keys later only if abuse requires it. |
-| OAuth / social login | Complex, unnecessary for read-only public data. | N/A |
-| Real-time streaming / WebSockets | Hourly sync granularity is sufficient for peering decisions. Real-time streaming adds complexity (connection management, backpressure, client SDK support) with marginal value. | Polling via `since` parameter. Consider webhooks in future. |
-| Drop-in PeeringDB API compatibility | Matching PeeringDB's exact response format (including its bugs and inconsistencies) would constrain our API design and inherit their technical debt. | Clean, well-documented API. Provide migration guide for users moving from PeeringDB API. |
-| Mobile app | Network operators work from laptops/desktops. PeeringDB's own stats show only 20% mobile visits, mostly for quick lookups. Web UI handles mobile adequately. | Responsive web UI with HTMX. |
-| Historical data / time-series | Storing every version of every object over time is a different product (CAIDA already does this). Massively increases storage and query complexity. | Serve current state only. Link to CAIDA for historical data. |
-| Data quality validation / correction | Flagging bad data in PeeringDB (wrong speeds, stale contacts, etc.) is PeeringDB's job. A mirror should faithfully reproduce the data. | Mirror data as-is. Do not editorialize. |
-| Email notifications | Requires email infrastructure, user accounts, preference management. Overkill for a data mirror. | Expose change data via API; let consumers build their own notifications. |
-| Rate limiting matching PeeringDB's restrictions | The whole point is to be faster and more accessible. Don't artificially limit. | Basic abuse prevention only (e.g., IP-based throttle at extreme levels to prevent DoS). |
+| Full `depth` support (depths 1, 3, 4) | PeeringDB supports depth 0-4 for single objects and 0-2 for lists. Depth 1 (IDs only) and depth 3-4 (deep nesting) are rarely used and add significant complexity. | Implement depth=0 (flat, default) and depth=2 (eager-load first-level edges). Log requests for depth 1/3/4 to gauge demand. Return 400 with message for unsupported depth values. |
+| Write operations on REST endpoints | This is a read-only mirror. entrest can generate create/update/delete handlers but they must be disabled. | Configure `DefaultOperations: []Operation{OperationRead, OperationList}` globally. |
+| PeeringDB authentication emulation | PeeringDB uses Basic auth and API keys. Some response fields (e.g., POC contact details) are visibility-gated by auth. This mirror is fully public. | Serve all data as the public (unauthenticated) PeeringDB view. POC visibility filtering based on PeeringDB's `visible` field rules. |
+| Rate limiting on REST endpoints | The mirror's value proposition is removing PeeringDB's rate limits. Adding them back defeats the purpose. | Basic abuse prevention only (consider Fly.io request limits or very generous IP-based throttling if needed later). |
+| `_set` field expansion | PeeringDB returns related objects in fields like `net_set`, `fac_set` when depth > 0. These are dynamic nested arrays. Implementing them requires assembling cross-table joins and serializing nested objects with all their fields. | Use edge eager-loading for the entrest surface. For the compat layer, support `depth=0` (flat) and consider `depth=2` as a stretch goal where edges are included as nested arrays matching PeeringDB's `_set` naming. |
+| Custom entrest templates | entrest supports custom templates for overriding generated code. Unnecessary complexity when default generation + a separate compat handler is cleaner. | Use default entrest generation. Build compat layer as separate hand-written handlers. |
 
 ## Feature Dependencies
 
 ```
-entgo schema definition
-  |-> entgql (GraphQL API)
-  |-> entproto (gRPC API)
-  |-> entrest (REST API + OpenAPI spec)
-  |-> HTMX web UI (queries via entgo)
+MeterProvider initialization (internal/otel/provider.go)
+  |-> All sync metrics
+  |-> HTTP server metrics (if enabled)
 
-Data sync from PeeringDB
-  |-> All API surfaces (need data to serve)
-  |-> `since` parameter support (need updated timestamps)
-  |-> Last sync timestamp exposure
-  |-> Health/readiness endpoints (check sync freshness)
+OTel HTTP client tracing (peeringdb.Client transport wrapping)
+  |-> Span hierarchy verification
+  |-> Retry visibility in traces
+  (Depends on: existing TracerProvider)
 
-SQLite + LiteFS deployment
-  |-> Multi-region low latency (edge reads)
-  |-> High availability
-  |-> Full-text search (SQLite FTS5)
+Sync metrics registration and recording (internal/sync/worker.go)
+  |-> Metric attribute design (type names, error categories)
+  (Depends on: MeterProvider initialization)
 
-GraphQL API
-  |-> Interactive GraphQL playground
-  |-> Relationship traversal queries
-  |-> Cross-object queries
-  |-> Schema introspection
+entrest extension in entc.go
+  |-> entrest code generation (go generate)
+  |-> OpenAPI spec generation
+  |-> REST handler generation
+  (Depends on: existing ent schemas with annotations added)
 
-gRPC API
-  |-> Generated client SDKs (protobuf)
-  |-> gRPC reflection
+entrest schema annotations (per-field filter/sort/eager-load)
+  |-> Filtering support in generated REST
+  |-> Sorting support in generated REST
+  |-> Edge eager-loading in generated REST
+  (Depends on: entrest extension configured)
 
-REST API (entrest)
-  |-> OpenAPI spec (auto-generated)
-  |-> Generated client SDKs (OpenAPI)
-  |-> REST filter/pagination support
+REST handler mounting in main.go
+  |-> CORS middleware wrapping
+  |-> otelhttp wrapping for request tracing
+  (Depends on: entrest code generation complete)
 
-OpenTelemetry integration
-  |-> Health endpoints
-  |-> Query performance metrics
-  |-> Distributed tracing
+PeeringDB compat layer (internal/compat/ or internal/pdbrest/)
+  |-> PeeringDB URL path routing (/api/{type})
+  |-> Response envelope serialization
+  |-> Query parameter parsing
+  |-> Field name mapping verification
+  (Depends on: existing ent client, NOT on entrest -- queries ent directly)
 ```
 
-## MVP Recommendation
+## Milestone Sequencing Recommendation
 
-### Phase 1: Data Foundation
-Prioritize getting all PeeringDB data synced correctly and queryable:
+### Phase 1: Observability Fixes (fix tech debt first)
+1. **MeterProvider initialization** -- prerequisite for all metrics
+2. **OTel HTTP client tracing** -- one-line transport wrap + attribute additions
+3. **Sync metrics registration and recording** -- wire the metrics that were registered but never recorded
 
-1. **All PeeringDB objects** (org, net, fac, ix, poc, ixlan, ixpfx, netixlan, netfac, carrier, carrierfac, campus) -- without complete data, nothing else matters
-2. **GraphQL API with relationship traversal** -- the primary differentiator; enables single-query access to related data
-3. **Correct field types and data fidelity** -- must match PeeringDB's actual responses (not their buggy spec)
-4. **ASN lookup** -- the single most common query pattern
-5. **Basic filtering** (equality, numeric operators) -- minimum viable query surface
+Rationale: Smallest scope, highest confidence, fixes known v1.0 debt. Gives immediate operational visibility before adding new features.
 
-### Phase 2: API Surfaces and Operations
-6. **REST API with OpenAPI spec** -- broadest compatibility with existing tooling
-7. **gRPC API** -- high-performance programmatic access
-8. **OpenTelemetry integration** -- observability from day one
-9. **Health/readiness endpoints** -- operational hygiene
-10. **Last sync timestamp** -- data freshness transparency
+### Phase 2: entrest REST API
+4. **entrest extension + annotations** -- add to entc.go, annotate schemas
+5. **Code generation** -- re-run go generate, verify output
+6. **REST handler mounting + CORS** -- wire into main.go
+7. **otelhttp server wrapping** -- automatic tracing for all incoming requests
 
-### Phase 3: Query Power and DX
-11. **String query modifiers** (__contains, __startswith) -- common search patterns
-12. **`since` parameter** -- enables downstream incremental sync
-13. **Interactive GraphQL playground** -- zero-friction API exploration
-14. **Full-text search** (FTS5) -- cross-object search capability
-15. **CORS support** -- enables browser-based integrations
+Rationale: entrest does most of the work via code generation. Medium complexity but well-understood pattern (same approach as entgql in v1.0). Must complete before compat layer so we understand what entrest generates.
 
-**Defer:**
-- **Web UI**: Secondary priority per PROJECT.md. Build after APIs are solid.
-- **Geographic queries**: High complexity, niche use case. Add when demand is clear.
-- **Webhooks**: Requires change tracking infrastructure. Revisit after core is stable.
-- **Generated client SDKs**: Valuable but can be community-driven from the published specs.
-- **ASN comparison feature**: Nice-to-have, not blocking adoption.
+### Phase 3: PeeringDB Compatibility Layer
+8. **PeeringDB path routing** -- `/api/{type}` and `/api/{type}/{id}` handlers
+9. **Response envelope serialization** -- `{"meta": {}, "data": [...]}`
+10. **Query parameter parsing** -- limit, skip, fields, since
+11. **Field filter translation** -- `?asn=42`, `?name__contains=X` to ent predicates
+12. **Depth parameter** -- depth=0 (flat) at minimum
+
+Rationale: Highest complexity feature. Must be built separately from entrest (different response format, query params, and paths). Benefits from having entrest working first to understand the ent query patterns. The PeeringDB filter-to-predicate translation is the hardest piece.
+
+**Defer to v1.2+:**
+- Depth 1/3/4 support (gauge demand first)
+- `_set` field expansion matching PeeringDB's nested format
+- `since` parameter in compat layer (requires understanding PeeringDB's incremental sync semantics)
 
 ## Sources
 
-- [PeeringDB API Specs](https://docs.peeringdb.com/api_specs/) -- Official API documentation
-- [PeeringDB API Docs (interactive)](https://www.peeringdb.com/apidocs/) -- Self-describing API reference
-- [PeeringDB Tools](https://docs.peeringdb.com/tools/) -- Ecosystem of tools consuming PeeringDB data
-- [PeeringDB Faster Queries](https://docs.peeringdb.com/blog/faster_queries/) -- Official guidance on rate limits and local caching
-- [PeeringDB Query Limits HOWTO](https://docs.peeringdb.com/howto/work_within_peeringdbs_query_limits/) -- Rate limiting details (40/min authenticated)
-- [PeeringDB Search HOWTO](https://docs.peeringdb.com/howto/search/) -- Search capabilities documentation
-- [GitHub Issue #1658: netixlan missing keys](https://github.com/peeringdb/peeringdb/issues/1658) -- API response vs docs mismatch
-- [GitHub Issue #1878: OpenAPI schema errors](https://github.com/peeringdb/peeringdb/issues/1878) -- OpenAPI spec validation failures
-- [Carrier Objects Deployed](https://docs.peeringdb.com/blog/carrier_object_deployed/) -- New carrier/campus data model (2024)
-- [September 2025 Product Update](https://docs.peeringdb.com/blog/sep_2025_product_update/) -- ASN comparison, web redesign, MFA mandate
-- [April 2025 Product Update](https://docs.peeringdb.com/blog/april_2025_product_update/) -- Dark mode, KMZ export, API key mandate, TLS 1.2+
-- [gmazoyer/peeringdb Go library](https://github.com/gmazoyer/peeringdb) -- Go client library with carrier/campus support (v0.1.0, Feb 2026)
-- [CAIDA PeeringDB Dataset](https://catalog.caida.org/dataset/peeringdb) -- Historical PeeringDB data archive
-- [Peering Manager](https://peering-manager.readthedocs.io/) -- BGP session management tool consuming PeeringDB
-- [PeerCtl](https://www.fullctl.com/peerctl) -- BGP config generation from PeeringDB data
+- [otelhttp package](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp) -- HTTP client/server instrumentation
+- [otelhttp client example](https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/instrumentation/net/http/otelhttp/example/client/client.go) -- Transport wrapping pattern
+- [OTel Go metric API](https://pkg.go.dev/go.opentelemetry.io/otel/metric) -- Meter, Counter, Histogram, Gauge instrument creation
+- [OTel Go getting started](https://opentelemetry.io/docs/languages/go/getting-started/) -- MeterProvider setup, custom metrics examples
+- [entrest documentation](https://lrstanley.github.io/entrest/) -- Extension overview and feature list
+- [entrest getting started](https://lrstanley.github.io/entrest/guides/getting-started/) -- entc.go configuration, handler mounting
+- [entrest annotation reference](https://lrstanley.github.io/entrest/openapi-specs/annotation-reference/) -- Schema/field/edge annotations for filtering, sorting, eager-loading
+- [entrest pkg.go.dev](https://pkg.go.dev/github.com/lrstanley/entrest) -- Config struct, Operation constants, ServerConfig
+- [entrest GitHub](https://github.com/lrstanley/entrest) -- Source code, examples, issues
+- [PeeringDB API Specs](https://docs.peeringdb.com/api_specs/) -- URL structure, query params, depth parameter, response envelope
+- [PeeringDB API Docs](https://www.peeringdb.com/apidocs/) -- Interactive API documentation
+- [PeeringDB Search HOWTO](https://docs.peeringdb.com/howto/search/) -- Filter parameter syntax (__contains, __startswith, __in, __lt, etc.)

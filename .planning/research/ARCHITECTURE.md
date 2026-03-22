@@ -1,718 +1,670 @@
 # Architecture Patterns
 
-**Domain:** Globally distributed read-only PeeringDB data mirror with multi-protocol APIs
+**Domain:** v1.1 REST API & Observability integration into existing PeeringDB Plus
 **Researched:** 2026-03-22
-**Confidence:** HIGH (core patterns, LiteFS mechanics) / MEDIUM (entrest maturity, LiteFS long-term support)
+**Focus:** OTel HTTP client tracing, expanded sync metrics, entrest REST API, PeeringDB-compatible REST layer
 
-## Recommended Architecture
+## Existing Architecture (Context)
 
-A single Go binary runs on every Fly.io node. LiteFS sits beneath it as a FUSE filesystem, replicating SQLite from a single primary to all replicas. The application has two operating modes determined by LiteFS lease ownership: **primary** (runs sync + serves reads) and **replica** (serves reads only). All API surfaces (GraphQL, gRPC, REST, Web UI) serve from every node.
-
-### High-Level Overview
+The v1.0 architecture is a single Go binary with the following structure:
 
 ```
-                         Fly.io Global Edge
-                    +---------------------------+
-                    |                           |
-  +-----------+     |   +-------------------+   |
-  | PeeringDB |     |   |  PRIMARY NODE     |   |
-  |   API     |<----+---|  (single region)  |   |
-  |  (source) |     |   |                   |   |
-  +-----------+     |   |  Sync Worker      |   |
-                    |   |      |            |   |
-                    |   |      v            |   |
-                    |   |  SQLite (write)   |   |
-                    |   |      |            |   |
-                    |   |  LiteFS FUSE      |---+--- replication --+
-                    |   |      |            |   |                  |
-                    |   |  API Handlers     |   |                  |
-                    |   |  +- GraphQL       |   |                  |
-                    |   |  +- gRPC          |   |                  |
-                    |   |  +- REST          |   |                  |
-                    |   |  +- Web UI        |   |                  |
-                    |   +-------------------+   |                  |
-                    |                           |                  |
-                    |   +-------------------+   |  +-------------------+
-                    |   |  REPLICA NODE     |   |  |  REPLICA NODE     |
-                    |   |  (region N)       |   |  |  (region M)       |
-                    |   |                   |   |  |                   |
-                    |   |  SQLite (read)  <-+---+--+  SQLite (read)    |
-                    |   |      |            |   |  |      |            |
-                    |   |  LiteFS FUSE      |   |  |  LiteFS FUSE      |
-                    |   |      |            |   |  |      |            |
-                    |   |  API Handlers     |   |  |  API Handlers     |
-                    |   |  +- GraphQL       |   |  |  +- GraphQL       |
-                    |   |  +- gRPC          |   |  |  +- gRPC          |
-                    |   |  +- REST          |   |  |  +- REST          |
-                    |   |  +- Web UI        |   |  |  +- Web UI        |
-                    |   +-------------------+   |  +-------------------+
-                    |                           |
-                    +---------------------------+
+cmd/peeringdb-plus/main.go (wiring, HTTP server, graceful shutdown)
+  |
+  +-- internal/config/         Config from env vars (immutable after load)
+  +-- internal/database/       SQLite open (modernc.org, WAL, FK)
+  +-- internal/otel/           OTel pipeline: TracerProvider, MeterProvider, LoggerProvider
+  |     provider.go            autoexport-driven setup
+  |     metrics.go             SyncDuration (histogram) + SyncOperations (counter) -- REGISTERED BUT NOT RECORDED
+  |     logger.go              Dual slog handler (stdout + OTel)
+  +-- internal/peeringdb/      PeeringDB API client (HTTP, pagination, retry, rate limit)
+  +-- internal/sync/           Sync worker (fetch -> filter -> upsert -> delete, single tx)
+  +-- internal/health/         /healthz (liveness), /readyz (readiness + sync freshness)
+  +-- internal/middleware/      Logging, Recovery, CORS
+  +-- internal/litefs/         LiteFS primary detection
+  +-- internal/graphql/        GraphQL handler factory (gqlgen server config)
+  +-- graph/                   gqlgen resolvers, generated code
+  +-- ent/                     entgo ORM (13 schemas), generated code
+  +-- ent/schema/              Schema definitions with entgql annotations
 ```
 
-### Single Binary Architecture
-
-The application is a single Go binary that runs in two modes determined by LiteFS leader election:
-
-- **Primary mode:** Runs sync worker + serves API (reads and writes to local SQLite)
-- **Replica mode:** Serves API only (reads from local SQLite replica)
-
-Both modes run the same binary and the same API handlers. The sync worker checks LiteFS lease status before attempting writes. This avoids a separate sync service.
-
-### Component Boundaries
-
-| Component | Responsibility | Communicates With |
-|-----------|---------------|-------------------|
-| `cmd/server/` | Binary entrypoint, configuration, dependency wiring | All components |
-| `ent/schema/` | Ent schema definitions for all PeeringDB objects with entgql, entproto, entrest annotations | Code generators (build time) |
-| `ent/` | Generated ORM client code | SQLite via database/sql |
-| `internal/sync/` | PeeringDB API client, response parsing, data mapping, upsert logic | PeeringDB API (HTTP), ent client (write) |
-| `internal/server/` | HTTP/gRPC server setup, middleware composition, health checks | API handlers, otelhttp |
-| `internal/graphql/` | Generated GraphQL resolvers + custom resolver logic | ent client (read) |
-| `internal/grpc/` | Generated gRPC service implementations | ent client (read) |
-| `internal/rest/` | Generated REST handlers + OpenAPI spec | ent client (read) |
-| `internal/web/` | HTMX + Templ web UI handlers and templates | ent client (read) |
-| `internal/otel/` | OpenTelemetry SDK initialization, exporters, shutdown | OTel collector |
-| `internal/litefs/` | Primary detection helpers, replication status | LiteFS `.primary` file |
-
-### Data Flow
-
-**Sync flow (primary only):**
+**HTTP middleware stack** (outermost to innermost):
 ```
-PeeringDB API
-  -> HTTP GET /api/{object_type} (for each of 13 object types)
-  -> JSON response (may diverge from OpenAPI spec)
-  -> Custom deserializer (handles spec discrepancies)
-  -> ent Create/Update operations (one transaction per object type)
-  -> SQLite write (via modernc.org/sqlite, WAL mode)
-  -> LiteFS FUSE intercepts write, creates LTX transaction file
-  -> LiteFS replicates LTX to all replica nodes asynchronously
+Recovery -> otelhttp.NewMiddleware -> Logging -> CORS -> readinessMiddleware -> mux
 ```
 
-**Query flow (all nodes):**
+**Routes:**
 ```
-Client request (GraphQL / gRPC / REST / Web)
-  -> otelhttp/gRPC interceptor middleware (tracing, metrics)
-  -> Protocol-specific handler (gqlgen / grpc / entrest / templ)
-  -> Generated ent query
-  -> SQLite read (via modernc.org/sqlite, read-only connection)
-  -> Local disk read (via LiteFS FUSE mount, sub-ms)
-  -> Response serialization per protocol
-  -> Client
+GET  /           Root discovery (JSON)
+GET  /healthz    Liveness probe
+GET  /readyz     Readiness probe
+POST /sync       On-demand sync trigger (auth via X-Sync-Token)
+GET  /graphql    GraphiQL playground
+POST /graphql    GraphQL queries
 ```
 
-**Write forwarding for admin triggers (replicas only):**
+**Code generation pipeline:**
 ```
-Replica receives sync trigger request (POST /admin/sync)
-  -> Application checks LiteFS .primary file
-  -> File exists = we are replica
-  -> Returns HTTP response with Fly-Replay: leader header
-  -> Fly.io routes request to primary node
-  -> Primary executes sync
+ent/entc.go (entgql extension) -> go generate ./ent -> ent/ generated code
+                                                    -> graph/schema.graphqls
+                                                    -> gqlgen generates graph/*.go
 ```
 
-## PeeringDB Data Model
+## Recommended Architecture for v1.1
 
-The data model has a clear hierarchy rooted in Organization. This maps directly to entgo schema definitions.
+Four new capabilities integrate into the existing architecture with minimal disruption. Each touches specific files and layers.
 
-### Core Objects (Basic)
+### 1. OTel HTTP Client Tracing
 
-| Object | API Tag | Description | Key Relationships |
-|--------|---------|-------------|-------------------|
-| Organization | `org` | Root entity; parent of networks, exchanges, facilities | Has many: net, ix, fac, carrier, campus |
-| Network | `net` | An autonomous system / network | Belongs to: org. Has many: netfac, netixlan, poc |
-| Internet Exchange | `ix` | An Internet Exchange Point | Belongs to: org. Has many: ixlan, ixfac |
-| Facility | `fac` | A colocation / data center | Belongs to: org, optionally campus. Has many: netfac, ixfac, carrierfac |
-| Network Contact | `poc` | Point of contact / role account | Belongs to: net |
+**What changes:** The PeeringDB HTTP client (`internal/peeringdb/client.go`) gains automatic trace span creation for every outbound HTTP request.
 
-### Derived Objects (Junction / Association)
+**Integration point:** Wrap the `http.Client.Transport` with `otelhttp.NewTransport` during client construction.
 
-| Object | API Tag | Description | Key Relationships |
-|--------|---------|-------------|-------------------|
-| IX LAN | `ixlan` | The LAN segment of an IX (each IX has at least one) | Belongs to: ix. Has many: ixpfx, netixlan |
-| IX Prefix | `ixpfx` | IPv4/IPv6 prefix on an IX LAN | Belongs to: ixlan |
-| Network-IX LAN | `netixlan` | A network's presence at an IX (the most important derived object) | Belongs to: net, ixlan |
-| Network-Facility | `netfac` | A network's presence at a facility | Belongs to: net, fac |
-| IX-Facility | `ixfac` | An IX's presence at a facility | Belongs to: ix, fac |
-
-### Newer Objects
-
-| Object | API Tag | Description | Key Relationships |
-|--------|---------|-------------|-------------------|
-| Carrier | `carrier` | Transport provider between facilities | Belongs to: org. Has many: carrierfac |
-| Carrier-Facility | `carrierfac` | A carrier's presence at a facility | Belongs to: carrier, fac |
-| Campus | `campus` | A logical group of related facilities | Belongs to: org. Has many: fac |
-
-### Entity Relationship Diagram
+**Component boundary:** This is a change to `internal/peeringdb/client.go` only. No new packages needed.
 
 ```
-                       Organization (org)
-                      / |    |    \      \
-                    /   |    |     \      \
-                 Net   IX   Fac  Carrier  Campus
-                  |     |    |      |       |
-                 poc  ixlan  |   carrierfac fac*
-                       |     |     / \
-                     ixpfx   |  carrier fac
-                       |     |
-                    netixlan  |
-                     / \      |
-                   net ixlan  |
-                              |
-                           netfac
-                            / \
-                          net  fac
-                              |
-                            ixfac
-                            / \
-                          ix   fac
+Before:
+  Client.http = &http.Client{Timeout: 30s}
+
+After:
+  Client.http = &http.Client{
+      Timeout:   30s,
+      Transport: otelhttp.NewTransport(http.DefaultTransport),
+  }
 ```
 
-*Campus groups facilities; fac still belongs to org directly.
+**Span details produced automatically by otelhttp.Transport:**
+- Span name: `HTTP GET` (default format: `HTTP {method}`)
+- Span kind: `SpanKindClient`
+- Attributes: `http.method`, `http.url`, `http.status_code`, `http.request.content_length`, `http.response.content_length`
+- W3C TraceContext propagation injected into outgoing headers
+- Metrics: request duration, request size
 
-### Sync Order (Respects FK Dependencies)
+**What this enables:**
+- Every PeeringDB API call appears as a child span under the `full-sync` span
+- Trace waterfall shows: `full-sync` -> `sync-org` -> `HTTP GET /api/org?limit=250&skip=0`
+- Network latency, retries, and rate limiting become visible in traces
+- PeeringDB upstream issues become diagnosable from OTel backend
+
+**Why otelhttp.NewTransport and not manual spans:**
+- The project already depends on `otelhttp v0.67.0` (used for server middleware)
+- Transport wrapping is the canonical pattern (2,691 importers per pkg.go.dev)
+- Automatic semantic convention compliance (no manual attribute tagging)
+- Automatic context propagation (W3C TraceContext injected into request headers)
+- Handles response body close lifecycle correctly
+
+**Confidence:** HIGH (otelhttp is already a project dependency, pattern is well-established)
+
+**New/modified files:**
+
+| File | Change Type | What |
+|------|-------------|------|
+| `internal/peeringdb/client.go` | MODIFY | Wrap transport with `otelhttp.NewTransport` in `NewClient` |
+| `internal/peeringdb/client_test.go` | MODIFY | Verify span creation in tests (use `sdktrace/tracetest`) |
+
+### 2. Expanded Sync Metrics
+
+**What changes:** The existing `SyncDuration` and `SyncOperations` metrics (registered in `internal/otel/metrics.go` but never recorded) get wired into the sync worker, and new per-type metrics are added.
+
+**Current state problem:**
+- `otel.InitMetrics()` registers `pdbplus.sync.duration` and `pdbplus.sync.operations`
+- `sync.Worker.Sync()` never calls `.Record()` or `.Add()` on these instruments
+- This is listed as known tech debt in PROJECT.md
+
+**Integration approach:** The sync worker should record metrics at two levels:
+
+1. **Full-sync level** (existing instruments, just wire them):
+   - `pdbplus.sync.duration` -- record total sync wall-clock time after commit/failure
+   - `pdbplus.sync.operations` -- increment with `status=success` or `status=failed`
+
+2. **Per-type level** (new instruments):
+   - `pdbplus.sync.type.duration` -- histogram per object type
+   - `pdbplus.sync.type.objects` -- gauge of objects synced per type
+   - `pdbplus.sync.type.deleted` -- counter of objects deleted per type
+
+**Metric attribute conventions (OTel semantic conventions):**
+- `pdbplus.sync.type` -- object type name (`org`, `net`, `fac`, etc.)
+- `pdbplus.sync.status` -- `success` or `failed`
+
+**Component boundary:** Changes span `internal/otel/metrics.go` (instrument registration) and `internal/sync/worker.go` (recording calls).
+
+**Dependency flow:**
+```
+internal/otel/metrics.go  -- defines and exports metric instruments
+     |
+     v
+internal/sync/worker.go   -- imports otel package, calls .Record() / .Add()
+```
+
+**Why pass instruments via package-level vars (current pattern) vs. injection:**
+The existing pattern uses package-level vars (`otel.SyncDuration`, `otel.SyncOperations`). This is acceptable for a single-binary application where `InitMetrics()` runs once at startup before any goroutines use the instruments. Dependency injection would be cleaner but would change the `Worker` constructor signature, which is out of scope for a metrics fix.
+
+**Confidence:** HIGH (straightforward instrument wiring, no external research needed)
+
+**New/modified files:**
+
+| File | Change Type | What |
+|------|-------------|------|
+| `internal/otel/metrics.go` | MODIFY | Add per-type metric instruments, review bucket boundaries |
+| `internal/sync/worker.go` | MODIFY | Add `.Record()` and `.Add()` calls at sync completion points |
+| `internal/sync/worker_test.go` | MODIFY | Verify metric recording (use `sdkmetric/metricdata` reader) |
+| `internal/otel/metrics_test.go` | MODIFY | Test new instrument registration |
+
+### 3. entrest-Generated OpenAPI REST API
+
+**What changes:** The ent code generation pipeline gains entrest as a second extension (alongside entgql), producing REST HTTP handlers and an OpenAPI specification.
+
+**Integration with code generation pipeline:**
 
 ```
-  1.  org          (no dependencies)
-  2.  campus       (depends on: org)
-  3.  fac          (depends on: org, optionally campus)
-  4.  carrier      (depends on: org)
-  5.  carrierfac   (depends on: carrier, fac)
-  6.  ix           (depends on: org)
-  7.  ixlan        (depends on: ix)
-  8.  ixpfx        (depends on: ixlan)
-  9.  ixfac        (depends on: ix, fac)
-  10. net          (depends on: org)
-  11. poc          (depends on: net)
-  12. netfac       (depends on: net, fac)
-  13. netixlan     (depends on: net, ixlan)
+Before (entc.go):
+  Extensions: [entgql]
+  Output: ent/ generated code, graph/schema.graphqls
+
+After (entc.go):
+  Extensions: [entgql, entrest]
+  Output: ent/ generated code, graph/schema.graphqls, ent/rest/ generated REST handlers
 ```
 
-This ordering ensures parent objects exist before children are inserted.
-
-## LiteFS Integration Details
-
-### How LiteFS Works (Architectural Understanding)
-
-LiteFS is a FUSE-based filesystem that intercepts SQLite's page-level writes. It operates transparently below the application:
-
-1. **Write capture:** LiteFS intercepts SQLite journal operations. When a transaction commits (journal deletion in rollback mode, or WAL checkpoint), LiteFS extracts the changed pages into an LTX (Lite Transaction) file.
-2. **Replication:** LTX files stream from primary to replicas via HTTP on port 20202. This is asynchronous -- writes succeed immediately without waiting for replica acknowledgment.
-3. **Consistency:** Rolling CRC64 checksums verify database integrity across nodes. If a former primary rejoins with divergent state, it re-snapshots from the new primary.
-4. **Primary election:** A Consul-based lease system ensures exactly one primary at any time. Lease TTL prevents split-brain.
-
-### LiteFS Proxy
-
-LiteFS includes a built-in HTTP proxy that handles consistency and write forwarding:
-
-- **Write requests** (POST, PUT, DELETE): Forwarded to the primary node using the `fly-replay` header. Fly.io's routing layer replays the request on the primary.
-- **Read requests** (GET): The replica waits for its replication position to catch up to the position stored in a cookie set by the primary. This provides causal consistency for browser clients.
-- **Limitation:** Does not work with WebSockets. Does not understand gRPC (HTTP/2).
-
-For this project, the LiteFS proxy handles REST and GraphQL traffic (HTTP/1.1). gRPC must run on a separate port outside the proxy.
-
-### Primary Detection
-
-Applications determine their role by checking the `/litefs/.primary` file:
+**entrest configuration for this project:**
 
 ```go
-// isPrimary returns true if this node holds the LiteFS lease.
-// The .primary file exists ONLY on replica nodes (contains primary hostname).
-// Its absence means we ARE the primary.
-func isPrimary() bool {
-    _, err := os.Stat("/litefs/.primary")
-    return errors.Is(err, os.ErrNotExist)
+restExt, err := entrest.NewExtension(&entrest.Config{
+    Handler: entrest.HandlerStdlib,   // Use net/http, not chi -- matches existing router
+    DefaultOperations: []entrest.Operation{
+        entrest.OperationRead,
+        entrest.OperationList,
+    },                                 // Read-only mirror: no create/update/delete
+    StrictMutate:      false,          // Irrelevant for read-only
+    ItemsPerPage:      20,             // Sensible default page size
+    MaxItemsPerPage:   250,            // Match PeeringDB's max
+    DefaultEagerLoad:  false,          // Don't eager-load by default (depth=0 behavior)
+})
+```
+
+**Key configuration decisions:**
+
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| Handler type | `HandlerStdlib` | Project uses net/http mux, not chi. Stdlib handler uses Go 1.22+ path matching. |
+| Operations | Read + List only | This is a read-only mirror. No mutations exposed via REST. |
+| Items per page | 20 (default), 250 (max) | PeeringDB API uses limit=250 max. Match that ceiling. |
+| Eager loading | Off by default | PeeringDB's depth=0 returns no nested objects. Match that. |
+
+**Schema annotations needed (per-schema):**
+
+Each ent schema needs entrest annotations alongside existing entgql ones:
+
+```go
+// Annotations of the Network.
+func (Network) Annotations() []schema.Annotation {
+    return []schema.Annotation{
+        entgql.RelayConnection(),
+        entgql.QueryField(),
+        // entrest annotations:
+        entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
+    }
 }
 ```
 
-### LiteFS Operational Status
+**Field-level annotations for filtering and sorting:**
 
-LiteFS Cloud (managed backup service) was sunset in October 2024. LiteFS itself remains open-source and functional but receives limited maintenance from Fly.io. It is described as "fairly stable" but "not 100% polished." This means:
+Fields that should support REST API filtering need `entrest.WithFilter()`:
 
-- Production use is viable, but budget extra time for edge-case troubleshooting
-- Disaster recovery backups should use Litestream to S3/Tigris, not LiteFS Cloud
-- No significant new features expected; the current feature set is sufficient for this project
-
-### litefs.yml Configuration
-
-```yaml
-fuse:
-  dir: "/litefs"
-
-data:
-  dir: "/var/lib/litefs"
-  compress: true
-  retention: "10m"
-
-exec:
-  - cmd: "peeringdb-plus -addr :8081"
-
-http:
-  addr: ":20202"
-
-proxy:
-  addr: ":8080"
-  target: "localhost:8081"
-  db: "peeringdb.db"
-  passthrough:
-    - "/healthz"
-    - "/readyz"
-
-lease:
-  type: "consul"
-  advertise-url: "http://${HOSTNAME}.vm.${FLY_APP_NAME}.internal:20202"
-  candidate: ${FLY_REGION == PRIMARY_REGION}
-  consul:
-    url: "${FLY_CONSUL_URL}"
-    key: "peeringdb-plus/primary"
+```go
+field.String("name").
+    Annotations(
+        entgql.OrderField("NAME"),
+        entrest.WithSortable(true),
+        entrest.WithFilter(entrest.FilterGroupContains | entrest.FilterEQ),
+    ),
+field.Int("asn").
+    Annotations(
+        entrest.WithSortable(true),
+        entrest.WithFilter(entrest.FilterEQ | entrest.FilterIn),
+    ),
+field.String("country").
+    Annotations(
+        entrest.WithFilter(entrest.FilterEQ | entrest.FilterIn),
+    ),
 ```
 
-## Port Allocation and Protocol Separation
+JSON fields (social_media, info_types, available_voltage_services) need `entrest.WithSchema()` to provide OpenAPI schema definitions since entrest cannot infer them from Go types:
 
-| Port | Service | Protocol | Visibility | Notes |
-|------|---------|----------|------------|-------|
-| 8080 | LiteFS HTTP proxy | HTTP/1.1 | Public via Fly.io | Entry point for REST, GraphQL, Web UI |
-| 8081 | Go application HTTP | HTTP/1.1 | Internal (behind LiteFS proxy) | REST + GraphQL + Web UI + Health |
-| 8082 | gRPC server | HTTP/2 | Public via Fly.io | Separate port, not behind LiteFS proxy |
-| 20202 | LiteFS replication | HTTP | Private (internal Fly mesh) | Node-to-node LTX streaming |
+```go
+field.JSON("social_media", []SocialMedia{}).
+    Annotations(
+        entrest.WithSchema(&ogen.Schema{
+            Type: "array",
+            Items: &ogen.SchemaOrRef{Schema: &ogen.Schema{
+                Type: "object",
+                Properties: []ogen.Property{
+                    {Name: "service", Schema: &ogen.SchemaOrRef{Schema: &ogen.Schema{Type: "string"}}},
+                    {Name: "identifier", Schema: &ogen.SchemaOrRef{Schema: &ogen.Schema{Type: "string"}}},
+                },
+            }},
+        }),
+    ),
+```
 
-**Rationale for separate gRPC port:** gRPC requires HTTP/2. The LiteFS proxy only handles HTTP/1.1 and uses `fly-replay` for write forwarding. gRPC traffic through the LiteFS proxy would not function correctly. Fly.io supports multiple port mappings per service, so a dedicated gRPC port is the cleanest approach. Since this is a read-only mirror, gRPC does not need write forwarding.
+**Handler mounting in main.go:**
+
+```go
+// Create REST server from ent client.
+restSrv, err := rest.NewServer(entClient, &rest.ServerConfig{})
+// Mount under /rest/ prefix
+mux.Handle("/rest/", http.StripPrefix("/rest", restSrv.Handler()))
+// OpenAPI spec auto-served at /rest/openapi.json by entrest
+```
+
+**Generated REST endpoints (entrest default URL pattern):**
+
+entrest generates URLs based on ent type names (pluralized, kebab-case):
+
+| entrest Path | HTTP Methods | Ent Type |
+|-------------|--------------|----------|
+| `/networks` | GET (list) | Network |
+| `/networks/{id}` | GET (read) | Network |
+| `/organizations` | GET (list) | Organization |
+| `/organizations/{id}` | GET (read) | Organization |
+| `/facilities` | GET (list) | Facility |
+| `/facilities/{id}` | GET (read) | Facility |
+| etc. | | |
+
+These paths differ from PeeringDB's paths (which use `/api/net`, `/api/org`, `/api/fac`). The PeeringDB compat layer (section 4) resolves this.
+
+**Confidence:** MEDIUM (entrest v1.0.2 is relatively new, "expect breaking changes" warning in docs, but functional)
+
+**New/modified files:**
+
+| File | Change Type | What |
+|------|-------------|------|
+| `ent/entc.go` | MODIFY | Add entrest extension alongside entgql |
+| `ent/schema/*.go` (13 files) | MODIFY | Add entrest annotations (operations, filters, sorts, JSON schemas) |
+| `ent/rest/` | NEW (generated) | Generated REST handlers, server, OpenAPI spec |
+| `cmd/peeringdb-plus/main.go` | MODIFY | Create rest.NewServer, mount handler on mux |
+| `go.mod` | MODIFY | Add `github.com/lrstanley/entrest` dependency |
+
+### 4. PeeringDB-Compatible REST Layer
+
+**What changes:** A hand-written compatibility layer maps PeeringDB's exact REST API paths, query parameter format, and response envelope to the underlying ent queries.
+
+**Why not use entrest alone:**
+
+entrest generates a modern RESTful API. PeeringDB's API has specific conventions that entrest cannot reproduce:
+
+| Aspect | PeeringDB API | entrest API |
+|--------|---------------|-------------|
+| Path format | `/api/net`, `/api/fac/{id}` | `/networks`, `/facilities/{id}` |
+| Response envelope | `{"meta": {}, "data": [...]}` | Direct JSON array/object |
+| Field names | `snake_case` from Python Django | `snake_case` (ent fields match, but JSON keys may differ) |
+| Query modifiers | `?name__contains=X`, `?asn__in=1,2` | `?name.contains=X` or similar |
+| Depth parameter | `?depth=0` through `?depth=4` | Eager-load edge endpoints |
+| Pagination | `?limit=N&skip=N` | Cursor-based or page-based |
+
+**Architecture decision: Two separate REST APIs, not one.**
+
+The PeeringDB compat layer is a separate handler tree (`internal/pdbcompat/`) that directly queries the ent client and produces PeeringDB-format responses. It does NOT proxy to entrest. Reasons:
+
+1. **Response envelope:** PeeringDB wraps everything in `{"meta": {...}, "data": [...]}`. Intercepting and rewrapping entrest responses is fragile.
+2. **Query parameter translation:** PeeringDB uses Django-style `__contains`, `__startswith` modifiers. Translating these to entrest's query format is more work than querying ent directly.
+3. **Field name mapping:** ent field names are already snake_case matching PeeringDB (designed this way in v1.0). Direct ent -> JSON serialization preserves field names.
+4. **Depth semantics:** PeeringDB's depth parameter controls edge expansion in specific ways that don't map to entrest's eager-load semantics.
+
+**Component design:**
+
+```
+internal/pdbcompat/
+    handler.go     -- Router: maps /api/{type} and /api/{type}/{id} to handlers
+    response.go    -- Response envelope serialization: {"meta": {...}, "data": [...]}
+    filter.go      -- Query parameter parser: __contains, __startswith, __lt, etc.
+    depth.go       -- Depth parameter handling: edge expansion logic
+    types.go       -- Per-type handler registry: maps "net" -> Network queries
+```
+
+**Handler mounting in main.go:**
+
+```go
+// Create PeeringDB-compatible REST handler.
+pdbHandler := pdbcompat.NewHandler(entClient)
+mux.Handle("/api/", pdbHandler)
+```
+
+**URL routing within pdbcompat:**
+
+```
+/api/{type}        -> List handler  (e.g., /api/net, /api/fac)
+/api/{type}/{id}   -> Read handler  (e.g., /api/net/42, /api/fac/1)
+```
+
+The handler uses a registry map to dispatch by type:
+
+```go
+var typeRegistry = map[string]TypeHandler{
+    "org":        orgHandler{},
+    "net":        netHandler{},
+    "fac":        facHandler{},
+    "ix":         ixHandler{},
+    "ixlan":      ixlanHandler{},
+    "ixpfx":      ixpfxHandler{},
+    "netixlan":   netixlanHandler{},
+    "netfac":     netfacHandler{},
+    "ixfac":      ixfacHandler{},
+    "carrier":    carrierHandler{},
+    "carrierfac": carrierfacHandler{},
+    "campus":     campusHandler{},
+    "poc":        pocHandler{},
+}
+```
+
+**Response envelope format (matching PeeringDB exactly):**
+
+```go
+type Envelope struct {
+    Meta Meta            `json:"meta"`
+    Data json.RawMessage `json:"data"`
+}
+
+type Meta struct {
+    // PeeringDB returns empty meta on success; status/message on error.
+    // We mirror this behavior.
+}
+```
+
+The `data` field is always a JSON array, even for single-object responses (PeeringDB wraps single objects in an array too).
+
+**Query parameter translation:**
+
+PeeringDB filter modifiers map to ent predicates:
+
+| PeeringDB Modifier | ent Predicate | Example |
+|---------------------|---------------|---------|
+| `name__contains=X` | `network.NameContains("X")` | Substring match |
+| `name__startswith=X` | `network.NameHasPrefix("X")` | Prefix match |
+| `asn__in=1,2,3` | `network.AsnIn(1, 2, 3)` | Set membership |
+| `asn__lt=100` | `network.AsnLT(100)` | Less than |
+| `asn__gte=100` | `network.AsnGTE(100)` | Greater or equal |
+| `country=US` | `network.Country("US")` | Exact match |
+| `limit=N` | `.Limit(N)` | Row limit |
+| `skip=N` | `.Offset(N)` | Row offset |
+| `since=T` | `.Where(network.UpdatedGT(time.Unix(T, 0)))` | Updated since |
+| `depth=N` | Edge eager-loading logic | Expand relationships |
+
+**Depth parameter semantics (must match PeeringDB behavior):**
+
+For list endpoints (`/api/net`):
+- `depth=0` (default): No edge expansion, return flat objects
+- `depth=1`: `_set` fields contain arrays of IDs (e.g., `net_set: [1, 2, 3]`)
+- `depth=2`: `_set` fields contain full objects
+
+For single-object endpoints (`/api/net/42`):
+- `depth=0`: No edge expansion
+- `depth=1-4`: Both sets and FK relationships are expanded
+
+**Depth implementation approach:** The depth parameter controls which ent `.With*()` eager-loading calls are added to queries. A depth map per type defines which edges to load at which depth level.
+
+**Confidence:** HIGH for the architectural pattern (hand-written compat layer is the right approach). MEDIUM for implementation details (PeeringDB's undocumented quirks may require iteration).
+
+**New/modified files:**
+
+| File | Change Type | What |
+|------|-------------|------|
+| `internal/pdbcompat/handler.go` | NEW | Router, type registry, dispatch |
+| `internal/pdbcompat/response.go` | NEW | Envelope serialization |
+| `internal/pdbcompat/filter.go` | NEW | Query parameter parsing and ent predicate building |
+| `internal/pdbcompat/depth.go` | NEW | Depth parameter handling |
+| `internal/pdbcompat/types.go` | NEW | Per-type handler implementations |
+| `internal/pdbcompat/*_test.go` | NEW | Tests for each component |
+| `cmd/peeringdb-plus/main.go` | MODIFY | Mount compat handler on `/api/` |
+
+## Data Flow
+
+### Current Data Flow (v1.0)
+
+```
+PeeringDB API --[HTTP/JSON]--> peeringdb.Client --[Go structs]--> sync.Worker
+    --> ent.Tx (upsert/delete) --> SQLite (via modernc.org)
+    --> LiteFS replicates to edge nodes
+
+User --[HTTP POST]--> /graphql --> gqlgen --> ent.Client --> SQLite --> JSON response
+```
+
+### New Data Flow (v1.1 additions)
+
+```
+PeeringDB API --[HTTP/JSON w/ OTel spans]--> peeringdb.Client --[metrics recorded]--> sync.Worker
+    --> ent.Tx (upsert/delete) --> SQLite
+    --> Sync metrics recorded to OTel MeterProvider
+
+User --[HTTP GET]--> /rest/networks --> entrest handler --> ent.Client --> SQLite --> JSON response
+User --[HTTP GET]--> /api/net --> pdbcompat handler --> ent.Client --> SQLite --> PDB envelope response
+```
+
+### Request Flow Through Middleware
+
+All new REST routes go through the same middleware stack:
+
+```
+Recovery -> otelhttp.NewMiddleware -> Logging -> CORS -> readinessMiddleware -> mux
+                                                                                |
+                                                          +--------------------+--------------------+
+                                                          |                    |                    |
+                                                     /graphql            /rest/*               /api/*
+                                                     (gqlgen)           (entrest)           (pdbcompat)
+                                                          |                    |                    |
+                                                     ent.Client          ent.Client          ent.Client
+                                                          |                    |                    |
+                                                        SQLite             SQLite              SQLite
+```
+
+The `readinessMiddleware` already gates all non-infrastructure paths with 503 until first sync completes. Both `/rest/*` and `/api/*` are non-infrastructure paths, so they automatically get this gating.
+
+**Infrastructure paths to exempt:** The existing exemption list (`/sync`, `/healthz`, `/readyz`, `/`) does NOT need to change. The new REST endpoints should be gated by readiness -- you should not serve data that has not been synced yet.
 
 ## Patterns to Follow
 
-### Pattern 1: Schema-Driven Code Generation
+### Pattern 1: Transport Wrapping for Client Tracing
 
-**What:** Define all data structures in ent schema files. Generate GraphQL (entgql), gRPC (entproto), and REST (entrest) from those schemas using annotations.
-**When:** Always. This is the core architectural decision.
-**Why:** Single source of truth prevents API surface drift. Schema changes automatically propagate to all three protocols after code regeneration.
+**What:** Wrap `http.DefaultTransport` with `otelhttp.NewTransport` to automatically create spans for outbound HTTP requests.
+
+**When:** Any HTTP client that makes outbound requests where tracing visibility is needed.
+
+**Example:**
 
 ```go
-// ent/schema/network.go
-package schema
+func NewClient(baseURL string, logger *slog.Logger) *Client {
+    return &Client{
+        http: &http.Client{
+            Timeout:   30 * time.Second,
+            Transport: otelhttp.NewTransport(http.DefaultTransport),
+        },
+        // ... rest unchanged
+    }
+}
+```
 
-import (
-    "entgo.io/ent"
-    "entgo.io/ent/schema/field"
-    "entgo.io/ent/schema/edge"
-    "entgo.io/contrib/entgql"
-    "entgo.io/contrib/entproto"
-    "github.com/lrstanley/entrest"
+**Why this pattern:** otelhttp.NewTransport is the standard approach (HIGH confidence per OpenTelemetry Go docs). It automatically handles span lifecycle, context propagation, and semantic convention attributes. The alternative (manual spans in `doWithRetry`) would duplicate what otelhttp does and miss low-level HTTP connection attributes.
+
+### Pattern 2: Metric Recording at Operation Boundaries
+
+**What:** Record OTel metrics at the natural start/end boundaries of operations, using attributes to distinguish success/failure and type.
+
+**When:** Any measured operation (sync cycles, API requests, etc.).
+
+**Example:**
+
+```go
+// After sync completes (success or failure):
+pdbotel.SyncDuration.Record(ctx, elapsed.Seconds(),
+    metric.WithAttributes(
+        attribute.String("pdbplus.sync.status", "success"),
+    ),
 )
+pdbotel.SyncOperations.Add(ctx, 1,
+    metric.WithAttributes(
+        attribute.String("pdbplus.sync.status", "success"),
+    ),
+)
+```
 
-type Network struct {
-    ent.Schema
-}
+**Why this pattern:** OTel metrics should be recorded at the point where the measured event concludes, not before (to get accurate duration/status). The worker.Sync() method already has clean success and failure paths that are ideal recording points.
 
-func (Network) Fields() []ent.Field {
-    return []ent.Field{
-        field.Int("asn").
-            Unique().
-            Positive().
-            Annotations(
-                entgql.OrderField("ASN"),
-                entproto.Field(2),
-                entrest.WithFilter(entrest.FilterGroupArray|entrest.FilterGroupEqual),
-            ),
-        field.String("name").
-            NotEmpty().
-            Annotations(
-                entgql.OrderField("NAME"),
-                entproto.Field(3),
-                entrest.WithFilter(entrest.FilterGroupContains),
-            ),
-    }
-}
+### Pattern 3: Dual API Surfaces from Single Schema
 
-func (Network) Edges() []ent.Edge {
-    return []ent.Edge{
-        edge.To("netixlans", NetIXLan.Type).
-            Annotations(entgql.RelayConnection()),
-        edge.To("netfacs", NetFac.Type).
-            Annotations(entgql.RelayConnection()),
-        edge.From("org", Organization.Type).
-            Ref("networks").
-            Unique().
-            Required(),
+**What:** Use ent as the single source of truth for data access, generating multiple API surfaces (GraphQL, REST) from the same schema definitions.
+
+**When:** The project needs to expose the same data through different protocols or response formats.
+
+**Example of the ent schema acting as schema-of-record:**
+
+```go
+func (Network) Annotations() []schema.Annotation {
+    return []schema.Annotation{
+        // GraphQL: Relay connection + query field
+        entgql.RelayConnection(),
+        entgql.QueryField(),
+        // REST: Read + List operations only
+        entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
     }
 }
 ```
 
-### Pattern 2: Transaction-per-Object-Type Sync
+Both entgql-generated GraphQL and entrest-generated REST hit the same `ent.Client` which queries the same SQLite database.
 
-**What:** Each sync cycle fetches all PeeringDB objects and upserts them into SQLite with one transaction per object type, following FK dependency order.
-**When:** Every sync cycle (hourly or on-demand).
-**Why:** SQLite uses database-level write locks. A single massive transaction spanning all 13 object types would lock reads for the entire sync duration (potentially minutes). Transaction-per-type keeps lock durations short (seconds) while maintaining per-type atomicity.
+### Pattern 4: Compatibility Layer as Adapter
 
-```go
-func (s *Syncer) Sync(ctx context.Context) error {
-    // Sync in FK dependency order, one transaction per type
-    types := []struct {
-        name string
-        fn   func(ctx context.Context, tx *ent.Tx) error
-    }{
-        {"org", s.syncOrganizations},
-        {"campus", s.syncCampuses},
-        {"fac", s.syncFacilities},
-        // ... remaining types in dependency order
-        {"netixlan", s.syncNetIXLans},
-    }
+**What:** Build a thin adapter layer that translates between an external API contract (PeeringDB REST) and internal data access (ent queries).
 
-    for _, t := range types {
-        tx, err := s.writeClient.Tx(ctx)
-        if err != nil {
-            return fmt.Errorf("begin %s sync: %w", t.name, err)
-        }
-        if err := t.fn(ctx, tx); err != nil {
-            tx.Rollback()
-            return fmt.Errorf("sync %s: %w", t.name, err)
-        }
-        if err := tx.Commit(); err != nil {
-            return fmt.Errorf("commit %s sync: %w", t.name, err)
-        }
-    }
-    return nil
-}
-```
+**When:** You need to reproduce an existing API's exact behavior without contaminating your internal data model.
 
-**Important trade-off:** Transaction-per-type means a failed sync could leave a partially-updated database (e.g., updated orgs but stale networks). This is acceptable because: (a) a full re-fetch on the next cycle will fix it, (b) partial freshness is better than stale-everything, and (c) the alternative (single transaction) blocks all reads during sync.
-
-### Pattern 3: Separate Read and Write ent Clients
-
-**What:** Open two separate ent.Client instances on the primary node: one read-only for API serving, one read-write for sync. Replicas only open the read-only client.
-**When:** Application startup on every node.
-**Why:** SQLite connection pragmas differ between read and write paths. Read-only mode (`?mode=ro`) prevents accidental writes from API handlers. The write client needs `_journal_mode=WAL` and `_busy_timeout=5000`.
-
-```go
-// Read-only client (all nodes)
-readClient := ent.Open("sqlite3",
-    "file:/litefs/peeringdb.db?mode=ro&_journal_mode=WAL&cache=shared")
-
-// Write client (primary only)
-if isPrimary() {
-    writeClient := ent.Open("sqlite3",
-        "file:/litefs/peeringdb.db?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL")
-}
-```
-
-### Pattern 4: Primary-Aware Request Handling
-
-**What:** All nodes serve reads. Only primary handles sync writes. Replicas forward write-like operations via Fly-Replay header.
-**When:** Any request that would modify data (sync trigger, admin operations).
-**Why:** LiteFS replication is single-writer. Attempting writes on replicas fails with SQLITE_READONLY.
-
-```go
-func (s *Server) handleSyncTrigger(w http.ResponseWriter, r *http.Request) {
-    if !s.isPrimary() {
-        w.Header().Set("Fly-Replay", "leader")
-        w.WriteHeader(http.StatusTemporaryRedirect)
-        return
-    }
-    // Trigger sync on primary
-    go s.syncer.Sync(r.Context())
-    w.WriteHeader(http.StatusAccepted)
-}
-```
-
-### Pattern 5: Layered Middleware Stack
-
-**What:** Compose middleware in a consistent order across all HTTP endpoints.
-**When:** All HTTP handlers (GraphQL, REST, health, web UI).
-**Why:** Ensures observability, recovery, and logging are applied uniformly.
-
-```go
-// Middleware order matters:
-// 1. Recovery (catch panics, return 500)
-// 2. Request ID (assign trace correlation ID)
-// 3. OTel HTTP (tracing spans + metrics)
-// 4. CORS (browser access for GraphQL playground)
-// 5. Structured logging (slog with request context)
-// 6. Handler
-```
-
-### Pattern 6: Configuration via Environment
-
-**What:** All configuration from environment variables, validated at startup, fail-fast.
-**When:** Always. Per project coding standards CFG-1, CFG-2.
-**Why:** Fly.io deployment uses environment variables. LiteFS primary status is runtime-detected, not configured.
-
-```go
-type Config struct {
-    PeeringDBURL    string        // PEERINGDB_URL (default: https://www.peeringdb.com/api)
-    SyncInterval    time.Duration // SYNC_INTERVAL (default: 1h)
-    DatabasePath    string        // DATABASE_PATH (default: /litefs/peeringdb.db)
-    HTTPAddr        string        // HTTP_ADDR (default: :8081)
-    GRPCAddr        string        // GRPC_ADDR (default: :8082)
-    OTelEndpoint    string        // OTEL_EXPORTER_OTLP_ENDPOINT
-    PrimaryRegion   string        // PRIMARY_REGION (Fly.io region for primary)
-}
-```
+**Key principles:**
+- The adapter does NOT import or proxy through entrest. It queries ent directly.
+- Field names in ent schemas already match PeeringDB (designed this way in v1.0).
+- The adapter only handles: URL routing, query parameter parsing, response envelope wrapping, depth expansion.
+- No business logic in the adapter -- it is purely a translation layer.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Single Transaction for Entire Sync
+### Anti-Pattern 1: Proxying Through entrest for PDB Compat
 
-**What:** Wrapping all PeeringDB object upserts in one giant transaction.
-**Why bad:** SQLite locks the entire database during a write transaction. A single transaction spanning all 13 object types with hundreds of thousands of rows would block all reads on the primary for the entire sync duration (potentially minutes). WAL mode allows concurrent reads, but only from data committed before the write transaction started.
-**Instead:** One transaction per object type. Each commits independently, allowing read queries to see progressively fresher data between type syncs.
+**What:** Building the PeeringDB compat layer as a proxy/middleware on top of entrest responses.
 
-### Anti-Pattern 2: Separate Sync Service
+**Why bad:** entrest produces its own response format (pagination cursors, JSON structure). Intercepting, parsing, and rewrapping these responses is fragile, slower (double serialization), and couples two independent API surfaces. When entrest changes its response format (it warns about breaking changes), the compat layer breaks too.
 
-**What:** Running the sync client as a separate binary/process from the API server.
-**Why bad:** Doubles operational complexity. Requires inter-process communication for sync status. Deployment becomes two things instead of one. LiteFS already handles the primary/replica distinction.
-**Instead:** Single binary with sync goroutine on primary, API handlers on all nodes.
+**Instead:** The compat layer queries ent.Client directly and produces PeeringDB-format responses. Two independent code paths from the same data source.
 
-### Anti-Pattern 3: Caching Layer in Front of SQLite
+### Anti-Pattern 2: Manual Spans Where Transport Wrapping Suffices
 
-**What:** Adding Redis/Memcached between the API handlers and SQLite.
-**Why bad:** SQLite reads from local disk are already sub-millisecond. A cache adds a network hop, cache invalidation complexity, and a dependency. The entire PeeringDB dataset (~100MB) fits comfortably in SQLite's page cache.
-**Instead:** Use SQLite's built-in page cache. Set appropriate `PRAGMA cache_size` and `PRAGMA mmap_size`.
+**What:** Adding `otel.Tracer("peeringdb").Start(ctx, "http-get")` inside `doWithRetry` when otelhttp.NewTransport handles it.
 
-### Anti-Pattern 4: Custom SQL Queries Bypassing Ent
+**Why bad:** Duplicates span creation (two spans per request), misses low-level HTTP attributes (connection reuse, DNS, TLS), and does not correctly handle response body lifecycle. The otelhttp Transport is specifically designed for this.
 
-**What:** Writing raw SQL queries instead of using the generated ent client.
-**Why bad:** Breaks the schema-driven generation contract. Raw queries are not reflected in GraphQL/gRPC/REST surfaces. Loses type safety and ent's query building, filtering, and pagination.
-**Instead:** Always use ent client methods. If ent cannot express a query, add it as an ent template extension or custom predicate.
+**Instead:** Wrap the transport once at client construction. The existing `ctx` in `http.NewRequestWithContext` propagates correctly to the transport's span.
 
-### Anti-Pattern 5: Write-Through LiteFS Proxy for Sync
+### Anti-Pattern 3: Recording Metrics Inside Tight Loops
 
-**What:** Having any node fetch PeeringDB data and forwarding writes through the LiteFS proxy's fly-replay mechanism to the primary.
-**Why bad:** The sync worker fetches megabytes of data from PeeringDB. Running it on a replica means data is fetched remotely, then forwarded through Fly's internal routing to the primary, doubling network traffic. The fly-replay mechanism is designed for small user-initiated writes, not bulk data loading.
-**Instead:** Only start the sync worker goroutine on the primary node. Replicas never fetch from PeeringDB or attempt writes.
+**What:** Recording per-object metrics inside the upsert loop (e.g., one metric call per organization).
 
-### Anti-Pattern 6: cmux for gRPC + HTTP on One Port
+**Why bad:** For 80K+ objects, this generates excessive metric cardinality and overhead. OTel metric recording has nontrivial overhead per call.
 
-**What:** Using `cmux` to multiplex gRPC (HTTP/2) and REST/GraphQL (HTTP/1.1) on the same listener.
-**Why bad:** The LiteFS proxy only understands HTTP/1.1. gRPC traffic through the proxy would fail. cmux also complicates TLS termination, which Fly.io handles at the edge.
-**Instead:** Separate ports. HTTP on :8081 behind LiteFS proxy (:8080). gRPC on :8082 directly exposed.
+**Instead:** Aggregate at the sync-step level. Record once per type per sync cycle: total count, total duration, deleted count.
 
-### Anti-Pattern 7: Incremental Sync with Change Detection
+### Anti-Pattern 4: Mixing entrest Annotations with PDB Compat Logic
 
-**What:** Trying to sync only changed objects from PeeringDB using `since` parameter or ETags.
-**Why bad:** PeeringDB's incremental sync mechanisms are unreliable. Change detection across 13 object types with complex relationships creates subtle consistency bugs. Full dataset is only ~100MB.
-**Instead:** Full re-fetch with upsert. The dataset is small enough that a complete sync completes in seconds to low minutes.
+**What:** Configuring entrest to try to match PeeringDB's URL patterns, response format, or query parameters.
 
-## SQLite Configuration
+**Why bad:** entrest has its own opinionated URL structure and response format. Fighting the framework to match PeeringDB's conventions defeats the purpose of using a code generator. You end up with fragile overrides that break on entrest upgrades.
 
-```sql
--- WAL mode for concurrent reads during sync writes
-PRAGMA journal_mode = WAL;
+**Instead:** Let entrest be entrest (modern REST API at `/rest/`). Let pdbcompat be PeeringDB-compatible (at `/api/`). Two clean, independent surfaces.
 
--- Synchronous NORMAL is safe with LiteFS (LiteFS handles durability)
-PRAGMA synchronous = NORMAL;
+## Integration Summary
 
--- Cache size: 64MB (entire PeeringDB dataset fits)
-PRAGMA cache_size = -65536;
+### Components Changed vs. New
 
--- Memory-mapped I/O for read performance
-PRAGMA mmap_size = 268435456;  -- 256MB
+| Component | Status | Scope |
+|-----------|--------|-------|
+| `internal/peeringdb/client.go` | MODIFIED | Add otelhttp.NewTransport to HTTP client |
+| `internal/otel/metrics.go` | MODIFIED | Add per-type sync metric instruments |
+| `internal/sync/worker.go` | MODIFIED | Wire metric recording calls |
+| `ent/entc.go` | MODIFIED | Add entrest extension to code generation |
+| `ent/schema/*.go` (13 files) | MODIFIED | Add entrest annotations |
+| `cmd/peeringdb-plus/main.go` | MODIFIED | Mount REST and compat handlers, update root discovery |
+| `ent/rest/` (generated) | NEW | entrest-generated REST handlers |
+| `internal/pdbcompat/` | NEW | PeeringDB compatibility layer |
 
--- Foreign keys for data integrity
-PRAGMA foreign_keys = ON;
+### Dependency Changes
 
--- Busy timeout for write contention during sync (primary only)
-PRAGMA busy_timeout = 5000;
-```
+| Dependency | Type | Purpose |
+|------------|------|---------|
+| `github.com/lrstanley/entrest` | NEW (direct) | REST code generation extension |
+| `github.com/ogen-go/ogen` | NEW (indirect via entrest) | OpenAPI spec types for JSON field schemas |
+| `go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp` | EXISTING | Already imported; now also used for client transport |
 
-## Application Router Structure
+## Suggested Build Order
 
-```go
-// cmd/server/main.go - simplified structure
-func main() {
-    cfg := loadConfig()
-    primary := isPrimary()
+Based on dependency analysis, the four features should be built in this order:
 
-    // Read-only ent client (all nodes)
-    readClient := openReadClient(cfg.DatabasePath)
-    defer readClient.Close()
+### Phase 1: OTel HTTP Client Tracing + Sync Metrics (no dependencies between them)
 
-    // HTTP router (REST + GraphQL + Web UI + Health)
-    mux := http.NewServeMux()
-    mux.Handle("/graphql", graphqlHandler(readClient))
-    mux.Handle("/api/", restHandler(readClient))        // entrest
-    mux.Handle("/", webUIHandler(readClient))            // templ + htmx
-    mux.Handle("/healthz", healthHandler(readClient))
-    mux.Handle("/readyz", readyHandler(readClient))
+These two can be built in parallel or sequence -- they do not depend on each other.
 
-    // gRPC server (separate listener, all nodes)
-    grpcServer := grpc.NewServer(otelGRPCInterceptors()...)
-    registerServices(grpcServer, readClient)
+**OTel HTTP Client Tracing:**
+1. Modify `NewClient` to wrap transport
+2. Add test verifying span creation
+3. Verify trace waterfall in dev (run with `OTEL_TRACES_EXPORTER=console`)
 
-    // Sync worker (primary only)
-    if primary {
-        writeClient := openWriteClient(cfg.DatabasePath)
-        defer writeClient.Close()
-        syncer := sync.New(writeClient, cfg.PeeringDBURL)
-        mux.Handle("POST /admin/sync", syncTriggerHandler(syncer))
-        go syncer.RunSchedule(ctx, cfg.SyncInterval)
-    }
+**Sync Metrics:**
+1. Add new metric instruments to `internal/otel/metrics.go`
+2. Add recording calls to `internal/sync/worker.go`
+3. Add tests verifying metric values
+4. Verify metrics in dev (run with `OTEL_METRICS_EXPORTER=console`)
 
-    // Start servers
-    go grpcServer.Serve(grpcListener(cfg.GRPCAddr))
-    http.ListenAndServe(cfg.HTTPAddr, otelMiddleware(mux))
-}
-```
+**Rationale for first:** Smallest changes, fix known tech debt, provide observability for everything that follows. No schema changes, no code generation, no new packages.
 
-## Project Directory Structure
+### Phase 2: entrest REST API
 
-```
-peeringdb-plus/
-  cmd/
-    server/
-      main.go                # Application entry point, wiring
-  internal/
-    sync/
-      worker.go              # Sync scheduler and orchestrator
-      client.go              # PeeringDB API HTTP client
-      transform.go           # JSON response -> ent mutation transforms
-      types.go               # PeeringDB response types (handles spec divergences)
-    server/
-      graphql.go             # GraphQL handler setup (gqlgen + entgql)
-      grpc.go                # gRPC server setup (entproto)
-      rest.go                # REST handler setup (entrest)
-      web.go                 # HTMX + Templ web UI handler
-      health.go              # Health, readiness, sync status endpoints
-      middleware.go          # HTTP middleware stack
-    otel/
-      provider.go            # OTel SDK initialization, exporters
-      shutdown.go            # Graceful shutdown with span/metric flush
-    litefs/
-      primary.go             # Primary detection via .primary file
-  ent/
-    schema/
-      organization.go        # entgo schema: Organization (org)
-      network.go             # entgo schema: Network (net)
-      internet_exchange.go   # entgo schema: InternetExchange (ix)
-      facility.go            # entgo schema: Facility (fac)
-      ix_lan.go              # entgo schema: IXLan (ixlan)
-      ix_prefix.go           # entgo schema: IXPrefix (ixpfx)
-      ix_facility.go         # entgo schema: IXFacility (ixfac)
-      network_ixlan.go       # entgo schema: NetworkIXLan (netixlan)
-      network_facility.go    # entgo schema: NetworkFacility (netfac)
-      network_contact.go     # entgo schema: NetworkContact (poc)
-      carrier.go             # entgo schema: Carrier (carrier)
-      carrier_facility.go    # entgo schema: CarrierFacility (carrierfac)
-      campus.go              # entgo schema: Campus (campus)
-    entc.go                  # Code generation config (entgql, entproto, entrest extensions)
-    generate.go              # go:generate directive
-    ...                      # Generated code
-  graph/
-    schema.graphqls          # Generated + custom GraphQL schema
-    resolver.go              # Generated + custom resolvers
-  proto/
-    peeringdb/
-      v1/
-        *.proto              # Generated protobuf definitions
-        *_grpc.pb.go         # Generated gRPC service implementations
-  web/
-    templates/
-      *.templ                # Templ component templates
-    static/
-      htmx.min.js            # HTMX library
-  litefs.yml                 # LiteFS configuration
-  fly.toml                   # Fly.io deployment configuration
-  Dockerfile                 # Multi-stage build (Go build -> distroless + litefs)
-  go.mod
-  go.sum
-```
+**Depends on:** Nothing from Phase 1, but logically comes after because Phase 1 fixes tech debt first.
+
+1. Add entrest dependency to go.mod
+2. Modify `ent/entc.go` to add entrest extension
+3. Add entrest annotations to all 13 ent schemas
+4. Run code generation
+5. Mount REST handler in main.go
+6. Test generated endpoints
+7. Verify OpenAPI spec at `/rest/openapi.json`
+
+**Rationale for second:** Schema changes and code generation are a prerequisite for Phase 3 since the code must compile. The entrest API is also independently useful as a modern REST surface.
+
+### Phase 3: PeeringDB-Compatible REST Layer
+
+**Depends on:** Phases 1 and 2 complete (project must build with new schema annotations). Does NOT depend on entrest handlers at runtime -- queries ent directly.
+
+1. Create `internal/pdbcompat/` package
+2. Build response envelope (`response.go`)
+3. Build query parameter parser (`filter.go`)
+4. Build depth handling (`depth.go`)
+5. Build per-type handler registry (`types.go`, `handler.go`)
+6. Mount on `/api/` in main.go
+7. Integration tests against real PeeringDB responses for format validation
+
+**Rationale for last:** Most complex feature, highest risk of PeeringDB API quirks. Benefits from observability (Phase 1) being in place to debug issues. Needs compiled project (Phase 2).
 
 ## Scalability Considerations
 
-| Concern | At 100 users | At 10K users | At 1M users |
-|---------|--------------|--------------|-------------|
-| Read latency | Sub-ms (local SQLite) | Sub-ms (same) | Sub-ms (same, inherent to architecture) |
-| Concurrent queries | Single node, trivial | Multiple Fly.io regions via LiteFS | More regions, same architecture |
-| Sync impact on reads | Negligible (WAL mode) | Negligible (WAL mode) | Negligible (WAL mode, readers don't block) |
-| Replication lag | Sub-second | Sub-second | Sub-second (LiteFS async, Fly internal network) |
-| Data size | ~100MB SQLite file | Same (PeeringDB data, not user data) | Same |
-| Node count | 1-2 regions | 3-5 regions | 10+ regions |
-| Sync frequency | Hourly | Hourly | Hourly (upstream rate limits may apply) |
-| API bandwidth | Negligible | Fly.io edge handles distribution | May need CDN for static web assets |
-
-**Key insight:** This is a read-only mirror of a fixed-size dataset (~100MB). The architecture scales by adding read replicas (Fly.io regions), not by sharding or partitioning. The bottleneck is PeeringDB's upstream API during sync, not serving capacity.
-
-## Suggested Build Order (Dependencies)
-
-```
-Phase 1: ent Schema + SQLite
-    |
-    v
-Phase 2: Sync Worker + PeeringDB Client
-    |
-    +---> Phase 3: GraphQL API (primary surface)
-    |
-    +---> Phase 4: REST + gRPC APIs (secondary surfaces, can parallel with 3)
-    |
-    v
-Phase 5: LiteFS + Fly.io Deployment
-    |
-    v
-Phase 6: Web UI (lowest priority, depends on deployed system)
-```
-
-**OTel is woven into every phase**, not a separate phase. Each component gets instrumented as it is built.
-
-### Phase 1: Foundation (ent Schema + SQLite)
-Build all 13 entgo schema definitions matching PeeringDB's data model. Verify schema compiles, migrations run against SQLite, and basic CRUD works. This is the foundation everything depends on.
-
-### Phase 2: Sync Worker
-Build the PeeringDB API client and sync worker. Handle the API response format divergences here (this is the hardest part -- PeeringDB responses don't match their OpenAPI spec). Populates the database with real data needed to test API surfaces.
-
-### Phase 3: GraphQL API
-Generate and customize the GraphQL API via entgql + gqlgen. This is the primary API surface and exercises the full entgo query path including Relay cursor pagination, filtering, and edge traversal.
-
-### Phase 4: REST + gRPC APIs
-Generate REST (entrest) and gRPC (entproto) surfaces. These are secondary and largely come "for free" from entgo schema annotations, but need testing and may need custom adjustments.
-
-### Phase 5: LiteFS + Fly.io Deployment
-Add LiteFS configuration, Dockerfile, fly.toml. Deploy to Fly.io with primary + replica nodes. Wire up sync worker primary detection, backup via Litestream.
-
-### Phase 6: Web UI
-HTMX + Templ browser interface. Explicitly lowest priority per project requirements.
-
-## Deployment Architecture on Fly.io
-
-```
-Fly.io Anycast Edge
-        |
-   +----+----+
-   |         |
-Region A   Region B   Region C ...
-(primary)  (replica)  (replica)
-   |         |           |
-LiteFS     LiteFS      LiteFS
-primary    replica      replica
-   |         |           |
-Go binary  Go binary   Go binary
-(sync+API) (API only)  (API only)
-   |
-Consul       Litestream -> Tigris (S3-compatible)
-(lease)      (backup, since LiteFS Cloud is sunset)
-```
-
-**Primary region:** Set via `PRIMARY_REGION` env var in fly.toml. Only candidate nodes in this region attempt to acquire the Consul lease. If the primary fails, another candidate in the same region takes over.
-
-**Replicas:** Every other region runs a read-only copy. LiteFS replicates asynchronously with sub-second lag within Fly.io's internal WireGuard mesh.
-
-**Backups:** Use Litestream to stream WAL changes to Tigris (Fly.io's S3-compatible object storage) for disaster recovery. This replaces the sunset LiteFS Cloud.
+| Concern | Current (v1.0) | With v1.1 additions |
+|---------|----------------|---------------------|
+| Trace volume | Server spans only (~100/min at low traffic) | +13 types x ~4 pages = ~52 client spans per sync cycle. Negligible. |
+| Metric cardinality | 2 instruments, 0 recorded | ~8 instruments, ~15 attribute combinations. Well within OTel recommendations (<2000 time series). |
+| REST endpoint latency | N/A | SQLite read queries; p99 should be <10ms for single-object, <50ms for filtered lists. Same as GraphQL. |
+| Memory overhead | Baseline Go + ent + SQLite | entrest adds generated handler code (compiled, not runtime). pdbcompat is lightweight. <1MB additional RSS. |
+| PDB compat depth queries | N/A | depth=2+ triggers eager-loading which can be expensive for types with many edges. Cap at depth=2 for list, depth=4 for single (match PeeringDB). |
 
 ## Sources
 
-- [LiteFS Architecture (GitHub)](https://github.com/superfly/litefs/blob/main/docs/ARCHITECTURE.md) - HIGH confidence
-- [How LiteFS Works (Fly Docs)](https://fly.io/docs/litefs/how-it-works/) - HIGH confidence
-- [LiteFS Primary Detection (Fly Docs)](https://fly.io/docs/litefs/primary/) - HIGH confidence
-- [LiteFS Config Reference (Fly Docs)](https://fly.io/docs/litefs/config/) - HIGH confidence
-- [LiteFS HTTP Proxy (Fly Docs)](https://fly.io/docs/litefs/proxy/) - HIGH confidence
-- [LiteFS Status Discussion (Fly Community)](https://community.fly.io/t/what-is-the-status-of-litefs/23883) - MEDIUM confidence
-- [LiteFS Cloud Sunset (Fly Community)](https://community.fly.io/t/sunsetting-litefs-cloud/20829) - HIGH confidence
-- [entgo GitHub](https://github.com/ent/ent) - HIGH confidence
-- [entgql GraphQL Integration (entgo docs)](https://entgo.io/docs/graphql/) - HIGH confidence
-- [entproto gRPC Generation (entgo blog)](https://entgo.io/blog/2021/03/18/generating-a-grpc-server-with-ent/) - MEDIUM confidence
-- [entrest by lrstanley (GitHub)](https://github.com/lrstanley/entrest) - HIGH confidence
-- [entrest Documentation](https://lrstanley.github.io/entrest/) - HIGH confidence
-- [PeeringDB API Specs](https://docs.peeringdb.com/api_specs/) - HIGH confidence
-- [PeeringDB Carrier Objects (blog)](https://docs.peeringdb.com/blog/carrier_object_deployed/) - MEDIUM confidence
-- [django-peeringdb Models (GitHub)](https://github.com/peeringdb/django-peeringdb) - HIGH confidence
-- [cmux Connection Multiplexer (GitHub)](https://github.com/soheilhy/cmux) - HIGH confidence (referenced but not recommended)
-- [Templ + HTMX SSR Guide](https://templ.guide/server-side-rendering/htmx/) - MEDIUM confidence
-- [OTel Ent Instrumentation (Uptrace)](https://uptrace.dev/guides/opentelemetry-ent) - MEDIUM confidence
-- [Fly-Replay Header (Fly Docs)](https://fly.io/docs/networking/dynamic-request-routing/) - HIGH confidence
+- [otelhttp package docs](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp) - Transport wrapping pattern, v0.67.0 (published 2026-03-06)
+- [otelhttp transport.go source](https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/instrumentation/net/http/otelhttp/transport.go) - Implementation details for span attributes and context propagation
+- [entrest pkg.go.dev](https://pkg.go.dev/github.com/lrstanley/entrest) - Config struct, annotation functions, v1.0.2 (published 2025-08-21)
+- [entrest GitHub](https://github.com/lrstanley/entrest) - Getting started guide, example code
+- [entrest getting started](https://lrstanley.github.io/entrest/guides/getting-started/) - Extension setup, handler mounting
+- [PeeringDB API Specs](https://docs.peeringdb.com/api_specs/) - URL patterns, response envelope, query parameters, depth behavior
+- [OpenTelemetry Go otelhttp instrumentation guide](https://oneuptime.com/blog/post/2026-02-06-instrument-go-net-http-otelhttp-opentelemetry/view) - Client transport tracing patterns (2026)
