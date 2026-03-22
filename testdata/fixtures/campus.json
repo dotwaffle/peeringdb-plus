@@ -1,0 +1,43 @@
+{
+  "meta": {},
+  "data": [
+    {
+      "id": 1,
+      "org_id": 1,
+      "org_name": "Example Organization",
+      "name": "Example Campus West",
+      "name_long": "Example Organization Campus West Coast",
+      "aka": "ECW",
+      "website": "https://example.org/campus-west",
+      "social_media": [],
+      "notes": "Main west coast campus",
+      "country": "US",
+      "city": "San Francisco",
+      "zipcode": "94105",
+      "state": "CA",
+      "logo": null,
+      "created": "2024-01-15T08:00:00Z",
+      "updated": "2024-07-01T14:00:00Z",
+      "status": "ok"
+    },
+    {
+      "id": 2,
+      "org_id": 2,
+      "org_name": "Cloudnet Services",
+      "name": "Cloudnet Berlin Campus",
+      "name_long": null,
+      "aka": null,
+      "website": "",
+      "social_media": [],
+      "notes": "",
+      "country": "DE",
+      "city": "Berlin",
+      "zipcode": "10178",
+      "state": "Berlin",
+      "logo": null,
+      "created": "2024-03-01T10:00:00Z",
+      "updated": "2024-09-15T16:30:00Z",
+      "status": "ok"
+    }
+  ]
+}

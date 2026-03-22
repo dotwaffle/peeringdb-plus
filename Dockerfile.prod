@@ -1,0 +1,35 @@
+# Build stage (same as Phase 1 Dockerfile)
+FROM golang:1.26-alpine AS builder
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /peeringdb-plus ./cmd/peeringdb-plus
+
+# Production stage with LiteFS per D-20, D-23
+FROM alpine:3.21
+
+# Install LiteFS dependencies (fuse3 required for FUSE filesystem) per Pitfall 4
+RUN apk add --no-cache ca-certificates fuse3
+
+# Copy LiteFS binary from official image (v0.5 tag covers 0.5.x line)
+COPY --from=flyio/litefs:0.5 /usr/local/bin/litefs /usr/local/bin/litefs
+
+# Copy application binary
+COPY --from=builder /peeringdb-plus /usr/local/bin/peeringdb-plus
+
+# Copy LiteFS configuration
+COPY litefs.yml /etc/litefs.yml
+
+LABEL org.opencontainers.image.title="peeringdb-plus" \
+      org.opencontainers.image.description="High-performance read-only PeeringDB mirror" \
+      org.opencontainers.image.source="https://github.com/dotwaffle/peeringdb-plus"
+
+# LiteFS proxy listens on 8080 (external), app on 8081 (internal)
+EXPOSE 8080
+# LiteFS replication API
+EXPOSE 20202
+
+# LiteFS as entrypoint / process supervisor per D-20
+# LiteFS starts first, then launches the app as a subprocess
+ENTRYPOINT ["litefs", "mount"]

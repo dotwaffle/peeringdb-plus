@@ -1,0 +1,47 @@
+# Binaries (only the compiled binary, not the source directory)
+/peeringdb-plus
+/pdb-schema-extract
+/pdb-schema-generate
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of go coverage tool
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database files
+*.db
+*.db-wal
+*.db-shm
+
+# Environment
+.env
+.env.local
+
+# MCP config
+.mcp.json
+
+# Shell config (home dir artifacts)
+.bash_profile
+.bashrc
+.profile
+.zprofile
+.zshrc
+.gitconfig
+.gitmodules
+.ripgreprc

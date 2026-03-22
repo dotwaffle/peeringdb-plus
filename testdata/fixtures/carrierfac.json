@@ -1,0 +1,14 @@
+{
+  "meta": {},
+  "data": [
+    {
+      "id": 1,
+      "carrier_id": 1,
+      "fac_id": 1,
+      "name": "Example Carrier at Example DC1",
+      "created": "2024-02-05T12:00:00Z",
+      "updated": "2024-07-15T08:00:00Z",
+      "status": "ok"
+    }
+  ]
+}

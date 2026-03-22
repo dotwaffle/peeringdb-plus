@@ -1,0 +1,25 @@
+{
+  "meta": {},
+  "data": [
+    {
+      "id": 1,
+      "net_id": 1,
+      "ix_id": 1,
+      "ixlan_id": 1,
+      "name": "Example Network at Bay Area IX",
+      "notes": "",
+      "speed": 100000,
+      "asn": 65001,
+      "ipaddr4": "198.51.100.1",
+      "ipaddr6": "2001:db8::1",
+      "is_rs_peer": true,
+      "bfd_support": false,
+      "operational": true,
+      "net_side_id": null,
+      "ix_side_id": null,
+      "created": "2024-02-15T10:00:00Z",
+      "updated": "2024-08-20T10:00:00Z",
+      "status": "ok"
+    }
+  ]
+}

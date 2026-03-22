@@ -1,0 +1,35 @@
+{
+  "meta": {},
+  "data": [
+    {
+      "id": 1,
+      "ix_id": 1,
+      "name": "Bay Area IX LAN",
+      "descr": "Primary peering LAN for BAIX",
+      "mtu": 9000,
+      "dot1q_support": false,
+      "rs_asn": 65500,
+      "arp_sponge": null,
+      "ixf_ixp_member_list_url_visible": "Public",
+      "ixf_ixp_import_enabled": true,
+      "created": "2024-01-25T09:30:00Z",
+      "updated": "2024-08-15T14:00:00Z",
+      "status": "ok"
+    },
+    {
+      "id": 2,
+      "ix_id": 2,
+      "name": "Berlin IX LAN",
+      "descr": "",
+      "mtu": 1500,
+      "dot1q_support": true,
+      "rs_asn": null,
+      "arp_sponge": "00:00:5e:00:01:01",
+      "ixf_ixp_member_list_url_visible": "Private",
+      "ixf_ixp_import_enabled": false,
+      "created": "2024-03-15T10:30:00Z",
+      "updated": "2024-09-01T16:00:00Z",
+      "status": "ok"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "meta": {},
+  "data": [
+    {
+      "id": 1,
+      "org_id": 1,
+      "org_name": "Example Organization",
+      "name": "Example Carrier",
+      "aka": "EC",
+      "name_long": "Example Carrier Services",
+      "website": "https://example.org/carrier",
+      "social_media": [],
+      "notes": "Provides dark fiber and wavelength services",
+      "fac_count": 2,
+      "logo": null,
+      "created": "2024-02-01T10:00:00Z",
+      "updated": "2024-07-15T08:00:00Z",
+      "status": "ok"
+    }
+  ]
+}

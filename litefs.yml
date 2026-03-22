@@ -1,0 +1,38 @@
+# LiteFS configuration for PeeringDB Plus
+# See: https://fly.io/docs/litefs/config/
+
+# FUSE mount point where the application accesses the database
+fuse:
+  dir: "/litefs"
+
+# Internal storage directory for replication state (on the Fly.io volume)
+data:
+  dir: "/var/lib/litefs"
+  compress: true
+  retention: "10m"
+
+# LiteFS launches the app as a subprocess per D-20
+exec:
+  - cmd: "/usr/local/bin/peeringdb-plus"
+
+# Internal replication API (node-to-node communication)
+http:
+  addr: ":20202"
+
+# HTTP proxy for write forwarding and read consistency
+proxy:
+  addr: ":8080"
+  target: "localhost:8081"
+  db: "peeringdb-plus.db"
+  passthrough:
+    - "/healthz"
+    - "/readyz"
+
+# Consul-based leader election per D-17, D-27
+lease:
+  type: "consul"
+  candidate: ${FLY_REGION == PRIMARY_REGION}
+  advertise-url: "http://${FLY_ALLOC_ID}.vm.${FLY_APP_NAME}.internal:20202"
+  consul:
+    url: "${FLY_CONSUL_URL}"
+    key: "${FLY_APP_NAME}/primary"

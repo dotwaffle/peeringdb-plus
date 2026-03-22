@@ -1,0 +1,16 @@
+{
+  "meta": {},
+  "data": [
+    {
+      "id": 1,
+      "ix_id": 1,
+      "fac_id": 1,
+      "name": "Bay Area IX at Example DC1",
+      "city": "San Francisco",
+      "country": "US",
+      "created": "2024-02-01T10:00:00Z",
+      "updated": "2024-08-15T14:00:00Z",
+      "status": "ok"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+schema:
+  - schema.graphqls
+  - custom.graphql
+
+exec:
+  filename: generated.go
+  package: graph
+
+resolver:
+  layout: follow-schema
+  dir: .
+  package: graph
+
+autobind:
+  - github.com/dotwaffle/peeringdb-plus/ent
+  - github.com/dotwaffle/peeringdb-plus/ent/schema
+  - github.com/dotwaffle/peeringdb-plus/graph/model
+
+models:
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.IntID
+  Node:
+    model:
+      - github.com/dotwaffle/peeringdb-plus/ent.Noder

@@ -1,0 +1,27 @@
+{
+  "meta": {},
+  "data": [
+    {
+      "id": 1,
+      "ixlan_id": 1,
+      "protocol": "IPv4",
+      "prefix": "198.51.100.0/24",
+      "in_dfz": false,
+      "notes": "Primary IPv4 peering prefix",
+      "created": "2024-01-25T10:00:00Z",
+      "updated": "2024-08-15T14:00:00Z",
+      "status": "ok"
+    },
+    {
+      "id": 2,
+      "ixlan_id": 2,
+      "protocol": "IPv6",
+      "prefix": "2001:db8:100::/48",
+      "in_dfz": true,
+      "notes": "",
+      "created": "2024-03-15T11:00:00Z",
+      "updated": "2024-09-01T16:00:00Z",
+      "status": "ok"
+    }
+  ]
+}

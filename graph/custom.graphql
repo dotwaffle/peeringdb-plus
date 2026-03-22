@@ -1,0 +1,123 @@
+scalar Map
+
+"""
+SocialMedia represents a social media link with service name and identifier.
+"""
+type SocialMedia {
+  """
+  The social media service name (e.g., "Twitter", "LinkedIn").
+  """
+  service: String!
+  """
+  The identifier or handle on the service.
+  """
+  identifier: String!
+}
+
+"""
+SyncStatus represents the current state and result of the last PeeringDB data sync.
+"""
+type SyncStatus {
+  """
+  Timestamp of the last completed sync.
+  """
+  lastSyncAt: Time
+  """
+  Duration of the last sync in milliseconds.
+  """
+  durationMs: Int
+  """
+  Object counts per PeeringDB type from the last sync.
+  """
+  objectCounts: Map
+  """
+  Current sync status: "success", "failed", or "running".
+  """
+  status: String!
+  """
+  Error message if the last sync failed, null otherwise.
+  """
+  errorMessage: String
+}
+
+extend type Query {
+  """
+  Returns the status of the most recent PeeringDB data sync.
+  """
+  syncStatus: SyncStatus
+
+  """
+  Looks up a single network by its Autonomous System Number.
+  """
+  networkByAsn(asn: Int!): Network
+
+  # Offset/limit pagination alternatives per D-01.
+  # These provide simple offset-based pagination for scripts and non-Relay clients.
+  # Mutually exclusive with cursor pagination (first/after/before/last).
+  # limit defaults to 100, max 1000 per D-14. offset defaults to 0.
+
+  """
+  Lists organizations with offset/limit pagination.
+  """
+  organizationsList(offset: Int, limit: Int, where: OrganizationWhereInput): [Organization!]!
+
+  """
+  Lists networks with offset/limit pagination.
+  """
+  networksList(offset: Int, limit: Int, where: NetworkWhereInput): [Network!]!
+
+  """
+  Lists facilities with offset/limit pagination.
+  """
+  facilitiesList(offset: Int, limit: Int, where: FacilityWhereInput): [Facility!]!
+
+  """
+  Lists internet exchanges with offset/limit pagination.
+  """
+  internetExchangesList(offset: Int, limit: Int, where: InternetExchangeWhereInput): [InternetExchange!]!
+
+  """
+  Lists points of contact with offset/limit pagination.
+  """
+  pocsList(offset: Int, limit: Int, where: PocWhereInput): [Poc!]!
+
+  """
+  Lists IX LANs with offset/limit pagination.
+  """
+  ixLansList(offset: Int, limit: Int, where: IxLanWhereInput): [IxLan!]!
+
+  """
+  Lists IX prefixes with offset/limit pagination.
+  """
+  ixPrefixesList(offset: Int, limit: Int, where: IxPrefixWhereInput): [IxPrefix!]!
+
+  """
+  Lists IX-facility associations with offset/limit pagination.
+  """
+  ixFacilitiesList(offset: Int, limit: Int, where: IxFacilityWhereInput): [IxFacility!]!
+
+  """
+  Lists network-IX LAN associations with offset/limit pagination.
+  """
+  networkIxLansList(offset: Int, limit: Int, where: NetworkIxLanWhereInput): [NetworkIxLan!]!
+
+  """
+  Lists network-facility associations with offset/limit pagination.
+  """
+  networkFacilitiesList(offset: Int, limit: Int, where: NetworkFacilityWhereInput): [NetworkFacility!]!
+
+  """
+  Lists carriers with offset/limit pagination.
+  """
+  carriersList(offset: Int, limit: Int, where: CarrierWhereInput): [Carrier!]!
+
+  """
+  Lists carrier-facility associations with offset/limit pagination.
+  """
+  carrierFacilitiesList(offset: Int, limit: Int, where: CarrierFacilityWhereInput): [CarrierFacility!]!
+
+  """
+  Lists campuses with offset/limit pagination.
+  """
+  campusesList(offset: Int, limit: Int, where: CampusWhereInput): [Campus!]!
+}

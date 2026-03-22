@@ -1,81 +1,26 @@
 # Roadmap: PeeringDB Plus
 
-## Overview
+## Milestones
 
-PeeringDB Plus delivers fast, globally distributed, read-only access to PeeringDB data. The v1 roadmap moves through three phases: first, model and sync all PeeringDB data into SQLite using entgo; second, expose that data through a GraphQL API with filtering, pagination, and relationship traversal; third, add OpenTelemetry observability and deploy globally on Fly.io with LiteFS for edge-local reads.
+- ✅ **v1.0 PeeringDB Plus** — Phases 1-3 (shipped 2026-03-22)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+<details>
+<summary>✅ v1.0 PeeringDB Plus (Phases 1-3) — SHIPPED 2026-03-22</summary>
 
-Decimal phases appear between their surrounding integers in numeric order.
+- [x] Phase 1: Data Foundation (7/7 plans) — completed 2026-03-22
+- [x] Phase 2: GraphQL API (4/4 plans) — completed 2026-03-22
+- [x] Phase 3: Production Readiness (3/3 plans) — completed 2026-03-22
 
-- [ ] **Phase 1: Data Foundation** - Model all PeeringDB objects in entgo, store in SQLite, sync via full re-fetch
-- [ ] **Phase 2: GraphQL API** - Expose all data through GraphQL with filtering, pagination, and relationship traversal
-- [ ] **Phase 3: Production Readiness** - OpenTelemetry observability, health checks, and global edge deployment on Fly.io
+See: `.planning/milestones/v1.0-ROADMAP.md` for full details.
 
-## Phase Details
-
-### Phase 1: Data Foundation
-**Goal**: All PeeringDB data is modeled, stored locally, and kept fresh via automated sync
-**Depends on**: Nothing (first phase)
-**Requirements**: DATA-01, DATA-02, DATA-03, DATA-04, STOR-01
-**Success Criteria** (what must be TRUE):
-  1. All 13 PeeringDB object types exist as entgo schemas with fields matching actual PeeringDB API responses (not their buggy OpenAPI spec)
-  2. A full sync from PeeringDB populates a local SQLite database with all objects, handling deleted/status-filtered objects correctly
-  3. Sync can be triggered on-demand and runs automatically on an hourly schedule
-  4. After sync completes, querying the local database returns the same data as querying PeeringDB directly
-**Plans:** 7 plans
-
-Plans:
-- [ ] 01-01-PLAN.md — Project scaffolding, Go module, entgo foundation, SQLite setup
-- [ ] 01-02-PLAN.md — All 13 entgo schemas with fields, edges, indexes, annotations, OTel mutation hooks
-- [ ] 01-03-PLAN.md — PeeringDB API client with rate limiting, pagination, retry
-- [ ] 01-04-PLAN.md — Sync worker: upsert, delete, status tracking, retry with backoff, scheduling
-- [ ] 01-05-PLAN.md — Schema extraction pipeline (Django source parser + entgo generator)
-- [ ] 01-06-PLAN.md — Application wiring: main binary and Dockerfile
-- [ ] 01-07-PLAN.md — Test fixtures and fixture-based integration tests
-
-### Phase 2: GraphQL API
-**Goal**: Users can query all PeeringDB data through a GraphQL API with rich filtering and relationship traversal
-**Depends on**: Phase 1
-**Requirements**: API-01, API-02, API-03, API-04, API-05, API-06, API-07, OPS-06
-**Success Criteria** (what must be TRUE):
-  1. A user can query any of the 13 PeeringDB object types via GraphQL and get correct results
-  2. A user can traverse relationships in a single query (e.g., fetch an IX, its networks, and those networks' facilities)
-  3. A user can filter results by any field, look up by ASN or ID, and paginate through large result sets
-  4. A user can open the interactive GraphQL playground in a browser and execute queries against the API
-  5. Browser-based clients can access the API without CORS errors
-**Plans**: TBD
-
-Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-
-### Phase 3: Production Readiness
-**Goal**: The system is observable, health-monitored, and serving from edge nodes worldwide with low latency
-**Depends on**: Phase 2
-**Requirements**: OPS-01, OPS-02, OPS-03, OPS-04, OPS-05, STOR-02
-**Success Criteria** (what must be TRUE):
-  1. All requests produce OpenTelemetry traces, and key operations emit metrics and structured logs
-  2. A health endpoint reports whether the system is ready to serve and how fresh the synced data is
-  3. The application runs on Fly.io with LiteFS replicating data to multiple regions
-  4. A user querying from a different continent gets responses from a nearby edge node with low latency
-**Plans**: TBD
-
-Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+</details>
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Data Foundation | 0/7 | Planning complete | - |
-| 2. GraphQL API | 0/0 | Not started | - |
-| 3. Production Readiness | 0/0 | Not started | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Data Foundation | v1.0 | 7/7 | Complete | 2026-03-22 |
+| 2. GraphQL API | v1.0 | 4/4 | Complete | 2026-03-22 |
+| 3. Production Readiness | v1.0 | 3/3 | Complete | 2026-03-22 |

@@ -1,0 +1,79 @@
+{
+  "meta": {},
+  "data": [
+    {
+      "id": 1,
+      "name": "Example Organization",
+      "aka": "ExOrg",
+      "name_long": "Example Organization Inc.",
+      "website": "https://example.org",
+      "social_media": [
+        {"service": "website", "identifier": "https://example.org"}
+      ],
+      "notes": "Primary test organization",
+      "logo": null,
+      "address1": "123 Main St",
+      "address2": "Suite 400",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "US",
+      "zipcode": "94105",
+      "suite": "400",
+      "floor": "4",
+      "latitude": 37.7749,
+      "longitude": -122.4194,
+      "created": "2024-01-01T00:00:00Z",
+      "updated": "2024-06-15T12:30:00Z",
+      "status": "ok"
+    },
+    {
+      "id": 2,
+      "name": "Cloudnet Services",
+      "aka": "CloudNet",
+      "name_long": "Cloudnet Services GmbH",
+      "website": "https://cloudnet.example.de",
+      "social_media": [
+        {"service": "website", "identifier": "https://cloudnet.example.de"},
+        {"service": "twitter", "identifier": "@cloudnet_de"}
+      ],
+      "notes": "",
+      "logo": "https://cdn.example.com/logos/cloudnet.png",
+      "address1": "Alexanderplatz 1",
+      "address2": "",
+      "city": "Berlin",
+      "state": "Berlin",
+      "country": "DE",
+      "zipcode": "10178",
+      "suite": "",
+      "floor": "",
+      "latitude": 52.5200,
+      "longitude": 13.4050,
+      "created": "2024-02-15T10:00:00Z",
+      "updated": "2024-08-01T09:15:00Z",
+      "status": "ok"
+    },
+    {
+      "id": 3,
+      "name": "Defunct Telecom",
+      "aka": "",
+      "name_long": "Defunct Telecom LLC",
+      "website": "",
+      "social_media": [],
+      "notes": "This organization has been decommissioned",
+      "logo": null,
+      "address1": "1 Old Road",
+      "address2": "",
+      "city": "London",
+      "state": "",
+      "country": "GB",
+      "zipcode": "EC1A 1BB",
+      "suite": "",
+      "floor": "",
+      "latitude": null,
+      "longitude": null,
+      "created": "2023-06-01T00:00:00Z",
+      "updated": "2024-03-01T00:00:00Z",
+      "status": "deleted"
+    }
+  ]
+}

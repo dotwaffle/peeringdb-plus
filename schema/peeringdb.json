@@ -1,0 +1,1892 @@
+{
+  "version": "1.0",
+  "extracted_at": "2026-03-22T12:00:00Z",
+  "source_path": "/path/to/peeringdb",
+  "object_types": {
+    "org": {
+      "model_name": "Organization",
+      "api_path": "org",
+      "base_classes": ["HandleRefModel", "AddressModel"],
+      "fields": {
+        "name": {
+          "type": "string",
+          "max_length": 255,
+          "required": true,
+          "unique": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Organization name",
+          "default": null
+        },
+        "aka": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Also known as",
+          "default": ""
+        },
+        "name_long": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Long name",
+          "default": ""
+        },
+        "website": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Organization website URL",
+          "default": ""
+        },
+        "social_media": {
+          "type": "json_array",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Social media links",
+          "default": []
+        },
+        "notes": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Notes",
+          "default": ""
+        },
+        "logo": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Logo URL",
+          "default": null
+        },
+        "address1": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Address line 1",
+          "default": ""
+        },
+        "address2": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Address line 2",
+          "default": ""
+        },
+        "city": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "City",
+          "default": ""
+        },
+        "state": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "State or province",
+          "default": ""
+        },
+        "country": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Country code",
+          "default": ""
+        },
+        "zipcode": {
+          "type": "string",
+          "max_length": 48,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Postal / ZIP code",
+          "default": ""
+        },
+        "suite": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Suite number",
+          "default": ""
+        },
+        "floor": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Floor",
+          "default": ""
+        },
+        "latitude": {
+          "type": "float",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Latitude",
+          "default": null
+        },
+        "longitude": {
+          "type": "float",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Longitude",
+          "default": null
+        }
+      },
+      "computed_fields": ["net_count", "fac_count"],
+      "relationships": {
+        "networks": {
+          "target": "net",
+          "type": "one_to_many",
+          "field": "org_id"
+        },
+        "facilities": {
+          "target": "fac",
+          "type": "one_to_many",
+          "field": "org_id"
+        },
+        "internet_exchanges": {
+          "target": "ix",
+          "type": "one_to_many",
+          "field": "org_id"
+        },
+        "carriers": {
+          "target": "carrier",
+          "type": "one_to_many",
+          "field": "org_id"
+        },
+        "campuses": {
+          "target": "campus",
+          "type": "one_to_many",
+          "field": "org_id"
+        }
+      }
+    },
+    "net": {
+      "model_name": "Network",
+      "api_path": "net",
+      "base_classes": ["HandleRefModel"],
+      "fields": {
+        "org_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to organization",
+          "default": null,
+          "references": "org"
+        },
+        "name": {
+          "type": "string",
+          "max_length": 255,
+          "required": true,
+          "unique": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Network name",
+          "default": null
+        },
+        "aka": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Also known as",
+          "default": ""
+        },
+        "name_long": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Long name",
+          "default": ""
+        },
+        "website": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Network website URL",
+          "default": ""
+        },
+        "social_media": {
+          "type": "json_array",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Social media links",
+          "default": []
+        },
+        "asn": {
+          "type": "integer",
+          "required": true,
+          "unique": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Autonomous System Number",
+          "default": null
+        },
+        "looking_glass": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Looking glass URL",
+          "default": ""
+        },
+        "route_server": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Route server URL",
+          "default": ""
+        },
+        "irr_as_set": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IRR AS-SET",
+          "default": ""
+        },
+        "info_type": {
+          "type": "string",
+          "max_length": 60,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Network type",
+          "default": ""
+        },
+        "info_types": {
+          "type": "json_array",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Network types (multi-choice)",
+          "default": []
+        },
+        "info_prefixes4": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IPv4 prefix count",
+          "default": null
+        },
+        "info_prefixes6": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IPv6 prefix count",
+          "default": null
+        },
+        "info_traffic": {
+          "type": "string",
+          "max_length": 39,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Traffic level",
+          "default": ""
+        },
+        "info_ratio": {
+          "type": "string",
+          "max_length": 45,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Traffic ratio",
+          "default": ""
+        },
+        "info_scope": {
+          "type": "string",
+          "max_length": 39,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Geographic scope",
+          "default": ""
+        },
+        "info_unicast": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Supports unicast",
+          "default": false
+        },
+        "info_multicast": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Supports multicast",
+          "default": false
+        },
+        "info_ipv6": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Supports IPv6",
+          "default": false
+        },
+        "info_never_via_route_servers": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Never via route servers",
+          "default": false
+        },
+        "notes": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Notes",
+          "default": ""
+        },
+        "policy_url": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Peering policy URL",
+          "default": ""
+        },
+        "policy_general": {
+          "type": "string",
+          "max_length": 72,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "General peering policy",
+          "default": ""
+        },
+        "policy_locations": {
+          "type": "string",
+          "max_length": 72,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Peering policy locations",
+          "default": ""
+        },
+        "policy_ratio": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Peering policy ratio requirement",
+          "default": false
+        },
+        "policy_contracts": {
+          "type": "string",
+          "max_length": 36,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Peering policy contracts",
+          "default": ""
+        },
+        "allow_ixp_update": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Allow IXP update",
+          "default": false
+        },
+        "status_dashboard": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Status dashboard URL",
+          "default": null
+        },
+        "rir_status": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "RIR status",
+          "default": null
+        },
+        "rir_status_updated": {
+          "type": "datetime",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "RIR status last updated",
+          "default": null
+        },
+        "logo": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Logo URL",
+          "default": null
+        }
+      },
+      "computed_fields": ["ix_count", "fac_count", "netixlan_updated", "netfac_updated", "poc_updated"],
+      "relationships": {
+        "organization": {
+          "target": "org",
+          "type": "many_to_one",
+          "field": "org_id"
+        },
+        "pocs": {
+          "target": "poc",
+          "type": "one_to_many",
+          "field": "net_id"
+        },
+        "network_facilities": {
+          "target": "netfac",
+          "type": "one_to_many",
+          "field": "net_id"
+        },
+        "network_ix_lans": {
+          "target": "netixlan",
+          "type": "one_to_many",
+          "field": "net_id"
+        }
+      }
+    },
+    "fac": {
+      "model_name": "Facility",
+      "api_path": "fac",
+      "base_classes": ["HandleRefModel", "AddressModel"],
+      "fields": {
+        "org_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to organization",
+          "default": null,
+          "references": "org"
+        },
+        "campus_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to campus",
+          "default": null,
+          "references": "campus"
+        },
+        "name": {
+          "type": "string",
+          "max_length": 255,
+          "required": true,
+          "unique": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Facility name",
+          "default": null
+        },
+        "aka": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Also known as",
+          "default": ""
+        },
+        "name_long": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Long name",
+          "default": ""
+        },
+        "website": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Facility website URL",
+          "default": ""
+        },
+        "social_media": {
+          "type": "json_array",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Social media links",
+          "default": []
+        },
+        "clli": {
+          "type": "string",
+          "max_length": 18,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "CLLI code",
+          "default": ""
+        },
+        "rencode": {
+          "type": "string",
+          "max_length": 18,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Rencode",
+          "default": ""
+        },
+        "npanxx": {
+          "type": "string",
+          "max_length": 21,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "NPA-NXX code",
+          "default": ""
+        },
+        "tech_email": {
+          "type": "string",
+          "max_length": 254,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Technical email",
+          "default": ""
+        },
+        "tech_phone": {
+          "type": "string",
+          "max_length": 192,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Technical phone",
+          "default": ""
+        },
+        "sales_email": {
+          "type": "string",
+          "max_length": 254,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Sales email",
+          "default": ""
+        },
+        "sales_phone": {
+          "type": "string",
+          "max_length": 192,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Sales phone",
+          "default": ""
+        },
+        "property": {
+          "type": "string",
+          "max_length": 27,
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Property type",
+          "default": null
+        },
+        "diverse_serving_substations": {
+          "type": "boolean",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Diverse serving substations",
+          "default": null
+        },
+        "available_voltage_services": {
+          "type": "json_array",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Available voltage services",
+          "default": []
+        },
+        "notes": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Notes",
+          "default": ""
+        },
+        "region_continent": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Region/continent",
+          "default": null
+        },
+        "status_dashboard": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Status dashboard URL",
+          "default": null
+        },
+        "logo": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Logo URL",
+          "default": null
+        },
+        "address1": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Address line 1",
+          "default": ""
+        },
+        "address2": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Address line 2",
+          "default": ""
+        },
+        "city": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "City",
+          "default": ""
+        },
+        "state": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "State or province",
+          "default": ""
+        },
+        "country": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Country code",
+          "default": ""
+        },
+        "zipcode": {
+          "type": "string",
+          "max_length": 48,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Postal / ZIP code",
+          "default": ""
+        },
+        "suite": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Suite number",
+          "default": ""
+        },
+        "floor": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Floor",
+          "default": ""
+        },
+        "latitude": {
+          "type": "float",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Latitude",
+          "default": null
+        },
+        "longitude": {
+          "type": "float",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Longitude",
+          "default": null
+        }
+      },
+      "computed_fields": ["org_name", "net_count", "ix_count", "carrier_count"],
+      "relationships": {
+        "organization": {
+          "target": "org",
+          "type": "many_to_one",
+          "field": "org_id"
+        },
+        "campus": {
+          "target": "campus",
+          "type": "many_to_one",
+          "field": "campus_id"
+        }
+      }
+    },
+    "ix": {
+      "model_name": "InternetExchange",
+      "api_path": "ix",
+      "base_classes": ["HandleRefModel"],
+      "fields": {
+        "org_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to organization",
+          "default": null,
+          "references": "org"
+        },
+        "name": {
+          "type": "string",
+          "max_length": 64,
+          "required": true,
+          "unique": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Internet exchange name",
+          "default": null
+        },
+        "aka": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Also known as",
+          "default": ""
+        },
+        "name_long": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Long name",
+          "default": ""
+        },
+        "city": {
+          "type": "string",
+          "max_length": 192,
+          "required": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "City",
+          "default": null
+        },
+        "country": {
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Country code",
+          "default": null
+        },
+        "region_continent": {
+          "type": "string",
+          "max_length": 255,
+          "required": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Region/continent",
+          "default": null
+        },
+        "media": {
+          "type": "string",
+          "max_length": 128,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Exchange media type",
+          "default": "Ethernet"
+        },
+        "notes": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Notes",
+          "default": ""
+        },
+        "proto_unicast": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Supports unicast",
+          "default": false
+        },
+        "proto_multicast": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Supports multicast",
+          "default": false
+        },
+        "proto_ipv6": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Supports IPv6",
+          "default": false
+        },
+        "website": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IX website URL",
+          "default": ""
+        },
+        "social_media": {
+          "type": "json_array",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Social media links",
+          "default": []
+        },
+        "url_stats": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Statistics URL",
+          "default": ""
+        },
+        "tech_email": {
+          "type": "string",
+          "max_length": 254,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Technical email",
+          "default": ""
+        },
+        "tech_phone": {
+          "type": "string",
+          "max_length": 192,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Technical phone",
+          "default": ""
+        },
+        "policy_email": {
+          "type": "string",
+          "max_length": 254,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Policy email",
+          "default": ""
+        },
+        "policy_phone": {
+          "type": "string",
+          "max_length": 192,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Policy phone",
+          "default": ""
+        },
+        "sales_email": {
+          "type": "string",
+          "max_length": 254,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Sales email",
+          "default": ""
+        },
+        "sales_phone": {
+          "type": "string",
+          "max_length": 192,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Sales phone",
+          "default": ""
+        },
+        "ixf_net_count": {
+          "type": "integer",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IXF net count",
+          "default": 0
+        },
+        "ixf_last_import": {
+          "type": "datetime",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IXF last import timestamp",
+          "default": null
+        },
+        "service_level": {
+          "type": "string",
+          "max_length": 60,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Service level",
+          "default": ""
+        },
+        "terms": {
+          "type": "string",
+          "max_length": 60,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Terms",
+          "default": ""
+        },
+        "status_dashboard": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Status dashboard URL",
+          "default": null
+        },
+        "logo": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Logo URL",
+          "default": null
+        }
+      },
+      "computed_fields": ["net_count", "fac_count", "ixf_import_request", "ixf_import_request_status"],
+      "relationships": {
+        "organization": {
+          "target": "org",
+          "type": "many_to_one",
+          "field": "org_id"
+        },
+        "ix_lans": {
+          "target": "ixlan",
+          "type": "one_to_many",
+          "field": "ix_id"
+        },
+        "ix_facilities": {
+          "target": "ixfac",
+          "type": "one_to_many",
+          "field": "ix_id"
+        }
+      }
+    },
+    "ixlan": {
+      "model_name": "IXLan",
+      "api_path": "ixlan",
+      "base_classes": ["HandleRefModel"],
+      "fields": {
+        "ix_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to internet exchange",
+          "default": null,
+          "references": "ix"
+        },
+        "name": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "LAN name",
+          "default": ""
+        },
+        "descr": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Description",
+          "default": ""
+        },
+        "mtu": {
+          "type": "integer",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "MTU size",
+          "default": 1500
+        },
+        "dot1q_support": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "802.1Q support",
+          "default": false
+        },
+        "rs_asn": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Route server ASN",
+          "default": 0
+        },
+        "arp_sponge": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "ARP sponge MAC address",
+          "default": null
+        },
+        "ixf_ixp_member_list_url_visible": {
+          "type": "string",
+          "max_length": 64,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IXF member list URL visibility",
+          "default": "Private"
+        },
+        "ixf_ixp_import_enabled": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IXF import enabled",
+          "default": false
+        }
+      },
+      "computed_fields": [],
+      "relationships": {
+        "internet_exchange": {
+          "target": "ix",
+          "type": "many_to_one",
+          "field": "ix_id"
+        },
+        "ix_prefixes": {
+          "target": "ixpfx",
+          "type": "one_to_many",
+          "field": "ixlan_id"
+        },
+        "network_ix_lans": {
+          "target": "netixlan",
+          "type": "one_to_many",
+          "field": "ixlan_id"
+        }
+      }
+    },
+    "ixpfx": {
+      "model_name": "IXPrefix",
+      "api_path": "ixpfx",
+      "base_classes": ["HandleRefModel"],
+      "fields": {
+        "ixlan_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to IX LAN",
+          "default": null,
+          "references": "ixlan"
+        },
+        "protocol": {
+          "type": "string",
+          "max_length": 64,
+          "required": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Protocol (IPv4/IPv6)",
+          "default": null
+        },
+        "prefix": {
+          "type": "string",
+          "required": true,
+          "unique": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IP prefix",
+          "default": null
+        },
+        "in_dfz": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "In default-free zone",
+          "default": false
+        },
+        "notes": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Notes",
+          "default": ""
+        }
+      },
+      "computed_fields": [],
+      "relationships": {
+        "ix_lan": {
+          "target": "ixlan",
+          "type": "many_to_one",
+          "field": "ixlan_id"
+        }
+      }
+    },
+    "ixfac": {
+      "model_name": "IXFacility",
+      "api_path": "ixfac",
+      "base_classes": ["HandleRefModel"],
+      "fields": {
+        "ix_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to internet exchange",
+          "default": null,
+          "references": "ix"
+        },
+        "fac_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to facility",
+          "default": null,
+          "references": "fac"
+        }
+      },
+      "computed_fields": ["name", "city", "country"],
+      "relationships": {
+        "internet_exchange": {
+          "target": "ix",
+          "type": "many_to_one",
+          "field": "ix_id"
+        },
+        "facility": {
+          "target": "fac",
+          "type": "many_to_one",
+          "field": "fac_id"
+        }
+      }
+    },
+    "poc": {
+      "model_name": "NetworkContact",
+      "api_path": "poc",
+      "base_classes": ["HandleRefModel"],
+      "fields": {
+        "net_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to network",
+          "default": null,
+          "references": "net"
+        },
+        "role": {
+          "type": "string",
+          "max_length": 27,
+          "required": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Contact role",
+          "default": null
+        },
+        "visible": {
+          "type": "string",
+          "max_length": 64,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Visibility level",
+          "default": "Public"
+        },
+        "name": {
+          "type": "string",
+          "max_length": 254,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Contact name",
+          "default": ""
+        },
+        "phone": {
+          "type": "string",
+          "max_length": 100,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Phone number",
+          "default": ""
+        },
+        "email": {
+          "type": "string",
+          "max_length": 254,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Email address",
+          "default": ""
+        },
+        "url": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "URL",
+          "default": ""
+        }
+      },
+      "computed_fields": [],
+      "relationships": {
+        "network": {
+          "target": "net",
+          "type": "many_to_one",
+          "field": "net_id"
+        }
+      }
+    },
+    "netfac": {
+      "model_name": "NetworkFacility",
+      "api_path": "netfac",
+      "base_classes": ["HandleRefModel"],
+      "fields": {
+        "net_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to network",
+          "default": null,
+          "references": "net"
+        },
+        "fac_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to facility",
+          "default": null,
+          "references": "fac"
+        },
+        "local_asn": {
+          "type": "integer",
+          "required": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Local ASN",
+          "default": null
+        }
+      },
+      "computed_fields": ["name", "city", "country"],
+      "relationships": {
+        "network": {
+          "target": "net",
+          "type": "many_to_one",
+          "field": "net_id"
+        },
+        "facility": {
+          "target": "fac",
+          "type": "many_to_one",
+          "field": "fac_id"
+        }
+      }
+    },
+    "netixlan": {
+      "model_name": "NetworkIXLan",
+      "api_path": "netixlan",
+      "base_classes": ["HandleRefModel"],
+      "fields": {
+        "net_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to network",
+          "default": null,
+          "references": "net"
+        },
+        "ixlan_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to IX LAN",
+          "default": null,
+          "references": "ixlan"
+        },
+        "notes": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Notes",
+          "default": ""
+        },
+        "speed": {
+          "type": "integer",
+          "required": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Port speed in Mbps",
+          "default": null
+        },
+        "asn": {
+          "type": "integer",
+          "required": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Autonomous System Number",
+          "default": null
+        },
+        "ipaddr4": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IPv4 address",
+          "default": null
+        },
+        "ipaddr6": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IPv6 address",
+          "default": null
+        },
+        "is_rs_peer": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Route server peer",
+          "default": false
+        },
+        "bfd_support": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "BFD support",
+          "default": false
+        },
+        "operational": {
+          "type": "boolean",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Operational status",
+          "default": true
+        },
+        "net_side_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Net-side facility FK",
+          "default": null,
+          "references": "fac"
+        },
+        "ix_side_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IX-side facility FK",
+          "default": null,
+          "references": "fac"
+        }
+      },
+      "computed_fields": ["ix_id", "name"],
+      "relationships": {
+        "network": {
+          "target": "net",
+          "type": "many_to_one",
+          "field": "net_id"
+        },
+        "ix_lan": {
+          "target": "ixlan",
+          "type": "many_to_one",
+          "field": "ixlan_id"
+        }
+      }
+    },
+    "carrier": {
+      "model_name": "Carrier",
+      "api_path": "carrier",
+      "base_classes": ["HandleRefModel"],
+      "fields": {
+        "org_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to organization",
+          "default": null,
+          "references": "org"
+        },
+        "name": {
+          "type": "string",
+          "max_length": 255,
+          "required": true,
+          "unique": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Carrier name",
+          "default": null
+        },
+        "aka": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Also known as",
+          "default": ""
+        },
+        "name_long": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Long name",
+          "default": ""
+        },
+        "website": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Carrier website URL",
+          "default": ""
+        },
+        "social_media": {
+          "type": "json_array",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Social media links",
+          "default": []
+        },
+        "notes": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Notes",
+          "default": ""
+        },
+        "logo": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Logo URL",
+          "default": null
+        }
+      },
+      "computed_fields": ["org_name", "fac_count"],
+      "relationships": {
+        "organization": {
+          "target": "org",
+          "type": "many_to_one",
+          "field": "org_id"
+        },
+        "carrier_facilities": {
+          "target": "carrierfac",
+          "type": "one_to_many",
+          "field": "carrier_id"
+        }
+      }
+    },
+    "carrierfac": {
+      "model_name": "CarrierFacility",
+      "api_path": "carrierfac",
+      "base_classes": ["HandleRefModel"],
+      "fields": {
+        "carrier_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to carrier",
+          "default": null,
+          "references": "carrier"
+        },
+        "fac_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to facility",
+          "default": null,
+          "references": "fac"
+        }
+      },
+      "computed_fields": ["name"],
+      "relationships": {
+        "carrier": {
+          "target": "carrier",
+          "type": "many_to_one",
+          "field": "carrier_id"
+        },
+        "facility": {
+          "target": "fac",
+          "type": "many_to_one",
+          "field": "fac_id"
+        }
+      }
+    },
+    "campus": {
+      "model_name": "Campus",
+      "api_path": "campus",
+      "base_classes": ["HandleRefModel"],
+      "fields": {
+        "org_id": {
+          "type": "integer",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "FK to organization",
+          "default": null,
+          "references": "org"
+        },
+        "name": {
+          "type": "string",
+          "max_length": 255,
+          "required": true,
+          "unique": true,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Campus name",
+          "default": null
+        },
+        "name_long": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Long name",
+          "default": null
+        },
+        "aka": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Also known as",
+          "default": null
+        },
+        "website": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Campus website URL",
+          "default": ""
+        },
+        "social_media": {
+          "type": "json_array",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Social media links",
+          "default": []
+        },
+        "notes": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Notes",
+          "default": ""
+        },
+        "country": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Country code",
+          "default": ""
+        },
+        "city": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "City",
+          "default": ""
+        },
+        "zipcode": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Postal / ZIP code",
+          "default": ""
+        },
+        "state": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "State or province",
+          "default": ""
+        },
+        "logo": {
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Logo URL",
+          "default": null
+        }
+      },
+      "computed_fields": ["org_name"],
+      "relationships": {
+        "organization": {
+          "target": "org",
+          "type": "many_to_one",
+          "field": "org_id"
+        },
+        "facilities": {
+          "target": "fac",
+          "type": "one_to_many",
+          "field": "campus_id"
+        }
+      }
+    }
+  }
+}
