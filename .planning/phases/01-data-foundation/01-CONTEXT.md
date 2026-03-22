@@ -79,6 +79,7 @@ Model all 13 PeeringDB object types in entgo, store in SQLite, and sync all data
 
 ### Testing
 - **D-55:** Fixture-based tests for CI (recorded real API responses) + optional live integration tests gated behind a build tag or env var
+- **D-56:** All live integration tests MUST target `beta.peeringdb.com`, NOT `api.peeringdb.com` — the beta instance is far less loaded and appropriate for testing
 
 ### Claude's Discretion
 - IP address field storage strategy (netip.Addr custom type vs text — pick what balances correctness and simplicity)
