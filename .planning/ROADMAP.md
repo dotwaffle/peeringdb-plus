@@ -27,15 +27,16 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A full sync from PeeringDB populates a local SQLite database with all objects, handling deleted/status-filtered objects correctly
   3. Sync can be triggered on-demand and runs automatically on an hourly schedule
   4. After sync completes, querying the local database returns the same data as querying PeeringDB directly
-**Plans:** 6 plans
+**Plans:** 7 plans
 
 Plans:
 - [ ] 01-01-PLAN.md — Project scaffolding, Go module, entgo foundation, SQLite setup
-- [ ] 01-02-PLAN.md — All 13 entgo schemas with fields, edges, indexes, annotations
+- [ ] 01-02-PLAN.md — All 13 entgo schemas with fields, edges, indexes, annotations, OTel mutation hooks
 - [ ] 01-03-PLAN.md — PeeringDB API client with rate limiting, pagination, retry
-- [ ] 01-04-PLAN.md — Sync worker: upsert, delete, status tracking, scheduling
+- [ ] 01-04-PLAN.md — Sync worker: upsert, delete, status tracking, retry with backoff, scheduling
 - [ ] 01-05-PLAN.md — Schema extraction pipeline (Django source parser + entgo generator)
-- [ ] 01-06-PLAN.md — Application wiring, test fixtures, integration tests, Dockerfile
+- [ ] 01-06-PLAN.md — Application wiring: main binary and Dockerfile
+- [ ] 01-07-PLAN.md — Test fixtures and fixture-based integration tests
 
 ### Phase 2: GraphQL API
 **Goal**: Users can query all PeeringDB data through a GraphQL API with rich filtering and relationship traversal
@@ -75,6 +76,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Data Foundation | 0/6 | Planning complete | - |
+| 1. Data Foundation | 0/7 | Planning complete | - |
 | 2. GraphQL API | 0/0 | Not started | - |
 | 3. Production Readiness | 0/0 | Not started | - |
