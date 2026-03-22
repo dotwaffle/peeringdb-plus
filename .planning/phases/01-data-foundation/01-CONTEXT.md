@@ -101,6 +101,9 @@ Model all 13 PeeringDB object types in entgo, store in SQLite, and sync all data
 - GitHub Issue #1878 — OpenAPI spec validation failures (duplicate params, invalid requestBody)
 - GitHub Issue #1658 — API response format does not match documentation
 
+### SQLite + entgo Integration
+- `.planning/phases/01-data-foundation/01-REFERENCE-SQLITE-ENTGO.md` — **CRITICAL:** User-provided code snippets for modernc.org/sqlite + entgo integration. Covers driver registration, DSN pragma syntax, test setup, and Fly.io memory limits. Must be followed exactly.
+
 ### Research Artifacts
 - `.planning/research/STACK.md` — Technology recommendations with versions
 - `.planning/research/ARCHITECTURE.md` — System architecture and component boundaries
