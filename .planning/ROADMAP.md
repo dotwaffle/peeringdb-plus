@@ -51,7 +51,7 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
   3. Generated code (ent, gqlgen) is excluded from linting without suppressing hand-written code in `ent/schema/`
 **Plans**: 2 plans
 Plans:
-- [ ] 07-01-PLAN.md — Configure golangci-lint v2 and remove dead code
+- [x] 07-01-PLAN.md — Configure golangci-lint v2 and remove dead code
 - [ ] 07-02-PLAN.md — Fix all lint violations and verify clean pass
 
 ### Phase 8: Incremental Sync
