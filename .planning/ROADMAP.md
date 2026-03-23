@@ -76,7 +76,10 @@ Plans:
   3. Golden files exist for list, detail, and depth-expanded responses across all 13 PeeringDB types
   4. A CLI tool can fetch from beta.peeringdb.com and report structural differences against local compat layer output
   5. An integration test gated by `-peeringdb-live` validates conformance (skipped in normal test runs)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 09-01-PLAN.md — Golden file test infrastructure and golden files for all 13 types
+- [ ] 09-02-PLAN.md — Conformance comparison library, CLI tool, and live integration test
 
 ### Phase 10: CI Pipeline & Public Access
 **Goal**: Every PR is automatically validated by GitHub Actions, and the public access model is verified and documented
@@ -105,5 +108,5 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10
 | 6. PeeringDB Compatibility Layer | v1.1 | 3/3 | Complete | 2026-03-22 |
 | 7. Lint & Code Quality | v1.2 | 2/2 | Complete | 2026-03-23 |
 | 8. Incremental Sync | v1.2 | 0/0 | Not started | - |
-| 9. Golden File Tests & Conformance | v1.2 | 0/0 | Not started | - |
+| 9. Golden File Tests & Conformance | v1.2 | 0/2 | Not started | - |
 | 10. CI Pipeline & Public Access | v1.2 | 0/0 | Not started | - |
