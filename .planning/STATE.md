@@ -6,7 +6,7 @@ status: active
 stopped_at: ""
 last_updated: "2026-03-23T20:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,14 +19,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** v1.2 Quality & CI — golden files, public access docs, CI pipeline
+**Current focus:** Phase 7 — Lint & Code Quality
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-23 — Milestone v1.2 started
+Phase: 7 of 9 (Lint & Code Quality)
+Plan: 0 of 0 in current phase
+Status: Ready to plan
+Last activity: 2026-03-23 — Roadmap created for v1.2 Quality & CI milestone
+
+Progress: [░░░░░░░░░░] 0% (v1.2: 0/TBD plans)
 
 ## Performance Metrics
 
@@ -55,6 +57,10 @@ Last activity: 2026-03-23 — Milestone v1.2 started
 ### Decisions
 
 All decisions archived in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- [Phase 6]: PeeringDB compat layer queries ent directly (not wrapping entrest)
+- [Phase 6]: Generic Django-style filter parser for all 13 types
 
 ### Pending Todos
 
@@ -62,10 +68,10 @@ None.
 
 ### Blockers/Concerns
 
-None.
+- Existing lint violation count unknown until Phase 7 begins (scope risk for phase 7)
 
 ## Session Continuity
 
 Last session: 2026-03-23
-Stopped at: Milestone v1.1 archived
+Stopped at: Roadmap created for v1.2 milestone
 Resume file: None

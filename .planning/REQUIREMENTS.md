@@ -69,27 +69,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LINT-01 | — | Pending |
-| LINT-02 | — | Pending |
-| LINT-03 | — | Pending |
-| GOLD-01 | — | Pending |
-| GOLD-02 | — | Pending |
-| GOLD-03 | — | Pending |
-| GOLD-04 | — | Pending |
-| CONF-01 | — | Pending |
-| CONF-02 | — | Pending |
-| CI-01 | — | Pending |
-| CI-02 | — | Pending |
-| CI-03 | — | Pending |
-| CI-04 | — | Pending |
-| PUB-01 | — | Pending |
-| PUB-02 | — | Pending |
+| LINT-01 | Phase 7 | Pending |
+| LINT-02 | Phase 7 | Pending |
+| LINT-03 | Phase 7 | Pending |
+| GOLD-01 | Phase 8 | Pending |
+| GOLD-02 | Phase 8 | Pending |
+| GOLD-03 | Phase 8 | Pending |
+| GOLD-04 | Phase 8 | Pending |
+| CONF-01 | Phase 8 | Pending |
+| CONF-02 | Phase 8 | Pending |
+| CI-01 | Phase 9 | Pending |
+| CI-02 | Phase 9 | Pending |
+| CI-03 | Phase 9 | Pending |
+| CI-04 | Phase 9 | Pending |
+| PUB-01 | Phase 9 | Pending |
+| PUB-02 | Phase 9 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 15 total
-- Mapped to phases: 0
-- Unmapped: 15
+- Mapped to phases: 15
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-23*
-*Last updated: 2026-03-23 after initial definition*
+*Last updated: 2026-03-23 after roadmap creation*

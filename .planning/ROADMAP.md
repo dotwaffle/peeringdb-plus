@@ -4,6 +4,7 @@
 
 - ✅ **v1.0 PeeringDB Plus** — Phases 1-3 (shipped 2026-03-22)
 - ✅ **v1.1 REST API & Observability** — Phases 4-6 (shipped 2026-03-23)
+- 🚧 **v1.2 Quality & CI** — Phases 7-9 (in progress)
 
 ## Phases
 
@@ -29,7 +30,54 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
 
 </details>
 
+### 🚧 v1.2 Quality & CI (In Progress)
+
+**Milestone Goal:** Harden the codebase with linting enforcement, golden file tests for the PeeringDB compat layer, conformance testing against live PeeringDB, and CI via GitHub Actions.
+
+- [ ] **Phase 7: Lint & Code Quality** — Configure golangci-lint v2 and fix all existing violations
+- [ ] **Phase 8: Golden File Tests & Conformance** — Golden file test infrastructure for PeeringDB compat layer and conformance tooling against beta.peeringdb.com
+- [ ] **Phase 9: CI Pipeline & Public Access** — GitHub Actions enforcement and public access documentation
+
+## Phase Details
+
+### Phase 7: Lint & Code Quality
+**Goal**: The codebase passes all linting and vetting cleanly, with generated code correctly excluded
+**Depends on**: Phase 6
+**Requirements**: LINT-01, LINT-02, LINT-03
+**Success Criteria** (what must be TRUE):
+  1. Running `golangci-lint run` passes with zero violations on all hand-written code
+  2. Running `go vet ./...` passes clean across the entire codebase
+  3. Generated code (ent, gqlgen) is excluded from linting without suppressing hand-written code in `ent/schema/`
+**Plans**: TBD
+
+### Phase 8: Golden File Tests & Conformance
+**Goal**: PeeringDB compat layer responses are verified against committed reference files, and a conformance tool can compare output against the real PeeringDB API
+**Depends on**: Phase 7
+**Requirements**: GOLD-01, GOLD-02, GOLD-03, GOLD-04, CONF-01, CONF-02
+**Success Criteria** (what must be TRUE):
+  1. Running `go test ./internal/pdbcompat/...` compares all compat layer responses against committed golden files and fails on any diff
+  2. Running `go test ./internal/pdbcompat/... -update` regenerates all golden files from current output
+  3. Golden files exist for list, detail, and depth-expanded responses across all 13 PeeringDB types
+  4. A CLI tool can fetch from beta.peeringdb.com and report structural differences against local compat layer output
+  5. An integration test gated by `-peeringdb-live` validates conformance (skipped in normal test runs)
+**Plans**: TBD
+
+### Phase 9: CI Pipeline & Public Access
+**Goal**: Every PR is automatically validated by GitHub Actions, and the public access model is verified and documented
+**Depends on**: Phase 8
+**Requirements**: CI-01, CI-02, CI-03, CI-04, PUB-01, PUB-02
+**Success Criteria** (what must be TRUE):
+  1. A GitHub Actions workflow runs lint, test (with `-race`), and build on every PR with parallel jobs
+  2. `go test -race ./...` runs with `CGO_ENABLED=1` in CI and passes
+  3. govulncheck runs as part of the CI pipeline
+  4. Test coverage percentage is reported on each CI run
+  5. All API endpoints (GraphQL, REST, PeeringDB compat) are accessible without authentication and this is documented
+**Plans**: TBD
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 7 -> 8 -> 9
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -39,3 +87,6 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
 | 4. Observability Foundations | v1.1 | 2/2 | Complete | 2026-03-22 |
 | 5. entrest REST API | v1.1 | 3/3 | Complete | 2026-03-22 |
 | 6. PeeringDB Compatibility Layer | v1.1 | 3/3 | Complete | 2026-03-22 |
+| 7. Lint & Code Quality | v1.2 | 0/0 | Not started | - |
+| 8. Golden File Tests & Conformance | v1.2 | 0/0 | Not started | - |
+| 9. CI Pipeline & Public Access | v1.2 | 0/0 | Not started | - |
