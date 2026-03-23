@@ -24,7 +24,6 @@ var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 
 // WorkerConfig holds configuration for the sync worker.
 type WorkerConfig struct {
 	IncludeDeleted bool
-	IsPrimary      bool
 }
 
 // Worker orchestrates PeeringDB data synchronization.

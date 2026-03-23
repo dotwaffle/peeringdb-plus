@@ -18,7 +18,6 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
 	"github.com/dotwaffle/peeringdb-plus/graph"
-	"github.com/dotwaffle/peeringdb-plus/graph/dataloader"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	"github.com/dotwaffle/peeringdb-plus/internal/database"
 	pdbgql "github.com/dotwaffle/peeringdb-plus/internal/graphql"
@@ -119,7 +118,6 @@ func main() {
 	// Create sync worker.
 	syncWorker := pdbsync.NewWorker(pdbClient, entClient, db, pdbsync.WorkerConfig{
 		IncludeDeleted: cfg.IncludeDeleted,
-		IsPrimary:      isPrimary,
 	}, logger)
 
 	// Start scheduler on primary per D-22, D-29.
@@ -132,9 +130,6 @@ func main() {
 
 	// Create GraphQL handler with complexity/depth limits per D-04.
 	gqlHandler := pdbgql.NewHandler(resolver)
-
-	// Wrap GraphQL handler with DataLoader middleware per D-13.
-	gqlWithLoader := dataloader.Middleware(entClient, gqlHandler)
 
 	// Set up HTTP server.
 	mux := http.NewServeMux()
@@ -175,7 +170,7 @@ func main() {
 			playgroundHandler.ServeHTTP(w, r)
 			return
 		}
-		gqlWithLoader.ServeHTTP(w, r)
+		gqlHandler.ServeHTTP(w, r)
 	})
 
 	// Mount entrest-generated REST API at /rest/v1/ per D-01, D-04.

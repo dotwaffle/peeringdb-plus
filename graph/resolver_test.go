@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/graph"
-	"github.com/dotwaffle/peeringdb-plus/graph/dataloader"
 	pdbgql "github.com/dotwaffle/peeringdb-plus/internal/graphql"
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
@@ -35,8 +34,6 @@ func setupTestServer(t *testing.T) *httptest.Server {
 
 	resolver := graph.NewResolver(client, db)
 	gqlHandler := pdbgql.NewHandler(resolver)
-	gqlWithLoader := dataloader.Middleware(client, gqlHandler)
-
 	mux := http.NewServeMux()
 	playgroundHandler := pdbgql.PlaygroundHandler("/graphql")
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +41,7 @@ func setupTestServer(t *testing.T) *httptest.Server {
 			playgroundHandler.ServeHTTP(w, r)
 			return
 		}
-		gqlWithLoader.ServeHTTP(w, r)
+		gqlHandler.ServeHTTP(w, r)
 	})
 
 	handler := middleware.CORS(middleware.CORSInput{AllowedOrigins: "*"})(mux)
@@ -155,8 +152,6 @@ func seedTestData(t *testing.T) *httptest.Server {
 
 	resolver := graph.NewResolver(client, db)
 	gqlHandler := pdbgql.NewHandler(resolver)
-	gqlWithLoader := dataloader.Middleware(client, gqlHandler)
-
 	mux := http.NewServeMux()
 	playgroundHandler := pdbgql.PlaygroundHandler("/graphql")
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
@@ -164,7 +159,7 @@ func seedTestData(t *testing.T) *httptest.Server {
 			playgroundHandler.ServeHTTP(w, r)
 			return
 		}
-		gqlWithLoader.ServeHTTP(w, r)
+		gqlHandler.ServeHTTP(w, r)
 	})
 
 	handler := middleware.CORS(middleware.CORSInput{AllowedOrigins: "*"})(mux)

@@ -30,9 +30,6 @@ type Config struct {
 	// ListenAddr is the address the HTTP server binds to.
 	ListenAddr string
 
-	// IsPrimary indicates whether this instance is the LiteFS primary node.
-	IsPrimary bool
-
 	// CORSOrigins is a comma-separated list of allowed CORS origins.
 	// Configured via PDBPLUS_CORS_ORIGINS. Default is "*".
 	CORSOrigins string
@@ -79,12 +76,6 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing PDBPLUS_INCLUDE_DELETED: %w", err)
 	}
 	cfg.IncludeDeleted = includeDeleted
-
-	isPrimary, err := parseBool("PDBPLUS_IS_PRIMARY", true)
-	if err != nil {
-		return nil, fmt.Errorf("parsing PDBPLUS_IS_PRIMARY: %w", err)
-	}
-	cfg.IsPrimary = isPrimary
 
 	drainTimeout, err := parseDuration("PDBPLUS_DRAIN_TIMEOUT", 10*time.Second)
 	if err != nil {
