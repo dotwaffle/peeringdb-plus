@@ -91,7 +91,10 @@ Plans:
   3. govulncheck runs as part of the CI pipeline
   4. Test coverage percentage is reported on each CI run
   5. All API endpoints (GraphQL, REST, PeeringDB compat) are accessible without authentication and this is documented
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 10-01-PLAN.md — GitHub Actions CI workflow with parallel lint, test, build, and govulncheck jobs
+- [ ] 10-02-PLAN.md — Public access verification (code review confirms no auth barriers, self-documenting endpoints)
 
 ## Progress
 
@@ -109,4 +112,4 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10
 | 7. Lint & Code Quality | v1.2 | 2/2 | Complete | 2026-03-23 |
 | 8. Incremental Sync | v1.2 | 0/0 | Not started | - |
 | 9. Golden File Tests & Conformance | v1.2 | 0/2 | Not started | - |
-| 10. CI Pipeline & Public Access | v1.2 | 0/0 | Not started | - |
+| 10. CI Pipeline & Public Access | v1.2 | 0/2 | Not started | - |
