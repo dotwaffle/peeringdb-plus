@@ -35,10 +35,10 @@ Requirements for v1.2 Quality & CI milestone. Each maps to roadmap phases.
 
 ### CI Pipeline
 
-- [ ] **CI-01**: GitHub Actions workflow with parallel lint, test, and build jobs
-- [ ] **CI-02**: `go test -race ./...` with `CGO_ENABLED=1` in CI
-- [ ] **CI-03**: govulncheck security scanning in CI
-- [ ] **CI-04**: Test coverage percentage tracking and reporting
+- [x] **CI-01**: GitHub Actions workflow with parallel lint, test, and build jobs
+- [x] **CI-02**: `go test -race ./...` with `CGO_ENABLED=1` in CI
+- [x] **CI-03**: govulncheck security scanning in CI
+- [x] **CI-04**: Test coverage percentage tracking and reporting
 
 ### Public Access
 
@@ -91,10 +91,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GOLD-04 | Phase 9 | Pending |
 | CONF-01 | Phase 9 | Pending |
 | CONF-02 | Phase 9 | Pending |
-| CI-01 | Phase 10 | Pending |
-| CI-02 | Phase 10 | Pending |
-| CI-03 | Phase 10 | Pending |
-| CI-04 | Phase 10 | Pending |
+| CI-01 | Phase 10 | Complete |
+| CI-02 | Phase 10 | Complete |
+| CI-03 | Phase 10 | Complete |
+| CI-04 | Phase 10 | Complete |
 | PUB-01 | Phase 10 | Complete |
 | PUB-02 | Phase 10 | Complete |
 
