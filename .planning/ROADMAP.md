@@ -4,7 +4,7 @@
 
 - ✅ **v1.0 PeeringDB Plus** — Phases 1-3 (shipped 2026-03-22)
 - ✅ **v1.1 REST API & Observability** — Phases 4-6 (shipped 2026-03-23)
-- 🚧 **v1.2 Quality & CI** — Phases 7-9 (in progress)
+- 🚧 **v1.2 Quality, Incremental Sync & CI** — Phases 7-10 (in progress)
 
 ## Phases
 
@@ -30,13 +30,14 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
 
 </details>
 
-### 🚧 v1.2 Quality & CI (In Progress)
+### 🚧 v1.2 Quality, Incremental Sync & CI (In Progress)
 
-**Milestone Goal:** Harden the codebase with linting enforcement, golden file tests for the PeeringDB compat layer, conformance testing against live PeeringDB, and CI via GitHub Actions.
+**Milestone Goal:** Harden the codebase with linting enforcement, add configurable incremental sync, golden file tests for the PeeringDB compat layer, conformance testing against live PeeringDB, and CI via GitHub Actions.
 
 - [ ] **Phase 7: Lint & Code Quality** — Configure golangci-lint v2 and fix all existing violations
-- [ ] **Phase 8: Golden File Tests & Conformance** — Golden file test infrastructure for PeeringDB compat layer and conformance tooling against beta.peeringdb.com
-- [ ] **Phase 9: CI Pipeline & Public Access** — GitHub Actions enforcement and public access documentation
+- [ ] **Phase 8: Incremental Sync** — Configurable sync mode with per-type delta fetches via PeeringDB ?since= parameter
+- [ ] **Phase 9: Golden File Tests & Conformance** — Golden file test infrastructure for PeeringDB compat layer and conformance tooling against beta.peeringdb.com
+- [ ] **Phase 10: CI Pipeline & Public Access** — GitHub Actions enforcement and public access documentation
 
 ## Phase Details
 
@@ -50,9 +51,21 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
   3. Generated code (ent, gqlgen) is excluded from linting without suppressing hand-written code in `ent/schema/`
 **Plans**: TBD
 
-### Phase 8: Golden File Tests & Conformance
-**Goal**: PeeringDB compat layer responses are verified against committed reference files, and a conformance tool can compare output against the real PeeringDB API
+### Phase 8: Incremental Sync
+**Goal**: Sync mode is configurable between full re-fetch and incremental delta fetch, with per-type timestamp tracking and automatic fallback on failure
 **Depends on**: Phase 7
+**Requirements**: SYNC-01, SYNC-02, SYNC-03, SYNC-04, SYNC-05
+**Success Criteria** (what must be TRUE):
+  1. Setting `PDBPLUS_SYNC_MODE=incremental` causes the sync worker to fetch only objects modified since the last successful sync per type
+  2. Setting `PDBPLUS_SYNC_MODE=full` (default) preserves existing full re-fetch behavior with no regressions
+  3. Per-type last-sync timestamps are tracked in the extended sync_status table
+  4. When an incremental sync fails for a specific type, it immediately falls back to a full sync for that type
+  5. First sync always performs a full fetch regardless of mode (no ?since= on empty database)
+**Plans**: TBD
+
+### Phase 9: Golden File Tests & Conformance
+**Goal**: PeeringDB compat layer responses are verified against committed reference files, and a conformance tool can compare output against the real PeeringDB API
+**Depends on**: Phase 8
 **Requirements**: GOLD-01, GOLD-02, GOLD-03, GOLD-04, CONF-01, CONF-02
 **Success Criteria** (what must be TRUE):
   1. Running `go test ./internal/pdbcompat/...` compares all compat layer responses against committed golden files and fails on any diff
@@ -62,9 +75,9 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
   5. An integration test gated by `-peeringdb-live` validates conformance (skipped in normal test runs)
 **Plans**: TBD
 
-### Phase 9: CI Pipeline & Public Access
+### Phase 10: CI Pipeline & Public Access
 **Goal**: Every PR is automatically validated by GitHub Actions, and the public access model is verified and documented
-**Depends on**: Phase 8
+**Depends on**: Phase 9
 **Requirements**: CI-01, CI-02, CI-03, CI-04, PUB-01, PUB-02
 **Success Criteria** (what must be TRUE):
   1. A GitHub Actions workflow runs lint, test (with `-race`), and build on every PR with parallel jobs
@@ -77,7 +90,7 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 7 -> 8 -> 9
+Phases execute in numeric order: 7 -> 8 -> 9 -> 10
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -88,5 +101,6 @@ Phases execute in numeric order: 7 -> 8 -> 9
 | 5. entrest REST API | v1.1 | 3/3 | Complete | 2026-03-22 |
 | 6. PeeringDB Compatibility Layer | v1.1 | 3/3 | Complete | 2026-03-22 |
 | 7. Lint & Code Quality | v1.2 | 0/0 | Not started | - |
-| 8. Golden File Tests & Conformance | v1.2 | 0/0 | Not started | - |
-| 9. CI Pipeline & Public Access | v1.2 | 0/0 | Not started | - |
+| 8. Incremental Sync | v1.2 | 0/0 | Not started | - |
+| 9. Golden File Tests & Conformance | v1.2 | 0/0 | Not started | - |
+| 10. CI Pipeline & Public Access | v1.2 | 0/0 | Not started | - |

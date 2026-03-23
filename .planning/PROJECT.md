@@ -42,6 +42,7 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 **Target features:**
 - Verify and document fully-public access model
+- Configurable incremental sync mode with per-type delta fetches
 - Golden file tests for PeeringDB compatibility layer API responses
 - Fix all test and linter issues across the codebase
 - GitHub Actions CI pipeline enforcing tests, linting, and vetting on every PR

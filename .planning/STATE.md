@@ -6,7 +6,7 @@ status: active
 stopped_at: ""
 last_updated: "2026-03-23T20:00:00.000Z"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
