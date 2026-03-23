@@ -29,9 +29,9 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-- [ ] Fully public — verify no auth barriers, document public access model
+- [x] Fully public — verify no auth barriers, document public access model — v1.2 Phase 10
 - [x] Golden file tests for PeeringDB compatibility layer — v1.2 Phase 9
-- [ ] CI pipeline (GitHub Actions) enforcing tests, linting, and vetting
+- [x] CI pipeline (GitHub Actions) enforcing tests, linting, and vetting — v1.2 Phase 10
 - [x] All tests pass with -race, all linters pass clean — v1.2 Phase 7
 - [ ] Expose data via gRPC (entproto) — deferred to future milestone
 - [ ] Web UI for browsing data (HTMX + Templ) — deferred to future milestone
@@ -90,6 +90,8 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 | Generic Django-style filter parser | One parser handles all 13 types via shared func(*sql.Selector) predicate type | ✓ Validated Phase 6 |
 | Golden file tests with go-cmp for compat layer | 39 golden files (13 types x 3 scenarios) with -update flag for regeneration | ✓ Validated Phase 9 |
 | Structure-only conformance comparison | CompareStructure checks field names/types/nesting, not values — handles live data changes | ✓ Validated Phase 9 |
+| GitHub Actions CI with 4 parallel jobs | lint + go generate drift, test -race, build, govulncheck — coverage PR comments via gh api | ✓ Validated Phase 10 |
+| Public access by design | All read endpoints unauthenticated; only POST /sync gated; root endpoint self-documents | ✓ Validated Phase 10 |
 
 ## Evolution
 
