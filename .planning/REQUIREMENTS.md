@@ -15,8 +15,8 @@ Requirements for v1.2 Quality & CI milestone. Each maps to roadmap phases.
 
 ### Incremental Sync
 
-- [ ] **SYNC-01**: Configurable sync mode via `PDBPLUS_SYNC_MODE` env var (`full` or `incremental`, default `full`)
-- [ ] **SYNC-02**: Optional `?since=` parameter on FetchAll for delta fetches
+- [x] **SYNC-01**: Configurable sync mode via `PDBPLUS_SYNC_MODE` env var (`full` or `incremental`, default `full`)
+- [x] **SYNC-02**: Optional `?since=` parameter on FetchAll for delta fetches
 - [x] **SYNC-03**: Per-type last-sync timestamp tracking in extended sync_status table
 - [ ] **SYNC-04**: Incremental sync fetches only objects modified since last successful sync per type
 - [ ] **SYNC-05**: On incremental failure for a type, immediately falls back to full sync for that type
@@ -80,8 +80,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LINT-01 | Phase 7 | Complete |
 | LINT-02 | Phase 7 | Complete |
 | LINT-03 | Phase 7 | Complete |
-| SYNC-01 | Phase 8 | Pending |
-| SYNC-02 | Phase 8 | Pending |
+| SYNC-01 | Phase 8 | Complete |
+| SYNC-02 | Phase 8 | Complete |
 | SYNC-03 | Phase 8 | Complete |
 | SYNC-04 | Phase 8 | Pending |
 | SYNC-05 | Phase 8 | Pending |
