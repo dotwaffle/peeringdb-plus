@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"golang.org/x/time/rate"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
@@ -149,7 +150,7 @@ func TestSyncFetchesAll13Types(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "TestOrg", "ok")}
 	w, _ := newTestWorker(t, f, false)
 
-	err := w.Sync(context.Background())
+	err := w.Sync(context.Background(), config.SyncModeFull)
 	if err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
@@ -174,7 +175,7 @@ func TestSyncTransaction(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f, false)
 
-	err := w.Sync(context.Background())
+	err := w.Sync(context.Background(), config.SyncModeFull)
 	if err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
@@ -197,7 +198,7 @@ func TestSyncUpsertUpdatesExisting(t *testing.T) {
 	w, _ := newTestWorker(t, f, false)
 
 	// First sync.
-	if err := w.Sync(context.Background()); err != nil {
+	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
 
@@ -205,7 +206,7 @@ func TestSyncUpsertUpdatesExisting(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "UpdatedName", "ok")}
 
 	// Second sync.
-	if err := w.Sync(context.Background()); err != nil {
+	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
 
@@ -230,7 +231,7 @@ func TestSyncHardDelete(t *testing.T) {
 	}
 	w, _ := newTestWorker(t, f, false)
 
-	if err := w.Sync(context.Background()); err != nil {
+	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
 	count, _ := w.entClient.Organization.Query().Count(context.Background())
@@ -244,7 +245,7 @@ func TestSyncHardDelete(t *testing.T) {
 		makeOrg(3, "Org3", "ok"),
 	}
 
-	if err := w.Sync(context.Background()); err != nil {
+	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
 	count, _ = w.entClient.Organization.Query().Count(context.Background())
@@ -265,14 +266,14 @@ func TestSyncMutex(t *testing.T) {
 	w.running.Store(true)
 
 	// Second call should return nil without error (skipped).
-	err := w.Sync(context.Background())
+	err := w.Sync(context.Background(), config.SyncModeFull)
 	if err != nil {
 		t.Errorf("expected nil when sync already running, got: %v", err)
 	}
 
 	// Reset and verify it can run after.
 	w.running.Store(false)
-	err = w.Sync(context.Background())
+	err = w.Sync(context.Background(), config.SyncModeFull)
 	if err != nil {
 		t.Errorf("expected sync to succeed after mutex release: %v", err)
 	}
@@ -287,7 +288,7 @@ func TestSyncLogsProgress(t *testing.T) {
 
 	// Just verify sync completes without error -- log output is verified by
 	// the presence of slog.String("type", ...) calls in the worker code.
-	err := w.Sync(context.Background())
+	err := w.Sync(context.Background(), config.SyncModeFull)
 	if err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
@@ -300,7 +301,7 @@ func TestSyncRecordsStatusSuccess(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, db := newTestWorker(t, f, false)
 
-	err := w.Sync(context.Background())
+	err := w.Sync(context.Background(), config.SyncModeFull)
 	if err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
@@ -328,7 +329,7 @@ func TestSyncRecordsStatusFailure(t *testing.T) {
 	f.failTypes["org"] = true
 	w, db := newTestWorker(t, f, false)
 
-	err := w.Sync(context.Background())
+	err := w.Sync(context.Background(), config.SyncModeFull)
 	if err == nil {
 		t.Fatal("expected error from failed sync")
 	}
@@ -356,7 +357,7 @@ func TestSyncRollbackOnFailure(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f, false)
 
-	if err := w.Sync(context.Background()); err != nil {
+	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
 	count, _ := w.entClient.Organization.Query().Count(context.Background())
@@ -368,7 +369,7 @@ func TestSyncRollbackOnFailure(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "UpdatedOrg", "ok"), makeOrg(2, "NewOrg", "ok")}
 	f.failTypes["net"] = true
 
-	err := w.Sync(context.Background())
+	err := w.Sync(context.Background(), config.SyncModeFull)
 	if err == nil {
 		t.Fatal("expected error from failed sync")
 	}
@@ -397,7 +398,7 @@ func TestSyncFilterDeletedObjects(t *testing.T) {
 		}
 		w, _ := newTestWorker(t, f, false)
 
-		if err := w.Sync(context.Background()); err != nil {
+		if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
 			t.Fatalf("sync: %v", err)
 		}
 		count, _ := w.entClient.Organization.Query().Count(context.Background())
@@ -415,7 +416,7 @@ func TestSyncFilterDeletedObjects(t *testing.T) {
 		}
 		w, _ := newTestWorker(t, f, true)
 
-		if err := w.Sync(context.Background()); err != nil {
+		if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
 			t.Fatalf("sync: %v", err)
 		}
 		count, _ := w.entClient.Organization.Query().Count(context.Background())
@@ -463,7 +464,7 @@ func TestHasCompletedSync(t *testing.T) {
 		t.Error("expected false before sync")
 	}
 
-	if err := w.Sync(context.Background()); err != nil {
+	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 
@@ -518,7 +519,7 @@ func TestSyncWithRetrySucceedsOnSecondAttempt(t *testing.T) {
 	w := NewWorker(pdbClient, client, db, WorkerConfig{}, slog.Default())
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond, 2 * time.Millisecond, 3 * time.Millisecond})
 
-	err := w.SyncWithRetry(context.Background())
+	err := w.SyncWithRetry(context.Background(), config.SyncModeFull)
 	if err != nil {
 		t.Fatalf("expected SyncWithRetry to succeed on retry, got: %v", err)
 	}
@@ -533,7 +534,7 @@ func TestSyncWithRetryExhaustsRetries(t *testing.T) {
 	w, _ := newTestWorker(t, f, false)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond, 2 * time.Millisecond, 3 * time.Millisecond})
 
-	err := w.SyncWithRetry(context.Background())
+	err := w.SyncWithRetry(context.Background(), config.SyncModeFull)
 	if err == nil {
 		t.Fatal("expected error after exhausting retries")
 	}
@@ -555,7 +556,7 @@ func TestSyncWithRetryContextCancellation(t *testing.T) {
 	defer cancel()
 
 	start := time.Now()
-	err := w.SyncWithRetry(ctx)
+	err := w.SyncWithRetry(ctx, config.SyncModeFull)
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -576,7 +577,7 @@ func TestSyncWithNetAndFac(t *testing.T) {
 	f.responses["net"] = []any{makeNet(100, 1, 65000, fmt.Sprintf("Net-%d", 100), "ok")}
 	w, _ := newTestWorker(t, f, false)
 
-	if err := w.Sync(context.Background()); err != nil {
+	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 
@@ -631,7 +632,7 @@ func TestSyncRecordsMetrics(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f, false)
 
-	if err := w.Sync(context.Background()); err != nil {
+	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
 
@@ -685,7 +686,7 @@ func TestSyncRecordsFailureMetrics(t *testing.T) {
 	f.failTypes["org"] = true
 	w, _ := newTestWorker(t, f, false)
 
-	err := w.Sync(context.Background())
+	err := w.Sync(context.Background(), config.SyncModeFull)
 	if err == nil {
 		t.Fatal("expected error from failed sync")
 	}
@@ -731,5 +732,395 @@ func TestSyncRecordsFailureMetrics(t *testing.T) {
 	}
 	if fetchSum.DataPoints[0].Value != 1 {
 		t.Errorf("expected fetch_errors sum = 1, got %d", fetchSum.DataPoints[0].Value)
+	}
+}
+
+// newFixtureWithMeta creates a fixture server that includes meta.generated in responses.
+type fixtureWithMeta struct {
+	server          *httptest.Server
+	responses       map[string]any
+	failTypes       map[string]bool
+	failOnce        map[string]bool // fail only on first attempt per type
+	failIncremental map[string]bool // fail all requests with ?since= for this type
+	callCounts      map[string]*atomic.Int64
+	sinceSeen       map[string]*atomic.Bool // tracks if ?since= was seen per type
+	generated       float64                 // meta.generated epoch
+}
+
+func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
+	t.Helper()
+	f := &fixtureWithMeta{
+		responses:     make(map[string]any),
+		failTypes:     make(map[string]bool),
+		failOnce:      make(map[string]bool),
+		failIncremental: make(map[string]bool),
+		callCounts:    make(map[string]*atomic.Int64),
+		sinceSeen:     make(map[string]*atomic.Bool),
+		generated:     generatedEpoch,
+	}
+	f.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "?")
+		objType := parts[0]
+
+		// Track call counts per type.
+		if _, ok := f.callCounts[objType]; !ok {
+			f.callCounts[objType] = &atomic.Int64{}
+		}
+		count := f.callCounts[objType].Add(1)
+
+		// Track whether ?since= was present.
+		if _, ok := f.sinceSeen[objType]; !ok {
+			f.sinceSeen[objType] = &atomic.Bool{}
+		}
+		hasSince := r.URL.Query().Get("since") != ""
+		if hasSince {
+			f.sinceSeen[objType].Store(true)
+		}
+
+		// Permanent failure.
+		if f.failTypes[objType] {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		// Fail all requests with ?since= for this type (incremental fails, full succeeds).
+		if f.failIncremental[objType] && hasSince {
+			http.Error(w, "incremental not supported", http.StatusInternalServerError)
+			return
+		}
+
+		// Fail once (first call only), then succeed.
+		if f.failOnce[objType] && count == 1 {
+			http.Error(w, "temporary failure", http.StatusInternalServerError)
+			return
+		}
+
+		// Only return data on the first page (skip=0).
+		skip := r.URL.Query().Get("skip")
+		if skip != "" && skip != "0" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{
+				"meta": map[string]any{"generated": f.generated},
+				"data": []any{},
+			})
+			return
+		}
+
+		data, ok := f.responses[objType]
+		if !ok {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{
+				"meta": map[string]any{"generated": f.generated},
+				"data": []any{},
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"meta": map[string]any{"generated": f.generated},
+			"data": data,
+		})
+	}))
+	t.Cleanup(func() { f.server.Close() })
+	return f
+}
+
+func newTestWorkerWithMode(t *testing.T, baseURL string, mode config.SyncMode, includeDeleted bool) (*Worker, *sql.DB) {
+	t.Helper()
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := newFastPDBClient(t, baseURL)
+
+	if err := InitStatusTable(context.Background(), db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	w := NewWorker(pdbClient, client, db, WorkerConfig{
+		IncludeDeleted: includeDeleted,
+		SyncMode:       mode,
+	}, slog.Default())
+	return w, db
+}
+
+// TestIncrementalSync verifies that incremental mode with existing cursors
+// uses ?since= and skips deleteStale.
+func TestIncrementalSync(t *testing.T) {
+	t.Parallel()
+	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
+	f := newFixtureWithMeta(t, generated)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
+	ctx := context.Background()
+
+	// First sync: no cursors, so full fetch runs.
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("first sync: %v", err)
+	}
+	orgCount, _ := w.entClient.Organization.Query().Count(ctx)
+	if orgCount != 1 {
+		t.Fatalf("expected 1 org after first sync, got %d", orgCount)
+	}
+
+	// Verify cursor was established.
+	cursor, err := GetCursor(ctx, db, "org")
+	if err != nil {
+		t.Fatalf("get cursor: %v", err)
+	}
+	if cursor.IsZero() {
+		t.Fatal("expected non-zero cursor after first sync")
+	}
+
+	// Reset since tracking.
+	for _, v := range f.sinceSeen {
+		v.Store(false)
+	}
+
+	// Second sync: cursors exist, so incremental fetch should use ?since=.
+	f.responses["org"] = []any{makeOrg(1, "Org1Updated", "ok")}
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("second sync: %v", err)
+	}
+
+	// Verify ?since= was used for org.
+	if orgSeen, ok := f.sinceSeen["org"]; !ok || !orgSeen.Load() {
+		t.Error("expected ?since= parameter for org in incremental mode")
+	}
+
+	// Verify org was updated (upsert worked).
+	org, err := w.entClient.Organization.Get(ctx, 1)
+	if err != nil {
+		t.Fatalf("get org: %v", err)
+	}
+	if org.Name != "Org1Updated" {
+		t.Errorf("expected Org1Updated, got %s", org.Name)
+	}
+}
+
+// TestIncrementalFirstSyncFull verifies that incremental mode with no cursors
+// falls back to full fetch (no ?since=).
+func TestIncrementalFirstSyncFull(t *testing.T) {
+	t.Parallel()
+	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
+	f := newFixtureWithMeta(t, generated)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+
+	w, _ := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
+	ctx := context.Background()
+
+	// First sync with no cursors should use full fetch.
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	// Since this is the first sync, org should NOT have ?since= set
+	// (because cursor is zero, full mode path is used).
+	if orgSeen, ok := f.sinceSeen["org"]; ok && orgSeen.Load() {
+		t.Error("expected no ?since= parameter on first sync (no cursor)")
+	}
+
+	// Verify data was synced.
+	orgCount, _ := w.entClient.Organization.Query().Count(ctx)
+	if orgCount != 1 {
+		t.Errorf("expected 1 org, got %d", orgCount)
+	}
+}
+
+// TestIncrementalFallback verifies that when incremental fetch fails for one type,
+// it falls back to full fetch for that type, and the fallback counter is incremented.
+func TestIncrementalFallback(t *testing.T) {
+	reader := setupMetricTest(t)
+
+	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
+	f := newFixtureWithMeta(t, generated)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
+	ctx := context.Background()
+
+	// Establish cursors with a full sync first.
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("initial full sync: %v", err)
+	}
+
+	// Set org to fail on incremental (with ?since=), succeed on full (without ?since=).
+	f.failIncremental["org"] = true
+
+	// Run incremental sync -- org should fail incrementally then succeed via fallback.
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("incremental sync with fallback: %v", err)
+	}
+
+	// Verify org data is present (fallback to full succeeded).
+	orgCount, _ := w.entClient.Organization.Query().Count(ctx)
+	if orgCount != 1 {
+		t.Errorf("expected 1 org after fallback, got %d", orgCount)
+	}
+
+	// Verify fallback metric was incremented.
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(ctx, &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+	fbMetric := findMetric(rm, "pdbplus.sync.type.fallback")
+	if fbMetric == nil {
+		t.Fatal("expected pdbplus.sync.type.fallback metric, not found")
+	}
+	fbSum, ok := fbMetric.Data.(metricdata.Sum[int64])
+	if !ok {
+		t.Fatalf("expected Sum[int64], got %T", fbMetric.Data)
+	}
+	found := false
+	for _, dp := range fbSum.DataPoints {
+		if dp.Value > 0 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected fallback counter > 0")
+	}
+
+	_ = db // used for worker setup
+}
+
+// TestCursorsUpdatedAfterCommit verifies that cursors are updated for all types
+// after a successful sync commit.
+func TestCursorsUpdatedAfterCommit(t *testing.T) {
+	t.Parallel()
+	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
+	f := newFixtureWithMeta(t, generated)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeFull, false)
+	ctx := context.Background()
+
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	// Check that cursors exist for all 13 types.
+	typeNames := []string{"org", "campus", "fac", "carrier", "carrierfac", "ix", "ixlan", "ixpfx", "ixfac", "net", "poc", "netfac", "netixlan"}
+	for _, typeName := range typeNames {
+		cursor, err := GetCursor(ctx, db, typeName)
+		if err != nil {
+			t.Errorf("get cursor for %s: %v", typeName, err)
+			continue
+		}
+		if cursor.IsZero() {
+			t.Errorf("expected non-zero cursor for %s after successful sync", typeName)
+		}
+	}
+}
+
+// TestCursorsNotUpdatedOnRollback verifies that cursors are NOT updated
+// when the sync transaction is rolled back due to an error.
+func TestCursorsNotUpdatedOnRollback(t *testing.T) {
+	t.Parallel()
+	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
+	f := newFixtureWithMeta(t, generated)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+	// Make net fail, which causes rollback.
+	f.failTypes["net"] = true
+
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeFull, false)
+	ctx := context.Background()
+
+	err := w.Sync(ctx, config.SyncModeFull)
+	if err == nil {
+		t.Fatal("expected error from failed sync")
+	}
+
+	// Verify no cursors were updated.
+	typeNames := []string{"org", "campus", "fac", "carrier", "carrierfac", "ix", "ixlan", "ixpfx", "ixfac", "net", "poc", "netfac", "netixlan"}
+	for _, typeName := range typeNames {
+		cursor, err := GetCursor(ctx, db, typeName)
+		if err != nil {
+			t.Errorf("get cursor for %s: %v", typeName, err)
+			continue
+		}
+		if !cursor.IsZero() {
+			t.Errorf("expected zero cursor for %s after rollback, got %v", typeName, cursor)
+		}
+	}
+}
+
+// TestSyncWithRetryPassesMode verifies that SyncWithRetry passes mode through to Sync.
+func TestSyncWithRetryPassesMode(t *testing.T) {
+	t.Parallel()
+	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
+	f := newFixtureWithMeta(t, generated)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
+	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+	ctx := context.Background()
+
+	// First call establishes cursors.
+	if err := w.SyncWithRetry(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("initial sync: %v", err)
+	}
+
+	// Reset since tracking.
+	for _, v := range f.sinceSeen {
+		v.Store(false)
+	}
+
+	// Call with incremental mode.
+	if err := w.SyncWithRetry(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("incremental sync: %v", err)
+	}
+
+	// Verify ?since= was used.
+	if orgSeen, ok := f.sinceSeen["org"]; !ok || !orgSeen.Load() {
+		t.Error("expected ?since= parameter when SyncWithRetry called with incremental mode")
+	}
+
+	_ = db // used for worker setup
+}
+
+// TestIncrementalSkipsDeleteStale verifies that incremental mode does not
+// delete stale records (records present in DB but not in incremental response).
+func TestIncrementalSkipsDeleteStale(t *testing.T) {
+	t.Parallel()
+	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
+	f := newFixtureWithMeta(t, generated)
+
+	// First sync with 3 orgs.
+	f.responses["org"] = []any{
+		makeOrg(1, "Org1", "ok"),
+		makeOrg(2, "Org2", "ok"),
+		makeOrg(3, "Org3", "ok"),
+	}
+
+	w, _ := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
+	ctx := context.Background()
+
+	// Full sync to establish data and cursors.
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("full sync: %v", err)
+	}
+	orgCount, _ := w.entClient.Organization.Query().Count(ctx)
+	if orgCount != 3 {
+		t.Fatalf("expected 3 orgs after full sync, got %d", orgCount)
+	}
+
+	// Incremental sync with only 1 org (simulating only org 1 was modified).
+	f.responses["org"] = []any{makeOrg(1, "Org1Updated", "ok")}
+
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("incremental sync: %v", err)
+	}
+
+	// All 3 orgs should still be present (incremental does NOT delete stale).
+	orgCount, _ = w.entClient.Organization.Query().Count(ctx)
+	if orgCount != 3 {
+		t.Errorf("expected 3 orgs after incremental sync (no delete stale), got %d", orgCount)
+	}
+
+	// Verify org 1 was updated.
+	org, _ := w.entClient.Organization.Get(ctx, 1)
+	if org.Name != "Org1Updated" {
+		t.Errorf("expected Org1Updated, got %s", org.Name)
 	}
 }
