@@ -105,7 +105,7 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 
 // buildResource creates an OTel resource with service name, version from
 // build info per D-08, and Fly.io environment attributes per D-10.
-func buildResource(ctx context.Context, serviceName string) *resource.Resource {
+func buildResource(_ context.Context, serviceName string) *resource.Resource {
 	version := "unknown"
 	if info, ok := debug.ReadBuildInfo(); ok {
 		version = info.Main.Version

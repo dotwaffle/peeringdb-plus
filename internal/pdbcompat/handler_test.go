@@ -609,9 +609,9 @@ func TestFieldProjectionWithDepth(t *testing.T) {
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 	var env testEnvelope
-	json.Unmarshal(rec.Body.Bytes(), &env)
+	_ = json.Unmarshal(rec.Body.Bytes(), &env)
 	var items []map[string]any
-	json.Unmarshal(env.Data, &items)
+	_ = json.Unmarshal(env.Data, &items)
 	orgID := int(items[0]["id"].(float64))
 
 	// Detail with depth=2 and fields=id,name should project top-level
@@ -626,9 +626,9 @@ func TestFieldProjectionWithDepth(t *testing.T) {
 	}
 
 	var detEnv testEnvelope
-	json.Unmarshal(detRec.Body.Bytes(), &detEnv)
+	_ = json.Unmarshal(detRec.Body.Bytes(), &detEnv)
 	var detItems []map[string]any
-	json.Unmarshal(detEnv.Data, &detItems)
+	_ = json.Unmarshal(detEnv.Data, &detItems)
 	if len(detItems) != 1 {
 		t.Fatalf("expected 1 item, got %d", len(detItems))
 	}

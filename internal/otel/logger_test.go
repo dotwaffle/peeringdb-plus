@@ -13,7 +13,7 @@ import (
 func TestNewDualLogger_WritesToStdout(t *testing.T) {
 	var buf bytes.Buffer
 	lp := sdklog.NewLoggerProvider()
-	defer lp.Shutdown(context.Background())
+	defer func() { _ = lp.Shutdown(context.Background()) }()
 
 	logger := NewDualLogger(&buf, lp)
 	logger.Info("test message", slog.String("key", "value"))
@@ -31,7 +31,7 @@ func TestNewDualLogger_WritesToStdout(t *testing.T) {
 func TestNewDualLogger_WritesToOTelHandler(t *testing.T) {
 	var buf bytes.Buffer
 	lp := sdklog.NewLoggerProvider()
-	defer lp.Shutdown(context.Background())
+	defer func() { _ = lp.Shutdown(context.Background()) }()
 
 	logger := NewDualLogger(&buf, lp)
 

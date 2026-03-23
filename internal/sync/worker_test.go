@@ -53,7 +53,7 @@ func newFixture(t *testing.T) *fixture {
 		skip := r.URL.Query().Get("skip")
 		if skip != "" && skip != "0" {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
 			return
 		}
 
@@ -61,12 +61,12 @@ func newFixture(t *testing.T) *fixture {
 		if !ok {
 			// Return empty data for types without fixtures.
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": data})
+		_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": data})
 	}))
 	t.Cleanup(func() { f.server.Close() })
 	return f
@@ -305,7 +305,7 @@ func TestSyncRecordsStatusSuccess(t *testing.T) {
 		t.Fatalf("sync failed: %v", err)
 	}
 
-	status, err := GetLastSyncStatus(context.Background(), db)
+	status, err := GetLastStatus(context.Background(), db)
 	if err != nil {
 		t.Fatalf("get status: %v", err)
 	}
@@ -333,7 +333,7 @@ func TestSyncRecordsStatusFailure(t *testing.T) {
 		t.Fatal("expected error from failed sync")
 	}
 
-	status, err := GetLastSyncStatus(context.Background(), db)
+	status, err := GetLastStatus(context.Background(), db)
 	if err != nil {
 		t.Fatalf("get status: %v", err)
 	}
@@ -488,7 +488,7 @@ func TestSyncWithRetrySucceedsOnSecondAttempt(t *testing.T) {
 		skip := r.URL.Query().Get("skip")
 		if skip != "" && skip != "0" {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
 			return
 		}
 
@@ -501,11 +501,11 @@ func TestSyncWithRetrySucceedsOnSecondAttempt(t *testing.T) {
 		data, ok := f.responses[objType]
 		if !ok {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": data})
+		_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": data})
 	}))
 	t.Cleanup(srv.Close)
 
@@ -602,7 +602,7 @@ func setupMetricTest(t *testing.T) *sdkmetric.ManualReader {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
-	t.Cleanup(func() { mp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
 	if err := pdbotel.InitMetrics(); err != nil {
 		t.Fatalf("InitMetrics: %v", err)
 	}

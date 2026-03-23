@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// SyncStatus represents the result of a sync operation.
-type SyncStatus struct {
+// Status represents the result of a sync operation.
+type Status struct {
 	LastSyncAt   time.Time
 	Duration     time.Duration
 	ObjectCounts map[string]int // type -> count
@@ -54,7 +54,7 @@ func RecordSyncStart(ctx context.Context, db *sql.DB, startedAt time.Time) (int6
 }
 
 // RecordSyncComplete updates the sync status row with results.
-func RecordSyncComplete(ctx context.Context, db *sql.DB, id int64, status SyncStatus) error {
+func RecordSyncComplete(ctx context.Context, db *sql.DB, id int64, status Status) error {
 	countsJSON, err := json.Marshal(status.ObjectCounts)
 	if err != nil {
 		return fmt.Errorf("marshal object counts: %w", err)
@@ -74,9 +74,9 @@ func RecordSyncComplete(ctx context.Context, db *sql.DB, id int64, status SyncSt
 	return nil
 }
 
-// GetLastSyncStatus returns the most recent sync status.
+// GetLastStatus returns the most recent sync status.
 // Returns nil if no sync has been recorded.
-func GetLastSyncStatus(ctx context.Context, db *sql.DB) (*SyncStatus, error) {
+func GetLastStatus(ctx context.Context, db *sql.DB) (*Status, error) {
 	row := db.QueryRowContext(ctx,
 		`SELECT started_at, completed_at, duration_ms, object_counts, status, error_message FROM sync_status ORDER BY id DESC LIMIT 1`,
 	)
@@ -97,7 +97,7 @@ func GetLastSyncStatus(ctx context.Context, db *sql.DB) (*SyncStatus, error) {
 		return nil, fmt.Errorf("get last sync status: %w", err)
 	}
 
-	s := &SyncStatus{
+	s := &Status{
 		LastSyncAt: startedAt,
 		Status:     statusStr,
 	}

@@ -31,7 +31,8 @@ import (
 )
 
 func init() {
-	memlimit.SetGoMemLimitWithOpts(
+	// Best-effort memory limit configuration from cgroup/system.
+	_, _ = memlimit.SetGoMemLimitWithOpts(
 		memlimit.WithProvider(
 			memlimit.ApplyFallback(
 				memlimit.FromCgroup,
@@ -59,7 +60,7 @@ func main() {
 	})
 	if err != nil {
 		slog.Error("failed to init otel", slog.String("error", err.Error()))
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic // exitAfterDefer: cancel() deferred above is trivial at this stage
 	}
 	defer otelOut.Shutdown(ctx) //nolint:errcheck // best-effort flush at exit
 
@@ -102,7 +103,7 @@ func main() {
 
 	// Initialize sync freshness gauge per D-09.
 	if err := pdbotel.InitFreshnessGauge(func(ctx context.Context) (time.Time, bool) {
-		status, err := pdbsync.GetLastSyncStatus(ctx, db)
+		status, err := pdbsync.GetLastStatus(ctx, db)
 		if err != nil || status == nil || status.Status != "success" {
 			return time.Time{}, false
 		}
@@ -203,7 +204,7 @@ func main() {
 
 	// Build middleware stack (outermost first):
 	// Recovery -> OTel HTTP -> Logging -> CORS -> Readiness -> mux
-	var handler http.Handler = readinessMiddleware(syncWorker, mux)
+	handler := readinessMiddleware(syncWorker, mux)
 	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
 	handler = middleware.Logging(logger)(handler)
 	handler = otelhttp.NewMiddleware("peeringdb-plus")(handler)

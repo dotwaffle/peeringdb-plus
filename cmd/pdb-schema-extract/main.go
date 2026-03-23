@@ -673,7 +673,7 @@ func parsePythonDefault(s string) interface{} {
 // atoi converts a string to int, returning 0 on error.
 func atoi(s string) int {
 	var n int
-	fmt.Sscanf(s, "%d", &n)
+	_, _ = fmt.Sscanf(s, "%d", &n)
 	return n
 }
 

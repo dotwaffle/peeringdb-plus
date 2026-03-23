@@ -49,15 +49,15 @@ func TestFetchAllPagination(t *testing.T) {
 
 	// Server returns 250 items on page 0, 100 on page 1, empty on page 2.
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		page := requestCount.Add(1)
 		switch page {
 		case 1:
-			w.Write(makeOrgPage(1, 250))
+			_, _ = w.Write(makeOrgPage(1, 250))
 		case 2:
-			w.Write(makeOrgPage(251, 100))
+			_, _ = w.Write(makeOrgPage(251, 100))
 		default:
-			w.Write(emptyResponse())
+			_, _ = w.Write(emptyResponse())
 		}
 	}))
 	defer server.Close()
@@ -86,19 +86,19 @@ func TestFetchAllRetryOn429(t *testing.T) {
 	t.Parallel()
 
 	var attempt atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := attempt.Add(1)
 		if n <= 2 {
 			w.WriteHeader(http.StatusTooManyRequests)
-			w.Write([]byte(`{"detail":"Rate limit exceeded"}`))
+			_, _ = w.Write([]byte(`{"detail":"Rate limit exceeded"}`))
 			return
 		}
 		// Third attempt succeeds, then second request gets empty.
 		if n == 3 {
-			w.Write(makeOrgPage(1, 5))
+			_, _ = w.Write(makeOrgPage(1, 5))
 			return
 		}
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -121,17 +121,17 @@ func TestFetchAllRetryOn5xx(t *testing.T) {
 	t.Parallel()
 
 	var attempt atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := attempt.Add(1)
 		if n <= 2 {
 			w.WriteHeader(http.StatusBadGateway)
 			return
 		}
 		if n == 3 {
-			w.Write(makeOrgPage(1, 3))
+			_, _ = w.Write(makeOrgPage(1, 3))
 			return
 		}
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -154,7 +154,7 @@ func TestFetchAllMaxRetries(t *testing.T) {
 	t.Parallel()
 
 	var attempt atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		attempt.Add(1)
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -184,7 +184,7 @@ func TestFetchAllNoRetryOn4xx(t *testing.T) {
 	t.Parallel()
 
 	var attempt atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		attempt.Add(1)
 		w.WriteHeader(http.StatusNotFound)
 	}))
@@ -234,7 +234,7 @@ func TestFetchAllDepthZero(t *testing.T) {
 	var capturedURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedURL = r.URL.String()
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -262,9 +262,9 @@ func TestFetchAllEmptyFirstPage(t *testing.T) {
 	t.Parallel()
 
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		requestCount.Add(1)
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -290,17 +290,17 @@ func TestFetchAllAccumulatesAllPages(t *testing.T) {
 	t.Parallel()
 
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		page := requestCount.Add(1)
 		switch page {
 		case 1:
-			w.Write(makeOrgPage(1, 250))
+			_, _ = w.Write(makeOrgPage(1, 250))
 		case 2:
-			w.Write(makeOrgPage(251, 250))
+			_, _ = w.Write(makeOrgPage(251, 250))
 		case 3:
-			w.Write(makeOrgPage(501, 50))
+			_, _ = w.Write(makeOrgPage(501, 50))
 		default:
-			w.Write(emptyResponse())
+			_, _ = w.Write(emptyResponse())
 		}
 	}))
 	defer server.Close()
@@ -323,13 +323,13 @@ func TestFetchAllRateLimiter(t *testing.T) {
 	t.Parallel()
 
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
 		if n <= 3 {
-			w.Write(makeOrgPage(int(n)*10, 10))
+			_, _ = w.Write(makeOrgPage(int(n)*10, 10))
 			return
 		}
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -359,10 +359,10 @@ func TestFetchAllUnknownFieldsIgnored(t *testing.T) {
 	t.Parallel()
 
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
 		if n == 1 {
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"meta": {},
 				"data": [
 					{
@@ -375,7 +375,7 @@ func TestFetchAllUnknownFieldsIgnored(t *testing.T) {
 			}`))
 			return
 		}
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -399,10 +399,10 @@ func TestFetchTypeDeserialization(t *testing.T) {
 	t.Parallel()
 
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
 		if n == 1 {
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"meta": {},
 				"data": [
 					{
@@ -432,7 +432,7 @@ func TestFetchTypeDeserialization(t *testing.T) {
 			}`))
 			return
 		}
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -463,7 +463,7 @@ func TestUserAgent(t *testing.T) {
 	var capturedUA string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedUA = r.Header.Get("User-Agent")
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -486,7 +486,7 @@ func setupTraceTest(t *testing.T) *tracetest.InMemoryExporter {
 	exporter := tracetest.NewInMemoryExporter()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
 	otel.SetTracerProvider(tp)
-	t.Cleanup(func() { tp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = tp.Shutdown(context.Background()) })
 	return exporter
 }
 
@@ -516,13 +516,13 @@ func TestFetchAllCreatesSpanHierarchy(t *testing.T) {
 	exporter := setupTraceTest(t)
 
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
 		if n == 1 {
-			w.Write(makeOrgPage(1, 5))
+			_, _ = w.Write(makeOrgPage(1, 5))
 			return
 		}
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -578,15 +578,15 @@ func TestFetchAllRecordsPageEvents(t *testing.T) {
 	exporter := setupTraceTest(t)
 
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
 		switch n {
 		case 1:
-			w.Write(makeOrgPage(1, 250))
+			_, _ = w.Write(makeOrgPage(1, 250))
 		case 2:
-			w.Write(makeOrgPage(251, 50))
+			_, _ = w.Write(makeOrgPage(251, 50))
 		default:
-			w.Write(emptyResponse())
+			_, _ = w.Write(emptyResponse())
 		}
 	}))
 	defer server.Close()
@@ -656,19 +656,19 @@ func TestDoWithRetryCreatesPerAttemptSpans(t *testing.T) {
 	exporter := setupTraceTest(t)
 
 	var attempt atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := attempt.Add(1)
-		switch {
-		case n == 1:
+		switch n {
+		case 1:
 			// First request for page 0: return 429.
 			w.WriteHeader(http.StatusTooManyRequests)
-			w.Write([]byte(`{"detail":"Rate limit exceeded"}`))
-		case n == 2:
+			_, _ = w.Write([]byte(`{"detail":"Rate limit exceeded"}`))
+		case 2:
 			// Second request for page 0: succeed.
-			w.Write(makeOrgPage(1, 5))
+			_, _ = w.Write(makeOrgPage(1, 5))
 		default:
 			// Page 1: empty (end pagination).
-			w.Write(emptyResponse())
+			_, _ = w.Write(emptyResponse())
 		}
 	}))
 	defer server.Close()

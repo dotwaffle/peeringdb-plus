@@ -100,7 +100,7 @@ func seedTestData(t *testing.T) *httptest.Server {
 	if err != nil {
 		t.Fatalf("record sync start: %v", err)
 	}
-	if err := pdbsync.RecordSyncComplete(ctx, db, id, pdbsync.SyncStatus{
+	if err := pdbsync.RecordSyncComplete(ctx, db, id, pdbsync.Status{
 		LastSyncAt:   testTimestamp,
 		Duration:     5 * time.Second,
 		ObjectCounts: map[string]int{"organization": 1, "network": 3},

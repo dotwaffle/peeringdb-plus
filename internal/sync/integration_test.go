@@ -82,21 +82,21 @@ func newFixtureServer(t *testing.T) *fixtureServer {
 		skip := r.URL.Query().Get("skip")
 		if skip != "" && skip != "0" {
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"meta":{},"data":[]}`))
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
 			return
 		}
 
 		data, ok := fs.fixtures[objType]
 		if !ok {
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"meta":{},"data":[]}`))
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"meta":{},"data":`))
-		w.Write(data)
-		w.Write([]byte(`}`))
+		_, _ = w.Write([]byte(`{"meta":{},"data":`))
+		_, _ = w.Write(data)
+		_, _ = w.Write([]byte(`}`))
 	}))
 	t.Cleanup(func() { fs.server.Close() })
 
@@ -107,33 +107,6 @@ func newFixtureServer(t *testing.T) *fixtureServer {
 // data should be a JSON-encoded array.
 func (fs *fixtureServer) setFixtureData(objType string, data json.RawMessage) {
 	fs.fixtures[objType] = data
-}
-
-// removeFixtureData removes fixture data for a type, making it return empty.
-func (fs *fixtureServer) removeFixtureData(objType string) {
-	delete(fs.fixtures, objType)
-}
-
-// newIntegrationWorker creates a sync worker wired to the fixture server with
-// an in-memory ent client. Returns the worker and a cleanup is handled by t.Cleanup.
-func newIntegrationWorker(t *testing.T, fs *fixtureServer, includeDeleted bool) *sync.Worker {
-	t.Helper()
-
-	client, db := testutil.SetupClientWithDB(t)
-
-	pdbClient := peeringdb.NewClient(fs.server.URL, slog.Default())
-	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
-	pdbClient.SetRetryBaseDelay(0)
-
-	if err := sync.InitStatusTable(context.Background(), db); err != nil {
-		t.Fatalf("init status table: %v", err)
-	}
-
-	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		IncludeDeleted: includeDeleted,
-	}, slog.Default())
-
-	return w
 }
 
 // TestFullSyncWithFixtures verifies the full sync pipeline processes all 13
@@ -228,7 +201,7 @@ func TestFullSyncWithFixtures(t *testing.T) {
 	}
 
 	// Verify sync_status records success.
-	status, err := sync.GetLastSyncStatus(ctx, db)
+	status, err := sync.GetLastStatus(ctx, db)
 	if err != nil {
 		t.Fatalf("get sync status: %v", err)
 	}

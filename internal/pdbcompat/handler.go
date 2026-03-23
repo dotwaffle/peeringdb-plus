@@ -115,7 +115,7 @@ func init() {
 		}
 	}
 
-	indexBody, _ = json.Marshal(index) //nolint:errcheck // static data
+	indexBody, _ = json.Marshal(index)
 }
 
 // serveIndex writes the API index listing all available types.

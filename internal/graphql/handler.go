@@ -19,7 +19,7 @@ import (
 // NewHandler creates the gqlgen GraphQL handler with complexity and depth limits.
 // Introspection is always enabled per D-20.
 func NewHandler(resolver *graph.Resolver) http.Handler {
-	srv := handler.NewDefaultServer(
+	srv := handler.NewDefaultServer( //nolint:staticcheck // SA1019: gqlgen's recommended server factory; no replacement available
 		graph.NewExecutableSchema(graph.Config{
 			Resolvers: resolver,
 		}),

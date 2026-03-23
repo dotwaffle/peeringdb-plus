@@ -30,14 +30,14 @@ type Component struct {
 // LivenessHandler returns an http.HandlerFunc that always responds 200 OK.
 // It confirms the process is running; no dependency checks are performed.
 func LivenessHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, _ *http.Request) {
 		resp := Response{
 			Status:     "ok",
 			Components: map[string]Component{},
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}
 }
 
@@ -83,13 +83,13 @@ func ReadinessHandler(in ReadinessInput) http.HandlerFunc {
 		} else {
 			w.WriteHeader(http.StatusServiceUnavailable)
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}
 }
 
 // checkSync evaluates sync data freshness and updates the response.
 func checkSync(ctx context.Context, db *sql.DB, staleThreshold time.Duration, resp *Response) {
-	status, err := sync.GetLastSyncStatus(ctx, db)
+	status, err := sync.GetLastStatus(ctx, db)
 	if err != nil {
 		resp.Components["sync"] = Component{
 			Status:  "failed",
@@ -166,7 +166,7 @@ func evaluateSyncAge(lastSyncAt time.Time, staleThreshold time.Duration, resp *R
 
 // getLastCompletedSync returns the most recent non-running sync status.
 // This is used when the latest row is "running" to find the previous sync result.
-func getLastCompletedSync(ctx context.Context, db *sql.DB) (*sync.SyncStatus, error) {
+func getLastCompletedSync(ctx context.Context, db *sql.DB) (*sync.Status, error) {
 	row := db.QueryRowContext(ctx,
 		`SELECT started_at, completed_at, duration_ms, object_counts, status, error_message
 		 FROM sync_status
@@ -190,7 +190,7 @@ func getLastCompletedSync(ctx context.Context, db *sql.DB) (*sync.SyncStatus, er
 		return nil, fmt.Errorf("get last completed sync: %w", err)
 	}
 
-	s := &sync.SyncStatus{
+	s := &sync.Status{
 		LastSyncAt: startedAt,
 		Status:     statusStr,
 	}

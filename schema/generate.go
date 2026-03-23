@@ -1,5 +1,5 @@
 // Package schema contains the intermediate PeeringDB JSON schema and
-// go:generate directives for the schema extraction pipeline.
+// generate directives for the schema extraction pipeline.
 //
 // The full pipeline:
 //  1. pdb-schema-extract parses PeeringDB Django Python source -> peeringdb.json

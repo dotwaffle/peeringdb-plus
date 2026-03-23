@@ -191,7 +191,7 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 		}
 
 		// Read and discard body so the connection can be reused.
-		io.Copy(io.Discard, resp.Body)
+		_, _ = io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
 
 		// Determine if retryable.

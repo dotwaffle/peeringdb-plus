@@ -222,9 +222,9 @@ func generateFieldCode(name string, fd FieldDef) string {
 
 	switch fd.Type {
 	case "string":
-		b.WriteString(fmt.Sprintf("field.String(%q)", name))
+		fmt.Fprintf(&b, "field.String(%q)", name)
 		if fd.MaxLength > 0 {
-			b.WriteString(fmt.Sprintf(".\n\t\t\tMaxLen(%d)", fd.MaxLength))
+			fmt.Fprintf(&b, ".\n\t\t\tMaxLen(%d)", fd.MaxLength)
 		}
 		if fd.Required && !fd.Nullable && fd.References == "" && isNameField(name) {
 			b.WriteString(".\n\t\t\tNotEmpty()")
@@ -239,11 +239,11 @@ func generateFieldCode(name string, fd FieldDef) string {
 			b.WriteString(".\n\t\t\tNillable()")
 		}
 		if fd.Default != nil && !fd.Nullable {
-			b.WriteString(fmt.Sprintf(".\n\t\t\tDefault(%q)", fmt.Sprintf("%v", fd.Default)))
+			fmt.Fprintf(&b, ".\n\t\t\tDefault(%q)", fmt.Sprintf("%v", fd.Default))
 		}
 
 	case "integer":
-		b.WriteString(fmt.Sprintf("field.Int(%q)", name))
+		fmt.Fprintf(&b, "field.Int(%q)", name)
 		if fd.Unique {
 			b.WriteString(".\n\t\t\tUnique()")
 		}
@@ -262,11 +262,11 @@ func generateFieldCode(name string, fd FieldDef) string {
 			if f, ok := fd.Default.(float64); ok {
 				defVal = fmt.Sprintf("%d", int(f))
 			}
-			b.WriteString(fmt.Sprintf(".\n\t\t\tDefault(%s)", defVal))
+			fmt.Fprintf(&b, ".\n\t\t\tDefault(%s)", defVal)
 		}
 
 	case "float":
-		b.WriteString(fmt.Sprintf("field.Float(%q)", name))
+		fmt.Fprintf(&b, "field.Float(%q)", name)
 		if !fd.Required || fd.Nullable {
 			b.WriteString(".\n\t\t\tOptional()")
 		}
@@ -275,7 +275,7 @@ func generateFieldCode(name string, fd FieldDef) string {
 		}
 
 	case "boolean":
-		b.WriteString(fmt.Sprintf("field.Bool(%q)", name))
+		fmt.Fprintf(&b, "field.Bool(%q)", name)
 		if !fd.Required || fd.Nullable {
 			if fd.Nullable {
 				b.WriteString(".\n\t\t\tOptional()")
@@ -283,11 +283,11 @@ func generateFieldCode(name string, fd FieldDef) string {
 			}
 		}
 		if fd.Default != nil && !fd.Nullable {
-			b.WriteString(fmt.Sprintf(".\n\t\t\tDefault(%v)", fd.Default))
+			fmt.Fprintf(&b, ".\n\t\t\tDefault(%v)", fd.Default)
 		}
 
 	case "datetime":
-		b.WriteString(fmt.Sprintf("field.Time(%q)", name))
+		fmt.Fprintf(&b, "field.Time(%q)", name)
 		if !fd.Required || fd.Nullable {
 			b.WriteString(".\n\t\t\tOptional()")
 		}
@@ -297,22 +297,22 @@ func generateFieldCode(name string, fd FieldDef) string {
 
 	case "json_array":
 		if name == "social_media" {
-			b.WriteString(fmt.Sprintf("field.JSON(%q, []SocialMedia{})", name))
+			fmt.Fprintf(&b, "field.JSON(%q, []SocialMedia{})", name)
 		} else {
-			b.WriteString(fmt.Sprintf("field.JSON(%q, []string{})", name))
+			fmt.Fprintf(&b, "field.JSON(%q, []string{})", name)
 		}
 		b.WriteString(".\n\t\t\tOptional()")
 	}
 
 	if fd.HelpText != "" {
-		b.WriteString(fmt.Sprintf(".\n\t\t\tComment(%q)", fd.HelpText))
+		fmt.Fprintf(&b, ".\n\t\t\tComment(%q)", fd.HelpText)
 	}
 
 	return b.String()
 }
 
 // generateComputedFieldCode produces entgo field code for serializer-computed fields.
-func generateComputedFieldCode(name, apiPath string) string {
+func generateComputedFieldCode(name, _ string) string {
 	// Infer type from field name patterns.
 	switch {
 	case strings.HasSuffix(name, "_count"):

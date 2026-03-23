@@ -28,7 +28,7 @@ func TestSetup_ReturnsNonNilShutdown(t *testing.T) {
 	if out.Shutdown == nil {
 		t.Fatal("Setup returned nil shutdown function")
 	}
-	t.Cleanup(func() { out.Shutdown(ctx) })
+	t.Cleanup(func() { _ = out.Shutdown(ctx) })
 }
 
 func TestSetup_SetsGlobalTracerProvider(t *testing.T) {
@@ -44,7 +44,7 @@ func TestSetup_SetsGlobalTracerProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Setup returned error: %v", err)
 	}
-	t.Cleanup(func() { out.Shutdown(ctx) })
+	t.Cleanup(func() { _ = out.Shutdown(ctx) })
 
 	tp := otel.GetTracerProvider()
 	if _, ok := tp.(*sdktrace.TracerProvider); !ok {
@@ -65,7 +65,7 @@ func TestSetup_SetsGlobalMeterProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Setup returned error: %v", err)
 	}
-	t.Cleanup(func() { out.Shutdown(ctx) })
+	t.Cleanup(func() { _ = out.Shutdown(ctx) })
 
 	mp := otel.GetMeterProvider()
 	if _, ok := mp.(*sdkmetric.MeterProvider); !ok {
@@ -86,7 +86,7 @@ func TestSetup_DisabledTraces(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Setup with disabled traces returned error: %v", err)
 	}
-	t.Cleanup(func() { out.Shutdown(ctx) })
+	t.Cleanup(func() { _ = out.Shutdown(ctx) })
 }
 
 func TestSetup_ShutdownFlushesWithoutError(t *testing.T) {
@@ -171,6 +171,6 @@ func TestSetup_RuntimeMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Setup returned error (runtime.Start should succeed): %v", err)
 	}
-	t.Cleanup(func() { out.Shutdown(ctx) })
+	t.Cleanup(func() { _ = out.Shutdown(ctx) })
 	// If we get here without error, runtime.Start was called successfully.
 }

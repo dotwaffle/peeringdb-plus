@@ -124,7 +124,7 @@ func TestInitMetrics_RecordsValues(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
-	t.Cleanup(func() { mp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
 
 	if err := InitMetrics(); err != nil {
 		t.Fatalf("InitMetrics: %v", err)
@@ -162,7 +162,7 @@ func TestInitFreshnessGauge_RecordsValue(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
-	t.Cleanup(func() { mp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
 
 	lastSync := time.Now().Add(-5 * time.Minute)
 	err := InitFreshnessGauge(func(_ context.Context) (time.Time, bool) {

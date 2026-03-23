@@ -16,7 +16,7 @@ import (
 
 // SyncStatus is the resolver for the syncStatus field.
 func (r *queryResolver) SyncStatus(ctx context.Context) (*model.SyncStatus, error) {
-	status, err := pdbsync.GetLastSyncStatus(ctx, r.db)
+	status, err := pdbsync.GetLastStatus(ctx, r.db)
 	if err != nil {
 		return nil, fmt.Errorf("get sync status: %w", err)
 	}
@@ -298,7 +298,7 @@ func (r *queryResolver) CampusesList(ctx context.Context, offset *int, limit *in
 }
 
 // ObjectCounts is the resolver for the objectCounts field.
-func (r *syncStatusResolver) ObjectCounts(ctx context.Context, obj *model.SyncStatus) (map[string]any, error) {
+func (r *syncStatusResolver) ObjectCounts(_ context.Context, obj *model.SyncStatus) (map[string]any, error) {
 	if obj.ObjectCounts == nil {
 		return nil, nil
 	}

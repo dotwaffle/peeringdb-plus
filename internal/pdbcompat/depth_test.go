@@ -255,9 +255,9 @@ func TestDepth(t *testing.T) {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		var env testEnvelope
-		json.Unmarshal(rec.Body.Bytes(), &env)
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
 		var items []map[string]any
-		json.Unmarshal(env.Data, &items)
+		_ = json.Unmarshal(env.Data, &items)
 		orgID := int(items[0]["id"].(float64))
 
 		detReq := httptest.NewRequest(http.MethodGet, "/api/org/"+itoa(orgID)+"?depth=2", nil)
@@ -268,9 +268,9 @@ func TestDepth(t *testing.T) {
 		}
 
 		var detEnv testEnvelope
-		json.Unmarshal(detRec.Body.Bytes(), &detEnv)
+		_ = json.Unmarshal(detRec.Body.Bytes(), &detEnv)
 		var detItems []map[string]any
-		json.Unmarshal(detEnv.Data, &detItems)
+		_ = json.Unmarshal(detEnv.Data, &detItems)
 		if len(detItems) != 1 {
 			t.Fatalf("expected 1 item, got %d", len(detItems))
 		}
@@ -303,9 +303,9 @@ func TestDepth(t *testing.T) {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		var env testEnvelope
-		json.Unmarshal(rec.Body.Bytes(), &env)
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
 		var items []map[string]any
-		json.Unmarshal(env.Data, &items)
+		_ = json.Unmarshal(env.Data, &items)
 		netID := int(items[0]["id"].(float64))
 
 		detReq := httptest.NewRequest(http.MethodGet, "/api/net/"+itoa(netID)+"?depth=2", nil)
@@ -316,9 +316,9 @@ func TestDepth(t *testing.T) {
 		}
 
 		var detEnv testEnvelope
-		json.Unmarshal(detRec.Body.Bytes(), &detEnv)
+		_ = json.Unmarshal(detRec.Body.Bytes(), &detEnv)
 		var detItems []map[string]any
-		json.Unmarshal(detEnv.Data, &detItems)
+		_ = json.Unmarshal(detEnv.Data, &detItems)
 		if len(detItems) != 1 {
 			t.Fatalf("expected 1 item, got %d", len(detItems))
 		}
@@ -381,9 +381,9 @@ func TestDepth(t *testing.T) {
 		mux.ServeHTTP(detRec, detReq)
 
 		var detEnv testEnvelope
-		json.Unmarshal(detRec.Body.Bytes(), &detEnv)
+		_ = json.Unmarshal(detRec.Body.Bytes(), &detEnv)
 		var detItems []map[string]any
-		json.Unmarshal(detEnv.Data, &detItems)
+		_ = json.Unmarshal(detEnv.Data, &detItems)
 
 		obj := detItems[0]
 		for _, setField := range []string{"net_set", "fac_set", "ix_set", "carrier_set", "campus_set"} {
@@ -414,9 +414,9 @@ func TestDepth(t *testing.T) {
 		}
 
 		var env testEnvelope
-		json.Unmarshal(rec.Body.Bytes(), &env)
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
 		var items []map[string]any
-		json.Unmarshal(env.Data, &items)
+		_ = json.Unmarshal(env.Data, &items)
 		if len(items) == 0 {
 			t.Fatal("expected at least 1 org in list")
 		}
@@ -436,9 +436,9 @@ func TestDepth(t *testing.T) {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		var env testEnvelope
-		json.Unmarshal(rec.Body.Bytes(), &env)
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
 		var items []map[string]any
-		json.Unmarshal(env.Data, &items)
+		_ = json.Unmarshal(env.Data, &items)
 		if len(items) == 0 {
 			t.Fatal("expected at least 1 netfac")
 		}
@@ -452,9 +452,9 @@ func TestDepth(t *testing.T) {
 		}
 
 		var detEnv testEnvelope
-		json.Unmarshal(detRec.Body.Bytes(), &detEnv)
+		_ = json.Unmarshal(detRec.Body.Bytes(), &detEnv)
 		var detItems []map[string]any
-		json.Unmarshal(detEnv.Data, &detItems)
+		_ = json.Unmarshal(detEnv.Data, &detItems)
 		if len(detItems) != 1 {
 			t.Fatalf("expected 1 item, got %d", len(detItems))
 		}

@@ -14,14 +14,6 @@ func derefInt(p *int) int {
 	return *p
 }
 
-// derefString returns the value pointed to by p, or "" if p is nil.
-func derefString(p *string) string {
-	if p == nil {
-		return ""
-	}
-	return *p
-}
-
 // socialMediaFromSchema converts ent schema SocialMedia to peeringdb
 // SocialMedia. Both types have identical fields but are in different packages.
 func socialMediaFromSchema(sm []schema.SocialMedia) []peeringdb.SocialMedia {
