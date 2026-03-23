@@ -42,8 +42,8 @@ Requirements for v1.2 Quality & CI milestone. Each maps to roadmap phases.
 
 ### Public Access
 
-- [ ] **PUB-01**: Verify no auth barriers exist on any endpoint
-- [ ] **PUB-02**: Document public access model (no auth required, read-only, open data)
+- [x] **PUB-01**: Verify no auth barriers exist on any endpoint
+- [x] **PUB-02**: Document public access model (no auth required, read-only, open data)
 
 ## Future Requirements
 
@@ -95,8 +95,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CI-02 | Phase 10 | Pending |
 | CI-03 | Phase 10 | Pending |
 | CI-04 | Phase 10 | Pending |
-| PUB-01 | Phase 10 | Pending |
-| PUB-02 | Phase 10 | Pending |
+| PUB-01 | Phase 10 | Complete |
+| PUB-02 | Phase 10 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 20 total
