@@ -1,0 +1,18 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - gocritic
+    - misspell
+    - nolintlint
+    - revive
+  exclusions:
+    generated: strict
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
