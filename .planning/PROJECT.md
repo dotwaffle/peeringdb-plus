@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A high-performance, globally distributed, read-only mirror of PeeringDB data. Syncs all 13 PeeringDB object types via full re-fetch (hourly or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and exposes the data through three API surfaces: GraphQL (with playground), OpenAPI REST (with auto-generated spec), and a PeeringDB-compatible drop-in replacement API. Built in Go using entgo as the ORM, with full OpenTelemetry observability including per-type sync metrics and HTTP client tracing.
+A high-performance, globally distributed, read-only mirror of PeeringDB data. Syncs all 13 PeeringDB object types via configurable full re-fetch or incremental delta fetch (hourly or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and exposes the data through three API surfaces: GraphQL (with playground), OpenAPI REST (with auto-generated spec), and a PeeringDB-compatible drop-in replacement API. Built in Go using entgo as the ORM, with full OpenTelemetry observability including per-type sync metrics and HTTP client tracing.
 
 ## Core Value
 
@@ -26,13 +26,14 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] Sync metrics reviewed, expanded, and wired to record — v1.1
 - [x] Expose data via OpenAPI REST (entrest) — v1.1
 - [x] Full PeeringDB-compatible REST layer (paths, response envelope, query params, field names) — v1.1
+- [x] golangci-lint v2 configuration with generated code exclusion, all violations fixed — v1.2
+- [x] Configurable incremental sync with per-type delta fetches, cursor tracking, and automatic fallback — v1.2
 
 ### Active
 
 - [ ] Fully public — verify no auth barriers, document public access model
 - [ ] Golden file tests for PeeringDB compatibility layer
 - [ ] CI pipeline (GitHub Actions) enforcing tests, linting, and vetting
-- [ ] All tests pass with -race, all linters pass clean
 - [ ] Expose data via gRPC (entproto) — deferred to future milestone
 - [ ] Web UI for browsing data (HTMX + Templ) — deferred to future milestone
 
@@ -88,6 +89,9 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 | entrest for REST API generation | Code-generated REST alongside entgql from same schemas, read-only config | ✓ Validated Phase 5 |
 | PeeringDB compat layer queries ent directly | NOT wrapping entrest — different response envelopes, query parameters, and serialization requirements | ✓ Validated Phase 6 |
 | Generic Django-style filter parser | One parser handles all 13 types via shared func(*sql.Selector) predicate type | ✓ Validated Phase 6 |
+| golangci-lint v2 with generated:strict | Header-based detection excludes all generated code; standard defaults + gocritic/misspell/nolintlint/revive | ✓ Validated Phase 7 |
+| FetchAll functional options for incremental sync | WithSince option appends ?since= to API calls; FetchResult struct tracks meta.generated for cursor timestamps | ✓ Validated Phase 8 |
+| Per-type sync cursors with fallback | sync_cursors table tracks last-sync per type; incremental failure triggers immediate full fallback with OTel counter | ✓ Validated Phase 8 |
 
 ## Evolution
 
@@ -108,7 +112,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.1 with 6 phases (3 from v1.0 + 3 from v1.1), 22 plans, 43 tasks. Go codebase (~57K LOC) using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/.
+Working on v1.2 with 8 phases complete (6 from v1.0/v1.1 + 2 from v1.2). Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. Sync supports both full re-fetch and incremental delta fetch with per-type cursor tracking.
 
 **Known tech debt:**
 - DataLoader middleware wired but unused (entgql handles N+1 natively)
