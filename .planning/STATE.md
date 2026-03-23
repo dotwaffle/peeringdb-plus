@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: REST API & Observability
-status: archived
-stopped_at: Milestone v1.1 archived
-last_updated: "2026-03-23T19:25:00.000Z"
+milestone: v1.2
+milestone_name: Quality & CI
+status: active
+stopped_at: ""
+last_updated: "2026-03-23T20:00:00.000Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,12 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Planning next milestone
+**Current focus:** v1.2 Quality & CI — golden files, public access docs, CI pipeline
 
 ## Current Position
 
-Phase: Complete (all v1.0 + v1.1 phases shipped)
-Plan: N/A — awaiting next milestone
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-23 — Milestone v1.2 started
 
 ## Performance Metrics
 

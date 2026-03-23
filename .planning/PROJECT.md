@@ -29,9 +29,22 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-- [ ] Expose data via gRPC (entproto)
-- [ ] Fully public — no authentication required
-- [ ] Web UI for browsing data (HTMX + Templ) — secondary priority
+- [ ] Fully public — verify no auth barriers, document public access model
+- [ ] Golden file tests for PeeringDB compatibility layer
+- [ ] CI pipeline (GitHub Actions) enforcing tests, linting, and vetting
+- [ ] All tests pass with -race, all linters pass clean
+- [ ] Expose data via gRPC (entproto) — deferred to future milestone
+- [ ] Web UI for browsing data (HTMX + Templ) — deferred to future milestone
+
+## Current Milestone: v1.2 Quality & CI
+
+**Goal:** Harden the codebase with golden file tests for the PeeringDB compat layer, verify and document the fully-public access model, and establish CI enforcement via GitHub Actions.
+
+**Target features:**
+- Verify and document fully-public access model
+- Golden file tests for PeeringDB compatibility layer API responses
+- Fix all test and linter issues across the codebase
+- GitHub Actions CI pipeline enforcing tests, linting, and vetting on every PR
 
 ### Out of Scope
 
@@ -104,4 +117,4 @@ Shipped v1.1 with 6 phases (3 from v1.0 + 3 from v1.1), 22 plans, 43 tasks. Go c
 - 3 human verification items deferred (response fidelity vs live PeeringDB, readiness gating under real conditions, CORS headers — require real deployment)
 
 ---
-*Last updated: 2026-03-23 after v1.1 milestone archived*
+*Last updated: 2026-03-23 after v1.2 milestone started*
