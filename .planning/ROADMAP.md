@@ -37,7 +37,7 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
 - [x] **Phase 7: Lint & Code Quality** — Configure golangci-lint v2 and fix all existing violations
 - [ ] **Phase 8: Incremental Sync** — Configurable sync mode with per-type delta fetches via PeeringDB ?since= parameter
 - [ ] **Phase 9: Golden File Tests & Conformance** — Golden file test infrastructure for PeeringDB compat layer and conformance tooling against beta.peeringdb.com
-- [ ] **Phase 10: CI Pipeline & Public Access** — GitHub Actions enforcement and public access documentation
+- [x] **Phase 10: CI Pipeline & Public Access** — GitHub Actions enforcement and public access documentation (completed 2026-03-23)
 
 ## Phase Details
 
@@ -112,4 +112,4 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10
 | 7. Lint & Code Quality | v1.2 | 2/2 | Complete | 2026-03-23 |
 | 8. Incremental Sync | v1.2 | 0/0 | Not started | - |
 | 9. Golden File Tests & Conformance | v1.2 | 0/2 | Not started | - |
-| 10. CI Pipeline & Public Access | v1.2 | 0/2 | Planned    |  |
+| 10. CI Pipeline & Public Access | v1.2 | 0/2 | Complete    | 2026-03-23 |
