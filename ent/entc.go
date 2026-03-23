@@ -8,6 +8,7 @@ import (
 	"entgo.io/contrib/entgql"
 	"entgo.io/ent/entc"
 	"entgo.io/ent/entc/gen"
+	"github.com/lrstanley/entrest"
 )
 
 func main() {
@@ -22,8 +23,19 @@ func main() {
 		log.Fatalf("creating entgql extension: %v", err)
 	}
 
+	restExt, err := entrest.NewExtension(&entrest.Config{
+		Handler: entrest.HandlerStdlib,
+		DefaultOperations: []entrest.Operation{
+			entrest.OperationRead,
+			entrest.OperationList,
+		},
+	})
+	if err != nil {
+		log.Fatalf("creating entrest extension: %v", err)
+	}
+
 	opts := []entc.Option{
-		entc.Extensions(gqlExt),
+		entc.Extensions(gqlExt, restExt),
 		entc.FeatureNames("sql/upsert"),
 	}
 

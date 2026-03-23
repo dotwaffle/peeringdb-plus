@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/lrstanley/entrest"
 )
 
 // Facility holds the schema definition for the Facility entity.
@@ -25,6 +26,7 @@ func (Facility) Fields() []ent.Field {
 		field.Int("org_id").
 			Optional().
 			Nillable().
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to organization"),
 		field.String("org_name").
 			Optional().
@@ -33,6 +35,7 @@ func (Facility) Fields() []ent.Field {
 		field.Int("campus_id").
 			Optional().
 			Nillable().
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to campus"),
 		field.String("name").
 			MaxLen(255).
@@ -40,17 +43,20 @@ func (Facility) Fields() []ent.Field {
 			Unique().
 			Annotations(
 				entgql.OrderField("NAME"),
+				entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray),
 			).
 			Comment("Facility name"),
 		field.String("aka").
 			Optional().
 			MaxLen(255).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Also known as"),
 		field.String("name_long").
 			Optional().
 			MaxLen(255).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Long name"),
 		field.String("website").
 			Optional().
@@ -58,6 +64,7 @@ func (Facility) Fields() []ent.Field {
 			Comment("Facility website URL"),
 		field.JSON("social_media", []SocialMedia{}).
 			Optional().
+			Annotations(entrest.WithSchema(socialMediaSchema())).
 			Comment("Social media links"),
 		field.String("clli").
 			Optional().
@@ -149,14 +156,17 @@ func (Facility) Fields() []ent.Field {
 		field.String("city").
 			Optional().
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("City"),
 		field.String("state").
 			Optional().
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("State or province"),
 		field.String("country").
 			Optional().
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Country code"),
 		field.String("zipcode").
 			Optional().
@@ -185,12 +195,15 @@ func (Facility) Fields() []ent.Field {
 		// HandleRefModel common fields
 		field.Time("created").
 			Immutable().
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			MaxLen(255).
 			Default("ok").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
 	}
 }
@@ -201,14 +214,19 @@ func (Facility) Edges() []ent.Edge {
 		edge.From("organization", Organization.Type).
 			Ref("facilities").
 			Field("org_id").
-			Unique(),
+			Unique().
+			Annotations(entrest.WithEagerLoad(true)),
 		edge.From("campus", Campus.Type).
 			Ref("facilities").
 			Field("campus_id").
-			Unique(),
-		edge.To("network_facilities", NetworkFacility.Type),
-		edge.To("ix_facilities", IxFacility.Type),
-		edge.To("carrier_facilities", CarrierFacility.Type),
+			Unique().
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("network_facilities", NetworkFacility.Type).
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("ix_facilities", IxFacility.Type).
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("carrier_facilities", CarrierFacility.Type).
+			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
 
@@ -227,6 +245,7 @@ func (Facility) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 	}
 }
 

@@ -22,73 +22,73 @@ type InternetExchange struct {
 	// PeeringDB internet exchange ID
 	ID int `json:"id,omitempty"`
 	// FK to organization
-	OrgID *int `json:"org_id,omitempty"`
+	OrgID *int `json:"org_id"`
 	// Internet exchange name
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Also known as
-	Aka string `json:"aka,omitempty"`
+	Aka string `json:"aka"`
 	// Long name
-	NameLong string `json:"name_long,omitempty"`
+	NameLong string `json:"name_long"`
 	// City
-	City string `json:"city,omitempty"`
+	City string `json:"city"`
 	// Country code
-	Country string `json:"country,omitempty"`
+	Country string `json:"country"`
 	// Region / continent
-	RegionContinent string `json:"region_continent,omitempty"`
+	RegionContinent string `json:"region_continent"`
 	// Media type
-	Media string `json:"media,omitempty"`
+	Media string `json:"media"`
 	// Notes
-	Notes string `json:"notes,omitempty"`
+	Notes string `json:"notes"`
 	// Supports unicast
-	ProtoUnicast bool `json:"proto_unicast,omitempty"`
+	ProtoUnicast bool `json:"proto_unicast"`
 	// Supports multicast
-	ProtoMulticast bool `json:"proto_multicast,omitempty"`
+	ProtoMulticast bool `json:"proto_multicast"`
 	// Supports IPv6
-	ProtoIpv6 bool `json:"proto_ipv6,omitempty"`
+	ProtoIpv6 bool `json:"proto_ipv6"`
 	// Internet exchange website URL
-	Website string `json:"website,omitempty"`
+	Website string `json:"website"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	SocialMedia []schema.SocialMedia `json:"social_media"`
 	// Statistics URL
-	URLStats string `json:"url_stats,omitempty"`
+	URLStats string `json:"url_stats"`
 	// Technical contact email
-	TechEmail string `json:"tech_email,omitempty"`
+	TechEmail string `json:"tech_email"`
 	// Technical contact phone
-	TechPhone string `json:"tech_phone,omitempty"`
+	TechPhone string `json:"tech_phone"`
 	// Policy contact email
-	PolicyEmail string `json:"policy_email,omitempty"`
+	PolicyEmail string `json:"policy_email"`
 	// Policy contact phone
-	PolicyPhone string `json:"policy_phone,omitempty"`
+	PolicyPhone string `json:"policy_phone"`
 	// Sales contact email
-	SalesEmail string `json:"sales_email,omitempty"`
+	SalesEmail string `json:"sales_email"`
 	// Sales contact phone
-	SalesPhone string `json:"sales_phone,omitempty"`
+	SalesPhone string `json:"sales_phone"`
 	// Network count (computed)
-	NetCount int `json:"net_count,omitempty"`
+	NetCount int `json:"net_count"`
 	// Facility count (computed)
-	FacCount int `json:"fac_count,omitempty"`
+	FacCount int `json:"fac_count"`
 	// IXF net count
-	IxfNetCount int `json:"ixf_net_count,omitempty"`
+	IxfNetCount int `json:"ixf_net_count"`
 	// Last IXF import timestamp
-	IxfLastImport *time.Time `json:"ixf_last_import,omitempty"`
+	IxfLastImport *time.Time `json:"ixf_last_import"`
 	// IXF import request
-	IxfImportRequest *string `json:"ixf_import_request,omitempty"`
+	IxfImportRequest *string `json:"ixf_import_request"`
 	// IXF import request status
-	IxfImportRequestStatus string `json:"ixf_import_request_status,omitempty"`
+	IxfImportRequestStatus string `json:"ixf_import_request_status"`
 	// Service level
-	ServiceLevel string `json:"service_level,omitempty"`
+	ServiceLevel string `json:"service_level"`
 	// Terms
-	Terms string `json:"terms,omitempty"`
+	Terms string `json:"terms"`
 	// Status dashboard URL
-	StatusDashboard *string `json:"status_dashboard,omitempty"`
+	StatusDashboard *string `json:"status_dashboard"`
 	// Logo URL
-	Logo *string `json:"logo,omitempty"`
+	Logo *string `json:"logo"`
 	// PeeringDB creation timestamp
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
-	Updated time.Time `json:"updated,omitempty"`
+	Updated time.Time `json:"updated"`
 	// Record status
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the InternetExchangeQuery when eager-loading is set.
 	Edges        InternetExchangeEdges `json:"edges"`

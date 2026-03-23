@@ -22,37 +22,37 @@ type Campus struct {
 	// PeeringDB campus ID
 	ID int `json:"id,omitempty"`
 	// FK to organization
-	OrgID *int `json:"org_id,omitempty"`
+	OrgID *int `json:"org_id"`
 	// Organization name (computed)
-	OrgName string `json:"org_name,omitempty"`
+	OrgName string `json:"org_name"`
 	// Campus name
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Long name
-	NameLong *string `json:"name_long,omitempty"`
+	NameLong *string `json:"name_long"`
 	// Also known as
-	Aka *string `json:"aka,omitempty"`
+	Aka *string `json:"aka"`
 	// Campus website URL
-	Website string `json:"website,omitempty"`
+	Website string `json:"website"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	SocialMedia []schema.SocialMedia `json:"social_media"`
 	// Notes
-	Notes string `json:"notes,omitempty"`
+	Notes string `json:"notes"`
 	// Country code
-	Country string `json:"country,omitempty"`
+	Country string `json:"country"`
 	// City
-	City string `json:"city,omitempty"`
+	City string `json:"city"`
 	// Postal / ZIP code
-	Zipcode string `json:"zipcode,omitempty"`
+	Zipcode string `json:"zipcode"`
 	// State or province
-	State string `json:"state,omitempty"`
+	State string `json:"state"`
 	// Logo URL
-	Logo *string `json:"logo,omitempty"`
+	Logo *string `json:"logo"`
 	// PeeringDB creation timestamp
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
-	Updated time.Time `json:"updated,omitempty"`
+	Updated time.Time `json:"updated"`
 	// Record status
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CampusQuery when eager-loading is set.
 	Edges        CampusEdges `json:"edges"`

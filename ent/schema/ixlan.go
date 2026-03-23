@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/lrstanley/entrest"
 )
 
 // IxLan holds the schema definition for the IxLan entity.
@@ -25,11 +26,13 @@ func (IxLan) Fields() []ent.Field {
 		field.Int("ix_id").
 			Optional().
 			Nillable().
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to internet exchange"),
 		field.String("name").
 			Optional().
 			MaxLen(255).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("IXLan name"),
 		field.String("descr").
 			Optional().
@@ -37,6 +40,7 @@ func (IxLan) Fields() []ent.Field {
 			Comment("Description"),
 		field.Int("mtu").
 			Default(1500).
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("MTU"),
 		field.Bool("dot1q_support").
 			Default(false).
@@ -61,12 +65,15 @@ func (IxLan) Fields() []ent.Field {
 		// HandleRefModel common fields
 		field.Time("created").
 			Immutable().
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			MaxLen(255).
 			Default("ok").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
 	}
 }
@@ -77,9 +84,12 @@ func (IxLan) Edges() []ent.Edge {
 		edge.From("internet_exchange", InternetExchange.Type).
 			Ref("ix_lans").
 			Field("ix_id").
-			Unique(),
-		edge.To("ix_prefixes", IxPrefix.Type),
-		edge.To("network_ix_lans", NetworkIxLan.Type),
+			Unique().
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("ix_prefixes", IxPrefix.Type).
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("network_ix_lans", NetworkIxLan.Type).
+			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
 
@@ -96,6 +106,7 @@ func (IxLan) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 	}
 }
 

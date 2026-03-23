@@ -21,17 +21,17 @@ type CarrierFacility struct {
 	// PeeringDB carrier-facility ID
 	ID int `json:"id,omitempty"`
 	// FK to carrier
-	CarrierID *int `json:"carrier_id,omitempty"`
+	CarrierID *int `json:"carrier_id"`
 	// FK to facility
-	FacID *int `json:"fac_id,omitempty"`
+	FacID *int `json:"fac_id"`
 	// Facility name (computed)
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// PeeringDB creation timestamp
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
-	Updated time.Time `json:"updated,omitempty"`
+	Updated time.Time `json:"updated"`
 	// Record status
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CarrierFacilityQuery when eager-loading is set.
 	Edges        CarrierFacilityEdges `json:"edges"`

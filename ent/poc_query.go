@@ -300,7 +300,7 @@ func (_q *PocQuery) WithNetwork(opts ...func(*NetworkQuery)) *PocQuery {
 // Example:
 //
 //	var v []struct {
-//		NetID int `json:"net_id,omitempty"`
+//		NetID int `json:"net_id"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -323,7 +323,7 @@ func (_q *PocQuery) GroupBy(field string, fields ...string) *PocGroupBy {
 // Example:
 //
 //	var v []struct {
-//		NetID int `json:"net_id,omitempty"`
+//		NetID int `json:"net_id"`
 //	}
 //
 //	client.Poc.Query().

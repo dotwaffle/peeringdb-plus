@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/lrstanley/entrest"
 )
 
 // Poc holds the schema definition for the Poc (Point of Contact) entity.
@@ -25,18 +26,22 @@ func (Poc) Fields() []ent.Field {
 		field.Int("net_id").
 			Optional().
 			Nillable().
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to network"),
 		field.String("role").
 			MaxLen(27).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Contact role"),
 		field.String("visible").
 			MaxLen(64).
 			Default("Public").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Visibility level"),
 		field.String("name").
 			Optional().
 			MaxLen(254).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Contact name"),
 		field.String("phone").
 			Optional().
@@ -47,6 +52,7 @@ func (Poc) Fields() []ent.Field {
 			Optional().
 			MaxLen(254).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Contact email"),
 		field.String("url").
 			Optional().
@@ -56,12 +62,15 @@ func (Poc) Fields() []ent.Field {
 		// HandleRefModel common fields
 		field.Time("created").
 			Immutable().
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			MaxLen(255).
 			Default("ok").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
 	}
 }
@@ -72,7 +81,8 @@ func (Poc) Edges() []ent.Edge {
 		edge.From("network", Network.Type).
 			Ref("pocs").
 			Field("net_id").
-			Unique(),
+			Unique().
+			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
 
@@ -90,6 +100,7 @@ func (Poc) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 	}
 }
 

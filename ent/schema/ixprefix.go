@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/lrstanley/entrest"
 )
 
 // IxPrefix holds the schema definition for the IxPrefix entity.
@@ -25,15 +26,19 @@ func (IxPrefix) Fields() []ent.Field {
 		field.Int("ixlan_id").
 			Optional().
 			Nillable().
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to IXLan"),
 		field.String("protocol").
 			MaxLen(64).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Protocol (IPv4 or IPv6)"),
 		field.String("prefix").
 			Unique().
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("IP prefix"),
 		field.Bool("in_dfz").
 			Default(false).
+			Annotations(entrest.WithFilter(entrest.FilterEQ)).
 			Comment("In default-free zone"),
 		field.String("notes").
 			Optional().
@@ -44,12 +49,15 @@ func (IxPrefix) Fields() []ent.Field {
 		// HandleRefModel common fields
 		field.Time("created").
 			Immutable().
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			MaxLen(255).
 			Default("ok").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
 	}
 }
@@ -60,7 +68,8 @@ func (IxPrefix) Edges() []ent.Edge {
 		edge.From("ix_lan", IxLan.Type).
 			Ref("ix_prefixes").
 			Field("ixlan_id").
-			Unique(),
+			Unique().
+			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
 
@@ -78,6 +87,7 @@ func (IxPrefix) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 	}
 }
 

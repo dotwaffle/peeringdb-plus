@@ -21,39 +21,39 @@ type NetworkIxLan struct {
 	// PeeringDB network-IXLan ID
 	ID int `json:"id,omitempty"`
 	// FK to network
-	NetID *int `json:"net_id,omitempty"`
+	NetID *int `json:"net_id"`
 	// Internet exchange ID (computed, not an edge)
-	IxID int `json:"ix_id,omitempty"`
+	IxID int `json:"ix_id"`
 	// FK to IXLan
-	IxlanID *int `json:"ixlan_id,omitempty"`
+	IxlanID *int `json:"ixlan_id"`
 	// Exchange name (computed)
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Notes
-	Notes string `json:"notes,omitempty"`
+	Notes string `json:"notes"`
 	// Port speed in Mbps
-	Speed int `json:"speed,omitempty"`
+	Speed int `json:"speed"`
 	// Autonomous System Number
-	Asn int `json:"asn,omitempty"`
+	Asn int `json:"asn"`
 	// IPv4 address
-	Ipaddr4 *string `json:"ipaddr4,omitempty"`
+	Ipaddr4 *string `json:"ipaddr4"`
 	// IPv6 address
-	Ipaddr6 *string `json:"ipaddr6,omitempty"`
+	Ipaddr6 *string `json:"ipaddr6"`
 	// Is route server peer
-	IsRsPeer bool `json:"is_rs_peer,omitempty"`
+	IsRsPeer bool `json:"is_rs_peer"`
 	// BFD support
-	BfdSupport bool `json:"bfd_support,omitempty"`
+	BfdSupport bool `json:"bfd_support"`
 	// Operational status
-	Operational bool `json:"operational,omitempty"`
+	Operational bool `json:"operational"`
 	// Network-side facility ID
-	NetSideID *int `json:"net_side_id,omitempty"`
+	NetSideID *int `json:"net_side_id"`
 	// IX-side facility ID
-	IxSideID *int `json:"ix_side_id,omitempty"`
+	IxSideID *int `json:"ix_side_id"`
 	// PeeringDB creation timestamp
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
-	Updated time.Time `json:"updated,omitempty"`
+	Updated time.Time `json:"updated"`
 	// Record status
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NetworkIxLanQuery when eager-loading is set.
 	Edges        NetworkIxLanEdges `json:"edges"`

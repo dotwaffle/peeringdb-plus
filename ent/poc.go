@@ -20,25 +20,25 @@ type Poc struct {
 	// PeeringDB POC ID
 	ID int `json:"id,omitempty"`
 	// FK to network
-	NetID *int `json:"net_id,omitempty"`
+	NetID *int `json:"net_id"`
 	// Contact role
-	Role string `json:"role,omitempty"`
+	Role string `json:"role"`
 	// Visibility level
-	Visible string `json:"visible,omitempty"`
+	Visible string `json:"visible"`
 	// Contact name
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Contact phone
-	Phone string `json:"phone,omitempty"`
+	Phone string `json:"phone"`
 	// Contact email
-	Email string `json:"email,omitempty"`
+	Email string `json:"email"`
 	// Contact URL
-	URL string `json:"url,omitempty"`
+	URL string `json:"url"`
 	// PeeringDB creation timestamp
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
-	Updated time.Time `json:"updated,omitempty"`
+	Updated time.Time `json:"updated"`
 	// Record status
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PocQuery when eager-loading is set.
 	Edges        PocEdges `json:"edges"`

@@ -20,21 +20,21 @@ type IxPrefix struct {
 	// PeeringDB IX prefix ID
 	ID int `json:"id,omitempty"`
 	// FK to IXLan
-	IxlanID *int `json:"ixlan_id,omitempty"`
+	IxlanID *int `json:"ixlan_id"`
 	// Protocol (IPv4 or IPv6)
-	Protocol string `json:"protocol,omitempty"`
+	Protocol string `json:"protocol"`
 	// IP prefix
-	Prefix string `json:"prefix,omitempty"`
+	Prefix string `json:"prefix"`
 	// In default-free zone
-	InDfz bool `json:"in_dfz,omitempty"`
+	InDfz bool `json:"in_dfz"`
 	// Notes
-	Notes string `json:"notes,omitempty"`
+	Notes string `json:"notes"`
 	// PeeringDB creation timestamp
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
-	Updated time.Time `json:"updated,omitempty"`
+	Updated time.Time `json:"updated"`
 	// Record status
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the IxPrefixQuery when eager-loading is set.
 	Edges        IxPrefixEdges `json:"edges"`

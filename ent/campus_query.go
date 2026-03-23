@@ -338,7 +338,7 @@ func (_q *CampusQuery) WithFacilities(opts ...func(*FacilityQuery)) *CampusQuery
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id,omitempty"`
+//		OrgID int `json:"org_id"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -361,7 +361,7 @@ func (_q *CampusQuery) GroupBy(field string, fields ...string) *CampusGroupBy {
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id,omitempty"`
+//		OrgID int `json:"org_id"`
 //	}
 //
 //	client.Campus.Query().

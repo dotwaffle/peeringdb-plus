@@ -336,7 +336,7 @@ func (_q *IxFacilityQuery) WithFacility(opts ...func(*FacilityQuery)) *IxFacilit
 // Example:
 //
 //	var v []struct {
-//		IxID int `json:"ix_id,omitempty"`
+//		IxID int `json:"ix_id"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -359,7 +359,7 @@ func (_q *IxFacilityQuery) GroupBy(field string, fields ...string) *IxFacilityGr
 // Example:
 //
 //	var v []struct {
-//		IxID int `json:"ix_id,omitempty"`
+//		IxID int `json:"ix_id"`
 //	}
 //
 //	client.IxFacility.Query().

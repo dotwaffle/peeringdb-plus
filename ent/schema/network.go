@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/lrstanley/entrest"
 )
 
 // Network holds the schema definition for the Network entity.
@@ -25,6 +26,7 @@ func (Network) Fields() []ent.Field {
 		field.Int("org_id").
 			Optional().
 			Nillable().
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to organization"),
 		field.String("name").
 			MaxLen(255).
@@ -32,17 +34,20 @@ func (Network) Fields() []ent.Field {
 			Unique().
 			Annotations(
 				entgql.OrderField("NAME"),
+				entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray),
 			).
 			Comment("Network name"),
 		field.String("aka").
 			Optional().
 			MaxLen(255).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Also known as"),
 		field.String("name_long").
 			Optional().
 			MaxLen(255).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Long name"),
 		field.String("website").
 			Optional().
@@ -50,10 +55,12 @@ func (Network) Fields() []ent.Field {
 			Comment("Network website URL"),
 		field.JSON("social_media", []SocialMedia{}).
 			Optional().
+			Annotations(entrest.WithSchema(socialMediaSchema())).
 			Comment("Social media links"),
 		field.Int("asn").
 			Unique().
 			Positive().
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("Autonomous System Number"),
 		field.String("looking_glass").
 			Optional().
@@ -72,6 +79,7 @@ func (Network) Fields() []ent.Field {
 			Optional().
 			MaxLen(60).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Network type"),
 		field.JSON("info_types", []string{}).
 			Optional().
@@ -88,25 +96,30 @@ func (Network) Fields() []ent.Field {
 			Optional().
 			MaxLen(39).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Traffic level"),
 		field.String("info_ratio").
 			Optional().
 			MaxLen(45).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Traffic ratio"),
 		field.String("info_scope").
 			Optional().
 			MaxLen(39).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Geographic scope"),
 		field.Bool("info_unicast").
 			Default(false).
+			Annotations(entrest.WithFilter(entrest.FilterEQ)).
 			Comment("Supports unicast"),
 		field.Bool("info_multicast").
 			Default(false).
 			Comment("Supports multicast"),
 		field.Bool("info_ipv6").
 			Default(false).
+			Annotations(entrest.WithFilter(entrest.FilterEQ)).
 			Comment("Supports IPv6"),
 		field.Bool("info_never_via_route_servers").
 			Default(false).
@@ -123,6 +136,7 @@ func (Network) Fields() []ent.Field {
 			Optional().
 			MaxLen(72).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("General peering policy"),
 		field.String("policy_locations").
 			Optional().
@@ -183,12 +197,15 @@ func (Network) Fields() []ent.Field {
 		// HandleRefModel common fields
 		field.Time("created").
 			Immutable().
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			MaxLen(255).
 			Default("ok").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
 	}
 }
@@ -199,10 +216,14 @@ func (Network) Edges() []ent.Edge {
 		edge.From("organization", Organization.Type).
 			Ref("networks").
 			Field("org_id").
-			Unique(),
-		edge.To("pocs", Poc.Type),
-		edge.To("network_facilities", NetworkFacility.Type),
-		edge.To("network_ix_lans", NetworkIxLan.Type),
+			Unique().
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("pocs", Poc.Type).
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("network_facilities", NetworkFacility.Type).
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("network_ix_lans", NetworkIxLan.Type).
+			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
 
@@ -221,6 +242,7 @@ func (Network) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 	}
 }
 

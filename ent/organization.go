@@ -21,45 +21,45 @@ type Organization struct {
 	// PeeringDB organization ID
 	ID int `json:"id,omitempty"`
 	// Organization name
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Also known as
-	Aka string `json:"aka,omitempty"`
+	Aka string `json:"aka"`
 	// Long name
-	NameLong string `json:"name_long,omitempty"`
+	NameLong string `json:"name_long"`
 	// Organization website URL
-	Website string `json:"website,omitempty"`
+	Website string `json:"website"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	SocialMedia []schema.SocialMedia `json:"social_media"`
 	// Notes
-	Notes string `json:"notes,omitempty"`
+	Notes string `json:"notes"`
 	// Logo URL
-	Logo *string `json:"logo,omitempty"`
+	Logo *string `json:"logo"`
 	// Address line 1
-	Address1 string `json:"address1,omitempty"`
+	Address1 string `json:"address1"`
 	// Address line 2
-	Address2 string `json:"address2,omitempty"`
+	Address2 string `json:"address2"`
 	// City
-	City string `json:"city,omitempty"`
+	City string `json:"city"`
 	// State or province
-	State string `json:"state,omitempty"`
+	State string `json:"state"`
 	// Country code
-	Country string `json:"country,omitempty"`
+	Country string `json:"country"`
 	// Postal / ZIP code
-	Zipcode string `json:"zipcode,omitempty"`
+	Zipcode string `json:"zipcode"`
 	// Suite number
-	Suite string `json:"suite,omitempty"`
+	Suite string `json:"suite"`
 	// Floor
-	Floor string `json:"floor,omitempty"`
+	Floor string `json:"floor"`
 	// Latitude
-	Latitude *float64 `json:"latitude,omitempty"`
+	Latitude *float64 `json:"latitude"`
 	// Longitude
-	Longitude *float64 `json:"longitude,omitempty"`
+	Longitude *float64 `json:"longitude"`
 	// PeeringDB creation timestamp
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
-	Updated time.Time `json:"updated,omitempty"`
+	Updated time.Time `json:"updated"`
 	// Record status
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the OrganizationQuery when eager-loading is set.
 	Edges        OrganizationEdges `json:"edges"`

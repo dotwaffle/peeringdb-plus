@@ -338,7 +338,7 @@ func (_q *CarrierQuery) WithCarrierFacilities(opts ...func(*CarrierFacilityQuery
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id,omitempty"`
+//		OrgID int `json:"org_id"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -361,7 +361,7 @@ func (_q *CarrierQuery) GroupBy(field string, fields ...string) *CarrierGroupBy 
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id,omitempty"`
+//		OrgID int `json:"org_id"`
 //	}
 //
 //	client.Carrier.Query().

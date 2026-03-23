@@ -5,12 +5,16 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
@@ -117,11 +121,26 @@ func (w *Worker) Sync(ctx context.Context) error {
 			slog.String("type", step.name),
 		)
 
+		stepStart := time.Now()
 		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-"+step.name)
 		count, deleted, err := step.fn(ctx, tx)
 		stepSpan.End()
 
+		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
+
 		if err != nil {
+			// Record per-type error metric per D-10.
+			// Distinguish fetch vs upsert by checking if the error starts with "fetch".
+			// All sync step methods wrap fetch errors as "fetch {type}: ..." per convention.
+			if strings.HasPrefix(err.Error(), "fetch ") {
+				pdbotel.SyncTypeFetchErrors.Add(ctx, 1, typeAttr)
+			} else {
+				pdbotel.SyncTypeUpsertErrors.Add(ctx, 1, typeAttr)
+			}
+
+			// Record per-type duration even on failure.
+			pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
+
 			// Rollback transaction per D-21.
 			if rbErr := tx.Rollback(); rbErr != nil {
 				w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
@@ -132,6 +151,11 @@ func (w *Worker) Sync(ctx context.Context) error {
 			w.recordFailure(ctx, statusID, start, syncErr)
 			return syncErr
 		}
+
+		// Record per-type success metrics per D-07, D-08.
+		pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
+		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
+		pdbotel.SyncTypeDeleted.Add(ctx, int64(deleted), typeAttr)
 
 		objectCounts[step.name] = count
 		totalCount += count
@@ -151,6 +175,12 @@ func (w *Worker) Sync(ctx context.Context) error {
 	}
 
 	elapsed := time.Since(start)
+
+	// Record sync-level metrics per D-06.
+	statusAttr := metric.WithAttributes(attribute.String("status", "success"))
+	pdbotel.SyncDuration.Record(ctx, elapsed.Seconds(), statusAttr)
+	pdbotel.SyncOperations.Add(ctx, 1, statusAttr)
+
 	w.logger.LogAttrs(ctx, slog.LevelInfo, "sync complete",
 		slog.Duration("duration", elapsed),
 		slog.Int("total_objects", totalCount),
@@ -172,8 +202,13 @@ func (w *Worker) Sync(ctx context.Context) error {
 	return nil
 }
 
-// recordFailure records a failed sync in the sync_status table.
+// recordFailure records a failed sync in the sync_status table and metrics.
 func (w *Worker) recordFailure(ctx context.Context, statusID int64, start time.Time, syncErr error) {
+	// Record sync-level failure metrics per D-06.
+	failedAttr := metric.WithAttributes(attribute.String("status", "failed"))
+	pdbotel.SyncDuration.Record(ctx, time.Since(start).Seconds(), failedAttr)
+	pdbotel.SyncOperations.Add(ctx, 1, failedAttr)
+
 	if statusID > 0 {
 		_ = RecordSyncComplete(ctx, w.db, statusID, SyncStatus{
 			LastSyncAt:   time.Now(),

@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/lrstanley/entrest"
 )
 
 // Organization holds the schema definition for the Organization entity.
@@ -28,17 +29,20 @@ func (Organization) Fields() []ent.Field {
 			NotEmpty().
 			Annotations(
 				entgql.OrderField("NAME"),
+				entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray),
 			).
 			Comment("Organization name"),
 		field.String("aka").
 			Optional().
 			MaxLen(255).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Also known as"),
 		field.String("name_long").
 			Optional().
 			MaxLen(255).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Long name"),
 		field.String("website").
 			Optional().
@@ -46,6 +50,7 @@ func (Organization) Fields() []ent.Field {
 			Comment("Organization website URL"),
 		field.JSON("social_media", []SocialMedia{}).
 			Optional().
+			Annotations(entrest.WithSchema(socialMediaSchema())).
 			Comment("Social media links"),
 		field.String("notes").
 			Optional().
@@ -68,14 +73,17 @@ func (Organization) Fields() []ent.Field {
 		field.String("city").
 			Optional().
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("City"),
 		field.String("state").
 			Optional().
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("State or province"),
 		field.String("country").
 			Optional().
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Country code"),
 		field.String("zipcode").
 			Optional().
@@ -101,12 +109,15 @@ func (Organization) Fields() []ent.Field {
 		// HandleRefModel common fields
 		field.Time("created").
 			Immutable().
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			MaxLen(255).
 			Default("ok").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
 	}
 }
@@ -114,11 +125,16 @@ func (Organization) Fields() []ent.Field {
 // Edges of the Organization.
 func (Organization) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("networks", Network.Type),
-		edge.To("facilities", Facility.Type),
-		edge.To("internet_exchanges", InternetExchange.Type),
-		edge.To("carriers", Carrier.Type),
-		edge.To("campuses", Campus.Type),
+		edge.To("networks", Network.Type).
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("facilities", Facility.Type).
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("internet_exchanges", InternetExchange.Type).
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("carriers", Carrier.Type).
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("campuses", Campus.Type).
+			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
 
@@ -135,6 +151,7 @@ func (Organization) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 	}
 }
 

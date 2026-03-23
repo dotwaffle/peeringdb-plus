@@ -336,7 +336,7 @@ func (_q *CarrierFacilityQuery) WithFacility(opts ...func(*FacilityQuery)) *Carr
 // Example:
 //
 //	var v []struct {
-//		CarrierID int `json:"carrier_id,omitempty"`
+//		CarrierID int `json:"carrier_id"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -359,7 +359,7 @@ func (_q *CarrierFacilityQuery) GroupBy(field string, fields ...string) *Carrier
 // Example:
 //
 //	var v []struct {
-//		CarrierID int `json:"carrier_id,omitempty"`
+//		CarrierID int `json:"carrier_id"`
 //	}
 //
 //	client.CarrierFacility.Query().

@@ -22,31 +22,31 @@ type Carrier struct {
 	// PeeringDB carrier ID
 	ID int `json:"id,omitempty"`
 	// FK to organization
-	OrgID *int `json:"org_id,omitempty"`
+	OrgID *int `json:"org_id"`
 	// Organization name (computed)
-	OrgName string `json:"org_name,omitempty"`
+	OrgName string `json:"org_name"`
 	// Carrier name
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Also known as
-	Aka string `json:"aka,omitempty"`
+	Aka string `json:"aka"`
 	// Long name
-	NameLong string `json:"name_long,omitempty"`
+	NameLong string `json:"name_long"`
 	// Carrier website URL
-	Website string `json:"website,omitempty"`
+	Website string `json:"website"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	SocialMedia []schema.SocialMedia `json:"social_media"`
 	// Notes
-	Notes string `json:"notes,omitempty"`
+	Notes string `json:"notes"`
 	// Facility count (computed)
-	FacCount int `json:"fac_count,omitempty"`
+	FacCount int `json:"fac_count"`
 	// Logo URL
-	Logo *string `json:"logo,omitempty"`
+	Logo *string `json:"logo"`
 	// PeeringDB creation timestamp
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
-	Updated time.Time `json:"updated,omitempty"`
+	Updated time.Time `json:"updated"`
 	// Record status
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CarrierQuery when eager-loading is set.
 	Edges        CarrierEdges `json:"edges"`

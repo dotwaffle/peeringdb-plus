@@ -336,7 +336,7 @@ func (_q *NetworkFacilityQuery) WithFacility(opts ...func(*FacilityQuery)) *Netw
 // Example:
 //
 //	var v []struct {
-//		NetID int `json:"net_id,omitempty"`
+//		NetID int `json:"net_id"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -359,7 +359,7 @@ func (_q *NetworkFacilityQuery) GroupBy(field string, fields ...string) *Network
 // Example:
 //
 //	var v []struct {
-//		NetID int `json:"net_id,omitempty"`
+//		NetID int `json:"net_id"`
 //	}
 //
 //	client.NetworkFacility.Query().

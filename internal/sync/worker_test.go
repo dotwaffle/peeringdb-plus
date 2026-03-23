@@ -13,8 +13,12 @@ import (
 	"testing"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"golang.org/x/time/rate"
 
+	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
@@ -588,5 +592,144 @@ func TestSyncWithNetAndFac(t *testing.T) {
 	}
 	if netCount != 1 {
 		t.Errorf("expected 1 net, got %d", netCount)
+	}
+}
+
+// setupMetricTest installs a ManualReader-backed MeterProvider, initializes
+// sync metric instruments, and returns the reader for post-sync assertions.
+func setupMetricTest(t *testing.T) *sdkmetric.ManualReader {
+	t.Helper()
+	reader := sdkmetric.NewManualReader()
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(mp)
+	t.Cleanup(func() { mp.Shutdown(context.Background()) })
+	if err := pdbotel.InitMetrics(); err != nil {
+		t.Fatalf("InitMetrics: %v", err)
+	}
+	return reader
+}
+
+// findMetric searches ResourceMetrics for a metric by name.
+func findMetric(rm metricdata.ResourceMetrics, name string) *metricdata.Metrics {
+	for _, sm := range rm.ScopeMetrics {
+		for i := range sm.Metrics {
+			if sm.Metrics[i].Name == name {
+				return &sm.Metrics[i]
+			}
+		}
+	}
+	return nil
+}
+
+// TestSyncRecordsMetrics verifies that a successful sync records both
+// sync-level and per-type metrics with correct attributes.
+// Not parallel: writes to package-level metric vars per CC-3.
+func TestSyncRecordsMetrics(t *testing.T) {
+	reader := setupMetricTest(t)
+
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+	w, _ := newTestWorker(t, f, false)
+
+	if err := w.Sync(context.Background()); err != nil {
+		t.Fatalf("sync failed: %v", err)
+	}
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(context.Background(), &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+
+	// Verify sync-level duration metric.
+	durMetric := findMetric(rm, "pdbplus.sync.duration")
+	if durMetric == nil {
+		t.Fatal("expected pdbplus.sync.duration metric, not found")
+	}
+
+	// Verify sync-level operations counter.
+	opsMetric := findMetric(rm, "pdbplus.sync.operations")
+	if opsMetric == nil {
+		t.Fatal("expected pdbplus.sync.operations metric, not found")
+	}
+	opsSum, ok := opsMetric.Data.(metricdata.Sum[int64])
+	if !ok {
+		t.Fatalf("expected Sum[int64], got %T", opsMetric.Data)
+	}
+	if len(opsSum.DataPoints) == 0 {
+		t.Fatal("expected at least one operations data point")
+	}
+	if opsSum.DataPoints[0].Value != 1 {
+		t.Errorf("expected operations sum = 1, got %d", opsSum.DataPoints[0].Value)
+	}
+
+	// Verify per-type duration metric.
+	typeDur := findMetric(rm, "pdbplus.sync.type.duration")
+	if typeDur == nil {
+		t.Fatal("expected pdbplus.sync.type.duration metric, not found")
+	}
+
+	// Verify per-type objects counter.
+	typeObjs := findMetric(rm, "pdbplus.sync.type.objects")
+	if typeObjs == nil {
+		t.Fatal("expected pdbplus.sync.type.objects metric, not found")
+	}
+}
+
+// TestSyncRecordsFailureMetrics verifies that a failed sync records
+// failure metrics with status=failed and per-type fetch_errors.
+// Not parallel: writes to package-level metric vars per CC-3.
+func TestSyncRecordsFailureMetrics(t *testing.T) {
+	reader := setupMetricTest(t)
+
+	f := newFixture(t)
+	f.failTypes["org"] = true
+	w, _ := newTestWorker(t, f, false)
+
+	err := w.Sync(context.Background())
+	if err == nil {
+		t.Fatal("expected error from failed sync")
+	}
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(context.Background(), &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+
+	// Verify sync-level duration metric with failed status.
+	durMetric := findMetric(rm, "pdbplus.sync.duration")
+	if durMetric == nil {
+		t.Fatal("expected pdbplus.sync.duration metric, not found")
+	}
+
+	// Verify sync-level operations counter with failed status.
+	opsMetric := findMetric(rm, "pdbplus.sync.operations")
+	if opsMetric == nil {
+		t.Fatal("expected pdbplus.sync.operations metric, not found")
+	}
+	opsSum, ok := opsMetric.Data.(metricdata.Sum[int64])
+	if !ok {
+		t.Fatalf("expected Sum[int64], got %T", opsMetric.Data)
+	}
+	if len(opsSum.DataPoints) == 0 {
+		t.Fatal("expected at least one operations data point")
+	}
+	if opsSum.DataPoints[0].Value != 1 {
+		t.Errorf("expected operations sum = 1, got %d", opsSum.DataPoints[0].Value)
+	}
+
+	// Verify per-type fetch_errors counter.
+	fetchErr := findMetric(rm, "pdbplus.sync.type.fetch_errors")
+	if fetchErr == nil {
+		t.Fatal("expected pdbplus.sync.type.fetch_errors metric, not found")
+	}
+	fetchSum, ok := fetchErr.Data.(metricdata.Sum[int64])
+	if !ok {
+		t.Fatalf("expected Sum[int64], got %T", fetchErr.Data)
+	}
+	if len(fetchSum.DataPoints) == 0 {
+		t.Fatal("expected at least one fetch_errors data point")
+	}
+	if fetchSum.DataPoints[0].Value != 1 {
+		t.Errorf("expected fetch_errors sum = 1, got %d", fetchSum.DataPoints[0].Value)
 	}
 }

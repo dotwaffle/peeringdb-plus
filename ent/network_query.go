@@ -412,7 +412,7 @@ func (_q *NetworkQuery) WithNetworkIxLans(opts ...func(*NetworkIxLanQuery)) *Net
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id,omitempty"`
+//		OrgID int `json:"org_id"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -435,7 +435,7 @@ func (_q *NetworkQuery) GroupBy(field string, fields ...string) *NetworkGroupBy 
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id,omitempty"`
+//		OrgID int `json:"org_id"`
 //	}
 //
 //	client.Network.Query().

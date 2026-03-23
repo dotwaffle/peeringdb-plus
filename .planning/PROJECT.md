@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A high-performance, globally distributed, read-only mirror of PeeringDB data. Syncs all 13 PeeringDB object types via full re-fetch (hourly or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and exposes the data through a GraphQL API with rich filtering, relationship traversal, and an interactive playground. Built in Go using entgo as the ORM, with full OpenTelemetry observability.
+A high-performance, globally distributed, read-only mirror of PeeringDB data. Syncs all 13 PeeringDB object types via full re-fetch (hourly or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and exposes the data through three API surfaces: GraphQL (with playground), OpenAPI REST (with auto-generated spec), and a PeeringDB-compatible drop-in replacement API. Built in Go using entgo as the ORM, with full OpenTelemetry observability including per-type sync metrics and HTTP client tracing.
 
 ## Core Value
 
@@ -12,50 +12,41 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Validated
 
-- [x] Sync all PeeringDB objects via full re-fetch (hourly or on-demand) — Validated in Phase 1: Data Foundation
-- [x] Store data in SQLite using entgo ORM — Validated in Phase 1: Data Foundation
-- [x] Handle PeeringDB API response format discrepancies — Validated in Phase 1: Data Foundation
-- [x] Expose data via GraphQL (entgql) with filtering, pagination, relationship traversal — Validated in Phase 2: GraphQL API
-- [x] Interactive GraphQL playground with example queries — Validated in Phase 2: GraphQL API
-- [x] CORS headers for browser integrations — Validated in Phase 2: GraphQL API
-- [x] Lookup by ASN and ID — Validated in Phase 2: GraphQL API
-- [x] Deploy on Fly.io with LiteFS for global edge distribution — Validated in Phase 3: Production Readiness
-- [x] OpenTelemetry tracing, metrics, and logs throughout — Validated in Phase 3: Production Readiness
-- [x] Health/readiness endpoints with sync age check — Validated in Phase 3: Production Readiness
+- [x] Sync all PeeringDB objects via full re-fetch (hourly or on-demand) — v1.0
+- [x] Store data in SQLite using entgo ORM — v1.0
+- [x] Handle PeeringDB API response format discrepancies — v1.0
+- [x] Expose data via GraphQL (entgql) with filtering, pagination, relationship traversal — v1.0
+- [x] Interactive GraphQL playground with example queries — v1.0
+- [x] CORS headers for browser integrations — v1.0
+- [x] Lookup by ASN and ID — v1.0
+- [x] Deploy on Fly.io with LiteFS for global edge distribution — v1.0
+- [x] OpenTelemetry tracing, metrics, and logs throughout — v1.0
+- [x] Health/readiness endpoints with sync age check — v1.0
+- [x] OTel trace spans on PeeringDB HTTP client — v1.1
+- [x] Sync metrics reviewed, expanded, and wired to record — v1.1
+- [x] Expose data via OpenAPI REST (entrest) — v1.1
+- [x] Full PeeringDB-compatible REST layer (paths, response envelope, query params, field names) — v1.1
 
 ### Active
-- [ ] OTel trace spans on PeeringDB HTTP client
-- [ ] Sync metrics reviewed, expanded, and wired to record
-- [ ] Expose data via OpenAPI REST (entrest)
-- [ ] Full PeeringDB-compatible REST layer (paths, response envelope, query params, field names)
-- [ ] Expose data via gRPC (entproto) — deferred to future milestone
+
+- [ ] Expose data via gRPC (entproto)
 - [ ] Fully public — no authentication required
-- [ ] Web UI for browsing data (HTMX + Templ) — deferred to future milestone
+- [ ] Web UI for browsing data (HTMX + Templ) — secondary priority
 
-## Current Milestone: v1.1 REST API & Observability
-
-**Goal:** Fix observability gaps from v1.0 and add OpenAPI REST API with full PeeringDB compatibility.
-
-**Target features:**
-- OTel trace spans on PeeringDB HTTP client calls
-- Reviewed and expanded sync metrics, all wired to record
-- entrest-generated OpenAPI REST API from ent schemas
-- Full PeeringDB-compatible REST layer (paths, response envelope, query params, field names)
 ### Out of Scope
 
 - Write-path / data modification — this is a read-only mirror
 - User accounts or authentication — fully public
-- OAuth or API key gating — not needed for v1
+- OAuth or API key gating — not needed for current scope
 - Mobile app — web-first
 - Real-time streaming of changes — periodic sync is sufficient
 
 ## Context
 
-- PeeringDB (https://github.com/peeringdb/peeringdb) is the authoritative database for network interconnection data (organizations, networks, IXPs, facilities, etc.)
-- PeeringDB suffers from poor performance, single-region hosting (AWS), and an API spec that doesn't match actual API responses
-- The PeeringDB API response format diverges from their OpenAPI specification — the original Python source code must be analyzed to understand the actual response shapes
+- PeeringDB is the authoritative database for network interconnection data (organizations, networks, IXPs, facilities, etc.)
+- PeeringDB suffers from poor performance, single-region hosting, and an API spec that doesn't match actual API responses
 - LiteFS on Fly.io enables SQLite replication to edge nodes worldwide, giving every region local read latency
-- entgo provides code generation for the ORM layer, with ecosystem packages for GraphQL (entgql), gRPC (entproto), and REST (entrest via https://github.com/lrstanley/entrest)
+- entgo provides code generation for the ORM layer, with ecosystem packages for GraphQL (entgql), gRPC (entproto), and REST (entrest)
 
 ## Constraints
 
@@ -78,6 +69,11 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 | Autoexport for OTel exporters | Environment-driven exporter selection, no hardcoded endpoints | ✓ Validated Phase 3 |
 | Dual slog handler (stdout + OTel) | Structured logs to both console and OTel pipeline simultaneously | ✓ Validated Phase 3 |
 | LiteFS .primary file for leader detection | Inverted semantics (.primary exists on replicas), fallback to env var | ✓ Validated Phase 3 |
+| otelhttp.NewTransport + manual parent spans | Both automatic HTTP semantics AND business-level span hierarchy for PeeringDB calls | ✓ Validated Phase 4 |
+| Flat metric naming with type attribute | pdbplus.sync.type.* with type=net|ix|fac — fewer instruments, filter by type | ✓ Validated Phase 4 |
+| entrest for REST API generation | Code-generated REST alongside entgql from same schemas, read-only config | ✓ Validated Phase 5 |
+| PeeringDB compat layer queries ent directly | NOT wrapping entrest — different response envelopes, query parameters, and serialization requirements | ✓ Validated Phase 6 |
+| Generic Django-style filter parser | One parser handles all 13 types via shared func(*sql.Selector) predicate type | ✓ Validated Phase 6 |
 
 ## Evolution
 
@@ -98,14 +94,16 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.0 with 3 phases, 14 plans, 27 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, OpenTelemetry. Deployment artifacts ready for Fly.io with LiteFS edge replication.
+Shipped v1.1 with 6 phases (3 from v1.0 + 3 from v1.1), 22 plans, 43 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/.
 
-**Known tech debt (from v1.0 audit):**
-- Custom sync metrics registered but not recorded by sync worker
+**Known tech debt (remaining from v1.0):**
 - DataLoader middleware wired but unused (entgql handles N+1 natively)
 - Vestigial config.IsPrimary field (replaced by LiteFS detection)
-- PeeringDB HTTP client lacks OTel trace spans
 - graph/globalid.go exported functions unused (ent Noder handles it)
 
+**Resolved in v1.1:**
+- Custom sync metrics now recorded (was registered but unused)
+- PeeringDB HTTP client now has OTel trace spans
+
 ---
-*Last updated: 2026-03-22 after v1.1 milestone started*
+*Last updated: 2026-03-22 after v1.1 milestone complete*

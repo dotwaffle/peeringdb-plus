@@ -22,85 +22,85 @@ type Network struct {
 	// PeeringDB network ID
 	ID int `json:"id,omitempty"`
 	// FK to organization
-	OrgID *int `json:"org_id,omitempty"`
+	OrgID *int `json:"org_id"`
 	// Network name
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Also known as
-	Aka string `json:"aka,omitempty"`
+	Aka string `json:"aka"`
 	// Long name
-	NameLong string `json:"name_long,omitempty"`
+	NameLong string `json:"name_long"`
 	// Network website URL
-	Website string `json:"website,omitempty"`
+	Website string `json:"website"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	SocialMedia []schema.SocialMedia `json:"social_media"`
 	// Autonomous System Number
-	Asn int `json:"asn,omitempty"`
+	Asn int `json:"asn"`
 	// Looking glass URL
-	LookingGlass string `json:"looking_glass,omitempty"`
+	LookingGlass string `json:"looking_glass"`
 	// Route server URL
-	RouteServer string `json:"route_server,omitempty"`
+	RouteServer string `json:"route_server"`
 	// IRR AS-SET
-	IrrAsSet string `json:"irr_as_set,omitempty"`
+	IrrAsSet string `json:"irr_as_set"`
 	// Network type
-	InfoType string `json:"info_type,omitempty"`
+	InfoType string `json:"info_type"`
 	// Network types (multi-choice)
-	InfoTypes []string `json:"info_types,omitempty"`
+	InfoTypes []string `json:"info_types"`
 	// IPv4 prefix count
-	InfoPrefixes4 *int `json:"info_prefixes4,omitempty"`
+	InfoPrefixes4 *int `json:"info_prefixes4"`
 	// IPv6 prefix count
-	InfoPrefixes6 *int `json:"info_prefixes6,omitempty"`
+	InfoPrefixes6 *int `json:"info_prefixes6"`
 	// Traffic level
-	InfoTraffic string `json:"info_traffic,omitempty"`
+	InfoTraffic string `json:"info_traffic"`
 	// Traffic ratio
-	InfoRatio string `json:"info_ratio,omitempty"`
+	InfoRatio string `json:"info_ratio"`
 	// Geographic scope
-	InfoScope string `json:"info_scope,omitempty"`
+	InfoScope string `json:"info_scope"`
 	// Supports unicast
-	InfoUnicast bool `json:"info_unicast,omitempty"`
+	InfoUnicast bool `json:"info_unicast"`
 	// Supports multicast
-	InfoMulticast bool `json:"info_multicast,omitempty"`
+	InfoMulticast bool `json:"info_multicast"`
 	// Supports IPv6
-	InfoIpv6 bool `json:"info_ipv6,omitempty"`
+	InfoIpv6 bool `json:"info_ipv6"`
 	// Never via route servers
-	InfoNeverViaRouteServers bool `json:"info_never_via_route_servers,omitempty"`
+	InfoNeverViaRouteServers bool `json:"info_never_via_route_servers"`
 	// Notes
-	Notes string `json:"notes,omitempty"`
+	Notes string `json:"notes"`
 	// Peering policy URL
-	PolicyURL string `json:"policy_url,omitempty"`
+	PolicyURL string `json:"policy_url"`
 	// General peering policy
-	PolicyGeneral string `json:"policy_general,omitempty"`
+	PolicyGeneral string `json:"policy_general"`
 	// Peering policy locations
-	PolicyLocations string `json:"policy_locations,omitempty"`
+	PolicyLocations string `json:"policy_locations"`
 	// Peering policy ratio requirement
-	PolicyRatio bool `json:"policy_ratio,omitempty"`
+	PolicyRatio bool `json:"policy_ratio"`
 	// Peering policy contracts
-	PolicyContracts string `json:"policy_contracts,omitempty"`
+	PolicyContracts string `json:"policy_contracts"`
 	// Allow IXP update
-	AllowIxpUpdate bool `json:"allow_ixp_update,omitempty"`
+	AllowIxpUpdate bool `json:"allow_ixp_update"`
 	// Status dashboard URL
-	StatusDashboard *string `json:"status_dashboard,omitempty"`
+	StatusDashboard *string `json:"status_dashboard"`
 	// RIR status
-	RirStatus *string `json:"rir_status,omitempty"`
+	RirStatus *string `json:"rir_status"`
 	// RIR status last updated
-	RirStatusUpdated *time.Time `json:"rir_status_updated,omitempty"`
+	RirStatusUpdated *time.Time `json:"rir_status_updated"`
 	// Logo URL
-	Logo *string `json:"logo,omitempty"`
+	Logo *string `json:"logo"`
 	// Internet exchange count (computed)
-	IxCount int `json:"ix_count,omitempty"`
+	IxCount int `json:"ix_count"`
 	// Facility count (computed)
-	FacCount int `json:"fac_count,omitempty"`
+	FacCount int `json:"fac_count"`
 	// Last netixlan update (computed)
-	NetixlanUpdated *time.Time `json:"netixlan_updated,omitempty"`
+	NetixlanUpdated *time.Time `json:"netixlan_updated"`
 	// Last netfac update (computed)
-	NetfacUpdated *time.Time `json:"netfac_updated,omitempty"`
+	NetfacUpdated *time.Time `json:"netfac_updated"`
 	// Last POC update (computed)
-	PocUpdated *time.Time `json:"poc_updated,omitempty"`
+	PocUpdated *time.Time `json:"poc_updated"`
 	// PeeringDB creation timestamp
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
-	Updated time.Time `json:"updated,omitempty"`
+	Updated time.Time `json:"updated"`
 	// Record status
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NetworkQuery when eager-loading is set.
 	Edges        NetworkEdges `json:"edges"`

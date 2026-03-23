@@ -300,7 +300,7 @@ func (_q *IxPrefixQuery) WithIxLan(opts ...func(*IxLanQuery)) *IxPrefixQuery {
 // Example:
 //
 //	var v []struct {
-//		IxlanID int `json:"ixlan_id,omitempty"`
+//		IxlanID int `json:"ixlan_id"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -323,7 +323,7 @@ func (_q *IxPrefixQuery) GroupBy(field string, fields ...string) *IxPrefixGroupB
 // Example:
 //
 //	var v []struct {
-//		IxlanID int `json:"ixlan_id,omitempty"`
+//		IxlanID int `json:"ixlan_id"`
 //	}
 //
 //	client.IxPrefix.Query().

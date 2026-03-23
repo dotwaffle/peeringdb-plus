@@ -20,29 +20,29 @@ type IxLan struct {
 	// PeeringDB IXLan ID
 	ID int `json:"id,omitempty"`
 	// FK to internet exchange
-	IxID *int `json:"ix_id,omitempty"`
+	IxID *int `json:"ix_id"`
 	// IXLan name
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Description
-	Descr string `json:"descr,omitempty"`
+	Descr string `json:"descr"`
 	// MTU
-	Mtu int `json:"mtu,omitempty"`
+	Mtu int `json:"mtu"`
 	// 802.1Q support
-	Dot1qSupport bool `json:"dot1q_support,omitempty"`
+	Dot1qSupport bool `json:"dot1q_support"`
 	// Route server ASN
-	RsAsn *int `json:"rs_asn,omitempty"`
+	RsAsn *int `json:"rs_asn"`
 	// ARP sponge MAC address
-	ArpSponge *string `json:"arp_sponge,omitempty"`
+	ArpSponge *string `json:"arp_sponge"`
 	// IXF member list URL visibility
-	IxfIxpMemberListURLVisible string `json:"ixf_ixp_member_list_url_visible,omitempty"`
+	IxfIxpMemberListURLVisible string `json:"ixf_ixp_member_list_url_visible"`
 	// IXF import enabled
-	IxfIxpImportEnabled bool `json:"ixf_ixp_import_enabled,omitempty"`
+	IxfIxpImportEnabled bool `json:"ixf_ixp_import_enabled"`
 	// PeeringDB creation timestamp
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
-	Updated time.Time `json:"updated,omitempty"`
+	Updated time.Time `json:"updated"`
 	// Record status
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the IxLanQuery when eager-loading is set.
 	Edges        IxLanEdges `json:"edges"`

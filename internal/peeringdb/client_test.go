@@ -11,6 +11,11 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 // makeOrgPage creates a JSON response with n Organization objects starting at the given ID offset.
@@ -471,4 +476,242 @@ func TestUserAgent(t *testing.T) {
 	if capturedUA != "peeringdb-plus/1.0" {
 		t.Errorf("User-Agent = %q, want %q", capturedUA, "peeringdb-plus/1.0")
 	}
+}
+
+// setupTraceTest configures an in-memory span exporter as the global
+// TracerProvider and returns it for span inspection. The provider is
+// shut down automatically via t.Cleanup.
+func setupTraceTest(t *testing.T) *tracetest.InMemoryExporter {
+	t.Helper()
+	exporter := tracetest.NewInMemoryExporter()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() { tp.Shutdown(context.Background()) })
+	return exporter
+}
+
+// findSpanByName returns the first span with the given name, or nil.
+func findSpanByName(spans tracetest.SpanStubs, name string) *tracetest.SpanStub {
+	for i := range spans {
+		if spans[i].Name == name {
+			return &spans[i]
+		}
+	}
+	return nil
+}
+
+// findSpansByName returns all spans with the given name.
+func findSpansByName(spans tracetest.SpanStubs, name string) []tracetest.SpanStub {
+	var result []tracetest.SpanStub
+	for _, s := range spans {
+		if s.Name == name {
+			result = append(result, s)
+		}
+	}
+	return result
+}
+
+func TestFetchAllCreatesSpanHierarchy(t *testing.T) {
+	// Not parallel: mutates global TracerProvider.
+	exporter := setupTraceTest(t)
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := requestCount.Add(1)
+		if n == 1 {
+			w.Write(makeOrgPage(1, 5))
+			return
+		}
+		w.Write(emptyResponse())
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(1000)
+	client.limiter.SetBurst(1000)
+
+	items, err := client.FetchAll(context.Background(), "net")
+	if err != nil {
+		t.Fatalf("FetchAll: %v", err)
+	}
+	if len(items) != 5 {
+		t.Errorf("got %d items, want 5", len(items))
+	}
+
+	spans := exporter.GetSpans()
+
+	// Verify parent span exists.
+	fetchSpan := findSpanByName(spans, "peeringdb.fetch/net")
+	if fetchSpan == nil {
+		t.Fatal("expected peeringdb.fetch/net span, not found")
+	}
+
+	// Verify at least one request span exists.
+	requestSpans := findSpansByName(spans, "peeringdb.request")
+	if len(requestSpans) == 0 {
+		t.Fatal("expected at least one peeringdb.request span, found none")
+	}
+
+	// Verify request spans are children of the fetch span.
+	for _, rs := range requestSpans {
+		if rs.Parent.SpanID() != fetchSpan.SpanContext.SpanID() {
+			t.Errorf("peeringdb.request span parent=%s, want %s (peeringdb.fetch/net)",
+				rs.Parent.SpanID(), fetchSpan.SpanContext.SpanID())
+		}
+	}
+
+	// Verify resend_count attribute on first request span.
+	found := false
+	for _, attr := range requestSpans[0].Attributes {
+		if attr.Key == "http.request.resend_count" && attr.Value == attribute.IntValue(0) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("first peeringdb.request span missing http.request.resend_count=0 attribute")
+	}
+}
+
+func TestFetchAllRecordsPageEvents(t *testing.T) {
+	// Not parallel: mutates global TracerProvider.
+	exporter := setupTraceTest(t)
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := requestCount.Add(1)
+		switch n {
+		case 1:
+			w.Write(makeOrgPage(1, 250))
+		case 2:
+			w.Write(makeOrgPage(251, 50))
+		default:
+			w.Write(emptyResponse())
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(1000)
+	client.limiter.SetBurst(1000)
+
+	items, err := client.FetchAll(context.Background(), "org")
+	if err != nil {
+		t.Fatalf("FetchAll: %v", err)
+	}
+	if len(items) != 300 {
+		t.Errorf("got %d items, want 300", len(items))
+	}
+
+	spans := exporter.GetSpans()
+	fetchSpan := findSpanByName(spans, "peeringdb.fetch/org")
+	if fetchSpan == nil {
+		t.Fatal("expected peeringdb.fetch/org span, not found")
+	}
+
+	// Count page.fetched events.
+	var pageFetchedCount int
+	for _, evt := range fetchSpan.Events {
+		if evt.Name == "page.fetched" {
+			pageFetchedCount++
+		}
+	}
+	if pageFetchedCount < 2 {
+		t.Fatalf("expected at least 2 page.fetched events, got %d", pageFetchedCount)
+	}
+
+	// Verify first page event attributes.
+	firstEvt := fetchSpan.Events[0]
+	if firstEvt.Name != "page.fetched" {
+		t.Fatalf("first event name=%q, want page.fetched", firstEvt.Name)
+	}
+	assertEventAttr(t, firstEvt.Attributes, "page", attribute.IntValue(0))
+	assertEventAttr(t, firstEvt.Attributes, "count", attribute.IntValue(250))
+
+	// Verify second page event attributes.
+	secondEvt := fetchSpan.Events[1]
+	if secondEvt.Name != "page.fetched" {
+		t.Fatalf("second event name=%q, want page.fetched", secondEvt.Name)
+	}
+	assertEventAttr(t, secondEvt.Attributes, "page", attribute.IntValue(1))
+	assertEventAttr(t, secondEvt.Attributes, "count", attribute.IntValue(50))
+}
+
+// assertEventAttr checks that the given attributes contain a key with the expected value.
+func assertEventAttr(t *testing.T, attrs []attribute.KeyValue, key string, want attribute.Value) {
+	t.Helper()
+	for _, a := range attrs {
+		if string(a.Key) == key {
+			if a.Value != want {
+				t.Errorf("attribute %s = %v, want %v", key, a.Value, want)
+			}
+			return
+		}
+	}
+	t.Errorf("attribute %s not found", key)
+}
+
+func TestDoWithRetryCreatesPerAttemptSpans(t *testing.T) {
+	// Not parallel: mutates global TracerProvider.
+	exporter := setupTraceTest(t)
+
+	var attempt atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := attempt.Add(1)
+		switch {
+		case n == 1:
+			// First request for page 0: return 429.
+			w.WriteHeader(http.StatusTooManyRequests)
+			w.Write([]byte(`{"detail":"Rate limit exceeded"}`))
+		case n == 2:
+			// Second request for page 0: succeed.
+			w.Write(makeOrgPage(1, 5))
+		default:
+			// Page 1: empty (end pagination).
+			w.Write(emptyResponse())
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(1000)
+	client.limiter.SetBurst(1000)
+	client.retryBaseDelay = 1 * time.Millisecond
+
+	items, err := client.FetchAll(context.Background(), "org")
+	if err != nil {
+		t.Fatalf("FetchAll: %v", err)
+	}
+	if len(items) != 5 {
+		t.Errorf("got %d items, want 5", len(items))
+	}
+
+	spans := exporter.GetSpans()
+	requestSpans := findSpansByName(spans, "peeringdb.request")
+
+	// Expect at least 3 request spans: 2 for page 0 (429 then 200), 1 for page 1 (empty).
+	if len(requestSpans) < 3 {
+		t.Fatalf("expected at least 3 peeringdb.request spans, got %d", len(requestSpans))
+	}
+
+	// Verify first attempt has resend_count=0, second has resend_count=1.
+	first := requestSpans[0]
+	second := requestSpans[1]
+
+	assertSpanAttr(t, first.Attributes, "http.request.resend_count", attribute.IntValue(0))
+	assertSpanAttr(t, second.Attributes, "http.request.resend_count", attribute.IntValue(1))
+}
+
+// assertSpanAttr checks that the given attributes contain a key with the expected value.
+func assertSpanAttr(t *testing.T, attrs []attribute.KeyValue, key string, want attribute.Value) {
+	t.Helper()
+	for _, a := range attrs {
+		if string(a.Key) == key {
+			if a.Value != want {
+				t.Errorf("span attribute %s = %v, want %v", key, a.Value, want)
+			}
+			return
+		}
+	}
+	t.Errorf("span attribute %s not found", key)
 }

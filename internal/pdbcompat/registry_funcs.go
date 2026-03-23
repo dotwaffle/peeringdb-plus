@@ -1,0 +1,405 @@
+package pdbcompat
+
+import (
+	"context"
+	"fmt"
+
+	"entgo.io/ent/dialect/sql"
+
+	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
+	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
+)
+
+func init() {
+	wireOrgFuncs()
+	wireNetFuncs()
+	wireFacFuncs()
+	wireIXFuncs()
+	wirePocFuncs()
+	wireIXLanFuncs()
+	wireIXPfxFuncs()
+	wireNetIXLanFuncs()
+	wireNetFacFuncs()
+	wireIXFacFuncs()
+	wireCarrierFuncs()
+	wireCarrierFacFuncs()
+	wireCampusFuncs()
+}
+
+// setFuncs updates a Registry entry's List and Get functions.
+func setFuncs(name string, list ListFunc, get GetFunc) {
+	tc := Registry[name]
+	tc.List = list
+	tc.Get = get
+	Registry[name] = tc
+}
+
+// castPredicates converts generic sql.Selector functions to typed predicates
+// via the shared underlying function signature.
+func castPredicates[T ~func(*sql.Selector)](filters []func(*sql.Selector)) []T {
+	out := make([]T, len(filters))
+	for i, f := range filters {
+		out[i] = T(f)
+	}
+	return out
+}
+
+// applySince adds an updated >= since filter if Since is set in opts.
+func applySince(opts QueryOptions) func(*sql.Selector) {
+	if opts.Since == nil {
+		return nil
+	}
+	return sql.FieldGTE("updated", *opts.Since)
+}
+
+func wireOrgFuncs() {
+	setFuncs(peeringdb.TypeOrg,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.Organization](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.Organization(s))
+			}
+			q := client.Organization.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count organizations: %w", err)
+			}
+			orgs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list organizations: %w", err)
+			}
+			result := organizationsFromEnt(orgs)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getOrgWithDepth,
+	)
+}
+
+func wireNetFuncs() {
+	setFuncs(peeringdb.TypeNet,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.Network](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.Network(s))
+			}
+			q := client.Network.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count networks: %w", err)
+			}
+			nets, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list networks: %w", err)
+			}
+			result := networksFromEnt(nets)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getNetWithDepth,
+	)
+}
+
+func wireFacFuncs() {
+	setFuncs(peeringdb.TypeFac,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.Facility](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.Facility(s))
+			}
+			q := client.Facility.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count facilities: %w", err)
+			}
+			facs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list facilities: %w", err)
+			}
+			result := facilitiesFromEnt(facs)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getFacWithDepth,
+	)
+}
+
+func wireIXFuncs() {
+	setFuncs(peeringdb.TypeIX,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.InternetExchange](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.InternetExchange(s))
+			}
+			q := client.InternetExchange.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count internet exchanges: %w", err)
+			}
+			ixes, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list internet exchanges: %w", err)
+			}
+			result := internetExchangesFromEnt(ixes)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getIXWithDepth,
+	)
+}
+
+func wirePocFuncs() {
+	setFuncs(peeringdb.TypePoc,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.Poc](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.Poc(s))
+			}
+			q := client.Poc.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count pocs: %w", err)
+			}
+			pocs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list pocs: %w", err)
+			}
+			result := pocsFromEnt(pocs)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getPocWithDepth,
+	)
+}
+
+func wireIXLanFuncs() {
+	setFuncs(peeringdb.TypeIXLan,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.IxLan](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.IxLan(s))
+			}
+			q := client.IxLan.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count ixlans: %w", err)
+			}
+			lans, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list ixlans: %w", err)
+			}
+			result := ixLansFromEnt(lans)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getIXLanWithDepth,
+	)
+}
+
+func wireIXPfxFuncs() {
+	setFuncs(peeringdb.TypeIXPfx,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.IxPrefix](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.IxPrefix(s))
+			}
+			q := client.IxPrefix.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count ixprefixes: %w", err)
+			}
+			pfxs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list ixprefixes: %w", err)
+			}
+			result := ixPrefixesFromEnt(pfxs)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getIXPfxWithDepth,
+	)
+}
+
+func wireNetIXLanFuncs() {
+	setFuncs(peeringdb.TypeNetIXLan,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.NetworkIxLan](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.NetworkIxLan(s))
+			}
+			q := client.NetworkIxLan.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count networkixlans: %w", err)
+			}
+			nixls, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list networkixlans: %w", err)
+			}
+			result := networkIxLansFromEnt(nixls)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getNetIXLanWithDepth,
+	)
+}
+
+func wireNetFacFuncs() {
+	setFuncs(peeringdb.TypeNetFac,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.NetworkFacility](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.NetworkFacility(s))
+			}
+			q := client.NetworkFacility.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count networkfacilities: %w", err)
+			}
+			nfacs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list networkfacilities: %w", err)
+			}
+			result := networkFacilitiesFromEnt(nfacs)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getNetFacWithDepth,
+	)
+}
+
+func wireIXFacFuncs() {
+	setFuncs(peeringdb.TypeIXFac,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.IxFacility](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.IxFacility(s))
+			}
+			q := client.IxFacility.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count ixfacilities: %w", err)
+			}
+			ixfacs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list ixfacilities: %w", err)
+			}
+			result := ixFacilitiesFromEnt(ixfacs)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getIXFacWithDepth,
+	)
+}
+
+func wireCarrierFuncs() {
+	setFuncs(peeringdb.TypeCarrier,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.Carrier](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.Carrier(s))
+			}
+			q := client.Carrier.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count carriers: %w", err)
+			}
+			carriers, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list carriers: %w", err)
+			}
+			result := carriersFromEnt(carriers)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getCarrierWithDepth,
+	)
+}
+
+func wireCarrierFacFuncs() {
+	setFuncs(peeringdb.TypeCarrierFac,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.CarrierFacility](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.CarrierFacility(s))
+			}
+			q := client.CarrierFacility.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count carrierfacilities: %w", err)
+			}
+			cfs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list carrierfacilities: %w", err)
+			}
+			result := carrierFacilitiesFromEnt(cfs)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getCarrierFacWithDepth,
+	)
+}
+
+func wireCampusFuncs() {
+	setFuncs(peeringdb.TypeCampus,
+		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			preds := castPredicates[predicate.Campus](opts.Filters)
+			if s := applySince(opts); s != nil {
+				preds = append(preds, predicate.Campus(s))
+			}
+			q := client.Campus.Query().Where(preds...).Order(ent.Asc("id"))
+			total, err := q.Count(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("count campuses: %w", err)
+			}
+			campuses, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			if err != nil {
+				return nil, 0, fmt.Errorf("list campuses: %w", err)
+			}
+			result := campusesFromEnt(campuses)
+			out := make([]any, len(result))
+			for i, v := range result {
+				out[i] = v
+			}
+			return out, total, nil
+		},
+		getCampusWithDepth,
+	)
+}

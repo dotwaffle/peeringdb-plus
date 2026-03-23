@@ -11,10 +11,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/KimMachineGun/automemlimit/memlimit"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
+	"github.com/dotwaffle/peeringdb-plus/ent/rest"
 	"github.com/dotwaffle/peeringdb-plus/graph"
 	"github.com/dotwaffle/peeringdb-plus/graph/dataloader"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
@@ -24,6 +26,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 )
@@ -98,6 +101,18 @@ func main() {
 		}
 	}
 
+	// Initialize sync freshness gauge per D-09.
+	if err := pdbotel.InitFreshnessGauge(func(ctx context.Context) (time.Time, bool) {
+		status, err := pdbsync.GetLastSyncStatus(ctx, db)
+		if err != nil || status == nil || status.Status != "success" {
+			return time.Time{}, false
+		}
+		return status.LastSyncAt, true
+	}); err != nil {
+		logger.Error("failed to init freshness gauge", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	// Create PeeringDB client per D-04, D-09.
 	pdbClient := peeringdb.NewClient(cfg.PeeringDBBaseURL, logger)
 
@@ -163,6 +178,24 @@ func main() {
 		gqlWithLoader.ServeHTTP(w, r)
 	})
 
+	// Mount entrest-generated REST API at /rest/v1/ per D-01, D-04.
+	// Read-only (OperationRead + OperationList) configured via entrest annotations.
+	restSrv, err := rest.NewServer(entClient, &rest.ServerConfig{})
+	if err != nil {
+		logger.Error("failed to create REST server", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	restHandler := http.StripPrefix("/rest/v1", restSrv.Handler())
+	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})
+	mux.Handle("/rest/v1/", restCORS(restHandler))
+	logger.Info("REST API mounted", slog.String("prefix", "/rest/v1/"))
+
+	// Mount PeeringDB compatibility API at /api/ per D-27, D-28.
+	// Readiness gating applies automatically (not in bypass list) per D-29.
+	compatHandler := pdbcompat.NewHandler(entClient)
+	compatHandler.Register(mux)
+	logger.Info("PeeringDB compat API mounted", slog.String("prefix", "/api/"))
+
 	// GET /: root discovery endpoint per D-28.
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -170,7 +203,7 @@ func main() {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"name":"peeringdb-plus","version":"0.1.0","graphql":"/graphql","healthz":"/healthz","readyz":"/readyz"}`)
+		fmt.Fprint(w, `{"name":"peeringdb-plus","version":"0.1.0","graphql":"/graphql","rest":"/rest/v1/","api":"/api/","healthz":"/healthz","readyz":"/readyz"}`)
 	})
 
 	// Build middleware stack (outermost first):
@@ -212,16 +245,21 @@ func main() {
 	}
 }
 
+// syncReadiness reports whether at least one sync has completed.
+type syncReadiness interface {
+	HasCompletedSync() bool
+}
+
 // readinessMiddleware returns 503 for all routes except infrastructure paths
 // until the first sync has completed per D-30.
-func readinessMiddleware(syncWorker *pdbsync.Worker, next http.Handler) http.Handler {
+func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Infrastructure paths are not gated by readiness.
 		if r.URL.Path == "/sync" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/" {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if !syncWorker.HasCompletedSync() {
+		if !sr.HasCompletedSync() {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
 			fmt.Fprint(w, `{"error":"sync not yet completed"}`)

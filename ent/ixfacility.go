@@ -21,21 +21,21 @@ type IxFacility struct {
 	// PeeringDB IX-Facility ID
 	ID int `json:"id,omitempty"`
 	// FK to internet exchange
-	IxID *int `json:"ix_id,omitempty"`
+	IxID *int `json:"ix_id"`
 	// FK to facility
-	FacID *int `json:"fac_id,omitempty"`
+	FacID *int `json:"fac_id"`
 	// Facility name (computed)
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// City (computed)
-	City string `json:"city,omitempty"`
+	City string `json:"city"`
 	// Country (computed)
-	Country string `json:"country,omitempty"`
+	Country string `json:"country"`
 	// PeeringDB creation timestamp
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
-	Updated time.Time `json:"updated,omitempty"`
+	Updated time.Time `json:"updated"`
 	// Record status
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the IxFacilityQuery when eager-loading is set.
 	Edges        IxFacilityEdges `json:"edges"`

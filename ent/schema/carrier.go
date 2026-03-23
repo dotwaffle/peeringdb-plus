@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/lrstanley/entrest"
 )
 
 // Carrier holds the schema definition for the Carrier entity.
@@ -25,6 +26,7 @@ func (Carrier) Fields() []ent.Field {
 		field.Int("org_id").
 			Optional().
 			Nillable().
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to organization"),
 		field.String("org_name").
 			Optional().
@@ -36,17 +38,20 @@ func (Carrier) Fields() []ent.Field {
 			Unique().
 			Annotations(
 				entgql.OrderField("NAME"),
+				entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray),
 			).
 			Comment("Carrier name"),
 		field.String("aka").
 			Optional().
 			MaxLen(255).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Also known as"),
 		field.String("name_long").
 			Optional().
 			MaxLen(255).
 			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Long name"),
 		field.String("website").
 			Optional().
@@ -54,6 +59,7 @@ func (Carrier) Fields() []ent.Field {
 			Comment("Carrier website URL"),
 		field.JSON("social_media", []SocialMedia{}).
 			Optional().
+			Annotations(entrest.WithSchema(socialMediaSchema())).
 			Comment("Social media links"),
 		field.String("notes").
 			Optional().
@@ -74,12 +80,15 @@ func (Carrier) Fields() []ent.Field {
 		// HandleRefModel common fields
 		field.Time("created").
 			Immutable().
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			MaxLen(255).
 			Default("ok").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
 	}
 }
@@ -90,8 +99,10 @@ func (Carrier) Edges() []ent.Edge {
 		edge.From("organization", Organization.Type).
 			Ref("carriers").
 			Field("org_id").
-			Unique(),
-		edge.To("carrier_facilities", CarrierFacility.Type),
+			Unique().
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("carrier_facilities", CarrierFacility.Type).
+			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
 
@@ -109,6 +120,7 @@ func (Carrier) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 	}
 }
 

@@ -1,5 +1,22 @@
 # Milestones
 
+## v1.1 REST API & Observability (Shipped: 2026-03-22)
+
+**Phases completed:** 3 phases, 8 plans, 16 tasks
+
+**Key accomplishments:**
+
+- OTel trace spans on PeeringDB HTTP client with otelhttp transport wrapping and manual span hierarchy (FetchAll parent, per-attempt children, page events, rate limiter wait events)
+- 5 per-type sync metric instruments registered and wired with SyncDuration/SyncOperations recording and freshness observable gauge computing seconds-since-last-sync on demand
+- entrest v1.0.2 dual codegen with entgql producing read-only REST handlers and OpenAPI spec for all 13 PeeringDB types
+- REST API mounted at /rest/v1/ with CORS and 7 integration tests covering all 13 entity types, OpenAPI spec, sorting, pagination, eager-loading, readiness gate, and write rejection
+- Per-field filtering via entrest.WithFilter annotations on all 13 PeeringDB schemas with 8 integration test cases
+- Django-style filter parser with 8 operators, type registry for all 13 PeeringDB types with field metadata, entity serializers with correct field mapping, and response envelope producing PeeringDB-identical JSON output
+- HTTP handlers for all 13 PeeringDB types with list/detail/index endpoints, pagination, since filter, Django-style query filters, and trailing slash handling
+- Depth expansion with _set field serialization for all 13 types, text search via ?q=, and field projection via ?fields=
+
+---
+
 ## v1.0 PeeringDB Plus (Shipped: 2026-03-22)
 
 **Phases completed:** 3 phases, 14 plans, 27 tasks

@@ -375,7 +375,7 @@ func (_q *InternetExchangeQuery) WithIxFacilities(opts ...func(*IxFacilityQuery)
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id,omitempty"`
+//		OrgID int `json:"org_id"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -398,7 +398,7 @@ func (_q *InternetExchangeQuery) GroupBy(field string, fields ...string) *Intern
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id,omitempty"`
+//		OrgID int `json:"org_id"`
 //	}
 //
 //	client.InternetExchange.Query().

@@ -450,7 +450,7 @@ func (_q *OrganizationQuery) WithCampuses(opts ...func(*CampusQuery)) *Organizat
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		Name string `json:"name"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -473,7 +473,7 @@ func (_q *OrganizationQuery) GroupBy(field string, fields ...string) *Organizati
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		Name string `json:"name"`
 //	}
 //
 //	client.Organization.Query().

@@ -9,25 +9,25 @@ Requirements for v1.1 REST API & Observability milestone. Each maps to roadmap p
 
 ### Observability
 
-- [ ] **OBS-01**: OTel MeterProvider is initialized alongside existing TracerProvider
-- [ ] **OBS-02**: PeeringDB HTTP client calls produce OTel trace spans with semantic conventions
-- [ ] **OBS-03**: Sync worker records values for all registered sync metrics (duration, operations)
-- [ ] **OBS-04**: Per-type sync metrics track duration, object count, and delete count for each of the 13 PeeringDB types
+- [x] **OBS-01**: OTel MeterProvider is initialized alongside existing TracerProvider
+- [x] **OBS-02**: PeeringDB HTTP client calls produce OTel trace spans with semantic conventions
+- [x] **OBS-03**: Sync worker records values for all registered sync metrics (duration, operations)
+- [x] **OBS-04**: Per-type sync metrics track duration, object count, and delete count for each of the 13 PeeringDB types
 
 ### REST API
 
-- [ ] **REST-01**: All 13 PeeringDB types are queryable via entrest-generated read-only REST endpoints at /rest/
-- [ ] **REST-02**: OpenAPI specification is served at /rest/openapi.json
-- [ ] **REST-03**: REST endpoints support query parameter filtering and sorting via entrest annotations
-- [ ] **REST-04**: REST endpoints support relationship eager-loading via entrest annotations
+- [x] **REST-01**: All 13 PeeringDB types are queryable via entrest-generated read-only REST endpoints at /rest/
+- [x] **REST-02**: OpenAPI specification is served at /rest/openapi.json
+- [x] **REST-03**: REST endpoints support query parameter filtering and sorting via entrest annotations
+- [x] **REST-04**: REST endpoints support relationship eager-loading via entrest annotations
 
 ### PeeringDB Compatibility
 
-- [ ] **PDBCOMPAT-01**: PeeringDB URL paths (/api/net, /api/ix, /api/fac, etc.) return data in PeeringDB's response envelope format ({data:[], meta:{}})
-- [ ] **PDBCOMPAT-02**: Django-style query filters (__contains, __startswith, __in, __lt, __gt, __lte, __gte) work on string and numeric fields
-- [ ] **PDBCOMPAT-03**: Depth parameter (?depth=0|2) controls relationship expansion in responses
-- [ ] **PDBCOMPAT-04**: Since parameter (?since=) returns only objects updated after the given timestamp
-- [ ] **PDBCOMPAT-05**: Pagination via limit/skip query parameters matches PeeringDB behavior
+- [x] **PDBCOMPAT-01**: PeeringDB URL paths (/api/net, /api/ix, /api/fac, etc.) return data in PeeringDB's response envelope format ({data:[], meta:{}})
+- [x] **PDBCOMPAT-02**: Django-style query filters (__contains, __startswith, __in, __lt, __gt, __lte, __gte) work on string and numeric fields
+- [x] **PDBCOMPAT-03**: Depth parameter (?depth=0|2) controls relationship expansion in responses
+- [x] **PDBCOMPAT-04**: Since parameter (?since=) returns only objects updated after the given timestamp
+- [x] **PDBCOMPAT-05**: Pagination via limit/skip query parameters matches PeeringDB behavior
 
 ## Future Requirements
 
@@ -59,19 +59,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| OBS-01 | Phase 4 | Pending |
-| OBS-02 | Phase 4 | Pending |
-| OBS-03 | Phase 4 | Pending |
-| OBS-04 | Phase 4 | Pending |
+| OBS-01 | Phase 4 | Complete |
+| OBS-02 | Phase 4 | Complete |
+| OBS-03 | Phase 4 | Complete |
+| OBS-04 | Phase 4 | Complete |
+<<<<<<< HEAD
 | REST-01 | Phase 5 | Pending |
 | REST-02 | Phase 5 | Pending |
 | REST-03 | Phase 5 | Pending |
 | REST-04 | Phase 5 | Pending |
+| PDBCOMPAT-01 | Phase 6 | Complete |
+| PDBCOMPAT-02 | Phase 6 | Complete |
+| PDBCOMPAT-03 | Phase 6 | Complete |
+| PDBCOMPAT-04 | Phase 6 | Complete |
+| PDBCOMPAT-05 | Phase 6 | Complete |
+=======
+| REST-01 | Phase 5 | Complete |
+| REST-02 | Phase 5 | Complete |
+| REST-03 | Phase 5 | Complete |
+| REST-04 | Phase 5 | Complete |
 | PDBCOMPAT-01 | Phase 6 | Pending |
 | PDBCOMPAT-02 | Phase 6 | Pending |
 | PDBCOMPAT-03 | Phase 6 | Pending |
 | PDBCOMPAT-04 | Phase 6 | Pending |
 | PDBCOMPAT-05 | Phase 6 | Pending |
+>>>>>>> gsd/phase-05-entrest-rest-api
 
 **Coverage:**
 - v1.1 requirements: 13 total

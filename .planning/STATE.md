@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: REST API & Observability
-status: ready to plan
-stopped_at: Roadmap created for v1.1
-last_updated: "2026-03-22T22:00:00.000Z"
+status: v1.1 milestone complete
+stopped_at: Completed 06-03-PLAN.md
+last_updated: "2026-03-22T23:52:25.922Z"
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 3
+  total_plans: 8
+  completed_plans: 8
 ---
 
 # Project State
@@ -19,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 4: Observability Foundations
+**Current focus:** Phase 06 — peeringdb-compatibility-layer
 
 ## Current Position
 
-Phase: 4 of 6 (Observability Foundations)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-03-22 — Roadmap created for v1.1 milestone (3 phases, 13 requirements)
-
-Progress: [██████████░░░░░░░░░░] 50% (3/6 phases complete across all milestones)
+Phase: 06
+Plan: Not started
 
 ## Performance Metrics
 
@@ -48,12 +44,22 @@ Progress: [██████████░░░░░░░░░░] 50% (3/
 | Phase 03 P02 | 4min | 2 tasks | 4 files |
 | Phase 03 P01 | 7min | 2 tasks | 11 files |
 | Phase 03 P03 | 5min | 2 tasks | 5 files |
+| Phase 06 P01 | 8min | 2 tasks | 7 files |
+| Phase 06 P02 | 5min | 2 tasks | 3 files |
+| Phase 06 P03 | 9min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
 ### Decisions
 
 All v1.0 decisions archived in PROJECT.md Key Decisions table.
+
+- [Phase 06]: Used FieldEqualFold for case-insensitive exact match on strings, FieldHasPrefixFold for startswith per D-10
+- [Phase 06]: Generic castPredicates function to convert sql.Selector funcs to typed ent predicates, avoiding 13-way type switch
+- [Phase 06]: Single wildcard pattern GET /api/{rest...} for unified route registration, avoiding Go 1.22+ ServeMux conflicts
+- [Phase 06]: Depth expansion uses ent Query + With* eager loading rather than separate queries per relationship
+- [Phase 06]: Depth=2 responses use map[string]any via JSON round-trip to dynamically inject _set fields
+- [Phase 06]: Field projection preserves _set and expanded FK objects regardless of requested field list
 
 ### Pending Todos
 
@@ -65,6 +71,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22
-Stopped at: Roadmap created for v1.1 milestone
+Last session: 2026-03-22T23:36:53.495Z
+Stopped at: Completed 06-03-PLAN.md
 Resume file: None
