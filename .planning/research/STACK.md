@@ -1,221 +1,261 @@
-# Technology Stack: v1.1 Additions
+# Technology Stack: v1.2 Additions
 
-**Project:** PeeringDB Plus v1.1 (REST API & Observability)
-**Researched:** 2026-03-22
-**Scope:** Stack additions/changes for OTel HTTP client tracing, expanded sync metrics, entrest REST API, and PeeringDB-compatible REST layer. Does NOT re-research validated v1.0 stack.
+**Project:** PeeringDB Plus v1.2 (Quality & CI)
+**Researched:** 2026-03-23
+**Scope:** Stack additions/changes for golden file testing, GitHub Actions CI pipeline, and golangci-lint enforcement. Does NOT re-research validated v1.0/v1.1 stack.
 
 ## New Dependencies
 
-### OTel HTTP Client Tracing
+### Golden File Testing
+
+No new Go module dependencies required. The golden file pattern uses stdlib only.
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp | v0.67.0 | HTTP client transport tracing | **Already in go.mod** (used for server-side middleware). The same package provides `otelhttp.NewTransport(base http.RoundTripper)` which wraps outgoing HTTP requests with trace spans, propagates W3C TraceContext headers, and records request duration/size metrics. Zero new dependencies needed. | HIGH |
+| `flag` (stdlib) | Go 1.26 | `-update` flag for golden file regeneration | Standard Go pattern: `var update = flag.Bool("update", false, "update golden files")`. Used by Go's own `cmd/gofmt` tests. No library needed. | HIGH |
+| `os` (stdlib) | Go 1.26 | Read/write `.golden` files in `testdata/` | `os.ReadFile` / `os.WriteFile` for golden file I/O. | HIGH |
+| `filepath` (stdlib) | Go 1.26 | Auto-discover test input/golden file pairs | `filepath.Glob` discovers `testdata/*.golden` files, each becomes a subtest. | HIGH |
+| `github.com/google/go-cmp/cmp` | v0.7.0 | Readable diffs when golden files mismatch | Already an indirect dependency (v0.7.0). Promote to direct. `cmp.Diff(want, got)` produces human-readable diffs in test failure output. Standard practice per Go wiki TestComments. | HIGH |
 
-**Integration point:** The PeeringDB `Client` struct (internal/peeringdb/client.go) currently creates a bare `&http.Client{Timeout: 30 * time.Second}`. Wrapping the transport is a one-line change:
+**Pattern chosen:** Stdlib `flag.Bool("-update")` + `testdata/*.golden` files.
 
+**Why not a golden file library (goldie, xorcare/golden, gotest.tools/golden)?**
+- The project's golden files are JSON HTTP responses with a well-defined structure
+- The stdlib pattern is ~20 lines of helper code, fully understood, no dependency
+- Third-party libraries add abstraction over trivially simple file comparison
+- The `-update` flag pattern is the Go standard (used in `cmd/gofmt`, `cmd/go` itself)
+
+**Implementation approach:**
 ```go
-http: &http.Client{
-    Timeout:   30 * time.Second,
-    Transport: otelhttp.NewTransport(http.DefaultTransport),
-},
-```
+// In pdbcompat package test file:
+var update = flag.Bool("update", false, "update .golden files")
 
-**What it provides:**
-- Automatic span creation for each outgoing HTTP request (span kind: Client)
-- Default span name: `"HTTP GET"` (customizable via `WithSpanNameFormatter`)
-- Semantic convention attributes: `http.request.method`, `http.response.status_code`, `server.address`, `url.full`
-- Request/response size metrics
-- W3C TraceContext propagation into outgoing request headers
-- Span lifecycle extends until response body is closed or reaches EOF
-
-**What it does NOT provide (must add manually):**
-- PeeringDB-specific span attributes (object type, page number, retry attempt)
-- These should be added as span events or attributes within `doWithRetry` and `FetchAll`
-
-**No new `go get` required.** The package is already a direct dependency at v0.67.0.
-
-### Expanded Sync Metrics
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| go.opentelemetry.io/otel/metric | v1.42.0 | OTel metric instruments | **Already in go.mod.** Used to create counters, histograms, and gauges. The existing `internal/otel/metrics.go` defines `SyncDuration` and `SyncOperations` but the sync worker never calls `.Record()` or `.Add()` on them. | HIGH |
-
-**Current state:** Two metrics are registered but never recorded:
-- `pdbplus.sync.duration` (Float64Histogram) -- registered, not recorded
-- `pdbplus.sync.operations` (Int64Counter) -- registered, not recorded
-
-**Recommended expansion (no new dependencies):**
-
-| Metric | Type | Attributes | Purpose |
-|--------|------|------------|---------|
-| `pdbplus.sync.duration` | Float64Histogram | `status=success\|failed` | Total sync cycle time. **Exists, needs recording.** |
-| `pdbplus.sync.operations` | Int64Counter | `status=success\|failed` | Sync attempt count. **Exists, needs recording.** |
-| `pdbplus.sync.objects` | Int64Counter | `type=org\|net\|fac\|...`, `action=upsert\|delete` | Per-type object counts per sync. **New.** |
-| `pdbplus.sync.last_success` | Float64Gauge | (none) | Unix timestamp of last successful sync. **New.** Enables "time since last sync" alerts. |
-| `pdbplus.sync.step_duration` | Float64Histogram | `type=org\|net\|fac\|...` | Per-step timing within a sync cycle. **New.** Identifies slow object types. |
-| `pdbplus.peeringdb.request_duration` | Float64Histogram | `object_type`, `status_code` | Per-HTTP-request timing to PeeringDB API. **New.** Note: otelhttp transport also records `http.client.request.duration` but without PeeringDB-specific attributes. |
-| `pdbplus.peeringdb.retries` | Int64Counter | `object_type`, `status_code` | Retry count per object type. **New.** Surfaces API reliability issues. |
-
-**Instrument types available (all in go.opentelemetry.io/otel/metric, already imported):**
-- `Int64Counter` -- monotonically increasing (sync count, object count)
-- `Int64UpDownCounter` -- can decrease (not needed here)
-- `Float64Histogram` -- distribution of values (durations)
-- `Float64Gauge` -- point-in-time value (last sync timestamp). **Note:** `Float64Gauge` was stabilized in OTel Go SDK v1.31.0. Our v1.42.0 includes it.
-
-**No new `go get` required.**
-
-### entrest REST API Generation
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| github.com/lrstanley/entrest | v1.0.2 | OpenAPI spec + HTTP handler generation from ent schemas | Generates a complete OpenAPI 3.1 specification and a fully functional HTTP handler from ent schema definitions. Supports pagination, filtering (AND/OR predicates, field-level filters), eager-loading edges, and sorting. Published 2025-08-21. Requires ent v0.14.5 (matches our version). MIT licensed. | MEDIUM |
-
-**Why MEDIUM confidence:** Documentation warns "expect breaking changes." No official GitHub releases exist (only tagged versions on pkg.go.dev). The library is functional and v1.x semver, but the author's caveat warrants caution. The project has one primary maintainer.
-
-**Integration with existing entc.go:**
-
-The existing `ent/entc.go` uses entgql. entrest adds as a second extension:
-
-```go
-import (
-    "github.com/lrstanley/entrest"
-)
-
-restExt, err := entrest.NewExtension(&entrest.Config{
-    Handler:           entrest.HandlerStdlib,
-    DefaultOperations: []entrest.Operation{
-        entrest.OperationRead,
-        entrest.OperationList,
-    },
-})
-
-opts := []entc.Option{
-    entc.Extensions(gqlExt, restExt),
-    entc.FeatureNames("sql/upsert"),
+// Per-test:
+golden := filepath.Join("testdata", tc.name+".golden")
+if *update {
+    os.WriteFile(golden, got, 0644)
+}
+want, _ := os.ReadFile(golden)
+if diff := cmp.Diff(string(want), string(got)); diff != "" {
+    t.Errorf("mismatch (-want +got):\n%s", diff)
 }
 ```
 
-**Key Config options for this project:**
+**Golden file naming convention:** `testdata/<type>_<scenario>.golden` (e.g., `testdata/net_list.golden`, `testdata/net_detail_13335.golden`, `testdata/net_filter_asn_contains.golden`).
 
-| Config Field | Value | Why |
-|-------------|-------|-----|
-| `Handler` | `entrest.HandlerStdlib` | Uses Go 1.22+ stdlib ServeMux with path parameters via `http.Request.PathValue`. Matches our existing routing approach. No chi dependency needed. |
-| `DefaultOperations` | `[OperationRead, OperationList]` | Read-only mirror. Excludes Create, Update, Delete globally. |
-| `ItemsPerPage` | 250 | Match PeeringDB's default page size. |
-| `MaxItemsPerPage` | 1000 | Reasonable upper bound for API clients. |
-| `MinItemsPerPage` | 1 | Allow single-object fetches. |
-| `DefaultEagerLoad` | false | Opt-in via query parameter, not default (matches PeeringDB `depth=0` default). |
-| `DisablePatchJSONTag` | true | We use snake_case JSON tags on ent fields already. Do not want entrest to modify them. |
-| `StrictMutate` | false | No mutations in read-only mode; irrelevant. |
+**What gets golden-filed:**
+- Full HTTP response bodies (JSON) for each of the 13 PeeringDB types
+- List endpoints, detail endpoints, filtered queries, pagination, depth expansion
+- Error responses (404, unknown type)
+- The `/api/` index endpoint
 
-**Generated output:**
-- `ent/rest.go` -- HTTP handler implementation (one handler per entity type for List and Read operations)
-- `ent/openapi.json` -- OpenAPI 3.1 specification
-- Handler mounts on stdlib mux via generated `NewHandler()` function
+### GitHub Actions CI Pipeline
 
-**entrest vs. hand-rolled REST:**
-
-entrest handles the mechanical work (pagination, filtering, sorting, eager-loading, OpenAPI spec). The PeeringDB compatibility layer sits in front of (or alongside) the entrest handler, translating PeeringDB's envelope format and query parameter conventions. entrest does NOT produce PeeringDB-compatible output directly -- it produces standard REST conventions. The compat layer is a separate concern.
-
-**New `go get` required:**
-```bash
-go get github.com/lrstanley/entrest@v1.0.2
-```
-
-### PeeringDB-Compatible REST Layer
+No Go module dependencies. GitHub Actions configuration only.
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| net/http (stdlib) | Go 1.26 | Custom HTTP handlers for PeeringDB-compatible REST | Hand-written handlers that wrap entrest-generated queries but transform the response into PeeringDB's envelope format. No external library needed. | HIGH |
+| `actions/checkout` | v6 | Repository checkout | Current stable (v6.0.2, Jan 2026). Node 24 runtime. | HIGH |
+| `actions/setup-go` | v6 | Go toolchain setup | Current stable. Auto-caches `GOCACHE` and `GOMODCACHE` using `go.sum` as cache key. Supports `go-version-file: go.mod` to read Go version from `go 1.26.1` directive. | HIGH |
+| `golangci/golangci-lint-action` | v9 | Lint execution | Current stable (v9.0.0+). Requires golangci-lint >= v2.1.0. Parallel binary download + cache retrieval. Produces GitHub-native annotations on PR diffs. Run as separate job for parallelism with tests. | HIGH |
 
-**No new dependencies needed.** This is an application-layer concern, not a library concern.
+**Why these versions:**
+- `actions/checkout@v6` and `actions/setup-go@v6` both use Node 24 runtime, matching GitHub's current runner requirements
+- `golangci-lint-action@v9` is the only version that supports golangci-lint v2.11+ (the current release line)
+- `setup-go@v6` with `go-version-file: go.mod` reads Go 1.26.1 from the existing `go.mod` -- no hardcoded version to maintain
 
-**What makes PeeringDB REST different from standard REST (what entrest generates):**
+**Workflow structure (two parallel jobs):**
 
-| Aspect | PeeringDB Format | entrest Format | Compat Layer Responsibility |
-|--------|-----------------|----------------|----------------------------|
-| Response envelope | `{"meta": {}, "data": [...]}` | Standard JSON array/object with pagination metadata | Wrap entrest results in `meta`/`data` envelope |
-| URL paths | `/api/net`, `/api/org`, `/api/ix` | `/organizations`, `/networks` (pluralized entity names) | Route `/api/{type}` to correct entrest entity handler |
-| Single object | `/api/net/42` returns `{"data": [{...}]}` (array with one element) | `/networks/42` returns `{...}` (single object) | Wrap single object in array within `data` key |
-| Query params | `?limit=N&skip=N&depth=N&since=N&fields=f1,f2` | `?page=N&per_page=N` (or similar pagination) | Translate PeeringDB params to entrest query format |
-| Filter syntax | `?name__contains=foo&asn__gt=100` | entrest's own filter syntax | Parse `__contains`, `__startswith`, `__lt/lte/gt/gte/in` suffixes and translate to ent predicates |
-| Field names | snake_case (matches ent schema JSON tags) | snake_case (ent field names) | Likely pass-through; verify during implementation |
-| Depth expansion | `?depth=0..4` controls nested set expansion | `?eager_load=edge1,edge2` | Map depth levels to specific edge eager-loads |
-| `_set` fields | Related objects as `net_set`, `fac_set` arrays | Edges as named relationships | Rename edge fields to `{type}_set` format |
-| `since` parameter | Unix timestamp, returns objects updated after | Not natively supported | Custom ent predicate on `updated` field |
+1. **`lint` job:** checkout, setup-go, golangci-lint-action
+2. **`test` job:** checkout, setup-go, `go test -race -count=1 ./...`
 
-**Architecture decision:** The PeeringDB compat layer should be a thin HTTP handler that:
-1. Accepts PeeringDB-style requests (`/api/net?asn=42&limit=10`)
-2. Translates to ent queries (using the ent client directly, not going through entrest)
-3. Serializes responses in PeeringDB envelope format
+**Why two jobs, not one:**
+- Lint and test run in parallel, reducing wall-clock CI time
+- golangci-lint-action docs explicitly recommend this ("run it as a separate job")
+- Lint failures don't block test results (and vice versa)
+- Each job gets fresh caching behavior appropriate to its workload
 
-Using the ent client directly (rather than wrapping entrest HTTP handlers) is cleaner because the translation from PeeringDB query params to ent predicates is easier at the Go API level than at the HTTP level. The entrest-generated handler serves a separate standard REST API endpoint.
+**Caching strategy:**
+- `actions/setup-go@v6` caches Go modules automatically (keyed on `go.sum`)
+- `golangci-lint-action@v9` caches lint analysis results separately
+- No manual cache configuration needed
 
-## What NOT to Add
+### golangci-lint v2 Configuration
 
-| Technology | Why Not |
-|-----------|---------|
-| chi/v5 router | Not needed. Stdlib ServeMux handles entrest HandlerStdlib paths. entrest explicitly supports Go 1.22+ stdlib path matching. |
-| ConnectRPC | gRPC is deferred to a future milestone. |
-| entproto | gRPC is deferred to a future milestone. |
-| encoding/xml | PeeringDB API is JSON-only. |
-| github.com/gorilla/mux | Dead project (archived). Stdlib ServeMux supersedes it with Go 1.22+. |
-| Any JSON serialization library (jsoniter, easyjson) | encoding/json is sufficient for response serialization. PeeringDB responses are already deserialized during sync. REST API responses are ent-generated structs serialized once per request. |
-| Any query string parsing library | PeeringDB filter params (`__contains`, `__gt`, etc.) are simple enough to parse with `net/url` and string splitting. No library needed. |
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| golangci-lint | v2.11 | Linter aggregator | Current stable release line (v2.11.4, 2026-03-22). v2 is a breaking change from v1 -- new config format with `version: "2"`. Merged `gosimple` + `stylecheck` into `staticcheck`. Moved formatters (gofumpt, goimports) to `formatters` section. | HIGH |
 
-## Dependency Impact Analysis
+**Default linters (the `standard` preset):**
+- `errcheck` -- unchecked error returns
+- `govet` -- suspicious constructs (Go's built-in `go vet`)
+- `ineffassign` -- assignments to variables that are never used
+- `staticcheck` -- comprehensive static analysis (absorbed `gosimple` + `stylecheck`)
+- `unused` -- unused code detection
 
-**New direct dependencies for v1.1:**
+**Additional linters to enable (beyond defaults):**
+- `gosec` -- security-oriented checks (SEC-1, SEC-2 from CLAUDE.md)
+- `errorlint` -- proper `errors.Is`/`errors.As` usage (ERR-2 from CLAUDE.md)
+- `nilerr` -- returning nil when err is not nil
+- `bodyclose` -- HTTP response body closure
+- `unconvert` -- unnecessary type conversions
+- `misspell` -- common misspellings in comments and strings
+- `copyloopvar` -- Go 1.22+ loop variable semantics (modern Go per CS-0)
+- `intrange` -- prefer `range N` over `for i := 0; i < N; i++` (Go 1.22+)
+- `gocritic` -- opinionated Go best practices
 
-| Dependency | New? | Transitive Impact |
-|-----------|------|-------------------|
-| `github.com/lrstanley/entrest` v1.0.2 | YES | Adds `github.com/ogen-go/ogen` (OpenAPI spec generation), `github.com/stoewer/go-strcase` (case conversion). Both are build-time only (used during `go generate`, not at runtime). |
-| `go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp` v0.67.0 | NO | Already in go.mod. Zero new dependencies. |
-| `go.opentelemetry.io/otel/metric` v1.42.0 | NO | Already in go.mod. Zero new dependencies. |
+**Formatters to enable:**
+- `gofumpt` -- stricter gofmt (per TL-1 from CLAUDE.md)
+- `goimports` -- import grouping and ordering
 
-**Total new runtime dependencies: 0** -- entrest generates code at build time; its dependencies are `go generate`-time only and do not appear in the compiled binary.
+**Linters to NOT enable:**
+- `depguard` -- dependency allowlisting is overkill for this project
+- `funlen` -- the serializer functions are necessarily long (13 type mappers)
+- `wsl` -- overly opinionated whitespace enforcement
+- `gocognit` / `cyclop` -- the filter parser has inherent complexity, these would generate noise
+- `ireturn` -- conflicts with API-2 (return concrete types) in cases where interfaces are needed
+- `nlreturn` -- stylistic, not safety-related
 
-## Version Compatibility Matrix
+**v2 config format (`.golangci.yml`):**
 
-| Component | Our Version | entrest Requires | Compatible? |
-|-----------|-------------|-----------------|-------------|
-| Go | 1.26.1 | >= 1.24.0 | YES |
-| entgo.io/ent | v0.14.5 | v0.14.5 | YES (exact match) |
-| entgo.io/contrib | v0.7.0 | N/A (no dependency) | N/A |
-| net/http ServeMux | Go 1.26 | Go 1.22+ path matching | YES |
+```yaml
+version: "2"
 
-## Installation (v1.1 additions only)
+run:
+  timeout: 5m
 
-```bash
-# entrest (the only new dependency)
-go get github.com/lrstanley/entrest@v1.0.2
+linters:
+  default: standard
+  enable:
+    - gosec
+    - errorlint
+    - nilerr
+    - bodyclose
+    - unconvert
+    - misspell
+    - copyloopvar
+    - intrange
+    - gocritic
+  settings:
+    govet:
+      enable-all: true
+    staticcheck:
+      checks: ["all"]
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+  exclusions:
+    presets:
+      - common-false-positives
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+      - path: ent/
+        linters:
+          - gocritic
+          - gosec
 
-# Everything else is already in go.mod
-go mod tidy
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  exclusions:
+    paths:
+      - ent/
 ```
 
-## Risk Register (v1.1 specific)
+**Key exclusions explained:**
+- `ent/` directory: Generated code, not hand-written. Exclude from style linters and formatters.
+- `_test.go` files: Security linter (`gosec`) is noisy on test code (hardcoded test values, etc.)
+- `common-false-positives` preset: Built-in exclusion set that suppresses known false positives
+
+### Test Execution
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| `go test` (stdlib) | Go 1.26 | Test runner | `-race` flag for race detection (T-2, G-3). `-count=1` to disable test caching in CI. `-v` for verbose output. | HIGH |
+
+**Why NOT gotestsum:**
+- `go test -v ./...` output is sufficient for GitHub Actions (setup-go's problem matcher already parses it)
+- gotestsum adds a binary installation step and another tool to maintain
+- JUnit XML reporting is not needed (no external test dashboard integration planned)
+- Can add later if test output becomes unwieldy
+
+**Race detection considerations with modernc.org/sqlite:**
+- modernc.org/sqlite is pure Go, so `-race` works without CGo complications
+- The existing `testutil.SetupClient` creates isolated in-memory databases per test (unique DSN per `dbCounter`)
+- `t.Parallel()` is already used throughout existing tests
+- No known race issues with modernc.org/sqlite when using separate connections (confirmed by their CI running with `-race` for 2+ years)
+
+## Promote from Indirect to Direct
+
+| Dependency | Current | Action | Rationale |
+|------------|---------|--------|-----------|
+| `github.com/google/go-cmp` | v0.7.0 indirect | Promote to direct | Used explicitly in golden file test assertions via `cmp.Diff`. Already in `go.sum`. No version change. |
+
+## No New Go Dependencies
+
+Everything else needed is:
+- Stdlib (`flag`, `os`, `filepath`, `testing`, `net/http/httptest`)
+- Already in `go.mod` (`google/go-cmp` as indirect)
+- GitHub Actions configuration (YAML, not Go code)
+- golangci-lint configuration (YAML, not Go code)
+
+**This is deliberate.** A quality/CI milestone should not introduce new runtime dependencies.
+
+## Alternatives Considered
+
+| Category | Recommended | Alternative | Why Not |
+|----------|-------------|-------------|---------|
+| Golden file library | Stdlib `flag.Bool` pattern | `github.com/sebdah/goldie/v2` | Goldie is 1.5K stars but adds abstraction over trivial file I/O. The stdlib pattern is ~20 lines, fully transparent, used by Go stdlib itself. |
+| Golden file library | Stdlib `flag.Bool` pattern | `gotest.tools/v3/golden` | Part of larger `gotest.tools` suite. Pulls in transitive deps. Overkill for JSON file comparison. |
+| Golden file library | Stdlib `flag.Bool` pattern | `github.com/xorcare/golden` | Well-designed but small user base (100 stars). Adds a dependency for what stdlib handles natively. |
+| Golden file format | Plain JSON `.golden` files | `txtar` archives | txtar is for multi-file test archives (compiler tests, gopls). Our golden files are single JSON responses. txtar adds unnecessary indirection. |
+| Test diff output | `google/go-cmp` | `reflect.DeepEqual` + `fmt.Sprintf` | `cmp.Diff` produces readable unified diffs. `DeepEqual` gives only true/false -- useless for debugging JSON mismatches. |
+| Test diff output | `google/go-cmp` | `encoding/json` manual comparison | Byte-level comparison is fragile (key ordering, whitespace). `cmp.Diff` compares semantically. |
+| CI test output | Raw `go test -v` | `gotestsum` | Adds install step, another tool version to track. `go test -v` output is parsed by `actions/setup-go` problem matcher already. Reconsider if test suite grows past 100 tests. |
+| CI lint action | `golangci/golangci-lint-action@v9` | `reviewdog/action-golangci-lint` | reviewdog is a wrapper around golangci-lint. Adds indirection. Official action has better caching and is maintained by golangci-lint authors. |
+| golangci-lint version | v2.11 | v1.x (legacy) | v1.x is end-of-life. v2 is current. Config format is incompatible but `golangci-lint migrate` handles conversion. Starting fresh with v2 config. |
+| CI runner OS | `ubuntu-latest` | Matrix with macOS/Windows | This is a server application deployed on Linux (Fly.io). macOS/Windows testing adds CI minutes for no deployment benefit. modernc.org/sqlite is pure Go, no platform-specific code. |
+| Go version matrix | Single `go-version-file: go.mod` | Matrix with Go 1.25 + 1.26 | Project targets Go 1.26 exclusively. No backward compat requirement. Matrix testing wastes CI minutes. |
+
+## Version Pinning Strategy
+
+| Component | Pin Strategy | Rationale |
+|-----------|-------------|-----------|
+| Go version | Read from `go.mod` (`go 1.26.1`) | Single source of truth. `actions/setup-go` reads it via `go-version-file`. |
+| golangci-lint | `version: v2.11` in action config | Pin to minor version. Action resolves latest patch. |
+| `google/go-cmp` | v0.7.0 in `go.mod` | Already pinned. Stable API. |
+| GitHub Actions | Major version tags (`@v6`, `@v9`) | Standard practice. Major versions are stable. |
+
+## Risk Register
 
 | Risk | Severity | Likelihood | Mitigation |
 |------|----------|------------|------------|
-| entrest generated code incompatible with existing entgql code | MEDIUM | LOW | Both extensions operate on the same ent graph but generate independent files. entgql generates `gql_*.go`, entrest generates `rest*.go`. Run `go generate` and compile to verify before any logic work. |
-| entrest DefaultOperations does not fully suppress mutation endpoints | MEDIUM | LOW | Verify generated code contains no Create/Update/Delete handlers. If it does, add `WithExcludeOperations` annotations on each schema as backup. |
-| PeeringDB filter syntax complexity (`__contains`, `__startswith`, etc.) | MEDIUM | MEDIUM | Implement filters incrementally. Start with exact match and `__in`, add string/numeric filters in a follow-up. Most PeeringDB API consumers use exact match. |
-| entrest pagination format differs from PeeringDB `limit/skip` | LOW | HIGH | Expected difference. The PeeringDB compat layer translates `limit`/`skip` to ent `.Limit(n).Offset(n)` calls directly. |
-| otelhttp transport adds latency to PeeringDB requests | LOW | LOW | otelhttp transport overhead is <1ms per request. PeeringDB API latency is 100-500ms per request. Negligible. |
-| Sync metrics cardinality explosion from per-type attributes | LOW | LOW | 13 object types x 2 actions = 26 unique attribute combinations. Well within safe cardinality bounds. |
+| golangci-lint v2 config format unfamiliar | LOW | MEDIUM | Format is well-documented. `golangci-lint migrate` converts v1 configs. Starting fresh with v2 avoids migration issues. |
+| Generated `ent/` code triggers lint warnings | MEDIUM | HIGH | Exclude `ent/` from linters and formatters via `exclusions.paths`. Already planned in config above. |
+| Golden file tests become brittle (timestamp sensitivity) | MEDIUM | MEDIUM | Use fixed `time.Date()` values in test data (already done in existing tests). Normalize timestamps in golden file comparison if needed. |
+| `-race` flag slows CI significantly | LOW | LOW | modernc.org/sqlite pure Go is not affected by CGo race detector overhead. Tests are fast (in-memory SQLite). Budget 2-3x normal test time for race detection. |
+| GitHub Actions runner doesn't have Go 1.26.1 | LOW | LOW | `actions/setup-go` downloads Go versions on demand. Not limited to pre-installed versions. |
 
 ## Sources
 
-- [otelhttp Transport source](https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/instrumentation/net/http/otelhttp/transport.go) - NewTransport API and capabilities
-- [otelhttp pkg.go.dev](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp@v0.67.0) - v0.67.0 published 2026-03-06
-- [otelhttp client example](https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/instrumentation/net/http/otelhttp/example/client/client.go) - Official client transport example
-- [OTel Go metric API](https://pkg.go.dev/go.opentelemetry.io/otel/metric) - Instrument types and recording API
-- [entrest GitHub](https://github.com/lrstanley/entrest) - Source repository
-- [entrest pkg.go.dev](https://pkg.go.dev/github.com/lrstanley/entrest@v1.0.2) - v1.0.2 published 2025-08-21
-- [entrest Getting Started](https://lrstanley.github.io/entrest/guides/getting-started/) - Integration guide
-- [entrest Annotations](https://lrstanley.github.io/entrest/openapi-specs/annotation-reference/) - Operation control, read-only mode
-- [entrest config.go](https://github.com/lrstanley/entrest/blob/master/config.go) - Full Config struct definition
-- [PeeringDB API Specs](https://docs.peeringdb.com/api_specs/) - Response envelope, query params, filter syntax
-- [PeeringDB Search Guide](https://docs.peeringdb.com/howto/search/) - Filter parameter documentation
+- [Go wiki: TestComments](https://go.dev/wiki/TestComments) -- `cmp.Diff` recommendation
+- [Go gofmt test source](https://go.dev/src/cmd/gofmt/gofmt_test.go?m=text) -- `var update = flag.Bool("update", ...)` pattern
+- [File-driven testing in Go (Eli Bendersky)](https://eli.thegreenplace.net/2022/file-driven-testing-in-go/) -- golden file pattern with `testdata/`
+- [Golden file testing (Ibrahim Jarif)](https://jarifibrahim.github.io/blog/golden-files-why-you-should-use-them/) -- `-update` flag pattern
+- [google/go-cmp v0.7.0](https://github.com/google/go-cmp/releases) -- released 2026-02-21
+- [golangci-lint releases](https://github.com/golangci/golangci-lint/releases) -- v2.11.4 released 2026-03-22
+- [golangci-lint v2 migration guide](https://golangci-lint.run/docs/product/migration-guide/) -- config format changes
+- [golangci-lint v2 config reference](https://golangci-lint.run/docs/configuration/file/) -- `version: "2"` format
+- [golangci-lint default linters](https://golangci-lint.run/docs/welcome/quick-start/) -- `standard` preset: errcheck, govet, ineffassign, staticcheck, unused
+- [golangci-lint-action](https://github.com/golangci/golangci-lint-action) -- v9.0.0, requires golangci-lint >= v2.1.0
+- [actions/setup-go](https://github.com/actions/setup-go) -- v6, auto-caches Go modules
+- [actions/checkout](https://github.com/actions/checkout/releases) -- v6.0.2, Jan 2026
+- [Golden config for golangci-lint](https://gist.github.com/maratori/47a4d00457a92aa426dbd48a18776322) -- comprehensive v2 example
+- [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite) -- race detector compatibility confirmed
