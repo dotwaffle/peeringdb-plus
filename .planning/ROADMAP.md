@@ -63,9 +63,9 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
   5. First sync always performs a full fetch regardless of mode (no ?since= on empty database)
 **Plans**: 3 plans
 Plans:
-- [ ] 08-01-PLAN.md — SyncMode config and FetchAll functional options with FetchResult
-- [ ] 08-02-PLAN.md — Per-type sync cursor persistence and fallback counter metric
-- [ ] 08-03-PLAN.md — Mode-aware sync worker orchestration and POST /sync ?mode= wiring
+- [x] 08-01-PLAN.md — SyncMode config and FetchAll functional options with FetchResult
+- [x] 08-02-PLAN.md — Per-type sync cursor persistence and fallback counter metric
+- [x] 08-03-PLAN.md — Mode-aware sync worker orchestration and POST /sync ?mode= wiring
 
 ### Phase 9: Golden File Tests & Conformance
 **Goal**: PeeringDB compat layer responses are verified against committed reference files, and a conformance tool can compare output against the real PeeringDB API
