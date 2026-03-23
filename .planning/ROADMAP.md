@@ -61,7 +61,11 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
   3. Per-type last-sync timestamps are tracked in the extended sync_status table
   4. When an incremental sync fails for a specific type, it immediately falls back to a full sync for that type
   5. First sync always performs a full fetch regardless of mode (no ?since= on empty database)
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 08-01-PLAN.md — SyncMode config and FetchAll functional options with FetchResult
+- [ ] 08-02-PLAN.md — Per-type sync cursor persistence and fallback counter metric
+- [ ] 08-03-PLAN.md — Mode-aware sync worker orchestration and POST /sync ?mode= wiring
 
 ### Phase 9: Golden File Tests & Conformance
 **Goal**: PeeringDB compat layer responses are verified against committed reference files, and a conformance tool can compare output against the real PeeringDB API
@@ -101,6 +105,6 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10
 | 5. entrest REST API | v1.1 | 3/3 | Complete | 2026-03-22 |
 | 6. PeeringDB Compatibility Layer | v1.1 | 3/3 | Complete | 2026-03-22 |
 | 7. Lint & Code Quality | v1.2 | 0/0 | Not started | - |
-| 8. Incremental Sync | v1.2 | 0/0 | Not started | - |
+| 8. Incremental Sync | v1.2 | 0/3 | Not started | - |
 | 9. Golden File Tests & Conformance | v1.2 | 0/0 | Not started | - |
 | 10. CI Pipeline & Public Access | v1.2 | 0/0 | Not started | - |
