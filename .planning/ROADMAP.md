@@ -49,7 +49,10 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
   1. Running `golangci-lint run` passes with zero violations on all hand-written code
   2. Running `go vet ./...` passes clean across the entire codebase
   3. Generated code (ent, gqlgen) is excluded from linting without suppressing hand-written code in `ent/schema/`
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 07-01-PLAN.md — Configure golangci-lint v2 and remove dead code
+- [ ] 07-02-PLAN.md — Fix all lint violations and verify clean pass
 
 ### Phase 8: Incremental Sync
 **Goal**: Sync mode is configurable between full re-fetch and incremental delta fetch, with per-type timestamp tracking and automatic fallback on failure
@@ -100,7 +103,7 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10
 | 4. Observability Foundations | v1.1 | 2/2 | Complete | 2026-03-22 |
 | 5. entrest REST API | v1.1 | 3/3 | Complete | 2026-03-22 |
 | 6. PeeringDB Compatibility Layer | v1.1 | 3/3 | Complete | 2026-03-22 |
-| 7. Lint & Code Quality | v1.2 | 0/0 | Not started | - |
+| 7. Lint & Code Quality | v1.2 | 0/2 | Planning | - |
 | 8. Incremental Sync | v1.2 | 0/0 | Not started | - |
 | 9. Golden File Tests & Conformance | v1.2 | 0/0 | Not started | - |
 | 10. CI Pipeline & Public Access | v1.2 | 0/0 | Not started | - |
