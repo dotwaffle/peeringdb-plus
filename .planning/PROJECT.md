@@ -94,16 +94,14 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.1 with 6 phases (3 from v1.0 + 3 from v1.1), 22 plans, 43 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/.
+Shipped v1.1 with 6 phases (3 from v1.0 + 3 from v1.1), 22 plans, 43 tasks. Go codebase (~57K LOC) using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/.
 
-**Known tech debt (remaining from v1.0):**
+**Known tech debt:**
 - DataLoader middleware wired but unused (entgql handles N+1 natively)
 - Vestigial config.IsPrimary field (replaced by LiteFS detection)
 - graph/globalid.go exported functions unused (ent Noder handles it)
-
-**Resolved in v1.1:**
-- Custom sync metrics now recorded (was registered but unused)
-- PeeringDB HTTP client now has OTel trace spans
+- Golden file tests not implemented for REST API (fixture-based tests sufficient)
+- 3 human verification items deferred (response fidelity vs live PeeringDB, readiness gating under real conditions, CORS headers — require real deployment)
 
 ---
-*Last updated: 2026-03-22 after v1.1 milestone complete*
+*Last updated: 2026-03-23 after v1.1 milestone archived*

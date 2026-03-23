@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: REST API & Observability
-status: v1.1 milestone complete
-stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-03-22T23:52:25.922Z"
+status: archived
+stopped_at: Milestone v1.1 archived
+last_updated: "2026-03-23T19:25:00.000Z"
 progress:
   total_phases: 3
   completed_phases: 3
@@ -16,15 +16,15 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-22)
+See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 06 — peeringdb-compatibility-layer
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
+Phase: Complete (all v1.0 + v1.1 phases shipped)
+Plan: N/A — awaiting next milestone
 
 ## Performance Metrics
 
@@ -52,14 +52,7 @@ Plan: Not started
 
 ### Decisions
 
-All v1.0 decisions archived in PROJECT.md Key Decisions table.
-
-- [Phase 06]: Used FieldEqualFold for case-insensitive exact match on strings, FieldHasPrefixFold for startswith per D-10
-- [Phase 06]: Generic castPredicates function to convert sql.Selector funcs to typed ent predicates, avoiding 13-way type switch
-- [Phase 06]: Single wildcard pattern GET /api/{rest...} for unified route registration, avoiding Go 1.22+ ServeMux conflicts
-- [Phase 06]: Depth expansion uses ent Query + With* eager loading rather than separate queries per relationship
-- [Phase 06]: Depth=2 responses use map[string]any via JSON round-trip to dynamically inject _set fields
-- [Phase 06]: Field projection preserves _set and expanded FK objects regardless of requested field list
+All decisions archived in PROJECT.md Key Decisions table.
 
 ### Pending Todos
 
@@ -71,6 +64,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T23:36:53.495Z
-Stopped at: Completed 06-03-PLAN.md
+Last session: 2026-03-23
+Stopped at: Milestone v1.1 archived
 Resume file: None
