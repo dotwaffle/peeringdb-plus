@@ -30,7 +30,7 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 ### Active
 
 - [ ] Fully public — verify no auth barriers, document public access model
-- [ ] Golden file tests for PeeringDB compatibility layer
+- [x] Golden file tests for PeeringDB compatibility layer — v1.2 Phase 9
 - [ ] CI pipeline (GitHub Actions) enforcing tests, linting, and vetting
 - [x] All tests pass with -race, all linters pass clean — v1.2 Phase 7
 - [ ] Expose data via gRPC (entproto) — deferred to future milestone
@@ -88,6 +88,8 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 | entrest for REST API generation | Code-generated REST alongside entgql from same schemas, read-only config | ✓ Validated Phase 5 |
 | PeeringDB compat layer queries ent directly | NOT wrapping entrest — different response envelopes, query parameters, and serialization requirements | ✓ Validated Phase 6 |
 | Generic Django-style filter parser | One parser handles all 13 types via shared func(*sql.Selector) predicate type | ✓ Validated Phase 6 |
+| Golden file tests with go-cmp for compat layer | 39 golden files (13 types x 3 scenarios) with -update flag for regeneration | ✓ Validated Phase 9 |
+| Structure-only conformance comparison | CompareStructure checks field names/types/nesting, not values — handles live data changes | ✓ Validated Phase 9 |
 
 ## Evolution
 
