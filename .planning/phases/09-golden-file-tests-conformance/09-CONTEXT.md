@@ -25,6 +25,11 @@ Create golden file test infrastructure for the PeeringDB compat layer with `-upd
 - Entity IDs explicitly set with `SetID()` (not relying on auto-increment)
 - Dedicated golden file test setup (separate from existing setupTestHandler which uses time.Now())
 
+### Golden File Storage
+- Golden files may contain large amounts of data — consider compressing them (gzip)
+- Consider using git-lfs to prevent golden files from bloating git history
+- Evaluate whether compressed golden files are still diffable for PR review
+
 ### Golden File Scope
 - All 13 PeeringDB types x 3 scenarios (list, detail, depth) = 39 golden files
 - Scenarios: list endpoint response, detail endpoint response, depth-expanded response with `_set` fields
