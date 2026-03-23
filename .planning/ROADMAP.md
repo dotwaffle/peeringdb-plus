@@ -34,8 +34,8 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
 
 **Milestone Goal:** Harden the codebase with linting enforcement, add configurable incremental sync, golden file tests for the PeeringDB compat layer, conformance testing against live PeeringDB, and CI via GitHub Actions.
 
-- [ ] **Phase 7: Lint & Code Quality** — Configure golangci-lint v2 and fix all existing violations
-- [ ] **Phase 8: Incremental Sync** — Configurable sync mode with per-type delta fetches via PeeringDB ?since= parameter
+- [x] **Phase 7: Lint & Code Quality** — Configure golangci-lint v2 and fix all existing violations
+- [x] **Phase 8: Incremental Sync** — Configurable sync mode with per-type delta fetches via PeeringDB ?since= parameter
 - [ ] **Phase 9: Golden File Tests & Conformance** — Golden file test infrastructure for PeeringDB compat layer and conformance tooling against beta.peeringdb.com
 - [ ] **Phase 10: CI Pipeline & Public Access** — GitHub Actions enforcement and public access documentation
 
@@ -104,7 +104,7 @@ Phases execute in numeric order: 7 -> 8 -> 9 -> 10
 | 4. Observability Foundations | v1.1 | 2/2 | Complete | 2026-03-22 |
 | 5. entrest REST API | v1.1 | 3/3 | Complete | 2026-03-22 |
 | 6. PeeringDB Compatibility Layer | v1.1 | 3/3 | Complete | 2026-03-22 |
-| 7. Lint & Code Quality | v1.2 | 0/0 | Not started | - |
-| 8. Incremental Sync | v1.2 | 0/3 | Not started | - |
+| 7. Lint & Code Quality | v1.2 | 2/2 | Complete | 2026-03-23 |
+| 8. Incremental Sync | v1.2 | 3/3 | Complete | 2026-03-23 |
 | 9. Golden File Tests & Conformance | v1.2 | 0/0 | Not started | - |
 | 10. CI Pipeline & Public Access | v1.2 | 0/0 | Not started | - |
