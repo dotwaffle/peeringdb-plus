@@ -138,7 +138,11 @@ Plans:
   3. Search results, collapsible sections, and page transitions have smooth CSS animations
   4. A loading indicator appears during any htmx request so the user knows the system is working
   5. Visiting an invalid URL shows a styled 404 page, and server errors show a styled 500 page, both matching the overall design
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 17-01-PLAN.md -- Dark mode toggle, CSS transitions, loading indicators, and visual polish
+- [ ] 17-02-PLAN.md -- Styled 404/500 error pages and About page with data freshness
+- [ ] 17-03-PLAN.md -- Keyboard navigation for search results with ARIA roles
 **UI hint**: yes
 
 ## Progress
@@ -164,4 +168,4 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17
 | 14. Live Search | v1.4 | 2/2 | Complete    | 2026-03-24 |
 | 15. Record Detail Pages | v1.4 | 2/2 | Complete    | 2026-03-24 |
 | 16. ASN Comparison | v1.4 | 2/2 | Complete    | 2026-03-24 |
-| 17. Polish & Accessibility | v1.4 | 0/? | Not started | - |
+| 17. Polish & Accessibility | v1.4 | 0/3 | Not started | - |
