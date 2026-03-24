@@ -2,6 +2,52 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.4 — Web UI
+
+**Shipped:** 2026-03-24
+**Phases:** 5 | **Plans:** 11 | **Tasks:** 22
+
+### What Was Built
+- templ + htmx + Tailwind CSS web UI with dual rendering (full page vs htmx fragment)
+- Live search with errgroup fan-out across 6 entity types, grouped results with count badges
+- Detail pages for all 6 entity types with lazy-loaded collapsible sections via htmx fragments
+- ASN comparison tool with map-based set intersection for shared IXPs/facilities/campuses
+- Dark mode with system preference detection and manual toggle, CSS transitions, loading indicators
+- Styled 404/500 error pages, About page with live data freshness
+- Keyboard navigation with ARIA listbox/option roles for search results
+
+### What Worked
+- templ + htmx eliminated need for JS build toolchain — no Node.js, no bundler, no SPA complexity
+- Dual render mode (full page vs fragment) via HX-Request header kept templates DRY
+- errgroup fan-out for search queries gave sub-300ms results across 6 types
+- Tailwind CDN avoided build-step complexity at the cost of ~300KB (acceptable trade-off for dev velocity)
+- Prefix-based dispatch routing handled all detail page URLs with a clean switch statement
+
+### What Was Inefficient
+- 13-02 and 17-03 plan checkboxes in ROADMAP.md weren't ticked during execution (stale state)
+- 20 human verification items deferred — browser UX testing not possible in CLI sessions
+- Nyquist validation skipped for Phases 16-17 (research phase omitted for speed)
+
+### Patterns Established
+- renderPage helper with HX-Request check and Vary header for dual rendering
+- Fragment endpoints that bypass renderPage, write bare HTML directly to ResponseWriter
+- SearchGroup/SearchResult types in templates package to avoid circular imports
+- Class-based dark mode via @custom-variant with localStorage persistence
+- IIFE script pattern in layout for keyboard navigation without global scope pollution
+
+### Key Lessons
+1. Server-rendered HTML with htmx handles complex UI interactions (live search, lazy loading, comparison) without SPA complexity
+2. CDN-delivered CSS (Tailwind) is the right trade-off for projects without a frontend build pipeline
+3. Human verification items accumulate fast in UI milestones — plan for manual testing sessions
+4. Map-based set intersection is the cleanest pattern for "where can we peer?" comparisons
+
+### Cost Observations
+- Model mix: ~85% opus, ~15% sonnet (subagents)
+- Sessions: ~3 sessions
+- Notable: 5 phases (11 plans) completed in a single day — largest milestone by plan count
+
+---
+
 ## Milestone: v1.3 — PeeringDB API Key Support
 
 **Shipped:** 2026-03-24
@@ -134,6 +180,7 @@
 | v1.1 | ~4 | 3 | Milestone audit added, caught integration regression |
 | v1.2 | ~3 | 4 | golangci-lint enforcement, golden file tests, CI pipeline |
 | v1.3 | 1 | 2 | Smallest milestone — focused scope, fastest execution |
+| v1.4 | ~3 | 5 | Largest milestone — full web UI, 11 plans in one day |
 
 ### Cumulative Quality
 
@@ -143,6 +190,7 @@
 | v1.1 | 8 | 16 | 15 REST + 25 filter + 7 compat |
 | v1.2 | 9 | 18 | 39 golden file + conformance CLI |
 | v1.3 | 3 | 4 | 7 client auth + 4 CLI auth |
+| v1.4 | 11 | 22 | 80+ detail page tests, search + compare integration |
 
 ### Top Lessons (Verified Across Milestones)
 

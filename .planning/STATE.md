@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Web UI
-status: v1.4 milestone complete
-stopped_at: Completed 17-03-PLAN.md
+status: v1.4 shipped, no active milestone
+stopped_at: Milestone v1.4 finalized
 last_updated: "2026-03-24T08:28:59.817Z"
 progress:
   total_phases: 5
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 17 — polish-accessibility
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
+Phase: None — v1.4 shipped
+Plan: None
 
 ## Performance Metrics
 
@@ -96,6 +96,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T08:14:26.956Z
-Stopped at: Completed 17-03-PLAN.md
+Last session: 2026-03-24
+Stopped at: Milestone v1.4 finalized
 Resume file: None
