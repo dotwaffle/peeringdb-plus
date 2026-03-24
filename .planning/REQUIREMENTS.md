@@ -9,14 +9,14 @@ Requirements for milestone v1.5 Tech Debt & Observability. Each maps to roadmap 
 
 ### Tech Debt
 
-- [x] **DEBT-01**: WorkerConfig.IsPrimary dead field removed from internal/sync/worker.go -- Resolved: converted to live `func() bool` by quick task 260324-lc5, planning docs corrected in plan 18-01
-- [x] **DEBT-02**: Planning docs updated to reflect DataLoader already removed in v1.2, only IsPrimary remains -- Resolved: PROJECT.md and Phase 7 summary corrected in plan 18-01
+- [x] **DEBT-01**: WorkerConfig.IsPrimary dead field removed from internal/sync/worker.go
+- [x] **DEBT-02**: Planning docs updated to reflect DataLoader already removed in v1.2, only IsPrimary remains
 
 ### Data Integrity
 
-- [ ] **DATA-01**: meta.generated field behavior verified empirically against live PeeringDB API for depth=0 full fetch, paginated incremental, and empty result set
-- [ ] **DATA-02**: Graceful fallback confirmed working when meta.generated is absent (zero-time fallback to started_at - 5min)
-- [ ] **DATA-03**: meta.generated findings documented with observed response structures
+- [x] **DATA-01**: meta.generated field behavior verified empirically against live PeeringDB API for depth=0 full fetch, paginated incremental, and empty result set
+- [x] **DATA-02**: Graceful fallback confirmed working when meta.generated is absent (zero-time fallback to started_at - 5min)
+- [x] **DATA-03**: meta.generated findings documented with observed response structures
 
 ### Observability
 
@@ -66,11 +66,11 @@ Requirements for milestone v1.5 Tech Debt & Observability. Each maps to roadmap 
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEBT-01 | Phase 18 | Complete (plan 18-01) |
-| DEBT-02 | Phase 18 | Complete (plan 18-01) |
-| DATA-01 | Phase 18 | Pending |
-| DATA-02 | Phase 18 | Pending |
-| DATA-03 | Phase 18 | Pending |
+| DEBT-01 | Phase 18 | Complete |
+| DEBT-02 | Phase 18 | Complete |
+| DATA-01 | Phase 18 | Complete |
+| DATA-02 | Phase 18 | Complete |
+| DATA-03 | Phase 18 | Complete |
 | OBS-01 | Phase 19 | Pending |
 | OBS-02 | Phase 19 | Pending |
 | OBS-03 | Phase 19 | Pending |
