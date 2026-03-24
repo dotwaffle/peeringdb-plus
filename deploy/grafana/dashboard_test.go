@@ -56,9 +56,7 @@ func allPanels(d dashboard) []panel {
 	var out []panel
 	for _, p := range d.Panels {
 		out = append(out, p)
-		for _, nested := range p.Panels {
-			out = append(out, nested)
-		}
+		out = append(out, p.Panels...)
 	}
 	return out
 }
