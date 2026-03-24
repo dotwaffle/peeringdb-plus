@@ -200,14 +200,15 @@ func main() {
 
 	// Mount entrest-generated REST API at /rest/v1/ per D-01, D-04.
 	// Read-only (OperationRead + OperationList) configured via entrest annotations.
-	restSrv, err := rest.NewServer(entClient, &rest.ServerConfig{})
+	restSrv, err := rest.NewServer(entClient, &rest.ServerConfig{
+		BasePath: "/rest/v1",
+	})
 	if err != nil {
 		logger.Error("failed to create REST server", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-	restHandler := http.StripPrefix("/rest/v1", restSrv.Handler())
 	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})
-	mux.Handle("/rest/v1/", restCORS(restHandler))
+	mux.Handle("/rest/v1/", restCORS(restSrv.Handler()))
 	logger.Info("REST API mounted", slog.String("prefix", "/rest/v1/"))
 
 	// Mount PeeringDB compatibility API at /api/ per D-27, D-28.
