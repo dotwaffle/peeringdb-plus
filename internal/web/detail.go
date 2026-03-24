@@ -42,7 +42,7 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 			return
 		}
 		slog.Error("query network by ASN", slog.Int("asn", asn), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render network detail", slog.Int("asn", asn), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 	}
 }
 
@@ -118,7 +118,7 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 			return
 		}
 		slog.Error("query internet exchange", slog.Int("id", id), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -158,7 +158,7 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render ix detail", slog.Int("id", id), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 	}
 }
 
@@ -181,7 +181,7 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 			return
 		}
 		slog.Error("query facility", slog.Int("id", id), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -222,7 +222,7 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render facility detail", slog.Int("id", id), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 	}
 }
 
@@ -243,7 +243,7 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 			return
 		}
 		slog.Error("query organization", slog.Int("id", id), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -296,7 +296,7 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render org detail", slog.Int("id", id), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 	}
 }
 
@@ -318,7 +318,7 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 			return
 		}
 		slog.Error("query campus", slog.Int("id", id), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -358,7 +358,7 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render campus detail", slog.Int("id", id), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 	}
 }
 
@@ -380,7 +380,7 @@ func (h *Handler) handleCarrierDetail(w http.ResponseWriter, r *http.Request, id
 			return
 		}
 		slog.Error("query carrier", slog.Int("id", id), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -405,7 +405,7 @@ func (h *Handler) handleCarrierDetail(w http.ResponseWriter, r *http.Request, id
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render carrier detail", slog.Int("id", id), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 	}
 }
 
@@ -503,7 +503,7 @@ func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request
 		All(r.Context())
 	if err != nil {
 		slog.Error("query network ixlans", slog.Int("network_id", netID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -536,7 +536,7 @@ func (h *Handler) handleNetFacilitiesFragment(w http.ResponseWriter, r *http.Req
 		All(r.Context())
 	if err != nil {
 		slog.Error("query network facilities", slog.Int("network_id", netID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -566,7 +566,7 @@ func (h *Handler) handleNetContactsFragment(w http.ResponseWriter, r *http.Reque
 		All(r.Context())
 	if err != nil {
 		slog.Error("query network contacts", slog.Int("network_id", netID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -595,7 +595,7 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 		All(r.Context())
 	if err != nil {
 		slog.Error("query ix participants", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -628,7 +628,7 @@ func (h *Handler) handleIXFacilitiesFragment(w http.ResponseWriter, r *http.Requ
 		All(r.Context())
 	if err != nil {
 		slog.Error("query ix facilities", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -659,7 +659,7 @@ func (h *Handler) handleIXPrefixesFragment(w http.ResponseWriter, r *http.Reques
 		All(r.Context())
 	if err != nil {
 		slog.Error("query ix prefixes", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -684,7 +684,7 @@ func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Reque
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac networks", slog.Int("fac_id", facID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -708,7 +708,7 @@ func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, 
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac ixps", slog.Int("fac_id", facID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -735,7 +735,7 @@ func (h *Handler) handleFacCarriersFragment(w http.ResponseWriter, r *http.Reque
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac carriers", slog.Int("fac_id", facID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -762,7 +762,7 @@ func (h *Handler) handleOrgNetworksFragment(w http.ResponseWriter, r *http.Reque
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org networks", slog.Int("org_id", orgID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -786,7 +786,7 @@ func (h *Handler) handleOrgIXPsFragment(w http.ResponseWriter, r *http.Request, 
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org ixps", slog.Int("org_id", orgID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -810,7 +810,7 @@ func (h *Handler) handleOrgFacilitiesFragment(w http.ResponseWriter, r *http.Req
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org facilities", slog.Int("org_id", orgID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -836,7 +836,7 @@ func (h *Handler) handleOrgCampusesFragment(w http.ResponseWriter, r *http.Reque
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org campuses", slog.Int("org_id", orgID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -860,7 +860,7 @@ func (h *Handler) handleOrgCarriersFragment(w http.ResponseWriter, r *http.Reque
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org carriers", slog.Int("org_id", orgID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -884,7 +884,7 @@ func (h *Handler) handleCampusFacilitiesFragment(w http.ResponseWriter, r *http.
 		All(r.Context())
 	if err != nil {
 		slog.Error("query campus facilities", slog.Int("campus_id", campusID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -910,7 +910,7 @@ func (h *Handler) handleCarrierFacilitiesFragment(w http.ResponseWriter, r *http
 		All(r.Context())
 	if err != nil {
 		slog.Error("query carrier facilities", slog.Int("carrier_id", carrierID), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 

@@ -85,7 +85,7 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 
 	page := PageContent{Title: "Home", Content: templates.Home(query, groups)}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 	}
 }
 
@@ -98,7 +98,7 @@ func (h *Handler) handleSearch(w http.ResponseWriter, r *http.Request) {
 	if len(strings.TrimSpace(query)) >= 2 {
 		results, err := h.searcher.Search(r.Context(), query)
 		if err != nil {
-			http.Error(w, "search error", http.StatusInternalServerError)
+			h.handleServerError(w, r)
 			return
 		}
 		groups = convertToSearchGroups(results)
@@ -114,13 +114,22 @@ func (h *Handler) handleSearch(w http.ResponseWriter, r *http.Request) {
 
 	page := PageContent{Title: "Search", Content: templates.SearchResults(groups)}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 	}
 }
 
 func (h *Handler) handleNotFound(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
-	page := PageContent{Title: "Not Found", Content: templates.Home("", nil)}
+	page := PageContent{Title: "Not Found", Content: templates.NotFoundPage()}
+	if err := renderPage(r.Context(), w, r, page); err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+	}
+}
+
+// handleServerError renders a styled 500 error page.
+func (h *Handler) handleServerError(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusInternalServerError)
+	page := PageContent{Title: "Server Error", Content: templates.ServerErrorPage()}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
@@ -156,7 +165,7 @@ func (h *Handler) handleCompareForm(w http.ResponseWriter, r *http.Request) {
 	asn2 := r.URL.Query().Get("asn2")
 	page := PageContent{Title: "Compare Networks", Content: templates.CompareFormPage(asn1, asn2)}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 	}
 }
 
@@ -178,7 +187,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 			Content: templates.CompareFormPage(parts[0], ""),
 		}
 		if err := renderPage(r.Context(), w, r, page); err != nil {
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			h.handleServerError(w, r)
 		}
 		return
 	}
@@ -206,7 +215,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 			return
 		}
 		slog.Error("compare networks", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 		return
 	}
 
@@ -214,6 +223,6 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 	page := PageContent{Title: title, Content: templates.CompareResultsPage(*data)}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render compare", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.handleServerError(w, r)
 	}
 }

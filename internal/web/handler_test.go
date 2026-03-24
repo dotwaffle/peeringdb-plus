@@ -247,6 +247,67 @@ func TestFooter_Content(t *testing.T) {
 	}
 }
 
+// --- Error page tests ---
+
+func TestNotFoundPage_Styled(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/nonexistent-path", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	checks := []string{"404", "Page not found"}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("404 page missing %q", want)
+		}
+	}
+	// Should contain a search form, not just the home page.
+	if !strings.Contains(body, `name="q"`) {
+		t.Error("404 page should contain search form input")
+	}
+	// Should NOT be the homepage (no API quick link cards).
+	if strings.Contains(body, `<h3 class="text-emerald-400 font-mono font-bold text-lg mb-2">GraphQL</h3>`) {
+		t.Error("404 page should NOT render the homepage API cards")
+	}
+}
+
+func TestNotFoundPage_HasSearchBox(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/bogus", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, `hx-get="/ui/search"`) {
+		t.Error("404 page should contain htmx search form with hx-get=\"/ui/search\"")
+	}
+}
+
+func TestServerError_Render(t *testing.T) {
+	t.Parallel()
+	body := renderComponent(t, templates.ServerErrorPage())
+
+	checks := []string{"500", "Something went wrong", "/ui/"}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("500 page missing %q", want)
+		}
+	}
+}
+
 // --- Search endpoint integration tests ---
 
 func TestSearchEndpoint_EmptyQuery(t *testing.T) {
