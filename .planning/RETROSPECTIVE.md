@@ -2,6 +2,43 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.3 — PeeringDB API Key Support
+
+**Shipped:** 2026-03-24
+**Phases:** 2 | **Plans:** 3 | **Tasks:** 4
+
+### What Was Built
+- WithAPIKey functional option on NewClient with Authorization header injection and 60 req/min authenticated rate limit
+- 401/403 auth error handling with WARN logging, SEC-2 compliant startup logging
+- pdbcompat-check CLI --api-key flag with env var fallback for authenticated conformance testing
+- Live conformance test with conditional 1s/3s sleep based on authentication status
+
+### What Worked
+- Functional options pattern (ClientOption) made API key addition backward-compatible with zero caller changes
+- TDD caught t.Setenv/t.Parallel conflict early — resolved by extracting resolveAPIKey helper
+- Small milestone scope (2 phases, 3 plans) made execution fast and focused
+- Reusing existing patterns (SEC-2 logging, header injection) from earlier milestones kept implementation clean
+
+### What Was Inefficient
+- Nothing significant — this was a well-scoped, surgical milestone
+
+### Patterns Established
+- ClientOption functional options for NewClient (variadic, backward-compatible)
+- CLI flag with env var fallback: flag.StringVar then os.Getenv after flag.Parse()
+- Auth error early-exit between body-discard and isRetryable check in retry loop
+
+### Key Lessons
+1. Small milestones with clear scope execute fastest — 2 phases completed in under 30 minutes
+2. Functional options pattern is the right choice for optional configuration on existing constructors
+3. SEC-2 compliance (never log secrets) should be a pattern, not an afterthought
+
+### Cost Observations
+- Model mix: ~90% opus, ~10% sonnet (subagents)
+- Sessions: 1 session
+- Notable: Entire milestone completed in ~30 minutes wall time
+
+---
+
 ## Milestone: v1.1 — REST API & Observability
 
 **Shipped:** 2026-03-23
@@ -95,6 +132,8 @@
 |-----------|----------|--------|------------|
 | v1.0 | ~3 | 3 | Initial patterns: TDD, fixture tests, code generation |
 | v1.1 | ~4 | 3 | Milestone audit added, caught integration regression |
+| v1.2 | ~3 | 4 | golangci-lint enforcement, golden file tests, CI pipeline |
+| v1.3 | 1 | 2 | Smallest milestone — focused scope, fastest execution |
 
 ### Cumulative Quality
 
@@ -102,9 +141,13 @@
 |-----------|-------|-------|-------------------|
 | v1.0 | 14 | 27 | 16 GraphQL + 4 sync |
 | v1.1 | 8 | 16 | 15 REST + 25 filter + 7 compat |
+| v1.2 | 9 | 18 | 39 golden file + conformance CLI |
+| v1.3 | 3 | 4 | 7 client auth + 4 CLI auth |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Code generation from entgo schemas is the right bet — scales to 13 types without per-type maintenance
-2. Integration tests catch real issues that unit tests miss — both milestones benefited
-3. Phase-level branching creates merge friction — evaluate milestone branches for v1.2
+2. Integration tests catch real issues that unit tests miss — all milestones benefited
+3. Small, focused milestones (v1.3) execute fastest and with fewest issues
+4. Functional options pattern enables backward-compatible extension of constructors
+5. SEC-2 compliance as a pattern (never log secrets) prevents security issues at every integration point

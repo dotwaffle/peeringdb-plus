@@ -1,5 +1,17 @@
 # Milestones
 
+## v1.3 PeeringDB API Key Support (Shipped: 2026-03-24)
+
+**Phases completed:** 2 phases, 3 plans, 4 tasks
+
+**Key accomplishments:**
+
+- PeeringDB API key support via WithAPIKey functional option with 60 req/min authenticated rate limit, Authorization header injection, and 401/403 immediate-fail handling
+- Conditional WithAPIKey wiring in main.go with SEC-2 compliant startup logging indicating key presence
+- API key auth wired into pdbcompat-check CLI (--api-key flag + env fallback) and live conformance test (conditional 1s/3s sleep, auth header injection)
+
+---
+
 ## v1.2 Quality, Incremental Sync & CI (Shipped: 2026-03-24)
 
 **Phases completed:** 4 phases, 9 plans, 18 tasks

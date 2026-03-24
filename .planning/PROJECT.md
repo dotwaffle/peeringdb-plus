@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A high-performance, globally distributed, read-only mirror of PeeringDB data. Syncs all 13 PeeringDB object types via full re-fetch (hourly or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and exposes the data through three API surfaces: GraphQL (with playground), OpenAPI REST (with auto-generated spec), and a PeeringDB-compatible drop-in replacement API. Built in Go using entgo as the ORM, with full OpenTelemetry observability including per-type sync metrics and HTTP client tracing.
+A high-performance, globally distributed, read-only mirror of PeeringDB data. Syncs all 13 PeeringDB object types via full or incremental re-fetch (hourly or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and exposes the data through three API surfaces: GraphQL (with playground), OpenAPI REST (with auto-generated spec), and a PeeringDB-compatible drop-in replacement API. Supports optional PeeringDB API key authentication for higher sync rate limits. Built in Go using entgo as the ORM, with full OpenTelemetry observability including per-type sync metrics and HTTP client tracing.
 
 ## Core Value
 
@@ -26,33 +26,23 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] Sync metrics reviewed, expanded, and wired to record — v1.1
 - [x] Expose data via OpenAPI REST (entrest) — v1.1
 - [x] Full PeeringDB-compatible REST layer (paths, response envelope, query params, field names) — v1.1
-
-### Active
-
 - [x] Fully public — verify no auth barriers, document public access model — v1.2
 - [x] Golden file tests for PeeringDB compatibility layer — v1.2
 - [x] CI pipeline (GitHub Actions) enforcing tests, linting, and vetting — v1.2
 - [x] All tests pass with -race, all linters pass clean — v1.2
-- [ ] Optional PeeringDB API key for authenticated sync with higher rate limits
+- [x] Optional PeeringDB API key for authenticated sync with higher rate limits — v1.3
+- [x] Conformance tooling uses API key for authenticated PeeringDB access — v1.3
+
+### Active
+
 - [ ] Expose data via gRPC (entproto) — deferred to future milestone
 - [ ] Web UI for browsing data (HTMX + Templ) — deferred to future milestone
-
-## Current Milestone: v1.3 PeeringDB API Key Support
-
-**Goal:** Support optional PeeringDB API key authentication for sync and conformance tooling, with higher rate limits when authenticated.
-
-**Target features:**
-- `PDBPLUS_PEERINGDB_API_KEY` env var passed as `Authorization: Api-Key <key>` header on PeeringDB API requests
-- Rate limiter increases when API key is present (PeeringDB grants higher limits to authenticated users)
-- Startup validation: fail fast if key is set but invalid
-- Conformance CLI and live integration tests use the API key when available
-- Graceful degradation: everything works without a key (current behavior preserved)
 
 ### Out of Scope
 
 - Write-path / data modification — this is a read-only mirror
-- User accounts or authentication — fully public
-- OAuth or API key gating — not needed for current scope
+- User accounts or end-user authentication — fully public read access
+- Per-user API key management or rotation — server-side config, restart to change
 - Mobile app — web-first
 - Real-time streaming of changes — periodic sync is sufficient
 
@@ -93,6 +83,9 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 | Structure-only conformance comparison | CompareStructure checks field names/types/nesting, not values — handles live data changes | ✓ Validated Phase 9 |
 | GitHub Actions CI with 4 parallel jobs | lint + go generate drift, test -race, build, govulncheck — coverage PR comments via gh api | ✓ Validated Phase 10 |
 | Public access by design | All read endpoints unauthenticated; only POST /sync gated; root endpoint self-documents | ✓ Validated Phase 10 |
+| ClientOption functional options for NewClient | Backward-compatible variadic opts; WithAPIKey injects auth header without breaking callers | ✓ Validated Phase 11 |
+| 401/403 auth errors never retried | Placed between body-discard and isRetryable check; WARN log with SEC-2 compliance | ✓ Validated Phase 11 |
+| CLI flag with env var fallback for API key | --api-key flag takes precedence over PDBPLUS_PEERINGDB_API_KEY env var | ✓ Validated Phase 12 |
 
 ## Evolution
 
@@ -113,13 +106,14 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.2 with 10 phases (3 from v1.0 + 3 from v1.1 + 4 from v1.2), 31 plans, 61 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. Sync supports full re-fetch and incremental delta fetch with per-type cursor tracking. 39 golden files lock down PeeringDB compat layer responses. GitHub Actions CI enforces lint, test (-race), build, and govulncheck on every PR.
+Shipped v1.3 with 12 phases (3 from v1.0 + 3 from v1.1 + 4 from v1.2 + 2 from v1.3), 34 plans, 65 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. Sync supports full re-fetch and incremental delta fetch with per-type cursor tracking. Optional PeeringDB API key upgrades rate limit from 20 to 60 req/min. 39 golden files lock down PeeringDB compat layer responses. GitHub Actions CI enforces lint, test (-race), build, and govulncheck on every PR.
 
 **Known tech debt:**
 - DataLoader middleware wired but unused (entgql handles N+1 natively)
 - WorkerConfig.IsPrimary dead field (replaced by LiteFS detection, explicitly deferred)
-- 3 human verification items deferred (CI execution on GitHub, coverage comment posting, comment deduplication — require actual GitHub push)
+- 3 human verification items deferred from v1.2 (CI execution on GitHub, coverage comment posting, comment deduplication — require actual GitHub push)
+- 3 human verification items deferred from v1.3 (live CLI with real API key, live integration test with real API key, invalid key rejection)
 - meta.generated field behavior unverified for depth=0 paginated PeeringDB responses (fallback covers this)
 
 ---
-*Last updated: 2026-03-24 after starting v1.3 (PeeringDB API Key Support) milestone*
+*Last updated: 2026-03-24 after v1.3 milestone*
