@@ -8,6 +8,7 @@
 - ✅ **v1.3 PeeringDB API Key Support** — Phases 11-12 (shipped 2026-03-24)
 - ✅ **v1.4 Web UI** — Phases 13-17 (shipped 2026-03-24)
 - ✅ **v1.5 Tech Debt & Observability** — Phases 18-20 (shipped 2026-03-24)
+- 🚧 **v1.6 ConnectRPC / gRPC API** — Phases 21-24 (in progress)
 
 ## Phases
 
@@ -79,10 +80,82 @@ See: `.planning/milestones/v1.5-ROADMAP.md` for full details.
 
 </details>
 
+### 🚧 v1.6 ConnectRPC / gRPC API (In Progress)
+
+**Milestone Goal:** Expose all PeeringDB data via ConnectRPC, providing gRPC, gRPC-Web, and Connect protocol access with reflection, health checking, and typed filtering.
+
+- [ ] **Phase 21: Infrastructure** - Remove LiteFS proxy, implement fly-replay write forwarding, enable h2c
+- [ ] **Phase 22: Proto Generation Pipeline** - Annotate 13 ent schemas, configure buf toolchain, generate protos and ConnectRPC interfaces
+- [ ] **Phase 23: ConnectRPC Services** - Get/List RPCs for all 13 types with observability, reflection, and health checking
+- [ ] **Phase 24: List Filtering** - Typed filter fields on List RPCs for querying across all 13 types
+
+## Phase Details
+
+### Phase 21: Infrastructure
+**Goal**: Application serves traffic directly without LiteFS HTTP proxy, supporting HTTP/2 cleartext for native gRPC wire protocol
+**Depends on**: Phase 20
+**Requirements**: INFRA-01, INFRA-02, INFRA-03, INFRA-04, INFRA-05
+**Success Criteria** (what must be TRUE):
+  1. Application listens on Fly.io internal port directly -- LiteFS proxy is no longer in the request path
+  2. POST /sync on a replica returns a fly-replay response header routing the request to the primary node (when running on Fly.io)
+  3. POST /sync works directly without replay when not running on Fly.io (local dev, tests)
+  4. Server accepts both HTTP/1.1 and HTTP/2 cleartext (h2c) connections on the same port
+  5. fly.toml is configured with h2_backend so Fly.io edge sends HTTP/2 to the application
+**Plans**: TBD
+
+Plans:
+- [ ] 21-01: TBD
+- [ ] 21-02: TBD
+
+### Phase 22: Proto Generation Pipeline
+**Goal**: All 13 PeeringDB types have proto definitions and generated ConnectRPC handler interfaces ready for service implementation
+**Depends on**: Phase 21
+**Requirements**: PROTO-01, PROTO-02, PROTO-03, PROTO-04
+**Success Criteria** (what must be TRUE):
+  1. Running `go generate ./ent/...` produces .proto files for all 13 PeeringDB entity types with correct field mappings
+  2. Running `buf generate` produces compilable Go types (*.pb.go) and ConnectRPC handler interfaces (*connect/*.go)
+  3. `buf lint` passes on all generated proto files
+  4. JSON fields (social_media, info_types) that entproto cannot handle have manual proto definitions that compile cleanly
+**Plans**: TBD
+
+Plans:
+- [ ] 22-01: TBD
+- [ ] 22-02: TBD
+
+### Phase 23: ConnectRPC Services
+**Goal**: Users can query all 13 PeeringDB types via ConnectRPC with Get and List RPCs, observable via OTel, discoverable via reflection, and monitored via health checks
+**Depends on**: Phase 22
+**Requirements**: API-01, API-02, API-04, OBS-01, OBS-02, OBS-03, OBS-04
+**Success Criteria** (what must be TRUE):
+  1. A client can retrieve any single PeeringDB entity by ID using a Get RPC (e.g., `buf curl .../GetNetwork` returns a network)
+  2. A client can list entities with pagination using List RPCs (page_size + page_token produce sequential pages)
+  3. gRPC server reflection allows grpcurl/grpcui to discover all 13 services and their methods without prior knowledge of the schema
+  4. gRPC health check service reports serving status that reflects sync readiness
+  5. ConnectRPC requests produce OTel trace spans with RPC-level attributes (rpc.system, rpc.service, rpc.method)
+**Plans**: TBD
+
+Plans:
+- [ ] 23-01: TBD
+- [ ] 23-02: TBD
+- [ ] 23-03: TBD
+
+### Phase 24: List Filtering
+**Goal**: Users can filter List RPC results using typed fields (ASN, country, name, org_id, status) instead of fetching all records and filtering client-side
+**Depends on**: Phase 23
+**Requirements**: API-03
+**Success Criteria** (what must be TRUE):
+  1. A client can filter List results by typed fields (e.g., ListNetworks with asn=15169 returns only that network)
+  2. Multiple filter fields can be combined in a single List request (e.g., country=US AND status=ok)
+  3. Invalid filter field names or values return a clear INVALID_ARGUMENT error with the offending field identified
+**Plans**: TBD
+
+Plans:
+- [ ] 24-01: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 18 → 19 → 20
+Phases execute in numeric order: 21 → 22 → 23 → 24
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -106,3 +179,7 @@ Phases execute in numeric order: 18 → 19 → 20
 | 18. Tech Debt & Data Integrity | v1.5 | 2/2 | Complete | 2026-03-24 |
 | 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 4/4 | Complete | 2026-03-24 |
 | 20. Deferred Human Verification | v1.5 | 3/3 | Complete | 2026-03-24 |
+| 21. Infrastructure | v1.6 | 0/? | Not started | - |
+| 22. Proto Generation Pipeline | v1.6 | 0/? | Not started | - |
+| 23. ConnectRPC Services | v1.6 | 0/? | Not started | - |
+| 24. List Filtering | v1.6 | 0/? | Not started | - |

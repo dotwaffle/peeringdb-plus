@@ -58,29 +58,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| INFRA-03 | — | Pending |
-| INFRA-04 | — | Pending |
-| INFRA-05 | — | Pending |
-| PROTO-01 | — | Pending |
-| PROTO-02 | — | Pending |
-| PROTO-03 | — | Pending |
-| PROTO-04 | — | Pending |
-| API-01 | — | Pending |
-| API-02 | — | Pending |
-| API-03 | — | Pending |
-| API-04 | — | Pending |
-| OBS-01 | — | Pending |
-| OBS-02 | — | Pending |
-| OBS-03 | — | Pending |
-| OBS-04 | — | Pending |
+| INFRA-01 | Phase 21 | Pending |
+| INFRA-02 | Phase 21 | Pending |
+| INFRA-03 | Phase 21 | Pending |
+| INFRA-04 | Phase 21 | Pending |
+| INFRA-05 | Phase 21 | Pending |
+| PROTO-01 | Phase 22 | Pending |
+| PROTO-02 | Phase 22 | Pending |
+| PROTO-03 | Phase 22 | Pending |
+| PROTO-04 | Phase 22 | Pending |
+| API-01 | Phase 23 | Pending |
+| API-02 | Phase 23 | Pending |
+| API-03 | Phase 24 | Pending |
+| API-04 | Phase 23 | Pending |
+| OBS-01 | Phase 23 | Pending |
+| OBS-02 | Phase 23 | Pending |
+| OBS-03 | Phase 23 | Pending |
+| OBS-04 | Phase 23 | Pending |
 
 **Coverage:**
 - v1.6 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17
+- Mapped to phases: 17
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-03-24 after initial definition*
+*Last updated: 2026-03-24 after roadmap creation*

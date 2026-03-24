@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: ConnectRPC / gRPC API
-status: defining requirements
-stopped_at: Milestone v1.6 started
-last_updated: "2026-03-24T23:30:00.000Z"
+status: ready to plan
+stopped_at: Roadmap created for v1.6 milestone
+last_updated: "2026-03-24T23:45:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,14 +19,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Defining requirements for v1.6
+**Current focus:** Phase 21 - Infrastructure (remove LiteFS proxy, fly-replay, h2c)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-24 — Milestone v1.6 started
+Phase: 21 of 24 (Infrastructure)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-03-24 — Roadmap created for v1.6 ConnectRPC / gRPC API milestone
+
+Progress: [████████████████████░░░░░░░░░░] 20/24 phases complete, 4 remaining
 
 ## Performance Metrics
 
@@ -63,6 +65,12 @@ Last activity: 2026-03-24 — Milestone v1.6 started
 ### Decisions
 
 All decisions archived in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- [v1.6]: ConnectRPC over standard gRPC -- handlers are http.Handler, mount on existing mux
+- [v1.6]: Remove LiteFS proxy to enable native gRPC wire protocol via h2c
+- [v1.6]: entproto + buf toolchain for proto generation, not protoc-gen-entgrpc
+- [v1.6]: Hand-written service implementations querying ent directly
 
 ### Pending Todos
 
@@ -70,10 +78,13 @@ None.
 
 ### Blockers/Concerns
 
-- LiteFS in maintenance mode — monitor for issues
+- LiteFS in maintenance mode -- monitor for issues
+- Research flag: entproto + custom types (FlexDate, FlexInt) undocumented -- validate in Phase 22
+- Research flag: JSON fields (social_media, info_types) need manual proto definitions in Phase 22
+- Research flag: Filtering (API-03, Phase 24) has no established pattern for typed filter fields to ent predicates
 
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Milestone v1.6 started
+Stopped at: Roadmap created for v1.6 milestone
 Resume file: None
