@@ -60,7 +60,7 @@ completed: 2026-03-23
 - **Files modified:** 8 (6 modified, 2 deleted)
 
 ## Accomplishments
-- Removed all dead code: graph/globalid.go, graph/dataloader/ package, config.IsPrimary field, WorkerConfig.IsPrimary field
+- Removed dead code: graph/globalid.go, graph/dataloader/ package, config.IsPrimary field (NOTE: WorkerConfig.IsPrimary was NOT removed in this phase; it was later converted to a live `func() bool` field by quick task 260324-lc5)
 - Removed dataloadgen dependency from go.mod
 - Created golangci-lint v2 configuration with standard defaults plus gocritic/misspell/nolintlint/revive
 - Established baseline: ~40 lint violations (21 errcheck, 8 revive, 6 staticcheck, 3 unused, 1 gocritic, 1 nolintlint)
@@ -78,7 +78,7 @@ Each task was committed atomically:
 - `cmd/peeringdb-plus/main.go` - Removed dataloader import/wiring and IsPrimary from WorkerConfig literal
 - `graph/resolver_test.go` - Removed dataloader import/wiring, use gqlHandler directly
 - `internal/config/config.go` - Removed IsPrimary field and PDBPLUS_IS_PRIMARY parsing
-- `internal/sync/worker.go` - Removed IsPrimary from WorkerConfig struct
+- `internal/sync/worker.go` - Removed IsPrimary reference from WorkerConfig literal in main.go (WorkerConfig.IsPrimary field itself was NOT removed from the struct definition; it was later repurposed by quick task 260324-lc5)
 - `go.mod` / `go.sum` - Removed dataloadgen dependency
 - `graph/globalid.go` - Deleted (unused MarshalGlobalID/UnmarshalGlobalID)
 - `graph/dataloader/loader.go` - Deleted (unused DataLoader middleware)

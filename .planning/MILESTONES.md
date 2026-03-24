@@ -1,5 +1,20 @@
 # Milestones
 
+## v1.5 Tech Debt & Observability (Shipped: 2026-03-24)
+
+**Phases completed:** 3 phases, 9 plans, 12 tasks
+
+**Key accomplishments:**
+
+- Corrected PROJECT.md and Phase 7 summary to accurately reflect DataLoader removal (v1.2) and WorkerConfig.IsPrimary conversion to live func() bool (quick task 260324-lc5)
+- Flag-gated live test verifying meta.generated presence on full fetch and absence on paginated/incremental PeeringDB responses, with empirical documentation of all three request patterns
+- Prometheus metrics endpoint via OTel autoexport env config and 5-row Grafana dashboard with freshness gauge, HTTP RED, per-type sync detail, Go runtime, and business metrics
+- Portable Grafana dashboard JSON with 5 collapsible rows (30 panels) covering sync health, HTTP RED, per-type sync, Go runtime, and business metrics with PromQL queries against OTLP-ingested Prometheus metrics
+- Observable Int64Gauge reporting per-type object counts for all 13 PeeringDB types, wired into main.go to power Grafana Business Metrics panels
+- Removed duplicate dashboard/provisioning artifacts and fixed all 8 dashboard tests to validate canonical pdbplus-overview.json with nested panel support
+
+---
+
 ## v1.4 Web UI (Shipped: 2026-03-24)
 
 **Phases completed:** 5 phases, 11 plans, 22 tasks

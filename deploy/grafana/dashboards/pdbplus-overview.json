@@ -1,0 +1,1166 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "Grafana Cloud Prometheus (Mimir) datasource",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "9.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" },
+    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
+    { "type": "panel", "id": "gauge", "name": "Gauge", "version": "" },
+    { "type": "panel", "id": "table", "name": "Table", "version": "" },
+    { "type": "panel", "id": "text", "name": "Text", "version": "" },
+    { "type": "panel", "id": "bargauge", "name": "Bar gauge", "version": "" }
+  ],
+  "id": null,
+  "uid": "pdbplus-overview",
+  "title": "PeeringDB Plus - Service Overview",
+  "description": "Comprehensive observability dashboard for PeeringDB Plus covering sync health, HTTP RED metrics, per-type sync detail, Go runtime, and business metrics.",
+  "version": null,
+  "schemaVersion": 39,
+  "editable": true,
+  "graphTooltip": 1,
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "timezone": "browser",
+  "tags": ["peeringdb-plus", "auto-generated"],
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "style": "dark",
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "datasource": { "uid": "${datasource}" },
+        "definition": "label_values(pdbplus_sync_type_objects_total, type)",
+        "hide": 0,
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "Type",
+        "multi": true,
+        "name": "type",
+        "options": [],
+        "query": {
+          "query": "label_values(pdbplus_sync_type_objects_total, type)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": { "uid": "${datasource}" },
+        "definition": "label_values(pdbplus_sync_freshness_seconds, fly_region)",
+        "hide": 0,
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "Region",
+        "multi": true,
+        "name": "region",
+        "options": [],
+        "query": {
+          "query": "label_values(pdbplus_sync_freshness_seconds, fly_region)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Sync Health",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "text",
+      "title": "Sync Health Guide",
+      "description": "Documentation for sync health metrics",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 1 },
+      "options": {
+        "mode": "markdown",
+        "content": "## Sync Health\n\nMonitors the PeeringDB data synchronization pipeline.\n\n- **Data Freshness** shows seconds since last successful sync. Green (<1h) is healthy, yellow (1-2h) means sync may be delayed, red (>2h) indicates a problem.\n- **Success Rate** should be near 100%. Drops indicate PeeringDB API issues or database write failures.\n- **Sync Duration (p95)** shows the 95th percentile sync cycle time. Normal is 30-120s depending on data volume.\n- **Fallback Events** count incremental-to-full sync fallbacks. Should be 0 under normal operation. Non-zero means the incremental sync failed and a full re-fetch was triggered.\n\n**Troubleshooting:** If freshness is red, check sync operations timeline for errors. If duration is high, check per-type sync detail row for slow types."
+      },
+      "datasource": { "uid": "${datasource}" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Data Freshness",
+      "description": "Seconds since last successful sync",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 4 },
+      "datasource": { "uid": "${datasource}" },
+      "targets": [
+        {
+          "datasource": { "uid": "${datasource}" },
+          "expr": "pdbplus_sync_freshness_seconds",
+          "legendFormat": "Freshness",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3600 },
+              { "color": "red", "value": 7200 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Sync Success Rate",
+      "description": "Ratio of successful syncs to total syncs",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 4 },
+      "datasource": { "uid": "${datasource}" },
+      "targets": [
+        {
+          "datasource": { "uid": "${datasource}" },
+          "expr": "sum(rate(pdbplus_sync_operations_total{status=\"success\"}[$__rate_interval])) / sum(rate(pdbplus_sync_operations_total[$__rate_interval]))",
+          "legendFormat": "Success Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.9 },
+              { "color": "green", "value": 0.99 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "min": 0,
+          "max": 1,
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Sync Duration (p95)",
+      "description": "95th percentile sync cycle duration over time",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 4 },
+      "datasource": { "uid": "${datasource}" },
+      "targets": [
+        {
+          "datasource": { "uid": "${datasource}" },
+          "expr": "histogram_quantile(0.95, rate(pdbplus_sync_duration_seconds_bucket[$__rate_interval]))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "gradientMode": "none",
+            "barAlignment": 0,
+            "lineInterpolation": "linear",
+            "stacking": { "mode": "none", "group": "A" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Fallback Events",
+      "description": "Count of incremental-to-full sync fallback events",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 4 },
+      "datasource": { "uid": "${datasource}" },
+      "targets": [
+        {
+          "datasource": { "uid": "${datasource}" },
+          "expr": "sum(increase(pdbplus_sync_type_fallback_total[$__rate_interval]))",
+          "legendFormat": "Fallbacks",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Sync Operations",
+      "description": "Sync operation rate over time by status (success/failed)",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "uid": "${datasource}" },
+      "targets": [
+        {
+          "datasource": { "uid": "${datasource}" },
+          "expr": "sum by(status)(rate(pdbplus_sync_operations_total[$__rate_interval]))",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 20,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "gradientMode": "none",
+            "barAlignment": 0,
+            "lineInterpolation": "linear",
+            "stacking": { "mode": "none", "group": "A" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "failed" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "success" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "HTTP RED Metrics",
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "panels": [
+        {
+          "id": 9,
+          "type": "text",
+          "title": "HTTP RED Guide",
+          "description": "Documentation for HTTP RED (Rate, Errors, Duration) metrics",
+          "gridPos": { "h": 3, "w": 24, "x": 0, "y": 15 },
+          "options": {
+            "mode": "markdown",
+            "content": "## HTTP RED Metrics\n\nMonitors HTTP request traffic using the RED method: Rate, Errors, Duration.\n\n- **Request Rate by Route** shows requests per second grouped by HTTP route (e.g., /graphql, /rest/v1/, /api/, /ui/).\n- **Error Rate (5xx)** is the ratio of server errors to total requests. Should be near 0%. Above 1% warrants investigation, above 5% is critical.\n- **Active Requests** shows in-flight HTTP requests. Sustained high values may indicate slow backends or connection pooling issues.\n- **Latency p95/p99** shows response time percentiles. p95 under 100ms is healthy for cached reads.\n\n**Troubleshooting:** High error rates with normal latency often indicate application logic errors. High latency with low error rates suggests database or upstream slowness."
+          },
+          "datasource": { "uid": "${datasource}" }
+        },
+        {
+          "id": 10,
+          "type": "timeseries",
+          "title": "Request Rate by Route",
+          "description": "HTTP requests per second grouped by route",
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 18 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "sum by(http_route)(rate(http_server_request_duration_seconds_count[$__rate_interval]))",
+              "legendFormat": "{{http_route}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": { "mode": "none", "group": "A" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi", "sort": "desc" },
+            "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+          }
+        },
+        {
+          "id": 11,
+          "type": "stat",
+          "title": "Error Rate (5xx)",
+          "description": "Ratio of 5xx server errors to total HTTP requests",
+          "gridPos": { "h": 6, "w": 6, "x": 12, "y": 18 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[$__rate_interval])) / sum(rate(http_server_request_duration_seconds_count[$__rate_interval]))",
+              "legendFormat": "Error Rate",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.01 },
+                  { "color": "red", "value": 0.05 }
+                ]
+              },
+              "color": { "mode": "thresholds" },
+              "min": 0,
+              "max": 1,
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"],
+              "fields": ""
+            },
+            "orientation": "auto",
+            "textMode": "auto",
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto"
+          }
+        },
+        {
+          "id": 12,
+          "type": "stat",
+          "title": "Active Requests",
+          "description": "Currently in-flight HTTP requests",
+          "gridPos": { "h": 6, "w": 6, "x": 18, "y": 18 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "http_server_active_requests",
+              "legendFormat": "Active",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 50 },
+                  { "color": "red", "value": 100 }
+                ]
+              },
+              "color": { "mode": "thresholds" },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"],
+              "fields": ""
+            },
+            "orientation": "auto",
+            "textMode": "auto",
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto"
+          }
+        },
+        {
+          "id": 13,
+          "type": "timeseries",
+          "title": "Latency p95 / p99",
+          "description": "HTTP response time percentiles across all routes",
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 24 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "histogram_quantile(0.95, sum by(le)(rate(http_server_request_duration_seconds_bucket[$__rate_interval])))",
+              "legendFormat": "p95",
+              "refId": "A"
+            },
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "histogram_quantile(0.99, sum by(le)(rate(http_server_request_duration_seconds_bucket[$__rate_interval])))",
+              "legendFormat": "p99",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": { "mode": "none", "group": "A" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi", "sort": "desc" },
+            "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "row",
+      "title": "Per-Type Sync Detail",
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
+      "panels": [
+        {
+          "id": 15,
+          "type": "text",
+          "title": "Per-Type Sync Guide",
+          "description": "Documentation for per-type sync metrics",
+          "gridPos": { "h": 3, "w": 24, "x": 0, "y": 16 },
+          "options": {
+            "mode": "markdown",
+            "content": "## Per-Type Sync Detail\n\nBreaks down sync metrics by PeeringDB object type (org, campus, fac, carrier, carrierfac, ix, ixlan, ixpfx, ixfac, net, poc, netfac, netixlan).\n\n- **Sync Duration by Type (p95)** shows which types take the longest to sync. Network (net) and NetworkIxLan (netixlan) are typically the largest and slowest.\n- **Objects Synced per Type** shows how many objects were upserted in the selected time range. Large counts are normal for types like netixlan (~100K+ objects).\n- **Deletes per Type** tracks object removals. Non-zero deletes are normal during sync as PeeringDB data changes.\n- **Fetch/Upsert Errors** shows API fetch failures (upstream PeeringDB issues) and database upsert failures (local issues) separately.\n\n**Troubleshooting:** Use the $type variable to filter to specific types. If one type consistently errors, check the PeeringDB API status page. Upsert errors may indicate schema drift."
+          },
+          "datasource": { "uid": "${datasource}" }
+        },
+        {
+          "id": 16,
+          "type": "timeseries",
+          "title": "Sync Duration by Type (p95)",
+          "description": "95th percentile sync duration per PeeringDB object type",
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 19 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "histogram_quantile(0.95, sum by(type, le)(rate(pdbplus_sync_type_duration_seconds_bucket{type=~\"$type\"}[$__rate_interval])))",
+              "legendFormat": "{{type}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": { "mode": "none", "group": "A" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi", "sort": "desc" },
+            "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+          }
+        },
+        {
+          "id": 17,
+          "type": "bargauge",
+          "title": "Objects Synced per Type",
+          "description": "Total objects upserted per type in selected time range",
+          "gridPos": { "h": 6, "w": 12, "x": 12, "y": 19 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "sum by(type)(increase(pdbplus_sync_type_objects_total{type=~\"$type\"}[$__rate_interval]))",
+              "legendFormat": "{{type}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "palette-classic" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"],
+              "fields": ""
+            },
+            "orientation": "horizontal",
+            "displayMode": "gradient",
+            "showUnfilled": true,
+            "minVizWidth": 0,
+            "minVizHeight": 10
+          }
+        },
+        {
+          "id": 18,
+          "type": "timeseries",
+          "title": "Deletes per Type",
+          "description": "Objects deleted per type during sync",
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 25 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "sum by(type)(increase(pdbplus_sync_type_deleted_total{type=~\"$type\"}[$__rate_interval]))",
+              "legendFormat": "{{type}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": { "mode": "none", "group": "A" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi", "sort": "desc" },
+            "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+          }
+        },
+        {
+          "id": 19,
+          "type": "timeseries",
+          "title": "Fetch / Upsert Errors",
+          "description": "PeeringDB API fetch errors and database upsert errors by type",
+          "gridPos": { "h": 6, "w": 12, "x": 12, "y": 25 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "sum by(type)(rate(pdbplus_sync_type_fetch_errors_total{type=~\"$type\"}[$__rate_interval]))",
+              "legendFormat": "fetch: {{type}}",
+              "refId": "A"
+            },
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "sum by(type)(rate(pdbplus_sync_type_upsert_errors_total{type=~\"$type\"}[$__rate_interval]))",
+              "legendFormat": "upsert: {{type}}",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": { "mode": "none", "group": "A" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi", "sort": "desc" },
+            "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Go Runtime",
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+      "panels": [
+        {
+          "id": 21,
+          "type": "text",
+          "title": "Go Runtime Guide",
+          "description": "Documentation for Go runtime metrics",
+          "gridPos": { "h": 3, "w": 24, "x": 0, "y": 17 },
+          "options": {
+            "mode": "markdown",
+            "content": "## Go Runtime\n\nMonitors the Go application runtime internals.\n\n- **Goroutines** shows the current count of active goroutines. Normal baseline is 10-50 for this application. Sustained increases may indicate goroutine leaks.\n- **Heap Memory** shows memory currently in use by the Go heap. Normal range is 50-200MB depending on cached data. The Go 1.26 Green Tea GC keeps overhead low.\n- **Allocation Rate** shows bytes allocated per second. Spikes correlate with sync operations or high request volume. Sustained high rates increase GC pressure.\n- **GC Goal** shows the target heap size the garbage collector aims for. This is managed by the Go runtime and increases with live data.\n\n**Troubleshooting:** Rising goroutine count without corresponding load increase suggests a goroutine leak. High allocation rate with stable heap suggests good GC throughput. If heap keeps growing, check for memory leaks with pprof."
+          },
+          "datasource": { "uid": "${datasource}" }
+        },
+        {
+          "id": 22,
+          "type": "timeseries",
+          "title": "Goroutines",
+          "description": "Number of active goroutines",
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 20 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "go_goroutine_count",
+              "legendFormat": "Goroutines",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": { "mode": "none", "group": "A" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "single", "sort": "none" },
+            "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+          }
+        },
+        {
+          "id": 23,
+          "type": "timeseries",
+          "title": "Heap Memory",
+          "description": "Go heap memory currently in use",
+          "gridPos": { "h": 6, "w": 12, "x": 12, "y": 20 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "go_memory_used_bytes",
+              "legendFormat": "Heap Used",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": { "mode": "none", "group": "A" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "single", "sort": "none" },
+            "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+          }
+        },
+        {
+          "id": 24,
+          "type": "timeseries",
+          "title": "Allocation Rate",
+          "description": "Bytes allocated per second by the Go runtime",
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 26 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "rate(go_memory_allocated_bytes_total[$__rate_interval])",
+              "legendFormat": "Alloc Rate",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps",
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": { "mode": "none", "group": "A" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "single", "sort": "none" },
+            "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+          }
+        },
+        {
+          "id": 25,
+          "type": "timeseries",
+          "title": "GC Goal",
+          "description": "Target heap size for the Go garbage collector",
+          "gridPos": { "h": 6, "w": 12, "x": 12, "y": 26 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "go_memory_gc_goal_bytes",
+              "legendFormat": "GC Goal",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": { "mode": "none", "group": "A" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "single", "sort": "none" },
+            "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "type": "row",
+      "title": "Business Metrics",
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "panels": [
+        {
+          "id": 27,
+          "type": "text",
+          "title": "Business Metrics Guide",
+          "description": "Documentation for business metrics",
+          "gridPos": { "h": 3, "w": 24, "x": 0, "y": 18 },
+          "options": {
+            "mode": "markdown",
+            "content": "## Business Metrics\n\nTracks the actual PeeringDB data stored in the local mirror.\n\n- **Total Objects** is the sum of all PeeringDB object counts across all 13 types. A healthy mirror with current PeeringDB data should show ~500K+ total objects.\n- **Objects by Type** breaks down counts per PeeringDB type. The largest types are typically netixlan (network-to-IXP connections), netfac (network-to-facility), and net (networks).\n- **Object Counts Over Time** shows how counts change over the dashboard time range. Sudden drops indicate sync issues or data loss. Gradual growth is normal as PeeringDB data expands.\n\n**Troubleshooting:** If total objects drops suddenly, check the sync health row for failed syncs. If specific types show zero, check per-type sync errors. Compare counts against https://www.peeringdb.com/apidocs/ meta counts for validation."
+          },
+          "datasource": { "uid": "${datasource}" }
+        },
+        {
+          "id": 28,
+          "type": "stat",
+          "title": "Total Objects",
+          "description": "Sum of all PeeringDB objects stored locally",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 21 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "sum(pdbplus_data_type_count)",
+              "legendFormat": "Total",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "blue", "value": null }
+                ]
+              },
+              "color": { "mode": "thresholds" },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"],
+              "fields": ""
+            },
+            "orientation": "auto",
+            "textMode": "auto",
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto"
+          }
+        },
+        {
+          "id": 29,
+          "type": "bargauge",
+          "title": "Objects by Type",
+          "description": "Object count per PeeringDB type",
+          "gridPos": { "h": 4, "w": 18, "x": 6, "y": 21 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "pdbplus_data_type_count{type=~\"$type\"}",
+              "legendFormat": "{{type}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "palette-classic" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"],
+              "fields": ""
+            },
+            "orientation": "horizontal",
+            "displayMode": "gradient",
+            "showUnfilled": true,
+            "minVizWidth": 0,
+            "minVizHeight": 10
+          }
+        },
+        {
+          "id": 30,
+          "type": "timeseries",
+          "title": "Object Counts Over Time",
+          "description": "PeeringDB object counts per type over time",
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 25 },
+          "datasource": { "uid": "${datasource}" },
+          "targets": [
+            {
+              "datasource": { "uid": "${datasource}" },
+              "expr": "pdbplus_data_type_count{type=~\"$type\"}",
+              "legendFormat": "{{type}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": { "mode": "none", "group": "A" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi", "sort": "desc" },
+            "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+          }
+        }
+      ]
+    }
+  ]
+}

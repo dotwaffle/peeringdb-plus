@@ -2,11 +2,17 @@ package otel
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"strings"
 	"testing"
+	"time"
 
 	"go.opentelemetry.io/otel"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 func TestSetup_ReturnsNonNilShutdown(t *testing.T) {
@@ -173,4 +179,56 @@ func TestSetup_RuntimeMetrics(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = out.Shutdown(ctx) })
 	// If we get here without error, runtime.Start was called successfully.
+}
+
+func TestSetup_PrometheusExporter(t *testing.T) {
+	// Find an available port to avoid conflicts with parallel tests.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("finding free port: %v", err)
+	}
+	port := ln.Addr().(*net.TCPAddr).Port
+	ln.Close()
+
+	t.Setenv("OTEL_TRACES_EXPORTER", "none")
+	t.Setenv("OTEL_METRICS_EXPORTER", "prometheus")
+	t.Setenv("OTEL_EXPORTER_PROMETHEUS_PORT", fmt.Sprintf("%d", port))
+	t.Setenv("OTEL_EXPORTER_PROMETHEUS_HOST", "127.0.0.1")
+	t.Setenv("OTEL_LOGS_EXPORTER", "none")
+
+	ctx := context.Background()
+	out, err := Setup(ctx, SetupInput{
+		ServiceName: "test-prometheus",
+		SampleRate:  1.0,
+	})
+	if err != nil {
+		t.Fatalf("Setup with prometheus exporter returned error: %v", err)
+	}
+	t.Cleanup(func() { _ = out.Shutdown(ctx) })
+
+	// Wait briefly for the HTTP server to start.
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify the /metrics endpoint responds with Prometheus text format.
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/metrics", port))
+	if err != nil {
+		t.Fatalf("GET /metrics: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET /metrics status = %d, want 200", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("reading /metrics body: %v", err)
+	}
+
+	// Prometheus text format should contain at least the target_info metric
+	// or HELP/TYPE declarations.
+	bodyStr := string(body)
+	if !strings.Contains(bodyStr, "# HELP") && !strings.Contains(bodyStr, "# TYPE") {
+		t.Errorf("/metrics response does not contain Prometheus text format markers; got:\n%s", bodyStr[:min(len(bodyStr), 500)])
+	}
 }

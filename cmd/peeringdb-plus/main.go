@@ -122,6 +122,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize per-type object count gauges for business metrics dashboard.
+	if err := pdbotel.InitObjectCountGauges(entClient); err != nil {
+		logger.Error("failed to init object count gauges", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	// Create PeeringDB client per D-04, D-09.
 	var clientOpts []peeringdb.ClientOption
 	if cfg.PeeringDBAPIKey != "" {

@@ -22,11 +22,8 @@ jobs:
         with:
           go-version: stable
 
-      - name: Install golangci-lint
-        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
-
       - name: Run golangci-lint
-        run: golangci-lint run
+        uses: golangci/golangci-lint-action@v7
 
       - name: Check for ent generated code drift
         run: |
@@ -65,15 +62,8 @@ jobs:
       - name: Run tests with race detector
         run: CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...
 
-      - name: Generate coverage report
-        run: go tool cover -func=coverage.out > coverage.txt
-
       - name: Post coverage comment
-        if: github.event_name == 'pull_request'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: .github/scripts/coverage-comment.sh
+        uses: k1LoW/octocov-action@v1
 
   build:
     name: Build

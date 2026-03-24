@@ -41,10 +41,10 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-- [ ] Verify meta.generated field behavior for depth=0 paginated PeeringDB responses; graceful fallback if missing
-- [ ] Remove unused DataLoader middleware and WorkerConfig.IsPrimary dead field
-- [ ] Verify all 26 deferred human verification items against live Fly.io deployment
-- [ ] Grafana dashboard (JSON provisioning) covering sync health, API traffic, infrastructure, and business metrics
+- [x] Verify meta.generated field behavior for depth=0 paginated PeeringDB responses; graceful fallback if missing — Validated in Phase 18: Tech Debt & Data Integrity
+- [x] Remove unused DataLoader middleware (removed v1.2 Phase 7) and convert WorkerConfig.IsPrimary to dynamic LiteFS detection (quick task 260324-lc5) — Validated in Phase 18: Tech Debt & Data Integrity
+- [x] Verify all 26 deferred human verification items against live Fly.io deployment — Validated in Phase 20: Deferred Human Verification
+- [x] Grafana dashboard (JSON provisioning) covering sync health, API traffic, infrastructure, and business metrics — Validated in Phase 19: Prometheus Metrics & Grafana Dashboard
 
 ### Deferred
 
@@ -130,7 +130,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 **Target features:**
 - Verify meta.generated field behavior for depth=0 paginated responses; graceful fallback if missing
-- Remove unused DataLoader middleware and WorkerConfig.IsPrimary dead field
+- ~~Remove unused DataLoader middleware and WorkerConfig.IsPrimary dead field~~ Both resolved: DataLoader removed in v1.2 Phase 7, IsPrimary converted to live `func() bool` by quick task 260324-lc5
 - Verify all 26 deferred human verification items against live deployment
 - Grafana dashboard (JSON provisioning) with sync health, API traffic, infrastructure, and business metrics
 
@@ -139,8 +139,8 @@ This document evolves at phase transitions and milestone boundaries.
 Shipped v1.4 with 17 phases across 4 milestones (v1.0-v1.4), 45 plans, 87 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, web UI (templ + htmx + Tailwind CSS), OpenTelemetry. Four user-facing surfaces: Web UI at /ui/ (search, detail pages, ASN comparison), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. Live deployment running on Fly.io.
 
 **Known tech debt (being addressed in v1.5):**
-- DataLoader middleware wired but unused (entgql handles N+1 natively)
-- WorkerConfig.IsPrimary dead field (replaced by LiteFS detection, explicitly deferred)
+- ~~DataLoader middleware~~ Removed in v1.2 Phase 7
+- ~~WorkerConfig.IsPrimary dead field~~ Converted from dead `bool` to live `func() bool` by quick task 260324-lc5; now wired to `litefs.IsPrimaryWithFallback()` for dynamic primary detection
 - 6 human verification items deferred from v1.2/v1.3 (CI execution, coverage comments, API key live testing)
 - 20 human verification items from v1.4 (visual/browser UX — dark mode, keyboard nav, responsive layout, transitions)
 - meta.generated field behavior unverified for depth=0 paginated PeeringDB responses
