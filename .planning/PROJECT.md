@@ -29,23 +29,24 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-- [ ] Fully public — verify no auth barriers, document public access model
-- [ ] Golden file tests for PeeringDB compatibility layer
-- [ ] CI pipeline (GitHub Actions) enforcing tests, linting, and vetting
-- [x] All tests pass with -race, all linters pass clean — v1.2 Phase 7
+- [x] Fully public — verify no auth barriers, document public access model — v1.2
+- [x] Golden file tests for PeeringDB compatibility layer — v1.2
+- [x] CI pipeline (GitHub Actions) enforcing tests, linting, and vetting — v1.2
+- [x] All tests pass with -race, all linters pass clean — v1.2
+- [ ] Optional PeeringDB API key for authenticated sync with higher rate limits
 - [ ] Expose data via gRPC (entproto) — deferred to future milestone
 - [ ] Web UI for browsing data (HTMX + Templ) — deferred to future milestone
 
-## Current Milestone: v1.2 Quality & CI
+## Current Milestone: v1.3 PeeringDB API Key Support
 
-**Goal:** Harden the codebase with golden file tests for the PeeringDB compat layer, verify and document the fully-public access model, and establish CI enforcement via GitHub Actions.
+**Goal:** Support optional PeeringDB API key authentication for sync and conformance tooling, with higher rate limits when authenticated.
 
 **Target features:**
-- Verify and document fully-public access model
-- Configurable incremental sync mode with per-type delta fetches
-- Golden file tests for PeeringDB compatibility layer API responses
-- Fix all test and linter issues across the codebase
-- GitHub Actions CI pipeline enforcing tests, linting, and vetting on every PR
+- `PDBPLUS_PEERINGDB_API_KEY` env var passed as `Authorization: Api-Key <key>` header on PeeringDB API requests
+- Rate limiter increases when API key is present (PeeringDB grants higher limits to authenticated users)
+- Startup validation: fail fast if key is set but invalid
+- Conformance CLI and live integration tests use the API key when available
+- Graceful degradation: everything works without a key (current behavior preserved)
 
 ### Out of Scope
 
@@ -88,6 +89,10 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 | entrest for REST API generation | Code-generated REST alongside entgql from same schemas, read-only config | ✓ Validated Phase 5 |
 | PeeringDB compat layer queries ent directly | NOT wrapping entrest — different response envelopes, query parameters, and serialization requirements | ✓ Validated Phase 6 |
 | Generic Django-style filter parser | One parser handles all 13 types via shared func(*sql.Selector) predicate type | ✓ Validated Phase 6 |
+| Golden file tests with go-cmp for compat layer | 39 golden files (13 types x 3 scenarios) with -update flag for regeneration | ✓ Validated Phase 9 |
+| Structure-only conformance comparison | CompareStructure checks field names/types/nesting, not values — handles live data changes | ✓ Validated Phase 9 |
+| GitHub Actions CI with 4 parallel jobs | lint + go generate drift, test -race, build, govulncheck — coverage PR comments via gh api | ✓ Validated Phase 10 |
+| Public access by design | All read endpoints unauthenticated; only POST /sync gated; root endpoint self-documents | ✓ Validated Phase 10 |
 
 ## Evolution
 
@@ -108,14 +113,13 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.1 with 6 phases (3 from v1.0 + 3 from v1.1), 22 plans, 43 tasks. Go codebase (~57K LOC) using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/.
+Shipped v1.2 with 10 phases (3 from v1.0 + 3 from v1.1 + 4 from v1.2), 31 plans, 61 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. Sync supports full re-fetch and incremental delta fetch with per-type cursor tracking. 39 golden files lock down PeeringDB compat layer responses. GitHub Actions CI enforces lint, test (-race), build, and govulncheck on every PR.
 
 **Known tech debt:**
 - DataLoader middleware wired but unused (entgql handles N+1 natively)
-- Vestigial config.IsPrimary field (replaced by LiteFS detection)
-- graph/globalid.go exported functions unused (ent Noder handles it)
-- Golden file tests not implemented for REST API (fixture-based tests sufficient)
-- 3 human verification items deferred (response fidelity vs live PeeringDB, readiness gating under real conditions, CORS headers — require real deployment)
+- WorkerConfig.IsPrimary dead field (replaced by LiteFS detection, explicitly deferred)
+- 3 human verification items deferred (CI execution on GitHub, coverage comment posting, comment deduplication — require actual GitHub push)
+- meta.generated field behavior unverified for depth=0 paginated PeeringDB responses (fallback covers this)
 
 ---
-*Last updated: 2026-03-23 after Phase 7 (Lint & Code Quality) complete*
+*Last updated: 2026-03-24 after starting v1.3 (PeeringDB API Key Support) milestone*

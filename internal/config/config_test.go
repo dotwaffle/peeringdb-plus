@@ -84,6 +84,74 @@ func TestLoad_SyncStaleThreshold(t *testing.T) {
 	}
 }
 
+func TestLoad_SyncMode(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    SyncMode
+		wantErr bool
+	}{
+		{name: "default is full", envVal: "", want: SyncModeFull},
+		{name: "explicit full", envVal: "full", want: SyncModeFull},
+		{name: "explicit incremental", envVal: "incremental", want: SyncModeIncremental},
+		{name: "invalid value", envVal: "invalid", wantErr: true},
+		{name: "wrong case FULL", envVal: "FULL", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Cannot use t.Parallel with t.Setenv per Go 1.26 testing rules.
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_SYNC_MODE", tt.envVal)
+			}
+			// Ensure required fields are valid for Load to succeed.
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_SYNC_MODE=%q, got nil", tt.envVal)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.SyncMode != tt.want {
+				t.Errorf("SyncMode = %v, want %v", cfg.SyncMode, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoad_PeeringDBAPIKey(t *testing.T) {
+	tests := []struct {
+		name   string
+		envVal string
+		want   string
+	}{
+		{name: "set to test-key-123", envVal: "test-key-123", want: "test-key-123"},
+		{name: "default empty when not set", envVal: "", want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_PEERINGDB_API_KEY", tt.envVal)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.PeeringDBAPIKey != tt.want {
+				t.Errorf("PeeringDBAPIKey = %q, want %q", cfg.PeeringDBAPIKey, tt.want)
+			}
+		})
+	}
+}
+
 func TestLoad_OTelEndpointRemoved(t *testing.T) {
 	t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
 

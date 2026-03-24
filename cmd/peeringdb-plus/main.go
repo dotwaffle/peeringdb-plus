@@ -114,11 +114,20 @@ func main() {
 	}
 
 	// Create PeeringDB client per D-04, D-09.
-	pdbClient := peeringdb.NewClient(cfg.PeeringDBBaseURL, logger)
+	var clientOpts []peeringdb.ClientOption
+	if cfg.PeeringDBAPIKey != "" {
+		clientOpts = append(clientOpts, peeringdb.WithAPIKey(cfg.PeeringDBAPIKey))
+		logger.Info("PeeringDB API key configured", slog.String("api_key", "[set]"))
+	} else {
+		logger.Info("PeeringDB API key not configured, using unauthenticated access",
+			slog.String("api_key", "[not set]"))
+	}
+	pdbClient := peeringdb.NewClient(cfg.PeeringDBBaseURL, logger, clientOpts...)
 
 	// Create sync worker.
 	syncWorker := pdbsync.NewWorker(pdbClient, entClient, db, pdbsync.WorkerConfig{
 		IncludeDeleted: cfg.IncludeDeleted,
+		SyncMode:       cfg.SyncMode,
 	}, logger)
 
 	// Start scheduler on primary per D-22, D-29.
@@ -147,9 +156,20 @@ func main() {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
+		// Determine sync mode: query param override or config default.
+		mode := cfg.SyncMode
+		if qm := r.URL.Query().Get("mode"); qm != "" {
+			switch config.SyncMode(qm) {
+			case config.SyncModeFull, config.SyncModeIncremental:
+				mode = config.SyncMode(qm)
+			default:
+				http.Error(w, fmt.Sprintf("invalid mode %q: must be full or incremental", qm), http.StatusBadRequest)
+				return
+			}
+		}
 		// Use application root ctx, NOT r.Context() -- request context
 		// is cancelled when the response is sent, which would kill the sync.
-		go syncWorker.SyncWithRetry(ctx) //nolint:errcheck // fire-and-forget
+		go syncWorker.SyncWithRetry(ctx, mode) //nolint:errcheck // fire-and-forget
 		w.WriteHeader(http.StatusAccepted)
 		fmt.Fprint(w, `{"status":"accepted"}`)
 	})

@@ -8,6 +8,7 @@ require (
 	github.com/99designs/gqlgen v0.17.68
 	github.com/KimMachineGun/automemlimit v0.7.5
 	github.com/go-playground/form/v4 v4.3.0
+	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/lrstanley/entrest v1.0.2
 	github.com/ogen-go/ogen v1.14.0
@@ -50,7 +51,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/inflect v0.21.3 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect

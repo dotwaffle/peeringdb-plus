@@ -30,6 +30,9 @@ var SyncTypeFetchErrors metric.Int64Counter
 // SyncTypeUpsertErrors counts database upsert errors per type per D-10.
 var SyncTypeUpsertErrors metric.Int64Counter
 
+// SyncTypeFallback counts incremental-to-full fallback events per type.
+var SyncTypeFallback metric.Int64Counter
+
 // InitMetrics registers custom metric instruments for sync operations per D-05.
 // HTTP metrics are handled automatically by otelhttp middleware (Plan 03).
 func InitMetrics() error {
@@ -92,6 +95,14 @@ func InitMetrics() error {
 	)
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.sync.type.upsert_errors counter: %w", err)
+	}
+
+	SyncTypeFallback, err = meter.Int64Counter("pdbplus.sync.type.fallback",
+		metric.WithDescription("Incremental-to-full sync fallback events per type"),
+		metric.WithUnit("{event}"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.sync.type.fallback counter: %w", err)
 	}
 
 	return nil
