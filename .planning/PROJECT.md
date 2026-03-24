@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A high-performance, globally distributed, read-only mirror of PeeringDB data. Syncs all 13 PeeringDB object types via full or incremental re-fetch (hourly or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and exposes the data through three API surfaces: GraphQL (with playground), OpenAPI REST (with auto-generated spec), and a PeeringDB-compatible drop-in replacement API. Supports optional PeeringDB API key authentication for higher sync rate limits. Built in Go using entgo as the ORM, with full OpenTelemetry observability including per-type sync metrics and HTTP client tracing.
+A high-performance, globally distributed, read-only mirror of PeeringDB data with a modern web interface. Syncs all 13 PeeringDB object types via full or incremental re-fetch (hourly or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and exposes the data through four surfaces: a web UI (templ + htmx + Tailwind CSS) with live search, detail pages, and ASN comparison; GraphQL (with playground); OpenAPI REST (with auto-generated spec); and a PeeringDB-compatible drop-in replacement API. Supports optional PeeringDB API key authentication for higher sync rate limits. Built in Go using entgo as the ORM, with full OpenTelemetry observability.
 
 ## Core Value
 
@@ -33,13 +33,15 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] Optional PeeringDB API key for authenticated sync with higher rate limits — v1.3
 - [x] Conformance tooling uses API key for authenticated PeeringDB access — v1.3
 
+- [x] Live search across all PeeringDB types with instant results — v1.4
+- [x] Record detail views for all 6 types with collapsible lazy-loaded sections — v1.4
+- [x] ASN comparison tool showing shared IXPs, facilities, and campuses — v1.4
+- [x] Linkable/shareable URLs for every page — URL is the state — v1.4
+- [x] Polished design with dark mode, transitions, keyboard navigation, error pages — v1.4
+
 ### Active
 
-- [ ] Live search across all PeeringDB types (names, ASNs, etc.) with instant results
-- [ ] Record detail views for all types with collapsible related-record sections
-- [ ] ASN comparison tool showing shared IXPs, facilities, and campuses
-- [ ] Linkable/shareable URLs for every page — URL is the state
-- [ ] Polished, interactive design with Tailwind CSS, transitions, and visual hierarchy
+(None — define requirements for next milestone with `/gsd:new-milestone`)
 
 ### Deferred
 
@@ -93,6 +95,14 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 | ClientOption functional options for NewClient | Backward-compatible variadic opts; WithAPIKey injects auth header without breaking callers | ✓ Validated Phase 11 |
 | 401/403 auth errors never retried | Placed between body-discard and isRetryable check; WARN log with SEC-2 compliance | ✓ Validated Phase 11 |
 | CLI flag with env var fallback for API key | --api-key flag takes precedence over PDBPLUS_PEERINGDB_API_KEY env var | ✓ Validated Phase 12 |
+| templ + htmx + Tailwind CDN for web UI | Type-safe server-rendered HTML, no JS build toolchain, no SPA complexity | ✓ Validated Phase 13 |
+| Tailwind via CDN (no build step) | Eliminates Node.js dependency; trade-off: ~300KB download, no tree-shaking | ✓ Validated Phase 13 |
+| Dual render mode (full page vs htmx fragment) | Single renderPage helper checks HX-Request, sets Vary header | ✓ Validated Phase 13 |
+| errgroup fan-out for search across 6 types | Parallel LIKE queries, 10 results + count per type | ✓ Validated Phase 14 |
+| Networks by ASN in URLs (/ui/asn/{asn}) | Users think in ASNs, not internal IDs | ✓ Validated Phase 15 |
+| Pre-computed count fields for summary stats | ix_count, fac_count etc. from PeeringDB sync, avoid extra count queries | ✓ Validated Phase 15 |
+| Map-based set intersection for ASN comparison | Load presences for both networks, compute shared IXPs/facilities/campuses in Go | ✓ Validated Phase 16 |
+| Class-based dark mode with localStorage | @custom-variant dark, system preference detection, manual toggle persists | ✓ Validated Phase 17 |
 
 ## Evolution
 
@@ -111,28 +121,17 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
-## Current Milestone: v1.4 Web UI
-
-**Goal:** A polished, interactive web interface for exploring PeeringDB data with live search, detailed record views, and network comparison.
-
-**Target features:**
-- Live search across all PeeringDB types with instant results as you type
-- Record detail views for all types with collapsible related-record sections
-- ASN comparison tool (two networks) showing shared IXPs, facilities, campuses — shared-only default with side-by-side toggle
-- Dedicated /compare page plus "Compare with..." button from network detail
-- Linkable/shareable URLs for every page — URL is the state
-- Polished design with Tailwind CSS, smooth transitions, visual hierarchy
-
 ## Current State
 
-Shipped v1.3 with 12 phases (3 from v1.0 + 3 from v1.1 + 4 from v1.2 + 2 from v1.3), 34 plans, 65 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. Sync supports full re-fetch and incremental delta fetch with per-type cursor tracking. Optional PeeringDB API key upgrades rate limit from 20 to 60 req/min. 39 golden files lock down PeeringDB compat layer responses. GitHub Actions CI enforces lint, test (-race), build, and govulncheck on every PR.
+Shipped v1.4 with 17 phases across 4 milestones (v1.0-v1.4), 45 plans, 87 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, web UI (templ + htmx + Tailwind CSS), OpenTelemetry. Four user-facing surfaces: Web UI at /ui/ (search, detail pages, ASN comparison), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. 94 files changed, 21,000+ lines added in v1.4 alone.
 
 **Known tech debt:**
 - DataLoader middleware wired but unused (entgql handles N+1 natively)
 - WorkerConfig.IsPrimary dead field (replaced by LiteFS detection, explicitly deferred)
-- 3 human verification items deferred from v1.2 (CI execution on GitHub, coverage comment posting, comment deduplication — require actual GitHub push)
-- 3 human verification items deferred from v1.3 (live CLI with real API key, live integration test with real API key, invalid key rejection)
-- meta.generated field behavior unverified for depth=0 paginated PeeringDB responses (fallback covers this)
+- 6 human verification items deferred from v1.2/v1.3 (CI execution, coverage comments, API key live testing)
+- 20 human verification items from v1.4 (visual/browser UX — dark mode, keyboard nav, responsive layout, transitions)
+- meta.generated field behavior unverified for depth=0 paginated PeeringDB responses
+- Nyquist validation incomplete for Phases 16-17 (research skipped)
 
 ---
-*Last updated: 2026-03-24 after v1.4 milestone start*
+*Last updated: 2026-03-24 after v1.4 Web UI milestone*

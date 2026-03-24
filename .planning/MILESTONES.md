@@ -1,5 +1,25 @@
 # Milestones
 
+## v1.4 Web UI (Shipped: 2026-03-24)
+
+**Phases completed:** 5 phases, 11 plans, 22 tasks
+
+**Key accomplishments:**
+
+- Templ + Tailwind CDN + htmx web UI skeleton with dual rendering, responsive layout, and 10 passing tests
+- Content negotiation on GET / with browser redirect to /ui/, HTML syncing page in readiness middleware, and templ drift detection in CI
+- SearchService with errgroup fan-out querying 6 PeeringDB entity types in parallel, returning grouped results with count badges
+- Homepage search form with htmx live-as-you-type, grouped results template with colored type badges, and search endpoint with bookmarked URL support
+- Network detail page at /ui/asn/{asn} with lazy-loaded collapsible sections for IX presences, facilities, and contacts via htmx fragment endpoints
+- Detail pages for IX, Facility, Org, Campus, and Carrier with 11 lazy-loaded fragment endpoints, cross-links between all entity types, and 80+ test cases
+- CompareService with errgroup-parallel ent queries computing shared IXPs, facilities, and campuses via map-based set intersection
+- Comparison page templates with form/results views, view toggle, shareable URLs, and Compare button on network detail pages
+- Dark mode with system preference detection and manual toggle, fadeIn animations on search results, and global htmx loading indicator bar
+- Styled 404/500 error pages with search box fallback and About page with live data freshness from sync_status
+- ARIA listbox/option roles and keyboard navigation (ArrowDown/Up/Enter/Escape) for search results with visual focus ring and htmx reset
+
+---
+
 ## v1.3 PeeringDB API Key Support (Shipped: 2026-03-24)
 
 **Phases completed:** 2 phases, 3 plans, 4 tasks
