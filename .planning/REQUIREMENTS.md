@@ -9,17 +9,17 @@ Requirements for v1.2 Quality & CI milestone. Each maps to roadmap phases.
 
 ### Linting & Code Quality
 
-- [ ] **LINT-01**: golangci-lint v2 configuration with `generated: strict` to exclude generated code
-- [ ] **LINT-02**: All existing lint violations in hand-written code fixed
-- [ ] **LINT-03**: `go vet ./...` passes clean across entire codebase
+- [x] **LINT-01**: golangci-lint v2 configuration with `generated: strict` to exclude generated code
+- [x] **LINT-02**: All existing lint violations in hand-written code fixed
+- [x] **LINT-03**: `go vet ./...` passes clean across entire codebase
 
 ### Incremental Sync
 
-- [ ] **SYNC-01**: Configurable sync mode via `PDBPLUS_SYNC_MODE` env var (`full` or `incremental`, default `full`)
-- [ ] **SYNC-02**: Optional `?since=` parameter on FetchAll for delta fetches
-- [ ] **SYNC-03**: Per-type last-sync timestamp tracking in extended sync_status table
-- [ ] **SYNC-04**: Incremental sync fetches only objects modified since last successful sync per type
-- [ ] **SYNC-05**: On incremental failure for a type, immediately falls back to full sync for that type
+- [x] **SYNC-01**: Configurable sync mode via `PDBPLUS_SYNC_MODE` env var (`full` or `incremental`, default `full`)
+- [x] **SYNC-02**: Optional `?since=` parameter on FetchAll for delta fetches
+- [x] **SYNC-03**: Per-type last-sync timestamp tracking in extended sync_status table
+- [x] **SYNC-04**: Incremental sync fetches only objects modified since last successful sync per type
+- [x] **SYNC-05**: On incremental failure for a type, immediately falls back to full sync for that type
 
 ### Golden File Tests
 
@@ -77,14 +77,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LINT-01 | Phase 7 | Pending |
-| LINT-02 | Phase 7 | Pending |
-| LINT-03 | Phase 7 | Pending |
-| SYNC-01 | Phase 8 | Pending |
-| SYNC-02 | Phase 8 | Pending |
-| SYNC-03 | Phase 8 | Pending |
-| SYNC-04 | Phase 8 | Pending |
-| SYNC-05 | Phase 8 | Pending |
+| LINT-01 | Phase 7 | Complete |
+| LINT-02 | Phase 7 | Complete |
+| LINT-03 | Phase 7 | Complete |
+| SYNC-01 | Phase 8 | Complete |
+| SYNC-02 | Phase 8 | Complete |
+| SYNC-03 | Phase 8 | Complete |
+| SYNC-04 | Phase 8 | Complete |
+| SYNC-05 | Phase 8 | Complete |
 | GOLD-01 | Phase 9 | Pending |
 | GOLD-02 | Phase 9 | Pending |
 | GOLD-03 | Phase 9 | Pending |

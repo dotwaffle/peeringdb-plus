@@ -10,6 +10,16 @@ import (
 	"time"
 )
 
+// SyncMode controls the sync strategy.
+type SyncMode string
+
+const (
+	// SyncModeFull performs a complete re-fetch of all objects.
+	SyncModeFull SyncMode = "full"
+	// SyncModeIncremental fetches only objects modified since the last sync.
+	SyncModeIncremental SyncMode = "incremental"
+)
+
 // Config holds all application configuration. Immutable after Load returns.
 type Config struct {
 	// DBPath is the path to the SQLite database file.
@@ -45,6 +55,10 @@ type Config struct {
 	// SyncStaleThreshold is the maximum age of sync data before health reports degraded.
 	// Configured via PDBPLUS_SYNC_STALE_THRESHOLD. Default is 24h per D-12.
 	SyncStaleThreshold time.Duration
+
+	// SyncMode controls whether sync uses full re-fetch or incremental delta fetch.
+	// Configured via PDBPLUS_SYNC_MODE. Default is "full".
+	SyncMode SyncMode
 }
 
 // Load reads configuration from environment variables, applies defaults,
@@ -94,6 +108,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing PDBPLUS_SYNC_STALE_THRESHOLD: %w", err)
 	}
 	cfg.SyncStaleThreshold = syncStaleThreshold
+
+	syncMode, err := parseSyncMode("PDBPLUS_SYNC_MODE", SyncModeFull)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_SYNC_MODE: %w", err)
+	}
+	cfg.SyncMode = syncMode
 
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
@@ -156,4 +176,17 @@ func parseBool(key string, defaultVal bool) (bool, error) {
 		return false, fmt.Errorf("invalid bool %q for %s: %w", v, key, err)
 	}
 	return b, nil
+}
+
+func parseSyncMode(key string, defaultVal SyncMode) (SyncMode, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultVal, nil
+	}
+	switch SyncMode(v) {
+	case SyncModeFull, SyncModeIncremental:
+		return SyncMode(v), nil
+	default:
+		return "", fmt.Errorf("invalid sync mode %q for %s: must be 'full' or 'incremental'", v, key)
+	}
 }

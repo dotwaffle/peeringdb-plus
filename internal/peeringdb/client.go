@@ -54,37 +54,95 @@ func NewClient(baseURL string, logger *slog.Logger) *Client {
 	}
 }
 
+// FetchOption configures optional FetchAll behavior.
+type FetchOption func(*fetchConfig)
+
+type fetchConfig struct {
+	since time.Time
+}
+
+// WithSince sets the ?since= parameter for delta fetches.
+// Only objects modified after the given time are returned.
+func WithSince(t time.Time) FetchOption {
+	return func(c *fetchConfig) {
+		c.since = t
+	}
+}
+
+// FetchMeta contains metadata from PeeringDB API responses.
+type FetchMeta struct {
+	// Generated is the earliest meta.generated epoch across all pages.
+	// Zero value means no generated timestamp was found.
+	Generated time.Time
+}
+
+// FetchResult contains the fetched data and response metadata.
+type FetchResult struct {
+	Data []json.RawMessage
+	Meta FetchMeta
+}
+
+// parseMeta extracts the generated epoch from a PeeringDB API response meta field.
+// Returns zero time if meta is empty or generated field is absent.
+func parseMeta(raw json.RawMessage) time.Time {
+	if len(raw) == 0 {
+		return time.Time{}
+	}
+	var meta struct {
+		Generated float64 `json:"generated"`
+	}
+	if err := json.Unmarshal(raw, &meta); err != nil || meta.Generated == 0 {
+		return time.Time{}
+	}
+	return time.Unix(int64(meta.Generated), 0)
+}
+
 // FetchAll pages through all objects of the given type, returning each
-// as a json.RawMessage. It loops until the API returns an empty data
-// array. Each request is rate-limited and retried on transient errors.
-func (c *Client) FetchAll(ctx context.Context, objectType string) ([]json.RawMessage, error) {
+// as a json.RawMessage inside a FetchResult. It loops until the API
+// returns an empty data array. Each request is rate-limited and retried
+// on transient errors.
+func (c *Client) FetchAll(ctx context.Context, objectType string, opts ...FetchOption) (FetchResult, error) {
+	var cfg fetchConfig
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
 	tracer := otel.Tracer("peeringdb")
 	ctx, span := tracer.Start(ctx, "peeringdb.fetch/"+objectType)
 	defer span.End()
 
 	var all []json.RawMessage
+	var earliestGenerated time.Time
 
 	for skip := 0; ; skip += pageSize {
 		page := skip / pageSize
 		url := fmt.Sprintf("%s/api/%s?limit=%d&skip=%d&depth=0", c.baseURL, objectType, pageSize, skip)
+		if !cfg.since.IsZero() {
+			url += fmt.Sprintf("&since=%d", cfg.since.Unix())
+		}
 
 		resp, err := c.doWithRetry(ctx, url)
 		if err != nil {
 			span.RecordError(err)
-			return nil, fmt.Errorf("fetch %s page %d: %w", objectType, page, err)
+			return FetchResult{}, fmt.Errorf("fetch %s page %d: %w", objectType, page, err)
 		}
 
 		body, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			span.RecordError(err)
-			return nil, fmt.Errorf("read %s page %d body: %w", objectType, page, err)
+			return FetchResult{}, fmt.Errorf("read %s page %d body: %w", objectType, page, err)
 		}
 
 		var apiResp Response[json.RawMessage]
 		if err := json.Unmarshal(body, &apiResp); err != nil {
 			span.RecordError(err)
-			return nil, fmt.Errorf("decode %s page %d response: %w", objectType, page, err)
+			return FetchResult{}, fmt.Errorf("decode %s page %d response: %w", objectType, page, err)
+		}
+
+		pageGenerated := parseMeta(apiResp.Meta)
+		if !pageGenerated.IsZero() && (earliestGenerated.IsZero() || pageGenerated.Before(earliestGenerated)) {
+			earliestGenerated = pageGenerated
 		}
 
 		if len(apiResp.Data) == 0 {
@@ -109,29 +167,29 @@ func (c *Client) FetchAll(ctx context.Context, objectType string) ([]json.RawMes
 		)
 	}
 
-	return all, nil
+	return FetchResult{Data: all, Meta: FetchMeta{Generated: earliestGenerated}}, nil
 }
 
 // FetchType pages through all objects of the given type and unmarshals
 // each into the concrete type T. Unknown JSON fields are silently
 // ignored per D-08. This is a package-level function because Go does
 // not allow type parameters on methods.
-func FetchType[T any](ctx context.Context, c *Client, objectType string) ([]T, error) {
-	raw, err := c.FetchAll(ctx, objectType)
+func FetchType[T any](ctx context.Context, c *Client, objectType string, opts ...FetchOption) ([]T, error) {
+	result, err := c.FetchAll(ctx, objectType, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]T, 0, len(raw))
-	for i, item := range raw {
+	items := make([]T, 0, len(result.Data))
+	for i, item := range result.Data {
 		var v T
 		if err := json.Unmarshal(item, &v); err != nil {
 			return nil, fmt.Errorf("unmarshal %s item %d: %w", objectType, i, err)
 		}
-		result = append(result, v)
+		items = append(items, v)
 	}
 
-	return result, nil
+	return items, nil
 }
 
 // doWithRetry executes an HTTP GET with rate limiting and exponential

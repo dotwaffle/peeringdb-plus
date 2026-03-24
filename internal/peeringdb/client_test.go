@@ -67,13 +67,13 @@ func TestFetchAllPagination(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	items, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(context.Background(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
 
-	if len(items) != 350 {
-		t.Errorf("got %d items, want 350", len(items))
+	if len(result.Data) != 350 {
+		t.Errorf("got %d items, want 350", len(result.Data))
 	}
 
 	// Verify we made exactly 3 requests (250, 100, empty).
@@ -107,13 +107,13 @@ func TestFetchAllRetryOn429(t *testing.T) {
 	client.limiter.SetBurst(1000)
 	client.retryBaseDelay = 1 * time.Millisecond // Speed up tests.
 
-	items, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(context.Background(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
 
-	if len(items) != 5 {
-		t.Errorf("got %d items, want 5", len(items))
+	if len(result.Data) != 5 {
+		t.Errorf("got %d items, want 5", len(result.Data))
 	}
 }
 
@@ -140,13 +140,13 @@ func TestFetchAllRetryOn5xx(t *testing.T) {
 	client.limiter.SetBurst(1000)
 	client.retryBaseDelay = 1 * time.Millisecond
 
-	items, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(context.Background(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
 
-	if len(items) != 3 {
-		t.Errorf("got %d items, want 3", len(items))
+	if len(result.Data) != 3 {
+		t.Errorf("got %d items, want 3", len(result.Data))
 	}
 }
 
@@ -272,13 +272,13 @@ func TestFetchAllEmptyFirstPage(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	items, err := client.FetchAll(context.Background(), TypePoc)
+	result, err := client.FetchAll(context.Background(), TypePoc)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
 
-	if len(items) != 0 {
-		t.Errorf("got %d items, want 0", len(items))
+	if len(result.Data) != 0 {
+		t.Errorf("got %d items, want 0", len(result.Data))
 	}
 
 	if got := requestCount.Load(); got != 1 {
@@ -309,13 +309,13 @@ func TestFetchAllAccumulatesAllPages(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	items, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(context.Background(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
 
-	if len(items) != 550 {
-		t.Errorf("got %d items, want 550", len(items))
+	if len(result.Data) != 550 {
+		t.Errorf("got %d items, want 550", len(result.Data))
 	}
 }
 
@@ -339,14 +339,14 @@ func TestFetchAllRateLimiter(t *testing.T) {
 	client.limiter.SetBurst(1)
 
 	start := time.Now()
-	items, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(context.Background(), TypeOrg)
 	elapsed := time.Since(start)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
 
-	if len(items) != 30 {
-		t.Errorf("got %d items, want 30", len(items))
+	if len(result.Data) != 30 {
+		t.Errorf("got %d items, want 30", len(result.Data))
 	}
 
 	// With 4 requests at 10/sec (burst 1), we need at least ~300ms.
@@ -385,13 +385,13 @@ func TestFetchAllUnknownFieldsIgnored(t *testing.T) {
 
 	// FetchAll returns json.RawMessage, so unknown fields are always preserved.
 	// The key test is that the client doesn't error on unknown JSON fields.
-	items, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(context.Background(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
 
-	if len(items) != 1 {
-		t.Errorf("got %d items, want 1", len(items))
+	if len(result.Data) != 1 {
+		t.Errorf("got %d items, want 1", len(result.Data))
 	}
 }
 
@@ -530,12 +530,12 @@ func TestFetchAllCreatesSpanHierarchy(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	items, err := client.FetchAll(context.Background(), "net")
+	result, err := client.FetchAll(context.Background(), "net")
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
-	if len(items) != 5 {
-		t.Errorf("got %d items, want 5", len(items))
+	if len(result.Data) != 5 {
+		t.Errorf("got %d items, want 5", len(result.Data))
 	}
 
 	spans := exporter.GetSpans()
@@ -595,12 +595,12 @@ func TestFetchAllRecordsPageEvents(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	items, err := client.FetchAll(context.Background(), "org")
+	result, err := client.FetchAll(context.Background(), "org")
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
-	if len(items) != 300 {
-		t.Errorf("got %d items, want 300", len(items))
+	if len(result.Data) != 300 {
+		t.Errorf("got %d items, want 300", len(result.Data))
 	}
 
 	spans := exporter.GetSpans()
@@ -678,12 +678,12 @@ func TestDoWithRetryCreatesPerAttemptSpans(t *testing.T) {
 	client.limiter.SetBurst(1000)
 	client.retryBaseDelay = 1 * time.Millisecond
 
-	items, err := client.FetchAll(context.Background(), "org")
+	result, err := client.FetchAll(context.Background(), "org")
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
-	if len(items) != 5 {
-		t.Errorf("got %d items, want 5", len(items))
+	if len(result.Data) != 5 {
+		t.Errorf("got %d items, want 5", len(result.Data))
 	}
 
 	spans := exporter.GetSpans()
@@ -714,4 +714,142 @@ func assertSpanAttr(t *testing.T, attrs []attribute.KeyValue, key string, want a
 		}
 	}
 	t.Errorf("span attribute %s not found", key)
+}
+
+// makeOrgPageWithMeta creates a JSON response with n Organization objects and a meta.generated epoch.
+func makeOrgPageWithMeta(startID, count int, generated float64) []byte {
+	var items []json.RawMessage
+	for i := 0; i < count; i++ {
+		raw, _ := json.Marshal(map[string]any{
+			"id":      startID + i,
+			"name":    fmt.Sprintf("Org %d", startID+i),
+			"created": "2020-01-01T00:00:00Z",
+			"updated": "2020-01-01T00:00:00Z",
+			"status":  "ok",
+		})
+		items = append(items, raw)
+	}
+	resp := map[string]any{
+		"meta": map[string]any{"generated": generated},
+		"data": items,
+	}
+	b, _ := json.Marshal(resp)
+	return b
+}
+
+func TestFetchAllWithSince(t *testing.T) {
+	t.Parallel()
+
+	sinceTime := time.Unix(1711234567, 0)
+	var capturedURL string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedURL = r.URL.String()
+		w.Write(emptyResponse())
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(1000)
+	client.limiter.SetBurst(1000)
+
+	_, err := client.FetchAll(context.Background(), TypeOrg, WithSince(sinceTime))
+	if err != nil {
+		t.Fatalf("FetchAll: %v", err)
+	}
+
+	expected := fmt.Sprintf("since=%d", sinceTime.Unix())
+	if !strings.Contains(capturedURL, expected) {
+		t.Errorf("URL should contain %s, got: %s", expected, capturedURL)
+	}
+}
+
+func TestFetchMetaParsing(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := requestCount.Add(1)
+		if n == 1 {
+			w.Write(makeOrgPageWithMeta(1, 5, 1711234567.0))
+			return
+		}
+		w.Write(emptyResponse())
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(1000)
+	client.limiter.SetBurst(1000)
+
+	result, err := client.FetchAll(context.Background(), TypeOrg)
+	if err != nil {
+		t.Fatalf("FetchAll: %v", err)
+	}
+
+	want := time.Unix(1711234567, 0)
+	if !result.Meta.Generated.Equal(want) {
+		t.Errorf("Meta.Generated = %v, want %v", result.Meta.Generated, want)
+	}
+}
+
+func TestFetchMetaMissing(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := requestCount.Add(1)
+		if n == 1 {
+			w.Write(makeOrgPage(1, 3))
+			return
+		}
+		w.Write(emptyResponse())
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(1000)
+	client.limiter.SetBurst(1000)
+
+	result, err := client.FetchAll(context.Background(), TypeOrg)
+	if err != nil {
+		t.Fatalf("FetchAll: %v", err)
+	}
+
+	if !result.Meta.Generated.IsZero() {
+		t.Errorf("Meta.Generated should be zero, got %v", result.Meta.Generated)
+	}
+}
+
+func TestFetchMetaEarliestAcrossPages(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := requestCount.Add(1)
+		switch n {
+		case 1:
+			// Page 1: newer generated timestamp
+			w.Write(makeOrgPageWithMeta(1, 250, 1711234567.0))
+		case 2:
+			// Page 2: older generated timestamp (this should be used)
+			w.Write(makeOrgPageWithMeta(251, 50, 1711234500.0))
+		default:
+			w.Write(emptyResponse())
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(1000)
+	client.limiter.SetBurst(1000)
+
+	result, err := client.FetchAll(context.Background(), TypeOrg)
+	if err != nil {
+		t.Fatalf("FetchAll: %v", err)
+	}
+
+	want := time.Unix(1711234500, 0)
+	if !result.Meta.Generated.Equal(want) {
+		t.Errorf("Meta.Generated = %v, want %v (should use earliest)", result.Meta.Generated, want)
+	}
 }

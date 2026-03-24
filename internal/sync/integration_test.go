@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/time/rate"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
@@ -131,7 +132,7 @@ func TestFullSyncWithFixtures(t *testing.T) {
 	ctx := context.Background()
 
 	// Run sync.
-	if err := w.Sync(ctx); err != nil {
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
 
@@ -235,7 +236,7 @@ func TestSyncDeletesStaleRecords(t *testing.T) {
 	ctx := context.Background()
 
 	// First sync with full fixtures.
-	if err := w.Sync(ctx); err != nil {
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
 
@@ -329,7 +330,7 @@ func TestSyncDeletesStaleRecords(t *testing.T) {
 	]`))
 
 	// Second sync should delete org 2 (and its dependents).
-	if err := w.Sync(ctx); err != nil {
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
 
@@ -381,7 +382,7 @@ func TestSyncIncludeDeleted(t *testing.T) {
 
 	ctx := context.Background()
 
-	if err := w.Sync(ctx); err != nil {
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
 
@@ -429,7 +430,7 @@ func TestSyncIdempotent(t *testing.T) {
 	ctx := context.Background()
 
 	// First sync.
-	if err := w.Sync(ctx); err != nil {
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
 
@@ -440,7 +441,7 @@ func TestSyncIdempotent(t *testing.T) {
 	ixCount1, _ := client.InternetExchange.Query().Count(ctx)
 
 	// Second sync with identical data.
-	if err := w.Sync(ctx); err != nil {
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
 

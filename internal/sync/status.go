@@ -17,8 +17,8 @@ type Status struct {
 	ErrorMessage string         // empty on success
 }
 
-// InitStatusTable creates the sync_status table if it doesn't exist.
-// This is not an ent-managed entity; it stores operational metadata via raw SQL.
+// InitStatusTable creates the sync_status and sync_cursors tables if they don't exist.
+// These are not ent-managed entities; they store operational metadata via raw SQL.
 func InitStatusTable(ctx context.Context, db *sql.DB) error {
 	_, err := db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS sync_status (
@@ -33,6 +33,50 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 	`)
 	if err != nil {
 		return fmt.Errorf("create sync_status table: %w", err)
+	}
+
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS sync_cursors (
+			type TEXT PRIMARY KEY,
+			last_sync_at DATETIME NOT NULL,
+			last_status TEXT NOT NULL DEFAULT 'success'
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("create sync_cursors table: %w", err)
+	}
+
+	return nil
+}
+
+// GetCursor returns the last successful sync timestamp for a type.
+// Returns zero time if no cursor exists or the last sync for the type failed.
+func GetCursor(ctx context.Context, db *sql.DB, objType string) (time.Time, error) {
+	var lastSyncAt time.Time
+	err := db.QueryRowContext(ctx,
+		`SELECT last_sync_at FROM sync_cursors WHERE type = ? AND last_status = 'success'`,
+		objType,
+	).Scan(&lastSyncAt)
+	if err == sql.ErrNoRows {
+		return time.Time{}, nil
+	}
+	if err != nil {
+		return time.Time{}, fmt.Errorf("get cursor for %s: %w", objType, err)
+	}
+	return lastSyncAt, nil
+}
+
+// UpsertCursor updates or inserts the sync cursor for a type.
+// Called AFTER the ent transaction commits successfully -- never inside the transaction.
+func UpsertCursor(ctx context.Context, db *sql.DB, objType string, lastSyncAt time.Time, status string) error {
+	_, err := db.ExecContext(ctx,
+		`INSERT INTO sync_cursors (type, last_sync_at, last_status)
+		 VALUES (?, ?, ?)
+		 ON CONFLICT(type) DO UPDATE SET last_sync_at = excluded.last_sync_at, last_status = excluded.last_status`,
+		objType, lastSyncAt, status,
+	)
+	if err != nil {
+		return fmt.Errorf("upsert cursor for %s: %w", objType, err)
 	}
 	return nil
 }
