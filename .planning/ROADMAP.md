@@ -141,7 +141,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 17-01-PLAN.md -- Dark mode toggle, CSS transitions, loading indicators, and visual polish
-- [ ] 17-02-PLAN.md -- Styled 404/500 error pages and About page with data freshness
+- [x] 17-02-PLAN.md -- Styled 404/500 error pages and About page with data freshness
 - [ ] 17-03-PLAN.md -- Keyboard navigation for search results with ARIA roles
 **UI hint**: yes
 
@@ -168,4 +168,4 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17
 | 14. Live Search | v1.4 | 2/2 | Complete    | 2026-03-24 |
 | 15. Record Detail Pages | v1.4 | 2/2 | Complete    | 2026-03-24 |
 | 16. ASN Comparison | v1.4 | 2/2 | Complete    | 2026-03-24 |
-| 17. Polish & Accessibility | v1.4 | 1/3 | In Progress|  |
+| 17. Polish & Accessibility | v1.4 | 2/3 | In Progress|  |

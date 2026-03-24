@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Web UI
 status: Ready to execute
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-03-24T07:53:00.273Z"
+stopped_at: Completed 17-02-PLAN.md
+last_updated: "2026-03-24T08:06:00Z"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 ## Current Position
 
 Phase: 17 (polish-accessibility) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Plan: 2 of 3
 | Phase 12 P01 | 4min | 2 tasks | 3 files |
 | Phase 15 P01 | 6min | 2 tasks | 8 files |
 | Phase 15 P02 | 13min | 2 tasks | 12 files |
+| Phase 17 P02 | 7min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ All decisions archived in PROJECT.md Key Decisions table.
 - [Phase 16]: View toggle uses link navigation for shareable URL state in comparison page
 - [Phase 16]: Compare with... button positioned after stat badges on network detail page
 - [Phase 17]: Class-based dark mode via @custom-variant for manual toggle support
+- [Phase 17]: handleServerError replaces all http.Error calls for consistent styled 500 pages
+- [Phase 17]: Handler struct extended with *sql.DB for About page sync status queries
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T07:53:00.270Z
-Stopped at: Completed 17-01-PLAN.md
+Last session: 2026-03-24T08:06:00Z
+Stopped at: Completed 17-02-PLAN.md
 Resume file: None

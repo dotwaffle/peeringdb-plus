@@ -39,7 +39,7 @@ Requirements for Web UI milestone. Each maps to roadmap phases.
 - [x] **DSGN-04**: Dark mode is supported with system preference detection and manual toggle
 - [x] **DSGN-05**: Smooth CSS transitions on search results, collapsible sections, and page changes
 - [x] **DSGN-06**: Loading indicators appear during HTMX requests
-- [ ] **DSGN-07**: Styled 404 and 500 error pages match the overall design
+- [x] **DSGN-07**: Styled 404 and 500 error pages match the overall design
 
 ## Future Requirements
 
@@ -103,7 +103,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DSGN-04 | Phase 17 | Complete |
 | DSGN-05 | Phase 17 | Complete |
 | DSGN-06 | Phase 17 | Complete |
-| DSGN-07 | Phase 17 | Pending |
+| DSGN-07 | Phase 17 | Complete |
 
 **Coverage:**
 - v1.4 requirements: 22 total
