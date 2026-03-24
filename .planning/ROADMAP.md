@@ -72,7 +72,7 @@ See: `.planning/milestones/v1.4-ROADMAP.md` for full details.
 
 - [x] **Phase 18: Tech Debt & Data Integrity** - Correct stale planning docs, verify meta.generated field behavior, document findings (completed 2026-03-24)
 - [x] **Phase 19: Prometheus Metrics & Grafana Dashboard** - Register per-type object count gauges, create comprehensive Grafana dashboard JSON (completed 2026-03-24)
-- [ ] **Phase 20: Deferred Human Verification** - Verify all 26 deferred items against live Fly.io deployment
+- [x] **Phase 20: Deferred Human Verification** - Verify all 26 deferred items against live Fly.io deployment (completed 2026-03-24)
 
 ## Phase Details
 
@@ -151,4 +151,4 @@ Phases execute in numeric order: 18 → 19 → 20
 | 17. Polish & Accessibility | v1.4 | 3/3 | Complete | 2026-03-24 |
 | 18. Tech Debt & Data Integrity | v1.5 | 0/2 | Complete    | 2026-03-24 |
 | 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 0/4 | Complete    | 2026-03-24 |
-| 20. Deferred Human Verification | v1.5 | 0/3 | Not started | - |
+| 20. Deferred Human Verification | v1.5 | 0/3 | Complete    | 2026-03-24 |
