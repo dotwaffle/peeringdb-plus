@@ -200,7 +200,10 @@ func TestInitFreshnessGauge_RecordsValue(t *testing.T) {
 }
 
 func TestInitObjectCountGauges_NoError(t *testing.T) {
-	t.Setenv("OTEL_METRICS_EXPORTER", "none")
+	reader := sdkmetric.NewManualReader()
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(mp)
+	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
 
 	client := testutil.SetupClient(t)
 	if err := InitObjectCountGauges(client); err != nil {
