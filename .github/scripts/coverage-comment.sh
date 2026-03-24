@@ -60,15 +60,20 @@ post_or_update_comment() {
 
   if [ -n "$EXISTING_COMMENT_ID" ]; then
     # Update the existing comment.
-    gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${EXISTING_COMMENT_ID}" \
+    if ! echo "$COMMENT_BODY" | gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${EXISTING_COMMENT_ID}" \
       --method PATCH \
-      -f body="$COMMENT_BODY" \
-      >/dev/null && echo "Updated existing coverage comment." || echo "Failed to update coverage comment (non-fatal)."
+      --field body=@- \
+      >/dev/null; then
+      echo "Failed to update coverage comment (non-fatal)."
+    else
+      echo "Updated existing coverage comment."
+    fi
   else
-    # Create a new comment.
-    if ! gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+    # Create a new comment. Use --input to avoid "Argument list too long"
+    # when coverage.txt is large.
+    if ! echo "$COMMENT_BODY" | gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
       --method POST \
-      -f body="$COMMENT_BODY" \
+      --field body=@- \
       >/dev/null; then
       echo "Failed to post coverage comment (non-fatal)."
     else
