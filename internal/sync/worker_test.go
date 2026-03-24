@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	gosync "sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -23,6 +24,23 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
+
+// metricsOnce ensures the OTel metric instruments are initialized exactly once
+// across all parallel tests that need them.
+var metricsOnce gosync.Once
+
+// ensureMetrics initializes OTel metrics if not already done. Use this in tests
+// that call Sync but don't need to assert on specific metric values.
+func ensureMetrics(t *testing.T) {
+	t.Helper()
+	metricsOnce.Do(func() {
+		mp := sdkmetric.NewMeterProvider()
+		otel.SetMeterProvider(mp)
+		if err := pdbotel.InitMetrics(); err != nil {
+			t.Fatalf("InitMetrics: %v", err)
+		}
+	})
+}
 
 // fixture builds a minimal mock PeeringDB API server with configurable responses.
 type fixture struct {
@@ -429,6 +447,7 @@ func TestSyncFilterDeletedObjects(t *testing.T) {
 // TestSyncScheduler verifies scheduler starts periodic sync via time.Ticker.
 func TestSyncScheduler(t *testing.T) {
 	t.Parallel()
+	ensureMetrics(t)
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f, false)
@@ -1122,5 +1141,141 @@ func TestIncrementalSkipsDeleteStale(t *testing.T) {
 	org, _ := w.entClient.Organization.Get(ctx, 1)
 	if org.Name != "Org1Updated" {
 		t.Errorf("expected Org1Updated, got %s", org.Name)
+	}
+}
+
+// TestSchedulerSkipsSyncWithExistingData verifies that StartScheduler does not
+// run an immediate sync when the database already has a recent successful sync.
+func TestSchedulerSkipsSyncWithExistingData(t *testing.T) {
+	t.Parallel()
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+	w, db := newTestWorker(t, f, false)
+	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+
+	ctx := context.Background()
+
+	// Record a successful sync that completed recently (within the interval).
+	now := time.Now()
+	id, err := RecordSyncStart(ctx, db, now.Add(-10*time.Minute))
+	if err != nil {
+		t.Fatalf("record sync start: %v", err)
+	}
+	if err := RecordSyncComplete(ctx, db, id, Status{
+		LastSyncAt:   now.Add(-10 * time.Minute),
+		Duration:     5 * time.Second,
+		ObjectCounts: map[string]int{"org": 1},
+		Status:       "success",
+	}); err != nil {
+		t.Fatalf("record sync complete: %v", err)
+	}
+
+	// Start scheduler with 1h interval. Since last sync was 10m ago,
+	// next sync isn't due for ~50m. Cancel before it could run.
+	schedulerCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		w.StartScheduler(schedulerCtx, 1*time.Hour)
+		close(done)
+	}()
+	<-done
+
+	// Server should be marked as ready immediately.
+	if !w.HasCompletedSync() {
+		t.Error("expected HasCompletedSync=true with existing data")
+	}
+
+	// No API calls should have been made (no sync was triggered).
+	if calls := f.callCount.Load(); calls != 0 {
+		t.Errorf("expected 0 API calls, got %d", calls)
+	}
+}
+
+// TestSchedulerSyncsImmediatelyOnEmptyDB verifies that StartScheduler runs
+// an immediate full sync when no prior successful sync exists.
+func TestSchedulerSyncsImmediatelyOnEmptyDB(t *testing.T) {
+	t.Parallel()
+	ensureMetrics(t)
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+	w, _ := newTestWorker(t, f, false)
+	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		w.StartScheduler(ctx, 1*time.Hour)
+		close(done)
+	}()
+
+	// Wait for the initial sync to complete.
+	time.Sleep(2 * time.Second)
+	cancel()
+	<-done
+
+	if !w.HasCompletedSync() {
+		t.Error("expected HasCompletedSync=true after initial sync on empty DB")
+	}
+
+	// API calls should have been made (sync was triggered).
+	if calls := f.callCount.Load(); calls == 0 {
+		t.Error("expected API calls for initial sync on empty DB, got 0")
+	}
+}
+
+// TestSchedulerSyncsWhenOverdue verifies that StartScheduler runs an immediate
+// sync when the last successful sync is older than the configured interval.
+func TestSchedulerSyncsWhenOverdue(t *testing.T) {
+	t.Parallel()
+	ensureMetrics(t)
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+	w, db := newTestWorker(t, f, false)
+	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+
+	ctx := context.Background()
+
+	// Record a successful sync from 2 hours ago (with 1h interval, it's overdue).
+	twoHoursAgo := time.Now().Add(-2 * time.Hour)
+	id, err := RecordSyncStart(ctx, db, twoHoursAgo)
+	if err != nil {
+		t.Fatalf("record sync start: %v", err)
+	}
+	if err := RecordSyncComplete(ctx, db, id, Status{
+		LastSyncAt:   twoHoursAgo,
+		Duration:     5 * time.Second,
+		ObjectCounts: map[string]int{"org": 1},
+		Status:       "success",
+	}); err != nil {
+		t.Fatalf("record sync complete: %v", err)
+	}
+
+	// Start scheduler with 1h interval. Last sync was 2h ago, so it's overdue.
+	schedulerCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		w.StartScheduler(schedulerCtx, 1*time.Hour)
+		close(done)
+	}()
+
+	// Wait for the sync to run.
+	time.Sleep(2 * time.Second)
+	cancel()
+	<-done
+
+	// Server should be marked ready immediately (existing data).
+	if !w.HasCompletedSync() {
+		t.Error("expected HasCompletedSync=true")
+	}
+
+	// API calls should have been made (overdue sync was triggered).
+	if calls := f.callCount.Load(); calls == 0 {
+		t.Error("expected API calls for overdue sync, got 0")
 	}
 }

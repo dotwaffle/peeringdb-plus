@@ -118,6 +118,22 @@ func RecordSyncComplete(ctx context.Context, db *sql.DB, id int64, status Status
 	return nil
 }
 
+// GetLastSuccessfulSyncTime returns the completion time of the most recent
+// successful sync, or zero time if no successful sync has been recorded.
+func GetLastSuccessfulSyncTime(ctx context.Context, db *sql.DB) (time.Time, error) {
+	var completedAt time.Time
+	err := db.QueryRowContext(ctx,
+		`SELECT completed_at FROM sync_status WHERE status = 'success' ORDER BY id DESC LIMIT 1`,
+	).Scan(&completedAt)
+	if err == sql.ErrNoRows {
+		return time.Time{}, nil
+	}
+	if err != nil {
+		return time.Time{}, fmt.Errorf("get last successful sync time: %w", err)
+	}
+	return completedAt, nil
+}
+
 // GetLastStatus returns the most recent sync status.
 // Returns nil if no sync has been recorded.
 func GetLastStatus(ctx context.Context, db *sql.DB) (*Status, error) {

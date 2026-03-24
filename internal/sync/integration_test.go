@@ -408,6 +408,151 @@ func TestSyncIncludeDeleted(t *testing.T) {
 	}
 }
 
+// TestSyncDeletesFKIntegrity verifies that after deleting a parent and all its
+// children, no FK violations remain. This validates that the two-pass sync
+// (upsert parent-first, delete child-first) produces a consistent end state.
+func TestSyncDeletesFKIntegrity(t *testing.T) {
+	t.Parallel()
+	fs := newFixtureServer(t)
+	client, db := testutil.SetupClientWithDB(t)
+
+	pdbClient := peeringdb.NewClient(fs.server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+
+	if err := sync.InitStatusTable(context.Background(), db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		IncludeDeleted: false,
+	}, slog.Default())
+
+	ctx := context.Background()
+
+	// First sync with full fixtures.
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("first sync: %v", err)
+	}
+
+	// Remove org 2 and all dependent records from fixture responses.
+	fs.setFixtureData("org", json.RawMessage(`[
+		{
+			"id": 1, "name": "Example Organization", "aka": "ExOrg",
+			"name_long": "Example Organization Inc.", "website": "https://example.org",
+			"social_media": [], "notes": "", "address1": "", "address2": "",
+			"city": "San Francisco", "state": "CA", "country": "US", "zipcode": "94105",
+			"suite": "", "floor": "",
+			"created": "2024-01-01T00:00:00Z", "updated": "2024-06-15T12:30:00Z",
+			"status": "ok"
+		}
+	]`))
+	fs.setFixtureData("campus", json.RawMessage(`[
+		{
+			"id": 1, "org_id": 1, "org_name": "Example Organization",
+			"name": "Example Campus West", "name_long": "Example Organization Campus West Coast",
+			"aka": "ECW", "website": "", "social_media": [], "notes": "",
+			"country": "US", "city": "San Francisco", "zipcode": "94105", "state": "CA",
+			"created": "2024-01-15T08:00:00Z", "updated": "2024-07-01T14:00:00Z", "status": "ok"
+		}
+	]`))
+	fs.setFixtureData("fac", json.RawMessage(`[
+		{
+			"id": 1, "org_id": 1, "org_name": "Example Organization", "campus_id": 1,
+			"name": "Example DC1", "aka": "", "name_long": "", "website": "",
+			"social_media": [], "clli": "", "rencode": "", "npanxx": "",
+			"tech_email": "", "tech_phone": "", "sales_email": "", "sales_phone": "",
+			"available_voltage_services": [], "notes": "", "net_count": 0, "ix_count": 0,
+			"carrier_count": 0, "address1": "", "address2": "", "city": "", "state": "",
+			"country": "US", "zipcode": "", "suite": "", "floor": "",
+			"created": "2024-01-20T12:00:00Z", "updated": "2024-08-10T10:00:00Z", "status": "ok"
+		}
+	]`))
+	fs.setFixtureData("ix", json.RawMessage(`[
+		{
+			"id": 1, "org_id": 1, "name": "Bay Area IX", "aka": "", "name_long": "",
+			"city": "San Francisco", "country": "US", "region_continent": "North America",
+			"media": "Ethernet", "notes": "", "proto_unicast": true, "proto_multicast": false,
+			"proto_ipv6": true, "website": "", "social_media": [], "url_stats": "",
+			"tech_email": "", "tech_phone": "", "policy_email": "", "policy_phone": "",
+			"sales_email": "", "sales_phone": "", "net_count": 0, "fac_count": 0,
+			"ixf_net_count": 0, "ixf_last_import": null, "ixf_import_request": null,
+			"ixf_import_request_status": "", "service_level": "", "terms": "",
+			"created": "2024-01-25T09:00:00Z", "updated": "2024-08-15T14:00:00Z", "status": "ok"
+		}
+	]`))
+	fs.setFixtureData("ixlan", json.RawMessage(`[
+		{
+			"id": 1, "ix_id": 1, "name": "Bay Area IX LAN", "descr": "", "mtu": 9000,
+			"dot1q_support": false, "rs_asn": 65500, "arp_sponge": null,
+			"ixf_ixp_member_list_url_visible": "Public", "ixf_ixp_import_enabled": true,
+			"created": "2024-01-25T09:30:00Z", "updated": "2024-08-15T14:00:00Z", "status": "ok"
+		}
+	]`))
+	fs.setFixtureData("ixpfx", json.RawMessage(`[
+		{
+			"id": 1, "ixlan_id": 1, "protocol": "IPv4", "prefix": "198.51.100.0/24",
+			"in_dfz": false, "notes": "",
+			"created": "2024-01-25T10:00:00Z", "updated": "2024-08-15T14:00:00Z", "status": "ok"
+		}
+	]`))
+	fs.setFixtureData("net", json.RawMessage(`[
+		{
+			"id": 1, "org_id": 1, "name": "Example Network", "aka": "", "name_long": "",
+			"website": "", "social_media": [], "asn": 65001,
+			"looking_glass": "", "route_server": "", "irr_as_set": "",
+			"info_type": "", "info_types": [],
+			"info_traffic": "", "info_ratio": "", "info_scope": "",
+			"info_unicast": true, "info_multicast": false, "info_ipv6": true,
+			"info_never_via_route_servers": false, "notes": "", "policy_url": "",
+			"policy_general": "", "policy_locations": "", "policy_ratio": false,
+			"policy_contracts": "", "allow_ixp_update": false,
+			"ix_count": 0, "fac_count": 0,
+			"created": "2024-01-30T08:00:00Z", "updated": "2024-08-20T10:00:00Z", "status": "ok"
+		}
+	]`))
+
+	// Second sync should delete org 2 and all dependents.
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("second sync: %v", err)
+	}
+
+	// Verify org 2 was deleted.
+	orgCount, err := client.Organization.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("query org count: %v", err)
+	}
+	if orgCount != 1 {
+		t.Errorf("expected 1 org, got %d", orgCount)
+	}
+
+	// Re-enable FK constraints and run foreign_key_check to verify
+	// no orphaned child rows remain after the delete pass.
+	if _, err := db.ExecContext(ctx, "PRAGMA foreign_keys = ON"); err != nil {
+		t.Fatalf("enable FK constraints: %v", err)
+	}
+	rows, err := db.QueryContext(ctx, "PRAGMA foreign_key_check")
+	if err != nil {
+		t.Fatalf("foreign_key_check: %v", err)
+	}
+	defer rows.Close()
+
+	var violations []string
+	for rows.Next() {
+		var table, rowid, parent, fkid string
+		if err := rows.Scan(&table, &rowid, &parent, &fkid); err != nil {
+			t.Fatalf("scan FK violation: %v", err)
+		}
+		violations = append(violations, table+":"+rowid+"->"+parent)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate FK violations: %v", err)
+	}
+	if len(violations) > 0 {
+		t.Errorf("FK violations after sync delete: %v", violations)
+	}
+}
+
 // TestSyncIdempotent verifies that running sync twice with the same fixture
 // data produces identical results with no duplicates.
 func TestSyncIdempotent(t *testing.T) {
