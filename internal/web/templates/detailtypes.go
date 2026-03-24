@@ -96,6 +96,8 @@ type IXDetail struct {
 	NetCount int
 	// FacCount is the pre-computed count of facilities.
 	FacCount int
+	// PrefixCount is the count of peering LAN prefixes (requires IxLan traversal).
+	PrefixCount int
 }
 
 // FacilityDetail holds display data for a facility detail page.

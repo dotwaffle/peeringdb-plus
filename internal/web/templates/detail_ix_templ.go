@@ -149,7 +149,7 @@ func IXDetailPage(data IXDetail) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CollapsibleSection("Prefixes", 0, fmt.Sprintf("/ui/fragment/ix/%d/prefixes", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CollapsibleSection("Prefixes", data.PrefixCount, fmt.Sprintf("/ui/fragment/ix/%d/prefixes", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

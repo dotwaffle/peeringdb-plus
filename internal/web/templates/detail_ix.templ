@@ -38,7 +38,7 @@ templ IXDetailPage(data IXDetail) {
 		<div class="space-y-3 pt-4">
 			@CollapsibleSection("Participants", data.NetCount, fmt.Sprintf("/ui/fragment/ix/%d/participants", data.ID))
 			@CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/ix/%d/facilities", data.ID))
-			@CollapsibleSection("Prefixes", 0, fmt.Sprintf("/ui/fragment/ix/%d/prefixes", data.ID))
+			@CollapsibleSection("Prefixes", data.PrefixCount, fmt.Sprintf("/ui/fragment/ix/%d/prefixes", data.ID))
 		</div>
 	</div>
 }

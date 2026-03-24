@@ -14,6 +14,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
@@ -138,6 +139,13 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 		Status:          ix.Status,
 		NetCount:        ix.NetCount,
 		FacCount:        ix.FacCount,
+	}
+	// Count prefixes via IxLan traversal: InternetExchange -> IxLan -> IxPrefix.
+	prefixCount, err := h.client.IxPrefix.Query().
+		Where(ixprefix.HasIxLanWith(ixlan.HasInternetExchangeWith(internetexchange.ID(id)))).
+		Count(r.Context())
+	if err == nil {
+		data.PrefixCount = prefixCount
 	}
 	if ix.Edges.Organization != nil {
 		data.OrgName = ix.Edges.Organization.Name
