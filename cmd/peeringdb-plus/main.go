@@ -119,6 +119,7 @@ func main() {
 	// Create sync worker.
 	syncWorker := pdbsync.NewWorker(pdbClient, entClient, db, pdbsync.WorkerConfig{
 		IncludeDeleted: cfg.IncludeDeleted,
+		SyncMode:       cfg.SyncMode,
 	}, logger)
 
 	// Start scheduler on primary per D-22, D-29.
@@ -147,9 +148,20 @@ func main() {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
+		// Determine sync mode: query param override or config default.
+		mode := cfg.SyncMode
+		if qm := r.URL.Query().Get("mode"); qm != "" {
+			switch config.SyncMode(qm) {
+			case config.SyncModeFull, config.SyncModeIncremental:
+				mode = config.SyncMode(qm)
+			default:
+				http.Error(w, fmt.Sprintf("invalid mode %q: must be full or incremental", qm), http.StatusBadRequest)
+				return
+			}
+		}
 		// Use application root ctx, NOT r.Context() -- request context
 		// is cancelled when the response is sent, which would kill the sync.
-		go syncWorker.SyncWithRetry(ctx, cfg.SyncMode) //nolint:errcheck // fire-and-forget
+		go syncWorker.SyncWithRetry(ctx, mode) //nolint:errcheck // fire-and-forget
 		w.WriteHeader(http.StatusAccepted)
 		fmt.Fprint(w, `{"status":"accepted"}`)
 	})
