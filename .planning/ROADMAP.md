@@ -70,22 +70,26 @@ See: `.planning/milestones/v1.4-ROADMAP.md` for full details.
 
 ### v1.5 Tech Debt & Observability (In Progress)
 
-- [ ] **Phase 18: Tech Debt & Data Integrity** - Remove dead code, verify meta.generated field behavior, document findings
+- [ ] **Phase 18: Tech Debt & Data Integrity** - Correct stale planning docs, verify meta.generated field behavior, document findings
 - [ ] **Phase 19: Prometheus Metrics & Grafana Dashboard** - Enable Prometheus export, create comprehensive Grafana dashboard JSON
 - [ ] **Phase 20: Deferred Human Verification** - Verify all 26 deferred items against live Fly.io deployment
 
 ## Phase Details
 
 ### Phase 18: Tech Debt & Data Integrity
-**Goal**: Codebase is free of dead code and the sync pipeline's meta.generated cursor behavior is empirically verified and documented
+**Goal**: Planning documentation accurately reflects resolved tech debt and the sync pipeline's meta.generated cursor behavior is empirically verified and documented
 **Depends on**: Nothing (first phase of v1.5)
 **Requirements**: DEBT-01, DEBT-02, DATA-01, DATA-02, DATA-03
 **Success Criteria** (what must be TRUE):
-  1. WorkerConfig.IsPrimary field no longer exists in internal/sync/worker.go and the codebase compiles clean
+  1. Planning documentation accurately reflects that WorkerConfig.IsPrimary was converted from dead bool to live func() bool by quick task 260324-lc5 (not removed)
   2. Planning documentation accurately reflects which dead code items were already removed vs. newly removed in this phase
   3. meta.generated field behavior is documented with actual observed response structures for depth=0 full fetch, paginated incremental, and empty result set patterns
   4. Sync pipeline handles absent meta.generated gracefully (zero-time triggers started_at - 5min fallback) without data loss or sync failure
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 18-01-PLAN.md -- Correct stale planning docs (PROJECT.md, Phase 7 summary)
+- [ ] 18-02-PLAN.md -- Live meta.generated test and documentation
 
 ### Phase 19: Prometheus Metrics & Grafana Dashboard
 **Goal**: All existing OTel metrics are exposed via Prometheus endpoint and visualized in a portable Grafana dashboard covering sync health, HTTP traffic, per-type sync detail, runtime metrics, and business metrics
@@ -134,6 +138,6 @@ Phases execute in numeric order: 18 → 19 → 20
 | 15. Record Detail Pages | v1.4 | 2/2 | Complete | 2026-03-24 |
 | 16. ASN Comparison | v1.4 | 2/2 | Complete | 2026-03-24 |
 | 17. Polish & Accessibility | v1.4 | 3/3 | Complete | 2026-03-24 |
-| 18. Tech Debt & Data Integrity | v1.5 | 0/? | Not started | - |
+| 18. Tech Debt & Data Integrity | v1.5 | 0/2 | Planned | - |
 | 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 0/? | Not started | - |
 | 20. Deferred Human Verification | v1.5 | 0/? | Not started | - |
