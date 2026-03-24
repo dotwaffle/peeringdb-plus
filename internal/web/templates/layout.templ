@@ -28,9 +28,21 @@ templ Layout(title string, contents templ.Component) {
 				html.theme-transition, html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {
 					transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;
 				}
+				@keyframes fadeIn {
+					from { opacity: 0; transform: translateY(4px); }
+					to { opacity: 1; transform: translateY(0); }
+				}
+				.animate-fade-in { animation: fadeIn 200ms ease-out; }
+				.htmx-swapping { opacity: 0; transition: opacity 100ms ease-out; }
+				.htmx-settling { opacity: 1; transition: opacity 200ms ease-in; }
+				#global-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 50; }
+				.htmx-request #global-indicator, .htmx-request#global-indicator { opacity: 1; transition-delay: 0ms; }
 			</style>
 		</head>
-		<body class="bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 min-h-screen flex flex-col">
+		<body class="bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 min-h-screen flex flex-col" hx-indicator="#global-indicator">
+			<div id="global-indicator" class="htmx-indicator bg-emerald-500">
+				<div class="h-full w-full bg-emerald-400 animate-pulse"></div>
+			</div>
 			@Nav()
 			<main class="flex-1 container mx-auto px-4 py-8">
 				@contents

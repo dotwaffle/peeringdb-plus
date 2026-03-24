@@ -655,3 +655,60 @@ func TestNetworkDetailPage_CompareButton(t *testing.T) {
 		t.Error("network detail page should contain 'Compare with' button text")
 	}
 }
+
+// --- Dark mode and CSS animation tests ---
+
+func TestLayout_CSSAnimations(t *testing.T) {
+	t.Parallel()
+	inner := templ.Raw("<p>test</p>")
+	body := renderComponent(t, templates.Layout("Test", inner))
+
+	checks := []string{
+		"@keyframes fadeIn",
+		".htmx-swapping",
+		"global-indicator",
+	}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("layout missing CSS animation element %q", want)
+		}
+	}
+}
+
+func TestFooter_DarkMode(t *testing.T) {
+	t.Parallel()
+	body := renderComponent(t, templates.Footer())
+
+	if !strings.Contains(body, "dark:bg-neutral-800") {
+		t.Error("footer missing dark:bg-neutral-800")
+	}
+	if !strings.Contains(body, "dark:border-neutral-700") {
+		t.Error("footer missing dark:border-neutral-700")
+	}
+}
+
+func TestSearchResults_FadeIn(t *testing.T) {
+	t.Parallel()
+	groups := []templates.SearchGroup{
+		{
+			TypeName:    "Networks",
+			TypeSlug:    "net",
+			AccentColor: "emerald",
+			TotalCount:  1,
+			Results: []templates.SearchResult{
+				{Name: "Cloudflare", Subtitle: "AS13335", DetailURL: "/ui/asn/13335"},
+			},
+		},
+	}
+	body := renderComponent(t, templates.SearchResults(groups))
+
+	if !strings.Contains(body, "animate-fade-in") {
+		t.Error("search results missing animate-fade-in class")
+	}
+	if !strings.Contains(body, "dark:border-neutral-700") {
+		t.Error("search results missing dark:border-neutral-700")
+	}
+	if !strings.Contains(body, "dark:bg-neutral-800") {
+		t.Error("search results missing dark:bg-neutral-800")
+	}
+}

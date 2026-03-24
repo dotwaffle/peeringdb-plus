@@ -6,10 +6,10 @@ import "fmt"
 // htmx lazy loading on first expand. If count is 0, the section is not
 // expandable and shows a static "None" message.
 templ CollapsibleSection(title string, count int, loadURL string) {
-	<details class="border border-neutral-700 rounded-lg overflow-hidden">
-		<summary class="px-4 py-3 cursor-pointer flex items-center justify-between bg-neutral-800/50 hover:bg-neutral-800 transition-colors select-none">
-			<span class="font-medium text-neutral-100">{ title }</span>
-			<span class="text-neutral-500 text-sm font-mono">{ fmt.Sprintf("(%d)", count) }</span>
+	<details class="border border-neutral-200 dark:border-neutral-700 rounded-lg overflow-hidden">
+		<summary class="px-4 py-3 cursor-pointer flex items-center justify-between bg-neutral-50/50 dark:bg-neutral-800/50 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors select-none">
+			<span class="font-medium text-neutral-900 dark:text-neutral-100">{ title }</span>
+			<span class="text-neutral-400 dark:text-neutral-500 text-sm font-mono">{ fmt.Sprintf("(%d)", count) }</span>
 		</summary>
 		if count > 0 {
 			<div
@@ -17,12 +17,12 @@ templ CollapsibleSection(title string, count int, loadURL string) {
 				hx-trigger="toggle once from:closest details"
 				hx-swap="innerHTML"
 			>
-				<div class="px-4 py-6 text-center text-neutral-500">
+				<div class="px-4 py-6 text-center text-neutral-400 dark:text-neutral-500">
 					<span class="animate-pulse">Loading...</span>
 				</div>
 			</div>
 		} else {
-			<div class="px-4 py-3 text-neutral-500 text-sm">None</div>
+			<div class="px-4 py-3 text-neutral-400 dark:text-neutral-500 text-sm">None</div>
 		}
 	</details>
 }
@@ -37,18 +37,18 @@ templ DetailHeader(typeBadge string, accentColor string, name string, subtitle s
 				{ typeBadge }
 			</span>
 			if subtitle != "" {
-				<span class="text-neutral-400 text-sm font-mono">
+				<span class="text-neutral-500 dark:text-neutral-400 text-sm font-mono">
 					{ subtitle }
 				</span>
 			}
 		</div>
-		<h1 class="text-2xl font-bold text-neutral-100">{ name }</h1>
+		<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{ name }</h1>
 	</div>
 }
 
 // StatBadge renders a small stat indicator for the header area.
 templ StatBadge(label string, count int) {
-	<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm text-neutral-400 bg-neutral-800">
+	<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800">
 		<span class="font-mono">{ fmt.Sprintf("%d", count) }</span>
 		{ label }
 	</span>
@@ -58,8 +58,8 @@ templ StatBadge(label string, count int) {
 templ DetailField(label string, value string) {
 	if value != "" {
 		<div class="flex flex-col gap-0.5 py-1">
-			<span class="text-neutral-500 text-sm">{ label }</span>
-			<span class="text-neutral-100">{ value }</span>
+			<span class="text-neutral-400 dark:text-neutral-500 text-sm">{ label }</span>
+			<span class="text-neutral-900 dark:text-neutral-100">{ value }</span>
 		</div>
 	}
 }
@@ -68,7 +68,7 @@ templ DetailField(label string, value string) {
 templ DetailLink(label string, url string) {
 	if url != "" {
 		<div class="flex flex-col gap-0.5 py-1">
-			<span class="text-neutral-500 text-sm">{ label }</span>
+			<span class="text-neutral-400 dark:text-neutral-500 text-sm">{ label }</span>
 			<a href={ templ.SafeURL(url) } target="_blank" rel="noopener noreferrer"
 				class="text-emerald-400 hover:text-emerald-300 transition-colors truncate">
 				{ url }

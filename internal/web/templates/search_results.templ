@@ -7,12 +7,12 @@ import "fmt"
 // is nil or empty.
 templ SearchResults(groups []SearchGroup) {
 	for _, group := range groups {
-		<div class="mb-6">
+		<div class="mb-6 animate-fade-in">
 			<div class="flex items-center gap-2 mb-3">
 				<span class={ groupBadgeClasses(group.AccentColor) }>
 					{ group.TypeName }
 				</span>
-				<span class="text-neutral-500 text-sm font-mono">
+				<span class="text-neutral-400 dark:text-neutral-500 text-sm font-mono">
 					{ fmt.Sprintf("(%d)", group.TotalCount) }
 				</span>
 			</div>
@@ -20,14 +20,14 @@ templ SearchResults(groups []SearchGroup) {
 				for _, result := range group.Results {
 					<a
 						href={ templ.SafeURL(result.DetailURL) }
-						class="flex items-center justify-between px-4 py-3 rounded-lg border border-neutral-700 bg-neutral-800/50 hover:border-neutral-500 hover:bg-neutral-800 transition-colors group"
+						class="flex items-center justify-between px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-800/50 hover:border-neutral-300 dark:hover:border-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group"
 					>
 						<div class="flex flex-col min-w-0">
-							<span class="text-neutral-100 font-medium truncate group-hover:text-emerald-400 transition-colors">
+							<span class="text-neutral-900 dark:text-neutral-100 font-medium truncate group-hover:text-emerald-400 transition-colors">
 								{ result.Name }
 							</span>
 							if result.Subtitle != "" {
-								<span class="text-neutral-400 text-sm font-mono truncate">
+								<span class="text-neutral-500 dark:text-neutral-400 text-sm font-mono truncate">
 									{ result.Subtitle }
 								</span>
 							}
