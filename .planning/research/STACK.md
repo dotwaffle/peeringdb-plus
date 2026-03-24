@@ -1,261 +1,325 @@
-# Technology Stack: v1.2 Additions
+# Technology Stack: v1.4 Web UI Additions
 
-**Project:** PeeringDB Plus v1.2 (Quality & CI)
-**Researched:** 2026-03-23
-**Scope:** Stack additions/changes for golden file testing, GitHub Actions CI pipeline, and golangci-lint enforcement. Does NOT re-research validated v1.0/v1.1 stack.
+**Project:** PeeringDB Plus v1.4 (Web UI)
+**Researched:** 2026-03-24
+**Scope:** Stack additions for Web UI features: live search, record detail views, ASN comparison tool. Does NOT re-research validated backend stack (Go 1.26, entgo, SQLite, GraphQL, REST, OTel).
 
 ## New Dependencies
 
-### Golden File Testing
-
-No new Go module dependencies required. The golden file pattern uses stdlib only.
+### HTML Templating -- templ
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| `flag` (stdlib) | Go 1.26 | `-update` flag for golden file regeneration | Standard Go pattern: `var update = flag.Bool("update", false, "update golden files")`. Used by Go's own `cmd/gofmt` tests. No library needed. | HIGH |
-| `os` (stdlib) | Go 1.26 | Read/write `.golden` files in `testdata/` | `os.ReadFile` / `os.WriteFile` for golden file I/O. | HIGH |
-| `filepath` (stdlib) | Go 1.26 | Auto-discover test input/golden file pairs | `filepath.Glob` discovers `testdata/*.golden` files, each becomes a subtest. | HIGH |
-| `github.com/google/go-cmp/cmp` | v0.7.0 | Readable diffs when golden files mismatch | Already an indirect dependency (v0.7.0). Promote to direct. `cmp.Diff(want, got)` produces human-readable diffs in test failure output. Standard practice per Go wiki TestComments. | HIGH |
+| `github.com/a-h/templ` | v0.3.1001 | Type-safe HTML templating | Compiles `.templ` files to Go code at build time. Full type checking -- template errors are compile errors, not runtime panics. Components are pure functions: `func MyPage(data MyData) templ.Component`. Implements `templ.Component` interface with `Render(ctx, io.Writer)` method, which plugs directly into `net/http` handlers via `component.Render(r.Context(), w)` or `templ.Handler(component)`. 5,400+ importers on pkg.go.dev. Published 2026-02-28 (latest on pkg.go.dev). MIT licensed. | HIGH |
 
-**Pattern chosen:** Stdlib `flag.Bool("-update")` + `testdata/*.golden` files.
+**Why templ over html/template (stdlib):**
+- **Compile-time type safety.** Passing wrong data to a template is a compile error, not a runtime blank page. With 13 PeeringDB types each having detail/list views, type safety prevents an entire class of bugs.
+- **Component composition.** Layouts, partials, and shared UI elements compose like function calls. A `Layout(title string)` component wraps page content naturally.
+- **IDE support.** VSCode extension provides autocomplete, syntax highlighting, go-to-definition for `.templ` files.
+- **No runtime template parsing.** Templates compile to Go code that writes bytes directly. No `template.ParseFiles` at startup, no `template.Execute` reflection overhead.
+- **Standard interface.** `templ.Component` implements `io.WriterTo`-style rendering. Works with any `http.Handler` -- no framework coupling.
 
-**Why not a golden file library (goldie, xorcare/golden, gotest.tools/golden)?**
-- The project's golden files are JSON HTTP responses with a well-defined structure
-- The stdlib pattern is ~20 lines of helper code, fully understood, no dependency
-- Third-party libraries add abstraction over trivially simple file comparison
-- The `-update` flag pattern is the Go standard (used in `cmd/gofmt`, `cmd/go` itself)
+**Integration with existing HTTP server:**
 
-**Implementation approach:**
+The existing `main.go` uses `http.NewServeMux()` with method-based routing (Go 1.22+). Templ handlers mount as standard `http.Handler` or `http.HandlerFunc`:
+
 ```go
-// In pdbcompat package test file:
-var update = flag.Bool("update", false, "update .golden files")
+// Static handler for a page component
+mux.Handle("GET /", templ.Handler(pages.Home()))
 
-// Per-test:
-golden := filepath.Join("testdata", tc.name+".golden")
-if *update {
-    os.WriteFile(golden, got, 0644)
-}
-want, _ := os.ReadFile(golden)
-if diff := cmp.Diff(string(want), string(got)); diff != "" {
-    t.Errorf("mismatch (-want +got):\n%s", diff)
-}
+// Dynamic handler with data from ent queries
+mux.HandleFunc("GET /net/{id}", func(w http.ResponseWriter, r *http.Request) {
+    id := r.PathValue("id")
+    network, err := entClient.Network.Get(r.Context(), id)
+    if err != nil {
+        http.NotFound(w, r)
+        return
+    }
+    pages.NetworkDetail(network).Render(r.Context(), w)
+})
 ```
 
-**Golden file naming convention:** `testdata/<type>_<scenario>.golden` (e.g., `testdata/net_list.golden`, `testdata/net_detail_13335.golden`, `testdata/net_filter_asn_contains.golden`).
+**Code generation step:** `templ generate` compiles `*.templ` files to `*_templ.go` files. These generated Go files are committed to the repo (same pattern as ent-generated code). Add to CI: `templ generate && git diff --exit-code` to detect uncommitted changes.
 
-**What gets golden-filed:**
-- Full HTTP response bodies (JSON) for each of the 13 PeeringDB types
-- List endpoints, detail endpoints, filtered queries, pagination, depth expansion
-- Error responses (404, unknown type)
-- The `/api/` index endpoint
+**CLI installation:**
 
-### GitHub Actions CI Pipeline
+```bash
+# Project-local (Go 1.24+ tool directive, preferred)
+go get -tool github.com/a-h/templ/cmd/templ@v0.3.1001
 
-No Go module dependencies. GitHub Actions configuration only.
+# Then invoke as:
+go tool templ generate
+```
 
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| `actions/checkout` | v6 | Repository checkout | Current stable (v6.0.2, Jan 2026). Node 24 runtime. | HIGH |
-| `actions/setup-go` | v6 | Go toolchain setup | Current stable. Auto-caches `GOCACHE` and `GOMODCACHE` using `go.sum` as cache key. Supports `go-version-file: go.mod` to read Go version from `go 1.26.1` directive. | HIGH |
-| `golangci/golangci-lint-action` | v9 | Lint execution | Current stable (v9.0.0+). Requires golangci-lint >= v2.1.0. Parallel binary download + cache retrieval. Produces GitHub-native annotations on PR diffs. Run as separate job for parallelism with tests. | HIGH |
-
-**Why these versions:**
-- `actions/checkout@v6` and `actions/setup-go@v6` both use Node 24 runtime, matching GitHub's current runner requirements
-- `golangci-lint-action@v9` is the only version that supports golangci-lint v2.11+ (the current release line)
-- `setup-go@v6` with `go-version-file: go.mod` reads Go 1.26.1 from the existing `go.mod` -- no hardcoded version to maintain
-
-**Workflow structure (two parallel jobs):**
-
-1. **`lint` job:** checkout, setup-go, golangci-lint-action
-2. **`test` job:** checkout, setup-go, `go test -race -count=1 ./...`
-
-**Why two jobs, not one:**
-- Lint and test run in parallel, reducing wall-clock CI time
-- golangci-lint-action docs explicitly recommend this ("run it as a separate job")
-- Lint failures don't block test results (and vice versa)
-- Each job gets fresh caching behavior appropriate to its workload
-
-**Caching strategy:**
-- `actions/setup-go@v6` caches Go modules automatically (keyed on `go.sum`)
-- `golangci-lint-action@v9` caches lint analysis results separately
-- No manual cache configuration needed
-
-### golangci-lint v2 Configuration
+### Frontend Interactivity -- htmx
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| golangci-lint | v2.11 | Linter aggregator | Current stable release line (v2.11.4, 2026-03-22). v2 is a breaking change from v1 -- new config format with `version: "2"`. Merged `gosimple` + `stylecheck` into `staticcheck`. Moved formatters (gofumpt, goimports) to `formatters` section. | HIGH |
+| htmx | 2.0.7 | Server-driven UI interactions | AJAX requests via HTML attributes (`hx-get`, `hx-post`, `hx-trigger`). No JavaScript to write for search-as-you-type, partial page updates, or dynamic content loading. 14KB min+gzip. Zero dependencies. Single JS file. Delivered from the Go binary via `embed.FS`, not a CDN. Published 2024-09-11 (latest stable). | HIGH |
 
-**Default linters (the `standard` preset):**
-- `errcheck` -- unchecked error returns
-- `govet` -- suspicious constructs (Go's built-in `go vet`)
-- `ineffassign` -- assignments to variables that are never used
-- `staticcheck` -- comprehensive static analysis (absorbed `gosimple` + `stylecheck`)
-- `unused` -- unused code detection
+**Why htmx over a JavaScript framework:**
+- **No build toolchain.** No webpack, no vite, no node_modules. The Go binary serves everything.
+- **Server-rendered HTML.** templ renders HTML fragments on the server; htmx swaps them into the DOM. The server is the single source of truth. No client-side state management, no API contract duplication.
+- **Perfect fit for search/detail/compare.** Live search = `hx-get="/search?q=..." hx-trigger="input changed delay:300ms"`. Record detail = `hx-get="/net/13335" hx-target="#content"`. Collapsible sections = `hx-get="/net/13335/peers" hx-trigger="revealed"`. All patterns map to htmx primitives.
+- **URL-as-state.** `hx-push-url="true"` updates the browser URL bar, making every view linkable/shareable (project requirement).
+- **Tiny payload.** 14KB gzipped. Contrast with React (44KB) or Vue (34KB) before any application code.
 
-**Additional linters to enable (beyond defaults):**
-- `gosec` -- security-oriented checks (SEC-1, SEC-2 from CLAUDE.md)
-- `errorlint` -- proper `errors.Is`/`errors.As` usage (ERR-2 from CLAUDE.md)
-- `nilerr` -- returning nil when err is not nil
-- `bodyclose` -- HTTP response body closure
-- `unconvert` -- unnecessary type conversions
-- `misspell` -- common misspellings in comments and strings
-- `copyloopvar` -- Go 1.22+ loop variable semantics (modern Go per CS-0)
-- `intrange` -- prefer `range N` over `for i := 0; i < N; i++` (Go 1.22+)
-- `gocritic` -- opinionated Go best practices
+**Self-hosting via embed.FS (not CDN):**
 
-**Formatters to enable:**
-- `gofumpt` -- stricter gofmt (per TL-1 from CLAUDE.md)
-- `goimports` -- import grouping and ordering
+Download `htmx.min.js` v2.0.7 and embed it in the Go binary. This eliminates external CDN dependencies, ensures the app works in air-gapped environments, and guarantees version consistency.
 
-**Linters to NOT enable:**
-- `depguard` -- dependency allowlisting is overkill for this project
-- `funlen` -- the serializer functions are necessarily long (13 type mappers)
-- `wsl` -- overly opinionated whitespace enforcement
-- `gocognit` / `cyclop` -- the filter parser has inherent complexity, these would generate noise
-- `ireturn` -- conflicts with API-2 (return concrete types) in cases where interfaces are needed
-- `nlreturn` -- stylistic, not safety-related
+```go
+//go:embed static
+var staticFS embed.FS
 
-**v2 config format (`.golangci.yml`):**
+// In main.go mux setup:
+mux.Handle("GET /static/", http.FileServerFS(staticFS))
+```
+
+**htmx 4.0 note:** htmx 4.0 is expected mid-2026 (marked "latest" early 2027). It replaces XMLHttpRequest with fetch() internally and makes attribute inheritance explicit. Build on 2.0.7 now -- migration is straightforward when 4.0 stabilizes.
+
+### Styling -- Tailwind CSS
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| Tailwind CSS (standalone CLI) | v4.2.2 | Utility-first CSS framework | Generates only the CSS actually used. CSS-first configuration (no `tailwind.config.js` in v4). Standalone CLI binary -- no Node.js, no npm, no node_modules. Scans `.templ` files for utility classes via `@source` directive. Published 2025-03-18. | HIGH |
+
+**Why Tailwind CSS over alternatives:**
+- **Utility-first eliminates CSS file management.** No separate `.css` files per component. Classes in templ templates are the styling. Reduces context switching.
+- **Standalone CLI.** A single binary (downloaded from GitHub releases). No Node.js ecosystem infection in a Go project. The binary scans source files, extracts used classes, outputs a single minified CSS file.
+- **Automatic purging.** v4 only includes CSS for classes that appear in source files. Production CSS is typically 5-15KB for a full application.
+- **v4 CSS-first config.** No JavaScript config file. Theme customization via `@theme` in CSS. Simpler than v3.
+
+**Why v4 specifically:**
+- v4 requires only an `input.css` file with `@import "tailwindcss"` -- no init step, no config file
+- `@source` directive tells Tailwind where to scan for classes (point it at `.templ` files and generated `_templ.go` files)
+- Rebuilds are 3.5x faster (full) and 8x faster (incremental) than v3
+- Built-in container queries, 3D transforms, `@starting-style` support
+
+**Standalone CLI setup:**
+
+```bash
+# Download (one-time, or in CI)
+curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.2/tailwindcss-linux-x64
+chmod +x tailwindcss-linux-x64
+mv tailwindcss-linux-x64 /usr/local/bin/tailwindcss
+
+# macOS (for dev):
+curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.2/tailwindcss-macos-arm64
+chmod +x tailwindcss-macos-arm64
+mv tailwindcss-macos-arm64 /usr/local/bin/tailwindcss
+```
+
+**CSS input file (`internal/web/static/input.css`):**
+
+```css
+@import "tailwindcss";
+
+/* Scan templ source files and generated Go files for utility classes */
+@source "../templates/**/*.templ";
+@source "../templates/**/*_templ.go";
+```
+
+**Build command:**
+
+```bash
+# Development (watch mode)
+tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --watch
+
+# Production (minified)
+tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --minify
+```
+
+**Output CSS is committed to the repo** and embedded via `embed.FS`. Same pattern as htmx.min.js. CI verifies the output is fresh: `tailwindcss -i ... -o ... --minify && git diff --exit-code`.
+
+### Development Tooling
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| templ CLI (watch + proxy) | v0.3.1001 | Hot reload during development | `templ generate --watch --proxy="http://localhost:8080" --cmd="go run ./cmd/peeringdb-plus"`. Watches `.templ` files, regenerates Go code, restarts the server, injects browser reload script via HTTP proxy on `:7331`. Single command replaces air + manual rebuild. | HIGH |
+| air | v1.64.5 | Alternative hot reload (Go file changes) | File-watching rebuild. Use ONLY if templ's built-in `--watch --cmd` mode proves insufficient (e.g., watching `.go` files outside templ's scope). Published 2026-02-02. Do not install unless needed -- templ's watch mode covers the primary workflow. | LOW |
+
+**Recommended development workflow:**
+
+Run two terminals:
+
+```bash
+# Terminal 1: Tailwind CSS watcher
+tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --watch
+
+# Terminal 2: templ watcher with proxy and auto-restart
+templ generate --watch --proxy="http://localhost:8080" --cmd="go run ./cmd/peeringdb-plus"
+```
+
+Open browser at `http://localhost:7331` (templ proxy). Changes to `.templ` files trigger: regenerate Go code, rebuild binary, restart server, reload browser -- automatically.
+
+**Taskfile integration (when adopted):**
 
 ```yaml
-version: "2"
-
-run:
-  timeout: 5m
-
-linters:
-  default: standard
-  enable:
-    - gosec
-    - errorlint
-    - nilerr
-    - bodyclose
-    - unconvert
-    - misspell
-    - copyloopvar
-    - intrange
-    - gocritic
-  settings:
-    govet:
-      enable-all: true
-    staticcheck:
-      checks: ["all"]
-    errcheck:
-      check-type-assertions: true
-      check-blank: true
-    gocritic:
-      enabled-tags:
-        - diagnostic
-        - performance
-  exclusions:
-    presets:
-      - common-false-positives
-    rules:
-      - path: _test\.go
-        linters:
-          - gosec
-      - path: ent/
-        linters:
-          - gocritic
-          - gosec
-
-formatters:
-  enable:
-    - gofumpt
-    - goimports
-  exclusions:
-    paths:
-      - ent/
+tasks:
+  dev:
+    deps: [dev:css, dev:templ]
+  dev:css:
+    cmd: tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --watch
+  dev:templ:
+    cmd: templ generate --watch --proxy="http://localhost:8080" --cmd="go run ./cmd/peeringdb-plus"
+  build:css:
+    cmd: tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --minify
+  build:templ:
+    cmd: templ generate
 ```
 
-**Key exclusions explained:**
-- `ent/` directory: Generated code, not hand-written. Exclude from style linters and formatters.
-- `_test.go` files: Security linter (`gosec`) is noisy on test code (hardcoded test values, etc.)
-- `common-false-positives` preset: Built-in exclusion set that suppresses known false positives
+## Explicit Non-Additions
 
-### Test Execution
+Things that might seem tempting but should NOT be added.
 
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| `go test` (stdlib) | Go 1.26 | Test runner | `-race` flag for race detection (T-2, G-3). `-count=1` to disable test caching in CI. `-v` for verbose output. | HIGH |
+| Anti-Addition | Why Not |
+|---------------|---------|
+| React / Vue / Svelte / any SPA framework | Server-rendered HTML with htmx is simpler, faster, and eliminates client-side state management for a read-only data browser. No API contract duplication. No JS build toolchain. |
+| Node.js / npm / node_modules | Tailwind standalone CLI and self-hosted htmx.min.js eliminate the only reasons to have Node. Go project stays Go. |
+| Webpack / Vite / esbuild / Rollup | No JavaScript to bundle. Tailwind CLI handles CSS. htmx is a single pre-minified file. |
+| Alpine.js | Sometimes paired with htmx for client-side state. Unnecessary here -- all UI state lives in the URL and server. Collapsible sections use htmx `hx-trigger="click"` directly. |
+| PostCSS | Tailwind v4 standalone CLI includes its own CSS processing. No PostCSS pipeline needed. |
+| SASS / Less / CSS-in-JS | Tailwind's utility classes replace custom CSS. Custom styling goes in `@theme` in the input.css file. |
+| Bootstrap / Bulma / other CSS frameworks | Tailwind is the styling layer. Mixing frameworks creates conflicts and bloat. |
+| chi router | The existing `http.NewServeMux()` with Go 1.22+ method routing handles all current and new routes. Web UI routes are simple `GET /path/{param}` patterns. chi adds value only for middleware grouping, which is not needed with the current flat middleware stack. |
+| gorilla/mux | Same reasoning as chi. Stdlib mux is sufficient. |
+| templ component library (templUI) | templUI provides pre-built Tailwind components for templ. Adds a dependency for components we can build in ~50 lines each. The project has only ~5 page types (home, search, detail, compare, about). Build them directly. |
 
-**Why NOT gotestsum:**
-- `go test -v ./...` output is sufficient for GitHub Actions (setup-go's problem matcher already parses it)
-- gotestsum adds a binary installation step and another tool to maintain
-- JUnit XML reporting is not needed (no external test dashboard integration planned)
-- Can add later if test output becomes unwieldy
+## Project Structure for Web UI
 
-**Race detection considerations with modernc.org/sqlite:**
-- modernc.org/sqlite is pure Go, so `-race` works without CGo complications
-- The existing `testutil.SetupClient` creates isolated in-memory databases per test (unique DSN per `dbCounter`)
-- `t.Parallel()` is already used throughout existing tests
-- No known race issues with modernc.org/sqlite when using separate connections (confirmed by their CI running with `-race` for 2+ years)
+```
+internal/
+  web/
+    handler.go          # HTTP handlers (mount on mux)
+    handler_test.go     # Handler tests
+    static/
+      input.css         # Tailwind source CSS
+      output.css        # Tailwind compiled CSS (committed, embedded)
+      htmx.min.js       # htmx 2.0.7 (committed, embedded)
+      embed.go          # //go:embed directive for static files
+    templates/
+      layout.templ      # Base HTML layout (head, nav, footer)
+      home.templ         # Landing page
+      search.templ       # Search results (full page + fragment)
+      detail.templ       # Record detail view
+      compare.templ      # ASN comparison view
+      components/
+        nav.templ        # Navigation bar
+        search_input.templ # Search input with htmx attributes
+        record_card.templ  # Record summary card
+        related.templ      # Collapsible related records section
+```
 
-## Promote from Indirect to Direct
+**Why this structure:**
+- `internal/web/` keeps all web UI code in one package, separate from API handlers
+- `templates/` holds `.templ` source files; generated `*_templ.go` files appear alongside them
+- `static/` holds assets embedded via `embed.FS` -- the Go binary is fully self-contained
+- `components/` holds reusable templ components shared across pages
+- Handlers in `handler.go` query ent and pass typed data to templ components
 
-| Dependency | Current | Action | Rationale |
-|------------|---------|--------|-----------|
-| `github.com/google/go-cmp` | v0.7.0 indirect | Promote to direct | Used explicitly in golden file test assertions via `cmp.Diff`. Already in `go.sum`. No version change. |
+## Integration with Existing Server
 
-## No New Go Dependencies
+The Web UI mounts on the existing `http.ServeMux` in `main.go` alongside the existing API routes:
 
-Everything else needed is:
-- Stdlib (`flag`, `os`, `filepath`, `testing`, `net/http/httptest`)
-- Already in `go.mod` (`google/go-cmp` as indirect)
-- GitHub Actions configuration (YAML, not Go code)
-- golangci-lint configuration (YAML, not Go code)
+```go
+// Existing routes (unchanged):
+// POST /sync, GET /healthz, GET /readyz, /graphql, /rest/v1/*, /api/*
 
-**This is deliberate.** A quality/CI milestone should not introduce new runtime dependencies.
+// New Web UI routes:
+webHandler := web.NewHandler(entClient)
+webHandler.Register(mux)
+// Registers: GET /, GET /search, GET /net/{id}, GET /ix/{id}, etc.
+// GET /compare, GET /static/*
+```
+
+**Route conflict resolution:** The existing `GET /` handler returns JSON discovery. The Web UI replaces it with an HTML landing page. The JSON discovery info moves to `GET /api/` (already served by the compat layer) or a new `GET /meta` endpoint.
+
+**Readiness gating:** Web UI routes should be gated by readiness middleware (same as API routes). No data to show if sync hasn't completed. The existing `readinessMiddleware` already handles this for all non-infrastructure paths.
+
+**Static file serving:** `http.FileServerFS(staticFS)` at `GET /static/` serves embedded CSS and JS. Set `Cache-Control: public, max-age=31536000, immutable` on static assets (content-hash in filenames for cache busting).
+
+## CI Pipeline Additions
+
+| Step | Command | Purpose |
+|------|---------|---------|
+| templ generate check | `go tool templ generate && git diff --exit-code` | Ensure generated `*_templ.go` files are up to date |
+| Tailwind CSS build check | `tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --minify && git diff --exit-code` | Ensure compiled CSS is up to date |
+| Tailwind CLI install in CI | Download standalone binary in CI job | No Node.js required on CI runner |
+
+**CI job modification:** Add templ and Tailwind checks to the existing `lint` job (or a new `generate` job). The `test` job already runs `go test -race ./...` which will cover web handler tests.
+
+## Installation Summary
+
+```bash
+# New Go dependency (templ library, not CLI)
+go get github.com/a-h/templ@v0.3.1001
+
+# templ CLI (project-local tool)
+go get -tool github.com/a-h/templ/cmd/templ@v0.3.1001
+
+# Tailwind CSS standalone CLI (download binary)
+curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.2/tailwindcss-linux-x64
+chmod +x tailwindcss-linux-x64 && mv tailwindcss-linux-x64 /usr/local/bin/tailwindcss
+
+# htmx (download single file, commit to repo)
+curl -sLo internal/web/static/htmx.min.js https://unpkg.com/htmx.org@2.0.7/dist/htmx.min.js
+```
+
+**Total new Go module dependencies: 1** (`github.com/a-h/templ`). Everything else is a build tool (Tailwind CLI) or a static asset (htmx.min.js).
 
 ## Alternatives Considered
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| Golden file library | Stdlib `flag.Bool` pattern | `github.com/sebdah/goldie/v2` | Goldie is 1.5K stars but adds abstraction over trivial file I/O. The stdlib pattern is ~20 lines, fully transparent, used by Go stdlib itself. |
-| Golden file library | Stdlib `flag.Bool` pattern | `gotest.tools/v3/golden` | Part of larger `gotest.tools` suite. Pulls in transitive deps. Overkill for JSON file comparison. |
-| Golden file library | Stdlib `flag.Bool` pattern | `github.com/xorcare/golden` | Well-designed but small user base (100 stars). Adds a dependency for what stdlib handles natively. |
-| Golden file format | Plain JSON `.golden` files | `txtar` archives | txtar is for multi-file test archives (compiler tests, gopls). Our golden files are single JSON responses. txtar adds unnecessary indirection. |
-| Test diff output | `google/go-cmp` | `reflect.DeepEqual` + `fmt.Sprintf` | `cmp.Diff` produces readable unified diffs. `DeepEqual` gives only true/false -- useless for debugging JSON mismatches. |
-| Test diff output | `google/go-cmp` | `encoding/json` manual comparison | Byte-level comparison is fragile (key ordering, whitespace). `cmp.Diff` compares semantically. |
-| CI test output | Raw `go test -v` | `gotestsum` | Adds install step, another tool version to track. `go test -v` output is parsed by `actions/setup-go` problem matcher already. Reconsider if test suite grows past 100 tests. |
-| CI lint action | `golangci/golangci-lint-action@v9` | `reviewdog/action-golangci-lint` | reviewdog is a wrapper around golangci-lint. Adds indirection. Official action has better caching and is maintained by golangci-lint authors. |
-| golangci-lint version | v2.11 | v1.x (legacy) | v1.x is end-of-life. v2 is current. Config format is incompatible but `golangci-lint migrate` handles conversion. Starting fresh with v2 config. |
-| CI runner OS | `ubuntu-latest` | Matrix with macOS/Windows | This is a server application deployed on Linux (Fly.io). macOS/Windows testing adds CI minutes for no deployment benefit. modernc.org/sqlite is pure Go, no platform-specific code. |
-| Go version matrix | Single `go-version-file: go.mod` | Matrix with Go 1.25 + 1.26 | Project targets Go 1.26 exclusively. No backward compat requirement. Matrix testing wastes CI minutes. |
+| Templating | templ v0.3.1001 | html/template (stdlib) | Runtime template parsing, stringly-typed, no compile-time type checking. Acceptable for trivial pages, not for 13-type data browser with complex layouts. |
+| Templating | templ v0.3.1001 | gomponents | Functional HTML builder in pure Go. No separate template language. But: harder to read for HTML-heavy pages, no IDE HTML support, smaller ecosystem. |
+| Interactivity | htmx 2.0.7 | Stimulus (Hotwire) | Larger (30KB+), more complex, designed for Rails. htmx is simpler and framework-agnostic. |
+| Interactivity | htmx 2.0.7 | Vanilla JS fetch() | More code to write, maintain, and test. htmx declarative attributes replace 80% of custom JS. |
+| Interactivity | htmx 2.0.7 | Datastar | Newer, smaller community, less battle-tested. htmx is the established choice for server-driven HTML. |
+| CSS | Tailwind v4.2.2 standalone | Tailwind via npm | Adds Node.js to the project. Standalone CLI is functionally identical, no npm dependency. |
+| CSS | Tailwind v4.2.2 | Pico CSS / Simple.css | Classless CSS frameworks. Good for documentation, not for custom data-heavy UIs with specific layout needs. |
+| CSS | Tailwind v4.2.2 | vanilla CSS | More CSS to write and maintain. Tailwind's utility classes are faster to develop and produce smaller output after purging. |
+| Dev reload | templ watch + proxy | air v1.64.5 | templ's `--watch --cmd` already rebuilds Go and reloads browser. air adds value only for watching non-templ Go files, which is a rare workflow in web UI development. |
+| Dev reload | templ watch + proxy | wgo | Similar to air. templ's built-in watch covers the primary need. |
+| Component library | Build custom | templUI | 5 page types don't justify a dependency. Custom components are simpler and tailored to PeeringDB data structures. |
+| htmx delivery | embed.FS (self-hosted) | CDN (unpkg/cdnjs) | External CDN is a runtime dependency. Self-hosted in the binary ensures availability and version consistency. Edge deployment on Fly.io means CDN latency advantage is negligible. |
 
 ## Version Pinning Strategy
 
 | Component | Pin Strategy | Rationale |
 |-----------|-------------|-----------|
-| Go version | Read from `go.mod` (`go 1.26.1`) | Single source of truth. `actions/setup-go` reads it via `go-version-file`. |
-| golangci-lint | `version: v2.11` in action config | Pin to minor version. Action resolves latest patch. |
-| `google/go-cmp` | v0.7.0 in `go.mod` | Already pinned. Stable API. |
-| GitHub Actions | Major version tags (`@v6`, `@v9`) | Standard practice. Major versions are stable. |
+| templ (Go module) | v0.3.1001 in `go.mod` | Semver pre-1.0, pin exact version. Update deliberately. |
+| templ CLI | Same version as module | CLI and library must match to avoid codegen mismatches. |
+| htmx | 2.0.7 file committed to repo | Static asset, not a package manager dependency. Update by downloading new file. |
+| Tailwind CLI | v4.2.2 binary | Downloaded in CI and dev setup. Pin version in download script/Taskfile. |
+| Tailwind CSS output | Committed `output.css` | Derived artifact. Regenerated by CI check. |
 
 ## Risk Register
 
 | Risk | Severity | Likelihood | Mitigation |
 |------|----------|------------|------------|
-| golangci-lint v2 config format unfamiliar | LOW | MEDIUM | Format is well-documented. `golangci-lint migrate` converts v1 configs. Starting fresh with v2 avoids migration issues. |
-| Generated `ent/` code triggers lint warnings | MEDIUM | HIGH | Exclude `ent/` from linters and formatters via `exclusions.paths`. Already planned in config above. |
-| Golden file tests become brittle (timestamp sensitivity) | MEDIUM | MEDIUM | Use fixed `time.Date()` values in test data (already done in existing tests). Normalize timestamps in golden file comparison if needed. |
-| `-race` flag slows CI significantly | LOW | LOW | modernc.org/sqlite pure Go is not affected by CGo race detector overhead. Tests are fast (in-memory SQLite). Budget 2-3x normal test time for race detection. |
-| GitHub Actions runner doesn't have Go 1.26.1 | LOW | LOW | `actions/setup-go` downloads Go versions on demand. Not limited to pre-installed versions. |
+| templ pre-1.0 breaking changes | MEDIUM | LOW | templ has been stable in the v0.3.x line for 18+ months with no breaking changes to the component interface. Pin version, update deliberately. The generated Go code is standard -- worst case, hand-edit `*_templ.go` files. |
+| htmx 4.0 migration required | LOW | LOW | htmx 4.0 won't be "latest" until early 2027. 2.0.x is stable. Migration is mostly internal (fetch replaces XHR). Explicit attribute inheritance is the main breaking change -- audit `hx-boost` usage. |
+| Tailwind v4 standalone CLI bugs | LOW | LOW | v4.2.2 is 3 months post-GA. Standalone CLI is well-tested. Fallback: install via npm temporarily if standalone has issues. |
+| Tailwind class scanning misses templ files | MEDIUM | MEDIUM | Use `@source` directive to explicitly point at `.templ` and `*_templ.go` files. Test by verifying expected classes appear in output. The generated Go code contains class strings as literals, so scanning `*_templ.go` is reliable. |
+| templ watch mode conflicts with existing server | LOW | MEDIUM | templ proxy listens on `:7331`, app on `:8080`. No port conflict. The proxy passes through all requests including API paths. Development uses proxy URL; production uses app directly. |
+| `embed.FS` increases binary size | LOW | LOW | htmx.min.js is ~48KB uncompressed, ~14KB gzipped. Tailwind output CSS is typically 5-15KB. Total static asset overhead: <100KB. Negligible for a server binary. |
 
 ## Sources
 
-- [Go wiki: TestComments](https://go.dev/wiki/TestComments) -- `cmp.Diff` recommendation
-- [Go gofmt test source](https://go.dev/src/cmd/gofmt/gofmt_test.go?m=text) -- `var update = flag.Bool("update", ...)` pattern
-- [File-driven testing in Go (Eli Bendersky)](https://eli.thegreenplace.net/2022/file-driven-testing-in-go/) -- golden file pattern with `testdata/`
-- [Golden file testing (Ibrahim Jarif)](https://jarifibrahim.github.io/blog/golden-files-why-you-should-use-them/) -- `-update` flag pattern
-- [google/go-cmp v0.7.0](https://github.com/google/go-cmp/releases) -- released 2026-02-21
-- [golangci-lint releases](https://github.com/golangci/golangci-lint/releases) -- v2.11.4 released 2026-03-22
-- [golangci-lint v2 migration guide](https://golangci-lint.run/docs/product/migration-guide/) -- config format changes
-- [golangci-lint v2 config reference](https://golangci-lint.run/docs/configuration/file/) -- `version: "2"` format
-- [golangci-lint default linters](https://golangci-lint.run/docs/welcome/quick-start/) -- `standard` preset: errcheck, govet, ineffassign, staticcheck, unused
-- [golangci-lint-action](https://github.com/golangci/golangci-lint-action) -- v9.0.0, requires golangci-lint >= v2.1.0
-- [actions/setup-go](https://github.com/actions/setup-go) -- v6, auto-caches Go modules
-- [actions/checkout](https://github.com/actions/checkout/releases) -- v6.0.2, Jan 2026
-- [Golden config for golangci-lint](https://gist.github.com/maratori/47a4d00457a92aa426dbd48a18776322) -- comprehensive v2 example
-- [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite) -- race detector compatibility confirmed
+- [templ v0.3.1001 on pkg.go.dev](https://pkg.go.dev/github.com/a-h/templ) -- published Feb 28, 2026
+- [templ GitHub releases](https://github.com/a-h/templ/releases) -- version history
+- [templ installation docs](https://templ.guide/quick-start/installation/) -- Go 1.24+ tool directive
+- [templ HTTP server guide](https://templ.guide/server-side-rendering/creating-an-http-server-with-templ/) -- templ.Handler, Render method
+- [templ live reload docs](https://templ.guide/developer-tools/live-reload/) -- watch + proxy workflow
+- [htmx 2.0.7 on GitHub](https://github.com/bigskysoftware/htmx/releases) -- latest stable release
+- [htmx documentation](https://htmx.org/docs/) -- attributes, triggers, swap modes
+- [htmx future essay](https://htmx.org/essays/future/) -- htmx 4.0 timeline
+- [Tailwind CSS v4.2.2 release](https://github.com/tailwindlabs/tailwindcss/releases) -- published Mar 18, 2025
+- [Tailwind CLI docs](https://tailwindcss.com/docs/installation/tailwind-cli) -- standalone CLI usage
+- [Tailwind v4 @source directive](https://tailwindcss.com/docs/functions-and-directives) -- template scanning
+- [Tailwind v4 in Go projects](https://github.com/tailwindlabs/tailwindcss/discussions/15815) -- standalone build step
+- [air v1.64.5 on GitHub](https://github.com/air-verse/air/releases) -- published Feb 2, 2026
+- [Go embed package](https://pkg.go.dev/embed) -- static file embedding
+- [GoTTH stack guide](https://medium.com/ostinato-rigore/go-htmx-templ-tailwind-complete-project-setup-hot-reloading-2ca1ba6c28be) -- integration patterns

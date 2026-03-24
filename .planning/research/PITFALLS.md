@@ -1,154 +1,298 @@
 # Domain Pitfalls
 
-**Domain:** Adding golden file tests, GitHub Actions CI pipeline, and comprehensive linting/test enforcement to existing Go/entgo/SQLite project
-**Researched:** 2026-03-23
-**Milestone:** v1.2 Quality & CI
+**Domain:** Adding HTMX + Templ + Tailwind Web UI to existing Go API server (PeeringDB Plus)
+**Researched:** 2026-03-24
+**Milestone:** v1.4 Web UI
 
 ## Critical Pitfalls
 
-Mistakes that cause flaky CI, false-positive failures, or fundamentally broken test strategies.
+Mistakes that cause rewrites, broken user experience, or fundamental architectural problems.
 
-### Pitfall 1: Golden File Timestamps Are Non-Deterministic -- Tests Fail on Every Run
+### Pitfall 1: Full-Page vs Partial Render Blindness -- Every HTMX Endpoint Must Serve Both
 
-**What goes wrong:** The PeeringDB compat layer serializes `created` and `updated` fields as RFC 3339 timestamps (e.g., `"2025-01-01T00:00:00Z"`). The existing handler tests use `time.Now()` to create test entities (confirmed in `handler_test.go:33`, `depth_test.go:21`). If golden files capture the full JSON response including these timestamps, every test run produces different timestamp values and the golden file comparison fails.
+**What goes wrong:** Handlers return only HTML fragments (partials) for HTMX requests. When a user bookmarks a URL, shares it, or refreshes the page, the server receives a normal (non-HTMX) request and returns a bare fragment without layout, navigation, or CSS. The page renders as raw unstyled HTML.
 
-**Why it happens:** Golden file testing compares byte-for-byte against a stored expected output. Timestamps derived from `time.Now()` change with every execution. The existing `setupTestHandler()` creates networks with `now := time.Now().Truncate(time.Second).UTC()` and derives `past` and `future` from it. These values will never match a previously captured golden file.
+**Why it happens:** Developers build the HTMX path first (fragments swapped into an existing page) and forget that the same URL must also work as a direct browser navigation. HTMX sends an `HX-Request: true` header on its requests, but direct browser navigation does not. Without checking this header, the handler cannot distinguish the two cases.
 
-**Consequences:** Golden file tests fail on every run unless timestamps are fixed. Developers learn to ignore golden file failures, defeating their purpose as a regression safety net.
+**Consequences:** Every shareable URL in the app breaks on direct access. This is especially devastating for a project requirement of "linkable/shareable URLs for every page -- URL is the state." Users sharing comparison URLs, search results, or record details get broken pages.
 
 **Prevention:**
-- Use fixed, deterministic timestamps in all golden file test fixtures: `time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)`. The serializer tests already do this correctly (e.g., `serializer_test.go:26`).
-- Do NOT use `time.Now()` in any test that produces golden file output. Create a separate `setupGoldenTestHandler()` that uses fixed timestamps.
-- Store golden files in `internal/pdbcompat/testdata/golden/` following Go convention.
+- Every handler that serves HTML must check for the `HX-Request` header. If present, return the fragment. If absent, wrap the fragment in the full page layout (head, nav, CSS, scripts).
+- Build this as a single middleware or helper function, not per-handler logic. A `RenderPage(ctx, w, r, title, component)` function that checks `r.Header.Get("HX-Request")` and wraps in layout accordingly.
+- In templ, compose this as: the fragment is a templ component; the full page is a layout component that accepts the fragment as a child.
+- Add the `Vary: HX-Request` response header so caches (CDN, browser, reverse proxy) do not conflate the two responses.
+- Write tests for BOTH paths for every UI endpoint from the start.
 
-**Detection:** Golden file tests fail with timestamp-only diffs. `go test -update` regenerates files that differ only in time values.
+**Detection:** Bookmarked or shared URLs render without styling. Browser refresh breaks the page.
 
 ---
 
-### Pitfall 2: golangci-lint on ~300K LOC of Generated Code -- Timeout, False Positives, and Configuration Complexity
+### Pitfall 2: Live Search Without Debounce and Request Cancellation -- SQLite Query Storm
 
-**What goes wrong:** The project has ~300K lines of generated Go code (ent: ~250K, gqlgen: ~57K) and only ~8K lines of hand-written code. Running golangci-lint without proper exclusions analyzes all 300K lines, causing: (a) CI timeouts, (b) hundreds of false-positive lint warnings on generated code that cannot be fixed, and (c) developer frustration as real issues are buried in noise.
+**What goes wrong:** HTMX fires a request on every keystroke via `hx-trigger="keyup"`. A user typing "Hurricane Electric" sends 18 requests in rapid succession. Each request hits SQLite with a `LIKE '%...%'` query across multiple columns and 13 entity types. On a Fly.io edge node with a small VM, this saturates the CPU and creates a backlog of SQLite read transactions that prevent WAL checkpointing.
 
-**Why it happens:** golangci-lint's default `generated: lax` mode has loose detection. The ent and gqlgen generated files DO have the standard `// Code generated ... DO NOT EDIT.` header, so `generated: strict` correctly excludes them. However, some generated files may not have the header, and the schema files in `ent/schema/` are hand-written and must NOT be excluded.
+**Why it happens:** The default `hx-trigger` for inputs is `change`, but live search typically uses `keyup`. Without explicit delay and request cancellation modifiers, every keystroke triggers a full request cycle. The existing `buildSearchPredicate` function in `pdbcompat/search.go` uses `sql.ContainsFold` (which compiles to `LIKE '%term%'` with `LOWER()`) -- this is a full table scan with no index support.
 
-**Consequences:** Without proper configuration: CI times out or produces hundreds of irrelevant warnings. With over-aggressive exclusions: hand-written schema files in `ent/schema/` are accidentally excluded.
+**Consequences:**
+- On fast typists, 5-10 concurrent queries execute simultaneously, all doing full table scans.
+- SQLite WAL file grows because checkpoint cannot complete while readers are active.
+- User sees flickering results as responses arrive out of order (response for "Hurr" arrives after "Hurricane").
+- Server resources wasted on queries whose results are immediately discarded.
 
 **Prevention:**
-- Use `generated: strict` in golangci-lint v2 configuration. This matches the Go standard convention header correctly.
-- Add explicit `exclusions.paths` as defense-in-depth for directories like `ent/rest/`.
-- Do NOT use blanket directory exclusions for `ent/`. The `ent/schema/` directory contains hand-written code that must be linted.
-- Set `run.timeout: 5m` in the golangci-lint config.
+- Use `hx-trigger="keyup changed delay:300ms"` to debounce input. The `changed` modifier prevents firing if the value has not actually changed. The `delay:300ms` waits for a pause in typing.
+- Add `hx-sync="this:replace"` on the search input to cancel in-flight requests when a new one starts. This is critical -- without it, stale responses can replace newer ones.
+- Require a minimum query length (2-3 characters) before triggering search. Return an empty state for shorter queries.
+- Build FTS5 virtual tables for searchable fields. FTS5 prefix queries (`term*`) are orders of magnitude faster than `LIKE '%term%'`. Configure `prefix='2,3'` in the FTS5 table definition for 2- and 3-character prefix indexes.
+- For prefix matching (autocomplete-style), use FTS5 prefix queries: `SELECT * FROM search_idx WHERE search_idx MATCH 'hurr*'`. This uses the inverted index instead of scanning every row.
+- Cap results returned to the UI (e.g., 20 results) with `LIMIT`.
 
-**Detection:** CI takes >5 minutes on lint step. Lint warnings reference files in `ent/` that start with `// Code generated`.
+**Detection:** Typing quickly in the search box causes visible flicker. Network tab shows many concurrent requests to the search endpoint. Server logs show overlapping search queries. WAL file grows during active search sessions.
 
 ---
 
-### Pitfall 3: Existing Tests May Fail Under -race or Strict Linting Before New Tests Are Added
+### Pitfall 3: Tailwind v4 Does Not Auto-Detect .templ Files -- Missing Styles in Production
 
-**What goes wrong:** The project has ~21 existing test files. Enabling `-race` and strict linting in CI will run against ALL existing code. If existing tests have latent race conditions, or if existing hand-written code has lint violations that were never enforced, the CI pipeline will fail immediately on the first run.
+**What goes wrong:** Tailwind v4's automatic content detection scans project files for class names, but it operates on heuristics about which files to scan. `.templ` files are not a standard web file extension. If Tailwind's scanner skips `.templ` files, all Tailwind classes used in templ components are purged from the production CSS output. The development experience may appear fine if using Tailwind's development mode (which includes all classes), but the production build strips them.
 
-**Why it happens:** The project was developed without CI enforcement. Common issues that surface:
-- Hand-written code in `cmd/`, `internal/`, and `graph/` may have lint violations
-- The `graph/globalid.go` has exported but unused functions (noted as tech debt)
-- The `testutil` package registers a SQLite driver in `init()` with `sql.Register("sqlite3", ...)`
+**Why it happens:** Tailwind v4 replaced the explicit `content` array with automatic detection that respects `.gitignore` and skips binary files. It scans files as plain text, but uses heuristics to determine which files to scan. The `.templ` extension is not in Tailwind's default recognized set of template file extensions. It may or may not be scanned depending on the project structure and Tailwind version.
 
-**Consequences:** The first CI run fails on pre-existing issues, not on new code. This creates scope creep -- the CI pipeline task balloons into "fix all existing issues."
+**Consequences:** Components render without any styling in production. Everything looks correct in development. This is a classic "works on my machine" failure that only surfaces in the production build pipeline.
 
 **Prevention:**
-- Run `go test -race ./...` and `golangci-lint run` locally BEFORE creating the CI workflow. Fix all existing issues first.
-- Phase the work: (1) fix existing violations, (2) add CI workflow, (3) add golden file tests.
-- For known tech debt that cannot be immediately fixed, add targeted `//nolint` annotations with explanatory comments, or delete the dead code.
+- Use the `@source` directive in the CSS entry point to explicitly include `.templ` files:
+  ```css
+  @import "tailwindcss";
+  @source "../internal/web/";
+  ```
+- Alternatively, use `@source` with explicit glob: `@source "../**/*.templ"` to be unambiguous.
+- Verify by running the Tailwind standalone CLI in production mode and checking the output CSS contains the expected classes. Add this as a CI check.
+- Never construct Tailwind class names dynamically in templ components. `class={ fmt.Sprintf("bg-%s-600", color) }` will NEVER work because Tailwind scans source text statically. Use complete, literal class strings.
+- If generated Go files (`*_templ.go`) contain the class strings, Tailwind may pick them up from there -- but do not rely on this. Configure scanning of `.templ` source files explicitly.
 
-**Detection:** CI fails on the first run with errors in files that were not modified by the current PR.
+**Detection:** Components render unstyled in production but look fine in development. The production CSS file is suspiciously small. Missing utility classes in the compiled CSS.
+
+---
+
+### Pitfall 4: Templ Code Generation Step Missing or Misordered -- Build Fails or Serves Stale Templates
+
+**What goes wrong:** Templ files (`.templ`) must be compiled to Go files (`*_templ.go`) before `go build` runs. The project already has a `go generate` step for ent and gqlgen. Adding templ introduces a second code generation step with ordering dependencies. If `templ generate` does not run, or runs after `go build`, the build either fails (missing generated files) or silently serves stale templates from a previous generation.
+
+**Why it happens:** The project uses `//go:generate` directives in `ent/generate.go` for ent codegen. Templ uses its own CLI (`templ generate`) rather than `//go:generate`. Developers may add `templ generate` to the Taskfile but forget to add it to CI. Or CI runs `go generate ./...` which does not invoke `templ generate`.
+
+**Consequences:**
+- Build failure if `*_templ.go` files are gitignored (correct practice) but `templ generate` is not in the build pipeline.
+- Stale HTML rendering if `*_templ.go` files are committed (incorrect practice) and become outdated relative to `.templ` source files.
+- CI drift detection (`go generate` + `git diff`) may not catch templ drift if templ is invoked separately from `go generate`.
+
+**Prevention:**
+- Add `templ generate` to the Taskfile as a prerequisite for `build` and `test` tasks.
+- Add `templ generate` to CI before the build step. Run it in the same CI job as other code generation.
+- Add `*_templ.go` to `.gitignore`. Generated files should not be committed -- they can be regenerated from `.templ` source. This matches the existing pattern where ent generated files ARE committed but only because ent is special (schema files are hand-written in the ent/schema/ directory).
+- Add templ drift detection to CI: run `templ generate` then `git diff --exit-code` on `*_templ.go` files. This catches cases where `.templ` was modified but `templ generate` was not run.
+- Install templ in CI: `go install github.com/a-h/templ/cmd/templ@latest` (or pin version).
+
+**Detection:** Build fails with "undefined" errors referencing templ component names. Or UI shows old content after `.templ` file changes.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 4: Golden File JSON Field Ordering Relies on encoding/json v1 Behavior
+### Pitfall 5: Air/Templ Hot Reload Infinite Loop -- Development Environment Unusable
 
-**What goes wrong:** Golden file tests compare serialized JSON output. Go's `encoding/json` v1 marshals struct fields in declaration order and map keys in sorted order, which IS deterministic. However, the field projection feature (`?fields=id,name`) works by marshaling the full struct to `map[string]any`, then filtering keys, then re-marshaling the map. This relies on v1's sorted-key behavior.
+**What goes wrong:** When using `air` for hot reload during development, air watches for `.go` file changes and rebuilds. But `templ generate` produces `*_templ.go` files. If air is configured to watch all `.go` files AND to run `templ generate` as part of its build command, this creates an infinite loop: templ generates `.go` -> air detects `.go` change -> air runs templ generate -> templ generates `.go` -> loop forever.
 
-**Why it happens:** The current code is safe because map keys marshal in sorted order in encoding/json v1. But if Go switches to encoding/json/v2 (which may marshal maps differently), golden files could break.
+**Why it happens:** Air's default configuration watches for `*.go` changes. The `templ generate` command produces files matching `*_templ.go`. Without excluding these files, air's file watcher triggers on its own output.
 
 **Prevention:**
-- For golden files, prefer struct-based serialization paths over map-based intermediate representations.
-- For field projection golden files, consider semantic JSON comparison (parse both, compare structures) rather than byte-for-byte comparison.
-- Use `json.MarshalIndent` with consistent indentation for all golden files.
+- In `.air.toml`, exclude templ-generated files from the watch pattern: `exclude_regex = [".*_templ\\.go"]`
+- Run `templ generate` as part of the air build command: `cmd = "templ generate && go build -o ./tmp/main ./cmd/peeringdb-plus"`
+- Include `.templ` in air's watched extensions: `include_ext = ["go", "templ"]`
+- Alternative: Run templ in watch mode (`templ generate --watch`) in a separate terminal and configure air to only watch `.go` files but exclude `*_templ.go`.
+- Run Tailwind CLI in watch mode (`tailwindcss -i input.css -o output.css --watch`) in a third terminal.
+
+**Detection:** CPU spikes immediately after saving any file. Air's logs show continuous rebuild cycles. Terminal fills with repeated "building..." messages.
 
 ---
 
-### Pitfall 5: SQLite "Database is Locked" in Parallel Tests Under Race Detector
+### Pitfall 6: HTMX Response Caching Breaks Back Button and Browser History
 
-**What goes wrong:** The existing test infrastructure creates isolated in-memory SQLite databases per test. Under the race detector (`-race`), the Go runtime has higher scheduling overhead. Combined with SQLite's single-writer model, this increases the window for "database is locked" errors, especially with the dual-connection setup in `SetupClientWithDB` (returns both an ent client and a raw `*sql.DB`).
+**What goes wrong:** When using `hx-push-url` to update the browser URL (required for shareable links), HTMX snapshots the current DOM to localStorage for history restoration. If the server also sets caching headers, the browser may cache partial HTML responses. When the user presses the back button, the browser cache returns a partial fragment instead of a full page, rendering a broken page.
 
-**Why it happens:** SQLite allows only one writer at a time. With `cache=shared` mode, multiple connections share the same cache but still contend for write locks. The race detector slows execution by 2-10x. No `busy_timeout` is configured in the DSN.
+**Why it happens:** The existing server sets CORS headers via `middleware.CORS()` but does not set `Vary` headers or cache-control on HTML responses. When HTMX and non-HTMX responses share the same URL but have different content (full page vs fragment), the browser cache cannot distinguish them without `Vary: HX-Request`.
+
+**Consequences:** Back button navigation shows broken pages -- either unstyled fragments or stale content. This is difficult to reproduce consistently because it depends on browser caching behavior.
 
 **Prevention:**
-- Add `_pragma=busy_timeout(5000)` to the test DSN to make SQLite wait for locks rather than failing immediately.
-- Set `db.SetMaxOpenConns(1)` on both connections to serialize access.
-- Keep tests that use `SetupClient` (single connection) as-is -- they are safe.
+- Set `Vary: HX-Request` on all HTML responses that differ based on HTMX vs non-HTMX request.
+- Set `Cache-Control: no-store` on HTML responses to prevent browser caching of fragments entirely. The data is served from local SQLite so re-rendering is fast -- there is no latency penalty.
+- Consider using `hx-replace-url` instead of `hx-push-url` for filter/search refinements that should not create new history entries. Reserve `hx-push-url` for actual navigation (record detail pages, comparison pages).
+- Test back-button behavior explicitly during development. This class of bug only manifests during actual browser interaction, not in automated tests.
 
-**Detection:** Intermittent "database is locked" errors in CI that do not reproduce locally.
+**Detection:** Pressing back button shows broken or partial HTML. Network tab shows cached responses being served for HTMX requests.
 
 ---
 
-### Pitfall 6: Golden File Auto-ID Instability
+### Pitfall 7: Fourth API Surface Leaks Into Existing Three -- Routing and Middleware Conflicts
 
-**What goes wrong:** Golden file tests capture full API responses including entity IDs (`"id": 1`, `"id": 2`, etc.). SQLite auto-increment IDs are sequential from 1 within each in-memory database, but changing the entity creation order silently breaks all golden files. IDs in nested `_set` fields (from `depth > 0`) create cascading breakage.
+**What goes wrong:** The existing server has four route groups: `/graphql`, `/rest/v1/`, `/api/`, and infrastructure routes (`/healthz`, `/readyz`, `/sync`, `/`). Adding a web UI introduces a fifth group that must coexist. Common mistakes: (a) The UI routes catch-all `"GET /"` conflicts with the existing root discovery endpoint. (b) CORS middleware applied globally interferes with same-origin HTML responses. (c) Readiness middleware blocks UI access before first sync, showing a JSON error to browser users.
+
+**Why it happens:** The existing `main.go` registers `"GET /"` as a JSON discovery endpoint that returns API surface URLs. A web UI naturally wants to own `/` as the homepage. The existing readiness middleware returns `application/json` error responses, which display as raw JSON in a browser.
+
+**Consequences:**
+- Routing conflict: either the existing `"GET /"` or the new UI homepage handler wins, breaking one surface.
+- Browser users see `{"error":"sync not yet completed"}` as raw JSON during the readiness window.
+- CORS headers on HTML responses add unnecessary complexity and can confuse browsers.
 
 **Prevention:**
-- Use a deterministic, sequential entity creation pattern. Document the creation order as a contract.
-- Do NOT use `t.Parallel()` within golden file test setup -- entity creation must be sequential.
-- If creation order must change, regenerate all golden files with `-update` and review the diffs.
+- Move the existing JSON discovery endpoint to a specific path like `/api/discovery` or return it only when `Accept: application/json` is in the request header.
+- Create a dedicated route group for UI routes: `/` (homepage), `/search`, `/net/{id}`, `/ix/{id}`, `/fac/{id}`, `/compare`, etc.
+- Update the readiness middleware to return an HTML "loading" page for non-API requests (check `Accept` header or path prefix).
+- Apply CORS middleware only to API route groups (`/graphql`, `/rest/v1/`, `/api/`), not to the UI routes. Same-origin HTML does not need CORS.
+- Use content negotiation middleware: if `Accept: application/json`, route to API discovery; if `Accept: text/html`, route to UI homepage.
+
+**Detection:** Existing API tests break after adding UI routes. Browser shows JSON instead of HTML. CORS preflight errors on UI pages.
 
 ---
 
-### Pitfall 7: golangci-lint Version Mismatch Between Local and CI
+### Pitfall 8: SQLite Full-Table Scan on LIKE Queries -- Live Search is Slow on Large Tables
 
-**What goes wrong:** golangci-lint v1 and v2 have fundamentally different configuration file formats. If the local developer runs golangci-lint v1 with a v2 config (or vice versa), the configuration is silently ignored or partially applied. Generated code exclusions stop working.
+**What goes wrong:** The existing search implementation (`buildSearchPredicate`) uses `sql.ContainsFold` which generates `LOWER(column) LIKE '%term%'` SQL. This cannot use any index and requires a full table scan. PeeringDB has ~100K network-IX-LAN records, ~30K networks, and ~15K facilities. A single search query may scan multiple tables. With live search firing on keystrokes (even with debounce), this creates unacceptable latency.
 
-**Why it happens:** v2 was a major rewrite. The official GitHub Action pins to a specific version, but developers install golangci-lint locally via `go install` or `brew` and may have a different version.
+**Why it happens:** `LIKE '%term%'` (contains) queries cannot use B-tree indexes because the wildcard is at the start. Even `LIKE 'term%'` (prefix) queries can use indexes but only if the column has one. The current schema has no text search indexes.
+
+**Consequences:**
+- Search latency of 50-200ms per query on a full PeeringDB dataset, multiplied across multiple entity types.
+- On Fly.io micro VMs (shared CPU), this can spike to 500ms+.
+- User perceives the search as sluggish, defeating the "instant results" requirement.
 
 **Prevention:**
-- Pin the version in the GitHub Action: `version: v2.11`
-- golangci-lint v2 config includes `version: "2"` at the top which warns on version mismatch
-- Document local installation: `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11`
+- Create FTS5 virtual tables for searchable fields. A single FTS5 table can index fields from multiple entity types:
+  ```sql
+  CREATE VIRTUAL TABLE IF NOT EXISTS search_idx USING fts5(
+    entity_type, entity_id UNINDEXED, name, aka,
+    content='', content_rowid='rowid',
+    prefix='2,3'
+  );
+  ```
+- Populate FTS5 tables after each sync completes. Since this is a read-only mirror with hourly syncs, the FTS5 index only needs rebuilding after sync.
+- Use FTS5 prefix queries for autocomplete: `WHERE search_idx MATCH 'hurr*'` -- this is a single index lookup, not a table scan.
+- For numeric searches (ASN lookup), use a direct index query, not FTS5. ASN searches are exact or prefix matches on an integer field.
+- Benchmark query performance with the real PeeringDB dataset size (~130K records across all types) during development, not with test fixtures of 5 records.
+
+**Detection:** Search endpoint latency >100ms with real data. `EXPLAIN QUERY PLAN` shows "SCAN TABLE" instead of using an index.
 
 ---
 
-### Pitfall 8: Golden File Update Workflow -- Accidental Regeneration Masks Regressions
+### Pitfall 9: Templ Context Abuse -- Passing Request-Scoped Data via context.Context
 
-**What goes wrong:** When a golden file test fails, the fastest fix is `go test -update ./... && git add . && git commit`. This commits whatever the current output is without verifying correctness. For a compatibility layer, the golden files ARE the compatibility contract -- updating them means changing the contract.
+**What goes wrong:** Templ components have access to an implicit `ctx` variable (the Go context). Developers use `context.WithValue` in middleware to pass data like "current search query," "active tab," "page title" through the context to deeply nested components. This creates invisible dependencies -- a component silently requires specific context values that are only set by specific middleware, making components non-reusable and hard to test.
+
+**Why it happens:** Templ's documentation shows context as the mechanism for sharing data across component hierarchies (authentication, theming). Developers extend this pattern to all shared state. Since context values are not type-checked at compile time, errors only surface at runtime as nil values or panics.
 
 **Prevention:**
-- In CI, NEVER run with `-update`. If tests fail, CI fails.
-- When golden files are updated, the commit message must explain WHY the expected output changed.
-- Keep golden file updates in dedicated commits, separate from logic changes.
-- Review golden file diffs carefully -- they show exactly what changed in the API contract.
+- Use context only for truly cross-cutting concerns: authentication status, request ID, feature flags. The PeeringDB Plus UI is fully public with no auth, so context usage should be minimal.
+- Pass all data to components as explicit parameters. This is type-safe and makes dependencies visible:
+  ```
+  templ SearchResults(query string, results []SearchResult) {
+    // ...
+  }
+  ```
+  Not:
+  ```
+  templ SearchResults() {
+    // reads query from ctx -- invisible dependency
+  }
+  ```
+- If context is used, define typed accessor functions (not raw string keys) in a single package. Never use string keys for context values.
+
+**Detection:** Components render incorrectly when used outside their expected middleware chain. Test failures with nil pointer dereferences in template rendering.
+
+---
+
+### Pitfall 10: LiteFS Read-Only Replicas and the Web UI -- No Write Path Needed, But Beware of Side Effects
+
+**What goes wrong:** The existing app correctly handles the LiteFS primary/replica split: replicas serve reads, the primary handles writes (sync). The web UI is read-only, so it should work perfectly on replicas. However, if any UI handler inadvertently triggers a write (e.g., logging to SQLite, session storage, analytics tracking, updating a "last viewed" timestamp), replicas will fail with "SQLITE_READONLY" errors.
+
+**Why it happens:** The UI is explicitly read-only by design, but libraries or middleware may introduce hidden writes. For example, some session middleware writes session data to the database. Rate limiting middleware may store counters in SQLite.
+
+**Consequences:** UI works on the primary node but fails on replicas. Since Fly.io routes requests to the nearest edge node (usually a replica), most users experience the failure.
+
+**Prevention:**
+- No session storage. The app is fully public with no user accounts -- there is no session to track.
+- No analytics writes to SQLite. If analytics are needed, send them to an external service or via OTel.
+- No write-through caching in SQLite. Computed values (like search indexes) must be built during sync, not on first access.
+- Add integration tests that run against a read-only SQLite database to catch accidental writes. Open the database with `?mode=ro` in tests.
+- Review every middleware in the UI chain for hidden write operations.
+
+**Detection:** UI works locally (single node, primary mode) but returns 500 errors when deployed to Fly.io replicas. Error logs show "attempt to write a readonly database."
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 9: Golden File Line Endings and Whitespace Sensitivity
+### Pitfall 11: Dynamic Tailwind Class Construction in Templ -- Classes Silently Stripped
 
-**What goes wrong:** Golden files stored in Git may have line endings transformed by `core.autocrlf`. `json.Encoder.Encode()` appends a trailing newline.
+**What goes wrong:** Templ supports Go expressions in attributes. Developers write:
+```
+<div class={ fmt.Sprintf("bg-%s-500", statusColor) }>
+```
+Tailwind's static analysis never sees the full class name `bg-green-500` because it only exists at runtime. The class is purged from the production CSS.
 
 **Prevention:**
-- Add a `.gitattributes` entry: `testdata/**/*.json text eol=lf` to enforce LF line endings.
-- Use pretty-printed JSON (`json.MarshalIndent`) for both golden files and actual output.
-- Compare normalized output (both sides formatted identically).
+- Always use complete, literal class names. Map dynamic values to complete classes:
+  ```
+  var statusClasses = map[string]string{
+    "active":   "bg-green-500 text-white",
+    "inactive": "bg-gray-500 text-gray-200",
+  }
+  ```
+- Use the `@source inline("bg-green-500 bg-gray-500")` safelist directive in the CSS entry point for classes that genuinely must be dynamic, but prefer the mapping approach.
 
 ---
 
-### Pitfall 10: enttest Auto-Migration in Tests May Diverge from Production Schema
+### Pitfall 12: HTMX Accessibility -- Live Search Without ARIA Roles Breaks Screen Readers
 
-**What goes wrong:** The test infrastructure uses `enttest.Open()` which runs auto-migration. If the production database was created by a different migration, test and production schemas may differ.
+**What goes wrong:** HTMX swaps HTML fragments into the DOM without notifying assistive technology. A live search that updates results as the user types is invisible to screen readers unless the results container has `aria-live` attributes. The search input lacks `role="combobox"` and `aria-autocomplete` attributes.
 
 **Prevention:**
-- This is acceptable because the database is ephemeral (rebuilt from sync on every deploy) and auto-migration is the production strategy.
-- Document this assumption: golden file tests verify behavior against the ent-auto-migrated schema.
+- Add `aria-live="polite"` to the search results container so screen readers announce updates.
+- Add `role="combobox"`, `aria-autocomplete="list"`, and `aria-expanded` to the search input.
+- Add a visually hidden live region that announces the result count: "5 results found" after each search update.
+- Use `aria-activedescendant` if keyboard navigation through results is implemented.
+- Test with a screen reader (VoiceOver, NVDA) at least once per milestone.
+
+---
+
+### Pitfall 13: Tailwind Standalone CLI Version Pinning -- CI and Local Builds Diverge
+
+**What goes wrong:** The Tailwind standalone CLI is a platform-specific binary downloaded from GitHub releases. If CI downloads "latest" and local development uses a pinned version (or vice versa), CSS output may differ. Tailwind v4 had breaking changes from v3 in how utilities are generated.
+
+**Prevention:**
+- Pin the Tailwind standalone CLI version in the Taskfile and CI workflow. Download a specific version, not "latest."
+- Check the Tailwind CLI binary into the project or use a checksum-verified download script.
+- Add the compiled CSS file to `.gitignore` (it is a build artifact). Generate it in CI.
+- Use Tailwind v4, not v3, from the start. Do not start with v3 and migrate later.
+
+---
+
+### Pitfall 14: Templ Component Testing Gap -- No Built-In Test Renderer
+
+**What goes wrong:** Templ components compile to Go functions that write to an `io.Writer`. Testing them requires rendering to a buffer and asserting on the HTML output, which is fragile and verbose. Developers skip component tests entirely, relying only on integration tests, leading to hard-to-debug regressions.
+
+**Prevention:**
+- Create a test helper that renders a templ component to a string:
+  ```go
+  func renderComponent(t *testing.T, c templ.Component) string {
+    t.Helper()
+    var buf bytes.Buffer
+    err := c.Render(context.Background(), &buf)
+    require.NoError(t, err)
+    return buf.String()
+  }
+  ```
+- Test critical components (search results, record detail, comparison table) by asserting on the rendered HTML containing expected content -- not exact HTML matching.
+- Use `strings.Contains` or regex assertions rather than golden file comparison for HTML output. HTML whitespace and attribute ordering make golden files brittle.
 
 ---
 
@@ -156,38 +300,57 @@ Mistakes that cause flaky CI, false-positive failures, or fundamentally broken t
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |-------------|---------------|------------|
-| Golden file test design | Non-deterministic timestamps (#1), auto-increment ID instability (#6) | Use fixed timestamps and deterministic entity creation order |
-| Golden file comparison | JSON field ordering (#4), line ending sensitivity (#9) | Use struct-based serialization; add .gitattributes for LF |
-| Golden file workflow | Update flag misuse (#8) | Define explicit update process; never run -update in CI |
-| CI: linting | Generated code false positives (#2), version mismatch (#7) | Use generated:strict + path exclusions; pin golangci-lint version |
-| CI: pre-existing issues | Existing code fails under new enforcement (#3) | Fix existing issues BEFORE enabling CI enforcement |
-| CI: race detection | SQLite locking under race detector (#5) | Add busy_timeout to test DSN |
-| Test infrastructure | Schema divergence from production (#10) | Acceptable for current project; document the assumption |
+| Project scaffolding (templ + Tailwind setup) | Templ codegen not in build pipeline (#4), Tailwind not scanning .templ files (#3), Air infinite loop (#5) | Configure build toolchain correctly from day one; verify production CSS output |
+| Search endpoint + live search | Query storm without debounce (#2), full table scan performance (#8), LIKE query on 100K+ rows (#8) | Build FTS5 index, debounce + hx-sync, minimum query length, LIMIT results |
+| URL-driven state / shareable links | Full page vs partial render (#1), cache/history breaks (#6) | Render both full page and fragment from every handler; Vary header; no-store |
+| Route integration with existing API surfaces | Routing conflicts with existing endpoints (#7) | Content negotiation; dedicated route groups; update readiness middleware |
+| Record detail + comparison views | Same full/partial rendering issue (#1), context abuse for shared state (#9) | Explicit component parameters; middleware for HX-Request detection |
+| LiteFS deployment to edge | Read-only replica failures from hidden writes (#10) | Test against read-only database; no session/analytics writes |
+| Component composition and reuse | Templ context misuse (#9), component testing gap (#14) | Explicit parameters; test helper for rendering |
+| Accessibility | Screen reader incompatibility (#12) | ARIA attributes on search input and results container |
+| Styling and CSS build | Dynamic class stripping (#11), CLI version drift (#13) | Complete literal classes; pin Tailwind version |
 
 ## Sources
 
-### Golden File Testing
-- [Testing with golden files in Go](https://medium.com/soon-london/testing-with-golden-files-in-go-7fccc71c43d3) -- non-deterministic value handling
-- [Golden Files -- Why you should use them](https://jarifibrahim.github.io/blog/golden-files-why-you-should-use-them/) -- best practices and pitfalls
-- [File-driven testing in Go](https://eli.thegreenplace.net/2022/file-driven-testing-in-go/) -- Eli Bendersky's patterns
+### HTMX
+- [htmx Documentation](https://htmx.org/docs/) -- official docs, trigger modifiers, sync behavior
+- [hx-push-url Attribute](https://htmx.org/attributes/hx-push-url/) -- URL history management
+- [hx-sync Attribute](https://htmx.org/attributes/hx-sync/) -- request cancellation/queuing
+- [hx-swap-oob Attribute](https://htmx.org/attributes/hx-swap-oob/) -- out-of-band swaps
+- [Tricks of the Htmx Masters](https://hypermedia.systems/tricks-of-the-htmx-masters/) -- advanced patterns
+- [HTMX Caching](https://www.tutorialspoint.com/htmx/htmx_caching.htm) -- Vary header and cache behavior
+- [HTMX Web Security Basics](https://htmx.org/essays/web-security-basics-with-htmx/) -- security considerations
 
-### golangci-lint
-- [golangci-lint v2 Configuration File](https://golangci-lint.run/docs/configuration/file/) -- v2 YAML structure
-- [golangci-lint v2 Migration Guide](https://golangci-lint.run/docs/product/migration-guide/) -- v1 to v2 changes
-- [golangci-lint-action](https://github.com/golangci/golangci-lint-action) -- Official GitHub Action
-- [Welcome to golangci-lint v2](https://ldez.github.io/blog/2025/03/23/golangci-lint-v2/) -- v2 announcement
+### Templ
+- [templ htmx Integration](https://templ.guide/server-side-rendering/htmx/) -- official HTMX integration docs
+- [templ Context](https://templ.guide/syntax-and-usage/context/) -- context.Context usage in components
+- [templ Template Composition](https://templ.guide/syntax-and-usage/template-composition/) -- component composition patterns
+- [templ Live Reload](https://templ.guide/developer-tools/live-reload/) -- hot reload configuration
+- [templ CLI](https://templ.guide/developer-tools/cli/) -- code generation commands
+- [Solving Infinite Reloads Using Air and Templ](https://jdo.sh/posts/solving-infinite-reloads-using-air-and-templ/) -- air configuration for templ
 
-### GitHub Actions
-- [actions/setup-go v6](https://github.com/actions/setup-go) -- caching, go-version-file
-- [actions/checkout v6](https://github.com/actions/checkout/releases) -- current stable
+### Tailwind CSS
+- [Tailwind v4 Detecting Classes](https://tailwindcss.com/docs/detecting-classes-in-source-files) -- automatic content detection, @source directive
+- [Tailwind Standalone CLI](https://tailwindcss.com/blog/standalone-cli) -- Node.js-free usage
+- [Tailwind CLI Installation](https://tailwindcss.com/docs/installation/tailwind-cli) -- standalone CLI setup
 
-### SQLite Concurrency
-- [SQLite concurrent writes and "database is locked"](https://tenthousandmeters.com/blog/sqlite-concurrent-writes-and-database-is-locked-errors/) -- busy_timeout
+### SQLite / FTS5
+- [SQLite FTS5 Extension](https://www.sqlite.org/fts5.html) -- official FTS5 documentation, prefix queries
+- [SQLite WAL Mode](https://sqlite.org/wal.html) -- concurrent read/write behavior
+- [High-Performance SQLite Reads in Go](https://dev.to/lovestaco/high-performance-sqlite-reads-in-a-go-server-4on3) -- WAL + read concurrency
+- [How SQLite Scales Read Concurrency (Fly Blog)](https://fly.io/blog/sqlite-internals-wal/) -- WAL internals for edge deployment
+
+### LiteFS
+- [LiteFS Getting Started](https://fly.io/docs/litefs/getting-started-fly/) -- proxy configuration and write forwarding
+- [Preventing Read Replica Writes (Fly Community)](https://community.fly.io/t/preventing-read-replica-from-trying-to-write-litefs/16372) -- read-only replica pitfalls
+
+### Accessibility
+- [ARIA aria-autocomplete](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-autocomplete) -- autocomplete accessibility pattern
+- [Anatomy of Accessible Auto-Suggest (Intopia)](https://intopia.digital/articles/anatomy-accessible-auto-suggest/) -- live region patterns for search
 
 ### Codebase (verified against source)
-- `internal/pdbcompat/handler_test.go` -- uses `time.Now()` for test entity timestamps
-- `internal/pdbcompat/serializer_test.go` -- uses fixed `time.Date()` for serializer tests
-- `internal/testutil/testutil.go` -- test client setup with shared in-memory SQLite, dual connections
-- `ent/client.go` line 1 -- `// Code generated by ent, DO NOT EDIT.` (standard Go convention)
-- `graph/generated.go` line 1 -- `// Code generated by github.com/99designs/gqlgen, DO NOT EDIT.`
-- `ent/schema/*.go` -- hand-written, no Code generated header (must be linted)
+- `internal/pdbcompat/search.go` -- existing `buildSearchPredicate` uses `sql.ContainsFold` (LIKE query, no FTS)
+- `internal/database/database.go` -- WAL mode enabled, 5s busy_timeout, modernc.org/sqlite driver
+- `cmd/peeringdb-plus/main.go` -- existing route registration, readiness middleware, CORS middleware, JSON root endpoint
+- `ent/schema/*.go` -- 13 entity types, hand-written schemas
+- `ent/generate.go` -- existing `//go:generate` for ent codegen

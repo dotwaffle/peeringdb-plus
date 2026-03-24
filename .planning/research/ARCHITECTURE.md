@@ -1,12 +1,12 @@
 # Architecture Patterns
 
-**Domain:** v1.2 Quality & CI -- golden file tests, GitHub Actions CI, linting enforcement
-**Researched:** 2026-03-23
-**Focus:** How golden file tests, CI pipelines, and linting integrate with the existing Go/ent codebase
+**Domain:** v1.4 Web UI -- templ/htmx/Tailwind integration with existing Go HTTP server
+**Researched:** 2026-03-24
+**Focus:** How templ templates, htmx endpoints, and Tailwind CSS integrate with the existing HTTP server architecture; new components needed; data flow from ent to rendered HTML; route organization
 
 ## Existing Architecture (Context)
 
-The v1.1 architecture is a single Go binary with the following structure:
+The v1.3 architecture is a single Go binary with this structure:
 
 ```
 cmd/peeringdb-plus/main.go     (wiring, HTTP server, graceful shutdown)
@@ -25,406 +25,682 @@ cmd/peeringdb-plus/main.go     (wiring, HTTP server, graceful shutdown)
   +-- ent/                      entgo ORM (13 schemas), generated code
   +-- ent/schema/               Schema definitions with entgql + entrest annotations
   +-- ent/rest/                 entrest-generated REST handlers
-  +-- testdata/fixtures/        Sync fixture data (13 JSON files for sync integration tests)
 ```
 
-**Existing test structure (21 test files):**
-```
-cmd/pdb-schema-extract/main_test.go        Schema extraction tool tests
-cmd/pdb-schema-generate/main_test.go       Schema generation tool tests
-cmd/peeringdb-plus/rest_test.go            entrest integration tests (httptest)
-ent/schema/organization_test.go            Schema validation tests
-ent/schema/schema_test.go                  Schema validation tests
-graph/resolver_test.go                     GraphQL resolver tests
-internal/config/config_test.go             Config parsing tests
-internal/health/handler_test.go            Health endpoint tests
-internal/litefs/primary_test.go            LiteFS detection tests
-internal/middleware/cors_test.go           CORS middleware tests
-internal/otel/logger_test.go              Dual slog logger tests
-internal/otel/metrics_test.go             Metric instrument tests
-internal/otel/provider_test.go            OTel provider lifecycle tests
-internal/pdbcompat/depth_test.go          Depth expansion tests (httptest)
-internal/pdbcompat/filter_test.go         Django-style filter parser tests
-internal/pdbcompat/handler_test.go        PDB compat endpoint tests (httptest)
-internal/pdbcompat/serializer_test.go     ent -> peeringdb type mapping tests
-internal/peeringdb/client_test.go         PeeringDB HTTP client tests
-internal/peeringdb/types_test.go          PeeringDB type deserialization tests
-internal/sync/integration_test.go         Full sync cycle tests (httptest)
-internal/sync/worker_test.go              Sync worker unit tests
-```
+**Existing HTTP route map:**
 
-**Test infrastructure:**
-- `internal/testutil/testutil.go` provides `SetupClient(t)` which creates in-memory SQLite-backed ent clients via `enttest.Open`. Each call gets a unique database (atomic counter) so parallel tests do not conflict.
-- Tests use `httptest.NewRecorder()` and `httptest.NewRequest()` for HTTP endpoint testing.
-- `testdata/fixtures/` contains 13 JSON files with PeeringDB-format response data used by sync integration tests.
-- No golden file tests exist yet.
-- No CI pipeline exists (no `.github/` directory).
-- No golangci-lint configuration exists (no `.golangci.yml`).
+| Method | Path | Handler | Purpose |
+|--------|------|---------|---------|
+| GET | / | inline func | JSON discovery endpoint |
+| GET/POST | /graphql | pdbgql.PlaygroundHandler / gqlHandler | GraphiQL playground / GraphQL API |
+| GET | /api/{rest...} | pdbcompat.Handler.dispatch | PeeringDB-compatible REST |
+| ANY | /rest/v1/* | entrest.Handler (StripPrefix) | OpenAPI REST (read-only) |
+| POST | /sync | inline func | On-demand sync trigger |
+| GET | /healthz | health.LivenessHandler | Liveness probe |
+| GET | /readyz | health.ReadinessHandler | Readiness probe |
 
-## Recommended Architecture for v1.2
-
-Three new capabilities integrate into the existing architecture. None require new packages or runtime dependencies. All additions are testing, tooling, and CI configuration.
-
-### 1. Golden File Tests for PeeringDB Compat Layer
-
-**What changes:** The PeeringDB compatibility layer (`internal/pdbcompat/`) gains golden file tests that capture exact HTTP response bodies (JSON) and compare them against reference files.
-
-**Where golden files live:**
+**Existing middleware stack (outermost first):**
 
 ```
-internal/pdbcompat/testdata/golden/
-    net_list.json                List response for /api/net
-    net_detail.json              Detail response for /api/net/{id}
-    net_detail_depth2.json       Detail with depth=2 for /api/net/{id}?depth=2
-    org_list.json                List response for /api/org
-    org_detail_depth2.json       Detail with depth=2 for /api/org/{id}?depth=2
-    fac_list.json                ...
-    ix_list.json                 ...
-    index.json                   API index at /api/
-    error_not_found.json         404 error envelope
-    error_unknown_type.json      404 for unknown type
-    fields_projection.json       ?fields=id,name projection
+Recovery -> OTel HTTP -> Logging -> CORS -> Readiness -> mux
 ```
 
-**Why `internal/pdbcompat/testdata/golden/` not root `testdata/`:**
-Go convention places test fixtures in a `testdata/` subdirectory of the package being tested. The root `testdata/fixtures/` already holds sync fixture data. Keeping golden files colocated with the pdbcompat package follows Go stdlib convention.
+**Key architectural facts:**
+- Uses `http.NewServeMux()` (Go 1.22+ with method-based routing)
+- Readiness middleware gates all routes except `/sync`, `/healthz`, `/readyz`, `/`
+- CORS middleware applied both globally (via stack) and per-route on `/rest/v1/`
+- `*ent.Client` is the single dependency for data access
+- `*sql.DB` passed alongside for raw sync_status queries
+- All handler factories accept `*ent.Client` and return `http.Handler`
 
-**New/modified files:**
+## Recommended Architecture for v1.4
 
-| File | Change Type | What |
-|------|-------------|------|
-| `internal/pdbcompat/golden_test.go` | NEW | Golden file test functions + helpers (update, format, diff) |
-| `internal/pdbcompat/testdata/golden/*.json` | NEW | Golden reference files (~15-20 files) |
-
-### 2. GitHub Actions CI Pipeline
-
-**Workflow file:** `.github/workflows/ci.yml`
-
-**Workflow structure (two parallel jobs):**
-
-```yaml
-name: CI
-on:
-  push:
-    branches: [main]
-  pull_request:
-
-permissions:
-  contents: read
-
-jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-      - uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.11
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-      - run: go test -race -count=1 -v ./...
-      - run: go build -trimpath ./cmd/peeringdb-plus
-```
-
-**Key design decisions:**
-
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Separate lint/test jobs | YES | Run in parallel, faster feedback. golangci-lint-action recommends separate job. |
-| Go version via `go-version-file` | YES | Reads `go 1.26.1` from `go.mod`. No hardcoded version to maintain. |
-| `-race` flag on tests | YES | Per project rule T-2 (MUST). Catches data races. |
-| `-count=1` on tests | YES | Disables test caching in CI. Ensures every run is fresh. |
-| `-trimpath` on build | YES | Per project rule CI-2 (MUST). Reproducible builds. |
-| Build in test job not separate | YES | Build verifies compilation after tests pass. Does not need to be a separate job -- it is fast (seconds) and logically sequential with testing. |
-| `actions/checkout@v6` | YES | Current stable (v6.0.2, Jan 2026). Node 24 runtime. |
-| `actions/setup-go@v6` | YES | Current stable. Auto-caches GOCACHE and GOMODCACHE using go.sum as cache key. |
-| `golangci-lint-action@v9` | YES | Current stable. Supports golangci-lint v2.11+. Parallel binary download + cache. |
-
-**New files:**
-
-| File | Change Type | What |
-|------|-------------|------|
-| `.github/workflows/ci.yml` | NEW | CI workflow (lint + test) |
-
-### 3. golangci-lint v2 Configuration
-
-**Configuration file:** `.golangci.yml`
-
-Uses golangci-lint v2 format (`version: "2"`). Key structural changes from v1:
-- `linters-settings` split into `linters.settings` and `formatters.settings`
-- Formatting linters (`gofumpt`, `goimports`) moved to `formatters` section
-- `gosimple` and `stylecheck` merged into `staticcheck`
-- `enable-all`/`disable-all` replaced by `default: standard|all|none|fast`
-- `issues.exclude-dirs` replaced by `linters.exclusions.paths`
-
-**Generated code exclusion strategy:**
-
-Two-layer defense:
-1. `generated: strict` -- matches `// Code generated ... DO NOT EDIT.` headers (standard Go convention used by ent, gqlgen, entrest)
-2. Explicit `exclusions.paths` -- catches any generated files missing the header
-
-**Hand-written code that MUST be linted:**
-
-| Directory/File | Status | Notes |
-|----------------|--------|-------|
-| `cmd/peeringdb-plus/main.go` | LINT | Entry point, wiring |
-| `internal/*/` | LINT | All hand-written internal packages |
-| `ent/schema/*.go` | LINT | Hand-written schema definitions |
-| `graph/resolver.go` | LINT | Hand-written resolver |
-| `graph/custom.resolvers.go` | LINT | Hand-written custom resolvers |
-| `graph/pagination.go` | LINT | Hand-written pagination helpers |
-
-**New files:**
-
-| File | Change Type | What |
-|------|-------------|------|
-| `.golangci.yml` | NEW | Linter configuration |
-
-## Data Flow
-
-### Test Data Flow (Golden Files)
+### Component Overview
 
 ```
-setupGoldenTestHandler(t)
+NEW PACKAGES:
+
+internal/web/                  Web UI handler package
+  handler.go                   HTTP handlers for search, detail, compare pages
+  handler_test.go              Handler tests (httptest)
+  search.go                    Search query logic (reuses pdbcompat search patterns)
+
+internal/web/templates/        templ template files (.templ)
+  layout.templ                 Base HTML layout (head, body, nav, footer)
+  home.templ                   Landing page / search page
+  search_results.templ         Search results fragment (htmx partial)
+  detail.templ                 Record detail page (all 13 types)
+  detail_section.templ         Collapsible related-records sections (htmx partial)
+  compare.templ                ASN comparison page
+  compare_results.templ        Comparison results fragment (htmx partial)
+  components.templ             Reusable UI components (cards, badges, tables, pills)
+  nav.templ                    Navigation bar component
+  error.templ                  Error pages (404, 500)
+
+internal/web/static/           Static assets
+  css/
+    input.css                  Tailwind CSS input file (@tailwind directives)
+    output.css                 Generated Tailwind CSS (build artifact, git-tracked)
+  htmx.min.js                 HTMX library (vendored, single file)
+
+MODIFIED FILES:
+
+cmd/peeringdb-plus/main.go    Mount web routes on mux, serve static assets
+internal/config/config.go     (No changes needed -- web UI has no config)
+Dockerfile.prod               Add templ generate + tailwind build steps
+```
+
+### New vs. Modified Components
+
+| Component | Status | Integration Point |
+|-----------|--------|-------------------|
+| `internal/web/handler.go` | NEW | Receives `*ent.Client`, registers on `*http.ServeMux` |
+| `internal/web/templates/*.templ` | NEW | Compiled to Go by `templ generate`, called from handlers |
+| `internal/web/static/` | NEW | Embedded via `//go:embed`, served by `http.FileServer` |
+| `cmd/peeringdb-plus/main.go` | MODIFIED | ~10 lines added: create web handler, mount routes, serve static |
+| `Dockerfile.prod` | MODIFIED | Add `templ generate` and `tailwindcss` build steps |
+
+### Route Organization
+
+**Principle:** Web UI routes live under root paths that do not conflict with existing API routes. All API routes are prefixed (`/graphql`, `/api/`, `/rest/v1/`, `/sync`, `/healthz`, `/readyz`), leaving clean paths for UI.
+
+**New routes:**
+
+| Method | Path | Handler | Returns | Purpose |
+|--------|------|---------|---------|---------|
+| GET | / | web.HomeHandler | Full page | Landing page with search box (replaces JSON discovery) |
+| GET | /search | web.SearchHandler | Full page or fragment | Search results page |
+| GET | /net/{id} | web.DetailHandler | Full page | Network detail |
+| GET | /ix/{id} | web.DetailHandler | Full page | IX detail |
+| GET | /fac/{id} | web.DetailHandler | Full page | Facility detail |
+| GET | /org/{id} | web.DetailHandler | Full page | Organization detail |
+| GET | /campus/{id} | web.DetailHandler | Full page | Campus detail |
+| GET | /carrier/{id} | web.DetailHandler | Full page | Carrier detail |
+| GET | /compare | web.CompareHandler | Full page | ASN comparison page |
+| GET | /static/* | http.FileServer | CSS/JS | Static assets |
+
+**htmx fragment endpoints** (return HTML fragments, not full pages):
+
+| Method | Path | Handler | Returns | Purpose |
+|--------|------|---------|---------|---------|
+| GET | /search?q=... | web.SearchHandler | Fragment (if HX-Request) | Live search results |
+| GET | /net/{id}/related/{edge} | web.RelatedHandler | Fragment | Lazy-load related records section |
+| GET | /compare/results?asn1=...&asn2=... | web.CompareResultsHandler | Fragment | Comparison results |
+
+**Route registration pattern:**
+
+```go
+// In cmd/peeringdb-plus/main.go, after existing route setup:
+
+webHandler := web.NewHandler(entClient)
+webHandler.Register(mux)
+
+// Static assets (embedded)
+mux.Handle("GET /static/", http.StripPrefix("/static/",
+    http.FileServerFS(web.StaticFS)))
+```
+
+**Root route migration:** The existing `GET /` handler returns JSON discovery. Move this to `GET /api/` (where it logically belongs) and make `GET /` serve the web UI home page. The JSON discovery endpoint becomes:
+
+```go
+mux.HandleFunc("GET /api/", func(w http.ResponseWriter, r *http.Request) {
+    if r.URL.Path != "/api/" { /* existing dispatch handles sub-paths */ }
+    w.Header().Set("Content-Type", "application/json")
+    fmt.Fprint(w, `{"name":"peeringdb-plus",...}`)
+})
+```
+
+This is compatible because `pdbcompat.Handler.Register()` already registers `GET /api/{rest...}` which matches `/api/` via the empty rest wildcard. The JSON discovery can be integrated into pdbcompat's index handler (it already serves an index at `/api/`).
+
+### Data Flow: Ent Query to Rendered HTML
+
+**Full page request (direct navigation or refresh):**
+
+```
+Browser GET /net/13335
     |
     v
-Create deterministic ent entities in in-memory SQLite
-(fixed time.Date values, sequential creation for deterministic auto-increment IDs)
+readinessMiddleware (pass -- sync completed)
     |
     v
-httptest.NewRequest -> mux.ServeHTTP -> httptest.NewRecorder
+web.DetailHandler
+    |
+    +-- Parse path: type="net", id=13335
+    +-- Query ent: client.Network.Query().Where(network.ID(13335)).
+    |       WithOrganization().WithNetworkFacilities().Only(ctx)
+    +-- Build view model: DetailViewModel{Type: "net", Record: net, ...}
+    +-- Render full page: layout.templ wrapping detail.templ
+    |       templates.Layout(templates.Detail(vm)).Render(ctx, w)
     |
     v
-rec.Body.Bytes() -> formatJSON() -> compare against testdata/golden/*.json
-                                        |
-                    (if -update flag) -> os.WriteFile() to golden file
-                    (if no flag)     -> cmp.Diff(want, got) -> PASS/FAIL
+Browser receives full HTML page (head, nav, content, footer)
 ```
 
-### CI Pipeline Flow
+**htmx fragment request (live search, lazy-load sections):**
 
 ```
-Push/PR -> GitHub Actions trigger
+Browser HX-Request: true
+GET /search?q=cloudflare
     |
-    +-- [Job: lint] -----> checkout -> setup-go (from go.mod) -> golangci-lint v2.11
-    |                       reads .golangci.yml
-    |                       excludes generated code (headers + paths)
-    |                       lints internal/*, cmd/*, ent/schema/*, graph/*.go
+    v
+web.SearchHandler
     |
-    +-- [Job: test] -----> checkout -> setup-go (from go.mod)
-                            -> go test -race -count=1 -v ./...
-                            -> go build -trimpath ./cmd/peeringdb-plus
+    +-- Check r.Header.Get("HX-Request") == "true"
+    +-- Parse query: q="cloudflare"
+    +-- Query ent: search across net (name, aka, asn), ix, fac, org
+    |       (reuse pdbcompat.buildSearchPredicate logic)
+    +-- Build results: []SearchResult{Type, ID, Name, ASN, ...}
+    +-- Render fragment only: search_results.templ (no layout wrapper)
+    |       templates.SearchResults(results).Render(ctx, w)
+    |
+    v
+Browser swaps #search-results div with fragment HTML
 ```
 
-### Linter Resolution Flow
+**Key design decision:** Handlers detect htmx requests via the `HX-Request` header and conditionally render either a full page (with layout) or a bare fragment. This enables both direct URL access (shareable links) and htmx partial updates.
+
+```go
+func (h *Handler) renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request,
+    page templ.Component) {
+    if r.Header.Get("HX-Request") == "true" {
+        // htmx request: render fragment only
+        page.Render(ctx, w)
+        return
+    }
+    // Direct navigation: wrap in layout
+    templates.Layout(page).Render(ctx, w)
+}
+```
+
+### View Model Layer
+
+**Do NOT pass `*ent.Network` directly to templates.** Create view model structs that contain exactly the data each template needs. This:
+
+1. Decouples templates from ent-generated code (ent regeneration cannot break templates)
+2. Makes templates testable with plain struct construction
+3. Enables pre-computation (e.g., format ASN as "AS13335", compute "shared IXPs" count)
+
+```go
+// internal/web/viewmodel.go
+
+// SearchResult is a unified search result across all PeeringDB types.
+type SearchResult struct {
+    Type    string // "net", "ix", "fac", "org", etc.
+    ID      int
+    Name    string
+    Detail  string // Type-specific detail line (ASN for net, city for fac, etc.)
+    URL     string // Link to detail page
+}
+
+// DetailView holds data for a record detail page.
+type DetailView struct {
+    Type       string
+    TypeLabel  string // "Network", "Internet Exchange", etc.
+    Record     any    // Type-specific struct (NetworkDetail, FacilityDetail, etc.)
+    RelatedEdges []RelatedEdge // Edges available for lazy-loading
+}
+
+// CompareView holds data for the ASN comparison page.
+type CompareView struct {
+    ASN1        int
+    ASN2        int
+    Network1    *NetworkSummary
+    Network2    *NetworkSummary
+    SharedIXPs  []SharedIXP
+    SharedFacs  []SharedFacility
+    OnlyASN1IXPs []IXPSummary
+    OnlyASN2IXPs []IXPSummary
+    // ... similar for facilities, campuses
+}
+```
+
+### Template Composition Pattern
+
+**Layout hierarchy:**
 
 ```
-golangci-lint run
-    |
-    v
-Read .golangci.yml (version: "2")
-    |
-    v
-Identify Go files in module
-    |
-    v
-Apply exclusions:
-  1. generated: strict -> skip files with "// Code generated" header
-  2. paths -> skip ent/(non-schema), graph/generated.go, graph/model/
-  3. rules -> relax linters for _test.go files
-    |
-    v
-Run enabled linters on remaining files
-    |
-    v
-Report issues (fail CI if any)
+layout.templ
+  +-- <html>, <head> (Tailwind CSS, htmx.js, meta)
+  +-- nav.templ (navigation bar with search)
+  +-- {children...} <-- page content injected here
+  +-- <footer>
+
+home.templ
+  +-- Search input with hx-get="/search" hx-trigger="keyup changed delay:300ms"
+  +-- #search-results div (target for htmx swap)
+
+detail.templ
+  +-- Record header (name, type badge, key fields)
+  +-- Field grid (all record fields in organized sections)
+  +-- Related records sections (collapsible, lazy-loaded)
+      +-- Each section: hx-get="/net/{id}/related/network_facilities"
+          hx-trigger="revealed" hx-swap="innerHTML"
+
+compare.templ
+  +-- Two ASN input fields
+  +-- hx-get="/compare/results" hx-include="[name='asn1'],[name='asn2']"
+  +-- #compare-results div (target for htmx swap)
 ```
+
+**templ component pattern:**
+
+```
+templ Layout(contents templ.Component) {
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <link rel="stylesheet" href="/static/css/output.css"/>
+        <script src="/static/htmx.min.js"></script>
+    </head>
+    <body class="bg-gray-50 min-h-screen">
+        @Nav()
+        <main class="container mx-auto px-4 py-8">
+            @contents
+        </main>
+        <footer>...</footer>
+    </body>
+    </html>
+}
+```
+
+### Static Asset Strategy
+
+**Tailwind CSS build:** Use the Tailwind CSS v4 standalone CLI binary. No Node.js dependency.
+
+```
+# Development: watch mode
+./tailwindcss -i internal/web/static/css/input.css \
+              -o internal/web/static/css/output.css --watch
+
+# Production: minified
+./tailwindcss -i internal/web/static/css/input.css \
+              -o internal/web/static/css/output.css --minify
+```
+
+The `input.css` file uses `@import "tailwindcss"` (v4 syntax) and a `@source` directive pointing at `.templ` files:
+
+```css
+@import "tailwindcss";
+@source "../templates/**/*.templ";
+```
+
+**htmx:** Vendor `htmx.min.js` (single file, ~14KB gzipped) into `internal/web/static/`. No CDN dependency -- the app should work without external network access.
+
+**Embedding for single-binary deployment:**
+
+```go
+// internal/web/static.go
+package web
+
+import "embed"
+
+//go:embed static
+var StaticFS embed.FS
+```
+
+This maintains the existing single-binary deployment model. The compiled Tailwind CSS and vendored htmx.js are embedded at build time. No runtime filesystem access needed for static assets.
+
+**Dockerfile.prod changes:**
+
+```dockerfile
+# Build stage
+FROM golang:1.26-alpine AS builder
+WORKDIR /build
+
+# Install templ
+RUN go install github.com/a-h/templ/cmd/templ@latest
+
+# Download Tailwind standalone CLI
+RUN wget -O /usr/local/bin/tailwindcss \
+    https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
+    chmod +x /usr/local/bin/tailwindcss
+
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+
+# Generate templ code
+RUN templ generate
+
+# Build Tailwind CSS
+RUN tailwindcss -i internal/web/static/css/input.css \
+                -o internal/web/static/css/output.css --minify
+
+# Build Go binary (static assets embedded via //go:embed)
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /peeringdb-plus ./cmd/peeringdb-plus
+```
+
+### Search Architecture
+
+**Cross-type search** is the most complex new capability. The approach:
+
+1. **Reuse existing search infrastructure.** `internal/pdbcompat` already has `buildSearchPredicate()` which generates case-insensitive `LIKE` predicates across configurable search fields per type. The `Registry` already defines `SearchFields` for all 13 types.
+
+2. **Query multiple types in parallel.** For a search query "cloudflare", run queries against the 5 most user-relevant types simultaneously: net, ix, fac, org, carrier. Use `errgroup` for fan-out.
+
+3. **Unified results.** Map ent entities to `SearchResult` view models with type-specific detail lines:
+   - Network: "AS13335 -- Content"
+   - IX: "Amsterdam, NL"
+   - Facility: "Equinix NY1, New York, US"
+   - Organization: "Cloudflare, Inc."
+   - Carrier: "Zayo Group"
+
+4. **Limit per type.** Return at most 5 results per type to keep the response fast and the UI compact. Total max: 25 results.
+
+5. **No separate search index.** SQLite is fast enough for LIKE queries on the existing indexes. The dataset is small (~200K total rows). No need for FTS5 or external search.
+
+```go
+func (h *Handler) search(ctx context.Context, query string) ([]SearchResult, error) {
+    g, ctx := errgroup.WithContext(ctx)
+    var mu sync.Mutex
+    var results []SearchResult
+
+    // Search networks
+    g.Go(func() error {
+        nets, err := h.client.Network.Query().
+            Where(func(s *sql.Selector) {
+                s.Where(sql.Or(
+                    sql.ContainsFold("name", query),
+                    sql.ContainsFold("aka", query),
+                    sql.ContainsFold("name_long", query),
+                ))
+            }).
+            Limit(5).All(ctx)
+        // ... map to SearchResult, append under mu.Lock
+    })
+
+    // Similar for ix, fac, org, carrier...
+
+    if err := g.Wait(); err != nil {
+        return nil, err
+    }
+    return results, nil
+}
+```
+
+### ASN Comparison Architecture
+
+The comparison tool finds shared resources between two ASNs.
+
+**Data flow:**
+
+```
+1. User enters ASN1=13335, ASN2=15169
+2. htmx GET /compare/results?asn1=13335&asn2=15169
+3. Handler:
+   a. Query Network by ASN for both (get net IDs)
+   b. Query NetworkIxLan WHERE net_id IN (net1.ID) -> get IX IDs for ASN1
+   c. Query NetworkIxLan WHERE net_id IN (net2.ID) -> get IX IDs for ASN2
+   d. Set intersection: shared IXPs = ix_ids_1 & ix_ids_2
+   e. Similar for NetworkFacility -> shared facilities
+   f. Build CompareView with shared/unique lists
+4. Render compare_results.templ fragment
+```
+
+**Optimization:** All queries use existing ent edges and indexes. The NetworkIxLan table has indexes on `net_id` and `ix_id`. The dataset is small enough that in-memory set intersection is fine.
+
+### URL-as-State Pattern
+
+**Every page must be linkable.** This means:
+
+- Search: `/search?q=cloudflare` -- query string is the state
+- Detail: `/net/13335` -- path is the state
+- Compare: `/compare?asn1=13335&asn2=15169` -- query string is the state
+
+**htmx integration with hx-push-url:**
+
+```html
+<!-- Search input pushes URL state -->
+<input type="search" name="q"
+       hx-get="/search"
+       hx-trigger="keyup changed delay:300ms"
+       hx-target="#search-results"
+       hx-push-url="true"
+       hx-swap="innerHTML" />
+```
+
+When the user types "cloudflare", the URL updates to `/search?q=cloudflare`. Refreshing or sharing this URL renders the full search results page.
+
+**Handler must support both modes:**
+
+```go
+func (h *Handler) SearchHandler(w http.ResponseWriter, r *http.Request) {
+    query := r.URL.Query().Get("q")
+    results, err := h.search(r.Context(), query)
+    // ... error handling
+
+    component := templates.SearchResults(results)
+
+    if r.Header.Get("HX-Request") == "true" {
+        // htmx partial update
+        component.Render(r.Context(), w)
+        return
+    }
+    // Full page with layout (direct navigation or refresh)
+    templates.Layout(templates.SearchPage(query, results)).Render(r.Context(), w)
+}
+```
+
+### Integration with Existing Middleware Stack
+
+The web UI routes pass through the **same middleware stack** as API routes:
+
+```
+Recovery -> OTel HTTP -> Logging -> CORS -> Readiness -> mux
+```
+
+This means:
+
+- **OTel tracing:** Every UI page load gets a trace span automatically via otelhttp
+- **Logging:** Every request logged with method, path, status, duration, trace_id
+- **Readiness gating:** UI routes return 503 until first sync completes (correct behavior -- no data to show yet)
+- **CORS:** Not needed for same-origin UI requests, but harmless
+
+**One addition needed:** The readiness middleware bypass list should include `/static/` so that CSS/JS assets load even before sync completes (the 503 page needs styling):
+
+```go
+if r.URL.Path == "/sync" || r.URL.Path == "/healthz" ||
+   r.URL.Path == "/readyz" || strings.HasPrefix(r.URL.Path, "/static/") {
+    next.ServeHTTP(w, r)
+    return
+}
+```
+
+### Error Handling in Web UI
+
+**404 pages:** When a record ID is not found, render a styled 404 page:
+
+```go
+result, err := h.client.Network.Get(ctx, id)
+if ent.IsNotFound(err) {
+    w.WriteHeader(http.StatusNotFound)
+    templates.Layout(templates.NotFound("Network", id)).Render(ctx, w)
+    return
+}
+```
+
+**500 pages:** The existing Recovery middleware catches panics. For non-panic errors, render a styled error page instead of raw JSON.
+
+**Sync-not-ready page:** When readiness middleware returns 503, the user sees an unstyled JSON error. Add a web-aware readiness response that renders a "syncing data, please wait" HTML page when the request Accept header prefers text/html.
 
 ## Patterns to Follow
 
-### Pattern 1: Golden File Tests with `-update` Flag
+### Pattern 1: Handler Registration Convention
 
-**What:** Store expected HTTP response bodies as JSON files in `testdata/golden/`. Compare actual output against these files. Regenerate with `go test -update`.
+**What:** Each handler package exposes `NewHandler(deps)` and `Register(mux)`, matching the existing `pdbcompat.Handler` pattern.
 
-**When:** Testing API response format fidelity, serialization correctness, or any output where the exact shape matters.
+**When:** Always. This is how the codebase already works.
 
 **Example:**
 
 ```go
-var update = flag.Bool("update", false, "update golden files")
+// internal/web/handler.go
+type Handler struct {
+    client *ent.Client
+}
 
-func goldenTest(t *testing.T, name string, got []byte) {
-    t.Helper()
-    golden := filepath.Join("testdata", "golden", name+".json")
-    formatted := formatJSON(t, got)
+func NewHandler(client *ent.Client) *Handler {
+    return &Handler{client: client}
+}
 
-    if *update {
-        os.MkdirAll(filepath.Dir(golden), 0o755)
-        os.WriteFile(golden, formatted, 0o644)
-        return
-    }
-
-    want, err := os.ReadFile(golden)
-    if err != nil {
-        t.Fatalf("read golden %s: %v (run with -update to create)", golden, err)
-    }
-    if diff := cmp.Diff(string(want), string(formatted)); diff != "" {
-        t.Errorf("golden mismatch for %s (-want +got):\n%s", name, diff)
-    }
+func (h *Handler) Register(mux *http.ServeMux) {
+    mux.HandleFunc("GET /{$}", h.HomeHandler)
+    mux.HandleFunc("GET /search", h.SearchHandler)
+    mux.HandleFunc("GET /net/{id}", h.DetailHandler)
+    // ...
 }
 ```
 
-**Why:** Zero external dependencies beyond `cmp.Diff` (already in go.mod). Self-documenting golden files in version control. Easy regeneration after intentional changes.
+### Pattern 2: Full Page vs. Fragment Rendering
 
-### Pattern 2: Deterministic Test Fixtures for Golden Files
+**What:** Every handler that serves both full pages and htmx fragments uses a shared `renderPage` helper that checks `HX-Request`.
 
-**What:** Use fixed timestamps and rely on SQLite auto-increment for deterministic golden file output.
+**When:** Every page handler.
 
-**Key rules:**
-- Never use `time.Now()` in golden file test setup
-- Create entities in a deterministic order (auto-increment IDs are sequential from 1)
-- Use a single `goldenTime` constant shared across all golden file tests
-- Include enough entities to exercise edge cases (zero values, nil pointers, populated nested objects)
+**Why:** Ensures linkable URLs work (full page on direct nav) while htmx gets fast fragments.
 
-### Pattern 3: Separate CI Jobs for Independent Checks
+### Pattern 3: View Model Separation
 
-**What:** Run linting and testing as separate parallel jobs.
+**What:** Handlers query ent, map to view model structs, pass view models to templ. Templates never import `ent`.
 
-**Why:**
-- Lint failures surface faster (lint runs in ~30s, tests take longer)
-- Test failures do not block lint results
-- golangci-lint-action explicitly recommends running lint in its own job
+**When:** Always. Non-negotiable for testability and decoupling.
 
-### Pattern 4: Generated Code Exclusion via Headers + Paths
+### Pattern 4: Search with errgroup Fan-out
 
-**What:** Use both golangci-lint's `generated: strict` mode AND explicit path exclusions for defense-in-depth.
+**What:** Cross-type search queries run in parallel using `errgroup.WithContext`, with per-type limits.
 
-**When:** Any project with code generation (ent, gqlgen, protobuf, etc.).
+**When:** Search handler.
 
-**Why:** The `generated: strict` mode is the primary mechanism. Path exclusions add a safety net in case a generated file lacks the standard header.
+**Why:** 5 sequential SQLite queries would be ~50ms total. Parallel cuts to ~15ms. Use `sync.Mutex` to collect results (simpler than channels for small fan-out).
+
+### Pattern 5: Lazy-Loading Related Records
+
+**What:** Detail pages show related records in collapsible sections that load on reveal via `hx-trigger="revealed"`.
+
+**When:** Detail pages with relationships (e.g., network -> facilities, network -> IX connections).
+
+**Why:** A network like Cloudflare has 200+ facility connections. Loading all of them on page load would slow initial render. Lazy-load when the user expands the section.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Golden Files in Root testdata/
+### Anti-Pattern 1: Passing ent Entities to Templates
 
-**What:** Placing golden files for pdbcompat in the root `testdata/` directory alongside sync fixtures.
+**What:** Calling `templates.Detail(entNetwork)` directly.
 
-**Why bad:** Violates Go convention. Creates confusion about which tests use which fixtures. The root `testdata/fixtures/` is already used by `internal/sync/integration_test.go` for sync testing.
+**Why bad:** ent-generated types change on schema regeneration. Template compile errors become entangled with ORM changes. Templates cannot be unit tested without a database.
 
-**Instead:** `internal/pdbcompat/testdata/golden/` keeps golden files with the pdbcompat package.
+**Instead:** Map to view model structs. Test templates with hand-constructed view models.
 
-### Anti-Pattern 2: Snapshot Testing Libraries for Simple JSON Comparison
+### Anti-Pattern 2: htmx-go Helper Library
 
-**What:** Adding `goldie`, `cupaloy`, `go-snaps`, or similar libraries.
+**What:** Adding `github.com/angelofallars/htmx-go` for header detection.
 
-**Why bad:** Adds external dependencies for functionality that is ~20 lines of stdlib code. Project constraint MD-1 prefers stdlib.
+**Why bad:** Checking `r.Header.Get("HX-Request") == "true"` is a one-liner. The library adds a dependency for trivial functionality. Per MD-1: prefer stdlib, introduce deps only with clear payoff.
 
-**Instead:** A single `goldenTest()` helper function handles everything.
+**Instead:** Direct header check. If needed frequently, write a two-line helper in the web package.
 
-### Anti-Pattern 3: Coverage Enforcement Without Baseline
+### Anti-Pattern 3: SPA-Style Client-Side Routing
 
-**What:** Adding `-coverprofile` and a minimum coverage threshold to CI before establishing what current coverage is.
+**What:** Using htmx hx-boost on the entire page for SPA-like navigation.
 
-**Why bad:** Arbitrary thresholds either block everything or provide no value.
+**Why bad:** Breaks browser expectations (form submission, new tab behavior). Makes debugging harder. The server already renders fast (SQLite local reads).
 
-**Instead:** First establish the CI pipeline without coverage. Measure baseline later. Decide whether to enforce after understanding the codebase.
+**Instead:** Use hx-push-url on specific interactions (search, compare). Let normal navigation use full page loads -- they are fast enough from edge nodes with local SQLite.
 
-### Anti-Pattern 4: Linting Generated Code
+### Anti-Pattern 4: CDN Dependencies
 
-**What:** Running golangci-lint against ent-generated, entrest-generated, or gqlgen-generated code.
+**What:** Loading htmx.js or Tailwind CSS from a CDN.
 
-**Why bad:** Generated code has its own style. Fixes are overwritten on next generation. Dramatically increases lint time.
+**Why bad:** Adds external network dependency. Edge nodes may have limited connectivity. Breaks offline development. CSP headers become more complex.
 
-**Instead:** Use `generated: strict` and explicit path patterns.
+**Instead:** Vendor htmx.min.js. Build Tailwind CSS at compile time and embed the output.
 
-### Anti-Pattern 5: Non-Deterministic Golden File Data
+### Anti-Pattern 5: Separate API Calls from UI
 
-**What:** Using `time.Now()`, random values, or relying on map iteration order in golden file test setup.
+**What:** Having the web UI make fetch() calls to /api/ or /graphql and render client-side.
 
-**Why bad:** Golden files regenerated on different runs produce different content. Tests become flaky.
+**Why bad:** Adds client-side rendering complexity, loses server-side rendering benefits (SEO, initial load speed, no JS requirement). Defeats the purpose of templ + htmx.
 
-**Instead:** Fixed timestamps, deterministic entity creation order, and JSON formatting with consistent indentation.
+**Instead:** Web handlers query ent directly (same as pdbcompat handlers do). The UI has its own data access path optimized for display needs.
 
-## File System Layout After v1.2
+## Component Boundaries
 
+| Component | Responsibility | Communicates With |
+|-----------|---------------|-------------------|
+| `internal/web/handler.go` | HTTP request handling, routing, response rendering | ent.Client, templates |
+| `internal/web/search.go` | Cross-type search query logic | ent.Client |
+| `internal/web/viewmodel.go` | View model struct definitions | None (pure data types) |
+| `internal/web/templates/*.templ` | HTML rendering with Tailwind classes | View model structs only |
+| `internal/web/static/` | CSS (Tailwind output), JS (htmx) | Embedded at build time |
+| `cmd/peeringdb-plus/main.go` | Wiring: creates Handler, mounts routes | web.Handler, ent.Client |
+
+**Boundary rule:** Templates import view model types only. Handlers import ent and templates. Nothing imports handlers.
+
+## Build Pipeline
+
+**Development workflow:**
+
+```bash
+# Terminal 1: Watch and regenerate templ files
+templ generate --watch
+
+# Terminal 2: Watch and rebuild Tailwind CSS
+./tailwindcss -i internal/web/static/css/input.css \
+              -o internal/web/static/css/output.css --watch
+
+# Terminal 3: Run server with hot reload
+air  # or: go run ./cmd/peeringdb-plus
 ```
-.github/
-    workflows/
-        ci.yml                          NEW - CI pipeline
-.golangci.yml                           NEW - Linter config
-internal/pdbcompat/
-    testdata/
-        golden/
-            net_list.json               NEW - Golden files
-            net_detail.json             NEW
-            ...                         NEW (~15-20 golden files)
-    golden_test.go                      NEW - Golden file tests
-    depth_test.go                       EXISTING (no changes)
-    filter_test.go                      EXISTING (no changes)
-    handler_test.go                     EXISTING (no changes)
-    serializer_test.go                  EXISTING (no changes)
-testdata/fixtures/                      EXISTING (sync fixtures, no changes)
+
+**CI pipeline additions:**
+
+```yaml
+# Add to existing CI steps:
+- name: Install templ
+  run: go install github.com/a-h/templ/cmd/templ@latest
+
+- name: Generate templ
+  run: templ generate
+
+- name: Check templ generate drift
+  run: git diff --exit-code  # Fail if generated files differ
 ```
 
-## Suggested Build Order
+**Taskfile integration:** If Taskfile is adopted (per STACK.md recommendation), add tasks for templ generate, tailwind build, and a combined dev mode.
 
-### Phase 1: Lint Configuration and Fix Issues (FIRST)
+## Scalability Considerations
 
-1. Create `.golangci.yml` with generated code exclusions
-2. Run `golangci-lint run` locally to identify existing issues
-3. Fix all linter issues in hand-written code
-4. Verify `golangci-lint run` passes clean
+| Concern | Current (single node) | At edge deployment |
+|---------|----------------------|-------------------|
+| Search latency | SQLite LIKE queries ~10ms, 5 types parallel | Same -- SQLite is local on each edge node |
+| Template rendering | templ compiles to Go, sub-millisecond | Same -- CPU-bound, no I/O |
+| Static assets | Embedded, served from memory | Same -- embedded in binary |
+| Comparison queries | 4-6 ent queries, ~20ms | Same -- all data is local |
+| CSS bundle size | Tailwind purge, ~15-30KB gzipped | Same -- served from edge |
 
-**Rationale:** Establishing linting first means all subsequent code (golden file tests) is written to pass the linter from the start.
+**No scalability concerns for the web UI.** The entire architecture is read-only, local-data, server-rendered. This is the ideal case for edge deployment.
 
-### Phase 2: Golden File Tests (SECOND)
+## Dependency Summary
 
-1. Create `internal/pdbcompat/golden_test.go` with helper functions
-2. Create `setupGoldenTestHandler(t)` with deterministic data
-3. Write golden file tests for core types (list + detail)
-4. Write golden file tests for edge cases (depth, projection, errors, index)
-5. Run with `-update` to generate golden files
-6. Review generated golden files for correctness
-7. Verify `go test -race ./internal/pdbcompat/` passes
+| New Dependency | Purpose | Type | Impact |
+|---------------|---------|------|--------|
+| `github.com/a-h/templ` | Type-safe HTML templates | Build-time (templ generate) + runtime | Already in STACK.md, HIGH confidence |
+| `htmx.min.js` (vendored) | Client-side interactivity | Static asset, no Go dependency | Single file, ~14KB gzipped |
+| `tailwindcss` standalone CLI | CSS compilation | Build-time only, not a Go dependency | External binary, not in go.mod |
 
-**Rationale:** Golden files must exist before CI is enabled, otherwise the CI test job will fail on the first run.
-
-### Phase 3: GitHub Actions CI Pipeline (LAST)
-
-1. Create `.github/workflows/ci.yml`
-2. Push and verify both jobs pass (lint, test)
-3. Fix any CI-specific issues
-
-**Rationale:** CI validates everything before it. If CI is added before golden files exist, the test job fails.
-
-```
-Phase 1: Lint config + fix issues  (no deps, establishes code quality baseline)
-    |
-    v
-Phase 2: Golden file tests         (depends on Phase 1 for linter compliance)
-    |
-    v
-Phase 3: CI pipeline               (depends on Phase 1 + 2 for green build)
-```
+**No new Go module dependencies beyond templ.** htmx is a vendored JS file. Tailwind is a build tool.
 
 ## Sources
 
-- [File-driven testing in Go (Eli Bendersky)](https://eli.thegreenplace.net/2022/file-driven-testing-in-go/) -- golden file pattern overview
-- [Testing with golden files in Go](https://medium.com/soon-london/testing-with-golden-files-in-go-7fccc71c43d3) -- `-update` flag pattern
-- [Go wiki TestComments](https://go.dev/wiki/TestComments) -- `cmp.Diff` recommendation
-- [golangci-lint v2 Configuration File](https://golangci-lint.run/docs/configuration/file/) -- YAML config structure
-- [golangci-lint v2 announcement](https://ldez.github.io/blog/2025/03/23/golangci-lint-v2/) -- v2 release, config migration
-- [golangci-lint-action v9](https://github.com/golangci/golangci-lint-action) -- GitHub Action setup, version compatibility
-- [actions/setup-go v6](https://github.com/actions/setup-go) -- Go version setup, auto-caching
-- [actions/checkout v6](https://github.com/actions/checkout/releases) -- v6.0.2, Jan 2026
+- [templ Project Structure](https://templ.guide/project-structure/project-structure/) -- Official recommended layout
+- [templ Template Composition](https://templ.guide/syntax-and-usage/template-composition/) -- Layout and children patterns
+- [htmx hx-trigger](https://htmx.org/attributes/hx-trigger/) -- Debounce with delay modifier
+- [htmx hx-push-url](https://htmx.org/attributes/hx-push-url/) -- URL state management
+- [htmx multi-swap](https://v1.htmx.org/extensions/multi-swap/) -- Multiple target updates (for compare tool)
+- [Tailwind CSS Standalone CLI](https://tailwindcss.com/blog/standalone-cli) -- No Node.js dependency
+- [Tailwind v4 Go Integration](https://github.com/tailwindlabs/tailwindcss/discussions/15815) -- Configuration for Go projects
+- [Go embed](https://pkg.go.dev/embed) -- Static asset embedding (stdlib)
+- [htmx-go (angelofallars)](https://github.com/angelofallars/htmx-go) -- Evaluated and rejected (anti-pattern 2)
+- [Bookmarkable URL State in HTMX](https://www.lorenstew.art/blog/bookmarkable-by-design-url-state-htmx/) -- URL-as-state pattern
+- [GoTTH Stack Production Deployment](https://4rkal.com/posts/deploy-go-htmx-templ-tailwind-to-production/) -- Build and deployment patterns
+- Existing codebase analysis: `cmd/peeringdb-plus/main.go`, `internal/pdbcompat/handler.go`, `internal/pdbcompat/search.go`, `internal/middleware/*.go`
