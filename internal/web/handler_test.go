@@ -795,6 +795,51 @@ func TestFooter_DarkMode(t *testing.T) {
 	}
 }
 
+func TestSearchResults_ARIARoles(t *testing.T) {
+	t.Parallel()
+	groups := []templates.SearchGroup{
+		{
+			TypeName:    "Networks",
+			TypeSlug:    "net",
+			AccentColor: "emerald",
+			TotalCount:  1,
+			Results: []templates.SearchResult{
+				{Name: "Cloudflare", Subtitle: "AS13335", DetailURL: "/ui/asn/13335"},
+			},
+		},
+	}
+	body := renderComponent(t, templates.SearchResults(groups))
+
+	checks := []string{
+		`role="option"`,
+		`tabindex="-1"`,
+		`aria-selected="false"`,
+		"focus:ring-2",
+		"focus:ring-emerald-500",
+	}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("search results missing ARIA attribute %q", want)
+		}
+	}
+}
+
+func TestSearchForm_ListboxRole(t *testing.T) {
+	t.Parallel()
+	body := renderComponent(t, templates.SearchForm("", nil))
+
+	checks := []string{
+		`role="listbox"`,
+		"autofocus",
+		`aria-label="Search results"`,
+	}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("search form missing %q", want)
+		}
+	}
+}
+
 func TestSearchResults_FadeIn(t *testing.T) {
 	t.Parallel()
 	groups := []templates.SearchGroup{
