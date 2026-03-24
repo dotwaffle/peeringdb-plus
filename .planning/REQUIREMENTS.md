@@ -13,7 +13,7 @@ Requirements for Web UI milestone. Each maps to roadmap phases.
 - [x] **SRCH-02**: Search results are grouped by type (Networks, IXPs, Facilities, Organizations, Campuses) with visual type indicators
 - [x] **SRCH-03**: User can enter a numeric value to look up a network by ASN directly
 - [x] **SRCH-04**: Each type group shows a count badge of matching results
-- [ ] **SRCH-05**: User can navigate search results with keyboard (arrow keys to move, Enter to select)
+- [x] **SRCH-05**: User can navigate search results with keyboard (arrow keys to move, Enter to select)
 
 ### Record Detail
 
@@ -86,7 +86,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SRCH-02 | Phase 14 | Complete |
 | SRCH-03 | Phase 14 | Complete |
 | SRCH-04 | Phase 14 | Complete |
-| SRCH-05 | Phase 17 | Pending |
+| SRCH-05 | Phase 17 | Complete |
 | DETL-01 | Phase 15 | Complete |
 | DETL-02 | Phase 15 | Complete |
 | DETL-03 | Phase 15 | Complete |
