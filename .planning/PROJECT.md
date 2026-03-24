@@ -45,7 +45,17 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-(No active requirements — next milestone not yet planned)
+#### Current Milestone: v1.6 ConnectRPC / gRPC API
+
+**Goal:** Expose all PeeringDB data via ConnectRPC, providing gRPC, gRPC-Web, and Connect protocol access with reflection and health checking.
+
+**Target features:**
+- Proto definitions for all 13 PeeringDB types via entproto + ConnectRPC codegen
+- Get + List RPCs for all 13 types with filtering and pagination
+- gRPC server reflection (v1 + v1alpha)
+- gRPC health checking
+- otelconnect observability interceptor
+- h2c server support and Fly.io h2_backend deployment config
 
 ### Deferred
 
@@ -141,4 +151,4 @@ Shipped v1.5 with 20 phases across 6 milestones (v1.0-v1.5), 54 plans. Go codeba
 - Syncing page animation and 500 error page untestable non-destructively in production
 
 ---
-*Last updated: 2026-03-24 after v1.5 milestone completed*
+*Last updated: 2026-03-24 after v1.6 milestone started*

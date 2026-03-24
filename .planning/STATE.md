@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: Tech Debt & Observability
-status: v1.5 milestone archived
-stopped_at: Milestone v1.5 completed and archived
-last_updated: "2026-03-24T23:00:00.000Z"
+milestone: v1.6
+milestone_name: ConnectRPC / gRPC API
+status: defining requirements
+stopped_at: Milestone v1.6 started
+last_updated: "2026-03-24T23:30:00.000Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,11 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Planning next milestone
+**Current focus:** Defining requirements for v1.6
 
 ## Current Position
 
-Milestone v1.5 complete. No active phase.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-24 — Milestone v1.6 started
 
 ## Performance Metrics
 
@@ -72,5 +75,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Milestone v1.5 archived
+Stopped at: Milestone v1.6 started
 Resume file: None
