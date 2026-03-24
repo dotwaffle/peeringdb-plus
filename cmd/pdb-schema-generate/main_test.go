@@ -261,7 +261,6 @@ func TestGenerateFieldCode(t *testing.T) {
 			},
 			wantSub: []string{
 				`field.String("name")`,
-				`MaxLen(255)`,
 				`NotEmpty()`,
 				`Unique()`,
 				`entgql.OrderField("NAME")`,

@@ -316,9 +316,6 @@ func generateFieldCode(name string, fd FieldDef) string {
 	switch fd.Type {
 	case "string":
 		fmt.Fprintf(&b, "field.String(%q)", name)
-		if fd.MaxLength > 0 {
-			fmt.Fprintf(&b, ".\n\t\t\tMaxLen(%d)", fd.MaxLength)
-		}
 		if fd.Required && !fd.Nullable && fd.References == "" && isNameField(name) {
 			b.WriteString(".\n\t\t\tNotEmpty()")
 		}
@@ -655,7 +652,6 @@ func ({{.ModelName}}) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
-			MaxLen(255).
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
