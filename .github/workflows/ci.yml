@@ -23,7 +23,7 @@ jobs:
           go-version: stable
 
       - name: Install golangci-lint
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 
       - name: Run golangci-lint
         run: golangci-lint run
@@ -40,6 +40,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pull-requests: write
     steps:
       - name: Checkout code
