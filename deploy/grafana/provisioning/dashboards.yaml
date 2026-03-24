@@ -1,0 +1,17 @@
+# Grafana dashboard provisioning configuration for PeeringDB Plus.
+# Place this file in Grafana's provisioning/dashboards/ directory.
+# See: https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards
+apiVersion: 1
+
+providers:
+  - name: peeringdb-plus
+    orgId: 1
+    folder: PeeringDB Plus
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/peeringdb-plus
+      foldersFromFilesStructure: false
