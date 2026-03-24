@@ -143,5 +143,5 @@ Phases execute in numeric order: 18 → 19 → 20
 | 16. ASN Comparison | v1.4 | 2/2 | Complete | 2026-03-24 |
 | 17. Polish & Accessibility | v1.4 | 3/3 | Complete | 2026-03-24 |
 | 18. Tech Debt & Data Integrity | v1.5 | 0/2 | Complete    | 2026-03-24 |
-| 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 0/2 | Not started | - |
+| 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 0/2 | Planned    |  |
 | 20. Deferred Human Verification | v1.5 | 0/? | Not started | - |
