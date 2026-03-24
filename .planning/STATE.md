@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Tech Debt & Observability
-status: Defining requirements
-last_updated: "2026-03-24T12:00:00.000Z"
+status: Ready to plan
+last_updated: "2026-03-24T13:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -18,14 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Defining requirements for v1.5 Tech Debt & Observability
+**Current focus:** Phase 18 - Tech Debt & Data Integrity
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-24 — Milestone v1.5 started
+Phase: 18 of 20 (Tech Debt & Data Integrity)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-03-24 — Roadmap created for v1.5
+
+Progress: [██████████████████████████████████░░░░░░░░░░░░░░░░░░] 85% (17/20 phases)
 
 ## Performance Metrics
 
@@ -63,27 +65,8 @@ Last activity: 2026-03-24 — Milestone v1.5 started
 
 All decisions archived in PROJECT.md Key Decisions table.
 
-- [Phase 13]: Single wildcard dispatch for /ui/ routes avoids Go 1.22+ route conflict
-- [Phase 13]: Content negotiation on GET / uses Accept header: text/html triggers redirect to /ui/, otherwise JSON discovery
-- [Phase 13]: Static assets bypass readiness middleware so syncing page CSS/JS loads correctly
-- [Phase 14]: Duplicated buildSearchPredicate locally to avoid cross-package coupling between web and pdbcompat
-- [Phase 14]: Pre-allocated results slice with distinct indices for lock-free concurrent errgroup writes
-- [Phase 14]: Defined SearchGroup/SearchResult in templates package to avoid circular imports between web and templates
-- [Phase 14]: Used HX-Replace-Url response header for URL state sync instead of hx-replace-url attribute
-- [Phase 15]: Used First() instead of Only() for ASN lookup to handle non-singular edge cases
-- [Phase 15]: Fragment endpoints bypass renderPage, write directly to ResponseWriter for bare HTML
-- [Phase 15]: Prefix-based dispatch routing via switch{} with strings.HasPrefix for detail URLs
-- [Phase 15]: Junction record name field used directly from PeeringDB computed serializer output
-- [Phase 15]: IxFacility/CarrierFacility rows silently skipped when FK is nil for defensive handling
-- [Phase 16]: Map-based set intersection for IX and facility overlap detection
-- [Phase 16]: JavaScript form submit redirects to clean URL path for shareable comparison URLs
-- [Phase 16]: View toggle uses link navigation for shareable URL state in comparison page
-- [Phase 16]: Compare with... button positioned after stat badges on network detail page
-- [Phase 17]: Class-based dark mode via @custom-variant for manual toggle support
-- [Phase 17]: handleServerError replaces all http.Error calls for consistent styled 500 pages
-- [Phase 17]: Handler struct extended with *sql.DB for About page sync status queries
-- [Phase 17]: ARIA listbox/option pattern for search results accessibility
-- [Phase 17]: IIFE script in layout for keyboard navigation without global scope pollution
+- [v1.5]: No new Go dependencies -- Prometheus endpoint via autoexport env var, dashboard as JSON files
+- [v1.5]: Coarse granularity -- 3 phases combining tech debt + data integrity, all observability, all verification
 
 ### Pending Todos
 
@@ -91,12 +74,12 @@ None.
 
 ### Blockers/Concerns
 
-- 3 human verification items deferred from v1.2 (CI execution on GitHub, coverage comment posting, comment deduplication)
-- 3 human verification items deferred from v1.3 (live CLI with real API key, live integration test with real API key, invalid key rejection)
-- meta.generated field behavior unverified for depth=0 paginated PeeringDB responses
+- LiteFS in maintenance mode -- monitor for issues during verification phase
+- meta.generated field is undocumented by PeeringDB -- must test empirically against live API
+- Fly.io managed Grafana version may differ from researched v10.4 -- verify before authoring dashboard JSON
 
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Milestone v1.4 finalized
+Stopped at: Roadmap created for v1.5 milestone
 Resume file: None

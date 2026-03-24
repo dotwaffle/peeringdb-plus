@@ -7,6 +7,7 @@
 - ✅ **v1.2 Quality, Incremental Sync & CI** — Phases 7-10 (shipped 2026-03-24)
 - ✅ **v1.3 PeeringDB API Key Support** — Phases 11-12 (shipped 2026-03-24)
 - ✅ **v1.4 Web UI** — Phases 13-17 (shipped 2026-03-24)
+- 🚧 **v1.5 Tech Debt & Observability** — Phases 18-20 (in progress)
 
 ## Phases
 
@@ -67,7 +68,52 @@ See: `.planning/milestones/v1.4-ROADMAP.md` for full details.
 
 </details>
 
+### v1.5 Tech Debt & Observability (In Progress)
+
+- [ ] **Phase 18: Tech Debt & Data Integrity** - Remove dead code, verify meta.generated field behavior, document findings
+- [ ] **Phase 19: Prometheus Metrics & Grafana Dashboard** - Enable Prometheus export, create comprehensive Grafana dashboard JSON
+- [ ] **Phase 20: Deferred Human Verification** - Verify all 26 deferred items against live Fly.io deployment
+
+## Phase Details
+
+### Phase 18: Tech Debt & Data Integrity
+**Goal**: Codebase is free of dead code and the sync pipeline's meta.generated cursor behavior is empirically verified and documented
+**Depends on**: Nothing (first phase of v1.5)
+**Requirements**: DEBT-01, DEBT-02, DATA-01, DATA-02, DATA-03
+**Success Criteria** (what must be TRUE):
+  1. WorkerConfig.IsPrimary field no longer exists in internal/sync/worker.go and the codebase compiles clean
+  2. Planning documentation accurately reflects which dead code items were already removed vs. newly removed in this phase
+  3. meta.generated field behavior is documented with actual observed response structures for depth=0 full fetch, paginated incremental, and empty result set patterns
+  4. Sync pipeline handles absent meta.generated gracefully (zero-time triggers started_at - 5min fallback) without data loss or sync failure
+**Plans**: TBD
+
+### Phase 19: Prometheus Metrics & Grafana Dashboard
+**Goal**: All existing OTel metrics are exposed via Prometheus endpoint and visualized in a portable Grafana dashboard covering sync health, HTTP traffic, per-type sync detail, runtime metrics, and business metrics
+**Depends on**: Phase 18
+**Requirements**: OBS-01, OBS-02, OBS-03, OBS-04, OBS-05, OBS-06, OBS-07, OBS-08, OBS-09, OBS-10
+**Success Criteria** (what must be TRUE):
+  1. Fly.io Prometheus scraper collects metrics from the application's /metrics endpoint (port 9091) without errors
+  2. Grafana dashboard displays sync health (freshness gauge with green/yellow/red thresholds, sync duration, success/failure rate) using live data
+  3. Grafana dashboard displays HTTP RED metrics (request rate by route, error rate, latency percentiles) and per-type sync detail (duration, object counts, errors by PeeringDB type)
+  4. Dashboard JSON is committed to deploy/grafana/ with datasource template variables (no hardcoded UIDs) and imports cleanly into a fresh Grafana instance
+  5. Each dashboard row contains documentation text panels explaining the metrics and troubleshooting guidance
+**Plans**: TBD
+
+### Phase 20: Deferred Human Verification
+**Goal**: All 26 deferred human verification items from v1.2, v1.3, and v1.4 are verified as working correctly against the live Fly.io deployment
+**Depends on**: Phase 19
+**Requirements**: VFY-01, VFY-02, VFY-03, VFY-04, VFY-05, VFY-06, VFY-07, VFY-08, VFY-09
+**Success Criteria** (what must be TRUE):
+  1. CI workflow executes on push with all 4 jobs passing, and coverage comments post on PRs with deduplication on subsequent pushes
+  2. pdbcompat-check CLI and live integration test work correctly with a real PeeringDB API key, and invalid keys produce WARN log without crash
+  3. Web UI foundation, live search, detail pages, and ASN comparison all function correctly in a browser against the live deployment
+  4. Dark mode toggle, keyboard navigation, CSS animations, loading indicators, error pages, and About page freshness display all work as designed
+**Plans**: TBD
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 18 → 19 → 20
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -88,3 +134,6 @@ See: `.planning/milestones/v1.4-ROADMAP.md` for full details.
 | 15. Record Detail Pages | v1.4 | 2/2 | Complete | 2026-03-24 |
 | 16. ASN Comparison | v1.4 | 2/2 | Complete | 2026-03-24 |
 | 17. Polish & Accessibility | v1.4 | 3/3 | Complete | 2026-03-24 |
+| 18. Tech Debt & Data Integrity | v1.5 | 0/? | Not started | - |
+| 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 0/? | Not started | - |
+| 20. Deferred Human Verification | v1.5 | 0/? | Not started | - |
