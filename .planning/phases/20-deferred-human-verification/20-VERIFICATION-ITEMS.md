@@ -5,11 +5,11 @@
 **Deployment:** https://peeringdb-plus.fly.dev/
 
 ## Summary
-- Total: 26 items
-- Passed: 0
-- Failed: 0
-- Blocked: 0
-- Pending: 26
+- Total: 31 items (26 original + 5 sub-items)
+- Passed: 25
+- Skipped: 2 (same code path already verified)
+- Deferred: 2 (coverage comments — will verify on PR creation)
+- Blocked: 2 (syncing page, 500 error page — verified by code review)
 
 ---
 
@@ -75,16 +75,16 @@
 
 | # | Item | Status | Observation |
 |---|------|--------|-------------|
-| 24 | Comparison results layout | PENDING | Plan 03 |
-| 25 | Compare flow (add ASNs, compare) | PENDING | Plan 03 |
+| 24 | Comparison results layout | PASS | Results display correctly for two ASNs |
+| 25 | Compare flow (add ASNs, compare) | PASS | Full flow works: add ASNs → compare → results |
 
 ## VFY-09: Polish (v1.4)
 
 | # | Item | Status | Observation |
 |---|------|--------|-------------|
-| 26 | Dark mode toggle and persistence | PENDING | Plan 03 |
-| 27 | Keyboard navigation | PENDING | Plan 03 |
-| 28 | Animations and transitions | PENDING | Plan 03 |
-| 29 | Loading indicators | PENDING | Plan 03 |
-| 30 | Error pages (404, 500) | PENDING | Plan 03 (500 may be BLOCKED) |
-| 31 | About page | PENDING | Plan 03 |
+| 26 | Dark mode toggle and persistence | PASS | Toggle works, persists on refresh via localStorage |
+| 27 | Keyboard navigation | PASS | Tab navigation and Enter selection work |
+| 28 | Animations and transitions | PASS | Smooth transitions present |
+| 29 | Loading indicators | PASS | Loading indicators appear during content fetch |
+| 30 | Error pages (404, 500) | PASS/BLOCKED | 404 renders correctly; 500 cannot be triggered safely in production |
+| 31 | About page | PASS | /ui/about renders correctly |
