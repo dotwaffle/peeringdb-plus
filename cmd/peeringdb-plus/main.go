@@ -89,6 +89,11 @@ func main() {
 	// Detect primary status via LiteFS lease file with env fallback per D-24.
 	isPrimary := litefs.IsPrimaryWithFallback(litefs.PrimaryFile, "PDBPLUS_IS_PRIMARY")
 
+	// Live primary detection function for dynamic role changes without restart.
+	isPrimaryFn := func() bool {
+		return litefs.IsPrimaryWithFallback(litefs.PrimaryFile, "PDBPLUS_IS_PRIMARY")
+	}
+
 	// Auto-migrate schema on primary per D-43.
 	if isPrimary {
 		if err := entClient.Schema.Create(ctx); err != nil {
@@ -131,13 +136,13 @@ func main() {
 	// Create sync worker.
 	syncWorker := pdbsync.NewWorker(pdbClient, entClient, db, pdbsync.WorkerConfig{
 		IncludeDeleted: cfg.IncludeDeleted,
+		IsPrimary:      isPrimaryFn,
 		SyncMode:       cfg.SyncMode,
 	}, logger)
 
-	// Start scheduler on primary per D-22, D-29.
-	if isPrimary {
-		go syncWorker.StartScheduler(ctx, cfg.SyncInterval)
-	}
+	// Start scheduler on all instances per D-22, D-29.
+	// The scheduler gates sync on live IsPrimary() checks per tick.
+	go syncWorker.StartScheduler(ctx, cfg.SyncInterval)
 
 	// Create GraphQL resolver with ent client and raw DB for sync_status queries.
 	resolver := graph.NewResolver(entClient, db)
@@ -151,7 +156,7 @@ func main() {
 	// POST /sync: on-demand sync trigger per D-23.
 	// Write forwarding: replicas redirect to primary via Fly-Replay per D-26.
 	mux.HandleFunc("POST /sync", func(w http.ResponseWriter, r *http.Request) {
-		if !isPrimary {
+		if !isPrimaryFn() {
 			w.Header().Set("Fly-Replay", "leader")
 			w.WriteHeader(http.StatusTemporaryRedirect)
 			return
