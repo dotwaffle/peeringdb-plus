@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Tech Debt & Observability
-status: Milestone complete
+status: v1.5 milestone complete
 stopped_at: Completed 19-03-PLAN.md InitObjectCountGauges gap closure
-last_updated: "2026-03-24T20:57:31.377Z"
+last_updated: "2026-03-24T20:59:49.667Z"
 progress:
   total_phases: 3
   completed_phases: 2
