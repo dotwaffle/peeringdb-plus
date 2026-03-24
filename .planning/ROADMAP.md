@@ -7,7 +7,7 @@
 - ✅ **v1.2 Quality, Incremental Sync & CI** — Phases 7-10 (shipped 2026-03-24)
 - ✅ **v1.3 PeeringDB API Key Support** — Phases 11-12 (shipped 2026-03-24)
 - ✅ **v1.4 Web UI** — Phases 13-17 (shipped 2026-03-24)
-- 🚧 **v1.5 Tech Debt & Observability** — Phases 18-20 (in progress)
+- ✅ **v1.5 Tech Debt & Observability** — Phases 18-20 (shipped 2026-03-24)
 
 ## Phases
 
@@ -68,62 +68,16 @@ See: `.planning/milestones/v1.4-ROADMAP.md` for full details.
 
 </details>
 
-### v1.5 Tech Debt & Observability (In Progress)
+<details>
+<summary>✅ v1.5 Tech Debt & Observability (Phases 18-20) — SHIPPED 2026-03-24</summary>
 
-- [x] **Phase 18: Tech Debt & Data Integrity** - Correct stale planning docs, verify meta.generated field behavior, document findings (completed 2026-03-24)
-- [x] **Phase 19: Prometheus Metrics & Grafana Dashboard** - Register per-type object count gauges, create comprehensive Grafana dashboard JSON (completed 2026-03-24)
-- [x] **Phase 20: Deferred Human Verification** - Verify all 26 deferred items against live Fly.io deployment (completed 2026-03-24)
+- [x] Phase 18: Tech Debt & Data Integrity (2/2 plans) — completed 2026-03-24
+- [x] Phase 19: Prometheus Metrics & Grafana Dashboard (4/4 plans) — completed 2026-03-24
+- [x] Phase 20: Deferred Human Verification (3/3 plans) — completed 2026-03-24
 
-## Phase Details
+See: `.planning/milestones/v1.5-ROADMAP.md` for full details.
 
-### Phase 18: Tech Debt & Data Integrity
-**Goal**: Planning documentation accurately reflects resolved tech debt and the sync pipeline's meta.generated cursor behavior is empirically verified and documented
-**Depends on**: Nothing (first phase of v1.5)
-**Requirements**: DEBT-01, DEBT-02, DATA-01, DATA-02, DATA-03
-**Success Criteria** (what must be TRUE):
-  1. Planning documentation accurately reflects that WorkerConfig.IsPrimary was converted from dead bool to live func() bool by quick task 260324-lc5 (not removed)
-  2. Planning documentation accurately reflects which dead code items were already removed vs. newly removed in this phase
-  3. meta.generated field behavior is documented with actual observed response structures for depth=0 full fetch, paginated incremental, and empty result set patterns
-  4. Sync pipeline handles absent meta.generated gracefully (zero-time triggers started_at - 5min fallback) without data loss or sync failure
-**Plans**: 2 plans
-
-Plans:
-- [ ] 18-01-PLAN.md -- Correct stale planning docs (PROJECT.md, Phase 7 summary)
-- [ ] 18-02-PLAN.md -- Live meta.generated test and documentation
-
-### Phase 19: Prometheus Metrics & Grafana Dashboard
-**Goal**: All existing OTel metrics are exported via OTLP to Grafana Cloud and visualized in a portable Grafana dashboard covering sync health, HTTP traffic, per-type sync detail, runtime metrics, and business metrics
-**Depends on**: Phase 18
-**Requirements**: OBS-01, OBS-02, OBS-03, OBS-04, OBS-05, OBS-06, OBS-07, OBS-08, OBS-09, OBS-10
-**Success Criteria** (what must be TRUE):
-  1. Fly.io Prometheus scraper collects metrics from the application's /metrics endpoint (port 9091) without errors
-  2. Grafana dashboard displays sync health (freshness gauge with green/yellow/red thresholds, sync duration, success/failure rate) using live data
-  3. Grafana dashboard displays HTTP RED metrics (request rate by route, error rate, latency percentiles) and per-type sync detail (duration, object counts, errors by PeeringDB type)
-  4. Dashboard JSON is committed to deploy/grafana/ with datasource template variables (no hardcoded UIDs) and imports cleanly into a fresh Grafana instance
-  5. Each dashboard row contains documentation text panels explaining the metrics and troubleshooting guidance
-**Plans**: 4 plans
-
-Plans:
-- [ ] 19-01-PLAN.md -- Register per-type object count gauges and wire into application startup
-- [ ] 19-02-PLAN.md -- Author Grafana dashboard JSON and provisioning YAML
-- [ ] 19-03-PLAN.md -- (gap closure) Implement InitObjectCountGauges, tests, and main.go wiring
-- [ ] 19-04-PLAN.md -- (gap closure) Remove duplicate artifacts, fix dashboard tests to validate canonical file
-
-### Phase 20: Deferred Human Verification
-**Goal**: All 26 deferred human verification items from v1.2, v1.3, and v1.4 are verified as working correctly against the live Fly.io deployment
-**Depends on**: Phase 19
-**Requirements**: VFY-01, VFY-02, VFY-03, VFY-04, VFY-05, VFY-06, VFY-07, VFY-08, VFY-09
-**Success Criteria** (what must be TRUE):
-  1. CI workflow executes on push with all 4 jobs passing, and coverage comments post on PRs with deduplication on subsequent pushes
-  2. pdbcompat-check CLI and live integration test work correctly with a real PeeringDB API key, and invalid keys produce WARN log without crash
-  3. Web UI foundation, live search, detail pages, and ASN comparison all function correctly in a browser against the live deployment
-  4. Dark mode toggle, keyboard navigation, CSS animations, loading indicators, error pages, and About page freshness display all work as designed
-**Plans**: 3 plans
-
-Plans:
-- [ ] 20-01-PLAN.md -- CI pipeline verification (VFY-01, VFY-02) and API key auth verification (VFY-03, VFY-04)
-- [ ] 20-02-PLAN.md -- Web UI foundation, search, and detail page verification (VFY-05, VFY-06, VFY-07)
-- [ ] 20-03-PLAN.md -- ASN comparison and polish verification (VFY-08, VFY-09), final report
+</details>
 
 ## Progress
 
@@ -149,6 +103,6 @@ Phases execute in numeric order: 18 → 19 → 20
 | 15. Record Detail Pages | v1.4 | 2/2 | Complete | 2026-03-24 |
 | 16. ASN Comparison | v1.4 | 2/2 | Complete | 2026-03-24 |
 | 17. Polish & Accessibility | v1.4 | 3/3 | Complete | 2026-03-24 |
-| 18. Tech Debt & Data Integrity | v1.5 | 0/2 | Complete    | 2026-03-24 |
-| 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 0/4 | Complete    | 2026-03-24 |
-| 20. Deferred Human Verification | v1.5 | 0/3 | Complete    | 2026-03-24 |
+| 18. Tech Debt & Data Integrity | v1.5 | 2/2 | Complete | 2026-03-24 |
+| 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 4/4 | Complete | 2026-03-24 |
+| 20. Deferred Human Verification | v1.5 | 3/3 | Complete | 2026-03-24 |
