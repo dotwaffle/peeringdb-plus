@@ -33,6 +33,9 @@ var SyncTypeUpsertErrors metric.Int64Counter
 // SyncTypeFallback counts incremental-to-full fallback events per type.
 var SyncTypeFallback metric.Int64Counter
 
+// RoleTransitions counts LiteFS role transition events (promoted/demoted).
+var RoleTransitions metric.Int64Counter
+
 // InitMetrics registers custom metric instruments for sync operations per D-05.
 // HTTP metrics are handled automatically by otelhttp middleware (Plan 03).
 func InitMetrics() error {
@@ -103,6 +106,14 @@ func InitMetrics() error {
 	)
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.sync.type.fallback counter: %w", err)
+	}
+
+	RoleTransitions, err = meter.Int64Counter("pdbplus.role.transitions",
+		metric.WithDescription("Role transition events (promoted/demoted)"),
+		metric.WithUnit("{event}"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.role.transitions counter: %w", err)
 	}
 
 	return nil

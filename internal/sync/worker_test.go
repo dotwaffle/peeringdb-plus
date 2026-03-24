@@ -1279,3 +1279,152 @@ func TestSchedulerSyncsWhenOverdue(t *testing.T) {
 		t.Error("expected API calls for overdue sync, got 0")
 	}
 }
+
+// primarySwitch is a test helper that provides a controllable IsPrimary function.
+type primarySwitch struct {
+	v atomic.Bool
+}
+
+func (p *primarySwitch) IsPrimary() bool {
+	return p.v.Load()
+}
+
+// TestStartScheduler_SkipsOnReplica verifies DYN-01: scheduler with IsPrimary=false
+// never calls SyncWithRetry. Runs scheduler for 2+ ticks, asserts zero API calls.
+func TestStartScheduler_SkipsOnReplica(t *testing.T) {
+	t.Parallel()
+	ensureMetrics(t)
+
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+
+	ps := &primarySwitch{}
+	ps.v.Store(false) // Always replica.
+
+	w, _ := newTestWorker(t, f, false)
+	w.config.IsPrimary = ps.IsPrimary
+	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		w.StartScheduler(ctx, 50*time.Millisecond)
+		close(done)
+	}()
+	<-done
+
+	// No sync should have been triggered.
+	if calls := f.callCount.Load(); calls != 0 {
+		t.Errorf("expected 0 API calls on replica, got %d", calls)
+	}
+}
+
+// TestStartScheduler_PromotionSync verifies DYN-02: scheduler detects promotion
+// (IsPrimary flips from false to true) and triggers a sync.
+func TestStartScheduler_PromotionSync(t *testing.T) {
+	t.Parallel()
+	ensureMetrics(t)
+
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+
+	ps := &primarySwitch{}
+	ps.v.Store(false) // Start as replica.
+
+	w, _ := newTestWorker(t, f, false)
+	w.config.IsPrimary = ps.IsPrimary
+	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		w.StartScheduler(ctx, 100*time.Millisecond)
+		close(done)
+	}()
+
+	// After 1 tick, flip to primary.
+	time.Sleep(150 * time.Millisecond)
+	ps.v.Store(true)
+
+	// Wait for sync to be triggered.
+	time.Sleep(500 * time.Millisecond)
+	cancel()
+	<-done
+
+	// Sync should have been triggered after promotion.
+	if calls := f.callCount.Load(); calls == 0 {
+		t.Error("expected API calls after promotion, got 0")
+	}
+}
+
+// TestRunSyncCycle_DemotionAbort verifies DYN-03: demotion mid-sync cancels the
+// cycle context, causing SyncWithRetry to return early.
+func TestRunSyncCycle_DemotionAbort(t *testing.T) {
+	t.Parallel()
+	ensureMetrics(t)
+
+	ps := &primarySwitch{}
+	ps.v.Store(true) // Start as primary.
+
+	// Create a slow mock server that delays org responses by 3s.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "?")
+		objType := parts[0]
+
+		// Only return data on first page (skip=0).
+		skip := r.URL.Query().Get("skip")
+		if skip != "" && skip != "0" {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
+			return
+		}
+
+		if objType == "org" {
+			// Delay to simulate slow fetch, giving time for demotion.
+			time.Sleep(3 * time.Second)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
+	}))
+	t.Cleanup(srv.Close)
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := newFastPDBClient(t, srv.URL)
+	if err := InitStatusTable(context.Background(), db); err != nil {
+		t.Fatalf("init status: %v", err)
+	}
+
+	w := NewWorker(pdbClient, client, db, WorkerConfig{
+		IsPrimary: ps.IsPrimary,
+	}, slog.Default())
+	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Start runSyncCycle in a goroutine.
+	done := make(chan struct{})
+	start := time.Now()
+	go func() {
+		w.runSyncCycle(ctx, config.SyncModeFull)
+		close(done)
+	}()
+
+	// Flip to replica after 500ms (during the slow org fetch).
+	time.Sleep(500 * time.Millisecond)
+	ps.v.Store(false)
+
+	// runSyncCycle should return within ~2s (demotion monitor polls every 1s).
+	<-done
+	elapsed := time.Since(start)
+
+	// Should return much faster than the 3s org delay.
+	if elapsed > 2500*time.Millisecond {
+		t.Errorf("expected early abort on demotion, took %v", elapsed)
+	}
+}
