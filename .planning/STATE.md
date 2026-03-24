@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Web UI
-status: Ready to plan
-stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-03-24T07:28:29.534Z"
+status: Ready to execute
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-03-24T07:53:00.273Z"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 11
+  completed_plans: 9
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 16 — asn-comparison
+**Current focus:** Phase 17 — polish-accessibility
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
+Phase: 17 (polish-accessibility) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ All decisions archived in PROJECT.md Key Decisions table.
 - [Phase 16]: JavaScript form submit redirects to clean URL path for shareable comparison URLs
 - [Phase 16]: View toggle uses link navigation for shareable URL state in comparison page
 - [Phase 16]: Compare with... button positioned after stat badges on network detail page
+- [Phase 17]: Class-based dark mode via @custom-variant for manual toggle support
 
 ### Pending Todos
 
@@ -91,6 +92,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T07:23:19.856Z
-Stopped at: Completed 16-02-PLAN.md
+Last session: 2026-03-24T07:53:00.270Z
+Stopped at: Completed 17-01-PLAN.md
 Resume file: None
