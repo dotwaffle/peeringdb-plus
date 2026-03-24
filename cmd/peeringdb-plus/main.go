@@ -18,7 +18,6 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
 	"github.com/dotwaffle/peeringdb-plus/graph"
-	"github.com/dotwaffle/peeringdb-plus/graph/dataloader"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	"github.com/dotwaffle/peeringdb-plus/internal/database"
 	pdbgql "github.com/dotwaffle/peeringdb-plus/internal/graphql"
@@ -32,7 +31,8 @@ import (
 )
 
 func init() {
-	memlimit.SetGoMemLimitWithOpts(
+	// Best-effort memory limit configuration from cgroup/system.
+	_, _ = memlimit.SetGoMemLimitWithOpts(
 		memlimit.WithProvider(
 			memlimit.ApplyFallback(
 				memlimit.FromCgroup,
@@ -60,7 +60,7 @@ func main() {
 	})
 	if err != nil {
 		slog.Error("failed to init otel", slog.String("error", err.Error()))
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic // exitAfterDefer: cancel() deferred above is trivial at this stage
 	}
 	defer otelOut.Shutdown(ctx) //nolint:errcheck // best-effort flush at exit
 
@@ -103,7 +103,7 @@ func main() {
 
 	// Initialize sync freshness gauge per D-09.
 	if err := pdbotel.InitFreshnessGauge(func(ctx context.Context) (time.Time, bool) {
-		status, err := pdbsync.GetLastSyncStatus(ctx, db)
+		status, err := pdbsync.GetLastStatus(ctx, db)
 		if err != nil || status == nil || status.Status != "success" {
 			return time.Time{}, false
 		}
@@ -119,8 +119,6 @@ func main() {
 	// Create sync worker.
 	syncWorker := pdbsync.NewWorker(pdbClient, entClient, db, pdbsync.WorkerConfig{
 		IncludeDeleted: cfg.IncludeDeleted,
-		IsPrimary:      isPrimary,
-		SyncMode:       cfg.SyncMode,
 	}, logger)
 
 	// Start scheduler on primary per D-22, D-29.
@@ -133,9 +131,6 @@ func main() {
 
 	// Create GraphQL handler with complexity/depth limits per D-04.
 	gqlHandler := pdbgql.NewHandler(resolver)
-
-	// Wrap GraphQL handler with DataLoader middleware per D-13.
-	gqlWithLoader := dataloader.Middleware(entClient, gqlHandler)
 
 	// Set up HTTP server.
 	mux := http.NewServeMux()
@@ -152,22 +147,9 @@ func main() {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-
-		// Parse optional mode override from query param.
-		mode := cfg.SyncMode
-		if modeParam := r.URL.Query().Get("mode"); modeParam != "" {
-			switch config.SyncMode(modeParam) {
-			case config.SyncModeFull, config.SyncModeIncremental:
-				mode = config.SyncMode(modeParam)
-			default:
-				http.Error(w, fmt.Sprintf("invalid mode %q: must be 'full' or 'incremental'", modeParam), http.StatusBadRequest)
-				return
-			}
-		}
-
 		// Use application root ctx, NOT r.Context() -- request context
 		// is cancelled when the response is sent, which would kill the sync.
-		go syncWorker.SyncWithRetry(ctx, mode) //nolint:errcheck // fire-and-forget
+		go syncWorker.SyncWithRetry(ctx, cfg.SyncMode) //nolint:errcheck // fire-and-forget
 		w.WriteHeader(http.StatusAccepted)
 		fmt.Fprint(w, `{"status":"accepted"}`)
 	})
@@ -189,7 +171,7 @@ func main() {
 			playgroundHandler.ServeHTTP(w, r)
 			return
 		}
-		gqlWithLoader.ServeHTTP(w, r)
+		gqlHandler.ServeHTTP(w, r)
 	})
 
 	// Mount entrest-generated REST API at /rest/v1/ per D-01, D-04.
@@ -222,7 +204,7 @@ func main() {
 
 	// Build middleware stack (outermost first):
 	// Recovery -> OTel HTTP -> Logging -> CORS -> Readiness -> mux
-	var handler http.Handler = readinessMiddleware(syncWorker, mux)
+	handler := readinessMiddleware(syncWorker, mux)
 	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
 	handler = middleware.Logging(logger)(handler)
 	handler = otelhttp.NewMiddleware("peeringdb-plus")(handler)

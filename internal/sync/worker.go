@@ -250,7 +250,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 
 	// Record success in sync_status table.
 	if statusID > 0 {
-		_ = RecordSyncComplete(ctx, w.db, statusID, SyncStatus{
+		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
 			LastSyncAt:   time.Now(),
 			Duration:     elapsed,
 			ObjectCounts: objectCounts,
@@ -272,7 +272,7 @@ func (w *Worker) recordFailure(ctx context.Context, statusID int64, start time.T
 	pdbotel.SyncOperations.Add(ctx, 1, failedAttr)
 
 	if statusID > 0 {
-		_ = RecordSyncComplete(ctx, w.db, statusID, SyncStatus{
+		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
 			LastSyncAt:   time.Now(),
 			Duration:     time.Since(start),
 			Status:       "failed",
