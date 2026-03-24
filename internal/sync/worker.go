@@ -27,7 +27,7 @@ var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 
 // WorkerConfig holds configuration for the sync worker.
 type WorkerConfig struct {
 	IncludeDeleted bool
-	IsPrimary      bool
+	IsPrimary      func() bool // live primary detection; nil defaults to always-primary
 	SyncMode       config.SyncMode
 }
 
@@ -44,7 +44,12 @@ type Worker struct {
 }
 
 // NewWorker creates a new sync worker.
+// If cfg.IsPrimary is nil, it defaults to always-primary for backward
+// compatibility (local dev, tests without explicit primary config).
 func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, cfg WorkerConfig, logger *slog.Logger) *Worker {
+	if cfg.IsPrimary == nil {
+		cfg.IsPrimary = func() bool { return true }
+	}
 	return &Worker{
 		pdbClient:     pdbClient,
 		entClient:     entClient,
@@ -386,10 +391,46 @@ func (w *Worker) HasCompletedSync() bool {
 	return w.synced.Load()
 }
 
-// StartScheduler runs periodic sync per D-22.
-// If no prior successful sync exists (empty DB), it runs an immediate full sync.
-// Otherwise, it marks the server as ready and schedules the next sync based on
-// the last successful sync time plus the configured interval.
+// runSyncCycle wraps SyncWithRetry with a demotion monitor goroutine.
+// If the node is demoted during sync (IsPrimary returns false), the cycle
+// context is cancelled, causing SyncWithRetry to abort early.
+// The monitor goroutine lifetime is tied to cycleCtx per CC-2.
+func (w *Worker) runSyncCycle(ctx context.Context, mode config.SyncMode) {
+	cycleCtx, cycleCancel := context.WithCancel(ctx)
+	defer cycleCancel()
+
+	// Monitor goroutine: polls IsPrimary every 1s and cancels on demotion.
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-cycleCtx.Done():
+				return
+			case <-ticker.C:
+				if !w.config.IsPrimary() {
+					w.logger.LogAttrs(cycleCtx, slog.LevelWarn, "demoted during sync, aborting cycle")
+					cycleCancel()
+					return
+				}
+			}
+		}
+	}()
+
+	if err := w.SyncWithRetry(cycleCtx, mode); err != nil {
+		w.logger.LogAttrs(ctx, slog.LevelError, "sync cycle failed",
+			slog.String("error", err.Error()),
+		)
+	}
+	cycleCancel() // ensure monitor goroutine exits
+	<-done        // wait for clean exit per CC-2
+}
+
+// StartScheduler runs the sync scheduler on all instances per D-22.
+// On primary nodes it executes sync cycles; on replicas it waits for promotion.
+// Role changes are detected dynamically each tick via w.config.IsPrimary().
 // The scheduler stops when ctx is cancelled per CC-2.
 func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 	mode := w.config.SyncMode
@@ -397,44 +438,34 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 		mode = config.SyncModeFull
 	}
 
-	lastSync, err := GetLastSuccessfulSyncTime(ctx, w.db)
-	if err != nil {
-		w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to get last sync time, syncing immediately",
-			slog.String("error", err.Error()),
-		)
-	}
+	wasPrimary := false
 
-	if lastSync.IsZero() {
-		// No prior successful sync — database is empty, do a full sync now.
-		if err := w.SyncWithRetry(ctx, config.SyncModeFull); err != nil {
-			w.logger.LogAttrs(ctx, slog.LevelError, "initial sync failed",
+	// Initial check: determine role and act accordingly.
+	if w.config.IsPrimary() {
+		wasPrimary = true
+		lastSync, err := GetLastSuccessfulSyncTime(ctx, w.db)
+		if err != nil {
+			w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to get last sync time",
 				slog.String("error", err.Error()),
 			)
 		}
-	} else {
-		// Data exists from a prior sync — serve requests immediately.
-		w.synced.Store(true)
-
-		delay := time.Until(lastSync.Add(interval))
-		if delay > 0 {
-			w.logger.LogAttrs(ctx, slog.LevelInfo, "data exists, waiting for next sync",
-				slog.Time("last_sync", lastSync),
-				slog.Duration("delay", delay),
-			)
-			timer := time.NewTimer(delay)
-			select {
-			case <-ctx.Done():
-				timer.Stop()
-				return
-			case <-timer.C:
+		if lastSync.IsZero() {
+			// No prior successful sync -- database is empty, do a full sync now.
+			w.runSyncCycle(ctx, config.SyncModeFull)
+		} else {
+			// Data exists from a prior sync -- serve requests immediately.
+			w.synced.Store(true)
+			if time.Since(lastSync) >= interval {
+				w.runSyncCycle(ctx, mode)
 			}
 		}
-		// Sync now (either overdue or timer expired).
-		if err := w.SyncWithRetry(ctx, mode); err != nil {
-			w.logger.LogAttrs(ctx, slog.LevelError, "scheduled sync failed",
-				slog.String("error", err.Error()),
-			)
+	} else {
+		// Replica: check if data exists from replication.
+		lastSync, _ := GetLastSuccessfulSyncTime(ctx, w.db)
+		if !lastSync.IsZero() {
+			w.synced.Store(true)
 		}
+		w.logger.LogAttrs(ctx, slog.LevelDebug, "starting scheduler as replica")
 	}
 
 	ticker := time.NewTicker(interval)
@@ -445,11 +476,38 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := w.SyncWithRetry(ctx, mode); err != nil {
-				w.logger.LogAttrs(ctx, slog.LevelError, "scheduled sync failed",
-					slog.String("error", err.Error()),
+			isPrimary := w.config.IsPrimary()
+
+			// Detect role transitions.
+			if isPrimary && !wasPrimary {
+				w.logger.LogAttrs(ctx, slog.LevelInfo, "promoted to primary, checking sync status")
+				pdbotel.RoleTransitions.Add(ctx, 1,
+					metric.WithAttributes(attribute.String("direction", "promoted")),
 				)
+				lastSync, _ := GetLastSuccessfulSyncTime(ctx, w.db)
+				wasPrimary = true
+				if lastSync.IsZero() || time.Since(lastSync) >= interval {
+					w.runSyncCycle(ctx, mode)
+				}
+				continue
 			}
+			if !isPrimary && wasPrimary {
+				w.logger.LogAttrs(ctx, slog.LevelInfo, "demoted to replica")
+				pdbotel.RoleTransitions.Add(ctx, 1,
+					metric.WithAttributes(attribute.String("direction", "demoted")),
+				)
+				wasPrimary = false
+				continue
+			}
+
+			wasPrimary = isPrimary
+
+			if !isPrimary {
+				w.logger.LogAttrs(ctx, slog.LevelDebug, "not primary, skipping sync")
+				continue
+			}
+
+			w.runSyncCycle(ctx, mode)
 		}
 	}
 }
