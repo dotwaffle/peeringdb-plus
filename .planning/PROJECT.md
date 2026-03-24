@@ -35,8 +35,15 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
+- [ ] Live search across all PeeringDB types (names, ASNs, etc.) with instant results
+- [ ] Record detail views for all types with collapsible related-record sections
+- [ ] ASN comparison tool showing shared IXPs, facilities, and campuses
+- [ ] Linkable/shareable URLs for every page — URL is the state
+- [ ] Polished, interactive design with Tailwind CSS, transitions, and visual hierarchy
+
+### Deferred
+
 - [ ] Expose data via gRPC (entproto) — deferred to future milestone
-- [ ] Web UI for browsing data (HTMX + Templ) — deferred to future milestone
 
 ### Out of Scope
 
@@ -104,6 +111,18 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
+## Current Milestone: v1.4 Web UI
+
+**Goal:** A polished, interactive web interface for exploring PeeringDB data with live search, detailed record views, and network comparison.
+
+**Target features:**
+- Live search across all PeeringDB types with instant results as you type
+- Record detail views for all types with collapsible related-record sections
+- ASN comparison tool (two networks) showing shared IXPs, facilities, campuses — shared-only default with side-by-side toggle
+- Dedicated /compare page plus "Compare with..." button from network detail
+- Linkable/shareable URLs for every page — URL is the state
+- Polished design with Tailwind CSS, smooth transitions, visual hierarchy
+
 ## Current State
 
 Shipped v1.3 with 12 phases (3 from v1.0 + 3 from v1.1 + 4 from v1.2 + 2 from v1.3), 34 plans, 65 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. Sync supports full re-fetch and incremental delta fetch with per-type cursor tracking. Optional PeeringDB API key upgrades rate limit from 20 to 60 req/min. 39 golden files lock down PeeringDB compat layer responses. GitHub Actions CI enforces lint, test (-race), build, and govulncheck on every PR.
@@ -116,4 +135,4 @@ Shipped v1.3 with 12 phases (3 from v1.0 + 3 from v1.1 + 4 from v1.2 + 2 from v1
 - meta.generated field behavior unverified for depth=0 paginated PeeringDB responses (fallback covers this)
 
 ---
-*Last updated: 2026-03-24 after v1.3 milestone*
+*Last updated: 2026-03-24 after v1.4 milestone start*
