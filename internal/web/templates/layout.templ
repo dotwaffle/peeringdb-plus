@@ -1,0 +1,148 @@
+package templates
+
+templ Layout(title string, contents templ.Component) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title } - PeeringDB Plus</title>
+			<script>
+			(function(){
+				var d=document.documentElement;
+				var t=localStorage.getItem('darkMode');
+				if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){
+					d.classList.add('dark');
+				}
+			})();
+			</script>
+			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			<script src="/static/htmx.min.js"></script>
+			<style type="text/tailwindcss">
+				@custom-variant dark (&:where(.dark, .dark *));
+				@theme {
+					--color-accent: #10b981;
+				}
+			</style>
+			<style>
+				html.theme-transition, html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {
+					transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;
+				}
+				@keyframes fadeIn {
+					from { opacity: 0; transform: translateY(4px); }
+					to { opacity: 1; transform: translateY(0); }
+				}
+				.animate-fade-in { animation: fadeIn 200ms ease-out; }
+				.htmx-swapping { opacity: 0; transition: opacity 100ms ease-out; }
+				.htmx-settling { opacity: 1; transition: opacity 200ms ease-in; }
+				#global-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 50; }
+				.htmx-request #global-indicator, .htmx-request#global-indicator { opacity: 1; transition-delay: 0ms; }
+			</style>
+		</head>
+		<body class="bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 min-h-screen flex flex-col" hx-indicator="#global-indicator">
+			<div id="global-indicator" class="htmx-indicator bg-emerald-500">
+				<div class="h-full w-full bg-emerald-400 animate-pulse"></div>
+			</div>
+			@Nav()
+			<main class="flex-1 container mx-auto px-4 py-8">
+				@contents
+			</main>
+			@Footer()
+			<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				document.querySelectorAll('#dark-mode-toggle').forEach(function(btn) {
+					btn.addEventListener('click', function() {
+						var html = document.documentElement;
+						html.classList.add('theme-transition');
+						if (html.classList.contains('dark')) {
+							html.classList.remove('dark');
+							localStorage.setItem('darkMode', 'light');
+						} else {
+							html.classList.add('dark');
+							localStorage.setItem('darkMode', 'dark');
+						}
+						setTimeout(function() { html.classList.remove('theme-transition'); }, 200);
+					});
+				});
+			});
+			</script>
+		<script>
+		// Keyboard navigation for search results (SRCH-05).
+		// Listens on keydown when search input or results are focused.
+		(function() {
+			function getOptions() {
+				var container = document.getElementById('search-results');
+				if (!container) return [];
+				return Array.from(container.querySelectorAll('[role="option"]'));
+			}
+
+			function getActiveIndex(options) {
+				for (var i = 0; i < options.length; i++) {
+					if (options[i].getAttribute('aria-selected') === 'true') return i;
+				}
+				return -1;
+			}
+
+			function setActive(options, index) {
+				for (var i = 0; i < options.length; i++) {
+					options[i].setAttribute('aria-selected', 'false');
+					options[i].classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-1');
+				}
+				if (index >= 0 && index < options.length) {
+					options[index].setAttribute('aria-selected', 'true');
+					options[index].classList.add('ring-2', 'ring-emerald-500', 'ring-offset-1');
+					options[index].focus();
+					options[index].scrollIntoView({ block: 'nearest' });
+				}
+			}
+
+			document.addEventListener('keydown', function(e) {
+				var searchInput = document.querySelector('#search-form input[name="q"]');
+				if (!searchInput) return;
+
+				var isSearchFocused = document.activeElement === searchInput;
+				var options = getOptions();
+				if (options.length === 0) return;
+
+				var currentIndex = getActiveIndex(options);
+
+				if (e.key === 'ArrowDown') {
+					e.preventDefault();
+					if (isSearchFocused || currentIndex < 0) {
+						setActive(options, 0);
+					} else if (currentIndex < options.length - 1) {
+						setActive(options, currentIndex + 1);
+					}
+				} else if (e.key === 'ArrowUp') {
+					e.preventDefault();
+					if (currentIndex > 0) {
+						setActive(options, currentIndex - 1);
+					} else if (currentIndex === 0) {
+						setActive(options, -1);
+						searchInput.focus();
+					}
+				} else if (e.key === 'Enter') {
+					if (!isSearchFocused && currentIndex >= 0) {
+						e.preventDefault();
+						window.location.href = options[currentIndex].getAttribute('href');
+					}
+				} else if (e.key === 'Escape') {
+					if (!isSearchFocused) {
+						e.preventDefault();
+						setActive(options, -1);
+						searchInput.focus();
+					}
+				}
+			});
+
+			document.addEventListener('htmx:afterSwap', function(e) {
+				if (e.detail.target && e.detail.target.id === 'search-results') {
+					var options = getOptions();
+					setActive(options, -1);
+				}
+			});
+		})();
+		</script>
+		</body>
+	</html>
+}

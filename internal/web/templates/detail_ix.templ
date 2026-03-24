@@ -1,0 +1,129 @@
+package templates
+
+import "fmt"
+
+// IXDetailPage renders the full IXP detail page with header, stats,
+// detail fields, and collapsible lazy-loaded sections for related records.
+templ IXDetailPage(data IXDetail) {
+	<div class="space-y-6">
+		@DetailHeader("ix", "sky", data.Name, formatFacLocation(data.City, data.Country))
+		<div class="flex flex-wrap gap-2 mb-4">
+			@StatBadge("Networks", data.NetCount)
+			@StatBadge("Facilities", data.FacCount)
+		</div>
+		if data.OrgID > 0 {
+			<div class="py-1">
+				<span class="text-neutral-500 text-sm">Organization</span>
+				<div>
+					<a href={ templ.SafeURL(fmt.Sprintf("/ui/org/%d", data.OrgID)) }
+						class="text-sky-400 hover:text-sky-300 transition-colors">
+						{ data.OrgName }
+					</a>
+				</div>
+			</div>
+		}
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+			@DetailField("Long Name", data.NameLong)
+			@DetailField("Also Known As", data.AKA)
+			@DetailField("Region", data.RegionContinent)
+			@DetailField("Media", data.Media)
+		</div>
+		<div class="flex flex-wrap gap-4 py-2">
+			@boolIndicator("Unicast", data.ProtoUnicast)
+			@boolIndicator("Multicast", data.ProtoMulticast)
+			@boolIndicator("IPv6", data.ProtoIPv6)
+		</div>
+		@DetailLink("Website", data.Website)
+		@DetailField("Notes", data.Notes)
+		<div class="space-y-3 pt-4">
+			@CollapsibleSection("Participants", data.NetCount, fmt.Sprintf("/ui/fragment/ix/%d/participants", data.ID))
+			@CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/ix/%d/facilities", data.ID))
+			@CollapsibleSection("Prefixes", data.PrefixCount, fmt.Sprintf("/ui/fragment/ix/%d/prefixes", data.ID))
+		</div>
+	</div>
+}
+
+// IXParticipantsList renders the list of IX participants as clickable rows
+// linking to the respective network detail page by ASN.
+templ IXParticipantsList(rows []IXParticipantRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No participants found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<div class="flex flex-col min-w-0">
+						<span class="text-neutral-100 font-medium truncate">
+							if row.NetName != "" {
+								{ row.NetName }
+							} else {
+								{ fmt.Sprintf("AS%d", row.ASN) }
+							}
+						</span>
+						<div class="flex gap-4 text-sm text-neutral-400 font-mono">
+							<span>{ fmt.Sprintf("AS%d", row.ASN) }</span>
+							if row.Speed > 0 {
+								<span>{ formatSpeed(row.Speed) }</span>
+							}
+							if row.IPAddr4 != "" {
+								<span>{ row.IPAddr4 }</span>
+							}
+							if row.IPAddr6 != "" {
+								<span>{ row.IPAddr6 }</span>
+							}
+						</div>
+					</div>
+					if row.IsRSPeer {
+						<span class="text-xs text-sky-400/70 font-mono shrink-0 ml-3">RS</span>
+					}
+				</a>
+			}
+		</div>
+	}
+}
+
+// IXFacilitiesList renders the list of IX facilities as clickable rows
+// linking to the respective facility detail page.
+templ IXFacilitiesList(rows []IXFacilityRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No facilities found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<div class="flex flex-col min-w-0">
+						<span class="text-neutral-100 font-medium truncate">{ row.FacName }</span>
+						if row.City != "" || row.Country != "" {
+							<span class="text-sm text-neutral-400 font-mono">
+								{ formatFacLocation(row.City, row.Country) }
+							</span>
+						}
+					</div>
+				</a>
+			}
+		</div>
+	}
+}
+
+// IXPrefixesList renders the list of IX prefixes (no cross-links for prefixes).
+templ IXPrefixesList(rows []IXPrefixRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No prefixes found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<div class="flex items-center justify-between px-4 py-3">
+					<div class="flex flex-col min-w-0">
+						<span class="text-neutral-100 font-medium font-mono truncate">{ row.Prefix }</span>
+						<span class="text-sm text-neutral-400">{ row.Protocol }</span>
+					</div>
+					if row.InDFZ {
+						<span class="text-xs text-sky-400/70 font-mono shrink-0 ml-3">DFZ</span>
+					}
+				</div>
+			}
+		</div>
+	}
+}

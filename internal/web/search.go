@@ -1,0 +1,310 @@
+package web
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"entgo.io/ent/dialect/sql"
+	"golang.org/x/sync/errgroup"
+
+	"github.com/dotwaffle/peeringdb-plus/ent"
+)
+
+// SearchHit represents a single search result with display-ready fields.
+type SearchHit struct {
+	// ID is the entity's database identifier.
+	ID int
+	// Name is the entity's display name.
+	Name string
+	// Subtitle provides context: ASN for networks, city/country for facilities/IXPs/campuses.
+	Subtitle string
+	// DetailURL is the path to the entity's detail page (e.g. "/ui/asn/13335").
+	DetailURL string
+}
+
+// TypeResult groups search hits for a single entity type with metadata for display.
+type TypeResult struct {
+	// TypeName is the human-readable plural name (e.g. "Networks", "IXPs").
+	TypeName string
+	// TypeSlug is the short identifier used in URLs (e.g. "net", "ix").
+	TypeSlug string
+	// AccentColor is the Tailwind color name for visual grouping (e.g. "emerald", "sky").
+	AccentColor string
+	// Results holds up to 10 matching entities.
+	Results []SearchHit
+	// TotalCount is the exact number of matching records for count badge display.
+	TotalCount int
+}
+
+// searchTypeConfig defines the metadata and query fields for a searchable entity type.
+type searchTypeConfig struct {
+	typeName    string
+	typeSlug    string
+	accentColor string
+	fields      []string
+}
+
+// searchTypes defines the 6 searchable PeeringDB entity types in display order.
+// Order: Networks, IXPs, Facilities, Organizations, Campuses, Carriers.
+var searchTypes = []searchTypeConfig{
+	{typeName: "Networks", typeSlug: "net", accentColor: "emerald", fields: []string{"name", "aka", "name_long", "irr_as_set"}},
+	{typeName: "IXPs", typeSlug: "ix", accentColor: "sky", fields: []string{"name", "aka", "name_long", "city", "country"}},
+	{typeName: "Facilities", typeSlug: "fac", accentColor: "violet", fields: []string{"name", "aka", "name_long", "city", "country"}},
+	{typeName: "Organizations", typeSlug: "org", accentColor: "amber", fields: []string{"name", "aka", "name_long"}},
+	{typeName: "Campuses", typeSlug: "campus", accentColor: "rose", fields: []string{"name"}},
+	{typeName: "Carriers", typeSlug: "carrier", accentColor: "cyan", fields: []string{"name", "aka", "name_long"}},
+}
+
+// SearchService provides search across all 6 PeeringDB entity types.
+type SearchService struct {
+	client *ent.Client
+}
+
+// NewSearchService creates a SearchService backed by the given ent client.
+func NewSearchService(client *ent.Client) *SearchService {
+	return &SearchService{client: client}
+}
+
+// Search queries all 6 entity types in parallel for the given search term.
+// Returns only types with matches, sorted in canonical type order.
+// Queries under 2 characters (after trimming) return an empty slice.
+func (s *SearchService) Search(ctx context.Context, query string) ([]TypeResult, error) {
+	query = strings.TrimSpace(query)
+	if len(query) < 2 {
+		return nil, nil
+	}
+
+	// Pre-allocate results with metadata. Each goroutine writes to its own
+	// index so no mutex is needed (distinct indices are race-free).
+	results := make([]TypeResult, len(searchTypes))
+	for i, cfg := range searchTypes {
+		results[i] = TypeResult{
+			TypeName:    cfg.typeName,
+			TypeSlug:    cfg.typeSlug,
+			AccentColor: cfg.accentColor,
+		}
+	}
+
+	g, gctx := errgroup.WithContext(ctx)
+
+	for i, cfg := range searchTypes {
+		g.Go(s.typeQueryFunc(gctx, i, cfg, query, results))
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, fmt.Errorf("search %q: %w", query, err)
+	}
+
+	// Filter out types with zero matches.
+	var filtered []TypeResult
+	for _, r := range results {
+		if r.TotalCount > 0 {
+			filtered = append(filtered, r)
+		}
+	}
+
+	return filtered, nil
+}
+
+// typeQueryFunc returns a function that queries a single entity type and
+// populates the corresponding results slot.
+func (s *SearchService) typeQueryFunc(ctx context.Context, idx int, cfg searchTypeConfig, query string, results []TypeResult) func() error {
+	return func() error {
+		pred := buildSearchPredicate(query, cfg.fields)
+		if pred == nil {
+			return nil
+		}
+
+		var hits []SearchHit
+		var count int
+		var err error
+
+		switch cfg.typeSlug {
+		case "net":
+			hits, count, err = s.queryNetworks(ctx, pred)
+		case "ix":
+			hits, count, err = s.queryIXPs(ctx, pred)
+		case "fac":
+			hits, count, err = s.queryFacilities(ctx, pred)
+		case "org":
+			hits, count, err = s.queryOrganizations(ctx, pred)
+		case "campus":
+			hits, count, err = s.queryCampuses(ctx, pred)
+		case "carrier":
+			hits, count, err = s.queryCarriers(ctx, pred)
+		}
+
+		if err != nil {
+			return fmt.Errorf("query %s: %w", cfg.typeSlug, err)
+		}
+
+		results[idx].Results = hits
+		results[idx].TotalCount = count
+		return nil
+	}
+}
+
+func (s *SearchService) queryNetworks(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
+	items, err := s.client.Network.Query().Where(pred).Limit(10).All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("fetch networks: %w", err)
+	}
+	count, err := s.client.Network.Query().Where(pred).Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count networks: %w", err)
+	}
+	hits := make([]SearchHit, len(items))
+	for i, n := range items {
+		hits[i] = SearchHit{
+			ID:        n.ID,
+			Name:      n.Name,
+			Subtitle:  fmt.Sprintf("AS%d", n.Asn),
+			DetailURL: fmt.Sprintf("/ui/asn/%d", n.Asn),
+		}
+	}
+	return hits, count, nil
+}
+
+func (s *SearchService) queryIXPs(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
+	items, err := s.client.InternetExchange.Query().Where(pred).Limit(10).All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("fetch ixps: %w", err)
+	}
+	count, err := s.client.InternetExchange.Query().Where(pred).Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count ixps: %w", err)
+	}
+	hits := make([]SearchHit, len(items))
+	for i, ix := range items {
+		hits[i] = SearchHit{
+			ID:        ix.ID,
+			Name:      ix.Name,
+			Subtitle:  formatLocation(ix.City, ix.Country),
+			DetailURL: fmt.Sprintf("/ui/ix/%d", ix.ID),
+		}
+	}
+	return hits, count, nil
+}
+
+func (s *SearchService) queryFacilities(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
+	items, err := s.client.Facility.Query().Where(pred).Limit(10).All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("fetch facilities: %w", err)
+	}
+	count, err := s.client.Facility.Query().Where(pred).Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count facilities: %w", err)
+	}
+	hits := make([]SearchHit, len(items))
+	for i, fac := range items {
+		hits[i] = SearchHit{
+			ID:        fac.ID,
+			Name:      fac.Name,
+			Subtitle:  formatLocation(fac.City, fac.Country),
+			DetailURL: fmt.Sprintf("/ui/fac/%d", fac.ID),
+		}
+	}
+	return hits, count, nil
+}
+
+func (s *SearchService) queryOrganizations(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
+	items, err := s.client.Organization.Query().Where(pred).Limit(10).All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("fetch organizations: %w", err)
+	}
+	count, err := s.client.Organization.Query().Where(pred).Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count organizations: %w", err)
+	}
+	hits := make([]SearchHit, len(items))
+	for i, org := range items {
+		hits[i] = SearchHit{
+			ID:        org.ID,
+			Name:      org.Name,
+			DetailURL: fmt.Sprintf("/ui/org/%d", org.ID),
+		}
+	}
+	return hits, count, nil
+}
+
+func (s *SearchService) queryCampuses(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
+	items, err := s.client.Campus.Query().Where(pred).Limit(10).All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("fetch campuses: %w", err)
+	}
+	count, err := s.client.Campus.Query().Where(pred).Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count campuses: %w", err)
+	}
+	hits := make([]SearchHit, len(items))
+	for i, c := range items {
+		hits[i] = SearchHit{
+			ID:        c.ID,
+			Name:      c.Name,
+			Subtitle:  formatLocation(c.City, c.Country),
+			DetailURL: fmt.Sprintf("/ui/campus/%d", c.ID),
+		}
+	}
+	return hits, count, nil
+}
+
+func (s *SearchService) queryCarriers(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
+	items, err := s.client.Carrier.Query().Where(pred).Limit(10).All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("fetch carriers: %w", err)
+	}
+	count, err := s.client.Carrier.Query().Where(pred).Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count carriers: %w", err)
+	}
+	hits := make([]SearchHit, len(items))
+	for i, cr := range items {
+		hits[i] = SearchHit{
+			ID:        cr.ID,
+			Name:      cr.Name,
+			DetailURL: fmt.Sprintf("/ui/carrier/%d", cr.ID),
+		}
+	}
+	return hits, count, nil
+}
+
+// buildSearchPredicate creates a sql.Selector predicate that ORs together
+// case-insensitive contains matches across the given fields.
+// Returns nil if search is empty.
+//
+// This is a local duplicate of the pdbcompat version to avoid cross-package
+// coupling. The search service owns its own predicate construction.
+func buildSearchPredicate(search string, searchFields []string) func(*sql.Selector) {
+	search = strings.TrimSpace(search)
+	if search == "" {
+		return nil
+	}
+	return func(s *sql.Selector) {
+		var ors []*sql.Predicate
+		for _, f := range searchFields {
+			ors = append(ors, sql.ContainsFold(f, search))
+		}
+		if len(ors) > 0 {
+			s.Where(sql.Or(ors...))
+		}
+	}
+}
+
+// formatLocation returns a "City, Country" string, handling cases where
+// either or both may be empty.
+func formatLocation(city, country string) string {
+	city = strings.TrimSpace(city)
+	country = strings.TrimSpace(country)
+
+	switch {
+	case city != "" && country != "":
+		return city + ", " + country
+	case city != "":
+		return city
+	case country != "":
+		return country
+	default:
+		return ""
+	}
+}

@@ -1,0 +1,40 @@
+package templates
+
+// SyncingPage renders a standalone page shown by readiness middleware
+// before the first sync completes. It is self-contained with its own
+// DOCTYPE, head, and styling because it renders outside the normal
+// handler flow at the middleware level.
+templ SyncingPage() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta http-equiv="refresh" content="10"/>
+			<title>Syncing - PeeringDB Plus</title>
+			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			<style>
+				body { background-color: #171717; color: #f5f5f5; }
+				@keyframes pulse {
+					0%, 100% { opacity: 1; }
+					50% { opacity: 0.4; }
+				}
+				.animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
+			</style>
+		</head>
+		<body>
+			<div class="min-h-screen bg-neutral-900 flex items-center justify-center">
+				<div class="text-center">
+					<h1 class="text-4xl font-bold text-emerald-500 font-mono mb-6">PeeringDB Plus</h1>
+					<p class="text-neutral-400 text-lg mb-8">Syncing data...</p>
+					<div class="flex justify-center space-x-2">
+						<div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse-slow"></div>
+						<div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse-slow" style="animation-delay: 0.3s"></div>
+						<div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse-slow" style="animation-delay: 0.6s"></div>
+					</div>
+					<p class="text-neutral-600 text-sm mt-8">This page refreshes automatically.</p>
+				</div>
+			</div>
+		</body>
+	</html>
+}

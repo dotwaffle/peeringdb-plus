@@ -6,6 +6,7 @@
 - ✅ **v1.1 REST API & Observability** — Phases 4-6 (shipped 2026-03-23)
 - ✅ **v1.2 Quality, Incremental Sync & CI** — Phases 7-10 (shipped 2026-03-24)
 - ✅ **v1.3 PeeringDB API Key Support** — Phases 11-12 (shipped 2026-03-24)
+- ✅ **v1.4 Web UI** — Phases 13-17 (shipped 2026-03-24)
 
 ## Phases
 
@@ -53,6 +54,19 @@ See: `.planning/milestones/v1.3-ROADMAP.md` for full details.
 
 </details>
 
+<details>
+<summary>✅ v1.4 Web UI (Phases 13-17) — SHIPPED 2026-03-24</summary>
+
+- [x] Phase 13: Foundation (2/2 plans) — completed 2026-03-24
+- [x] Phase 14: Live Search (2/2 plans) — completed 2026-03-24
+- [x] Phase 15: Record Detail Pages (2/2 plans) — completed 2026-03-24
+- [x] Phase 16: ASN Comparison (2/2 plans) — completed 2026-03-24
+- [x] Phase 17: Polish & Accessibility (3/3 plans) — completed 2026-03-24
+
+See: `.planning/milestones/v1.4-ROADMAP.md` for full details.
+
+</details>
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -69,3 +83,8 @@ See: `.planning/milestones/v1.3-ROADMAP.md` for full details.
 | 10. CI Pipeline & Public Access | v1.2 | 2/2 | Complete | 2026-03-24 |
 | 11. API Key & Rate Limiting | v1.3 | 2/2 | Complete | 2026-03-24 |
 | 12. Conformance Tooling Integration | v1.3 | 1/1 | Complete | 2026-03-24 |
+| 13. Foundation | v1.4 | 2/2 | Complete | 2026-03-24 |
+| 14. Live Search | v1.4 | 2/2 | Complete | 2026-03-24 |
+| 15. Record Detail Pages | v1.4 | 2/2 | Complete | 2026-03-24 |
+| 16. ASN Comparison | v1.4 | 2/2 | Complete | 2026-03-24 |
+| 17. Polish & Accessibility | v1.4 | 3/3 | Complete | 2026-03-24 |

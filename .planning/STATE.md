@@ -1,17 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: PeeringDB API Key Support
-status: completed
-stopped_at: Milestone v1.3 completed and archived
-last_updated: "2026-03-24"
-last_activity: 2026-03-24
+milestone: v1.4
+milestone_name: Web UI
+status: v1.4 shipped, no active milestone
+stopped_at: Milestone v1.4 finalized
+last_updated: "2026-03-24T08:28:59.817Z"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
-  percent: 100
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 11
+  completed_plans: 11
 ---
 
 # Project State
@@ -25,11 +23,8 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: All complete (12 phases across 4 milestones)
-Status: Milestone v1.3 completed
-Last activity: 2026-03-24
-
-Progress: [████████████████████] 100% (12/12 phases)
+Phase: None — v1.4 shipped
+Plan: None
 
 ## Performance Metrics
 
@@ -58,12 +53,36 @@ Progress: [████████████████████] 100% (1
 | Phase 11 P01 | 4min | 1 tasks | 4 files |
 | Phase 11 P02 | 3min | 1 tasks | 1 files |
 | Phase 12 P01 | 4min | 2 tasks | 3 files |
+| Phase 15 P01 | 6min | 2 tasks | 8 files |
+| Phase 15 P02 | 13min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
 ### Decisions
 
 All decisions archived in PROJECT.md Key Decisions table.
+
+- [Phase 13]: Single wildcard dispatch for /ui/ routes avoids Go 1.22+ route conflict
+- [Phase 13]: Content negotiation on GET / uses Accept header: text/html triggers redirect to /ui/, otherwise JSON discovery
+- [Phase 13]: Static assets bypass readiness middleware so syncing page CSS/JS loads correctly
+- [Phase 14]: Duplicated buildSearchPredicate locally to avoid cross-package coupling between web and pdbcompat
+- [Phase 14]: Pre-allocated results slice with distinct indices for lock-free concurrent errgroup writes
+- [Phase 14]: Defined SearchGroup/SearchResult in templates package to avoid circular imports between web and templates
+- [Phase 14]: Used HX-Replace-Url response header for URL state sync instead of hx-replace-url attribute
+- [Phase 15]: Used First() instead of Only() for ASN lookup to handle non-singular edge cases
+- [Phase 15]: Fragment endpoints bypass renderPage, write directly to ResponseWriter for bare HTML
+- [Phase 15]: Prefix-based dispatch routing via switch{} with strings.HasPrefix for detail URLs
+- [Phase 15]: Junction record name field used directly from PeeringDB computed serializer output
+- [Phase 15]: IxFacility/CarrierFacility rows silently skipped when FK is nil for defensive handling
+- [Phase 16]: Map-based set intersection for IX and facility overlap detection
+- [Phase 16]: JavaScript form submit redirects to clean URL path for shareable comparison URLs
+- [Phase 16]: View toggle uses link navigation for shareable URL state in comparison page
+- [Phase 16]: Compare with... button positioned after stat badges on network detail page
+- [Phase 17]: Class-based dark mode via @custom-variant for manual toggle support
+- [Phase 17]: handleServerError replaces all http.Error calls for consistent styled 500 pages
+- [Phase 17]: Handler struct extended with *sql.DB for About page sync status queries
+- [Phase 17]: ARIA listbox/option pattern for search results accessibility
+- [Phase 17]: IIFE script in layout for keyboard navigation without global scope pollution
 
 ### Pending Todos
 
@@ -78,5 +97,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Milestone v1.3 completed and archived
+Stopped at: Milestone v1.4 finalized
 Resume file: None
