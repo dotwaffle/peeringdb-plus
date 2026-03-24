@@ -2,13 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Tech Debt & Observability
-status: Ready to plan
-last_updated: "2026-03-24T13:00:00.000Z"
+status: planning
+stopped_at: Completed quick-260324-lc5 dynamic primary detection
+last_updated: "2026-03-24T15:41:54.143Z"
+last_activity: 2026-03-24 — Roadmap created for v1.5
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
+  percent: 85
 ---
 
 # Project State
@@ -67,6 +70,7 @@ All decisions archived in PROJECT.md Key Decisions table.
 
 - [v1.5]: No new Go dependencies -- Prometheus endpoint via autoexport env var, dashboard as JSON files
 - [v1.5]: Coarse granularity -- 3 phases combining tech debt + data integrity, all observability, all verification
+- [Phase quick-260324-lc5]: IsPrimary changed from bool to func() bool in WorkerConfig; nil defaults to always-primary
 
 ### Pending Todos
 
@@ -80,6 +84,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24
-Stopped at: Roadmap created for v1.5 milestone
+Last session: 2026-03-24T15:41:49.533Z
+Stopped at: Completed quick-260324-lc5 dynamic primary detection
 Resume file: None
