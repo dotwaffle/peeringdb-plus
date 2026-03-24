@@ -223,11 +223,7 @@ func main() {
 	// GET /: content negotiation per user decision.
 	// Browsers (Accept: text/html) redirect to /ui/.
 	// API clients (Accept: application/json) get JSON discovery.
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		accept := r.Header.Get("Accept")
 		if strings.Contains(accept, "text/html") {
 			http.Redirect(w, r, "/ui/", http.StatusFound)
