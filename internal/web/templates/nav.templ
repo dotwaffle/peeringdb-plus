@@ -1,0 +1,28 @@
+package templates
+
+templ Nav() {
+	<nav class="bg-neutral-800 border-b border-neutral-700">
+		<div class="container mx-auto px-4 flex items-center justify-between h-16">
+			<a href="/ui/" class="text-emerald-500 font-bold text-xl font-mono">PeeringDB Plus</a>
+			<div class="hidden md:flex items-center space-x-6">
+				<a href="/ui/" class="text-neutral-300 hover:text-emerald-400 transition-colors">Search</a>
+				<a href="/ui/compare" class="text-neutral-300 hover:text-emerald-400 transition-colors">Compare</a>
+				<a href="/graphql" class="text-neutral-300 hover:text-emerald-400 transition-colors">GraphQL</a>
+				<a href="/rest/v1/" class="text-neutral-300 hover:text-emerald-400 transition-colors">REST API</a>
+				<a href="/api/" class="text-neutral-300 hover:text-emerald-400 transition-colors">PeeringDB API</a>
+			</div>
+			<button class="md:hidden text-neutral-300 hover:text-emerald-400" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+				</svg>
+			</button>
+		</div>
+		<div id="mobile-menu" class="hidden md:hidden pb-4 space-y-2 px-4">
+			<a href="/ui/" class="block text-neutral-300 hover:text-emerald-400 transition-colors py-1">Search</a>
+			<a href="/ui/compare" class="block text-neutral-300 hover:text-emerald-400 transition-colors py-1">Compare</a>
+			<a href="/graphql" class="block text-neutral-300 hover:text-emerald-400 transition-colors py-1">GraphQL</a>
+			<a href="/rest/v1/" class="block text-neutral-300 hover:text-emerald-400 transition-colors py-1">REST API</a>
+			<a href="/api/" class="block text-neutral-300 hover:text-emerald-400 transition-colors py-1">PeeringDB API</a>
+		</div>
+	</nav>
+}
