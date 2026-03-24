@@ -1,0 +1,101 @@
+# Requirements: PeeringDB Plus
+
+**Defined:** 2026-03-24
+**Core Value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
+
+## v1.5 Requirements
+
+Requirements for milestone v1.5 Tech Debt & Observability. Each maps to roadmap phases.
+
+### Tech Debt
+
+- [ ] **DEBT-01**: WorkerConfig.IsPrimary dead field removed from internal/sync/worker.go
+- [ ] **DEBT-02**: Planning docs updated to reflect DataLoader already removed in v1.2, only IsPrimary remains
+
+### Data Integrity
+
+- [ ] **DATA-01**: meta.generated field behavior verified empirically against live PeeringDB API for depth=0 full fetch, paginated incremental, and empty result set
+- [ ] **DATA-02**: Graceful fallback confirmed working when meta.generated is absent (zero-time fallback to started_at - 5min)
+- [ ] **DATA-03**: meta.generated findings documented with observed response structures
+
+### Observability
+
+- [ ] **OBS-01**: Prometheus metrics export enabled via OTEL_METRICS_EXPORTER=prometheus env var and fly.toml [metrics] config
+- [ ] **OBS-02**: Grafana dashboard JSON with sync health row (freshness gauge, sync duration, success/failure rate, fallback events)
+- [ ] **OBS-03**: Grafana dashboard JSON with HTTP RED metrics row (request rate by route, error rate, latency percentiles, active requests)
+- [ ] **OBS-04**: Grafana dashboard JSON with per-type sync detail row (duration by type, object counts, delete counts, fetch/upsert errors)
+- [ ] **OBS-05**: Grafana dashboard JSON with Go runtime row (goroutines, heap memory, allocation rate, GC goal)
+- [ ] **OBS-06**: Grafana dashboard JSON with business metrics row (object counts per PeeringDB type, region breakdown)
+- [ ] **OBS-07**: Data freshness stat panel with color thresholds (green < 1h, yellow < 2h, red > 2h)
+- [ ] **OBS-08**: Documentation text panels in each dashboard row explaining metrics and troubleshooting
+- [ ] **OBS-09**: Dashboard uses datasource template variables for portability (no hardcoded UIDs)
+- [ ] **OBS-10**: Dashboard provisioning YAML and JSON committed to deploy/grafana/
+
+### Verification
+
+- [ ] **VFY-01**: CI workflow executes on GitHub Actions push with all 4 jobs passing
+- [ ] **VFY-02**: Coverage comment posts on PRs and deduplicates on subsequent pushes
+- [ ] **VFY-03**: pdbcompat-check CLI works with real PeeringDB API key
+- [ ] **VFY-04**: Live integration test passes with API key, invalid key produces WARN log
+- [ ] **VFY-05**: Web UI foundation verified (content negotiation, responsive layout, syncing page animation)
+- [ ] **VFY-06**: Live search verified (latency < 300ms, type badges, ASN redirect on Enter)
+- [ ] **VFY-07**: Detail pages verified (collapsible sections, lazy loading, summary stats, cross-links)
+- [ ] **VFY-08**: ASN comparison verified (results layout, view toggle, multi-step compare flow)
+- [ ] **VFY-09**: Polish verified (dark mode toggle, keyboard navigation, CSS animations, loading indicators, error pages, About page freshness)
+
+## Future Requirements
+
+### Deferred
+
+- **gRPC-01**: Expose data via gRPC (entproto) — deferred from v1.0
+- **ALERT-01**: Formal alerting rules with notification channels — deferred until production baselines established
+- **SLO-01**: SLO/SLI definitions based on observed production patterns — deferred until 2-4 weeks of dashboard data
+- **ANNOT-01**: Grafana annotation markers for sync events — requires OTel Collector or Tempo annotation mapping
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Grafonnet/Jsonnet dashboard generation | Overkill for 1 dashboard — hand-authored JSON is simpler and easier to review |
+| Automated visual regression testing | One-time verification items don't justify Playwright/Cypress setup cost |
+| Real-time dashboard streaming | Marginal value for hourly sync service with 15-60s scrape intervals |
+| Per-endpoint latency breakdown for all routes | Too many panels — use http.route aggregation with drill-down instead |
+| SLO/error budget tracking | Premature without production baseline data |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| DEBT-01 | Phase 18 | Pending |
+| DEBT-02 | Phase 18 | Pending |
+| DATA-01 | Phase 18 | Pending |
+| DATA-02 | Phase 18 | Pending |
+| DATA-03 | Phase 18 | Pending |
+| OBS-01 | Phase 19 | Pending |
+| OBS-02 | Phase 19 | Pending |
+| OBS-03 | Phase 19 | Pending |
+| OBS-04 | Phase 19 | Pending |
+| OBS-05 | Phase 19 | Pending |
+| OBS-06 | Phase 19 | Pending |
+| OBS-07 | Phase 19 | Pending |
+| OBS-08 | Phase 19 | Pending |
+| OBS-09 | Phase 19 | Pending |
+| OBS-10 | Phase 19 | Pending |
+| VFY-01 | Phase 20 | Pending |
+| VFY-02 | Phase 20 | Pending |
+| VFY-03 | Phase 20 | Pending |
+| VFY-04 | Phase 20 | Pending |
+| VFY-05 | Phase 20 | Pending |
+| VFY-06 | Phase 20 | Pending |
+| VFY-07 | Phase 20 | Pending |
+| VFY-08 | Phase 20 | Pending |
+| VFY-09 | Phase 20 | Pending |
+
+**Coverage:**
+- v1.5 requirements: 24 total
+- Mapped to phases: 24
+- Unmapped: 0
+
+---
+*Requirements defined: 2026-03-24*
+*Last updated: 2026-03-24 after initial definition*
