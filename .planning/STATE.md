@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Web UI
-status: Ready to plan
-stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-03-24T06:57:34.926Z"
+status: Ready to execute
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-03-24T07:14:49.444Z"
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 6
+  total_plans: 8
   completed_plans: 6
 ---
 
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 15 — record-detail
+**Current focus:** Phase 16 — asn-comparison
 
 ## Current Position
 
-Phase: 16
-Plan: Not started
+Phase: 16 (asn-comparison) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ All decisions archived in PROJECT.md Key Decisions table.
 - [Phase 15]: Prefix-based dispatch routing via switch{} with strings.HasPrefix for detail URLs
 - [Phase 15]: Junction record name field used directly from PeeringDB computed serializer output
 - [Phase 15]: IxFacility/CarrierFacility rows silently skipped when FK is nil for defensive handling
+- [Phase 16]: Map-based set intersection for IX and facility overlap detection
 
 ### Pending Todos
 
@@ -87,6 +88,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T06:45:06.996Z
-Stopped at: Completed 15-02-PLAN.md
+Last session: 2026-03-24T07:14:49.441Z
+Stopped at: Completed 16-01-PLAN.md
 Resume file: None
