@@ -88,7 +88,7 @@ See: `.planning/milestones/v1.4-ROADMAP.md` for full details.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 18-01-PLAN.md -- Correct stale planning docs (PROJECT.md, Phase 7 summary)
+- [x] 18-01-PLAN.md -- Correct stale planning docs (PROJECT.md, Phase 7 summary)
 - [ ] 18-02-PLAN.md -- Live meta.generated test and documentation
 
 ### Phase 19: Prometheus Metrics & Grafana Dashboard
@@ -138,6 +138,6 @@ Phases execute in numeric order: 18 → 19 → 20
 | 15. Record Detail Pages | v1.4 | 2/2 | Complete | 2026-03-24 |
 | 16. ASN Comparison | v1.4 | 2/2 | Complete | 2026-03-24 |
 | 17. Polish & Accessibility | v1.4 | 3/3 | Complete | 2026-03-24 |
-| 18. Tech Debt & Data Integrity | v1.5 | 0/2 | Planned | - |
+| 18. Tech Debt & Data Integrity | v1.5 | 1/2 | In progress | - |
 | 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 0/? | Not started | - |
 | 20. Deferred Human Verification | v1.5 | 0/? | Not started | - |

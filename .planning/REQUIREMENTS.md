@@ -9,8 +9,8 @@ Requirements for milestone v1.5 Tech Debt & Observability. Each maps to roadmap 
 
 ### Tech Debt
 
-- [ ] **DEBT-01**: WorkerConfig.IsPrimary dead field removed from internal/sync/worker.go
-- [ ] **DEBT-02**: Planning docs updated to reflect DataLoader already removed in v1.2, only IsPrimary remains
+- [x] **DEBT-01**: WorkerConfig.IsPrimary dead field removed from internal/sync/worker.go -- Resolved: converted to live `func() bool` by quick task 260324-lc5, planning docs corrected in plan 18-01
+- [x] **DEBT-02**: Planning docs updated to reflect DataLoader already removed in v1.2, only IsPrimary remains -- Resolved: PROJECT.md and Phase 7 summary corrected in plan 18-01
 
 ### Data Integrity
 
@@ -66,8 +66,8 @@ Requirements for milestone v1.5 Tech Debt & Observability. Each maps to roadmap 
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEBT-01 | Phase 18 | Pending |
-| DEBT-02 | Phase 18 | Pending |
+| DEBT-01 | Phase 18 | Complete (plan 18-01) |
+| DEBT-02 | Phase 18 | Complete (plan 18-01) |
 | DATA-01 | Phase 18 | Pending |
 | DATA-02 | Phase 18 | Pending |
 | DATA-03 | Phase 18 | Pending |
