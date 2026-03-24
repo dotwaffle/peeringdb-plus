@@ -9,19 +9,19 @@ Requirements for Web UI milestone. Each maps to roadmap phases.
 
 ### Search
 
-- [ ] **SRCH-01**: User can type in a search box on the homepage and see results update instantly as they type
-- [ ] **SRCH-02**: Search results are grouped by type (Networks, IXPs, Facilities, Organizations, Campuses) with visual type indicators
-- [ ] **SRCH-03**: User can enter a numeric value to look up a network by ASN directly
-- [ ] **SRCH-04**: Each type group shows a count badge of matching results
+- [x] **SRCH-01**: User can type in a search box on the homepage and see results update instantly as they type
+- [x] **SRCH-02**: Search results are grouped by type (Networks, IXPs, Facilities, Organizations, Campuses) with visual type indicators
+- [x] **SRCH-03**: User can enter a numeric value to look up a network by ASN directly
+- [x] **SRCH-04**: Each type group shows a count badge of matching results
 - [ ] **SRCH-05**: User can navigate search results with keyboard (arrow keys to move, Enter to select)
 
 ### Record Detail
 
-- [ ] **DETL-01**: User can view a full detail page for any Network, IXP, Facility, Organization, or Campus
-- [ ] **DETL-02**: Related records (e.g., network's IX presences, facilities, contacts) appear in collapsible sections
-- [ ] **DETL-03**: Related record sections load on first expand, not on initial page load
-- [ ] **DETL-04**: Detail pages show computed summary statistics (e.g., "present at 47 IXPs, 23 facilities")
-- [ ] **DETL-05**: Related records cross-link to their own detail pages
+- [x] **DETL-01**: User can view a full detail page for any Network, IXP, Facility, Organization, or Campus
+- [x] **DETL-02**: Related records (e.g., network's IX presences, facilities, contacts) appear in collapsible sections
+- [x] **DETL-03**: Related record sections load on first expand, not on initial page load
+- [x] **DETL-04**: Detail pages show computed summary statistics (e.g., "present at 47 IXPs, 23 facilities")
+- [x] **DETL-05**: Related records cross-link to their own detail pages
 
 ### Comparison
 
@@ -82,16 +82,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SRCH-01 | Phase 14 | Pending |
-| SRCH-02 | Phase 14 | Pending |
-| SRCH-03 | Phase 14 | Pending |
-| SRCH-04 | Phase 14 | Pending |
+| SRCH-01 | Phase 14 | Complete |
+| SRCH-02 | Phase 14 | Complete |
+| SRCH-03 | Phase 14 | Complete |
+| SRCH-04 | Phase 14 | Complete |
 | SRCH-05 | Phase 17 | Pending |
-| DETL-01 | Phase 15 | Pending |
-| DETL-02 | Phase 15 | Pending |
-| DETL-03 | Phase 15 | Pending |
-| DETL-04 | Phase 15 | Pending |
-| DETL-05 | Phase 15 | Pending |
+| DETL-01 | Phase 15 | Complete |
+| DETL-02 | Phase 15 | Complete |
+| DETL-03 | Phase 15 | Complete |
+| DETL-04 | Phase 15 | Complete |
+| DETL-05 | Phase 15 | Complete |
 | COMP-01 | Phase 16 | Pending |
 | COMP-02 | Phase 16 | Pending |
 | COMP-03 | Phase 16 | Pending |

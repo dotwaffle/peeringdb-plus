@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Web UI
-status: Ready to plan
-stopped_at: Completed 14-02-PLAN.md
-last_updated: "2026-03-24T06:00:33.234Z"
+status: Ready to execute
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-03-24T06:28:40.357Z"
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 14 — live-search
+**Current focus:** Phase 15 — record-detail
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
+Phase: 15 (record-detail) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Plan: Not started
 | Phase 11 P01 | 4min | 1 tasks | 4 files |
 | Phase 11 P02 | 3min | 1 tasks | 1 files |
 | Phase 12 P01 | 4min | 2 tasks | 3 files |
+| Phase 15 P01 | 6min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,9 @@ All decisions archived in PROJECT.md Key Decisions table.
 - [Phase 14]: Pre-allocated results slice with distinct indices for lock-free concurrent errgroup writes
 - [Phase 14]: Defined SearchGroup/SearchResult in templates package to avoid circular imports between web and templates
 - [Phase 14]: Used HX-Replace-Url response header for URL state sync instead of hx-replace-url attribute
+- [Phase 15]: Used First() instead of Only() for ASN lookup to handle non-singular edge cases
+- [Phase 15]: Fragment endpoints bypass renderPage, write directly to ResponseWriter for bare HTML
+- [Phase 15]: Prefix-based dispatch routing via switch{} with strings.HasPrefix for detail URLs
 
 ### Pending Todos
 
@@ -80,6 +84,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T05:55:29.821Z
-Stopped at: Completed 14-02-PLAN.md
+Last session: 2026-03-24T06:28:40.353Z
+Stopped at: Completed 15-01-PLAN.md
 Resume file: None

@@ -108,7 +108,7 @@ Plans:
   4. Related records are clickable links that navigate to their own detail pages
 **Plans**: 2 plans
 Plans:
-- [ ] 15-01-PLAN.md -- Data types, dispatch routing, shared templates, Network detail page with lazy-loaded fragments and tests
+- [x] 15-01-PLAN.md -- Data types, dispatch routing, shared templates, Network detail page with lazy-loaded fragments and tests
 - [ ] 15-02-PLAN.md -- IXP, Facility, Organization, Campus, Carrier detail pages with all fragments and tests
 **UI hint**: yes
 
@@ -159,6 +159,6 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17
 | 12. Conformance Tooling Integration | v1.3 | 1/1 | Complete | 2026-03-24 |
 | 13. Foundation | v1.4 | 1/2 | Complete    | 2026-03-24 |
 | 14. Live Search | v1.4 | 2/2 | Complete    | 2026-03-24 |
-| 15. Record Detail Pages | v1.4 | 0/2 | Not started | - |
+| 15. Record Detail Pages | v1.4 | 1/2 | In Progress|  |
 | 16. ASN Comparison | v1.4 | 0/? | Not started | - |
 | 17. Polish & Accessibility | v1.4 | 0/? | Not started | - |
