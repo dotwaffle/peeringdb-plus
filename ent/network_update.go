@@ -952,74 +952,14 @@ func (_u *NetworkUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *NetworkUpdate) check() error {
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := network.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Network.aka": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Asn(); ok {
 		if err := network.AsnValidator(v); err != nil {
 			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "Network.asn": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.InfoRatio(); ok {
-		if err := network.InfoRatioValidator(v); err != nil {
-			return &ValidationError{Name: "info_ratio", err: fmt.Errorf(`ent: validator failed for field "Network.info_ratio": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.InfoScope(); ok {
-		if err := network.InfoScopeValidator(v); err != nil {
-			return &ValidationError{Name: "info_scope", err: fmt.Errorf(`ent: validator failed for field "Network.info_scope": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.InfoTraffic(); ok {
-		if err := network.InfoTrafficValidator(v); err != nil {
-			return &ValidationError{Name: "info_traffic", err: fmt.Errorf(`ent: validator failed for field "Network.info_traffic": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.InfoType(); ok {
-		if err := network.InfoTypeValidator(v); err != nil {
-			return &ValidationError{Name: "info_type", err: fmt.Errorf(`ent: validator failed for field "Network.info_type": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.IrrAsSet(); ok {
-		if err := network.IrrAsSetValidator(v); err != nil {
-			return &ValidationError{Name: "irr_as_set", err: fmt.Errorf(`ent: validator failed for field "Network.irr_as_set": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := network.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := network.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Network.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyContracts(); ok {
-		if err := network.PolicyContractsValidator(v); err != nil {
-			return &ValidationError{Name: "policy_contracts", err: fmt.Errorf(`ent: validator failed for field "Network.policy_contracts": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyGeneral(); ok {
-		if err := network.PolicyGeneralValidator(v); err != nil {
-			return &ValidationError{Name: "policy_general", err: fmt.Errorf(`ent: validator failed for field "Network.policy_general": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyLocations(); ok {
-		if err := network.PolicyLocationsValidator(v); err != nil {
-			return &ValidationError{Name: "policy_locations", err: fmt.Errorf(`ent: validator failed for field "Network.policy_locations": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.RirStatus(); ok {
-		if err := network.RirStatusValidator(v); err != nil {
-			return &ValidationError{Name: "rir_status", err: fmt.Errorf(`ent: validator failed for field "Network.rir_status": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := network.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Network.status": %w`, err)}
 		}
 	}
 	return nil
@@ -2375,74 +2315,14 @@ func (_u *NetworkUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *NetworkUpdateOne) check() error {
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := network.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Network.aka": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Asn(); ok {
 		if err := network.AsnValidator(v); err != nil {
 			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "Network.asn": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.InfoRatio(); ok {
-		if err := network.InfoRatioValidator(v); err != nil {
-			return &ValidationError{Name: "info_ratio", err: fmt.Errorf(`ent: validator failed for field "Network.info_ratio": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.InfoScope(); ok {
-		if err := network.InfoScopeValidator(v); err != nil {
-			return &ValidationError{Name: "info_scope", err: fmt.Errorf(`ent: validator failed for field "Network.info_scope": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.InfoTraffic(); ok {
-		if err := network.InfoTrafficValidator(v); err != nil {
-			return &ValidationError{Name: "info_traffic", err: fmt.Errorf(`ent: validator failed for field "Network.info_traffic": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.InfoType(); ok {
-		if err := network.InfoTypeValidator(v); err != nil {
-			return &ValidationError{Name: "info_type", err: fmt.Errorf(`ent: validator failed for field "Network.info_type": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.IrrAsSet(); ok {
-		if err := network.IrrAsSetValidator(v); err != nil {
-			return &ValidationError{Name: "irr_as_set", err: fmt.Errorf(`ent: validator failed for field "Network.irr_as_set": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := network.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := network.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Network.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyContracts(); ok {
-		if err := network.PolicyContractsValidator(v); err != nil {
-			return &ValidationError{Name: "policy_contracts", err: fmt.Errorf(`ent: validator failed for field "Network.policy_contracts": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyGeneral(); ok {
-		if err := network.PolicyGeneralValidator(v); err != nil {
-			return &ValidationError{Name: "policy_general", err: fmt.Errorf(`ent: validator failed for field "Network.policy_general": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyLocations(); ok {
-		if err := network.PolicyLocationsValidator(v); err != nil {
-			return &ValidationError{Name: "policy_locations", err: fmt.Errorf(`ent: validator failed for field "Network.policy_locations": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.RirStatus(); ok {
-		if err := network.RirStatusValidator(v); err != nil {
-			return &ValidationError{Name: "rir_status", err: fmt.Errorf(`ent: validator failed for field "Network.rir_status": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := network.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Network.status": %w`, err)}
 		}
 	}
 	return nil

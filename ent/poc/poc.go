@@ -80,28 +80,18 @@ var (
 	Hooks [1]ent.Hook
 	// DefaultEmail holds the default value on creation for the "email" field.
 	DefaultEmail string
-	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
-	EmailValidator func(string) error
 	// DefaultName holds the default value on creation for the "name" field.
 	DefaultName string
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
 	// DefaultPhone holds the default value on creation for the "phone" field.
 	DefaultPhone string
-	// PhoneValidator is a validator for the "phone" field. It is called by the builders before save.
-	PhoneValidator func(string) error
 	// RoleValidator is a validator for the "role" field. It is called by the builders before save.
 	RoleValidator func(string) error
 	// DefaultURL holds the default value on creation for the "url" field.
 	DefaultURL string
 	// DefaultVisible holds the default value on creation for the "visible" field.
 	DefaultVisible string
-	// VisibleValidator is a validator for the "visible" field. It is called by the builders before save.
-	VisibleValidator func(string) error
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	StatusValidator func(string) error
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )

@@ -200,78 +200,44 @@ var (
 	Hooks [1]ent.Hook
 	// DefaultAddress1 holds the default value on creation for the "address1" field.
 	DefaultAddress1 string
-	// Address1Validator is a validator for the "address1" field. It is called by the builders before save.
-	Address1Validator func(string) error
 	// DefaultAddress2 holds the default value on creation for the "address2" field.
 	DefaultAddress2 string
-	// Address2Validator is a validator for the "address2" field. It is called by the builders before save.
-	Address2Validator func(string) error
 	// DefaultAka holds the default value on creation for the "aka" field.
 	DefaultAka string
-	// AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	AkaValidator func(string) error
 	// DefaultCity holds the default value on creation for the "city" field.
 	DefaultCity string
-	// CityValidator is a validator for the "city" field. It is called by the builders before save.
-	CityValidator func(string) error
 	// DefaultClli holds the default value on creation for the "clli" field.
 	DefaultClli string
-	// ClliValidator is a validator for the "clli" field. It is called by the builders before save.
-	ClliValidator func(string) error
 	// DefaultCountry holds the default value on creation for the "country" field.
 	DefaultCountry string
 	// DefaultFloor holds the default value on creation for the "floor" field.
 	DefaultFloor string
-	// FloorValidator is a validator for the "floor" field. It is called by the builders before save.
-	FloorValidator func(string) error
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
 	// DefaultNameLong holds the default value on creation for the "name_long" field.
 	DefaultNameLong string
-	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	NameLongValidator func(string) error
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
 	// DefaultNpanxx holds the default value on creation for the "npanxx" field.
 	DefaultNpanxx string
-	// NpanxxValidator is a validator for the "npanxx" field. It is called by the builders before save.
-	NpanxxValidator func(string) error
-	// PropertyValidator is a validator for the "property" field. It is called by the builders before save.
-	PropertyValidator func(string) error
 	// DefaultRencode holds the default value on creation for the "rencode" field.
 	DefaultRencode string
-	// RencodeValidator is a validator for the "rencode" field. It is called by the builders before save.
-	RencodeValidator func(string) error
 	// DefaultSalesEmail holds the default value on creation for the "sales_email" field.
 	DefaultSalesEmail string
-	// SalesEmailValidator is a validator for the "sales_email" field. It is called by the builders before save.
-	SalesEmailValidator func(string) error
 	// DefaultSalesPhone holds the default value on creation for the "sales_phone" field.
 	DefaultSalesPhone string
-	// SalesPhoneValidator is a validator for the "sales_phone" field. It is called by the builders before save.
-	SalesPhoneValidator func(string) error
 	// DefaultState holds the default value on creation for the "state" field.
 	DefaultState string
-	// StateValidator is a validator for the "state" field. It is called by the builders before save.
-	StateValidator func(string) error
 	// DefaultSuite holds the default value on creation for the "suite" field.
 	DefaultSuite string
-	// SuiteValidator is a validator for the "suite" field. It is called by the builders before save.
-	SuiteValidator func(string) error
 	// DefaultTechEmail holds the default value on creation for the "tech_email" field.
 	DefaultTechEmail string
-	// TechEmailValidator is a validator for the "tech_email" field. It is called by the builders before save.
-	TechEmailValidator func(string) error
 	// DefaultTechPhone holds the default value on creation for the "tech_phone" field.
 	DefaultTechPhone string
-	// TechPhoneValidator is a validator for the "tech_phone" field. It is called by the builders before save.
-	TechPhoneValidator func(string) error
 	// DefaultWebsite holds the default value on creation for the "website" field.
 	DefaultWebsite string
 	// DefaultZipcode holds the default value on creation for the "zipcode" field.
 	DefaultZipcode string
-	// ZipcodeValidator is a validator for the "zipcode" field. It is called by the builders before save.
-	ZipcodeValidator func(string) error
 	// DefaultOrgName holds the default value on creation for the "org_name" field.
 	DefaultOrgName string
 	// DefaultNetCount holds the default value on creation for the "net_count" field.
@@ -282,8 +248,6 @@ var (
 	DefaultCarrierCount int
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	StatusValidator func(string) error
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )

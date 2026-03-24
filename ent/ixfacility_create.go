@@ -231,11 +231,6 @@ func (_c *IxFacilityCreate) check() error {
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "IxFacility.status"`)}
 	}
-	if v, ok := _c.mutation.Status(); ok {
-		if err := ixfacility.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "IxFacility.status": %w`, err)}
-		}
-	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := ixfacility.IDValidator(v); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "IxFacility.id": %w`, err)}

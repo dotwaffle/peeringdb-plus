@@ -110,20 +110,14 @@ var (
 	DefaultIxfIxpImportEnabled bool
 	// DefaultIxfIxpMemberListURLVisible holds the default value on creation for the "ixf_ixp_member_list_url_visible" field.
 	DefaultIxfIxpMemberListURLVisible string
-	// IxfIxpMemberListURLVisibleValidator is a validator for the "ixf_ixp_member_list_url_visible" field. It is called by the builders before save.
-	IxfIxpMemberListURLVisibleValidator func(string) error
 	// DefaultMtu holds the default value on creation for the "mtu" field.
 	DefaultMtu int
 	// DefaultName holds the default value on creation for the "name" field.
 	DefaultName string
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
 	// DefaultRsAsn holds the default value on creation for the "rs_asn" field.
 	DefaultRsAsn int
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	StatusValidator func(string) error
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )

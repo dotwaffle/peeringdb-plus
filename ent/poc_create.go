@@ -230,32 +230,12 @@ func (_c *PocCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *PocCreate) check() error {
-	if v, ok := _c.mutation.Email(); ok {
-		if err := poc.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Poc.email": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.Name(); ok {
-		if err := poc.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Poc.name": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.Phone(); ok {
-		if err := poc.PhoneValidator(v); err != nil {
-			return &ValidationError{Name: "phone", err: fmt.Errorf(`ent: validator failed for field "Poc.phone": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Role(); !ok {
 		return &ValidationError{Name: "role", err: errors.New(`ent: missing required field "Poc.role"`)}
 	}
 	if v, ok := _c.mutation.Role(); ok {
 		if err := poc.RoleValidator(v); err != nil {
 			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.Visible(); ok {
-		if err := poc.VisibleValidator(v); err != nil {
-			return &ValidationError{Name: "visible", err: fmt.Errorf(`ent: validator failed for field "Poc.visible": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Created(); !ok {
@@ -266,11 +246,6 @@ func (_c *PocCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Poc.status"`)}
-	}
-	if v, ok := _c.mutation.Status(); ok {
-		if err := poc.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Poc.status": %w`, err)}
-		}
 	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := poc.IDValidator(v); err != nil {

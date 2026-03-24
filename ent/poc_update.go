@@ -250,34 +250,9 @@ func (_u *PocUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *PocUpdate) check() error {
-	if v, ok := _u.mutation.Email(); ok {
-		if err := poc.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Poc.email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Name(); ok {
-		if err := poc.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Poc.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Phone(); ok {
-		if err := poc.PhoneValidator(v); err != nil {
-			return &ValidationError{Name: "phone", err: fmt.Errorf(`ent: validator failed for field "Poc.phone": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Role(); ok {
 		if err := poc.RoleValidator(v); err != nil {
 			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Visible(); ok {
-		if err := poc.VisibleValidator(v); err != nil {
-			return &ValidationError{Name: "visible", err: fmt.Errorf(`ent: validator failed for field "Poc.visible": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := poc.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Poc.status": %w`, err)}
 		}
 	}
 	return nil
@@ -617,34 +592,9 @@ func (_u *PocUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *PocUpdateOne) check() error {
-	if v, ok := _u.mutation.Email(); ok {
-		if err := poc.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Poc.email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Name(); ok {
-		if err := poc.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Poc.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Phone(); ok {
-		if err := poc.PhoneValidator(v); err != nil {
-			return &ValidationError{Name: "phone", err: fmt.Errorf(`ent: validator failed for field "Poc.phone": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Role(); ok {
 		if err := poc.RoleValidator(v); err != nil {
 			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Visible(); ok {
-		if err := poc.VisibleValidator(v); err != nil {
-			return &ValidationError{Name: "visible", err: fmt.Errorf(`ent: validator failed for field "Poc.visible": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := poc.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Poc.status": %w`, err)}
 		}
 	}
 	return nil

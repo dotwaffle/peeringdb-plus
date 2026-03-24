@@ -29,13 +29,11 @@ func (InternetExchange) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to organization"),
 		field.String("aka").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Also known as"),
 		field.String("city").
-			MaxLen(192).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -58,12 +56,10 @@ func (InternetExchange) Fields() []ent.Field {
 			Nillable().
 			Comment("Logo URL"),
 		field.String("media").
-			MaxLen(128).
 			Optional().
 			Default("Ethernet").
 			Comment("Exchange media type"),
 		field.String("name").
-			MaxLen(64).
 			NotEmpty().
 			Unique().
 			Annotations(
@@ -72,7 +68,6 @@ func (InternetExchange) Fields() []ent.Field {
 			).
 			Comment("Internet exchange name"),
 		field.String("name_long").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -82,12 +77,10 @@ func (InternetExchange) Fields() []ent.Field {
 			Default("").
 			Comment("Notes"),
 		field.String("policy_email").
-			MaxLen(254).
 			Optional().
 			Default("").
 			Comment("Policy email"),
 		field.String("policy_phone").
-			MaxLen(192).
 			Optional().
 			Default("").
 			Comment("Policy phone"),
@@ -101,22 +94,18 @@ func (InternetExchange) Fields() []ent.Field {
 			Default(false).
 			Comment("Supports unicast"),
 		field.String("region_continent").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Region/continent"),
 		field.String("sales_email").
-			MaxLen(254).
 			Optional().
 			Default("").
 			Comment("Sales email"),
 		field.String("sales_phone").
-			MaxLen(192).
 			Optional().
 			Default("").
 			Comment("Sales phone"),
 		field.String("service_level").
-			MaxLen(60).
 			Optional().
 			Default("").
 			Comment("Service level"),
@@ -129,17 +118,14 @@ func (InternetExchange) Fields() []ent.Field {
 			Nillable().
 			Comment("Status dashboard URL"),
 		field.String("tech_email").
-			MaxLen(254).
 			Optional().
 			Default("").
 			Comment("Technical email"),
 		field.String("tech_phone").
-			MaxLen(192).
 			Optional().
 			Default("").
 			Comment("Technical phone"),
 		field.String("terms").
-			MaxLen(60).
 			Optional().
 			Default("").
 			Comment("Terms"),
@@ -179,7 +165,6 @@ func (InternetExchange) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
-			MaxLen(255).
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),

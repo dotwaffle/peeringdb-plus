@@ -34,17 +34,14 @@ func (Facility) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to organization"),
 		field.String("address1").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Address line 1"),
 		field.String("address2").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Address line 2"),
 		field.String("aka").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -53,13 +50,11 @@ func (Facility) Fields() []ent.Field {
 			Optional().
 			Comment("Available voltage services"),
 		field.String("city").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("City"),
 		field.String("clli").
-			MaxLen(18).
 			Optional().
 			Default("").
 			Comment("CLLI code"),
@@ -73,7 +68,6 @@ func (Facility) Fields() []ent.Field {
 			Nillable().
 			Comment("Diverse serving substations"),
 		field.String("floor").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Floor"),
@@ -90,7 +84,6 @@ func (Facility) Fields() []ent.Field {
 			Nillable().
 			Comment("Longitude"),
 		field.String("name").
-			MaxLen(255).
 			NotEmpty().
 			Unique().
 			Annotations(
@@ -99,7 +92,6 @@ func (Facility) Fields() []ent.Field {
 			).
 			Comment("Facility name"),
 		field.String("name_long").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -109,12 +101,10 @@ func (Facility) Fields() []ent.Field {
 			Default("").
 			Comment("Notes"),
 		field.String("npanxx").
-			MaxLen(21).
 			Optional().
 			Default("").
 			Comment("NPA-NXX code"),
 		field.String("property").
-			MaxLen(27).
 			Optional().
 			Nillable().
 			Comment("Property type"),
@@ -123,17 +113,14 @@ func (Facility) Fields() []ent.Field {
 			Nillable().
 			Comment("Region/continent"),
 		field.String("rencode").
-			MaxLen(18).
 			Optional().
 			Default("").
 			Comment("Rencode"),
 		field.String("sales_email").
-			MaxLen(254).
 			Optional().
 			Default("").
 			Comment("Sales email"),
 		field.String("sales_phone").
-			MaxLen(192).
 			Optional().
 			Default("").
 			Comment("Sales phone"),
@@ -142,7 +129,6 @@ func (Facility) Fields() []ent.Field {
 			Annotations(entrest.WithSchema(socialMediaSchema())).
 			Comment("Social media links"),
 		field.String("state").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -152,17 +138,14 @@ func (Facility) Fields() []ent.Field {
 			Nillable().
 			Comment("Status dashboard URL"),
 		field.String("suite").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Suite number"),
 		field.String("tech_email").
-			MaxLen(254).
 			Optional().
 			Default("").
 			Comment("Technical email"),
 		field.String("tech_phone").
-			MaxLen(192).
 			Optional().
 			Default("").
 			Comment("Technical phone"),
@@ -171,7 +154,6 @@ func (Facility) Fields() []ent.Field {
 			Default("").
 			Comment("Facility website URL"),
 		field.String("zipcode").
-			MaxLen(48).
 			Optional().
 			Default("").
 			Comment("Postal / ZIP code"),
@@ -203,7 +185,6 @@ func (Facility) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
-			MaxLen(255).
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),

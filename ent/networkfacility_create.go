@@ -240,11 +240,6 @@ func (_c *NetworkFacilityCreate) check() error {
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "NetworkFacility.status"`)}
 	}
-	if v, ok := _c.mutation.Status(); ok {
-		if err := networkfacility.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "NetworkFacility.status": %w`, err)}
-		}
-	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := networkfacility.IDValidator(v); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "NetworkFacility.id": %w`, err)}

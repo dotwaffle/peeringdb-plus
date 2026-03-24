@@ -24,23 +24,19 @@ func (Organization) Fields() []ent.Field {
 			Immutable().
 			Comment("PeeringDB organization ID"),
 		field.String("address1").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Address line 1"),
 		field.String("address2").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Address line 2"),
 		field.String("aka").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Also known as"),
 		field.String("city").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -51,7 +47,6 @@ func (Organization) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Country code"),
 		field.String("floor").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Floor"),
@@ -68,7 +63,6 @@ func (Organization) Fields() []ent.Field {
 			Nillable().
 			Comment("Longitude"),
 		field.String("name").
-			MaxLen(255).
 			NotEmpty().
 			Unique().
 			Annotations(
@@ -77,7 +71,6 @@ func (Organization) Fields() []ent.Field {
 			).
 			Comment("Organization name"),
 		field.String("name_long").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -91,13 +84,11 @@ func (Organization) Fields() []ent.Field {
 			Annotations(entrest.WithSchema(socialMediaSchema())).
 			Comment("Social media links"),
 		field.String("state").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("State or province"),
 		field.String("suite").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Suite number"),
@@ -106,7 +97,6 @@ func (Organization) Fields() []ent.Field {
 			Default("").
 			Comment("Organization website URL"),
 		field.String("zipcode").
-			MaxLen(48).
 			Optional().
 			Default("").
 			Comment("Postal / ZIP code"),
@@ -130,7 +120,6 @@ func (Organization) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
-			MaxLen(255).
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),

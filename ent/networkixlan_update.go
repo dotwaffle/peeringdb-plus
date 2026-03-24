@@ -432,16 +432,6 @@ func (_u *NetworkIxLanUpdate) check() error {
 			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.asn": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Notes(); ok {
-		if err := networkixlan.NotesValidator(v); err != nil {
-			return &ValidationError{Name: "notes", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.notes": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := networkixlan.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.status": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -1026,16 +1016,6 @@ func (_u *NetworkIxLanUpdateOne) check() error {
 	if v, ok := _u.mutation.Asn(); ok {
 		if err := networkixlan.AsnValidator(v); err != nil {
 			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.asn": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Notes(); ok {
-		if err := networkixlan.NotesValidator(v); err != nil {
-			return &ValidationError{Name: "notes", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.notes": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := networkixlan.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.status": %w`, err)}
 		}
 	}
 	return nil

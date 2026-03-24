@@ -29,7 +29,6 @@ func (Network) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to organization"),
 		field.String("aka").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -60,22 +59,18 @@ func (Network) Fields() []ent.Field {
 			Nillable().
 			Comment("IPv6 prefix count"),
 		field.String("info_ratio").
-			MaxLen(45).
 			Optional().
 			Default("").
 			Comment("Traffic ratio"),
 		field.String("info_scope").
-			MaxLen(39).
 			Optional().
 			Default("").
 			Comment("Geographic scope"),
 		field.String("info_traffic").
-			MaxLen(39).
 			Optional().
 			Default("").
 			Comment("Traffic level"),
 		field.String("info_type").
-			MaxLen(60).
 			Optional().
 			Default("").
 			Comment("Network type"),
@@ -86,7 +81,6 @@ func (Network) Fields() []ent.Field {
 			Default(false).
 			Comment("Supports unicast"),
 		field.String("irr_as_set").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("IRR AS-SET"),
@@ -99,7 +93,6 @@ func (Network) Fields() []ent.Field {
 			Default("").
 			Comment("Looking glass URL"),
 		field.String("name").
-			MaxLen(255).
 			NotEmpty().
 			Unique().
 			Annotations(
@@ -108,7 +101,6 @@ func (Network) Fields() []ent.Field {
 			).
 			Comment("Network name"),
 		field.String("name_long").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -118,17 +110,14 @@ func (Network) Fields() []ent.Field {
 			Default("").
 			Comment("Notes"),
 		field.String("policy_contracts").
-			MaxLen(36).
 			Optional().
 			Default("").
 			Comment("Peering policy contracts"),
 		field.String("policy_general").
-			MaxLen(72).
 			Optional().
 			Default("").
 			Comment("General peering policy"),
 		field.String("policy_locations").
-			MaxLen(72).
 			Optional().
 			Default("").
 			Comment("Peering policy locations"),
@@ -140,7 +129,6 @@ func (Network) Fields() []ent.Field {
 			Default("").
 			Comment("Peering policy URL"),
 		field.String("rir_status").
-			MaxLen(255).
 			Optional().
 			Nillable().
 			Comment("RIR status"),
@@ -196,7 +184,6 @@ func (Network) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
-			MaxLen(255).
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),

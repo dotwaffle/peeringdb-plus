@@ -407,24 +407,9 @@ func (_u *CampusUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *CampusUpdate) check() error {
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := campus.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Campus.aka": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := campus.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Campus.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := campus.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Campus.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := campus.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Campus.status": %w`, err)}
 		}
 	}
 	return nil
@@ -1004,24 +989,9 @@ func (_u *CampusUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *CampusUpdateOne) check() error {
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := campus.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Campus.aka": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := campus.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Campus.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := campus.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Campus.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := campus.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Campus.status": %w`, err)}
 		}
 	}
 	return nil

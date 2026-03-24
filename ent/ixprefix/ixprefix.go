@@ -76,18 +76,12 @@ var (
 	DefaultInDfz bool
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
-	// NotesValidator is a validator for the "notes" field. It is called by the builders before save.
-	NotesValidator func(string) error
 	// PrefixValidator is a validator for the "prefix" field. It is called by the builders before save.
 	PrefixValidator func(string) error
 	// DefaultProtocol holds the default value on creation for the "protocol" field.
 	DefaultProtocol string
-	// ProtocolValidator is a validator for the "protocol" field. It is called by the builders before save.
-	ProtocolValidator func(string) error
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	StatusValidator func(string) error
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )

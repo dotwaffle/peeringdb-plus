@@ -261,20 +261,7 @@ func (_u *NetworkFacilityUpdate) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *NetworkFacilityUpdate) check() error {
-	if v, ok := _u.mutation.Status(); ok {
-		if err := networkfacility.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "NetworkFacility.status": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *NetworkFacilityUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(networkfacility.Table, networkfacility.Columns, sqlgraph.NewFieldSpec(networkfacility.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -635,20 +622,7 @@ func (_u *NetworkFacilityUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *NetworkFacilityUpdateOne) check() error {
-	if v, ok := _u.mutation.Status(); ok {
-		if err := networkfacility.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "NetworkFacility.status": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *NetworkFacilityUpdateOne) sqlSave(ctx context.Context) (_node *NetworkFacility, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(networkfacility.Table, networkfacility.Columns, sqlgraph.NewFieldSpec(networkfacility.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
 	if !ok {

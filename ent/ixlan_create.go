@@ -312,16 +312,6 @@ func (_c *IxLanCreate) check() error {
 	if _, ok := _c.mutation.IxfIxpImportEnabled(); !ok {
 		return &ValidationError{Name: "ixf_ixp_import_enabled", err: errors.New(`ent: missing required field "IxLan.ixf_ixp_import_enabled"`)}
 	}
-	if v, ok := _c.mutation.IxfIxpMemberListURLVisible(); ok {
-		if err := ixlan.IxfIxpMemberListURLVisibleValidator(v); err != nil {
-			return &ValidationError{Name: "ixf_ixp_member_list_url_visible", err: fmt.Errorf(`ent: validator failed for field "IxLan.ixf_ixp_member_list_url_visible": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.Name(); ok {
-		if err := ixlan.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "IxLan.name": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Created(); !ok {
 		return &ValidationError{Name: "created", err: errors.New(`ent: missing required field "IxLan.created"`)}
 	}
@@ -330,11 +320,6 @@ func (_c *IxLanCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "IxLan.status"`)}
-	}
-	if v, ok := _c.mutation.Status(); ok {
-		if err := ixlan.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "IxLan.status": %w`, err)}
-		}
 	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := ixlan.IDValidator(v); err != nil {

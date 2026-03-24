@@ -677,59 +677,9 @@ func (_u *OrganizationUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *OrganizationUpdate) check() error {
-	if v, ok := _u.mutation.Address1(); ok {
-		if err := organization.Address1Validator(v); err != nil {
-			return &ValidationError{Name: "address1", err: fmt.Errorf(`ent: validator failed for field "Organization.address1": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Address2(); ok {
-		if err := organization.Address2Validator(v); err != nil {
-			return &ValidationError{Name: "address2", err: fmt.Errorf(`ent: validator failed for field "Organization.address2": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := organization.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Organization.aka": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.City(); ok {
-		if err := organization.CityValidator(v); err != nil {
-			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "Organization.city": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Floor(); ok {
-		if err := organization.FloorValidator(v); err != nil {
-			return &ValidationError{Name: "floor", err: fmt.Errorf(`ent: validator failed for field "Organization.floor": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := organization.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Organization.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := organization.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Organization.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.State(); ok {
-		if err := organization.StateValidator(v); err != nil {
-			return &ValidationError{Name: "state", err: fmt.Errorf(`ent: validator failed for field "Organization.state": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Suite(); ok {
-		if err := organization.SuiteValidator(v); err != nil {
-			return &ValidationError{Name: "suite", err: fmt.Errorf(`ent: validator failed for field "Organization.suite": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Zipcode(); ok {
-		if err := organization.ZipcodeValidator(v); err != nil {
-			return &ValidationError{Name: "zipcode", err: fmt.Errorf(`ent: validator failed for field "Organization.zipcode": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := organization.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Organization.status": %w`, err)}
 		}
 	}
 	return nil
@@ -1781,59 +1731,9 @@ func (_u *OrganizationUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *OrganizationUpdateOne) check() error {
-	if v, ok := _u.mutation.Address1(); ok {
-		if err := organization.Address1Validator(v); err != nil {
-			return &ValidationError{Name: "address1", err: fmt.Errorf(`ent: validator failed for field "Organization.address1": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Address2(); ok {
-		if err := organization.Address2Validator(v); err != nil {
-			return &ValidationError{Name: "address2", err: fmt.Errorf(`ent: validator failed for field "Organization.address2": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := organization.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Organization.aka": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.City(); ok {
-		if err := organization.CityValidator(v); err != nil {
-			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "Organization.city": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Floor(); ok {
-		if err := organization.FloorValidator(v); err != nil {
-			return &ValidationError{Name: "floor", err: fmt.Errorf(`ent: validator failed for field "Organization.floor": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := organization.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Organization.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := organization.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Organization.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.State(); ok {
-		if err := organization.StateValidator(v); err != nil {
-			return &ValidationError{Name: "state", err: fmt.Errorf(`ent: validator failed for field "Organization.state": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Suite(); ok {
-		if err := organization.SuiteValidator(v); err != nil {
-			return &ValidationError{Name: "suite", err: fmt.Errorf(`ent: validator failed for field "Organization.suite": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Zipcode(); ok {
-		if err := organization.ZipcodeValidator(v); err != nil {
-			return &ValidationError{Name: "zipcode", err: fmt.Errorf(`ent: validator failed for field "Organization.zipcode": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := organization.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Organization.status": %w`, err)}
 		}
 	}
 	return nil

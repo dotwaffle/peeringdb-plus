@@ -43,7 +43,6 @@ func (IxLan) Fields() []ent.Field {
 			Default(false).
 			Comment("IXF import enabled"),
 		field.String("ixf_ixp_member_list_url_visible").
-			MaxLen(64).
 			Optional().
 			Default("Private").
 			Comment("IXF member list URL visibility"),
@@ -52,7 +51,6 @@ func (IxLan) Fields() []ent.Field {
 			Default(1500).
 			Comment("MTU size"),
 		field.String("name").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -72,7 +70,6 @@ func (IxLan) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
-			MaxLen(255).
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),

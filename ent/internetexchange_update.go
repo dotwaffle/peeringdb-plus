@@ -807,79 +807,9 @@ func (_u *InternetExchangeUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *InternetExchangeUpdate) check() error {
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := internetexchange.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.aka": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.City(); ok {
-		if err := internetexchange.CityValidator(v); err != nil {
-			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.city": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Media(); ok {
-		if err := internetexchange.MediaValidator(v); err != nil {
-			return &ValidationError{Name: "media", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.media": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := internetexchange.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := internetexchange.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyEmail(); ok {
-		if err := internetexchange.PolicyEmailValidator(v); err != nil {
-			return &ValidationError{Name: "policy_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.policy_email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyPhone(); ok {
-		if err := internetexchange.PolicyPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "policy_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.policy_phone": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.RegionContinent(); ok {
-		if err := internetexchange.RegionContinentValidator(v); err != nil {
-			return &ValidationError{Name: "region_continent", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.region_continent": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.SalesEmail(); ok {
-		if err := internetexchange.SalesEmailValidator(v); err != nil {
-			return &ValidationError{Name: "sales_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.sales_email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.SalesPhone(); ok {
-		if err := internetexchange.SalesPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "sales_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.sales_phone": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.ServiceLevel(); ok {
-		if err := internetexchange.ServiceLevelValidator(v); err != nil {
-			return &ValidationError{Name: "service_level", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.service_level": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TechEmail(); ok {
-		if err := internetexchange.TechEmailValidator(v); err != nil {
-			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TechPhone(); ok {
-		if err := internetexchange.TechPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_phone": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Terms(); ok {
-		if err := internetexchange.TermsValidator(v); err != nil {
-			return &ValidationError{Name: "terms", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.terms": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := internetexchange.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.status": %w`, err)}
 		}
 	}
 	return nil
@@ -2011,79 +1941,9 @@ func (_u *InternetExchangeUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *InternetExchangeUpdateOne) check() error {
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := internetexchange.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.aka": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.City(); ok {
-		if err := internetexchange.CityValidator(v); err != nil {
-			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.city": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Media(); ok {
-		if err := internetexchange.MediaValidator(v); err != nil {
-			return &ValidationError{Name: "media", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.media": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := internetexchange.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := internetexchange.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyEmail(); ok {
-		if err := internetexchange.PolicyEmailValidator(v); err != nil {
-			return &ValidationError{Name: "policy_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.policy_email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyPhone(); ok {
-		if err := internetexchange.PolicyPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "policy_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.policy_phone": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.RegionContinent(); ok {
-		if err := internetexchange.RegionContinentValidator(v); err != nil {
-			return &ValidationError{Name: "region_continent", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.region_continent": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.SalesEmail(); ok {
-		if err := internetexchange.SalesEmailValidator(v); err != nil {
-			return &ValidationError{Name: "sales_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.sales_email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.SalesPhone(); ok {
-		if err := internetexchange.SalesPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "sales_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.sales_phone": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.ServiceLevel(); ok {
-		if err := internetexchange.ServiceLevelValidator(v); err != nil {
-			return &ValidationError{Name: "service_level", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.service_level": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TechEmail(); ok {
-		if err := internetexchange.TechEmailValidator(v); err != nil {
-			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TechPhone(); ok {
-		if err := internetexchange.TechPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_phone": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Terms(); ok {
-		if err := internetexchange.TermsValidator(v); err != nil {
-			return &ValidationError{Name: "terms", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.terms": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := internetexchange.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.status": %w`, err)}
 		}
 	}
 	return nil

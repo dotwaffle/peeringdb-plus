@@ -285,22 +285,12 @@ func (_c *CarrierCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *CarrierCreate) check() error {
-	if v, ok := _c.mutation.Aka(); ok {
-		if err := carrier.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Carrier.aka": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Carrier.name"`)}
 	}
 	if v, ok := _c.mutation.Name(); ok {
 		if err := carrier.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Carrier.name": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.NameLong(); ok {
-		if err := carrier.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Carrier.name_long": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Created(); !ok {
@@ -311,11 +301,6 @@ func (_c *CarrierCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Carrier.status"`)}
-	}
-	if v, ok := _c.mutation.Status(); ok {
-		if err := carrier.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Carrier.status": %w`, err)}
-		}
 	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := carrier.IDValidator(v); err != nil {

@@ -204,24 +204,9 @@ func (_u *IxPrefixUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *IxPrefixUpdate) check() error {
-	if v, ok := _u.mutation.Notes(); ok {
-		if err := ixprefix.NotesValidator(v); err != nil {
-			return &ValidationError{Name: "notes", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.notes": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Prefix(); ok {
 		if err := ixprefix.PrefixValidator(v); err != nil {
 			return &ValidationError{Name: "prefix", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.prefix": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Protocol(); ok {
-		if err := ixprefix.ProtocolValidator(v); err != nil {
-			return &ValidationError{Name: "protocol", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.protocol": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := ixprefix.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.status": %w`, err)}
 		}
 	}
 	return nil
@@ -500,24 +485,9 @@ func (_u *IxPrefixUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *IxPrefixUpdateOne) check() error {
-	if v, ok := _u.mutation.Notes(); ok {
-		if err := ixprefix.NotesValidator(v); err != nil {
-			return &ValidationError{Name: "notes", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.notes": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Prefix(); ok {
 		if err := ixprefix.PrefixValidator(v); err != nil {
 			return &ValidationError{Name: "prefix", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.prefix": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Protocol(); ok {
-		if err := ixprefix.ProtocolValidator(v); err != nil {
-			return &ValidationError{Name: "protocol", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.protocol": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := ixprefix.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.status": %w`, err)}
 		}
 	}
 	return nil

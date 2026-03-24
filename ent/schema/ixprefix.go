@@ -32,7 +32,6 @@ func (IxPrefix) Fields() []ent.Field {
 			Default(false).
 			Comment("In default-free zone"),
 		field.String("notes").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Notes"),
@@ -41,7 +40,6 @@ func (IxPrefix) Fields() []ent.Field {
 			Unique().
 			Comment("IP prefix"),
 		field.String("protocol").
-			MaxLen(64).
 			Optional().
 			Default("").
 			Comment("Protocol (IPv4/IPv6)"),
@@ -55,7 +53,6 @@ func (IxPrefix) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
-			MaxLen(255).
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),

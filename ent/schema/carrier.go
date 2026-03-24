@@ -29,7 +29,6 @@ func (Carrier) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to organization"),
 		field.String("aka").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -39,7 +38,6 @@ func (Carrier) Fields() []ent.Field {
 			Nillable().
 			Comment("Logo URL"),
 		field.String("name").
-			MaxLen(255).
 			NotEmpty().
 			Unique().
 			Annotations(
@@ -48,7 +46,6 @@ func (Carrier) Fields() []ent.Field {
 			).
 			Comment("Carrier name"),
 		field.String("name_long").
-			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -85,7 +82,6 @@ func (Carrier) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
-			MaxLen(255).
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),

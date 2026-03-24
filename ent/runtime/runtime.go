@@ -27,10 +27,6 @@ func init() {
 	campus.Hooks[0] = campusHooks[0]
 	campusFields := schema.Campus{}.Fields()
 	_ = campusFields
-	// campusDescAka is the schema descriptor for aka field.
-	campusDescAka := campusFields[2].Descriptor()
-	// campus.AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	campus.AkaValidator = campusDescAka.Validators[0].(func(string) error)
 	// campusDescCity is the schema descriptor for city field.
 	campusDescCity := campusFields[3].Descriptor()
 	// campus.DefaultCity holds the default value on creation for the city field.
@@ -42,25 +38,7 @@ func init() {
 	// campusDescName is the schema descriptor for name field.
 	campusDescName := campusFields[6].Descriptor()
 	// campus.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	campus.NameValidator = func() func(string) error {
-		validators := campusDescName.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(name string) error {
-			for _, fn := range fns {
-				if err := fn(name); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
-	// campusDescNameLong is the schema descriptor for name_long field.
-	campusDescNameLong := campusFields[7].Descriptor()
-	// campus.NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	campus.NameLongValidator = campusDescNameLong.Validators[0].(func(string) error)
+	campus.NameValidator = campusDescName.Validators[0].(func(string) error)
 	// campusDescNotes is the schema descriptor for notes field.
 	campusDescNotes := campusFields[8].Descriptor()
 	// campus.DefaultNotes holds the default value on creation for the notes field.
@@ -85,8 +63,6 @@ func init() {
 	campusDescStatus := campusFields[16].Descriptor()
 	// campus.DefaultStatus holds the default value on creation for the status field.
 	campus.DefaultStatus = campusDescStatus.Default.(string)
-	// campus.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	campus.StatusValidator = campusDescStatus.Validators[0].(func(string) error)
 	// campusDescID is the schema descriptor for id field.
 	campusDescID := campusFields[0].Descriptor()
 	// campus.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -99,32 +75,14 @@ func init() {
 	carrierDescAka := carrierFields[2].Descriptor()
 	// carrier.DefaultAka holds the default value on creation for the aka field.
 	carrier.DefaultAka = carrierDescAka.Default.(string)
-	// carrier.AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	carrier.AkaValidator = carrierDescAka.Validators[0].(func(string) error)
 	// carrierDescName is the schema descriptor for name field.
 	carrierDescName := carrierFields[4].Descriptor()
 	// carrier.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	carrier.NameValidator = func() func(string) error {
-		validators := carrierDescName.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(name string) error {
-			for _, fn := range fns {
-				if err := fn(name); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
+	carrier.NameValidator = carrierDescName.Validators[0].(func(string) error)
 	// carrierDescNameLong is the schema descriptor for name_long field.
 	carrierDescNameLong := carrierFields[5].Descriptor()
 	// carrier.DefaultNameLong holds the default value on creation for the name_long field.
 	carrier.DefaultNameLong = carrierDescNameLong.Default.(string)
-	// carrier.NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	carrier.NameLongValidator = carrierDescNameLong.Validators[0].(func(string) error)
 	// carrierDescNotes is the schema descriptor for notes field.
 	carrierDescNotes := carrierFields[6].Descriptor()
 	// carrier.DefaultNotes holds the default value on creation for the notes field.
@@ -145,8 +103,6 @@ func init() {
 	carrierDescStatus := carrierFields[13].Descriptor()
 	// carrier.DefaultStatus holds the default value on creation for the status field.
 	carrier.DefaultStatus = carrierDescStatus.Default.(string)
-	// carrier.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	carrier.StatusValidator = carrierDescStatus.Validators[0].(func(string) error)
 	// carrierDescID is the schema descriptor for id field.
 	carrierDescID := carrierFields[0].Descriptor()
 	// carrier.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -163,8 +119,6 @@ func init() {
 	carrierfacilityDescStatus := carrierfacilityFields[6].Descriptor()
 	// carrierfacility.DefaultStatus holds the default value on creation for the status field.
 	carrierfacility.DefaultStatus = carrierfacilityDescStatus.Default.(string)
-	// carrierfacility.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	carrierfacility.StatusValidator = carrierfacilityDescStatus.Validators[0].(func(string) error)
 	// carrierfacilityDescID is the schema descriptor for id field.
 	carrierfacilityDescID := carrierfacilityFields[0].Descriptor()
 	// carrierfacility.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -177,32 +131,22 @@ func init() {
 	facilityDescAddress1 := facilityFields[3].Descriptor()
 	// facility.DefaultAddress1 holds the default value on creation for the address1 field.
 	facility.DefaultAddress1 = facilityDescAddress1.Default.(string)
-	// facility.Address1Validator is a validator for the "address1" field. It is called by the builders before save.
-	facility.Address1Validator = facilityDescAddress1.Validators[0].(func(string) error)
 	// facilityDescAddress2 is the schema descriptor for address2 field.
 	facilityDescAddress2 := facilityFields[4].Descriptor()
 	// facility.DefaultAddress2 holds the default value on creation for the address2 field.
 	facility.DefaultAddress2 = facilityDescAddress2.Default.(string)
-	// facility.Address2Validator is a validator for the "address2" field. It is called by the builders before save.
-	facility.Address2Validator = facilityDescAddress2.Validators[0].(func(string) error)
 	// facilityDescAka is the schema descriptor for aka field.
 	facilityDescAka := facilityFields[5].Descriptor()
 	// facility.DefaultAka holds the default value on creation for the aka field.
 	facility.DefaultAka = facilityDescAka.Default.(string)
-	// facility.AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	facility.AkaValidator = facilityDescAka.Validators[0].(func(string) error)
 	// facilityDescCity is the schema descriptor for city field.
 	facilityDescCity := facilityFields[7].Descriptor()
 	// facility.DefaultCity holds the default value on creation for the city field.
 	facility.DefaultCity = facilityDescCity.Default.(string)
-	// facility.CityValidator is a validator for the "city" field. It is called by the builders before save.
-	facility.CityValidator = facilityDescCity.Validators[0].(func(string) error)
 	// facilityDescClli is the schema descriptor for clli field.
 	facilityDescClli := facilityFields[8].Descriptor()
 	// facility.DefaultClli holds the default value on creation for the clli field.
 	facility.DefaultClli = facilityDescClli.Default.(string)
-	// facility.ClliValidator is a validator for the "clli" field. It is called by the builders before save.
-	facility.ClliValidator = facilityDescClli.Validators[0].(func(string) error)
 	// facilityDescCountry is the schema descriptor for country field.
 	facilityDescCountry := facilityFields[9].Descriptor()
 	// facility.DefaultCountry holds the default value on creation for the country field.
@@ -211,32 +155,14 @@ func init() {
 	facilityDescFloor := facilityFields[11].Descriptor()
 	// facility.DefaultFloor holds the default value on creation for the floor field.
 	facility.DefaultFloor = facilityDescFloor.Default.(string)
-	// facility.FloorValidator is a validator for the "floor" field. It is called by the builders before save.
-	facility.FloorValidator = facilityDescFloor.Validators[0].(func(string) error)
 	// facilityDescName is the schema descriptor for name field.
 	facilityDescName := facilityFields[15].Descriptor()
 	// facility.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	facility.NameValidator = func() func(string) error {
-		validators := facilityDescName.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(name string) error {
-			for _, fn := range fns {
-				if err := fn(name); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
+	facility.NameValidator = facilityDescName.Validators[0].(func(string) error)
 	// facilityDescNameLong is the schema descriptor for name_long field.
 	facilityDescNameLong := facilityFields[16].Descriptor()
 	// facility.DefaultNameLong holds the default value on creation for the name_long field.
 	facility.DefaultNameLong = facilityDescNameLong.Default.(string)
-	// facility.NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	facility.NameLongValidator = facilityDescNameLong.Validators[0].(func(string) error)
 	// facilityDescNotes is the schema descriptor for notes field.
 	facilityDescNotes := facilityFields[17].Descriptor()
 	// facility.DefaultNotes holds the default value on creation for the notes field.
@@ -245,54 +171,34 @@ func init() {
 	facilityDescNpanxx := facilityFields[18].Descriptor()
 	// facility.DefaultNpanxx holds the default value on creation for the npanxx field.
 	facility.DefaultNpanxx = facilityDescNpanxx.Default.(string)
-	// facility.NpanxxValidator is a validator for the "npanxx" field. It is called by the builders before save.
-	facility.NpanxxValidator = facilityDescNpanxx.Validators[0].(func(string) error)
-	// facilityDescProperty is the schema descriptor for property field.
-	facilityDescProperty := facilityFields[19].Descriptor()
-	// facility.PropertyValidator is a validator for the "property" field. It is called by the builders before save.
-	facility.PropertyValidator = facilityDescProperty.Validators[0].(func(string) error)
 	// facilityDescRencode is the schema descriptor for rencode field.
 	facilityDescRencode := facilityFields[21].Descriptor()
 	// facility.DefaultRencode holds the default value on creation for the rencode field.
 	facility.DefaultRencode = facilityDescRencode.Default.(string)
-	// facility.RencodeValidator is a validator for the "rencode" field. It is called by the builders before save.
-	facility.RencodeValidator = facilityDescRencode.Validators[0].(func(string) error)
 	// facilityDescSalesEmail is the schema descriptor for sales_email field.
 	facilityDescSalesEmail := facilityFields[22].Descriptor()
 	// facility.DefaultSalesEmail holds the default value on creation for the sales_email field.
 	facility.DefaultSalesEmail = facilityDescSalesEmail.Default.(string)
-	// facility.SalesEmailValidator is a validator for the "sales_email" field. It is called by the builders before save.
-	facility.SalesEmailValidator = facilityDescSalesEmail.Validators[0].(func(string) error)
 	// facilityDescSalesPhone is the schema descriptor for sales_phone field.
 	facilityDescSalesPhone := facilityFields[23].Descriptor()
 	// facility.DefaultSalesPhone holds the default value on creation for the sales_phone field.
 	facility.DefaultSalesPhone = facilityDescSalesPhone.Default.(string)
-	// facility.SalesPhoneValidator is a validator for the "sales_phone" field. It is called by the builders before save.
-	facility.SalesPhoneValidator = facilityDescSalesPhone.Validators[0].(func(string) error)
 	// facilityDescState is the schema descriptor for state field.
 	facilityDescState := facilityFields[25].Descriptor()
 	// facility.DefaultState holds the default value on creation for the state field.
 	facility.DefaultState = facilityDescState.Default.(string)
-	// facility.StateValidator is a validator for the "state" field. It is called by the builders before save.
-	facility.StateValidator = facilityDescState.Validators[0].(func(string) error)
 	// facilityDescSuite is the schema descriptor for suite field.
 	facilityDescSuite := facilityFields[27].Descriptor()
 	// facility.DefaultSuite holds the default value on creation for the suite field.
 	facility.DefaultSuite = facilityDescSuite.Default.(string)
-	// facility.SuiteValidator is a validator for the "suite" field. It is called by the builders before save.
-	facility.SuiteValidator = facilityDescSuite.Validators[0].(func(string) error)
 	// facilityDescTechEmail is the schema descriptor for tech_email field.
 	facilityDescTechEmail := facilityFields[28].Descriptor()
 	// facility.DefaultTechEmail holds the default value on creation for the tech_email field.
 	facility.DefaultTechEmail = facilityDescTechEmail.Default.(string)
-	// facility.TechEmailValidator is a validator for the "tech_email" field. It is called by the builders before save.
-	facility.TechEmailValidator = facilityDescTechEmail.Validators[0].(func(string) error)
 	// facilityDescTechPhone is the schema descriptor for tech_phone field.
 	facilityDescTechPhone := facilityFields[29].Descriptor()
 	// facility.DefaultTechPhone holds the default value on creation for the tech_phone field.
 	facility.DefaultTechPhone = facilityDescTechPhone.Default.(string)
-	// facility.TechPhoneValidator is a validator for the "tech_phone" field. It is called by the builders before save.
-	facility.TechPhoneValidator = facilityDescTechPhone.Validators[0].(func(string) error)
 	// facilityDescWebsite is the schema descriptor for website field.
 	facilityDescWebsite := facilityFields[30].Descriptor()
 	// facility.DefaultWebsite holds the default value on creation for the website field.
@@ -301,8 +207,6 @@ func init() {
 	facilityDescZipcode := facilityFields[31].Descriptor()
 	// facility.DefaultZipcode holds the default value on creation for the zipcode field.
 	facility.DefaultZipcode = facilityDescZipcode.Default.(string)
-	// facility.ZipcodeValidator is a validator for the "zipcode" field. It is called by the builders before save.
-	facility.ZipcodeValidator = facilityDescZipcode.Validators[0].(func(string) error)
 	// facilityDescOrgName is the schema descriptor for org_name field.
 	facilityDescOrgName := facilityFields[32].Descriptor()
 	// facility.DefaultOrgName holds the default value on creation for the org_name field.
@@ -323,8 +227,6 @@ func init() {
 	facilityDescStatus := facilityFields[38].Descriptor()
 	// facility.DefaultStatus holds the default value on creation for the status field.
 	facility.DefaultStatus = facilityDescStatus.Default.(string)
-	// facility.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	facility.StatusValidator = facilityDescStatus.Validators[0].(func(string) error)
 	// facilityDescID is the schema descriptor for id field.
 	facilityDescID := facilityFields[0].Descriptor()
 	// facility.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -337,14 +239,10 @@ func init() {
 	internetexchangeDescAka := internetexchangeFields[2].Descriptor()
 	// internetexchange.DefaultAka holds the default value on creation for the aka field.
 	internetexchange.DefaultAka = internetexchangeDescAka.Default.(string)
-	// internetexchange.AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	internetexchange.AkaValidator = internetexchangeDescAka.Validators[0].(func(string) error)
 	// internetexchangeDescCity is the schema descriptor for city field.
 	internetexchangeDescCity := internetexchangeFields[3].Descriptor()
 	// internetexchange.DefaultCity holds the default value on creation for the city field.
 	internetexchange.DefaultCity = internetexchangeDescCity.Default.(string)
-	// internetexchange.CityValidator is a validator for the "city" field. It is called by the builders before save.
-	internetexchange.CityValidator = internetexchangeDescCity.Validators[0].(func(string) error)
 	// internetexchangeDescCountry is the schema descriptor for country field.
 	internetexchangeDescCountry := internetexchangeFields[4].Descriptor()
 	// internetexchange.DefaultCountry holds the default value on creation for the country field.
@@ -357,32 +255,14 @@ func init() {
 	internetexchangeDescMedia := internetexchangeFields[8].Descriptor()
 	// internetexchange.DefaultMedia holds the default value on creation for the media field.
 	internetexchange.DefaultMedia = internetexchangeDescMedia.Default.(string)
-	// internetexchange.MediaValidator is a validator for the "media" field. It is called by the builders before save.
-	internetexchange.MediaValidator = internetexchangeDescMedia.Validators[0].(func(string) error)
 	// internetexchangeDescName is the schema descriptor for name field.
 	internetexchangeDescName := internetexchangeFields[9].Descriptor()
 	// internetexchange.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	internetexchange.NameValidator = func() func(string) error {
-		validators := internetexchangeDescName.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(name string) error {
-			for _, fn := range fns {
-				if err := fn(name); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
+	internetexchange.NameValidator = internetexchangeDescName.Validators[0].(func(string) error)
 	// internetexchangeDescNameLong is the schema descriptor for name_long field.
 	internetexchangeDescNameLong := internetexchangeFields[10].Descriptor()
 	// internetexchange.DefaultNameLong holds the default value on creation for the name_long field.
 	internetexchange.DefaultNameLong = internetexchangeDescNameLong.Default.(string)
-	// internetexchange.NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	internetexchange.NameLongValidator = internetexchangeDescNameLong.Validators[0].(func(string) error)
 	// internetexchangeDescNotes is the schema descriptor for notes field.
 	internetexchangeDescNotes := internetexchangeFields[11].Descriptor()
 	// internetexchange.DefaultNotes holds the default value on creation for the notes field.
@@ -391,14 +271,10 @@ func init() {
 	internetexchangeDescPolicyEmail := internetexchangeFields[12].Descriptor()
 	// internetexchange.DefaultPolicyEmail holds the default value on creation for the policy_email field.
 	internetexchange.DefaultPolicyEmail = internetexchangeDescPolicyEmail.Default.(string)
-	// internetexchange.PolicyEmailValidator is a validator for the "policy_email" field. It is called by the builders before save.
-	internetexchange.PolicyEmailValidator = internetexchangeDescPolicyEmail.Validators[0].(func(string) error)
 	// internetexchangeDescPolicyPhone is the schema descriptor for policy_phone field.
 	internetexchangeDescPolicyPhone := internetexchangeFields[13].Descriptor()
 	// internetexchange.DefaultPolicyPhone holds the default value on creation for the policy_phone field.
 	internetexchange.DefaultPolicyPhone = internetexchangeDescPolicyPhone.Default.(string)
-	// internetexchange.PolicyPhoneValidator is a validator for the "policy_phone" field. It is called by the builders before save.
-	internetexchange.PolicyPhoneValidator = internetexchangeDescPolicyPhone.Validators[0].(func(string) error)
 	// internetexchangeDescProtoIpv6 is the schema descriptor for proto_ipv6 field.
 	internetexchangeDescProtoIpv6 := internetexchangeFields[14].Descriptor()
 	// internetexchange.DefaultProtoIpv6 holds the default value on creation for the proto_ipv6 field.
@@ -415,44 +291,30 @@ func init() {
 	internetexchangeDescRegionContinent := internetexchangeFields[17].Descriptor()
 	// internetexchange.DefaultRegionContinent holds the default value on creation for the region_continent field.
 	internetexchange.DefaultRegionContinent = internetexchangeDescRegionContinent.Default.(string)
-	// internetexchange.RegionContinentValidator is a validator for the "region_continent" field. It is called by the builders before save.
-	internetexchange.RegionContinentValidator = internetexchangeDescRegionContinent.Validators[0].(func(string) error)
 	// internetexchangeDescSalesEmail is the schema descriptor for sales_email field.
 	internetexchangeDescSalesEmail := internetexchangeFields[18].Descriptor()
 	// internetexchange.DefaultSalesEmail holds the default value on creation for the sales_email field.
 	internetexchange.DefaultSalesEmail = internetexchangeDescSalesEmail.Default.(string)
-	// internetexchange.SalesEmailValidator is a validator for the "sales_email" field. It is called by the builders before save.
-	internetexchange.SalesEmailValidator = internetexchangeDescSalesEmail.Validators[0].(func(string) error)
 	// internetexchangeDescSalesPhone is the schema descriptor for sales_phone field.
 	internetexchangeDescSalesPhone := internetexchangeFields[19].Descriptor()
 	// internetexchange.DefaultSalesPhone holds the default value on creation for the sales_phone field.
 	internetexchange.DefaultSalesPhone = internetexchangeDescSalesPhone.Default.(string)
-	// internetexchange.SalesPhoneValidator is a validator for the "sales_phone" field. It is called by the builders before save.
-	internetexchange.SalesPhoneValidator = internetexchangeDescSalesPhone.Validators[0].(func(string) error)
 	// internetexchangeDescServiceLevel is the schema descriptor for service_level field.
 	internetexchangeDescServiceLevel := internetexchangeFields[20].Descriptor()
 	// internetexchange.DefaultServiceLevel holds the default value on creation for the service_level field.
 	internetexchange.DefaultServiceLevel = internetexchangeDescServiceLevel.Default.(string)
-	// internetexchange.ServiceLevelValidator is a validator for the "service_level" field. It is called by the builders before save.
-	internetexchange.ServiceLevelValidator = internetexchangeDescServiceLevel.Validators[0].(func(string) error)
 	// internetexchangeDescTechEmail is the schema descriptor for tech_email field.
 	internetexchangeDescTechEmail := internetexchangeFields[23].Descriptor()
 	// internetexchange.DefaultTechEmail holds the default value on creation for the tech_email field.
 	internetexchange.DefaultTechEmail = internetexchangeDescTechEmail.Default.(string)
-	// internetexchange.TechEmailValidator is a validator for the "tech_email" field. It is called by the builders before save.
-	internetexchange.TechEmailValidator = internetexchangeDescTechEmail.Validators[0].(func(string) error)
 	// internetexchangeDescTechPhone is the schema descriptor for tech_phone field.
 	internetexchangeDescTechPhone := internetexchangeFields[24].Descriptor()
 	// internetexchange.DefaultTechPhone holds the default value on creation for the tech_phone field.
 	internetexchange.DefaultTechPhone = internetexchangeDescTechPhone.Default.(string)
-	// internetexchange.TechPhoneValidator is a validator for the "tech_phone" field. It is called by the builders before save.
-	internetexchange.TechPhoneValidator = internetexchangeDescTechPhone.Validators[0].(func(string) error)
 	// internetexchangeDescTerms is the schema descriptor for terms field.
 	internetexchangeDescTerms := internetexchangeFields[25].Descriptor()
 	// internetexchange.DefaultTerms holds the default value on creation for the terms field.
 	internetexchange.DefaultTerms = internetexchangeDescTerms.Default.(string)
-	// internetexchange.TermsValidator is a validator for the "terms" field. It is called by the builders before save.
-	internetexchange.TermsValidator = internetexchangeDescTerms.Validators[0].(func(string) error)
 	// internetexchangeDescURLStats is the schema descriptor for url_stats field.
 	internetexchangeDescURLStats := internetexchangeFields[26].Descriptor()
 	// internetexchange.DefaultURLStats holds the default value on creation for the url_stats field.
@@ -477,8 +339,6 @@ func init() {
 	internetexchangeDescStatus := internetexchangeFields[34].Descriptor()
 	// internetexchange.DefaultStatus holds the default value on creation for the status field.
 	internetexchange.DefaultStatus = internetexchangeDescStatus.Default.(string)
-	// internetexchange.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	internetexchange.StatusValidator = internetexchangeDescStatus.Validators[0].(func(string) error)
 	// internetexchangeDescID is the schema descriptor for id field.
 	internetexchangeDescID := internetexchangeFields[0].Descriptor()
 	// internetexchange.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -503,8 +363,6 @@ func init() {
 	ixfacilityDescStatus := ixfacilityFields[8].Descriptor()
 	// ixfacility.DefaultStatus holds the default value on creation for the status field.
 	ixfacility.DefaultStatus = ixfacilityDescStatus.Default.(string)
-	// ixfacility.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	ixfacility.StatusValidator = ixfacilityDescStatus.Validators[0].(func(string) error)
 	// ixfacilityDescID is the schema descriptor for id field.
 	ixfacilityDescID := ixfacilityFields[0].Descriptor()
 	// ixfacility.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -529,8 +387,6 @@ func init() {
 	ixlanDescIxfIxpMemberListURLVisible := ixlanFields[6].Descriptor()
 	// ixlan.DefaultIxfIxpMemberListURLVisible holds the default value on creation for the ixf_ixp_member_list_url_visible field.
 	ixlan.DefaultIxfIxpMemberListURLVisible = ixlanDescIxfIxpMemberListURLVisible.Default.(string)
-	// ixlan.IxfIxpMemberListURLVisibleValidator is a validator for the "ixf_ixp_member_list_url_visible" field. It is called by the builders before save.
-	ixlan.IxfIxpMemberListURLVisibleValidator = ixlanDescIxfIxpMemberListURLVisible.Validators[0].(func(string) error)
 	// ixlanDescMtu is the schema descriptor for mtu field.
 	ixlanDescMtu := ixlanFields[7].Descriptor()
 	// ixlan.DefaultMtu holds the default value on creation for the mtu field.
@@ -539,8 +395,6 @@ func init() {
 	ixlanDescName := ixlanFields[8].Descriptor()
 	// ixlan.DefaultName holds the default value on creation for the name field.
 	ixlan.DefaultName = ixlanDescName.Default.(string)
-	// ixlan.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	ixlan.NameValidator = ixlanDescName.Validators[0].(func(string) error)
 	// ixlanDescRsAsn is the schema descriptor for rs_asn field.
 	ixlanDescRsAsn := ixlanFields[9].Descriptor()
 	// ixlan.DefaultRsAsn holds the default value on creation for the rs_asn field.
@@ -549,8 +403,6 @@ func init() {
 	ixlanDescStatus := ixlanFields[12].Descriptor()
 	// ixlan.DefaultStatus holds the default value on creation for the status field.
 	ixlan.DefaultStatus = ixlanDescStatus.Default.(string)
-	// ixlan.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	ixlan.StatusValidator = ixlanDescStatus.Validators[0].(func(string) error)
 	// ixlanDescID is the schema descriptor for id field.
 	ixlanDescID := ixlanFields[0].Descriptor()
 	// ixlan.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -567,8 +419,6 @@ func init() {
 	ixprefixDescNotes := ixprefixFields[3].Descriptor()
 	// ixprefix.DefaultNotes holds the default value on creation for the notes field.
 	ixprefix.DefaultNotes = ixprefixDescNotes.Default.(string)
-	// ixprefix.NotesValidator is a validator for the "notes" field. It is called by the builders before save.
-	ixprefix.NotesValidator = ixprefixDescNotes.Validators[0].(func(string) error)
 	// ixprefixDescPrefix is the schema descriptor for prefix field.
 	ixprefixDescPrefix := ixprefixFields[4].Descriptor()
 	// ixprefix.PrefixValidator is a validator for the "prefix" field. It is called by the builders before save.
@@ -577,14 +427,10 @@ func init() {
 	ixprefixDescProtocol := ixprefixFields[5].Descriptor()
 	// ixprefix.DefaultProtocol holds the default value on creation for the protocol field.
 	ixprefix.DefaultProtocol = ixprefixDescProtocol.Default.(string)
-	// ixprefix.ProtocolValidator is a validator for the "protocol" field. It is called by the builders before save.
-	ixprefix.ProtocolValidator = ixprefixDescProtocol.Validators[0].(func(string) error)
 	// ixprefixDescStatus is the schema descriptor for status field.
 	ixprefixDescStatus := ixprefixFields[8].Descriptor()
 	// ixprefix.DefaultStatus holds the default value on creation for the status field.
 	ixprefix.DefaultStatus = ixprefixDescStatus.Default.(string)
-	// ixprefix.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	ixprefix.StatusValidator = ixprefixDescStatus.Validators[0].(func(string) error)
 	// ixprefixDescID is the schema descriptor for id field.
 	ixprefixDescID := ixprefixFields[0].Descriptor()
 	// ixprefix.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -597,8 +443,6 @@ func init() {
 	networkDescAka := networkFields[2].Descriptor()
 	// network.DefaultAka holds the default value on creation for the aka field.
 	network.DefaultAka = networkDescAka.Default.(string)
-	// network.AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	network.AkaValidator = networkDescAka.Validators[0].(func(string) error)
 	// networkDescAllowIxpUpdate is the schema descriptor for allow_ixp_update field.
 	networkDescAllowIxpUpdate := networkFields[3].Descriptor()
 	// network.DefaultAllowIxpUpdate holds the default value on creation for the allow_ixp_update field.
@@ -623,26 +467,18 @@ func init() {
 	networkDescInfoRatio := networkFields[10].Descriptor()
 	// network.DefaultInfoRatio holds the default value on creation for the info_ratio field.
 	network.DefaultInfoRatio = networkDescInfoRatio.Default.(string)
-	// network.InfoRatioValidator is a validator for the "info_ratio" field. It is called by the builders before save.
-	network.InfoRatioValidator = networkDescInfoRatio.Validators[0].(func(string) error)
 	// networkDescInfoScope is the schema descriptor for info_scope field.
 	networkDescInfoScope := networkFields[11].Descriptor()
 	// network.DefaultInfoScope holds the default value on creation for the info_scope field.
 	network.DefaultInfoScope = networkDescInfoScope.Default.(string)
-	// network.InfoScopeValidator is a validator for the "info_scope" field. It is called by the builders before save.
-	network.InfoScopeValidator = networkDescInfoScope.Validators[0].(func(string) error)
 	// networkDescInfoTraffic is the schema descriptor for info_traffic field.
 	networkDescInfoTraffic := networkFields[12].Descriptor()
 	// network.DefaultInfoTraffic holds the default value on creation for the info_traffic field.
 	network.DefaultInfoTraffic = networkDescInfoTraffic.Default.(string)
-	// network.InfoTrafficValidator is a validator for the "info_traffic" field. It is called by the builders before save.
-	network.InfoTrafficValidator = networkDescInfoTraffic.Validators[0].(func(string) error)
 	// networkDescInfoType is the schema descriptor for info_type field.
 	networkDescInfoType := networkFields[13].Descriptor()
 	// network.DefaultInfoType holds the default value on creation for the info_type field.
 	network.DefaultInfoType = networkDescInfoType.Default.(string)
-	// network.InfoTypeValidator is a validator for the "info_type" field. It is called by the builders before save.
-	network.InfoTypeValidator = networkDescInfoType.Validators[0].(func(string) error)
 	// networkDescInfoUnicast is the schema descriptor for info_unicast field.
 	networkDescInfoUnicast := networkFields[15].Descriptor()
 	// network.DefaultInfoUnicast holds the default value on creation for the info_unicast field.
@@ -651,8 +487,6 @@ func init() {
 	networkDescIrrAsSet := networkFields[16].Descriptor()
 	// network.DefaultIrrAsSet holds the default value on creation for the irr_as_set field.
 	network.DefaultIrrAsSet = networkDescIrrAsSet.Default.(string)
-	// network.IrrAsSetValidator is a validator for the "irr_as_set" field. It is called by the builders before save.
-	network.IrrAsSetValidator = networkDescIrrAsSet.Validators[0].(func(string) error)
 	// networkDescLookingGlass is the schema descriptor for looking_glass field.
 	networkDescLookingGlass := networkFields[18].Descriptor()
 	// network.DefaultLookingGlass holds the default value on creation for the looking_glass field.
@@ -660,27 +494,11 @@ func init() {
 	// networkDescName is the schema descriptor for name field.
 	networkDescName := networkFields[19].Descriptor()
 	// network.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	network.NameValidator = func() func(string) error {
-		validators := networkDescName.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(name string) error {
-			for _, fn := range fns {
-				if err := fn(name); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
+	network.NameValidator = networkDescName.Validators[0].(func(string) error)
 	// networkDescNameLong is the schema descriptor for name_long field.
 	networkDescNameLong := networkFields[20].Descriptor()
 	// network.DefaultNameLong holds the default value on creation for the name_long field.
 	network.DefaultNameLong = networkDescNameLong.Default.(string)
-	// network.NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	network.NameLongValidator = networkDescNameLong.Validators[0].(func(string) error)
 	// networkDescNotes is the schema descriptor for notes field.
 	networkDescNotes := networkFields[21].Descriptor()
 	// network.DefaultNotes holds the default value on creation for the notes field.
@@ -689,20 +507,14 @@ func init() {
 	networkDescPolicyContracts := networkFields[22].Descriptor()
 	// network.DefaultPolicyContracts holds the default value on creation for the policy_contracts field.
 	network.DefaultPolicyContracts = networkDescPolicyContracts.Default.(string)
-	// network.PolicyContractsValidator is a validator for the "policy_contracts" field. It is called by the builders before save.
-	network.PolicyContractsValidator = networkDescPolicyContracts.Validators[0].(func(string) error)
 	// networkDescPolicyGeneral is the schema descriptor for policy_general field.
 	networkDescPolicyGeneral := networkFields[23].Descriptor()
 	// network.DefaultPolicyGeneral holds the default value on creation for the policy_general field.
 	network.DefaultPolicyGeneral = networkDescPolicyGeneral.Default.(string)
-	// network.PolicyGeneralValidator is a validator for the "policy_general" field. It is called by the builders before save.
-	network.PolicyGeneralValidator = networkDescPolicyGeneral.Validators[0].(func(string) error)
 	// networkDescPolicyLocations is the schema descriptor for policy_locations field.
 	networkDescPolicyLocations := networkFields[24].Descriptor()
 	// network.DefaultPolicyLocations holds the default value on creation for the policy_locations field.
 	network.DefaultPolicyLocations = networkDescPolicyLocations.Default.(string)
-	// network.PolicyLocationsValidator is a validator for the "policy_locations" field. It is called by the builders before save.
-	network.PolicyLocationsValidator = networkDescPolicyLocations.Validators[0].(func(string) error)
 	// networkDescPolicyRatio is the schema descriptor for policy_ratio field.
 	networkDescPolicyRatio := networkFields[25].Descriptor()
 	// network.DefaultPolicyRatio holds the default value on creation for the policy_ratio field.
@@ -711,10 +523,6 @@ func init() {
 	networkDescPolicyURL := networkFields[26].Descriptor()
 	// network.DefaultPolicyURL holds the default value on creation for the policy_url field.
 	network.DefaultPolicyURL = networkDescPolicyURL.Default.(string)
-	// networkDescRirStatus is the schema descriptor for rir_status field.
-	networkDescRirStatus := networkFields[27].Descriptor()
-	// network.RirStatusValidator is a validator for the "rir_status" field. It is called by the builders before save.
-	network.RirStatusValidator = networkDescRirStatus.Validators[0].(func(string) error)
 	// networkDescRouteServer is the schema descriptor for route_server field.
 	networkDescRouteServer := networkFields[29].Descriptor()
 	// network.DefaultRouteServer holds the default value on creation for the route_server field.
@@ -735,8 +543,6 @@ func init() {
 	networkDescStatus := networkFields[40].Descriptor()
 	// network.DefaultStatus holds the default value on creation for the status field.
 	network.DefaultStatus = networkDescStatus.Default.(string)
-	// network.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	network.StatusValidator = networkDescStatus.Validators[0].(func(string) error)
 	// networkDescID is the schema descriptor for id field.
 	networkDescID := networkFields[0].Descriptor()
 	// network.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -761,8 +567,6 @@ func init() {
 	networkfacilityDescStatus := networkfacilityFields[9].Descriptor()
 	// networkfacility.DefaultStatus holds the default value on creation for the status field.
 	networkfacility.DefaultStatus = networkfacilityDescStatus.Default.(string)
-	// networkfacility.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	networkfacility.StatusValidator = networkfacilityDescStatus.Validators[0].(func(string) error)
 	// networkfacilityDescID is the schema descriptor for id field.
 	networkfacilityDescID := networkfacilityFields[0].Descriptor()
 	// networkfacility.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -787,8 +591,6 @@ func init() {
 	networkixlanDescNotes := networkixlanFields[10].Descriptor()
 	// networkixlan.DefaultNotes holds the default value on creation for the notes field.
 	networkixlan.DefaultNotes = networkixlanDescNotes.Default.(string)
-	// networkixlan.NotesValidator is a validator for the "notes" field. It is called by the builders before save.
-	networkixlan.NotesValidator = networkixlanDescNotes.Validators[0].(func(string) error)
 	// networkixlanDescOperational is the schema descriptor for operational field.
 	networkixlanDescOperational := networkixlanFields[11].Descriptor()
 	// networkixlan.DefaultOperational holds the default value on creation for the operational field.
@@ -801,8 +603,6 @@ func init() {
 	networkixlanDescStatus := networkixlanFields[17].Descriptor()
 	// networkixlan.DefaultStatus holds the default value on creation for the status field.
 	networkixlan.DefaultStatus = networkixlanDescStatus.Default.(string)
-	// networkixlan.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	networkixlan.StatusValidator = networkixlanDescStatus.Validators[0].(func(string) error)
 	// networkixlanDescID is the schema descriptor for id field.
 	networkixlanDescID := networkixlanFields[0].Descriptor()
 	// networkixlan.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -815,26 +615,18 @@ func init() {
 	organizationDescAddress1 := organizationFields[1].Descriptor()
 	// organization.DefaultAddress1 holds the default value on creation for the address1 field.
 	organization.DefaultAddress1 = organizationDescAddress1.Default.(string)
-	// organization.Address1Validator is a validator for the "address1" field. It is called by the builders before save.
-	organization.Address1Validator = organizationDescAddress1.Validators[0].(func(string) error)
 	// organizationDescAddress2 is the schema descriptor for address2 field.
 	organizationDescAddress2 := organizationFields[2].Descriptor()
 	// organization.DefaultAddress2 holds the default value on creation for the address2 field.
 	organization.DefaultAddress2 = organizationDescAddress2.Default.(string)
-	// organization.Address2Validator is a validator for the "address2" field. It is called by the builders before save.
-	organization.Address2Validator = organizationDescAddress2.Validators[0].(func(string) error)
 	// organizationDescAka is the schema descriptor for aka field.
 	organizationDescAka := organizationFields[3].Descriptor()
 	// organization.DefaultAka holds the default value on creation for the aka field.
 	organization.DefaultAka = organizationDescAka.Default.(string)
-	// organization.AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	organization.AkaValidator = organizationDescAka.Validators[0].(func(string) error)
 	// organizationDescCity is the schema descriptor for city field.
 	organizationDescCity := organizationFields[4].Descriptor()
 	// organization.DefaultCity holds the default value on creation for the city field.
 	organization.DefaultCity = organizationDescCity.Default.(string)
-	// organization.CityValidator is a validator for the "city" field. It is called by the builders before save.
-	organization.CityValidator = organizationDescCity.Validators[0].(func(string) error)
 	// organizationDescCountry is the schema descriptor for country field.
 	organizationDescCountry := organizationFields[5].Descriptor()
 	// organization.DefaultCountry holds the default value on creation for the country field.
@@ -843,32 +635,14 @@ func init() {
 	organizationDescFloor := organizationFields[6].Descriptor()
 	// organization.DefaultFloor holds the default value on creation for the floor field.
 	organization.DefaultFloor = organizationDescFloor.Default.(string)
-	// organization.FloorValidator is a validator for the "floor" field. It is called by the builders before save.
-	organization.FloorValidator = organizationDescFloor.Validators[0].(func(string) error)
 	// organizationDescName is the schema descriptor for name field.
 	organizationDescName := organizationFields[10].Descriptor()
 	// organization.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	organization.NameValidator = func() func(string) error {
-		validators := organizationDescName.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(name string) error {
-			for _, fn := range fns {
-				if err := fn(name); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
+	organization.NameValidator = organizationDescName.Validators[0].(func(string) error)
 	// organizationDescNameLong is the schema descriptor for name_long field.
 	organizationDescNameLong := organizationFields[11].Descriptor()
 	// organization.DefaultNameLong holds the default value on creation for the name_long field.
 	organization.DefaultNameLong = organizationDescNameLong.Default.(string)
-	// organization.NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	organization.NameLongValidator = organizationDescNameLong.Validators[0].(func(string) error)
 	// organizationDescNotes is the schema descriptor for notes field.
 	organizationDescNotes := organizationFields[12].Descriptor()
 	// organization.DefaultNotes holds the default value on creation for the notes field.
@@ -877,14 +651,10 @@ func init() {
 	organizationDescState := organizationFields[14].Descriptor()
 	// organization.DefaultState holds the default value on creation for the state field.
 	organization.DefaultState = organizationDescState.Default.(string)
-	// organization.StateValidator is a validator for the "state" field. It is called by the builders before save.
-	organization.StateValidator = organizationDescState.Validators[0].(func(string) error)
 	// organizationDescSuite is the schema descriptor for suite field.
 	organizationDescSuite := organizationFields[15].Descriptor()
 	// organization.DefaultSuite holds the default value on creation for the suite field.
 	organization.DefaultSuite = organizationDescSuite.Default.(string)
-	// organization.SuiteValidator is a validator for the "suite" field. It is called by the builders before save.
-	organization.SuiteValidator = organizationDescSuite.Validators[0].(func(string) error)
 	// organizationDescWebsite is the schema descriptor for website field.
 	organizationDescWebsite := organizationFields[16].Descriptor()
 	// organization.DefaultWebsite holds the default value on creation for the website field.
@@ -893,8 +663,6 @@ func init() {
 	organizationDescZipcode := organizationFields[17].Descriptor()
 	// organization.DefaultZipcode holds the default value on creation for the zipcode field.
 	organization.DefaultZipcode = organizationDescZipcode.Default.(string)
-	// organization.ZipcodeValidator is a validator for the "zipcode" field. It is called by the builders before save.
-	organization.ZipcodeValidator = organizationDescZipcode.Validators[0].(func(string) error)
 	// organizationDescNetCount is the schema descriptor for net_count field.
 	organizationDescNetCount := organizationFields[18].Descriptor()
 	// organization.DefaultNetCount holds the default value on creation for the net_count field.
@@ -907,8 +675,6 @@ func init() {
 	organizationDescStatus := organizationFields[22].Descriptor()
 	// organization.DefaultStatus holds the default value on creation for the status field.
 	organization.DefaultStatus = organizationDescStatus.Default.(string)
-	// organization.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	organization.StatusValidator = organizationDescStatus.Validators[0].(func(string) error)
 	// organizationDescID is the schema descriptor for id field.
 	organizationDescID := organizationFields[0].Descriptor()
 	// organization.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -921,38 +687,18 @@ func init() {
 	pocDescEmail := pocFields[2].Descriptor()
 	// poc.DefaultEmail holds the default value on creation for the email field.
 	poc.DefaultEmail = pocDescEmail.Default.(string)
-	// poc.EmailValidator is a validator for the "email" field. It is called by the builders before save.
-	poc.EmailValidator = pocDescEmail.Validators[0].(func(string) error)
 	// pocDescName is the schema descriptor for name field.
 	pocDescName := pocFields[3].Descriptor()
 	// poc.DefaultName holds the default value on creation for the name field.
 	poc.DefaultName = pocDescName.Default.(string)
-	// poc.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	poc.NameValidator = pocDescName.Validators[0].(func(string) error)
 	// pocDescPhone is the schema descriptor for phone field.
 	pocDescPhone := pocFields[4].Descriptor()
 	// poc.DefaultPhone holds the default value on creation for the phone field.
 	poc.DefaultPhone = pocDescPhone.Default.(string)
-	// poc.PhoneValidator is a validator for the "phone" field. It is called by the builders before save.
-	poc.PhoneValidator = pocDescPhone.Validators[0].(func(string) error)
 	// pocDescRole is the schema descriptor for role field.
 	pocDescRole := pocFields[5].Descriptor()
 	// poc.RoleValidator is a validator for the "role" field. It is called by the builders before save.
-	poc.RoleValidator = func() func(string) error {
-		validators := pocDescRole.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(role string) error {
-			for _, fn := range fns {
-				if err := fn(role); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
+	poc.RoleValidator = pocDescRole.Validators[0].(func(string) error)
 	// pocDescURL is the schema descriptor for url field.
 	pocDescURL := pocFields[6].Descriptor()
 	// poc.DefaultURL holds the default value on creation for the url field.
@@ -961,14 +707,10 @@ func init() {
 	pocDescVisible := pocFields[7].Descriptor()
 	// poc.DefaultVisible holds the default value on creation for the visible field.
 	poc.DefaultVisible = pocDescVisible.Default.(string)
-	// poc.VisibleValidator is a validator for the "visible" field. It is called by the builders before save.
-	poc.VisibleValidator = pocDescVisible.Validators[0].(func(string) error)
 	// pocDescStatus is the schema descriptor for status field.
 	pocDescStatus := pocFields[10].Descriptor()
 	// poc.DefaultStatus holds the default value on creation for the status field.
 	poc.DefaultStatus = pocDescStatus.Default.(string)
-	// poc.StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	poc.StatusValidator = pocDescStatus.Validators[0].(func(string) error)
 	// pocDescID is the schema descriptor for id field.
 	pocDescID := pocFields[0].Descriptor()
 	// poc.IDValidator is a validator for the "id" field. It is called by the builders before save.

@@ -181,11 +181,6 @@ func (_c *CarrierFacilityCreate) check() error {
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "CarrierFacility.status"`)}
 	}
-	if v, ok := _c.mutation.Status(); ok {
-		if err := carrierfacility.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "CarrierFacility.status": %w`, err)}
-		}
-	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := carrierfacility.IDValidator(v); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "CarrierFacility.id": %w`, err)}

@@ -29,24 +29,20 @@ func (Poc) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to network"),
 		field.String("email").
-			MaxLen(254).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Email address"),
 		field.String("name").
-			MaxLen(254).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Contact name"),
 		field.String("phone").
-			MaxLen(100).
 			Optional().
 			Default("").
 			Comment("Phone number"),
 		field.String("role").
-			MaxLen(27).
 			NotEmpty().
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Contact role"),
@@ -55,7 +51,6 @@ func (Poc) Fields() []ent.Field {
 			Default("").
 			Comment("URL"),
 		field.String("visible").
-			MaxLen(64).
 			Optional().
 			Default("Public").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
@@ -70,7 +65,6 @@ func (Poc) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
-			MaxLen(255).
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),

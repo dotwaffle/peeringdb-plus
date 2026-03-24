@@ -197,8 +197,6 @@ var (
 	Hooks [1]ent.Hook
 	// DefaultAka holds the default value on creation for the "aka" field.
 	DefaultAka string
-	// AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	AkaValidator func(string) error
 	// DefaultAllowIxpUpdate holds the default value on creation for the "allow_ixp_update" field.
 	DefaultAllowIxpUpdate bool
 	// AsnValidator is a validator for the "asn" field. It is called by the builders before save.
@@ -211,54 +209,34 @@ var (
 	DefaultInfoNeverViaRouteServers bool
 	// DefaultInfoRatio holds the default value on creation for the "info_ratio" field.
 	DefaultInfoRatio string
-	// InfoRatioValidator is a validator for the "info_ratio" field. It is called by the builders before save.
-	InfoRatioValidator func(string) error
 	// DefaultInfoScope holds the default value on creation for the "info_scope" field.
 	DefaultInfoScope string
-	// InfoScopeValidator is a validator for the "info_scope" field. It is called by the builders before save.
-	InfoScopeValidator func(string) error
 	// DefaultInfoTraffic holds the default value on creation for the "info_traffic" field.
 	DefaultInfoTraffic string
-	// InfoTrafficValidator is a validator for the "info_traffic" field. It is called by the builders before save.
-	InfoTrafficValidator func(string) error
 	// DefaultInfoType holds the default value on creation for the "info_type" field.
 	DefaultInfoType string
-	// InfoTypeValidator is a validator for the "info_type" field. It is called by the builders before save.
-	InfoTypeValidator func(string) error
 	// DefaultInfoUnicast holds the default value on creation for the "info_unicast" field.
 	DefaultInfoUnicast bool
 	// DefaultIrrAsSet holds the default value on creation for the "irr_as_set" field.
 	DefaultIrrAsSet string
-	// IrrAsSetValidator is a validator for the "irr_as_set" field. It is called by the builders before save.
-	IrrAsSetValidator func(string) error
 	// DefaultLookingGlass holds the default value on creation for the "looking_glass" field.
 	DefaultLookingGlass string
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
 	// DefaultNameLong holds the default value on creation for the "name_long" field.
 	DefaultNameLong string
-	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	NameLongValidator func(string) error
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
 	// DefaultPolicyContracts holds the default value on creation for the "policy_contracts" field.
 	DefaultPolicyContracts string
-	// PolicyContractsValidator is a validator for the "policy_contracts" field. It is called by the builders before save.
-	PolicyContractsValidator func(string) error
 	// DefaultPolicyGeneral holds the default value on creation for the "policy_general" field.
 	DefaultPolicyGeneral string
-	// PolicyGeneralValidator is a validator for the "policy_general" field. It is called by the builders before save.
-	PolicyGeneralValidator func(string) error
 	// DefaultPolicyLocations holds the default value on creation for the "policy_locations" field.
 	DefaultPolicyLocations string
-	// PolicyLocationsValidator is a validator for the "policy_locations" field. It is called by the builders before save.
-	PolicyLocationsValidator func(string) error
 	// DefaultPolicyRatio holds the default value on creation for the "policy_ratio" field.
 	DefaultPolicyRatio bool
 	// DefaultPolicyURL holds the default value on creation for the "policy_url" field.
 	DefaultPolicyURL string
-	// RirStatusValidator is a validator for the "rir_status" field. It is called by the builders before save.
-	RirStatusValidator func(string) error
 	// DefaultRouteServer holds the default value on creation for the "route_server" field.
 	DefaultRouteServer string
 	// DefaultWebsite holds the default value on creation for the "website" field.
@@ -269,8 +247,6 @@ var (
 	DefaultFacCount int
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	StatusValidator func(string) error
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )

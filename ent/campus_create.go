@@ -331,22 +331,12 @@ func (_c *CampusCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *CampusCreate) check() error {
-	if v, ok := _c.mutation.Aka(); ok {
-		if err := campus.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Campus.aka": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Campus.name"`)}
 	}
 	if v, ok := _c.mutation.Name(); ok {
 		if err := campus.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Campus.name": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.NameLong(); ok {
-		if err := campus.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Campus.name_long": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Created(); !ok {
@@ -357,11 +347,6 @@ func (_c *CampusCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Campus.status"`)}
-	}
-	if v, ok := _c.mutation.Status(); ok {
-		if err := campus.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Campus.status": %w`, err)}
-		}
 	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := campus.IDValidator(v); err != nil {

@@ -105,16 +105,12 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
-	// AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	AkaValidator func(string) error
 	// DefaultCity holds the default value on creation for the "city" field.
 	DefaultCity string
 	// DefaultCountry holds the default value on creation for the "country" field.
 	DefaultCountry string
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
-	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	NameLongValidator func(string) error
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
 	// DefaultState holds the default value on creation for the "state" field.
@@ -127,8 +123,6 @@ var (
 	DefaultOrgName string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	StatusValidator func(string) error
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )

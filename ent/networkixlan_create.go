@@ -354,11 +354,6 @@ func (_c *NetworkIxLanCreate) check() error {
 	if _, ok := _c.mutation.IsRsPeer(); !ok {
 		return &ValidationError{Name: "is_rs_peer", err: errors.New(`ent: missing required field "NetworkIxLan.is_rs_peer"`)}
 	}
-	if v, ok := _c.mutation.Notes(); ok {
-		if err := networkixlan.NotesValidator(v); err != nil {
-			return &ValidationError{Name: "notes", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.notes": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Operational(); !ok {
 		return &ValidationError{Name: "operational", err: errors.New(`ent: missing required field "NetworkIxLan.operational"`)}
 	}
@@ -373,11 +368,6 @@ func (_c *NetworkIxLanCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "NetworkIxLan.status"`)}
-	}
-	if v, ok := _c.mutation.Status(); ok {
-		if err := networkixlan.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.status": %w`, err)}
-		}
 	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := networkixlan.IDValidator(v); err != nil {

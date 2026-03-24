@@ -116,16 +116,12 @@ var (
 	DefaultIsRsPeer bool
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
-	// NotesValidator is a validator for the "notes" field. It is called by the builders before save.
-	NotesValidator func(string) error
 	// DefaultOperational holds the default value on creation for the "operational" field.
 	DefaultOperational bool
 	// DefaultName holds the default value on creation for the "name" field.
 	DefaultName string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	StatusValidator func(string) error
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )

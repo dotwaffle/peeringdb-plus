@@ -98,14 +98,10 @@ var (
 	Hooks [1]ent.Hook
 	// DefaultAka holds the default value on creation for the "aka" field.
 	DefaultAka string
-	// AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	AkaValidator func(string) error
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
 	// DefaultNameLong holds the default value on creation for the "name_long" field.
 	DefaultNameLong string
-	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	NameLongValidator func(string) error
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
 	// DefaultWebsite holds the default value on creation for the "website" field.
@@ -116,8 +112,6 @@ var (
 	DefaultFacCount int
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	StatusValidator func(string) error
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )

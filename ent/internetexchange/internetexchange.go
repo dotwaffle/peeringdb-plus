@@ -170,36 +170,24 @@ var (
 	Hooks [1]ent.Hook
 	// DefaultAka holds the default value on creation for the "aka" field.
 	DefaultAka string
-	// AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	AkaValidator func(string) error
 	// DefaultCity holds the default value on creation for the "city" field.
 	DefaultCity string
-	// CityValidator is a validator for the "city" field. It is called by the builders before save.
-	CityValidator func(string) error
 	// DefaultCountry holds the default value on creation for the "country" field.
 	DefaultCountry string
 	// DefaultIxfNetCount holds the default value on creation for the "ixf_net_count" field.
 	DefaultIxfNetCount int
 	// DefaultMedia holds the default value on creation for the "media" field.
 	DefaultMedia string
-	// MediaValidator is a validator for the "media" field. It is called by the builders before save.
-	MediaValidator func(string) error
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
 	// DefaultNameLong holds the default value on creation for the "name_long" field.
 	DefaultNameLong string
-	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	NameLongValidator func(string) error
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
 	// DefaultPolicyEmail holds the default value on creation for the "policy_email" field.
 	DefaultPolicyEmail string
-	// PolicyEmailValidator is a validator for the "policy_email" field. It is called by the builders before save.
-	PolicyEmailValidator func(string) error
 	// DefaultPolicyPhone holds the default value on creation for the "policy_phone" field.
 	DefaultPolicyPhone string
-	// PolicyPhoneValidator is a validator for the "policy_phone" field. It is called by the builders before save.
-	PolicyPhoneValidator func(string) error
 	// DefaultProtoIpv6 holds the default value on creation for the "proto_ipv6" field.
 	DefaultProtoIpv6 bool
 	// DefaultProtoMulticast holds the default value on creation for the "proto_multicast" field.
@@ -208,32 +196,18 @@ var (
 	DefaultProtoUnicast bool
 	// DefaultRegionContinent holds the default value on creation for the "region_continent" field.
 	DefaultRegionContinent string
-	// RegionContinentValidator is a validator for the "region_continent" field. It is called by the builders before save.
-	RegionContinentValidator func(string) error
 	// DefaultSalesEmail holds the default value on creation for the "sales_email" field.
 	DefaultSalesEmail string
-	// SalesEmailValidator is a validator for the "sales_email" field. It is called by the builders before save.
-	SalesEmailValidator func(string) error
 	// DefaultSalesPhone holds the default value on creation for the "sales_phone" field.
 	DefaultSalesPhone string
-	// SalesPhoneValidator is a validator for the "sales_phone" field. It is called by the builders before save.
-	SalesPhoneValidator func(string) error
 	// DefaultServiceLevel holds the default value on creation for the "service_level" field.
 	DefaultServiceLevel string
-	// ServiceLevelValidator is a validator for the "service_level" field. It is called by the builders before save.
-	ServiceLevelValidator func(string) error
 	// DefaultTechEmail holds the default value on creation for the "tech_email" field.
 	DefaultTechEmail string
-	// TechEmailValidator is a validator for the "tech_email" field. It is called by the builders before save.
-	TechEmailValidator func(string) error
 	// DefaultTechPhone holds the default value on creation for the "tech_phone" field.
 	DefaultTechPhone string
-	// TechPhoneValidator is a validator for the "tech_phone" field. It is called by the builders before save.
-	TechPhoneValidator func(string) error
 	// DefaultTerms holds the default value on creation for the "terms" field.
 	DefaultTerms string
-	// TermsValidator is a validator for the "terms" field. It is called by the builders before save.
-	TermsValidator func(string) error
 	// DefaultURLStats holds the default value on creation for the "url_stats" field.
 	DefaultURLStats string
 	// DefaultWebsite holds the default value on creation for the "website" field.
@@ -246,8 +220,6 @@ var (
 	DefaultIxfImportRequestStatus string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
-	StatusValidator func(string) error
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )

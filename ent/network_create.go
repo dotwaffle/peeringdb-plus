@@ -747,11 +747,6 @@ func (_c *NetworkCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *NetworkCreate) check() error {
-	if v, ok := _c.mutation.Aka(); ok {
-		if err := network.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Network.aka": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.AllowIxpUpdate(); !ok {
 		return &ValidationError{Name: "allow_ixp_update", err: errors.New(`ent: missing required field "Network.allow_ixp_update"`)}
 	}
@@ -772,33 +767,8 @@ func (_c *NetworkCreate) check() error {
 	if _, ok := _c.mutation.InfoNeverViaRouteServers(); !ok {
 		return &ValidationError{Name: "info_never_via_route_servers", err: errors.New(`ent: missing required field "Network.info_never_via_route_servers"`)}
 	}
-	if v, ok := _c.mutation.InfoRatio(); ok {
-		if err := network.InfoRatioValidator(v); err != nil {
-			return &ValidationError{Name: "info_ratio", err: fmt.Errorf(`ent: validator failed for field "Network.info_ratio": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.InfoScope(); ok {
-		if err := network.InfoScopeValidator(v); err != nil {
-			return &ValidationError{Name: "info_scope", err: fmt.Errorf(`ent: validator failed for field "Network.info_scope": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.InfoTraffic(); ok {
-		if err := network.InfoTrafficValidator(v); err != nil {
-			return &ValidationError{Name: "info_traffic", err: fmt.Errorf(`ent: validator failed for field "Network.info_traffic": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.InfoType(); ok {
-		if err := network.InfoTypeValidator(v); err != nil {
-			return &ValidationError{Name: "info_type", err: fmt.Errorf(`ent: validator failed for field "Network.info_type": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.InfoUnicast(); !ok {
 		return &ValidationError{Name: "info_unicast", err: errors.New(`ent: missing required field "Network.info_unicast"`)}
-	}
-	if v, ok := _c.mutation.IrrAsSet(); ok {
-		if err := network.IrrAsSetValidator(v); err != nil {
-			return &ValidationError{Name: "irr_as_set", err: fmt.Errorf(`ent: validator failed for field "Network.irr_as_set": %w`, err)}
-		}
 	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Network.name"`)}
@@ -808,33 +778,8 @@ func (_c *NetworkCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.NameLong(); ok {
-		if err := network.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Network.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.PolicyContracts(); ok {
-		if err := network.PolicyContractsValidator(v); err != nil {
-			return &ValidationError{Name: "policy_contracts", err: fmt.Errorf(`ent: validator failed for field "Network.policy_contracts": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.PolicyGeneral(); ok {
-		if err := network.PolicyGeneralValidator(v); err != nil {
-			return &ValidationError{Name: "policy_general", err: fmt.Errorf(`ent: validator failed for field "Network.policy_general": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.PolicyLocations(); ok {
-		if err := network.PolicyLocationsValidator(v); err != nil {
-			return &ValidationError{Name: "policy_locations", err: fmt.Errorf(`ent: validator failed for field "Network.policy_locations": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.PolicyRatio(); !ok {
 		return &ValidationError{Name: "policy_ratio", err: errors.New(`ent: missing required field "Network.policy_ratio"`)}
-	}
-	if v, ok := _c.mutation.RirStatus(); ok {
-		if err := network.RirStatusValidator(v); err != nil {
-			return &ValidationError{Name: "rir_status", err: fmt.Errorf(`ent: validator failed for field "Network.rir_status": %w`, err)}
-		}
 	}
 	if _, ok := _c.mutation.Created(); !ok {
 		return &ValidationError{Name: "created", err: errors.New(`ent: missing required field "Network.created"`)}
@@ -844,11 +789,6 @@ func (_c *NetworkCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Network.status"`)}
-	}
-	if v, ok := _c.mutation.Status(); ok {
-		if err := network.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Network.status": %w`, err)}
-		}
 	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := network.IDValidator(v); err != nil {

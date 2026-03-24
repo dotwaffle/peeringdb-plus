@@ -966,99 +966,9 @@ func (_u *FacilityUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *FacilityUpdate) check() error {
-	if v, ok := _u.mutation.Address1(); ok {
-		if err := facility.Address1Validator(v); err != nil {
-			return &ValidationError{Name: "address1", err: fmt.Errorf(`ent: validator failed for field "Facility.address1": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Address2(); ok {
-		if err := facility.Address2Validator(v); err != nil {
-			return &ValidationError{Name: "address2", err: fmt.Errorf(`ent: validator failed for field "Facility.address2": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := facility.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Facility.aka": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.City(); ok {
-		if err := facility.CityValidator(v); err != nil {
-			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "Facility.city": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Clli(); ok {
-		if err := facility.ClliValidator(v); err != nil {
-			return &ValidationError{Name: "clli", err: fmt.Errorf(`ent: validator failed for field "Facility.clli": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Floor(); ok {
-		if err := facility.FloorValidator(v); err != nil {
-			return &ValidationError{Name: "floor", err: fmt.Errorf(`ent: validator failed for field "Facility.floor": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := facility.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Facility.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := facility.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Facility.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Npanxx(); ok {
-		if err := facility.NpanxxValidator(v); err != nil {
-			return &ValidationError{Name: "npanxx", err: fmt.Errorf(`ent: validator failed for field "Facility.npanxx": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Property(); ok {
-		if err := facility.PropertyValidator(v); err != nil {
-			return &ValidationError{Name: "property", err: fmt.Errorf(`ent: validator failed for field "Facility.property": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Rencode(); ok {
-		if err := facility.RencodeValidator(v); err != nil {
-			return &ValidationError{Name: "rencode", err: fmt.Errorf(`ent: validator failed for field "Facility.rencode": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.SalesEmail(); ok {
-		if err := facility.SalesEmailValidator(v); err != nil {
-			return &ValidationError{Name: "sales_email", err: fmt.Errorf(`ent: validator failed for field "Facility.sales_email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.SalesPhone(); ok {
-		if err := facility.SalesPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "sales_phone", err: fmt.Errorf(`ent: validator failed for field "Facility.sales_phone": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.State(); ok {
-		if err := facility.StateValidator(v); err != nil {
-			return &ValidationError{Name: "state", err: fmt.Errorf(`ent: validator failed for field "Facility.state": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Suite(); ok {
-		if err := facility.SuiteValidator(v); err != nil {
-			return &ValidationError{Name: "suite", err: fmt.Errorf(`ent: validator failed for field "Facility.suite": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TechEmail(); ok {
-		if err := facility.TechEmailValidator(v); err != nil {
-			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "Facility.tech_email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TechPhone(); ok {
-		if err := facility.TechPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "Facility.tech_phone": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Zipcode(); ok {
-		if err := facility.ZipcodeValidator(v); err != nil {
-			return &ValidationError{Name: "zipcode", err: fmt.Errorf(`ent: validator failed for field "Facility.zipcode": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := facility.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Facility.status": %w`, err)}
 		}
 	}
 	return nil
@@ -2459,99 +2369,9 @@ func (_u *FacilityUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *FacilityUpdateOne) check() error {
-	if v, ok := _u.mutation.Address1(); ok {
-		if err := facility.Address1Validator(v); err != nil {
-			return &ValidationError{Name: "address1", err: fmt.Errorf(`ent: validator failed for field "Facility.address1": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Address2(); ok {
-		if err := facility.Address2Validator(v); err != nil {
-			return &ValidationError{Name: "address2", err: fmt.Errorf(`ent: validator failed for field "Facility.address2": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := facility.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Facility.aka": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.City(); ok {
-		if err := facility.CityValidator(v); err != nil {
-			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "Facility.city": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Clli(); ok {
-		if err := facility.ClliValidator(v); err != nil {
-			return &ValidationError{Name: "clli", err: fmt.Errorf(`ent: validator failed for field "Facility.clli": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Floor(); ok {
-		if err := facility.FloorValidator(v); err != nil {
-			return &ValidationError{Name: "floor", err: fmt.Errorf(`ent: validator failed for field "Facility.floor": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := facility.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Facility.name": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := facility.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Facility.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Npanxx(); ok {
-		if err := facility.NpanxxValidator(v); err != nil {
-			return &ValidationError{Name: "npanxx", err: fmt.Errorf(`ent: validator failed for field "Facility.npanxx": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Property(); ok {
-		if err := facility.PropertyValidator(v); err != nil {
-			return &ValidationError{Name: "property", err: fmt.Errorf(`ent: validator failed for field "Facility.property": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Rencode(); ok {
-		if err := facility.RencodeValidator(v); err != nil {
-			return &ValidationError{Name: "rencode", err: fmt.Errorf(`ent: validator failed for field "Facility.rencode": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.SalesEmail(); ok {
-		if err := facility.SalesEmailValidator(v); err != nil {
-			return &ValidationError{Name: "sales_email", err: fmt.Errorf(`ent: validator failed for field "Facility.sales_email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.SalesPhone(); ok {
-		if err := facility.SalesPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "sales_phone", err: fmt.Errorf(`ent: validator failed for field "Facility.sales_phone": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.State(); ok {
-		if err := facility.StateValidator(v); err != nil {
-			return &ValidationError{Name: "state", err: fmt.Errorf(`ent: validator failed for field "Facility.state": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Suite(); ok {
-		if err := facility.SuiteValidator(v); err != nil {
-			return &ValidationError{Name: "suite", err: fmt.Errorf(`ent: validator failed for field "Facility.suite": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TechEmail(); ok {
-		if err := facility.TechEmailValidator(v); err != nil {
-			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "Facility.tech_email": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TechPhone(); ok {
-		if err := facility.TechPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "Facility.tech_phone": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Zipcode(); ok {
-		if err := facility.ZipcodeValidator(v); err != nil {
-			return &ValidationError{Name: "zipcode", err: fmt.Errorf(`ent: validator failed for field "Facility.zipcode": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := facility.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Facility.status": %w`, err)}
 		}
 	}
 	return nil
