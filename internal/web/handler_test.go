@@ -29,7 +29,7 @@ func renderComponent(t *testing.T, c templ.Component) string {
 func newTestMux(t *testing.T) *http.ServeMux {
 	t.Helper()
 	client := testutil.SetupClient(t)
-	h := NewHandler(client)
+	h := NewHandler(client, nil)
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return mux
@@ -215,7 +215,7 @@ func TestNav_Links(t *testing.T) {
 	t.Parallel()
 	body := renderComponent(t, templates.Nav())
 
-	links := []string{"/ui/", "/ui/compare", "/graphql", "/rest/v1/", "/api/"}
+	links := []string{"/ui/", "/ui/compare", "/ui/about", "/graphql", "/rest/v1/", "/api/"}
 	for _, want := range links {
 		if !strings.Contains(body, want) {
 			t.Errorf("nav missing link %q", want)
@@ -350,7 +350,7 @@ func TestSearchEndpoint_MinLength(t *testing.T) {
 		t.Fatalf("creating network: %v", err)
 	}
 
-	h := NewHandler(client)
+	h := NewHandler(client, nil)
 	mux := http.NewServeMux()
 	h.Register(mux)
 
@@ -400,7 +400,7 @@ func TestSearchEndpoint_WithResults(t *testing.T) {
 		t.Fatalf("creating ix: %v", err)
 	}
 
-	h := NewHandler(client)
+	h := NewHandler(client, nil)
 	mux := http.NewServeMux()
 	h.Register(mux)
 
@@ -445,7 +445,7 @@ func TestSearchEndpoint_HtmxFragment(t *testing.T) {
 		t.Fatalf("creating network: %v", err)
 	}
 
-	h := NewHandler(client)
+	h := NewHandler(client, nil)
 	mux := http.NewServeMux()
 	h.Register(mux)
 
@@ -520,7 +520,7 @@ func TestHomeWithQuery_PreRendered(t *testing.T) {
 		t.Fatalf("creating network: %v", err)
 	}
 
-	h := NewHandler(client)
+	h := NewHandler(client, nil)
 	mux := http.NewServeMux()
 	h.Register(mux)
 
@@ -574,7 +574,7 @@ func setupCompareMux(t *testing.T) *http.ServeMux {
 	t.Helper()
 	client := testutil.SetupClient(t)
 	seedCompareHandlerTestData(t, client)
-	h := NewHandler(client)
+	h := NewHandler(client, nil)
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return mux
@@ -714,6 +714,53 @@ func TestNetworkDetailPage_CompareButton(t *testing.T) {
 	}
 	if !strings.Contains(body, "Compare with") {
 		t.Error("network detail page should contain 'Compare with' button text")
+	}
+}
+
+// --- About page tests ---
+
+func TestAboutPage(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/about", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	checks := []string{
+		"About PeeringDB Plus",
+		"/graphql",
+		"/rest/v1/",
+		"/api/",
+		"github.com/dotwaffle/peeringdb-plus",
+	}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("about page missing %q", want)
+		}
+	}
+}
+
+func TestAboutPage_NoSync(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/about", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "Sync status unavailable") {
+		t.Error("about page with nil db should show 'Sync status unavailable'")
 	}
 }
 

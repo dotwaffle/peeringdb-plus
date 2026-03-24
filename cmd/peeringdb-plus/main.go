@@ -216,7 +216,7 @@ func main() {
 	logger.Info("PeeringDB compat API mounted", slog.String("prefix", "/api/"))
 
 	// Mount web UI at /ui/ and /static/ prefixes.
-	webHandler := web.NewHandler(entClient)
+	webHandler := web.NewHandler(entClient, db)
 	webHandler.Register(mux)
 	logger.Info("Web UI mounted", slog.String("prefix", "/ui/"))
 

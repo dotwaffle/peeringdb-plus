@@ -173,7 +173,7 @@ func setupAllTestMux(t *testing.T) *http.ServeMux {
 	t.Helper()
 	client := testutil.SetupClient(t)
 	seedAllTestData(t, client)
-	h := NewHandler(client)
+	h := NewHandler(client, nil)
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return mux

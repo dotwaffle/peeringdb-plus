@@ -1,6 +1,7 @@
 package web
 
 import (
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -15,14 +16,16 @@ import (
 // Handler serves web UI pages.
 type Handler struct {
 	client   *ent.Client
+	db       *sql.DB
 	searcher *SearchService
 	comparer *CompareService
 }
 
 // NewHandler creates a web UI handler with integrated search and compare services.
-func NewHandler(client *ent.Client) *Handler {
+func NewHandler(client *ent.Client, db *sql.DB) *Handler {
 	return &Handler{
 		client:   client,
+		db:       db,
 		searcher: NewSearchService(client),
 		comparer: NewCompareService(client),
 	}
@@ -61,6 +64,8 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 		h.handleCarrierDetail(w, r, strings.TrimPrefix(rest, "carrier/"))
 	case strings.HasPrefix(rest, "fragment/"):
 		h.handleFragment(w, r, strings.TrimPrefix(rest, "fragment/"))
+	case rest == "about":
+		h.handleAbout(w, r)
 	case rest == "compare":
 		h.handleCompareForm(w, r)
 	case strings.HasPrefix(rest, "compare/"):
