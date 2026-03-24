@@ -9,27 +9,27 @@ Requirements for milestone v1.5 Tech Debt & Observability. Each maps to roadmap 
 
 ### Tech Debt
 
-- [ ] **DEBT-01**: WorkerConfig.IsPrimary dead field removed from internal/sync/worker.go
-- [ ] **DEBT-02**: Planning docs updated to reflect DataLoader already removed in v1.2, only IsPrimary remains
+- [x] **DEBT-01**: WorkerConfig.IsPrimary dead field removed from internal/sync/worker.go
+- [x] **DEBT-02**: Planning docs updated to reflect DataLoader already removed in v1.2, only IsPrimary remains
 
 ### Data Integrity
 
-- [ ] **DATA-01**: meta.generated field behavior verified empirically against live PeeringDB API for depth=0 full fetch, paginated incremental, and empty result set
-- [ ] **DATA-02**: Graceful fallback confirmed working when meta.generated is absent (zero-time fallback to started_at - 5min)
-- [ ] **DATA-03**: meta.generated findings documented with observed response structures
+- [x] **DATA-01**: meta.generated field behavior verified empirically against live PeeringDB API for depth=0 full fetch, paginated incremental, and empty result set
+- [x] **DATA-02**: Graceful fallback confirmed working when meta.generated is absent (zero-time fallback to started_at - 5min)
+- [x] **DATA-03**: meta.generated findings documented with observed response structures
 
 ### Observability
 
-- [ ] **OBS-01**: Prometheus metrics export enabled via OTEL_METRICS_EXPORTER=prometheus env var and fly.toml [metrics] config
-- [ ] **OBS-02**: Grafana dashboard JSON with sync health row (freshness gauge, sync duration, success/failure rate, fallback events)
-- [ ] **OBS-03**: Grafana dashboard JSON with HTTP RED metrics row (request rate by route, error rate, latency percentiles, active requests)
-- [ ] **OBS-04**: Grafana dashboard JSON with per-type sync detail row (duration by type, object counts, delete counts, fetch/upsert errors)
-- [ ] **OBS-05**: Grafana dashboard JSON with Go runtime row (goroutines, heap memory, allocation rate, GC goal)
-- [ ] **OBS-06**: Grafana dashboard JSON with business metrics row (object counts per PeeringDB type, region breakdown)
-- [ ] **OBS-07**: Data freshness stat panel with color thresholds (green < 1h, yellow < 2h, red > 2h)
-- [ ] **OBS-08**: Documentation text panels in each dashboard row explaining metrics and troubleshooting
-- [ ] **OBS-09**: Dashboard uses datasource template variables for portability (no hardcoded UIDs)
-- [ ] **OBS-10**: Dashboard provisioning YAML and JSON committed to deploy/grafana/
+- [x] **OBS-01**: Prometheus metrics export enabled via OTEL_METRICS_EXPORTER=prometheus env var and fly.toml [metrics] config
+- [x] **OBS-02**: Grafana dashboard JSON with sync health row (freshness gauge, sync duration, success/failure rate, fallback events)
+- [x] **OBS-03**: Grafana dashboard JSON with HTTP RED metrics row (request rate by route, error rate, latency percentiles, active requests)
+- [x] **OBS-04**: Grafana dashboard JSON with per-type sync detail row (duration by type, object counts, delete counts, fetch/upsert errors)
+- [x] **OBS-05**: Grafana dashboard JSON with Go runtime row (goroutines, heap memory, allocation rate, GC goal)
+- [x] **OBS-06**: Grafana dashboard JSON with business metrics row (object counts per PeeringDB type, region breakdown)
+- [x] **OBS-07**: Data freshness stat panel with color thresholds (green < 1h, yellow < 2h, red > 2h)
+- [x] **OBS-08**: Documentation text panels in each dashboard row explaining metrics and troubleshooting
+- [x] **OBS-09**: Dashboard uses datasource template variables for portability (no hardcoded UIDs)
+- [x] **OBS-10**: Dashboard provisioning YAML and JSON committed to deploy/grafana/
 
 ### Verification
 
@@ -66,21 +66,21 @@ Requirements for milestone v1.5 Tech Debt & Observability. Each maps to roadmap 
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEBT-01 | Phase 18 | Pending |
-| DEBT-02 | Phase 18 | Pending |
-| DATA-01 | Phase 18 | Pending |
-| DATA-02 | Phase 18 | Pending |
-| DATA-03 | Phase 18 | Pending |
-| OBS-01 | Phase 19 | Pending |
-| OBS-02 | Phase 19 | Pending |
-| OBS-03 | Phase 19 | Pending |
-| OBS-04 | Phase 19 | Pending |
-| OBS-05 | Phase 19 | Pending |
-| OBS-06 | Phase 19 | Pending |
-| OBS-07 | Phase 19 | Pending |
-| OBS-08 | Phase 19 | Pending |
-| OBS-09 | Phase 19 | Pending |
-| OBS-10 | Phase 19 | Pending |
+| DEBT-01 | Phase 18 | Complete |
+| DEBT-02 | Phase 18 | Complete |
+| DATA-01 | Phase 18 | Complete |
+| DATA-02 | Phase 18 | Complete |
+| DATA-03 | Phase 18 | Complete |
+| OBS-01 | Phase 19 | Complete |
+| OBS-02 | Phase 19 | Complete |
+| OBS-03 | Phase 19 | Complete |
+| OBS-04 | Phase 19 | Complete |
+| OBS-05 | Phase 19 | Complete |
+| OBS-06 | Phase 19 | Complete |
+| OBS-07 | Phase 19 | Complete |
+| OBS-08 | Phase 19 | Complete |
+| OBS-09 | Phase 19 | Complete |
+| OBS-10 | Phase 19 | Complete |
 | VFY-01 | Phase 20 | Pending |
 | VFY-02 | Phase 20 | Pending |
 | VFY-03 | Phase 20 | Pending |

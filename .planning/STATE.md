@@ -2,16 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Tech Debt & Observability
-status: planning
-stopped_at: Completed quick-260324-lc5 dynamic primary detection
-last_updated: "2026-03-24T15:41:54.143Z"
-last_activity: 2026-03-24 — Roadmap created for v1.5
+status: Phase complete — ready for verification
+stopped_at: Completed 19-01-PLAN.md
+last_updated: "2026-03-24T17:24:11.521Z"
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 85
+  completed_phases: 1
+  total_plans: 4
+  completed_plans: 2
 ---
 
 # Project State
@@ -21,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 18 - Tech Debt & Data Integrity
+**Current focus:** Phase 19 — prometheus-metrics-grafana-dashboard
 
 ## Current Position
 
-Phase: 18 of 20 (Tech Debt & Data Integrity)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-03-24 — Roadmap created for v1.5
-
-Progress: [██████████████████████████████████░░░░░░░░░░░░░░░░░░] 85% (17/20 phases)
+Phase: 19 (prometheus-metrics-grafana-dashboard) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -71,6 +65,11 @@ All decisions archived in PROJECT.md Key Decisions table.
 - [v1.5]: No new Go dependencies -- Prometheus endpoint via autoexport env var, dashboard as JSON files
 - [v1.5]: Coarse granularity -- 3 phases combining tech debt + data integrity, all observability, all verification
 - [Phase quick-260324-lc5]: IsPrimary changed from bool to func() bool in WorkerConfig; nil defaults to always-primary
+- [Phase 18]: Package-internal test for parseMeta access; flag-gated live tests against beta.peeringdb.com only
+- [Phase 18]: Used strikethrough formatting for resolved tech debt items in PROJECT.md to preserve history
+- [Phase 19]: Portable Grafana dashboard with __inputs, ${datasource} variable, and null id/version for clean import
+- [Phase 19]: No new Go dependencies for Prometheus: autoexport supports prometheus exporter via OTEL_METRICS_EXPORTER env var
+- [Phase 19]: Hand-authored Grafana dashboard JSON with DS_PROMETHEUS template variable for portability
 
 ### Pending Todos
 
@@ -87,9 +86,13 @@ None.
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
 | 260324-lc5 | Dynamic primary detection on sync cycle start | 2026-03-24 | 8bd00ac | Verified | [260324-lc5-dynamic-primary-detection-on-sync-cycle-](./quick/260324-lc5-dynamic-primary-detection-on-sync-cycle-/) |
+| Phase 18 P02 | 2min | 2 tasks | 2 files |
+| Phase 18 P01 | 2min | 2 tasks | 2 files |
+| Phase 19 P02 | 4min | 2 tasks | 2 files |
+| Phase 19 P01 | 6min | 3 tasks | 5 files |
 
 ## Session Continuity
 
-Last session: 2026-03-24
-Stopped at: Completed quick task 260324-lc5: Dynamic primary detection on sync cycle start
+Last session: 2026-03-24T17:24:11.517Z
+Stopped at: Completed 19-01-PLAN.md
 Resume file: None
