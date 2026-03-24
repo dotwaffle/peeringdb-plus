@@ -48,11 +48,11 @@
 
 | # | Item | Status | Observation |
 |---|------|--------|-------------|
-| 12 | Content negotiation: browser gets redirect to /ui/ | PENDING | Plan 02 |
-| 13 | Responsive layout at 375px mobile | PENDING | Plan 02 |
-| 14 | Responsive layout at 768px tablet | PENDING | Plan 02 |
-| 15 | Responsive layout at 1024px+ desktop | PENDING | Plan 02 |
-| 16 | Syncing page animation | PENDING | Plan 02 (may be BLOCKED) |
+| 12 | Content negotiation: browser gets redirect to /ui/ | PASS | `Accept: text/html` → 302 to /ui/; default → 200 JSON API discovery |
+| 13 | Responsive layout at 375px mobile | PENDING | Requires browser DevTools |
+| 14 | Responsive layout at 768px tablet | PENDING | Requires browser DevTools |
+| 15 | Responsive layout at 1024px+ desktop | PENDING | Requires browser DevTools |
+| 16 | Syncing page animation | BLOCKED | Requires fresh deployment with empty DB. Code review confirms correct: readiness middleware (main.go) + syncing.templ pulse animation exist |
 
 ## VFY-06: Search (v1.4)
 
