@@ -61,7 +61,7 @@ See: `.planning/milestones/v1.3-ROADMAP.md` for full details.
 - [x] **Phase 13: Foundation** — templ + Tailwind + htmx scaffolding, base layout, route integration (completed 2026-03-24)
 - [x] **Phase 14: Live Search** — Homepage search with instant results grouped by type (completed 2026-03-24)
 - [x] **Phase 15: Record Detail Pages** — Full detail views for all 6 entity types with lazy-loaded related records (completed 2026-03-24)
-- [ ] **Phase 16: ASN Comparison** — Compare two networks showing shared IXPs, facilities, and campuses
+- [x] **Phase 16: ASN Comparison** — Compare two networks showing shared IXPs, facilities, and campuses (completed 2026-03-24)
 - [ ] **Phase 17: Polish & Accessibility** — Dark mode, transitions, keyboard navigation, error pages
 
 ## Phase Details
@@ -124,8 +124,8 @@ Plans:
   5. The comparison URL captures both ASNs, making results shareable via link
 **Plans**: 2 plans
 Plans:
-- [ ] 16-01-PLAN.md -- CompareService with set intersection logic, data types, and unit tests
-- [ ] 16-02-PLAN.md -- Comparison page templates, handler wiring, "Compare with..." button, and integration tests
+- [x] 16-01-PLAN.md -- CompareService with set intersection logic, data types, and unit tests
+- [x] 16-02-PLAN.md -- Comparison page templates, handler wiring, "Compare with..." button, and integration tests
 **UI hint**: yes
 
 ### Phase 17: Polish & Accessibility
@@ -163,5 +163,5 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17
 | 13. Foundation | v1.4 | 1/2 | Complete    | 2026-03-24 |
 | 14. Live Search | v1.4 | 2/2 | Complete    | 2026-03-24 |
 | 15. Record Detail Pages | v1.4 | 2/2 | Complete    | 2026-03-24 |
-| 16. ASN Comparison | v1.4 | 0/2 | Planned    |  |
+| 16. ASN Comparison | v1.4 | 2/2 | Complete   | 2026-03-24 |
 | 17. Polish & Accessibility | v1.4 | 0/? | Not started | - |

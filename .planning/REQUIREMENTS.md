@@ -29,7 +29,7 @@ Requirements for Web UI milestone. Each maps to roadmap phases.
 - [x] **COMP-02**: Comparison results show shared IXPs, facilities, and campuses where both networks are present
 - [x] **COMP-03**: Shared IXP results display port speeds and IP addresses for both networks
 - [x] **COMP-04**: User can toggle between shared-only view and full side-by-side view
-- [ ] **COMP-05**: User can initiate comparison from a network detail page via a "Compare with..." button
+- [x] **COMP-05**: User can initiate comparison from a network detail page via a "Compare with..." button
 
 ### Design
 
@@ -96,7 +96,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COMP-02 | Phase 16 | Complete |
 | COMP-03 | Phase 16 | Complete |
 | COMP-04 | Phase 16 | Complete |
-| COMP-05 | Phase 16 | Pending |
+| COMP-05 | Phase 16 | Complete |
 | DSGN-01 | Phase 13 | Complete |
 | DSGN-02 | Phase 13 | Complete |
 | DSGN-03 | Phase 13 | Complete |

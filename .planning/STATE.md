@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Web UI
-status: Ready to execute
-stopped_at: Completed 16-01-PLAN.md
-last_updated: "2026-03-24T07:14:49.444Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 16-02-PLAN.md
+last_updated: "2026-03-24T07:23:19.859Z"
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 8
 ---
 
 # Project State
@@ -75,6 +75,9 @@ All decisions archived in PROJECT.md Key Decisions table.
 - [Phase 15]: Junction record name field used directly from PeeringDB computed serializer output
 - [Phase 15]: IxFacility/CarrierFacility rows silently skipped when FK is nil for defensive handling
 - [Phase 16]: Map-based set intersection for IX and facility overlap detection
+- [Phase 16]: JavaScript form submit redirects to clean URL path for shareable comparison URLs
+- [Phase 16]: View toggle uses link navigation for shareable URL state in comparison page
+- [Phase 16]: Compare with... button positioned after stat badges on network detail page
 
 ### Pending Todos
 
@@ -88,6 +91,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T07:14:49.441Z
-Stopped at: Completed 16-01-PLAN.md
+Last session: 2026-03-24T07:23:19.856Z
+Stopped at: Completed 16-02-PLAN.md
 Resume file: None
