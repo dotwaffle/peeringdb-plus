@@ -8,7 +8,10 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-func Home() templ.Component {
+// Home renders the homepage with search form and API quick links.
+// query is pre-filled on direct navigation (bookmarked URLs).
+// groups contains pre-computed search results for bookmarked URL support.
+func Home(query string, groups []SearchGroup) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -29,7 +32,69 @@ func Home() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto text-center py-12\"><h1 class=\"text-4xl font-bold text-emerald-500 font-mono mb-4\">PeeringDB Plus</h1><p class=\"text-neutral-400 text-lg mb-8\">A fast, read-only mirror of PeeringDB data. Search networks, IXPs, facilities, and more.</p><div class=\"bg-neutral-800 rounded-lg p-8 border border-neutral-700 mb-8\"><p class=\"text-neutral-500 font-mono\">Search coming in Phase 14</p></div><div class=\"grid grid-cols-1 md:grid-cols-3 gap-4\"><a href=\"/graphql\" class=\"bg-neutral-800 rounded-lg p-6 border border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">GraphQL</h3><p class=\"text-neutral-400 text-sm\">Interactive playground for flexible data queries with filtering and pagination.</p></a> <a href=\"/rest/v1/\" class=\"bg-neutral-800 rounded-lg p-6 border border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">REST API</h3><p class=\"text-neutral-400 text-sm\">OpenAPI-compliant REST endpoints with auto-generated documentation.</p></a> <a href=\"/api/\" class=\"bg-neutral-800 rounded-lg p-6 border border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">PeeringDB API</h3><p class=\"text-neutral-400 text-sm\">Drop-in compatible with PeeringDB API for existing integrations.</p></a></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto text-center py-12\"><h1 class=\"text-4xl font-bold text-emerald-500 font-mono mb-4\">PeeringDB Plus</h1><p class=\"text-neutral-400 text-lg mb-8\">A fast, read-only mirror of PeeringDB data. Search networks, IXPs, facilities, and more.</p>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = SearchForm(query, groups).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto\"><a href=\"/graphql\" class=\"bg-neutral-800 rounded-lg p-6 border border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">GraphQL</h3><p class=\"text-neutral-400 text-sm\">Interactive playground for flexible data queries with filtering and pagination.</p></a> <a href=\"/rest/v1/\" class=\"bg-neutral-800 rounded-lg p-6 border border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">REST API</h3><p class=\"text-neutral-400 text-sm\">OpenAPI-compliant REST endpoints with auto-generated documentation.</p></a> <a href=\"/api/\" class=\"bg-neutral-800 rounded-lg p-6 border border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">PeeringDB API</h3><p class=\"text-neutral-400 text-sm\">Drop-in compatible with PeeringDB API for existing integrations.</p></a></div><script>\n\tfunction handleSearchSubmit(event) {\n\t\tvar input = event.target.querySelector('input[name=\"q\"]');\n\t\tvar q = input ? input.value.trim() : '';\n\t\tif (/^\\d+$/.test(q)) {\n\t\t\tevent.preventDefault();\n\t\t\twindow.location.href = '/ui/asn/' + q;\n\t\t\treturn false;\n\t\t}\n\t\treturn true;\n\t}\n\t</script>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+// SearchForm renders the search input with htmx attributes and results container.
+// query is pre-filled on direct navigation; groups are pre-rendered for bookmarked URLs.
+func SearchForm(query string, groups []SearchGroup) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var2 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var2 == nil {
+			templ_7745c5c3_Var2 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<form id=\"search-form\" action=\"/ui/\" method=\"get\" onsubmit=\"return handleSearchSubmit(event)\"><div class=\"relative\"><input type=\"search\" name=\"q\" value=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var3 string
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(query)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/home.templ`, Line: 50, Col: 17}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" placeholder=\"Search networks, IXPs, facilities...\" class=\"w-full bg-neutral-800 border border-neutral-600 rounded-lg px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono\" hx-get=\"/ui/search\" hx-trigger=\"input changed delay:300ms\" hx-target=\"#search-results\" hx-sync=\"this:replace\" hx-indicator=\"#search-indicator\" hx-params=\"q\" autocomplete=\"off\"><div id=\"search-indicator\" class=\"htmx-indicator absolute right-3 top-3.5\"><svg class=\"animate-spin h-5 w-5 text-emerald-500\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\"><circle class=\"opacity-25\" cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"4\"></circle> <path class=\"opacity-75\" fill=\"currentColor\" d=\"M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z\"></path></svg></div></div></form><style>\n\t\t.htmx-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; }\n\t\t.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; transition-delay: 0ms; }\n\t</style><div id=\"search-results\" class=\"mt-6 text-left\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if len(groups) > 0 {
+			templ_7745c5c3_Err = SearchResults(groups).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -1,0 +1,83 @@
+package templates
+
+import "fmt"
+
+// SearchResults renders grouped search results with per-type colored badges,
+// count badges, and clickable result links. Returns empty output when groups
+// is nil or empty.
+templ SearchResults(groups []SearchGroup) {
+	for _, group := range groups {
+		<div class="mb-6">
+			<div class="flex items-center gap-2 mb-3">
+				<span class={ groupBadgeClasses(group.AccentColor) }>
+					{ group.TypeName }
+				</span>
+				<span class="text-neutral-500 text-sm font-mono">
+					{ fmt.Sprintf("(%d)", group.TotalCount) }
+				</span>
+			</div>
+			<div class="space-y-1">
+				for _, result := range group.Results {
+					<a
+						href={ templ.SafeURL(result.DetailURL) }
+						class="flex items-center justify-between px-4 py-3 rounded-lg border border-neutral-700 bg-neutral-800/50 hover:border-neutral-500 hover:bg-neutral-800 transition-colors group"
+					>
+						<div class="flex flex-col min-w-0">
+							<span class="text-neutral-100 font-medium truncate group-hover:text-emerald-400 transition-colors">
+								{ result.Name }
+							</span>
+							if result.Subtitle != "" {
+								<span class="text-neutral-400 text-sm font-mono truncate">
+									{ result.Subtitle }
+								</span>
+							}
+						</div>
+						<span class={ resultBadgeClasses(group.AccentColor) }>
+							{ group.TypeSlug }
+						</span>
+					</a>
+				}
+			</div>
+		</div>
+	}
+}
+
+// groupBadgeClasses returns Tailwind classes for a type group header badge.
+func groupBadgeClasses(color string) string {
+	switch color {
+	case "emerald":
+		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+	case "sky":
+		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-400 border border-sky-500/20"
+	case "violet":
+		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20"
+	case "amber":
+		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20"
+	case "rose":
+		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20"
+	case "cyan":
+		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+	default:
+		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-500/10 text-neutral-400 border border-neutral-500/20"
+	}
+}
+
+// resultBadgeClasses returns Tailwind classes for a small type badge on each result row.
+func resultBadgeClasses(color string) string {
+	switch color {
+	case "emerald":
+		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-emerald-400/70"
+	case "sky":
+		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-sky-400/70"
+	case "violet":
+		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-violet-400/70"
+	case "amber":
+		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-amber-400/70"
+	case "rose":
+		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-rose-400/70"
+	case "cyan":
+		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-cyan-400/70"
+	default:
+		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-neutral-400/70"
+	}
+}
