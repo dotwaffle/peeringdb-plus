@@ -55,5 +55,5 @@ kill_timeout = 30
 
 # Machine size
 [[vm]]
-  size = "performance-1x"
-  memory = "2048mb"
+  size = "shared-cpu-2x"
+  memory = "512mb"
