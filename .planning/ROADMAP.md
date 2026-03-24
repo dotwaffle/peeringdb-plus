@@ -77,7 +77,7 @@ See: `.planning/milestones/v1.3-ROADMAP.md` for full details.
   4. `templ generate` and Tailwind CSS compilation are integrated into the build pipeline and CI
 **Plans**: 2 plans
 Plans:
-- [x] 13-01-PLAN.md -- Create internal/web package with templates, handler, embedded htmx, and tests
+- [ ] 13-01-PLAN.md -- Create internal/web package with templates, handler, embedded htmx, and tests
 - [ ] 13-02-PLAN.md -- Wire web handler into main.go, update middleware, add templ CI drift detection
 **UI hint**: yes
 
@@ -151,7 +151,7 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17
 | 10. CI Pipeline & Public Access | v1.2 | 2/2 | Complete | 2026-03-24 |
 | 11. API Key & Rate Limiting | v1.3 | 2/2 | Complete | 2026-03-24 |
 | 12. Conformance Tooling Integration | v1.3 | 1/1 | Complete | 2026-03-24 |
-| 13. Foundation | v1.4 | 1/2 | In progress | - |
+| 13. Foundation | v1.4 | 0/2 | Planned    |  |
 | 14. Live Search | v1.4 | 0/? | Not started | - |
 | 15. Record Detail Pages | v1.4 | 0/? | Not started | - |
 | 16. ASN Comparison | v1.4 | 0/? | Not started | - |

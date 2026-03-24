@@ -33,9 +33,9 @@ Requirements for Web UI milestone. Each maps to roadmap phases.
 
 ### Design
 
-- [ ] **DSGN-01**: All pages are styled with Tailwind CSS with a polished, visually appealing design
-- [ ] **DSGN-02**: Layout is mobile-responsive and works on all screen sizes
-- [ ] **DSGN-03**: Every page has a clean, shareable URL that captures the full page state
+- [x] **DSGN-01**: All pages are styled with Tailwind CSS with a polished, visually appealing design
+- [x] **DSGN-02**: Layout is mobile-responsive and works on all screen sizes
+- [x] **DSGN-03**: Every page has a clean, shareable URL that captures the full page state
 - [ ] **DSGN-04**: Dark mode is supported with system preference detection and manual toggle
 - [ ] **DSGN-05**: Smooth CSS transitions on search results, collapsible sections, and page changes
 - [ ] **DSGN-06**: Loading indicators appear during HTMX requests
@@ -97,9 +97,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COMP-03 | Phase 16 | Pending |
 | COMP-04 | Phase 16 | Pending |
 | COMP-05 | Phase 16 | Pending |
-| DSGN-01 | Phase 13 | Pending |
-| DSGN-02 | Phase 13 | Pending |
-| DSGN-03 | Phase 13 | Pending |
+| DSGN-01 | Phase 13 | Complete |
+| DSGN-02 | Phase 13 | Complete |
+| DSGN-03 | Phase 13 | Complete |
 | DSGN-04 | Phase 17 | Pending |
 | DSGN-05 | Phase 17 | Pending |
 | DSGN-06 | Phase 17 | Pending |
