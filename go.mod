@@ -3,10 +3,11 @@ module github.com/dotwaffle/peeringdb-plus
 go 1.26.1
 
 require (
-	entgo.io/contrib v0.7.0
-	entgo.io/ent v0.14.5
+	entgo.io/contrib v0.7.1-0.20260306055004-3625dcc2e035
+	entgo.io/ent v0.14.6
 	github.com/99designs/gqlgen v0.17.68
 	github.com/KimMachineGun/automemlimit v0.7.5
+	github.com/a-h/templ v0.3.1001
 	github.com/go-playground/form/v4 v4.3.0
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/go-multierror v1.1.1
@@ -31,8 +32,7 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.36.1 // indirect
-	github.com/a-h/templ v0.3.1001 // indirect
+	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
