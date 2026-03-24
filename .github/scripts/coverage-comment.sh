@@ -3,10 +3,11 @@
 #
 # Reads coverage.txt (output of `go tool cover -func=coverage.out`) from the
 # current directory, extracts the total coverage percentage, and posts or
-# updates a PR comment with the results.
+# updates a PR comment with the results. Filters out generated code and
+# zero-coverage packages to stay within GitHub's 65536-char comment limit.
 #
 # Environment variables:
-#   GITHUB_TOKEN      - GitHub token for API access (set automatically in Actions)
+#   GH_TOKEN          - GitHub token for gh CLI (set by workflow)
 #   GITHUB_REPOSITORY - owner/repo (set automatically in Actions)
 #   PR_NUMBER         - Pull request number (set by the workflow)
 
@@ -32,17 +33,24 @@ if [ -z "${PR_NUMBER:-}" ]; then
   exit 0
 fi
 
-# Build the comment body.
-COVERAGE_DETAILS=$(cat "$COVERAGE_FILE")
+# Build a trimmed per-package summary: exclude generated code (ent/) and
+# the total line, keep only non-zero coverage, then cap at 100 lines.
+COVERAGE_SUMMARY=$(
+  grep -v -E '^total:|/ent/|_templ\.go' "$COVERAGE_FILE" \
+  | grep -v '0\.0%' \
+  | head -100
+)
+PACKAGE_COUNT=$(echo "$COVERAGE_SUMMARY" | wc -l)
+
 COMMENT_BODY="## Test Coverage
 
 **Total: ${TOTAL_COVERAGE}**
 
 <details>
-<summary>Per-package breakdown</summary>
+<summary>Per-function breakdown (${PACKAGE_COUNT} functions with coverage, excludes generated code)</summary>
 
 \`\`\`
-${COVERAGE_DETAILS}
+${COVERAGE_SUMMARY}
 \`\`\`
 
 </details>"
@@ -59,7 +67,6 @@ post_or_update_comment() {
   ) || true
 
   if [ -n "$EXISTING_COMMENT_ID" ]; then
-    # Update the existing comment.
     if ! echo "$COMMENT_BODY" | gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${EXISTING_COMMENT_ID}" \
       --method PATCH \
       --field body=@- \
@@ -69,8 +76,6 @@ post_or_update_comment() {
       echo "Updated existing coverage comment."
     fi
   else
-    # Create a new comment. Use --input to avoid "Argument list too long"
-    # when coverage.txt is large.
     if ! echo "$COMMENT_BODY" | gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
       --method POST \
       --field body=@- \
