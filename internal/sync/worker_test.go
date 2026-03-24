@@ -799,7 +799,7 @@ func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
 		skip := r.URL.Query().Get("skip")
 		if skip != "" && skip != "0" {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"meta": map[string]any{"generated": f.generated},
 				"data": []any{},
 			})
@@ -809,7 +809,7 @@ func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
 		data, ok := f.responses[objType]
 		if !ok {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"meta": map[string]any{"generated": f.generated},
 				"data": []any{},
 			})
@@ -817,7 +817,7 @@ func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"meta": map[string]any{"generated": f.generated},
 			"data": data,
 		})

@@ -893,7 +893,7 @@ func TestFetchAllWithSince(t *testing.T) {
 	var capturedURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedURL = r.URL.String()
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -916,13 +916,13 @@ func TestFetchMetaParsing(t *testing.T) {
 	t.Parallel()
 
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
 		if n == 1 {
-			w.Write(makeOrgPageWithMeta(1, 5, 1711234567.0))
+			_, _ = w.Write(makeOrgPageWithMeta(1, 5, 1711234567.0))
 			return
 		}
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -945,13 +945,13 @@ func TestFetchMetaMissing(t *testing.T) {
 	t.Parallel()
 
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
 		if n == 1 {
-			w.Write(makeOrgPage(1, 3))
+			_, _ = w.Write(makeOrgPage(1, 3))
 			return
 		}
-		w.Write(emptyResponse())
+		_, _ = w.Write(emptyResponse())
 	}))
 	defer server.Close()
 
@@ -973,17 +973,17 @@ func TestFetchMetaEarliestAcrossPages(t *testing.T) {
 	t.Parallel()
 
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
 		switch n {
 		case 1:
 			// Page 1: newer generated timestamp
-			w.Write(makeOrgPageWithMeta(1, 250, 1711234567.0))
+			_, _ = w.Write(makeOrgPageWithMeta(1, 250, 1711234567.0))
 		case 2:
 			// Page 2: older generated timestamp (this should be used)
-			w.Write(makeOrgPageWithMeta(251, 50, 1711234500.0))
+			_, _ = w.Write(makeOrgPageWithMeta(251, 50, 1711234500.0))
 		default:
-			w.Write(emptyResponse())
+			_, _ = w.Write(emptyResponse())
 		}
 	}))
 	defer server.Close()
