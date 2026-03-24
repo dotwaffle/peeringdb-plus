@@ -1,325 +1,249 @@
-# Technology Stack: v1.4 Web UI Additions
+# Technology Stack: v1.5 Tech Debt & Observability
 
-**Project:** PeeringDB Plus v1.4 (Web UI)
+**Project:** PeeringDB Plus v1.5
 **Researched:** 2026-03-24
-**Scope:** Stack additions for Web UI features: live search, record detail views, ASN comparison tool. Does NOT re-research validated backend stack (Go 1.26, entgo, SQLite, GraphQL, REST, OTel).
+**Scope:** Stack additions for Grafana dashboard provisioning, Prometheus metrics exposure for Fly.io scraping, meta.generated field verification, and tech debt cleanup. Does NOT re-research validated backend stack.
+
+---
 
 ## New Dependencies
 
-### HTML Templating -- templ
+**Zero new Go module dependencies required for v1.5.**
+
+Every capability needed is already present in the dependency tree or achievable through configuration changes alone.
+
+---
+
+## Prometheus Metrics Exposure (for Fly.io Grafana)
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| `github.com/a-h/templ` | v0.3.1001 | Type-safe HTML templating | Compiles `.templ` files to Go code at build time. Full type checking -- template errors are compile errors, not runtime panics. Components are pure functions: `func MyPage(data MyData) templ.Component`. Implements `templ.Component` interface with `Render(ctx, io.Writer)` method, which plugs directly into `net/http` handlers via `component.Render(r.Context(), w)` or `templ.Handler(component)`. 5,400+ importers on pkg.go.dev. Published 2026-02-28 (latest on pkg.go.dev). MIT licensed. | HIGH |
+| `OTEL_METRICS_EXPORTER=prometheus` (env var) | N/A | Expose `/metrics` endpoint for Fly.io scraping | **Zero new dependencies.** The autoexport package (`v0.67.0`, already in go.mod) natively supports `prometheus` as a metrics exporter value. Setting this env var causes autoexport to start an HTTP server serving Prometheus-format metrics. The Prometheus exporter (`go.opentelemetry.io/otel/exporters/prometheus v0.64.0`) is already an indirect dependency via autoexport. All existing OTel metrics (sync duration/operations/freshness, per-type counters, otelhttp HTTP metrics, Go runtime metrics) automatically appear in Prometheus format. | HIGH |
+| `OTEL_EXPORTER_PROMETHEUS_PORT` (env var) | N/A | Configure Prometheus exporter listen port | Defaults to 9464. Fly.io scrapes custom metrics from a configured port/path. Must match `[metrics]` section in fly.toml. Recommend 9091 to avoid conflicts with app (8081) and LiteFS proxy (8080). | HIGH |
 
-**Why templ over html/template (stdlib):**
-- **Compile-time type safety.** Passing wrong data to a template is a compile error, not a runtime blank page. With 13 PeeringDB types each having detail/list views, type safety prevents an entire class of bugs.
-- **Component composition.** Layouts, partials, and shared UI elements compose like function calls. A `Layout(title string)` component wraps page content naturally.
-- **IDE support.** VSCode extension provides autocomplete, syntax highlighting, go-to-definition for `.templ` files.
-- **No runtime template parsing.** Templates compile to Go code that writes bytes directly. No `template.ParseFiles` at startup, no `template.Execute` reflection overhead.
-- **Standard interface.** `templ.Component` implements `io.WriterTo`-style rendering. Works with any `http.Handler` -- no framework coupling.
+**Critical integration detail:** The autoexport Prometheus exporter starts its own HTTP server on a separate port, independent of the main application HTTP server. Fly.io's metrics scraper hits this endpoint every 15 seconds.
 
-**Integration with existing HTTP server:**
+### OTel Metric Name to Prometheus Name Mapping
 
-The existing `main.go` uses `http.NewServeMux()` with method-based routing (Go 1.22+). Templ handlers mount as standard `http.Handler` or `http.HandlerFunc`:
+The OTel-to-Prometheus specification converts names as follows: dots become underscores, counters get `_total` suffix, histograms get `_bucket`/`_sum`/`_count` suffixes, and unit `s` becomes `_seconds`.
 
-```go
-// Static handler for a page component
-mux.Handle("GET /", templ.Handler(pages.Home()))
+| OTel Metric | Prometheus Name | Type | Labels |
+|------------|----------------|------|--------|
+| `pdbplus.sync.duration` | `pdbplus_sync_duration_seconds_bucket/sum/count` | Histogram | `status` |
+| `pdbplus.sync.operations` | `pdbplus_sync_operations_total` | Counter | `status` |
+| `pdbplus.sync.type.duration` | `pdbplus_sync_type_duration_seconds_bucket/sum/count` | Histogram | `type` |
+| `pdbplus.sync.type.objects` | `pdbplus_sync_type_objects_total` | Counter | `type` |
+| `pdbplus.sync.type.deleted` | `pdbplus_sync_type_deleted_total` | Counter | `type` |
+| `pdbplus.sync.type.fetch_errors` | `pdbplus_sync_type_fetch_errors_total` | Counter | `type` |
+| `pdbplus.sync.type.upsert_errors` | `pdbplus_sync_type_upsert_errors_total` | Counter | `type` |
+| `pdbplus.sync.type.fallback` | `pdbplus_sync_type_fallback_total` | Counter | `type` |
+| `pdbplus.sync.freshness` | `pdbplus_sync_freshness_seconds` | Gauge | (none) |
+| (otelhttp) `http.server.request.duration` | `http_server_request_duration_seconds_bucket/sum/count` | Histogram | `http_route`, `http_request_method`, `http_response_status_code` |
+| (runtime) `process.runtime.go.*` | `process_runtime_go_*` | Various | (varies) |
 
-// Dynamic handler with data from ent queries
-mux.HandleFunc("GET /net/{id}", func(w http.ResponseWriter, r *http.Request) {
-    id := r.PathValue("id")
-    network, err := entClient.Network.Get(r.Context(), id)
-    if err != nil {
-        http.NotFound(w, r)
-        return
-    }
-    pages.NetworkDetail(network).Render(r.Context(), w)
-})
+### fly.toml Configuration Addition
+
+```toml
+# Custom metrics endpoint for OTel Prometheus exporter
+[metrics]
+port = 9091
+path = "/metrics"
 ```
 
-**Code generation step:** `templ generate` compiles `*.templ` files to `*_templ.go` files. These generated Go files are committed to the repo (same pattern as ent-generated code). Add to CI: `templ generate && git diff --exit-code` to detect uncommitted changes.
-
-**CLI installation:**
+### Environment Variable Additions
 
 ```bash
-# Project-local (Go 1.24+ tool directive, preferred)
-go get -tool github.com/a-h/templ/cmd/templ@v0.3.1001
-
-# Then invoke as:
-go tool templ generate
+# Enable Prometheus metrics exporter (replaces OTLP metric push)
+OTEL_METRICS_EXPORTER=prometheus
+# Port for Prometheus metrics HTTP server (must match fly.toml [metrics] port)
+OTEL_EXPORTER_PROMETHEUS_PORT=9091
 ```
 
-### Frontend Interactivity -- htmx
+**Important:** Setting `OTEL_METRICS_EXPORTER=prometheus` replaces OTLP metric export. If both Prometheus scraping AND OTLP push are needed (e.g., Grafana Cloud alongside Fly.io managed Grafana), use comma-separated: `OTEL_METRICS_EXPORTER=otlp,prometheus`. For Fly.io managed Grafana which reads from its own Prometheus, `prometheus` alone is sufficient.
+
+---
+
+## Grafana Dashboard Delivery
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| htmx | 2.0.7 | Server-driven UI interactions | AJAX requests via HTML attributes (`hx-get`, `hx-post`, `hx-trigger`). No JavaScript to write for search-as-you-type, partial page updates, or dynamic content loading. 14KB min+gzip. Zero dependencies. Single JS file. Delivered from the Go binary via `embed.FS`, not a CDN. Published 2024-09-11 (latest stable). | HIGH |
+| Hand-written JSON files | N/A | Grafana dashboard definitions | **Do NOT use the Grafana Foundation SDK.** The SDK is "public preview" (may break), adds a significant dependency tree, and is designed for teams managing hundreds of dashboards via CI/CD. This project needs 1-3 static dashboards. Design in Fly.io's managed Grafana UI at fly-metrics.net, export the JSON model, check it into the repo. JSON is directly importable into any Grafana instance. | HIGH |
 
-**Why htmx over a JavaScript framework:**
-- **No build toolchain.** No webpack, no vite, no node_modules. The Go binary serves everything.
-- **Server-rendered HTML.** templ renders HTML fragments on the server; htmx swaps them into the DOM. The server is the single source of truth. No client-side state management, no API contract duplication.
-- **Perfect fit for search/detail/compare.** Live search = `hx-get="/search?q=..." hx-trigger="input changed delay:300ms"`. Record detail = `hx-get="/net/13335" hx-target="#content"`. Collapsible sections = `hx-get="/net/13335/peers" hx-trigger="revealed"`. All patterns map to htmx primitives.
-- **URL-as-state.** `hx-push-url="true"` updates the browser URL bar, making every view linkable/shareable (project requirement).
-- **Tiny payload.** 14KB gzipped. Contrast with React (44KB) or Vue (34KB) before any application code.
+**Dashboard delivery workflow:**
+1. Open `fly-metrics.net`, switch to the peeringdb-plus org
+2. Create dashboard panels using the Grafana UI with PromQL queries against the preconfigured Prometheus datasource
+3. Once satisfied, go to Dashboard Settings > JSON Model > Copy
+4. Save to `grafana/dashboards/peeringdb-plus.json` in the repo
+5. To update: re-import, edit in UI, re-export, commit
 
-**Self-hosting via embed.FS (not CDN):**
+**Dashboard JSON schema version:** Use classic JSON model (not v2 Resource schema). Fly.io runs Grafana v10.4 which predates the v2 schema (introduced in Grafana 12.2.0). The classic format is universally compatible across Grafana 9+.
 
-Download `htmx.min.js` v2.0.7 and embed it in the Go binary. This eliminates external CDN dependencies, ensures the app works in air-gapped environments, and guarantees version consistency.
+### PromQL Query Patterns for Dashboard Panels
 
-```go
-//go:embed static
-var staticFS embed.FS
+Fly.io's managed Grafana uses a Prometheus datasource backed by VictoriaMetrics. VictoriaMetrics uses MetricsQL, which is backwards-compatible with PromQL and adds useful extensions.
 
-// In main.go mux setup:
-mux.Handle("GET /static/", http.FileServerFS(staticFS))
+**Sync Health Row:**
+
+```promql
+# Sync duration p95 (timeseries panel)
+histogram_quantile(0.95, rate(pdbplus_sync_duration_seconds_bucket[1h]))
+
+# Sync success rate (stat panel, percentage)
+sum(rate(pdbplus_sync_operations_total{status="success"}[1h])) /
+sum(rate(pdbplus_sync_operations_total[1h]))
+
+# Sync freshness (gauge panel, threshold at 7200s = 2h)
+pdbplus_sync_freshness_seconds
+
+# Per-type sync duration p95 (timeseries panel, legend={{type}})
+histogram_quantile(0.95, sum by(type, le)(rate(pdbplus_sync_type_duration_seconds_bucket[1h])))
+
+# Per-type object counts (bar gauge or table, latest value)
+sum by(type)(increase(pdbplus_sync_type_objects_total[1h]))
+
+# Per-type error rates (timeseries panel)
+sum by(type)(rate(pdbplus_sync_type_fetch_errors_total[5m]))
+sum by(type)(rate(pdbplus_sync_type_upsert_errors_total[5m]))
 ```
 
-**htmx 4.0 note:** htmx 4.0 is expected mid-2026 (marked "latest" early 2027). It replaces XMLHttpRequest with fetch() internally and makes attribute inheritance explicit. Build on 2.0.7 now -- migration is straightforward when 4.0 stabilizes.
+**API Traffic Row:**
 
-### Styling -- Tailwind CSS
+```promql
+# Request rate by route (timeseries panel, legend={{http_route}})
+sum by(http_route)(rate(http_server_request_duration_seconds_count[5m]))
 
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| Tailwind CSS (standalone CLI) | v4.2.2 | Utility-first CSS framework | Generates only the CSS actually used. CSS-first configuration (no `tailwind.config.js` in v4). Standalone CLI binary -- no Node.js, no npm, no node_modules. Scans `.templ` files for utility classes via `@source` directive. Published 2025-03-18. | HIGH |
+# Request latency p99 by route (timeseries panel)
+histogram_quantile(0.99, sum by(http_route, le)(rate(http_server_request_duration_seconds_bucket[5m])))
 
-**Why Tailwind CSS over alternatives:**
-- **Utility-first eliminates CSS file management.** No separate `.css` files per component. Classes in templ templates are the styling. Reduces context switching.
-- **Standalone CLI.** A single binary (downloaded from GitHub releases). No Node.js ecosystem infection in a Go project. The binary scans source files, extracts used classes, outputs a single minified CSS file.
-- **Automatic purging.** v4 only includes CSS for classes that appear in source files. Production CSS is typically 5-15KB for a full application.
-- **v4 CSS-first config.** No JavaScript config file. Theme customization via `@theme` in CSS. Simpler than v3.
+# Error rate (stat panel, percentage, threshold at 0.01 = 1%)
+sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m])) /
+sum(rate(http_server_request_duration_seconds_count[5m]))
 
-**Why v4 specifically:**
-- v4 requires only an `input.css` file with `@import "tailwindcss"` -- no init step, no config file
-- `@source` directive tells Tailwind where to scan for classes (point it at `.templ` files and generated `_templ.go` files)
-- Rebuilds are 3.5x faster (full) and 8x faster (incremental) than v3
-- Built-in container queries, 3D transforms, `@starting-style` support
-
-**Standalone CLI setup:**
-
-```bash
-# Download (one-time, or in CI)
-curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.2/tailwindcss-linux-x64
-chmod +x tailwindcss-linux-x64
-mv tailwindcss-linux-x64 /usr/local/bin/tailwindcss
-
-# macOS (for dev):
-curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.2/tailwindcss-macos-arm64
-chmod +x tailwindcss-macos-arm64
-mv tailwindcss-macos-arm64 /usr/local/bin/tailwindcss
+# Request rate by status code (stacked timeseries)
+sum by(http_response_status_code)(rate(http_server_request_duration_seconds_count[5m]))
 ```
 
-**CSS input file (`internal/web/static/input.css`):**
+**Infrastructure Row:**
 
-```css
-@import "tailwindcss";
+```promql
+# Goroutine count (timeseries panel)
+process_runtime_go_goroutines
 
-/* Scan templ source files and generated Go files for utility classes */
-@source "../templates/**/*.templ";
-@source "../templates/**/*_templ.go";
+# Heap memory usage (timeseries panel, unit: bytes)
+process_runtime_go_mem_heap_alloc_bytes
+
+# GC pause duration (timeseries panel)
+rate(process_runtime_go_gc_pause_ns_sum[5m]) / rate(process_runtime_go_gc_pause_ns_count[5m])
 ```
 
-**Build command:**
+**Business Metrics Row:**
 
-```bash
-# Development (watch mode)
-tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --watch
+```promql
+# Total objects by type (table panel)
+sum by(type)(increase(pdbplus_sync_type_objects_total[24h]))
 
-# Production (minified)
-tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --minify
+# Deleted objects by type (table panel)
+sum by(type)(increase(pdbplus_sync_type_deleted_total[24h]))
+
+# Sync fallback events (stat panel, should be 0)
+sum(increase(pdbplus_sync_type_fallback_total[24h]))
 ```
 
-**Output CSS is committed to the repo** and embedded via `embed.FS`. Same pattern as htmx.min.js. CI verifies the output is fresh: `tailwindcss -i ... -o ... --minify && git diff --exit-code`.
+---
 
-### Development Tooling
+## Fly.io Managed Grafana Details
 
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| templ CLI (watch + proxy) | v0.3.1001 | Hot reload during development | `templ generate --watch --proxy="http://localhost:8080" --cmd="go run ./cmd/peeringdb-plus"`. Watches `.templ` files, regenerates Go code, restarts the server, injects browser reload script via HTTP proxy on `:7331`. Single command replaces air + manual rebuild. | HIGH |
-| air | v1.64.5 | Alternative hot reload (Go file changes) | File-watching rebuild. Use ONLY if templ's built-in `--watch --cmd` mode proves insufficient (e.g., watching `.go` files outside templ's scope). Published 2026-02-02. Do not install unless needed -- templ's watch mode covers the primary workflow. | LOW |
+| Property | Value |
+|----------|-------|
+| URL | `fly-metrics.net` |
+| Grafana version | v10.4 (upgraded March 2024; may be newer) |
+| Prometheus backend | VictoriaMetrics (MetricsQL, PromQL-compatible) |
+| Query endpoint | `https://api.fly.io/prometheus/<org-slug>/` |
+| Scrape interval | 15 seconds |
+| Built-in dashboards | 3 (proxy metrics, instance metrics, volume metrics) |
+| Custom metrics | Supported via `[metrics]` in fly.toml |
+| Dashboard import | Manual via Grafana UI (Import JSON) |
+| Auth | Fly.io org-scoped (auto-provisioned) |
 
-**Recommended development workflow:**
+---
 
-Run two terminals:
+## meta.generated Field Verification
 
-```bash
-# Terminal 1: Tailwind CSS watcher
-tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --watch
+No new dependencies needed. Uses existing stack:
 
-# Terminal 2: templ watcher with proxy and auto-restart
-templ generate --watch --proxy="http://localhost:8080" --cmd="go run ./cmd/peeringdb-plus"
-```
+| Existing Technology | How Used |
+|---------------------|----------|
+| `internal/peeringdb` client | HTTP client with API key, retry, OTel tracing |
+| `encoding/json` (stdlib) | Parse response, check for `meta.generated` |
+| `testing` (stdlib) | Implement as integration test |
 
-Open browser at `http://localhost:7331` (templ proxy). Changes to `.templ` files trigger: regenerate Go code, rebuild binary, restart server, reload browser -- automatically.
+Implementation approach: extend the existing `internal/conformance/live_test.go` pattern or the `cmd/pdbcompat-check` tool to make a depth=0 paginated request and inspect the response for `meta.generated` field presence.
 
-**Taskfile integration (when adopted):**
+---
 
-```yaml
-tasks:
-  dev:
-    deps: [dev:css, dev:templ]
-  dev:css:
-    cmd: tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --watch
-  dev:templ:
-    cmd: templ generate --watch --proxy="http://localhost:8080" --cmd="go run ./cmd/peeringdb-plus"
-  build:css:
-    cmd: tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --minify
-  build:templ:
-    cmd: templ generate
-```
+## Tech Debt Cleanup
 
-## Explicit Non-Additions
+No new dependencies. Pure code deletion:
 
-Things that might seem tempting but should NOT be added.
+| Cleanup Item | Approach | New Dependencies |
+|-------------|----------|-----------------|
+| Remove unused DataLoader middleware | Delete dead code from `internal/` | None |
+| Remove WorkerConfig.IsPrimary dead field | Delete field and references | None |
+| 26 human verification items | Manual testing against live Fly.io deployment | None |
 
-| Anti-Addition | Why Not |
-|---------------|---------|
-| React / Vue / Svelte / any SPA framework | Server-rendered HTML with htmx is simpler, faster, and eliminates client-side state management for a read-only data browser. No API contract duplication. No JS build toolchain. |
-| Node.js / npm / node_modules | Tailwind standalone CLI and self-hosted htmx.min.js eliminate the only reasons to have Node. Go project stays Go. |
-| Webpack / Vite / esbuild / Rollup | No JavaScript to bundle. Tailwind CLI handles CSS. htmx is a single pre-minified file. |
-| Alpine.js | Sometimes paired with htmx for client-side state. Unnecessary here -- all UI state lives in the URL and server. Collapsible sections use htmx `hx-trigger="click"` directly. |
-| PostCSS | Tailwind v4 standalone CLI includes its own CSS processing. No PostCSS pipeline needed. |
-| SASS / Less / CSS-in-JS | Tailwind's utility classes replace custom CSS. Custom styling goes in `@theme` in the input.css file. |
-| Bootstrap / Bulma / other CSS frameworks | Tailwind is the styling layer. Mixing frameworks creates conflicts and bloat. |
-| chi router | The existing `http.NewServeMux()` with Go 1.22+ method routing handles all current and new routes. Web UI routes are simple `GET /path/{param}` patterns. chi adds value only for middleware grouping, which is not needed with the current flat middleware stack. |
-| gorilla/mux | Same reasoning as chi. Stdlib mux is sufficient. |
-| templ component library (templUI) | templUI provides pre-built Tailwind components for templ. Adds a dependency for components we can build in ~50 lines each. The project has only ~5 page types (home, search, detail, compare, about). Build them directly. |
+---
 
-## Project Structure for Web UI
+## What NOT to Add
 
-```
-internal/
-  web/
-    handler.go          # HTTP handlers (mount on mux)
-    handler_test.go     # Handler tests
-    static/
-      input.css         # Tailwind source CSS
-      output.css        # Tailwind compiled CSS (committed, embedded)
-      htmx.min.js       # htmx 2.0.7 (committed, embedded)
-      embed.go          # //go:embed directive for static files
-    templates/
-      layout.templ      # Base HTML layout (head, nav, footer)
-      home.templ         # Landing page
-      search.templ       # Search results (full page + fragment)
-      detail.templ       # Record detail view
-      compare.templ      # ASN comparison view
-      components/
-        nav.templ        # Navigation bar
-        search_input.templ # Search input with htmx attributes
-        record_card.templ  # Record summary card
-        related.templ      # Collapsible related records section
-```
+| Technology | Why Not |
+|------------|---------|
+| Grafana Foundation SDK (`github.com/grafana/grafana-foundation-sdk`) | "Public preview" status. Large dependency for 1-3 static dashboards. SDK targets teams managing hundreds of dashboards programmatically. Hand-written JSON exported from Grafana UI is simpler, more portable, zero dependency. |
+| `grafana-tools/sdk` | Older community library. Same reasoning -- unnecessary abstraction for static dashboards. |
+| `K-Phoen/grabana` | Abandoned. Author recommends Grafana Foundation SDK. |
+| `prometheus/client_golang` (as direct dep) | Already indirect via OTel Prometheus exporter. Do not create Prometheus metrics directly -- use OTel instruments and let the exporter translate. |
+| Grafana Alloy / OTel Collector sidecar | Unnecessary. The OTel Prometheus exporter serves metrics directly to Fly.io's scraper. No collector needed. |
+| Dashboard JSON generation code (Go) | Do not generate dashboard JSON programmatically. Design in Grafana UI, export, version control. The JSON model is the source of truth, not Go code. |
+| Any new `go get` additions | v1.5 requires zero new Go module dependencies. |
 
-**Why this structure:**
-- `internal/web/` keeps all web UI code in one package, separate from API handlers
-- `templates/` holds `.templ` source files; generated `*_templ.go` files appear alongside them
-- `static/` holds assets embedded via `embed.FS` -- the Go binary is fully self-contained
-- `components/` holds reusable templ components shared across pages
-- Handlers in `handler.go` query ent and pass typed data to templ components
+---
 
-## Integration with Existing Server
+## Version Compatibility Matrix
 
-The Web UI mounts on the existing `http.ServeMux` in `main.go` alongside the existing API routes:
+| Component | Current Version | Change Needed | Notes |
+|-----------|----------------|--------------|-------|
+| `go.opentelemetry.io/contrib/exporters/autoexport` | v0.67.0 | None | Already supports `prometheus` exporter |
+| `go.opentelemetry.io/otel/exporters/prometheus` | v0.64.0 (indirect) | None | Already present as transitive dep |
+| `prometheus/client_golang` | v1.23.2 (indirect) | None | Already present as transitive dep |
+| `go.opentelemetry.io/contrib/instrumentation/runtime` | v0.67.0 | None | Already emitting Go runtime metrics |
+| `go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp` | v0.67.0 | None | Already emitting HTTP metrics |
+| fly.toml | current | Add `[metrics]` section | Minimal config change |
+| Fly.io env vars | current | Add 2 env vars | OTEL_METRICS_EXPORTER, OTEL_EXPORTER_PROMETHEUS_PORT |
+| Go | 1.26.1 | None | |
 
-```go
-// Existing routes (unchanged):
-// POST /sync, GET /healthz, GET /readyz, /graphql, /rest/v1/*, /api/*
+---
 
-// New Web UI routes:
-webHandler := web.NewHandler(entClient)
-webHandler.Register(mux)
-// Registers: GET /, GET /search, GET /net/{id}, GET /ix/{id}, etc.
-// GET /compare, GET /static/*
-```
-
-**Route conflict resolution:** The existing `GET /` handler returns JSON discovery. The Web UI replaces it with an HTML landing page. The JSON discovery info moves to `GET /api/` (already served by the compat layer) or a new `GET /meta` endpoint.
-
-**Readiness gating:** Web UI routes should be gated by readiness middleware (same as API routes). No data to show if sync hasn't completed. The existing `readinessMiddleware` already handles this for all non-infrastructure paths.
-
-**Static file serving:** `http.FileServerFS(staticFS)` at `GET /static/` serves embedded CSS and JS. Set `Cache-Control: public, max-age=31536000, immutable` on static assets (content-hash in filenames for cache busting).
-
-## CI Pipeline Additions
-
-| Step | Command | Purpose |
-|------|---------|---------|
-| templ generate check | `go tool templ generate && git diff --exit-code` | Ensure generated `*_templ.go` files are up to date |
-| Tailwind CSS build check | `tailwindcss -i internal/web/static/input.css -o internal/web/static/output.css --minify && git diff --exit-code` | Ensure compiled CSS is up to date |
-| Tailwind CLI install in CI | Download standalone binary in CI job | No Node.js required on CI runner |
-
-**CI job modification:** Add templ and Tailwind checks to the existing `lint` job (or a new `generate` job). The `test` job already runs `go test -race ./...` which will cover web handler tests.
-
-## Installation Summary
-
-```bash
-# New Go dependency (templ library, not CLI)
-go get github.com/a-h/templ@v0.3.1001
-
-# templ CLI (project-local tool)
-go get -tool github.com/a-h/templ/cmd/templ@v0.3.1001
-
-# Tailwind CSS standalone CLI (download binary)
-curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.2/tailwindcss-linux-x64
-chmod +x tailwindcss-linux-x64 && mv tailwindcss-linux-x64 /usr/local/bin/tailwindcss
-
-# htmx (download single file, commit to repo)
-curl -sLo internal/web/static/htmx.min.js https://unpkg.com/htmx.org@2.0.7/dist/htmx.min.js
-```
-
-**Total new Go module dependencies: 1** (`github.com/a-h/templ`). Everything else is a build tool (Tailwind CLI) or a static asset (htmx.min.js).
-
-## Alternatives Considered
-
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| Templating | templ v0.3.1001 | html/template (stdlib) | Runtime template parsing, stringly-typed, no compile-time type checking. Acceptable for trivial pages, not for 13-type data browser with complex layouts. |
-| Templating | templ v0.3.1001 | gomponents | Functional HTML builder in pure Go. No separate template language. But: harder to read for HTML-heavy pages, no IDE HTML support, smaller ecosystem. |
-| Interactivity | htmx 2.0.7 | Stimulus (Hotwire) | Larger (30KB+), more complex, designed for Rails. htmx is simpler and framework-agnostic. |
-| Interactivity | htmx 2.0.7 | Vanilla JS fetch() | More code to write, maintain, and test. htmx declarative attributes replace 80% of custom JS. |
-| Interactivity | htmx 2.0.7 | Datastar | Newer, smaller community, less battle-tested. htmx is the established choice for server-driven HTML. |
-| CSS | Tailwind v4.2.2 standalone | Tailwind via npm | Adds Node.js to the project. Standalone CLI is functionally identical, no npm dependency. |
-| CSS | Tailwind v4.2.2 | Pico CSS / Simple.css | Classless CSS frameworks. Good for documentation, not for custom data-heavy UIs with specific layout needs. |
-| CSS | Tailwind v4.2.2 | vanilla CSS | More CSS to write and maintain. Tailwind's utility classes are faster to develop and produce smaller output after purging. |
-| Dev reload | templ watch + proxy | air v1.64.5 | templ's `--watch --cmd` already rebuilds Go and reloads browser. air adds value only for watching non-templ Go files, which is a rare workflow in web UI development. |
-| Dev reload | templ watch + proxy | wgo | Similar to air. templ's built-in watch covers the primary need. |
-| Component library | Build custom | templUI | 5 page types don't justify a dependency. Custom components are simpler and tailored to PeeringDB data structures. |
-| htmx delivery | embed.FS (self-hosted) | CDN (unpkg/cdnjs) | External CDN is a runtime dependency. Self-hosted in the binary ensures availability and version consistency. Edge deployment on Fly.io means CDN latency advantage is negligible. |
-
-## Version Pinning Strategy
-
-| Component | Pin Strategy | Rationale |
-|-----------|-------------|-----------|
-| templ (Go module) | v0.3.1001 in `go.mod` | Semver pre-1.0, pin exact version. Update deliberately. |
-| templ CLI | Same version as module | CLI and library must match to avoid codegen mismatches. |
-| htmx | 2.0.7 file committed to repo | Static asset, not a package manager dependency. Update by downloading new file. |
-| Tailwind CLI | v4.2.2 binary | Downloaded in CI and dev setup. Pin version in download script/Taskfile. |
-| Tailwind CSS output | Committed `output.css` | Derived artifact. Regenerated by CI check. |
-
-## Risk Register
+## Risk Register (v1.5 Specific)
 
 | Risk | Severity | Likelihood | Mitigation |
 |------|----------|------------|------------|
-| templ pre-1.0 breaking changes | MEDIUM | LOW | templ has been stable in the v0.3.x line for 18+ months with no breaking changes to the component interface. Pin version, update deliberately. The generated Go code is standard -- worst case, hand-edit `*_templ.go` files. |
-| htmx 4.0 migration required | LOW | LOW | htmx 4.0 won't be "latest" until early 2027. 2.0.x is stable. Migration is mostly internal (fetch replaces XHR). Explicit attribute inheritance is the main breaking change -- audit `hx-boost` usage. |
-| Tailwind v4 standalone CLI bugs | LOW | LOW | v4.2.2 is 3 months post-GA. Standalone CLI is well-tested. Fallback: install via npm temporarily if standalone has issues. |
-| Tailwind class scanning misses templ files | MEDIUM | MEDIUM | Use `@source` directive to explicitly point at `.templ` and `*_templ.go` files. Test by verifying expected classes appear in output. The generated Go code contains class strings as literals, so scanning `*_templ.go` is reliable. |
-| templ watch mode conflicts with existing server | LOW | MEDIUM | templ proxy listens on `:7331`, app on `:8080`. No port conflict. The proxy passes through all requests including API paths. Development uses proxy URL; production uses app directly. |
-| `embed.FS` increases binary size | LOW | LOW | htmx.min.js is ~48KB uncompressed, ~14KB gzipped. Tailwind output CSS is typically 5-15KB. Total static asset overhead: <100KB. Negligible for a server binary. |
+| Fly.io Grafana version too old for dashboard features | LOW | LOW | Use classic JSON model (Grafana 9+ compatible). Avoid v2 schema. Stick to timeseries, stat, gauge, table, bar gauge panels (all built-in). |
+| `OTEL_METRICS_EXPORTER=prometheus` disables OTLP metrics push | MEDIUM | HIGH | This IS the expected behavior. Use comma-separated `otlp,prometheus` if OTLP push is also needed. For Fly.io managed Grafana, `prometheus` alone is correct. |
+| Prometheus metric names drift between OTel SDK versions | LOW | LOW | Mapping is defined by the OTel specification. Names are stable. Versions are pinned. |
+| Dashboard JSON breaks on Grafana upgrade | LOW | LOW | Classic JSON model is stable across versions. Avoid panel plugins not bundled with Grafana. |
+| meta.generated field behavior changes in PeeringDB API | MEDIUM | LOW | This is why we verify. Build graceful fallback regardless of result. |
+| Fly.io metrics scraping misses some metrics | LOW | MEDIUM | Scrape interval is 15s. OTel Prometheus exporter holds all metrics in memory. Verify in managed Grafana that all expected metrics appear after deployment. |
+
+---
 
 ## Sources
 
-- [templ v0.3.1001 on pkg.go.dev](https://pkg.go.dev/github.com/a-h/templ) -- published Feb 28, 2026
-- [templ GitHub releases](https://github.com/a-h/templ/releases) -- version history
-- [templ installation docs](https://templ.guide/quick-start/installation/) -- Go 1.24+ tool directive
-- [templ HTTP server guide](https://templ.guide/server-side-rendering/creating-an-http-server-with-templ/) -- templ.Handler, Render method
-- [templ live reload docs](https://templ.guide/developer-tools/live-reload/) -- watch + proxy workflow
-- [htmx 2.0.7 on GitHub](https://github.com/bigskysoftware/htmx/releases) -- latest stable release
-- [htmx documentation](https://htmx.org/docs/) -- attributes, triggers, swap modes
-- [htmx future essay](https://htmx.org/essays/future/) -- htmx 4.0 timeline
-- [Tailwind CSS v4.2.2 release](https://github.com/tailwindlabs/tailwindcss/releases) -- published Mar 18, 2025
-- [Tailwind CLI docs](https://tailwindcss.com/docs/installation/tailwind-cli) -- standalone CLI usage
-- [Tailwind v4 @source directive](https://tailwindcss.com/docs/functions-and-directives) -- template scanning
-- [Tailwind v4 in Go projects](https://github.com/tailwindlabs/tailwindcss/discussions/15815) -- standalone build step
-- [air v1.64.5 on GitHub](https://github.com/air-verse/air/releases) -- published Feb 2, 2026
-- [Go embed package](https://pkg.go.dev/embed) -- static file embedding
-- [GoTTH stack guide](https://medium.com/ostinato-rigore/go-htmx-templ-tailwind-complete-project-setup-hot-reloading-2ca1ba6c28be) -- integration patterns
+- [Fly.io Metrics Documentation](https://fly.io/docs/monitoring/metrics/) -- Custom metrics setup, managed Grafana, Prometheus access
+- [Fly.io Grafana v10.4 Upgrade](https://community.fly.io/t/fly-metrics-grafana-upgraded-to-v10-4/18823) -- Managed Grafana version
+- [OTel Autoexport Package](https://pkg.go.dev/go.opentelemetry.io/contrib/exporters/autoexport) -- OTEL_METRICS_EXPORTER=prometheus support
+- [OTel Prometheus Exporter](https://pkg.go.dev/go.opentelemetry.io/otel/exporters/prometheus) -- Metric naming, configuration
+- [OTel-Prometheus Compatibility Spec](https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/) -- Metric name translation rules
+- [Grafana Dashboard JSON Model](https://grafana.com/docs/grafana/latest/visualizations/dashboards/build-dashboards/view-dashboard-json-model/) -- Classic JSON format
+- [Grafana Foundation SDK](https://grafana.github.io/grafana-foundation-sdk/) -- Evaluated and rejected for this project
+- [Grafana Foundation SDK GitHub](https://github.com/grafana/grafana-foundation-sdk) -- "Public preview" status confirmed
+- [Grafana Dashboard Schema v2](https://grafana.com/docs/grafana/latest/as-code/observability-as-code/schema-v2/) -- Requires Grafana 12.2+, not available on Fly.io
+- [Prometheus Histograms in Grafana](https://grafana.com/blog/2020/06/23/how-to-visualize-prometheus-histograms-in-grafana/) -- PromQL histogram_quantile patterns

@@ -1,194 +1,189 @@
 # Project Research Summary
 
-**Project:** PeeringDB Plus v1.4 -- Web UI
-**Domain:** Server-rendered web interface for network interconnection data exploration
+**Project:** PeeringDB Plus v1.5 -- Tech Debt & Observability
+**Domain:** Production observability dashboards and tech debt cleanup for an edge-deployed Go/OTel service
 **Researched:** 2026-03-24
 **Confidence:** HIGH
 
 ## Executive Summary
 
-PeeringDB Plus v1.4 adds a polished, interactive web UI to an existing Go API server that already syncs all 13 PeeringDB object types, stores them in SQLite on the edge, and exposes them via GraphQL, REST, and PeeringDB-compatible APIs. The research converges on a server-rendered approach using templ (type-safe Go HTML templates), htmx (server-driven interactivity via HTML attributes), and Tailwind CSS v4 (standalone CLI, no Node.js). This stack adds exactly one new Go module dependency (`github.com/a-h/templ`), keeps the project in pure Go with no JavaScript build toolchain, and maintains the single-binary deployment model via `embed.FS`.
+PeeringDB Plus v1.5 is a cleanup and observability milestone requiring zero new Go module dependencies. The existing OTel instrumentation pipeline (9 custom sync metrics, otelhttp HTTP metrics, Go runtime metrics via `runtime.Start()`) already emits everything needed. The core deliverable is making these metrics visible through Grafana dashboards backed by Prometheus scraping, alongside clearing accumulated tech debt (dead code, stale documentation) and verifying 26 deferred human-testing items from prior milestones.
 
-The recommended approach builds three user-facing capabilities in dependency order: (1) live search with as-you-type results grouped by type, (2) record detail pages for all 5 primary entity types with lazy-loaded related records, and (3) an ASN comparison tool showing shared IXPs and facilities between two networks. The architecture follows the existing codebase pattern -- a `Handler` struct accepting `*ent.Client`, registering routes on `*http.ServeMux`, with a view model layer decoupling ent-generated types from templates. Every handler serves both full pages (direct navigation) and HTML fragments (htmx partial updates), keyed on the `HX-Request` header.
+The recommended approach leverages Fly.io's managed Grafana (v10.4) and built-in Prometheus scraping. The Prometheus metrics endpoint is enabled entirely through environment variables (`OTEL_METRICS_EXPORTER=prometheus`) -- the `autoexport` package already in `go.mod` handles everything. Dashboard JSON files are authored in Grafana's UI, exported, parameterized for datasource portability, and committed to the repo under `deploy/grafana/dashboards/`. This is a configuration-and-verification milestone, not a feature-development milestone; the only Go code change is deleting the `WorkerConfig.IsPrimary` dead field from `internal/sync/worker.go`.
 
-The primary risks are well-understood and preventable. The most critical pitfall is the full-page vs. fragment rendering duality: every handler that serves HTML must work for both bookmarked URLs and htmx requests, or shareable links break. Search performance requires attention -- the existing `LIKE '%term%'` queries do full table scans, which may be acceptable for the current dataset (~200K rows) but should be benchmarked early and replaced with FTS5 if latency exceeds 50ms. Tailwind's class scanner does not auto-detect `.templ` files, requiring an explicit `@source` directive. The LiteFS read-only replica constraint is safe for a read-only UI but demands vigilance against hidden write paths (no sessions, no analytics writes).
+The primary risks are operational, not technical. The most critical pitfall is Grafana datasource UID coupling -- exported dashboard JSON contains instance-specific UIDs that break portability unless parameterized with template variables or deterministic UIDs. The OTel-to-Prometheus metric name translation (dots to underscores, unit suffixes, counter `_total` suffixes) is a second source of confusion when writing PromQL queries. The `meta.generated` field used for incremental sync cursors is undocumented by PeeringDB and must be empirically verified against the live API, though the existing fallback code is already defensive. All risks have clear prevention strategies documented in the research.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The v1.4 stack adds three technologies to the existing Go backend, all chosen to avoid a JavaScript build toolchain and maintain single-binary deployment. See [STACK.md](STACK.md) for full details.
+No new dependencies. Every capability needed is present in the existing dependency tree or achievable through configuration changes. See [STACK.md](STACK.md) for full details.
 
-**Core technologies:**
-- **templ v0.3.1001:** Type-safe HTML templating. Compiles `.templ` files to Go code at build time. Components are pure functions with compile-time type checking. Implements `templ.Component` interface, plugs directly into `net/http` handlers. 5,400+ importers. The only new Go module dependency.
-- **htmx 2.0.7:** Server-driven UI interactivity via HTML attributes. 14KB gzipped. Zero dependencies. Self-hosted via `embed.FS` (no CDN). Covers live search (`hx-trigger` with debounce), lazy-loading (`hx-trigger="revealed"`), URL state (`hx-push-url`), and partial page updates.
-- **Tailwind CSS v4.2.2 (standalone CLI):** Utility-first CSS framework. Single binary, no Node.js. CSS-first configuration with `@source` directive for scanning `.templ` files. Output committed to repo and embedded in binary. Production output typically 5-15KB.
+**Core technologies (already present):**
+- **`autoexport` (v0.67.0):** Setting `OTEL_METRICS_EXPORTER=prometheus` enables a standalone HTTP server on port 9091 exposing all OTel metrics in Prometheus format. Zero code changes.
+- **Hand-written Grafana JSON:** Classic dashboard model (pre-v12.2 schema). Designed in Grafana UI, exported, version-controlled. The Grafana Foundation SDK was evaluated and explicitly rejected -- it is "public preview" and overkill for 1-3 static dashboards.
+- **fly.toml `[metrics]` section:** Tells Fly.io's scraper where to find the Prometheus endpoint. Two lines of config.
 
-**Explicit non-additions:** No React/Vue/Svelte, no Node.js/npm, no webpack/vite, no Alpine.js, no chi router, no component libraries. The existing `http.NewServeMux()` handles all new routes.
+**Explicit non-additions:** No Grafana Foundation SDK, no `grafana-tools/sdk`, no `prometheus/client_golang` as direct dependency, no OTel Collector sidecar, no Grafonnet/Jsonnet, no new `go get` additions of any kind.
 
 ### Expected Features
 
-See [FEATURES.md](FEATURES.md) for full feature landscape with interaction pattern details.
+See [FEATURES.md](FEATURES.md) for complete feature landscape and metrics inventory.
 
 **Must have (table stakes):**
-- Search box on homepage with as-you-type results (300ms debounce, htmx active search pattern)
-- Results grouped by type (Networks, IXPs, Facilities, Organizations, Campuses) with colored badges
-- ASN direct lookup (numeric input treated as ASN-first)
-- Record detail pages for all 5 primary types with organized field sections
-- Related records on detail pages in collapsible sections with lazy-loading
-- Clean, linkable URLs (`/net/13335`, `/search?q=cloudflare`, `/compare?asn1=X&asn2=Y`)
-- Mobile-responsive layout (Tailwind responsive utilities)
+- Sync health dashboard row (duration, success rate, freshness gauge)
+- HTTP RED metrics row (rate, errors, duration by route)
+- Go runtime metrics row (goroutines, memory, GC)
+- Per-type sync metrics row (13 PeeringDB types broken down)
+- Dashboard JSON provisioning in version control
+- `meta.generated` field graceful handling verification
+- Dead code removal (`WorkerConfig.IsPrimary`)
+- Deferred human verification pass (26 items across v1.2-v1.4)
 
 **Should have (differentiators):**
-- ASN comparison tool with shared IXPs/facilities, port speeds, and IP addresses
-- "Compare with..." button on network detail pages (pre-fills one ASN)
-- Shared-only default view in comparison (answers "where can we peer?" directly)
-- Sub-100ms search latency (architectural advantage: local SQLite, no network round-trip)
-- Dark mode (Tailwind `dark:` variant, system preference default)
-- Keyboard navigation in search results (ARIA roles provide accessibility for free)
+- Business metrics row (object counts per type as observable gauges)
+- Fly.io region breakdown in HTTP panels
+- Sync fallback tracking panel
+- Data freshness alerting thresholds (green/yellow/red)
+- Dashboard documentation text panels
+- Annotation markers for sync events
 
 **Defer (v2+):**
-- User accounts / authentication (read-only public mirror, login-free is an advantage)
-- Advanced multi-field search (GraphQL/REST already covers this)
-- Map visualization (link to Google Maps instead)
-- Data export UI (REST/GraphQL APIs already provide this)
-- Multi-ASN comparison (>2 ASNs; two covers the dominant use case)
-- Full-text search / FTS5 (only if LIKE performance proves insufficient)
-- Pagination (limit to 15 results per type, encourage query refinement)
+- SLO/SLI tracking (premature without production baseline data)
+- Per-endpoint latency breakdown for all API surfaces (panel sprawl)
+- Custom alerting rules (requires notification channel)
+- Automated visual regression testing (not worth it for one-time verification items)
+- Real-time dashboard streaming (marginal value with hourly syncs)
 
 ### Architecture Approach
 
-The web UI mounts as a new `internal/web` package on the existing `http.ServeMux`, following the same handler pattern as `internal/pdbcompat`. A view model layer sits between ent queries and templ templates, preventing template coupling to ORM-generated types. Handlers detect `HX-Request` headers to serve full pages or fragments from the same endpoint. Static assets (compiled CSS, vendored htmx.js) are embedded via `embed.FS` for single-binary deployment. See [ARCHITECTURE.md](ARCHITECTURE.md) for full details.
+The architecture adds no new components to the Go application. The Prometheus metrics endpoint is activated purely through environment variables consumed by the existing `autoexport` package. Dashboard JSON files live in `deploy/grafana/dashboards/` as deployment artifacts, not application code. Dead code removal touches `internal/sync/worker.go` only. The `meta.generated` verification is an investigation with possible minor updates to `internal/peeringdb/client.go`. See [ARCHITECTURE.md](ARCHITECTURE.md) for full details.
 
 **Major components:**
-1. **`internal/web/handler.go`** -- HTTP handlers for search, detail, compare. Receives `*ent.Client`, registers routes, renders templ components. Dual-mode rendering (full page vs. fragment) via `HX-Request` header detection.
-2. **`internal/web/templates/*.templ`** -- Templ components for layout, pages, and reusable UI elements. Import view model types only, never ent types. Compiled to Go code by `templ generate`.
-3. **`internal/web/search.go`** -- Cross-type search using `errgroup` fan-out across 5 entity types. Reuses search predicate patterns from pdbcompat. Returns at most 5 results per type.
-4. **`internal/web/viewmodel.go`** -- View model structs (`SearchResult`, `DetailView`, `CompareView`) decoupling templates from ent-generated types. Enables testing with hand-constructed data.
-5. **`internal/web/static/`** -- Tailwind output CSS and htmx.min.js, embedded at build time. Served via `http.FileServerFS`.
+1. **Prometheus metrics endpoint (config-only)** -- `OTEL_METRICS_EXPORTER=prometheus` on port 9091. Fly.io scrapes every 15s. All existing custom and automatic metrics exposed automatically.
+2. **Dashboard JSON files (`deploy/grafana/dashboards/`)** -- 1-4 JSON files with PromQL queries against Prometheus-formatted metric names. Classic schema, datasource template variables, stable UIDs.
+3. **`WorkerConfig.IsPrimary` removal** -- Delete dead bool field from struct in `internal/sync/worker.go`. No other code references it.
+4. **`meta.generated` verification** -- Test live PeeringDB API responses for field presence across depth=0, paginated, and incremental request patterns. Document findings.
+5. **Human verification checklist** -- 26 items verified against live Fly.io deployment in dependency order.
 
 ### Critical Pitfalls
 
-See [PITFALLS.md](PITFALLS.md) for all 14 pitfalls with detailed prevention strategies.
+See [PITFALLS.md](PITFALLS.md) for all 12 pitfalls with detailed prevention strategies.
 
-1. **Full-page vs. fragment rendering blindness (Critical #1).** Every handler must check `HX-Request` header and serve either a full page (with layout) or bare fragment. Without this, bookmarked/shared URLs render unstyled HTML. Build a single `renderPage` helper. Add `Vary: HX-Request` response header. Test both paths for every endpoint.
+1. **Datasource UID coupling in exported dashboard JSON (Critical #1).** Exported dashboards contain instance-specific UIDs causing "No data" errors on import elsewhere. Use `${datasource}` template variable or deterministic UID provisioning. Never commit raw exported JSON without stripping UIDs.
 
-2. **Live search query storm (Critical #2).** Without debounce and request cancellation, every keystroke fires a SQLite query. Use `hx-trigger="keyup changed delay:300ms"` and `hx-sync="this:replace"`. Require minimum 2-character queries. Cap results with `LIMIT`.
+2. **OTel-to-Prometheus metric name translation (Critical #2).** OTel names like `pdbplus.sync.duration` become `pdbplus_sync_duration_seconds_bucket` in Prometheus. All PromQL queries must use Prometheus-format names. The full mapping is documented in both STACK.md and PITFALLS.md.
 
-3. **Tailwind not scanning .templ files (Critical #3).** Tailwind v4's automatic detection may skip `.templ` files. Use explicit `@source "../templates/**/*.templ"` directive. Never construct class names dynamically. Verify production CSS contains expected classes in CI.
+3. **`meta.generated` field is undocumented and may be absent (Critical #3).** The field is not in PeeringDB's API spec. Current fallback code is defensive (zero time triggers `started_at - 5min` buffer), but behavior must be verified empirically. Risk is loss of incremental sync precision, not data loss.
 
-4. **Templ codegen not in build pipeline (Critical #4).** `templ generate` must run before `go build`. Add to CI, Taskfile, and Dockerfile. Add drift detection: `templ generate && git diff --exit-code`.
+4. **Dashboard panel sprawl (Moderate #5).** 9 custom metrics + otelhttp + runtime, each sliceable by type/status/region, can balloon to 50+ panels. Limit to 4 focused rows with 15-20 panels total. Use template variables for drill-down.
 
-5. **Routing conflicts with existing API surfaces (Moderate #7).** The existing `GET /` returns JSON discovery. Move it to `GET /api/` or use content negotiation. Update readiness middleware to serve an HTML "syncing" page for browser requests. Bypass readiness for `/static/` paths.
+5. **Stale planning docs on dead code (Moderate #4).** Phase 7 summary incorrectly claims `WorkerConfig.IsPrimary` was removed. DataLoader middleware IS already gone. Verify codebase state with grep before writing removal tasks.
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure with 5 phases:
+Based on research, suggested phase structure with 4 phases:
 
-### Phase 1: Foundation -- templ + Tailwind + Project Structure
+### Phase 1: Tech Debt Cleanup
 
-**Rationale:** Everything else depends on the template system, CSS framework, and build pipeline being correctly configured. Pitfalls #3 (Tailwind scanning), #4 (templ codegen), and #5 (hot reload loop) all manifest during setup and are cheaper to fix before feature code exists.
+**Rationale:** Pure deletion and documentation fixes. No external dependencies, no deployment needed. Clears the deck for observability work. The dead code confuses future maintainers and the stale docs mislead planners.
 
-**Delivers:** Base HTML layout (head, nav, footer), Tailwind CSS integration with `@source` directive, htmx.min.js vendored and embedded, static file serving via `embed.FS`, templ generate in CI pipeline, dev workflow (templ watch + Tailwind watch), route registration pattern for web handler, `GET /` migration from JSON discovery to HTML homepage.
+**Delivers:** Removal of `WorkerConfig.IsPrimary` from `internal/sync/worker.go`. Updated planning documentation to reflect that DataLoader was already removed in v1.2. Codebase audit confirming no other dead code.
 
-**Addresses features:** Mobile-responsive layout skeleton, visual type indicator system (badge components), dark mode infrastructure (Tailwind `dark:` variant).
+**Addresses features:** Dead code removal (table stake).
 
-**Avoids pitfalls:** #3 (Tailwind scanning), #4 (codegen pipeline), #5 (hot reload loop), #7 (route conflicts -- resolve `GET /` immediately), #13 (CLI version pinning).
+**Avoids pitfalls:** #4 (stale planning docs -- verify codebase state first), #6 (middleware removal patterns -- trace effects before deleting, though DataLoader is already gone).
 
-### Phase 2: Live Search
+### Phase 2: meta.generated Field Verification
 
-**Rationale:** The homepage IS the search experience. Search is the entry point for all other features (detail pages, comparison). Building search first validates the htmx integration, the `HX-Request` dual-rendering pattern, and the cross-type query architecture.
+**Rationale:** This is an investigation phase that informs sync pipeline correctness. Must happen before observability because we need to understand whether the freshness gauge's backing data is reliable. Independent of dashboard work.
 
-**Delivers:** Homepage with prominent search box, as-you-type search with 300ms debounce, results grouped by type with colored badges, ASN direct lookup for numeric input, result count badges, search endpoint returning full page or fragment based on `HX-Request`.
+**Delivers:** Empirical documentation of `meta.generated` behavior across all request patterns (depth=0 full fetch, paginated incremental, empty result sets). Updated code comments. Possible minor fix to `parseMeta()` or sync worker fallback logic. Verification that incremental sync cursor tracking is correct.
 
-**Addresses features:** Search box on homepage, as-you-type results, type-grouped results, ASN direct lookup, visual type indicators, sub-100ms search latency, result count badges.
+**Addresses features:** meta.generated graceful handling (table stake).
 
-**Avoids pitfalls:** #1 (full/partial rendering -- establish the pattern here), #2 (debounce + hx-sync), #6 (Vary header + cache-control), #8 (benchmark LIKE query performance with real data).
+**Avoids pitfalls:** #3 (undocumented field behavior -- test all 3 request patterns against live API).
 
-### Phase 3: Record Detail Pages
+### Phase 3: Prometheus Metrics & Grafana Dashboards
 
-**Rationale:** Search results link to detail pages. Without detail pages, search is a dead end. Network detail is the most complex and most visited type -- build it first, then replicate the pattern for IXP, Facility, Organization, Campus.
+**Rationale:** Requires deployment to Fly.io to verify metrics scraping works. Dashboard authoring requires live metrics data in Prometheus. This is the largest phase but has well-documented patterns and zero Go code changes.
 
-**Delivers:** Network detail page with organized field sections, related records (IXP presences with speed/IPs, facility presences, contacts) in collapsible sections, lazy-loaded via htmx `hx-trigger="revealed"`, cross-links between related records, "Compare with..." button on network pages. Then remaining 4 detail types (IXP, Facility, Organization, Campus) using the same patterns.
+**Delivers:** fly.toml `[metrics]` section and env var configuration. Prometheus endpoint on port 9091 verified on Fly.io. Dashboard JSON with 4 rows: Sync Health, HTTP RED, Per-Type Sync Detail, Go Runtime. Provisioning config. Documentation of OTel-to-Prometheus metric name mapping.
 
-**Addresses features:** Record detail pages for all types, related records on detail pages, collapsible sections, clean linkable URLs, "Compare with..." button, computed summary stats, external links.
+**Addresses features:** All 4 dashboard rows (table stakes), dashboard JSON provisioning, freshness alerting thresholds, sync fallback tracking, Fly.io region breakdown (differentiators).
 
-**Avoids pitfalls:** #1 (dual rendering), #9 (explicit component parameters, no context abuse), #10 (no accidental writes on read-only replicas), #14 (test detail components with view model structs).
+**Avoids pitfalls:** #1 (datasource UID -- use template variables), #2 (metric name translation -- use documented Prometheus names), #5 (panel sprawl -- 4 rows, 15-20 panels max), #8 (JSON schema version -- classic model for Grafana 10.4), #9 (otelhttp semantic convention names), #10 (runtime metric names), #11 (stable UID, null version/id).
 
-### Phase 4: ASN Comparison Tool
+### Phase 4: Deferred Human Verification
 
-**Rationale:** Comparison depends on network detail pages being done (the "Compare with..." button) and reuses search components (ASN input validation). It is the primary differentiator but not a prerequisite for other features.
+**Rationale:** Requires a live Fly.io deployment with working metrics (post-Phase 3). The 26 items span CI pipeline behavior, API key integration, and browser UX across 7 phases of prior milestones. Must be verified in dependency order. Most time-consuming phase but lowest technical risk.
 
-**Delivers:** `/compare` page with dual ASN input, shared IXP/facility/campus results with port speeds and IP addresses, shared-only default view, side-by-side toggle, sortable results, URL captures both ASNs for sharing.
+**Delivers:** Structured verification report with pass/fail/blocked status for all 26 items. Bug fixes for any items that fail. Updated milestone audit documentation.
 
-**Addresses features:** ASN comparison tool, shared-only default with side-by-side toggle, speed and IP display, compare from network detail page, sortable comparison tables.
+**Addresses features:** Deferred human verification pass (table stake).
 
-**Avoids pitfalls:** #1 (dual rendering for compare results), #2 (debounce on ASN input search), #7 (route registration without conflicts).
-
-### Phase 5: Polish and Accessibility
-
-**Rationale:** Enhancements that layer on top of working features. These are individually small but collectively elevate the product from functional to polished.
-
-**Delivers:** Keyboard navigation in search results (ArrowUp/Down/Enter with ARIA roles), smooth CSS transitions, dark mode toggle with localStorage persistence, loading indicators, empty state messages, error pages (styled 404/500), mobile layout verification and fixes, "syncing" HTML page for readiness middleware.
-
-**Addresses features:** Keyboard navigation, smooth transitions, dark mode, mobile-responsive verification.
-
-**Avoids pitfalls:** #7 (readiness middleware HTML response), #12 (ARIA accessibility).
+**Avoids pitfalls:** #7 (cross-environment browser differences -- test on Chrome/Firefox/Safari minimum), #12 (verify in dependency order: infrastructure, data layer, foundation, search, detail pages, comparison, polish).
 
 ### Phase Ordering Rationale
 
-- **Dependencies flow downward:** Foundation enables search, search enables detail pages (via linking), detail pages enable comparison (via "Compare with..." button). This is not arbitrary grouping -- each phase produces the prerequisite for the next.
-- **Risk front-loading:** The riskiest pitfalls (#1 dual rendering, #2 query storm, #3 Tailwind scanning, #4 codegen pipeline) are addressed in Phases 1-2, before the bulk of feature code is written.
-- **Architecture validation early:** Phase 2 validates the core architectural patterns (htmx integration, view models, errgroup fan-out, `HX-Request` detection) that Phases 3-4 reuse heavily.
-- **Polish last:** Phase 5 is additive enhancements that can be partially deferred without affecting core functionality.
+- **Dependencies are linear:** Dead code cleanup has no prerequisites. meta.generated verification is independent but informs sync correctness. Prometheus/dashboards require deployment. Human verification requires a fully deployed and observable system.
+- **Risk profile is inverted:** The riskiest unknown (meta.generated behavior) is investigated early. The most time-consuming work (human verification) is deferred until all technical changes are deployed.
+- **No Go code changes in Phase 3:** The Prometheus endpoint and dashboards are pure configuration and JSON. This means Phase 3 can proceed without affecting application stability.
+- **Phase 4 is a gate, not a feature:** The 26 verification items from prior milestones must pass before v1.5 can be considered complete. They are grouped last because they depend on everything else being deployed.
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 2 (Search):** Benchmark LIKE query performance with real PeeringDB dataset size (~200K rows). If latency exceeds 50ms, FTS5 integration needs research. The existing `buildSearchPredicate` approach may or may not be sufficient.
-- **Phase 4 (Comparison):** The set intersection logic for shared IXPs/facilities is conceptually simple but needs careful query design to avoid N+1 patterns. Research optimal ent query patterns for this.
+- **Phase 2 (meta.generated):** The field is undocumented. Live API testing is the only way to determine behavior. The research identifies 3 specific request patterns to test but cannot predict the results.
+- **Phase 3 (Dashboards):** PromQL query patterns are well-documented, but the exact Prometheus metric names emitted by the current OTel SDK version should be verified against the actual `/metrics` endpoint after deployment. The autoexport Prometheus integration has not been tested in this project before.
 
 Phases with standard patterns (skip research-phase):
-- **Phase 1 (Foundation):** Well-documented setup. templ, Tailwind CLI, and htmx all have clear getting-started guides. The STACK.md and ARCHITECTURE.md already contain exact commands and file structures.
-- **Phase 3 (Detail Pages):** Follows patterns established in Phase 2. The ent schema already has all edges defined. Template composition is straightforward templ component calls.
-- **Phase 5 (Polish):** ARIA attributes and CSS transitions are well-documented web standards. Dark mode is a Tailwind configuration concern with established patterns.
+- **Phase 1 (Tech Debt):** Pure code deletion. Codebase state already verified by PITFALLS.md research. One struct field removal.
+- **Phase 4 (Verification):** Manual testing checklist. The verification items are already fully enumerated in FEATURES.md with specific steps and expected behaviors. The dependency ordering is documented in PITFALLS.md.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All three technologies (templ, htmx, Tailwind) are mature, well-documented, and widely used in Go projects. Versions are current. The GoTTH (Go + Templ + Tailwind + HTMX) stack is an established pattern with production references. |
-| Features | HIGH | Feature landscape based on direct analysis of PeeringDB.com, bgp.tools, he.net, and PeeringDB's own product blog. Table stakes are unambiguous. Differentiators (comparison tool) are validated against PeerFinder and PeeringDB's own comparison feature. |
-| Architecture | HIGH | Architecture extends the existing codebase patterns (`Handler` + `Register` + `*ent.Client`). No new architectural paradigms introduced. The dual-render pattern (full page vs. fragment) is a well-documented htmx pattern. View model layer follows standard Go practices. |
-| Pitfalls | HIGH | All 14 pitfalls sourced from official documentation, community issue trackers, and verified against the actual codebase. Critical pitfalls (#1-#4) have concrete prevention strategies with code examples. Phase-specific warning matrix maps pitfalls to implementation phases. |
+| Stack | HIGH | Zero new dependencies. All capabilities verified against existing go.mod. autoexport Prometheus support confirmed in package documentation. Grafana delivery approach validated against Fly.io managed Grafana version (v10.4). |
+| Features | HIGH | Feature landscape derived from existing metrics inventory (already emitting), Grafana best practices, and codebase audit. Table stakes are unambiguous -- every metric is already recorded, just not visualized. |
+| Architecture | HIGH | No new architectural components. Prometheus endpoint is config-only. Dashboard files are deployment artifacts. Dead code removal verified against actual codebase with grep. |
+| Pitfalls | HIGH | All 12 pitfalls sourced from official Grafana docs, OTel spec, Grafana community forums, and direct codebase verification. The datasource UID and metric name translation pitfalls are the most commonly reported issues in Grafana provisioning. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **LIKE query performance vs. FTS5:** Research identified the risk but deferred the decision. Must benchmark `LIKE '%term%'` across 5 entity types with real PeeringDB data volume during Phase 2. If total search latency exceeds 50ms, implement FTS5 virtual tables. The PITFALLS.md provides FTS5 table design but it has not been validated against ent's migration system.
-- **Route migration for `GET /`:** Moving the JSON discovery endpoint from `/` to `/api/` is straightforward but needs to be validated against any external documentation or links that reference the root discovery URL. Check if the pdbcompat layer already handles this.
-- **Templ generated file strategy:** ARCHITECTURE.md recommends committing `*_templ.go` files (matching the ent pattern). PITFALLS.md recommends `.gitignore` for `*_templ.go`. Decision needed: commit or generate in CI. Recommendation: commit them (consistency with ent, simpler CI, `go install` works without templ CLI).
-- **Tailwind output.css commit strategy:** Both STACK.md and ARCHITECTURE.md recommend committing the compiled CSS. This is correct for the `embed.FS` approach but creates potential merge conflicts. Pin CI to verify freshness via `git diff --exit-code`.
+- **meta.generated actual behavior:** Cannot be determined from documentation alone. Must test against `beta.peeringdb.com` or production PeeringDB API during Phase 2. The research provides the test plan but not the results.
+- **Exact Prometheus metric names from current OTel SDK:** The documented mapping follows the OTel spec, but the runtime instrumentation library has changed metric names between versions. Verify against the actual `/metrics` endpoint after enabling Prometheus export in Phase 3.
+- **Fly.io Grafana current version:** Research identifies v10.4 from a March 2024 community post. It may have been upgraded since. Verify before authoring dashboard JSON. Stick to classic JSON model regardless (compatible with Grafana 9+).
+- **OTLP metric export trade-off:** Setting `OTEL_METRICS_EXPORTER=prometheus` disables OTLP metric push. If OTLP push is also needed (e.g., Grafana Cloud), use comma-separated `otlp,prometheus`. For Fly.io managed Grafana alone, `prometheus` is sufficient. Decision needed during Phase 3 planning.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [templ documentation](https://templ.guide/) -- component model, HTTP integration, hot reload, project structure
-- [htmx documentation](https://htmx.org/docs/) -- trigger modifiers, sync behavior, push-url, active search pattern
-- [Tailwind CSS v4 docs](https://tailwindcss.com/docs/) -- standalone CLI, `@source` directive, class detection
-- [entgo.io documentation](https://entgo.io/) -- edge traversal, eager loading, query patterns
-- [SQLite FTS5 documentation](https://www.sqlite.org/fts5.html) -- prefix queries, content tables
-- [PeeringDB product blog](https://docs.peeringdb.com/blog/) -- comparison feature, search improvements, dark mode plans
+- [Fly.io Metrics Documentation](https://fly.io/docs/monitoring/metrics/) -- custom metrics setup, managed Grafana, Prometheus scraping
+- [OTel Autoexport Package](https://pkg.go.dev/go.opentelemetry.io/contrib/exporters/autoexport) -- OTEL_METRICS_EXPORTER=prometheus support
+- [OTel Prometheus Compatibility Spec](https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/) -- metric name translation rules
+- [OTel HTTP Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/http/http-metrics/) -- otelhttp metric names
+- [Grafana Dashboard Best Practices](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/best-practices/) -- panel count, layout recommendations
+- [Grafana Provisioning Documentation](https://grafana.com/docs/grafana/latest/administration/provisioning/) -- datasource UID patterns, JSON model
 
 ### Secondary (MEDIUM confidence)
-- [GoTTH stack guides](https://medium.com/ostinato-rigore/go-htmx-templ-tailwind-complete-project-setup-hot-reloading-2ca1ba6c28be) -- integration patterns, build pipeline
-- [htmx caching patterns](https://www.tutorialspoint.com/htmx/htmx_caching.htm) -- Vary header usage
-- [Air + templ infinite reload fix](https://jdo.sh/posts/solving-infinite-reloads-using-air-and-templ/) -- development workflow
+- [Fly.io Grafana v10.4 Upgrade](https://community.fly.io/t/fly-metrics-grafana-upgraded-to-v10-4/18823) -- managed Grafana version (may be outdated)
+- [OTel Go Runtime Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/runtime/go-metrics/) -- runtime metric names
+- [PeeringDB Issue #776](https://github.com/peeringdb/peeringdb/issues/776) -- evidence of meta.generated field presence
 
 ### Tertiary (LOW confidence)
-- FTS5 integration with ent ORM -- no direct documentation exists; needs validation during Phase 2
-- templ v0.3.x stability guarantees -- pre-1.0 but has been stable for 18+ months; no breaking changes observed
+- meta.generated field behavior for depth=0 requests -- undocumented, needs empirical verification
+- Exact runtime metric names for current OTel instrumentation version -- may differ from semantic conventions
+
+### Codebase (verified against source)
+- `internal/otel/metrics.go` -- 9 custom sync metrics with OTel names and units
+- `internal/otel/provider.go` -- autoexport setup, runtime instrumentation, resource attributes
+- `internal/peeringdb/client.go` -- FetchAll with meta.generated parsing
+- `internal/sync/worker.go` -- WorkerConfig.IsPrimary dead field at line 30
+- `cmd/peeringdb-plus/main.go` -- middleware chain, readiness middleware
 
 ---
 *Research completed: 2026-03-24*

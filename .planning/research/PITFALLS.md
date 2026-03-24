@@ -1,298 +1,301 @@
 # Domain Pitfalls
 
-**Domain:** Adding HTMX + Templ + Tailwind Web UI to existing Go API server (PeeringDB Plus)
+**Domain:** Tech Debt Cleanup, Observability Dashboards, and Deferred Verification for Existing Go Service
 **Researched:** 2026-03-24
-**Milestone:** v1.4 Web UI
+**Milestone:** v1.5 Tech Debt & Observability
 
 ## Critical Pitfalls
 
-Mistakes that cause rewrites, broken user experience, or fundamental architectural problems.
+Mistakes that cause data loss, production incidents, or require significant rework.
 
-### Pitfall 1: Full-Page vs Partial Render Blindness -- Every HTMX Endpoint Must Serve Both
+### Pitfall 1: Grafana Dashboard JSON Becomes Unmaintainable -- Datasource UID Coupling
 
-**What goes wrong:** Handlers return only HTML fragments (partials) for HTMX requests. When a user bookmarks a URL, shares it, or refreshes the page, the server receives a normal (non-HTMX) request and returns a bare fragment without layout, navigation, or CSS. The page renders as raw unstyled HTML.
+**What goes wrong:** The dashboard JSON is exported from a Grafana instance and committed to version control. The JSON contains hardcoded datasource UIDs that are specific to the Grafana instance where the dashboard was created. When the dashboard is provisioned into a different Grafana instance (or re-provisioned after a Grafana reinstall), the datasource UIDs do not match, causing every panel to show "No data" or "Datasource not found" errors. The dashboard appears broken despite the data being available.
 
-**Why it happens:** Developers build the HTMX path first (fragments swapped into an existing page) and forget that the same URL must also work as a direct browser navigation. HTMX sends an `HX-Request: true` header on its requests, but direct browser navigation does not. Without checking this header, the handler cannot distinguish the two cases.
-
-**Consequences:** Every shareable URL in the app breaks on direct access. This is especially devastating for a project requirement of "linkable/shareable URLs for every page -- URL is the state." Users sharing comparison URLs, search results, or record details get broken pages.
-
-**Prevention:**
-- Every handler that serves HTML must check for the `HX-Request` header. If present, return the fragment. If absent, wrap the fragment in the full page layout (head, nav, CSS, scripts).
-- Build this as a single middleware or helper function, not per-handler logic. A `RenderPage(ctx, w, r, title, component)` function that checks `r.Header.Get("HX-Request")` and wraps in layout accordingly.
-- In templ, compose this as: the fragment is a templ component; the full page is a layout component that accepts the fragment as a child.
-- Add the `Vary: HX-Request` response header so caches (CDN, browser, reverse proxy) do not conflate the two responses.
-- Write tests for BOTH paths for every UI endpoint from the start.
-
-**Detection:** Bookmarked or shared URLs render without styling. Browser refresh breaks the page.
-
----
-
-### Pitfall 2: Live Search Without Debounce and Request Cancellation -- SQLite Query Storm
-
-**What goes wrong:** HTMX fires a request on every keystroke via `hx-trigger="keyup"`. A user typing "Hurricane Electric" sends 18 requests in rapid succession. Each request hits SQLite with a `LIKE '%...%'` query across multiple columns and 13 entity types. On a Fly.io edge node with a small VM, this saturates the CPU and creates a backlog of SQLite read transactions that prevent WAL checkpointing.
-
-**Why it happens:** The default `hx-trigger` for inputs is `change`, but live search typically uses `keyup`. Without explicit delay and request cancellation modifiers, every keystroke triggers a full request cycle. The existing `buildSearchPredicate` function in `pdbcompat/search.go` uses `sql.ContainsFold` (which compiles to `LIKE '%term%'` with `LOWER()`) -- this is a full table scan with no index support.
+**Why it happens:** Grafana assigns unique UIDs to datasources per instance. Since version 8.3.0, exported dashboard JSON contains these UIDs embedded in every panel's `datasource` field. Developers export the dashboard from their local Grafana, commit it, and assume it will work everywhere. It works on their instance and breaks on everyone else's.
 
 **Consequences:**
-- On fast typists, 5-10 concurrent queries execute simultaneously, all doing full table scans.
-- SQLite WAL file grows because checkpoint cannot complete while readers are active.
-- User sees flickering results as responses arrive out of order (response for "Hurr" arrives after "Hurricane").
-- Server resources wasted on queries whose results are immediately discarded.
+- Dashboard provisioning fails silently -- panels render but show no data, which looks like a metrics issue rather than a configuration issue.
+- Debugging takes hours because the error is not "datasource missing" but "no data returned" (the datasource reference is resolved but points to a UID that does not exist or resolves to the wrong datasource).
+- Every environment (dev, staging, production) needs manual datasource UID patching, defeating the purpose of dashboards-as-code.
 
 **Prevention:**
-- Use `hx-trigger="keyup changed delay:300ms"` to debounce input. The `changed` modifier prevents firing if the value has not actually changed. The `delay:300ms` waits for a pause in typing.
-- Add `hx-sync="this:replace"` on the search input to cancel in-flight requests when a new one starts. This is critical -- without it, stale responses can replace newer ones.
-- Require a minimum query length (2-3 characters) before triggering search. Return an empty state for shorter queries.
-- Build FTS5 virtual tables for searchable fields. FTS5 prefix queries (`term*`) are orders of magnitude faster than `LIKE '%term%'`. Configure `prefix='2,3'` in the FTS5 table definition for 2- and 3-character prefix indexes.
-- For prefix matching (autocomplete-style), use FTS5 prefix queries: `SELECT * FROM search_idx WHERE search_idx MATCH 'hurr*'`. This uses the inverted index instead of scanning every row.
-- Cap results returned to the UI (e.g., 20 results) with `LIMIT`.
+- Use datasource template variables instead of hardcoded UIDs. Define a Grafana variable `$datasource` of type "Datasource" and reference it in all panels as `"datasource": {"uid": "${datasource}"}`. This lets the user select the appropriate datasource per environment.
+- Alternatively, provision the datasource with a deterministic UID (e.g., `"uid": "prometheus"`) in the datasource provisioning YAML, and reference that exact UID in the dashboard JSON. This couples the dashboard to the datasource provisioning config (which is fine if both are version-controlled together).
+- Never export a dashboard from the Grafana UI and commit the raw JSON without stripping or parameterizing datasource UIDs. Use `jq` or a script to replace UIDs with template variables before committing.
+- Validate that the dashboard JSON loads cleanly in a fresh Grafana instance as part of a CI check or manual verification step.
 
-**Detection:** Typing quickly in the search box causes visible flicker. Network tab shows many concurrent requests to the search endpoint. Server logs show overlapping search queries. WAL file grows during active search sessions.
+**Detection:** Dashboard panels show "No data" or "Panel plugin not found" errors. The Grafana provisioning log shows warnings about datasource resolution.
+
+**Confidence:** HIGH -- multiple Grafana community threads confirm this as the most common provisioning mistake. ([Grafana Community](https://community.grafana.com/t/should-provisioned-dashboards-have-datasource-uids/65463), [Grafana Docs](https://grafana.com/docs/grafana/latest/administration/provisioning/))
 
 ---
 
-### Pitfall 3: Tailwind v4 Does Not Auto-Detect .templ Files -- Missing Styles in Production
+### Pitfall 2: OTel Metric Names Silently Change When Exported to Prometheus -- Dashboard Queries Break
 
-**What goes wrong:** Tailwind v4's automatic content detection scans project files for class names, but it operates on heuristics about which files to scan. `.templ` files are not a standard web file extension. If Tailwind's scanner skips `.templ` files, all Tailwind classes used in templ components are purged from the production CSS output. The development experience may appear fine if using Tailwind's development mode (which includes all classes), but the production build strips them.
+**What goes wrong:** The application defines OTel metrics with names like `pdbplus.sync.duration` and `pdbplus.sync.type.objects`. When these metrics are exported via the OTLP-to-Prometheus pipeline (which is how most Grafana dashboards consume them), the metric names are transformed: dots become underscores, unit suffixes are appended, and counter types get a `_total` suffix. So `pdbplus.sync.duration` (histogram with unit "s") becomes `pdbplus_sync_duration_seconds_bucket` in Prometheus. The dashboard author writes PromQL queries against the OTel names and gets no results.
 
-**Why it happens:** Tailwind v4 replaced the explicit `content` array with automatic detection that respects `.gitignore` and skips binary files. It scans files as plain text, but uses heuristics to determine which files to scan. The `.templ` extension is not in Tailwind's default recognized set of template file extensions. It may or may not be scanned depending on the project structure and Tailwind version.
-
-**Consequences:** Components render without any styling in production. Everything looks correct in development. This is a classic "works on my machine" failure that only surfaces in the production build pipeline.
-
-**Prevention:**
-- Use the `@source` directive in the CSS entry point to explicitly include `.templ` files:
-  ```css
-  @import "tailwindcss";
-  @source "../internal/web/";
-  ```
-- Alternatively, use `@source` with explicit glob: `@source "../**/*.templ"` to be unambiguous.
-- Verify by running the Tailwind standalone CLI in production mode and checking the output CSS contains the expected classes. Add this as a CI check.
-- Never construct Tailwind class names dynamically in templ components. `class={ fmt.Sprintf("bg-%s-600", color) }` will NEVER work because Tailwind scans source text statically. Use complete, literal class strings.
-- If generated Go files (`*_templ.go`) contain the class strings, Tailwind may pick them up from there -- but do not rely on this. Configure scanning of `.templ` source files explicitly.
-
-**Detection:** Components render unstyled in production but look fine in development. The production CSS file is suspiciously small. Missing utility classes in the compiled CSS.
-
----
-
-### Pitfall 4: Templ Code Generation Step Missing or Misordered -- Build Fails or Serves Stale Templates
-
-**What goes wrong:** Templ files (`.templ`) must be compiled to Go files (`*_templ.go`) before `go build` runs. The project already has a `go generate` step for ent and gqlgen. Adding templ introduces a second code generation step with ordering dependencies. If `templ generate` does not run, or runs after `go build`, the build either fails (missing generated files) or silently serves stale templates from a previous generation.
-
-**Why it happens:** The project uses `//go:generate` directives in `ent/generate.go` for ent codegen. Templ uses its own CLI (`templ generate`) rather than `//go:generate`. Developers may add `templ generate` to the Taskfile but forget to add it to CI. Or CI runs `go generate ./...` which does not invoke `templ generate`.
+**Why it happens:** The OpenTelemetry Prometheus compatibility specification defines a naming translation: dots to underscores, unit suffix appended (e.g., `_seconds` for `"s"`), counter suffix `_total` appended, histogram suffixes `_bucket`/`_count`/`_sum` appended. The developer writes the dashboard queries using the OTel SDK metric names (which appear in the code) rather than the Prometheus-exported names.
 
 **Consequences:**
-- Build failure if `*_templ.go` files are gitignored (correct practice) but `templ generate` is not in the build pipeline.
-- Stale HTML rendering if `*_templ.go` files are committed (incorrect practice) and become outdated relative to `.templ` source files.
-- CI drift detection (`go generate` + `git diff`) may not catch templ drift if templ is invoked separately from `go generate`.
+- Every PromQL query in the dashboard returns empty results.
+- Developer assumes metrics are not being emitted and starts debugging the application telemetry pipeline.
+- If the developer discovers the naming translation and manually translates names, the dashboard works but the mapping is fragile -- any change to the OTel metric definition (name, unit, type) requires updating the dashboard queries.
 
 **Prevention:**
-- Add `templ generate` to the Taskfile as a prerequisite for `build` and `test` tasks.
-- Add `templ generate` to CI before the build step. Run it in the same CI job as other code generation.
-- Add `*_templ.go` to `.gitignore`. Generated files should not be committed -- they can be regenerated from `.templ` source. This matches the existing pattern where ent generated files ARE committed but only because ent is special (schema files are hand-written in the ent/schema/ directory).
-- Add templ drift detection to CI: run `templ generate` then `git diff --exit-code` on `*_templ.go` files. This catches cases where `.templ` was modified but `templ generate` was not run.
-- Install templ in CI: `go install github.com/a-h/templ/cmd/templ@latest` (or pin version).
+- Document the exact Prometheus metric names alongside the OTel metric definitions. For this project, the mapping is:
 
-**Detection:** Build fails with "undefined" errors referencing templ component names. Or UI shows old content after `.templ` file changes.
+| OTel Name | OTel Type | OTel Unit | Prometheus Name |
+|-----------|-----------|-----------|-----------------|
+| `pdbplus.sync.duration` | Histogram | `s` | `pdbplus_sync_duration_seconds` (with `_bucket`, `_count`, `_sum`) |
+| `pdbplus.sync.operations` | Counter | `{operation}` | `pdbplus_sync_operations_total` |
+| `pdbplus.sync.type.duration` | Histogram | `s` | `pdbplus_sync_type_duration_seconds` |
+| `pdbplus.sync.type.objects` | Counter | `{object}` | `pdbplus_sync_type_objects_total` |
+| `pdbplus.sync.type.deleted` | Counter | `{object}` | `pdbplus_sync_type_deleted_total` |
+| `pdbplus.sync.type.fetch_errors` | Counter | `{error}` | `pdbplus_sync_type_fetch_errors_total` |
+| `pdbplus.sync.type.upsert_errors` | Counter | `{error}` | `pdbplus_sync_type_upsert_errors_total` |
+| `pdbplus.sync.type.fallback` | Counter | `{event}` | `pdbplus_sync_type_fallback_total` |
+| `pdbplus.sync.freshness` | Gauge | `s` | `pdbplus_sync_freshness_seconds` |
+
+- Note: custom units like `{operation}`, `{object}`, `{error}`, `{event}` do NOT add a suffix per the OTel spec (only standard units like `s`, `ms`, `By` add suffixes). So `pdbplus.sync.operations` with unit `{operation}` becomes `pdbplus_sync_operations_total`, not `pdbplus_sync_operations_operation_total`.
+- Write all dashboard PromQL queries against the Prometheus-exported names, not the OTel names.
+- Test queries against the actual Prometheus endpoint before finalizing the dashboard JSON.
+- Add a comment block at the top of the dashboard JSON (or in a README alongside it) that documents this mapping.
+
+**Detection:** PromQL queries return empty results despite the application emitting metrics. Prometheus targets page shows the application as "UP" but metric explorer shows no `pdbplus_*` metrics (or shows them with unexpected names).
+
+**Confidence:** HIGH -- the naming translation is specified in the [OTel Prometheus compatibility spec](https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/) and is a documented behavior.
+
+---
+
+### Pitfall 3: meta.generated Field Is Undocumented and May Be Absent -- Sync Freshness Tracking Breaks
+
+**What goes wrong:** The incremental sync system uses `meta.generated` from PeeringDB API responses to track data freshness. The code in `parseMeta()` extracts a `generated` epoch from the response meta field. If PeeringDB changes their API response structure, removes the field, or the field is absent for certain request patterns (e.g., `depth=0` without pagination, or specific object types), the sync worker records a zero timestamp. This causes the incremental sync cursor to reset, triggering unnecessary full re-fetches, or worse -- the sync considers data "stale" and constantly re-syncs.
+
+**Why it happens:** The `meta.generated` field is **not documented** in the PeeringDB API specification. The official docs describe `meta` as containing `status` and `message` fields only. The `generated` epoch is an implementation detail of PeeringDB's Django REST Framework backend that may change without notice. The current code already has a graceful fallback (`parseMeta` returns zero time on absence), but the sync worker's behavior when `Generated` is zero has not been verified against the live API.
+
+**Consequences:**
+- If `generated` disappears: full sync always uses `started_at - 5min` as the cursor (the existing fallback), which is safe but means the incremental sync optimization provides less value.
+- If `generated` format changes (e.g., string ISO timestamp instead of float epoch): `json.Unmarshal` into `float64` fails silently, `parseMeta` returns zero, same fallback behavior.
+- If `generated` is present for paginated responses but absent for full fetches (depth=0 without limit/skip): the code path for full sync already handles this correctly (line 160 in client.go), but the incremental path tracks "earliest generated across pages" which may yield unexpected timestamps.
+
+**Prevention:**
+- Test `parseMeta()` against actual live PeeringDB API responses for each request pattern:
+  1. Full fetch: `GET /api/net?depth=0` (no limit/skip)
+  2. Paginated incremental: `GET /api/net?depth=0&limit=250&skip=0&since=...`
+  3. Empty result set (all up to date): `GET /api/net?depth=0&since=<recent_timestamp>`
+- Document the actual response structure observed, including whether `meta` is `{}`, `null`, absent entirely, or contains `generated`.
+- Ensure the sync worker logs the meta.generated value (or its absence) at DEBUG level so behavior can be audited in production.
+- The existing `parseMeta()` fallback behavior (return zero time on any parse failure) is defensive and correct. The risk is not a crash but a loss of incremental sync precision.
+- Add a test that explicitly verifies the full sync path works correctly when `Meta.Generated.IsZero()` returns true.
+
+**Detection:** Sync logs show `generated=0` or missing generated timestamp. Incremental sync falls back to full sync more often than expected. The `pdbplus.sync.type.fallback` counter increments unexpectedly.
+
+**Confidence:** MEDIUM -- the field is real and observed in practice, but its contract is undocumented. Behavior may vary by object type or API version.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 5: Air/Templ Hot Reload Infinite Loop -- Development Environment Unusable
+### Pitfall 4: Removing WorkerConfig.IsPrimary -- Stale Planning Docs Cause Confusion
 
-**What goes wrong:** When using `air` for hot reload during development, air watches for `.go` file changes and rebuilds. But `templ generate` produces `*_templ.go` files. If air is configured to watch all `.go` files AND to run `templ generate` as part of its build command, this creates an infinite loop: templ generates `.go` -> air detects `.go` change -> air runs templ generate -> templ generates `.go` -> loop forever.
+**What goes wrong:** The PROJECT.md and planning documents reference "Remove unused DataLoader middleware and WorkerConfig.IsPrimary dead field" as active tech debt. However, investigation of the actual codebase reveals a mismatch: the DataLoader package was already removed in v1.2 Phase 7 (commit `ec182e1`), the `config.IsPrimary` field was removed from `config.go`, but **WorkerConfig.IsPrimary still exists** in `internal/sync/worker.go` at line 30. Meanwhile, the Phase 7 SUMMARY.md claims it was removed. A developer trusting the summary would skip the removal. A developer reading PROJECT.md would try to remove both DataLoader and IsPrimary, wasting time discovering DataLoader is already gone.
 
-**Why it happens:** Air's default configuration watches for `*.go` changes. The `templ generate` command produces files matching `*_templ.go`. Without excluding these files, air's file watcher triggers on its own output.
-
-**Prevention:**
-- In `.air.toml`, exclude templ-generated files from the watch pattern: `exclude_regex = [".*_templ\\.go"]`
-- Run `templ generate` as part of the air build command: `cmd = "templ generate && go build -o ./tmp/main ./cmd/peeringdb-plus"`
-- Include `.templ` in air's watched extensions: `include_ext = ["go", "templ"]`
-- Alternative: Run templ in watch mode (`templ generate --watch`) in a separate terminal and configure air to only watch `.go` files but exclude `*_templ.go`.
-- Run Tailwind CLI in watch mode (`tailwindcss -i input.css -o output.css --watch`) in a third terminal.
-
-**Detection:** CPU spikes immediately after saving any file. Air's logs show continuous rebuild cycles. Terminal fills with repeated "building..." messages.
-
----
-
-### Pitfall 6: HTMX Response Caching Breaks Back Button and Browser History
-
-**What goes wrong:** When using `hx-push-url` to update the browser URL (required for shareable links), HTMX snapshots the current DOM to localStorage for history restoration. If the server also sets caching headers, the browser may cache partial HTML responses. When the user presses the back button, the browser cache returns a partial fragment instead of a full page, rendering a broken page.
-
-**Why it happens:** The existing server sets CORS headers via `middleware.CORS()` but does not set `Vary` headers or cache-control on HTML responses. When HTMX and non-HTMX responses share the same URL but have different content (full page vs fragment), the browser cache cannot distinguish them without `Vary: HX-Request`.
-
-**Consequences:** Back button navigation shows broken pages -- either unstyled fragments or stale content. This is difficult to reproduce consistently because it depends on browser caching behavior.
-
-**Prevention:**
-- Set `Vary: HX-Request` on all HTML responses that differ based on HTMX vs non-HTMX request.
-- Set `Cache-Control: no-store` on HTML responses to prevent browser caching of fragments entirely. The data is served from local SQLite so re-rendering is fast -- there is no latency penalty.
-- Consider using `hx-replace-url` instead of `hx-push-url` for filter/search refinements that should not create new history entries. Reserve `hx-push-url` for actual navigation (record detail pages, comparison pages).
-- Test back-button behavior explicitly during development. This class of bug only manifests during actual browser interaction, not in automated tests.
-
-**Detection:** Pressing back button shows broken or partial HTML. Network tab shows cached responses being served for HTMX requests.
-
----
-
-### Pitfall 7: Fourth API Surface Leaks Into Existing Three -- Routing and Middleware Conflicts
-
-**What goes wrong:** The existing server has four route groups: `/graphql`, `/rest/v1/`, `/api/`, and infrastructure routes (`/healthz`, `/readyz`, `/sync`, `/`). Adding a web UI introduces a fifth group that must coexist. Common mistakes: (a) The UI routes catch-all `"GET /"` conflicts with the existing root discovery endpoint. (b) CORS middleware applied globally interferes with same-origin HTML responses. (c) Readiness middleware blocks UI access before first sync, showing a JSON error to browser users.
-
-**Why it happens:** The existing `main.go` registers `"GET /"` as a JSON discovery endpoint that returns API surface URLs. A web UI naturally wants to own `/` as the homepage. The existing readiness middleware returns `application/json` error responses, which display as raw JSON in a browser.
+**Why it happens:** Documentation and code drifted apart. The Phase 7 plan called for removing `IsPrimary` from both `Config` and `WorkerConfig`, and the summary incorrectly reports both as removed, but the actual commit only removed it from `Config`. The field in `WorkerConfig` is truly dead -- `main.go` no longer sets it (line 132 creates `WorkerConfig{IncludeDeleted: cfg.IncludeDeleted, SyncMode: cfg.SyncMode}` without `IsPrimary`), and no code reads `w.config.IsPrimary`.
 
 **Consequences:**
-- Routing conflict: either the existing `"GET /"` or the new UI homepage handler wins, breaking one surface.
-- Browser users see `{"error":"sync not yet completed"}` as raw JSON during the readiness window.
-- CORS headers on HTML responses add unnecessary complexity and can confuse browsers.
+- Wasted time trying to remove code that is already gone (DataLoader).
+- Wasted time not removing code that still exists (WorkerConfig.IsPrimary).
+- If a future developer sees the field and assumes it should be used, they might wire it up incorrectly.
+- The lint pass with `unused` linter should catch this, but struct fields are not flagged by the `unused` linter (only local variables and function parameters are).
 
 **Prevention:**
-- Move the existing JSON discovery endpoint to a specific path like `/api/discovery` or return it only when `Accept: application/json` is in the request header.
-- Create a dedicated route group for UI routes: `/` (homepage), `/search`, `/net/{id}`, `/ix/{id}`, `/fac/{id}`, `/compare`, etc.
-- Update the readiness middleware to return an HTML "loading" page for non-API requests (check `Accept` header or path prefix).
-- Apply CORS middleware only to API route groups (`/graphql`, `/rest/v1/`, `/api/`), not to the UI routes. Same-origin HTML does not need CORS.
-- Use content negotiation middleware: if `Accept: application/json`, route to API discovery; if `Accept: text/html`, route to UI homepage.
+- Verify the actual codebase state before planning tasks. Run `grep -rn "IsPrimary" --include="*.go"` and `grep -rn "dataloader\|DataLoader" --include="*.go"` to determine what actually needs removal.
+- The task for v1.5 is: remove `IsPrimary bool` from `WorkerConfig` in `internal/sync/worker.go`. That is the entire change. The DataLoader task is already done.
+- Update PROJECT.md to reflect that the DataLoader was removed in v1.2 Phase 7 and only WorkerConfig.IsPrimary remains.
+- Use `staticcheck` or `fieldalignment` to detect truly unused struct fields in the future.
 
-**Detection:** Existing API tests break after adding UI routes. Browser shows JSON instead of HTML. CORS preflight errors on UI pages.
+**Detection:** `grep -rn "IsPrimary" --include="*.go"` returns only the struct definition (line 30 of worker.go), no usages.
+
+**Confidence:** HIGH -- verified directly against the codebase.
 
 ---
 
-### Pitfall 8: SQLite Full-Table Scan on LIKE Queries -- Live Search is Slow on Large Tables
+### Pitfall 5: Grafana Dashboard Panel Sprawl -- Too Many Panels Kill Load Time and Readability
 
-**What goes wrong:** The existing search implementation (`buildSearchPredicate`) uses `sql.ContainsFold` which generates `LOWER(column) LIKE '%term%'` SQL. This cannot use any index and requires a full table scan. PeeringDB has ~100K network-IX-LAN records, ~30K networks, and ~15K facilities. A single search query may scan multiple tables. With live search firing on keystrokes (even with debounce), this creates unacceptable latency.
+**What goes wrong:** The dashboard author creates a separate panel for every metric and every dimension. With 9 custom sync metrics plus otelhttp metrics plus Go runtime metrics, each potentially sliced by `type` (13 PeeringDB types), `status`, `fly.region`, and `fly.machine_id`, the dashboard balloons to 50+ panels. Grafana renders all visible panels simultaneously, each firing its own PromQL query. On a free or shared Grafana instance, this causes timeout errors and 10+ second load times.
 
-**Why it happens:** `LIKE '%term%'` (contains) queries cannot use B-tree indexes because the wildcard is at the start. Even `LIKE 'term%'` (prefix) queries can use indexes but only if the column has one. The current schema has no text search indexes.
+**Why it happens:** The temptation is to build "the one dashboard that shows everything." Every metric that exists gets a panel. Every label dimension gets a separate graph. The dashboard becomes a data dump rather than an operational tool.
 
 **Consequences:**
-- Search latency of 50-200ms per query on a full PeeringDB dataset, multiplied across multiple entity types.
-- On Fly.io micro VMs (shared CPU), this can spike to 500ms+.
-- User perceives the search as sluggish, defeating the "instant results" requirement.
+- Dashboard takes 10+ seconds to load, users stop using it.
+- Alert fatigue: too many panels means no panel is important.
+- Maintenance burden: changing a metric name requires updating dozens of panels.
+- Grafana performance degrades, especially on lower-tier instances.
 
 **Prevention:**
-- Create FTS5 virtual tables for searchable fields. A single FTS5 table can index fields from multiple entity types:
-  ```sql
-  CREATE VIRTUAL TABLE IF NOT EXISTS search_idx USING fts5(
-    entity_type, entity_id UNINDEXED, name, aka,
-    content='', content_rowid='rowid',
-    prefix='2,3'
-  );
-  ```
-- Populate FTS5 tables after each sync completes. Since this is a read-only mirror with hourly syncs, the FTS5 index only needs rebuilding after sync.
-- Use FTS5 prefix queries for autocomplete: `WHERE search_idx MATCH 'hurr*'` -- this is a single index lookup, not a table scan.
-- For numeric searches (ASN lookup), use a direct index query, not FTS5. ASN searches are exact or prefix matches on an integer field.
-- Benchmark query performance with the real PeeringDB dataset size (~130K records across all types) during development, not with test fixtures of 5 records.
+- Limit to 4 focused rows, each with 3-5 panels, for a total of 15-20 panels maximum. Grafana official best practices recommend fewer than 20 panels per dashboard.
+- Organize panels by operational concern, not by metric:
+  1. **Sync Health row:** Last sync status, sync duration over time, freshness gauge, error rate
+  2. **API Traffic row:** Request rate, error rate (4xx/5xx), latency p95/p99 (from otelhttp), requests by endpoint
+  3. **Infrastructure row:** Go runtime goroutines, memory, GC pause (from runtime instrumentation), CPU
+  4. **Business Metrics row:** Objects synced per type (stacked bar), objects deleted, type distribution
+- Use template variables (`$type`, `$region`) to let users drill down rather than showing all dimensions at once. One graph with a type selector replaces 13 duplicate graphs.
+- Use a separate "deep dive" dashboard linked from the overview dashboard for per-type or per-region analysis, rather than cramming everything into one.
+- Review which metrics actually drive operational decisions. If nobody will page on it, it does not need a panel.
 
-**Detection:** Search endpoint latency >100ms with real data. `EXPLAIN QUERY PLAN` shows "SCAN TABLE" instead of using an index.
+**Detection:** Dashboard load time exceeds 5 seconds. Users say "I never look at the dashboard." More than 25 panels exist.
+
+**Confidence:** HIGH -- [Grafana best practices docs](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/best-practices/) explicitly recommend this.
 
 ---
 
-### Pitfall 9: Templ Context Abuse -- Passing Request-Scoped Data via context.Context
+### Pitfall 6: Removing "Unused" Middleware Without Checking All Request Paths
 
-**What goes wrong:** Templ components have access to an implicit `ctx` variable (the Go context). Developers use `context.WithValue` in middleware to pass data like "current search query," "active tab," "page title" through the context to deeply nested components. This creates invisible dependencies -- a component silently requires specific context values that are only set by specific middleware, making components non-reusable and hard to test.
+**What goes wrong:** The v1.5 milestone notes that "DataLoader middleware" is unused and should be removed. While the DataLoader is indeed already gone from the code, this pattern generalizes: when removing any middleware from the HTTP handler chain, developers check the direct import graph but miss indirect consumers. Middleware may be injected at a different layer (e.g., per-route vs. global), invoked conditionally (e.g., only on primary nodes), or relied upon by generated code that is not part of the main source tree.
 
-**Why it happens:** Templ's documentation shows context as the mechanism for sharing data across component hierarchies (authentication, theming). Developers extend this pattern to all shared state. Since context values are not type-checked at compile time, errors only surface at runtime as nil values or panics.
+**Why it happens:** Go's middleware pattern uses `http.Handler` wrapping, which makes the dependency chain invisible to static analysis tools. `grep` for direct function calls works, but middleware that injects values into `context.Context` has consumers that read from context -- the producer and consumer are decoupled.
+
+**Consequences:**
+- Removing middleware that injected context values causes nil pointer panics in handlers that read those values.
+- Removing middleware that set response headers breaks CORS, caching, or security behavior.
+- The failure may not appear in unit tests because tests often construct their own contexts.
 
 **Prevention:**
-- Use context only for truly cross-cutting concerns: authentication status, request ID, feature flags. The PeeringDB Plus UI is fully public with no auth, so context usage should be minimal.
-- Pass all data to components as explicit parameters. This is type-safe and makes dependencies visible:
-  ```
-  templ SearchResults(query string, results []SearchResult) {
-    // ...
-  }
-  ```
-  Not:
-  ```
-  templ SearchResults() {
-    // reads query from ctx -- invisible dependency
-  }
-  ```
-- If context is used, define typed accessor functions (not raw string keys) in a single package. Never use string keys for context values.
+- Before removing any middleware, trace its effects:
+  1. Does it set any response headers? Search for `w.Header().Set` in the middleware source.
+  2. Does it inject values into `context.Context`? Search for `context.WithValue` or typed context accessors.
+  3. Does it modify the request? Search for `r.WithContext` or `r.Clone`.
+  4. Is it referenced in generated code? Check `ent/rest/`, `graph/generated.go`, etc.
+- For the specific v1.5 case, the DataLoader was already removed and the only remaining dead code is `WorkerConfig.IsPrimary` -- a struct field, not middleware. But the principle applies if any additional middleware cleanup is discovered.
+- Run the full test suite with `-race` after removing any middleware. Specifically test the routes that were served through the removed middleware chain.
+- Verify in production (or staging) by watching error rates after deployment.
 
-**Detection:** Components render incorrectly when used outside their expected middleware chain. Test failures with nil pointer dereferences in template rendering.
+**Detection:** Handlers panic with nil context value access. CORS requests fail. Response headers change unexpectedly.
+
+**Confidence:** HIGH -- this is a general Go web development pattern risk, verified against the codebase middleware chain in `main.go` lines 240-244.
 
 ---
 
-### Pitfall 10: LiteFS Read-Only Replicas and the Web UI -- No Write Path Needed, But Beware of Side Effects
+### Pitfall 7: Browser UX Verification Across Environments -- Flaky Results from System Differences
 
-**What goes wrong:** The existing app correctly handles the LiteFS primary/replica split: replicas serve reads, the primary handles writes (sync). The web UI is read-only, so it should work perfectly on replicas. However, if any UI handler inadvertently triggers a write (e.g., logging to SQLite, session storage, analytics tracking, updating a "last viewed" timestamp), replicas will fail with "SQLITE_READONLY" errors.
+**What goes wrong:** The 20 deferred v1.4 human verification items cover visual/browser behaviors: dark mode, keyboard navigation, CSS transitions, responsive layout, loading indicators. A developer verifies these on their local browser and marks them as "passed." In production on Fly.io, the behavior differs: Tailwind CDN load timing affects initial render, htmx timing differs under network latency, system font rendering changes dark mode contrast, and mobile Safari handles keyboard navigation differently than desktop Chrome.
 
-**Why it happens:** The UI is explicitly read-only by design, but libraries or middleware may introduce hidden writes. For example, some session middleware writes session data to the database. Rate limiting middleware may store counters in SQLite.
+**Why it happens:** Browser behavior is inherently environment-dependent. The deferred items specifically call out behaviors that are hard to verify outside a real browser: "CSS animations smoothness," "dark mode toggle and system preference detection," "keyboard navigation of search results." These depend on the browser engine, OS dark mode setting, font availability, network conditions, and viewport size. A local verification on a developer's machine with fast network and a specific browser/OS combination does not guarantee production behavior.
 
-**Consequences:** UI works on the primary node but fails on replicas. Since Fly.io routes requests to the nearest edge node (usually a replica), most users experience the failure.
+**Consequences:**
+- Items are marked "verified" but users on different browsers or devices experience broken behavior.
+- Dark mode detection relies on `prefers-color-scheme` media query, which behaves differently across browsers and is not testable in headless mode.
+- Keyboard navigation with ARIA roles may work in Chrome but fail in Safari or Firefox due to different focus management.
+- CSS transitions may stutter on mobile devices or low-powered machines.
+- The htmx CDN (or Tailwind CDN) may be blocked by corporate firewalls, breaking the entire UI for some users.
 
 **Prevention:**
-- No session storage. The app is fully public with no user accounts -- there is no session to track.
-- No analytics writes to SQLite. If analytics are needed, send them to an external service or via OTel.
-- No write-through caching in SQLite. Computed values (like search indexes) must be built during sync, not on first access.
-- Add integration tests that run against a read-only SQLite database to catch accidental writes. Open the database with `?mode=ro` in tests.
-- Review every middleware in the UI chain for hidden write operations.
+- Create a checklist document for each verification item with specific steps, expected behavior, and the browser/OS combinations to test.
+- Test on at minimum: Chrome (latest), Firefox (latest), Safari (latest, if available), and one mobile browser.
+- For dark mode: test both system-level dark mode preference AND the manual toggle. Test the persistence across page reloads (localStorage).
+- For keyboard navigation: test with Tab, Enter, Escape, and arrow keys. Verify `aria-activedescendant` updates correctly.
+- For responsive layout: use Chrome DevTools device emulation at 375px (mobile), 768px (tablet), and 1024px+ (desktop).
+- For CSS transitions: record a short screen capture if transition smoothness is subjective. If a transition is jerky, the CSS `will-change` property or reducing DOM complexity may help.
+- For loading indicators: artificially throttle network in DevTools to "Slow 3G" to make loading states visible.
+- Accept that some items are inherently subjective ("CSS animations smoothness") and document what "good enough" means.
+- Do NOT attempt to automate these with Playwright or similar -- the cost of setting up visual regression testing for 20 one-time verification items exceeds the value. Manual verification is appropriate here.
 
-**Detection:** UI works locally (single node, primary mode) but returns 500 errors when deployed to Fly.io replicas. Error logs show "attempt to write a readonly database."
+**Detection:** User reports of broken UI behavior on specific browsers. Dark mode flicker on page load. Keyboard navigation does not cycle through results. Layout breaks on mobile viewports.
+
+**Confidence:** MEDIUM -- the specific browser behaviors vary, but the general principle of cross-environment testing is well-established. ([BrowserStack dark mode testing guide](https://www.browserstack.com/guide/how-to-test-apps-in-dark-mode))
+
+---
+
+### Pitfall 8: Grafana Dashboard JSON Version Schema Mismatch
+
+**What goes wrong:** The dashboard JSON is created with one Grafana version (e.g., 10.x) but the production Grafana instance runs a different version (9.x or 11.x). Grafana's dashboard JSON schema has changed significantly between major versions. The `schemaVersion` field in the JSON must match what the target Grafana instance expects. Panels, variables, and datasource references may use syntax not supported by the target version.
+
+**Why it happens:** The developer creates the dashboard in their local Grafana (latest version) and exports it. The production Grafana may be a managed instance (Grafana Cloud, managed hosting) running a different version, or a self-hosted instance that has not been upgraded.
+
+**Consequences:**
+- Import fails with cryptic JSON parsing errors.
+- Import succeeds but panels render incorrectly (wrong visualization type, missing options).
+- Template variables do not resolve because the variable type syntax changed.
+
+**Prevention:**
+- Document the target Grafana version and schema version in a README alongside the dashboard JSON.
+- If using Grafana Cloud or Fly.io Grafana, check the running version before exporting.
+- Use the Grafana v2 JSON schema if targeting Grafana 11+, as Grafana is moving toward a new schema format.
+- If the deployment target is not yet decided, target Grafana 10.x (widely deployed, stable schema) with `"schemaVersion": 39` (the latest v1 schema version as of Grafana 10.x).
+- Test the dashboard import on the target Grafana version before committing.
+
+**Detection:** Dashboard import shows validation errors. Panels display "Panel plugin not found" for visualization types that changed names between versions.
+
+**Confidence:** MEDIUM -- depends on the specific Grafana deployment, but version mismatch is a common issue.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 11: Dynamic Tailwind Class Construction in Templ -- Classes Silently Stripped
+### Pitfall 9: otelhttp Metric Names Are Not Custom -- They Follow OTel Semantic Conventions
 
-**What goes wrong:** Templ supports Go expressions in attributes. Developers write:
-```
-<div class={ fmt.Sprintf("bg-%s-500", statusColor) }>
-```
-Tailwind's static analysis never sees the full class name `bg-green-500` because it only exists at runtime. The class is purged from the production CSS.
+**What goes wrong:** The developer assumes they can query HTTP request metrics using `pdbplus_*` names. But otelhttp middleware (line 243 of main.go) emits metrics using the OTel HTTP semantic convention names: `http.server.request.duration`, `http.server.active_requests`, `http.server.request.body.size`, `http.server.response.body.size`. In Prometheus, these become `http_server_request_duration_seconds_bucket`, `http_server_active_requests`, etc. The developer writes dashboard queries against wrong names.
 
 **Prevention:**
-- Always use complete, literal class names. Map dynamic values to complete classes:
-  ```
-  var statusClasses = map[string]string{
-    "active":   "bg-green-500 text-white",
-    "inactive": "bg-gray-500 text-gray-200",
-  }
-  ```
-- Use the `@source inline("bg-green-500 bg-gray-500")` safelist directive in the CSS entry point for classes that genuinely must be dynamic, but prefer the mapping approach.
+- Use the OTel HTTP semantic convention metric names in dashboard queries, not custom names.
+- The otelhttp metrics include attributes: `http.request.method`, `url.scheme`, `http.response.status_code`, `http.route` (if net/http pattern matching is used), and `server.address`.
+- Query example for request rate by route: `rate(http_server_request_duration_seconds_count{http_route=~"/graphql|/rest/v1/.*|/api/.*|/ui/.*"}[5m])`
+- Query example for p95 latency: `histogram_quantile(0.95, rate(http_server_request_duration_seconds_bucket[5m]))`
+
+**Confidence:** HIGH -- otelhttp metric names are defined by the [OTel HTTP semantic conventions](https://opentelemetry.io/docs/specs/semconv/http/http-metrics/).
 
 ---
 
-### Pitfall 12: HTMX Accessibility -- Live Search Without ARIA Roles Breaks Screen Readers
+### Pitfall 10: Go Runtime Metrics Use OTel Convention Names, Not Go-Native Names
 
-**What goes wrong:** HTMX swaps HTML fragments into the DOM without notifying assistive technology. A live search that updates results as the user types is invisible to screen readers unless the results container has `aria-live` attributes. The search input lacks `role="combobox"` and `aria-autocomplete` attributes.
+**What goes wrong:** The developer writes dashboard queries like `go_goroutines` or `go_memstats_alloc_bytes` (Prometheus Go client convention). But the project uses `runtime.Start()` from `go.opentelemetry.io/contrib/instrumentation/runtime` (provider.go line 89), which emits metrics using OTel runtime semantic conventions: `process.runtime.go.goroutines`, `process.runtime.go.mem.heap_alloc`, etc. In Prometheus, dots become underscores.
 
 **Prevention:**
-- Add `aria-live="polite"` to the search results container so screen readers announce updates.
-- Add `role="combobox"`, `aria-autocomplete="list"`, and `aria-expanded` to the search input.
-- Add a visually hidden live region that announces the result count: "5 results found" after each search update.
-- Use `aria-activedescendant` if keyboard navigation through results is implemented.
-- Test with a screen reader (VoiceOver, NVDA) at least once per milestone.
+- Use OTel runtime metric names in dashboard queries:
+  - `process_runtime_go_goroutines` (not `go_goroutines`)
+  - `process_runtime_go_mem_heap_alloc_bytes` (not `go_memstats_alloc_bytes`)
+  - `process_runtime_go_gc_pause_ns` or similar
+- The exact metric names depend on the OTel runtime instrumentation version. Check the actual Prometheus metrics endpoint (`/metrics` or OTLP debug output) for the exact names.
+- Consider adding a comment in the dashboard JSON or README documenting which instrumentation library produces which metrics.
+
+**Confidence:** MEDIUM -- the OTel runtime instrumentation library has changed metric names between versions. Verify against the actual exported metrics.
 
 ---
 
-### Pitfall 13: Tailwind Standalone CLI Version Pinning -- CI and Local Builds Diverge
+### Pitfall 11: Grafana Dashboard JSON Is Not Idempotent -- UID and Version Conflicts on Re-Provisioning
 
-**What goes wrong:** The Tailwind standalone CLI is a platform-specific binary downloaded from GitHub releases. If CI downloads "latest" and local development uses a pinned version (or vice versa), CSS output may differ. Tailwind v4 had breaking changes from v3 in how utilities are generated.
+**What goes wrong:** The dashboard JSON contains a `"uid"` field and a `"version"` field. On first provisioning, this works. On re-provisioning (e.g., after updating the JSON), Grafana may reject the update if the `"version"` field does not match the current version in the database. Or if `"uid"` is null/absent, Grafana creates a new dashboard on each provisioning cycle instead of updating the existing one.
 
 **Prevention:**
-- Pin the Tailwind standalone CLI version in the Taskfile and CI workflow. Download a specific version, not "latest."
-- Check the Tailwind CLI binary into the project or use a checksum-verified download script.
-- Add the compiled CSS file to `.gitignore` (it is a build artifact). Generate it in CI.
-- Use Tailwind v4, not v3, from the start. Do not start with v3 and migrate later.
+- Always include a stable `"uid"` in the dashboard JSON (e.g., `"uid": "pdbplus-overview"`). This ensures updates replace the existing dashboard.
+- Set `"version"` to `null` or remove it entirely. Grafana auto-increments the version on save. Including a specific version number causes conflicts.
+- Set `"id"` to `null` in the JSON. The numeric `id` is instance-specific and should never be hardcoded.
+- Test re-provisioning by modifying a panel and re-applying. Verify the dashboard is updated, not duplicated.
+
+**Confidence:** HIGH -- [Grafana provisioning docs](https://grafana.com/docs/grafana/latest/administration/provisioning/) explicitly document this behavior.
 
 ---
 
-### Pitfall 14: Templ Component Testing Gap -- No Built-In Test Renderer
+### Pitfall 12: Verifying Deferred Items in Wrong Order -- Dependencies Between Verification Items
 
-**What goes wrong:** Templ components compile to Go functions that write to an `io.Writer`. Testing them requires rendering to a buffer and asserting on the HTML output, which is fragile and verbose. Developers skip component tests entirely, relying only on integration tests, leading to hard-to-debug regressions.
+**What goes wrong:** The 26 deferred verification items are treated as an unordered checklist. A developer verifies "ASN redirect on Enter with numeric input" (v1.4 phase 14) before verifying "live search results update within 300ms in browser" (same phase). The ASN redirect depends on the search working correctly. If the search is broken, the ASN redirect verification is meaningless -- but the developer marks it as "passed" because the redirect code path is technically correct.
+
+**Why it happens:** The verification items come from 7 different phases across 2 milestones. Their dependencies are implicit, not documented. The items are listed per-phase but the cross-phase dependencies (e.g., search depends on sync, detail pages depend on search, comparison depends on detail pages) are not visible in the flat list.
 
 **Prevention:**
-- Create a test helper that renders a templ component to a string:
-  ```go
-  func renderComponent(t *testing.T, c templ.Component) string {
-    t.Helper()
-    var buf bytes.Buffer
-    err := c.Render(context.Background(), &buf)
-    require.NoError(t, err)
-    return buf.String()
-  }
-  ```
-- Test critical components (search results, record detail, comparison table) by asserting on the rendered HTML containing expected content -- not exact HTML matching.
-- Use `strings.Contains` or regex assertions rather than golden file comparison for HTML output. HTML whitespace and attribute ordering make golden files brittle.
+- Verify in dependency order:
+  1. **Infrastructure first:** CI pipeline runs on GitHub (v1.2), coverage comments work (v1.2)
+  2. **Data layer:** sync runs against real PeeringDB API (v1.2), API key auth works (v1.3), conformance passes live (v1.2/v1.3)
+  3. **Foundation:** content negotiation, responsive layout, syncing page animation (v1.4 phase 13)
+  4. **Search:** live search speed, type badges, ASN redirect (v1.4 phase 14)
+  5. **Detail pages:** collapsible sections, lazy loading, summary stats, cross-links (v1.4 phase 15)
+  6. **Comparison:** results layout, view toggle, multi-step flow (v1.4 phase 16)
+  7. **Polish:** dark mode, keyboard navigation, CSS animations, loading indicators, error pages, About page freshness (v1.4 phase 17)
+- If an earlier item fails, stop and fix it before proceeding to dependent items.
+- Create a structured verification report with pass/fail/blocked status for each item.
+
+**Confidence:** HIGH -- this is a general verification best practice, not technology-specific.
 
 ---
 
@@ -300,57 +303,43 @@ Tailwind's static analysis never sees the full class name `bg-green-500` because
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |-------------|---------------|------------|
-| Project scaffolding (templ + Tailwind setup) | Templ codegen not in build pipeline (#4), Tailwind not scanning .templ files (#3), Air infinite loop (#5) | Configure build toolchain correctly from day one; verify production CSS output |
-| Search endpoint + live search | Query storm without debounce (#2), full table scan performance (#8), LIKE query on 100K+ rows (#8) | Build FTS5 index, debounce + hx-sync, minimum query length, LIMIT results |
-| URL-driven state / shareable links | Full page vs partial render (#1), cache/history breaks (#6) | Render both full page and fragment from every handler; Vary header; no-store |
-| Route integration with existing API surfaces | Routing conflicts with existing endpoints (#7) | Content negotiation; dedicated route groups; update readiness middleware |
-| Record detail + comparison views | Same full/partial rendering issue (#1), context abuse for shared state (#9) | Explicit component parameters; middleware for HX-Request detection |
-| LiteFS deployment to edge | Read-only replica failures from hidden writes (#10) | Test against read-only database; no session/analytics writes |
-| Component composition and reuse | Templ context misuse (#9), component testing gap (#14) | Explicit parameters; test helper for rendering |
-| Accessibility | Screen reader incompatibility (#12) | ARIA attributes on search input and results container |
-| Styling and CSS build | Dynamic class stripping (#11), CLI version drift (#13) | Complete literal classes; pin Tailwind version |
+| Grafana dashboard creation | Datasource UID hardcoding (#1), OTel-to-Prometheus name translation (#2), Panel sprawl (#5) | Use datasource template variables; document Prometheus metric names; limit to 15-20 panels with template variables for drill-down |
+| Grafana dashboard provisioning | JSON schema version mismatch (#8), UID/version conflicts on re-deploy (#11) | Document target Grafana version; set stable UID, null version and id |
+| meta.generated field verification | Undocumented field behavior (#3), zero-value fallback path untested | Test against live PeeringDB API for each request pattern; document observed behavior |
+| Dead code removal (DataLoader + IsPrimary) | Stale planning docs (#4), removing code that is already gone or missing code that still exists | Verify codebase state with grep before writing removal tasks |
+| Middleware removal patterns | Hidden context consumers (#6), test gap for removed middleware paths | Trace middleware effects; run full test suite with -race after removal |
+| Browser UX verification (20 items) | Cross-environment differences (#7), dependency ordering (#12) | Test on multiple browsers; verify in dependency order; document "good enough" criteria |
+| Dashboard query authoring | otelhttp uses semantic convention names (#9), runtime metrics use OTel names (#10) | Check actual Prometheus endpoint for exact metric names before writing queries |
 
 ## Sources
 
-### HTMX
-- [htmx Documentation](https://htmx.org/docs/) -- official docs, trigger modifiers, sync behavior
-- [hx-push-url Attribute](https://htmx.org/attributes/hx-push-url/) -- URL history management
-- [hx-sync Attribute](https://htmx.org/attributes/hx-sync/) -- request cancellation/queuing
-- [hx-swap-oob Attribute](https://htmx.org/attributes/hx-swap-oob/) -- out-of-band swaps
-- [Tricks of the Htmx Masters](https://hypermedia.systems/tricks-of-the-htmx-masters/) -- advanced patterns
-- [HTMX Caching](https://www.tutorialspoint.com/htmx/htmx_caching.htm) -- Vary header and cache behavior
-- [HTMX Web Security Basics](https://htmx.org/essays/web-security-basics-with-htmx/) -- security considerations
+### Grafana Dashboard Provisioning
+- [Grafana Provisioning Documentation](https://grafana.com/docs/grafana/latest/administration/provisioning/) -- official provisioning guide
+- [Grafana Dashboard Best Practices](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/best-practices/) -- panel count, layout, and design recommendations
+- [Grafana Community: Datasource UID Conflicts](https://community.grafana.com/t/provisioning-dashboards-data-sources-uid-conflicts/127762) -- UID provisioning issues
+- [Grafana Community: Should Provisioned Dashboards Have Datasource UIDs?](https://community.grafana.com/t/should-provisioned-dashboards-have-datasource-uids/65463) -- datasource UID patterns
+- [Grafana Dashboard JSON Model](https://grafana.com/docs/grafana/latest/visualizations/dashboards/build-dashboards/view-dashboard-json-model/) -- JSON schema reference
+- [Grafana Dashboard Automation with CI/CD](https://grafana.com/docs/grafana/latest/as-code/observability-as-code/foundation-sdk/dashboard-automation/) -- dashboards-as-code patterns
 
-### Templ
-- [templ htmx Integration](https://templ.guide/server-side-rendering/htmx/) -- official HTMX integration docs
-- [templ Context](https://templ.guide/syntax-and-usage/context/) -- context.Context usage in components
-- [templ Template Composition](https://templ.guide/syntax-and-usage/template-composition/) -- component composition patterns
-- [templ Live Reload](https://templ.guide/developer-tools/live-reload/) -- hot reload configuration
-- [templ CLI](https://templ.guide/developer-tools/cli/) -- code generation commands
-- [Solving Infinite Reloads Using Air and Templ](https://jdo.sh/posts/solving-infinite-reloads-using-air-and-templ/) -- air configuration for templ
+### OpenTelemetry Metrics and Prometheus
+- [OTel Prometheus Compatibility Spec](https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/) -- naming translation rules
+- [OTel HTTP Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/http/http-metrics/) -- otelhttp metric names
+- [OTel Metrics Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/general/metrics/) -- general metric naming guidelines
+- [OTel Go Instrumentation](https://opentelemetry.io/docs/languages/go/) -- Go SDK documentation
 
-### Tailwind CSS
-- [Tailwind v4 Detecting Classes](https://tailwindcss.com/docs/detecting-classes-in-source-files) -- automatic content detection, @source directive
-- [Tailwind Standalone CLI](https://tailwindcss.com/blog/standalone-cli) -- Node.js-free usage
-- [Tailwind CLI Installation](https://tailwindcss.com/docs/installation/tailwind-cli) -- standalone CLI setup
+### PeeringDB API
+- [PeeringDB API Specs](https://docs.peeringdb.com/api_specs/) -- official API documentation (meta.generated NOT documented)
+- [PeeringDB API Docs](https://www.peeringdb.com/apidocs/) -- Swagger-style API reference
 
-### SQLite / FTS5
-- [SQLite FTS5 Extension](https://www.sqlite.org/fts5.html) -- official FTS5 documentation, prefix queries
-- [SQLite WAL Mode](https://sqlite.org/wal.html) -- concurrent read/write behavior
-- [High-Performance SQLite Reads in Go](https://dev.to/lovestaco/high-performance-sqlite-reads-in-a-go-server-4on3) -- WAL + read concurrency
-- [How SQLite Scales Read Concurrency (Fly Blog)](https://fly.io/blog/sqlite-internals-wal/) -- WAL internals for edge deployment
-
-### LiteFS
-- [LiteFS Getting Started](https://fly.io/docs/litefs/getting-started-fly/) -- proxy configuration and write forwarding
-- [Preventing Read Replica Writes (Fly Community)](https://community.fly.io/t/preventing-read-replica-from-trying-to-write-litefs/16372) -- read-only replica pitfalls
-
-### Accessibility
-- [ARIA aria-autocomplete](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-autocomplete) -- autocomplete accessibility pattern
-- [Anatomy of Accessible Auto-Suggest (Intopia)](https://intopia.digital/articles/anatomy-accessible-auto-suggest/) -- live region patterns for search
+### Browser Testing
+- [BrowserStack: How to Test Dark Mode](https://www.browserstack.com/guide/how-to-test-apps-in-dark-mode) -- cross-browser dark mode verification
 
 ### Codebase (verified against source)
-- `internal/pdbcompat/search.go` -- existing `buildSearchPredicate` uses `sql.ContainsFold` (LIKE query, no FTS)
-- `internal/database/database.go` -- WAL mode enabled, 5s busy_timeout, modernc.org/sqlite driver
-- `cmd/peeringdb-plus/main.go` -- existing route registration, readiness middleware, CORS middleware, JSON root endpoint
-- `ent/schema/*.go` -- 13 entity types, hand-written schemas
-- `ent/generate.go` -- existing `//go:generate` for ent codegen
+- `internal/otel/metrics.go` -- 9 custom sync metrics with OTel names and units
+- `internal/otel/provider.go` -- autoexport setup, runtime instrumentation, resource attributes
+- `internal/peeringdb/client.go` -- FetchAll with meta.generated parsing, FetchMeta struct
+- `internal/sync/worker.go` -- WorkerConfig.IsPrimary dead field at line 30
+- `cmd/peeringdb-plus/main.go` -- middleware chain (lines 240-244), readiness middleware, route registration
+- `.planning/milestones/v1.2-phases/07-lint-code-quality/07-01-SUMMARY.md` -- claims IsPrimary removed from WorkerConfig (incorrect)
+- `.planning/milestones/v1.4-MILESTONE-AUDIT.md` -- 20 deferred human verification items listed by phase
+
