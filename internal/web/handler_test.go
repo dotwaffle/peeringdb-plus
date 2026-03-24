@@ -865,3 +865,73 @@ func TestSearchResults_FadeIn(t *testing.T) {
 		t.Error("search results missing dark:bg-neutral-800")
 	}
 }
+
+func TestLayout_KeyboardNavScript(t *testing.T) {
+	t.Parallel()
+	inner := templ.Raw("<p>test</p>")
+	body := renderComponent(t, templates.Layout("Test", inner))
+
+	checks := []string{
+		"ArrowDown",
+		"ArrowUp",
+		"aria-selected",
+		"htmx:afterSwap",
+		`role="option"`,
+	}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("layout missing keyboard nav element %q", want)
+		}
+	}
+}
+
+func TestKeyboardNav_Integration(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := context.Background()
+
+	org, err := client.Organization.Create().
+		SetID(1).SetName("TestOrg").
+		SetCreated(testHandlerTimestamp).SetUpdated(testHandlerTimestamp).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("creating organization: %v", err)
+	}
+	_, err = client.Network.Create().
+		SetID(10).SetName("Cloudflare").SetAsn(13335).
+		SetOrgID(1).SetOrganization(org).
+		SetCreated(testHandlerTimestamp).SetUpdated(testHandlerTimestamp).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("creating network: %v", err)
+	}
+
+	h := NewHandler(client, nil)
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	// Bookmarked URL with query should render full page with both keyboard nav and ARIA
+	req := httptest.NewRequest(http.MethodGet, "/ui/?q=Cloud", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	checks := []struct {
+		want string
+		desc string
+	}{
+		{"ArrowDown", "keyboard nav script"},
+		{`role="option"`, "ARIA option role on results"},
+		{`role="listbox"`, "ARIA listbox role on container"},
+		{"Cloudflare", "search result content"},
+	}
+	for _, c := range checks {
+		if !strings.Contains(body, c.want) {
+			t.Errorf("integration page missing %s (%q)", c.desc, c.want)
+		}
+	}
+}

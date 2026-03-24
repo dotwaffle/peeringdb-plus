@@ -66,6 +66,83 @@ templ Layout(title string, contents templ.Component) {
 				});
 			});
 			</script>
+		<script>
+		// Keyboard navigation for search results (SRCH-05).
+		// Listens on keydown when search input or results are focused.
+		(function() {
+			function getOptions() {
+				var container = document.getElementById('search-results');
+				if (!container) return [];
+				return Array.from(container.querySelectorAll('[role="option"]'));
+			}
+
+			function getActiveIndex(options) {
+				for (var i = 0; i < options.length; i++) {
+					if (options[i].getAttribute('aria-selected') === 'true') return i;
+				}
+				return -1;
+			}
+
+			function setActive(options, index) {
+				for (var i = 0; i < options.length; i++) {
+					options[i].setAttribute('aria-selected', 'false');
+					options[i].classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-1');
+				}
+				if (index >= 0 && index < options.length) {
+					options[index].setAttribute('aria-selected', 'true');
+					options[index].classList.add('ring-2', 'ring-emerald-500', 'ring-offset-1');
+					options[index].focus();
+					options[index].scrollIntoView({ block: 'nearest' });
+				}
+			}
+
+			document.addEventListener('keydown', function(e) {
+				var searchInput = document.querySelector('#search-form input[name="q"]');
+				if (!searchInput) return;
+
+				var isSearchFocused = document.activeElement === searchInput;
+				var options = getOptions();
+				if (options.length === 0) return;
+
+				var currentIndex = getActiveIndex(options);
+
+				if (e.key === 'ArrowDown') {
+					e.preventDefault();
+					if (isSearchFocused || currentIndex < 0) {
+						setActive(options, 0);
+					} else if (currentIndex < options.length - 1) {
+						setActive(options, currentIndex + 1);
+					}
+				} else if (e.key === 'ArrowUp') {
+					e.preventDefault();
+					if (currentIndex > 0) {
+						setActive(options, currentIndex - 1);
+					} else if (currentIndex === 0) {
+						setActive(options, -1);
+						searchInput.focus();
+					}
+				} else if (e.key === 'Enter') {
+					if (!isSearchFocused && currentIndex >= 0) {
+						e.preventDefault();
+						window.location.href = options[currentIndex].getAttribute('href');
+					}
+				} else if (e.key === 'Escape') {
+					if (!isSearchFocused) {
+						e.preventDefault();
+						setActive(options, -1);
+						searchInput.focus();
+					}
+				}
+			});
+
+			document.addEventListener('htmx:afterSwap', function(e) {
+				if (e.detail.target && e.detail.target.id === 'search-results') {
+					var options = getOptions();
+					setActive(options, -1);
+				}
+			});
+		})();
+		</script>
 		</body>
 	</html>
 }
