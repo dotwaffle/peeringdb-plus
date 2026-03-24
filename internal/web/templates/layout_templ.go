@@ -42,7 +42,7 @@ func Layout(title string, contents templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " - PeeringDB Plus</title><script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script><script src=\"/static/htmx.min.js\"></script><style type=\"text/tailwindcss\">\n\t\t\t\t@theme {\n\t\t\t\t\t--color-accent: #10b981;\n\t\t\t\t}\n\t\t\t</style><style>\n\t\t\t\tbody { background-color: #171717; color: #f5f5f5; }\n\t\t\t</style></head><body class=\"bg-neutral-900 text-neutral-100 min-h-screen flex flex-col\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " - PeeringDB Plus</title><script>\n\t\t\t(function(){\n\t\t\t\tvar d=document.documentElement;\n\t\t\t\tvar t=localStorage.getItem('darkMode');\n\t\t\t\tif(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){\n\t\t\t\t\td.classList.add('dark');\n\t\t\t\t}\n\t\t\t})();\n\t\t\t</script><script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script><script src=\"/static/htmx.min.js\"></script><style type=\"text/tailwindcss\">\n\t\t\t\t@custom-variant dark (&:where(.dark, .dark *));\n\t\t\t\t@theme {\n\t\t\t\t\t--color-accent: #10b981;\n\t\t\t\t}\n\t\t\t</style><style>\n\t\t\t\thtml.theme-transition, html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {\n\t\t\t\t\ttransition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;\n\t\t\t\t}\n\t\t\t</style></head><body class=\"bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 min-h-screen flex flex-col\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -66,7 +66,7 @@ func Layout(title string, contents templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<script>\n\t\t\tdocument.addEventListener('DOMContentLoaded', function() {\n\t\t\t\tdocument.querySelectorAll('#dark-mode-toggle').forEach(function(btn) {\n\t\t\t\t\tbtn.addEventListener('click', function() {\n\t\t\t\t\t\tvar html = document.documentElement;\n\t\t\t\t\t\thtml.classList.add('theme-transition');\n\t\t\t\t\t\tif (html.classList.contains('dark')) {\n\t\t\t\t\t\t\thtml.classList.remove('dark');\n\t\t\t\t\t\t\tlocalStorage.setItem('darkMode', 'light');\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\thtml.classList.add('dark');\n\t\t\t\t\t\t\tlocalStorage.setItem('darkMode', 'dark');\n\t\t\t\t\t\t}\n\t\t\t\t\t\tsetTimeout(function() { html.classList.remove('theme-transition'); }, 200);\n\t\t\t\t\t});\n\t\t\t\t});\n\t\t\t});\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

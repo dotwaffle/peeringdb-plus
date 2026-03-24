@@ -167,10 +167,46 @@ func TestLayout_ColorScheme(t *testing.T) {
 	inner := templ.Raw("<p>test</p>")
 	body := renderComponent(t, templates.Layout("Test", inner))
 
-	checks := []string{"bg-neutral-900", "text-neutral-100", "emerald-500"}
+	checks := []string{"dark:bg-neutral-900", "dark:text-neutral-100", "emerald-500"}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
 			t.Errorf("layout missing color scheme reference %q", want)
+		}
+	}
+}
+
+func TestLayout_DarkModeInit(t *testing.T) {
+	t.Parallel()
+	inner := templ.Raw("<p>test</p>")
+	body := renderComponent(t, templates.Layout("Test", inner))
+
+	checks := []string{
+		"localStorage.getItem('darkMode')",
+		"prefers-color-scheme",
+		"dark:bg-neutral-900",
+		"@custom-variant dark",
+	}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("layout missing dark mode init element %q", want)
+		}
+	}
+}
+
+func TestNav_DarkModeToggle(t *testing.T) {
+	t.Parallel()
+	body := renderComponent(t, templates.Nav())
+
+	checks := []string{
+		"dark-mode-toggle",
+		"M12 3v1m0 16v1",       // Sun icon path
+		"M20.354 15.354A9 9 0", // Moon icon path
+		"dark:bg-neutral-800",
+		"dark:border-neutral-700",
+	}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("nav missing dark mode toggle element %q", want)
 		}
 	}
 }

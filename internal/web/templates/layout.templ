@@ -7,23 +7,53 @@ templ Layout(title string, contents templ.Component) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ title } - PeeringDB Plus</title>
+			<script>
+			(function(){
+				var d=document.documentElement;
+				var t=localStorage.getItem('darkMode');
+				if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){
+					d.classList.add('dark');
+				}
+			})();
+			</script>
 			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 			<script src="/static/htmx.min.js"></script>
 			<style type="text/tailwindcss">
+				@custom-variant dark (&:where(.dark, .dark *));
 				@theme {
 					--color-accent: #10b981;
 				}
 			</style>
 			<style>
-				body { background-color: #171717; color: #f5f5f5; }
+				html.theme-transition, html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {
+					transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;
+				}
 			</style>
 		</head>
-		<body class="bg-neutral-900 text-neutral-100 min-h-screen flex flex-col">
+		<body class="bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 min-h-screen flex flex-col">
 			@Nav()
 			<main class="flex-1 container mx-auto px-4 py-8">
 				@contents
 			</main>
 			@Footer()
+			<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				document.querySelectorAll('#dark-mode-toggle').forEach(function(btn) {
+					btn.addEventListener('click', function() {
+						var html = document.documentElement;
+						html.classList.add('theme-transition');
+						if (html.classList.contains('dark')) {
+							html.classList.remove('dark');
+							localStorage.setItem('darkMode', 'light');
+						} else {
+							html.classList.add('dark');
+							localStorage.setItem('darkMode', 'dark');
+						}
+						setTimeout(function() { html.classList.remove('theme-transition'); }, 200);
+					});
+				});
+			});
+			</script>
 		</body>
 	</html>
 }
