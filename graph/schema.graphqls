@@ -111,7 +111,7 @@ input CampusOrder {
   """
   direction: OrderDirection! = ASC
   """
-  The field by which to order CampusSlice.
+  The field by which to order Campuses.
   """
   field: CampusOrderField!
 }
@@ -5351,7 +5351,7 @@ type Query {
     """
     ids: [ID!]!
   ): [Node]!
-  campusSlice(
+  campuses(
     """
     Returns the elements in the list that come after the specified cursor.
     """
@@ -5373,12 +5373,12 @@ type Query {
     last: Int
 
     """
-    Ordering options for CampusSlice returned from the connection.
+    Ordering options for Campuses returned from the connection.
     """
     orderBy: CampusOrder
 
     """
-    Filtering options for CampusSlice returned from the connection.
+    Filtering options for Campuses returned from the connection.
     """
     where: CampusWhereInput
   ): CampusConnection!

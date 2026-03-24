@@ -5,15 +5,15 @@
         "version": "1.0.0"
     },
     "paths": {
-        "/campus": {
+        "/campuses": {
             "summary": "List campus",
-            "description": "List Campu entities (including pagination, filtering, sorting, etc). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
+            "description": "List Campus entities (including pagination, filtering, sorting, etc). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
             "get": {
                 "tags": [
                     "Campus"
                 ],
                 "summary": "List campus",
-                "description": "List Campu entities (including pagination, filtering, sorting, etc). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
+                "description": "List Campus entities (including pagination, filtering, sorting, etc). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
                 "operationId": "listCampus",
                 "parameters": [
                     {
@@ -35,7 +35,7 @@
                         "in": "query",
                         "description": "Sort entity results by the given field.",
                         "schema": {
-                            "$ref": "#/components/schemas/CampuSortableFields",
+                            "$ref": "#/components/schemas/CampusSortableFields",
                             "default": "id"
                         }
                     },
@@ -298,11 +298,11 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "The requested Campu.",
+                        "description": "The requested Campus.",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/CampuList"
+                                    "$ref": "#/components/schemas/CampusList"
                                 }
                             }
                         }
@@ -330,23 +330,23 @@
                 }
             ]
         },
-        "/campus/{campuID}": {
-            "summary": "Operate on a single Campu entity",
-            "description": "Operate on a single Campu entity by its ID.",
+        "/campuses/{campusID}": {
+            "summary": "Operate on a single Campus entity",
+            "description": "Operate on a single Campus entity by its ID.",
             "get": {
                 "tags": [
                     "Campus"
                 ],
-                "summary": "Retrieve a campu",
-                "description": "Retrieve a single Campu entity by its ID. If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
-                "operationId": "getCampu",
+                "summary": "Retrieve a campus",
+                "description": "Retrieve a single Campus entity by its ID. If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
+                "operationId": "getCampus",
                 "responses": {
                     "200": {
-                        "description": "The requested Campu entity.",
+                        "description": "The requested Campus entity.",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/CampuRead"
+                                    "$ref": "#/components/schemas/CampusRead"
                                 }
                             }
                         }
@@ -376,21 +376,21 @@
                     "$ref": "#/components/parameters/PrettyResponse"
                 },
                 {
-                    "$ref": "#/components/parameters/CampuID"
+                    "$ref": "#/components/parameters/CampusID"
                 }
             ]
         },
-        "/campus/{campuID}/facilities": {
-            "summary": "List a campus associated facilities",
-            "description": "List a campus associated facilities (Facility entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
+        "/campuses/{campusID}/facilities": {
+            "summary": "List a campuses associated facilities",
+            "description": "List a campuses associated facilities (Facility entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
             "get": {
                 "tags": [
                     "Campus",
                     "Facilities"
                 ],
-                "summary": "List a campus associated facilities",
-                "description": "List a campus associated facilities (Facility entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
-                "operationId": "listCampuFacilities",
+                "summary": "List a campuses associated facilities",
+                "description": "List a campuses associated facilities (Facility entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
+                "operationId": "listCampusFacilities",
                 "parameters": [
                     {
                         "name": "sort",
@@ -676,7 +676,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/CampuFacilityList"
+                                    "$ref": "#/components/schemas/CampusFacilityList"
                                 }
                             }
                         }
@@ -703,21 +703,21 @@
                     "$ref": "#/components/parameters/PrettyResponse"
                 },
                 {
-                    "$ref": "#/components/parameters/CampuID"
+                    "$ref": "#/components/parameters/CampusID"
                 }
             ]
         },
-        "/campus/{campuID}/organization": {
-            "summary": "Get a campus associated organization",
-            "description": "Get a campus associated organization (Organization entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
+        "/campuses/{campusID}/organization": {
+            "summary": "Get a campuses associated organization",
+            "description": "Get a campuses associated organization (Organization entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
             "get": {
                 "tags": [
                     "Campus",
                     "Organizations"
                 ],
-                "summary": "Get a campus associated organization",
-                "description": "Get a campus associated organization (Organization entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
-                "operationId": "getCampuOrganization",
+                "summary": "Get a campuses associated organization",
+                "description": "Get a campuses associated organization (Organization entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
+                "operationId": "getCampusOrganization",
                 "responses": {
                     "200": {
                         "description": "The requested organization entity.",
@@ -754,7 +754,7 @@
                     "$ref": "#/components/parameters/PrettyResponse"
                 },
                 {
-                    "$ref": "#/components/parameters/CampuID"
+                    "$ref": "#/components/parameters/CampusID"
                 }
             ]
         },
@@ -2005,22 +2005,22 @@
         },
         "/facilities/{facilityID}/campus": {
             "summary": "Get a facilities associated campus",
-            "description": "Get a facilities associated campus (Campu entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
+            "description": "Get a facilities associated campus (Campus entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
             "get": {
                 "tags": [
                     "Facilities",
                     "Campus"
                 ],
                 "summary": "Get a facilities associated campus",
-                "description": "Get a facilities associated campus (Campu entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
-                "operationId": "getFacilityCampu",
+                "description": "Get a facilities associated campus (Campus entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
+                "operationId": "getFacilityCampus",
                 "responses": {
                     "200": {
                         "description": "The requested campus entity.",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/CampuRead"
+                                    "$ref": "#/components/schemas/CampusRead"
                                 }
                             }
                         }
@@ -7218,14 +7218,14 @@
         },
         "/organizations/{organizationID}/campuses": {
             "summary": "List a organizations associated campuses",
-            "description": "List a organizations associated campuses (Campu entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
+            "description": "List a organizations associated campuses (Campus entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
             "get": {
                 "tags": [
                     "Organizations",
                     "Campus"
                 ],
                 "summary": "List a organizations associated campuses",
-                "description": "List a organizations associated campuses (Campu entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
+                "description": "List a organizations associated campuses (Campus entity type). If the entity has eager-loaded edges, the depth of when those will be loaded is limited to a depth of 1 (entity -\u003e edge, not entity -\u003e edge -\u003e edge -\u003e etc).",
                 "operationId": "listOrganizationCampuses",
                 "parameters": [
                     {
@@ -7233,7 +7233,7 @@
                         "in": "query",
                         "description": "Sort entity results by the given field.",
                         "schema": {
-                            "$ref": "#/components/schemas/CampuSortableFields",
+                            "$ref": "#/components/schemas/CampusSortableFields",
                             "default": "id"
                         }
                     },
@@ -7500,7 +7500,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/OrganizationCampuseList"
+                                    "$ref": "#/components/schemas/OrganizationCampusList"
                                 }
                             }
                         }
@@ -8986,12 +8986,12 @@
     },
     "components": {
         "schemas": {
-            "Campu": {
-                "description": "A single Campu entity.",
+            "Campus": {
+                "description": "A single Campus entity.",
                 "type": "object",
                 "properties": {
                     "id": {
-                        "description": "The ID of the Campu entity.",
+                        "description": "The ID of the Campus entity.",
                         "type": "integer"
                     },
                     "org_id": {
@@ -9096,7 +9096,7 @@
                     "status"
                 ]
             },
-            "CampuEdges": {
+            "CampusEdges": {
                 "type": "object",
                 "properties": {
                     "facilities": {
@@ -9113,15 +9113,15 @@
                     }
                 }
             },
-            "CampuFacilityList": {
-                "description": "List of facilities associated with campus (facility entity type).",
+            "CampusFacilityList": {
+                "description": "List of facilities associated with campuses (facility entity type).",
                 "type": "array",
                 "items": {
                     "$ref": "#/components/schemas/FacilityRead"
                 }
             },
-            "CampuList": {
-                "description": "A paginated result set of Campu entities. Includes eager-loaded edges (if any) for each entity.",
+            "CampusList": {
+                "description": "A paginated result set of Campus entities. Includes eager-loaded edges (if any) for each entity.",
                 "allOf": [
                     {
                         "$ref": "#/components/schemas/PagedResponse"
@@ -9132,7 +9132,7 @@
                             "content": {
                                 "type": "array",
                                 "items": {
-                                    "$ref": "#/components/schemas/CampuRead"
+                                    "$ref": "#/components/schemas/CampusRead"
                                 }
                             }
                         },
@@ -9142,17 +9142,17 @@
                     }
                 ]
             },
-            "CampuRead": {
-                "description": "A single Campu entity.",
+            "CampusRead": {
+                "description": "A single Campus entity.",
                 "allOf": [
                     {
-                        "$ref": "#/components/schemas/Campu"
+                        "$ref": "#/components/schemas/Campus"
                     },
                     {
                         "type": "object",
                         "properties": {
                             "edges": {
-                                "$ref": "#/components/schemas/CampuEdges"
+                                "$ref": "#/components/schemas/CampusEdges"
                             }
                         },
                         "required": [
@@ -9161,8 +9161,8 @@
                     }
                 ]
             },
-            "CampuSortableFields": {
-                "description": "All potential sortable fields for Campu entities.",
+            "CampusSortableFields": {
+                "description": "All potential sortable fields for Campus entities.",
                 "type": "string",
                 "enum": [
                     "facilities.count",
@@ -9935,7 +9935,7 @@
                 "type": "object",
                 "properties": {
                     "campus": {
-                        "$ref": "#/components/schemas/Campu"
+                        "$ref": "#/components/schemas/Campus"
                     },
                     "carrier_facilities": {
                         "description": "A list of CarrierFacility entities. Limited to 1000 items. If there are more results than the limit, the results are capped and you must use the associated edge endpoint with pagination -- see also the 'EagerLoadLimit' config option.",
@@ -11523,11 +11523,11 @@
                     "status"
                 ]
             },
-            "OrganizationCampuseList": {
-                "description": "List of campuses associated with organizations (campu entity type).",
+            "OrganizationCampusList": {
+                "description": "List of campuses associated with organizations (campus entity type).",
                 "type": "array",
                 "items": {
-                    "$ref": "#/components/schemas/CampuRead"
+                    "$ref": "#/components/schemas/CampusRead"
                 }
             },
             "OrganizationCarrierList": {
@@ -11541,10 +11541,10 @@
                 "type": "object",
                 "properties": {
                     "campuses": {
-                        "description": "A list of Campu entities. Limited to 1000 items. If there are more results than the limit, the results are capped and you must use the associated edge endpoint with pagination -- see also the 'EagerLoadLimit' config option.",
+                        "description": "A list of Campus entities. Limited to 1000 items. If there are more results than the limit, the results are capped and you must use the associated edge endpoint with pagination -- see also the 'EagerLoadLimit' config option.",
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/Campu"
+                            "$ref": "#/components/schemas/Campus"
                         },
                         "maxItems": 1000,
                         "minItems": 0
@@ -11895,16 +11895,6 @@
             }
         },
         "parameters": {
-            "CampuID": {
-                "name": "campuID",
-                "in": "path",
-                "description": "The ID of the Campu to act upon.",
-                "required": true,
-                "schema": {
-                    "description": "PeeringDB campus ID",
-                    "type": "integer"
-                }
-            },
             "CampusAkaContains": {
                 "name": "aka.has",
                 "in": "query",
@@ -12197,6 +12187,16 @@
                 "schema": {
                     "type": "string",
                     "format": "date-time"
+                }
+            },
+            "CampusID": {
+                "name": "campusID",
+                "in": "path",
+                "description": "The ID of the Campus to act upon.",
+                "required": true,
+                "schema": {
+                    "description": "PeeringDB campus ID",
+                    "type": "integer"
                 }
             },
             "CampusNameContains": {

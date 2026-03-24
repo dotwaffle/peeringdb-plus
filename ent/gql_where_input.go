@@ -300,7 +300,7 @@ func (i *CampusWhereInput) Filter(q *CampusQuery) (*CampusQuery, error) {
 // ErrEmptyCampusWhereInput is returned in case the CampusWhereInput is empty.
 var ErrEmptyCampusWhereInput = errors.New("ent: empty predicate CampusWhereInput")
 
-// P returns a predicate for filtering campusslice.
+// P returns a predicate for filtering campuses.
 // An error is returned if the input is empty or invalid.
 func (i *CampusWhereInput) P() (predicate.Campus, error) {
 	var predicates []predicate.Campus

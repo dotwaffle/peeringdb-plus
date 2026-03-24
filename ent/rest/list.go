@@ -43,9 +43,9 @@ var (
 		ItemsPerPage:    10,
 		MaxItemsPerPage: 100,
 	}
-	// CampuPageConfig defines the page configuration for LIST-related endpoints
-	// for Campu.
-	CampuPageConfig = &PageConfig{
+	// CampusPageConfig defines the page configuration for LIST-related endpoints
+	// for Campus.
+	CampusPageConfig = &PageConfig{
 		MinItemsPerPage: DefaultPageConfig.MinItemsPerPage,
 		ItemsPerPage:    DefaultPageConfig.ItemsPerPage,
 		MaxItemsPerPage: DefaultPageConfig.MaxItemsPerPage,
@@ -287,8 +287,8 @@ func (f *Filtered[P]) ApplyFilterOperation(predicates ...P) (P, error) {
 	return sql.OrPredicates(predicates...), nil
 }
 
-// ListCampuParams defines parameters for listing Campus via a GET request.
-type ListCampuParams struct {
+// ListCampusParams defines parameters for listing Campus via a GET request.
+type ListCampusParams struct {
 	Sorted
 	Paginated[*ent.CampusQuery, ent.Campus]
 	Filtered[predicate.Campus]
@@ -455,8 +455,8 @@ type ListCampuParams struct {
 	CampusStatusHasSuffix *string `form:"status.suffix,omitempty" json:"campus_status_has_suffix,omitempty"`
 }
 
-// FilterPredicates returns the predicates for filter-related parameters in Campu.
-func (l *ListCampuParams) FilterPredicates() (predicate.Campus, error) {
+// FilterPredicates returns the predicates for filter-related parameters in Campus.
+func (l *ListCampusParams) FilterPredicates() (predicate.Campus, error) {
 	var predicates []predicate.Campus
 
 	if l.CampusOrgIDEQ != nil {
@@ -724,30 +724,30 @@ func (l *ListCampuParams) FilterPredicates() (predicate.Campus, error) {
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListCampuParams) ApplySorting(query *ent.CampusQuery) error {
-	if err := l.Sorted.Validate(CampuSortConfig); err != nil {
+func (l *ListCampusParams) ApplySorting(query *ent.CampusQuery) error {
+	if err := l.Sorted.Validate(CampusSortConfig); err != nil {
 		return err
 	}
 	if l.Field == nil { // No custom sort field provided and no defaults, so don't do anything.
 		return nil
 	}
-	applySortingCampu(query, *l.Field, *l.Order)
+	applySortingCampus(query, *l.Field, *l.Order)
 	return nil
 }
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListCampuParams) Exec(ctx context.Context, query *ent.CampusQuery) (results *PagedResponse[ent.Campus], err error) {
+func (l *ListCampusParams) Exec(ctx context.Context, query *ent.CampusQuery) (results *PagedResponse[ent.Campus], err error) {
 	predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
 	}
 	query.Where(predicates)
-	err = l.ApplySorting(EagerLoadCampu(query))
+	err = l.ApplySorting(EagerLoadCampus(query))
 	if err != nil {
 		return nil, err
 	}
-	return l.ExecutePaginated(ctx, query, CampuPageConfig)
+	return l.ExecutePaginated(ctx, query, CampusPageConfig)
 }
 
 // ListCarrierParams defines parameters for listing Carriers via a GET request.

@@ -359,5 +359,5 @@ func (_m *Campus) appendNamedFacilities(name string, edges ...*Facility) {
 	}
 }
 
-// CampusSlice is a parsable slice of Campus.
-type CampusSlice []*Campus
+// Campuses is a parsable slice of Campus.
+type Campuses []*Campus

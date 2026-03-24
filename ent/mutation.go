@@ -20908,8 +20908,8 @@ func (m *OrganizationMutation) ResetStatus() {
 	m.status = nil
 }
 
-// AddCampuseIDs adds the "campuses" edge to the Campus entity by ids.
-func (m *OrganizationMutation) AddCampuseIDs(ids ...int) {
+// AddCampusIDs adds the "campuses" edge to the Campus entity by ids.
+func (m *OrganizationMutation) AddCampusIDs(ids ...int) {
 	if m.campuses == nil {
 		m.campuses = make(map[int]struct{})
 	}
@@ -20928,8 +20928,8 @@ func (m *OrganizationMutation) CampusesCleared() bool {
 	return m.clearedcampuses
 }
 
-// RemoveCampuseIDs removes the "campuses" edge to the Campus entity by IDs.
-func (m *OrganizationMutation) RemoveCampuseIDs(ids ...int) {
+// RemoveCampusIDs removes the "campuses" edge to the Campus entity by IDs.
+func (m *OrganizationMutation) RemoveCampusIDs(ids ...int) {
 	if m.removedcampuses == nil {
 		m.removedcampuses = make(map[int]struct{})
 	}

@@ -210,7 +210,7 @@ func (_q *CampusQuery) OnlyIDX(ctx context.Context) int {
 	return id
 }
 
-// All executes the query and returns a list of CampusSlice.
+// All executes the query and returns a list of Campuses.
 func (_q *CampusQuery) All(ctx context.Context) ([]*Campus, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {

@@ -227,7 +227,7 @@ func TestREST_ListAll(t *testing.T) {
 		{"network-ix-lans", "/network-ix-lans"},
 		{"carriers", "/carriers"},
 		{"carrier-facilities", "/carrier-facilities"},
-		{"campus", "/campus"},
+		{"campuses", "/campuses"},
 		{"pocs", "/pocs"},
 	}
 

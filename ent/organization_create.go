@@ -310,9 +310,9 @@ func (_c *OrganizationCreate) SetID(v int) *OrganizationCreate {
 	return _c
 }
 
-// AddCampuseIDs adds the "campuses" edge to the Campus entity by IDs.
-func (_c *OrganizationCreate) AddCampuseIDs(ids ...int) *OrganizationCreate {
-	_c.mutation.AddCampuseIDs(ids...)
+// AddCampusIDs adds the "campuses" edge to the Campus entity by IDs.
+func (_c *OrganizationCreate) AddCampusIDs(ids ...int) *OrganizationCreate {
+	_c.mutation.AddCampusIDs(ids...)
 	return _c
 }
 
@@ -322,7 +322,7 @@ func (_c *OrganizationCreate) AddCampuses(v ...*Campus) *OrganizationCreate {
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddCampuseIDs(ids...)
+	return _c.AddCampusIDs(ids...)
 }
 
 // AddCarrierIDs adds the "carriers" edge to the Carrier entity by IDs.

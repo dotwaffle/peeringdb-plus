@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	// CampusColumns holds the columns for the "campus" table.
-	CampusColumns = []*schema.Column{
+	// CampusesColumns holds the columns for the "campuses" table.
+	CampusesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "aka", Type: field.TypeString, Nullable: true},
 		{Name: "city", Type: field.TypeString, Nullable: true, Default: ""},
@@ -28,15 +28,15 @@ var (
 		{Name: "status", Type: field.TypeString, Default: "ok"},
 		{Name: "org_id", Type: field.TypeInt, Nullable: true},
 	}
-	// CampusTable holds the schema information for the "campus" table.
-	CampusTable = &schema.Table{
-		Name:       "campus",
-		Columns:    CampusColumns,
-		PrimaryKey: []*schema.Column{CampusColumns[0]},
+	// CampusesTable holds the schema information for the "campuses" table.
+	CampusesTable = &schema.Table{
+		Name:       "campuses",
+		Columns:    CampusesColumns,
+		PrimaryKey: []*schema.Column{CampusesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "campus_organizations_campuses",
-				Columns:    []*schema.Column{CampusColumns[16]},
+				Symbol:     "campuses_organizations_campuses",
+				Columns:    []*schema.Column{CampusesColumns[16]},
 				RefColumns: []*schema.Column{OrganizationsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -45,17 +45,17 @@ var (
 			{
 				Name:    "campus_name",
 				Unique:  false,
-				Columns: []*schema.Column{CampusColumns[5]},
+				Columns: []*schema.Column{CampusesColumns[5]},
 			},
 			{
 				Name:    "campus_org_id",
 				Unique:  false,
-				Columns: []*schema.Column{CampusColumns[16]},
+				Columns: []*schema.Column{CampusesColumns[16]},
 			},
 			{
 				Name:    "campus_status",
 				Unique:  false,
-				Columns: []*schema.Column{CampusColumns[15]},
+				Columns: []*schema.Column{CampusesColumns[15]},
 			},
 		},
 	}
@@ -203,9 +203,9 @@ var (
 		PrimaryKey: []*schema.Column{FacilitiesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "facilities_campus_facilities",
+				Symbol:     "facilities_campuses_facilities",
 				Columns:    []*schema.Column{FacilitiesColumns[37]},
-				RefColumns: []*schema.Column{CampusColumns[0]},
+				RefColumns: []*schema.Column{CampusesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
@@ -740,7 +740,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
-		CampusTable,
+		CampusesTable,
 		CarriersTable,
 		CarrierFacilitiesTable,
 		FacilitiesTable,
@@ -757,11 +757,11 @@ var (
 )
 
 func init() {
-	CampusTable.ForeignKeys[0].RefTable = OrganizationsTable
+	CampusesTable.ForeignKeys[0].RefTable = OrganizationsTable
 	CarriersTable.ForeignKeys[0].RefTable = OrganizationsTable
 	CarrierFacilitiesTable.ForeignKeys[0].RefTable = CarriersTable
 	CarrierFacilitiesTable.ForeignKeys[1].RefTable = FacilitiesTable
-	FacilitiesTable.ForeignKeys[0].RefTable = CampusTable
+	FacilitiesTable.ForeignKeys[0].RefTable = CampusesTable
 	FacilitiesTable.ForeignKeys[1].RefTable = OrganizationsTable
 	InternetExchangesTable.ForeignKeys[0].RefTable = OrganizationsTable
 	IxFacilitiesTable.ForeignKeys[0].RefTable = FacilitiesTable

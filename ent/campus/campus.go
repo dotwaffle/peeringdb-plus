@@ -50,7 +50,7 @@ const (
 	// EdgeOrganization holds the string denoting the organization edge name in mutations.
 	EdgeOrganization = "organization"
 	// Table holds the table name of the campus in the database.
-	Table = "campus"
+	Table = "campuses"
 	// FacilitiesTable is the table that holds the facilities relation/edge.
 	FacilitiesTable = "facilities"
 	// FacilitiesInverseTable is the table name for the Facility entity.
@@ -59,7 +59,7 @@ const (
 	// FacilitiesColumn is the table column denoting the facilities relation/edge.
 	FacilitiesColumn = "campus_id"
 	// OrganizationTable is the table that holds the organization relation/edge.
-	OrganizationTable = "campus"
+	OrganizationTable = "campuses"
 	// OrganizationInverseTable is the table name for the Organization entity.
 	// It exists in this package in order to avoid circular dependency with the "organization" package.
 	OrganizationInverseTable = "organizations"

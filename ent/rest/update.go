@@ -23,8 +23,8 @@ import (
 	schema "github.com/dotwaffle/peeringdb-plus/ent/schema"
 )
 
-// UpdateCampuParams defines parameters for updating a Campu via a PATCH request.
-type UpdateCampuParams struct {
+// UpdateCampusParams defines parameters for updating a Campus via a PATCH request.
+type UpdateCampusParams struct {
 	// FK to organization
 	OrgID Option[*int] `json:"org_id,omitempty"`
 	// Also known as
@@ -57,7 +57,7 @@ type UpdateCampuParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateCampuParams) ApplyInputs(builder *ent.CampusUpdateOne) *ent.CampusUpdateOne {
+func (u *UpdateCampusParams) ApplyInputs(builder *ent.CampusUpdateOne) *ent.CampusUpdateOne {
 	if v, ok := u.OrgID.Get(); ok {
 		if v != nil {
 			builder.SetOrgID(*v)
@@ -126,12 +126,12 @@ func (u *UpdateCampuParams) ApplyInputs(builder *ent.CampusUpdateOne) *ent.Campu
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateCampuParams) Exec(ctx context.Context, builder *ent.CampusUpdateOne, query *ent.CampusQuery) (*ent.Campus, error) {
+func (c *UpdateCampusParams) Exec(ctx context.Context, builder *ent.CampusUpdateOne, query *ent.CampusQuery) (*ent.Campus, error) {
 	result, err := c.ApplyInputs(builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadCampu(query.Where(campus.ID(result.ID))).Only(ctx)
+	return EagerLoadCampus(query.Where(campus.ID(result.ID))).Only(ctx)
 }
 
 // UpdateCarrierParams defines parameters for updating a Carrier via a PATCH request.

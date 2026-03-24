@@ -70,10 +70,10 @@ const (
 	// Table holds the table name of the organization in the database.
 	Table = "organizations"
 	// CampusesTable is the table that holds the campuses relation/edge.
-	CampusesTable = "campus"
+	CampusesTable = "campuses"
 	// CampusesInverseTable is the table name for the Campus entity.
 	// It exists in this package in order to avoid circular dependency with the "campus" package.
-	CampusesInverseTable = "campus"
+	CampusesInverseTable = "campuses"
 	// CampusesColumn is the table column denoting the campuses relation/edge.
 	CampusesColumn = "org_id"
 	// CarriersTable is the table that holds the carriers relation/edge.

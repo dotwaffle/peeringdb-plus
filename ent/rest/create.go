@@ -23,8 +23,8 @@ import (
 	schema "github.com/dotwaffle/peeringdb-plus/ent/schema"
 )
 
-// CreateCampuParams defines parameters for creating a Campu via a POST request.
-type CreateCampuParams struct {
+// CreateCampusParams defines parameters for creating a Campus via a POST request.
+type CreateCampusParams struct {
 	// FK to organization
 	OrgID *int `json:"org_id,omitempty"`
 	// Also known as
@@ -59,7 +59,7 @@ type CreateCampuParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateCampuParams) ApplyInputs(builder *ent.CampusCreate) *ent.CampusCreate {
+func (c *CreateCampusParams) ApplyInputs(builder *ent.CampusCreate) *ent.CampusCreate {
 	if c.OrgID != nil {
 		builder.SetOrgID(*c.OrgID)
 	}
@@ -108,12 +108,12 @@ func (c *CreateCampuParams) ApplyInputs(builder *ent.CampusCreate) *ent.CampusCr
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateCampuParams) Exec(ctx context.Context, builder *ent.CampusCreate, query *ent.CampusQuery) (*ent.Campus, error) {
+func (c *CreateCampusParams) Exec(ctx context.Context, builder *ent.CampusCreate, query *ent.CampusQuery) (*ent.Campus, error) {
 	result, err := c.ApplyInputs(builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadCampu(query.Where(campus.ID(result.ID))).Only(ctx)
+	return EagerLoadCampus(query.Where(campus.ID(result.ID))).Only(ctx)
 }
 
 // CreateCarrierParams defines parameters for creating a Carrier via a POST request.

@@ -463,9 +463,9 @@ func (_u *OrganizationUpdate) SetNillableStatus(v *string) *OrganizationUpdate {
 	return _u
 }
 
-// AddCampuseIDs adds the "campuses" edge to the Campus entity by IDs.
-func (_u *OrganizationUpdate) AddCampuseIDs(ids ...int) *OrganizationUpdate {
-	_u.mutation.AddCampuseIDs(ids...)
+// AddCampusIDs adds the "campuses" edge to the Campus entity by IDs.
+func (_u *OrganizationUpdate) AddCampusIDs(ids ...int) *OrganizationUpdate {
+	_u.mutation.AddCampusIDs(ids...)
 	return _u
 }
 
@@ -475,7 +475,7 @@ func (_u *OrganizationUpdate) AddCampuses(v ...*Campus) *OrganizationUpdate {
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddCampuseIDs(ids...)
+	return _u.AddCampusIDs(ids...)
 }
 
 // AddCarrierIDs adds the "carriers" edge to the Carrier entity by IDs.
@@ -549,9 +549,9 @@ func (_u *OrganizationUpdate) ClearCampuses() *OrganizationUpdate {
 	return _u
 }
 
-// RemoveCampuseIDs removes the "campuses" edge to Campus entities by IDs.
-func (_u *OrganizationUpdate) RemoveCampuseIDs(ids ...int) *OrganizationUpdate {
-	_u.mutation.RemoveCampuseIDs(ids...)
+// RemoveCampusIDs removes the "campuses" edge to Campus entities by IDs.
+func (_u *OrganizationUpdate) RemoveCampusIDs(ids ...int) *OrganizationUpdate {
+	_u.mutation.RemoveCampusIDs(ids...)
 	return _u
 }
 
@@ -561,7 +561,7 @@ func (_u *OrganizationUpdate) RemoveCampuses(v ...*Campus) *OrganizationUpdate {
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveCampuseIDs(ids...)
+	return _u.RemoveCampusIDs(ids...)
 }
 
 // ClearCarriers clears all "carriers" edges to the Carrier entity.
@@ -1504,9 +1504,9 @@ func (_u *OrganizationUpdateOne) SetNillableStatus(v *string) *OrganizationUpdat
 	return _u
 }
 
-// AddCampuseIDs adds the "campuses" edge to the Campus entity by IDs.
-func (_u *OrganizationUpdateOne) AddCampuseIDs(ids ...int) *OrganizationUpdateOne {
-	_u.mutation.AddCampuseIDs(ids...)
+// AddCampusIDs adds the "campuses" edge to the Campus entity by IDs.
+func (_u *OrganizationUpdateOne) AddCampusIDs(ids ...int) *OrganizationUpdateOne {
+	_u.mutation.AddCampusIDs(ids...)
 	return _u
 }
 
@@ -1516,7 +1516,7 @@ func (_u *OrganizationUpdateOne) AddCampuses(v ...*Campus) *OrganizationUpdateOn
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddCampuseIDs(ids...)
+	return _u.AddCampusIDs(ids...)
 }
 
 // AddCarrierIDs adds the "carriers" edge to the Carrier entity by IDs.
@@ -1590,9 +1590,9 @@ func (_u *OrganizationUpdateOne) ClearCampuses() *OrganizationUpdateOne {
 	return _u
 }
 
-// RemoveCampuseIDs removes the "campuses" edge to Campus entities by IDs.
-func (_u *OrganizationUpdateOne) RemoveCampuseIDs(ids ...int) *OrganizationUpdateOne {
-	_u.mutation.RemoveCampuseIDs(ids...)
+// RemoveCampusIDs removes the "campuses" edge to Campus entities by IDs.
+func (_u *OrganizationUpdateOne) RemoveCampusIDs(ids ...int) *OrganizationUpdateOne {
+	_u.mutation.RemoveCampusIDs(ids...)
 	return _u
 }
 
@@ -1602,7 +1602,7 @@ func (_u *OrganizationUpdateOne) RemoveCampuses(v ...*Campus) *OrganizationUpdat
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveCampuseIDs(ids...)
+	return _u.RemoveCampusIDs(ids...)
 }
 
 // ClearCarriers clears all "carriers" edges to the Carrier entity.

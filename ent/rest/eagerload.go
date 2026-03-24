@@ -6,9 +6,9 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent"
 )
 
-// EagerLoadCampu eager-loads the edges of a Campu entity, if any edges
+// EagerLoadCampus eager-loads the edges of a Campus entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadCampu(query *ent.CampusQuery) *ent.CampusQuery {
+func EagerLoadCampus(query *ent.CampusQuery) *ent.CampusQuery {
 	return query.WithFacilities(
 		func(e *ent.FacilityQuery) {
 			applySortingFacility(e, "id", "asc")
@@ -137,7 +137,7 @@ func EagerLoadNetworkIxLan(query *ent.NetworkIxLanQuery) *ent.NetworkIxLanQuery 
 func EagerLoadOrganization(query *ent.OrganizationQuery) *ent.OrganizationQuery {
 	return query.WithCampuses(
 		func(e *ent.CampusQuery) {
-			applySortingCampu(e, "id", "asc")
+			applySortingCampus(e, "id", "asc")
 			e.Limit(1000)
 		},
 	).WithCarriers(

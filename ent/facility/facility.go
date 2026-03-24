@@ -105,7 +105,7 @@ const (
 	CampusTable = "facilities"
 	// CampusInverseTable is the table name for the Campus entity.
 	// It exists in this package in order to avoid circular dependency with the "campus" package.
-	CampusInverseTable = "campus"
+	CampusInverseTable = "campuses"
 	// CampusColumn is the table column denoting the campus relation/edge.
 	CampusColumn = "campus_id"
 	// CarrierFacilitiesTable is the table that holds the carrier_facilities relation/edge.

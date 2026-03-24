@@ -580,10 +580,10 @@ func UseEntContext(db *ent.Client) func(next http.Handler) http.Handler {
 // Handler returns a ready-to-use http.Handler that mounts all of the necessary endpoints.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /campus", ReqParam(s, OperationList, s.ListCampus))
-	mux.HandleFunc("GET /campus/{id}", ReqID(s, OperationRead, s.GetCampu))
-	mux.HandleFunc("GET /campus/{id}/facilities", ReqIDParam(s, OperationList, s.ListCampuFacilities))
-	mux.HandleFunc("GET /campus/{id}/organization", ReqID(s, OperationRead, s.GetCampuOrganization))
+	mux.HandleFunc("GET /campuses", ReqParam(s, OperationList, s.ListCampus))
+	mux.HandleFunc("GET /campuses/{id}", ReqID(s, OperationRead, s.GetCampus))
+	mux.HandleFunc("GET /campuses/{id}/facilities", ReqIDParam(s, OperationList, s.ListCampusFacilities))
+	mux.HandleFunc("GET /campuses/{id}/organization", ReqID(s, OperationRead, s.GetCampusOrganization))
 	mux.HandleFunc("GET /carriers", ReqParam(s, OperationList, s.ListCarriers))
 	mux.HandleFunc("GET /carriers/{id}", ReqID(s, OperationRead, s.GetCarrier))
 	mux.HandleFunc("GET /carriers/{id}/carrier-facilities", ReqIDParam(s, OperationList, s.ListCarrierCarrierFacilities))
@@ -594,7 +594,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /carrier-facilities/{id}/facility", ReqID(s, OperationRead, s.GetCarrierFacilityFacility))
 	mux.HandleFunc("GET /facilities", ReqParam(s, OperationList, s.ListFacilities))
 	mux.HandleFunc("GET /facilities/{id}", ReqID(s, OperationRead, s.GetFacility))
-	mux.HandleFunc("GET /facilities/{id}/campus", ReqID(s, OperationRead, s.GetFacilityCampu))
+	mux.HandleFunc("GET /facilities/{id}/campus", ReqID(s, OperationRead, s.GetFacilityCampus))
 	mux.HandleFunc("GET /facilities/{id}/carrier-facilities", ReqIDParam(s, OperationList, s.ListFacilityCarrierFacilities))
 	mux.HandleFunc("GET /facilities/{id}/ix-facilities", ReqIDParam(s, OperationList, s.ListFacilityIxFacilities))
 	mux.HandleFunc("GET /facilities/{id}/network-facilities", ReqIDParam(s, OperationList, s.ListFacilityNetworkFacilities))
@@ -665,24 +665,24 @@ func (s *Server) Handler() http.Handler {
 	return http.StripPrefix(s.config.BasePath, UseEntContext(s.db)(mux))
 }
 
-// ListCampus maps to "GET /campus".
-func (s *Server) ListCampus(r *http.Request, p *ListCampuParams) (*PagedResponse[ent.Campus], error) {
+// ListCampus maps to "GET /campuses".
+func (s *Server) ListCampus(r *http.Request, p *ListCampusParams) (*PagedResponse[ent.Campus], error) {
 	return p.Exec(r.Context(), s.db.Campus.Query())
 }
 
-// GetCampu maps to "GET /campus/{id}".
-func (s *Server) GetCampu(r *http.Request, campuID int) (*ent.Campus, error) {
-	return EagerLoadCampu(s.db.Campus.Query().Where(campus.ID(campuID))).Only(r.Context())
+// GetCampus maps to "GET /campuses/{id}".
+func (s *Server) GetCampus(r *http.Request, campusID int) (*ent.Campus, error) {
+	return EagerLoadCampus(s.db.Campus.Query().Where(campus.ID(campusID))).Only(r.Context())
 }
 
-// ListCampuFacilities maps to "GET /campus/{id}/facilities".
-func (s *Server) ListCampuFacilities(r *http.Request, campuID int, p *ListFacilityParams) (*PagedResponse[ent.Facility], error) {
-	return p.Exec(r.Context(), s.db.Campus.Query().Where(campus.ID(campuID)).QueryFacilities())
+// ListCampusFacilities maps to "GET /campuses/{id}/facilities".
+func (s *Server) ListCampusFacilities(r *http.Request, campusID int, p *ListFacilityParams) (*PagedResponse[ent.Facility], error) {
+	return p.Exec(r.Context(), s.db.Campus.Query().Where(campus.ID(campusID)).QueryFacilities())
 }
 
-// GetCampuOrganization maps to "GET /campus/{id}/organization".
-func (s *Server) GetCampuOrganization(r *http.Request, campuID int) (*ent.Organization, error) {
-	return EagerLoadOrganization(s.db.Campus.Query().Where(campus.ID(campuID)).QueryOrganization()).Only(r.Context())
+// GetCampusOrganization maps to "GET /campuses/{id}/organization".
+func (s *Server) GetCampusOrganization(r *http.Request, campusID int) (*ent.Organization, error) {
+	return EagerLoadOrganization(s.db.Campus.Query().Where(campus.ID(campusID)).QueryOrganization()).Only(r.Context())
 }
 
 // ListCarriers maps to "GET /carriers".
@@ -735,9 +735,9 @@ func (s *Server) GetFacility(r *http.Request, facilityID int) (*ent.Facility, er
 	return EagerLoadFacility(s.db.Facility.Query().Where(facility.ID(facilityID))).Only(r.Context())
 }
 
-// GetFacilityCampu maps to "GET /facilities/{id}/campus".
-func (s *Server) GetFacilityCampu(r *http.Request, facilityID int) (*ent.Campus, error) {
-	return EagerLoadCampu(s.db.Facility.Query().Where(facility.ID(facilityID)).QueryCampus()).Only(r.Context())
+// GetFacilityCampus maps to "GET /facilities/{id}/campus".
+func (s *Server) GetFacilityCampus(r *http.Request, facilityID int) (*ent.Campus, error) {
+	return EagerLoadCampus(s.db.Facility.Query().Where(facility.ID(facilityID)).QueryCampus()).Only(r.Context())
 }
 
 // ListFacilityCarrierFacilities maps to "GET /facilities/{id}/carrier-facilities".
@@ -926,7 +926,7 @@ func (s *Server) GetOrganization(r *http.Request, organizationID int) (*ent.Orga
 }
 
 // ListOrganizationCampuses maps to "GET /organizations/{id}/campuses".
-func (s *Server) ListOrganizationCampuses(r *http.Request, organizationID int, p *ListCampuParams) (*PagedResponse[ent.Campus], error) {
+func (s *Server) ListOrganizationCampuses(r *http.Request, organizationID int, p *ListCampusParams) (*PagedResponse[ent.Campus], error) {
 	return p.Exec(r.Context(), s.db.Organization.Query().Where(organization.ID(organizationID)).QueryCampuses())
 }
 

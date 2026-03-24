@@ -86,8 +86,8 @@ var (
 
 	// OrderDirections are the allowed order directions that can be provided.
 	OrderDirections = []orderDirection{orderAsc, orderDesc}
-	// CampuSortConfig defines the default sort configuration for Campu.
-	CampuSortConfig = &SortConfig{
+	// CampusSortConfig defines the default sort configuration for Campus.
+	CampusSortConfig = &SortConfig{
 		Fields: []string{
 			"facilities.count",
 			"id",
@@ -243,9 +243,9 @@ func isSpecializedSort(parts []string) (isCount, isSum bool) {
 	return isCount, isSum
 }
 
-// applySortingCampu applies sorting to the query based on the provided sort and
+// applySortingCampus applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingCampu(query *ent.CampusQuery, field string, order orderDirection) *ent.CampusQuery {
+func applySortingCampus(query *ent.CampusQuery, field string, order orderDirection) *ent.CampusQuery {
 	if parts := strings.Split(field, "."); len(parts) > 1 {
 		dir := withOrderTerm(order)
 
