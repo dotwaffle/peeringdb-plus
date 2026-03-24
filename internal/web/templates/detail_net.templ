@@ -1,0 +1,178 @@
+package templates
+
+import "fmt"
+
+// NetworkDetailPage renders the full network detail page with header, stats,
+// detail fields, and collapsible lazy-loaded sections for related records.
+templ NetworkDetailPage(data NetworkDetail) {
+	<div class="space-y-6">
+		@DetailHeader("net", "emerald", data.Name, fmt.Sprintf("AS%d", data.ASN))
+		<div class="flex flex-wrap gap-2 mb-4">
+			@StatBadge("IXPs", data.IXCount)
+			@StatBadge("Facilities", data.FacCount)
+			@StatBadge("Contacts", data.PocCount)
+		</div>
+		if data.OrgID > 0 {
+			<div class="py-1">
+				<span class="text-neutral-500 text-sm">Organization</span>
+				<div>
+					<a href={ templ.SafeURL(fmt.Sprintf("/ui/org/%d", data.OrgID)) }
+						class="text-emerald-400 hover:text-emerald-300 transition-colors">
+						{ data.OrgName }
+					</a>
+				</div>
+			</div>
+		}
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+			@DetailField("Long Name", data.NameLong)
+			@DetailField("Also Known As", data.AKA)
+			@DetailField("IRR AS-SET", data.IRRAsSet)
+			@DetailField("Type", data.InfoType)
+			@DetailField("Scope", data.InfoScope)
+			@DetailField("Traffic", data.InfoTraffic)
+			@DetailField("Ratio", data.InfoRatio)
+			@DetailField("Policy", data.PolicyGeneral)
+		</div>
+		<div class="flex flex-wrap gap-4 py-2">
+			@boolIndicator("Unicast", data.InfoUnicast)
+			@boolIndicator("Multicast", data.InfoMulticast)
+			@boolIndicator("IPv6", data.InfoIPv6)
+		</div>
+		if data.InfoPrefixes4 > 0 || data.InfoPrefixes6 > 0 {
+			<div class="flex gap-6 py-1">
+				if data.InfoPrefixes4 > 0 {
+					<div class="text-sm">
+						<span class="text-neutral-500">IPv4 Prefixes:</span>
+						<span class="text-neutral-100 font-mono ml-1">{ fmt.Sprintf("%d", data.InfoPrefixes4) }</span>
+					</div>
+				}
+				if data.InfoPrefixes6 > 0 {
+					<div class="text-sm">
+						<span class="text-neutral-500">IPv6 Prefixes:</span>
+						<span class="text-neutral-100 font-mono ml-1">{ fmt.Sprintf("%d", data.InfoPrefixes6) }</span>
+					</div>
+				}
+			</div>
+		}
+		@DetailLink("Website", data.Website)
+		@DetailLink("Looking Glass", data.LookingGlass)
+		@DetailLink("Route Server", data.RouteServer)
+		@DetailLink("Policy URL", data.PolicyURL)
+		@DetailField("Notes", data.Notes)
+		<div class="space-y-3 pt-4">
+			@CollapsibleSection("IX Presences", data.IXCount, fmt.Sprintf("/ui/fragment/net/%d/ixlans", data.ID))
+			@CollapsibleSection("Facility Presences", data.FacCount, fmt.Sprintf("/ui/fragment/net/%d/facilities", data.ID))
+			@CollapsibleSection("Contacts", data.PocCount, fmt.Sprintf("/ui/fragment/net/%d/contacts", data.ID))
+		</div>
+	</div>
+}
+
+// boolIndicator renders a boolean property with a check or dash icon.
+templ boolIndicator(label string, value bool) {
+	<span class="inline-flex items-center gap-1.5 text-sm">
+		if value {
+			<span class="text-emerald-400">&#10003;</span>
+		} else {
+			<span class="text-neutral-600">&mdash;</span>
+		}
+		<span class="text-neutral-400">{ label }</span>
+	</span>
+}
+
+// NetworkIXLansList renders the list of IX presences as clickable rows
+// linking to the respective IX detail page.
+templ NetworkIXLansList(rows []NetworkIXLanRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No IX presences found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", row.IXID)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<div class="flex flex-col min-w-0">
+						<span class="text-neutral-100 font-medium truncate">{ row.IXName }</span>
+						<div class="flex gap-4 text-sm text-neutral-400 font-mono">
+							if row.Speed > 0 {
+								<span>{ formatSpeed(row.Speed) }</span>
+							}
+							if row.IPAddr4 != "" {
+								<span>{ row.IPAddr4 }</span>
+							}
+							if row.IPAddr6 != "" {
+								<span>{ row.IPAddr6 }</span>
+							}
+						</div>
+					</div>
+					if row.IsRSPeer {
+						<span class="text-xs text-emerald-400/70 font-mono shrink-0 ml-3">RS</span>
+					}
+				</a>
+			}
+		</div>
+	}
+}
+
+// NetworkFacilitiesList renders the list of facility presences as clickable rows
+// linking to the respective facility detail page.
+templ NetworkFacilitiesList(rows []NetworkFacRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No facility presences found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<div class="flex flex-col min-w-0">
+						<span class="text-neutral-100 font-medium truncate">{ row.FacName }</span>
+						if row.City != "" || row.Country != "" {
+							<span class="text-sm text-neutral-400 font-mono">
+								{ formatFacLocation(row.City, row.Country) }
+							</span>
+						}
+					</div>
+				</a>
+			}
+		</div>
+	}
+}
+
+// NetworkContactsList renders the list of contacts grouped by role.
+templ NetworkContactsList(rows []ContactRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No contacts found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<div class="px-4 py-3">
+					<div class="flex items-center gap-2 mb-1">
+						<span class="text-neutral-100 font-medium">{ row.Name }</span>
+						if row.Role != "" {
+							<span class="text-xs text-neutral-500 bg-neutral-800 px-1.5 py-0.5 rounded font-mono">
+								{ row.Role }
+							</span>
+						}
+					</div>
+					<div class="flex flex-wrap gap-4 text-sm text-neutral-400">
+						if row.Email != "" {
+							<span>{ row.Email }</span>
+						}
+						if row.Phone != "" {
+							<span>{ row.Phone }</span>
+						}
+					</div>
+				</div>
+			}
+		</div>
+	}
+}
+
+// formatFacLocation formats city and country for facility display.
+func formatFacLocation(city, country string) string {
+	if city != "" && country != "" {
+		return city + ", " + country
+	}
+	if city != "" {
+		return city
+	}
+	return country
+}
