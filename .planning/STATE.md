@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Web UI
-status: Ready to execute
-stopped_at: Completed 13-01-PLAN.md
-last_updated: "2026-03-24T05:07:16.173Z"
+status: ready_for_verification
+stopped_at: Completed 13-02-PLAN.md
+last_updated: "2026-03-24T05:15:54Z"
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 2
-  completed_plans: 0
+  completed_plans: 2
 ---
 
 # Project State
@@ -53,6 +53,7 @@ Plan: 2 of 2
 | Phase 11 P01 | 4min | 1 tasks | 4 files |
 | Phase 11 P02 | 3min | 1 tasks | 1 files |
 | Phase 12 P01 | 4min | 2 tasks | 3 files |
+| Phase 13 P02 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,8 @@ Plan: 2 of 2
 All decisions archived in PROJECT.md Key Decisions table.
 
 - [Phase 13]: Single wildcard dispatch for /ui/ routes avoids Go 1.22+ route conflict
+- [Phase 13]: Content negotiation on GET / uses Accept header: text/html triggers redirect to /ui/, otherwise JSON discovery
+- [Phase 13]: Static assets bypass readiness middleware so syncing page CSS/JS loads correctly
 
 ### Pending Todos
 
@@ -74,6 +77,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T05:07:16.169Z
-Stopped at: Completed 13-01-PLAN.md
+Last session: 2026-03-24T05:15:54Z
+Stopped at: Completed 13-02-PLAN.md
 Resume file: None
