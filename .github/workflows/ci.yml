@@ -62,16 +62,8 @@ jobs:
       - name: Run tests with race detector
         run: CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...
 
-      - name: Generate coverage report
-        run: go tool cover -func=coverage.out > coverage.txt
-
       - name: Post coverage comment
-        if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GITHUB_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: .github/scripts/coverage-comment.sh
+        uses: k1LoW/octocov-action@v1
 
   build:
     name: Build
