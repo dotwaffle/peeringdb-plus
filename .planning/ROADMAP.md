@@ -118,7 +118,12 @@ Plans:
   2. pdbcompat-check CLI and live integration test work correctly with a real PeeringDB API key, and invalid keys produce WARN log without crash
   3. Web UI foundation, live search, detail pages, and ASN comparison all function correctly in a browser against the live deployment
   4. Dark mode toggle, keyboard navigation, CSS animations, loading indicators, error pages, and About page freshness display all work as designed
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 20-01-PLAN.md -- CI pipeline verification (VFY-01, VFY-02) and API key auth verification (VFY-03, VFY-04)
+- [ ] 20-02-PLAN.md -- Web UI foundation, search, and detail page verification (VFY-05, VFY-06, VFY-07)
+- [ ] 20-03-PLAN.md -- ASN comparison and polish verification (VFY-08, VFY-09), final report
 
 ## Progress
 
@@ -146,4 +151,4 @@ Phases execute in numeric order: 18 → 19 → 20
 | 17. Polish & Accessibility | v1.4 | 3/3 | Complete | 2026-03-24 |
 | 18. Tech Debt & Data Integrity | v1.5 | 0/2 | Complete    | 2026-03-24 |
 | 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 0/4 | Complete    | 2026-03-24 |
-| 20. Deferred Human Verification | v1.5 | 0/? | Not started | - |
+| 20. Deferred Human Verification | v1.5 | 0/3 | Not started | - |
