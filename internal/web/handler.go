@@ -37,11 +37,25 @@ func (h *Handler) Register(mux *http.ServeMux) {
 
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	rest := r.PathValue("rest")
-	switch rest {
-	case "", "/":
+	switch {
+	case rest == "" || rest == "/":
 		h.handleHome(w, r)
-	case "search":
+	case rest == "search":
 		h.handleSearch(w, r)
+	case strings.HasPrefix(rest, "asn/"):
+		h.handleNetworkDetail(w, r, strings.TrimPrefix(rest, "asn/"))
+	case strings.HasPrefix(rest, "ix/"):
+		h.handleIXDetail(w, r, strings.TrimPrefix(rest, "ix/"))
+	case strings.HasPrefix(rest, "fac/"):
+		h.handleFacilityDetail(w, r, strings.TrimPrefix(rest, "fac/"))
+	case strings.HasPrefix(rest, "org/"):
+		h.handleOrgDetail(w, r, strings.TrimPrefix(rest, "org/"))
+	case strings.HasPrefix(rest, "campus/"):
+		h.handleCampusDetail(w, r, strings.TrimPrefix(rest, "campus/"))
+	case strings.HasPrefix(rest, "carrier/"):
+		h.handleCarrierDetail(w, r, strings.TrimPrefix(rest, "carrier/"))
+	case strings.HasPrefix(rest, "fragment/"):
+		h.handleFragment(w, r, strings.TrimPrefix(rest, "fragment/"))
 	default:
 		h.handleNotFound(w, r)
 	}
