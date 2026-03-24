@@ -112,6 +112,15 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		// Non-fatal: continue with sync.
 	}
 
+	// Disable FK constraints for bulk sync. PeeringDB data contains dangling
+	// references (e.g., facilities referencing deleted campuses) and the
+	// delete-stale step can remove referenced rows before dependents update.
+	if _, err := w.db.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
+		w.recordFailure(ctx, statusID, start, fmt.Errorf("disable FK checks: %w", err))
+		return fmt.Errorf("disable FK checks: %w", err)
+	}
+	defer w.db.ExecContext(ctx, "PRAGMA foreign_keys = ON") //nolint:errcheck // best-effort re-enable
+
 	// Begin transaction per D-19.
 	tx, err := w.entClient.Tx(ctx)
 	if err != nil {
