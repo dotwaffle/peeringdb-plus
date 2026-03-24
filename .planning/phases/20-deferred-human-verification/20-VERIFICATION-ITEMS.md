@@ -49,27 +49,27 @@
 | # | Item | Status | Observation |
 |---|------|--------|-------------|
 | 12 | Content negotiation: browser gets redirect to /ui/ | PASS | `Accept: text/html` → 302 to /ui/; default → 200 JSON API discovery |
-| 13 | Responsive layout at 375px mobile | PENDING | Requires browser DevTools |
-| 14 | Responsive layout at 768px tablet | PENDING | Requires browser DevTools |
-| 15 | Responsive layout at 1024px+ desktop | PENDING | Requires browser DevTools |
+| 13 | Responsive layout at 375px mobile | PASS | Layout adapts, no horizontal scroll |
+| 14 | Responsive layout at 768px tablet | PASS | Layout adapts correctly |
+| 15 | Responsive layout at 1024px+ desktop | PASS | Full desktop layout renders correctly |
 | 16 | Syncing page animation | BLOCKED | Requires fresh deployment with empty DB. Code review confirms correct: readiness middleware (main.go) + syncing.templ pulse animation exist |
 
 ## VFY-06: Search (v1.4)
 
 | # | Item | Status | Observation |
 |---|------|--------|-------------|
-| 17 | Live search speed (<200ms feel) | PENDING | Plan 02 |
-| 18 | Type badges display correctly | PENDING | Plan 02 |
-| 19 | ASN redirect (e.g., /ui/search?q=AS15169) | PENDING | Plan 02 |
+| 17 | Live search speed (<200ms feel) | PASS | Search results appear instantly |
+| 18 | Type badges display correctly | PASS | Colored type badges visible on results |
+| 19 | ASN redirect (e.g., /ui/search?q=AS15169) | PASS | ASN input redirects to detail page |
 
 ## VFY-07: Detail Pages (v1.4)
 
 | # | Item | Status | Observation |
 |---|------|--------|-------------|
-| 20 | Collapsible sections work | PENDING | Plan 02 |
-| 21 | Lazy loading for section content | PENDING | Plan 02 |
-| 22 | Stats display correctly | PENDING | Plan 02 |
-| 23 | Cross-links between related records | PENDING | Plan 02 |
+| 20 | Collapsible sections work | PASS | Sections expand/collapse correctly |
+| 21 | Lazy loading for section content | PASS | Content loads on first expand |
+| 22 | Stats display correctly | PASS | Stats visible in header |
+| 23 | Cross-links between related records | PASS | Links navigate between record types |
 
 ## VFY-08: ASN Comparison (v1.4)
 
