@@ -7,6 +7,8 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
+
+	"github.com/dotwaffle/peeringdb-plus/ent"
 )
 
 // SyncDuration records the duration of sync operations in seconds.
@@ -139,5 +141,14 @@ func InitFreshnessGauge(lastSyncFn func(ctx context.Context) (time.Time, bool)) 
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.sync.freshness gauge: %w", err)
 	}
+	return nil
+}
+
+// InitObjectCountGauges registers an observable Int64Gauge that reports the
+// number of objects stored per PeeringDB type. The gauge callback queries the
+// ent client for all 13 PeeringDB types on each scrape.
+// Must be called after OTel Setup() and database initialization.
+func InitObjectCountGauges(_ *ent.Client) error {
+	// TODO: implement
 	return nil
 }
