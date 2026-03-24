@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Web UI
-status: Ready to execute
-stopped_at: Completed 17-02-PLAN.md
-last_updated: "2026-03-24T08:05:35.843Z"
+status: Milestone complete
+stopped_at: Completed 17-03-PLAN.md
+last_updated: "2026-03-24T08:20:56.375Z"
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 11
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 17 (polish-accessibility) — EXECUTING
-Plan: 3 of 3
+Phase: 17
+Plan: Not started
 
 ## Performance Metrics
 
@@ -81,6 +81,8 @@ All decisions archived in PROJECT.md Key Decisions table.
 - [Phase 17]: Class-based dark mode via @custom-variant for manual toggle support
 - [Phase 17]: handleServerError replaces all http.Error calls for consistent styled 500 pages
 - [Phase 17]: Handler struct extended with *sql.DB for About page sync status queries
+- [Phase 17]: ARIA listbox/option pattern for search results accessibility
+- [Phase 17]: IIFE script in layout for keyboard navigation without global scope pollution
 
 ### Pending Todos
 
@@ -94,6 +96,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T08:05:35.839Z
-Stopped at: Completed 17-02-PLAN.md
+Last session: 2026-03-24T08:14:26.956Z
+Stopped at: Completed 17-03-PLAN.md
 Resume file: None

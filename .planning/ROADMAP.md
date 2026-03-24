@@ -62,7 +62,7 @@ See: `.planning/milestones/v1.3-ROADMAP.md` for full details.
 - [x] **Phase 14: Live Search** — Homepage search with instant results grouped by type (completed 2026-03-24)
 - [x] **Phase 15: Record Detail Pages** — Full detail views for all 6 entity types with lazy-loaded related records (completed 2026-03-24)
 - [x] **Phase 16: ASN Comparison** — Compare two networks showing shared IXPs, facilities, and campuses (completed 2026-03-24)
-- [ ] **Phase 17: Polish & Accessibility** — Dark mode, transitions, keyboard navigation, error pages
+- [x] **Phase 17: Polish & Accessibility** — Dark mode, transitions, keyboard navigation, error pages (completed 2026-03-24)
 
 ## Phase Details
 
@@ -168,4 +168,4 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17
 | 14. Live Search | v1.4 | 2/2 | Complete    | 2026-03-24 |
 | 15. Record Detail Pages | v1.4 | 2/2 | Complete    | 2026-03-24 |
 | 16. ASN Comparison | v1.4 | 2/2 | Complete    | 2026-03-24 |
-| 17. Polish & Accessibility | v1.4 | 2/3 | In Progress|  |
+| 17. Polish & Accessibility | v1.4 | 2/3 | Complete    | 2026-03-24 |
