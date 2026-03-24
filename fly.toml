@@ -56,12 +56,6 @@ kill_timeout = 30
     timeout = "5s"
     path = "/healthz"
 
-# Prometheus metrics endpoint for Fly.io managed Grafana scraping.
-# The OTel autoexport prometheus reader serves /metrics on port 9091.
-[metrics]
-  port = 9091
-  path = "/metrics"
-
 # Machine size
 [[vm]]
   size = "shared-cpu-2x"
