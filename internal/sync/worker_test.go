@@ -8,8 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
-	gosync "sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -25,21 +25,21 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
-// metricsOnce ensures the OTel metric instruments are initialized exactly once
-// across all parallel tests that need them.
-var metricsOnce gosync.Once
+// TestMain initializes OTel metrics once before any tests run, preventing
+// race conditions on global metric variables between parallel tests.
+func TestMain(m *testing.M) {
+	mp := sdkmetric.NewMeterProvider()
+	otel.SetMeterProvider(mp)
+	if err := pdbotel.InitMetrics(); err != nil {
+		panic(fmt.Sprintf("InitMetrics: %v", err))
+	}
+	os.Exit(m.Run())
+}
 
-// ensureMetrics initializes OTel metrics if not already done. Use this in tests
-// that call Sync but don't need to assert on specific metric values.
+// ensureMetrics is a no-op kept for backward compatibility with tests that
+// call it. Metrics are now initialized in TestMain before any tests run.
 func ensureMetrics(t *testing.T) {
 	t.Helper()
-	metricsOnce.Do(func() {
-		mp := sdkmetric.NewMeterProvider()
-		otel.SetMeterProvider(mp)
-		if err := pdbotel.InitMetrics(); err != nil {
-			t.Fatalf("InitMetrics: %v", err)
-		}
-	})
 }
 
 // fixture builds a minimal mock PeeringDB API server with configurable responses.
