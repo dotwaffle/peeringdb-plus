@@ -15,49 +15,42 @@ const (
 	FieldID = "id"
 	// FieldOrgID holds the string denoting the org_id field in the database.
 	FieldOrgID = "org_id"
-	// FieldOrgName holds the string denoting the org_name field in the database.
-	FieldOrgName = "org_name"
+	// FieldAka holds the string denoting the aka field in the database.
+	FieldAka = "aka"
+	// FieldCity holds the string denoting the city field in the database.
+	FieldCity = "city"
+	// FieldCountry holds the string denoting the country field in the database.
+	FieldCountry = "country"
+	// FieldLogo holds the string denoting the logo field in the database.
+	FieldLogo = "logo"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldNameLong holds the string denoting the name_long field in the database.
 	FieldNameLong = "name_long"
-	// FieldAka holds the string denoting the aka field in the database.
-	FieldAka = "aka"
-	// FieldWebsite holds the string denoting the website field in the database.
-	FieldWebsite = "website"
-	// FieldSocialMedia holds the string denoting the social_media field in the database.
-	FieldSocialMedia = "social_media"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
-	// FieldCountry holds the string denoting the country field in the database.
-	FieldCountry = "country"
-	// FieldCity holds the string denoting the city field in the database.
-	FieldCity = "city"
-	// FieldZipcode holds the string denoting the zipcode field in the database.
-	FieldZipcode = "zipcode"
+	// FieldSocialMedia holds the string denoting the social_media field in the database.
+	FieldSocialMedia = "social_media"
 	// FieldState holds the string denoting the state field in the database.
 	FieldState = "state"
-	// FieldLogo holds the string denoting the logo field in the database.
-	FieldLogo = "logo"
+	// FieldWebsite holds the string denoting the website field in the database.
+	FieldWebsite = "website"
+	// FieldZipcode holds the string denoting the zipcode field in the database.
+	FieldZipcode = "zipcode"
+	// FieldOrgName holds the string denoting the org_name field in the database.
+	FieldOrgName = "org_name"
 	// FieldCreated holds the string denoting the created field in the database.
 	FieldCreated = "created"
 	// FieldUpdated holds the string denoting the updated field in the database.
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// EdgeOrganization holds the string denoting the organization edge name in mutations.
-	EdgeOrganization = "organization"
 	// EdgeFacilities holds the string denoting the facilities edge name in mutations.
 	EdgeFacilities = "facilities"
+	// EdgeOrganization holds the string denoting the organization edge name in mutations.
+	EdgeOrganization = "organization"
 	// Table holds the table name of the campus in the database.
 	Table = "campus"
-	// OrganizationTable is the table that holds the organization relation/edge.
-	OrganizationTable = "campus"
-	// OrganizationInverseTable is the table name for the Organization entity.
-	// It exists in this package in order to avoid circular dependency with the "organization" package.
-	OrganizationInverseTable = "organizations"
-	// OrganizationColumn is the table column denoting the organization relation/edge.
-	OrganizationColumn = "org_id"
 	// FacilitiesTable is the table that holds the facilities relation/edge.
 	FacilitiesTable = "facilities"
 	// FacilitiesInverseTable is the table name for the Facility entity.
@@ -65,24 +58,31 @@ const (
 	FacilitiesInverseTable = "facilities"
 	// FacilitiesColumn is the table column denoting the facilities relation/edge.
 	FacilitiesColumn = "campus_id"
+	// OrganizationTable is the table that holds the organization relation/edge.
+	OrganizationTable = "campus"
+	// OrganizationInverseTable is the table name for the Organization entity.
+	// It exists in this package in order to avoid circular dependency with the "organization" package.
+	OrganizationInverseTable = "organizations"
+	// OrganizationColumn is the table column denoting the organization relation/edge.
+	OrganizationColumn = "org_id"
 )
 
 // Columns holds all SQL columns for campus fields.
 var Columns = []string{
 	FieldID,
 	FieldOrgID,
-	FieldOrgName,
+	FieldAka,
+	FieldCity,
+	FieldCountry,
+	FieldLogo,
 	FieldName,
 	FieldNameLong,
-	FieldAka,
-	FieldWebsite,
-	FieldSocialMedia,
 	FieldNotes,
-	FieldCountry,
-	FieldCity,
-	FieldZipcode,
+	FieldSocialMedia,
 	FieldState,
-	FieldLogo,
+	FieldWebsite,
+	FieldZipcode,
+	FieldOrgName,
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
@@ -105,24 +105,26 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
+	// AkaValidator is a validator for the "aka" field. It is called by the builders before save.
+	AkaValidator func(string) error
+	// DefaultCity holds the default value on creation for the "city" field.
+	DefaultCity string
+	// DefaultCountry holds the default value on creation for the "country" field.
+	DefaultCountry string
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
 	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
 	NameLongValidator func(string) error
-	// AkaValidator is a validator for the "aka" field. It is called by the builders before save.
-	AkaValidator func(string) error
-	// DefaultWebsite holds the default value on creation for the "website" field.
-	DefaultWebsite string
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
-	// DefaultCountry holds the default value on creation for the "country" field.
-	DefaultCountry string
-	// DefaultCity holds the default value on creation for the "city" field.
-	DefaultCity string
-	// DefaultZipcode holds the default value on creation for the "zipcode" field.
-	DefaultZipcode string
 	// DefaultState holds the default value on creation for the "state" field.
 	DefaultState string
+	// DefaultWebsite holds the default value on creation for the "website" field.
+	DefaultWebsite string
+	// DefaultZipcode holds the default value on creation for the "zipcode" field.
+	DefaultZipcode string
+	// DefaultOrgName holds the default value on creation for the "org_name" field.
+	DefaultOrgName string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
@@ -144,9 +146,24 @@ func ByOrgID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOrgID, opts...).ToFunc()
 }
 
-// ByOrgName orders the results by the org_name field.
-func ByOrgName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOrgName, opts...).ToFunc()
+// ByAka orders the results by the aka field.
+func ByAka(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAka, opts...).ToFunc()
+}
+
+// ByCity orders the results by the city field.
+func ByCity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCity, opts...).ToFunc()
+}
+
+// ByCountry orders the results by the country field.
+func ByCountry(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCountry, opts...).ToFunc()
+}
+
+// ByLogo orders the results by the logo field.
+func ByLogo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLogo, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.
@@ -159,34 +176,9 @@ func ByNameLong(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNameLong, opts...).ToFunc()
 }
 
-// ByAka orders the results by the aka field.
-func ByAka(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAka, opts...).ToFunc()
-}
-
-// ByWebsite orders the results by the website field.
-func ByWebsite(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldWebsite, opts...).ToFunc()
-}
-
 // ByNotes orders the results by the notes field.
 func ByNotes(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotes, opts...).ToFunc()
-}
-
-// ByCountry orders the results by the country field.
-func ByCountry(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCountry, opts...).ToFunc()
-}
-
-// ByCity orders the results by the city field.
-func ByCity(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCity, opts...).ToFunc()
-}
-
-// ByZipcode orders the results by the zipcode field.
-func ByZipcode(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldZipcode, opts...).ToFunc()
 }
 
 // ByState orders the results by the state field.
@@ -194,9 +186,19 @@ func ByState(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldState, opts...).ToFunc()
 }
 
-// ByLogo orders the results by the logo field.
-func ByLogo(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLogo, opts...).ToFunc()
+// ByWebsite orders the results by the website field.
+func ByWebsite(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWebsite, opts...).ToFunc()
+}
+
+// ByZipcode orders the results by the zipcode field.
+func ByZipcode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldZipcode, opts...).ToFunc()
+}
+
+// ByOrgName orders the results by the org_name field.
+func ByOrgName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOrgName, opts...).ToFunc()
 }
 
 // ByCreated orders the results by the created field.
@@ -214,13 +216,6 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
-// ByOrganizationField orders the results by organization field.
-func ByOrganizationField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByFacilitiesCount orders the results by facilities count.
 func ByFacilitiesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -234,17 +229,24 @@ func ByFacilities(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newFacilitiesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newOrganizationStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(OrganizationInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
-	)
+
+// ByOrganizationField orders the results by organization field.
+func ByOrganizationField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), sql.OrderByField(field, opts...))
+	}
 }
 func newFacilitiesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FacilitiesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, FacilitiesTable, FacilitiesColumn),
+	)
+}
+func newOrganizationStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrganizationInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
 	)
 }

@@ -15,43 +15,36 @@ const (
 	FieldID = "id"
 	// FieldOrgID holds the string denoting the org_id field in the database.
 	FieldOrgID = "org_id"
-	// FieldOrgName holds the string denoting the org_name field in the database.
-	FieldOrgName = "org_name"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
 	// FieldAka holds the string denoting the aka field in the database.
 	FieldAka = "aka"
-	// FieldNameLong holds the string denoting the name_long field in the database.
-	FieldNameLong = "name_long"
-	// FieldWebsite holds the string denoting the website field in the database.
-	FieldWebsite = "website"
-	// FieldSocialMedia holds the string denoting the social_media field in the database.
-	FieldSocialMedia = "social_media"
-	// FieldNotes holds the string denoting the notes field in the database.
-	FieldNotes = "notes"
-	// FieldFacCount holds the string denoting the fac_count field in the database.
-	FieldFacCount = "fac_count"
 	// FieldLogo holds the string denoting the logo field in the database.
 	FieldLogo = "logo"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldNameLong holds the string denoting the name_long field in the database.
+	FieldNameLong = "name_long"
+	// FieldNotes holds the string denoting the notes field in the database.
+	FieldNotes = "notes"
+	// FieldSocialMedia holds the string denoting the social_media field in the database.
+	FieldSocialMedia = "social_media"
+	// FieldWebsite holds the string denoting the website field in the database.
+	FieldWebsite = "website"
+	// FieldOrgName holds the string denoting the org_name field in the database.
+	FieldOrgName = "org_name"
+	// FieldFacCount holds the string denoting the fac_count field in the database.
+	FieldFacCount = "fac_count"
 	// FieldCreated holds the string denoting the created field in the database.
 	FieldCreated = "created"
 	// FieldUpdated holds the string denoting the updated field in the database.
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// EdgeOrganization holds the string denoting the organization edge name in mutations.
-	EdgeOrganization = "organization"
 	// EdgeCarrierFacilities holds the string denoting the carrier_facilities edge name in mutations.
 	EdgeCarrierFacilities = "carrier_facilities"
+	// EdgeOrganization holds the string denoting the organization edge name in mutations.
+	EdgeOrganization = "organization"
 	// Table holds the table name of the carrier in the database.
 	Table = "carriers"
-	// OrganizationTable is the table that holds the organization relation/edge.
-	OrganizationTable = "carriers"
-	// OrganizationInverseTable is the table name for the Organization entity.
-	// It exists in this package in order to avoid circular dependency with the "organization" package.
-	OrganizationInverseTable = "organizations"
-	// OrganizationColumn is the table column denoting the organization relation/edge.
-	OrganizationColumn = "org_id"
 	// CarrierFacilitiesTable is the table that holds the carrier_facilities relation/edge.
 	CarrierFacilitiesTable = "carrier_facilities"
 	// CarrierFacilitiesInverseTable is the table name for the CarrierFacility entity.
@@ -59,21 +52,28 @@ const (
 	CarrierFacilitiesInverseTable = "carrier_facilities"
 	// CarrierFacilitiesColumn is the table column denoting the carrier_facilities relation/edge.
 	CarrierFacilitiesColumn = "carrier_id"
+	// OrganizationTable is the table that holds the organization relation/edge.
+	OrganizationTable = "carriers"
+	// OrganizationInverseTable is the table name for the Organization entity.
+	// It exists in this package in order to avoid circular dependency with the "organization" package.
+	OrganizationInverseTable = "organizations"
+	// OrganizationColumn is the table column denoting the organization relation/edge.
+	OrganizationColumn = "org_id"
 )
 
 // Columns holds all SQL columns for carrier fields.
 var Columns = []string{
 	FieldID,
 	FieldOrgID,
-	FieldOrgName,
-	FieldName,
 	FieldAka,
-	FieldNameLong,
-	FieldWebsite,
-	FieldSocialMedia,
-	FieldNotes,
-	FieldFacCount,
 	FieldLogo,
+	FieldName,
+	FieldNameLong,
+	FieldNotes,
+	FieldSocialMedia,
+	FieldWebsite,
+	FieldOrgName,
+	FieldFacCount,
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
@@ -96,22 +96,22 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
-	// DefaultOrgName holds the default value on creation for the "org_name" field.
-	DefaultOrgName string
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
 	// DefaultAka holds the default value on creation for the "aka" field.
 	DefaultAka string
 	// AkaValidator is a validator for the "aka" field. It is called by the builders before save.
 	AkaValidator func(string) error
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator func(string) error
 	// DefaultNameLong holds the default value on creation for the "name_long" field.
 	DefaultNameLong string
 	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
 	NameLongValidator func(string) error
-	// DefaultWebsite holds the default value on creation for the "website" field.
-	DefaultWebsite string
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
+	// DefaultWebsite holds the default value on creation for the "website" field.
+	DefaultWebsite string
+	// DefaultOrgName holds the default value on creation for the "org_name" field.
+	DefaultOrgName string
 	// DefaultFacCount holds the default value on creation for the "fac_count" field.
 	DefaultFacCount int
 	// DefaultStatus holds the default value on creation for the "status" field.
@@ -135,9 +135,14 @@ func ByOrgID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOrgID, opts...).ToFunc()
 }
 
-// ByOrgName orders the results by the org_name field.
-func ByOrgName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOrgName, opts...).ToFunc()
+// ByAka orders the results by the aka field.
+func ByAka(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAka, opts...).ToFunc()
+}
+
+// ByLogo orders the results by the logo field.
+func ByLogo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLogo, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.
@@ -145,19 +150,9 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
-// ByAka orders the results by the aka field.
-func ByAka(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAka, opts...).ToFunc()
-}
-
 // ByNameLong orders the results by the name_long field.
 func ByNameLong(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNameLong, opts...).ToFunc()
-}
-
-// ByWebsite orders the results by the website field.
-func ByWebsite(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldWebsite, opts...).ToFunc()
 }
 
 // ByNotes orders the results by the notes field.
@@ -165,14 +160,19 @@ func ByNotes(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotes, opts...).ToFunc()
 }
 
+// ByWebsite orders the results by the website field.
+func ByWebsite(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWebsite, opts...).ToFunc()
+}
+
+// ByOrgName orders the results by the org_name field.
+func ByOrgName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOrgName, opts...).ToFunc()
+}
+
 // ByFacCount orders the results by the fac_count field.
 func ByFacCount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFacCount, opts...).ToFunc()
-}
-
-// ByLogo orders the results by the logo field.
-func ByLogo(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLogo, opts...).ToFunc()
 }
 
 // ByCreated orders the results by the created field.
@@ -190,13 +190,6 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
-// ByOrganizationField orders the results by organization field.
-func ByOrganizationField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByCarrierFacilitiesCount orders the results by carrier_facilities count.
 func ByCarrierFacilitiesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -210,17 +203,24 @@ func ByCarrierFacilities(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption
 		sqlgraph.OrderByNeighborTerms(s, newCarrierFacilitiesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newOrganizationStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(OrganizationInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
-	)
+
+// ByOrganizationField orders the results by organization field.
+func ByOrganizationField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), sql.OrderByField(field, opts...))
+	}
 }
 func newCarrierFacilitiesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CarrierFacilitiesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, CarrierFacilitiesTable, CarrierFacilitiesColumn),
+	)
+}
+func newOrganizationStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrganizationInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
 	)
 }

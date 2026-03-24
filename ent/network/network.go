@@ -15,68 +15,68 @@ const (
 	FieldID = "id"
 	// FieldOrgID holds the string denoting the org_id field in the database.
 	FieldOrgID = "org_id"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
 	// FieldAka holds the string denoting the aka field in the database.
 	FieldAka = "aka"
-	// FieldNameLong holds the string denoting the name_long field in the database.
-	FieldNameLong = "name_long"
-	// FieldWebsite holds the string denoting the website field in the database.
-	FieldWebsite = "website"
-	// FieldSocialMedia holds the string denoting the social_media field in the database.
-	FieldSocialMedia = "social_media"
+	// FieldAllowIxpUpdate holds the string denoting the allow_ixp_update field in the database.
+	FieldAllowIxpUpdate = "allow_ixp_update"
 	// FieldAsn holds the string denoting the asn field in the database.
 	FieldAsn = "asn"
-	// FieldLookingGlass holds the string denoting the looking_glass field in the database.
-	FieldLookingGlass = "looking_glass"
-	// FieldRouteServer holds the string denoting the route_server field in the database.
-	FieldRouteServer = "route_server"
-	// FieldIrrAsSet holds the string denoting the irr_as_set field in the database.
-	FieldIrrAsSet = "irr_as_set"
-	// FieldInfoType holds the string denoting the info_type field in the database.
-	FieldInfoType = "info_type"
-	// FieldInfoTypes holds the string denoting the info_types field in the database.
-	FieldInfoTypes = "info_types"
+	// FieldInfoIpv6 holds the string denoting the info_ipv6 field in the database.
+	FieldInfoIpv6 = "info_ipv6"
+	// FieldInfoMulticast holds the string denoting the info_multicast field in the database.
+	FieldInfoMulticast = "info_multicast"
+	// FieldInfoNeverViaRouteServers holds the string denoting the info_never_via_route_servers field in the database.
+	FieldInfoNeverViaRouteServers = "info_never_via_route_servers"
 	// FieldInfoPrefixes4 holds the string denoting the info_prefixes4 field in the database.
 	FieldInfoPrefixes4 = "info_prefixes4"
 	// FieldInfoPrefixes6 holds the string denoting the info_prefixes6 field in the database.
 	FieldInfoPrefixes6 = "info_prefixes6"
-	// FieldInfoTraffic holds the string denoting the info_traffic field in the database.
-	FieldInfoTraffic = "info_traffic"
 	// FieldInfoRatio holds the string denoting the info_ratio field in the database.
 	FieldInfoRatio = "info_ratio"
 	// FieldInfoScope holds the string denoting the info_scope field in the database.
 	FieldInfoScope = "info_scope"
+	// FieldInfoTraffic holds the string denoting the info_traffic field in the database.
+	FieldInfoTraffic = "info_traffic"
+	// FieldInfoType holds the string denoting the info_type field in the database.
+	FieldInfoType = "info_type"
+	// FieldInfoTypes holds the string denoting the info_types field in the database.
+	FieldInfoTypes = "info_types"
 	// FieldInfoUnicast holds the string denoting the info_unicast field in the database.
 	FieldInfoUnicast = "info_unicast"
-	// FieldInfoMulticast holds the string denoting the info_multicast field in the database.
-	FieldInfoMulticast = "info_multicast"
-	// FieldInfoIpv6 holds the string denoting the info_ipv6 field in the database.
-	FieldInfoIpv6 = "info_ipv6"
-	// FieldInfoNeverViaRouteServers holds the string denoting the info_never_via_route_servers field in the database.
-	FieldInfoNeverViaRouteServers = "info_never_via_route_servers"
+	// FieldIrrAsSet holds the string denoting the irr_as_set field in the database.
+	FieldIrrAsSet = "irr_as_set"
+	// FieldLogo holds the string denoting the logo field in the database.
+	FieldLogo = "logo"
+	// FieldLookingGlass holds the string denoting the looking_glass field in the database.
+	FieldLookingGlass = "looking_glass"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldNameLong holds the string denoting the name_long field in the database.
+	FieldNameLong = "name_long"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
-	// FieldPolicyURL holds the string denoting the policy_url field in the database.
-	FieldPolicyURL = "policy_url"
+	// FieldPolicyContracts holds the string denoting the policy_contracts field in the database.
+	FieldPolicyContracts = "policy_contracts"
 	// FieldPolicyGeneral holds the string denoting the policy_general field in the database.
 	FieldPolicyGeneral = "policy_general"
 	// FieldPolicyLocations holds the string denoting the policy_locations field in the database.
 	FieldPolicyLocations = "policy_locations"
 	// FieldPolicyRatio holds the string denoting the policy_ratio field in the database.
 	FieldPolicyRatio = "policy_ratio"
-	// FieldPolicyContracts holds the string denoting the policy_contracts field in the database.
-	FieldPolicyContracts = "policy_contracts"
-	// FieldAllowIxpUpdate holds the string denoting the allow_ixp_update field in the database.
-	FieldAllowIxpUpdate = "allow_ixp_update"
-	// FieldStatusDashboard holds the string denoting the status_dashboard field in the database.
-	FieldStatusDashboard = "status_dashboard"
+	// FieldPolicyURL holds the string denoting the policy_url field in the database.
+	FieldPolicyURL = "policy_url"
 	// FieldRirStatus holds the string denoting the rir_status field in the database.
 	FieldRirStatus = "rir_status"
 	// FieldRirStatusUpdated holds the string denoting the rir_status_updated field in the database.
 	FieldRirStatusUpdated = "rir_status_updated"
-	// FieldLogo holds the string denoting the logo field in the database.
-	FieldLogo = "logo"
+	// FieldRouteServer holds the string denoting the route_server field in the database.
+	FieldRouteServer = "route_server"
+	// FieldSocialMedia holds the string denoting the social_media field in the database.
+	FieldSocialMedia = "social_media"
+	// FieldStatusDashboard holds the string denoting the status_dashboard field in the database.
+	FieldStatusDashboard = "status_dashboard"
+	// FieldWebsite holds the string denoting the website field in the database.
+	FieldWebsite = "website"
 	// FieldIxCount holds the string denoting the ix_count field in the database.
 	FieldIxCount = "ix_count"
 	// FieldFacCount holds the string denoting the fac_count field in the database.
@@ -93,30 +93,16 @@ const (
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// EdgeOrganization holds the string denoting the organization edge name in mutations.
-	EdgeOrganization = "organization"
-	// EdgePocs holds the string denoting the pocs edge name in mutations.
-	EdgePocs = "pocs"
 	// EdgeNetworkFacilities holds the string denoting the network_facilities edge name in mutations.
 	EdgeNetworkFacilities = "network_facilities"
 	// EdgeNetworkIxLans holds the string denoting the network_ix_lans edge name in mutations.
 	EdgeNetworkIxLans = "network_ix_lans"
+	// EdgeOrganization holds the string denoting the organization edge name in mutations.
+	EdgeOrganization = "organization"
+	// EdgePocs holds the string denoting the pocs edge name in mutations.
+	EdgePocs = "pocs"
 	// Table holds the table name of the network in the database.
 	Table = "networks"
-	// OrganizationTable is the table that holds the organization relation/edge.
-	OrganizationTable = "networks"
-	// OrganizationInverseTable is the table name for the Organization entity.
-	// It exists in this package in order to avoid circular dependency with the "organization" package.
-	OrganizationInverseTable = "organizations"
-	// OrganizationColumn is the table column denoting the organization relation/edge.
-	OrganizationColumn = "org_id"
-	// PocsTable is the table that holds the pocs relation/edge.
-	PocsTable = "pocs"
-	// PocsInverseTable is the table name for the Poc entity.
-	// It exists in this package in order to avoid circular dependency with the "poc" package.
-	PocsInverseTable = "pocs"
-	// PocsColumn is the table column denoting the pocs relation/edge.
-	PocsColumn = "net_id"
 	// NetworkFacilitiesTable is the table that holds the network_facilities relation/edge.
 	NetworkFacilitiesTable = "network_facilities"
 	// NetworkFacilitiesInverseTable is the table name for the NetworkFacility entity.
@@ -131,43 +117,57 @@ const (
 	NetworkIxLansInverseTable = "network_ix_lans"
 	// NetworkIxLansColumn is the table column denoting the network_ix_lans relation/edge.
 	NetworkIxLansColumn = "net_id"
+	// OrganizationTable is the table that holds the organization relation/edge.
+	OrganizationTable = "networks"
+	// OrganizationInverseTable is the table name for the Organization entity.
+	// It exists in this package in order to avoid circular dependency with the "organization" package.
+	OrganizationInverseTable = "organizations"
+	// OrganizationColumn is the table column denoting the organization relation/edge.
+	OrganizationColumn = "org_id"
+	// PocsTable is the table that holds the pocs relation/edge.
+	PocsTable = "pocs"
+	// PocsInverseTable is the table name for the Poc entity.
+	// It exists in this package in order to avoid circular dependency with the "poc" package.
+	PocsInverseTable = "pocs"
+	// PocsColumn is the table column denoting the pocs relation/edge.
+	PocsColumn = "net_id"
 )
 
 // Columns holds all SQL columns for network fields.
 var Columns = []string{
 	FieldID,
 	FieldOrgID,
-	FieldName,
 	FieldAka,
-	FieldNameLong,
-	FieldWebsite,
-	FieldSocialMedia,
+	FieldAllowIxpUpdate,
 	FieldAsn,
-	FieldLookingGlass,
-	FieldRouteServer,
-	FieldIrrAsSet,
-	FieldInfoType,
-	FieldInfoTypes,
+	FieldInfoIpv6,
+	FieldInfoMulticast,
+	FieldInfoNeverViaRouteServers,
 	FieldInfoPrefixes4,
 	FieldInfoPrefixes6,
-	FieldInfoTraffic,
 	FieldInfoRatio,
 	FieldInfoScope,
+	FieldInfoTraffic,
+	FieldInfoType,
+	FieldInfoTypes,
 	FieldInfoUnicast,
-	FieldInfoMulticast,
-	FieldInfoIpv6,
-	FieldInfoNeverViaRouteServers,
+	FieldIrrAsSet,
+	FieldLogo,
+	FieldLookingGlass,
+	FieldName,
+	FieldNameLong,
 	FieldNotes,
-	FieldPolicyURL,
+	FieldPolicyContracts,
 	FieldPolicyGeneral,
 	FieldPolicyLocations,
 	FieldPolicyRatio,
-	FieldPolicyContracts,
-	FieldAllowIxpUpdate,
-	FieldStatusDashboard,
+	FieldPolicyURL,
 	FieldRirStatus,
 	FieldRirStatusUpdated,
-	FieldLogo,
+	FieldRouteServer,
+	FieldSocialMedia,
+	FieldStatusDashboard,
+	FieldWebsite,
 	FieldIxCount,
 	FieldFacCount,
 	FieldNetixlanUpdated,
@@ -195,36 +195,20 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
 	// DefaultAka holds the default value on creation for the "aka" field.
 	DefaultAka string
 	// AkaValidator is a validator for the "aka" field. It is called by the builders before save.
 	AkaValidator func(string) error
-	// DefaultNameLong holds the default value on creation for the "name_long" field.
-	DefaultNameLong string
-	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	NameLongValidator func(string) error
-	// DefaultWebsite holds the default value on creation for the "website" field.
-	DefaultWebsite string
+	// DefaultAllowIxpUpdate holds the default value on creation for the "allow_ixp_update" field.
+	DefaultAllowIxpUpdate bool
 	// AsnValidator is a validator for the "asn" field. It is called by the builders before save.
 	AsnValidator func(int) error
-	// DefaultLookingGlass holds the default value on creation for the "looking_glass" field.
-	DefaultLookingGlass string
-	// DefaultRouteServer holds the default value on creation for the "route_server" field.
-	DefaultRouteServer string
-	// DefaultIrrAsSet holds the default value on creation for the "irr_as_set" field.
-	DefaultIrrAsSet string
-	// IrrAsSetValidator is a validator for the "irr_as_set" field. It is called by the builders before save.
-	IrrAsSetValidator func(string) error
-	// DefaultInfoType holds the default value on creation for the "info_type" field.
-	DefaultInfoType string
-	// InfoTypeValidator is a validator for the "info_type" field. It is called by the builders before save.
-	InfoTypeValidator func(string) error
-	// DefaultInfoTraffic holds the default value on creation for the "info_traffic" field.
-	DefaultInfoTraffic string
-	// InfoTrafficValidator is a validator for the "info_traffic" field. It is called by the builders before save.
-	InfoTrafficValidator func(string) error
+	// DefaultInfoIpv6 holds the default value on creation for the "info_ipv6" field.
+	DefaultInfoIpv6 bool
+	// DefaultInfoMulticast holds the default value on creation for the "info_multicast" field.
+	DefaultInfoMulticast bool
+	// DefaultInfoNeverViaRouteServers holds the default value on creation for the "info_never_via_route_servers" field.
+	DefaultInfoNeverViaRouteServers bool
 	// DefaultInfoRatio holds the default value on creation for the "info_ratio" field.
 	DefaultInfoRatio string
 	// InfoRatioValidator is a validator for the "info_ratio" field. It is called by the builders before save.
@@ -233,18 +217,34 @@ var (
 	DefaultInfoScope string
 	// InfoScopeValidator is a validator for the "info_scope" field. It is called by the builders before save.
 	InfoScopeValidator func(string) error
+	// DefaultInfoTraffic holds the default value on creation for the "info_traffic" field.
+	DefaultInfoTraffic string
+	// InfoTrafficValidator is a validator for the "info_traffic" field. It is called by the builders before save.
+	InfoTrafficValidator func(string) error
+	// DefaultInfoType holds the default value on creation for the "info_type" field.
+	DefaultInfoType string
+	// InfoTypeValidator is a validator for the "info_type" field. It is called by the builders before save.
+	InfoTypeValidator func(string) error
 	// DefaultInfoUnicast holds the default value on creation for the "info_unicast" field.
 	DefaultInfoUnicast bool
-	// DefaultInfoMulticast holds the default value on creation for the "info_multicast" field.
-	DefaultInfoMulticast bool
-	// DefaultInfoIpv6 holds the default value on creation for the "info_ipv6" field.
-	DefaultInfoIpv6 bool
-	// DefaultInfoNeverViaRouteServers holds the default value on creation for the "info_never_via_route_servers" field.
-	DefaultInfoNeverViaRouteServers bool
+	// DefaultIrrAsSet holds the default value on creation for the "irr_as_set" field.
+	DefaultIrrAsSet string
+	// IrrAsSetValidator is a validator for the "irr_as_set" field. It is called by the builders before save.
+	IrrAsSetValidator func(string) error
+	// DefaultLookingGlass holds the default value on creation for the "looking_glass" field.
+	DefaultLookingGlass string
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator func(string) error
+	// DefaultNameLong holds the default value on creation for the "name_long" field.
+	DefaultNameLong string
+	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
+	NameLongValidator func(string) error
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
-	// DefaultPolicyURL holds the default value on creation for the "policy_url" field.
-	DefaultPolicyURL string
+	// DefaultPolicyContracts holds the default value on creation for the "policy_contracts" field.
+	DefaultPolicyContracts string
+	// PolicyContractsValidator is a validator for the "policy_contracts" field. It is called by the builders before save.
+	PolicyContractsValidator func(string) error
 	// DefaultPolicyGeneral holds the default value on creation for the "policy_general" field.
 	DefaultPolicyGeneral string
 	// PolicyGeneralValidator is a validator for the "policy_general" field. It is called by the builders before save.
@@ -255,14 +255,14 @@ var (
 	PolicyLocationsValidator func(string) error
 	// DefaultPolicyRatio holds the default value on creation for the "policy_ratio" field.
 	DefaultPolicyRatio bool
-	// DefaultPolicyContracts holds the default value on creation for the "policy_contracts" field.
-	DefaultPolicyContracts string
-	// PolicyContractsValidator is a validator for the "policy_contracts" field. It is called by the builders before save.
-	PolicyContractsValidator func(string) error
-	// DefaultAllowIxpUpdate holds the default value on creation for the "allow_ixp_update" field.
-	DefaultAllowIxpUpdate bool
+	// DefaultPolicyURL holds the default value on creation for the "policy_url" field.
+	DefaultPolicyURL string
 	// RirStatusValidator is a validator for the "rir_status" field. It is called by the builders before save.
 	RirStatusValidator func(string) error
+	// DefaultRouteServer holds the default value on creation for the "route_server" field.
+	DefaultRouteServer string
+	// DefaultWebsite holds the default value on creation for the "website" field.
+	DefaultWebsite string
 	// DefaultIxCount holds the default value on creation for the "ix_count" field.
 	DefaultIxCount int
 	// DefaultFacCount holds the default value on creation for the "fac_count" field.
@@ -288,24 +288,14 @@ func ByOrgID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOrgID, opts...).ToFunc()
 }
 
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
-}
-
 // ByAka orders the results by the aka field.
 func ByAka(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAka, opts...).ToFunc()
 }
 
-// ByNameLong orders the results by the name_long field.
-func ByNameLong(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNameLong, opts...).ToFunc()
-}
-
-// ByWebsite orders the results by the website field.
-func ByWebsite(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldWebsite, opts...).ToFunc()
+// ByAllowIxpUpdate orders the results by the allow_ixp_update field.
+func ByAllowIxpUpdate(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAllowIxpUpdate, opts...).ToFunc()
 }
 
 // ByAsn orders the results by the asn field.
@@ -313,24 +303,19 @@ func ByAsn(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAsn, opts...).ToFunc()
 }
 
-// ByLookingGlass orders the results by the looking_glass field.
-func ByLookingGlass(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLookingGlass, opts...).ToFunc()
+// ByInfoIpv6 orders the results by the info_ipv6 field.
+func ByInfoIpv6(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInfoIpv6, opts...).ToFunc()
 }
 
-// ByRouteServer orders the results by the route_server field.
-func ByRouteServer(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRouteServer, opts...).ToFunc()
+// ByInfoMulticast orders the results by the info_multicast field.
+func ByInfoMulticast(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInfoMulticast, opts...).ToFunc()
 }
 
-// ByIrrAsSet orders the results by the irr_as_set field.
-func ByIrrAsSet(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIrrAsSet, opts...).ToFunc()
-}
-
-// ByInfoType orders the results by the info_type field.
-func ByInfoType(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInfoType, opts...).ToFunc()
+// ByInfoNeverViaRouteServers orders the results by the info_never_via_route_servers field.
+func ByInfoNeverViaRouteServers(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInfoNeverViaRouteServers, opts...).ToFunc()
 }
 
 // ByInfoPrefixes4 orders the results by the info_prefixes4 field.
@@ -343,11 +328,6 @@ func ByInfoPrefixes6(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInfoPrefixes6, opts...).ToFunc()
 }
 
-// ByInfoTraffic orders the results by the info_traffic field.
-func ByInfoTraffic(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInfoTraffic, opts...).ToFunc()
-}
-
 // ByInfoRatio orders the results by the info_ratio field.
 func ByInfoRatio(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInfoRatio, opts...).ToFunc()
@@ -358,24 +338,44 @@ func ByInfoScope(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInfoScope, opts...).ToFunc()
 }
 
+// ByInfoTraffic orders the results by the info_traffic field.
+func ByInfoTraffic(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInfoTraffic, opts...).ToFunc()
+}
+
+// ByInfoType orders the results by the info_type field.
+func ByInfoType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInfoType, opts...).ToFunc()
+}
+
 // ByInfoUnicast orders the results by the info_unicast field.
 func ByInfoUnicast(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInfoUnicast, opts...).ToFunc()
 }
 
-// ByInfoMulticast orders the results by the info_multicast field.
-func ByInfoMulticast(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInfoMulticast, opts...).ToFunc()
+// ByIrrAsSet orders the results by the irr_as_set field.
+func ByIrrAsSet(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIrrAsSet, opts...).ToFunc()
 }
 
-// ByInfoIpv6 orders the results by the info_ipv6 field.
-func ByInfoIpv6(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInfoIpv6, opts...).ToFunc()
+// ByLogo orders the results by the logo field.
+func ByLogo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLogo, opts...).ToFunc()
 }
 
-// ByInfoNeverViaRouteServers orders the results by the info_never_via_route_servers field.
-func ByInfoNeverViaRouteServers(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInfoNeverViaRouteServers, opts...).ToFunc()
+// ByLookingGlass orders the results by the looking_glass field.
+func ByLookingGlass(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLookingGlass, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByNameLong orders the results by the name_long field.
+func ByNameLong(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNameLong, opts...).ToFunc()
 }
 
 // ByNotes orders the results by the notes field.
@@ -383,9 +383,9 @@ func ByNotes(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotes, opts...).ToFunc()
 }
 
-// ByPolicyURL orders the results by the policy_url field.
-func ByPolicyURL(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPolicyURL, opts...).ToFunc()
+// ByPolicyContracts orders the results by the policy_contracts field.
+func ByPolicyContracts(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPolicyContracts, opts...).ToFunc()
 }
 
 // ByPolicyGeneral orders the results by the policy_general field.
@@ -403,19 +403,9 @@ func ByPolicyRatio(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPolicyRatio, opts...).ToFunc()
 }
 
-// ByPolicyContracts orders the results by the policy_contracts field.
-func ByPolicyContracts(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPolicyContracts, opts...).ToFunc()
-}
-
-// ByAllowIxpUpdate orders the results by the allow_ixp_update field.
-func ByAllowIxpUpdate(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAllowIxpUpdate, opts...).ToFunc()
-}
-
-// ByStatusDashboard orders the results by the status_dashboard field.
-func ByStatusDashboard(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldStatusDashboard, opts...).ToFunc()
+// ByPolicyURL orders the results by the policy_url field.
+func ByPolicyURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPolicyURL, opts...).ToFunc()
 }
 
 // ByRirStatus orders the results by the rir_status field.
@@ -428,9 +418,19 @@ func ByRirStatusUpdated(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRirStatusUpdated, opts...).ToFunc()
 }
 
-// ByLogo orders the results by the logo field.
-func ByLogo(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLogo, opts...).ToFunc()
+// ByRouteServer orders the results by the route_server field.
+func ByRouteServer(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRouteServer, opts...).ToFunc()
+}
+
+// ByStatusDashboard orders the results by the status_dashboard field.
+func ByStatusDashboard(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatusDashboard, opts...).ToFunc()
+}
+
+// ByWebsite orders the results by the website field.
+func ByWebsite(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWebsite, opts...).ToFunc()
 }
 
 // ByIxCount orders the results by the ix_count field.
@@ -473,27 +473,6 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
-// ByOrganizationField orders the results by organization field.
-func ByOrganizationField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), sql.OrderByField(field, opts...))
-	}
-}
-
-// ByPocsCount orders the results by pocs count.
-func ByPocsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newPocsStep(), opts...)
-	}
-}
-
-// ByPocs orders the results by pocs terms.
-func ByPocs(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newPocsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
 // ByNetworkFacilitiesCount orders the results by network_facilities count.
 func ByNetworkFacilitiesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -521,19 +500,26 @@ func ByNetworkIxLans(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newNetworkIxLansStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newOrganizationStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(OrganizationInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
-	)
+
+// ByOrganizationField orders the results by organization field.
+func ByOrganizationField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), sql.OrderByField(field, opts...))
+	}
 }
-func newPocsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(PocsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, PocsTable, PocsColumn),
-	)
+
+// ByPocsCount orders the results by pocs count.
+func ByPocsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPocsStep(), opts...)
+	}
+}
+
+// ByPocs orders the results by pocs terms.
+func ByPocs(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPocsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
 }
 func newNetworkFacilitiesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
@@ -547,5 +533,19 @@ func newNetworkIxLansStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(NetworkIxLansInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, NetworkIxLansTable, NetworkIxLansColumn),
+	)
+}
+func newOrganizationStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrganizationInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
+	)
+}
+func newPocsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PocsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PocsTable, PocsColumn),
 	)
 }

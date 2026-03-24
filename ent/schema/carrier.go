@@ -28,54 +28,53 @@ func (Carrier) Fields() []ent.Field {
 			Nillable().
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to organization"),
-		field.String("org_name").
+		field.String("aka").
+			MaxLen(255).
 			Optional().
 			Default("").
-			Comment("Organization name (computed)"),
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("Also known as"),
+		field.String("logo").
+			Optional().
+			Nillable().
+			Comment("Logo URL"),
 		field.String("name").
 			MaxLen(255).
 			NotEmpty().
 			Unique().
 			Annotations(
 				entgql.OrderField("NAME"),
-				entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray),
+				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
 			).
 			Comment("Carrier name"),
-		field.String("aka").
-			Optional().
-			MaxLen(255).
-			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Also known as"),
 		field.String("name_long").
-			Optional().
 			MaxLen(255).
+			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Long name"),
-		field.String("website").
-			Optional().
-			Default("").
-			Comment("Carrier website URL"),
-		field.JSON("social_media", []SocialMedia{}).
-			Optional().
-			Annotations(entrest.WithSchema(socialMediaSchema())).
-			Comment("Social media links"),
 		field.String("notes").
 			Optional().
 			Default("").
 			Comment("Notes"),
+		field.JSON("social_media", []SocialMedia{}).
+			Optional().
+			Annotations(entrest.WithSchema(socialMediaSchema())).
+			Comment("Social media links"),
+		field.String("website").
+			Optional().
+			Default("").
+			Comment("Carrier website URL"),
 
 		// Computed fields (from serializer, stored per D-40)
+		field.String("org_name").
+			Optional().
+			Default("").
+			Comment("Org Name (computed)"),
 		field.Int("fac_count").
 			Optional().
 			Default(0).
-			Comment("Facility count (computed)"),
-
-		field.String("logo").
-			Optional().
-			Nillable().
-			Comment("Logo URL"),
+			Comment("Fac Count (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").
@@ -96,12 +95,12 @@ func (Carrier) Fields() []ent.Field {
 // Edges of the Carrier.
 func (Carrier) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("carrier_facilities", CarrierFacility.Type).
+			Annotations(entrest.WithEagerLoad(true)),
 		edge.From("organization", Organization.Type).
 			Ref("carriers").
 			Field("org_id").
 			Unique().
-			Annotations(entrest.WithEagerLoad(true)),
-		edge.To("carrier_facilities", CarrierFacility.Type).
 			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
@@ -110,8 +109,8 @@ func (Carrier) Edges() []ent.Edge {
 func (Carrier) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("name"),
-		index.Fields("status"),
 		index.Fields("org_id"),
+		index.Fields("status"),
 	}
 }
 

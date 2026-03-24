@@ -15,18 +15,18 @@ const (
 	FieldID = "id"
 	// FieldNetID holds the string denoting the net_id field in the database.
 	FieldNetID = "net_id"
-	// FieldRole holds the string denoting the role field in the database.
-	FieldRole = "role"
-	// FieldVisible holds the string denoting the visible field in the database.
-	FieldVisible = "visible"
+	// FieldEmail holds the string denoting the email field in the database.
+	FieldEmail = "email"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldPhone holds the string denoting the phone field in the database.
 	FieldPhone = "phone"
-	// FieldEmail holds the string denoting the email field in the database.
-	FieldEmail = "email"
+	// FieldRole holds the string denoting the role field in the database.
+	FieldRole = "role"
 	// FieldURL holds the string denoting the url field in the database.
 	FieldURL = "url"
+	// FieldVisible holds the string denoting the visible field in the database.
+	FieldVisible = "visible"
 	// FieldCreated holds the string denoting the created field in the database.
 	FieldCreated = "created"
 	// FieldUpdated holds the string denoting the updated field in the database.
@@ -50,12 +50,12 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldNetID,
-	FieldRole,
-	FieldVisible,
+	FieldEmail,
 	FieldName,
 	FieldPhone,
-	FieldEmail,
+	FieldRole,
 	FieldURL,
+	FieldVisible,
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
@@ -78,12 +78,10 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
-	// RoleValidator is a validator for the "role" field. It is called by the builders before save.
-	RoleValidator func(string) error
-	// DefaultVisible holds the default value on creation for the "visible" field.
-	DefaultVisible string
-	// VisibleValidator is a validator for the "visible" field. It is called by the builders before save.
-	VisibleValidator func(string) error
+	// DefaultEmail holds the default value on creation for the "email" field.
+	DefaultEmail string
+	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	EmailValidator func(string) error
 	// DefaultName holds the default value on creation for the "name" field.
 	DefaultName string
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
@@ -92,12 +90,14 @@ var (
 	DefaultPhone string
 	// PhoneValidator is a validator for the "phone" field. It is called by the builders before save.
 	PhoneValidator func(string) error
-	// DefaultEmail holds the default value on creation for the "email" field.
-	DefaultEmail string
-	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
-	EmailValidator func(string) error
+	// RoleValidator is a validator for the "role" field. It is called by the builders before save.
+	RoleValidator func(string) error
 	// DefaultURL holds the default value on creation for the "url" field.
 	DefaultURL string
+	// DefaultVisible holds the default value on creation for the "visible" field.
+	DefaultVisible string
+	// VisibleValidator is a validator for the "visible" field. It is called by the builders before save.
+	VisibleValidator func(string) error
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
@@ -119,14 +119,9 @@ func ByNetID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNetID, opts...).ToFunc()
 }
 
-// ByRole orders the results by the role field.
-func ByRole(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRole, opts...).ToFunc()
-}
-
-// ByVisible orders the results by the visible field.
-func ByVisible(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldVisible, opts...).ToFunc()
+// ByEmail orders the results by the email field.
+func ByEmail(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEmail, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.
@@ -139,14 +134,19 @@ func ByPhone(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPhone, opts...).ToFunc()
 }
 
-// ByEmail orders the results by the email field.
-func ByEmail(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldEmail, opts...).ToFunc()
+// ByRole orders the results by the role field.
+func ByRole(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRole, opts...).ToFunc()
 }
 
 // ByURL orders the results by the url field.
 func ByURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldURL, opts...).ToFunc()
+}
+
+// ByVisible orders the results by the visible field.
+func ByVisible(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVisible, opts...).ToFunc()
 }
 
 // ByCreated orders the results by the created field.

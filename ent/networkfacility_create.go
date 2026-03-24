@@ -24,6 +24,20 @@ type NetworkFacilityCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetFacID sets the "fac_id" field.
+func (_c *NetworkFacilityCreate) SetFacID(v int) *NetworkFacilityCreate {
+	_c.mutation.SetFacID(v)
+	return _c
+}
+
+// SetNillableFacID sets the "fac_id" field if the given value is not nil.
+func (_c *NetworkFacilityCreate) SetNillableFacID(v *int) *NetworkFacilityCreate {
+	if v != nil {
+		_c.SetFacID(*v)
+	}
+	return _c
+}
+
 // SetNetID sets the "net_id" field.
 func (_c *NetworkFacilityCreate) SetNetID(v int) *NetworkFacilityCreate {
 	_c.mutation.SetNetID(v)
@@ -38,17 +52,9 @@ func (_c *NetworkFacilityCreate) SetNillableNetID(v *int) *NetworkFacilityCreate
 	return _c
 }
 
-// SetFacID sets the "fac_id" field.
-func (_c *NetworkFacilityCreate) SetFacID(v int) *NetworkFacilityCreate {
-	_c.mutation.SetFacID(v)
-	return _c
-}
-
-// SetNillableFacID sets the "fac_id" field if the given value is not nil.
-func (_c *NetworkFacilityCreate) SetNillableFacID(v *int) *NetworkFacilityCreate {
-	if v != nil {
-		_c.SetFacID(*v)
-	}
+// SetLocalAsn sets the "local_asn" field.
+func (_c *NetworkFacilityCreate) SetLocalAsn(v int) *NetworkFacilityCreate {
+	_c.mutation.SetLocalAsn(v)
 	return _c
 }
 
@@ -94,12 +100,6 @@ func (_c *NetworkFacilityCreate) SetNillableCountry(v *string) *NetworkFacilityC
 	return _c
 }
 
-// SetLocalAsn sets the "local_asn" field.
-func (_c *NetworkFacilityCreate) SetLocalAsn(v int) *NetworkFacilityCreate {
-	_c.mutation.SetLocalAsn(v)
-	return _c
-}
-
 // SetCreated sets the "created" field.
 func (_c *NetworkFacilityCreate) SetCreated(v time.Time) *NetworkFacilityCreate {
 	_c.mutation.SetCreated(v)
@@ -132,25 +132,6 @@ func (_c *NetworkFacilityCreate) SetID(v int) *NetworkFacilityCreate {
 	return _c
 }
 
-// SetNetworkID sets the "network" edge to the Network entity by ID.
-func (_c *NetworkFacilityCreate) SetNetworkID(id int) *NetworkFacilityCreate {
-	_c.mutation.SetNetworkID(id)
-	return _c
-}
-
-// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
-func (_c *NetworkFacilityCreate) SetNillableNetworkID(id *int) *NetworkFacilityCreate {
-	if id != nil {
-		_c = _c.SetNetworkID(*id)
-	}
-	return _c
-}
-
-// SetNetwork sets the "network" edge to the Network entity.
-func (_c *NetworkFacilityCreate) SetNetwork(v *Network) *NetworkFacilityCreate {
-	return _c.SetNetworkID(v.ID)
-}
-
 // SetFacilityID sets the "facility" edge to the Facility entity by ID.
 func (_c *NetworkFacilityCreate) SetFacilityID(id int) *NetworkFacilityCreate {
 	_c.mutation.SetFacilityID(id)
@@ -168,6 +149,25 @@ func (_c *NetworkFacilityCreate) SetNillableFacilityID(id *int) *NetworkFacility
 // SetFacility sets the "facility" edge to the Facility entity.
 func (_c *NetworkFacilityCreate) SetFacility(v *Facility) *NetworkFacilityCreate {
 	return _c.SetFacilityID(v.ID)
+}
+
+// SetNetworkID sets the "network" edge to the Network entity by ID.
+func (_c *NetworkFacilityCreate) SetNetworkID(id int) *NetworkFacilityCreate {
+	_c.mutation.SetNetworkID(id)
+	return _c
+}
+
+// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
+func (_c *NetworkFacilityCreate) SetNillableNetworkID(id *int) *NetworkFacilityCreate {
+	if id != nil {
+		_c = _c.SetNetworkID(*id)
+	}
+	return _c
+}
+
+// SetNetwork sets the "network" edge to the Network entity.
+func (_c *NetworkFacilityCreate) SetNetwork(v *Network) *NetworkFacilityCreate {
+	return _c.SetNetworkID(v.ID)
 }
 
 // Mutation returns the NetworkFacilityMutation object of the builder.
@@ -283,6 +283,10 @@ func (_c *NetworkFacilityCreate) createSpec() (*NetworkFacility, *sqlgraph.Creat
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.LocalAsn(); ok {
+		_spec.SetField(networkfacility.FieldLocalAsn, field.TypeInt, value)
+		_node.LocalAsn = value
+	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(networkfacility.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -295,10 +299,6 @@ func (_c *NetworkFacilityCreate) createSpec() (*NetworkFacility, *sqlgraph.Creat
 		_spec.SetField(networkfacility.FieldCountry, field.TypeString, value)
 		_node.Country = value
 	}
-	if value, ok := _c.mutation.LocalAsn(); ok {
-		_spec.SetField(networkfacility.FieldLocalAsn, field.TypeInt, value)
-		_node.LocalAsn = value
-	}
 	if value, ok := _c.mutation.Created(); ok {
 		_spec.SetField(networkfacility.FieldCreated, field.TypeTime, value)
 		_node.Created = value
@@ -310,23 +310,6 @@ func (_c *NetworkFacilityCreate) createSpec() (*NetworkFacility, *sqlgraph.Creat
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(networkfacility.FieldStatus, field.TypeString, value)
 		_node.Status = value
-	}
-	if nodes := _c.mutation.NetworkIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   networkfacility.NetworkTable,
-			Columns: []string{networkfacility.NetworkColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.NetID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.FacilityIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -345,6 +328,23 @@ func (_c *NetworkFacilityCreate) createSpec() (*NetworkFacility, *sqlgraph.Creat
 		_node.FacID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.NetworkIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   networkfacility.NetworkTable,
+			Columns: []string{networkfacility.NetworkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.NetID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -352,7 +352,7 @@ func (_c *NetworkFacilityCreate) createSpec() (*NetworkFacility, *sqlgraph.Creat
 // of the `INSERT` statement. For example:
 //
 //	client.NetworkFacility.Create().
-//		SetNetID(v).
+//		SetFacID(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -361,7 +361,7 @@ func (_c *NetworkFacilityCreate) createSpec() (*NetworkFacility, *sqlgraph.Creat
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.NetworkFacilityUpsert) {
-//			SetNetID(v+v).
+//			SetFacID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *NetworkFacilityCreate) OnConflict(opts ...sql.ConflictOption) *NetworkFacilityUpsertOne {
@@ -397,6 +397,24 @@ type (
 	}
 )
 
+// SetFacID sets the "fac_id" field.
+func (u *NetworkFacilityUpsert) SetFacID(v int) *NetworkFacilityUpsert {
+	u.Set(networkfacility.FieldFacID, v)
+	return u
+}
+
+// UpdateFacID sets the "fac_id" field to the value that was provided on create.
+func (u *NetworkFacilityUpsert) UpdateFacID() *NetworkFacilityUpsert {
+	u.SetExcluded(networkfacility.FieldFacID)
+	return u
+}
+
+// ClearFacID clears the value of the "fac_id" field.
+func (u *NetworkFacilityUpsert) ClearFacID() *NetworkFacilityUpsert {
+	u.SetNull(networkfacility.FieldFacID)
+	return u
+}
+
 // SetNetID sets the "net_id" field.
 func (u *NetworkFacilityUpsert) SetNetID(v int) *NetworkFacilityUpsert {
 	u.Set(networkfacility.FieldNetID, v)
@@ -415,21 +433,21 @@ func (u *NetworkFacilityUpsert) ClearNetID() *NetworkFacilityUpsert {
 	return u
 }
 
-// SetFacID sets the "fac_id" field.
-func (u *NetworkFacilityUpsert) SetFacID(v int) *NetworkFacilityUpsert {
-	u.Set(networkfacility.FieldFacID, v)
+// SetLocalAsn sets the "local_asn" field.
+func (u *NetworkFacilityUpsert) SetLocalAsn(v int) *NetworkFacilityUpsert {
+	u.Set(networkfacility.FieldLocalAsn, v)
 	return u
 }
 
-// UpdateFacID sets the "fac_id" field to the value that was provided on create.
-func (u *NetworkFacilityUpsert) UpdateFacID() *NetworkFacilityUpsert {
-	u.SetExcluded(networkfacility.FieldFacID)
+// UpdateLocalAsn sets the "local_asn" field to the value that was provided on create.
+func (u *NetworkFacilityUpsert) UpdateLocalAsn() *NetworkFacilityUpsert {
+	u.SetExcluded(networkfacility.FieldLocalAsn)
 	return u
 }
 
-// ClearFacID clears the value of the "fac_id" field.
-func (u *NetworkFacilityUpsert) ClearFacID() *NetworkFacilityUpsert {
-	u.SetNull(networkfacility.FieldFacID)
+// AddLocalAsn adds v to the "local_asn" field.
+func (u *NetworkFacilityUpsert) AddLocalAsn(v int) *NetworkFacilityUpsert {
+	u.Add(networkfacility.FieldLocalAsn, v)
 	return u
 }
 
@@ -484,24 +502,6 @@ func (u *NetworkFacilityUpsert) UpdateCountry() *NetworkFacilityUpsert {
 // ClearCountry clears the value of the "country" field.
 func (u *NetworkFacilityUpsert) ClearCountry() *NetworkFacilityUpsert {
 	u.SetNull(networkfacility.FieldCountry)
-	return u
-}
-
-// SetLocalAsn sets the "local_asn" field.
-func (u *NetworkFacilityUpsert) SetLocalAsn(v int) *NetworkFacilityUpsert {
-	u.Set(networkfacility.FieldLocalAsn, v)
-	return u
-}
-
-// UpdateLocalAsn sets the "local_asn" field to the value that was provided on create.
-func (u *NetworkFacilityUpsert) UpdateLocalAsn() *NetworkFacilityUpsert {
-	u.SetExcluded(networkfacility.FieldLocalAsn)
-	return u
-}
-
-// AddLocalAsn adds v to the "local_asn" field.
-func (u *NetworkFacilityUpsert) AddLocalAsn(v int) *NetworkFacilityUpsert {
-	u.Add(networkfacility.FieldLocalAsn, v)
 	return u
 }
 
@@ -580,6 +580,27 @@ func (u *NetworkFacilityUpsertOne) Update(set func(*NetworkFacilityUpsert)) *Net
 	return u
 }
 
+// SetFacID sets the "fac_id" field.
+func (u *NetworkFacilityUpsertOne) SetFacID(v int) *NetworkFacilityUpsertOne {
+	return u.Update(func(s *NetworkFacilityUpsert) {
+		s.SetFacID(v)
+	})
+}
+
+// UpdateFacID sets the "fac_id" field to the value that was provided on create.
+func (u *NetworkFacilityUpsertOne) UpdateFacID() *NetworkFacilityUpsertOne {
+	return u.Update(func(s *NetworkFacilityUpsert) {
+		s.UpdateFacID()
+	})
+}
+
+// ClearFacID clears the value of the "fac_id" field.
+func (u *NetworkFacilityUpsertOne) ClearFacID() *NetworkFacilityUpsertOne {
+	return u.Update(func(s *NetworkFacilityUpsert) {
+		s.ClearFacID()
+	})
+}
+
 // SetNetID sets the "net_id" field.
 func (u *NetworkFacilityUpsertOne) SetNetID(v int) *NetworkFacilityUpsertOne {
 	return u.Update(func(s *NetworkFacilityUpsert) {
@@ -601,24 +622,24 @@ func (u *NetworkFacilityUpsertOne) ClearNetID() *NetworkFacilityUpsertOne {
 	})
 }
 
-// SetFacID sets the "fac_id" field.
-func (u *NetworkFacilityUpsertOne) SetFacID(v int) *NetworkFacilityUpsertOne {
+// SetLocalAsn sets the "local_asn" field.
+func (u *NetworkFacilityUpsertOne) SetLocalAsn(v int) *NetworkFacilityUpsertOne {
 	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.SetFacID(v)
+		s.SetLocalAsn(v)
 	})
 }
 
-// UpdateFacID sets the "fac_id" field to the value that was provided on create.
-func (u *NetworkFacilityUpsertOne) UpdateFacID() *NetworkFacilityUpsertOne {
+// AddLocalAsn adds v to the "local_asn" field.
+func (u *NetworkFacilityUpsertOne) AddLocalAsn(v int) *NetworkFacilityUpsertOne {
 	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.UpdateFacID()
+		s.AddLocalAsn(v)
 	})
 }
 
-// ClearFacID clears the value of the "fac_id" field.
-func (u *NetworkFacilityUpsertOne) ClearFacID() *NetworkFacilityUpsertOne {
+// UpdateLocalAsn sets the "local_asn" field to the value that was provided on create.
+func (u *NetworkFacilityUpsertOne) UpdateLocalAsn() *NetworkFacilityUpsertOne {
 	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.ClearFacID()
+		s.UpdateLocalAsn()
 	})
 }
 
@@ -682,27 +703,6 @@ func (u *NetworkFacilityUpsertOne) UpdateCountry() *NetworkFacilityUpsertOne {
 func (u *NetworkFacilityUpsertOne) ClearCountry() *NetworkFacilityUpsertOne {
 	return u.Update(func(s *NetworkFacilityUpsert) {
 		s.ClearCountry()
-	})
-}
-
-// SetLocalAsn sets the "local_asn" field.
-func (u *NetworkFacilityUpsertOne) SetLocalAsn(v int) *NetworkFacilityUpsertOne {
-	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.SetLocalAsn(v)
-	})
-}
-
-// AddLocalAsn adds v to the "local_asn" field.
-func (u *NetworkFacilityUpsertOne) AddLocalAsn(v int) *NetworkFacilityUpsertOne {
-	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.AddLocalAsn(v)
-	})
-}
-
-// UpdateLocalAsn sets the "local_asn" field to the value that was provided on create.
-func (u *NetworkFacilityUpsertOne) UpdateLocalAsn() *NetworkFacilityUpsertOne {
-	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.UpdateLocalAsn()
 	})
 }
 
@@ -869,7 +869,7 @@ func (_c *NetworkFacilityCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.NetworkFacilityUpsert) {
-//			SetNetID(v+v).
+//			SetFacID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *NetworkFacilityCreateBulk) OnConflict(opts ...sql.ConflictOption) *NetworkFacilityUpsertBulk {
@@ -951,6 +951,27 @@ func (u *NetworkFacilityUpsertBulk) Update(set func(*NetworkFacilityUpsert)) *Ne
 	return u
 }
 
+// SetFacID sets the "fac_id" field.
+func (u *NetworkFacilityUpsertBulk) SetFacID(v int) *NetworkFacilityUpsertBulk {
+	return u.Update(func(s *NetworkFacilityUpsert) {
+		s.SetFacID(v)
+	})
+}
+
+// UpdateFacID sets the "fac_id" field to the value that was provided on create.
+func (u *NetworkFacilityUpsertBulk) UpdateFacID() *NetworkFacilityUpsertBulk {
+	return u.Update(func(s *NetworkFacilityUpsert) {
+		s.UpdateFacID()
+	})
+}
+
+// ClearFacID clears the value of the "fac_id" field.
+func (u *NetworkFacilityUpsertBulk) ClearFacID() *NetworkFacilityUpsertBulk {
+	return u.Update(func(s *NetworkFacilityUpsert) {
+		s.ClearFacID()
+	})
+}
+
 // SetNetID sets the "net_id" field.
 func (u *NetworkFacilityUpsertBulk) SetNetID(v int) *NetworkFacilityUpsertBulk {
 	return u.Update(func(s *NetworkFacilityUpsert) {
@@ -972,24 +993,24 @@ func (u *NetworkFacilityUpsertBulk) ClearNetID() *NetworkFacilityUpsertBulk {
 	})
 }
 
-// SetFacID sets the "fac_id" field.
-func (u *NetworkFacilityUpsertBulk) SetFacID(v int) *NetworkFacilityUpsertBulk {
+// SetLocalAsn sets the "local_asn" field.
+func (u *NetworkFacilityUpsertBulk) SetLocalAsn(v int) *NetworkFacilityUpsertBulk {
 	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.SetFacID(v)
+		s.SetLocalAsn(v)
 	})
 }
 
-// UpdateFacID sets the "fac_id" field to the value that was provided on create.
-func (u *NetworkFacilityUpsertBulk) UpdateFacID() *NetworkFacilityUpsertBulk {
+// AddLocalAsn adds v to the "local_asn" field.
+func (u *NetworkFacilityUpsertBulk) AddLocalAsn(v int) *NetworkFacilityUpsertBulk {
 	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.UpdateFacID()
+		s.AddLocalAsn(v)
 	})
 }
 
-// ClearFacID clears the value of the "fac_id" field.
-func (u *NetworkFacilityUpsertBulk) ClearFacID() *NetworkFacilityUpsertBulk {
+// UpdateLocalAsn sets the "local_asn" field to the value that was provided on create.
+func (u *NetworkFacilityUpsertBulk) UpdateLocalAsn() *NetworkFacilityUpsertBulk {
 	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.ClearFacID()
+		s.UpdateLocalAsn()
 	})
 }
 
@@ -1053,27 +1074,6 @@ func (u *NetworkFacilityUpsertBulk) UpdateCountry() *NetworkFacilityUpsertBulk {
 func (u *NetworkFacilityUpsertBulk) ClearCountry() *NetworkFacilityUpsertBulk {
 	return u.Update(func(s *NetworkFacilityUpsert) {
 		s.ClearCountry()
-	})
-}
-
-// SetLocalAsn sets the "local_asn" field.
-func (u *NetworkFacilityUpsertBulk) SetLocalAsn(v int) *NetworkFacilityUpsertBulk {
-	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.SetLocalAsn(v)
-	})
-}
-
-// AddLocalAsn adds v to the "local_asn" field.
-func (u *NetworkFacilityUpsertBulk) AddLocalAsn(v int) *NetworkFacilityUpsertBulk {
-	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.AddLocalAsn(v)
-	})
-}
-
-// UpdateLocalAsn sets the "local_asn" field to the value that was provided on create.
-func (u *NetworkFacilityUpsertBulk) UpdateLocalAsn() *NetworkFacilityUpsertBulk {
-	return u.Update(func(s *NetworkFacilityUpsert) {
-		s.UpdateLocalAsn()
 	})
 }
 

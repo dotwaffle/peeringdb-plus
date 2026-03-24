@@ -30,50 +30,30 @@ func (_u *NetworkIxLanUpdate) Where(ps ...predicate.NetworkIxLan) *NetworkIxLanU
 	return _u
 }
 
-// SetNetID sets the "net_id" field.
-func (_u *NetworkIxLanUpdate) SetNetID(v int) *NetworkIxLanUpdate {
-	_u.mutation.SetNetID(v)
+// SetIxSideID sets the "ix_side_id" field.
+func (_u *NetworkIxLanUpdate) SetIxSideID(v int) *NetworkIxLanUpdate {
+	_u.mutation.ResetIxSideID()
+	_u.mutation.SetIxSideID(v)
 	return _u
 }
 
-// SetNillableNetID sets the "net_id" field if the given value is not nil.
-func (_u *NetworkIxLanUpdate) SetNillableNetID(v *int) *NetworkIxLanUpdate {
+// SetNillableIxSideID sets the "ix_side_id" field if the given value is not nil.
+func (_u *NetworkIxLanUpdate) SetNillableIxSideID(v *int) *NetworkIxLanUpdate {
 	if v != nil {
-		_u.SetNetID(*v)
+		_u.SetIxSideID(*v)
 	}
 	return _u
 }
 
-// ClearNetID clears the value of the "net_id" field.
-func (_u *NetworkIxLanUpdate) ClearNetID() *NetworkIxLanUpdate {
-	_u.mutation.ClearNetID()
+// AddIxSideID adds value to the "ix_side_id" field.
+func (_u *NetworkIxLanUpdate) AddIxSideID(v int) *NetworkIxLanUpdate {
+	_u.mutation.AddIxSideID(v)
 	return _u
 }
 
-// SetIxID sets the "ix_id" field.
-func (_u *NetworkIxLanUpdate) SetIxID(v int) *NetworkIxLanUpdate {
-	_u.mutation.ResetIxID()
-	_u.mutation.SetIxID(v)
-	return _u
-}
-
-// SetNillableIxID sets the "ix_id" field if the given value is not nil.
-func (_u *NetworkIxLanUpdate) SetNillableIxID(v *int) *NetworkIxLanUpdate {
-	if v != nil {
-		_u.SetIxID(*v)
-	}
-	return _u
-}
-
-// AddIxID adds value to the "ix_id" field.
-func (_u *NetworkIxLanUpdate) AddIxID(v int) *NetworkIxLanUpdate {
-	_u.mutation.AddIxID(v)
-	return _u
-}
-
-// ClearIxID clears the value of the "ix_id" field.
-func (_u *NetworkIxLanUpdate) ClearIxID() *NetworkIxLanUpdate {
-	_u.mutation.ClearIxID()
+// ClearIxSideID clears the value of the "ix_side_id" field.
+func (_u *NetworkIxLanUpdate) ClearIxSideID() *NetworkIxLanUpdate {
+	_u.mutation.ClearIxSideID()
 	return _u
 }
 
@@ -97,64 +77,50 @@ func (_u *NetworkIxLanUpdate) ClearIxlanID() *NetworkIxLanUpdate {
 	return _u
 }
 
-// SetName sets the "name" field.
-func (_u *NetworkIxLanUpdate) SetName(v string) *NetworkIxLanUpdate {
-	_u.mutation.SetName(v)
+// SetNetID sets the "net_id" field.
+func (_u *NetworkIxLanUpdate) SetNetID(v int) *NetworkIxLanUpdate {
+	_u.mutation.SetNetID(v)
 	return _u
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *NetworkIxLanUpdate) SetNillableName(v *string) *NetworkIxLanUpdate {
+// SetNillableNetID sets the "net_id" field if the given value is not nil.
+func (_u *NetworkIxLanUpdate) SetNillableNetID(v *int) *NetworkIxLanUpdate {
 	if v != nil {
-		_u.SetName(*v)
+		_u.SetNetID(*v)
 	}
 	return _u
 }
 
-// ClearName clears the value of the "name" field.
-func (_u *NetworkIxLanUpdate) ClearName() *NetworkIxLanUpdate {
-	_u.mutation.ClearName()
+// ClearNetID clears the value of the "net_id" field.
+func (_u *NetworkIxLanUpdate) ClearNetID() *NetworkIxLanUpdate {
+	_u.mutation.ClearNetID()
 	return _u
 }
 
-// SetNotes sets the "notes" field.
-func (_u *NetworkIxLanUpdate) SetNotes(v string) *NetworkIxLanUpdate {
-	_u.mutation.SetNotes(v)
+// SetNetSideID sets the "net_side_id" field.
+func (_u *NetworkIxLanUpdate) SetNetSideID(v int) *NetworkIxLanUpdate {
+	_u.mutation.ResetNetSideID()
+	_u.mutation.SetNetSideID(v)
 	return _u
 }
 
-// SetNillableNotes sets the "notes" field if the given value is not nil.
-func (_u *NetworkIxLanUpdate) SetNillableNotes(v *string) *NetworkIxLanUpdate {
+// SetNillableNetSideID sets the "net_side_id" field if the given value is not nil.
+func (_u *NetworkIxLanUpdate) SetNillableNetSideID(v *int) *NetworkIxLanUpdate {
 	if v != nil {
-		_u.SetNotes(*v)
+		_u.SetNetSideID(*v)
 	}
 	return _u
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (_u *NetworkIxLanUpdate) ClearNotes() *NetworkIxLanUpdate {
-	_u.mutation.ClearNotes()
+// AddNetSideID adds value to the "net_side_id" field.
+func (_u *NetworkIxLanUpdate) AddNetSideID(v int) *NetworkIxLanUpdate {
+	_u.mutation.AddNetSideID(v)
 	return _u
 }
 
-// SetSpeed sets the "speed" field.
-func (_u *NetworkIxLanUpdate) SetSpeed(v int) *NetworkIxLanUpdate {
-	_u.mutation.ResetSpeed()
-	_u.mutation.SetSpeed(v)
-	return _u
-}
-
-// SetNillableSpeed sets the "speed" field if the given value is not nil.
-func (_u *NetworkIxLanUpdate) SetNillableSpeed(v *int) *NetworkIxLanUpdate {
-	if v != nil {
-		_u.SetSpeed(*v)
-	}
-	return _u
-}
-
-// AddSpeed adds value to the "speed" field.
-func (_u *NetworkIxLanUpdate) AddSpeed(v int) *NetworkIxLanUpdate {
-	_u.mutation.AddSpeed(v)
+// ClearNetSideID clears the value of the "net_side_id" field.
+func (_u *NetworkIxLanUpdate) ClearNetSideID() *NetworkIxLanUpdate {
+	_u.mutation.ClearNetSideID()
 	return _u
 }
 
@@ -176,6 +142,20 @@ func (_u *NetworkIxLanUpdate) SetNillableAsn(v *int) *NetworkIxLanUpdate {
 // AddAsn adds value to the "asn" field.
 func (_u *NetworkIxLanUpdate) AddAsn(v int) *NetworkIxLanUpdate {
 	_u.mutation.AddAsn(v)
+	return _u
+}
+
+// SetBfdSupport sets the "bfd_support" field.
+func (_u *NetworkIxLanUpdate) SetBfdSupport(v bool) *NetworkIxLanUpdate {
+	_u.mutation.SetBfdSupport(v)
+	return _u
+}
+
+// SetNillableBfdSupport sets the "bfd_support" field if the given value is not nil.
+func (_u *NetworkIxLanUpdate) SetNillableBfdSupport(v *bool) *NetworkIxLanUpdate {
+	if v != nil {
+		_u.SetBfdSupport(*v)
+	}
 	return _u
 }
 
@@ -233,17 +213,23 @@ func (_u *NetworkIxLanUpdate) SetNillableIsRsPeer(v *bool) *NetworkIxLanUpdate {
 	return _u
 }
 
-// SetBfdSupport sets the "bfd_support" field.
-func (_u *NetworkIxLanUpdate) SetBfdSupport(v bool) *NetworkIxLanUpdate {
-	_u.mutation.SetBfdSupport(v)
+// SetNotes sets the "notes" field.
+func (_u *NetworkIxLanUpdate) SetNotes(v string) *NetworkIxLanUpdate {
+	_u.mutation.SetNotes(v)
 	return _u
 }
 
-// SetNillableBfdSupport sets the "bfd_support" field if the given value is not nil.
-func (_u *NetworkIxLanUpdate) SetNillableBfdSupport(v *bool) *NetworkIxLanUpdate {
+// SetNillableNotes sets the "notes" field if the given value is not nil.
+func (_u *NetworkIxLanUpdate) SetNillableNotes(v *string) *NetworkIxLanUpdate {
 	if v != nil {
-		_u.SetBfdSupport(*v)
+		_u.SetNotes(*v)
 	}
+	return _u
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (_u *NetworkIxLanUpdate) ClearNotes() *NetworkIxLanUpdate {
+	_u.mutation.ClearNotes()
 	return _u
 }
 
@@ -261,57 +247,71 @@ func (_u *NetworkIxLanUpdate) SetNillableOperational(v *bool) *NetworkIxLanUpdat
 	return _u
 }
 
-// SetNetSideID sets the "net_side_id" field.
-func (_u *NetworkIxLanUpdate) SetNetSideID(v int) *NetworkIxLanUpdate {
-	_u.mutation.ResetNetSideID()
-	_u.mutation.SetNetSideID(v)
+// SetSpeed sets the "speed" field.
+func (_u *NetworkIxLanUpdate) SetSpeed(v int) *NetworkIxLanUpdate {
+	_u.mutation.ResetSpeed()
+	_u.mutation.SetSpeed(v)
 	return _u
 }
 
-// SetNillableNetSideID sets the "net_side_id" field if the given value is not nil.
-func (_u *NetworkIxLanUpdate) SetNillableNetSideID(v *int) *NetworkIxLanUpdate {
+// SetNillableSpeed sets the "speed" field if the given value is not nil.
+func (_u *NetworkIxLanUpdate) SetNillableSpeed(v *int) *NetworkIxLanUpdate {
 	if v != nil {
-		_u.SetNetSideID(*v)
+		_u.SetSpeed(*v)
 	}
 	return _u
 }
 
-// AddNetSideID adds value to the "net_side_id" field.
-func (_u *NetworkIxLanUpdate) AddNetSideID(v int) *NetworkIxLanUpdate {
-	_u.mutation.AddNetSideID(v)
+// AddSpeed adds value to the "speed" field.
+func (_u *NetworkIxLanUpdate) AddSpeed(v int) *NetworkIxLanUpdate {
+	_u.mutation.AddSpeed(v)
 	return _u
 }
 
-// ClearNetSideID clears the value of the "net_side_id" field.
-func (_u *NetworkIxLanUpdate) ClearNetSideID() *NetworkIxLanUpdate {
-	_u.mutation.ClearNetSideID()
+// SetIxID sets the "ix_id" field.
+func (_u *NetworkIxLanUpdate) SetIxID(v int) *NetworkIxLanUpdate {
+	_u.mutation.ResetIxID()
+	_u.mutation.SetIxID(v)
 	return _u
 }
 
-// SetIxSideID sets the "ix_side_id" field.
-func (_u *NetworkIxLanUpdate) SetIxSideID(v int) *NetworkIxLanUpdate {
-	_u.mutation.ResetIxSideID()
-	_u.mutation.SetIxSideID(v)
-	return _u
-}
-
-// SetNillableIxSideID sets the "ix_side_id" field if the given value is not nil.
-func (_u *NetworkIxLanUpdate) SetNillableIxSideID(v *int) *NetworkIxLanUpdate {
+// SetNillableIxID sets the "ix_id" field if the given value is not nil.
+func (_u *NetworkIxLanUpdate) SetNillableIxID(v *int) *NetworkIxLanUpdate {
 	if v != nil {
-		_u.SetIxSideID(*v)
+		_u.SetIxID(*v)
 	}
 	return _u
 }
 
-// AddIxSideID adds value to the "ix_side_id" field.
-func (_u *NetworkIxLanUpdate) AddIxSideID(v int) *NetworkIxLanUpdate {
-	_u.mutation.AddIxSideID(v)
+// AddIxID adds value to the "ix_id" field.
+func (_u *NetworkIxLanUpdate) AddIxID(v int) *NetworkIxLanUpdate {
+	_u.mutation.AddIxID(v)
 	return _u
 }
 
-// ClearIxSideID clears the value of the "ix_side_id" field.
-func (_u *NetworkIxLanUpdate) ClearIxSideID() *NetworkIxLanUpdate {
-	_u.mutation.ClearIxSideID()
+// ClearIxID clears the value of the "ix_id" field.
+func (_u *NetworkIxLanUpdate) ClearIxID() *NetworkIxLanUpdate {
+	_u.mutation.ClearIxID()
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *NetworkIxLanUpdate) SetName(v string) *NetworkIxLanUpdate {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *NetworkIxLanUpdate) SetNillableName(v *string) *NetworkIxLanUpdate {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// ClearName clears the value of the "name" field.
+func (_u *NetworkIxLanUpdate) ClearName() *NetworkIxLanUpdate {
+	_u.mutation.ClearName()
 	return _u
 }
 
@@ -343,25 +343,6 @@ func (_u *NetworkIxLanUpdate) SetNillableStatus(v *string) *NetworkIxLanUpdate {
 	return _u
 }
 
-// SetNetworkID sets the "network" edge to the Network entity by ID.
-func (_u *NetworkIxLanUpdate) SetNetworkID(id int) *NetworkIxLanUpdate {
-	_u.mutation.SetNetworkID(id)
-	return _u
-}
-
-// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
-func (_u *NetworkIxLanUpdate) SetNillableNetworkID(id *int) *NetworkIxLanUpdate {
-	if id != nil {
-		_u = _u.SetNetworkID(*id)
-	}
-	return _u
-}
-
-// SetNetwork sets the "network" edge to the Network entity.
-func (_u *NetworkIxLanUpdate) SetNetwork(v *Network) *NetworkIxLanUpdate {
-	return _u.SetNetworkID(v.ID)
-}
-
 // SetIxLanID sets the "ix_lan" edge to the IxLan entity by ID.
 func (_u *NetworkIxLanUpdate) SetIxLanID(id int) *NetworkIxLanUpdate {
 	_u.mutation.SetIxLanID(id)
@@ -381,20 +362,39 @@ func (_u *NetworkIxLanUpdate) SetIxLan(v *IxLan) *NetworkIxLanUpdate {
 	return _u.SetIxLanID(v.ID)
 }
 
+// SetNetworkID sets the "network" edge to the Network entity by ID.
+func (_u *NetworkIxLanUpdate) SetNetworkID(id int) *NetworkIxLanUpdate {
+	_u.mutation.SetNetworkID(id)
+	return _u
+}
+
+// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
+func (_u *NetworkIxLanUpdate) SetNillableNetworkID(id *int) *NetworkIxLanUpdate {
+	if id != nil {
+		_u = _u.SetNetworkID(*id)
+	}
+	return _u
+}
+
+// SetNetwork sets the "network" edge to the Network entity.
+func (_u *NetworkIxLanUpdate) SetNetwork(v *Network) *NetworkIxLanUpdate {
+	return _u.SetNetworkID(v.ID)
+}
+
 // Mutation returns the NetworkIxLanMutation object of the builder.
 func (_u *NetworkIxLanUpdate) Mutation() *NetworkIxLanMutation {
 	return _u.mutation
 }
 
-// ClearNetwork clears the "network" edge to the Network entity.
-func (_u *NetworkIxLanUpdate) ClearNetwork() *NetworkIxLanUpdate {
-	_u.mutation.ClearNetwork()
-	return _u
-}
-
 // ClearIxLan clears the "ix_lan" edge to the IxLan entity.
 func (_u *NetworkIxLanUpdate) ClearIxLan() *NetworkIxLanUpdate {
 	_u.mutation.ClearIxLan()
+	return _u
+}
+
+// ClearNetwork clears the "network" edge to the Network entity.
+func (_u *NetworkIxLanUpdate) ClearNetwork() *NetworkIxLanUpdate {
+	_u.mutation.ClearNetwork()
 	return _u
 }
 
@@ -427,6 +427,11 @@ func (_u *NetworkIxLanUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *NetworkIxLanUpdate) check() error {
+	if v, ok := _u.mutation.Asn(); ok {
+		if err := networkixlan.AsnValidator(v); err != nil {
+			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.asn": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Notes(); ok {
 		if err := networkixlan.NotesValidator(v); err != nil {
 			return &ValidationError{Name: "notes", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.notes": %w`, err)}
@@ -452,38 +457,32 @@ func (_u *NetworkIxLanUpdate) sqlSave(ctx context.Context) (_node int, err error
 			}
 		}
 	}
-	if value, ok := _u.mutation.IxID(); ok {
-		_spec.SetField(networkixlan.FieldIxID, field.TypeInt, value)
+	if value, ok := _u.mutation.IxSideID(); ok {
+		_spec.SetField(networkixlan.FieldIxSideID, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.AddedIxID(); ok {
-		_spec.AddField(networkixlan.FieldIxID, field.TypeInt, value)
+	if value, ok := _u.mutation.AddedIxSideID(); ok {
+		_spec.AddField(networkixlan.FieldIxSideID, field.TypeInt, value)
 	}
-	if _u.mutation.IxIDCleared() {
-		_spec.ClearField(networkixlan.FieldIxID, field.TypeInt)
+	if _u.mutation.IxSideIDCleared() {
+		_spec.ClearField(networkixlan.FieldIxSideID, field.TypeInt)
 	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(networkixlan.FieldName, field.TypeString, value)
+	if value, ok := _u.mutation.NetSideID(); ok {
+		_spec.SetField(networkixlan.FieldNetSideID, field.TypeInt, value)
 	}
-	if _u.mutation.NameCleared() {
-		_spec.ClearField(networkixlan.FieldName, field.TypeString)
+	if value, ok := _u.mutation.AddedNetSideID(); ok {
+		_spec.AddField(networkixlan.FieldNetSideID, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.Notes(); ok {
-		_spec.SetField(networkixlan.FieldNotes, field.TypeString, value)
-	}
-	if _u.mutation.NotesCleared() {
-		_spec.ClearField(networkixlan.FieldNotes, field.TypeString)
-	}
-	if value, ok := _u.mutation.Speed(); ok {
-		_spec.SetField(networkixlan.FieldSpeed, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedSpeed(); ok {
-		_spec.AddField(networkixlan.FieldSpeed, field.TypeInt, value)
+	if _u.mutation.NetSideIDCleared() {
+		_spec.ClearField(networkixlan.FieldNetSideID, field.TypeInt)
 	}
 	if value, ok := _u.mutation.Asn(); ok {
 		_spec.SetField(networkixlan.FieldAsn, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.AddedAsn(); ok {
 		_spec.AddField(networkixlan.FieldAsn, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.BfdSupport(); ok {
+		_spec.SetField(networkixlan.FieldBfdSupport, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Ipaddr4(); ok {
 		_spec.SetField(networkixlan.FieldIpaddr4, field.TypeString, value)
@@ -500,64 +499,41 @@ func (_u *NetworkIxLanUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.IsRsPeer(); ok {
 		_spec.SetField(networkixlan.FieldIsRsPeer, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.BfdSupport(); ok {
-		_spec.SetField(networkixlan.FieldBfdSupport, field.TypeBool, value)
+	if value, ok := _u.mutation.Notes(); ok {
+		_spec.SetField(networkixlan.FieldNotes, field.TypeString, value)
+	}
+	if _u.mutation.NotesCleared() {
+		_spec.ClearField(networkixlan.FieldNotes, field.TypeString)
 	}
 	if value, ok := _u.mutation.Operational(); ok {
 		_spec.SetField(networkixlan.FieldOperational, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.NetSideID(); ok {
-		_spec.SetField(networkixlan.FieldNetSideID, field.TypeInt, value)
+	if value, ok := _u.mutation.Speed(); ok {
+		_spec.SetField(networkixlan.FieldSpeed, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.AddedNetSideID(); ok {
-		_spec.AddField(networkixlan.FieldNetSideID, field.TypeInt, value)
+	if value, ok := _u.mutation.AddedSpeed(); ok {
+		_spec.AddField(networkixlan.FieldSpeed, field.TypeInt, value)
 	}
-	if _u.mutation.NetSideIDCleared() {
-		_spec.ClearField(networkixlan.FieldNetSideID, field.TypeInt)
+	if value, ok := _u.mutation.IxID(); ok {
+		_spec.SetField(networkixlan.FieldIxID, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.IxSideID(); ok {
-		_spec.SetField(networkixlan.FieldIxSideID, field.TypeInt, value)
+	if value, ok := _u.mutation.AddedIxID(); ok {
+		_spec.AddField(networkixlan.FieldIxID, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.AddedIxSideID(); ok {
-		_spec.AddField(networkixlan.FieldIxSideID, field.TypeInt, value)
+	if _u.mutation.IxIDCleared() {
+		_spec.ClearField(networkixlan.FieldIxID, field.TypeInt)
 	}
-	if _u.mutation.IxSideIDCleared() {
-		_spec.ClearField(networkixlan.FieldIxSideID, field.TypeInt)
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(networkixlan.FieldName, field.TypeString, value)
+	}
+	if _u.mutation.NameCleared() {
+		_spec.ClearField(networkixlan.FieldName, field.TypeString)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(networkixlan.FieldUpdated, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(networkixlan.FieldStatus, field.TypeString, value)
-	}
-	if _u.mutation.NetworkCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   networkixlan.NetworkTable,
-			Columns: []string{networkixlan.NetworkColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.NetworkIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   networkixlan.NetworkTable,
-			Columns: []string{networkixlan.NetworkColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.IxLanCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -588,6 +564,35 @@ func (_u *NetworkIxLanUpdate) sqlSave(ctx context.Context) (_node int, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.NetworkCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   networkixlan.NetworkTable,
+			Columns: []string{networkixlan.NetworkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NetworkIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   networkixlan.NetworkTable,
+			Columns: []string{networkixlan.NetworkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{networkixlan.Label}
@@ -608,50 +613,30 @@ type NetworkIxLanUpdateOne struct {
 	mutation *NetworkIxLanMutation
 }
 
-// SetNetID sets the "net_id" field.
-func (_u *NetworkIxLanUpdateOne) SetNetID(v int) *NetworkIxLanUpdateOne {
-	_u.mutation.SetNetID(v)
+// SetIxSideID sets the "ix_side_id" field.
+func (_u *NetworkIxLanUpdateOne) SetIxSideID(v int) *NetworkIxLanUpdateOne {
+	_u.mutation.ResetIxSideID()
+	_u.mutation.SetIxSideID(v)
 	return _u
 }
 
-// SetNillableNetID sets the "net_id" field if the given value is not nil.
-func (_u *NetworkIxLanUpdateOne) SetNillableNetID(v *int) *NetworkIxLanUpdateOne {
+// SetNillableIxSideID sets the "ix_side_id" field if the given value is not nil.
+func (_u *NetworkIxLanUpdateOne) SetNillableIxSideID(v *int) *NetworkIxLanUpdateOne {
 	if v != nil {
-		_u.SetNetID(*v)
+		_u.SetIxSideID(*v)
 	}
 	return _u
 }
 
-// ClearNetID clears the value of the "net_id" field.
-func (_u *NetworkIxLanUpdateOne) ClearNetID() *NetworkIxLanUpdateOne {
-	_u.mutation.ClearNetID()
+// AddIxSideID adds value to the "ix_side_id" field.
+func (_u *NetworkIxLanUpdateOne) AddIxSideID(v int) *NetworkIxLanUpdateOne {
+	_u.mutation.AddIxSideID(v)
 	return _u
 }
 
-// SetIxID sets the "ix_id" field.
-func (_u *NetworkIxLanUpdateOne) SetIxID(v int) *NetworkIxLanUpdateOne {
-	_u.mutation.ResetIxID()
-	_u.mutation.SetIxID(v)
-	return _u
-}
-
-// SetNillableIxID sets the "ix_id" field if the given value is not nil.
-func (_u *NetworkIxLanUpdateOne) SetNillableIxID(v *int) *NetworkIxLanUpdateOne {
-	if v != nil {
-		_u.SetIxID(*v)
-	}
-	return _u
-}
-
-// AddIxID adds value to the "ix_id" field.
-func (_u *NetworkIxLanUpdateOne) AddIxID(v int) *NetworkIxLanUpdateOne {
-	_u.mutation.AddIxID(v)
-	return _u
-}
-
-// ClearIxID clears the value of the "ix_id" field.
-func (_u *NetworkIxLanUpdateOne) ClearIxID() *NetworkIxLanUpdateOne {
-	_u.mutation.ClearIxID()
+// ClearIxSideID clears the value of the "ix_side_id" field.
+func (_u *NetworkIxLanUpdateOne) ClearIxSideID() *NetworkIxLanUpdateOne {
+	_u.mutation.ClearIxSideID()
 	return _u
 }
 
@@ -675,64 +660,50 @@ func (_u *NetworkIxLanUpdateOne) ClearIxlanID() *NetworkIxLanUpdateOne {
 	return _u
 }
 
-// SetName sets the "name" field.
-func (_u *NetworkIxLanUpdateOne) SetName(v string) *NetworkIxLanUpdateOne {
-	_u.mutation.SetName(v)
+// SetNetID sets the "net_id" field.
+func (_u *NetworkIxLanUpdateOne) SetNetID(v int) *NetworkIxLanUpdateOne {
+	_u.mutation.SetNetID(v)
 	return _u
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *NetworkIxLanUpdateOne) SetNillableName(v *string) *NetworkIxLanUpdateOne {
+// SetNillableNetID sets the "net_id" field if the given value is not nil.
+func (_u *NetworkIxLanUpdateOne) SetNillableNetID(v *int) *NetworkIxLanUpdateOne {
 	if v != nil {
-		_u.SetName(*v)
+		_u.SetNetID(*v)
 	}
 	return _u
 }
 
-// ClearName clears the value of the "name" field.
-func (_u *NetworkIxLanUpdateOne) ClearName() *NetworkIxLanUpdateOne {
-	_u.mutation.ClearName()
+// ClearNetID clears the value of the "net_id" field.
+func (_u *NetworkIxLanUpdateOne) ClearNetID() *NetworkIxLanUpdateOne {
+	_u.mutation.ClearNetID()
 	return _u
 }
 
-// SetNotes sets the "notes" field.
-func (_u *NetworkIxLanUpdateOne) SetNotes(v string) *NetworkIxLanUpdateOne {
-	_u.mutation.SetNotes(v)
+// SetNetSideID sets the "net_side_id" field.
+func (_u *NetworkIxLanUpdateOne) SetNetSideID(v int) *NetworkIxLanUpdateOne {
+	_u.mutation.ResetNetSideID()
+	_u.mutation.SetNetSideID(v)
 	return _u
 }
 
-// SetNillableNotes sets the "notes" field if the given value is not nil.
-func (_u *NetworkIxLanUpdateOne) SetNillableNotes(v *string) *NetworkIxLanUpdateOne {
+// SetNillableNetSideID sets the "net_side_id" field if the given value is not nil.
+func (_u *NetworkIxLanUpdateOne) SetNillableNetSideID(v *int) *NetworkIxLanUpdateOne {
 	if v != nil {
-		_u.SetNotes(*v)
+		_u.SetNetSideID(*v)
 	}
 	return _u
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (_u *NetworkIxLanUpdateOne) ClearNotes() *NetworkIxLanUpdateOne {
-	_u.mutation.ClearNotes()
+// AddNetSideID adds value to the "net_side_id" field.
+func (_u *NetworkIxLanUpdateOne) AddNetSideID(v int) *NetworkIxLanUpdateOne {
+	_u.mutation.AddNetSideID(v)
 	return _u
 }
 
-// SetSpeed sets the "speed" field.
-func (_u *NetworkIxLanUpdateOne) SetSpeed(v int) *NetworkIxLanUpdateOne {
-	_u.mutation.ResetSpeed()
-	_u.mutation.SetSpeed(v)
-	return _u
-}
-
-// SetNillableSpeed sets the "speed" field if the given value is not nil.
-func (_u *NetworkIxLanUpdateOne) SetNillableSpeed(v *int) *NetworkIxLanUpdateOne {
-	if v != nil {
-		_u.SetSpeed(*v)
-	}
-	return _u
-}
-
-// AddSpeed adds value to the "speed" field.
-func (_u *NetworkIxLanUpdateOne) AddSpeed(v int) *NetworkIxLanUpdateOne {
-	_u.mutation.AddSpeed(v)
+// ClearNetSideID clears the value of the "net_side_id" field.
+func (_u *NetworkIxLanUpdateOne) ClearNetSideID() *NetworkIxLanUpdateOne {
+	_u.mutation.ClearNetSideID()
 	return _u
 }
 
@@ -754,6 +725,20 @@ func (_u *NetworkIxLanUpdateOne) SetNillableAsn(v *int) *NetworkIxLanUpdateOne {
 // AddAsn adds value to the "asn" field.
 func (_u *NetworkIxLanUpdateOne) AddAsn(v int) *NetworkIxLanUpdateOne {
 	_u.mutation.AddAsn(v)
+	return _u
+}
+
+// SetBfdSupport sets the "bfd_support" field.
+func (_u *NetworkIxLanUpdateOne) SetBfdSupport(v bool) *NetworkIxLanUpdateOne {
+	_u.mutation.SetBfdSupport(v)
+	return _u
+}
+
+// SetNillableBfdSupport sets the "bfd_support" field if the given value is not nil.
+func (_u *NetworkIxLanUpdateOne) SetNillableBfdSupport(v *bool) *NetworkIxLanUpdateOne {
+	if v != nil {
+		_u.SetBfdSupport(*v)
+	}
 	return _u
 }
 
@@ -811,17 +796,23 @@ func (_u *NetworkIxLanUpdateOne) SetNillableIsRsPeer(v *bool) *NetworkIxLanUpdat
 	return _u
 }
 
-// SetBfdSupport sets the "bfd_support" field.
-func (_u *NetworkIxLanUpdateOne) SetBfdSupport(v bool) *NetworkIxLanUpdateOne {
-	_u.mutation.SetBfdSupport(v)
+// SetNotes sets the "notes" field.
+func (_u *NetworkIxLanUpdateOne) SetNotes(v string) *NetworkIxLanUpdateOne {
+	_u.mutation.SetNotes(v)
 	return _u
 }
 
-// SetNillableBfdSupport sets the "bfd_support" field if the given value is not nil.
-func (_u *NetworkIxLanUpdateOne) SetNillableBfdSupport(v *bool) *NetworkIxLanUpdateOne {
+// SetNillableNotes sets the "notes" field if the given value is not nil.
+func (_u *NetworkIxLanUpdateOne) SetNillableNotes(v *string) *NetworkIxLanUpdateOne {
 	if v != nil {
-		_u.SetBfdSupport(*v)
+		_u.SetNotes(*v)
 	}
+	return _u
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (_u *NetworkIxLanUpdateOne) ClearNotes() *NetworkIxLanUpdateOne {
+	_u.mutation.ClearNotes()
 	return _u
 }
 
@@ -839,57 +830,71 @@ func (_u *NetworkIxLanUpdateOne) SetNillableOperational(v *bool) *NetworkIxLanUp
 	return _u
 }
 
-// SetNetSideID sets the "net_side_id" field.
-func (_u *NetworkIxLanUpdateOne) SetNetSideID(v int) *NetworkIxLanUpdateOne {
-	_u.mutation.ResetNetSideID()
-	_u.mutation.SetNetSideID(v)
+// SetSpeed sets the "speed" field.
+func (_u *NetworkIxLanUpdateOne) SetSpeed(v int) *NetworkIxLanUpdateOne {
+	_u.mutation.ResetSpeed()
+	_u.mutation.SetSpeed(v)
 	return _u
 }
 
-// SetNillableNetSideID sets the "net_side_id" field if the given value is not nil.
-func (_u *NetworkIxLanUpdateOne) SetNillableNetSideID(v *int) *NetworkIxLanUpdateOne {
+// SetNillableSpeed sets the "speed" field if the given value is not nil.
+func (_u *NetworkIxLanUpdateOne) SetNillableSpeed(v *int) *NetworkIxLanUpdateOne {
 	if v != nil {
-		_u.SetNetSideID(*v)
+		_u.SetSpeed(*v)
 	}
 	return _u
 }
 
-// AddNetSideID adds value to the "net_side_id" field.
-func (_u *NetworkIxLanUpdateOne) AddNetSideID(v int) *NetworkIxLanUpdateOne {
-	_u.mutation.AddNetSideID(v)
+// AddSpeed adds value to the "speed" field.
+func (_u *NetworkIxLanUpdateOne) AddSpeed(v int) *NetworkIxLanUpdateOne {
+	_u.mutation.AddSpeed(v)
 	return _u
 }
 
-// ClearNetSideID clears the value of the "net_side_id" field.
-func (_u *NetworkIxLanUpdateOne) ClearNetSideID() *NetworkIxLanUpdateOne {
-	_u.mutation.ClearNetSideID()
+// SetIxID sets the "ix_id" field.
+func (_u *NetworkIxLanUpdateOne) SetIxID(v int) *NetworkIxLanUpdateOne {
+	_u.mutation.ResetIxID()
+	_u.mutation.SetIxID(v)
 	return _u
 }
 
-// SetIxSideID sets the "ix_side_id" field.
-func (_u *NetworkIxLanUpdateOne) SetIxSideID(v int) *NetworkIxLanUpdateOne {
-	_u.mutation.ResetIxSideID()
-	_u.mutation.SetIxSideID(v)
-	return _u
-}
-
-// SetNillableIxSideID sets the "ix_side_id" field if the given value is not nil.
-func (_u *NetworkIxLanUpdateOne) SetNillableIxSideID(v *int) *NetworkIxLanUpdateOne {
+// SetNillableIxID sets the "ix_id" field if the given value is not nil.
+func (_u *NetworkIxLanUpdateOne) SetNillableIxID(v *int) *NetworkIxLanUpdateOne {
 	if v != nil {
-		_u.SetIxSideID(*v)
+		_u.SetIxID(*v)
 	}
 	return _u
 }
 
-// AddIxSideID adds value to the "ix_side_id" field.
-func (_u *NetworkIxLanUpdateOne) AddIxSideID(v int) *NetworkIxLanUpdateOne {
-	_u.mutation.AddIxSideID(v)
+// AddIxID adds value to the "ix_id" field.
+func (_u *NetworkIxLanUpdateOne) AddIxID(v int) *NetworkIxLanUpdateOne {
+	_u.mutation.AddIxID(v)
 	return _u
 }
 
-// ClearIxSideID clears the value of the "ix_side_id" field.
-func (_u *NetworkIxLanUpdateOne) ClearIxSideID() *NetworkIxLanUpdateOne {
-	_u.mutation.ClearIxSideID()
+// ClearIxID clears the value of the "ix_id" field.
+func (_u *NetworkIxLanUpdateOne) ClearIxID() *NetworkIxLanUpdateOne {
+	_u.mutation.ClearIxID()
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *NetworkIxLanUpdateOne) SetName(v string) *NetworkIxLanUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *NetworkIxLanUpdateOne) SetNillableName(v *string) *NetworkIxLanUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// ClearName clears the value of the "name" field.
+func (_u *NetworkIxLanUpdateOne) ClearName() *NetworkIxLanUpdateOne {
+	_u.mutation.ClearName()
 	return _u
 }
 
@@ -921,25 +926,6 @@ func (_u *NetworkIxLanUpdateOne) SetNillableStatus(v *string) *NetworkIxLanUpdat
 	return _u
 }
 
-// SetNetworkID sets the "network" edge to the Network entity by ID.
-func (_u *NetworkIxLanUpdateOne) SetNetworkID(id int) *NetworkIxLanUpdateOne {
-	_u.mutation.SetNetworkID(id)
-	return _u
-}
-
-// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
-func (_u *NetworkIxLanUpdateOne) SetNillableNetworkID(id *int) *NetworkIxLanUpdateOne {
-	if id != nil {
-		_u = _u.SetNetworkID(*id)
-	}
-	return _u
-}
-
-// SetNetwork sets the "network" edge to the Network entity.
-func (_u *NetworkIxLanUpdateOne) SetNetwork(v *Network) *NetworkIxLanUpdateOne {
-	return _u.SetNetworkID(v.ID)
-}
-
 // SetIxLanID sets the "ix_lan" edge to the IxLan entity by ID.
 func (_u *NetworkIxLanUpdateOne) SetIxLanID(id int) *NetworkIxLanUpdateOne {
 	_u.mutation.SetIxLanID(id)
@@ -959,20 +945,39 @@ func (_u *NetworkIxLanUpdateOne) SetIxLan(v *IxLan) *NetworkIxLanUpdateOne {
 	return _u.SetIxLanID(v.ID)
 }
 
+// SetNetworkID sets the "network" edge to the Network entity by ID.
+func (_u *NetworkIxLanUpdateOne) SetNetworkID(id int) *NetworkIxLanUpdateOne {
+	_u.mutation.SetNetworkID(id)
+	return _u
+}
+
+// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
+func (_u *NetworkIxLanUpdateOne) SetNillableNetworkID(id *int) *NetworkIxLanUpdateOne {
+	if id != nil {
+		_u = _u.SetNetworkID(*id)
+	}
+	return _u
+}
+
+// SetNetwork sets the "network" edge to the Network entity.
+func (_u *NetworkIxLanUpdateOne) SetNetwork(v *Network) *NetworkIxLanUpdateOne {
+	return _u.SetNetworkID(v.ID)
+}
+
 // Mutation returns the NetworkIxLanMutation object of the builder.
 func (_u *NetworkIxLanUpdateOne) Mutation() *NetworkIxLanMutation {
 	return _u.mutation
 }
 
-// ClearNetwork clears the "network" edge to the Network entity.
-func (_u *NetworkIxLanUpdateOne) ClearNetwork() *NetworkIxLanUpdateOne {
-	_u.mutation.ClearNetwork()
-	return _u
-}
-
 // ClearIxLan clears the "ix_lan" edge to the IxLan entity.
 func (_u *NetworkIxLanUpdateOne) ClearIxLan() *NetworkIxLanUpdateOne {
 	_u.mutation.ClearIxLan()
+	return _u
+}
+
+// ClearNetwork clears the "network" edge to the Network entity.
+func (_u *NetworkIxLanUpdateOne) ClearNetwork() *NetworkIxLanUpdateOne {
+	_u.mutation.ClearNetwork()
 	return _u
 }
 
@@ -1018,6 +1023,11 @@ func (_u *NetworkIxLanUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *NetworkIxLanUpdateOne) check() error {
+	if v, ok := _u.mutation.Asn(); ok {
+		if err := networkixlan.AsnValidator(v); err != nil {
+			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.asn": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Notes(); ok {
 		if err := networkixlan.NotesValidator(v); err != nil {
 			return &ValidationError{Name: "notes", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.notes": %w`, err)}
@@ -1060,38 +1070,32 @@ func (_u *NetworkIxLanUpdateOne) sqlSave(ctx context.Context) (_node *NetworkIxL
 			}
 		}
 	}
-	if value, ok := _u.mutation.IxID(); ok {
-		_spec.SetField(networkixlan.FieldIxID, field.TypeInt, value)
+	if value, ok := _u.mutation.IxSideID(); ok {
+		_spec.SetField(networkixlan.FieldIxSideID, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.AddedIxID(); ok {
-		_spec.AddField(networkixlan.FieldIxID, field.TypeInt, value)
+	if value, ok := _u.mutation.AddedIxSideID(); ok {
+		_spec.AddField(networkixlan.FieldIxSideID, field.TypeInt, value)
 	}
-	if _u.mutation.IxIDCleared() {
-		_spec.ClearField(networkixlan.FieldIxID, field.TypeInt)
+	if _u.mutation.IxSideIDCleared() {
+		_spec.ClearField(networkixlan.FieldIxSideID, field.TypeInt)
 	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(networkixlan.FieldName, field.TypeString, value)
+	if value, ok := _u.mutation.NetSideID(); ok {
+		_spec.SetField(networkixlan.FieldNetSideID, field.TypeInt, value)
 	}
-	if _u.mutation.NameCleared() {
-		_spec.ClearField(networkixlan.FieldName, field.TypeString)
+	if value, ok := _u.mutation.AddedNetSideID(); ok {
+		_spec.AddField(networkixlan.FieldNetSideID, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.Notes(); ok {
-		_spec.SetField(networkixlan.FieldNotes, field.TypeString, value)
-	}
-	if _u.mutation.NotesCleared() {
-		_spec.ClearField(networkixlan.FieldNotes, field.TypeString)
-	}
-	if value, ok := _u.mutation.Speed(); ok {
-		_spec.SetField(networkixlan.FieldSpeed, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedSpeed(); ok {
-		_spec.AddField(networkixlan.FieldSpeed, field.TypeInt, value)
+	if _u.mutation.NetSideIDCleared() {
+		_spec.ClearField(networkixlan.FieldNetSideID, field.TypeInt)
 	}
 	if value, ok := _u.mutation.Asn(); ok {
 		_spec.SetField(networkixlan.FieldAsn, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.AddedAsn(); ok {
 		_spec.AddField(networkixlan.FieldAsn, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.BfdSupport(); ok {
+		_spec.SetField(networkixlan.FieldBfdSupport, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Ipaddr4(); ok {
 		_spec.SetField(networkixlan.FieldIpaddr4, field.TypeString, value)
@@ -1108,64 +1112,41 @@ func (_u *NetworkIxLanUpdateOne) sqlSave(ctx context.Context) (_node *NetworkIxL
 	if value, ok := _u.mutation.IsRsPeer(); ok {
 		_spec.SetField(networkixlan.FieldIsRsPeer, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.BfdSupport(); ok {
-		_spec.SetField(networkixlan.FieldBfdSupport, field.TypeBool, value)
+	if value, ok := _u.mutation.Notes(); ok {
+		_spec.SetField(networkixlan.FieldNotes, field.TypeString, value)
+	}
+	if _u.mutation.NotesCleared() {
+		_spec.ClearField(networkixlan.FieldNotes, field.TypeString)
 	}
 	if value, ok := _u.mutation.Operational(); ok {
 		_spec.SetField(networkixlan.FieldOperational, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.NetSideID(); ok {
-		_spec.SetField(networkixlan.FieldNetSideID, field.TypeInt, value)
+	if value, ok := _u.mutation.Speed(); ok {
+		_spec.SetField(networkixlan.FieldSpeed, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.AddedNetSideID(); ok {
-		_spec.AddField(networkixlan.FieldNetSideID, field.TypeInt, value)
+	if value, ok := _u.mutation.AddedSpeed(); ok {
+		_spec.AddField(networkixlan.FieldSpeed, field.TypeInt, value)
 	}
-	if _u.mutation.NetSideIDCleared() {
-		_spec.ClearField(networkixlan.FieldNetSideID, field.TypeInt)
+	if value, ok := _u.mutation.IxID(); ok {
+		_spec.SetField(networkixlan.FieldIxID, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.IxSideID(); ok {
-		_spec.SetField(networkixlan.FieldIxSideID, field.TypeInt, value)
+	if value, ok := _u.mutation.AddedIxID(); ok {
+		_spec.AddField(networkixlan.FieldIxID, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.AddedIxSideID(); ok {
-		_spec.AddField(networkixlan.FieldIxSideID, field.TypeInt, value)
+	if _u.mutation.IxIDCleared() {
+		_spec.ClearField(networkixlan.FieldIxID, field.TypeInt)
 	}
-	if _u.mutation.IxSideIDCleared() {
-		_spec.ClearField(networkixlan.FieldIxSideID, field.TypeInt)
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(networkixlan.FieldName, field.TypeString, value)
+	}
+	if _u.mutation.NameCleared() {
+		_spec.ClearField(networkixlan.FieldName, field.TypeString)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(networkixlan.FieldUpdated, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(networkixlan.FieldStatus, field.TypeString, value)
-	}
-	if _u.mutation.NetworkCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   networkixlan.NetworkTable,
-			Columns: []string{networkixlan.NetworkColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.NetworkIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   networkixlan.NetworkTable,
-			Columns: []string{networkixlan.NetworkColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.IxLanCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1189,6 +1170,35 @@ func (_u *NetworkIxLanUpdateOne) sqlSave(ctx context.Context) (_node *NetworkIxL
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(ixlan.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.NetworkCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   networkixlan.NetworkTable,
+			Columns: []string{networkixlan.NetworkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NetworkIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   networkixlan.NetworkTable,
+			Columns: []string{networkixlan.NetworkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

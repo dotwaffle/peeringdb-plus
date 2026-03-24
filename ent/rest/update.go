@@ -27,30 +27,30 @@ import (
 type UpdateCampuParams struct {
 	// FK to organization
 	OrgID Option[*int] `json:"org_id,omitempty"`
-	// Organization name (computed)
-	OrgName Option[string] `json:"org_name,omitempty"`
+	// Also known as
+	Aka Option[*string] `json:"aka,omitempty"`
+	// City
+	City Option[string] `json:"city,omitempty"`
+	// Country code
+	Country Option[string] `json:"country,omitempty"`
+	// Logo URL
+	Logo Option[*string] `json:"logo,omitempty"`
 	// Campus name
 	Name Option[string] `json:"name"`
 	// Long name
 	NameLong Option[*string] `json:"name_long,omitempty"`
-	// Also known as
-	Aka Option[*string] `json:"aka,omitempty"`
-	// Campus website URL
-	Website Option[string] `json:"website,omitempty"`
-	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
 	// Notes
 	Notes Option[string] `json:"notes,omitempty"`
-	// Country code
-	Country Option[string] `json:"country,omitempty"`
-	// City
-	City Option[string] `json:"city,omitempty"`
-	// Postal / ZIP code
-	Zipcode Option[string] `json:"zipcode,omitempty"`
+	// Social media links
+	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
 	// State or province
 	State Option[string] `json:"state,omitempty"`
-	// Logo URL
-	Logo Option[*string] `json:"logo,omitempty"`
+	// Campus website URL
+	Website Option[string] `json:"website,omitempty"`
+	// Postal / ZIP code
+	Zipcode Option[string] `json:"zipcode,omitempty"`
+	// Org Name (computed)
+	OrgName Option[string] `json:"org_name,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
 	// Record status
@@ -65,8 +65,25 @@ func (u *UpdateCampuParams) ApplyInputs(builder *ent.CampusUpdateOne) *ent.Campu
 			builder.ClearOrgID()
 		}
 	}
-	if v, ok := u.OrgName.Get(); ok {
-		builder.SetOrgName(v)
+	if v, ok := u.Aka.Get(); ok {
+		if v != nil {
+			builder.SetAka(*v)
+		} else {
+			builder.ClearAka()
+		}
+	}
+	if v, ok := u.City.Get(); ok {
+		builder.SetCity(v)
+	}
+	if v, ok := u.Country.Get(); ok {
+		builder.SetCountry(v)
+	}
+	if v, ok := u.Logo.Get(); ok {
+		if v != nil {
+			builder.SetLogo(*v)
+		} else {
+			builder.ClearLogo()
+		}
 	}
 	if v, ok := u.Name.Get(); ok {
 		builder.SetName(v)
@@ -78,40 +95,23 @@ func (u *UpdateCampuParams) ApplyInputs(builder *ent.CampusUpdateOne) *ent.Campu
 			builder.ClearNameLong()
 		}
 	}
-	if v, ok := u.Aka.Get(); ok {
-		if v != nil {
-			builder.SetAka(*v)
-		} else {
-			builder.ClearAka()
-		}
-	}
-	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
+	if v, ok := u.Notes.Get(); ok {
+		builder.SetNotes(v)
 	}
 	if v, ok := u.SocialMedia.Get(); ok {
 		builder.SetSocialMedia(v)
 	}
-	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
+	if v, ok := u.State.Get(); ok {
+		builder.SetState(v)
 	}
-	if v, ok := u.Country.Get(); ok {
-		builder.SetCountry(v)
-	}
-	if v, ok := u.City.Get(); ok {
-		builder.SetCity(v)
+	if v, ok := u.Website.Get(); ok {
+		builder.SetWebsite(v)
 	}
 	if v, ok := u.Zipcode.Get(); ok {
 		builder.SetZipcode(v)
 	}
-	if v, ok := u.State.Get(); ok {
-		builder.SetState(v)
-	}
-	if v, ok := u.Logo.Get(); ok {
-		if v != nil {
-			builder.SetLogo(*v)
-		} else {
-			builder.ClearLogo()
-		}
+	if v, ok := u.OrgName.Get(); ok {
+		builder.SetOrgName(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
 		builder.SetUpdated(v)
@@ -138,24 +138,24 @@ func (c *UpdateCampuParams) Exec(ctx context.Context, builder *ent.CampusUpdateO
 type UpdateCarrierParams struct {
 	// FK to organization
 	OrgID Option[*int] `json:"org_id,omitempty"`
-	// Organization name (computed)
-	OrgName Option[string] `json:"org_name,omitempty"`
-	// Carrier name
-	Name Option[string] `json:"name"`
 	// Also known as
 	Aka Option[string] `json:"aka,omitempty"`
-	// Long name
-	NameLong Option[string] `json:"name_long,omitempty"`
-	// Carrier website URL
-	Website Option[string] `json:"website,omitempty"`
-	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
-	// Notes
-	Notes Option[string] `json:"notes,omitempty"`
-	// Facility count (computed)
-	FacCount Option[int] `json:"fac_count,omitempty"`
 	// Logo URL
 	Logo Option[*string] `json:"logo,omitempty"`
+	// Carrier name
+	Name Option[string] `json:"name"`
+	// Long name
+	NameLong Option[string] `json:"name_long,omitempty"`
+	// Notes
+	Notes Option[string] `json:"notes,omitempty"`
+	// Social media links
+	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	// Carrier website URL
+	Website Option[string] `json:"website,omitempty"`
+	// Org Name (computed)
+	OrgName Option[string] `json:"org_name,omitempty"`
+	// Fac Count (computed)
+	FacCount Option[int] `json:"fac_count,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
 	// Record status
@@ -170,29 +170,8 @@ func (u *UpdateCarrierParams) ApplyInputs(builder *ent.CarrierUpdateOne) *ent.Ca
 			builder.ClearOrgID()
 		}
 	}
-	if v, ok := u.OrgName.Get(); ok {
-		builder.SetOrgName(v)
-	}
-	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
-	}
 	if v, ok := u.Aka.Get(); ok {
 		builder.SetAka(v)
-	}
-	if v, ok := u.NameLong.Get(); ok {
-		builder.SetNameLong(v)
-	}
-	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
-	}
-	if v, ok := u.SocialMedia.Get(); ok {
-		builder.SetSocialMedia(v)
-	}
-	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
-	}
-	if v, ok := u.FacCount.Get(); ok {
-		builder.SetFacCount(v)
 	}
 	if v, ok := u.Logo.Get(); ok {
 		if v != nil {
@@ -200,6 +179,27 @@ func (u *UpdateCarrierParams) ApplyInputs(builder *ent.CarrierUpdateOne) *ent.Ca
 		} else {
 			builder.ClearLogo()
 		}
+	}
+	if v, ok := u.Name.Get(); ok {
+		builder.SetName(v)
+	}
+	if v, ok := u.NameLong.Get(); ok {
+		builder.SetNameLong(v)
+	}
+	if v, ok := u.Notes.Get(); ok {
+		builder.SetNotes(v)
+	}
+	if v, ok := u.SocialMedia.Get(); ok {
+		builder.SetSocialMedia(v)
+	}
+	if v, ok := u.Website.Get(); ok {
+		builder.SetWebsite(v)
+	}
+	if v, ok := u.OrgName.Get(); ok {
+		builder.SetOrgName(v)
+	}
+	if v, ok := u.FacCount.Get(); ok {
+		builder.SetFacCount(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
 		builder.SetUpdated(v)
@@ -228,7 +228,7 @@ type UpdateCarrierFacilityParams struct {
 	CarrierID Option[*int] `json:"carrier_id,omitempty"`
 	// FK to facility
 	FacID Option[*int] `json:"fac_id,omitempty"`
-	// Facility name (computed)
+	// Name (computed)
 	Name Option[string] `json:"name,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
@@ -277,76 +277,76 @@ func (c *UpdateCarrierFacilityParams) Exec(ctx context.Context, builder *ent.Car
 
 // UpdateFacilityParams defines parameters for updating a Facility via a PATCH request.
 type UpdateFacilityParams struct {
-	// FK to organization
-	OrgID Option[*int] `json:"org_id,omitempty"`
-	// Organization name (computed)
-	OrgName Option[string] `json:"org_name,omitempty"`
 	// FK to campus
 	CampusID Option[*int] `json:"campus_id,omitempty"`
-	// Facility name
-	Name Option[string] `json:"name"`
-	// Also known as
-	Aka Option[string] `json:"aka,omitempty"`
-	// Long name
-	NameLong Option[string] `json:"name_long,omitempty"`
-	// Facility website URL
-	Website Option[string] `json:"website,omitempty"`
-	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
-	// CLLI code
-	Clli Option[string] `json:"clli,omitempty"`
-	// Rencode
-	Rencode Option[string] `json:"rencode,omitempty"`
-	// NPANXX
-	Npanxx Option[string] `json:"npanxx,omitempty"`
-	// Technical contact email
-	TechEmail Option[string] `json:"tech_email,omitempty"`
-	// Technical contact phone
-	TechPhone Option[string] `json:"tech_phone,omitempty"`
-	// Sales contact email
-	SalesEmail Option[string] `json:"sales_email,omitempty"`
-	// Sales contact phone
-	SalesPhone Option[string] `json:"sales_phone,omitempty"`
-	// Property type
-	Property Option[*string] `json:"property,omitempty"`
-	// Has diverse serving substations
-	DiverseServingSubstations Option[*bool] `json:"diverse_serving_substations,omitempty"`
-	// Available voltage services
-	AvailableVoltageServices Option[[]string] `json:"available_voltage_services,omitempty"`
-	// Notes
-	Notes Option[string] `json:"notes,omitempty"`
-	// Region / continent
-	RegionContinent Option[*string] `json:"region_continent,omitempty"`
-	// Status dashboard URL
-	StatusDashboard Option[*string] `json:"status_dashboard,omitempty"`
-	// Logo URL
-	Logo Option[*string] `json:"logo,omitempty"`
-	// Network count (computed)
-	NetCount Option[int] `json:"net_count,omitempty"`
-	// Internet exchange count (computed)
-	IxCount Option[int] `json:"ix_count,omitempty"`
-	// Carrier count (computed)
-	CarrierCount Option[int] `json:"carrier_count,omitempty"`
+	// FK to organization
+	OrgID Option[*int] `json:"org_id,omitempty"`
 	// Address line 1
 	Address1 Option[string] `json:"address1,omitempty"`
 	// Address line 2
 	Address2 Option[string] `json:"address2,omitempty"`
+	// Also known as
+	Aka Option[string] `json:"aka,omitempty"`
+	// Available voltage services
+	AvailableVoltageServices Option[[]string] `json:"available_voltage_services,omitempty"`
 	// City
 	City Option[string] `json:"city,omitempty"`
-	// State or province
-	State Option[string] `json:"state,omitempty"`
+	// CLLI code
+	Clli Option[string] `json:"clli,omitempty"`
 	// Country code
 	Country Option[string] `json:"country,omitempty"`
-	// Postal / ZIP code
-	Zipcode Option[string] `json:"zipcode,omitempty"`
-	// Suite number
-	Suite Option[string] `json:"suite,omitempty"`
+	// Diverse serving substations
+	DiverseServingSubstations Option[*bool] `json:"diverse_serving_substations,omitempty"`
 	// Floor
 	Floor Option[string] `json:"floor,omitempty"`
 	// Latitude
 	Latitude Option[*float64] `json:"latitude,omitempty"`
+	// Logo URL
+	Logo Option[*string] `json:"logo,omitempty"`
 	// Longitude
 	Longitude Option[*float64] `json:"longitude,omitempty"`
+	// Facility name
+	Name Option[string] `json:"name"`
+	// Long name
+	NameLong Option[string] `json:"name_long,omitempty"`
+	// Notes
+	Notes Option[string] `json:"notes,omitempty"`
+	// NPA-NXX code
+	Npanxx Option[string] `json:"npanxx,omitempty"`
+	// Property type
+	Property Option[*string] `json:"property,omitempty"`
+	// Region/continent
+	RegionContinent Option[*string] `json:"region_continent,omitempty"`
+	// Rencode
+	Rencode Option[string] `json:"rencode,omitempty"`
+	// Sales email
+	SalesEmail Option[string] `json:"sales_email,omitempty"`
+	// Sales phone
+	SalesPhone Option[string] `json:"sales_phone,omitempty"`
+	// Social media links
+	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	// State or province
+	State Option[string] `json:"state,omitempty"`
+	// Status dashboard URL
+	StatusDashboard Option[*string] `json:"status_dashboard,omitempty"`
+	// Suite number
+	Suite Option[string] `json:"suite,omitempty"`
+	// Technical email
+	TechEmail Option[string] `json:"tech_email,omitempty"`
+	// Technical phone
+	TechPhone Option[string] `json:"tech_phone,omitempty"`
+	// Facility website URL
+	Website Option[string] `json:"website,omitempty"`
+	// Postal / ZIP code
+	Zipcode Option[string] `json:"zipcode,omitempty"`
+	// Org Name (computed)
+	OrgName Option[string] `json:"org_name,omitempty"`
+	// Net Count (computed)
+	NetCount Option[int] `json:"net_count,omitempty"`
+	// Ix Count (computed)
+	IxCount Option[int] `json:"ix_count,omitempty"`
+	// Carrier Count (computed)
+	CarrierCount Option[int] `json:"carrier_count,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
 	// Record status
@@ -354,16 +354,6 @@ type UpdateFacilityParams struct {
 }
 
 func (u *UpdateFacilityParams) ApplyInputs(builder *ent.FacilityUpdateOne) *ent.FacilityUpdateOne {
-	if v, ok := u.OrgID.Get(); ok {
-		if v != nil {
-			builder.SetOrgID(*v)
-		} else {
-			builder.ClearOrgID()
-		}
-	}
-	if v, ok := u.OrgName.Get(); ok {
-		builder.SetOrgName(v)
-	}
 	if v, ok := u.CampusID.Get(); ok {
 		if v != nil {
 			builder.SetCampusID(*v)
@@ -371,91 +361,12 @@ func (u *UpdateFacilityParams) ApplyInputs(builder *ent.FacilityUpdateOne) *ent.
 			builder.ClearCampusID()
 		}
 	}
-	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
-	}
-	if v, ok := u.Aka.Get(); ok {
-		builder.SetAka(v)
-	}
-	if v, ok := u.NameLong.Get(); ok {
-		builder.SetNameLong(v)
-	}
-	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
-	}
-	if v, ok := u.SocialMedia.Get(); ok {
-		builder.SetSocialMedia(v)
-	}
-	if v, ok := u.Clli.Get(); ok {
-		builder.SetClli(v)
-	}
-	if v, ok := u.Rencode.Get(); ok {
-		builder.SetRencode(v)
-	}
-	if v, ok := u.Npanxx.Get(); ok {
-		builder.SetNpanxx(v)
-	}
-	if v, ok := u.TechEmail.Get(); ok {
-		builder.SetTechEmail(v)
-	}
-	if v, ok := u.TechPhone.Get(); ok {
-		builder.SetTechPhone(v)
-	}
-	if v, ok := u.SalesEmail.Get(); ok {
-		builder.SetSalesEmail(v)
-	}
-	if v, ok := u.SalesPhone.Get(); ok {
-		builder.SetSalesPhone(v)
-	}
-	if v, ok := u.Property.Get(); ok {
+	if v, ok := u.OrgID.Get(); ok {
 		if v != nil {
-			builder.SetProperty(*v)
+			builder.SetOrgID(*v)
 		} else {
-			builder.ClearProperty()
+			builder.ClearOrgID()
 		}
-	}
-	if v, ok := u.DiverseServingSubstations.Get(); ok {
-		if v != nil {
-			builder.SetDiverseServingSubstations(*v)
-		} else {
-			builder.ClearDiverseServingSubstations()
-		}
-	}
-	if v, ok := u.AvailableVoltageServices.Get(); ok {
-		builder.SetAvailableVoltageServices(v)
-	}
-	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
-	}
-	if v, ok := u.RegionContinent.Get(); ok {
-		if v != nil {
-			builder.SetRegionContinent(*v)
-		} else {
-			builder.ClearRegionContinent()
-		}
-	}
-	if v, ok := u.StatusDashboard.Get(); ok {
-		if v != nil {
-			builder.SetStatusDashboard(*v)
-		} else {
-			builder.ClearStatusDashboard()
-		}
-	}
-	if v, ok := u.Logo.Get(); ok {
-		if v != nil {
-			builder.SetLogo(*v)
-		} else {
-			builder.ClearLogo()
-		}
-	}
-	if v, ok := u.NetCount.Get(); ok {
-		builder.SetNetCount(v)
-	}
-	if v, ok := u.IxCount.Get(); ok {
-		builder.SetIxCount(v)
-	}
-	if v, ok := u.CarrierCount.Get(); ok {
-		builder.SetCarrierCount(v)
 	}
 	if v, ok := u.Address1.Get(); ok {
 		builder.SetAddress1(v)
@@ -463,20 +374,27 @@ func (u *UpdateFacilityParams) ApplyInputs(builder *ent.FacilityUpdateOne) *ent.
 	if v, ok := u.Address2.Get(); ok {
 		builder.SetAddress2(v)
 	}
+	if v, ok := u.Aka.Get(); ok {
+		builder.SetAka(v)
+	}
+	if v, ok := u.AvailableVoltageServices.Get(); ok {
+		builder.SetAvailableVoltageServices(v)
+	}
 	if v, ok := u.City.Get(); ok {
 		builder.SetCity(v)
 	}
-	if v, ok := u.State.Get(); ok {
-		builder.SetState(v)
+	if v, ok := u.Clli.Get(); ok {
+		builder.SetClli(v)
 	}
 	if v, ok := u.Country.Get(); ok {
 		builder.SetCountry(v)
 	}
-	if v, ok := u.Zipcode.Get(); ok {
-		builder.SetZipcode(v)
-	}
-	if v, ok := u.Suite.Get(); ok {
-		builder.SetSuite(v)
+	if v, ok := u.DiverseServingSubstations.Get(); ok {
+		if v != nil {
+			builder.SetDiverseServingSubstations(*v)
+		} else {
+			builder.ClearDiverseServingSubstations()
+		}
 	}
 	if v, ok := u.Floor.Get(); ok {
 		builder.SetFloor(v)
@@ -488,12 +406,94 @@ func (u *UpdateFacilityParams) ApplyInputs(builder *ent.FacilityUpdateOne) *ent.
 			builder.ClearLatitude()
 		}
 	}
+	if v, ok := u.Logo.Get(); ok {
+		if v != nil {
+			builder.SetLogo(*v)
+		} else {
+			builder.ClearLogo()
+		}
+	}
 	if v, ok := u.Longitude.Get(); ok {
 		if v != nil {
 			builder.SetLongitude(*v)
 		} else {
 			builder.ClearLongitude()
 		}
+	}
+	if v, ok := u.Name.Get(); ok {
+		builder.SetName(v)
+	}
+	if v, ok := u.NameLong.Get(); ok {
+		builder.SetNameLong(v)
+	}
+	if v, ok := u.Notes.Get(); ok {
+		builder.SetNotes(v)
+	}
+	if v, ok := u.Npanxx.Get(); ok {
+		builder.SetNpanxx(v)
+	}
+	if v, ok := u.Property.Get(); ok {
+		if v != nil {
+			builder.SetProperty(*v)
+		} else {
+			builder.ClearProperty()
+		}
+	}
+	if v, ok := u.RegionContinent.Get(); ok {
+		if v != nil {
+			builder.SetRegionContinent(*v)
+		} else {
+			builder.ClearRegionContinent()
+		}
+	}
+	if v, ok := u.Rencode.Get(); ok {
+		builder.SetRencode(v)
+	}
+	if v, ok := u.SalesEmail.Get(); ok {
+		builder.SetSalesEmail(v)
+	}
+	if v, ok := u.SalesPhone.Get(); ok {
+		builder.SetSalesPhone(v)
+	}
+	if v, ok := u.SocialMedia.Get(); ok {
+		builder.SetSocialMedia(v)
+	}
+	if v, ok := u.State.Get(); ok {
+		builder.SetState(v)
+	}
+	if v, ok := u.StatusDashboard.Get(); ok {
+		if v != nil {
+			builder.SetStatusDashboard(*v)
+		} else {
+			builder.ClearStatusDashboard()
+		}
+	}
+	if v, ok := u.Suite.Get(); ok {
+		builder.SetSuite(v)
+	}
+	if v, ok := u.TechEmail.Get(); ok {
+		builder.SetTechEmail(v)
+	}
+	if v, ok := u.TechPhone.Get(); ok {
+		builder.SetTechPhone(v)
+	}
+	if v, ok := u.Website.Get(); ok {
+		builder.SetWebsite(v)
+	}
+	if v, ok := u.Zipcode.Get(); ok {
+		builder.SetZipcode(v)
+	}
+	if v, ok := u.OrgName.Get(); ok {
+		builder.SetOrgName(v)
+	}
+	if v, ok := u.NetCount.Get(); ok {
+		builder.SetNetCount(v)
+	}
+	if v, ok := u.IxCount.Get(); ok {
+		builder.SetIxCount(v)
+	}
+	if v, ok := u.CarrierCount.Get(); ok {
+		builder.SetCarrierCount(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
 		builder.SetUpdated(v)
@@ -520,66 +520,66 @@ func (c *UpdateFacilityParams) Exec(ctx context.Context, builder *ent.FacilityUp
 type UpdateInternetExchangeParams struct {
 	// FK to organization
 	OrgID Option[*int] `json:"org_id,omitempty"`
-	// Internet exchange name
-	Name Option[string] `json:"name"`
 	// Also known as
 	Aka Option[string] `json:"aka,omitempty"`
-	// Long name
-	NameLong Option[string] `json:"name_long,omitempty"`
 	// City
-	City Option[string] `json:"city"`
+	City Option[string] `json:"city,omitempty"`
 	// Country code
-	Country Option[string] `json:"country"`
-	// Region / continent
-	RegionContinent Option[string] `json:"region_continent"`
-	// Media type
-	Media Option[string] `json:"media"`
-	// Notes
-	Notes Option[string] `json:"notes,omitempty"`
-	// Supports unicast
-	ProtoUnicast Option[bool] `json:"proto_unicast"`
-	// Supports multicast
-	ProtoMulticast Option[bool] `json:"proto_multicast"`
-	// Supports IPv6
-	ProtoIpv6 Option[bool] `json:"proto_ipv6"`
-	// Internet exchange website URL
-	Website Option[string] `json:"website,omitempty"`
-	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
-	// Statistics URL
-	URLStats Option[string] `json:"url_stats,omitempty"`
-	// Technical contact email
-	TechEmail Option[string] `json:"tech_email,omitempty"`
-	// Technical contact phone
-	TechPhone Option[string] `json:"tech_phone,omitempty"`
-	// Policy contact email
-	PolicyEmail Option[string] `json:"policy_email,omitempty"`
-	// Policy contact phone
-	PolicyPhone Option[string] `json:"policy_phone,omitempty"`
-	// Sales contact email
-	SalesEmail Option[string] `json:"sales_email,omitempty"`
-	// Sales contact phone
-	SalesPhone Option[string] `json:"sales_phone,omitempty"`
-	// Network count (computed)
-	NetCount Option[int] `json:"net_count,omitempty"`
-	// Facility count (computed)
-	FacCount Option[int] `json:"fac_count,omitempty"`
-	// IXF net count
-	IxfNetCount Option[int] `json:"ixf_net_count"`
-	// Last IXF import timestamp
+	Country Option[string] `json:"country,omitempty"`
+	// IXF last import timestamp
 	IxfLastImport Option[*time.Time] `json:"ixf_last_import,omitempty"`
-	// IXF import request
-	IxfImportRequest Option[*string] `json:"ixf_import_request,omitempty"`
-	// IXF import request status
-	IxfImportRequestStatus Option[string] `json:"ixf_import_request_status,omitempty"`
-	// Service level
-	ServiceLevel Option[string] `json:"service_level,omitempty"`
-	// Terms
-	Terms Option[string] `json:"terms,omitempty"`
-	// Status dashboard URL
-	StatusDashboard Option[*string] `json:"status_dashboard,omitempty"`
+	// IXF net count
+	IxfNetCount Option[int] `json:"ixf_net_count,omitempty"`
 	// Logo URL
 	Logo Option[*string] `json:"logo,omitempty"`
+	// Exchange media type
+	Media Option[string] `json:"media,omitempty"`
+	// Internet exchange name
+	Name Option[string] `json:"name"`
+	// Long name
+	NameLong Option[string] `json:"name_long,omitempty"`
+	// Notes
+	Notes Option[string] `json:"notes,omitempty"`
+	// Policy email
+	PolicyEmail Option[string] `json:"policy_email,omitempty"`
+	// Policy phone
+	PolicyPhone Option[string] `json:"policy_phone,omitempty"`
+	// Supports IPv6
+	ProtoIpv6 Option[bool] `json:"proto_ipv6"`
+	// Supports multicast
+	ProtoMulticast Option[bool] `json:"proto_multicast"`
+	// Supports unicast
+	ProtoUnicast Option[bool] `json:"proto_unicast"`
+	// Region/continent
+	RegionContinent Option[string] `json:"region_continent,omitempty"`
+	// Sales email
+	SalesEmail Option[string] `json:"sales_email,omitempty"`
+	// Sales phone
+	SalesPhone Option[string] `json:"sales_phone,omitempty"`
+	// Service level
+	ServiceLevel Option[string] `json:"service_level,omitempty"`
+	// Social media links
+	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	// Status dashboard URL
+	StatusDashboard Option[*string] `json:"status_dashboard,omitempty"`
+	// Technical email
+	TechEmail Option[string] `json:"tech_email,omitempty"`
+	// Technical phone
+	TechPhone Option[string] `json:"tech_phone,omitempty"`
+	// Terms
+	Terms Option[string] `json:"terms,omitempty"`
+	// Statistics URL
+	URLStats Option[string] `json:"url_stats,omitempty"`
+	// IX website URL
+	Website Option[string] `json:"website,omitempty"`
+	// Net Count (computed)
+	NetCount Option[int] `json:"net_count,omitempty"`
+	// Fac Count (computed)
+	FacCount Option[int] `json:"fac_count,omitempty"`
+	// Ixf Import Request (computed)
+	IxfImportRequest Option[*string] `json:"ixf_import_request,omitempty"`
+	// Ixf Import Request Status (computed)
+	IxfImportRequestStatus Option[string] `json:"ixf_import_request_status,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
 	// Record status
@@ -594,14 +594,8 @@ func (u *UpdateInternetExchangeParams) ApplyInputs(builder *ent.InternetExchange
 			builder.ClearOrgID()
 		}
 	}
-	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
-	}
 	if v, ok := u.Aka.Get(); ok {
 		builder.SetAka(v)
-	}
-	if v, ok := u.NameLong.Get(); ok {
-		builder.SetNameLong(v)
 	}
 	if v, ok := u.City.Get(); ok {
 		builder.SetCity(v)
@@ -609,38 +603,34 @@ func (u *UpdateInternetExchangeParams) ApplyInputs(builder *ent.InternetExchange
 	if v, ok := u.Country.Get(); ok {
 		builder.SetCountry(v)
 	}
-	if v, ok := u.RegionContinent.Get(); ok {
-		builder.SetRegionContinent(v)
+	if v, ok := u.IxfLastImport.Get(); ok {
+		if v != nil {
+			builder.SetIxfLastImport(*v)
+		} else {
+			builder.ClearIxfLastImport()
+		}
+	}
+	if v, ok := u.IxfNetCount.Get(); ok {
+		builder.SetIxfNetCount(v)
+	}
+	if v, ok := u.Logo.Get(); ok {
+		if v != nil {
+			builder.SetLogo(*v)
+		} else {
+			builder.ClearLogo()
+		}
 	}
 	if v, ok := u.Media.Get(); ok {
 		builder.SetMedia(v)
 	}
+	if v, ok := u.Name.Get(); ok {
+		builder.SetName(v)
+	}
+	if v, ok := u.NameLong.Get(); ok {
+		builder.SetNameLong(v)
+	}
 	if v, ok := u.Notes.Get(); ok {
 		builder.SetNotes(v)
-	}
-	if v, ok := u.ProtoUnicast.Get(); ok {
-		builder.SetProtoUnicast(v)
-	}
-	if v, ok := u.ProtoMulticast.Get(); ok {
-		builder.SetProtoMulticast(v)
-	}
-	if v, ok := u.ProtoIpv6.Get(); ok {
-		builder.SetProtoIpv6(v)
-	}
-	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
-	}
-	if v, ok := u.SocialMedia.Get(); ok {
-		builder.SetSocialMedia(v)
-	}
-	if v, ok := u.URLStats.Get(); ok {
-		builder.SetURLStats(v)
-	}
-	if v, ok := u.TechEmail.Get(); ok {
-		builder.SetTechEmail(v)
-	}
-	if v, ok := u.TechPhone.Get(); ok {
-		builder.SetTechPhone(v)
 	}
 	if v, ok := u.PolicyEmail.Get(); ok {
 		builder.SetPolicyEmail(v)
@@ -648,27 +638,57 @@ func (u *UpdateInternetExchangeParams) ApplyInputs(builder *ent.InternetExchange
 	if v, ok := u.PolicyPhone.Get(); ok {
 		builder.SetPolicyPhone(v)
 	}
+	if v, ok := u.ProtoIpv6.Get(); ok {
+		builder.SetProtoIpv6(v)
+	}
+	if v, ok := u.ProtoMulticast.Get(); ok {
+		builder.SetProtoMulticast(v)
+	}
+	if v, ok := u.ProtoUnicast.Get(); ok {
+		builder.SetProtoUnicast(v)
+	}
+	if v, ok := u.RegionContinent.Get(); ok {
+		builder.SetRegionContinent(v)
+	}
 	if v, ok := u.SalesEmail.Get(); ok {
 		builder.SetSalesEmail(v)
 	}
 	if v, ok := u.SalesPhone.Get(); ok {
 		builder.SetSalesPhone(v)
 	}
+	if v, ok := u.ServiceLevel.Get(); ok {
+		builder.SetServiceLevel(v)
+	}
+	if v, ok := u.SocialMedia.Get(); ok {
+		builder.SetSocialMedia(v)
+	}
+	if v, ok := u.StatusDashboard.Get(); ok {
+		if v != nil {
+			builder.SetStatusDashboard(*v)
+		} else {
+			builder.ClearStatusDashboard()
+		}
+	}
+	if v, ok := u.TechEmail.Get(); ok {
+		builder.SetTechEmail(v)
+	}
+	if v, ok := u.TechPhone.Get(); ok {
+		builder.SetTechPhone(v)
+	}
+	if v, ok := u.Terms.Get(); ok {
+		builder.SetTerms(v)
+	}
+	if v, ok := u.URLStats.Get(); ok {
+		builder.SetURLStats(v)
+	}
+	if v, ok := u.Website.Get(); ok {
+		builder.SetWebsite(v)
+	}
 	if v, ok := u.NetCount.Get(); ok {
 		builder.SetNetCount(v)
 	}
 	if v, ok := u.FacCount.Get(); ok {
 		builder.SetFacCount(v)
-	}
-	if v, ok := u.IxfNetCount.Get(); ok {
-		builder.SetIxfNetCount(v)
-	}
-	if v, ok := u.IxfLastImport.Get(); ok {
-		if v != nil {
-			builder.SetIxfLastImport(*v)
-		} else {
-			builder.ClearIxfLastImport()
-		}
 	}
 	if v, ok := u.IxfImportRequest.Get(); ok {
 		if v != nil {
@@ -679,26 +699,6 @@ func (u *UpdateInternetExchangeParams) ApplyInputs(builder *ent.InternetExchange
 	}
 	if v, ok := u.IxfImportRequestStatus.Get(); ok {
 		builder.SetIxfImportRequestStatus(v)
-	}
-	if v, ok := u.ServiceLevel.Get(); ok {
-		builder.SetServiceLevel(v)
-	}
-	if v, ok := u.Terms.Get(); ok {
-		builder.SetTerms(v)
-	}
-	if v, ok := u.StatusDashboard.Get(); ok {
-		if v != nil {
-			builder.SetStatusDashboard(*v)
-		} else {
-			builder.ClearStatusDashboard()
-		}
-	}
-	if v, ok := u.Logo.Get(); ok {
-		if v != nil {
-			builder.SetLogo(*v)
-		} else {
-			builder.ClearLogo()
-		}
 	}
 	if v, ok := u.Updated.Get(); ok {
 		builder.SetUpdated(v)
@@ -723,11 +723,11 @@ func (c *UpdateInternetExchangeParams) Exec(ctx context.Context, builder *ent.In
 
 // UpdateIxFacilityParams defines parameters for updating a IxFacility via a PATCH request.
 type UpdateIxFacilityParams struct {
-	// FK to internet exchange
-	IxID Option[*int] `json:"ix_id,omitempty"`
 	// FK to facility
 	FacID Option[*int] `json:"fac_id,omitempty"`
-	// Facility name (computed)
+	// FK to internet exchange
+	IxID Option[*int] `json:"ix_id,omitempty"`
+	// Name (computed)
 	Name Option[string] `json:"name,omitempty"`
 	// City (computed)
 	City Option[string] `json:"city,omitempty"`
@@ -740,18 +740,18 @@ type UpdateIxFacilityParams struct {
 }
 
 func (u *UpdateIxFacilityParams) ApplyInputs(builder *ent.IxFacilityUpdateOne) *ent.IxFacilityUpdateOne {
-	if v, ok := u.IxID.Get(); ok {
-		if v != nil {
-			builder.SetIxID(*v)
-		} else {
-			builder.ClearIxID()
-		}
-	}
 	if v, ok := u.FacID.Get(); ok {
 		if v != nil {
 			builder.SetFacID(*v)
 		} else {
 			builder.ClearFacID()
+		}
+	}
+	if v, ok := u.IxID.Get(); ok {
+		if v != nil {
+			builder.SetIxID(*v)
+		} else {
+			builder.ClearIxID()
 		}
 	}
 	if v, ok := u.Name.Get(); ok {
@@ -788,22 +788,22 @@ func (c *UpdateIxFacilityParams) Exec(ctx context.Context, builder *ent.IxFacili
 type UpdateIxLanParams struct {
 	// FK to internet exchange
 	IxID Option[*int] `json:"ix_id,omitempty"`
-	// IXLan name
-	Name Option[string] `json:"name,omitempty"`
-	// Description
-	Descr Option[string] `json:"descr,omitempty"`
-	// MTU
-	Mtu Option[int] `json:"mtu"`
-	// 802.1Q support
-	Dot1qSupport Option[bool] `json:"dot1q_support"`
-	// Route server ASN
-	RsAsn Option[*int] `json:"rs_asn,omitempty"`
 	// ARP sponge MAC address
 	ArpSponge Option[*string] `json:"arp_sponge,omitempty"`
-	// IXF member list URL visibility
-	IxfIxpMemberListURLVisible Option[string] `json:"ixf_ixp_member_list_url_visible"`
+	// Description
+	Descr Option[string] `json:"descr,omitempty"`
+	// 802.1Q support
+	Dot1qSupport Option[bool] `json:"dot1q_support"`
 	// IXF import enabled
 	IxfIxpImportEnabled Option[bool] `json:"ixf_ixp_import_enabled"`
+	// IXF member list URL visibility
+	IxfIxpMemberListURLVisible Option[string] `json:"ixf_ixp_member_list_url_visible,omitempty"`
+	// MTU size
+	Mtu Option[int] `json:"mtu,omitempty"`
+	// LAN name
+	Name Option[string] `json:"name,omitempty"`
+	// Route server ASN
+	RsAsn Option[*int] `json:"rs_asn,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
 	// Record status
@@ -818,25 +818,6 @@ func (u *UpdateIxLanParams) ApplyInputs(builder *ent.IxLanUpdateOne) *ent.IxLanU
 			builder.ClearIxID()
 		}
 	}
-	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
-	}
-	if v, ok := u.Descr.Get(); ok {
-		builder.SetDescr(v)
-	}
-	if v, ok := u.Mtu.Get(); ok {
-		builder.SetMtu(v)
-	}
-	if v, ok := u.Dot1qSupport.Get(); ok {
-		builder.SetDot1qSupport(v)
-	}
-	if v, ok := u.RsAsn.Get(); ok {
-		if v != nil {
-			builder.SetRsAsn(*v)
-		} else {
-			builder.ClearRsAsn()
-		}
-	}
 	if v, ok := u.ArpSponge.Get(); ok {
 		if v != nil {
 			builder.SetArpSponge(*v)
@@ -844,11 +825,30 @@ func (u *UpdateIxLanParams) ApplyInputs(builder *ent.IxLanUpdateOne) *ent.IxLanU
 			builder.ClearArpSponge()
 		}
 	}
-	if v, ok := u.IxfIxpMemberListURLVisible.Get(); ok {
-		builder.SetIxfIxpMemberListURLVisible(v)
+	if v, ok := u.Descr.Get(); ok {
+		builder.SetDescr(v)
+	}
+	if v, ok := u.Dot1qSupport.Get(); ok {
+		builder.SetDot1qSupport(v)
 	}
 	if v, ok := u.IxfIxpImportEnabled.Get(); ok {
 		builder.SetIxfIxpImportEnabled(v)
+	}
+	if v, ok := u.IxfIxpMemberListURLVisible.Get(); ok {
+		builder.SetIxfIxpMemberListURLVisible(v)
+	}
+	if v, ok := u.Mtu.Get(); ok {
+		builder.SetMtu(v)
+	}
+	if v, ok := u.Name.Get(); ok {
+		builder.SetName(v)
+	}
+	if v, ok := u.RsAsn.Get(); ok {
+		if v != nil {
+			builder.SetRsAsn(*v)
+		} else {
+			builder.ClearRsAsn()
+		}
 	}
 	if v, ok := u.Updated.Get(); ok {
 		builder.SetUpdated(v)
@@ -873,16 +873,16 @@ func (c *UpdateIxLanParams) Exec(ctx context.Context, builder *ent.IxLanUpdateOn
 
 // UpdateIxPrefixParams defines parameters for updating a IxPrefix via a PATCH request.
 type UpdateIxPrefixParams struct {
-	// FK to IXLan
+	// FK to IX LAN
 	IxlanID Option[*int] `json:"ixlan_id,omitempty"`
-	// Protocol (IPv4 or IPv6)
-	Protocol Option[string] `json:"protocol"`
-	// IP prefix
-	Prefix Option[string] `json:"prefix"`
 	// In default-free zone
 	InDfz Option[bool] `json:"in_dfz"`
 	// Notes
 	Notes Option[string] `json:"notes,omitempty"`
+	// IP prefix
+	Prefix Option[string] `json:"prefix"`
+	// Protocol (IPv4/IPv6)
+	Protocol Option[string] `json:"protocol,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
 	// Record status
@@ -897,17 +897,17 @@ func (u *UpdateIxPrefixParams) ApplyInputs(builder *ent.IxPrefixUpdateOne) *ent.
 			builder.ClearIxlanID()
 		}
 	}
-	if v, ok := u.Protocol.Get(); ok {
-		builder.SetProtocol(v)
-	}
-	if v, ok := u.Prefix.Get(); ok {
-		builder.SetPrefix(v)
-	}
 	if v, ok := u.InDfz.Get(); ok {
 		builder.SetInDfz(v)
 	}
 	if v, ok := u.Notes.Get(); ok {
 		builder.SetNotes(v)
+	}
+	if v, ok := u.Prefix.Get(); ok {
+		builder.SetPrefix(v)
+	}
+	if v, ok := u.Protocol.Get(); ok {
+		builder.SetProtocol(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
 		builder.SetUpdated(v)
@@ -934,77 +934,77 @@ func (c *UpdateIxPrefixParams) Exec(ctx context.Context, builder *ent.IxPrefixUp
 type UpdateNetworkParams struct {
 	// FK to organization
 	OrgID Option[*int] `json:"org_id,omitempty"`
-	// Network name
-	Name Option[string] `json:"name"`
 	// Also known as
 	Aka Option[string] `json:"aka,omitempty"`
-	// Long name
-	NameLong Option[string] `json:"name_long,omitempty"`
-	// Network website URL
-	Website Option[string] `json:"website,omitempty"`
-	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	// Allow IXP update
+	AllowIxpUpdate Option[bool] `json:"allow_ixp_update"`
 	// Autonomous System Number
 	Asn Option[int] `json:"asn"`
-	// Looking glass URL
-	LookingGlass Option[string] `json:"looking_glass,omitempty"`
-	// Route server URL
-	RouteServer Option[string] `json:"route_server,omitempty"`
-	// IRR AS-SET
-	IrrAsSet Option[string] `json:"irr_as_set,omitempty"`
-	// Network type
-	InfoType Option[string] `json:"info_type,omitempty"`
-	// Network types (multi-choice)
-	InfoTypes Option[[]string] `json:"info_types,omitempty"`
+	// Supports IPv6
+	InfoIpv6 Option[bool] `json:"info_ipv6"`
+	// Supports multicast
+	InfoMulticast Option[bool] `json:"info_multicast"`
+	// Never via route servers
+	InfoNeverViaRouteServers Option[bool] `json:"info_never_via_route_servers"`
 	// IPv4 prefix count
 	InfoPrefixes4 Option[*int] `json:"info_prefixes4,omitempty"`
 	// IPv6 prefix count
 	InfoPrefixes6 Option[*int] `json:"info_prefixes6,omitempty"`
-	// Traffic level
-	InfoTraffic Option[string] `json:"info_traffic,omitempty"`
 	// Traffic ratio
 	InfoRatio Option[string] `json:"info_ratio,omitempty"`
 	// Geographic scope
 	InfoScope Option[string] `json:"info_scope,omitempty"`
+	// Traffic level
+	InfoTraffic Option[string] `json:"info_traffic,omitempty"`
+	// Network type
+	InfoType Option[string] `json:"info_type,omitempty"`
+	// Network types (multi-choice)
+	InfoTypes Option[[]string] `json:"info_types,omitempty"`
 	// Supports unicast
 	InfoUnicast Option[bool] `json:"info_unicast"`
-	// Supports multicast
-	InfoMulticast Option[bool] `json:"info_multicast"`
-	// Supports IPv6
-	InfoIpv6 Option[bool] `json:"info_ipv6"`
-	// Never via route servers
-	InfoNeverViaRouteServers Option[bool] `json:"info_never_via_route_servers"`
+	// IRR AS-SET
+	IrrAsSet Option[string] `json:"irr_as_set,omitempty"`
+	// Logo URL
+	Logo Option[*string] `json:"logo,omitempty"`
+	// Looking glass URL
+	LookingGlass Option[string] `json:"looking_glass,omitempty"`
+	// Network name
+	Name Option[string] `json:"name"`
+	// Long name
+	NameLong Option[string] `json:"name_long,omitempty"`
 	// Notes
 	Notes Option[string] `json:"notes,omitempty"`
-	// Peering policy URL
-	PolicyURL Option[string] `json:"policy_url,omitempty"`
+	// Peering policy contracts
+	PolicyContracts Option[string] `json:"policy_contracts,omitempty"`
 	// General peering policy
 	PolicyGeneral Option[string] `json:"policy_general,omitempty"`
 	// Peering policy locations
 	PolicyLocations Option[string] `json:"policy_locations,omitempty"`
 	// Peering policy ratio requirement
 	PolicyRatio Option[bool] `json:"policy_ratio"`
-	// Peering policy contracts
-	PolicyContracts Option[string] `json:"policy_contracts,omitempty"`
-	// Allow IXP update
-	AllowIxpUpdate Option[bool] `json:"allow_ixp_update"`
-	// Status dashboard URL
-	StatusDashboard Option[*string] `json:"status_dashboard,omitempty"`
+	// Peering policy URL
+	PolicyURL Option[string] `json:"policy_url,omitempty"`
 	// RIR status
 	RirStatus Option[*string] `json:"rir_status,omitempty"`
 	// RIR status last updated
 	RirStatusUpdated Option[*time.Time] `json:"rir_status_updated,omitempty"`
-	// Logo URL
-	Logo Option[*string] `json:"logo,omitempty"`
-	// Internet exchange count (computed)
+	// Route server URL
+	RouteServer Option[string] `json:"route_server,omitempty"`
+	// Social media links
+	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	// Status dashboard URL
+	StatusDashboard Option[*string] `json:"status_dashboard,omitempty"`
+	// Network website URL
+	Website Option[string] `json:"website,omitempty"`
+	// Ix Count (computed)
 	IxCount Option[int] `json:"ix_count,omitempty"`
-	// Facility count (computed)
+	// Fac Count (computed)
 	FacCount Option[int] `json:"fac_count,omitempty"`
-	// Last netixlan update (computed)
+	// Netixlan Updated (computed)
 	NetixlanUpdated Option[*time.Time] `json:"netixlan_updated,omitempty"`
-	// Last netfac update (computed)
+	// Netfac Updated (computed)
 	NetfacUpdated Option[*time.Time] `json:"netfac_updated,omitempty"`
-	// Last POC update (computed)
+	// Poc Updated (computed)
 	PocUpdated Option[*time.Time] `json:"poc_updated,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
@@ -1020,38 +1020,23 @@ func (u *UpdateNetworkParams) ApplyInputs(builder *ent.NetworkUpdateOne) *ent.Ne
 			builder.ClearOrgID()
 		}
 	}
-	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
-	}
 	if v, ok := u.Aka.Get(); ok {
 		builder.SetAka(v)
 	}
-	if v, ok := u.NameLong.Get(); ok {
-		builder.SetNameLong(v)
-	}
-	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
-	}
-	if v, ok := u.SocialMedia.Get(); ok {
-		builder.SetSocialMedia(v)
+	if v, ok := u.AllowIxpUpdate.Get(); ok {
+		builder.SetAllowIxpUpdate(v)
 	}
 	if v, ok := u.Asn.Get(); ok {
 		builder.SetAsn(v)
 	}
-	if v, ok := u.LookingGlass.Get(); ok {
-		builder.SetLookingGlass(v)
+	if v, ok := u.InfoIpv6.Get(); ok {
+		builder.SetInfoIpv6(v)
 	}
-	if v, ok := u.RouteServer.Get(); ok {
-		builder.SetRouteServer(v)
+	if v, ok := u.InfoMulticast.Get(); ok {
+		builder.SetInfoMulticast(v)
 	}
-	if v, ok := u.IrrAsSet.Get(); ok {
-		builder.SetIrrAsSet(v)
-	}
-	if v, ok := u.InfoType.Get(); ok {
-		builder.SetInfoType(v)
-	}
-	if v, ok := u.InfoTypes.Get(); ok {
-		builder.SetInfoTypes(v)
+	if v, ok := u.InfoNeverViaRouteServers.Get(); ok {
+		builder.SetInfoNeverViaRouteServers(v)
 	}
 	if v, ok := u.InfoPrefixes4.Get(); ok {
 		if v != nil {
@@ -1067,32 +1052,48 @@ func (u *UpdateNetworkParams) ApplyInputs(builder *ent.NetworkUpdateOne) *ent.Ne
 			builder.ClearInfoPrefixes6()
 		}
 	}
-	if v, ok := u.InfoTraffic.Get(); ok {
-		builder.SetInfoTraffic(v)
-	}
 	if v, ok := u.InfoRatio.Get(); ok {
 		builder.SetInfoRatio(v)
 	}
 	if v, ok := u.InfoScope.Get(); ok {
 		builder.SetInfoScope(v)
 	}
+	if v, ok := u.InfoTraffic.Get(); ok {
+		builder.SetInfoTraffic(v)
+	}
+	if v, ok := u.InfoType.Get(); ok {
+		builder.SetInfoType(v)
+	}
+	if v, ok := u.InfoTypes.Get(); ok {
+		builder.SetInfoTypes(v)
+	}
 	if v, ok := u.InfoUnicast.Get(); ok {
 		builder.SetInfoUnicast(v)
 	}
-	if v, ok := u.InfoMulticast.Get(); ok {
-		builder.SetInfoMulticast(v)
+	if v, ok := u.IrrAsSet.Get(); ok {
+		builder.SetIrrAsSet(v)
 	}
-	if v, ok := u.InfoIpv6.Get(); ok {
-		builder.SetInfoIpv6(v)
+	if v, ok := u.Logo.Get(); ok {
+		if v != nil {
+			builder.SetLogo(*v)
+		} else {
+			builder.ClearLogo()
+		}
 	}
-	if v, ok := u.InfoNeverViaRouteServers.Get(); ok {
-		builder.SetInfoNeverViaRouteServers(v)
+	if v, ok := u.LookingGlass.Get(); ok {
+		builder.SetLookingGlass(v)
+	}
+	if v, ok := u.Name.Get(); ok {
+		builder.SetName(v)
+	}
+	if v, ok := u.NameLong.Get(); ok {
+		builder.SetNameLong(v)
 	}
 	if v, ok := u.Notes.Get(); ok {
 		builder.SetNotes(v)
 	}
-	if v, ok := u.PolicyURL.Get(); ok {
-		builder.SetPolicyURL(v)
+	if v, ok := u.PolicyContracts.Get(); ok {
+		builder.SetPolicyContracts(v)
 	}
 	if v, ok := u.PolicyGeneral.Get(); ok {
 		builder.SetPolicyGeneral(v)
@@ -1103,18 +1104,8 @@ func (u *UpdateNetworkParams) ApplyInputs(builder *ent.NetworkUpdateOne) *ent.Ne
 	if v, ok := u.PolicyRatio.Get(); ok {
 		builder.SetPolicyRatio(v)
 	}
-	if v, ok := u.PolicyContracts.Get(); ok {
-		builder.SetPolicyContracts(v)
-	}
-	if v, ok := u.AllowIxpUpdate.Get(); ok {
-		builder.SetAllowIxpUpdate(v)
-	}
-	if v, ok := u.StatusDashboard.Get(); ok {
-		if v != nil {
-			builder.SetStatusDashboard(*v)
-		} else {
-			builder.ClearStatusDashboard()
-		}
+	if v, ok := u.PolicyURL.Get(); ok {
+		builder.SetPolicyURL(v)
 	}
 	if v, ok := u.RirStatus.Get(); ok {
 		if v != nil {
@@ -1130,12 +1121,21 @@ func (u *UpdateNetworkParams) ApplyInputs(builder *ent.NetworkUpdateOne) *ent.Ne
 			builder.ClearRirStatusUpdated()
 		}
 	}
-	if v, ok := u.Logo.Get(); ok {
+	if v, ok := u.RouteServer.Get(); ok {
+		builder.SetRouteServer(v)
+	}
+	if v, ok := u.SocialMedia.Get(); ok {
+		builder.SetSocialMedia(v)
+	}
+	if v, ok := u.StatusDashboard.Get(); ok {
 		if v != nil {
-			builder.SetLogo(*v)
+			builder.SetStatusDashboard(*v)
 		} else {
-			builder.ClearLogo()
+			builder.ClearStatusDashboard()
 		}
+	}
+	if v, ok := u.Website.Get(); ok {
+		builder.SetWebsite(v)
 	}
 	if v, ok := u.IxCount.Get(); ok {
 		builder.SetIxCount(v)
@@ -1187,18 +1187,18 @@ func (c *UpdateNetworkParams) Exec(ctx context.Context, builder *ent.NetworkUpda
 
 // UpdateNetworkFacilityParams defines parameters for updating a NetworkFacility via a PATCH request.
 type UpdateNetworkFacilityParams struct {
-	// FK to network
-	NetID Option[*int] `json:"net_id,omitempty"`
 	// FK to facility
 	FacID Option[*int] `json:"fac_id,omitempty"`
-	// Facility name (computed)
+	// FK to network
+	NetID Option[*int] `json:"net_id,omitempty"`
+	// Local ASN
+	LocalAsn Option[int] `json:"local_asn"`
+	// Name (computed)
 	Name Option[string] `json:"name,omitempty"`
 	// City (computed)
 	City Option[string] `json:"city,omitempty"`
 	// Country (computed)
 	Country Option[string] `json:"country,omitempty"`
-	// Local ASN at this facility
-	LocalAsn Option[int] `json:"local_asn"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
 	// Record status
@@ -1206,6 +1206,13 @@ type UpdateNetworkFacilityParams struct {
 }
 
 func (u *UpdateNetworkFacilityParams) ApplyInputs(builder *ent.NetworkFacilityUpdateOne) *ent.NetworkFacilityUpdateOne {
+	if v, ok := u.FacID.Get(); ok {
+		if v != nil {
+			builder.SetFacID(*v)
+		} else {
+			builder.ClearFacID()
+		}
+	}
 	if v, ok := u.NetID.Get(); ok {
 		if v != nil {
 			builder.SetNetID(*v)
@@ -1213,12 +1220,8 @@ func (u *UpdateNetworkFacilityParams) ApplyInputs(builder *ent.NetworkFacilityUp
 			builder.ClearNetID()
 		}
 	}
-	if v, ok := u.FacID.Get(); ok {
-		if v != nil {
-			builder.SetFacID(*v)
-		} else {
-			builder.ClearFacID()
-		}
+	if v, ok := u.LocalAsn.Get(); ok {
+		builder.SetLocalAsn(v)
 	}
 	if v, ok := u.Name.Get(); ok {
 		builder.SetName(v)
@@ -1228,9 +1231,6 @@ func (u *UpdateNetworkFacilityParams) ApplyInputs(builder *ent.NetworkFacilityUp
 	}
 	if v, ok := u.Country.Get(); ok {
 		builder.SetCountry(v)
-	}
-	if v, ok := u.LocalAsn.Get(); ok {
-		builder.SetLocalAsn(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
 		builder.SetUpdated(v)
@@ -1255,34 +1255,34 @@ func (c *UpdateNetworkFacilityParams) Exec(ctx context.Context, builder *ent.Net
 
 // UpdateNetworkIxLanParams defines parameters for updating a NetworkIxLan via a PATCH request.
 type UpdateNetworkIxLanParams struct {
+	// IX-side facility FK
+	IxSideID Option[*int] `json:"ix_side_id,omitempty"`
+	// FK to IX LAN
+	IxlanID Option[*int] `json:"ixlan_id,omitempty"`
 	// FK to network
 	NetID Option[*int] `json:"net_id,omitempty"`
-	// Internet exchange ID (computed, not an edge)
-	IxID Option[int] `json:"ix_id,omitempty"`
-	// FK to IXLan
-	IxlanID Option[*int] `json:"ixlan_id,omitempty"`
-	// Exchange name (computed)
-	Name Option[string] `json:"name,omitempty"`
-	// Notes
-	Notes Option[string] `json:"notes,omitempty"`
-	// Port speed in Mbps
-	Speed Option[int] `json:"speed"`
+	// Net-side facility FK
+	NetSideID Option[*int] `json:"net_side_id,omitempty"`
 	// Autonomous System Number
 	Asn Option[int] `json:"asn"`
+	// BFD support
+	BfdSupport Option[bool] `json:"bfd_support"`
 	// IPv4 address
 	Ipaddr4 Option[*string] `json:"ipaddr4,omitempty"`
 	// IPv6 address
 	Ipaddr6 Option[*string] `json:"ipaddr6,omitempty"`
-	// Is route server peer
+	// Route server peer
 	IsRsPeer Option[bool] `json:"is_rs_peer"`
-	// BFD support
-	BfdSupport Option[bool] `json:"bfd_support"`
+	// Notes
+	Notes Option[string] `json:"notes,omitempty"`
 	// Operational status
 	Operational Option[bool] `json:"operational"`
-	// Network-side facility ID
-	NetSideID Option[*int] `json:"net_side_id,omitempty"`
-	// IX-side facility ID
-	IxSideID Option[*int] `json:"ix_side_id,omitempty"`
+	// Port speed in Mbps
+	Speed Option[int] `json:"speed"`
+	// Internet exchange ID (computed)
+	IxID Option[int] `json:"ix_id,omitempty"`
+	// Name (computed)
+	Name Option[string] `json:"name,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
 	// Record status
@@ -1290,15 +1290,12 @@ type UpdateNetworkIxLanParams struct {
 }
 
 func (u *UpdateNetworkIxLanParams) ApplyInputs(builder *ent.NetworkIxLanUpdateOne) *ent.NetworkIxLanUpdateOne {
-	if v, ok := u.NetID.Get(); ok {
+	if v, ok := u.IxSideID.Get(); ok {
 		if v != nil {
-			builder.SetNetID(*v)
+			builder.SetIxSideID(*v)
 		} else {
-			builder.ClearNetID()
+			builder.ClearIxSideID()
 		}
-	}
-	if v, ok := u.IxID.Get(); ok {
-		builder.SetIxID(v)
 	}
 	if v, ok := u.IxlanID.Get(); ok {
 		if v != nil {
@@ -1307,17 +1304,25 @@ func (u *UpdateNetworkIxLanParams) ApplyInputs(builder *ent.NetworkIxLanUpdateOn
 			builder.ClearIxlanID()
 		}
 	}
-	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+	if v, ok := u.NetID.Get(); ok {
+		if v != nil {
+			builder.SetNetID(*v)
+		} else {
+			builder.ClearNetID()
+		}
 	}
-	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
-	}
-	if v, ok := u.Speed.Get(); ok {
-		builder.SetSpeed(v)
+	if v, ok := u.NetSideID.Get(); ok {
+		if v != nil {
+			builder.SetNetSideID(*v)
+		} else {
+			builder.ClearNetSideID()
+		}
 	}
 	if v, ok := u.Asn.Get(); ok {
 		builder.SetAsn(v)
+	}
+	if v, ok := u.BfdSupport.Get(); ok {
+		builder.SetBfdSupport(v)
 	}
 	if v, ok := u.Ipaddr4.Get(); ok {
 		if v != nil {
@@ -1336,25 +1341,20 @@ func (u *UpdateNetworkIxLanParams) ApplyInputs(builder *ent.NetworkIxLanUpdateOn
 	if v, ok := u.IsRsPeer.Get(); ok {
 		builder.SetIsRsPeer(v)
 	}
-	if v, ok := u.BfdSupport.Get(); ok {
-		builder.SetBfdSupport(v)
+	if v, ok := u.Notes.Get(); ok {
+		builder.SetNotes(v)
 	}
 	if v, ok := u.Operational.Get(); ok {
 		builder.SetOperational(v)
 	}
-	if v, ok := u.NetSideID.Get(); ok {
-		if v != nil {
-			builder.SetNetSideID(*v)
-		} else {
-			builder.ClearNetSideID()
-		}
+	if v, ok := u.Speed.Get(); ok {
+		builder.SetSpeed(v)
 	}
-	if v, ok := u.IxSideID.Get(); ok {
-		if v != nil {
-			builder.SetIxSideID(*v)
-		} else {
-			builder.ClearIxSideID()
-		}
+	if v, ok := u.IxID.Get(); ok {
+		builder.SetIxID(v)
+	}
+	if v, ok := u.Name.Get(); ok {
+		builder.SetName(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
 		builder.SetUpdated(v)
@@ -1379,40 +1379,44 @@ func (c *UpdateNetworkIxLanParams) Exec(ctx context.Context, builder *ent.Networ
 
 // UpdateOrganizationParams defines parameters for updating a Organization via a PATCH request.
 type UpdateOrganizationParams struct {
-	// Organization name
-	Name Option[string] `json:"name"`
-	// Also known as
-	Aka Option[string] `json:"aka,omitempty"`
-	// Long name
-	NameLong Option[string] `json:"name_long,omitempty"`
-	// Organization website URL
-	Website Option[string] `json:"website,omitempty"`
-	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
-	// Notes
-	Notes Option[string] `json:"notes,omitempty"`
-	// Logo URL
-	Logo Option[*string] `json:"logo,omitempty"`
 	// Address line 1
 	Address1 Option[string] `json:"address1,omitempty"`
 	// Address line 2
 	Address2 Option[string] `json:"address2,omitempty"`
+	// Also known as
+	Aka Option[string] `json:"aka,omitempty"`
 	// City
 	City Option[string] `json:"city,omitempty"`
-	// State or province
-	State Option[string] `json:"state,omitempty"`
 	// Country code
 	Country Option[string] `json:"country,omitempty"`
-	// Postal / ZIP code
-	Zipcode Option[string] `json:"zipcode,omitempty"`
-	// Suite number
-	Suite Option[string] `json:"suite,omitempty"`
 	// Floor
 	Floor Option[string] `json:"floor,omitempty"`
 	// Latitude
 	Latitude Option[*float64] `json:"latitude,omitempty"`
+	// Logo URL
+	Logo Option[*string] `json:"logo,omitempty"`
 	// Longitude
 	Longitude Option[*float64] `json:"longitude,omitempty"`
+	// Organization name
+	Name Option[string] `json:"name"`
+	// Long name
+	NameLong Option[string] `json:"name_long,omitempty"`
+	// Notes
+	Notes Option[string] `json:"notes,omitempty"`
+	// Social media links
+	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	// State or province
+	State Option[string] `json:"state,omitempty"`
+	// Suite number
+	Suite Option[string] `json:"suite,omitempty"`
+	// Organization website URL
+	Website Option[string] `json:"website,omitempty"`
+	// Postal / ZIP code
+	Zipcode Option[string] `json:"zipcode,omitempty"`
+	// Net Count (computed)
+	NetCount Option[int] `json:"net_count,omitempty"`
+	// Fac Count (computed)
+	FacCount Option[int] `json:"fac_count,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
 	// Record status
@@ -1420,51 +1424,20 @@ type UpdateOrganizationParams struct {
 }
 
 func (u *UpdateOrganizationParams) ApplyInputs(builder *ent.OrganizationUpdateOne) *ent.OrganizationUpdateOne {
-	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
-	}
-	if v, ok := u.Aka.Get(); ok {
-		builder.SetAka(v)
-	}
-	if v, ok := u.NameLong.Get(); ok {
-		builder.SetNameLong(v)
-	}
-	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
-	}
-	if v, ok := u.SocialMedia.Get(); ok {
-		builder.SetSocialMedia(v)
-	}
-	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
-	}
-	if v, ok := u.Logo.Get(); ok {
-		if v != nil {
-			builder.SetLogo(*v)
-		} else {
-			builder.ClearLogo()
-		}
-	}
 	if v, ok := u.Address1.Get(); ok {
 		builder.SetAddress1(v)
 	}
 	if v, ok := u.Address2.Get(); ok {
 		builder.SetAddress2(v)
 	}
+	if v, ok := u.Aka.Get(); ok {
+		builder.SetAka(v)
+	}
 	if v, ok := u.City.Get(); ok {
 		builder.SetCity(v)
 	}
-	if v, ok := u.State.Get(); ok {
-		builder.SetState(v)
-	}
 	if v, ok := u.Country.Get(); ok {
 		builder.SetCountry(v)
-	}
-	if v, ok := u.Zipcode.Get(); ok {
-		builder.SetZipcode(v)
-	}
-	if v, ok := u.Suite.Get(); ok {
-		builder.SetSuite(v)
 	}
 	if v, ok := u.Floor.Get(); ok {
 		builder.SetFloor(v)
@@ -1476,12 +1449,49 @@ func (u *UpdateOrganizationParams) ApplyInputs(builder *ent.OrganizationUpdateOn
 			builder.ClearLatitude()
 		}
 	}
+	if v, ok := u.Logo.Get(); ok {
+		if v != nil {
+			builder.SetLogo(*v)
+		} else {
+			builder.ClearLogo()
+		}
+	}
 	if v, ok := u.Longitude.Get(); ok {
 		if v != nil {
 			builder.SetLongitude(*v)
 		} else {
 			builder.ClearLongitude()
 		}
+	}
+	if v, ok := u.Name.Get(); ok {
+		builder.SetName(v)
+	}
+	if v, ok := u.NameLong.Get(); ok {
+		builder.SetNameLong(v)
+	}
+	if v, ok := u.Notes.Get(); ok {
+		builder.SetNotes(v)
+	}
+	if v, ok := u.SocialMedia.Get(); ok {
+		builder.SetSocialMedia(v)
+	}
+	if v, ok := u.State.Get(); ok {
+		builder.SetState(v)
+	}
+	if v, ok := u.Suite.Get(); ok {
+		builder.SetSuite(v)
+	}
+	if v, ok := u.Website.Get(); ok {
+		builder.SetWebsite(v)
+	}
+	if v, ok := u.Zipcode.Get(); ok {
+		builder.SetZipcode(v)
+	}
+	if v, ok := u.NetCount.Get(); ok {
+		builder.SetNetCount(v)
+	}
+	if v, ok := u.FacCount.Get(); ok {
+		builder.SetFacCount(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
 		builder.SetUpdated(v)
@@ -1508,18 +1518,18 @@ func (c *UpdateOrganizationParams) Exec(ctx context.Context, builder *ent.Organi
 type UpdatePocParams struct {
 	// FK to network
 	NetID Option[*int] `json:"net_id,omitempty"`
-	// Contact role
-	Role Option[string] `json:"role"`
-	// Visibility level
-	Visible Option[string] `json:"visible"`
+	// Email address
+	Email Option[string] `json:"email,omitempty"`
 	// Contact name
 	Name Option[string] `json:"name,omitempty"`
-	// Contact phone
+	// Phone number
 	Phone Option[string] `json:"phone,omitempty"`
-	// Contact email
-	Email Option[string] `json:"email,omitempty"`
-	// Contact URL
+	// Contact role
+	Role Option[string] `json:"role"`
+	// URL
 	URL Option[string] `json:"url,omitempty"`
+	// Visibility level
+	Visible Option[string] `json:"visible,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
 	// Record status
@@ -1534,11 +1544,8 @@ func (u *UpdatePocParams) ApplyInputs(builder *ent.PocUpdateOne) *ent.PocUpdateO
 			builder.ClearNetID()
 		}
 	}
-	if v, ok := u.Role.Get(); ok {
-		builder.SetRole(v)
-	}
-	if v, ok := u.Visible.Get(); ok {
-		builder.SetVisible(v)
+	if v, ok := u.Email.Get(); ok {
+		builder.SetEmail(v)
 	}
 	if v, ok := u.Name.Get(); ok {
 		builder.SetName(v)
@@ -1546,11 +1553,14 @@ func (u *UpdatePocParams) ApplyInputs(builder *ent.PocUpdateOne) *ent.PocUpdateO
 	if v, ok := u.Phone.Get(); ok {
 		builder.SetPhone(v)
 	}
-	if v, ok := u.Email.Get(); ok {
-		builder.SetEmail(v)
+	if v, ok := u.Role.Get(); ok {
+		builder.SetRole(v)
 	}
 	if v, ok := u.URL.Get(); ok {
 		builder.SetURL(v)
+	}
+	if v, ok := u.Visible.Get(); ok {
+		builder.SetVisible(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
 		builder.SetUpdated(v)

@@ -53,20 +53,6 @@ func (_u *InternetExchangeUpdate) ClearOrgID() *InternetExchangeUpdate {
 	return _u
 }
 
-// SetName sets the "name" field.
-func (_u *InternetExchangeUpdate) SetName(v string) *InternetExchangeUpdate {
-	_u.mutation.SetName(v)
-	return _u
-}
-
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableName(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetName(*v)
-	}
-	return _u
-}
-
 // SetAka sets the "aka" field.
 func (_u *InternetExchangeUpdate) SetAka(v string) *InternetExchangeUpdate {
 	_u.mutation.SetAka(v)
@@ -84,6 +70,147 @@ func (_u *InternetExchangeUpdate) SetNillableAka(v *string) *InternetExchangeUpd
 // ClearAka clears the value of the "aka" field.
 func (_u *InternetExchangeUpdate) ClearAka() *InternetExchangeUpdate {
 	_u.mutation.ClearAka()
+	return _u
+}
+
+// SetCity sets the "city" field.
+func (_u *InternetExchangeUpdate) SetCity(v string) *InternetExchangeUpdate {
+	_u.mutation.SetCity(v)
+	return _u
+}
+
+// SetNillableCity sets the "city" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableCity(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetCity(*v)
+	}
+	return _u
+}
+
+// ClearCity clears the value of the "city" field.
+func (_u *InternetExchangeUpdate) ClearCity() *InternetExchangeUpdate {
+	_u.mutation.ClearCity()
+	return _u
+}
+
+// SetCountry sets the "country" field.
+func (_u *InternetExchangeUpdate) SetCountry(v string) *InternetExchangeUpdate {
+	_u.mutation.SetCountry(v)
+	return _u
+}
+
+// SetNillableCountry sets the "country" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableCountry(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetCountry(*v)
+	}
+	return _u
+}
+
+// ClearCountry clears the value of the "country" field.
+func (_u *InternetExchangeUpdate) ClearCountry() *InternetExchangeUpdate {
+	_u.mutation.ClearCountry()
+	return _u
+}
+
+// SetIxfLastImport sets the "ixf_last_import" field.
+func (_u *InternetExchangeUpdate) SetIxfLastImport(v time.Time) *InternetExchangeUpdate {
+	_u.mutation.SetIxfLastImport(v)
+	return _u
+}
+
+// SetNillableIxfLastImport sets the "ixf_last_import" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableIxfLastImport(v *time.Time) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetIxfLastImport(*v)
+	}
+	return _u
+}
+
+// ClearIxfLastImport clears the value of the "ixf_last_import" field.
+func (_u *InternetExchangeUpdate) ClearIxfLastImport() *InternetExchangeUpdate {
+	_u.mutation.ClearIxfLastImport()
+	return _u
+}
+
+// SetIxfNetCount sets the "ixf_net_count" field.
+func (_u *InternetExchangeUpdate) SetIxfNetCount(v int) *InternetExchangeUpdate {
+	_u.mutation.ResetIxfNetCount()
+	_u.mutation.SetIxfNetCount(v)
+	return _u
+}
+
+// SetNillableIxfNetCount sets the "ixf_net_count" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableIxfNetCount(v *int) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetIxfNetCount(*v)
+	}
+	return _u
+}
+
+// AddIxfNetCount adds value to the "ixf_net_count" field.
+func (_u *InternetExchangeUpdate) AddIxfNetCount(v int) *InternetExchangeUpdate {
+	_u.mutation.AddIxfNetCount(v)
+	return _u
+}
+
+// ClearIxfNetCount clears the value of the "ixf_net_count" field.
+func (_u *InternetExchangeUpdate) ClearIxfNetCount() *InternetExchangeUpdate {
+	_u.mutation.ClearIxfNetCount()
+	return _u
+}
+
+// SetLogo sets the "logo" field.
+func (_u *InternetExchangeUpdate) SetLogo(v string) *InternetExchangeUpdate {
+	_u.mutation.SetLogo(v)
+	return _u
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableLogo(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetLogo(*v)
+	}
+	return _u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (_u *InternetExchangeUpdate) ClearLogo() *InternetExchangeUpdate {
+	_u.mutation.ClearLogo()
+	return _u
+}
+
+// SetMedia sets the "media" field.
+func (_u *InternetExchangeUpdate) SetMedia(v string) *InternetExchangeUpdate {
+	_u.mutation.SetMedia(v)
+	return _u
+}
+
+// SetNillableMedia sets the "media" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableMedia(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetMedia(*v)
+	}
+	return _u
+}
+
+// ClearMedia clears the value of the "media" field.
+func (_u *InternetExchangeUpdate) ClearMedia() *InternetExchangeUpdate {
+	_u.mutation.ClearMedia()
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *InternetExchangeUpdate) SetName(v string) *InternetExchangeUpdate {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableName(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetName(*v)
+	}
 	return _u
 }
 
@@ -107,62 +234,6 @@ func (_u *InternetExchangeUpdate) ClearNameLong() *InternetExchangeUpdate {
 	return _u
 }
 
-// SetCity sets the "city" field.
-func (_u *InternetExchangeUpdate) SetCity(v string) *InternetExchangeUpdate {
-	_u.mutation.SetCity(v)
-	return _u
-}
-
-// SetNillableCity sets the "city" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableCity(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetCity(*v)
-	}
-	return _u
-}
-
-// SetCountry sets the "country" field.
-func (_u *InternetExchangeUpdate) SetCountry(v string) *InternetExchangeUpdate {
-	_u.mutation.SetCountry(v)
-	return _u
-}
-
-// SetNillableCountry sets the "country" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableCountry(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetCountry(*v)
-	}
-	return _u
-}
-
-// SetRegionContinent sets the "region_continent" field.
-func (_u *InternetExchangeUpdate) SetRegionContinent(v string) *InternetExchangeUpdate {
-	_u.mutation.SetRegionContinent(v)
-	return _u
-}
-
-// SetNillableRegionContinent sets the "region_continent" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableRegionContinent(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetRegionContinent(*v)
-	}
-	return _u
-}
-
-// SetMedia sets the "media" field.
-func (_u *InternetExchangeUpdate) SetMedia(v string) *InternetExchangeUpdate {
-	_u.mutation.SetMedia(v)
-	return _u
-}
-
-// SetNillableMedia sets the "media" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableMedia(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetMedia(*v)
-	}
-	return _u
-}
-
 // SetNotes sets the "notes" field.
 func (_u *InternetExchangeUpdate) SetNotes(v string) *InternetExchangeUpdate {
 	_u.mutation.SetNotes(v)
@@ -180,146 +251,6 @@ func (_u *InternetExchangeUpdate) SetNillableNotes(v *string) *InternetExchangeU
 // ClearNotes clears the value of the "notes" field.
 func (_u *InternetExchangeUpdate) ClearNotes() *InternetExchangeUpdate {
 	_u.mutation.ClearNotes()
-	return _u
-}
-
-// SetProtoUnicast sets the "proto_unicast" field.
-func (_u *InternetExchangeUpdate) SetProtoUnicast(v bool) *InternetExchangeUpdate {
-	_u.mutation.SetProtoUnicast(v)
-	return _u
-}
-
-// SetNillableProtoUnicast sets the "proto_unicast" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableProtoUnicast(v *bool) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetProtoUnicast(*v)
-	}
-	return _u
-}
-
-// SetProtoMulticast sets the "proto_multicast" field.
-func (_u *InternetExchangeUpdate) SetProtoMulticast(v bool) *InternetExchangeUpdate {
-	_u.mutation.SetProtoMulticast(v)
-	return _u
-}
-
-// SetNillableProtoMulticast sets the "proto_multicast" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableProtoMulticast(v *bool) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetProtoMulticast(*v)
-	}
-	return _u
-}
-
-// SetProtoIpv6 sets the "proto_ipv6" field.
-func (_u *InternetExchangeUpdate) SetProtoIpv6(v bool) *InternetExchangeUpdate {
-	_u.mutation.SetProtoIpv6(v)
-	return _u
-}
-
-// SetNillableProtoIpv6 sets the "proto_ipv6" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableProtoIpv6(v *bool) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetProtoIpv6(*v)
-	}
-	return _u
-}
-
-// SetWebsite sets the "website" field.
-func (_u *InternetExchangeUpdate) SetWebsite(v string) *InternetExchangeUpdate {
-	_u.mutation.SetWebsite(v)
-	return _u
-}
-
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableWebsite(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetWebsite(*v)
-	}
-	return _u
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (_u *InternetExchangeUpdate) ClearWebsite() *InternetExchangeUpdate {
-	_u.mutation.ClearWebsite()
-	return _u
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (_u *InternetExchangeUpdate) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdate {
-	_u.mutation.SetSocialMedia(v)
-	return _u
-}
-
-// AppendSocialMedia appends value to the "social_media" field.
-func (_u *InternetExchangeUpdate) AppendSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdate {
-	_u.mutation.AppendSocialMedia(v)
-	return _u
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (_u *InternetExchangeUpdate) ClearSocialMedia() *InternetExchangeUpdate {
-	_u.mutation.ClearSocialMedia()
-	return _u
-}
-
-// SetURLStats sets the "url_stats" field.
-func (_u *InternetExchangeUpdate) SetURLStats(v string) *InternetExchangeUpdate {
-	_u.mutation.SetURLStats(v)
-	return _u
-}
-
-// SetNillableURLStats sets the "url_stats" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableURLStats(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetURLStats(*v)
-	}
-	return _u
-}
-
-// ClearURLStats clears the value of the "url_stats" field.
-func (_u *InternetExchangeUpdate) ClearURLStats() *InternetExchangeUpdate {
-	_u.mutation.ClearURLStats()
-	return _u
-}
-
-// SetTechEmail sets the "tech_email" field.
-func (_u *InternetExchangeUpdate) SetTechEmail(v string) *InternetExchangeUpdate {
-	_u.mutation.SetTechEmail(v)
-	return _u
-}
-
-// SetNillableTechEmail sets the "tech_email" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableTechEmail(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetTechEmail(*v)
-	}
-	return _u
-}
-
-// ClearTechEmail clears the value of the "tech_email" field.
-func (_u *InternetExchangeUpdate) ClearTechEmail() *InternetExchangeUpdate {
-	_u.mutation.ClearTechEmail()
-	return _u
-}
-
-// SetTechPhone sets the "tech_phone" field.
-func (_u *InternetExchangeUpdate) SetTechPhone(v string) *InternetExchangeUpdate {
-	_u.mutation.SetTechPhone(v)
-	return _u
-}
-
-// SetNillableTechPhone sets the "tech_phone" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableTechPhone(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetTechPhone(*v)
-	}
-	return _u
-}
-
-// ClearTechPhone clears the value of the "tech_phone" field.
-func (_u *InternetExchangeUpdate) ClearTechPhone() *InternetExchangeUpdate {
-	_u.mutation.ClearTechPhone()
 	return _u
 }
 
@@ -363,6 +294,68 @@ func (_u *InternetExchangeUpdate) ClearPolicyPhone() *InternetExchangeUpdate {
 	return _u
 }
 
+// SetProtoIpv6 sets the "proto_ipv6" field.
+func (_u *InternetExchangeUpdate) SetProtoIpv6(v bool) *InternetExchangeUpdate {
+	_u.mutation.SetProtoIpv6(v)
+	return _u
+}
+
+// SetNillableProtoIpv6 sets the "proto_ipv6" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableProtoIpv6(v *bool) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetProtoIpv6(*v)
+	}
+	return _u
+}
+
+// SetProtoMulticast sets the "proto_multicast" field.
+func (_u *InternetExchangeUpdate) SetProtoMulticast(v bool) *InternetExchangeUpdate {
+	_u.mutation.SetProtoMulticast(v)
+	return _u
+}
+
+// SetNillableProtoMulticast sets the "proto_multicast" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableProtoMulticast(v *bool) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetProtoMulticast(*v)
+	}
+	return _u
+}
+
+// SetProtoUnicast sets the "proto_unicast" field.
+func (_u *InternetExchangeUpdate) SetProtoUnicast(v bool) *InternetExchangeUpdate {
+	_u.mutation.SetProtoUnicast(v)
+	return _u
+}
+
+// SetNillableProtoUnicast sets the "proto_unicast" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableProtoUnicast(v *bool) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetProtoUnicast(*v)
+	}
+	return _u
+}
+
+// SetRegionContinent sets the "region_continent" field.
+func (_u *InternetExchangeUpdate) SetRegionContinent(v string) *InternetExchangeUpdate {
+	_u.mutation.SetRegionContinent(v)
+	return _u
+}
+
+// SetNillableRegionContinent sets the "region_continent" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableRegionContinent(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetRegionContinent(*v)
+	}
+	return _u
+}
+
+// ClearRegionContinent clears the value of the "region_continent" field.
+func (_u *InternetExchangeUpdate) ClearRegionContinent() *InternetExchangeUpdate {
+	_u.mutation.ClearRegionContinent()
+	return _u
+}
+
 // SetSalesEmail sets the "sales_email" field.
 func (_u *InternetExchangeUpdate) SetSalesEmail(v string) *InternetExchangeUpdate {
 	_u.mutation.SetSalesEmail(v)
@@ -400,6 +393,164 @@ func (_u *InternetExchangeUpdate) SetNillableSalesPhone(v *string) *InternetExch
 // ClearSalesPhone clears the value of the "sales_phone" field.
 func (_u *InternetExchangeUpdate) ClearSalesPhone() *InternetExchangeUpdate {
 	_u.mutation.ClearSalesPhone()
+	return _u
+}
+
+// SetServiceLevel sets the "service_level" field.
+func (_u *InternetExchangeUpdate) SetServiceLevel(v string) *InternetExchangeUpdate {
+	_u.mutation.SetServiceLevel(v)
+	return _u
+}
+
+// SetNillableServiceLevel sets the "service_level" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableServiceLevel(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetServiceLevel(*v)
+	}
+	return _u
+}
+
+// ClearServiceLevel clears the value of the "service_level" field.
+func (_u *InternetExchangeUpdate) ClearServiceLevel() *InternetExchangeUpdate {
+	_u.mutation.ClearServiceLevel()
+	return _u
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (_u *InternetExchangeUpdate) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdate {
+	_u.mutation.SetSocialMedia(v)
+	return _u
+}
+
+// AppendSocialMedia appends value to the "social_media" field.
+func (_u *InternetExchangeUpdate) AppendSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdate {
+	_u.mutation.AppendSocialMedia(v)
+	return _u
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (_u *InternetExchangeUpdate) ClearSocialMedia() *InternetExchangeUpdate {
+	_u.mutation.ClearSocialMedia()
+	return _u
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (_u *InternetExchangeUpdate) SetStatusDashboard(v string) *InternetExchangeUpdate {
+	_u.mutation.SetStatusDashboard(v)
+	return _u
+}
+
+// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableStatusDashboard(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetStatusDashboard(*v)
+	}
+	return _u
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (_u *InternetExchangeUpdate) ClearStatusDashboard() *InternetExchangeUpdate {
+	_u.mutation.ClearStatusDashboard()
+	return _u
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (_u *InternetExchangeUpdate) SetTechEmail(v string) *InternetExchangeUpdate {
+	_u.mutation.SetTechEmail(v)
+	return _u
+}
+
+// SetNillableTechEmail sets the "tech_email" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableTechEmail(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetTechEmail(*v)
+	}
+	return _u
+}
+
+// ClearTechEmail clears the value of the "tech_email" field.
+func (_u *InternetExchangeUpdate) ClearTechEmail() *InternetExchangeUpdate {
+	_u.mutation.ClearTechEmail()
+	return _u
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (_u *InternetExchangeUpdate) SetTechPhone(v string) *InternetExchangeUpdate {
+	_u.mutation.SetTechPhone(v)
+	return _u
+}
+
+// SetNillableTechPhone sets the "tech_phone" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableTechPhone(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetTechPhone(*v)
+	}
+	return _u
+}
+
+// ClearTechPhone clears the value of the "tech_phone" field.
+func (_u *InternetExchangeUpdate) ClearTechPhone() *InternetExchangeUpdate {
+	_u.mutation.ClearTechPhone()
+	return _u
+}
+
+// SetTerms sets the "terms" field.
+func (_u *InternetExchangeUpdate) SetTerms(v string) *InternetExchangeUpdate {
+	_u.mutation.SetTerms(v)
+	return _u
+}
+
+// SetNillableTerms sets the "terms" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableTerms(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetTerms(*v)
+	}
+	return _u
+}
+
+// ClearTerms clears the value of the "terms" field.
+func (_u *InternetExchangeUpdate) ClearTerms() *InternetExchangeUpdate {
+	_u.mutation.ClearTerms()
+	return _u
+}
+
+// SetURLStats sets the "url_stats" field.
+func (_u *InternetExchangeUpdate) SetURLStats(v string) *InternetExchangeUpdate {
+	_u.mutation.SetURLStats(v)
+	return _u
+}
+
+// SetNillableURLStats sets the "url_stats" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableURLStats(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetURLStats(*v)
+	}
+	return _u
+}
+
+// ClearURLStats clears the value of the "url_stats" field.
+func (_u *InternetExchangeUpdate) ClearURLStats() *InternetExchangeUpdate {
+	_u.mutation.ClearURLStats()
+	return _u
+}
+
+// SetWebsite sets the "website" field.
+func (_u *InternetExchangeUpdate) SetWebsite(v string) *InternetExchangeUpdate {
+	_u.mutation.SetWebsite(v)
+	return _u
+}
+
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableWebsite(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetWebsite(*v)
+	}
+	return _u
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (_u *InternetExchangeUpdate) ClearWebsite() *InternetExchangeUpdate {
+	_u.mutation.ClearWebsite()
 	return _u
 }
 
@@ -457,47 +608,6 @@ func (_u *InternetExchangeUpdate) ClearFacCount() *InternetExchangeUpdate {
 	return _u
 }
 
-// SetIxfNetCount sets the "ixf_net_count" field.
-func (_u *InternetExchangeUpdate) SetIxfNetCount(v int) *InternetExchangeUpdate {
-	_u.mutation.ResetIxfNetCount()
-	_u.mutation.SetIxfNetCount(v)
-	return _u
-}
-
-// SetNillableIxfNetCount sets the "ixf_net_count" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableIxfNetCount(v *int) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetIxfNetCount(*v)
-	}
-	return _u
-}
-
-// AddIxfNetCount adds value to the "ixf_net_count" field.
-func (_u *InternetExchangeUpdate) AddIxfNetCount(v int) *InternetExchangeUpdate {
-	_u.mutation.AddIxfNetCount(v)
-	return _u
-}
-
-// SetIxfLastImport sets the "ixf_last_import" field.
-func (_u *InternetExchangeUpdate) SetIxfLastImport(v time.Time) *InternetExchangeUpdate {
-	_u.mutation.SetIxfLastImport(v)
-	return _u
-}
-
-// SetNillableIxfLastImport sets the "ixf_last_import" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableIxfLastImport(v *time.Time) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetIxfLastImport(*v)
-	}
-	return _u
-}
-
-// ClearIxfLastImport clears the value of the "ixf_last_import" field.
-func (_u *InternetExchangeUpdate) ClearIxfLastImport() *InternetExchangeUpdate {
-	_u.mutation.ClearIxfLastImport()
-	return _u
-}
-
 // SetIxfImportRequest sets the "ixf_import_request" field.
 func (_u *InternetExchangeUpdate) SetIxfImportRequest(v string) *InternetExchangeUpdate {
 	_u.mutation.SetIxfImportRequest(v)
@@ -538,86 +648,6 @@ func (_u *InternetExchangeUpdate) ClearIxfImportRequestStatus() *InternetExchang
 	return _u
 }
 
-// SetServiceLevel sets the "service_level" field.
-func (_u *InternetExchangeUpdate) SetServiceLevel(v string) *InternetExchangeUpdate {
-	_u.mutation.SetServiceLevel(v)
-	return _u
-}
-
-// SetNillableServiceLevel sets the "service_level" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableServiceLevel(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetServiceLevel(*v)
-	}
-	return _u
-}
-
-// ClearServiceLevel clears the value of the "service_level" field.
-func (_u *InternetExchangeUpdate) ClearServiceLevel() *InternetExchangeUpdate {
-	_u.mutation.ClearServiceLevel()
-	return _u
-}
-
-// SetTerms sets the "terms" field.
-func (_u *InternetExchangeUpdate) SetTerms(v string) *InternetExchangeUpdate {
-	_u.mutation.SetTerms(v)
-	return _u
-}
-
-// SetNillableTerms sets the "terms" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableTerms(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetTerms(*v)
-	}
-	return _u
-}
-
-// ClearTerms clears the value of the "terms" field.
-func (_u *InternetExchangeUpdate) ClearTerms() *InternetExchangeUpdate {
-	_u.mutation.ClearTerms()
-	return _u
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (_u *InternetExchangeUpdate) SetStatusDashboard(v string) *InternetExchangeUpdate {
-	_u.mutation.SetStatusDashboard(v)
-	return _u
-}
-
-// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableStatusDashboard(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetStatusDashboard(*v)
-	}
-	return _u
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (_u *InternetExchangeUpdate) ClearStatusDashboard() *InternetExchangeUpdate {
-	_u.mutation.ClearStatusDashboard()
-	return _u
-}
-
-// SetLogo sets the "logo" field.
-func (_u *InternetExchangeUpdate) SetLogo(v string) *InternetExchangeUpdate {
-	_u.mutation.SetLogo(v)
-	return _u
-}
-
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_u *InternetExchangeUpdate) SetNillableLogo(v *string) *InternetExchangeUpdate {
-	if v != nil {
-		_u.SetLogo(*v)
-	}
-	return _u
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (_u *InternetExchangeUpdate) ClearLogo() *InternetExchangeUpdate {
-	_u.mutation.ClearLogo()
-	return _u
-}
-
 // SetUpdated sets the "updated" field.
 func (_u *InternetExchangeUpdate) SetUpdated(v time.Time) *InternetExchangeUpdate {
 	_u.mutation.SetUpdated(v)
@@ -646,6 +676,36 @@ func (_u *InternetExchangeUpdate) SetNillableStatus(v *string) *InternetExchange
 	return _u
 }
 
+// AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by IDs.
+func (_u *InternetExchangeUpdate) AddIxFacilityIDs(ids ...int) *InternetExchangeUpdate {
+	_u.mutation.AddIxFacilityIDs(ids...)
+	return _u
+}
+
+// AddIxFacilities adds the "ix_facilities" edges to the IxFacility entity.
+func (_u *InternetExchangeUpdate) AddIxFacilities(v ...*IxFacility) *InternetExchangeUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddIxFacilityIDs(ids...)
+}
+
+// AddIxLanIDs adds the "ix_lans" edge to the IxLan entity by IDs.
+func (_u *InternetExchangeUpdate) AddIxLanIDs(ids ...int) *InternetExchangeUpdate {
+	_u.mutation.AddIxLanIDs(ids...)
+	return _u
+}
+
+// AddIxLans adds the "ix_lans" edges to the IxLan entity.
+func (_u *InternetExchangeUpdate) AddIxLans(v ...*IxLan) *InternetExchangeUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddIxLanIDs(ids...)
+}
+
 // SetOrganizationID sets the "organization" edge to the Organization entity by ID.
 func (_u *InternetExchangeUpdate) SetOrganizationID(id int) *InternetExchangeUpdate {
 	_u.mutation.SetOrganizationID(id)
@@ -665,45 +725,30 @@ func (_u *InternetExchangeUpdate) SetOrganization(v *Organization) *InternetExch
 	return _u.SetOrganizationID(v.ID)
 }
 
-// AddIxLanIDs adds the "ix_lans" edge to the IxLan entity by IDs.
-func (_u *InternetExchangeUpdate) AddIxLanIDs(ids ...int) *InternetExchangeUpdate {
-	_u.mutation.AddIxLanIDs(ids...)
-	return _u
-}
-
-// AddIxLans adds the "ix_lans" edges to the IxLan entity.
-func (_u *InternetExchangeUpdate) AddIxLans(v ...*IxLan) *InternetExchangeUpdate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddIxLanIDs(ids...)
-}
-
-// AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by IDs.
-func (_u *InternetExchangeUpdate) AddIxFacilityIDs(ids ...int) *InternetExchangeUpdate {
-	_u.mutation.AddIxFacilityIDs(ids...)
-	return _u
-}
-
-// AddIxFacilities adds the "ix_facilities" edges to the IxFacility entity.
-func (_u *InternetExchangeUpdate) AddIxFacilities(v ...*IxFacility) *InternetExchangeUpdate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddIxFacilityIDs(ids...)
-}
-
 // Mutation returns the InternetExchangeMutation object of the builder.
 func (_u *InternetExchangeUpdate) Mutation() *InternetExchangeMutation {
 	return _u.mutation
 }
 
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (_u *InternetExchangeUpdate) ClearOrganization() *InternetExchangeUpdate {
-	_u.mutation.ClearOrganization()
+// ClearIxFacilities clears all "ix_facilities" edges to the IxFacility entity.
+func (_u *InternetExchangeUpdate) ClearIxFacilities() *InternetExchangeUpdate {
+	_u.mutation.ClearIxFacilities()
 	return _u
+}
+
+// RemoveIxFacilityIDs removes the "ix_facilities" edge to IxFacility entities by IDs.
+func (_u *InternetExchangeUpdate) RemoveIxFacilityIDs(ids ...int) *InternetExchangeUpdate {
+	_u.mutation.RemoveIxFacilityIDs(ids...)
+	return _u
+}
+
+// RemoveIxFacilities removes "ix_facilities" edges to IxFacility entities.
+func (_u *InternetExchangeUpdate) RemoveIxFacilities(v ...*IxFacility) *InternetExchangeUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveIxFacilityIDs(ids...)
 }
 
 // ClearIxLans clears all "ix_lans" edges to the IxLan entity.
@@ -727,25 +772,10 @@ func (_u *InternetExchangeUpdate) RemoveIxLans(v ...*IxLan) *InternetExchangeUpd
 	return _u.RemoveIxLanIDs(ids...)
 }
 
-// ClearIxFacilities clears all "ix_facilities" edges to the IxFacility entity.
-func (_u *InternetExchangeUpdate) ClearIxFacilities() *InternetExchangeUpdate {
-	_u.mutation.ClearIxFacilities()
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (_u *InternetExchangeUpdate) ClearOrganization() *InternetExchangeUpdate {
+	_u.mutation.ClearOrganization()
 	return _u
-}
-
-// RemoveIxFacilityIDs removes the "ix_facilities" edge to IxFacility entities by IDs.
-func (_u *InternetExchangeUpdate) RemoveIxFacilityIDs(ids ...int) *InternetExchangeUpdate {
-	_u.mutation.RemoveIxFacilityIDs(ids...)
-	return _u
-}
-
-// RemoveIxFacilities removes "ix_facilities" edges to IxFacility entities.
-func (_u *InternetExchangeUpdate) RemoveIxFacilities(v ...*IxFacility) *InternetExchangeUpdate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveIxFacilityIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -777,19 +807,9 @@ func (_u *InternetExchangeUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *InternetExchangeUpdate) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := internetexchange.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Aka(); ok {
 		if err := internetexchange.AkaValidator(v); err != nil {
 			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.aka": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := internetexchange.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name_long": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.City(); ok {
@@ -797,24 +817,19 @@ func (_u *InternetExchangeUpdate) check() error {
 			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.city": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.RegionContinent(); ok {
-		if err := internetexchange.RegionContinentValidator(v); err != nil {
-			return &ValidationError{Name: "region_continent", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.region_continent": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Media(); ok {
 		if err := internetexchange.MediaValidator(v); err != nil {
 			return &ValidationError{Name: "media", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.media": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.TechEmail(); ok {
-		if err := internetexchange.TechEmailValidator(v); err != nil {
-			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_email": %w`, err)}
+	if v, ok := _u.mutation.Name(); ok {
+		if err := internetexchange.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.TechPhone(); ok {
-		if err := internetexchange.TechPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_phone": %w`, err)}
+	if v, ok := _u.mutation.NameLong(); ok {
+		if err := internetexchange.NameLongValidator(v); err != nil {
+			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name_long": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.PolicyEmail(); ok {
@@ -825,6 +840,11 @@ func (_u *InternetExchangeUpdate) check() error {
 	if v, ok := _u.mutation.PolicyPhone(); ok {
 		if err := internetexchange.PolicyPhoneValidator(v); err != nil {
 			return &ValidationError{Name: "policy_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.policy_phone": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.RegionContinent(); ok {
+		if err := internetexchange.RegionContinentValidator(v); err != nil {
+			return &ValidationError{Name: "region_continent", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.region_continent": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.SalesEmail(); ok {
@@ -840,6 +860,16 @@ func (_u *InternetExchangeUpdate) check() error {
 	if v, ok := _u.mutation.ServiceLevel(); ok {
 		if err := internetexchange.ServiceLevelValidator(v); err != nil {
 			return &ValidationError{Name: "service_level", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.service_level": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TechEmail(); ok {
+		if err := internetexchange.TechEmailValidator(v); err != nil {
+			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_email": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TechPhone(); ok {
+		if err := internetexchange.TechPhoneValidator(v); err != nil {
+			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_phone": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Terms(); ok {
@@ -867,14 +897,53 @@ func (_u *InternetExchangeUpdate) sqlSave(ctx context.Context) (_node int, err e
 			}
 		}
 	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(internetexchange.FieldName, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(internetexchange.FieldAka, field.TypeString, value)
 	}
 	if _u.mutation.AkaCleared() {
 		_spec.ClearField(internetexchange.FieldAka, field.TypeString)
+	}
+	if value, ok := _u.mutation.City(); ok {
+		_spec.SetField(internetexchange.FieldCity, field.TypeString, value)
+	}
+	if _u.mutation.CityCleared() {
+		_spec.ClearField(internetexchange.FieldCity, field.TypeString)
+	}
+	if value, ok := _u.mutation.Country(); ok {
+		_spec.SetField(internetexchange.FieldCountry, field.TypeString, value)
+	}
+	if _u.mutation.CountryCleared() {
+		_spec.ClearField(internetexchange.FieldCountry, field.TypeString)
+	}
+	if value, ok := _u.mutation.IxfLastImport(); ok {
+		_spec.SetField(internetexchange.FieldIxfLastImport, field.TypeTime, value)
+	}
+	if _u.mutation.IxfLastImportCleared() {
+		_spec.ClearField(internetexchange.FieldIxfLastImport, field.TypeTime)
+	}
+	if value, ok := _u.mutation.IxfNetCount(); ok {
+		_spec.SetField(internetexchange.FieldIxfNetCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedIxfNetCount(); ok {
+		_spec.AddField(internetexchange.FieldIxfNetCount, field.TypeInt, value)
+	}
+	if _u.mutation.IxfNetCountCleared() {
+		_spec.ClearField(internetexchange.FieldIxfNetCount, field.TypeInt)
+	}
+	if value, ok := _u.mutation.Logo(); ok {
+		_spec.SetField(internetexchange.FieldLogo, field.TypeString, value)
+	}
+	if _u.mutation.LogoCleared() {
+		_spec.ClearField(internetexchange.FieldLogo, field.TypeString)
+	}
+	if value, ok := _u.mutation.Media(); ok {
+		_spec.SetField(internetexchange.FieldMedia, field.TypeString, value)
+	}
+	if _u.mutation.MediaCleared() {
+		_spec.ClearField(internetexchange.FieldMedia, field.TypeString)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(internetexchange.FieldName, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.NameLong(); ok {
 		_spec.SetField(internetexchange.FieldNameLong, field.TypeString, value)
@@ -882,67 +951,11 @@ func (_u *InternetExchangeUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.NameLongCleared() {
 		_spec.ClearField(internetexchange.FieldNameLong, field.TypeString)
 	}
-	if value, ok := _u.mutation.City(); ok {
-		_spec.SetField(internetexchange.FieldCity, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Country(); ok {
-		_spec.SetField(internetexchange.FieldCountry, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.RegionContinent(); ok {
-		_spec.SetField(internetexchange.FieldRegionContinent, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Media(); ok {
-		_spec.SetField(internetexchange.FieldMedia, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(internetexchange.FieldNotes, field.TypeString, value)
 	}
 	if _u.mutation.NotesCleared() {
 		_spec.ClearField(internetexchange.FieldNotes, field.TypeString)
-	}
-	if value, ok := _u.mutation.ProtoUnicast(); ok {
-		_spec.SetField(internetexchange.FieldProtoUnicast, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.ProtoMulticast(); ok {
-		_spec.SetField(internetexchange.FieldProtoMulticast, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.ProtoIpv6(); ok {
-		_spec.SetField(internetexchange.FieldProtoIpv6, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.Website(); ok {
-		_spec.SetField(internetexchange.FieldWebsite, field.TypeString, value)
-	}
-	if _u.mutation.WebsiteCleared() {
-		_spec.ClearField(internetexchange.FieldWebsite, field.TypeString)
-	}
-	if value, ok := _u.mutation.SocialMedia(); ok {
-		_spec.SetField(internetexchange.FieldSocialMedia, field.TypeJSON, value)
-	}
-	if value, ok := _u.mutation.AppendedSocialMedia(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, internetexchange.FieldSocialMedia, value)
-		})
-	}
-	if _u.mutation.SocialMediaCleared() {
-		_spec.ClearField(internetexchange.FieldSocialMedia, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.URLStats(); ok {
-		_spec.SetField(internetexchange.FieldURLStats, field.TypeString, value)
-	}
-	if _u.mutation.URLStatsCleared() {
-		_spec.ClearField(internetexchange.FieldURLStats, field.TypeString)
-	}
-	if value, ok := _u.mutation.TechEmail(); ok {
-		_spec.SetField(internetexchange.FieldTechEmail, field.TypeString, value)
-	}
-	if _u.mutation.TechEmailCleared() {
-		_spec.ClearField(internetexchange.FieldTechEmail, field.TypeString)
-	}
-	if value, ok := _u.mutation.TechPhone(); ok {
-		_spec.SetField(internetexchange.FieldTechPhone, field.TypeString, value)
-	}
-	if _u.mutation.TechPhoneCleared() {
-		_spec.ClearField(internetexchange.FieldTechPhone, field.TypeString)
 	}
 	if value, ok := _u.mutation.PolicyEmail(); ok {
 		_spec.SetField(internetexchange.FieldPolicyEmail, field.TypeString, value)
@@ -956,6 +969,21 @@ func (_u *InternetExchangeUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.PolicyPhoneCleared() {
 		_spec.ClearField(internetexchange.FieldPolicyPhone, field.TypeString)
 	}
+	if value, ok := _u.mutation.ProtoIpv6(); ok {
+		_spec.SetField(internetexchange.FieldProtoIpv6, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.ProtoMulticast(); ok {
+		_spec.SetField(internetexchange.FieldProtoMulticast, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.ProtoUnicast(); ok {
+		_spec.SetField(internetexchange.FieldProtoUnicast, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.RegionContinent(); ok {
+		_spec.SetField(internetexchange.FieldRegionContinent, field.TypeString, value)
+	}
+	if _u.mutation.RegionContinentCleared() {
+		_spec.ClearField(internetexchange.FieldRegionContinent, field.TypeString)
+	}
 	if value, ok := _u.mutation.SalesEmail(); ok {
 		_spec.SetField(internetexchange.FieldSalesEmail, field.TypeString, value)
 	}
@@ -967,6 +995,59 @@ func (_u *InternetExchangeUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.SalesPhoneCleared() {
 		_spec.ClearField(internetexchange.FieldSalesPhone, field.TypeString)
+	}
+	if value, ok := _u.mutation.ServiceLevel(); ok {
+		_spec.SetField(internetexchange.FieldServiceLevel, field.TypeString, value)
+	}
+	if _u.mutation.ServiceLevelCleared() {
+		_spec.ClearField(internetexchange.FieldServiceLevel, field.TypeString)
+	}
+	if value, ok := _u.mutation.SocialMedia(); ok {
+		_spec.SetField(internetexchange.FieldSocialMedia, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedSocialMedia(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, internetexchange.FieldSocialMedia, value)
+		})
+	}
+	if _u.mutation.SocialMediaCleared() {
+		_spec.ClearField(internetexchange.FieldSocialMedia, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.StatusDashboard(); ok {
+		_spec.SetField(internetexchange.FieldStatusDashboard, field.TypeString, value)
+	}
+	if _u.mutation.StatusDashboardCleared() {
+		_spec.ClearField(internetexchange.FieldStatusDashboard, field.TypeString)
+	}
+	if value, ok := _u.mutation.TechEmail(); ok {
+		_spec.SetField(internetexchange.FieldTechEmail, field.TypeString, value)
+	}
+	if _u.mutation.TechEmailCleared() {
+		_spec.ClearField(internetexchange.FieldTechEmail, field.TypeString)
+	}
+	if value, ok := _u.mutation.TechPhone(); ok {
+		_spec.SetField(internetexchange.FieldTechPhone, field.TypeString, value)
+	}
+	if _u.mutation.TechPhoneCleared() {
+		_spec.ClearField(internetexchange.FieldTechPhone, field.TypeString)
+	}
+	if value, ok := _u.mutation.Terms(); ok {
+		_spec.SetField(internetexchange.FieldTerms, field.TypeString, value)
+	}
+	if _u.mutation.TermsCleared() {
+		_spec.ClearField(internetexchange.FieldTerms, field.TypeString)
+	}
+	if value, ok := _u.mutation.URLStats(); ok {
+		_spec.SetField(internetexchange.FieldURLStats, field.TypeString, value)
+	}
+	if _u.mutation.URLStatsCleared() {
+		_spec.ClearField(internetexchange.FieldURLStats, field.TypeString)
+	}
+	if value, ok := _u.mutation.Website(); ok {
+		_spec.SetField(internetexchange.FieldWebsite, field.TypeString, value)
+	}
+	if _u.mutation.WebsiteCleared() {
+		_spec.ClearField(internetexchange.FieldWebsite, field.TypeString)
 	}
 	if value, ok := _u.mutation.NetCount(); ok {
 		_spec.SetField(internetexchange.FieldNetCount, field.TypeInt, value)
@@ -986,18 +1067,6 @@ func (_u *InternetExchangeUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.FacCountCleared() {
 		_spec.ClearField(internetexchange.FieldFacCount, field.TypeInt)
 	}
-	if value, ok := _u.mutation.IxfNetCount(); ok {
-		_spec.SetField(internetexchange.FieldIxfNetCount, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedIxfNetCount(); ok {
-		_spec.AddField(internetexchange.FieldIxfNetCount, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.IxfLastImport(); ok {
-		_spec.SetField(internetexchange.FieldIxfLastImport, field.TypeTime, value)
-	}
-	if _u.mutation.IxfLastImportCleared() {
-		_spec.ClearField(internetexchange.FieldIxfLastImport, field.TypeTime)
-	}
 	if value, ok := _u.mutation.IxfImportRequest(); ok {
 		_spec.SetField(internetexchange.FieldIxfImportRequest, field.TypeString, value)
 	}
@@ -1010,58 +1079,50 @@ func (_u *InternetExchangeUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.IxfImportRequestStatusCleared() {
 		_spec.ClearField(internetexchange.FieldIxfImportRequestStatus, field.TypeString)
 	}
-	if value, ok := _u.mutation.ServiceLevel(); ok {
-		_spec.SetField(internetexchange.FieldServiceLevel, field.TypeString, value)
-	}
-	if _u.mutation.ServiceLevelCleared() {
-		_spec.ClearField(internetexchange.FieldServiceLevel, field.TypeString)
-	}
-	if value, ok := _u.mutation.Terms(); ok {
-		_spec.SetField(internetexchange.FieldTerms, field.TypeString, value)
-	}
-	if _u.mutation.TermsCleared() {
-		_spec.ClearField(internetexchange.FieldTerms, field.TypeString)
-	}
-	if value, ok := _u.mutation.StatusDashboard(); ok {
-		_spec.SetField(internetexchange.FieldStatusDashboard, field.TypeString, value)
-	}
-	if _u.mutation.StatusDashboardCleared() {
-		_spec.ClearField(internetexchange.FieldStatusDashboard, field.TypeString)
-	}
-	if value, ok := _u.mutation.Logo(); ok {
-		_spec.SetField(internetexchange.FieldLogo, field.TypeString, value)
-	}
-	if _u.mutation.LogoCleared() {
-		_spec.ClearField(internetexchange.FieldLogo, field.TypeString)
-	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(internetexchange.FieldUpdated, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(internetexchange.FieldStatus, field.TypeString, value)
 	}
-	if _u.mutation.OrganizationCleared() {
+	if _u.mutation.IxFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   internetexchange.OrganizationTable,
-			Columns: []string{internetexchange.OrganizationColumn},
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   internetexchange.IxFacilitiesTable,
+			Columns: []string{internetexchange.IxFacilitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RemovedIxFacilitiesIDs(); len(nodes) > 0 && !_u.mutation.IxFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   internetexchange.OrganizationTable,
-			Columns: []string{internetexchange.OrganizationColumn},
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   internetexchange.IxFacilitiesTable,
+			Columns: []string{internetexchange.IxFacilitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IxFacilitiesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   internetexchange.IxFacilitiesTable,
+			Columns: []string{internetexchange.IxFacilitiesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -1114,44 +1175,28 @@ func (_u *InternetExchangeUpdate) sqlSave(ctx context.Context) (_node int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.IxFacilitiesCleared() {
+	if _u.mutation.OrganizationCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   internetexchange.IxFacilitiesTable,
-			Columns: []string{internetexchange.IxFacilitiesColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   internetexchange.OrganizationTable,
+			Columns: []string{internetexchange.OrganizationColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedIxFacilitiesIDs(); len(nodes) > 0 && !_u.mutation.IxFacilitiesCleared() {
+	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   internetexchange.IxFacilitiesTable,
-			Columns: []string{internetexchange.IxFacilitiesColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   internetexchange.OrganizationTable,
+			Columns: []string{internetexchange.OrganizationColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.IxFacilitiesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   internetexchange.IxFacilitiesTable,
-			Columns: []string{internetexchange.IxFacilitiesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -1199,20 +1244,6 @@ func (_u *InternetExchangeUpdateOne) ClearOrgID() *InternetExchangeUpdateOne {
 	return _u
 }
 
-// SetName sets the "name" field.
-func (_u *InternetExchangeUpdateOne) SetName(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetName(v)
-	return _u
-}
-
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableName(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetName(*v)
-	}
-	return _u
-}
-
 // SetAka sets the "aka" field.
 func (_u *InternetExchangeUpdateOne) SetAka(v string) *InternetExchangeUpdateOne {
 	_u.mutation.SetAka(v)
@@ -1230,6 +1261,147 @@ func (_u *InternetExchangeUpdateOne) SetNillableAka(v *string) *InternetExchange
 // ClearAka clears the value of the "aka" field.
 func (_u *InternetExchangeUpdateOne) ClearAka() *InternetExchangeUpdateOne {
 	_u.mutation.ClearAka()
+	return _u
+}
+
+// SetCity sets the "city" field.
+func (_u *InternetExchangeUpdateOne) SetCity(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetCity(v)
+	return _u
+}
+
+// SetNillableCity sets the "city" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableCity(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetCity(*v)
+	}
+	return _u
+}
+
+// ClearCity clears the value of the "city" field.
+func (_u *InternetExchangeUpdateOne) ClearCity() *InternetExchangeUpdateOne {
+	_u.mutation.ClearCity()
+	return _u
+}
+
+// SetCountry sets the "country" field.
+func (_u *InternetExchangeUpdateOne) SetCountry(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetCountry(v)
+	return _u
+}
+
+// SetNillableCountry sets the "country" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableCountry(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetCountry(*v)
+	}
+	return _u
+}
+
+// ClearCountry clears the value of the "country" field.
+func (_u *InternetExchangeUpdateOne) ClearCountry() *InternetExchangeUpdateOne {
+	_u.mutation.ClearCountry()
+	return _u
+}
+
+// SetIxfLastImport sets the "ixf_last_import" field.
+func (_u *InternetExchangeUpdateOne) SetIxfLastImport(v time.Time) *InternetExchangeUpdateOne {
+	_u.mutation.SetIxfLastImport(v)
+	return _u
+}
+
+// SetNillableIxfLastImport sets the "ixf_last_import" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableIxfLastImport(v *time.Time) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetIxfLastImport(*v)
+	}
+	return _u
+}
+
+// ClearIxfLastImport clears the value of the "ixf_last_import" field.
+func (_u *InternetExchangeUpdateOne) ClearIxfLastImport() *InternetExchangeUpdateOne {
+	_u.mutation.ClearIxfLastImport()
+	return _u
+}
+
+// SetIxfNetCount sets the "ixf_net_count" field.
+func (_u *InternetExchangeUpdateOne) SetIxfNetCount(v int) *InternetExchangeUpdateOne {
+	_u.mutation.ResetIxfNetCount()
+	_u.mutation.SetIxfNetCount(v)
+	return _u
+}
+
+// SetNillableIxfNetCount sets the "ixf_net_count" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableIxfNetCount(v *int) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetIxfNetCount(*v)
+	}
+	return _u
+}
+
+// AddIxfNetCount adds value to the "ixf_net_count" field.
+func (_u *InternetExchangeUpdateOne) AddIxfNetCount(v int) *InternetExchangeUpdateOne {
+	_u.mutation.AddIxfNetCount(v)
+	return _u
+}
+
+// ClearIxfNetCount clears the value of the "ixf_net_count" field.
+func (_u *InternetExchangeUpdateOne) ClearIxfNetCount() *InternetExchangeUpdateOne {
+	_u.mutation.ClearIxfNetCount()
+	return _u
+}
+
+// SetLogo sets the "logo" field.
+func (_u *InternetExchangeUpdateOne) SetLogo(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetLogo(v)
+	return _u
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableLogo(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetLogo(*v)
+	}
+	return _u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (_u *InternetExchangeUpdateOne) ClearLogo() *InternetExchangeUpdateOne {
+	_u.mutation.ClearLogo()
+	return _u
+}
+
+// SetMedia sets the "media" field.
+func (_u *InternetExchangeUpdateOne) SetMedia(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetMedia(v)
+	return _u
+}
+
+// SetNillableMedia sets the "media" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableMedia(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetMedia(*v)
+	}
+	return _u
+}
+
+// ClearMedia clears the value of the "media" field.
+func (_u *InternetExchangeUpdateOne) ClearMedia() *InternetExchangeUpdateOne {
+	_u.mutation.ClearMedia()
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *InternetExchangeUpdateOne) SetName(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableName(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
+	}
 	return _u
 }
 
@@ -1253,62 +1425,6 @@ func (_u *InternetExchangeUpdateOne) ClearNameLong() *InternetExchangeUpdateOne 
 	return _u
 }
 
-// SetCity sets the "city" field.
-func (_u *InternetExchangeUpdateOne) SetCity(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetCity(v)
-	return _u
-}
-
-// SetNillableCity sets the "city" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableCity(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetCity(*v)
-	}
-	return _u
-}
-
-// SetCountry sets the "country" field.
-func (_u *InternetExchangeUpdateOne) SetCountry(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetCountry(v)
-	return _u
-}
-
-// SetNillableCountry sets the "country" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableCountry(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetCountry(*v)
-	}
-	return _u
-}
-
-// SetRegionContinent sets the "region_continent" field.
-func (_u *InternetExchangeUpdateOne) SetRegionContinent(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetRegionContinent(v)
-	return _u
-}
-
-// SetNillableRegionContinent sets the "region_continent" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableRegionContinent(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetRegionContinent(*v)
-	}
-	return _u
-}
-
-// SetMedia sets the "media" field.
-func (_u *InternetExchangeUpdateOne) SetMedia(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetMedia(v)
-	return _u
-}
-
-// SetNillableMedia sets the "media" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableMedia(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetMedia(*v)
-	}
-	return _u
-}
-
 // SetNotes sets the "notes" field.
 func (_u *InternetExchangeUpdateOne) SetNotes(v string) *InternetExchangeUpdateOne {
 	_u.mutation.SetNotes(v)
@@ -1326,146 +1442,6 @@ func (_u *InternetExchangeUpdateOne) SetNillableNotes(v *string) *InternetExchan
 // ClearNotes clears the value of the "notes" field.
 func (_u *InternetExchangeUpdateOne) ClearNotes() *InternetExchangeUpdateOne {
 	_u.mutation.ClearNotes()
-	return _u
-}
-
-// SetProtoUnicast sets the "proto_unicast" field.
-func (_u *InternetExchangeUpdateOne) SetProtoUnicast(v bool) *InternetExchangeUpdateOne {
-	_u.mutation.SetProtoUnicast(v)
-	return _u
-}
-
-// SetNillableProtoUnicast sets the "proto_unicast" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableProtoUnicast(v *bool) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetProtoUnicast(*v)
-	}
-	return _u
-}
-
-// SetProtoMulticast sets the "proto_multicast" field.
-func (_u *InternetExchangeUpdateOne) SetProtoMulticast(v bool) *InternetExchangeUpdateOne {
-	_u.mutation.SetProtoMulticast(v)
-	return _u
-}
-
-// SetNillableProtoMulticast sets the "proto_multicast" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableProtoMulticast(v *bool) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetProtoMulticast(*v)
-	}
-	return _u
-}
-
-// SetProtoIpv6 sets the "proto_ipv6" field.
-func (_u *InternetExchangeUpdateOne) SetProtoIpv6(v bool) *InternetExchangeUpdateOne {
-	_u.mutation.SetProtoIpv6(v)
-	return _u
-}
-
-// SetNillableProtoIpv6 sets the "proto_ipv6" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableProtoIpv6(v *bool) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetProtoIpv6(*v)
-	}
-	return _u
-}
-
-// SetWebsite sets the "website" field.
-func (_u *InternetExchangeUpdateOne) SetWebsite(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetWebsite(v)
-	return _u
-}
-
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableWebsite(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetWebsite(*v)
-	}
-	return _u
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (_u *InternetExchangeUpdateOne) ClearWebsite() *InternetExchangeUpdateOne {
-	_u.mutation.ClearWebsite()
-	return _u
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (_u *InternetExchangeUpdateOne) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdateOne {
-	_u.mutation.SetSocialMedia(v)
-	return _u
-}
-
-// AppendSocialMedia appends value to the "social_media" field.
-func (_u *InternetExchangeUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdateOne {
-	_u.mutation.AppendSocialMedia(v)
-	return _u
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (_u *InternetExchangeUpdateOne) ClearSocialMedia() *InternetExchangeUpdateOne {
-	_u.mutation.ClearSocialMedia()
-	return _u
-}
-
-// SetURLStats sets the "url_stats" field.
-func (_u *InternetExchangeUpdateOne) SetURLStats(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetURLStats(v)
-	return _u
-}
-
-// SetNillableURLStats sets the "url_stats" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableURLStats(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetURLStats(*v)
-	}
-	return _u
-}
-
-// ClearURLStats clears the value of the "url_stats" field.
-func (_u *InternetExchangeUpdateOne) ClearURLStats() *InternetExchangeUpdateOne {
-	_u.mutation.ClearURLStats()
-	return _u
-}
-
-// SetTechEmail sets the "tech_email" field.
-func (_u *InternetExchangeUpdateOne) SetTechEmail(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetTechEmail(v)
-	return _u
-}
-
-// SetNillableTechEmail sets the "tech_email" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableTechEmail(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetTechEmail(*v)
-	}
-	return _u
-}
-
-// ClearTechEmail clears the value of the "tech_email" field.
-func (_u *InternetExchangeUpdateOne) ClearTechEmail() *InternetExchangeUpdateOne {
-	_u.mutation.ClearTechEmail()
-	return _u
-}
-
-// SetTechPhone sets the "tech_phone" field.
-func (_u *InternetExchangeUpdateOne) SetTechPhone(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetTechPhone(v)
-	return _u
-}
-
-// SetNillableTechPhone sets the "tech_phone" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableTechPhone(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetTechPhone(*v)
-	}
-	return _u
-}
-
-// ClearTechPhone clears the value of the "tech_phone" field.
-func (_u *InternetExchangeUpdateOne) ClearTechPhone() *InternetExchangeUpdateOne {
-	_u.mutation.ClearTechPhone()
 	return _u
 }
 
@@ -1509,6 +1485,68 @@ func (_u *InternetExchangeUpdateOne) ClearPolicyPhone() *InternetExchangeUpdateO
 	return _u
 }
 
+// SetProtoIpv6 sets the "proto_ipv6" field.
+func (_u *InternetExchangeUpdateOne) SetProtoIpv6(v bool) *InternetExchangeUpdateOne {
+	_u.mutation.SetProtoIpv6(v)
+	return _u
+}
+
+// SetNillableProtoIpv6 sets the "proto_ipv6" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableProtoIpv6(v *bool) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetProtoIpv6(*v)
+	}
+	return _u
+}
+
+// SetProtoMulticast sets the "proto_multicast" field.
+func (_u *InternetExchangeUpdateOne) SetProtoMulticast(v bool) *InternetExchangeUpdateOne {
+	_u.mutation.SetProtoMulticast(v)
+	return _u
+}
+
+// SetNillableProtoMulticast sets the "proto_multicast" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableProtoMulticast(v *bool) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetProtoMulticast(*v)
+	}
+	return _u
+}
+
+// SetProtoUnicast sets the "proto_unicast" field.
+func (_u *InternetExchangeUpdateOne) SetProtoUnicast(v bool) *InternetExchangeUpdateOne {
+	_u.mutation.SetProtoUnicast(v)
+	return _u
+}
+
+// SetNillableProtoUnicast sets the "proto_unicast" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableProtoUnicast(v *bool) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetProtoUnicast(*v)
+	}
+	return _u
+}
+
+// SetRegionContinent sets the "region_continent" field.
+func (_u *InternetExchangeUpdateOne) SetRegionContinent(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetRegionContinent(v)
+	return _u
+}
+
+// SetNillableRegionContinent sets the "region_continent" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableRegionContinent(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetRegionContinent(*v)
+	}
+	return _u
+}
+
+// ClearRegionContinent clears the value of the "region_continent" field.
+func (_u *InternetExchangeUpdateOne) ClearRegionContinent() *InternetExchangeUpdateOne {
+	_u.mutation.ClearRegionContinent()
+	return _u
+}
+
 // SetSalesEmail sets the "sales_email" field.
 func (_u *InternetExchangeUpdateOne) SetSalesEmail(v string) *InternetExchangeUpdateOne {
 	_u.mutation.SetSalesEmail(v)
@@ -1546,6 +1584,164 @@ func (_u *InternetExchangeUpdateOne) SetNillableSalesPhone(v *string) *InternetE
 // ClearSalesPhone clears the value of the "sales_phone" field.
 func (_u *InternetExchangeUpdateOne) ClearSalesPhone() *InternetExchangeUpdateOne {
 	_u.mutation.ClearSalesPhone()
+	return _u
+}
+
+// SetServiceLevel sets the "service_level" field.
+func (_u *InternetExchangeUpdateOne) SetServiceLevel(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetServiceLevel(v)
+	return _u
+}
+
+// SetNillableServiceLevel sets the "service_level" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableServiceLevel(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetServiceLevel(*v)
+	}
+	return _u
+}
+
+// ClearServiceLevel clears the value of the "service_level" field.
+func (_u *InternetExchangeUpdateOne) ClearServiceLevel() *InternetExchangeUpdateOne {
+	_u.mutation.ClearServiceLevel()
+	return _u
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (_u *InternetExchangeUpdateOne) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdateOne {
+	_u.mutation.SetSocialMedia(v)
+	return _u
+}
+
+// AppendSocialMedia appends value to the "social_media" field.
+func (_u *InternetExchangeUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdateOne {
+	_u.mutation.AppendSocialMedia(v)
+	return _u
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (_u *InternetExchangeUpdateOne) ClearSocialMedia() *InternetExchangeUpdateOne {
+	_u.mutation.ClearSocialMedia()
+	return _u
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (_u *InternetExchangeUpdateOne) SetStatusDashboard(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetStatusDashboard(v)
+	return _u
+}
+
+// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableStatusDashboard(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetStatusDashboard(*v)
+	}
+	return _u
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (_u *InternetExchangeUpdateOne) ClearStatusDashboard() *InternetExchangeUpdateOne {
+	_u.mutation.ClearStatusDashboard()
+	return _u
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (_u *InternetExchangeUpdateOne) SetTechEmail(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetTechEmail(v)
+	return _u
+}
+
+// SetNillableTechEmail sets the "tech_email" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableTechEmail(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetTechEmail(*v)
+	}
+	return _u
+}
+
+// ClearTechEmail clears the value of the "tech_email" field.
+func (_u *InternetExchangeUpdateOne) ClearTechEmail() *InternetExchangeUpdateOne {
+	_u.mutation.ClearTechEmail()
+	return _u
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (_u *InternetExchangeUpdateOne) SetTechPhone(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetTechPhone(v)
+	return _u
+}
+
+// SetNillableTechPhone sets the "tech_phone" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableTechPhone(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetTechPhone(*v)
+	}
+	return _u
+}
+
+// ClearTechPhone clears the value of the "tech_phone" field.
+func (_u *InternetExchangeUpdateOne) ClearTechPhone() *InternetExchangeUpdateOne {
+	_u.mutation.ClearTechPhone()
+	return _u
+}
+
+// SetTerms sets the "terms" field.
+func (_u *InternetExchangeUpdateOne) SetTerms(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetTerms(v)
+	return _u
+}
+
+// SetNillableTerms sets the "terms" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableTerms(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetTerms(*v)
+	}
+	return _u
+}
+
+// ClearTerms clears the value of the "terms" field.
+func (_u *InternetExchangeUpdateOne) ClearTerms() *InternetExchangeUpdateOne {
+	_u.mutation.ClearTerms()
+	return _u
+}
+
+// SetURLStats sets the "url_stats" field.
+func (_u *InternetExchangeUpdateOne) SetURLStats(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetURLStats(v)
+	return _u
+}
+
+// SetNillableURLStats sets the "url_stats" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableURLStats(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetURLStats(*v)
+	}
+	return _u
+}
+
+// ClearURLStats clears the value of the "url_stats" field.
+func (_u *InternetExchangeUpdateOne) ClearURLStats() *InternetExchangeUpdateOne {
+	_u.mutation.ClearURLStats()
+	return _u
+}
+
+// SetWebsite sets the "website" field.
+func (_u *InternetExchangeUpdateOne) SetWebsite(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetWebsite(v)
+	return _u
+}
+
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableWebsite(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetWebsite(*v)
+	}
+	return _u
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (_u *InternetExchangeUpdateOne) ClearWebsite() *InternetExchangeUpdateOne {
+	_u.mutation.ClearWebsite()
 	return _u
 }
 
@@ -1603,47 +1799,6 @@ func (_u *InternetExchangeUpdateOne) ClearFacCount() *InternetExchangeUpdateOne 
 	return _u
 }
 
-// SetIxfNetCount sets the "ixf_net_count" field.
-func (_u *InternetExchangeUpdateOne) SetIxfNetCount(v int) *InternetExchangeUpdateOne {
-	_u.mutation.ResetIxfNetCount()
-	_u.mutation.SetIxfNetCount(v)
-	return _u
-}
-
-// SetNillableIxfNetCount sets the "ixf_net_count" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableIxfNetCount(v *int) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetIxfNetCount(*v)
-	}
-	return _u
-}
-
-// AddIxfNetCount adds value to the "ixf_net_count" field.
-func (_u *InternetExchangeUpdateOne) AddIxfNetCount(v int) *InternetExchangeUpdateOne {
-	_u.mutation.AddIxfNetCount(v)
-	return _u
-}
-
-// SetIxfLastImport sets the "ixf_last_import" field.
-func (_u *InternetExchangeUpdateOne) SetIxfLastImport(v time.Time) *InternetExchangeUpdateOne {
-	_u.mutation.SetIxfLastImport(v)
-	return _u
-}
-
-// SetNillableIxfLastImport sets the "ixf_last_import" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableIxfLastImport(v *time.Time) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetIxfLastImport(*v)
-	}
-	return _u
-}
-
-// ClearIxfLastImport clears the value of the "ixf_last_import" field.
-func (_u *InternetExchangeUpdateOne) ClearIxfLastImport() *InternetExchangeUpdateOne {
-	_u.mutation.ClearIxfLastImport()
-	return _u
-}
-
 // SetIxfImportRequest sets the "ixf_import_request" field.
 func (_u *InternetExchangeUpdateOne) SetIxfImportRequest(v string) *InternetExchangeUpdateOne {
 	_u.mutation.SetIxfImportRequest(v)
@@ -1684,86 +1839,6 @@ func (_u *InternetExchangeUpdateOne) ClearIxfImportRequestStatus() *InternetExch
 	return _u
 }
 
-// SetServiceLevel sets the "service_level" field.
-func (_u *InternetExchangeUpdateOne) SetServiceLevel(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetServiceLevel(v)
-	return _u
-}
-
-// SetNillableServiceLevel sets the "service_level" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableServiceLevel(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetServiceLevel(*v)
-	}
-	return _u
-}
-
-// ClearServiceLevel clears the value of the "service_level" field.
-func (_u *InternetExchangeUpdateOne) ClearServiceLevel() *InternetExchangeUpdateOne {
-	_u.mutation.ClearServiceLevel()
-	return _u
-}
-
-// SetTerms sets the "terms" field.
-func (_u *InternetExchangeUpdateOne) SetTerms(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetTerms(v)
-	return _u
-}
-
-// SetNillableTerms sets the "terms" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableTerms(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetTerms(*v)
-	}
-	return _u
-}
-
-// ClearTerms clears the value of the "terms" field.
-func (_u *InternetExchangeUpdateOne) ClearTerms() *InternetExchangeUpdateOne {
-	_u.mutation.ClearTerms()
-	return _u
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (_u *InternetExchangeUpdateOne) SetStatusDashboard(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetStatusDashboard(v)
-	return _u
-}
-
-// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableStatusDashboard(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetStatusDashboard(*v)
-	}
-	return _u
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (_u *InternetExchangeUpdateOne) ClearStatusDashboard() *InternetExchangeUpdateOne {
-	_u.mutation.ClearStatusDashboard()
-	return _u
-}
-
-// SetLogo sets the "logo" field.
-func (_u *InternetExchangeUpdateOne) SetLogo(v string) *InternetExchangeUpdateOne {
-	_u.mutation.SetLogo(v)
-	return _u
-}
-
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_u *InternetExchangeUpdateOne) SetNillableLogo(v *string) *InternetExchangeUpdateOne {
-	if v != nil {
-		_u.SetLogo(*v)
-	}
-	return _u
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (_u *InternetExchangeUpdateOne) ClearLogo() *InternetExchangeUpdateOne {
-	_u.mutation.ClearLogo()
-	return _u
-}
-
 // SetUpdated sets the "updated" field.
 func (_u *InternetExchangeUpdateOne) SetUpdated(v time.Time) *InternetExchangeUpdateOne {
 	_u.mutation.SetUpdated(v)
@@ -1792,6 +1867,36 @@ func (_u *InternetExchangeUpdateOne) SetNillableStatus(v *string) *InternetExcha
 	return _u
 }
 
+// AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by IDs.
+func (_u *InternetExchangeUpdateOne) AddIxFacilityIDs(ids ...int) *InternetExchangeUpdateOne {
+	_u.mutation.AddIxFacilityIDs(ids...)
+	return _u
+}
+
+// AddIxFacilities adds the "ix_facilities" edges to the IxFacility entity.
+func (_u *InternetExchangeUpdateOne) AddIxFacilities(v ...*IxFacility) *InternetExchangeUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddIxFacilityIDs(ids...)
+}
+
+// AddIxLanIDs adds the "ix_lans" edge to the IxLan entity by IDs.
+func (_u *InternetExchangeUpdateOne) AddIxLanIDs(ids ...int) *InternetExchangeUpdateOne {
+	_u.mutation.AddIxLanIDs(ids...)
+	return _u
+}
+
+// AddIxLans adds the "ix_lans" edges to the IxLan entity.
+func (_u *InternetExchangeUpdateOne) AddIxLans(v ...*IxLan) *InternetExchangeUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddIxLanIDs(ids...)
+}
+
 // SetOrganizationID sets the "organization" edge to the Organization entity by ID.
 func (_u *InternetExchangeUpdateOne) SetOrganizationID(id int) *InternetExchangeUpdateOne {
 	_u.mutation.SetOrganizationID(id)
@@ -1811,45 +1916,30 @@ func (_u *InternetExchangeUpdateOne) SetOrganization(v *Organization) *InternetE
 	return _u.SetOrganizationID(v.ID)
 }
 
-// AddIxLanIDs adds the "ix_lans" edge to the IxLan entity by IDs.
-func (_u *InternetExchangeUpdateOne) AddIxLanIDs(ids ...int) *InternetExchangeUpdateOne {
-	_u.mutation.AddIxLanIDs(ids...)
-	return _u
-}
-
-// AddIxLans adds the "ix_lans" edges to the IxLan entity.
-func (_u *InternetExchangeUpdateOne) AddIxLans(v ...*IxLan) *InternetExchangeUpdateOne {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddIxLanIDs(ids...)
-}
-
-// AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by IDs.
-func (_u *InternetExchangeUpdateOne) AddIxFacilityIDs(ids ...int) *InternetExchangeUpdateOne {
-	_u.mutation.AddIxFacilityIDs(ids...)
-	return _u
-}
-
-// AddIxFacilities adds the "ix_facilities" edges to the IxFacility entity.
-func (_u *InternetExchangeUpdateOne) AddIxFacilities(v ...*IxFacility) *InternetExchangeUpdateOne {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddIxFacilityIDs(ids...)
-}
-
 // Mutation returns the InternetExchangeMutation object of the builder.
 func (_u *InternetExchangeUpdateOne) Mutation() *InternetExchangeMutation {
 	return _u.mutation
 }
 
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (_u *InternetExchangeUpdateOne) ClearOrganization() *InternetExchangeUpdateOne {
-	_u.mutation.ClearOrganization()
+// ClearIxFacilities clears all "ix_facilities" edges to the IxFacility entity.
+func (_u *InternetExchangeUpdateOne) ClearIxFacilities() *InternetExchangeUpdateOne {
+	_u.mutation.ClearIxFacilities()
 	return _u
+}
+
+// RemoveIxFacilityIDs removes the "ix_facilities" edge to IxFacility entities by IDs.
+func (_u *InternetExchangeUpdateOne) RemoveIxFacilityIDs(ids ...int) *InternetExchangeUpdateOne {
+	_u.mutation.RemoveIxFacilityIDs(ids...)
+	return _u
+}
+
+// RemoveIxFacilities removes "ix_facilities" edges to IxFacility entities.
+func (_u *InternetExchangeUpdateOne) RemoveIxFacilities(v ...*IxFacility) *InternetExchangeUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveIxFacilityIDs(ids...)
 }
 
 // ClearIxLans clears all "ix_lans" edges to the IxLan entity.
@@ -1873,25 +1963,10 @@ func (_u *InternetExchangeUpdateOne) RemoveIxLans(v ...*IxLan) *InternetExchange
 	return _u.RemoveIxLanIDs(ids...)
 }
 
-// ClearIxFacilities clears all "ix_facilities" edges to the IxFacility entity.
-func (_u *InternetExchangeUpdateOne) ClearIxFacilities() *InternetExchangeUpdateOne {
-	_u.mutation.ClearIxFacilities()
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (_u *InternetExchangeUpdateOne) ClearOrganization() *InternetExchangeUpdateOne {
+	_u.mutation.ClearOrganization()
 	return _u
-}
-
-// RemoveIxFacilityIDs removes the "ix_facilities" edge to IxFacility entities by IDs.
-func (_u *InternetExchangeUpdateOne) RemoveIxFacilityIDs(ids ...int) *InternetExchangeUpdateOne {
-	_u.mutation.RemoveIxFacilityIDs(ids...)
-	return _u
-}
-
-// RemoveIxFacilities removes "ix_facilities" edges to IxFacility entities.
-func (_u *InternetExchangeUpdateOne) RemoveIxFacilities(v ...*IxFacility) *InternetExchangeUpdateOne {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveIxFacilityIDs(ids...)
 }
 
 // Where appends a list predicates to the InternetExchangeUpdate builder.
@@ -1936,19 +2011,9 @@ func (_u *InternetExchangeUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *InternetExchangeUpdateOne) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := internetexchange.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Aka(); ok {
 		if err := internetexchange.AkaValidator(v); err != nil {
 			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.aka": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := internetexchange.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name_long": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.City(); ok {
@@ -1956,24 +2021,19 @@ func (_u *InternetExchangeUpdateOne) check() error {
 			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.city": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.RegionContinent(); ok {
-		if err := internetexchange.RegionContinentValidator(v); err != nil {
-			return &ValidationError{Name: "region_continent", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.region_continent": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Media(); ok {
 		if err := internetexchange.MediaValidator(v); err != nil {
 			return &ValidationError{Name: "media", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.media": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.TechEmail(); ok {
-		if err := internetexchange.TechEmailValidator(v); err != nil {
-			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_email": %w`, err)}
+	if v, ok := _u.mutation.Name(); ok {
+		if err := internetexchange.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.TechPhone(); ok {
-		if err := internetexchange.TechPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_phone": %w`, err)}
+	if v, ok := _u.mutation.NameLong(); ok {
+		if err := internetexchange.NameLongValidator(v); err != nil {
+			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name_long": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.PolicyEmail(); ok {
@@ -1984,6 +2044,11 @@ func (_u *InternetExchangeUpdateOne) check() error {
 	if v, ok := _u.mutation.PolicyPhone(); ok {
 		if err := internetexchange.PolicyPhoneValidator(v); err != nil {
 			return &ValidationError{Name: "policy_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.policy_phone": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.RegionContinent(); ok {
+		if err := internetexchange.RegionContinentValidator(v); err != nil {
+			return &ValidationError{Name: "region_continent", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.region_continent": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.SalesEmail(); ok {
@@ -1999,6 +2064,16 @@ func (_u *InternetExchangeUpdateOne) check() error {
 	if v, ok := _u.mutation.ServiceLevel(); ok {
 		if err := internetexchange.ServiceLevelValidator(v); err != nil {
 			return &ValidationError{Name: "service_level", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.service_level": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TechEmail(); ok {
+		if err := internetexchange.TechEmailValidator(v); err != nil {
+			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_email": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TechPhone(); ok {
+		if err := internetexchange.TechPhoneValidator(v); err != nil {
+			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_phone": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Terms(); ok {
@@ -2043,14 +2118,53 @@ func (_u *InternetExchangeUpdateOne) sqlSave(ctx context.Context) (_node *Intern
 			}
 		}
 	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(internetexchange.FieldName, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(internetexchange.FieldAka, field.TypeString, value)
 	}
 	if _u.mutation.AkaCleared() {
 		_spec.ClearField(internetexchange.FieldAka, field.TypeString)
+	}
+	if value, ok := _u.mutation.City(); ok {
+		_spec.SetField(internetexchange.FieldCity, field.TypeString, value)
+	}
+	if _u.mutation.CityCleared() {
+		_spec.ClearField(internetexchange.FieldCity, field.TypeString)
+	}
+	if value, ok := _u.mutation.Country(); ok {
+		_spec.SetField(internetexchange.FieldCountry, field.TypeString, value)
+	}
+	if _u.mutation.CountryCleared() {
+		_spec.ClearField(internetexchange.FieldCountry, field.TypeString)
+	}
+	if value, ok := _u.mutation.IxfLastImport(); ok {
+		_spec.SetField(internetexchange.FieldIxfLastImport, field.TypeTime, value)
+	}
+	if _u.mutation.IxfLastImportCleared() {
+		_spec.ClearField(internetexchange.FieldIxfLastImport, field.TypeTime)
+	}
+	if value, ok := _u.mutation.IxfNetCount(); ok {
+		_spec.SetField(internetexchange.FieldIxfNetCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedIxfNetCount(); ok {
+		_spec.AddField(internetexchange.FieldIxfNetCount, field.TypeInt, value)
+	}
+	if _u.mutation.IxfNetCountCleared() {
+		_spec.ClearField(internetexchange.FieldIxfNetCount, field.TypeInt)
+	}
+	if value, ok := _u.mutation.Logo(); ok {
+		_spec.SetField(internetexchange.FieldLogo, field.TypeString, value)
+	}
+	if _u.mutation.LogoCleared() {
+		_spec.ClearField(internetexchange.FieldLogo, field.TypeString)
+	}
+	if value, ok := _u.mutation.Media(); ok {
+		_spec.SetField(internetexchange.FieldMedia, field.TypeString, value)
+	}
+	if _u.mutation.MediaCleared() {
+		_spec.ClearField(internetexchange.FieldMedia, field.TypeString)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(internetexchange.FieldName, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.NameLong(); ok {
 		_spec.SetField(internetexchange.FieldNameLong, field.TypeString, value)
@@ -2058,67 +2172,11 @@ func (_u *InternetExchangeUpdateOne) sqlSave(ctx context.Context) (_node *Intern
 	if _u.mutation.NameLongCleared() {
 		_spec.ClearField(internetexchange.FieldNameLong, field.TypeString)
 	}
-	if value, ok := _u.mutation.City(); ok {
-		_spec.SetField(internetexchange.FieldCity, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Country(); ok {
-		_spec.SetField(internetexchange.FieldCountry, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.RegionContinent(); ok {
-		_spec.SetField(internetexchange.FieldRegionContinent, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Media(); ok {
-		_spec.SetField(internetexchange.FieldMedia, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(internetexchange.FieldNotes, field.TypeString, value)
 	}
 	if _u.mutation.NotesCleared() {
 		_spec.ClearField(internetexchange.FieldNotes, field.TypeString)
-	}
-	if value, ok := _u.mutation.ProtoUnicast(); ok {
-		_spec.SetField(internetexchange.FieldProtoUnicast, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.ProtoMulticast(); ok {
-		_spec.SetField(internetexchange.FieldProtoMulticast, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.ProtoIpv6(); ok {
-		_spec.SetField(internetexchange.FieldProtoIpv6, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.Website(); ok {
-		_spec.SetField(internetexchange.FieldWebsite, field.TypeString, value)
-	}
-	if _u.mutation.WebsiteCleared() {
-		_spec.ClearField(internetexchange.FieldWebsite, field.TypeString)
-	}
-	if value, ok := _u.mutation.SocialMedia(); ok {
-		_spec.SetField(internetexchange.FieldSocialMedia, field.TypeJSON, value)
-	}
-	if value, ok := _u.mutation.AppendedSocialMedia(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, internetexchange.FieldSocialMedia, value)
-		})
-	}
-	if _u.mutation.SocialMediaCleared() {
-		_spec.ClearField(internetexchange.FieldSocialMedia, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.URLStats(); ok {
-		_spec.SetField(internetexchange.FieldURLStats, field.TypeString, value)
-	}
-	if _u.mutation.URLStatsCleared() {
-		_spec.ClearField(internetexchange.FieldURLStats, field.TypeString)
-	}
-	if value, ok := _u.mutation.TechEmail(); ok {
-		_spec.SetField(internetexchange.FieldTechEmail, field.TypeString, value)
-	}
-	if _u.mutation.TechEmailCleared() {
-		_spec.ClearField(internetexchange.FieldTechEmail, field.TypeString)
-	}
-	if value, ok := _u.mutation.TechPhone(); ok {
-		_spec.SetField(internetexchange.FieldTechPhone, field.TypeString, value)
-	}
-	if _u.mutation.TechPhoneCleared() {
-		_spec.ClearField(internetexchange.FieldTechPhone, field.TypeString)
 	}
 	if value, ok := _u.mutation.PolicyEmail(); ok {
 		_spec.SetField(internetexchange.FieldPolicyEmail, field.TypeString, value)
@@ -2132,6 +2190,21 @@ func (_u *InternetExchangeUpdateOne) sqlSave(ctx context.Context) (_node *Intern
 	if _u.mutation.PolicyPhoneCleared() {
 		_spec.ClearField(internetexchange.FieldPolicyPhone, field.TypeString)
 	}
+	if value, ok := _u.mutation.ProtoIpv6(); ok {
+		_spec.SetField(internetexchange.FieldProtoIpv6, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.ProtoMulticast(); ok {
+		_spec.SetField(internetexchange.FieldProtoMulticast, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.ProtoUnicast(); ok {
+		_spec.SetField(internetexchange.FieldProtoUnicast, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.RegionContinent(); ok {
+		_spec.SetField(internetexchange.FieldRegionContinent, field.TypeString, value)
+	}
+	if _u.mutation.RegionContinentCleared() {
+		_spec.ClearField(internetexchange.FieldRegionContinent, field.TypeString)
+	}
 	if value, ok := _u.mutation.SalesEmail(); ok {
 		_spec.SetField(internetexchange.FieldSalesEmail, field.TypeString, value)
 	}
@@ -2143,6 +2216,59 @@ func (_u *InternetExchangeUpdateOne) sqlSave(ctx context.Context) (_node *Intern
 	}
 	if _u.mutation.SalesPhoneCleared() {
 		_spec.ClearField(internetexchange.FieldSalesPhone, field.TypeString)
+	}
+	if value, ok := _u.mutation.ServiceLevel(); ok {
+		_spec.SetField(internetexchange.FieldServiceLevel, field.TypeString, value)
+	}
+	if _u.mutation.ServiceLevelCleared() {
+		_spec.ClearField(internetexchange.FieldServiceLevel, field.TypeString)
+	}
+	if value, ok := _u.mutation.SocialMedia(); ok {
+		_spec.SetField(internetexchange.FieldSocialMedia, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedSocialMedia(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, internetexchange.FieldSocialMedia, value)
+		})
+	}
+	if _u.mutation.SocialMediaCleared() {
+		_spec.ClearField(internetexchange.FieldSocialMedia, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.StatusDashboard(); ok {
+		_spec.SetField(internetexchange.FieldStatusDashboard, field.TypeString, value)
+	}
+	if _u.mutation.StatusDashboardCleared() {
+		_spec.ClearField(internetexchange.FieldStatusDashboard, field.TypeString)
+	}
+	if value, ok := _u.mutation.TechEmail(); ok {
+		_spec.SetField(internetexchange.FieldTechEmail, field.TypeString, value)
+	}
+	if _u.mutation.TechEmailCleared() {
+		_spec.ClearField(internetexchange.FieldTechEmail, field.TypeString)
+	}
+	if value, ok := _u.mutation.TechPhone(); ok {
+		_spec.SetField(internetexchange.FieldTechPhone, field.TypeString, value)
+	}
+	if _u.mutation.TechPhoneCleared() {
+		_spec.ClearField(internetexchange.FieldTechPhone, field.TypeString)
+	}
+	if value, ok := _u.mutation.Terms(); ok {
+		_spec.SetField(internetexchange.FieldTerms, field.TypeString, value)
+	}
+	if _u.mutation.TermsCleared() {
+		_spec.ClearField(internetexchange.FieldTerms, field.TypeString)
+	}
+	if value, ok := _u.mutation.URLStats(); ok {
+		_spec.SetField(internetexchange.FieldURLStats, field.TypeString, value)
+	}
+	if _u.mutation.URLStatsCleared() {
+		_spec.ClearField(internetexchange.FieldURLStats, field.TypeString)
+	}
+	if value, ok := _u.mutation.Website(); ok {
+		_spec.SetField(internetexchange.FieldWebsite, field.TypeString, value)
+	}
+	if _u.mutation.WebsiteCleared() {
+		_spec.ClearField(internetexchange.FieldWebsite, field.TypeString)
 	}
 	if value, ok := _u.mutation.NetCount(); ok {
 		_spec.SetField(internetexchange.FieldNetCount, field.TypeInt, value)
@@ -2162,18 +2288,6 @@ func (_u *InternetExchangeUpdateOne) sqlSave(ctx context.Context) (_node *Intern
 	if _u.mutation.FacCountCleared() {
 		_spec.ClearField(internetexchange.FieldFacCount, field.TypeInt)
 	}
-	if value, ok := _u.mutation.IxfNetCount(); ok {
-		_spec.SetField(internetexchange.FieldIxfNetCount, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedIxfNetCount(); ok {
-		_spec.AddField(internetexchange.FieldIxfNetCount, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.IxfLastImport(); ok {
-		_spec.SetField(internetexchange.FieldIxfLastImport, field.TypeTime, value)
-	}
-	if _u.mutation.IxfLastImportCleared() {
-		_spec.ClearField(internetexchange.FieldIxfLastImport, field.TypeTime)
-	}
 	if value, ok := _u.mutation.IxfImportRequest(); ok {
 		_spec.SetField(internetexchange.FieldIxfImportRequest, field.TypeString, value)
 	}
@@ -2186,58 +2300,50 @@ func (_u *InternetExchangeUpdateOne) sqlSave(ctx context.Context) (_node *Intern
 	if _u.mutation.IxfImportRequestStatusCleared() {
 		_spec.ClearField(internetexchange.FieldIxfImportRequestStatus, field.TypeString)
 	}
-	if value, ok := _u.mutation.ServiceLevel(); ok {
-		_spec.SetField(internetexchange.FieldServiceLevel, field.TypeString, value)
-	}
-	if _u.mutation.ServiceLevelCleared() {
-		_spec.ClearField(internetexchange.FieldServiceLevel, field.TypeString)
-	}
-	if value, ok := _u.mutation.Terms(); ok {
-		_spec.SetField(internetexchange.FieldTerms, field.TypeString, value)
-	}
-	if _u.mutation.TermsCleared() {
-		_spec.ClearField(internetexchange.FieldTerms, field.TypeString)
-	}
-	if value, ok := _u.mutation.StatusDashboard(); ok {
-		_spec.SetField(internetexchange.FieldStatusDashboard, field.TypeString, value)
-	}
-	if _u.mutation.StatusDashboardCleared() {
-		_spec.ClearField(internetexchange.FieldStatusDashboard, field.TypeString)
-	}
-	if value, ok := _u.mutation.Logo(); ok {
-		_spec.SetField(internetexchange.FieldLogo, field.TypeString, value)
-	}
-	if _u.mutation.LogoCleared() {
-		_spec.ClearField(internetexchange.FieldLogo, field.TypeString)
-	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(internetexchange.FieldUpdated, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(internetexchange.FieldStatus, field.TypeString, value)
 	}
-	if _u.mutation.OrganizationCleared() {
+	if _u.mutation.IxFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   internetexchange.OrganizationTable,
-			Columns: []string{internetexchange.OrganizationColumn},
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   internetexchange.IxFacilitiesTable,
+			Columns: []string{internetexchange.IxFacilitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.RemovedIxFacilitiesIDs(); len(nodes) > 0 && !_u.mutation.IxFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   internetexchange.OrganizationTable,
-			Columns: []string{internetexchange.OrganizationColumn},
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   internetexchange.IxFacilitiesTable,
+			Columns: []string{internetexchange.IxFacilitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IxFacilitiesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   internetexchange.IxFacilitiesTable,
+			Columns: []string{internetexchange.IxFacilitiesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -2290,44 +2396,28 @@ func (_u *InternetExchangeUpdateOne) sqlSave(ctx context.Context) (_node *Intern
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.IxFacilitiesCleared() {
+	if _u.mutation.OrganizationCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   internetexchange.IxFacilitiesTable,
-			Columns: []string{internetexchange.IxFacilitiesColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   internetexchange.OrganizationTable,
+			Columns: []string{internetexchange.OrganizationColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedIxFacilitiesIDs(); len(nodes) > 0 && !_u.mutation.IxFacilitiesCleared() {
+	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   internetexchange.IxFacilitiesTable,
-			Columns: []string{internetexchange.IxFacilitiesColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   internetexchange.OrganizationTable,
+			Columns: []string{internetexchange.OrganizationColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.IxFacilitiesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   internetexchange.IxFacilitiesTable,
-			Columns: []string{internetexchange.IxFacilitiesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

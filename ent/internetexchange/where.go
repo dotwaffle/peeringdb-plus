@@ -60,19 +60,9 @@ func OrgID(v int) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldOrgID, v))
 }
 
-// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
-func Name(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldName, v))
-}
-
 // Aka applies equality check predicate on the "aka" field. It's identical to AkaEQ.
 func Aka(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldAka, v))
-}
-
-// NameLong applies equality check predicate on the "name_long" field. It's identical to NameLongEQ.
-func NameLong(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldNameLong, v))
 }
 
 // City applies equality check predicate on the "city" field. It's identical to CityEQ.
@@ -85,9 +75,19 @@ func Country(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldCountry, v))
 }
 
-// RegionContinent applies equality check predicate on the "region_continent" field. It's identical to RegionContinentEQ.
-func RegionContinent(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldRegionContinent, v))
+// IxfLastImport applies equality check predicate on the "ixf_last_import" field. It's identical to IxfLastImportEQ.
+func IxfLastImport(v time.Time) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldIxfLastImport, v))
+}
+
+// IxfNetCount applies equality check predicate on the "ixf_net_count" field. It's identical to IxfNetCountEQ.
+func IxfNetCount(v int) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldIxfNetCount, v))
+}
+
+// Logo applies equality check predicate on the "logo" field. It's identical to LogoEQ.
+func Logo(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldLogo, v))
 }
 
 // Media applies equality check predicate on the "media" field. It's identical to MediaEQ.
@@ -95,44 +95,19 @@ func Media(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldMedia, v))
 }
 
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldName, v))
+}
+
+// NameLong applies equality check predicate on the "name_long" field. It's identical to NameLongEQ.
+func NameLong(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldNameLong, v))
+}
+
 // Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
 func Notes(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldNotes, v))
-}
-
-// ProtoUnicast applies equality check predicate on the "proto_unicast" field. It's identical to ProtoUnicastEQ.
-func ProtoUnicast(v bool) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldProtoUnicast, v))
-}
-
-// ProtoMulticast applies equality check predicate on the "proto_multicast" field. It's identical to ProtoMulticastEQ.
-func ProtoMulticast(v bool) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldProtoMulticast, v))
-}
-
-// ProtoIpv6 applies equality check predicate on the "proto_ipv6" field. It's identical to ProtoIpv6EQ.
-func ProtoIpv6(v bool) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldProtoIpv6, v))
-}
-
-// Website applies equality check predicate on the "website" field. It's identical to WebsiteEQ.
-func Website(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldWebsite, v))
-}
-
-// URLStats applies equality check predicate on the "url_stats" field. It's identical to URLStatsEQ.
-func URLStats(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldURLStats, v))
-}
-
-// TechEmail applies equality check predicate on the "tech_email" field. It's identical to TechEmailEQ.
-func TechEmail(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldTechEmail, v))
-}
-
-// TechPhone applies equality check predicate on the "tech_phone" field. It's identical to TechPhoneEQ.
-func TechPhone(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldTechPhone, v))
 }
 
 // PolicyEmail applies equality check predicate on the "policy_email" field. It's identical to PolicyEmailEQ.
@@ -145,6 +120,26 @@ func PolicyPhone(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldPolicyPhone, v))
 }
 
+// ProtoIpv6 applies equality check predicate on the "proto_ipv6" field. It's identical to ProtoIpv6EQ.
+func ProtoIpv6(v bool) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldProtoIpv6, v))
+}
+
+// ProtoMulticast applies equality check predicate on the "proto_multicast" field. It's identical to ProtoMulticastEQ.
+func ProtoMulticast(v bool) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldProtoMulticast, v))
+}
+
+// ProtoUnicast applies equality check predicate on the "proto_unicast" field. It's identical to ProtoUnicastEQ.
+func ProtoUnicast(v bool) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldProtoUnicast, v))
+}
+
+// RegionContinent applies equality check predicate on the "region_continent" field. It's identical to RegionContinentEQ.
+func RegionContinent(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldRegionContinent, v))
+}
+
 // SalesEmail applies equality check predicate on the "sales_email" field. It's identical to SalesEmailEQ.
 func SalesEmail(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldSalesEmail, v))
@@ -153,6 +148,41 @@ func SalesEmail(v string) predicate.InternetExchange {
 // SalesPhone applies equality check predicate on the "sales_phone" field. It's identical to SalesPhoneEQ.
 func SalesPhone(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldSalesPhone, v))
+}
+
+// ServiceLevel applies equality check predicate on the "service_level" field. It's identical to ServiceLevelEQ.
+func ServiceLevel(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldServiceLevel, v))
+}
+
+// StatusDashboard applies equality check predicate on the "status_dashboard" field. It's identical to StatusDashboardEQ.
+func StatusDashboard(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldStatusDashboard, v))
+}
+
+// TechEmail applies equality check predicate on the "tech_email" field. It's identical to TechEmailEQ.
+func TechEmail(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldTechEmail, v))
+}
+
+// TechPhone applies equality check predicate on the "tech_phone" field. It's identical to TechPhoneEQ.
+func TechPhone(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldTechPhone, v))
+}
+
+// Terms applies equality check predicate on the "terms" field. It's identical to TermsEQ.
+func Terms(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldTerms, v))
+}
+
+// URLStats applies equality check predicate on the "url_stats" field. It's identical to URLStatsEQ.
+func URLStats(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldURLStats, v))
+}
+
+// Website applies equality check predicate on the "website" field. It's identical to WebsiteEQ.
+func Website(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldWebsite, v))
 }
 
 // NetCount applies equality check predicate on the "net_count" field. It's identical to NetCountEQ.
@@ -165,16 +195,6 @@ func FacCount(v int) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldFacCount, v))
 }
 
-// IxfNetCount applies equality check predicate on the "ixf_net_count" field. It's identical to IxfNetCountEQ.
-func IxfNetCount(v int) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldIxfNetCount, v))
-}
-
-// IxfLastImport applies equality check predicate on the "ixf_last_import" field. It's identical to IxfLastImportEQ.
-func IxfLastImport(v time.Time) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldIxfLastImport, v))
-}
-
 // IxfImportRequest applies equality check predicate on the "ixf_import_request" field. It's identical to IxfImportRequestEQ.
 func IxfImportRequest(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldIxfImportRequest, v))
@@ -183,26 +203,6 @@ func IxfImportRequest(v string) predicate.InternetExchange {
 // IxfImportRequestStatus applies equality check predicate on the "ixf_import_request_status" field. It's identical to IxfImportRequestStatusEQ.
 func IxfImportRequestStatus(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldIxfImportRequestStatus, v))
-}
-
-// ServiceLevel applies equality check predicate on the "service_level" field. It's identical to ServiceLevelEQ.
-func ServiceLevel(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldServiceLevel, v))
-}
-
-// Terms applies equality check predicate on the "terms" field. It's identical to TermsEQ.
-func Terms(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldTerms, v))
-}
-
-// StatusDashboard applies equality check predicate on the "status_dashboard" field. It's identical to StatusDashboardEQ.
-func StatusDashboard(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldStatusDashboard, v))
-}
-
-// Logo applies equality check predicate on the "logo" field. It's identical to LogoEQ.
-func Logo(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldLogo, v))
 }
 
 // Created applies equality check predicate on the "created" field. It's identical to CreatedEQ.
@@ -248,71 +248,6 @@ func OrgIDIsNil() predicate.InternetExchange {
 // OrgIDNotNil applies the NotNil predicate on the "org_id" field.
 func OrgIDNotNil() predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldNotNull(FieldOrgID))
-}
-
-// NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldName, v))
-}
-
-// NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldName, v))
-}
-
-// NameIn applies the In predicate on the "name" field.
-func NameIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldName, vs...))
-}
-
-// NameNotIn applies the NotIn predicate on the "name" field.
-func NameNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldName, vs...))
-}
-
-// NameGT applies the GT predicate on the "name" field.
-func NameGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldName, v))
-}
-
-// NameGTE applies the GTE predicate on the "name" field.
-func NameGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldName, v))
-}
-
-// NameLT applies the LT predicate on the "name" field.
-func NameLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldName, v))
-}
-
-// NameLTE applies the LTE predicate on the "name" field.
-func NameLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldName, v))
-}
-
-// NameContains applies the Contains predicate on the "name" field.
-func NameContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldName, v))
-}
-
-// NameHasPrefix applies the HasPrefix predicate on the "name" field.
-func NameHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldName, v))
-}
-
-// NameHasSuffix applies the HasSuffix predicate on the "name" field.
-func NameHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldName, v))
-}
-
-// NameEqualFold applies the EqualFold predicate on the "name" field.
-func NameEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldName, v))
-}
-
-// NameContainsFold applies the ContainsFold predicate on the "name" field.
-func NameContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldName, v))
 }
 
 // AkaEQ applies the EQ predicate on the "aka" field.
@@ -390,6 +325,471 @@ func AkaContainsFold(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldContainsFold(FieldAka, v))
 }
 
+// CityEQ applies the EQ predicate on the "city" field.
+func CityEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldCity, v))
+}
+
+// CityNEQ applies the NEQ predicate on the "city" field.
+func CityNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldCity, v))
+}
+
+// CityIn applies the In predicate on the "city" field.
+func CityIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldCity, vs...))
+}
+
+// CityNotIn applies the NotIn predicate on the "city" field.
+func CityNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldCity, vs...))
+}
+
+// CityGT applies the GT predicate on the "city" field.
+func CityGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldCity, v))
+}
+
+// CityGTE applies the GTE predicate on the "city" field.
+func CityGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldCity, v))
+}
+
+// CityLT applies the LT predicate on the "city" field.
+func CityLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldCity, v))
+}
+
+// CityLTE applies the LTE predicate on the "city" field.
+func CityLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldCity, v))
+}
+
+// CityContains applies the Contains predicate on the "city" field.
+func CityContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldCity, v))
+}
+
+// CityHasPrefix applies the HasPrefix predicate on the "city" field.
+func CityHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldCity, v))
+}
+
+// CityHasSuffix applies the HasSuffix predicate on the "city" field.
+func CityHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldCity, v))
+}
+
+// CityIsNil applies the IsNil predicate on the "city" field.
+func CityIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldCity))
+}
+
+// CityNotNil applies the NotNil predicate on the "city" field.
+func CityNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldCity))
+}
+
+// CityEqualFold applies the EqualFold predicate on the "city" field.
+func CityEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldCity, v))
+}
+
+// CityContainsFold applies the ContainsFold predicate on the "city" field.
+func CityContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldCity, v))
+}
+
+// CountryEQ applies the EQ predicate on the "country" field.
+func CountryEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldCountry, v))
+}
+
+// CountryNEQ applies the NEQ predicate on the "country" field.
+func CountryNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldCountry, v))
+}
+
+// CountryIn applies the In predicate on the "country" field.
+func CountryIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldCountry, vs...))
+}
+
+// CountryNotIn applies the NotIn predicate on the "country" field.
+func CountryNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldCountry, vs...))
+}
+
+// CountryGT applies the GT predicate on the "country" field.
+func CountryGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldCountry, v))
+}
+
+// CountryGTE applies the GTE predicate on the "country" field.
+func CountryGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldCountry, v))
+}
+
+// CountryLT applies the LT predicate on the "country" field.
+func CountryLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldCountry, v))
+}
+
+// CountryLTE applies the LTE predicate on the "country" field.
+func CountryLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldCountry, v))
+}
+
+// CountryContains applies the Contains predicate on the "country" field.
+func CountryContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldCountry, v))
+}
+
+// CountryHasPrefix applies the HasPrefix predicate on the "country" field.
+func CountryHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldCountry, v))
+}
+
+// CountryHasSuffix applies the HasSuffix predicate on the "country" field.
+func CountryHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldCountry, v))
+}
+
+// CountryIsNil applies the IsNil predicate on the "country" field.
+func CountryIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldCountry))
+}
+
+// CountryNotNil applies the NotNil predicate on the "country" field.
+func CountryNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldCountry))
+}
+
+// CountryEqualFold applies the EqualFold predicate on the "country" field.
+func CountryEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldCountry, v))
+}
+
+// CountryContainsFold applies the ContainsFold predicate on the "country" field.
+func CountryContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldCountry, v))
+}
+
+// IxfLastImportEQ applies the EQ predicate on the "ixf_last_import" field.
+func IxfLastImportEQ(v time.Time) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldIxfLastImport, v))
+}
+
+// IxfLastImportNEQ applies the NEQ predicate on the "ixf_last_import" field.
+func IxfLastImportNEQ(v time.Time) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldIxfLastImport, v))
+}
+
+// IxfLastImportIn applies the In predicate on the "ixf_last_import" field.
+func IxfLastImportIn(vs ...time.Time) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldIxfLastImport, vs...))
+}
+
+// IxfLastImportNotIn applies the NotIn predicate on the "ixf_last_import" field.
+func IxfLastImportNotIn(vs ...time.Time) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldIxfLastImport, vs...))
+}
+
+// IxfLastImportGT applies the GT predicate on the "ixf_last_import" field.
+func IxfLastImportGT(v time.Time) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldIxfLastImport, v))
+}
+
+// IxfLastImportGTE applies the GTE predicate on the "ixf_last_import" field.
+func IxfLastImportGTE(v time.Time) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldIxfLastImport, v))
+}
+
+// IxfLastImportLT applies the LT predicate on the "ixf_last_import" field.
+func IxfLastImportLT(v time.Time) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldIxfLastImport, v))
+}
+
+// IxfLastImportLTE applies the LTE predicate on the "ixf_last_import" field.
+func IxfLastImportLTE(v time.Time) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldIxfLastImport, v))
+}
+
+// IxfLastImportIsNil applies the IsNil predicate on the "ixf_last_import" field.
+func IxfLastImportIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldIxfLastImport))
+}
+
+// IxfLastImportNotNil applies the NotNil predicate on the "ixf_last_import" field.
+func IxfLastImportNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldIxfLastImport))
+}
+
+// IxfNetCountEQ applies the EQ predicate on the "ixf_net_count" field.
+func IxfNetCountEQ(v int) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldIxfNetCount, v))
+}
+
+// IxfNetCountNEQ applies the NEQ predicate on the "ixf_net_count" field.
+func IxfNetCountNEQ(v int) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldIxfNetCount, v))
+}
+
+// IxfNetCountIn applies the In predicate on the "ixf_net_count" field.
+func IxfNetCountIn(vs ...int) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldIxfNetCount, vs...))
+}
+
+// IxfNetCountNotIn applies the NotIn predicate on the "ixf_net_count" field.
+func IxfNetCountNotIn(vs ...int) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldIxfNetCount, vs...))
+}
+
+// IxfNetCountGT applies the GT predicate on the "ixf_net_count" field.
+func IxfNetCountGT(v int) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldIxfNetCount, v))
+}
+
+// IxfNetCountGTE applies the GTE predicate on the "ixf_net_count" field.
+func IxfNetCountGTE(v int) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldIxfNetCount, v))
+}
+
+// IxfNetCountLT applies the LT predicate on the "ixf_net_count" field.
+func IxfNetCountLT(v int) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldIxfNetCount, v))
+}
+
+// IxfNetCountLTE applies the LTE predicate on the "ixf_net_count" field.
+func IxfNetCountLTE(v int) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldIxfNetCount, v))
+}
+
+// IxfNetCountIsNil applies the IsNil predicate on the "ixf_net_count" field.
+func IxfNetCountIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldIxfNetCount))
+}
+
+// IxfNetCountNotNil applies the NotNil predicate on the "ixf_net_count" field.
+func IxfNetCountNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldIxfNetCount))
+}
+
+// LogoEQ applies the EQ predicate on the "logo" field.
+func LogoEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldLogo, v))
+}
+
+// LogoNEQ applies the NEQ predicate on the "logo" field.
+func LogoNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldLogo, v))
+}
+
+// LogoIn applies the In predicate on the "logo" field.
+func LogoIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldLogo, vs...))
+}
+
+// LogoNotIn applies the NotIn predicate on the "logo" field.
+func LogoNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldLogo, vs...))
+}
+
+// LogoGT applies the GT predicate on the "logo" field.
+func LogoGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldLogo, v))
+}
+
+// LogoGTE applies the GTE predicate on the "logo" field.
+func LogoGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldLogo, v))
+}
+
+// LogoLT applies the LT predicate on the "logo" field.
+func LogoLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldLogo, v))
+}
+
+// LogoLTE applies the LTE predicate on the "logo" field.
+func LogoLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldLogo, v))
+}
+
+// LogoContains applies the Contains predicate on the "logo" field.
+func LogoContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldLogo, v))
+}
+
+// LogoHasPrefix applies the HasPrefix predicate on the "logo" field.
+func LogoHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldLogo, v))
+}
+
+// LogoHasSuffix applies the HasSuffix predicate on the "logo" field.
+func LogoHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldLogo, v))
+}
+
+// LogoIsNil applies the IsNil predicate on the "logo" field.
+func LogoIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldLogo))
+}
+
+// LogoNotNil applies the NotNil predicate on the "logo" field.
+func LogoNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldLogo))
+}
+
+// LogoEqualFold applies the EqualFold predicate on the "logo" field.
+func LogoEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldLogo, v))
+}
+
+// LogoContainsFold applies the ContainsFold predicate on the "logo" field.
+func LogoContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldLogo, v))
+}
+
+// MediaEQ applies the EQ predicate on the "media" field.
+func MediaEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldMedia, v))
+}
+
+// MediaNEQ applies the NEQ predicate on the "media" field.
+func MediaNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldMedia, v))
+}
+
+// MediaIn applies the In predicate on the "media" field.
+func MediaIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldMedia, vs...))
+}
+
+// MediaNotIn applies the NotIn predicate on the "media" field.
+func MediaNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldMedia, vs...))
+}
+
+// MediaGT applies the GT predicate on the "media" field.
+func MediaGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldMedia, v))
+}
+
+// MediaGTE applies the GTE predicate on the "media" field.
+func MediaGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldMedia, v))
+}
+
+// MediaLT applies the LT predicate on the "media" field.
+func MediaLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldMedia, v))
+}
+
+// MediaLTE applies the LTE predicate on the "media" field.
+func MediaLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldMedia, v))
+}
+
+// MediaContains applies the Contains predicate on the "media" field.
+func MediaContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldMedia, v))
+}
+
+// MediaHasPrefix applies the HasPrefix predicate on the "media" field.
+func MediaHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldMedia, v))
+}
+
+// MediaHasSuffix applies the HasSuffix predicate on the "media" field.
+func MediaHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldMedia, v))
+}
+
+// MediaIsNil applies the IsNil predicate on the "media" field.
+func MediaIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldMedia))
+}
+
+// MediaNotNil applies the NotNil predicate on the "media" field.
+func MediaNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldMedia))
+}
+
+// MediaEqualFold applies the EqualFold predicate on the "media" field.
+func MediaEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldMedia, v))
+}
+
+// MediaContainsFold applies the ContainsFold predicate on the "media" field.
+func MediaContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldMedia, v))
+}
+
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldName, v))
+}
+
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldName, v))
+}
+
 // NameLongEQ applies the EQ predicate on the "name_long" field.
 func NameLongEQ(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldNameLong, v))
@@ -465,266 +865,6 @@ func NameLongContainsFold(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldContainsFold(FieldNameLong, v))
 }
 
-// CityEQ applies the EQ predicate on the "city" field.
-func CityEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldCity, v))
-}
-
-// CityNEQ applies the NEQ predicate on the "city" field.
-func CityNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldCity, v))
-}
-
-// CityIn applies the In predicate on the "city" field.
-func CityIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldCity, vs...))
-}
-
-// CityNotIn applies the NotIn predicate on the "city" field.
-func CityNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldCity, vs...))
-}
-
-// CityGT applies the GT predicate on the "city" field.
-func CityGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldCity, v))
-}
-
-// CityGTE applies the GTE predicate on the "city" field.
-func CityGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldCity, v))
-}
-
-// CityLT applies the LT predicate on the "city" field.
-func CityLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldCity, v))
-}
-
-// CityLTE applies the LTE predicate on the "city" field.
-func CityLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldCity, v))
-}
-
-// CityContains applies the Contains predicate on the "city" field.
-func CityContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldCity, v))
-}
-
-// CityHasPrefix applies the HasPrefix predicate on the "city" field.
-func CityHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldCity, v))
-}
-
-// CityHasSuffix applies the HasSuffix predicate on the "city" field.
-func CityHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldCity, v))
-}
-
-// CityEqualFold applies the EqualFold predicate on the "city" field.
-func CityEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldCity, v))
-}
-
-// CityContainsFold applies the ContainsFold predicate on the "city" field.
-func CityContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldCity, v))
-}
-
-// CountryEQ applies the EQ predicate on the "country" field.
-func CountryEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldCountry, v))
-}
-
-// CountryNEQ applies the NEQ predicate on the "country" field.
-func CountryNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldCountry, v))
-}
-
-// CountryIn applies the In predicate on the "country" field.
-func CountryIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldCountry, vs...))
-}
-
-// CountryNotIn applies the NotIn predicate on the "country" field.
-func CountryNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldCountry, vs...))
-}
-
-// CountryGT applies the GT predicate on the "country" field.
-func CountryGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldCountry, v))
-}
-
-// CountryGTE applies the GTE predicate on the "country" field.
-func CountryGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldCountry, v))
-}
-
-// CountryLT applies the LT predicate on the "country" field.
-func CountryLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldCountry, v))
-}
-
-// CountryLTE applies the LTE predicate on the "country" field.
-func CountryLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldCountry, v))
-}
-
-// CountryContains applies the Contains predicate on the "country" field.
-func CountryContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldCountry, v))
-}
-
-// CountryHasPrefix applies the HasPrefix predicate on the "country" field.
-func CountryHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldCountry, v))
-}
-
-// CountryHasSuffix applies the HasSuffix predicate on the "country" field.
-func CountryHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldCountry, v))
-}
-
-// CountryEqualFold applies the EqualFold predicate on the "country" field.
-func CountryEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldCountry, v))
-}
-
-// CountryContainsFold applies the ContainsFold predicate on the "country" field.
-func CountryContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldCountry, v))
-}
-
-// RegionContinentEQ applies the EQ predicate on the "region_continent" field.
-func RegionContinentEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldRegionContinent, v))
-}
-
-// RegionContinentNEQ applies the NEQ predicate on the "region_continent" field.
-func RegionContinentNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldRegionContinent, v))
-}
-
-// RegionContinentIn applies the In predicate on the "region_continent" field.
-func RegionContinentIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldRegionContinent, vs...))
-}
-
-// RegionContinentNotIn applies the NotIn predicate on the "region_continent" field.
-func RegionContinentNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldRegionContinent, vs...))
-}
-
-// RegionContinentGT applies the GT predicate on the "region_continent" field.
-func RegionContinentGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldRegionContinent, v))
-}
-
-// RegionContinentGTE applies the GTE predicate on the "region_continent" field.
-func RegionContinentGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldRegionContinent, v))
-}
-
-// RegionContinentLT applies the LT predicate on the "region_continent" field.
-func RegionContinentLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldRegionContinent, v))
-}
-
-// RegionContinentLTE applies the LTE predicate on the "region_continent" field.
-func RegionContinentLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldRegionContinent, v))
-}
-
-// RegionContinentContains applies the Contains predicate on the "region_continent" field.
-func RegionContinentContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldRegionContinent, v))
-}
-
-// RegionContinentHasPrefix applies the HasPrefix predicate on the "region_continent" field.
-func RegionContinentHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldRegionContinent, v))
-}
-
-// RegionContinentHasSuffix applies the HasSuffix predicate on the "region_continent" field.
-func RegionContinentHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldRegionContinent, v))
-}
-
-// RegionContinentEqualFold applies the EqualFold predicate on the "region_continent" field.
-func RegionContinentEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldRegionContinent, v))
-}
-
-// RegionContinentContainsFold applies the ContainsFold predicate on the "region_continent" field.
-func RegionContinentContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldRegionContinent, v))
-}
-
-// MediaEQ applies the EQ predicate on the "media" field.
-func MediaEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldMedia, v))
-}
-
-// MediaNEQ applies the NEQ predicate on the "media" field.
-func MediaNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldMedia, v))
-}
-
-// MediaIn applies the In predicate on the "media" field.
-func MediaIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldMedia, vs...))
-}
-
-// MediaNotIn applies the NotIn predicate on the "media" field.
-func MediaNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldMedia, vs...))
-}
-
-// MediaGT applies the GT predicate on the "media" field.
-func MediaGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldMedia, v))
-}
-
-// MediaGTE applies the GTE predicate on the "media" field.
-func MediaGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldMedia, v))
-}
-
-// MediaLT applies the LT predicate on the "media" field.
-func MediaLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldMedia, v))
-}
-
-// MediaLTE applies the LTE predicate on the "media" field.
-func MediaLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldMedia, v))
-}
-
-// MediaContains applies the Contains predicate on the "media" field.
-func MediaContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldMedia, v))
-}
-
-// MediaHasPrefix applies the HasPrefix predicate on the "media" field.
-func MediaHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldMedia, v))
-}
-
-// MediaHasSuffix applies the HasSuffix predicate on the "media" field.
-func MediaHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldMedia, v))
-}
-
-// MediaEqualFold applies the EqualFold predicate on the "media" field.
-func MediaEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldMedia, v))
-}
-
-// MediaContainsFold applies the ContainsFold predicate on the "media" field.
-func MediaContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldMedia, v))
-}
-
 // NotesEQ applies the EQ predicate on the "notes" field.
 func NotesEQ(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldNotes, v))
@@ -798,346 +938,6 @@ func NotesEqualFold(v string) predicate.InternetExchange {
 // NotesContainsFold applies the ContainsFold predicate on the "notes" field.
 func NotesContainsFold(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldContainsFold(FieldNotes, v))
-}
-
-// ProtoUnicastEQ applies the EQ predicate on the "proto_unicast" field.
-func ProtoUnicastEQ(v bool) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldProtoUnicast, v))
-}
-
-// ProtoUnicastNEQ applies the NEQ predicate on the "proto_unicast" field.
-func ProtoUnicastNEQ(v bool) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldProtoUnicast, v))
-}
-
-// ProtoMulticastEQ applies the EQ predicate on the "proto_multicast" field.
-func ProtoMulticastEQ(v bool) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldProtoMulticast, v))
-}
-
-// ProtoMulticastNEQ applies the NEQ predicate on the "proto_multicast" field.
-func ProtoMulticastNEQ(v bool) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldProtoMulticast, v))
-}
-
-// ProtoIpv6EQ applies the EQ predicate on the "proto_ipv6" field.
-func ProtoIpv6EQ(v bool) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldProtoIpv6, v))
-}
-
-// ProtoIpv6NEQ applies the NEQ predicate on the "proto_ipv6" field.
-func ProtoIpv6NEQ(v bool) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldProtoIpv6, v))
-}
-
-// WebsiteEQ applies the EQ predicate on the "website" field.
-func WebsiteEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldWebsite, v))
-}
-
-// WebsiteNEQ applies the NEQ predicate on the "website" field.
-func WebsiteNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldWebsite, v))
-}
-
-// WebsiteIn applies the In predicate on the "website" field.
-func WebsiteIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldWebsite, vs...))
-}
-
-// WebsiteNotIn applies the NotIn predicate on the "website" field.
-func WebsiteNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldWebsite, vs...))
-}
-
-// WebsiteGT applies the GT predicate on the "website" field.
-func WebsiteGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldWebsite, v))
-}
-
-// WebsiteGTE applies the GTE predicate on the "website" field.
-func WebsiteGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldWebsite, v))
-}
-
-// WebsiteLT applies the LT predicate on the "website" field.
-func WebsiteLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldWebsite, v))
-}
-
-// WebsiteLTE applies the LTE predicate on the "website" field.
-func WebsiteLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldWebsite, v))
-}
-
-// WebsiteContains applies the Contains predicate on the "website" field.
-func WebsiteContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldWebsite, v))
-}
-
-// WebsiteHasPrefix applies the HasPrefix predicate on the "website" field.
-func WebsiteHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldWebsite, v))
-}
-
-// WebsiteHasSuffix applies the HasSuffix predicate on the "website" field.
-func WebsiteHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldWebsite, v))
-}
-
-// WebsiteIsNil applies the IsNil predicate on the "website" field.
-func WebsiteIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldWebsite))
-}
-
-// WebsiteNotNil applies the NotNil predicate on the "website" field.
-func WebsiteNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldWebsite))
-}
-
-// WebsiteEqualFold applies the EqualFold predicate on the "website" field.
-func WebsiteEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldWebsite, v))
-}
-
-// WebsiteContainsFold applies the ContainsFold predicate on the "website" field.
-func WebsiteContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldWebsite, v))
-}
-
-// SocialMediaIsNil applies the IsNil predicate on the "social_media" field.
-func SocialMediaIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldSocialMedia))
-}
-
-// SocialMediaNotNil applies the NotNil predicate on the "social_media" field.
-func SocialMediaNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldSocialMedia))
-}
-
-// URLStatsEQ applies the EQ predicate on the "url_stats" field.
-func URLStatsEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldURLStats, v))
-}
-
-// URLStatsNEQ applies the NEQ predicate on the "url_stats" field.
-func URLStatsNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldURLStats, v))
-}
-
-// URLStatsIn applies the In predicate on the "url_stats" field.
-func URLStatsIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldURLStats, vs...))
-}
-
-// URLStatsNotIn applies the NotIn predicate on the "url_stats" field.
-func URLStatsNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldURLStats, vs...))
-}
-
-// URLStatsGT applies the GT predicate on the "url_stats" field.
-func URLStatsGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldURLStats, v))
-}
-
-// URLStatsGTE applies the GTE predicate on the "url_stats" field.
-func URLStatsGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldURLStats, v))
-}
-
-// URLStatsLT applies the LT predicate on the "url_stats" field.
-func URLStatsLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldURLStats, v))
-}
-
-// URLStatsLTE applies the LTE predicate on the "url_stats" field.
-func URLStatsLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldURLStats, v))
-}
-
-// URLStatsContains applies the Contains predicate on the "url_stats" field.
-func URLStatsContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldURLStats, v))
-}
-
-// URLStatsHasPrefix applies the HasPrefix predicate on the "url_stats" field.
-func URLStatsHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldURLStats, v))
-}
-
-// URLStatsHasSuffix applies the HasSuffix predicate on the "url_stats" field.
-func URLStatsHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldURLStats, v))
-}
-
-// URLStatsIsNil applies the IsNil predicate on the "url_stats" field.
-func URLStatsIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldURLStats))
-}
-
-// URLStatsNotNil applies the NotNil predicate on the "url_stats" field.
-func URLStatsNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldURLStats))
-}
-
-// URLStatsEqualFold applies the EqualFold predicate on the "url_stats" field.
-func URLStatsEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldURLStats, v))
-}
-
-// URLStatsContainsFold applies the ContainsFold predicate on the "url_stats" field.
-func URLStatsContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldURLStats, v))
-}
-
-// TechEmailEQ applies the EQ predicate on the "tech_email" field.
-func TechEmailEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldTechEmail, v))
-}
-
-// TechEmailNEQ applies the NEQ predicate on the "tech_email" field.
-func TechEmailNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldTechEmail, v))
-}
-
-// TechEmailIn applies the In predicate on the "tech_email" field.
-func TechEmailIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldTechEmail, vs...))
-}
-
-// TechEmailNotIn applies the NotIn predicate on the "tech_email" field.
-func TechEmailNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldTechEmail, vs...))
-}
-
-// TechEmailGT applies the GT predicate on the "tech_email" field.
-func TechEmailGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldTechEmail, v))
-}
-
-// TechEmailGTE applies the GTE predicate on the "tech_email" field.
-func TechEmailGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldTechEmail, v))
-}
-
-// TechEmailLT applies the LT predicate on the "tech_email" field.
-func TechEmailLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldTechEmail, v))
-}
-
-// TechEmailLTE applies the LTE predicate on the "tech_email" field.
-func TechEmailLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldTechEmail, v))
-}
-
-// TechEmailContains applies the Contains predicate on the "tech_email" field.
-func TechEmailContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldTechEmail, v))
-}
-
-// TechEmailHasPrefix applies the HasPrefix predicate on the "tech_email" field.
-func TechEmailHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldTechEmail, v))
-}
-
-// TechEmailHasSuffix applies the HasSuffix predicate on the "tech_email" field.
-func TechEmailHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldTechEmail, v))
-}
-
-// TechEmailIsNil applies the IsNil predicate on the "tech_email" field.
-func TechEmailIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldTechEmail))
-}
-
-// TechEmailNotNil applies the NotNil predicate on the "tech_email" field.
-func TechEmailNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldTechEmail))
-}
-
-// TechEmailEqualFold applies the EqualFold predicate on the "tech_email" field.
-func TechEmailEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldTechEmail, v))
-}
-
-// TechEmailContainsFold applies the ContainsFold predicate on the "tech_email" field.
-func TechEmailContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldTechEmail, v))
-}
-
-// TechPhoneEQ applies the EQ predicate on the "tech_phone" field.
-func TechPhoneEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldTechPhone, v))
-}
-
-// TechPhoneNEQ applies the NEQ predicate on the "tech_phone" field.
-func TechPhoneNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldTechPhone, v))
-}
-
-// TechPhoneIn applies the In predicate on the "tech_phone" field.
-func TechPhoneIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldTechPhone, vs...))
-}
-
-// TechPhoneNotIn applies the NotIn predicate on the "tech_phone" field.
-func TechPhoneNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldTechPhone, vs...))
-}
-
-// TechPhoneGT applies the GT predicate on the "tech_phone" field.
-func TechPhoneGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldTechPhone, v))
-}
-
-// TechPhoneGTE applies the GTE predicate on the "tech_phone" field.
-func TechPhoneGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldTechPhone, v))
-}
-
-// TechPhoneLT applies the LT predicate on the "tech_phone" field.
-func TechPhoneLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldTechPhone, v))
-}
-
-// TechPhoneLTE applies the LTE predicate on the "tech_phone" field.
-func TechPhoneLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldTechPhone, v))
-}
-
-// TechPhoneContains applies the Contains predicate on the "tech_phone" field.
-func TechPhoneContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldTechPhone, v))
-}
-
-// TechPhoneHasPrefix applies the HasPrefix predicate on the "tech_phone" field.
-func TechPhoneHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldTechPhone, v))
-}
-
-// TechPhoneHasSuffix applies the HasSuffix predicate on the "tech_phone" field.
-func TechPhoneHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldTechPhone, v))
-}
-
-// TechPhoneIsNil applies the IsNil predicate on the "tech_phone" field.
-func TechPhoneIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldTechPhone))
-}
-
-// TechPhoneNotNil applies the NotNil predicate on the "tech_phone" field.
-func TechPhoneNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldTechPhone))
-}
-
-// TechPhoneEqualFold applies the EqualFold predicate on the "tech_phone" field.
-func TechPhoneEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldTechPhone, v))
-}
-
-// TechPhoneContainsFold applies the ContainsFold predicate on the "tech_phone" field.
-func TechPhoneContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldTechPhone, v))
 }
 
 // PolicyEmailEQ applies the EQ predicate on the "policy_email" field.
@@ -1290,6 +1090,111 @@ func PolicyPhoneContainsFold(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldContainsFold(FieldPolicyPhone, v))
 }
 
+// ProtoIpv6EQ applies the EQ predicate on the "proto_ipv6" field.
+func ProtoIpv6EQ(v bool) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldProtoIpv6, v))
+}
+
+// ProtoIpv6NEQ applies the NEQ predicate on the "proto_ipv6" field.
+func ProtoIpv6NEQ(v bool) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldProtoIpv6, v))
+}
+
+// ProtoMulticastEQ applies the EQ predicate on the "proto_multicast" field.
+func ProtoMulticastEQ(v bool) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldProtoMulticast, v))
+}
+
+// ProtoMulticastNEQ applies the NEQ predicate on the "proto_multicast" field.
+func ProtoMulticastNEQ(v bool) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldProtoMulticast, v))
+}
+
+// ProtoUnicastEQ applies the EQ predicate on the "proto_unicast" field.
+func ProtoUnicastEQ(v bool) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldProtoUnicast, v))
+}
+
+// ProtoUnicastNEQ applies the NEQ predicate on the "proto_unicast" field.
+func ProtoUnicastNEQ(v bool) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldProtoUnicast, v))
+}
+
+// RegionContinentEQ applies the EQ predicate on the "region_continent" field.
+func RegionContinentEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldRegionContinent, v))
+}
+
+// RegionContinentNEQ applies the NEQ predicate on the "region_continent" field.
+func RegionContinentNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldRegionContinent, v))
+}
+
+// RegionContinentIn applies the In predicate on the "region_continent" field.
+func RegionContinentIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldRegionContinent, vs...))
+}
+
+// RegionContinentNotIn applies the NotIn predicate on the "region_continent" field.
+func RegionContinentNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldRegionContinent, vs...))
+}
+
+// RegionContinentGT applies the GT predicate on the "region_continent" field.
+func RegionContinentGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldRegionContinent, v))
+}
+
+// RegionContinentGTE applies the GTE predicate on the "region_continent" field.
+func RegionContinentGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldRegionContinent, v))
+}
+
+// RegionContinentLT applies the LT predicate on the "region_continent" field.
+func RegionContinentLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldRegionContinent, v))
+}
+
+// RegionContinentLTE applies the LTE predicate on the "region_continent" field.
+func RegionContinentLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldRegionContinent, v))
+}
+
+// RegionContinentContains applies the Contains predicate on the "region_continent" field.
+func RegionContinentContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldRegionContinent, v))
+}
+
+// RegionContinentHasPrefix applies the HasPrefix predicate on the "region_continent" field.
+func RegionContinentHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldRegionContinent, v))
+}
+
+// RegionContinentHasSuffix applies the HasSuffix predicate on the "region_continent" field.
+func RegionContinentHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldRegionContinent, v))
+}
+
+// RegionContinentIsNil applies the IsNil predicate on the "region_continent" field.
+func RegionContinentIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldRegionContinent))
+}
+
+// RegionContinentNotNil applies the NotNil predicate on the "region_continent" field.
+func RegionContinentNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldRegionContinent))
+}
+
+// RegionContinentEqualFold applies the EqualFold predicate on the "region_continent" field.
+func RegionContinentEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldRegionContinent, v))
+}
+
+// RegionContinentContainsFold applies the ContainsFold predicate on the "region_continent" field.
+func RegionContinentContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldRegionContinent, v))
+}
+
 // SalesEmailEQ applies the EQ predicate on the "sales_email" field.
 func SalesEmailEQ(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldSalesEmail, v))
@@ -1440,6 +1345,541 @@ func SalesPhoneContainsFold(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldContainsFold(FieldSalesPhone, v))
 }
 
+// ServiceLevelEQ applies the EQ predicate on the "service_level" field.
+func ServiceLevelEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldServiceLevel, v))
+}
+
+// ServiceLevelNEQ applies the NEQ predicate on the "service_level" field.
+func ServiceLevelNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldServiceLevel, v))
+}
+
+// ServiceLevelIn applies the In predicate on the "service_level" field.
+func ServiceLevelIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldServiceLevel, vs...))
+}
+
+// ServiceLevelNotIn applies the NotIn predicate on the "service_level" field.
+func ServiceLevelNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldServiceLevel, vs...))
+}
+
+// ServiceLevelGT applies the GT predicate on the "service_level" field.
+func ServiceLevelGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldServiceLevel, v))
+}
+
+// ServiceLevelGTE applies the GTE predicate on the "service_level" field.
+func ServiceLevelGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldServiceLevel, v))
+}
+
+// ServiceLevelLT applies the LT predicate on the "service_level" field.
+func ServiceLevelLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldServiceLevel, v))
+}
+
+// ServiceLevelLTE applies the LTE predicate on the "service_level" field.
+func ServiceLevelLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldServiceLevel, v))
+}
+
+// ServiceLevelContains applies the Contains predicate on the "service_level" field.
+func ServiceLevelContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldServiceLevel, v))
+}
+
+// ServiceLevelHasPrefix applies the HasPrefix predicate on the "service_level" field.
+func ServiceLevelHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldServiceLevel, v))
+}
+
+// ServiceLevelHasSuffix applies the HasSuffix predicate on the "service_level" field.
+func ServiceLevelHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldServiceLevel, v))
+}
+
+// ServiceLevelIsNil applies the IsNil predicate on the "service_level" field.
+func ServiceLevelIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldServiceLevel))
+}
+
+// ServiceLevelNotNil applies the NotNil predicate on the "service_level" field.
+func ServiceLevelNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldServiceLevel))
+}
+
+// ServiceLevelEqualFold applies the EqualFold predicate on the "service_level" field.
+func ServiceLevelEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldServiceLevel, v))
+}
+
+// ServiceLevelContainsFold applies the ContainsFold predicate on the "service_level" field.
+func ServiceLevelContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldServiceLevel, v))
+}
+
+// SocialMediaIsNil applies the IsNil predicate on the "social_media" field.
+func SocialMediaIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldSocialMedia))
+}
+
+// SocialMediaNotNil applies the NotNil predicate on the "social_media" field.
+func SocialMediaNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldSocialMedia))
+}
+
+// StatusDashboardEQ applies the EQ predicate on the "status_dashboard" field.
+func StatusDashboardEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldStatusDashboard, v))
+}
+
+// StatusDashboardNEQ applies the NEQ predicate on the "status_dashboard" field.
+func StatusDashboardNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldStatusDashboard, v))
+}
+
+// StatusDashboardIn applies the In predicate on the "status_dashboard" field.
+func StatusDashboardIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldStatusDashboard, vs...))
+}
+
+// StatusDashboardNotIn applies the NotIn predicate on the "status_dashboard" field.
+func StatusDashboardNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldStatusDashboard, vs...))
+}
+
+// StatusDashboardGT applies the GT predicate on the "status_dashboard" field.
+func StatusDashboardGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldStatusDashboard, v))
+}
+
+// StatusDashboardGTE applies the GTE predicate on the "status_dashboard" field.
+func StatusDashboardGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldStatusDashboard, v))
+}
+
+// StatusDashboardLT applies the LT predicate on the "status_dashboard" field.
+func StatusDashboardLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldStatusDashboard, v))
+}
+
+// StatusDashboardLTE applies the LTE predicate on the "status_dashboard" field.
+func StatusDashboardLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldStatusDashboard, v))
+}
+
+// StatusDashboardContains applies the Contains predicate on the "status_dashboard" field.
+func StatusDashboardContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldStatusDashboard, v))
+}
+
+// StatusDashboardHasPrefix applies the HasPrefix predicate on the "status_dashboard" field.
+func StatusDashboardHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldStatusDashboard, v))
+}
+
+// StatusDashboardHasSuffix applies the HasSuffix predicate on the "status_dashboard" field.
+func StatusDashboardHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldStatusDashboard, v))
+}
+
+// StatusDashboardIsNil applies the IsNil predicate on the "status_dashboard" field.
+func StatusDashboardIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldStatusDashboard))
+}
+
+// StatusDashboardNotNil applies the NotNil predicate on the "status_dashboard" field.
+func StatusDashboardNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldStatusDashboard))
+}
+
+// StatusDashboardEqualFold applies the EqualFold predicate on the "status_dashboard" field.
+func StatusDashboardEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldStatusDashboard, v))
+}
+
+// StatusDashboardContainsFold applies the ContainsFold predicate on the "status_dashboard" field.
+func StatusDashboardContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldStatusDashboard, v))
+}
+
+// TechEmailEQ applies the EQ predicate on the "tech_email" field.
+func TechEmailEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldTechEmail, v))
+}
+
+// TechEmailNEQ applies the NEQ predicate on the "tech_email" field.
+func TechEmailNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldTechEmail, v))
+}
+
+// TechEmailIn applies the In predicate on the "tech_email" field.
+func TechEmailIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldTechEmail, vs...))
+}
+
+// TechEmailNotIn applies the NotIn predicate on the "tech_email" field.
+func TechEmailNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldTechEmail, vs...))
+}
+
+// TechEmailGT applies the GT predicate on the "tech_email" field.
+func TechEmailGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldTechEmail, v))
+}
+
+// TechEmailGTE applies the GTE predicate on the "tech_email" field.
+func TechEmailGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldTechEmail, v))
+}
+
+// TechEmailLT applies the LT predicate on the "tech_email" field.
+func TechEmailLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldTechEmail, v))
+}
+
+// TechEmailLTE applies the LTE predicate on the "tech_email" field.
+func TechEmailLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldTechEmail, v))
+}
+
+// TechEmailContains applies the Contains predicate on the "tech_email" field.
+func TechEmailContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldTechEmail, v))
+}
+
+// TechEmailHasPrefix applies the HasPrefix predicate on the "tech_email" field.
+func TechEmailHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldTechEmail, v))
+}
+
+// TechEmailHasSuffix applies the HasSuffix predicate on the "tech_email" field.
+func TechEmailHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldTechEmail, v))
+}
+
+// TechEmailIsNil applies the IsNil predicate on the "tech_email" field.
+func TechEmailIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldTechEmail))
+}
+
+// TechEmailNotNil applies the NotNil predicate on the "tech_email" field.
+func TechEmailNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldTechEmail))
+}
+
+// TechEmailEqualFold applies the EqualFold predicate on the "tech_email" field.
+func TechEmailEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldTechEmail, v))
+}
+
+// TechEmailContainsFold applies the ContainsFold predicate on the "tech_email" field.
+func TechEmailContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldTechEmail, v))
+}
+
+// TechPhoneEQ applies the EQ predicate on the "tech_phone" field.
+func TechPhoneEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldTechPhone, v))
+}
+
+// TechPhoneNEQ applies the NEQ predicate on the "tech_phone" field.
+func TechPhoneNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldTechPhone, v))
+}
+
+// TechPhoneIn applies the In predicate on the "tech_phone" field.
+func TechPhoneIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldTechPhone, vs...))
+}
+
+// TechPhoneNotIn applies the NotIn predicate on the "tech_phone" field.
+func TechPhoneNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldTechPhone, vs...))
+}
+
+// TechPhoneGT applies the GT predicate on the "tech_phone" field.
+func TechPhoneGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldTechPhone, v))
+}
+
+// TechPhoneGTE applies the GTE predicate on the "tech_phone" field.
+func TechPhoneGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldTechPhone, v))
+}
+
+// TechPhoneLT applies the LT predicate on the "tech_phone" field.
+func TechPhoneLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldTechPhone, v))
+}
+
+// TechPhoneLTE applies the LTE predicate on the "tech_phone" field.
+func TechPhoneLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldTechPhone, v))
+}
+
+// TechPhoneContains applies the Contains predicate on the "tech_phone" field.
+func TechPhoneContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldTechPhone, v))
+}
+
+// TechPhoneHasPrefix applies the HasPrefix predicate on the "tech_phone" field.
+func TechPhoneHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldTechPhone, v))
+}
+
+// TechPhoneHasSuffix applies the HasSuffix predicate on the "tech_phone" field.
+func TechPhoneHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldTechPhone, v))
+}
+
+// TechPhoneIsNil applies the IsNil predicate on the "tech_phone" field.
+func TechPhoneIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldTechPhone))
+}
+
+// TechPhoneNotNil applies the NotNil predicate on the "tech_phone" field.
+func TechPhoneNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldTechPhone))
+}
+
+// TechPhoneEqualFold applies the EqualFold predicate on the "tech_phone" field.
+func TechPhoneEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldTechPhone, v))
+}
+
+// TechPhoneContainsFold applies the ContainsFold predicate on the "tech_phone" field.
+func TechPhoneContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldTechPhone, v))
+}
+
+// TermsEQ applies the EQ predicate on the "terms" field.
+func TermsEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldTerms, v))
+}
+
+// TermsNEQ applies the NEQ predicate on the "terms" field.
+func TermsNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldTerms, v))
+}
+
+// TermsIn applies the In predicate on the "terms" field.
+func TermsIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldTerms, vs...))
+}
+
+// TermsNotIn applies the NotIn predicate on the "terms" field.
+func TermsNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldTerms, vs...))
+}
+
+// TermsGT applies the GT predicate on the "terms" field.
+func TermsGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldTerms, v))
+}
+
+// TermsGTE applies the GTE predicate on the "terms" field.
+func TermsGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldTerms, v))
+}
+
+// TermsLT applies the LT predicate on the "terms" field.
+func TermsLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldTerms, v))
+}
+
+// TermsLTE applies the LTE predicate on the "terms" field.
+func TermsLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldTerms, v))
+}
+
+// TermsContains applies the Contains predicate on the "terms" field.
+func TermsContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldTerms, v))
+}
+
+// TermsHasPrefix applies the HasPrefix predicate on the "terms" field.
+func TermsHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldTerms, v))
+}
+
+// TermsHasSuffix applies the HasSuffix predicate on the "terms" field.
+func TermsHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldTerms, v))
+}
+
+// TermsIsNil applies the IsNil predicate on the "terms" field.
+func TermsIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldTerms))
+}
+
+// TermsNotNil applies the NotNil predicate on the "terms" field.
+func TermsNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldTerms))
+}
+
+// TermsEqualFold applies the EqualFold predicate on the "terms" field.
+func TermsEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldTerms, v))
+}
+
+// TermsContainsFold applies the ContainsFold predicate on the "terms" field.
+func TermsContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldTerms, v))
+}
+
+// URLStatsEQ applies the EQ predicate on the "url_stats" field.
+func URLStatsEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldURLStats, v))
+}
+
+// URLStatsNEQ applies the NEQ predicate on the "url_stats" field.
+func URLStatsNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldURLStats, v))
+}
+
+// URLStatsIn applies the In predicate on the "url_stats" field.
+func URLStatsIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldURLStats, vs...))
+}
+
+// URLStatsNotIn applies the NotIn predicate on the "url_stats" field.
+func URLStatsNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldURLStats, vs...))
+}
+
+// URLStatsGT applies the GT predicate on the "url_stats" field.
+func URLStatsGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldURLStats, v))
+}
+
+// URLStatsGTE applies the GTE predicate on the "url_stats" field.
+func URLStatsGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldURLStats, v))
+}
+
+// URLStatsLT applies the LT predicate on the "url_stats" field.
+func URLStatsLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldURLStats, v))
+}
+
+// URLStatsLTE applies the LTE predicate on the "url_stats" field.
+func URLStatsLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldURLStats, v))
+}
+
+// URLStatsContains applies the Contains predicate on the "url_stats" field.
+func URLStatsContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldURLStats, v))
+}
+
+// URLStatsHasPrefix applies the HasPrefix predicate on the "url_stats" field.
+func URLStatsHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldURLStats, v))
+}
+
+// URLStatsHasSuffix applies the HasSuffix predicate on the "url_stats" field.
+func URLStatsHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldURLStats, v))
+}
+
+// URLStatsIsNil applies the IsNil predicate on the "url_stats" field.
+func URLStatsIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldURLStats))
+}
+
+// URLStatsNotNil applies the NotNil predicate on the "url_stats" field.
+func URLStatsNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldURLStats))
+}
+
+// URLStatsEqualFold applies the EqualFold predicate on the "url_stats" field.
+func URLStatsEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldURLStats, v))
+}
+
+// URLStatsContainsFold applies the ContainsFold predicate on the "url_stats" field.
+func URLStatsContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldURLStats, v))
+}
+
+// WebsiteEQ applies the EQ predicate on the "website" field.
+func WebsiteEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldWebsite, v))
+}
+
+// WebsiteNEQ applies the NEQ predicate on the "website" field.
+func WebsiteNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldWebsite, v))
+}
+
+// WebsiteIn applies the In predicate on the "website" field.
+func WebsiteIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldWebsite, vs...))
+}
+
+// WebsiteNotIn applies the NotIn predicate on the "website" field.
+func WebsiteNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldWebsite, vs...))
+}
+
+// WebsiteGT applies the GT predicate on the "website" field.
+func WebsiteGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldWebsite, v))
+}
+
+// WebsiteGTE applies the GTE predicate on the "website" field.
+func WebsiteGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldWebsite, v))
+}
+
+// WebsiteLT applies the LT predicate on the "website" field.
+func WebsiteLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldWebsite, v))
+}
+
+// WebsiteLTE applies the LTE predicate on the "website" field.
+func WebsiteLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldWebsite, v))
+}
+
+// WebsiteContains applies the Contains predicate on the "website" field.
+func WebsiteContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldWebsite, v))
+}
+
+// WebsiteHasPrefix applies the HasPrefix predicate on the "website" field.
+func WebsiteHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldWebsite, v))
+}
+
+// WebsiteHasSuffix applies the HasSuffix predicate on the "website" field.
+func WebsiteHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldWebsite, v))
+}
+
+// WebsiteIsNil applies the IsNil predicate on the "website" field.
+func WebsiteIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldWebsite))
+}
+
+// WebsiteNotNil applies the NotNil predicate on the "website" field.
+func WebsiteNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldWebsite))
+}
+
+// WebsiteEqualFold applies the EqualFold predicate on the "website" field.
+func WebsiteEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldWebsite, v))
+}
+
+// WebsiteContainsFold applies the ContainsFold predicate on the "website" field.
+func WebsiteContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldWebsite, v))
+}
+
 // NetCountEQ applies the EQ predicate on the "net_count" field.
 func NetCountEQ(v int) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldNetCount, v))
@@ -1538,96 +1978,6 @@ func FacCountIsNil() predicate.InternetExchange {
 // FacCountNotNil applies the NotNil predicate on the "fac_count" field.
 func FacCountNotNil() predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldNotNull(FieldFacCount))
-}
-
-// IxfNetCountEQ applies the EQ predicate on the "ixf_net_count" field.
-func IxfNetCountEQ(v int) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldIxfNetCount, v))
-}
-
-// IxfNetCountNEQ applies the NEQ predicate on the "ixf_net_count" field.
-func IxfNetCountNEQ(v int) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldIxfNetCount, v))
-}
-
-// IxfNetCountIn applies the In predicate on the "ixf_net_count" field.
-func IxfNetCountIn(vs ...int) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldIxfNetCount, vs...))
-}
-
-// IxfNetCountNotIn applies the NotIn predicate on the "ixf_net_count" field.
-func IxfNetCountNotIn(vs ...int) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldIxfNetCount, vs...))
-}
-
-// IxfNetCountGT applies the GT predicate on the "ixf_net_count" field.
-func IxfNetCountGT(v int) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldIxfNetCount, v))
-}
-
-// IxfNetCountGTE applies the GTE predicate on the "ixf_net_count" field.
-func IxfNetCountGTE(v int) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldIxfNetCount, v))
-}
-
-// IxfNetCountLT applies the LT predicate on the "ixf_net_count" field.
-func IxfNetCountLT(v int) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldIxfNetCount, v))
-}
-
-// IxfNetCountLTE applies the LTE predicate on the "ixf_net_count" field.
-func IxfNetCountLTE(v int) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldIxfNetCount, v))
-}
-
-// IxfLastImportEQ applies the EQ predicate on the "ixf_last_import" field.
-func IxfLastImportEQ(v time.Time) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldIxfLastImport, v))
-}
-
-// IxfLastImportNEQ applies the NEQ predicate on the "ixf_last_import" field.
-func IxfLastImportNEQ(v time.Time) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldIxfLastImport, v))
-}
-
-// IxfLastImportIn applies the In predicate on the "ixf_last_import" field.
-func IxfLastImportIn(vs ...time.Time) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldIxfLastImport, vs...))
-}
-
-// IxfLastImportNotIn applies the NotIn predicate on the "ixf_last_import" field.
-func IxfLastImportNotIn(vs ...time.Time) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldIxfLastImport, vs...))
-}
-
-// IxfLastImportGT applies the GT predicate on the "ixf_last_import" field.
-func IxfLastImportGT(v time.Time) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldIxfLastImport, v))
-}
-
-// IxfLastImportGTE applies the GTE predicate on the "ixf_last_import" field.
-func IxfLastImportGTE(v time.Time) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldIxfLastImport, v))
-}
-
-// IxfLastImportLT applies the LT predicate on the "ixf_last_import" field.
-func IxfLastImportLT(v time.Time) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldIxfLastImport, v))
-}
-
-// IxfLastImportLTE applies the LTE predicate on the "ixf_last_import" field.
-func IxfLastImportLTE(v time.Time) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldIxfLastImport, v))
-}
-
-// IxfLastImportIsNil applies the IsNil predicate on the "ixf_last_import" field.
-func IxfLastImportIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldIxfLastImport))
-}
-
-// IxfLastImportNotNil applies the NotNil predicate on the "ixf_last_import" field.
-func IxfLastImportNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldIxfLastImport))
 }
 
 // IxfImportRequestEQ applies the EQ predicate on the "ixf_import_request" field.
@@ -1780,306 +2130,6 @@ func IxfImportRequestStatusContainsFold(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldContainsFold(FieldIxfImportRequestStatus, v))
 }
 
-// ServiceLevelEQ applies the EQ predicate on the "service_level" field.
-func ServiceLevelEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldServiceLevel, v))
-}
-
-// ServiceLevelNEQ applies the NEQ predicate on the "service_level" field.
-func ServiceLevelNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldServiceLevel, v))
-}
-
-// ServiceLevelIn applies the In predicate on the "service_level" field.
-func ServiceLevelIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldServiceLevel, vs...))
-}
-
-// ServiceLevelNotIn applies the NotIn predicate on the "service_level" field.
-func ServiceLevelNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldServiceLevel, vs...))
-}
-
-// ServiceLevelGT applies the GT predicate on the "service_level" field.
-func ServiceLevelGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldServiceLevel, v))
-}
-
-// ServiceLevelGTE applies the GTE predicate on the "service_level" field.
-func ServiceLevelGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldServiceLevel, v))
-}
-
-// ServiceLevelLT applies the LT predicate on the "service_level" field.
-func ServiceLevelLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldServiceLevel, v))
-}
-
-// ServiceLevelLTE applies the LTE predicate on the "service_level" field.
-func ServiceLevelLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldServiceLevel, v))
-}
-
-// ServiceLevelContains applies the Contains predicate on the "service_level" field.
-func ServiceLevelContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldServiceLevel, v))
-}
-
-// ServiceLevelHasPrefix applies the HasPrefix predicate on the "service_level" field.
-func ServiceLevelHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldServiceLevel, v))
-}
-
-// ServiceLevelHasSuffix applies the HasSuffix predicate on the "service_level" field.
-func ServiceLevelHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldServiceLevel, v))
-}
-
-// ServiceLevelIsNil applies the IsNil predicate on the "service_level" field.
-func ServiceLevelIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldServiceLevel))
-}
-
-// ServiceLevelNotNil applies the NotNil predicate on the "service_level" field.
-func ServiceLevelNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldServiceLevel))
-}
-
-// ServiceLevelEqualFold applies the EqualFold predicate on the "service_level" field.
-func ServiceLevelEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldServiceLevel, v))
-}
-
-// ServiceLevelContainsFold applies the ContainsFold predicate on the "service_level" field.
-func ServiceLevelContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldServiceLevel, v))
-}
-
-// TermsEQ applies the EQ predicate on the "terms" field.
-func TermsEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldTerms, v))
-}
-
-// TermsNEQ applies the NEQ predicate on the "terms" field.
-func TermsNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldTerms, v))
-}
-
-// TermsIn applies the In predicate on the "terms" field.
-func TermsIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldTerms, vs...))
-}
-
-// TermsNotIn applies the NotIn predicate on the "terms" field.
-func TermsNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldTerms, vs...))
-}
-
-// TermsGT applies the GT predicate on the "terms" field.
-func TermsGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldTerms, v))
-}
-
-// TermsGTE applies the GTE predicate on the "terms" field.
-func TermsGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldTerms, v))
-}
-
-// TermsLT applies the LT predicate on the "terms" field.
-func TermsLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldTerms, v))
-}
-
-// TermsLTE applies the LTE predicate on the "terms" field.
-func TermsLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldTerms, v))
-}
-
-// TermsContains applies the Contains predicate on the "terms" field.
-func TermsContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldTerms, v))
-}
-
-// TermsHasPrefix applies the HasPrefix predicate on the "terms" field.
-func TermsHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldTerms, v))
-}
-
-// TermsHasSuffix applies the HasSuffix predicate on the "terms" field.
-func TermsHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldTerms, v))
-}
-
-// TermsIsNil applies the IsNil predicate on the "terms" field.
-func TermsIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldTerms))
-}
-
-// TermsNotNil applies the NotNil predicate on the "terms" field.
-func TermsNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldTerms))
-}
-
-// TermsEqualFold applies the EqualFold predicate on the "terms" field.
-func TermsEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldTerms, v))
-}
-
-// TermsContainsFold applies the ContainsFold predicate on the "terms" field.
-func TermsContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldTerms, v))
-}
-
-// StatusDashboardEQ applies the EQ predicate on the "status_dashboard" field.
-func StatusDashboardEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldStatusDashboard, v))
-}
-
-// StatusDashboardNEQ applies the NEQ predicate on the "status_dashboard" field.
-func StatusDashboardNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldStatusDashboard, v))
-}
-
-// StatusDashboardIn applies the In predicate on the "status_dashboard" field.
-func StatusDashboardIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldStatusDashboard, vs...))
-}
-
-// StatusDashboardNotIn applies the NotIn predicate on the "status_dashboard" field.
-func StatusDashboardNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldStatusDashboard, vs...))
-}
-
-// StatusDashboardGT applies the GT predicate on the "status_dashboard" field.
-func StatusDashboardGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldStatusDashboard, v))
-}
-
-// StatusDashboardGTE applies the GTE predicate on the "status_dashboard" field.
-func StatusDashboardGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldStatusDashboard, v))
-}
-
-// StatusDashboardLT applies the LT predicate on the "status_dashboard" field.
-func StatusDashboardLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldStatusDashboard, v))
-}
-
-// StatusDashboardLTE applies the LTE predicate on the "status_dashboard" field.
-func StatusDashboardLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldStatusDashboard, v))
-}
-
-// StatusDashboardContains applies the Contains predicate on the "status_dashboard" field.
-func StatusDashboardContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldStatusDashboard, v))
-}
-
-// StatusDashboardHasPrefix applies the HasPrefix predicate on the "status_dashboard" field.
-func StatusDashboardHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldStatusDashboard, v))
-}
-
-// StatusDashboardHasSuffix applies the HasSuffix predicate on the "status_dashboard" field.
-func StatusDashboardHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldStatusDashboard, v))
-}
-
-// StatusDashboardIsNil applies the IsNil predicate on the "status_dashboard" field.
-func StatusDashboardIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldStatusDashboard))
-}
-
-// StatusDashboardNotNil applies the NotNil predicate on the "status_dashboard" field.
-func StatusDashboardNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldStatusDashboard))
-}
-
-// StatusDashboardEqualFold applies the EqualFold predicate on the "status_dashboard" field.
-func StatusDashboardEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldStatusDashboard, v))
-}
-
-// StatusDashboardContainsFold applies the ContainsFold predicate on the "status_dashboard" field.
-func StatusDashboardContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldStatusDashboard, v))
-}
-
-// LogoEQ applies the EQ predicate on the "logo" field.
-func LogoEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldLogo, v))
-}
-
-// LogoNEQ applies the NEQ predicate on the "logo" field.
-func LogoNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldLogo, v))
-}
-
-// LogoIn applies the In predicate on the "logo" field.
-func LogoIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldLogo, vs...))
-}
-
-// LogoNotIn applies the NotIn predicate on the "logo" field.
-func LogoNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldLogo, vs...))
-}
-
-// LogoGT applies the GT predicate on the "logo" field.
-func LogoGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldLogo, v))
-}
-
-// LogoGTE applies the GTE predicate on the "logo" field.
-func LogoGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldLogo, v))
-}
-
-// LogoLT applies the LT predicate on the "logo" field.
-func LogoLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldLogo, v))
-}
-
-// LogoLTE applies the LTE predicate on the "logo" field.
-func LogoLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldLogo, v))
-}
-
-// LogoContains applies the Contains predicate on the "logo" field.
-func LogoContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldLogo, v))
-}
-
-// LogoHasPrefix applies the HasPrefix predicate on the "logo" field.
-func LogoHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldLogo, v))
-}
-
-// LogoHasSuffix applies the HasSuffix predicate on the "logo" field.
-func LogoHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldLogo, v))
-}
-
-// LogoIsNil applies the IsNil predicate on the "logo" field.
-func LogoIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldLogo))
-}
-
-// LogoNotNil applies the NotNil predicate on the "logo" field.
-func LogoNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldLogo))
-}
-
-// LogoEqualFold applies the EqualFold predicate on the "logo" field.
-func LogoEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldLogo, v))
-}
-
-// LogoContainsFold applies the ContainsFold predicate on the "logo" field.
-func LogoContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldLogo, v))
-}
-
 // CreatedEQ applies the EQ predicate on the "created" field.
 func CreatedEQ(v time.Time) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldCreated, v))
@@ -2225,21 +2275,21 @@ func StatusContainsFold(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldContainsFold(FieldStatus, v))
 }
 
-// HasOrganization applies the HasEdge predicate on the "organization" edge.
-func HasOrganization() predicate.InternetExchange {
+// HasIxFacilities applies the HasEdge predicate on the "ix_facilities" edge.
+func HasIxFacilities() predicate.InternetExchange {
 	return predicate.InternetExchange(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, IxFacilitiesTable, IxFacilitiesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasOrganizationWith applies the HasEdge predicate on the "organization" edge with a given conditions (other predicates).
-func HasOrganizationWith(preds ...predicate.Organization) predicate.InternetExchange {
+// HasIxFacilitiesWith applies the HasEdge predicate on the "ix_facilities" edge with a given conditions (other predicates).
+func HasIxFacilitiesWith(preds ...predicate.IxFacility) predicate.InternetExchange {
 	return predicate.InternetExchange(func(s *sql.Selector) {
-		step := newOrganizationStep()
+		step := newIxFacilitiesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -2271,21 +2321,21 @@ func HasIxLansWith(preds ...predicate.IxLan) predicate.InternetExchange {
 	})
 }
 
-// HasIxFacilities applies the HasEdge predicate on the "ix_facilities" edge.
-func HasIxFacilities() predicate.InternetExchange {
+// HasOrganization applies the HasEdge predicate on the "organization" edge.
+func HasOrganization() predicate.InternetExchange {
 	return predicate.InternetExchange(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, IxFacilitiesTable, IxFacilitiesColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasIxFacilitiesWith applies the HasEdge predicate on the "ix_facilities" edge with a given conditions (other predicates).
-func HasIxFacilitiesWith(preds ...predicate.IxFacility) predicate.InternetExchange {
+// HasOrganizationWith applies the HasEdge predicate on the "organization" edge with a given conditions (other predicates).
+func HasOrganizationWith(preds ...predicate.Organization) predicate.InternetExchange {
 	return predicate.InternetExchange(func(s *sql.Selector) {
-		step := newIxFacilitiesStep()
+		step := newOrganizationStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

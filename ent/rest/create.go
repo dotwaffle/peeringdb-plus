@@ -27,30 +27,30 @@ import (
 type CreateCampuParams struct {
 	// FK to organization
 	OrgID *int `json:"org_id,omitempty"`
-	// Organization name (computed)
-	OrgName *string `json:"org_name,omitempty"`
+	// Also known as
+	Aka *string `json:"aka,omitempty"`
+	// City
+	City *string `json:"city,omitempty"`
+	// Country code
+	Country *string `json:"country,omitempty"`
+	// Logo URL
+	Logo *string `json:"logo,omitempty"`
 	// Campus name
 	Name string `json:"name"`
 	// Long name
 	NameLong *string `json:"name_long,omitempty"`
-	// Also known as
-	Aka *string `json:"aka,omitempty"`
-	// Campus website URL
-	Website *string `json:"website,omitempty"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
 	// Notes
 	Notes *string `json:"notes,omitempty"`
-	// Country code
-	Country *string `json:"country,omitempty"`
-	// City
-	City *string `json:"city,omitempty"`
-	// Postal / ZIP code
-	Zipcode *string `json:"zipcode,omitempty"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
 	// State or province
 	State *string `json:"state,omitempty"`
-	// Logo URL
-	Logo *string `json:"logo,omitempty"`
+	// Campus website URL
+	Website *string `json:"website,omitempty"`
+	// Postal / ZIP code
+	Zipcode *string `json:"zipcode,omitempty"`
+	// Org Name (computed)
+	OrgName *string `json:"org_name,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -63,39 +63,39 @@ func (c *CreateCampuParams) ApplyInputs(builder *ent.CampusCreate) *ent.CampusCr
 	if c.OrgID != nil {
 		builder.SetOrgID(*c.OrgID)
 	}
-	if c.OrgName != nil {
-		builder.SetOrgName(*c.OrgName)
+	if c.Aka != nil {
+		builder.SetAka(*c.Aka)
+	}
+	if c.City != nil {
+		builder.SetCity(*c.City)
+	}
+	if c.Country != nil {
+		builder.SetCountry(*c.Country)
+	}
+	if c.Logo != nil {
+		builder.SetLogo(*c.Logo)
 	}
 	builder.SetName(c.Name)
 	if c.NameLong != nil {
 		builder.SetNameLong(*c.NameLong)
 	}
-	if c.Aka != nil {
-		builder.SetAka(*c.Aka)
-	}
-	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
+	if c.Notes != nil {
+		builder.SetNotes(*c.Notes)
 	}
 	if c.SocialMedia != nil {
 		builder.SetSocialMedia(c.SocialMedia)
 	}
-	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
+	if c.State != nil {
+		builder.SetState(*c.State)
 	}
-	if c.Country != nil {
-		builder.SetCountry(*c.Country)
-	}
-	if c.City != nil {
-		builder.SetCity(*c.City)
+	if c.Website != nil {
+		builder.SetWebsite(*c.Website)
 	}
 	if c.Zipcode != nil {
 		builder.SetZipcode(*c.Zipcode)
 	}
-	if c.State != nil {
-		builder.SetState(*c.State)
-	}
-	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
+	if c.OrgName != nil {
+		builder.SetOrgName(*c.OrgName)
 	}
 	builder.SetCreated(c.Created)
 	builder.SetUpdated(c.Updated)
@@ -120,24 +120,24 @@ func (c *CreateCampuParams) Exec(ctx context.Context, builder *ent.CampusCreate,
 type CreateCarrierParams struct {
 	// FK to organization
 	OrgID *int `json:"org_id,omitempty"`
-	// Organization name (computed)
-	OrgName *string `json:"org_name,omitempty"`
-	// Carrier name
-	Name string `json:"name"`
 	// Also known as
 	Aka *string `json:"aka,omitempty"`
-	// Long name
-	NameLong *string `json:"name_long,omitempty"`
-	// Carrier website URL
-	Website *string `json:"website,omitempty"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
-	// Notes
-	Notes *string `json:"notes,omitempty"`
-	// Facility count (computed)
-	FacCount *int `json:"fac_count,omitempty"`
 	// Logo URL
 	Logo *string `json:"logo,omitempty"`
+	// Carrier name
+	Name string `json:"name"`
+	// Long name
+	NameLong *string `json:"name_long,omitempty"`
+	// Notes
+	Notes *string `json:"notes,omitempty"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	// Carrier website URL
+	Website *string `json:"website,omitempty"`
+	// Org Name (computed)
+	OrgName *string `json:"org_name,omitempty"`
+	// Fac Count (computed)
+	FacCount *int `json:"fac_count,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -150,30 +150,30 @@ func (c *CreateCarrierParams) ApplyInputs(builder *ent.CarrierCreate) *ent.Carri
 	if c.OrgID != nil {
 		builder.SetOrgID(*c.OrgID)
 	}
-	if c.OrgName != nil {
-		builder.SetOrgName(*c.OrgName)
-	}
-	builder.SetName(c.Name)
 	if c.Aka != nil {
 		builder.SetAka(*c.Aka)
 	}
+	if c.Logo != nil {
+		builder.SetLogo(*c.Logo)
+	}
+	builder.SetName(c.Name)
 	if c.NameLong != nil {
 		builder.SetNameLong(*c.NameLong)
-	}
-	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
-	}
-	if c.SocialMedia != nil {
-		builder.SetSocialMedia(c.SocialMedia)
 	}
 	if c.Notes != nil {
 		builder.SetNotes(*c.Notes)
 	}
+	if c.SocialMedia != nil {
+		builder.SetSocialMedia(c.SocialMedia)
+	}
+	if c.Website != nil {
+		builder.SetWebsite(*c.Website)
+	}
+	if c.OrgName != nil {
+		builder.SetOrgName(*c.OrgName)
+	}
 	if c.FacCount != nil {
 		builder.SetFacCount(*c.FacCount)
-	}
-	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
 	}
 	builder.SetCreated(c.Created)
 	builder.SetUpdated(c.Updated)
@@ -200,7 +200,7 @@ type CreateCarrierFacilityParams struct {
 	CarrierID *int `json:"carrier_id,omitempty"`
 	// FK to facility
 	FacID *int `json:"fac_id,omitempty"`
-	// Facility name (computed)
+	// Name (computed)
 	Name *string `json:"name,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
@@ -241,76 +241,76 @@ func (c *CreateCarrierFacilityParams) Exec(ctx context.Context, builder *ent.Car
 
 // CreateFacilityParams defines parameters for creating a Facility via a POST request.
 type CreateFacilityParams struct {
-	// FK to organization
-	OrgID *int `json:"org_id,omitempty"`
-	// Organization name (computed)
-	OrgName *string `json:"org_name,omitempty"`
 	// FK to campus
 	CampusID *int `json:"campus_id,omitempty"`
-	// Facility name
-	Name string `json:"name"`
-	// Also known as
-	Aka *string `json:"aka,omitempty"`
-	// Long name
-	NameLong *string `json:"name_long,omitempty"`
-	// Facility website URL
-	Website *string `json:"website,omitempty"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
-	// CLLI code
-	Clli *string `json:"clli,omitempty"`
-	// Rencode
-	Rencode *string `json:"rencode,omitempty"`
-	// NPANXX
-	Npanxx *string `json:"npanxx,omitempty"`
-	// Technical contact email
-	TechEmail *string `json:"tech_email,omitempty"`
-	// Technical contact phone
-	TechPhone *string `json:"tech_phone,omitempty"`
-	// Sales contact email
-	SalesEmail *string `json:"sales_email,omitempty"`
-	// Sales contact phone
-	SalesPhone *string `json:"sales_phone,omitempty"`
-	// Property type
-	Property *string `json:"property,omitempty"`
-	// Has diverse serving substations
-	DiverseServingSubstations *bool `json:"diverse_serving_substations,omitempty"`
-	// Available voltage services
-	AvailableVoltageServices []string `json:"available_voltage_services,omitempty"`
-	// Notes
-	Notes *string `json:"notes,omitempty"`
-	// Region / continent
-	RegionContinent *string `json:"region_continent,omitempty"`
-	// Status dashboard URL
-	StatusDashboard *string `json:"status_dashboard,omitempty"`
-	// Logo URL
-	Logo *string `json:"logo,omitempty"`
-	// Network count (computed)
-	NetCount *int `json:"net_count,omitempty"`
-	// Internet exchange count (computed)
-	IxCount *int `json:"ix_count,omitempty"`
-	// Carrier count (computed)
-	CarrierCount *int `json:"carrier_count,omitempty"`
+	// FK to organization
+	OrgID *int `json:"org_id,omitempty"`
 	// Address line 1
 	Address1 *string `json:"address1,omitempty"`
 	// Address line 2
 	Address2 *string `json:"address2,omitempty"`
+	// Also known as
+	Aka *string `json:"aka,omitempty"`
+	// Available voltage services
+	AvailableVoltageServices []string `json:"available_voltage_services,omitempty"`
 	// City
 	City *string `json:"city,omitempty"`
-	// State or province
-	State *string `json:"state,omitempty"`
+	// CLLI code
+	Clli *string `json:"clli,omitempty"`
 	// Country code
 	Country *string `json:"country,omitempty"`
-	// Postal / ZIP code
-	Zipcode *string `json:"zipcode,omitempty"`
-	// Suite number
-	Suite *string `json:"suite,omitempty"`
+	// Diverse serving substations
+	DiverseServingSubstations *bool `json:"diverse_serving_substations,omitempty"`
 	// Floor
 	Floor *string `json:"floor,omitempty"`
 	// Latitude
 	Latitude *float64 `json:"latitude,omitempty"`
+	// Logo URL
+	Logo *string `json:"logo,omitempty"`
 	// Longitude
 	Longitude *float64 `json:"longitude,omitempty"`
+	// Facility name
+	Name string `json:"name"`
+	// Long name
+	NameLong *string `json:"name_long,omitempty"`
+	// Notes
+	Notes *string `json:"notes,omitempty"`
+	// NPA-NXX code
+	Npanxx *string `json:"npanxx,omitempty"`
+	// Property type
+	Property *string `json:"property,omitempty"`
+	// Region/continent
+	RegionContinent *string `json:"region_continent,omitempty"`
+	// Rencode
+	Rencode *string `json:"rencode,omitempty"`
+	// Sales email
+	SalesEmail *string `json:"sales_email,omitempty"`
+	// Sales phone
+	SalesPhone *string `json:"sales_phone,omitempty"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	// State or province
+	State *string `json:"state,omitempty"`
+	// Status dashboard URL
+	StatusDashboard *string `json:"status_dashboard,omitempty"`
+	// Suite number
+	Suite *string `json:"suite,omitempty"`
+	// Technical email
+	TechEmail *string `json:"tech_email,omitempty"`
+	// Technical phone
+	TechPhone *string `json:"tech_phone,omitempty"`
+	// Facility website URL
+	Website *string `json:"website,omitempty"`
+	// Postal / ZIP code
+	Zipcode *string `json:"zipcode,omitempty"`
+	// Org Name (computed)
+	OrgName *string `json:"org_name,omitempty"`
+	// Net Count (computed)
+	NetCount *int `json:"net_count,omitempty"`
+	// Ix Count (computed)
+	IxCount *int `json:"ix_count,omitempty"`
+	// Carrier Count (computed)
+	CarrierCount *int `json:"carrier_count,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -320,42 +320,66 @@ type CreateFacilityParams struct {
 }
 
 func (c *CreateFacilityParams) ApplyInputs(builder *ent.FacilityCreate) *ent.FacilityCreate {
-	if c.OrgID != nil {
-		builder.SetOrgID(*c.OrgID)
-	}
-	if c.OrgName != nil {
-		builder.SetOrgName(*c.OrgName)
-	}
 	if c.CampusID != nil {
 		builder.SetCampusID(*c.CampusID)
 	}
-	builder.SetName(c.Name)
+	if c.OrgID != nil {
+		builder.SetOrgID(*c.OrgID)
+	}
+	if c.Address1 != nil {
+		builder.SetAddress1(*c.Address1)
+	}
+	if c.Address2 != nil {
+		builder.SetAddress2(*c.Address2)
+	}
 	if c.Aka != nil {
 		builder.SetAka(*c.Aka)
 	}
-	if c.NameLong != nil {
-		builder.SetNameLong(*c.NameLong)
+	if c.AvailableVoltageServices != nil {
+		builder.SetAvailableVoltageServices(c.AvailableVoltageServices)
 	}
-	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
-	}
-	if c.SocialMedia != nil {
-		builder.SetSocialMedia(c.SocialMedia)
+	if c.City != nil {
+		builder.SetCity(*c.City)
 	}
 	if c.Clli != nil {
 		builder.SetClli(*c.Clli)
 	}
-	if c.Rencode != nil {
-		builder.SetRencode(*c.Rencode)
+	if c.Country != nil {
+		builder.SetCountry(*c.Country)
+	}
+	if c.DiverseServingSubstations != nil {
+		builder.SetDiverseServingSubstations(*c.DiverseServingSubstations)
+	}
+	if c.Floor != nil {
+		builder.SetFloor(*c.Floor)
+	}
+	if c.Latitude != nil {
+		builder.SetLatitude(*c.Latitude)
+	}
+	if c.Logo != nil {
+		builder.SetLogo(*c.Logo)
+	}
+	if c.Longitude != nil {
+		builder.SetLongitude(*c.Longitude)
+	}
+	builder.SetName(c.Name)
+	if c.NameLong != nil {
+		builder.SetNameLong(*c.NameLong)
+	}
+	if c.Notes != nil {
+		builder.SetNotes(*c.Notes)
 	}
 	if c.Npanxx != nil {
 		builder.SetNpanxx(*c.Npanxx)
 	}
-	if c.TechEmail != nil {
-		builder.SetTechEmail(*c.TechEmail)
+	if c.Property != nil {
+		builder.SetProperty(*c.Property)
 	}
-	if c.TechPhone != nil {
-		builder.SetTechPhone(*c.TechPhone)
+	if c.RegionContinent != nil {
+		builder.SetRegionContinent(*c.RegionContinent)
+	}
+	if c.Rencode != nil {
+		builder.SetRencode(*c.Rencode)
 	}
 	if c.SalesEmail != nil {
 		builder.SetSalesEmail(*c.SalesEmail)
@@ -363,26 +387,32 @@ func (c *CreateFacilityParams) ApplyInputs(builder *ent.FacilityCreate) *ent.Fac
 	if c.SalesPhone != nil {
 		builder.SetSalesPhone(*c.SalesPhone)
 	}
-	if c.Property != nil {
-		builder.SetProperty(*c.Property)
+	if c.SocialMedia != nil {
+		builder.SetSocialMedia(c.SocialMedia)
 	}
-	if c.DiverseServingSubstations != nil {
-		builder.SetDiverseServingSubstations(*c.DiverseServingSubstations)
-	}
-	if c.AvailableVoltageServices != nil {
-		builder.SetAvailableVoltageServices(c.AvailableVoltageServices)
-	}
-	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
-	}
-	if c.RegionContinent != nil {
-		builder.SetRegionContinent(*c.RegionContinent)
+	if c.State != nil {
+		builder.SetState(*c.State)
 	}
 	if c.StatusDashboard != nil {
 		builder.SetStatusDashboard(*c.StatusDashboard)
 	}
-	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
+	if c.Suite != nil {
+		builder.SetSuite(*c.Suite)
+	}
+	if c.TechEmail != nil {
+		builder.SetTechEmail(*c.TechEmail)
+	}
+	if c.TechPhone != nil {
+		builder.SetTechPhone(*c.TechPhone)
+	}
+	if c.Website != nil {
+		builder.SetWebsite(*c.Website)
+	}
+	if c.Zipcode != nil {
+		builder.SetZipcode(*c.Zipcode)
+	}
+	if c.OrgName != nil {
+		builder.SetOrgName(*c.OrgName)
 	}
 	if c.NetCount != nil {
 		builder.SetNetCount(*c.NetCount)
@@ -392,36 +422,6 @@ func (c *CreateFacilityParams) ApplyInputs(builder *ent.FacilityCreate) *ent.Fac
 	}
 	if c.CarrierCount != nil {
 		builder.SetCarrierCount(*c.CarrierCount)
-	}
-	if c.Address1 != nil {
-		builder.SetAddress1(*c.Address1)
-	}
-	if c.Address2 != nil {
-		builder.SetAddress2(*c.Address2)
-	}
-	if c.City != nil {
-		builder.SetCity(*c.City)
-	}
-	if c.State != nil {
-		builder.SetState(*c.State)
-	}
-	if c.Country != nil {
-		builder.SetCountry(*c.Country)
-	}
-	if c.Zipcode != nil {
-		builder.SetZipcode(*c.Zipcode)
-	}
-	if c.Suite != nil {
-		builder.SetSuite(*c.Suite)
-	}
-	if c.Floor != nil {
-		builder.SetFloor(*c.Floor)
-	}
-	if c.Latitude != nil {
-		builder.SetLatitude(*c.Latitude)
-	}
-	if c.Longitude != nil {
-		builder.SetLongitude(*c.Longitude)
 	}
 	builder.SetCreated(c.Created)
 	builder.SetUpdated(c.Updated)
@@ -446,66 +446,66 @@ func (c *CreateFacilityParams) Exec(ctx context.Context, builder *ent.FacilityCr
 type CreateInternetExchangeParams struct {
 	// FK to organization
 	OrgID *int `json:"org_id,omitempty"`
-	// Internet exchange name
-	Name string `json:"name"`
 	// Also known as
 	Aka *string `json:"aka,omitempty"`
-	// Long name
-	NameLong *string `json:"name_long,omitempty"`
 	// City
-	City *string `json:"city"`
+	City *string `json:"city,omitempty"`
 	// Country code
-	Country *string `json:"country"`
-	// Region / continent
-	RegionContinent *string `json:"region_continent"`
-	// Media type
-	Media *string `json:"media"`
-	// Notes
-	Notes *string `json:"notes,omitempty"`
-	// Supports unicast
-	ProtoUnicast *bool `json:"proto_unicast"`
-	// Supports multicast
-	ProtoMulticast *bool `json:"proto_multicast"`
-	// Supports IPv6
-	ProtoIpv6 *bool `json:"proto_ipv6"`
-	// Internet exchange website URL
-	Website *string `json:"website,omitempty"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
-	// Statistics URL
-	URLStats *string `json:"url_stats,omitempty"`
-	// Technical contact email
-	TechEmail *string `json:"tech_email,omitempty"`
-	// Technical contact phone
-	TechPhone *string `json:"tech_phone,omitempty"`
-	// Policy contact email
-	PolicyEmail *string `json:"policy_email,omitempty"`
-	// Policy contact phone
-	PolicyPhone *string `json:"policy_phone,omitempty"`
-	// Sales contact email
-	SalesEmail *string `json:"sales_email,omitempty"`
-	// Sales contact phone
-	SalesPhone *string `json:"sales_phone,omitempty"`
-	// Network count (computed)
-	NetCount *int `json:"net_count,omitempty"`
-	// Facility count (computed)
-	FacCount *int `json:"fac_count,omitempty"`
-	// IXF net count
-	IxfNetCount *int `json:"ixf_net_count"`
-	// Last IXF import timestamp
+	Country *string `json:"country,omitempty"`
+	// IXF last import timestamp
 	IxfLastImport *time.Time `json:"ixf_last_import,omitempty"`
-	// IXF import request
-	IxfImportRequest *string `json:"ixf_import_request,omitempty"`
-	// IXF import request status
-	IxfImportRequestStatus *string `json:"ixf_import_request_status,omitempty"`
-	// Service level
-	ServiceLevel *string `json:"service_level,omitempty"`
-	// Terms
-	Terms *string `json:"terms,omitempty"`
-	// Status dashboard URL
-	StatusDashboard *string `json:"status_dashboard,omitempty"`
+	// IXF net count
+	IxfNetCount *int `json:"ixf_net_count,omitempty"`
 	// Logo URL
 	Logo *string `json:"logo,omitempty"`
+	// Exchange media type
+	Media *string `json:"media,omitempty"`
+	// Internet exchange name
+	Name string `json:"name"`
+	// Long name
+	NameLong *string `json:"name_long,omitempty"`
+	// Notes
+	Notes *string `json:"notes,omitempty"`
+	// Policy email
+	PolicyEmail *string `json:"policy_email,omitempty"`
+	// Policy phone
+	PolicyPhone *string `json:"policy_phone,omitempty"`
+	// Supports IPv6
+	ProtoIpv6 *bool `json:"proto_ipv6"`
+	// Supports multicast
+	ProtoMulticast *bool `json:"proto_multicast"`
+	// Supports unicast
+	ProtoUnicast *bool `json:"proto_unicast"`
+	// Region/continent
+	RegionContinent *string `json:"region_continent,omitempty"`
+	// Sales email
+	SalesEmail *string `json:"sales_email,omitempty"`
+	// Sales phone
+	SalesPhone *string `json:"sales_phone,omitempty"`
+	// Service level
+	ServiceLevel *string `json:"service_level,omitempty"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	// Status dashboard URL
+	StatusDashboard *string `json:"status_dashboard,omitempty"`
+	// Technical email
+	TechEmail *string `json:"tech_email,omitempty"`
+	// Technical phone
+	TechPhone *string `json:"tech_phone,omitempty"`
+	// Terms
+	Terms *string `json:"terms,omitempty"`
+	// Statistics URL
+	URLStats *string `json:"url_stats,omitempty"`
+	// IX website URL
+	Website *string `json:"website,omitempty"`
+	// Net Count (computed)
+	NetCount *int `json:"net_count,omitempty"`
+	// Fac Count (computed)
+	FacCount *int `json:"fac_count,omitempty"`
+	// Ixf Import Request (computed)
+	IxfImportRequest *string `json:"ixf_import_request,omitempty"`
+	// Ixf Import Request Status (computed)
+	IxfImportRequestStatus *string `json:"ixf_import_request_status,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -518,12 +518,8 @@ func (c *CreateInternetExchangeParams) ApplyInputs(builder *ent.InternetExchange
 	if c.OrgID != nil {
 		builder.SetOrgID(*c.OrgID)
 	}
-	builder.SetName(c.Name)
 	if c.Aka != nil {
 		builder.SetAka(*c.Aka)
-	}
-	if c.NameLong != nil {
-		builder.SetNameLong(*c.NameLong)
 	}
 	if c.City != nil {
 		builder.SetCity(*c.City)
@@ -531,38 +527,24 @@ func (c *CreateInternetExchangeParams) ApplyInputs(builder *ent.InternetExchange
 	if c.Country != nil {
 		builder.SetCountry(*c.Country)
 	}
-	if c.RegionContinent != nil {
-		builder.SetRegionContinent(*c.RegionContinent)
+	if c.IxfLastImport != nil {
+		builder.SetIxfLastImport(*c.IxfLastImport)
+	}
+	if c.IxfNetCount != nil {
+		builder.SetIxfNetCount(*c.IxfNetCount)
+	}
+	if c.Logo != nil {
+		builder.SetLogo(*c.Logo)
 	}
 	if c.Media != nil {
 		builder.SetMedia(*c.Media)
 	}
+	builder.SetName(c.Name)
+	if c.NameLong != nil {
+		builder.SetNameLong(*c.NameLong)
+	}
 	if c.Notes != nil {
 		builder.SetNotes(*c.Notes)
-	}
-	if c.ProtoUnicast != nil {
-		builder.SetProtoUnicast(*c.ProtoUnicast)
-	}
-	if c.ProtoMulticast != nil {
-		builder.SetProtoMulticast(*c.ProtoMulticast)
-	}
-	if c.ProtoIpv6 != nil {
-		builder.SetProtoIpv6(*c.ProtoIpv6)
-	}
-	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
-	}
-	if c.SocialMedia != nil {
-		builder.SetSocialMedia(c.SocialMedia)
-	}
-	if c.URLStats != nil {
-		builder.SetURLStats(*c.URLStats)
-	}
-	if c.TechEmail != nil {
-		builder.SetTechEmail(*c.TechEmail)
-	}
-	if c.TechPhone != nil {
-		builder.SetTechPhone(*c.TechPhone)
 	}
 	if c.PolicyEmail != nil {
 		builder.SetPolicyEmail(*c.PolicyEmail)
@@ -570,11 +552,47 @@ func (c *CreateInternetExchangeParams) ApplyInputs(builder *ent.InternetExchange
 	if c.PolicyPhone != nil {
 		builder.SetPolicyPhone(*c.PolicyPhone)
 	}
+	if c.ProtoIpv6 != nil {
+		builder.SetProtoIpv6(*c.ProtoIpv6)
+	}
+	if c.ProtoMulticast != nil {
+		builder.SetProtoMulticast(*c.ProtoMulticast)
+	}
+	if c.ProtoUnicast != nil {
+		builder.SetProtoUnicast(*c.ProtoUnicast)
+	}
+	if c.RegionContinent != nil {
+		builder.SetRegionContinent(*c.RegionContinent)
+	}
 	if c.SalesEmail != nil {
 		builder.SetSalesEmail(*c.SalesEmail)
 	}
 	if c.SalesPhone != nil {
 		builder.SetSalesPhone(*c.SalesPhone)
+	}
+	if c.ServiceLevel != nil {
+		builder.SetServiceLevel(*c.ServiceLevel)
+	}
+	if c.SocialMedia != nil {
+		builder.SetSocialMedia(c.SocialMedia)
+	}
+	if c.StatusDashboard != nil {
+		builder.SetStatusDashboard(*c.StatusDashboard)
+	}
+	if c.TechEmail != nil {
+		builder.SetTechEmail(*c.TechEmail)
+	}
+	if c.TechPhone != nil {
+		builder.SetTechPhone(*c.TechPhone)
+	}
+	if c.Terms != nil {
+		builder.SetTerms(*c.Terms)
+	}
+	if c.URLStats != nil {
+		builder.SetURLStats(*c.URLStats)
+	}
+	if c.Website != nil {
+		builder.SetWebsite(*c.Website)
 	}
 	if c.NetCount != nil {
 		builder.SetNetCount(*c.NetCount)
@@ -582,29 +600,11 @@ func (c *CreateInternetExchangeParams) ApplyInputs(builder *ent.InternetExchange
 	if c.FacCount != nil {
 		builder.SetFacCount(*c.FacCount)
 	}
-	if c.IxfNetCount != nil {
-		builder.SetIxfNetCount(*c.IxfNetCount)
-	}
-	if c.IxfLastImport != nil {
-		builder.SetIxfLastImport(*c.IxfLastImport)
-	}
 	if c.IxfImportRequest != nil {
 		builder.SetIxfImportRequest(*c.IxfImportRequest)
 	}
 	if c.IxfImportRequestStatus != nil {
 		builder.SetIxfImportRequestStatus(*c.IxfImportRequestStatus)
-	}
-	if c.ServiceLevel != nil {
-		builder.SetServiceLevel(*c.ServiceLevel)
-	}
-	if c.Terms != nil {
-		builder.SetTerms(*c.Terms)
-	}
-	if c.StatusDashboard != nil {
-		builder.SetStatusDashboard(*c.StatusDashboard)
-	}
-	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
 	}
 	builder.SetCreated(c.Created)
 	builder.SetUpdated(c.Updated)
@@ -627,11 +627,11 @@ func (c *CreateInternetExchangeParams) Exec(ctx context.Context, builder *ent.In
 
 // CreateIxFacilityParams defines parameters for creating a IxFacility via a POST request.
 type CreateIxFacilityParams struct {
-	// FK to internet exchange
-	IxID *int `json:"ix_id,omitempty"`
 	// FK to facility
 	FacID *int `json:"fac_id,omitempty"`
-	// Facility name (computed)
+	// FK to internet exchange
+	IxID *int `json:"ix_id,omitempty"`
+	// Name (computed)
 	Name *string `json:"name,omitempty"`
 	// City (computed)
 	City *string `json:"city,omitempty"`
@@ -646,11 +646,11 @@ type CreateIxFacilityParams struct {
 }
 
 func (c *CreateIxFacilityParams) ApplyInputs(builder *ent.IxFacilityCreate) *ent.IxFacilityCreate {
-	if c.IxID != nil {
-		builder.SetIxID(*c.IxID)
-	}
 	if c.FacID != nil {
 		builder.SetFacID(*c.FacID)
+	}
+	if c.IxID != nil {
+		builder.SetIxID(*c.IxID)
 	}
 	if c.Name != nil {
 		builder.SetName(*c.Name)
@@ -684,22 +684,22 @@ func (c *CreateIxFacilityParams) Exec(ctx context.Context, builder *ent.IxFacili
 type CreateIxLanParams struct {
 	// FK to internet exchange
 	IxID *int `json:"ix_id,omitempty"`
-	// IXLan name
-	Name *string `json:"name,omitempty"`
-	// Description
-	Descr *string `json:"descr,omitempty"`
-	// MTU
-	Mtu *int `json:"mtu"`
-	// 802.1Q support
-	Dot1qSupport *bool `json:"dot1q_support"`
-	// Route server ASN
-	RsAsn *int `json:"rs_asn,omitempty"`
 	// ARP sponge MAC address
 	ArpSponge *string `json:"arp_sponge,omitempty"`
-	// IXF member list URL visibility
-	IxfIxpMemberListURLVisible *string `json:"ixf_ixp_member_list_url_visible"`
+	// Description
+	Descr *string `json:"descr,omitempty"`
+	// 802.1Q support
+	Dot1qSupport *bool `json:"dot1q_support"`
 	// IXF import enabled
 	IxfIxpImportEnabled *bool `json:"ixf_ixp_import_enabled"`
+	// IXF member list URL visibility
+	IxfIxpMemberListURLVisible *string `json:"ixf_ixp_member_list_url_visible,omitempty"`
+	// MTU size
+	Mtu *int `json:"mtu,omitempty"`
+	// LAN name
+	Name *string `json:"name,omitempty"`
+	// Route server ASN
+	RsAsn *int `json:"rs_asn,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -712,29 +712,29 @@ func (c *CreateIxLanParams) ApplyInputs(builder *ent.IxLanCreate) *ent.IxLanCrea
 	if c.IxID != nil {
 		builder.SetIxID(*c.IxID)
 	}
-	if c.Name != nil {
-		builder.SetName(*c.Name)
+	if c.ArpSponge != nil {
+		builder.SetArpSponge(*c.ArpSponge)
 	}
 	if c.Descr != nil {
 		builder.SetDescr(*c.Descr)
 	}
-	if c.Mtu != nil {
-		builder.SetMtu(*c.Mtu)
-	}
 	if c.Dot1qSupport != nil {
 		builder.SetDot1qSupport(*c.Dot1qSupport)
 	}
-	if c.RsAsn != nil {
-		builder.SetRsAsn(*c.RsAsn)
-	}
-	if c.ArpSponge != nil {
-		builder.SetArpSponge(*c.ArpSponge)
+	if c.IxfIxpImportEnabled != nil {
+		builder.SetIxfIxpImportEnabled(*c.IxfIxpImportEnabled)
 	}
 	if c.IxfIxpMemberListURLVisible != nil {
 		builder.SetIxfIxpMemberListURLVisible(*c.IxfIxpMemberListURLVisible)
 	}
-	if c.IxfIxpImportEnabled != nil {
-		builder.SetIxfIxpImportEnabled(*c.IxfIxpImportEnabled)
+	if c.Mtu != nil {
+		builder.SetMtu(*c.Mtu)
+	}
+	if c.Name != nil {
+		builder.SetName(*c.Name)
+	}
+	if c.RsAsn != nil {
+		builder.SetRsAsn(*c.RsAsn)
 	}
 	builder.SetCreated(c.Created)
 	builder.SetUpdated(c.Updated)
@@ -757,16 +757,16 @@ func (c *CreateIxLanParams) Exec(ctx context.Context, builder *ent.IxLanCreate, 
 
 // CreateIxPrefixParams defines parameters for creating a IxPrefix via a POST request.
 type CreateIxPrefixParams struct {
-	// FK to IXLan
+	// FK to IX LAN
 	IxlanID *int `json:"ixlan_id,omitempty"`
-	// Protocol (IPv4 or IPv6)
-	Protocol string `json:"protocol"`
-	// IP prefix
-	Prefix string `json:"prefix"`
 	// In default-free zone
 	InDfz *bool `json:"in_dfz"`
 	// Notes
 	Notes *string `json:"notes,omitempty"`
+	// IP prefix
+	Prefix string `json:"prefix"`
+	// Protocol (IPv4/IPv6)
+	Protocol *string `json:"protocol,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -779,13 +779,15 @@ func (c *CreateIxPrefixParams) ApplyInputs(builder *ent.IxPrefixCreate) *ent.IxP
 	if c.IxlanID != nil {
 		builder.SetIxlanID(*c.IxlanID)
 	}
-	builder.SetProtocol(c.Protocol)
-	builder.SetPrefix(c.Prefix)
 	if c.InDfz != nil {
 		builder.SetInDfz(*c.InDfz)
 	}
 	if c.Notes != nil {
 		builder.SetNotes(*c.Notes)
+	}
+	builder.SetPrefix(c.Prefix)
+	if c.Protocol != nil {
+		builder.SetProtocol(*c.Protocol)
 	}
 	builder.SetCreated(c.Created)
 	builder.SetUpdated(c.Updated)
@@ -810,77 +812,77 @@ func (c *CreateIxPrefixParams) Exec(ctx context.Context, builder *ent.IxPrefixCr
 type CreateNetworkParams struct {
 	// FK to organization
 	OrgID *int `json:"org_id,omitempty"`
-	// Network name
-	Name string `json:"name"`
 	// Also known as
 	Aka *string `json:"aka,omitempty"`
-	// Long name
-	NameLong *string `json:"name_long,omitempty"`
-	// Network website URL
-	Website *string `json:"website,omitempty"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	// Allow IXP update
+	AllowIxpUpdate *bool `json:"allow_ixp_update"`
 	// Autonomous System Number
 	Asn int `json:"asn"`
-	// Looking glass URL
-	LookingGlass *string `json:"looking_glass,omitempty"`
-	// Route server URL
-	RouteServer *string `json:"route_server,omitempty"`
-	// IRR AS-SET
-	IrrAsSet *string `json:"irr_as_set,omitempty"`
-	// Network type
-	InfoType *string `json:"info_type,omitempty"`
-	// Network types (multi-choice)
-	InfoTypes []string `json:"info_types,omitempty"`
+	// Supports IPv6
+	InfoIpv6 *bool `json:"info_ipv6"`
+	// Supports multicast
+	InfoMulticast *bool `json:"info_multicast"`
+	// Never via route servers
+	InfoNeverViaRouteServers *bool `json:"info_never_via_route_servers"`
 	// IPv4 prefix count
 	InfoPrefixes4 *int `json:"info_prefixes4,omitempty"`
 	// IPv6 prefix count
 	InfoPrefixes6 *int `json:"info_prefixes6,omitempty"`
-	// Traffic level
-	InfoTraffic *string `json:"info_traffic,omitempty"`
 	// Traffic ratio
 	InfoRatio *string `json:"info_ratio,omitempty"`
 	// Geographic scope
 	InfoScope *string `json:"info_scope,omitempty"`
+	// Traffic level
+	InfoTraffic *string `json:"info_traffic,omitempty"`
+	// Network type
+	InfoType *string `json:"info_type,omitempty"`
+	// Network types (multi-choice)
+	InfoTypes []string `json:"info_types,omitempty"`
 	// Supports unicast
 	InfoUnicast *bool `json:"info_unicast"`
-	// Supports multicast
-	InfoMulticast *bool `json:"info_multicast"`
-	// Supports IPv6
-	InfoIpv6 *bool `json:"info_ipv6"`
-	// Never via route servers
-	InfoNeverViaRouteServers *bool `json:"info_never_via_route_servers"`
+	// IRR AS-SET
+	IrrAsSet *string `json:"irr_as_set,omitempty"`
+	// Logo URL
+	Logo *string `json:"logo,omitempty"`
+	// Looking glass URL
+	LookingGlass *string `json:"looking_glass,omitempty"`
+	// Network name
+	Name string `json:"name"`
+	// Long name
+	NameLong *string `json:"name_long,omitempty"`
 	// Notes
 	Notes *string `json:"notes,omitempty"`
-	// Peering policy URL
-	PolicyURL *string `json:"policy_url,omitempty"`
+	// Peering policy contracts
+	PolicyContracts *string `json:"policy_contracts,omitempty"`
 	// General peering policy
 	PolicyGeneral *string `json:"policy_general,omitempty"`
 	// Peering policy locations
 	PolicyLocations *string `json:"policy_locations,omitempty"`
 	// Peering policy ratio requirement
 	PolicyRatio *bool `json:"policy_ratio"`
-	// Peering policy contracts
-	PolicyContracts *string `json:"policy_contracts,omitempty"`
-	// Allow IXP update
-	AllowIxpUpdate *bool `json:"allow_ixp_update"`
-	// Status dashboard URL
-	StatusDashboard *string `json:"status_dashboard,omitempty"`
+	// Peering policy URL
+	PolicyURL *string `json:"policy_url,omitempty"`
 	// RIR status
 	RirStatus *string `json:"rir_status,omitempty"`
 	// RIR status last updated
 	RirStatusUpdated *time.Time `json:"rir_status_updated,omitempty"`
-	// Logo URL
-	Logo *string `json:"logo,omitempty"`
-	// Internet exchange count (computed)
+	// Route server URL
+	RouteServer *string `json:"route_server,omitempty"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	// Status dashboard URL
+	StatusDashboard *string `json:"status_dashboard,omitempty"`
+	// Network website URL
+	Website *string `json:"website,omitempty"`
+	// Ix Count (computed)
 	IxCount *int `json:"ix_count,omitempty"`
-	// Facility count (computed)
+	// Fac Count (computed)
 	FacCount *int `json:"fac_count,omitempty"`
-	// Last netixlan update (computed)
+	// Netixlan Updated (computed)
 	NetixlanUpdated *time.Time `json:"netixlan_updated,omitempty"`
-	// Last netfac update (computed)
+	// Netfac Updated (computed)
 	NetfacUpdated *time.Time `json:"netfac_updated,omitempty"`
-	// Last POC update (computed)
+	// Poc Updated (computed)
 	PocUpdated *time.Time `json:"poc_updated,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
@@ -894,34 +896,21 @@ func (c *CreateNetworkParams) ApplyInputs(builder *ent.NetworkCreate) *ent.Netwo
 	if c.OrgID != nil {
 		builder.SetOrgID(*c.OrgID)
 	}
-	builder.SetName(c.Name)
 	if c.Aka != nil {
 		builder.SetAka(*c.Aka)
 	}
-	if c.NameLong != nil {
-		builder.SetNameLong(*c.NameLong)
-	}
-	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
-	}
-	if c.SocialMedia != nil {
-		builder.SetSocialMedia(c.SocialMedia)
+	if c.AllowIxpUpdate != nil {
+		builder.SetAllowIxpUpdate(*c.AllowIxpUpdate)
 	}
 	builder.SetAsn(c.Asn)
-	if c.LookingGlass != nil {
-		builder.SetLookingGlass(*c.LookingGlass)
+	if c.InfoIpv6 != nil {
+		builder.SetInfoIpv6(*c.InfoIpv6)
 	}
-	if c.RouteServer != nil {
-		builder.SetRouteServer(*c.RouteServer)
+	if c.InfoMulticast != nil {
+		builder.SetInfoMulticast(*c.InfoMulticast)
 	}
-	if c.IrrAsSet != nil {
-		builder.SetIrrAsSet(*c.IrrAsSet)
-	}
-	if c.InfoType != nil {
-		builder.SetInfoType(*c.InfoType)
-	}
-	if c.InfoTypes != nil {
-		builder.SetInfoTypes(c.InfoTypes)
+	if c.InfoNeverViaRouteServers != nil {
+		builder.SetInfoNeverViaRouteServers(*c.InfoNeverViaRouteServers)
 	}
 	if c.InfoPrefixes4 != nil {
 		builder.SetInfoPrefixes4(*c.InfoPrefixes4)
@@ -929,32 +918,42 @@ func (c *CreateNetworkParams) ApplyInputs(builder *ent.NetworkCreate) *ent.Netwo
 	if c.InfoPrefixes6 != nil {
 		builder.SetInfoPrefixes6(*c.InfoPrefixes6)
 	}
-	if c.InfoTraffic != nil {
-		builder.SetInfoTraffic(*c.InfoTraffic)
-	}
 	if c.InfoRatio != nil {
 		builder.SetInfoRatio(*c.InfoRatio)
 	}
 	if c.InfoScope != nil {
 		builder.SetInfoScope(*c.InfoScope)
 	}
+	if c.InfoTraffic != nil {
+		builder.SetInfoTraffic(*c.InfoTraffic)
+	}
+	if c.InfoType != nil {
+		builder.SetInfoType(*c.InfoType)
+	}
+	if c.InfoTypes != nil {
+		builder.SetInfoTypes(c.InfoTypes)
+	}
 	if c.InfoUnicast != nil {
 		builder.SetInfoUnicast(*c.InfoUnicast)
 	}
-	if c.InfoMulticast != nil {
-		builder.SetInfoMulticast(*c.InfoMulticast)
+	if c.IrrAsSet != nil {
+		builder.SetIrrAsSet(*c.IrrAsSet)
 	}
-	if c.InfoIpv6 != nil {
-		builder.SetInfoIpv6(*c.InfoIpv6)
+	if c.Logo != nil {
+		builder.SetLogo(*c.Logo)
 	}
-	if c.InfoNeverViaRouteServers != nil {
-		builder.SetInfoNeverViaRouteServers(*c.InfoNeverViaRouteServers)
+	if c.LookingGlass != nil {
+		builder.SetLookingGlass(*c.LookingGlass)
+	}
+	builder.SetName(c.Name)
+	if c.NameLong != nil {
+		builder.SetNameLong(*c.NameLong)
 	}
 	if c.Notes != nil {
 		builder.SetNotes(*c.Notes)
 	}
-	if c.PolicyURL != nil {
-		builder.SetPolicyURL(*c.PolicyURL)
+	if c.PolicyContracts != nil {
+		builder.SetPolicyContracts(*c.PolicyContracts)
 	}
 	if c.PolicyGeneral != nil {
 		builder.SetPolicyGeneral(*c.PolicyGeneral)
@@ -965,14 +964,8 @@ func (c *CreateNetworkParams) ApplyInputs(builder *ent.NetworkCreate) *ent.Netwo
 	if c.PolicyRatio != nil {
 		builder.SetPolicyRatio(*c.PolicyRatio)
 	}
-	if c.PolicyContracts != nil {
-		builder.SetPolicyContracts(*c.PolicyContracts)
-	}
-	if c.AllowIxpUpdate != nil {
-		builder.SetAllowIxpUpdate(*c.AllowIxpUpdate)
-	}
-	if c.StatusDashboard != nil {
-		builder.SetStatusDashboard(*c.StatusDashboard)
+	if c.PolicyURL != nil {
+		builder.SetPolicyURL(*c.PolicyURL)
 	}
 	if c.RirStatus != nil {
 		builder.SetRirStatus(*c.RirStatus)
@@ -980,8 +973,17 @@ func (c *CreateNetworkParams) ApplyInputs(builder *ent.NetworkCreate) *ent.Netwo
 	if c.RirStatusUpdated != nil {
 		builder.SetRirStatusUpdated(*c.RirStatusUpdated)
 	}
-	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
+	if c.RouteServer != nil {
+		builder.SetRouteServer(*c.RouteServer)
+	}
+	if c.SocialMedia != nil {
+		builder.SetSocialMedia(c.SocialMedia)
+	}
+	if c.StatusDashboard != nil {
+		builder.SetStatusDashboard(*c.StatusDashboard)
+	}
+	if c.Website != nil {
+		builder.SetWebsite(*c.Website)
 	}
 	if c.IxCount != nil {
 		builder.SetIxCount(*c.IxCount)
@@ -1019,18 +1021,18 @@ func (c *CreateNetworkParams) Exec(ctx context.Context, builder *ent.NetworkCrea
 
 // CreateNetworkFacilityParams defines parameters for creating a NetworkFacility via a POST request.
 type CreateNetworkFacilityParams struct {
-	// FK to network
-	NetID *int `json:"net_id,omitempty"`
 	// FK to facility
 	FacID *int `json:"fac_id,omitempty"`
-	// Facility name (computed)
+	// FK to network
+	NetID *int `json:"net_id,omitempty"`
+	// Local ASN
+	LocalAsn int `json:"local_asn"`
+	// Name (computed)
 	Name *string `json:"name,omitempty"`
 	// City (computed)
 	City *string `json:"city,omitempty"`
 	// Country (computed)
 	Country *string `json:"country,omitempty"`
-	// Local ASN at this facility
-	LocalAsn int `json:"local_asn"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -1040,12 +1042,13 @@ type CreateNetworkFacilityParams struct {
 }
 
 func (c *CreateNetworkFacilityParams) ApplyInputs(builder *ent.NetworkFacilityCreate) *ent.NetworkFacilityCreate {
-	if c.NetID != nil {
-		builder.SetNetID(*c.NetID)
-	}
 	if c.FacID != nil {
 		builder.SetFacID(*c.FacID)
 	}
+	if c.NetID != nil {
+		builder.SetNetID(*c.NetID)
+	}
+	builder.SetLocalAsn(c.LocalAsn)
 	if c.Name != nil {
 		builder.SetName(*c.Name)
 	}
@@ -1055,7 +1058,6 @@ func (c *CreateNetworkFacilityParams) ApplyInputs(builder *ent.NetworkFacilityCr
 	if c.Country != nil {
 		builder.SetCountry(*c.Country)
 	}
-	builder.SetLocalAsn(c.LocalAsn)
 	builder.SetCreated(c.Created)
 	builder.SetUpdated(c.Updated)
 	if c.Status != nil {
@@ -1077,34 +1079,34 @@ func (c *CreateNetworkFacilityParams) Exec(ctx context.Context, builder *ent.Net
 
 // CreateNetworkIxLanParams defines parameters for creating a NetworkIxLan via a POST request.
 type CreateNetworkIxLanParams struct {
+	// IX-side facility FK
+	IxSideID *int `json:"ix_side_id,omitempty"`
+	// FK to IX LAN
+	IxlanID *int `json:"ixlan_id,omitempty"`
 	// FK to network
 	NetID *int `json:"net_id,omitempty"`
-	// Internet exchange ID (computed, not an edge)
-	IxID *int `json:"ix_id,omitempty"`
-	// FK to IXLan
-	IxlanID *int `json:"ixlan_id,omitempty"`
-	// Exchange name (computed)
-	Name *string `json:"name,omitempty"`
-	// Notes
-	Notes *string `json:"notes,omitempty"`
-	// Port speed in Mbps
-	Speed int `json:"speed"`
+	// Net-side facility FK
+	NetSideID *int `json:"net_side_id,omitempty"`
 	// Autonomous System Number
 	Asn int `json:"asn"`
+	// BFD support
+	BfdSupport *bool `json:"bfd_support"`
 	// IPv4 address
 	Ipaddr4 *string `json:"ipaddr4,omitempty"`
 	// IPv6 address
 	Ipaddr6 *string `json:"ipaddr6,omitempty"`
-	// Is route server peer
+	// Route server peer
 	IsRsPeer *bool `json:"is_rs_peer"`
-	// BFD support
-	BfdSupport *bool `json:"bfd_support"`
+	// Notes
+	Notes *string `json:"notes,omitempty"`
 	// Operational status
 	Operational *bool `json:"operational"`
-	// Network-side facility ID
-	NetSideID *int `json:"net_side_id,omitempty"`
-	// IX-side facility ID
-	IxSideID *int `json:"ix_side_id,omitempty"`
+	// Port speed in Mbps
+	Speed int `json:"speed"`
+	// Internet exchange ID (computed)
+	IxID *int `json:"ix_id,omitempty"`
+	// Name (computed)
+	Name *string `json:"name,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -1114,23 +1116,22 @@ type CreateNetworkIxLanParams struct {
 }
 
 func (c *CreateNetworkIxLanParams) ApplyInputs(builder *ent.NetworkIxLanCreate) *ent.NetworkIxLanCreate {
-	if c.NetID != nil {
-		builder.SetNetID(*c.NetID)
-	}
-	if c.IxID != nil {
-		builder.SetIxID(*c.IxID)
+	if c.IxSideID != nil {
+		builder.SetIxSideID(*c.IxSideID)
 	}
 	if c.IxlanID != nil {
 		builder.SetIxlanID(*c.IxlanID)
 	}
-	if c.Name != nil {
-		builder.SetName(*c.Name)
+	if c.NetID != nil {
+		builder.SetNetID(*c.NetID)
 	}
-	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
+	if c.NetSideID != nil {
+		builder.SetNetSideID(*c.NetSideID)
 	}
-	builder.SetSpeed(c.Speed)
 	builder.SetAsn(c.Asn)
+	if c.BfdSupport != nil {
+		builder.SetBfdSupport(*c.BfdSupport)
+	}
 	if c.Ipaddr4 != nil {
 		builder.SetIpaddr4(*c.Ipaddr4)
 	}
@@ -1140,17 +1141,18 @@ func (c *CreateNetworkIxLanParams) ApplyInputs(builder *ent.NetworkIxLanCreate) 
 	if c.IsRsPeer != nil {
 		builder.SetIsRsPeer(*c.IsRsPeer)
 	}
-	if c.BfdSupport != nil {
-		builder.SetBfdSupport(*c.BfdSupport)
+	if c.Notes != nil {
+		builder.SetNotes(*c.Notes)
 	}
 	if c.Operational != nil {
 		builder.SetOperational(*c.Operational)
 	}
-	if c.NetSideID != nil {
-		builder.SetNetSideID(*c.NetSideID)
+	builder.SetSpeed(c.Speed)
+	if c.IxID != nil {
+		builder.SetIxID(*c.IxID)
 	}
-	if c.IxSideID != nil {
-		builder.SetIxSideID(*c.IxSideID)
+	if c.Name != nil {
+		builder.SetName(*c.Name)
 	}
 	builder.SetCreated(c.Created)
 	builder.SetUpdated(c.Updated)
@@ -1173,40 +1175,44 @@ func (c *CreateNetworkIxLanParams) Exec(ctx context.Context, builder *ent.Networ
 
 // CreateOrganizationParams defines parameters for creating a Organization via a POST request.
 type CreateOrganizationParams struct {
-	// Organization name
-	Name string `json:"name"`
-	// Also known as
-	Aka *string `json:"aka,omitempty"`
-	// Long name
-	NameLong *string `json:"name_long,omitempty"`
-	// Organization website URL
-	Website *string `json:"website,omitempty"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
-	// Notes
-	Notes *string `json:"notes,omitempty"`
-	// Logo URL
-	Logo *string `json:"logo,omitempty"`
 	// Address line 1
 	Address1 *string `json:"address1,omitempty"`
 	// Address line 2
 	Address2 *string `json:"address2,omitempty"`
+	// Also known as
+	Aka *string `json:"aka,omitempty"`
 	// City
 	City *string `json:"city,omitempty"`
-	// State or province
-	State *string `json:"state,omitempty"`
 	// Country code
 	Country *string `json:"country,omitempty"`
-	// Postal / ZIP code
-	Zipcode *string `json:"zipcode,omitempty"`
-	// Suite number
-	Suite *string `json:"suite,omitempty"`
 	// Floor
 	Floor *string `json:"floor,omitempty"`
 	// Latitude
 	Latitude *float64 `json:"latitude,omitempty"`
+	// Logo URL
+	Logo *string `json:"logo,omitempty"`
 	// Longitude
 	Longitude *float64 `json:"longitude,omitempty"`
+	// Organization name
+	Name string `json:"name"`
+	// Long name
+	NameLong *string `json:"name_long,omitempty"`
+	// Notes
+	Notes *string `json:"notes,omitempty"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	// State or province
+	State *string `json:"state,omitempty"`
+	// Suite number
+	Suite *string `json:"suite,omitempty"`
+	// Organization website URL
+	Website *string `json:"website,omitempty"`
+	// Postal / ZIP code
+	Zipcode *string `json:"zipcode,omitempty"`
+	// Net Count (computed)
+	NetCount *int `json:"net_count,omitempty"`
+	// Fac Count (computed)
+	FacCount *int `json:"fac_count,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -1216,45 +1222,20 @@ type CreateOrganizationParams struct {
 }
 
 func (c *CreateOrganizationParams) ApplyInputs(builder *ent.OrganizationCreate) *ent.OrganizationCreate {
-	builder.SetName(c.Name)
-	if c.Aka != nil {
-		builder.SetAka(*c.Aka)
-	}
-	if c.NameLong != nil {
-		builder.SetNameLong(*c.NameLong)
-	}
-	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
-	}
-	if c.SocialMedia != nil {
-		builder.SetSocialMedia(c.SocialMedia)
-	}
-	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
-	}
-	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
-	}
 	if c.Address1 != nil {
 		builder.SetAddress1(*c.Address1)
 	}
 	if c.Address2 != nil {
 		builder.SetAddress2(*c.Address2)
 	}
+	if c.Aka != nil {
+		builder.SetAka(*c.Aka)
+	}
 	if c.City != nil {
 		builder.SetCity(*c.City)
 	}
-	if c.State != nil {
-		builder.SetState(*c.State)
-	}
 	if c.Country != nil {
 		builder.SetCountry(*c.Country)
-	}
-	if c.Zipcode != nil {
-		builder.SetZipcode(*c.Zipcode)
-	}
-	if c.Suite != nil {
-		builder.SetSuite(*c.Suite)
 	}
 	if c.Floor != nil {
 		builder.SetFloor(*c.Floor)
@@ -1262,8 +1243,39 @@ func (c *CreateOrganizationParams) ApplyInputs(builder *ent.OrganizationCreate) 
 	if c.Latitude != nil {
 		builder.SetLatitude(*c.Latitude)
 	}
+	if c.Logo != nil {
+		builder.SetLogo(*c.Logo)
+	}
 	if c.Longitude != nil {
 		builder.SetLongitude(*c.Longitude)
+	}
+	builder.SetName(c.Name)
+	if c.NameLong != nil {
+		builder.SetNameLong(*c.NameLong)
+	}
+	if c.Notes != nil {
+		builder.SetNotes(*c.Notes)
+	}
+	if c.SocialMedia != nil {
+		builder.SetSocialMedia(c.SocialMedia)
+	}
+	if c.State != nil {
+		builder.SetState(*c.State)
+	}
+	if c.Suite != nil {
+		builder.SetSuite(*c.Suite)
+	}
+	if c.Website != nil {
+		builder.SetWebsite(*c.Website)
+	}
+	if c.Zipcode != nil {
+		builder.SetZipcode(*c.Zipcode)
+	}
+	if c.NetCount != nil {
+		builder.SetNetCount(*c.NetCount)
+	}
+	if c.FacCount != nil {
+		builder.SetFacCount(*c.FacCount)
 	}
 	builder.SetCreated(c.Created)
 	builder.SetUpdated(c.Updated)
@@ -1288,18 +1300,18 @@ func (c *CreateOrganizationParams) Exec(ctx context.Context, builder *ent.Organi
 type CreatePocParams struct {
 	// FK to network
 	NetID *int `json:"net_id,omitempty"`
-	// Contact role
-	Role string `json:"role"`
-	// Visibility level
-	Visible *string `json:"visible"`
+	// Email address
+	Email *string `json:"email,omitempty"`
 	// Contact name
 	Name *string `json:"name,omitempty"`
-	// Contact phone
+	// Phone number
 	Phone *string `json:"phone,omitempty"`
-	// Contact email
-	Email *string `json:"email,omitempty"`
-	// Contact URL
+	// Contact role
+	Role string `json:"role"`
+	// URL
 	URL *string `json:"url,omitempty"`
+	// Visibility level
+	Visible *string `json:"visible,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -1312,9 +1324,8 @@ func (c *CreatePocParams) ApplyInputs(builder *ent.PocCreate) *ent.PocCreate {
 	if c.NetID != nil {
 		builder.SetNetID(*c.NetID)
 	}
-	builder.SetRole(c.Role)
-	if c.Visible != nil {
-		builder.SetVisible(*c.Visible)
+	if c.Email != nil {
+		builder.SetEmail(*c.Email)
 	}
 	if c.Name != nil {
 		builder.SetName(*c.Name)
@@ -1322,11 +1333,12 @@ func (c *CreatePocParams) ApplyInputs(builder *ent.PocCreate) *ent.PocCreate {
 	if c.Phone != nil {
 		builder.SetPhone(*c.Phone)
 	}
-	if c.Email != nil {
-		builder.SetEmail(*c.Email)
-	}
+	builder.SetRole(c.Role)
 	if c.URL != nil {
 		builder.SetURL(*c.URL)
+	}
+	if c.Visible != nil {
+		builder.SetVisible(*c.Visible)
 	}
 	builder.SetCreated(c.Created)
 	builder.SetUpdated(c.Updated)

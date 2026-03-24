@@ -40,12 +40,6 @@ func (_c *InternetExchangeCreate) SetNillableOrgID(v *int) *InternetExchangeCrea
 	return _c
 }
 
-// SetName sets the "name" field.
-func (_c *InternetExchangeCreate) SetName(v string) *InternetExchangeCreate {
-	_c.mutation.SetName(v)
-	return _c
-}
-
 // SetAka sets the "aka" field.
 func (_c *InternetExchangeCreate) SetAka(v string) *InternetExchangeCreate {
 	_c.mutation.SetAka(v)
@@ -56,20 +50,6 @@ func (_c *InternetExchangeCreate) SetAka(v string) *InternetExchangeCreate {
 func (_c *InternetExchangeCreate) SetNillableAka(v *string) *InternetExchangeCreate {
 	if v != nil {
 		_c.SetAka(*v)
-	}
-	return _c
-}
-
-// SetNameLong sets the "name_long" field.
-func (_c *InternetExchangeCreate) SetNameLong(v string) *InternetExchangeCreate {
-	_c.mutation.SetNameLong(v)
-	return _c
-}
-
-// SetNillableNameLong sets the "name_long" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableNameLong(v *string) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetNameLong(*v)
 	}
 	return _c
 }
@@ -102,16 +82,44 @@ func (_c *InternetExchangeCreate) SetNillableCountry(v *string) *InternetExchang
 	return _c
 }
 
-// SetRegionContinent sets the "region_continent" field.
-func (_c *InternetExchangeCreate) SetRegionContinent(v string) *InternetExchangeCreate {
-	_c.mutation.SetRegionContinent(v)
+// SetIxfLastImport sets the "ixf_last_import" field.
+func (_c *InternetExchangeCreate) SetIxfLastImport(v time.Time) *InternetExchangeCreate {
+	_c.mutation.SetIxfLastImport(v)
 	return _c
 }
 
-// SetNillableRegionContinent sets the "region_continent" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableRegionContinent(v *string) *InternetExchangeCreate {
+// SetNillableIxfLastImport sets the "ixf_last_import" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableIxfLastImport(v *time.Time) *InternetExchangeCreate {
 	if v != nil {
-		_c.SetRegionContinent(*v)
+		_c.SetIxfLastImport(*v)
+	}
+	return _c
+}
+
+// SetIxfNetCount sets the "ixf_net_count" field.
+func (_c *InternetExchangeCreate) SetIxfNetCount(v int) *InternetExchangeCreate {
+	_c.mutation.SetIxfNetCount(v)
+	return _c
+}
+
+// SetNillableIxfNetCount sets the "ixf_net_count" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableIxfNetCount(v *int) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetIxfNetCount(*v)
+	}
+	return _c
+}
+
+// SetLogo sets the "logo" field.
+func (_c *InternetExchangeCreate) SetLogo(v string) *InternetExchangeCreate {
+	_c.mutation.SetLogo(v)
+	return _c
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableLogo(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetLogo(*v)
 	}
 	return _c
 }
@@ -130,6 +138,26 @@ func (_c *InternetExchangeCreate) SetNillableMedia(v *string) *InternetExchangeC
 	return _c
 }
 
+// SetName sets the "name" field.
+func (_c *InternetExchangeCreate) SetName(v string) *InternetExchangeCreate {
+	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetNameLong sets the "name_long" field.
+func (_c *InternetExchangeCreate) SetNameLong(v string) *InternetExchangeCreate {
+	_c.mutation.SetNameLong(v)
+	return _c
+}
+
+// SetNillableNameLong sets the "name_long" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableNameLong(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetNameLong(*v)
+	}
+	return _c
+}
+
 // SetNotes sets the "notes" field.
 func (_c *InternetExchangeCreate) SetNotes(v string) *InternetExchangeCreate {
 	_c.mutation.SetNotes(v)
@@ -140,110 +168,6 @@ func (_c *InternetExchangeCreate) SetNotes(v string) *InternetExchangeCreate {
 func (_c *InternetExchangeCreate) SetNillableNotes(v *string) *InternetExchangeCreate {
 	if v != nil {
 		_c.SetNotes(*v)
-	}
-	return _c
-}
-
-// SetProtoUnicast sets the "proto_unicast" field.
-func (_c *InternetExchangeCreate) SetProtoUnicast(v bool) *InternetExchangeCreate {
-	_c.mutation.SetProtoUnicast(v)
-	return _c
-}
-
-// SetNillableProtoUnicast sets the "proto_unicast" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableProtoUnicast(v *bool) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetProtoUnicast(*v)
-	}
-	return _c
-}
-
-// SetProtoMulticast sets the "proto_multicast" field.
-func (_c *InternetExchangeCreate) SetProtoMulticast(v bool) *InternetExchangeCreate {
-	_c.mutation.SetProtoMulticast(v)
-	return _c
-}
-
-// SetNillableProtoMulticast sets the "proto_multicast" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableProtoMulticast(v *bool) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetProtoMulticast(*v)
-	}
-	return _c
-}
-
-// SetProtoIpv6 sets the "proto_ipv6" field.
-func (_c *InternetExchangeCreate) SetProtoIpv6(v bool) *InternetExchangeCreate {
-	_c.mutation.SetProtoIpv6(v)
-	return _c
-}
-
-// SetNillableProtoIpv6 sets the "proto_ipv6" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableProtoIpv6(v *bool) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetProtoIpv6(*v)
-	}
-	return _c
-}
-
-// SetWebsite sets the "website" field.
-func (_c *InternetExchangeCreate) SetWebsite(v string) *InternetExchangeCreate {
-	_c.mutation.SetWebsite(v)
-	return _c
-}
-
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableWebsite(v *string) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetWebsite(*v)
-	}
-	return _c
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (_c *InternetExchangeCreate) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeCreate {
-	_c.mutation.SetSocialMedia(v)
-	return _c
-}
-
-// SetURLStats sets the "url_stats" field.
-func (_c *InternetExchangeCreate) SetURLStats(v string) *InternetExchangeCreate {
-	_c.mutation.SetURLStats(v)
-	return _c
-}
-
-// SetNillableURLStats sets the "url_stats" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableURLStats(v *string) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetURLStats(*v)
-	}
-	return _c
-}
-
-// SetTechEmail sets the "tech_email" field.
-func (_c *InternetExchangeCreate) SetTechEmail(v string) *InternetExchangeCreate {
-	_c.mutation.SetTechEmail(v)
-	return _c
-}
-
-// SetNillableTechEmail sets the "tech_email" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableTechEmail(v *string) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetTechEmail(*v)
-	}
-	return _c
-}
-
-// SetTechPhone sets the "tech_phone" field.
-func (_c *InternetExchangeCreate) SetTechPhone(v string) *InternetExchangeCreate {
-	_c.mutation.SetTechPhone(v)
-	return _c
-}
-
-// SetNillableTechPhone sets the "tech_phone" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableTechPhone(v *string) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetTechPhone(*v)
 	}
 	return _c
 }
@@ -276,6 +200,62 @@ func (_c *InternetExchangeCreate) SetNillablePolicyPhone(v *string) *InternetExc
 	return _c
 }
 
+// SetProtoIpv6 sets the "proto_ipv6" field.
+func (_c *InternetExchangeCreate) SetProtoIpv6(v bool) *InternetExchangeCreate {
+	_c.mutation.SetProtoIpv6(v)
+	return _c
+}
+
+// SetNillableProtoIpv6 sets the "proto_ipv6" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableProtoIpv6(v *bool) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetProtoIpv6(*v)
+	}
+	return _c
+}
+
+// SetProtoMulticast sets the "proto_multicast" field.
+func (_c *InternetExchangeCreate) SetProtoMulticast(v bool) *InternetExchangeCreate {
+	_c.mutation.SetProtoMulticast(v)
+	return _c
+}
+
+// SetNillableProtoMulticast sets the "proto_multicast" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableProtoMulticast(v *bool) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetProtoMulticast(*v)
+	}
+	return _c
+}
+
+// SetProtoUnicast sets the "proto_unicast" field.
+func (_c *InternetExchangeCreate) SetProtoUnicast(v bool) *InternetExchangeCreate {
+	_c.mutation.SetProtoUnicast(v)
+	return _c
+}
+
+// SetNillableProtoUnicast sets the "proto_unicast" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableProtoUnicast(v *bool) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetProtoUnicast(*v)
+	}
+	return _c
+}
+
+// SetRegionContinent sets the "region_continent" field.
+func (_c *InternetExchangeCreate) SetRegionContinent(v string) *InternetExchangeCreate {
+	_c.mutation.SetRegionContinent(v)
+	return _c
+}
+
+// SetNillableRegionContinent sets the "region_continent" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableRegionContinent(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetRegionContinent(*v)
+	}
+	return _c
+}
+
 // SetSalesEmail sets the "sales_email" field.
 func (_c *InternetExchangeCreate) SetSalesEmail(v string) *InternetExchangeCreate {
 	_c.mutation.SetSalesEmail(v)
@@ -300,6 +280,110 @@ func (_c *InternetExchangeCreate) SetSalesPhone(v string) *InternetExchangeCreat
 func (_c *InternetExchangeCreate) SetNillableSalesPhone(v *string) *InternetExchangeCreate {
 	if v != nil {
 		_c.SetSalesPhone(*v)
+	}
+	return _c
+}
+
+// SetServiceLevel sets the "service_level" field.
+func (_c *InternetExchangeCreate) SetServiceLevel(v string) *InternetExchangeCreate {
+	_c.mutation.SetServiceLevel(v)
+	return _c
+}
+
+// SetNillableServiceLevel sets the "service_level" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableServiceLevel(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetServiceLevel(*v)
+	}
+	return _c
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (_c *InternetExchangeCreate) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeCreate {
+	_c.mutation.SetSocialMedia(v)
+	return _c
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (_c *InternetExchangeCreate) SetStatusDashboard(v string) *InternetExchangeCreate {
+	_c.mutation.SetStatusDashboard(v)
+	return _c
+}
+
+// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableStatusDashboard(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetStatusDashboard(*v)
+	}
+	return _c
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (_c *InternetExchangeCreate) SetTechEmail(v string) *InternetExchangeCreate {
+	_c.mutation.SetTechEmail(v)
+	return _c
+}
+
+// SetNillableTechEmail sets the "tech_email" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableTechEmail(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetTechEmail(*v)
+	}
+	return _c
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (_c *InternetExchangeCreate) SetTechPhone(v string) *InternetExchangeCreate {
+	_c.mutation.SetTechPhone(v)
+	return _c
+}
+
+// SetNillableTechPhone sets the "tech_phone" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableTechPhone(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetTechPhone(*v)
+	}
+	return _c
+}
+
+// SetTerms sets the "terms" field.
+func (_c *InternetExchangeCreate) SetTerms(v string) *InternetExchangeCreate {
+	_c.mutation.SetTerms(v)
+	return _c
+}
+
+// SetNillableTerms sets the "terms" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableTerms(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetTerms(*v)
+	}
+	return _c
+}
+
+// SetURLStats sets the "url_stats" field.
+func (_c *InternetExchangeCreate) SetURLStats(v string) *InternetExchangeCreate {
+	_c.mutation.SetURLStats(v)
+	return _c
+}
+
+// SetNillableURLStats sets the "url_stats" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableURLStats(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetURLStats(*v)
+	}
+	return _c
+}
+
+// SetWebsite sets the "website" field.
+func (_c *InternetExchangeCreate) SetWebsite(v string) *InternetExchangeCreate {
+	_c.mutation.SetWebsite(v)
+	return _c
+}
+
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableWebsite(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetWebsite(*v)
 	}
 	return _c
 }
@@ -332,34 +416,6 @@ func (_c *InternetExchangeCreate) SetNillableFacCount(v *int) *InternetExchangeC
 	return _c
 }
 
-// SetIxfNetCount sets the "ixf_net_count" field.
-func (_c *InternetExchangeCreate) SetIxfNetCount(v int) *InternetExchangeCreate {
-	_c.mutation.SetIxfNetCount(v)
-	return _c
-}
-
-// SetNillableIxfNetCount sets the "ixf_net_count" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableIxfNetCount(v *int) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetIxfNetCount(*v)
-	}
-	return _c
-}
-
-// SetIxfLastImport sets the "ixf_last_import" field.
-func (_c *InternetExchangeCreate) SetIxfLastImport(v time.Time) *InternetExchangeCreate {
-	_c.mutation.SetIxfLastImport(v)
-	return _c
-}
-
-// SetNillableIxfLastImport sets the "ixf_last_import" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableIxfLastImport(v *time.Time) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetIxfLastImport(*v)
-	}
-	return _c
-}
-
 // SetIxfImportRequest sets the "ixf_import_request" field.
 func (_c *InternetExchangeCreate) SetIxfImportRequest(v string) *InternetExchangeCreate {
 	_c.mutation.SetIxfImportRequest(v)
@@ -384,62 +440,6 @@ func (_c *InternetExchangeCreate) SetIxfImportRequestStatus(v string) *InternetE
 func (_c *InternetExchangeCreate) SetNillableIxfImportRequestStatus(v *string) *InternetExchangeCreate {
 	if v != nil {
 		_c.SetIxfImportRequestStatus(*v)
-	}
-	return _c
-}
-
-// SetServiceLevel sets the "service_level" field.
-func (_c *InternetExchangeCreate) SetServiceLevel(v string) *InternetExchangeCreate {
-	_c.mutation.SetServiceLevel(v)
-	return _c
-}
-
-// SetNillableServiceLevel sets the "service_level" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableServiceLevel(v *string) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetServiceLevel(*v)
-	}
-	return _c
-}
-
-// SetTerms sets the "terms" field.
-func (_c *InternetExchangeCreate) SetTerms(v string) *InternetExchangeCreate {
-	_c.mutation.SetTerms(v)
-	return _c
-}
-
-// SetNillableTerms sets the "terms" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableTerms(v *string) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetTerms(*v)
-	}
-	return _c
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (_c *InternetExchangeCreate) SetStatusDashboard(v string) *InternetExchangeCreate {
-	_c.mutation.SetStatusDashboard(v)
-	return _c
-}
-
-// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableStatusDashboard(v *string) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetStatusDashboard(*v)
-	}
-	return _c
-}
-
-// SetLogo sets the "logo" field.
-func (_c *InternetExchangeCreate) SetLogo(v string) *InternetExchangeCreate {
-	_c.mutation.SetLogo(v)
-	return _c
-}
-
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableLogo(v *string) *InternetExchangeCreate {
-	if v != nil {
-		_c.SetLogo(*v)
 	}
 	return _c
 }
@@ -476,23 +476,19 @@ func (_c *InternetExchangeCreate) SetID(v int) *InternetExchangeCreate {
 	return _c
 }
 
-// SetOrganizationID sets the "organization" edge to the Organization entity by ID.
-func (_c *InternetExchangeCreate) SetOrganizationID(id int) *InternetExchangeCreate {
-	_c.mutation.SetOrganizationID(id)
+// AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by IDs.
+func (_c *InternetExchangeCreate) AddIxFacilityIDs(ids ...int) *InternetExchangeCreate {
+	_c.mutation.AddIxFacilityIDs(ids...)
 	return _c
 }
 
-// SetNillableOrganizationID sets the "organization" edge to the Organization entity by ID if the given value is not nil.
-func (_c *InternetExchangeCreate) SetNillableOrganizationID(id *int) *InternetExchangeCreate {
-	if id != nil {
-		_c = _c.SetOrganizationID(*id)
+// AddIxFacilities adds the "ix_facilities" edges to the IxFacility entity.
+func (_c *InternetExchangeCreate) AddIxFacilities(v ...*IxFacility) *InternetExchangeCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
 	}
-	return _c
-}
-
-// SetOrganization sets the "organization" edge to the Organization entity.
-func (_c *InternetExchangeCreate) SetOrganization(v *Organization) *InternetExchangeCreate {
-	return _c.SetOrganizationID(v.ID)
+	return _c.AddIxFacilityIDs(ids...)
 }
 
 // AddIxLanIDs adds the "ix_lans" edge to the IxLan entity by IDs.
@@ -510,19 +506,23 @@ func (_c *InternetExchangeCreate) AddIxLans(v ...*IxLan) *InternetExchangeCreate
 	return _c.AddIxLanIDs(ids...)
 }
 
-// AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by IDs.
-func (_c *InternetExchangeCreate) AddIxFacilityIDs(ids ...int) *InternetExchangeCreate {
-	_c.mutation.AddIxFacilityIDs(ids...)
+// SetOrganizationID sets the "organization" edge to the Organization entity by ID.
+func (_c *InternetExchangeCreate) SetOrganizationID(id int) *InternetExchangeCreate {
+	_c.mutation.SetOrganizationID(id)
 	return _c
 }
 
-// AddIxFacilities adds the "ix_facilities" edges to the IxFacility entity.
-func (_c *InternetExchangeCreate) AddIxFacilities(v ...*IxFacility) *InternetExchangeCreate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
+// SetNillableOrganizationID sets the "organization" edge to the Organization entity by ID if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableOrganizationID(id *int) *InternetExchangeCreate {
+	if id != nil {
+		_c = _c.SetOrganizationID(*id)
 	}
-	return _c.AddIxFacilityIDs(ids...)
+	return _c
+}
+
+// SetOrganization sets the "organization" edge to the Organization entity.
+func (_c *InternetExchangeCreate) SetOrganization(v *Organization) *InternetExchangeCreate {
+	return _c.SetOrganizationID(v.ID)
 }
 
 // Mutation returns the InternetExchangeMutation object of the builder.
@@ -566,10 +566,6 @@ func (_c *InternetExchangeCreate) defaults() error {
 		v := internetexchange.DefaultAka
 		_c.mutation.SetAka(v)
 	}
-	if _, ok := _c.mutation.NameLong(); !ok {
-		v := internetexchange.DefaultNameLong
-		_c.mutation.SetNameLong(v)
-	}
 	if _, ok := _c.mutation.City(); !ok {
 		v := internetexchange.DefaultCity
 		_c.mutation.SetCity(v)
@@ -578,45 +574,21 @@ func (_c *InternetExchangeCreate) defaults() error {
 		v := internetexchange.DefaultCountry
 		_c.mutation.SetCountry(v)
 	}
-	if _, ok := _c.mutation.RegionContinent(); !ok {
-		v := internetexchange.DefaultRegionContinent
-		_c.mutation.SetRegionContinent(v)
+	if _, ok := _c.mutation.IxfNetCount(); !ok {
+		v := internetexchange.DefaultIxfNetCount
+		_c.mutation.SetIxfNetCount(v)
 	}
 	if _, ok := _c.mutation.Media(); !ok {
 		v := internetexchange.DefaultMedia
 		_c.mutation.SetMedia(v)
 	}
+	if _, ok := _c.mutation.NameLong(); !ok {
+		v := internetexchange.DefaultNameLong
+		_c.mutation.SetNameLong(v)
+	}
 	if _, ok := _c.mutation.Notes(); !ok {
 		v := internetexchange.DefaultNotes
 		_c.mutation.SetNotes(v)
-	}
-	if _, ok := _c.mutation.ProtoUnicast(); !ok {
-		v := internetexchange.DefaultProtoUnicast
-		_c.mutation.SetProtoUnicast(v)
-	}
-	if _, ok := _c.mutation.ProtoMulticast(); !ok {
-		v := internetexchange.DefaultProtoMulticast
-		_c.mutation.SetProtoMulticast(v)
-	}
-	if _, ok := _c.mutation.ProtoIpv6(); !ok {
-		v := internetexchange.DefaultProtoIpv6
-		_c.mutation.SetProtoIpv6(v)
-	}
-	if _, ok := _c.mutation.Website(); !ok {
-		v := internetexchange.DefaultWebsite
-		_c.mutation.SetWebsite(v)
-	}
-	if _, ok := _c.mutation.URLStats(); !ok {
-		v := internetexchange.DefaultURLStats
-		_c.mutation.SetURLStats(v)
-	}
-	if _, ok := _c.mutation.TechEmail(); !ok {
-		v := internetexchange.DefaultTechEmail
-		_c.mutation.SetTechEmail(v)
-	}
-	if _, ok := _c.mutation.TechPhone(); !ok {
-		v := internetexchange.DefaultTechPhone
-		_c.mutation.SetTechPhone(v)
 	}
 	if _, ok := _c.mutation.PolicyEmail(); !ok {
 		v := internetexchange.DefaultPolicyEmail
@@ -626,6 +598,22 @@ func (_c *InternetExchangeCreate) defaults() error {
 		v := internetexchange.DefaultPolicyPhone
 		_c.mutation.SetPolicyPhone(v)
 	}
+	if _, ok := _c.mutation.ProtoIpv6(); !ok {
+		v := internetexchange.DefaultProtoIpv6
+		_c.mutation.SetProtoIpv6(v)
+	}
+	if _, ok := _c.mutation.ProtoMulticast(); !ok {
+		v := internetexchange.DefaultProtoMulticast
+		_c.mutation.SetProtoMulticast(v)
+	}
+	if _, ok := _c.mutation.ProtoUnicast(); !ok {
+		v := internetexchange.DefaultProtoUnicast
+		_c.mutation.SetProtoUnicast(v)
+	}
+	if _, ok := _c.mutation.RegionContinent(); !ok {
+		v := internetexchange.DefaultRegionContinent
+		_c.mutation.SetRegionContinent(v)
+	}
 	if _, ok := _c.mutation.SalesEmail(); !ok {
 		v := internetexchange.DefaultSalesEmail
 		_c.mutation.SetSalesEmail(v)
@@ -633,6 +621,30 @@ func (_c *InternetExchangeCreate) defaults() error {
 	if _, ok := _c.mutation.SalesPhone(); !ok {
 		v := internetexchange.DefaultSalesPhone
 		_c.mutation.SetSalesPhone(v)
+	}
+	if _, ok := _c.mutation.ServiceLevel(); !ok {
+		v := internetexchange.DefaultServiceLevel
+		_c.mutation.SetServiceLevel(v)
+	}
+	if _, ok := _c.mutation.TechEmail(); !ok {
+		v := internetexchange.DefaultTechEmail
+		_c.mutation.SetTechEmail(v)
+	}
+	if _, ok := _c.mutation.TechPhone(); !ok {
+		v := internetexchange.DefaultTechPhone
+		_c.mutation.SetTechPhone(v)
+	}
+	if _, ok := _c.mutation.Terms(); !ok {
+		v := internetexchange.DefaultTerms
+		_c.mutation.SetTerms(v)
+	}
+	if _, ok := _c.mutation.URLStats(); !ok {
+		v := internetexchange.DefaultURLStats
+		_c.mutation.SetURLStats(v)
+	}
+	if _, ok := _c.mutation.Website(); !ok {
+		v := internetexchange.DefaultWebsite
+		_c.mutation.SetWebsite(v)
 	}
 	if _, ok := _c.mutation.NetCount(); !ok {
 		v := internetexchange.DefaultNetCount
@@ -642,21 +654,9 @@ func (_c *InternetExchangeCreate) defaults() error {
 		v := internetexchange.DefaultFacCount
 		_c.mutation.SetFacCount(v)
 	}
-	if _, ok := _c.mutation.IxfNetCount(); !ok {
-		v := internetexchange.DefaultIxfNetCount
-		_c.mutation.SetIxfNetCount(v)
-	}
 	if _, ok := _c.mutation.IxfImportRequestStatus(); !ok {
 		v := internetexchange.DefaultIxfImportRequestStatus
 		_c.mutation.SetIxfImportRequestStatus(v)
-	}
-	if _, ok := _c.mutation.ServiceLevel(); !ok {
-		v := internetexchange.DefaultServiceLevel
-		_c.mutation.SetServiceLevel(v)
-	}
-	if _, ok := _c.mutation.Terms(); !ok {
-		v := internetexchange.DefaultTerms
-		_c.mutation.SetTerms(v)
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := internetexchange.DefaultStatus
@@ -667,6 +667,21 @@ func (_c *InternetExchangeCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *InternetExchangeCreate) check() error {
+	if v, ok := _c.mutation.Aka(); ok {
+		if err := internetexchange.AkaValidator(v); err != nil {
+			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.aka": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.City(); ok {
+		if err := internetexchange.CityValidator(v); err != nil {
+			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.city": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Media(); ok {
+		if err := internetexchange.MediaValidator(v); err != nil {
+			return &ValidationError{Name: "media", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.media": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "InternetExchange.name"`)}
 	}
@@ -675,60 +690,9 @@ func (_c *InternetExchangeCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.Aka(); ok {
-		if err := internetexchange.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.aka": %w`, err)}
-		}
-	}
 	if v, ok := _c.mutation.NameLong(); ok {
 		if err := internetexchange.NameLongValidator(v); err != nil {
 			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name_long": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.City(); !ok {
-		return &ValidationError{Name: "city", err: errors.New(`ent: missing required field "InternetExchange.city"`)}
-	}
-	if v, ok := _c.mutation.City(); ok {
-		if err := internetexchange.CityValidator(v); err != nil {
-			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.city": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.Country(); !ok {
-		return &ValidationError{Name: "country", err: errors.New(`ent: missing required field "InternetExchange.country"`)}
-	}
-	if _, ok := _c.mutation.RegionContinent(); !ok {
-		return &ValidationError{Name: "region_continent", err: errors.New(`ent: missing required field "InternetExchange.region_continent"`)}
-	}
-	if v, ok := _c.mutation.RegionContinent(); ok {
-		if err := internetexchange.RegionContinentValidator(v); err != nil {
-			return &ValidationError{Name: "region_continent", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.region_continent": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.Media(); !ok {
-		return &ValidationError{Name: "media", err: errors.New(`ent: missing required field "InternetExchange.media"`)}
-	}
-	if v, ok := _c.mutation.Media(); ok {
-		if err := internetexchange.MediaValidator(v); err != nil {
-			return &ValidationError{Name: "media", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.media": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.ProtoUnicast(); !ok {
-		return &ValidationError{Name: "proto_unicast", err: errors.New(`ent: missing required field "InternetExchange.proto_unicast"`)}
-	}
-	if _, ok := _c.mutation.ProtoMulticast(); !ok {
-		return &ValidationError{Name: "proto_multicast", err: errors.New(`ent: missing required field "InternetExchange.proto_multicast"`)}
-	}
-	if _, ok := _c.mutation.ProtoIpv6(); !ok {
-		return &ValidationError{Name: "proto_ipv6", err: errors.New(`ent: missing required field "InternetExchange.proto_ipv6"`)}
-	}
-	if v, ok := _c.mutation.TechEmail(); ok {
-		if err := internetexchange.TechEmailValidator(v); err != nil {
-			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_email": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.TechPhone(); ok {
-		if err := internetexchange.TechPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_phone": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.PolicyEmail(); ok {
@@ -741,6 +705,20 @@ func (_c *InternetExchangeCreate) check() error {
 			return &ValidationError{Name: "policy_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.policy_phone": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.ProtoIpv6(); !ok {
+		return &ValidationError{Name: "proto_ipv6", err: errors.New(`ent: missing required field "InternetExchange.proto_ipv6"`)}
+	}
+	if _, ok := _c.mutation.ProtoMulticast(); !ok {
+		return &ValidationError{Name: "proto_multicast", err: errors.New(`ent: missing required field "InternetExchange.proto_multicast"`)}
+	}
+	if _, ok := _c.mutation.ProtoUnicast(); !ok {
+		return &ValidationError{Name: "proto_unicast", err: errors.New(`ent: missing required field "InternetExchange.proto_unicast"`)}
+	}
+	if v, ok := _c.mutation.RegionContinent(); ok {
+		if err := internetexchange.RegionContinentValidator(v); err != nil {
+			return &ValidationError{Name: "region_continent", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.region_continent": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.SalesEmail(); ok {
 		if err := internetexchange.SalesEmailValidator(v); err != nil {
 			return &ValidationError{Name: "sales_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.sales_email": %w`, err)}
@@ -751,12 +729,19 @@ func (_c *InternetExchangeCreate) check() error {
 			return &ValidationError{Name: "sales_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.sales_phone": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.IxfNetCount(); !ok {
-		return &ValidationError{Name: "ixf_net_count", err: errors.New(`ent: missing required field "InternetExchange.ixf_net_count"`)}
-	}
 	if v, ok := _c.mutation.ServiceLevel(); ok {
 		if err := internetexchange.ServiceLevelValidator(v); err != nil {
 			return &ValidationError{Name: "service_level", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.service_level": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.TechEmail(); ok {
+		if err := internetexchange.TechEmailValidator(v); err != nil {
+			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_email": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.TechPhone(); ok {
+		if err := internetexchange.TechPhoneValidator(v); err != nil {
+			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.tech_phone": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.Terms(); ok {
@@ -816,17 +801,9 @@ func (_c *InternetExchangeCreate) createSpec() (*InternetExchange, *sqlgraph.Cre
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.Name(); ok {
-		_spec.SetField(internetexchange.FieldName, field.TypeString, value)
-		_node.Name = value
-	}
 	if value, ok := _c.mutation.Aka(); ok {
 		_spec.SetField(internetexchange.FieldAka, field.TypeString, value)
 		_node.Aka = value
-	}
-	if value, ok := _c.mutation.NameLong(); ok {
-		_spec.SetField(internetexchange.FieldNameLong, field.TypeString, value)
-		_node.NameLong = value
 	}
 	if value, ok := _c.mutation.City(); ok {
 		_spec.SetField(internetexchange.FieldCity, field.TypeString, value)
@@ -836,49 +813,33 @@ func (_c *InternetExchangeCreate) createSpec() (*InternetExchange, *sqlgraph.Cre
 		_spec.SetField(internetexchange.FieldCountry, field.TypeString, value)
 		_node.Country = value
 	}
-	if value, ok := _c.mutation.RegionContinent(); ok {
-		_spec.SetField(internetexchange.FieldRegionContinent, field.TypeString, value)
-		_node.RegionContinent = value
+	if value, ok := _c.mutation.IxfLastImport(); ok {
+		_spec.SetField(internetexchange.FieldIxfLastImport, field.TypeTime, value)
+		_node.IxfLastImport = &value
+	}
+	if value, ok := _c.mutation.IxfNetCount(); ok {
+		_spec.SetField(internetexchange.FieldIxfNetCount, field.TypeInt, value)
+		_node.IxfNetCount = value
+	}
+	if value, ok := _c.mutation.Logo(); ok {
+		_spec.SetField(internetexchange.FieldLogo, field.TypeString, value)
+		_node.Logo = &value
 	}
 	if value, ok := _c.mutation.Media(); ok {
 		_spec.SetField(internetexchange.FieldMedia, field.TypeString, value)
 		_node.Media = value
 	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(internetexchange.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := _c.mutation.NameLong(); ok {
+		_spec.SetField(internetexchange.FieldNameLong, field.TypeString, value)
+		_node.NameLong = value
+	}
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(internetexchange.FieldNotes, field.TypeString, value)
 		_node.Notes = value
-	}
-	if value, ok := _c.mutation.ProtoUnicast(); ok {
-		_spec.SetField(internetexchange.FieldProtoUnicast, field.TypeBool, value)
-		_node.ProtoUnicast = value
-	}
-	if value, ok := _c.mutation.ProtoMulticast(); ok {
-		_spec.SetField(internetexchange.FieldProtoMulticast, field.TypeBool, value)
-		_node.ProtoMulticast = value
-	}
-	if value, ok := _c.mutation.ProtoIpv6(); ok {
-		_spec.SetField(internetexchange.FieldProtoIpv6, field.TypeBool, value)
-		_node.ProtoIpv6 = value
-	}
-	if value, ok := _c.mutation.Website(); ok {
-		_spec.SetField(internetexchange.FieldWebsite, field.TypeString, value)
-		_node.Website = value
-	}
-	if value, ok := _c.mutation.SocialMedia(); ok {
-		_spec.SetField(internetexchange.FieldSocialMedia, field.TypeJSON, value)
-		_node.SocialMedia = value
-	}
-	if value, ok := _c.mutation.URLStats(); ok {
-		_spec.SetField(internetexchange.FieldURLStats, field.TypeString, value)
-		_node.URLStats = value
-	}
-	if value, ok := _c.mutation.TechEmail(); ok {
-		_spec.SetField(internetexchange.FieldTechEmail, field.TypeString, value)
-		_node.TechEmail = value
-	}
-	if value, ok := _c.mutation.TechPhone(); ok {
-		_spec.SetField(internetexchange.FieldTechPhone, field.TypeString, value)
-		_node.TechPhone = value
 	}
 	if value, ok := _c.mutation.PolicyEmail(); ok {
 		_spec.SetField(internetexchange.FieldPolicyEmail, field.TypeString, value)
@@ -888,6 +849,22 @@ func (_c *InternetExchangeCreate) createSpec() (*InternetExchange, *sqlgraph.Cre
 		_spec.SetField(internetexchange.FieldPolicyPhone, field.TypeString, value)
 		_node.PolicyPhone = value
 	}
+	if value, ok := _c.mutation.ProtoIpv6(); ok {
+		_spec.SetField(internetexchange.FieldProtoIpv6, field.TypeBool, value)
+		_node.ProtoIpv6 = value
+	}
+	if value, ok := _c.mutation.ProtoMulticast(); ok {
+		_spec.SetField(internetexchange.FieldProtoMulticast, field.TypeBool, value)
+		_node.ProtoMulticast = value
+	}
+	if value, ok := _c.mutation.ProtoUnicast(); ok {
+		_spec.SetField(internetexchange.FieldProtoUnicast, field.TypeBool, value)
+		_node.ProtoUnicast = value
+	}
+	if value, ok := _c.mutation.RegionContinent(); ok {
+		_spec.SetField(internetexchange.FieldRegionContinent, field.TypeString, value)
+		_node.RegionContinent = value
+	}
 	if value, ok := _c.mutation.SalesEmail(); ok {
 		_spec.SetField(internetexchange.FieldSalesEmail, field.TypeString, value)
 		_node.SalesEmail = value
@@ -895,6 +872,38 @@ func (_c *InternetExchangeCreate) createSpec() (*InternetExchange, *sqlgraph.Cre
 	if value, ok := _c.mutation.SalesPhone(); ok {
 		_spec.SetField(internetexchange.FieldSalesPhone, field.TypeString, value)
 		_node.SalesPhone = value
+	}
+	if value, ok := _c.mutation.ServiceLevel(); ok {
+		_spec.SetField(internetexchange.FieldServiceLevel, field.TypeString, value)
+		_node.ServiceLevel = value
+	}
+	if value, ok := _c.mutation.SocialMedia(); ok {
+		_spec.SetField(internetexchange.FieldSocialMedia, field.TypeJSON, value)
+		_node.SocialMedia = value
+	}
+	if value, ok := _c.mutation.StatusDashboard(); ok {
+		_spec.SetField(internetexchange.FieldStatusDashboard, field.TypeString, value)
+		_node.StatusDashboard = &value
+	}
+	if value, ok := _c.mutation.TechEmail(); ok {
+		_spec.SetField(internetexchange.FieldTechEmail, field.TypeString, value)
+		_node.TechEmail = value
+	}
+	if value, ok := _c.mutation.TechPhone(); ok {
+		_spec.SetField(internetexchange.FieldTechPhone, field.TypeString, value)
+		_node.TechPhone = value
+	}
+	if value, ok := _c.mutation.Terms(); ok {
+		_spec.SetField(internetexchange.FieldTerms, field.TypeString, value)
+		_node.Terms = value
+	}
+	if value, ok := _c.mutation.URLStats(); ok {
+		_spec.SetField(internetexchange.FieldURLStats, field.TypeString, value)
+		_node.URLStats = value
+	}
+	if value, ok := _c.mutation.Website(); ok {
+		_spec.SetField(internetexchange.FieldWebsite, field.TypeString, value)
+		_node.Website = value
 	}
 	if value, ok := _c.mutation.NetCount(); ok {
 		_spec.SetField(internetexchange.FieldNetCount, field.TypeInt, value)
@@ -904,14 +913,6 @@ func (_c *InternetExchangeCreate) createSpec() (*InternetExchange, *sqlgraph.Cre
 		_spec.SetField(internetexchange.FieldFacCount, field.TypeInt, value)
 		_node.FacCount = value
 	}
-	if value, ok := _c.mutation.IxfNetCount(); ok {
-		_spec.SetField(internetexchange.FieldIxfNetCount, field.TypeInt, value)
-		_node.IxfNetCount = value
-	}
-	if value, ok := _c.mutation.IxfLastImport(); ok {
-		_spec.SetField(internetexchange.FieldIxfLastImport, field.TypeTime, value)
-		_node.IxfLastImport = &value
-	}
 	if value, ok := _c.mutation.IxfImportRequest(); ok {
 		_spec.SetField(internetexchange.FieldIxfImportRequest, field.TypeString, value)
 		_node.IxfImportRequest = &value
@@ -919,22 +920,6 @@ func (_c *InternetExchangeCreate) createSpec() (*InternetExchange, *sqlgraph.Cre
 	if value, ok := _c.mutation.IxfImportRequestStatus(); ok {
 		_spec.SetField(internetexchange.FieldIxfImportRequestStatus, field.TypeString, value)
 		_node.IxfImportRequestStatus = value
-	}
-	if value, ok := _c.mutation.ServiceLevel(); ok {
-		_spec.SetField(internetexchange.FieldServiceLevel, field.TypeString, value)
-		_node.ServiceLevel = value
-	}
-	if value, ok := _c.mutation.Terms(); ok {
-		_spec.SetField(internetexchange.FieldTerms, field.TypeString, value)
-		_node.Terms = value
-	}
-	if value, ok := _c.mutation.StatusDashboard(); ok {
-		_spec.SetField(internetexchange.FieldStatusDashboard, field.TypeString, value)
-		_node.StatusDashboard = &value
-	}
-	if value, ok := _c.mutation.Logo(); ok {
-		_spec.SetField(internetexchange.FieldLogo, field.TypeString, value)
-		_node.Logo = &value
 	}
 	if value, ok := _c.mutation.Created(); ok {
 		_spec.SetField(internetexchange.FieldCreated, field.TypeTime, value)
@@ -948,21 +933,20 @@ func (_c *InternetExchangeCreate) createSpec() (*InternetExchange, *sqlgraph.Cre
 		_spec.SetField(internetexchange.FieldStatus, field.TypeString, value)
 		_node.Status = value
 	}
-	if nodes := _c.mutation.OrganizationIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.IxFacilitiesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   internetexchange.OrganizationTable,
-			Columns: []string{internetexchange.OrganizationColumn},
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   internetexchange.IxFacilitiesTable,
+			Columns: []string{internetexchange.IxFacilitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.OrgID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.IxLansIDs(); len(nodes) > 0 {
@@ -981,20 +965,21 @@ func (_c *InternetExchangeCreate) createSpec() (*InternetExchange, *sqlgraph.Cre
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.IxFacilitiesIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.OrganizationIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   internetexchange.IxFacilitiesTable,
-			Columns: []string{internetexchange.IxFacilitiesColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   internetexchange.OrganizationTable,
+			Columns: []string{internetexchange.OrganizationColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ixfacility.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.OrgID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -1067,18 +1052,6 @@ func (u *InternetExchangeUpsert) ClearOrgID() *InternetExchangeUpsert {
 	return u
 }
 
-// SetName sets the "name" field.
-func (u *InternetExchangeUpsert) SetName(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldName, v)
-	return u
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateName() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldName)
-	return u
-}
-
 // SetAka sets the "aka" field.
 func (u *InternetExchangeUpsert) SetAka(v string) *InternetExchangeUpsert {
 	u.Set(internetexchange.FieldAka, v)
@@ -1094,6 +1067,132 @@ func (u *InternetExchangeUpsert) UpdateAka() *InternetExchangeUpsert {
 // ClearAka clears the value of the "aka" field.
 func (u *InternetExchangeUpsert) ClearAka() *InternetExchangeUpsert {
 	u.SetNull(internetexchange.FieldAka)
+	return u
+}
+
+// SetCity sets the "city" field.
+func (u *InternetExchangeUpsert) SetCity(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldCity, v)
+	return u
+}
+
+// UpdateCity sets the "city" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateCity() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldCity)
+	return u
+}
+
+// ClearCity clears the value of the "city" field.
+func (u *InternetExchangeUpsert) ClearCity() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldCity)
+	return u
+}
+
+// SetCountry sets the "country" field.
+func (u *InternetExchangeUpsert) SetCountry(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldCountry, v)
+	return u
+}
+
+// UpdateCountry sets the "country" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateCountry() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldCountry)
+	return u
+}
+
+// ClearCountry clears the value of the "country" field.
+func (u *InternetExchangeUpsert) ClearCountry() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldCountry)
+	return u
+}
+
+// SetIxfLastImport sets the "ixf_last_import" field.
+func (u *InternetExchangeUpsert) SetIxfLastImport(v time.Time) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldIxfLastImport, v)
+	return u
+}
+
+// UpdateIxfLastImport sets the "ixf_last_import" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateIxfLastImport() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldIxfLastImport)
+	return u
+}
+
+// ClearIxfLastImport clears the value of the "ixf_last_import" field.
+func (u *InternetExchangeUpsert) ClearIxfLastImport() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldIxfLastImport)
+	return u
+}
+
+// SetIxfNetCount sets the "ixf_net_count" field.
+func (u *InternetExchangeUpsert) SetIxfNetCount(v int) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldIxfNetCount, v)
+	return u
+}
+
+// UpdateIxfNetCount sets the "ixf_net_count" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateIxfNetCount() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldIxfNetCount)
+	return u
+}
+
+// AddIxfNetCount adds v to the "ixf_net_count" field.
+func (u *InternetExchangeUpsert) AddIxfNetCount(v int) *InternetExchangeUpsert {
+	u.Add(internetexchange.FieldIxfNetCount, v)
+	return u
+}
+
+// ClearIxfNetCount clears the value of the "ixf_net_count" field.
+func (u *InternetExchangeUpsert) ClearIxfNetCount() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldIxfNetCount)
+	return u
+}
+
+// SetLogo sets the "logo" field.
+func (u *InternetExchangeUpsert) SetLogo(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldLogo, v)
+	return u
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateLogo() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldLogo)
+	return u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *InternetExchangeUpsert) ClearLogo() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldLogo)
+	return u
+}
+
+// SetMedia sets the "media" field.
+func (u *InternetExchangeUpsert) SetMedia(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldMedia, v)
+	return u
+}
+
+// UpdateMedia sets the "media" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateMedia() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldMedia)
+	return u
+}
+
+// ClearMedia clears the value of the "media" field.
+func (u *InternetExchangeUpsert) ClearMedia() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldMedia)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *InternetExchangeUpsert) SetName(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateName() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldName)
 	return u
 }
 
@@ -1115,54 +1214,6 @@ func (u *InternetExchangeUpsert) ClearNameLong() *InternetExchangeUpsert {
 	return u
 }
 
-// SetCity sets the "city" field.
-func (u *InternetExchangeUpsert) SetCity(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldCity, v)
-	return u
-}
-
-// UpdateCity sets the "city" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateCity() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldCity)
-	return u
-}
-
-// SetCountry sets the "country" field.
-func (u *InternetExchangeUpsert) SetCountry(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldCountry, v)
-	return u
-}
-
-// UpdateCountry sets the "country" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateCountry() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldCountry)
-	return u
-}
-
-// SetRegionContinent sets the "region_continent" field.
-func (u *InternetExchangeUpsert) SetRegionContinent(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldRegionContinent, v)
-	return u
-}
-
-// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateRegionContinent() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldRegionContinent)
-	return u
-}
-
-// SetMedia sets the "media" field.
-func (u *InternetExchangeUpsert) SetMedia(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldMedia, v)
-	return u
-}
-
-// UpdateMedia sets the "media" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateMedia() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldMedia)
-	return u
-}
-
 // SetNotes sets the "notes" field.
 func (u *InternetExchangeUpsert) SetNotes(v string) *InternetExchangeUpsert {
 	u.Set(internetexchange.FieldNotes, v)
@@ -1178,132 +1229,6 @@ func (u *InternetExchangeUpsert) UpdateNotes() *InternetExchangeUpsert {
 // ClearNotes clears the value of the "notes" field.
 func (u *InternetExchangeUpsert) ClearNotes() *InternetExchangeUpsert {
 	u.SetNull(internetexchange.FieldNotes)
-	return u
-}
-
-// SetProtoUnicast sets the "proto_unicast" field.
-func (u *InternetExchangeUpsert) SetProtoUnicast(v bool) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldProtoUnicast, v)
-	return u
-}
-
-// UpdateProtoUnicast sets the "proto_unicast" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateProtoUnicast() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldProtoUnicast)
-	return u
-}
-
-// SetProtoMulticast sets the "proto_multicast" field.
-func (u *InternetExchangeUpsert) SetProtoMulticast(v bool) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldProtoMulticast, v)
-	return u
-}
-
-// UpdateProtoMulticast sets the "proto_multicast" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateProtoMulticast() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldProtoMulticast)
-	return u
-}
-
-// SetProtoIpv6 sets the "proto_ipv6" field.
-func (u *InternetExchangeUpsert) SetProtoIpv6(v bool) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldProtoIpv6, v)
-	return u
-}
-
-// UpdateProtoIpv6 sets the "proto_ipv6" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateProtoIpv6() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldProtoIpv6)
-	return u
-}
-
-// SetWebsite sets the "website" field.
-func (u *InternetExchangeUpsert) SetWebsite(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldWebsite, v)
-	return u
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateWebsite() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldWebsite)
-	return u
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *InternetExchangeUpsert) ClearWebsite() *InternetExchangeUpsert {
-	u.SetNull(internetexchange.FieldWebsite)
-	return u
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *InternetExchangeUpsert) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldSocialMedia, v)
-	return u
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateSocialMedia() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldSocialMedia)
-	return u
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *InternetExchangeUpsert) ClearSocialMedia() *InternetExchangeUpsert {
-	u.SetNull(internetexchange.FieldSocialMedia)
-	return u
-}
-
-// SetURLStats sets the "url_stats" field.
-func (u *InternetExchangeUpsert) SetURLStats(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldURLStats, v)
-	return u
-}
-
-// UpdateURLStats sets the "url_stats" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateURLStats() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldURLStats)
-	return u
-}
-
-// ClearURLStats clears the value of the "url_stats" field.
-func (u *InternetExchangeUpsert) ClearURLStats() *InternetExchangeUpsert {
-	u.SetNull(internetexchange.FieldURLStats)
-	return u
-}
-
-// SetTechEmail sets the "tech_email" field.
-func (u *InternetExchangeUpsert) SetTechEmail(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldTechEmail, v)
-	return u
-}
-
-// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateTechEmail() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldTechEmail)
-	return u
-}
-
-// ClearTechEmail clears the value of the "tech_email" field.
-func (u *InternetExchangeUpsert) ClearTechEmail() *InternetExchangeUpsert {
-	u.SetNull(internetexchange.FieldTechEmail)
-	return u
-}
-
-// SetTechPhone sets the "tech_phone" field.
-func (u *InternetExchangeUpsert) SetTechPhone(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldTechPhone, v)
-	return u
-}
-
-// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateTechPhone() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldTechPhone)
-	return u
-}
-
-// ClearTechPhone clears the value of the "tech_phone" field.
-func (u *InternetExchangeUpsert) ClearTechPhone() *InternetExchangeUpsert {
-	u.SetNull(internetexchange.FieldTechPhone)
 	return u
 }
 
@@ -1343,6 +1268,60 @@ func (u *InternetExchangeUpsert) ClearPolicyPhone() *InternetExchangeUpsert {
 	return u
 }
 
+// SetProtoIpv6 sets the "proto_ipv6" field.
+func (u *InternetExchangeUpsert) SetProtoIpv6(v bool) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldProtoIpv6, v)
+	return u
+}
+
+// UpdateProtoIpv6 sets the "proto_ipv6" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateProtoIpv6() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldProtoIpv6)
+	return u
+}
+
+// SetProtoMulticast sets the "proto_multicast" field.
+func (u *InternetExchangeUpsert) SetProtoMulticast(v bool) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldProtoMulticast, v)
+	return u
+}
+
+// UpdateProtoMulticast sets the "proto_multicast" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateProtoMulticast() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldProtoMulticast)
+	return u
+}
+
+// SetProtoUnicast sets the "proto_unicast" field.
+func (u *InternetExchangeUpsert) SetProtoUnicast(v bool) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldProtoUnicast, v)
+	return u
+}
+
+// UpdateProtoUnicast sets the "proto_unicast" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateProtoUnicast() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldProtoUnicast)
+	return u
+}
+
+// SetRegionContinent sets the "region_continent" field.
+func (u *InternetExchangeUpsert) SetRegionContinent(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldRegionContinent, v)
+	return u
+}
+
+// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateRegionContinent() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldRegionContinent)
+	return u
+}
+
+// ClearRegionContinent clears the value of the "region_continent" field.
+func (u *InternetExchangeUpsert) ClearRegionContinent() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldRegionContinent)
+	return u
+}
+
 // SetSalesEmail sets the "sales_email" field.
 func (u *InternetExchangeUpsert) SetSalesEmail(v string) *InternetExchangeUpsert {
 	u.Set(internetexchange.FieldSalesEmail, v)
@@ -1376,6 +1355,150 @@ func (u *InternetExchangeUpsert) UpdateSalesPhone() *InternetExchangeUpsert {
 // ClearSalesPhone clears the value of the "sales_phone" field.
 func (u *InternetExchangeUpsert) ClearSalesPhone() *InternetExchangeUpsert {
 	u.SetNull(internetexchange.FieldSalesPhone)
+	return u
+}
+
+// SetServiceLevel sets the "service_level" field.
+func (u *InternetExchangeUpsert) SetServiceLevel(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldServiceLevel, v)
+	return u
+}
+
+// UpdateServiceLevel sets the "service_level" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateServiceLevel() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldServiceLevel)
+	return u
+}
+
+// ClearServiceLevel clears the value of the "service_level" field.
+func (u *InternetExchangeUpsert) ClearServiceLevel() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldServiceLevel)
+	return u
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (u *InternetExchangeUpsert) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldSocialMedia, v)
+	return u
+}
+
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateSocialMedia() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldSocialMedia)
+	return u
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *InternetExchangeUpsert) ClearSocialMedia() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldSocialMedia)
+	return u
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (u *InternetExchangeUpsert) SetStatusDashboard(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldStatusDashboard, v)
+	return u
+}
+
+// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateStatusDashboard() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldStatusDashboard)
+	return u
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (u *InternetExchangeUpsert) ClearStatusDashboard() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldStatusDashboard)
+	return u
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (u *InternetExchangeUpsert) SetTechEmail(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldTechEmail, v)
+	return u
+}
+
+// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateTechEmail() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldTechEmail)
+	return u
+}
+
+// ClearTechEmail clears the value of the "tech_email" field.
+func (u *InternetExchangeUpsert) ClearTechEmail() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldTechEmail)
+	return u
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (u *InternetExchangeUpsert) SetTechPhone(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldTechPhone, v)
+	return u
+}
+
+// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateTechPhone() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldTechPhone)
+	return u
+}
+
+// ClearTechPhone clears the value of the "tech_phone" field.
+func (u *InternetExchangeUpsert) ClearTechPhone() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldTechPhone)
+	return u
+}
+
+// SetTerms sets the "terms" field.
+func (u *InternetExchangeUpsert) SetTerms(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldTerms, v)
+	return u
+}
+
+// UpdateTerms sets the "terms" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateTerms() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldTerms)
+	return u
+}
+
+// ClearTerms clears the value of the "terms" field.
+func (u *InternetExchangeUpsert) ClearTerms() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldTerms)
+	return u
+}
+
+// SetURLStats sets the "url_stats" field.
+func (u *InternetExchangeUpsert) SetURLStats(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldURLStats, v)
+	return u
+}
+
+// UpdateURLStats sets the "url_stats" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateURLStats() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldURLStats)
+	return u
+}
+
+// ClearURLStats clears the value of the "url_stats" field.
+func (u *InternetExchangeUpsert) ClearURLStats() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldURLStats)
+	return u
+}
+
+// SetWebsite sets the "website" field.
+func (u *InternetExchangeUpsert) SetWebsite(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldWebsite, v)
+	return u
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateWebsite() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldWebsite)
+	return u
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *InternetExchangeUpsert) ClearWebsite() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldWebsite)
 	return u
 }
 
@@ -1427,42 +1550,6 @@ func (u *InternetExchangeUpsert) ClearFacCount() *InternetExchangeUpsert {
 	return u
 }
 
-// SetIxfNetCount sets the "ixf_net_count" field.
-func (u *InternetExchangeUpsert) SetIxfNetCount(v int) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldIxfNetCount, v)
-	return u
-}
-
-// UpdateIxfNetCount sets the "ixf_net_count" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateIxfNetCount() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldIxfNetCount)
-	return u
-}
-
-// AddIxfNetCount adds v to the "ixf_net_count" field.
-func (u *InternetExchangeUpsert) AddIxfNetCount(v int) *InternetExchangeUpsert {
-	u.Add(internetexchange.FieldIxfNetCount, v)
-	return u
-}
-
-// SetIxfLastImport sets the "ixf_last_import" field.
-func (u *InternetExchangeUpsert) SetIxfLastImport(v time.Time) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldIxfLastImport, v)
-	return u
-}
-
-// UpdateIxfLastImport sets the "ixf_last_import" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateIxfLastImport() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldIxfLastImport)
-	return u
-}
-
-// ClearIxfLastImport clears the value of the "ixf_last_import" field.
-func (u *InternetExchangeUpsert) ClearIxfLastImport() *InternetExchangeUpsert {
-	u.SetNull(internetexchange.FieldIxfLastImport)
-	return u
-}
-
 // SetIxfImportRequest sets the "ixf_import_request" field.
 func (u *InternetExchangeUpsert) SetIxfImportRequest(v string) *InternetExchangeUpsert {
 	u.Set(internetexchange.FieldIxfImportRequest, v)
@@ -1496,78 +1583,6 @@ func (u *InternetExchangeUpsert) UpdateIxfImportRequestStatus() *InternetExchang
 // ClearIxfImportRequestStatus clears the value of the "ixf_import_request_status" field.
 func (u *InternetExchangeUpsert) ClearIxfImportRequestStatus() *InternetExchangeUpsert {
 	u.SetNull(internetexchange.FieldIxfImportRequestStatus)
-	return u
-}
-
-// SetServiceLevel sets the "service_level" field.
-func (u *InternetExchangeUpsert) SetServiceLevel(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldServiceLevel, v)
-	return u
-}
-
-// UpdateServiceLevel sets the "service_level" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateServiceLevel() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldServiceLevel)
-	return u
-}
-
-// ClearServiceLevel clears the value of the "service_level" field.
-func (u *InternetExchangeUpsert) ClearServiceLevel() *InternetExchangeUpsert {
-	u.SetNull(internetexchange.FieldServiceLevel)
-	return u
-}
-
-// SetTerms sets the "terms" field.
-func (u *InternetExchangeUpsert) SetTerms(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldTerms, v)
-	return u
-}
-
-// UpdateTerms sets the "terms" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateTerms() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldTerms)
-	return u
-}
-
-// ClearTerms clears the value of the "terms" field.
-func (u *InternetExchangeUpsert) ClearTerms() *InternetExchangeUpsert {
-	u.SetNull(internetexchange.FieldTerms)
-	return u
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (u *InternetExchangeUpsert) SetStatusDashboard(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldStatusDashboard, v)
-	return u
-}
-
-// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateStatusDashboard() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldStatusDashboard)
-	return u
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (u *InternetExchangeUpsert) ClearStatusDashboard() *InternetExchangeUpsert {
-	u.SetNull(internetexchange.FieldStatusDashboard)
-	return u
-}
-
-// SetLogo sets the "logo" field.
-func (u *InternetExchangeUpsert) SetLogo(v string) *InternetExchangeUpsert {
-	u.Set(internetexchange.FieldLogo, v)
-	return u
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *InternetExchangeUpsert) UpdateLogo() *InternetExchangeUpsert {
-	u.SetExcluded(internetexchange.FieldLogo)
-	return u
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *InternetExchangeUpsert) ClearLogo() *InternetExchangeUpsert {
-	u.SetNull(internetexchange.FieldLogo)
 	return u
 }
 
@@ -1667,20 +1682,6 @@ func (u *InternetExchangeUpsertOne) ClearOrgID() *InternetExchangeUpsertOne {
 	})
 }
 
-// SetName sets the "name" field.
-func (u *InternetExchangeUpsertOne) SetName(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateName() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateName()
-	})
-}
-
 // SetAka sets the "aka" field.
 func (u *InternetExchangeUpsertOne) SetAka(v string) *InternetExchangeUpsertOne {
 	return u.Update(func(s *InternetExchangeUpsert) {
@@ -1699,6 +1700,153 @@ func (u *InternetExchangeUpsertOne) UpdateAka() *InternetExchangeUpsertOne {
 func (u *InternetExchangeUpsertOne) ClearAka() *InternetExchangeUpsertOne {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.ClearAka()
+	})
+}
+
+// SetCity sets the "city" field.
+func (u *InternetExchangeUpsertOne) SetCity(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetCity(v)
+	})
+}
+
+// UpdateCity sets the "city" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateCity() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateCity()
+	})
+}
+
+// ClearCity clears the value of the "city" field.
+func (u *InternetExchangeUpsertOne) ClearCity() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearCity()
+	})
+}
+
+// SetCountry sets the "country" field.
+func (u *InternetExchangeUpsertOne) SetCountry(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetCountry(v)
+	})
+}
+
+// UpdateCountry sets the "country" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateCountry() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateCountry()
+	})
+}
+
+// ClearCountry clears the value of the "country" field.
+func (u *InternetExchangeUpsertOne) ClearCountry() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearCountry()
+	})
+}
+
+// SetIxfLastImport sets the "ixf_last_import" field.
+func (u *InternetExchangeUpsertOne) SetIxfLastImport(v time.Time) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetIxfLastImport(v)
+	})
+}
+
+// UpdateIxfLastImport sets the "ixf_last_import" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateIxfLastImport() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateIxfLastImport()
+	})
+}
+
+// ClearIxfLastImport clears the value of the "ixf_last_import" field.
+func (u *InternetExchangeUpsertOne) ClearIxfLastImport() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearIxfLastImport()
+	})
+}
+
+// SetIxfNetCount sets the "ixf_net_count" field.
+func (u *InternetExchangeUpsertOne) SetIxfNetCount(v int) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetIxfNetCount(v)
+	})
+}
+
+// AddIxfNetCount adds v to the "ixf_net_count" field.
+func (u *InternetExchangeUpsertOne) AddIxfNetCount(v int) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.AddIxfNetCount(v)
+	})
+}
+
+// UpdateIxfNetCount sets the "ixf_net_count" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateIxfNetCount() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateIxfNetCount()
+	})
+}
+
+// ClearIxfNetCount clears the value of the "ixf_net_count" field.
+func (u *InternetExchangeUpsertOne) ClearIxfNetCount() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearIxfNetCount()
+	})
+}
+
+// SetLogo sets the "logo" field.
+func (u *InternetExchangeUpsertOne) SetLogo(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetLogo(v)
+	})
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateLogo() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateLogo()
+	})
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *InternetExchangeUpsertOne) ClearLogo() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearLogo()
+	})
+}
+
+// SetMedia sets the "media" field.
+func (u *InternetExchangeUpsertOne) SetMedia(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetMedia(v)
+	})
+}
+
+// UpdateMedia sets the "media" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateMedia() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateMedia()
+	})
+}
+
+// ClearMedia clears the value of the "media" field.
+func (u *InternetExchangeUpsertOne) ClearMedia() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearMedia()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *InternetExchangeUpsertOne) SetName(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateName() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateName()
 	})
 }
 
@@ -1723,62 +1871,6 @@ func (u *InternetExchangeUpsertOne) ClearNameLong() *InternetExchangeUpsertOne {
 	})
 }
 
-// SetCity sets the "city" field.
-func (u *InternetExchangeUpsertOne) SetCity(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetCity(v)
-	})
-}
-
-// UpdateCity sets the "city" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateCity() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateCity()
-	})
-}
-
-// SetCountry sets the "country" field.
-func (u *InternetExchangeUpsertOne) SetCountry(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetCountry(v)
-	})
-}
-
-// UpdateCountry sets the "country" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateCountry() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateCountry()
-	})
-}
-
-// SetRegionContinent sets the "region_continent" field.
-func (u *InternetExchangeUpsertOne) SetRegionContinent(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetRegionContinent(v)
-	})
-}
-
-// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateRegionContinent() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateRegionContinent()
-	})
-}
-
-// SetMedia sets the "media" field.
-func (u *InternetExchangeUpsertOne) SetMedia(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetMedia(v)
-	})
-}
-
-// UpdateMedia sets the "media" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateMedia() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateMedia()
-	})
-}
-
 // SetNotes sets the "notes" field.
 func (u *InternetExchangeUpsertOne) SetNotes(v string) *InternetExchangeUpsertOne {
 	return u.Update(func(s *InternetExchangeUpsert) {
@@ -1797,153 +1889,6 @@ func (u *InternetExchangeUpsertOne) UpdateNotes() *InternetExchangeUpsertOne {
 func (u *InternetExchangeUpsertOne) ClearNotes() *InternetExchangeUpsertOne {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.ClearNotes()
-	})
-}
-
-// SetProtoUnicast sets the "proto_unicast" field.
-func (u *InternetExchangeUpsertOne) SetProtoUnicast(v bool) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetProtoUnicast(v)
-	})
-}
-
-// UpdateProtoUnicast sets the "proto_unicast" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateProtoUnicast() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateProtoUnicast()
-	})
-}
-
-// SetProtoMulticast sets the "proto_multicast" field.
-func (u *InternetExchangeUpsertOne) SetProtoMulticast(v bool) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetProtoMulticast(v)
-	})
-}
-
-// UpdateProtoMulticast sets the "proto_multicast" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateProtoMulticast() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateProtoMulticast()
-	})
-}
-
-// SetProtoIpv6 sets the "proto_ipv6" field.
-func (u *InternetExchangeUpsertOne) SetProtoIpv6(v bool) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetProtoIpv6(v)
-	})
-}
-
-// UpdateProtoIpv6 sets the "proto_ipv6" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateProtoIpv6() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateProtoIpv6()
-	})
-}
-
-// SetWebsite sets the "website" field.
-func (u *InternetExchangeUpsertOne) SetWebsite(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetWebsite(v)
-	})
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateWebsite() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateWebsite()
-	})
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *InternetExchangeUpsertOne) ClearWebsite() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearWebsite()
-	})
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *InternetExchangeUpsertOne) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetSocialMedia(v)
-	})
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateSocialMedia() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateSocialMedia()
-	})
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *InternetExchangeUpsertOne) ClearSocialMedia() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearSocialMedia()
-	})
-}
-
-// SetURLStats sets the "url_stats" field.
-func (u *InternetExchangeUpsertOne) SetURLStats(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetURLStats(v)
-	})
-}
-
-// UpdateURLStats sets the "url_stats" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateURLStats() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateURLStats()
-	})
-}
-
-// ClearURLStats clears the value of the "url_stats" field.
-func (u *InternetExchangeUpsertOne) ClearURLStats() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearURLStats()
-	})
-}
-
-// SetTechEmail sets the "tech_email" field.
-func (u *InternetExchangeUpsertOne) SetTechEmail(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetTechEmail(v)
-	})
-}
-
-// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateTechEmail() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateTechEmail()
-	})
-}
-
-// ClearTechEmail clears the value of the "tech_email" field.
-func (u *InternetExchangeUpsertOne) ClearTechEmail() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearTechEmail()
-	})
-}
-
-// SetTechPhone sets the "tech_phone" field.
-func (u *InternetExchangeUpsertOne) SetTechPhone(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetTechPhone(v)
-	})
-}
-
-// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateTechPhone() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateTechPhone()
-	})
-}
-
-// ClearTechPhone clears the value of the "tech_phone" field.
-func (u *InternetExchangeUpsertOne) ClearTechPhone() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearTechPhone()
 	})
 }
 
@@ -1989,6 +1934,69 @@ func (u *InternetExchangeUpsertOne) ClearPolicyPhone() *InternetExchangeUpsertOn
 	})
 }
 
+// SetProtoIpv6 sets the "proto_ipv6" field.
+func (u *InternetExchangeUpsertOne) SetProtoIpv6(v bool) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetProtoIpv6(v)
+	})
+}
+
+// UpdateProtoIpv6 sets the "proto_ipv6" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateProtoIpv6() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateProtoIpv6()
+	})
+}
+
+// SetProtoMulticast sets the "proto_multicast" field.
+func (u *InternetExchangeUpsertOne) SetProtoMulticast(v bool) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetProtoMulticast(v)
+	})
+}
+
+// UpdateProtoMulticast sets the "proto_multicast" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateProtoMulticast() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateProtoMulticast()
+	})
+}
+
+// SetProtoUnicast sets the "proto_unicast" field.
+func (u *InternetExchangeUpsertOne) SetProtoUnicast(v bool) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetProtoUnicast(v)
+	})
+}
+
+// UpdateProtoUnicast sets the "proto_unicast" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateProtoUnicast() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateProtoUnicast()
+	})
+}
+
+// SetRegionContinent sets the "region_continent" field.
+func (u *InternetExchangeUpsertOne) SetRegionContinent(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetRegionContinent(v)
+	})
+}
+
+// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateRegionContinent() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateRegionContinent()
+	})
+}
+
+// ClearRegionContinent clears the value of the "region_continent" field.
+func (u *InternetExchangeUpsertOne) ClearRegionContinent() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearRegionContinent()
+	})
+}
+
 // SetSalesEmail sets the "sales_email" field.
 func (u *InternetExchangeUpsertOne) SetSalesEmail(v string) *InternetExchangeUpsertOne {
 	return u.Update(func(s *InternetExchangeUpsert) {
@@ -2028,6 +2036,174 @@ func (u *InternetExchangeUpsertOne) UpdateSalesPhone() *InternetExchangeUpsertOn
 func (u *InternetExchangeUpsertOne) ClearSalesPhone() *InternetExchangeUpsertOne {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.ClearSalesPhone()
+	})
+}
+
+// SetServiceLevel sets the "service_level" field.
+func (u *InternetExchangeUpsertOne) SetServiceLevel(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetServiceLevel(v)
+	})
+}
+
+// UpdateServiceLevel sets the "service_level" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateServiceLevel() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateServiceLevel()
+	})
+}
+
+// ClearServiceLevel clears the value of the "service_level" field.
+func (u *InternetExchangeUpsertOne) ClearServiceLevel() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearServiceLevel()
+	})
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (u *InternetExchangeUpsertOne) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetSocialMedia(v)
+	})
+}
+
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateSocialMedia() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateSocialMedia()
+	})
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *InternetExchangeUpsertOne) ClearSocialMedia() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearSocialMedia()
+	})
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (u *InternetExchangeUpsertOne) SetStatusDashboard(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetStatusDashboard(v)
+	})
+}
+
+// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateStatusDashboard() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateStatusDashboard()
+	})
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (u *InternetExchangeUpsertOne) ClearStatusDashboard() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearStatusDashboard()
+	})
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (u *InternetExchangeUpsertOne) SetTechEmail(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetTechEmail(v)
+	})
+}
+
+// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateTechEmail() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateTechEmail()
+	})
+}
+
+// ClearTechEmail clears the value of the "tech_email" field.
+func (u *InternetExchangeUpsertOne) ClearTechEmail() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearTechEmail()
+	})
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (u *InternetExchangeUpsertOne) SetTechPhone(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetTechPhone(v)
+	})
+}
+
+// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateTechPhone() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateTechPhone()
+	})
+}
+
+// ClearTechPhone clears the value of the "tech_phone" field.
+func (u *InternetExchangeUpsertOne) ClearTechPhone() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearTechPhone()
+	})
+}
+
+// SetTerms sets the "terms" field.
+func (u *InternetExchangeUpsertOne) SetTerms(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetTerms(v)
+	})
+}
+
+// UpdateTerms sets the "terms" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateTerms() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateTerms()
+	})
+}
+
+// ClearTerms clears the value of the "terms" field.
+func (u *InternetExchangeUpsertOne) ClearTerms() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearTerms()
+	})
+}
+
+// SetURLStats sets the "url_stats" field.
+func (u *InternetExchangeUpsertOne) SetURLStats(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetURLStats(v)
+	})
+}
+
+// UpdateURLStats sets the "url_stats" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateURLStats() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateURLStats()
+	})
+}
+
+// ClearURLStats clears the value of the "url_stats" field.
+func (u *InternetExchangeUpsertOne) ClearURLStats() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearURLStats()
+	})
+}
+
+// SetWebsite sets the "website" field.
+func (u *InternetExchangeUpsertOne) SetWebsite(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetWebsite(v)
+	})
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateWebsite() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateWebsite()
+	})
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *InternetExchangeUpsertOne) ClearWebsite() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearWebsite()
 	})
 }
 
@@ -2087,48 +2263,6 @@ func (u *InternetExchangeUpsertOne) ClearFacCount() *InternetExchangeUpsertOne {
 	})
 }
 
-// SetIxfNetCount sets the "ixf_net_count" field.
-func (u *InternetExchangeUpsertOne) SetIxfNetCount(v int) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetIxfNetCount(v)
-	})
-}
-
-// AddIxfNetCount adds v to the "ixf_net_count" field.
-func (u *InternetExchangeUpsertOne) AddIxfNetCount(v int) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.AddIxfNetCount(v)
-	})
-}
-
-// UpdateIxfNetCount sets the "ixf_net_count" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateIxfNetCount() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateIxfNetCount()
-	})
-}
-
-// SetIxfLastImport sets the "ixf_last_import" field.
-func (u *InternetExchangeUpsertOne) SetIxfLastImport(v time.Time) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetIxfLastImport(v)
-	})
-}
-
-// UpdateIxfLastImport sets the "ixf_last_import" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateIxfLastImport() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateIxfLastImport()
-	})
-}
-
-// ClearIxfLastImport clears the value of the "ixf_last_import" field.
-func (u *InternetExchangeUpsertOne) ClearIxfLastImport() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearIxfLastImport()
-	})
-}
-
 // SetIxfImportRequest sets the "ixf_import_request" field.
 func (u *InternetExchangeUpsertOne) SetIxfImportRequest(v string) *InternetExchangeUpsertOne {
 	return u.Update(func(s *InternetExchangeUpsert) {
@@ -2168,90 +2302,6 @@ func (u *InternetExchangeUpsertOne) UpdateIxfImportRequestStatus() *InternetExch
 func (u *InternetExchangeUpsertOne) ClearIxfImportRequestStatus() *InternetExchangeUpsertOne {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.ClearIxfImportRequestStatus()
-	})
-}
-
-// SetServiceLevel sets the "service_level" field.
-func (u *InternetExchangeUpsertOne) SetServiceLevel(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetServiceLevel(v)
-	})
-}
-
-// UpdateServiceLevel sets the "service_level" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateServiceLevel() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateServiceLevel()
-	})
-}
-
-// ClearServiceLevel clears the value of the "service_level" field.
-func (u *InternetExchangeUpsertOne) ClearServiceLevel() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearServiceLevel()
-	})
-}
-
-// SetTerms sets the "terms" field.
-func (u *InternetExchangeUpsertOne) SetTerms(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetTerms(v)
-	})
-}
-
-// UpdateTerms sets the "terms" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateTerms() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateTerms()
-	})
-}
-
-// ClearTerms clears the value of the "terms" field.
-func (u *InternetExchangeUpsertOne) ClearTerms() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearTerms()
-	})
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (u *InternetExchangeUpsertOne) SetStatusDashboard(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetStatusDashboard(v)
-	})
-}
-
-// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateStatusDashboard() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateStatusDashboard()
-	})
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (u *InternetExchangeUpsertOne) ClearStatusDashboard() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearStatusDashboard()
-	})
-}
-
-// SetLogo sets the "logo" field.
-func (u *InternetExchangeUpsertOne) SetLogo(v string) *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetLogo(v)
-	})
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *InternetExchangeUpsertOne) UpdateLogo() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateLogo()
-	})
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *InternetExchangeUpsertOne) ClearLogo() *InternetExchangeUpsertOne {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearLogo()
 	})
 }
 
@@ -2521,20 +2571,6 @@ func (u *InternetExchangeUpsertBulk) ClearOrgID() *InternetExchangeUpsertBulk {
 	})
 }
 
-// SetName sets the "name" field.
-func (u *InternetExchangeUpsertBulk) SetName(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateName() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateName()
-	})
-}
-
 // SetAka sets the "aka" field.
 func (u *InternetExchangeUpsertBulk) SetAka(v string) *InternetExchangeUpsertBulk {
 	return u.Update(func(s *InternetExchangeUpsert) {
@@ -2553,6 +2589,153 @@ func (u *InternetExchangeUpsertBulk) UpdateAka() *InternetExchangeUpsertBulk {
 func (u *InternetExchangeUpsertBulk) ClearAka() *InternetExchangeUpsertBulk {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.ClearAka()
+	})
+}
+
+// SetCity sets the "city" field.
+func (u *InternetExchangeUpsertBulk) SetCity(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetCity(v)
+	})
+}
+
+// UpdateCity sets the "city" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateCity() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateCity()
+	})
+}
+
+// ClearCity clears the value of the "city" field.
+func (u *InternetExchangeUpsertBulk) ClearCity() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearCity()
+	})
+}
+
+// SetCountry sets the "country" field.
+func (u *InternetExchangeUpsertBulk) SetCountry(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetCountry(v)
+	})
+}
+
+// UpdateCountry sets the "country" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateCountry() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateCountry()
+	})
+}
+
+// ClearCountry clears the value of the "country" field.
+func (u *InternetExchangeUpsertBulk) ClearCountry() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearCountry()
+	})
+}
+
+// SetIxfLastImport sets the "ixf_last_import" field.
+func (u *InternetExchangeUpsertBulk) SetIxfLastImport(v time.Time) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetIxfLastImport(v)
+	})
+}
+
+// UpdateIxfLastImport sets the "ixf_last_import" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateIxfLastImport() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateIxfLastImport()
+	})
+}
+
+// ClearIxfLastImport clears the value of the "ixf_last_import" field.
+func (u *InternetExchangeUpsertBulk) ClearIxfLastImport() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearIxfLastImport()
+	})
+}
+
+// SetIxfNetCount sets the "ixf_net_count" field.
+func (u *InternetExchangeUpsertBulk) SetIxfNetCount(v int) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetIxfNetCount(v)
+	})
+}
+
+// AddIxfNetCount adds v to the "ixf_net_count" field.
+func (u *InternetExchangeUpsertBulk) AddIxfNetCount(v int) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.AddIxfNetCount(v)
+	})
+}
+
+// UpdateIxfNetCount sets the "ixf_net_count" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateIxfNetCount() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateIxfNetCount()
+	})
+}
+
+// ClearIxfNetCount clears the value of the "ixf_net_count" field.
+func (u *InternetExchangeUpsertBulk) ClearIxfNetCount() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearIxfNetCount()
+	})
+}
+
+// SetLogo sets the "logo" field.
+func (u *InternetExchangeUpsertBulk) SetLogo(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetLogo(v)
+	})
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateLogo() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateLogo()
+	})
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *InternetExchangeUpsertBulk) ClearLogo() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearLogo()
+	})
+}
+
+// SetMedia sets the "media" field.
+func (u *InternetExchangeUpsertBulk) SetMedia(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetMedia(v)
+	})
+}
+
+// UpdateMedia sets the "media" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateMedia() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateMedia()
+	})
+}
+
+// ClearMedia clears the value of the "media" field.
+func (u *InternetExchangeUpsertBulk) ClearMedia() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearMedia()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *InternetExchangeUpsertBulk) SetName(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateName() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateName()
 	})
 }
 
@@ -2577,62 +2760,6 @@ func (u *InternetExchangeUpsertBulk) ClearNameLong() *InternetExchangeUpsertBulk
 	})
 }
 
-// SetCity sets the "city" field.
-func (u *InternetExchangeUpsertBulk) SetCity(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetCity(v)
-	})
-}
-
-// UpdateCity sets the "city" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateCity() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateCity()
-	})
-}
-
-// SetCountry sets the "country" field.
-func (u *InternetExchangeUpsertBulk) SetCountry(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetCountry(v)
-	})
-}
-
-// UpdateCountry sets the "country" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateCountry() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateCountry()
-	})
-}
-
-// SetRegionContinent sets the "region_continent" field.
-func (u *InternetExchangeUpsertBulk) SetRegionContinent(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetRegionContinent(v)
-	})
-}
-
-// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateRegionContinent() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateRegionContinent()
-	})
-}
-
-// SetMedia sets the "media" field.
-func (u *InternetExchangeUpsertBulk) SetMedia(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetMedia(v)
-	})
-}
-
-// UpdateMedia sets the "media" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateMedia() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateMedia()
-	})
-}
-
 // SetNotes sets the "notes" field.
 func (u *InternetExchangeUpsertBulk) SetNotes(v string) *InternetExchangeUpsertBulk {
 	return u.Update(func(s *InternetExchangeUpsert) {
@@ -2651,153 +2778,6 @@ func (u *InternetExchangeUpsertBulk) UpdateNotes() *InternetExchangeUpsertBulk {
 func (u *InternetExchangeUpsertBulk) ClearNotes() *InternetExchangeUpsertBulk {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.ClearNotes()
-	})
-}
-
-// SetProtoUnicast sets the "proto_unicast" field.
-func (u *InternetExchangeUpsertBulk) SetProtoUnicast(v bool) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetProtoUnicast(v)
-	})
-}
-
-// UpdateProtoUnicast sets the "proto_unicast" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateProtoUnicast() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateProtoUnicast()
-	})
-}
-
-// SetProtoMulticast sets the "proto_multicast" field.
-func (u *InternetExchangeUpsertBulk) SetProtoMulticast(v bool) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetProtoMulticast(v)
-	})
-}
-
-// UpdateProtoMulticast sets the "proto_multicast" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateProtoMulticast() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateProtoMulticast()
-	})
-}
-
-// SetProtoIpv6 sets the "proto_ipv6" field.
-func (u *InternetExchangeUpsertBulk) SetProtoIpv6(v bool) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetProtoIpv6(v)
-	})
-}
-
-// UpdateProtoIpv6 sets the "proto_ipv6" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateProtoIpv6() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateProtoIpv6()
-	})
-}
-
-// SetWebsite sets the "website" field.
-func (u *InternetExchangeUpsertBulk) SetWebsite(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetWebsite(v)
-	})
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateWebsite() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateWebsite()
-	})
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *InternetExchangeUpsertBulk) ClearWebsite() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearWebsite()
-	})
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *InternetExchangeUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetSocialMedia(v)
-	})
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateSocialMedia() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateSocialMedia()
-	})
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *InternetExchangeUpsertBulk) ClearSocialMedia() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearSocialMedia()
-	})
-}
-
-// SetURLStats sets the "url_stats" field.
-func (u *InternetExchangeUpsertBulk) SetURLStats(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetURLStats(v)
-	})
-}
-
-// UpdateURLStats sets the "url_stats" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateURLStats() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateURLStats()
-	})
-}
-
-// ClearURLStats clears the value of the "url_stats" field.
-func (u *InternetExchangeUpsertBulk) ClearURLStats() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearURLStats()
-	})
-}
-
-// SetTechEmail sets the "tech_email" field.
-func (u *InternetExchangeUpsertBulk) SetTechEmail(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetTechEmail(v)
-	})
-}
-
-// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateTechEmail() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateTechEmail()
-	})
-}
-
-// ClearTechEmail clears the value of the "tech_email" field.
-func (u *InternetExchangeUpsertBulk) ClearTechEmail() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearTechEmail()
-	})
-}
-
-// SetTechPhone sets the "tech_phone" field.
-func (u *InternetExchangeUpsertBulk) SetTechPhone(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetTechPhone(v)
-	})
-}
-
-// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateTechPhone() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateTechPhone()
-	})
-}
-
-// ClearTechPhone clears the value of the "tech_phone" field.
-func (u *InternetExchangeUpsertBulk) ClearTechPhone() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearTechPhone()
 	})
 }
 
@@ -2843,6 +2823,69 @@ func (u *InternetExchangeUpsertBulk) ClearPolicyPhone() *InternetExchangeUpsertB
 	})
 }
 
+// SetProtoIpv6 sets the "proto_ipv6" field.
+func (u *InternetExchangeUpsertBulk) SetProtoIpv6(v bool) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetProtoIpv6(v)
+	})
+}
+
+// UpdateProtoIpv6 sets the "proto_ipv6" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateProtoIpv6() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateProtoIpv6()
+	})
+}
+
+// SetProtoMulticast sets the "proto_multicast" field.
+func (u *InternetExchangeUpsertBulk) SetProtoMulticast(v bool) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetProtoMulticast(v)
+	})
+}
+
+// UpdateProtoMulticast sets the "proto_multicast" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateProtoMulticast() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateProtoMulticast()
+	})
+}
+
+// SetProtoUnicast sets the "proto_unicast" field.
+func (u *InternetExchangeUpsertBulk) SetProtoUnicast(v bool) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetProtoUnicast(v)
+	})
+}
+
+// UpdateProtoUnicast sets the "proto_unicast" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateProtoUnicast() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateProtoUnicast()
+	})
+}
+
+// SetRegionContinent sets the "region_continent" field.
+func (u *InternetExchangeUpsertBulk) SetRegionContinent(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetRegionContinent(v)
+	})
+}
+
+// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateRegionContinent() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateRegionContinent()
+	})
+}
+
+// ClearRegionContinent clears the value of the "region_continent" field.
+func (u *InternetExchangeUpsertBulk) ClearRegionContinent() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearRegionContinent()
+	})
+}
+
 // SetSalesEmail sets the "sales_email" field.
 func (u *InternetExchangeUpsertBulk) SetSalesEmail(v string) *InternetExchangeUpsertBulk {
 	return u.Update(func(s *InternetExchangeUpsert) {
@@ -2882,6 +2925,174 @@ func (u *InternetExchangeUpsertBulk) UpdateSalesPhone() *InternetExchangeUpsertB
 func (u *InternetExchangeUpsertBulk) ClearSalesPhone() *InternetExchangeUpsertBulk {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.ClearSalesPhone()
+	})
+}
+
+// SetServiceLevel sets the "service_level" field.
+func (u *InternetExchangeUpsertBulk) SetServiceLevel(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetServiceLevel(v)
+	})
+}
+
+// UpdateServiceLevel sets the "service_level" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateServiceLevel() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateServiceLevel()
+	})
+}
+
+// ClearServiceLevel clears the value of the "service_level" field.
+func (u *InternetExchangeUpsertBulk) ClearServiceLevel() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearServiceLevel()
+	})
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (u *InternetExchangeUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetSocialMedia(v)
+	})
+}
+
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateSocialMedia() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateSocialMedia()
+	})
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *InternetExchangeUpsertBulk) ClearSocialMedia() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearSocialMedia()
+	})
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (u *InternetExchangeUpsertBulk) SetStatusDashboard(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetStatusDashboard(v)
+	})
+}
+
+// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateStatusDashboard() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateStatusDashboard()
+	})
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (u *InternetExchangeUpsertBulk) ClearStatusDashboard() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearStatusDashboard()
+	})
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (u *InternetExchangeUpsertBulk) SetTechEmail(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetTechEmail(v)
+	})
+}
+
+// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateTechEmail() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateTechEmail()
+	})
+}
+
+// ClearTechEmail clears the value of the "tech_email" field.
+func (u *InternetExchangeUpsertBulk) ClearTechEmail() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearTechEmail()
+	})
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (u *InternetExchangeUpsertBulk) SetTechPhone(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetTechPhone(v)
+	})
+}
+
+// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateTechPhone() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateTechPhone()
+	})
+}
+
+// ClearTechPhone clears the value of the "tech_phone" field.
+func (u *InternetExchangeUpsertBulk) ClearTechPhone() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearTechPhone()
+	})
+}
+
+// SetTerms sets the "terms" field.
+func (u *InternetExchangeUpsertBulk) SetTerms(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetTerms(v)
+	})
+}
+
+// UpdateTerms sets the "terms" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateTerms() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateTerms()
+	})
+}
+
+// ClearTerms clears the value of the "terms" field.
+func (u *InternetExchangeUpsertBulk) ClearTerms() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearTerms()
+	})
+}
+
+// SetURLStats sets the "url_stats" field.
+func (u *InternetExchangeUpsertBulk) SetURLStats(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetURLStats(v)
+	})
+}
+
+// UpdateURLStats sets the "url_stats" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateURLStats() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateURLStats()
+	})
+}
+
+// ClearURLStats clears the value of the "url_stats" field.
+func (u *InternetExchangeUpsertBulk) ClearURLStats() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearURLStats()
+	})
+}
+
+// SetWebsite sets the "website" field.
+func (u *InternetExchangeUpsertBulk) SetWebsite(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetWebsite(v)
+	})
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateWebsite() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateWebsite()
+	})
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *InternetExchangeUpsertBulk) ClearWebsite() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearWebsite()
 	})
 }
 
@@ -2941,48 +3152,6 @@ func (u *InternetExchangeUpsertBulk) ClearFacCount() *InternetExchangeUpsertBulk
 	})
 }
 
-// SetIxfNetCount sets the "ixf_net_count" field.
-func (u *InternetExchangeUpsertBulk) SetIxfNetCount(v int) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetIxfNetCount(v)
-	})
-}
-
-// AddIxfNetCount adds v to the "ixf_net_count" field.
-func (u *InternetExchangeUpsertBulk) AddIxfNetCount(v int) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.AddIxfNetCount(v)
-	})
-}
-
-// UpdateIxfNetCount sets the "ixf_net_count" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateIxfNetCount() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateIxfNetCount()
-	})
-}
-
-// SetIxfLastImport sets the "ixf_last_import" field.
-func (u *InternetExchangeUpsertBulk) SetIxfLastImport(v time.Time) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetIxfLastImport(v)
-	})
-}
-
-// UpdateIxfLastImport sets the "ixf_last_import" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateIxfLastImport() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateIxfLastImport()
-	})
-}
-
-// ClearIxfLastImport clears the value of the "ixf_last_import" field.
-func (u *InternetExchangeUpsertBulk) ClearIxfLastImport() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearIxfLastImport()
-	})
-}
-
 // SetIxfImportRequest sets the "ixf_import_request" field.
 func (u *InternetExchangeUpsertBulk) SetIxfImportRequest(v string) *InternetExchangeUpsertBulk {
 	return u.Update(func(s *InternetExchangeUpsert) {
@@ -3022,90 +3191,6 @@ func (u *InternetExchangeUpsertBulk) UpdateIxfImportRequestStatus() *InternetExc
 func (u *InternetExchangeUpsertBulk) ClearIxfImportRequestStatus() *InternetExchangeUpsertBulk {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.ClearIxfImportRequestStatus()
-	})
-}
-
-// SetServiceLevel sets the "service_level" field.
-func (u *InternetExchangeUpsertBulk) SetServiceLevel(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetServiceLevel(v)
-	})
-}
-
-// UpdateServiceLevel sets the "service_level" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateServiceLevel() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateServiceLevel()
-	})
-}
-
-// ClearServiceLevel clears the value of the "service_level" field.
-func (u *InternetExchangeUpsertBulk) ClearServiceLevel() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearServiceLevel()
-	})
-}
-
-// SetTerms sets the "terms" field.
-func (u *InternetExchangeUpsertBulk) SetTerms(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetTerms(v)
-	})
-}
-
-// UpdateTerms sets the "terms" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateTerms() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateTerms()
-	})
-}
-
-// ClearTerms clears the value of the "terms" field.
-func (u *InternetExchangeUpsertBulk) ClearTerms() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearTerms()
-	})
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (u *InternetExchangeUpsertBulk) SetStatusDashboard(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetStatusDashboard(v)
-	})
-}
-
-// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateStatusDashboard() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateStatusDashboard()
-	})
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (u *InternetExchangeUpsertBulk) ClearStatusDashboard() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearStatusDashboard()
-	})
-}
-
-// SetLogo sets the "logo" field.
-func (u *InternetExchangeUpsertBulk) SetLogo(v string) *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.SetLogo(v)
-	})
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *InternetExchangeUpsertBulk) UpdateLogo() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.UpdateLogo()
-	})
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *InternetExchangeUpsertBulk) ClearLogo() *InternetExchangeUpsertBulk {
-	return u.Update(func(s *InternetExchangeUpsert) {
-		s.ClearLogo()
 	})
 }
 

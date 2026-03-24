@@ -415,22 +415,6 @@ func (c *CampusClient) GetX(ctx context.Context, id int) *Campus {
 	return obj
 }
 
-// QueryOrganization queries the organization edge of a Campus.
-func (c *CampusClient) QueryOrganization(_m *Campus) *OrganizationQuery {
-	query := (&OrganizationClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(campus.Table, campus.FieldID, id),
-			sqlgraph.To(organization.Table, organization.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, campus.OrganizationTable, campus.OrganizationColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryFacilities queries the facilities edge of a Campus.
 func (c *CampusClient) QueryFacilities(_m *Campus) *FacilityQuery {
 	query := (&FacilityClient{config: c.config}).Query()
@@ -440,6 +424,22 @@ func (c *CampusClient) QueryFacilities(_m *Campus) *FacilityQuery {
 			sqlgraph.From(campus.Table, campus.FieldID, id),
 			sqlgraph.To(facility.Table, facility.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, campus.FacilitiesTable, campus.FacilitiesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrganization queries the organization edge of a Campus.
+func (c *CampusClient) QueryOrganization(_m *Campus) *OrganizationQuery {
+	query := (&OrganizationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(campus.Table, campus.FieldID, id),
+			sqlgraph.To(organization.Table, organization.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, campus.OrganizationTable, campus.OrganizationColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -581,22 +581,6 @@ func (c *CarrierClient) GetX(ctx context.Context, id int) *Carrier {
 	return obj
 }
 
-// QueryOrganization queries the organization edge of a Carrier.
-func (c *CarrierClient) QueryOrganization(_m *Carrier) *OrganizationQuery {
-	query := (&OrganizationClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(carrier.Table, carrier.FieldID, id),
-			sqlgraph.To(organization.Table, organization.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, carrier.OrganizationTable, carrier.OrganizationColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryCarrierFacilities queries the carrier_facilities edge of a Carrier.
 func (c *CarrierClient) QueryCarrierFacilities(_m *Carrier) *CarrierFacilityQuery {
 	query := (&CarrierFacilityClient{config: c.config}).Query()
@@ -606,6 +590,22 @@ func (c *CarrierClient) QueryCarrierFacilities(_m *Carrier) *CarrierFacilityQuer
 			sqlgraph.From(carrier.Table, carrier.FieldID, id),
 			sqlgraph.To(carrierfacility.Table, carrierfacility.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, carrier.CarrierFacilitiesTable, carrier.CarrierFacilitiesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrganization queries the organization edge of a Carrier.
+func (c *CarrierClient) QueryOrganization(_m *Carrier) *OrganizationQuery {
+	query := (&OrganizationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(carrier.Table, carrier.FieldID, id),
+			sqlgraph.To(organization.Table, organization.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, carrier.OrganizationTable, carrier.OrganizationColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -913,22 +913,6 @@ func (c *FacilityClient) GetX(ctx context.Context, id int) *Facility {
 	return obj
 }
 
-// QueryOrganization queries the organization edge of a Facility.
-func (c *FacilityClient) QueryOrganization(_m *Facility) *OrganizationQuery {
-	query := (&OrganizationClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(facility.Table, facility.FieldID, id),
-			sqlgraph.To(organization.Table, organization.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, facility.OrganizationTable, facility.OrganizationColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryCampus queries the campus edge of a Facility.
 func (c *FacilityClient) QueryCampus(_m *Facility) *CampusQuery {
 	query := (&CampusClient{config: c.config}).Query()
@@ -945,15 +929,15 @@ func (c *FacilityClient) QueryCampus(_m *Facility) *CampusQuery {
 	return query
 }
 
-// QueryNetworkFacilities queries the network_facilities edge of a Facility.
-func (c *FacilityClient) QueryNetworkFacilities(_m *Facility) *NetworkFacilityQuery {
-	query := (&NetworkFacilityClient{config: c.config}).Query()
+// QueryCarrierFacilities queries the carrier_facilities edge of a Facility.
+func (c *FacilityClient) QueryCarrierFacilities(_m *Facility) *CarrierFacilityQuery {
+	query := (&CarrierFacilityClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(facility.Table, facility.FieldID, id),
-			sqlgraph.To(networkfacility.Table, networkfacility.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, facility.NetworkFacilitiesTable, facility.NetworkFacilitiesColumn),
+			sqlgraph.To(carrierfacility.Table, carrierfacility.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, facility.CarrierFacilitiesTable, facility.CarrierFacilitiesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -977,15 +961,31 @@ func (c *FacilityClient) QueryIxFacilities(_m *Facility) *IxFacilityQuery {
 	return query
 }
 
-// QueryCarrierFacilities queries the carrier_facilities edge of a Facility.
-func (c *FacilityClient) QueryCarrierFacilities(_m *Facility) *CarrierFacilityQuery {
-	query := (&CarrierFacilityClient{config: c.config}).Query()
+// QueryNetworkFacilities queries the network_facilities edge of a Facility.
+func (c *FacilityClient) QueryNetworkFacilities(_m *Facility) *NetworkFacilityQuery {
+	query := (&NetworkFacilityClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(facility.Table, facility.FieldID, id),
-			sqlgraph.To(carrierfacility.Table, carrierfacility.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, facility.CarrierFacilitiesTable, facility.CarrierFacilitiesColumn),
+			sqlgraph.To(networkfacility.Table, networkfacility.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, facility.NetworkFacilitiesTable, facility.NetworkFacilitiesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrganization queries the organization edge of a Facility.
+func (c *FacilityClient) QueryOrganization(_m *Facility) *OrganizationQuery {
+	query := (&OrganizationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(facility.Table, facility.FieldID, id),
+			sqlgraph.To(organization.Table, organization.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, facility.OrganizationTable, facility.OrganizationColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1127,15 +1127,15 @@ func (c *InternetExchangeClient) GetX(ctx context.Context, id int) *InternetExch
 	return obj
 }
 
-// QueryOrganization queries the organization edge of a InternetExchange.
-func (c *InternetExchangeClient) QueryOrganization(_m *InternetExchange) *OrganizationQuery {
-	query := (&OrganizationClient{config: c.config}).Query()
+// QueryIxFacilities queries the ix_facilities edge of a InternetExchange.
+func (c *InternetExchangeClient) QueryIxFacilities(_m *InternetExchange) *IxFacilityQuery {
+	query := (&IxFacilityClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(internetexchange.Table, internetexchange.FieldID, id),
-			sqlgraph.To(organization.Table, organization.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, internetexchange.OrganizationTable, internetexchange.OrganizationColumn),
+			sqlgraph.To(ixfacility.Table, ixfacility.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, internetexchange.IxFacilitiesTable, internetexchange.IxFacilitiesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1159,15 +1159,15 @@ func (c *InternetExchangeClient) QueryIxLans(_m *InternetExchange) *IxLanQuery {
 	return query
 }
 
-// QueryIxFacilities queries the ix_facilities edge of a InternetExchange.
-func (c *InternetExchangeClient) QueryIxFacilities(_m *InternetExchange) *IxFacilityQuery {
-	query := (&IxFacilityClient{config: c.config}).Query()
+// QueryOrganization queries the organization edge of a InternetExchange.
+func (c *InternetExchangeClient) QueryOrganization(_m *InternetExchange) *OrganizationQuery {
+	query := (&OrganizationClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(internetexchange.Table, internetexchange.FieldID, id),
-			sqlgraph.To(ixfacility.Table, ixfacility.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, internetexchange.IxFacilitiesTable, internetexchange.IxFacilitiesColumn),
+			sqlgraph.To(organization.Table, organization.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, internetexchange.OrganizationTable, internetexchange.OrganizationColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1309,22 +1309,6 @@ func (c *IxFacilityClient) GetX(ctx context.Context, id int) *IxFacility {
 	return obj
 }
 
-// QueryInternetExchange queries the internet_exchange edge of a IxFacility.
-func (c *IxFacilityClient) QueryInternetExchange(_m *IxFacility) *InternetExchangeQuery {
-	query := (&InternetExchangeClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(ixfacility.Table, ixfacility.FieldID, id),
-			sqlgraph.To(internetexchange.Table, internetexchange.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ixfacility.InternetExchangeTable, ixfacility.InternetExchangeColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryFacility queries the facility edge of a IxFacility.
 func (c *IxFacilityClient) QueryFacility(_m *IxFacility) *FacilityQuery {
 	query := (&FacilityClient{config: c.config}).Query()
@@ -1334,6 +1318,22 @@ func (c *IxFacilityClient) QueryFacility(_m *IxFacility) *FacilityQuery {
 			sqlgraph.From(ixfacility.Table, ixfacility.FieldID, id),
 			sqlgraph.To(facility.Table, facility.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, ixfacility.FacilityTable, ixfacility.FacilityColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryInternetExchange queries the internet_exchange edge of a IxFacility.
+func (c *IxFacilityClient) QueryInternetExchange(_m *IxFacility) *InternetExchangeQuery {
+	query := (&InternetExchangeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ixfacility.Table, ixfacility.FieldID, id),
+			sqlgraph.To(internetexchange.Table, internetexchange.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ixfacility.InternetExchangeTable, ixfacility.InternetExchangeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1807,38 +1807,6 @@ func (c *NetworkClient) GetX(ctx context.Context, id int) *Network {
 	return obj
 }
 
-// QueryOrganization queries the organization edge of a Network.
-func (c *NetworkClient) QueryOrganization(_m *Network) *OrganizationQuery {
-	query := (&OrganizationClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(network.Table, network.FieldID, id),
-			sqlgraph.To(organization.Table, organization.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, network.OrganizationTable, network.OrganizationColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryPocs queries the pocs edge of a Network.
-func (c *NetworkClient) QueryPocs(_m *Network) *PocQuery {
-	query := (&PocClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(network.Table, network.FieldID, id),
-			sqlgraph.To(poc.Table, poc.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, network.PocsTable, network.PocsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryNetworkFacilities queries the network_facilities edge of a Network.
 func (c *NetworkClient) QueryNetworkFacilities(_m *Network) *NetworkFacilityQuery {
 	query := (&NetworkFacilityClient{config: c.config}).Query()
@@ -1864,6 +1832,38 @@ func (c *NetworkClient) QueryNetworkIxLans(_m *Network) *NetworkIxLanQuery {
 			sqlgraph.From(network.Table, network.FieldID, id),
 			sqlgraph.To(networkixlan.Table, networkixlan.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, network.NetworkIxLansTable, network.NetworkIxLansColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrganization queries the organization edge of a Network.
+func (c *NetworkClient) QueryOrganization(_m *Network) *OrganizationQuery {
+	query := (&OrganizationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(network.Table, network.FieldID, id),
+			sqlgraph.To(organization.Table, organization.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, network.OrganizationTable, network.OrganizationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPocs queries the pocs edge of a Network.
+func (c *NetworkClient) QueryPocs(_m *Network) *PocQuery {
+	query := (&PocClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(network.Table, network.FieldID, id),
+			sqlgraph.To(poc.Table, poc.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, network.PocsTable, network.PocsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -2005,22 +2005,6 @@ func (c *NetworkFacilityClient) GetX(ctx context.Context, id int) *NetworkFacili
 	return obj
 }
 
-// QueryNetwork queries the network edge of a NetworkFacility.
-func (c *NetworkFacilityClient) QueryNetwork(_m *NetworkFacility) *NetworkQuery {
-	query := (&NetworkClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(networkfacility.Table, networkfacility.FieldID, id),
-			sqlgraph.To(network.Table, network.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, networkfacility.NetworkTable, networkfacility.NetworkColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryFacility queries the facility edge of a NetworkFacility.
 func (c *NetworkFacilityClient) QueryFacility(_m *NetworkFacility) *FacilityQuery {
 	query := (&FacilityClient{config: c.config}).Query()
@@ -2030,6 +2014,22 @@ func (c *NetworkFacilityClient) QueryFacility(_m *NetworkFacility) *FacilityQuer
 			sqlgraph.From(networkfacility.Table, networkfacility.FieldID, id),
 			sqlgraph.To(facility.Table, facility.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, networkfacility.FacilityTable, networkfacility.FacilityColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryNetwork queries the network edge of a NetworkFacility.
+func (c *NetworkFacilityClient) QueryNetwork(_m *NetworkFacility) *NetworkQuery {
+	query := (&NetworkClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(networkfacility.Table, networkfacility.FieldID, id),
+			sqlgraph.To(network.Table, network.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, networkfacility.NetworkTable, networkfacility.NetworkColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -2171,22 +2171,6 @@ func (c *NetworkIxLanClient) GetX(ctx context.Context, id int) *NetworkIxLan {
 	return obj
 }
 
-// QueryNetwork queries the network edge of a NetworkIxLan.
-func (c *NetworkIxLanClient) QueryNetwork(_m *NetworkIxLan) *NetworkQuery {
-	query := (&NetworkClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(networkixlan.Table, networkixlan.FieldID, id),
-			sqlgraph.To(network.Table, network.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, networkixlan.NetworkTable, networkixlan.NetworkColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryIxLan queries the ix_lan edge of a NetworkIxLan.
 func (c *NetworkIxLanClient) QueryIxLan(_m *NetworkIxLan) *IxLanQuery {
 	query := (&IxLanClient{config: c.config}).Query()
@@ -2196,6 +2180,22 @@ func (c *NetworkIxLanClient) QueryIxLan(_m *NetworkIxLan) *IxLanQuery {
 			sqlgraph.From(networkixlan.Table, networkixlan.FieldID, id),
 			sqlgraph.To(ixlan.Table, ixlan.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, networkixlan.IxLanTable, networkixlan.IxLanColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryNetwork queries the network edge of a NetworkIxLan.
+func (c *NetworkIxLanClient) QueryNetwork(_m *NetworkIxLan) *NetworkQuery {
+	query := (&NetworkClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(networkixlan.Table, networkixlan.FieldID, id),
+			sqlgraph.To(network.Table, network.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, networkixlan.NetworkTable, networkixlan.NetworkColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -2337,15 +2337,31 @@ func (c *OrganizationClient) GetX(ctx context.Context, id int) *Organization {
 	return obj
 }
 
-// QueryNetworks queries the networks edge of a Organization.
-func (c *OrganizationClient) QueryNetworks(_m *Organization) *NetworkQuery {
-	query := (&NetworkClient{config: c.config}).Query()
+// QueryCampuses queries the campuses edge of a Organization.
+func (c *OrganizationClient) QueryCampuses(_m *Organization) *CampusQuery {
+	query := (&CampusClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(organization.Table, organization.FieldID, id),
-			sqlgraph.To(network.Table, network.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, organization.NetworksTable, organization.NetworksColumn),
+			sqlgraph.To(campus.Table, campus.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, organization.CampusesTable, organization.CampusesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCarriers queries the carriers edge of a Organization.
+func (c *OrganizationClient) QueryCarriers(_m *Organization) *CarrierQuery {
+	query := (&CarrierClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(organization.Table, organization.FieldID, id),
+			sqlgraph.To(carrier.Table, carrier.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, organization.CarriersTable, organization.CarriersColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -2385,31 +2401,15 @@ func (c *OrganizationClient) QueryInternetExchanges(_m *Organization) *InternetE
 	return query
 }
 
-// QueryCarriers queries the carriers edge of a Organization.
-func (c *OrganizationClient) QueryCarriers(_m *Organization) *CarrierQuery {
-	query := (&CarrierClient{config: c.config}).Query()
+// QueryNetworks queries the networks edge of a Organization.
+func (c *OrganizationClient) QueryNetworks(_m *Organization) *NetworkQuery {
+	query := (&NetworkClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(organization.Table, organization.FieldID, id),
-			sqlgraph.To(carrier.Table, carrier.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, organization.CarriersTable, organization.CarriersColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryCampuses queries the campuses edge of a Organization.
-func (c *OrganizationClient) QueryCampuses(_m *Organization) *CampusQuery {
-	query := (&CampusClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(organization.Table, organization.FieldID, id),
-			sqlgraph.To(campus.Table, campus.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, organization.CampusesTable, organization.CampusesColumn),
+			sqlgraph.To(network.Table, network.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, organization.NetworksTable, organization.NetworksColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

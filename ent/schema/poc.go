@@ -10,7 +10,7 @@ import (
 	"github.com/lrstanley/entrest"
 )
 
-// Poc holds the schema definition for the Poc (Point of Contact) entity.
+// Poc holds the schema definition for the Poc entity.
 // Maps to the PeeringDB "poc" object type.
 type Poc struct {
 	ent.Schema
@@ -22,42 +22,44 @@ func (Poc) Fields() []ent.Field {
 		field.Int("id").
 			Positive().
 			Immutable().
-			Comment("PeeringDB POC ID"),
+			Comment("PeeringDB poc ID"),
 		field.Int("net_id").
 			Optional().
 			Nillable().
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to network"),
-		field.String("role").
-			MaxLen(27).
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Contact role"),
-		field.String("visible").
-			MaxLen(64).
-			Default("Public").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Visibility level"),
-		field.String("name").
-			Optional().
+		field.String("email").
 			MaxLen(254).
+			Optional().
+			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("Email address"),
+		field.String("name").
+			MaxLen(254).
+			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Contact name"),
 		field.String("phone").
-			Optional().
 			MaxLen(100).
-			Default("").
-			Comment("Contact phone"),
-		field.String("email").
 			Optional().
-			MaxLen(254).
 			Default("").
+			Comment("Phone number"),
+		field.String("role").
+			MaxLen(27).
+			NotEmpty().
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Contact email"),
+			Comment("Contact role"),
 		field.String("url").
 			Optional().
 			Default("").
-			Comment("Contact URL"),
+			Comment("URL"),
+		field.String("visible").
+			MaxLen(64).
+			Optional().
+			Default("Public").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("Visibility level"),
 
 		// HandleRefModel common fields
 		field.Time("created").
@@ -89,9 +91,10 @@ func (Poc) Edges() []ent.Edge {
 // Indexes of the Poc.
 func (Poc) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("status"),
+		index.Fields("name"),
 		index.Fields("net_id"),
 		index.Fields("role"),
+		index.Fields("status"),
 	}
 }
 

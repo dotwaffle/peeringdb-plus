@@ -60,14 +60,9 @@ func NetID(v int) predicate.Poc {
 	return predicate.Poc(sql.FieldEQ(FieldNetID, v))
 }
 
-// Role applies equality check predicate on the "role" field. It's identical to RoleEQ.
-func Role(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldEQ(FieldRole, v))
-}
-
-// Visible applies equality check predicate on the "visible" field. It's identical to VisibleEQ.
-func Visible(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldEQ(FieldVisible, v))
+// Email applies equality check predicate on the "email" field. It's identical to EmailEQ.
+func Email(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldEQ(FieldEmail, v))
 }
 
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
@@ -80,14 +75,19 @@ func Phone(v string) predicate.Poc {
 	return predicate.Poc(sql.FieldEQ(FieldPhone, v))
 }
 
-// Email applies equality check predicate on the "email" field. It's identical to EmailEQ.
-func Email(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldEQ(FieldEmail, v))
+// Role applies equality check predicate on the "role" field. It's identical to RoleEQ.
+func Role(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldEQ(FieldRole, v))
 }
 
 // URL applies equality check predicate on the "url" field. It's identical to URLEQ.
 func URL(v string) predicate.Poc {
 	return predicate.Poc(sql.FieldEQ(FieldURL, v))
+}
+
+// Visible applies equality check predicate on the "visible" field. It's identical to VisibleEQ.
+func Visible(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldEQ(FieldVisible, v))
 }
 
 // Created applies equality check predicate on the "created" field. It's identical to CreatedEQ.
@@ -135,134 +135,79 @@ func NetIDNotNil() predicate.Poc {
 	return predicate.Poc(sql.FieldNotNull(FieldNetID))
 }
 
-// RoleEQ applies the EQ predicate on the "role" field.
-func RoleEQ(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldEQ(FieldRole, v))
+// EmailEQ applies the EQ predicate on the "email" field.
+func EmailEQ(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldEQ(FieldEmail, v))
 }
 
-// RoleNEQ applies the NEQ predicate on the "role" field.
-func RoleNEQ(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldNEQ(FieldRole, v))
+// EmailNEQ applies the NEQ predicate on the "email" field.
+func EmailNEQ(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldNEQ(FieldEmail, v))
 }
 
-// RoleIn applies the In predicate on the "role" field.
-func RoleIn(vs ...string) predicate.Poc {
-	return predicate.Poc(sql.FieldIn(FieldRole, vs...))
+// EmailIn applies the In predicate on the "email" field.
+func EmailIn(vs ...string) predicate.Poc {
+	return predicate.Poc(sql.FieldIn(FieldEmail, vs...))
 }
 
-// RoleNotIn applies the NotIn predicate on the "role" field.
-func RoleNotIn(vs ...string) predicate.Poc {
-	return predicate.Poc(sql.FieldNotIn(FieldRole, vs...))
+// EmailNotIn applies the NotIn predicate on the "email" field.
+func EmailNotIn(vs ...string) predicate.Poc {
+	return predicate.Poc(sql.FieldNotIn(FieldEmail, vs...))
 }
 
-// RoleGT applies the GT predicate on the "role" field.
-func RoleGT(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldGT(FieldRole, v))
+// EmailGT applies the GT predicate on the "email" field.
+func EmailGT(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldGT(FieldEmail, v))
 }
 
-// RoleGTE applies the GTE predicate on the "role" field.
-func RoleGTE(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldGTE(FieldRole, v))
+// EmailGTE applies the GTE predicate on the "email" field.
+func EmailGTE(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldGTE(FieldEmail, v))
 }
 
-// RoleLT applies the LT predicate on the "role" field.
-func RoleLT(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldLT(FieldRole, v))
+// EmailLT applies the LT predicate on the "email" field.
+func EmailLT(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldLT(FieldEmail, v))
 }
 
-// RoleLTE applies the LTE predicate on the "role" field.
-func RoleLTE(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldLTE(FieldRole, v))
+// EmailLTE applies the LTE predicate on the "email" field.
+func EmailLTE(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldLTE(FieldEmail, v))
 }
 
-// RoleContains applies the Contains predicate on the "role" field.
-func RoleContains(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldContains(FieldRole, v))
+// EmailContains applies the Contains predicate on the "email" field.
+func EmailContains(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldContains(FieldEmail, v))
 }
 
-// RoleHasPrefix applies the HasPrefix predicate on the "role" field.
-func RoleHasPrefix(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldHasPrefix(FieldRole, v))
+// EmailHasPrefix applies the HasPrefix predicate on the "email" field.
+func EmailHasPrefix(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldHasPrefix(FieldEmail, v))
 }
 
-// RoleHasSuffix applies the HasSuffix predicate on the "role" field.
-func RoleHasSuffix(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldHasSuffix(FieldRole, v))
+// EmailHasSuffix applies the HasSuffix predicate on the "email" field.
+func EmailHasSuffix(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldHasSuffix(FieldEmail, v))
 }
 
-// RoleEqualFold applies the EqualFold predicate on the "role" field.
-func RoleEqualFold(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldEqualFold(FieldRole, v))
+// EmailIsNil applies the IsNil predicate on the "email" field.
+func EmailIsNil() predicate.Poc {
+	return predicate.Poc(sql.FieldIsNull(FieldEmail))
 }
 
-// RoleContainsFold applies the ContainsFold predicate on the "role" field.
-func RoleContainsFold(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldContainsFold(FieldRole, v))
+// EmailNotNil applies the NotNil predicate on the "email" field.
+func EmailNotNil() predicate.Poc {
+	return predicate.Poc(sql.FieldNotNull(FieldEmail))
 }
 
-// VisibleEQ applies the EQ predicate on the "visible" field.
-func VisibleEQ(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldEQ(FieldVisible, v))
+// EmailEqualFold applies the EqualFold predicate on the "email" field.
+func EmailEqualFold(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldEqualFold(FieldEmail, v))
 }
 
-// VisibleNEQ applies the NEQ predicate on the "visible" field.
-func VisibleNEQ(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldNEQ(FieldVisible, v))
-}
-
-// VisibleIn applies the In predicate on the "visible" field.
-func VisibleIn(vs ...string) predicate.Poc {
-	return predicate.Poc(sql.FieldIn(FieldVisible, vs...))
-}
-
-// VisibleNotIn applies the NotIn predicate on the "visible" field.
-func VisibleNotIn(vs ...string) predicate.Poc {
-	return predicate.Poc(sql.FieldNotIn(FieldVisible, vs...))
-}
-
-// VisibleGT applies the GT predicate on the "visible" field.
-func VisibleGT(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldGT(FieldVisible, v))
-}
-
-// VisibleGTE applies the GTE predicate on the "visible" field.
-func VisibleGTE(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldGTE(FieldVisible, v))
-}
-
-// VisibleLT applies the LT predicate on the "visible" field.
-func VisibleLT(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldLT(FieldVisible, v))
-}
-
-// VisibleLTE applies the LTE predicate on the "visible" field.
-func VisibleLTE(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldLTE(FieldVisible, v))
-}
-
-// VisibleContains applies the Contains predicate on the "visible" field.
-func VisibleContains(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldContains(FieldVisible, v))
-}
-
-// VisibleHasPrefix applies the HasPrefix predicate on the "visible" field.
-func VisibleHasPrefix(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldHasPrefix(FieldVisible, v))
-}
-
-// VisibleHasSuffix applies the HasSuffix predicate on the "visible" field.
-func VisibleHasSuffix(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldHasSuffix(FieldVisible, v))
-}
-
-// VisibleEqualFold applies the EqualFold predicate on the "visible" field.
-func VisibleEqualFold(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldEqualFold(FieldVisible, v))
-}
-
-// VisibleContainsFold applies the ContainsFold predicate on the "visible" field.
-func VisibleContainsFold(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldContainsFold(FieldVisible, v))
+// EmailContainsFold applies the ContainsFold predicate on the "email" field.
+func EmailContainsFold(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldContainsFold(FieldEmail, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
@@ -415,79 +360,69 @@ func PhoneContainsFold(v string) predicate.Poc {
 	return predicate.Poc(sql.FieldContainsFold(FieldPhone, v))
 }
 
-// EmailEQ applies the EQ predicate on the "email" field.
-func EmailEQ(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldEQ(FieldEmail, v))
+// RoleEQ applies the EQ predicate on the "role" field.
+func RoleEQ(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldEQ(FieldRole, v))
 }
 
-// EmailNEQ applies the NEQ predicate on the "email" field.
-func EmailNEQ(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldNEQ(FieldEmail, v))
+// RoleNEQ applies the NEQ predicate on the "role" field.
+func RoleNEQ(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldNEQ(FieldRole, v))
 }
 
-// EmailIn applies the In predicate on the "email" field.
-func EmailIn(vs ...string) predicate.Poc {
-	return predicate.Poc(sql.FieldIn(FieldEmail, vs...))
+// RoleIn applies the In predicate on the "role" field.
+func RoleIn(vs ...string) predicate.Poc {
+	return predicate.Poc(sql.FieldIn(FieldRole, vs...))
 }
 
-// EmailNotIn applies the NotIn predicate on the "email" field.
-func EmailNotIn(vs ...string) predicate.Poc {
-	return predicate.Poc(sql.FieldNotIn(FieldEmail, vs...))
+// RoleNotIn applies the NotIn predicate on the "role" field.
+func RoleNotIn(vs ...string) predicate.Poc {
+	return predicate.Poc(sql.FieldNotIn(FieldRole, vs...))
 }
 
-// EmailGT applies the GT predicate on the "email" field.
-func EmailGT(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldGT(FieldEmail, v))
+// RoleGT applies the GT predicate on the "role" field.
+func RoleGT(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldGT(FieldRole, v))
 }
 
-// EmailGTE applies the GTE predicate on the "email" field.
-func EmailGTE(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldGTE(FieldEmail, v))
+// RoleGTE applies the GTE predicate on the "role" field.
+func RoleGTE(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldGTE(FieldRole, v))
 }
 
-// EmailLT applies the LT predicate on the "email" field.
-func EmailLT(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldLT(FieldEmail, v))
+// RoleLT applies the LT predicate on the "role" field.
+func RoleLT(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldLT(FieldRole, v))
 }
 
-// EmailLTE applies the LTE predicate on the "email" field.
-func EmailLTE(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldLTE(FieldEmail, v))
+// RoleLTE applies the LTE predicate on the "role" field.
+func RoleLTE(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldLTE(FieldRole, v))
 }
 
-// EmailContains applies the Contains predicate on the "email" field.
-func EmailContains(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldContains(FieldEmail, v))
+// RoleContains applies the Contains predicate on the "role" field.
+func RoleContains(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldContains(FieldRole, v))
 }
 
-// EmailHasPrefix applies the HasPrefix predicate on the "email" field.
-func EmailHasPrefix(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldHasPrefix(FieldEmail, v))
+// RoleHasPrefix applies the HasPrefix predicate on the "role" field.
+func RoleHasPrefix(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldHasPrefix(FieldRole, v))
 }
 
-// EmailHasSuffix applies the HasSuffix predicate on the "email" field.
-func EmailHasSuffix(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldHasSuffix(FieldEmail, v))
+// RoleHasSuffix applies the HasSuffix predicate on the "role" field.
+func RoleHasSuffix(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldHasSuffix(FieldRole, v))
 }
 
-// EmailIsNil applies the IsNil predicate on the "email" field.
-func EmailIsNil() predicate.Poc {
-	return predicate.Poc(sql.FieldIsNull(FieldEmail))
+// RoleEqualFold applies the EqualFold predicate on the "role" field.
+func RoleEqualFold(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldEqualFold(FieldRole, v))
 }
 
-// EmailNotNil applies the NotNil predicate on the "email" field.
-func EmailNotNil() predicate.Poc {
-	return predicate.Poc(sql.FieldNotNull(FieldEmail))
-}
-
-// EmailEqualFold applies the EqualFold predicate on the "email" field.
-func EmailEqualFold(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldEqualFold(FieldEmail, v))
-}
-
-// EmailContainsFold applies the ContainsFold predicate on the "email" field.
-func EmailContainsFold(v string) predicate.Poc {
-	return predicate.Poc(sql.FieldContainsFold(FieldEmail, v))
+// RoleContainsFold applies the ContainsFold predicate on the "role" field.
+func RoleContainsFold(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldContainsFold(FieldRole, v))
 }
 
 // URLEQ applies the EQ predicate on the "url" field.
@@ -563,6 +498,81 @@ func URLEqualFold(v string) predicate.Poc {
 // URLContainsFold applies the ContainsFold predicate on the "url" field.
 func URLContainsFold(v string) predicate.Poc {
 	return predicate.Poc(sql.FieldContainsFold(FieldURL, v))
+}
+
+// VisibleEQ applies the EQ predicate on the "visible" field.
+func VisibleEQ(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldEQ(FieldVisible, v))
+}
+
+// VisibleNEQ applies the NEQ predicate on the "visible" field.
+func VisibleNEQ(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldNEQ(FieldVisible, v))
+}
+
+// VisibleIn applies the In predicate on the "visible" field.
+func VisibleIn(vs ...string) predicate.Poc {
+	return predicate.Poc(sql.FieldIn(FieldVisible, vs...))
+}
+
+// VisibleNotIn applies the NotIn predicate on the "visible" field.
+func VisibleNotIn(vs ...string) predicate.Poc {
+	return predicate.Poc(sql.FieldNotIn(FieldVisible, vs...))
+}
+
+// VisibleGT applies the GT predicate on the "visible" field.
+func VisibleGT(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldGT(FieldVisible, v))
+}
+
+// VisibleGTE applies the GTE predicate on the "visible" field.
+func VisibleGTE(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldGTE(FieldVisible, v))
+}
+
+// VisibleLT applies the LT predicate on the "visible" field.
+func VisibleLT(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldLT(FieldVisible, v))
+}
+
+// VisibleLTE applies the LTE predicate on the "visible" field.
+func VisibleLTE(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldLTE(FieldVisible, v))
+}
+
+// VisibleContains applies the Contains predicate on the "visible" field.
+func VisibleContains(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldContains(FieldVisible, v))
+}
+
+// VisibleHasPrefix applies the HasPrefix predicate on the "visible" field.
+func VisibleHasPrefix(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldHasPrefix(FieldVisible, v))
+}
+
+// VisibleHasSuffix applies the HasSuffix predicate on the "visible" field.
+func VisibleHasSuffix(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldHasSuffix(FieldVisible, v))
+}
+
+// VisibleIsNil applies the IsNil predicate on the "visible" field.
+func VisibleIsNil() predicate.Poc {
+	return predicate.Poc(sql.FieldIsNull(FieldVisible))
+}
+
+// VisibleNotNil applies the NotNil predicate on the "visible" field.
+func VisibleNotNil() predicate.Poc {
+	return predicate.Poc(sql.FieldNotNull(FieldVisible))
+}
+
+// VisibleEqualFold applies the EqualFold predicate on the "visible" field.
+func VisibleEqualFold(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldEqualFold(FieldVisible, v))
+}
+
+// VisibleContainsFold applies the ContainsFold predicate on the "visible" field.
+func VisibleContainsFold(v string) predicate.Poc {
+	return predicate.Poc(sql.FieldContainsFold(FieldVisible, v))
 }
 
 // CreatedEQ applies the EQ predicate on the "created" field.

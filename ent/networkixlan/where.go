@@ -55,14 +55,9 @@ func IDLTE(id int) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldLTE(FieldID, id))
 }
 
-// NetID applies equality check predicate on the "net_id" field. It's identical to NetIDEQ.
-func NetID(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldNetID, v))
-}
-
-// IxID applies equality check predicate on the "ix_id" field. It's identical to IxIDEQ.
-func IxID(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldIxID, v))
+// IxSideID applies equality check predicate on the "ix_side_id" field. It's identical to IxSideIDEQ.
+func IxSideID(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldIxSideID, v))
 }
 
 // IxlanID applies equality check predicate on the "ixlan_id" field. It's identical to IxlanIDEQ.
@@ -70,24 +65,24 @@ func IxlanID(v int) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldEQ(FieldIxlanID, v))
 }
 
-// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
-func Name(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldName, v))
+// NetID applies equality check predicate on the "net_id" field. It's identical to NetIDEQ.
+func NetID(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldNetID, v))
 }
 
-// Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
-func Notes(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldNotes, v))
-}
-
-// Speed applies equality check predicate on the "speed" field. It's identical to SpeedEQ.
-func Speed(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldSpeed, v))
+// NetSideID applies equality check predicate on the "net_side_id" field. It's identical to NetSideIDEQ.
+func NetSideID(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldNetSideID, v))
 }
 
 // Asn applies equality check predicate on the "asn" field. It's identical to AsnEQ.
 func Asn(v int) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldEQ(FieldAsn, v))
+}
+
+// BfdSupport applies equality check predicate on the "bfd_support" field. It's identical to BfdSupportEQ.
+func BfdSupport(v bool) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldBfdSupport, v))
 }
 
 // Ipaddr4 applies equality check predicate on the "ipaddr4" field. It's identical to Ipaddr4EQ.
@@ -105,9 +100,9 @@ func IsRsPeer(v bool) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldEQ(FieldIsRsPeer, v))
 }
 
-// BfdSupport applies equality check predicate on the "bfd_support" field. It's identical to BfdSupportEQ.
-func BfdSupport(v bool) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldBfdSupport, v))
+// Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
+func Notes(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldNotes, v))
 }
 
 // Operational applies equality check predicate on the "operational" field. It's identical to OperationalEQ.
@@ -115,14 +110,19 @@ func Operational(v bool) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldEQ(FieldOperational, v))
 }
 
-// NetSideID applies equality check predicate on the "net_side_id" field. It's identical to NetSideIDEQ.
-func NetSideID(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldNetSideID, v))
+// Speed applies equality check predicate on the "speed" field. It's identical to SpeedEQ.
+func Speed(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldSpeed, v))
 }
 
-// IxSideID applies equality check predicate on the "ix_side_id" field. It's identical to IxSideIDEQ.
-func IxSideID(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldIxSideID, v))
+// IxID applies equality check predicate on the "ix_id" field. It's identical to IxIDEQ.
+func IxID(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldIxID, v))
+}
+
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldName, v))
 }
 
 // Created applies equality check predicate on the "created" field. It's identical to CreatedEQ.
@@ -140,84 +140,54 @@ func Status(v string) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldEQ(FieldStatus, v))
 }
 
-// NetIDEQ applies the EQ predicate on the "net_id" field.
-func NetIDEQ(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldNetID, v))
+// IxSideIDEQ applies the EQ predicate on the "ix_side_id" field.
+func IxSideIDEQ(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldIxSideID, v))
 }
 
-// NetIDNEQ applies the NEQ predicate on the "net_id" field.
-func NetIDNEQ(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNEQ(FieldNetID, v))
+// IxSideIDNEQ applies the NEQ predicate on the "ix_side_id" field.
+func IxSideIDNEQ(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNEQ(FieldIxSideID, v))
 }
 
-// NetIDIn applies the In predicate on the "net_id" field.
-func NetIDIn(vs ...int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIn(FieldNetID, vs...))
+// IxSideIDIn applies the In predicate on the "ix_side_id" field.
+func IxSideIDIn(vs ...int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIn(FieldIxSideID, vs...))
 }
 
-// NetIDNotIn applies the NotIn predicate on the "net_id" field.
-func NetIDNotIn(vs ...int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotIn(FieldNetID, vs...))
+// IxSideIDNotIn applies the NotIn predicate on the "ix_side_id" field.
+func IxSideIDNotIn(vs ...int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotIn(FieldIxSideID, vs...))
 }
 
-// NetIDIsNil applies the IsNil predicate on the "net_id" field.
-func NetIDIsNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIsNull(FieldNetID))
+// IxSideIDGT applies the GT predicate on the "ix_side_id" field.
+func IxSideIDGT(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGT(FieldIxSideID, v))
 }
 
-// NetIDNotNil applies the NotNil predicate on the "net_id" field.
-func NetIDNotNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotNull(FieldNetID))
+// IxSideIDGTE applies the GTE predicate on the "ix_side_id" field.
+func IxSideIDGTE(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGTE(FieldIxSideID, v))
 }
 
-// IxIDEQ applies the EQ predicate on the "ix_id" field.
-func IxIDEQ(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldIxID, v))
+// IxSideIDLT applies the LT predicate on the "ix_side_id" field.
+func IxSideIDLT(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLT(FieldIxSideID, v))
 }
 
-// IxIDNEQ applies the NEQ predicate on the "ix_id" field.
-func IxIDNEQ(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNEQ(FieldIxID, v))
+// IxSideIDLTE applies the LTE predicate on the "ix_side_id" field.
+func IxSideIDLTE(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLTE(FieldIxSideID, v))
 }
 
-// IxIDIn applies the In predicate on the "ix_id" field.
-func IxIDIn(vs ...int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIn(FieldIxID, vs...))
+// IxSideIDIsNil applies the IsNil predicate on the "ix_side_id" field.
+func IxSideIDIsNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIsNull(FieldIxSideID))
 }
 
-// IxIDNotIn applies the NotIn predicate on the "ix_id" field.
-func IxIDNotIn(vs ...int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotIn(FieldIxID, vs...))
-}
-
-// IxIDGT applies the GT predicate on the "ix_id" field.
-func IxIDGT(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGT(FieldIxID, v))
-}
-
-// IxIDGTE applies the GTE predicate on the "ix_id" field.
-func IxIDGTE(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGTE(FieldIxID, v))
-}
-
-// IxIDLT applies the LT predicate on the "ix_id" field.
-func IxIDLT(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLT(FieldIxID, v))
-}
-
-// IxIDLTE applies the LTE predicate on the "ix_id" field.
-func IxIDLTE(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLTE(FieldIxID, v))
-}
-
-// IxIDIsNil applies the IsNil predicate on the "ix_id" field.
-func IxIDIsNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIsNull(FieldIxID))
-}
-
-// IxIDNotNil applies the NotNil predicate on the "ix_id" field.
-func IxIDNotNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotNull(FieldIxID))
+// IxSideIDNotNil applies the NotNil predicate on the "ix_side_id" field.
+func IxSideIDNotNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotNull(FieldIxSideID))
 }
 
 // IxlanIDEQ applies the EQ predicate on the "ixlan_id" field.
@@ -250,194 +220,84 @@ func IxlanIDNotNil() predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldNotNull(FieldIxlanID))
 }
 
-// NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldName, v))
+// NetIDEQ applies the EQ predicate on the "net_id" field.
+func NetIDEQ(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldNetID, v))
 }
 
-// NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNEQ(FieldName, v))
+// NetIDNEQ applies the NEQ predicate on the "net_id" field.
+func NetIDNEQ(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNEQ(FieldNetID, v))
 }
 
-// NameIn applies the In predicate on the "name" field.
-func NameIn(vs ...string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIn(FieldName, vs...))
+// NetIDIn applies the In predicate on the "net_id" field.
+func NetIDIn(vs ...int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIn(FieldNetID, vs...))
 }
 
-// NameNotIn applies the NotIn predicate on the "name" field.
-func NameNotIn(vs ...string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotIn(FieldName, vs...))
+// NetIDNotIn applies the NotIn predicate on the "net_id" field.
+func NetIDNotIn(vs ...int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotIn(FieldNetID, vs...))
 }
 
-// NameGT applies the GT predicate on the "name" field.
-func NameGT(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGT(FieldName, v))
+// NetIDIsNil applies the IsNil predicate on the "net_id" field.
+func NetIDIsNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIsNull(FieldNetID))
 }
 
-// NameGTE applies the GTE predicate on the "name" field.
-func NameGTE(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGTE(FieldName, v))
+// NetIDNotNil applies the NotNil predicate on the "net_id" field.
+func NetIDNotNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotNull(FieldNetID))
 }
 
-// NameLT applies the LT predicate on the "name" field.
-func NameLT(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLT(FieldName, v))
+// NetSideIDEQ applies the EQ predicate on the "net_side_id" field.
+func NetSideIDEQ(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldNetSideID, v))
 }
 
-// NameLTE applies the LTE predicate on the "name" field.
-func NameLTE(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLTE(FieldName, v))
+// NetSideIDNEQ applies the NEQ predicate on the "net_side_id" field.
+func NetSideIDNEQ(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNEQ(FieldNetSideID, v))
 }
 
-// NameContains applies the Contains predicate on the "name" field.
-func NameContains(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldContains(FieldName, v))
+// NetSideIDIn applies the In predicate on the "net_side_id" field.
+func NetSideIDIn(vs ...int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIn(FieldNetSideID, vs...))
 }
 
-// NameHasPrefix applies the HasPrefix predicate on the "name" field.
-func NameHasPrefix(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldHasPrefix(FieldName, v))
+// NetSideIDNotIn applies the NotIn predicate on the "net_side_id" field.
+func NetSideIDNotIn(vs ...int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotIn(FieldNetSideID, vs...))
 }
 
-// NameHasSuffix applies the HasSuffix predicate on the "name" field.
-func NameHasSuffix(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldHasSuffix(FieldName, v))
+// NetSideIDGT applies the GT predicate on the "net_side_id" field.
+func NetSideIDGT(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGT(FieldNetSideID, v))
 }
 
-// NameIsNil applies the IsNil predicate on the "name" field.
-func NameIsNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIsNull(FieldName))
+// NetSideIDGTE applies the GTE predicate on the "net_side_id" field.
+func NetSideIDGTE(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGTE(FieldNetSideID, v))
 }
 
-// NameNotNil applies the NotNil predicate on the "name" field.
-func NameNotNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotNull(FieldName))
+// NetSideIDLT applies the LT predicate on the "net_side_id" field.
+func NetSideIDLT(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLT(FieldNetSideID, v))
 }
 
-// NameEqualFold applies the EqualFold predicate on the "name" field.
-func NameEqualFold(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEqualFold(FieldName, v))
+// NetSideIDLTE applies the LTE predicate on the "net_side_id" field.
+func NetSideIDLTE(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLTE(FieldNetSideID, v))
 }
 
-// NameContainsFold applies the ContainsFold predicate on the "name" field.
-func NameContainsFold(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldContainsFold(FieldName, v))
+// NetSideIDIsNil applies the IsNil predicate on the "net_side_id" field.
+func NetSideIDIsNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIsNull(FieldNetSideID))
 }
 
-// NotesEQ applies the EQ predicate on the "notes" field.
-func NotesEQ(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldNotes, v))
-}
-
-// NotesNEQ applies the NEQ predicate on the "notes" field.
-func NotesNEQ(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNEQ(FieldNotes, v))
-}
-
-// NotesIn applies the In predicate on the "notes" field.
-func NotesIn(vs ...string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIn(FieldNotes, vs...))
-}
-
-// NotesNotIn applies the NotIn predicate on the "notes" field.
-func NotesNotIn(vs ...string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotIn(FieldNotes, vs...))
-}
-
-// NotesGT applies the GT predicate on the "notes" field.
-func NotesGT(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGT(FieldNotes, v))
-}
-
-// NotesGTE applies the GTE predicate on the "notes" field.
-func NotesGTE(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGTE(FieldNotes, v))
-}
-
-// NotesLT applies the LT predicate on the "notes" field.
-func NotesLT(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLT(FieldNotes, v))
-}
-
-// NotesLTE applies the LTE predicate on the "notes" field.
-func NotesLTE(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLTE(FieldNotes, v))
-}
-
-// NotesContains applies the Contains predicate on the "notes" field.
-func NotesContains(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldContains(FieldNotes, v))
-}
-
-// NotesHasPrefix applies the HasPrefix predicate on the "notes" field.
-func NotesHasPrefix(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldHasPrefix(FieldNotes, v))
-}
-
-// NotesHasSuffix applies the HasSuffix predicate on the "notes" field.
-func NotesHasSuffix(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldHasSuffix(FieldNotes, v))
-}
-
-// NotesIsNil applies the IsNil predicate on the "notes" field.
-func NotesIsNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIsNull(FieldNotes))
-}
-
-// NotesNotNil applies the NotNil predicate on the "notes" field.
-func NotesNotNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotNull(FieldNotes))
-}
-
-// NotesEqualFold applies the EqualFold predicate on the "notes" field.
-func NotesEqualFold(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEqualFold(FieldNotes, v))
-}
-
-// NotesContainsFold applies the ContainsFold predicate on the "notes" field.
-func NotesContainsFold(v string) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldContainsFold(FieldNotes, v))
-}
-
-// SpeedEQ applies the EQ predicate on the "speed" field.
-func SpeedEQ(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldSpeed, v))
-}
-
-// SpeedNEQ applies the NEQ predicate on the "speed" field.
-func SpeedNEQ(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNEQ(FieldSpeed, v))
-}
-
-// SpeedIn applies the In predicate on the "speed" field.
-func SpeedIn(vs ...int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIn(FieldSpeed, vs...))
-}
-
-// SpeedNotIn applies the NotIn predicate on the "speed" field.
-func SpeedNotIn(vs ...int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotIn(FieldSpeed, vs...))
-}
-
-// SpeedGT applies the GT predicate on the "speed" field.
-func SpeedGT(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGT(FieldSpeed, v))
-}
-
-// SpeedGTE applies the GTE predicate on the "speed" field.
-func SpeedGTE(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGTE(FieldSpeed, v))
-}
-
-// SpeedLT applies the LT predicate on the "speed" field.
-func SpeedLT(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLT(FieldSpeed, v))
-}
-
-// SpeedLTE applies the LTE predicate on the "speed" field.
-func SpeedLTE(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLTE(FieldSpeed, v))
+// NetSideIDNotNil applies the NotNil predicate on the "net_side_id" field.
+func NetSideIDNotNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotNull(FieldNetSideID))
 }
 
 // AsnEQ applies the EQ predicate on the "asn" field.
@@ -478,6 +338,16 @@ func AsnLT(v int) predicate.NetworkIxLan {
 // AsnLTE applies the LTE predicate on the "asn" field.
 func AsnLTE(v int) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldLTE(FieldAsn, v))
+}
+
+// BfdSupportEQ applies the EQ predicate on the "bfd_support" field.
+func BfdSupportEQ(v bool) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldBfdSupport, v))
+}
+
+// BfdSupportNEQ applies the NEQ predicate on the "bfd_support" field.
+func BfdSupportNEQ(v bool) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNEQ(FieldBfdSupport, v))
 }
 
 // Ipaddr4EQ applies the EQ predicate on the "ipaddr4" field.
@@ -640,14 +510,79 @@ func IsRsPeerNEQ(v bool) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldNEQ(FieldIsRsPeer, v))
 }
 
-// BfdSupportEQ applies the EQ predicate on the "bfd_support" field.
-func BfdSupportEQ(v bool) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldBfdSupport, v))
+// NotesEQ applies the EQ predicate on the "notes" field.
+func NotesEQ(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldNotes, v))
 }
 
-// BfdSupportNEQ applies the NEQ predicate on the "bfd_support" field.
-func BfdSupportNEQ(v bool) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNEQ(FieldBfdSupport, v))
+// NotesNEQ applies the NEQ predicate on the "notes" field.
+func NotesNEQ(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNEQ(FieldNotes, v))
+}
+
+// NotesIn applies the In predicate on the "notes" field.
+func NotesIn(vs ...string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIn(FieldNotes, vs...))
+}
+
+// NotesNotIn applies the NotIn predicate on the "notes" field.
+func NotesNotIn(vs ...string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotIn(FieldNotes, vs...))
+}
+
+// NotesGT applies the GT predicate on the "notes" field.
+func NotesGT(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGT(FieldNotes, v))
+}
+
+// NotesGTE applies the GTE predicate on the "notes" field.
+func NotesGTE(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGTE(FieldNotes, v))
+}
+
+// NotesLT applies the LT predicate on the "notes" field.
+func NotesLT(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLT(FieldNotes, v))
+}
+
+// NotesLTE applies the LTE predicate on the "notes" field.
+func NotesLTE(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLTE(FieldNotes, v))
+}
+
+// NotesContains applies the Contains predicate on the "notes" field.
+func NotesContains(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldContains(FieldNotes, v))
+}
+
+// NotesHasPrefix applies the HasPrefix predicate on the "notes" field.
+func NotesHasPrefix(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldHasPrefix(FieldNotes, v))
+}
+
+// NotesHasSuffix applies the HasSuffix predicate on the "notes" field.
+func NotesHasSuffix(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldHasSuffix(FieldNotes, v))
+}
+
+// NotesIsNil applies the IsNil predicate on the "notes" field.
+func NotesIsNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIsNull(FieldNotes))
+}
+
+// NotesNotNil applies the NotNil predicate on the "notes" field.
+func NotesNotNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotNull(FieldNotes))
+}
+
+// NotesEqualFold applies the EqualFold predicate on the "notes" field.
+func NotesEqualFold(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEqualFold(FieldNotes, v))
+}
+
+// NotesContainsFold applies the ContainsFold predicate on the "notes" field.
+func NotesContainsFold(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldContainsFold(FieldNotes, v))
 }
 
 // OperationalEQ applies the EQ predicate on the "operational" field.
@@ -660,104 +595,169 @@ func OperationalNEQ(v bool) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldNEQ(FieldOperational, v))
 }
 
-// NetSideIDEQ applies the EQ predicate on the "net_side_id" field.
-func NetSideIDEQ(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldNetSideID, v))
+// SpeedEQ applies the EQ predicate on the "speed" field.
+func SpeedEQ(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldSpeed, v))
 }
 
-// NetSideIDNEQ applies the NEQ predicate on the "net_side_id" field.
-func NetSideIDNEQ(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNEQ(FieldNetSideID, v))
+// SpeedNEQ applies the NEQ predicate on the "speed" field.
+func SpeedNEQ(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNEQ(FieldSpeed, v))
 }
 
-// NetSideIDIn applies the In predicate on the "net_side_id" field.
-func NetSideIDIn(vs ...int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIn(FieldNetSideID, vs...))
+// SpeedIn applies the In predicate on the "speed" field.
+func SpeedIn(vs ...int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIn(FieldSpeed, vs...))
 }
 
-// NetSideIDNotIn applies the NotIn predicate on the "net_side_id" field.
-func NetSideIDNotIn(vs ...int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotIn(FieldNetSideID, vs...))
+// SpeedNotIn applies the NotIn predicate on the "speed" field.
+func SpeedNotIn(vs ...int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotIn(FieldSpeed, vs...))
 }
 
-// NetSideIDGT applies the GT predicate on the "net_side_id" field.
-func NetSideIDGT(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGT(FieldNetSideID, v))
+// SpeedGT applies the GT predicate on the "speed" field.
+func SpeedGT(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGT(FieldSpeed, v))
 }
 
-// NetSideIDGTE applies the GTE predicate on the "net_side_id" field.
-func NetSideIDGTE(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGTE(FieldNetSideID, v))
+// SpeedGTE applies the GTE predicate on the "speed" field.
+func SpeedGTE(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGTE(FieldSpeed, v))
 }
 
-// NetSideIDLT applies the LT predicate on the "net_side_id" field.
-func NetSideIDLT(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLT(FieldNetSideID, v))
+// SpeedLT applies the LT predicate on the "speed" field.
+func SpeedLT(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLT(FieldSpeed, v))
 }
 
-// NetSideIDLTE applies the LTE predicate on the "net_side_id" field.
-func NetSideIDLTE(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLTE(FieldNetSideID, v))
+// SpeedLTE applies the LTE predicate on the "speed" field.
+func SpeedLTE(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLTE(FieldSpeed, v))
 }
 
-// NetSideIDIsNil applies the IsNil predicate on the "net_side_id" field.
-func NetSideIDIsNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIsNull(FieldNetSideID))
+// IxIDEQ applies the EQ predicate on the "ix_id" field.
+func IxIDEQ(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldIxID, v))
 }
 
-// NetSideIDNotNil applies the NotNil predicate on the "net_side_id" field.
-func NetSideIDNotNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotNull(FieldNetSideID))
+// IxIDNEQ applies the NEQ predicate on the "ix_id" field.
+func IxIDNEQ(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNEQ(FieldIxID, v))
 }
 
-// IxSideIDEQ applies the EQ predicate on the "ix_side_id" field.
-func IxSideIDEQ(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldEQ(FieldIxSideID, v))
+// IxIDIn applies the In predicate on the "ix_id" field.
+func IxIDIn(vs ...int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIn(FieldIxID, vs...))
 }
 
-// IxSideIDNEQ applies the NEQ predicate on the "ix_side_id" field.
-func IxSideIDNEQ(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNEQ(FieldIxSideID, v))
+// IxIDNotIn applies the NotIn predicate on the "ix_id" field.
+func IxIDNotIn(vs ...int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotIn(FieldIxID, vs...))
 }
 
-// IxSideIDIn applies the In predicate on the "ix_side_id" field.
-func IxSideIDIn(vs ...int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIn(FieldIxSideID, vs...))
+// IxIDGT applies the GT predicate on the "ix_id" field.
+func IxIDGT(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGT(FieldIxID, v))
 }
 
-// IxSideIDNotIn applies the NotIn predicate on the "ix_side_id" field.
-func IxSideIDNotIn(vs ...int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotIn(FieldIxSideID, vs...))
+// IxIDGTE applies the GTE predicate on the "ix_id" field.
+func IxIDGTE(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGTE(FieldIxID, v))
 }
 
-// IxSideIDGT applies the GT predicate on the "ix_side_id" field.
-func IxSideIDGT(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGT(FieldIxSideID, v))
+// IxIDLT applies the LT predicate on the "ix_id" field.
+func IxIDLT(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLT(FieldIxID, v))
 }
 
-// IxSideIDGTE applies the GTE predicate on the "ix_side_id" field.
-func IxSideIDGTE(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldGTE(FieldIxSideID, v))
+// IxIDLTE applies the LTE predicate on the "ix_id" field.
+func IxIDLTE(v int) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLTE(FieldIxID, v))
 }
 
-// IxSideIDLT applies the LT predicate on the "ix_side_id" field.
-func IxSideIDLT(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLT(FieldIxSideID, v))
+// IxIDIsNil applies the IsNil predicate on the "ix_id" field.
+func IxIDIsNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIsNull(FieldIxID))
 }
 
-// IxSideIDLTE applies the LTE predicate on the "ix_side_id" field.
-func IxSideIDLTE(v int) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldLTE(FieldIxSideID, v))
+// IxIDNotNil applies the NotNil predicate on the "ix_id" field.
+func IxIDNotNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotNull(FieldIxID))
 }
 
-// IxSideIDIsNil applies the IsNil predicate on the "ix_side_id" field.
-func IxSideIDIsNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldIsNull(FieldIxSideID))
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEQ(FieldName, v))
 }
 
-// IxSideIDNotNil applies the NotNil predicate on the "ix_side_id" field.
-func IxSideIDNotNil() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(sql.FieldNotNull(FieldIxSideID))
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameIsNil applies the IsNil predicate on the "name" field.
+func NameIsNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIsNull(FieldName))
+}
+
+// NameNotNil applies the NotNil predicate on the "name" field.
+func NameNotNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotNull(FieldName))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldContainsFold(FieldName, v))
 }
 
 // CreatedEQ applies the EQ predicate on the "created" field.
@@ -905,29 +905,6 @@ func StatusContainsFold(v string) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldContainsFold(FieldStatus, v))
 }
 
-// HasNetwork applies the HasEdge predicate on the "network" edge.
-func HasNetwork() predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, NetworkTable, NetworkColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasNetworkWith applies the HasEdge predicate on the "network" edge with a given conditions (other predicates).
-func HasNetworkWith(preds ...predicate.Network) predicate.NetworkIxLan {
-	return predicate.NetworkIxLan(func(s *sql.Selector) {
-		step := newNetworkStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasIxLan applies the HasEdge predicate on the "ix_lan" edge.
 func HasIxLan() predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(func(s *sql.Selector) {
@@ -943,6 +920,29 @@ func HasIxLan() predicate.NetworkIxLan {
 func HasIxLanWith(preds ...predicate.IxLan) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(func(s *sql.Selector) {
 		step := newIxLanStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasNetwork applies the HasEdge predicate on the "network" edge.
+func HasNetwork() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, NetworkTable, NetworkColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNetworkWith applies the HasEdge predicate on the "network" edge with a given conditions (other predicates).
+func HasNetworkWith(preds ...predicate.Network) predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(func(s *sql.Selector) {
+		step := newNetworkStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

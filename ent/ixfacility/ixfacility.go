@@ -13,10 +13,10 @@ const (
 	Label = "ix_facility"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldIxID holds the string denoting the ix_id field in the database.
-	FieldIxID = "ix_id"
 	// FieldFacID holds the string denoting the fac_id field in the database.
 	FieldFacID = "fac_id"
+	// FieldIxID holds the string denoting the ix_id field in the database.
+	FieldIxID = "ix_id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldCity holds the string denoting the city field in the database.
@@ -29,19 +29,12 @@ const (
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// EdgeInternetExchange holds the string denoting the internet_exchange edge name in mutations.
-	EdgeInternetExchange = "internet_exchange"
 	// EdgeFacility holds the string denoting the facility edge name in mutations.
 	EdgeFacility = "facility"
+	// EdgeInternetExchange holds the string denoting the internet_exchange edge name in mutations.
+	EdgeInternetExchange = "internet_exchange"
 	// Table holds the table name of the ixfacility in the database.
 	Table = "ix_facilities"
-	// InternetExchangeTable is the table that holds the internet_exchange relation/edge.
-	InternetExchangeTable = "ix_facilities"
-	// InternetExchangeInverseTable is the table name for the InternetExchange entity.
-	// It exists in this package in order to avoid circular dependency with the "internetexchange" package.
-	InternetExchangeInverseTable = "internet_exchanges"
-	// InternetExchangeColumn is the table column denoting the internet_exchange relation/edge.
-	InternetExchangeColumn = "ix_id"
 	// FacilityTable is the table that holds the facility relation/edge.
 	FacilityTable = "ix_facilities"
 	// FacilityInverseTable is the table name for the Facility entity.
@@ -49,13 +42,20 @@ const (
 	FacilityInverseTable = "facilities"
 	// FacilityColumn is the table column denoting the facility relation/edge.
 	FacilityColumn = "fac_id"
+	// InternetExchangeTable is the table that holds the internet_exchange relation/edge.
+	InternetExchangeTable = "ix_facilities"
+	// InternetExchangeInverseTable is the table name for the InternetExchange entity.
+	// It exists in this package in order to avoid circular dependency with the "internetexchange" package.
+	InternetExchangeInverseTable = "internet_exchanges"
+	// InternetExchangeColumn is the table column denoting the internet_exchange relation/edge.
+	InternetExchangeColumn = "ix_id"
 )
 
 // Columns holds all SQL columns for ixfacility fields.
 var Columns = []string{
 	FieldID,
-	FieldIxID,
 	FieldFacID,
+	FieldIxID,
 	FieldName,
 	FieldCity,
 	FieldCountry,
@@ -103,14 +103,14 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// ByIxID orders the results by the ix_id field.
-func ByIxID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIxID, opts...).ToFunc()
-}
-
 // ByFacID orders the results by the fac_id field.
 func ByFacID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFacID, opts...).ToFunc()
+}
+
+// ByIxID orders the results by the ix_id field.
+func ByIxID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIxID, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.
@@ -143,30 +143,30 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
-// ByInternetExchangeField orders the results by internet_exchange field.
-func ByInternetExchangeField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newInternetExchangeStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByFacilityField orders the results by facility field.
 func ByFacilityField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newFacilityStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newInternetExchangeStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(InternetExchangeInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, InternetExchangeTable, InternetExchangeColumn),
-	)
+
+// ByInternetExchangeField orders the results by internet_exchange field.
+func ByInternetExchangeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newInternetExchangeStep(), sql.OrderByField(field, opts...))
+	}
 }
 func newFacilityStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FacilityInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, FacilityTable, FacilityColumn),
+	)
+}
+func newInternetExchangeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(InternetExchangeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, InternetExchangeTable, InternetExchangeColumn),
 	)
 }

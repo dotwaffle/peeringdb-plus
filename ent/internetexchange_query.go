@@ -26,13 +26,13 @@ type InternetExchangeQuery struct {
 	order                 []internetexchange.OrderOption
 	inters                []Interceptor
 	predicates            []predicate.InternetExchange
-	withOrganization      *OrganizationQuery
-	withIxLans            *IxLanQuery
 	withIxFacilities      *IxFacilityQuery
+	withIxLans            *IxLanQuery
+	withOrganization      *OrganizationQuery
 	modifiers             []func(*sql.Selector)
 	loadTotal             []func(context.Context, []*InternetExchange) error
-	withNamedIxLans       map[string]*IxLanQuery
 	withNamedIxFacilities map[string]*IxFacilityQuery
+	withNamedIxLans       map[string]*IxLanQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -69,9 +69,9 @@ func (_q *InternetExchangeQuery) Order(o ...internetexchange.OrderOption) *Inter
 	return _q
 }
 
-// QueryOrganization chains the current query on the "organization" edge.
-func (_q *InternetExchangeQuery) QueryOrganization() *OrganizationQuery {
-	query := (&OrganizationClient{config: _q.config}).Query()
+// QueryIxFacilities chains the current query on the "ix_facilities" edge.
+func (_q *InternetExchangeQuery) QueryIxFacilities() *IxFacilityQuery {
+	query := (&IxFacilityClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -82,8 +82,8 @@ func (_q *InternetExchangeQuery) QueryOrganization() *OrganizationQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(internetexchange.Table, internetexchange.FieldID, selector),
-			sqlgraph.To(organization.Table, organization.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, internetexchange.OrganizationTable, internetexchange.OrganizationColumn),
+			sqlgraph.To(ixfacility.Table, ixfacility.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, internetexchange.IxFacilitiesTable, internetexchange.IxFacilitiesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -113,9 +113,9 @@ func (_q *InternetExchangeQuery) QueryIxLans() *IxLanQuery {
 	return query
 }
 
-// QueryIxFacilities chains the current query on the "ix_facilities" edge.
-func (_q *InternetExchangeQuery) QueryIxFacilities() *IxFacilityQuery {
-	query := (&IxFacilityClient{config: _q.config}).Query()
+// QueryOrganization chains the current query on the "organization" edge.
+func (_q *InternetExchangeQuery) QueryOrganization() *OrganizationQuery {
+	query := (&OrganizationClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -126,8 +126,8 @@ func (_q *InternetExchangeQuery) QueryIxFacilities() *IxFacilityQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(internetexchange.Table, internetexchange.FieldID, selector),
-			sqlgraph.To(ixfacility.Table, ixfacility.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, internetexchange.IxFacilitiesTable, internetexchange.IxFacilitiesColumn),
+			sqlgraph.To(organization.Table, organization.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, internetexchange.OrganizationTable, internetexchange.OrganizationColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -327,23 +327,23 @@ func (_q *InternetExchangeQuery) Clone() *InternetExchangeQuery {
 		order:            append([]internetexchange.OrderOption{}, _q.order...),
 		inters:           append([]Interceptor{}, _q.inters...),
 		predicates:       append([]predicate.InternetExchange{}, _q.predicates...),
-		withOrganization: _q.withOrganization.Clone(),
-		withIxLans:       _q.withIxLans.Clone(),
 		withIxFacilities: _q.withIxFacilities.Clone(),
+		withIxLans:       _q.withIxLans.Clone(),
+		withOrganization: _q.withOrganization.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithOrganization tells the query-builder to eager-load the nodes that are connected to
-// the "organization" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *InternetExchangeQuery) WithOrganization(opts ...func(*OrganizationQuery)) *InternetExchangeQuery {
-	query := (&OrganizationClient{config: _q.config}).Query()
+// WithIxFacilities tells the query-builder to eager-load the nodes that are connected to
+// the "ix_facilities" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *InternetExchangeQuery) WithIxFacilities(opts ...func(*IxFacilityQuery)) *InternetExchangeQuery {
+	query := (&IxFacilityClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withOrganization = query
+	_q.withIxFacilities = query
 	return _q
 }
 
@@ -358,14 +358,14 @@ func (_q *InternetExchangeQuery) WithIxLans(opts ...func(*IxLanQuery)) *Internet
 	return _q
 }
 
-// WithIxFacilities tells the query-builder to eager-load the nodes that are connected to
-// the "ix_facilities" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *InternetExchangeQuery) WithIxFacilities(opts ...func(*IxFacilityQuery)) *InternetExchangeQuery {
-	query := (&IxFacilityClient{config: _q.config}).Query()
+// WithOrganization tells the query-builder to eager-load the nodes that are connected to
+// the "organization" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *InternetExchangeQuery) WithOrganization(opts ...func(*OrganizationQuery)) *InternetExchangeQuery {
+	query := (&OrganizationClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withIxFacilities = query
+	_q.withOrganization = query
 	return _q
 }
 
@@ -448,9 +448,9 @@ func (_q *InternetExchangeQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		nodes       = []*InternetExchange{}
 		_spec       = _q.querySpec()
 		loadedTypes = [3]bool{
-			_q.withOrganization != nil,
-			_q.withIxLans != nil,
 			_q.withIxFacilities != nil,
+			_q.withIxLans != nil,
+			_q.withOrganization != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -474,9 +474,10 @@ func (_q *InternetExchangeQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withOrganization; query != nil {
-		if err := _q.loadOrganization(ctx, query, nodes, nil,
-			func(n *InternetExchange, e *Organization) { n.Edges.Organization = e }); err != nil {
+	if query := _q.withIxFacilities; query != nil {
+		if err := _q.loadIxFacilities(ctx, query, nodes,
+			func(n *InternetExchange) { n.Edges.IxFacilities = []*IxFacility{} },
+			func(n *InternetExchange, e *IxFacility) { n.Edges.IxFacilities = append(n.Edges.IxFacilities, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -487,17 +488,9 @@ func (_q *InternetExchangeQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 			return nil, err
 		}
 	}
-	if query := _q.withIxFacilities; query != nil {
-		if err := _q.loadIxFacilities(ctx, query, nodes,
-			func(n *InternetExchange) { n.Edges.IxFacilities = []*IxFacility{} },
-			func(n *InternetExchange, e *IxFacility) { n.Edges.IxFacilities = append(n.Edges.IxFacilities, e) }); err != nil {
-			return nil, err
-		}
-	}
-	for name, query := range _q.withNamedIxLans {
-		if err := _q.loadIxLans(ctx, query, nodes,
-			func(n *InternetExchange) { n.appendNamedIxLans(name) },
-			func(n *InternetExchange, e *IxLan) { n.appendNamedIxLans(name, e) }); err != nil {
+	if query := _q.withOrganization; query != nil {
+		if err := _q.loadOrganization(ctx, query, nodes, nil,
+			func(n *InternetExchange, e *Organization) { n.Edges.Organization = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -505,6 +498,13 @@ func (_q *InternetExchangeQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		if err := _q.loadIxFacilities(ctx, query, nodes,
 			func(n *InternetExchange) { n.appendNamedIxFacilities(name) },
 			func(n *InternetExchange, e *IxFacility) { n.appendNamedIxFacilities(name, e) }); err != nil {
+			return nil, err
+		}
+	}
+	for name, query := range _q.withNamedIxLans {
+		if err := _q.loadIxLans(ctx, query, nodes,
+			func(n *InternetExchange) { n.appendNamedIxLans(name) },
+			func(n *InternetExchange, e *IxLan) { n.appendNamedIxLans(name, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -516,35 +516,36 @@ func (_q *InternetExchangeQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	return nodes, nil
 }
 
-func (_q *InternetExchangeQuery) loadOrganization(ctx context.Context, query *OrganizationQuery, nodes []*InternetExchange, init func(*InternetExchange), assign func(*InternetExchange, *Organization)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*InternetExchange)
+func (_q *InternetExchangeQuery) loadIxFacilities(ctx context.Context, query *IxFacilityQuery, nodes []*InternetExchange, init func(*InternetExchange), assign func(*InternetExchange, *IxFacility)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*InternetExchange)
 	for i := range nodes {
-		if nodes[i].OrgID == nil {
-			continue
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
 		}
-		fk := *nodes[i].OrgID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	if len(ids) == 0 {
-		return nil
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(ixfacility.FieldIxID)
 	}
-	query.Where(organization.IDIn(ids...))
+	query.Where(predicate.IxFacility(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(internetexchange.IxFacilitiesColumn), fks...))
+	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		fk := n.IxID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "ix_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "org_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "ix_id" returned %v for node %v`, *fk, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
+		assign(node, n)
 	}
 	return nil
 }
@@ -581,36 +582,35 @@ func (_q *InternetExchangeQuery) loadIxLans(ctx context.Context, query *IxLanQue
 	}
 	return nil
 }
-func (_q *InternetExchangeQuery) loadIxFacilities(ctx context.Context, query *IxFacilityQuery, nodes []*InternetExchange, init func(*InternetExchange), assign func(*InternetExchange, *IxFacility)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*InternetExchange)
+func (_q *InternetExchangeQuery) loadOrganization(ctx context.Context, query *OrganizationQuery, nodes []*InternetExchange, init func(*InternetExchange), assign func(*InternetExchange, *Organization)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*InternetExchange)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
+		if nodes[i].OrgID == nil {
+			continue
 		}
+		fk := *nodes[i].OrgID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(ixfacility.FieldIxID)
+	if len(ids) == 0 {
+		return nil
 	}
-	query.Where(predicate.IxFacility(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(internetexchange.IxFacilitiesColumn), fks...))
-	}))
+	query.Where(organization.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.IxID
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "ix_id" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "ix_id" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "org_id" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }
@@ -702,20 +702,6 @@ func (_q *InternetExchangeQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// WithNamedIxLans tells the query-builder to eager-load the nodes that are connected to the "ix_lans"
-// edge with the given name. The optional arguments are used to configure the query builder of the edge.
-func (_q *InternetExchangeQuery) WithNamedIxLans(name string, opts ...func(*IxLanQuery)) *InternetExchangeQuery {
-	query := (&IxLanClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	if _q.withNamedIxLans == nil {
-		_q.withNamedIxLans = make(map[string]*IxLanQuery)
-	}
-	_q.withNamedIxLans[name] = query
-	return _q
-}
-
 // WithNamedIxFacilities tells the query-builder to eager-load the nodes that are connected to the "ix_facilities"
 // edge with the given name. The optional arguments are used to configure the query builder of the edge.
 func (_q *InternetExchangeQuery) WithNamedIxFacilities(name string, opts ...func(*IxFacilityQuery)) *InternetExchangeQuery {
@@ -727,6 +713,20 @@ func (_q *InternetExchangeQuery) WithNamedIxFacilities(name string, opts ...func
 		_q.withNamedIxFacilities = make(map[string]*IxFacilityQuery)
 	}
 	_q.withNamedIxFacilities[name] = query
+	return _q
+}
+
+// WithNamedIxLans tells the query-builder to eager-load the nodes that are connected to the "ix_lans"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (_q *InternetExchangeQuery) WithNamedIxLans(name string, opts ...func(*IxLanQuery)) *InternetExchangeQuery {
+	query := (&IxLanClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	if _q.withNamedIxLans == nil {
+		_q.withNamedIxLans = make(map[string]*IxLanQuery)
+	}
+	_q.withNamedIxLans[name] = query
 	return _q
 }
 

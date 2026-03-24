@@ -13,37 +13,30 @@ const (
 	Label = "network_facility"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldNetID holds the string denoting the net_id field in the database.
-	FieldNetID = "net_id"
 	// FieldFacID holds the string denoting the fac_id field in the database.
 	FieldFacID = "fac_id"
+	// FieldNetID holds the string denoting the net_id field in the database.
+	FieldNetID = "net_id"
+	// FieldLocalAsn holds the string denoting the local_asn field in the database.
+	FieldLocalAsn = "local_asn"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldCity holds the string denoting the city field in the database.
 	FieldCity = "city"
 	// FieldCountry holds the string denoting the country field in the database.
 	FieldCountry = "country"
-	// FieldLocalAsn holds the string denoting the local_asn field in the database.
-	FieldLocalAsn = "local_asn"
 	// FieldCreated holds the string denoting the created field in the database.
 	FieldCreated = "created"
 	// FieldUpdated holds the string denoting the updated field in the database.
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// EdgeNetwork holds the string denoting the network edge name in mutations.
-	EdgeNetwork = "network"
 	// EdgeFacility holds the string denoting the facility edge name in mutations.
 	EdgeFacility = "facility"
+	// EdgeNetwork holds the string denoting the network edge name in mutations.
+	EdgeNetwork = "network"
 	// Table holds the table name of the networkfacility in the database.
 	Table = "network_facilities"
-	// NetworkTable is the table that holds the network relation/edge.
-	NetworkTable = "network_facilities"
-	// NetworkInverseTable is the table name for the Network entity.
-	// It exists in this package in order to avoid circular dependency with the "network" package.
-	NetworkInverseTable = "networks"
-	// NetworkColumn is the table column denoting the network relation/edge.
-	NetworkColumn = "net_id"
 	// FacilityTable is the table that holds the facility relation/edge.
 	FacilityTable = "network_facilities"
 	// FacilityInverseTable is the table name for the Facility entity.
@@ -51,17 +44,24 @@ const (
 	FacilityInverseTable = "facilities"
 	// FacilityColumn is the table column denoting the facility relation/edge.
 	FacilityColumn = "fac_id"
+	// NetworkTable is the table that holds the network relation/edge.
+	NetworkTable = "network_facilities"
+	// NetworkInverseTable is the table name for the Network entity.
+	// It exists in this package in order to avoid circular dependency with the "network" package.
+	NetworkInverseTable = "networks"
+	// NetworkColumn is the table column denoting the network relation/edge.
+	NetworkColumn = "net_id"
 )
 
 // Columns holds all SQL columns for networkfacility fields.
 var Columns = []string{
 	FieldID,
-	FieldNetID,
 	FieldFacID,
+	FieldNetID,
+	FieldLocalAsn,
 	FieldName,
 	FieldCity,
 	FieldCountry,
-	FieldLocalAsn,
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
@@ -106,14 +106,19 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
+// ByFacID orders the results by the fac_id field.
+func ByFacID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFacID, opts...).ToFunc()
+}
+
 // ByNetID orders the results by the net_id field.
 func ByNetID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNetID, opts...).ToFunc()
 }
 
-// ByFacID orders the results by the fac_id field.
-func ByFacID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFacID, opts...).ToFunc()
+// ByLocalAsn orders the results by the local_asn field.
+func ByLocalAsn(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLocalAsn, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.
@@ -131,11 +136,6 @@ func ByCountry(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCountry, opts...).ToFunc()
 }
 
-// ByLocalAsn orders the results by the local_asn field.
-func ByLocalAsn(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLocalAsn, opts...).ToFunc()
-}
-
 // ByCreated orders the results by the created field.
 func ByCreated(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreated, opts...).ToFunc()
@@ -151,30 +151,30 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
-// ByNetworkField orders the results by network field.
-func ByNetworkField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newNetworkStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByFacilityField orders the results by facility field.
 func ByFacilityField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newFacilityStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newNetworkStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(NetworkInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, NetworkTable, NetworkColumn),
-	)
+
+// ByNetworkField orders the results by network field.
+func ByNetworkField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNetworkStep(), sql.OrderByField(field, opts...))
+	}
 }
 func newFacilityStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FacilityInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, FacilityTable, FacilityColumn),
+	)
+}
+func newNetworkStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(NetworkInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, NetworkTable, NetworkColumn),
 	)
 }

@@ -60,9 +60,9 @@ func IxID(v int) predicate.IxLan {
 	return predicate.IxLan(sql.FieldEQ(FieldIxID, v))
 }
 
-// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
-func Name(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldName, v))
+// ArpSponge applies equality check predicate on the "arp_sponge" field. It's identical to ArpSpongeEQ.
+func ArpSponge(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldArpSponge, v))
 }
 
 // Descr applies equality check predicate on the "descr" field. It's identical to DescrEQ.
@@ -70,24 +70,14 @@ func Descr(v string) predicate.IxLan {
 	return predicate.IxLan(sql.FieldEQ(FieldDescr, v))
 }
 
-// Mtu applies equality check predicate on the "mtu" field. It's identical to MtuEQ.
-func Mtu(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldMtu, v))
-}
-
 // Dot1qSupport applies equality check predicate on the "dot1q_support" field. It's identical to Dot1qSupportEQ.
 func Dot1qSupport(v bool) predicate.IxLan {
 	return predicate.IxLan(sql.FieldEQ(FieldDot1qSupport, v))
 }
 
-// RsAsn applies equality check predicate on the "rs_asn" field. It's identical to RsAsnEQ.
-func RsAsn(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldRsAsn, v))
-}
-
-// ArpSponge applies equality check predicate on the "arp_sponge" field. It's identical to ArpSpongeEQ.
-func ArpSponge(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldArpSponge, v))
+// IxfIxpImportEnabled applies equality check predicate on the "ixf_ixp_import_enabled" field. It's identical to IxfIxpImportEnabledEQ.
+func IxfIxpImportEnabled(v bool) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpImportEnabled, v))
 }
 
 // IxfIxpMemberListURLVisible applies equality check predicate on the "ixf_ixp_member_list_url_visible" field. It's identical to IxfIxpMemberListURLVisibleEQ.
@@ -95,9 +85,19 @@ func IxfIxpMemberListURLVisible(v string) predicate.IxLan {
 	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpMemberListURLVisible, v))
 }
 
-// IxfIxpImportEnabled applies equality check predicate on the "ixf_ixp_import_enabled" field. It's identical to IxfIxpImportEnabledEQ.
-func IxfIxpImportEnabled(v bool) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpImportEnabled, v))
+// Mtu applies equality check predicate on the "mtu" field. It's identical to MtuEQ.
+func Mtu(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldMtu, v))
+}
+
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldName, v))
+}
+
+// RsAsn applies equality check predicate on the "rs_asn" field. It's identical to RsAsnEQ.
+func RsAsn(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldRsAsn, v))
 }
 
 // Created applies equality check predicate on the "created" field. It's identical to CreatedEQ.
@@ -143,256 +143,6 @@ func IxIDIsNil() predicate.IxLan {
 // IxIDNotNil applies the NotNil predicate on the "ix_id" field.
 func IxIDNotNil() predicate.IxLan {
 	return predicate.IxLan(sql.FieldNotNull(FieldIxID))
-}
-
-// NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldName, v))
-}
-
-// NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNEQ(FieldName, v))
-}
-
-// NameIn applies the In predicate on the "name" field.
-func NameIn(vs ...string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldIn(FieldName, vs...))
-}
-
-// NameNotIn applies the NotIn predicate on the "name" field.
-func NameNotIn(vs ...string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNotIn(FieldName, vs...))
-}
-
-// NameGT applies the GT predicate on the "name" field.
-func NameGT(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldGT(FieldName, v))
-}
-
-// NameGTE applies the GTE predicate on the "name" field.
-func NameGTE(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldGTE(FieldName, v))
-}
-
-// NameLT applies the LT predicate on the "name" field.
-func NameLT(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldLT(FieldName, v))
-}
-
-// NameLTE applies the LTE predicate on the "name" field.
-func NameLTE(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldLTE(FieldName, v))
-}
-
-// NameContains applies the Contains predicate on the "name" field.
-func NameContains(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldContains(FieldName, v))
-}
-
-// NameHasPrefix applies the HasPrefix predicate on the "name" field.
-func NameHasPrefix(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldHasPrefix(FieldName, v))
-}
-
-// NameHasSuffix applies the HasSuffix predicate on the "name" field.
-func NameHasSuffix(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldHasSuffix(FieldName, v))
-}
-
-// NameIsNil applies the IsNil predicate on the "name" field.
-func NameIsNil() predicate.IxLan {
-	return predicate.IxLan(sql.FieldIsNull(FieldName))
-}
-
-// NameNotNil applies the NotNil predicate on the "name" field.
-func NameNotNil() predicate.IxLan {
-	return predicate.IxLan(sql.FieldNotNull(FieldName))
-}
-
-// NameEqualFold applies the EqualFold predicate on the "name" field.
-func NameEqualFold(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEqualFold(FieldName, v))
-}
-
-// NameContainsFold applies the ContainsFold predicate on the "name" field.
-func NameContainsFold(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldContainsFold(FieldName, v))
-}
-
-// DescrEQ applies the EQ predicate on the "descr" field.
-func DescrEQ(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldDescr, v))
-}
-
-// DescrNEQ applies the NEQ predicate on the "descr" field.
-func DescrNEQ(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNEQ(FieldDescr, v))
-}
-
-// DescrIn applies the In predicate on the "descr" field.
-func DescrIn(vs ...string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldIn(FieldDescr, vs...))
-}
-
-// DescrNotIn applies the NotIn predicate on the "descr" field.
-func DescrNotIn(vs ...string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNotIn(FieldDescr, vs...))
-}
-
-// DescrGT applies the GT predicate on the "descr" field.
-func DescrGT(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldGT(FieldDescr, v))
-}
-
-// DescrGTE applies the GTE predicate on the "descr" field.
-func DescrGTE(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldGTE(FieldDescr, v))
-}
-
-// DescrLT applies the LT predicate on the "descr" field.
-func DescrLT(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldLT(FieldDescr, v))
-}
-
-// DescrLTE applies the LTE predicate on the "descr" field.
-func DescrLTE(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldLTE(FieldDescr, v))
-}
-
-// DescrContains applies the Contains predicate on the "descr" field.
-func DescrContains(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldContains(FieldDescr, v))
-}
-
-// DescrHasPrefix applies the HasPrefix predicate on the "descr" field.
-func DescrHasPrefix(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldHasPrefix(FieldDescr, v))
-}
-
-// DescrHasSuffix applies the HasSuffix predicate on the "descr" field.
-func DescrHasSuffix(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldHasSuffix(FieldDescr, v))
-}
-
-// DescrIsNil applies the IsNil predicate on the "descr" field.
-func DescrIsNil() predicate.IxLan {
-	return predicate.IxLan(sql.FieldIsNull(FieldDescr))
-}
-
-// DescrNotNil applies the NotNil predicate on the "descr" field.
-func DescrNotNil() predicate.IxLan {
-	return predicate.IxLan(sql.FieldNotNull(FieldDescr))
-}
-
-// DescrEqualFold applies the EqualFold predicate on the "descr" field.
-func DescrEqualFold(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEqualFold(FieldDescr, v))
-}
-
-// DescrContainsFold applies the ContainsFold predicate on the "descr" field.
-func DescrContainsFold(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldContainsFold(FieldDescr, v))
-}
-
-// MtuEQ applies the EQ predicate on the "mtu" field.
-func MtuEQ(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldMtu, v))
-}
-
-// MtuNEQ applies the NEQ predicate on the "mtu" field.
-func MtuNEQ(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNEQ(FieldMtu, v))
-}
-
-// MtuIn applies the In predicate on the "mtu" field.
-func MtuIn(vs ...int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldIn(FieldMtu, vs...))
-}
-
-// MtuNotIn applies the NotIn predicate on the "mtu" field.
-func MtuNotIn(vs ...int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNotIn(FieldMtu, vs...))
-}
-
-// MtuGT applies the GT predicate on the "mtu" field.
-func MtuGT(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldGT(FieldMtu, v))
-}
-
-// MtuGTE applies the GTE predicate on the "mtu" field.
-func MtuGTE(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldGTE(FieldMtu, v))
-}
-
-// MtuLT applies the LT predicate on the "mtu" field.
-func MtuLT(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldLT(FieldMtu, v))
-}
-
-// MtuLTE applies the LTE predicate on the "mtu" field.
-func MtuLTE(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldLTE(FieldMtu, v))
-}
-
-// Dot1qSupportEQ applies the EQ predicate on the "dot1q_support" field.
-func Dot1qSupportEQ(v bool) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldDot1qSupport, v))
-}
-
-// Dot1qSupportNEQ applies the NEQ predicate on the "dot1q_support" field.
-func Dot1qSupportNEQ(v bool) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNEQ(FieldDot1qSupport, v))
-}
-
-// RsAsnEQ applies the EQ predicate on the "rs_asn" field.
-func RsAsnEQ(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldRsAsn, v))
-}
-
-// RsAsnNEQ applies the NEQ predicate on the "rs_asn" field.
-func RsAsnNEQ(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNEQ(FieldRsAsn, v))
-}
-
-// RsAsnIn applies the In predicate on the "rs_asn" field.
-func RsAsnIn(vs ...int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldIn(FieldRsAsn, vs...))
-}
-
-// RsAsnNotIn applies the NotIn predicate on the "rs_asn" field.
-func RsAsnNotIn(vs ...int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNotIn(FieldRsAsn, vs...))
-}
-
-// RsAsnGT applies the GT predicate on the "rs_asn" field.
-func RsAsnGT(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldGT(FieldRsAsn, v))
-}
-
-// RsAsnGTE applies the GTE predicate on the "rs_asn" field.
-func RsAsnGTE(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldGTE(FieldRsAsn, v))
-}
-
-// RsAsnLT applies the LT predicate on the "rs_asn" field.
-func RsAsnLT(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldLT(FieldRsAsn, v))
-}
-
-// RsAsnLTE applies the LTE predicate on the "rs_asn" field.
-func RsAsnLTE(v int) predicate.IxLan {
-	return predicate.IxLan(sql.FieldLTE(FieldRsAsn, v))
-}
-
-// RsAsnIsNil applies the IsNil predicate on the "rs_asn" field.
-func RsAsnIsNil() predicate.IxLan {
-	return predicate.IxLan(sql.FieldIsNull(FieldRsAsn))
-}
-
-// RsAsnNotNil applies the NotNil predicate on the "rs_asn" field.
-func RsAsnNotNil() predicate.IxLan {
-	return predicate.IxLan(sql.FieldNotNull(FieldRsAsn))
 }
 
 // ArpSpongeEQ applies the EQ predicate on the "arp_sponge" field.
@@ -470,6 +220,101 @@ func ArpSpongeContainsFold(v string) predicate.IxLan {
 	return predicate.IxLan(sql.FieldContainsFold(FieldArpSponge, v))
 }
 
+// DescrEQ applies the EQ predicate on the "descr" field.
+func DescrEQ(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldDescr, v))
+}
+
+// DescrNEQ applies the NEQ predicate on the "descr" field.
+func DescrNEQ(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNEQ(FieldDescr, v))
+}
+
+// DescrIn applies the In predicate on the "descr" field.
+func DescrIn(vs ...string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldIn(FieldDescr, vs...))
+}
+
+// DescrNotIn applies the NotIn predicate on the "descr" field.
+func DescrNotIn(vs ...string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNotIn(FieldDescr, vs...))
+}
+
+// DescrGT applies the GT predicate on the "descr" field.
+func DescrGT(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldGT(FieldDescr, v))
+}
+
+// DescrGTE applies the GTE predicate on the "descr" field.
+func DescrGTE(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldGTE(FieldDescr, v))
+}
+
+// DescrLT applies the LT predicate on the "descr" field.
+func DescrLT(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldLT(FieldDescr, v))
+}
+
+// DescrLTE applies the LTE predicate on the "descr" field.
+func DescrLTE(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldLTE(FieldDescr, v))
+}
+
+// DescrContains applies the Contains predicate on the "descr" field.
+func DescrContains(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldContains(FieldDescr, v))
+}
+
+// DescrHasPrefix applies the HasPrefix predicate on the "descr" field.
+func DescrHasPrefix(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldHasPrefix(FieldDescr, v))
+}
+
+// DescrHasSuffix applies the HasSuffix predicate on the "descr" field.
+func DescrHasSuffix(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldHasSuffix(FieldDescr, v))
+}
+
+// DescrIsNil applies the IsNil predicate on the "descr" field.
+func DescrIsNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldIsNull(FieldDescr))
+}
+
+// DescrNotNil applies the NotNil predicate on the "descr" field.
+func DescrNotNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldNotNull(FieldDescr))
+}
+
+// DescrEqualFold applies the EqualFold predicate on the "descr" field.
+func DescrEqualFold(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEqualFold(FieldDescr, v))
+}
+
+// DescrContainsFold applies the ContainsFold predicate on the "descr" field.
+func DescrContainsFold(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldContainsFold(FieldDescr, v))
+}
+
+// Dot1qSupportEQ applies the EQ predicate on the "dot1q_support" field.
+func Dot1qSupportEQ(v bool) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldDot1qSupport, v))
+}
+
+// Dot1qSupportNEQ applies the NEQ predicate on the "dot1q_support" field.
+func Dot1qSupportNEQ(v bool) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNEQ(FieldDot1qSupport, v))
+}
+
+// IxfIxpImportEnabledEQ applies the EQ predicate on the "ixf_ixp_import_enabled" field.
+func IxfIxpImportEnabledEQ(v bool) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpImportEnabled, v))
+}
+
+// IxfIxpImportEnabledNEQ applies the NEQ predicate on the "ixf_ixp_import_enabled" field.
+func IxfIxpImportEnabledNEQ(v bool) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNEQ(FieldIxfIxpImportEnabled, v))
+}
+
 // IxfIxpMemberListURLVisibleEQ applies the EQ predicate on the "ixf_ixp_member_list_url_visible" field.
 func IxfIxpMemberListURLVisibleEQ(v string) predicate.IxLan {
 	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpMemberListURLVisible, v))
@@ -525,6 +370,16 @@ func IxfIxpMemberListURLVisibleHasSuffix(v string) predicate.IxLan {
 	return predicate.IxLan(sql.FieldHasSuffix(FieldIxfIxpMemberListURLVisible, v))
 }
 
+// IxfIxpMemberListURLVisibleIsNil applies the IsNil predicate on the "ixf_ixp_member_list_url_visible" field.
+func IxfIxpMemberListURLVisibleIsNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldIsNull(FieldIxfIxpMemberListURLVisible))
+}
+
+// IxfIxpMemberListURLVisibleNotNil applies the NotNil predicate on the "ixf_ixp_member_list_url_visible" field.
+func IxfIxpMemberListURLVisibleNotNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldNotNull(FieldIxfIxpMemberListURLVisible))
+}
+
 // IxfIxpMemberListURLVisibleEqualFold applies the EqualFold predicate on the "ixf_ixp_member_list_url_visible" field.
 func IxfIxpMemberListURLVisibleEqualFold(v string) predicate.IxLan {
 	return predicate.IxLan(sql.FieldEqualFold(FieldIxfIxpMemberListURLVisible, v))
@@ -535,14 +390,179 @@ func IxfIxpMemberListURLVisibleContainsFold(v string) predicate.IxLan {
 	return predicate.IxLan(sql.FieldContainsFold(FieldIxfIxpMemberListURLVisible, v))
 }
 
-// IxfIxpImportEnabledEQ applies the EQ predicate on the "ixf_ixp_import_enabled" field.
-func IxfIxpImportEnabledEQ(v bool) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpImportEnabled, v))
+// MtuEQ applies the EQ predicate on the "mtu" field.
+func MtuEQ(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldMtu, v))
 }
 
-// IxfIxpImportEnabledNEQ applies the NEQ predicate on the "ixf_ixp_import_enabled" field.
-func IxfIxpImportEnabledNEQ(v bool) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNEQ(FieldIxfIxpImportEnabled, v))
+// MtuNEQ applies the NEQ predicate on the "mtu" field.
+func MtuNEQ(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNEQ(FieldMtu, v))
+}
+
+// MtuIn applies the In predicate on the "mtu" field.
+func MtuIn(vs ...int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldIn(FieldMtu, vs...))
+}
+
+// MtuNotIn applies the NotIn predicate on the "mtu" field.
+func MtuNotIn(vs ...int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNotIn(FieldMtu, vs...))
+}
+
+// MtuGT applies the GT predicate on the "mtu" field.
+func MtuGT(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldGT(FieldMtu, v))
+}
+
+// MtuGTE applies the GTE predicate on the "mtu" field.
+func MtuGTE(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldGTE(FieldMtu, v))
+}
+
+// MtuLT applies the LT predicate on the "mtu" field.
+func MtuLT(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldLT(FieldMtu, v))
+}
+
+// MtuLTE applies the LTE predicate on the "mtu" field.
+func MtuLTE(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldLTE(FieldMtu, v))
+}
+
+// MtuIsNil applies the IsNil predicate on the "mtu" field.
+func MtuIsNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldIsNull(FieldMtu))
+}
+
+// MtuNotNil applies the NotNil predicate on the "mtu" field.
+func MtuNotNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldNotNull(FieldMtu))
+}
+
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldName, v))
+}
+
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameIsNil applies the IsNil predicate on the "name" field.
+func NameIsNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldIsNull(FieldName))
+}
+
+// NameNotNil applies the NotNil predicate on the "name" field.
+func NameNotNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldNotNull(FieldName))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldContainsFold(FieldName, v))
+}
+
+// RsAsnEQ applies the EQ predicate on the "rs_asn" field.
+func RsAsnEQ(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldRsAsn, v))
+}
+
+// RsAsnNEQ applies the NEQ predicate on the "rs_asn" field.
+func RsAsnNEQ(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNEQ(FieldRsAsn, v))
+}
+
+// RsAsnIn applies the In predicate on the "rs_asn" field.
+func RsAsnIn(vs ...int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldIn(FieldRsAsn, vs...))
+}
+
+// RsAsnNotIn applies the NotIn predicate on the "rs_asn" field.
+func RsAsnNotIn(vs ...int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNotIn(FieldRsAsn, vs...))
+}
+
+// RsAsnGT applies the GT predicate on the "rs_asn" field.
+func RsAsnGT(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldGT(FieldRsAsn, v))
+}
+
+// RsAsnGTE applies the GTE predicate on the "rs_asn" field.
+func RsAsnGTE(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldGTE(FieldRsAsn, v))
+}
+
+// RsAsnLT applies the LT predicate on the "rs_asn" field.
+func RsAsnLT(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldLT(FieldRsAsn, v))
+}
+
+// RsAsnLTE applies the LTE predicate on the "rs_asn" field.
+func RsAsnLTE(v int) predicate.IxLan {
+	return predicate.IxLan(sql.FieldLTE(FieldRsAsn, v))
+}
+
+// RsAsnIsNil applies the IsNil predicate on the "rs_asn" field.
+func RsAsnIsNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldIsNull(FieldRsAsn))
+}
+
+// RsAsnNotNil applies the NotNil predicate on the "rs_asn" field.
+func RsAsnNotNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldNotNull(FieldRsAsn))
 }
 
 // CreatedEQ applies the EQ predicate on the "created" field.

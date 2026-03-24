@@ -23,77 +23,77 @@ type Network struct {
 	ID int `json:"id,omitempty"`
 	// FK to organization
 	OrgID *int `json:"org_id"`
-	// Network name
-	Name string `json:"name"`
 	// Also known as
 	Aka string `json:"aka"`
-	// Long name
-	NameLong string `json:"name_long"`
-	// Network website URL
-	Website string `json:"website"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media"`
+	// Allow IXP update
+	AllowIxpUpdate bool `json:"allow_ixp_update"`
 	// Autonomous System Number
 	Asn int `json:"asn"`
-	// Looking glass URL
-	LookingGlass string `json:"looking_glass"`
-	// Route server URL
-	RouteServer string `json:"route_server"`
-	// IRR AS-SET
-	IrrAsSet string `json:"irr_as_set"`
-	// Network type
-	InfoType string `json:"info_type"`
-	// Network types (multi-choice)
-	InfoTypes []string `json:"info_types"`
+	// Supports IPv6
+	InfoIpv6 bool `json:"info_ipv6"`
+	// Supports multicast
+	InfoMulticast bool `json:"info_multicast"`
+	// Never via route servers
+	InfoNeverViaRouteServers bool `json:"info_never_via_route_servers"`
 	// IPv4 prefix count
 	InfoPrefixes4 *int `json:"info_prefixes4"`
 	// IPv6 prefix count
 	InfoPrefixes6 *int `json:"info_prefixes6"`
-	// Traffic level
-	InfoTraffic string `json:"info_traffic"`
 	// Traffic ratio
 	InfoRatio string `json:"info_ratio"`
 	// Geographic scope
 	InfoScope string `json:"info_scope"`
+	// Traffic level
+	InfoTraffic string `json:"info_traffic"`
+	// Network type
+	InfoType string `json:"info_type"`
+	// Network types (multi-choice)
+	InfoTypes []string `json:"info_types"`
 	// Supports unicast
 	InfoUnicast bool `json:"info_unicast"`
-	// Supports multicast
-	InfoMulticast bool `json:"info_multicast"`
-	// Supports IPv6
-	InfoIpv6 bool `json:"info_ipv6"`
-	// Never via route servers
-	InfoNeverViaRouteServers bool `json:"info_never_via_route_servers"`
+	// IRR AS-SET
+	IrrAsSet string `json:"irr_as_set"`
+	// Logo URL
+	Logo *string `json:"logo"`
+	// Looking glass URL
+	LookingGlass string `json:"looking_glass"`
+	// Network name
+	Name string `json:"name"`
+	// Long name
+	NameLong string `json:"name_long"`
 	// Notes
 	Notes string `json:"notes"`
-	// Peering policy URL
-	PolicyURL string `json:"policy_url"`
+	// Peering policy contracts
+	PolicyContracts string `json:"policy_contracts"`
 	// General peering policy
 	PolicyGeneral string `json:"policy_general"`
 	// Peering policy locations
 	PolicyLocations string `json:"policy_locations"`
 	// Peering policy ratio requirement
 	PolicyRatio bool `json:"policy_ratio"`
-	// Peering policy contracts
-	PolicyContracts string `json:"policy_contracts"`
-	// Allow IXP update
-	AllowIxpUpdate bool `json:"allow_ixp_update"`
-	// Status dashboard URL
-	StatusDashboard *string `json:"status_dashboard"`
+	// Peering policy URL
+	PolicyURL string `json:"policy_url"`
 	// RIR status
 	RirStatus *string `json:"rir_status"`
 	// RIR status last updated
 	RirStatusUpdated *time.Time `json:"rir_status_updated"`
-	// Logo URL
-	Logo *string `json:"logo"`
-	// Internet exchange count (computed)
+	// Route server URL
+	RouteServer string `json:"route_server"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media"`
+	// Status dashboard URL
+	StatusDashboard *string `json:"status_dashboard"`
+	// Network website URL
+	Website string `json:"website"`
+	// Ix Count (computed)
 	IxCount int `json:"ix_count"`
-	// Facility count (computed)
+	// Fac Count (computed)
 	FacCount int `json:"fac_count"`
-	// Last netixlan update (computed)
+	// Netixlan Updated (computed)
 	NetixlanUpdated *time.Time `json:"netixlan_updated"`
-	// Last netfac update (computed)
+	// Netfac Updated (computed)
 	NetfacUpdated *time.Time `json:"netfac_updated"`
-	// Last POC update (computed)
+	// Poc Updated (computed)
 	PocUpdated *time.Time `json:"poc_updated"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
@@ -109,49 +109,29 @@ type Network struct {
 
 // NetworkEdges holds the relations/edges for other nodes in the graph.
 type NetworkEdges struct {
-	// Organization holds the value of the organization edge.
-	Organization *Organization `json:"organization,omitempty"`
-	// Pocs holds the value of the pocs edge.
-	Pocs []*Poc `json:"pocs,omitempty"`
 	// NetworkFacilities holds the value of the network_facilities edge.
 	NetworkFacilities []*NetworkFacility `json:"network_facilities,omitempty"`
 	// NetworkIxLans holds the value of the network_ix_lans edge.
 	NetworkIxLans []*NetworkIxLan `json:"network_ix_lans,omitempty"`
+	// Organization holds the value of the organization edge.
+	Organization *Organization `json:"organization,omitempty"`
+	// Pocs holds the value of the pocs edge.
+	Pocs []*Poc `json:"pocs,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [4]bool
 	// totalCount holds the count of the edges above.
 	totalCount [4]map[string]int
 
-	namedPocs              map[string][]*Poc
 	namedNetworkFacilities map[string][]*NetworkFacility
 	namedNetworkIxLans     map[string][]*NetworkIxLan
-}
-
-// OrganizationOrErr returns the Organization value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e NetworkEdges) OrganizationOrErr() (*Organization, error) {
-	if e.Organization != nil {
-		return e.Organization, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: organization.Label}
-	}
-	return nil, &NotLoadedError{edge: "organization"}
-}
-
-// PocsOrErr returns the Pocs value or an error if the edge
-// was not loaded in eager-loading.
-func (e NetworkEdges) PocsOrErr() ([]*Poc, error) {
-	if e.loadedTypes[1] {
-		return e.Pocs, nil
-	}
-	return nil, &NotLoadedError{edge: "pocs"}
+	namedPocs              map[string][]*Poc
 }
 
 // NetworkFacilitiesOrErr returns the NetworkFacilities value or an error if the edge
 // was not loaded in eager-loading.
 func (e NetworkEdges) NetworkFacilitiesOrErr() ([]*NetworkFacility, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[0] {
 		return e.NetworkFacilities, nil
 	}
 	return nil, &NotLoadedError{edge: "network_facilities"}
@@ -160,10 +140,30 @@ func (e NetworkEdges) NetworkFacilitiesOrErr() ([]*NetworkFacility, error) {
 // NetworkIxLansOrErr returns the NetworkIxLans value or an error if the edge
 // was not loaded in eager-loading.
 func (e NetworkEdges) NetworkIxLansOrErr() ([]*NetworkIxLan, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[1] {
 		return e.NetworkIxLans, nil
 	}
 	return nil, &NotLoadedError{edge: "network_ix_lans"}
+}
+
+// OrganizationOrErr returns the Organization value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NetworkEdges) OrganizationOrErr() (*Organization, error) {
+	if e.Organization != nil {
+		return e.Organization, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: organization.Label}
+	}
+	return nil, &NotLoadedError{edge: "organization"}
+}
+
+// PocsOrErr returns the Pocs value or an error if the edge
+// was not loaded in eager-loading.
+func (e NetworkEdges) PocsOrErr() ([]*Poc, error) {
+	if e.loadedTypes[3] {
+		return e.Pocs, nil
+	}
+	return nil, &NotLoadedError{edge: "pocs"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -171,13 +171,13 @@ func (*Network) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case network.FieldSocialMedia, network.FieldInfoTypes:
+		case network.FieldInfoTypes, network.FieldSocialMedia:
 			values[i] = new([]byte)
-		case network.FieldInfoUnicast, network.FieldInfoMulticast, network.FieldInfoIpv6, network.FieldInfoNeverViaRouteServers, network.FieldPolicyRatio, network.FieldAllowIxpUpdate:
+		case network.FieldAllowIxpUpdate, network.FieldInfoIpv6, network.FieldInfoMulticast, network.FieldInfoNeverViaRouteServers, network.FieldInfoUnicast, network.FieldPolicyRatio:
 			values[i] = new(sql.NullBool)
 		case network.FieldID, network.FieldOrgID, network.FieldAsn, network.FieldInfoPrefixes4, network.FieldInfoPrefixes6, network.FieldIxCount, network.FieldFacCount:
 			values[i] = new(sql.NullInt64)
-		case network.FieldName, network.FieldAka, network.FieldNameLong, network.FieldWebsite, network.FieldLookingGlass, network.FieldRouteServer, network.FieldIrrAsSet, network.FieldInfoType, network.FieldInfoTraffic, network.FieldInfoRatio, network.FieldInfoScope, network.FieldNotes, network.FieldPolicyURL, network.FieldPolicyGeneral, network.FieldPolicyLocations, network.FieldPolicyContracts, network.FieldStatusDashboard, network.FieldRirStatus, network.FieldLogo, network.FieldStatus:
+		case network.FieldAka, network.FieldInfoRatio, network.FieldInfoScope, network.FieldInfoTraffic, network.FieldInfoType, network.FieldIrrAsSet, network.FieldLogo, network.FieldLookingGlass, network.FieldName, network.FieldNameLong, network.FieldNotes, network.FieldPolicyContracts, network.FieldPolicyGeneral, network.FieldPolicyLocations, network.FieldPolicyURL, network.FieldRirStatus, network.FieldRouteServer, network.FieldStatusDashboard, network.FieldWebsite, network.FieldStatus:
 			values[i] = new(sql.NullString)
 		case network.FieldRirStatusUpdated, network.FieldNetixlanUpdated, network.FieldNetfacUpdated, network.FieldPocUpdated, network.FieldCreated, network.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -209,37 +209,17 @@ func (_m *Network) assignValues(columns []string, values []any) error {
 				_m.OrgID = new(int)
 				*_m.OrgID = int(value.Int64)
 			}
-		case network.FieldName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
-			} else if value.Valid {
-				_m.Name = value.String
-			}
 		case network.FieldAka:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field aka", values[i])
 			} else if value.Valid {
 				_m.Aka = value.String
 			}
-		case network.FieldNameLong:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name_long", values[i])
+		case network.FieldAllowIxpUpdate:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field allow_ixp_update", values[i])
 			} else if value.Valid {
-				_m.NameLong = value.String
-			}
-		case network.FieldWebsite:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field website", values[i])
-			} else if value.Valid {
-				_m.Website = value.String
-			}
-		case network.FieldSocialMedia:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field social_media", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.SocialMedia); err != nil {
-					return fmt.Errorf("unmarshal field social_media: %w", err)
-				}
+				_m.AllowIxpUpdate = value.Bool
 			}
 		case network.FieldAsn:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -247,37 +227,23 @@ func (_m *Network) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Asn = int(value.Int64)
 			}
-		case network.FieldLookingGlass:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field looking_glass", values[i])
+		case network.FieldInfoIpv6:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field info_ipv6", values[i])
 			} else if value.Valid {
-				_m.LookingGlass = value.String
+				_m.InfoIpv6 = value.Bool
 			}
-		case network.FieldRouteServer:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field route_server", values[i])
+		case network.FieldInfoMulticast:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field info_multicast", values[i])
 			} else if value.Valid {
-				_m.RouteServer = value.String
+				_m.InfoMulticast = value.Bool
 			}
-		case network.FieldIrrAsSet:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field irr_as_set", values[i])
+		case network.FieldInfoNeverViaRouteServers:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field info_never_via_route_servers", values[i])
 			} else if value.Valid {
-				_m.IrrAsSet = value.String
-			}
-		case network.FieldInfoType:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field info_type", values[i])
-			} else if value.Valid {
-				_m.InfoType = value.String
-			}
-		case network.FieldInfoTypes:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field info_types", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.InfoTypes); err != nil {
-					return fmt.Errorf("unmarshal field info_types: %w", err)
-				}
+				_m.InfoNeverViaRouteServers = value.Bool
 			}
 		case network.FieldInfoPrefixes4:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -293,12 +259,6 @@ func (_m *Network) assignValues(columns []string, values []any) error {
 				_m.InfoPrefixes6 = new(int)
 				*_m.InfoPrefixes6 = int(value.Int64)
 			}
-		case network.FieldInfoTraffic:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field info_traffic", values[i])
-			} else if value.Valid {
-				_m.InfoTraffic = value.String
-			}
 		case network.FieldInfoRatio:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field info_ratio", values[i])
@@ -311,29 +271,62 @@ func (_m *Network) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.InfoScope = value.String
 			}
+		case network.FieldInfoTraffic:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field info_traffic", values[i])
+			} else if value.Valid {
+				_m.InfoTraffic = value.String
+			}
+		case network.FieldInfoType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field info_type", values[i])
+			} else if value.Valid {
+				_m.InfoType = value.String
+			}
+		case network.FieldInfoTypes:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field info_types", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.InfoTypes); err != nil {
+					return fmt.Errorf("unmarshal field info_types: %w", err)
+				}
+			}
 		case network.FieldInfoUnicast:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field info_unicast", values[i])
 			} else if value.Valid {
 				_m.InfoUnicast = value.Bool
 			}
-		case network.FieldInfoMulticast:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field info_multicast", values[i])
+		case network.FieldIrrAsSet:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field irr_as_set", values[i])
 			} else if value.Valid {
-				_m.InfoMulticast = value.Bool
+				_m.IrrAsSet = value.String
 			}
-		case network.FieldInfoIpv6:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field info_ipv6", values[i])
+		case network.FieldLogo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field logo", values[i])
 			} else if value.Valid {
-				_m.InfoIpv6 = value.Bool
+				_m.Logo = new(string)
+				*_m.Logo = value.String
 			}
-		case network.FieldInfoNeverViaRouteServers:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field info_never_via_route_servers", values[i])
+		case network.FieldLookingGlass:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field looking_glass", values[i])
 			} else if value.Valid {
-				_m.InfoNeverViaRouteServers = value.Bool
+				_m.LookingGlass = value.String
+			}
+		case network.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				_m.Name = value.String
+			}
+		case network.FieldNameLong:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_long", values[i])
+			} else if value.Valid {
+				_m.NameLong = value.String
 			}
 		case network.FieldNotes:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -341,11 +334,11 @@ func (_m *Network) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Notes = value.String
 			}
-		case network.FieldPolicyURL:
+		case network.FieldPolicyContracts:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field policy_url", values[i])
+				return fmt.Errorf("unexpected type %T for field policy_contracts", values[i])
 			} else if value.Valid {
-				_m.PolicyURL = value.String
+				_m.PolicyContracts = value.String
 			}
 		case network.FieldPolicyGeneral:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -365,24 +358,11 @@ func (_m *Network) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.PolicyRatio = value.Bool
 			}
-		case network.FieldPolicyContracts:
+		case network.FieldPolicyURL:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field policy_contracts", values[i])
+				return fmt.Errorf("unexpected type %T for field policy_url", values[i])
 			} else if value.Valid {
-				_m.PolicyContracts = value.String
-			}
-		case network.FieldAllowIxpUpdate:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field allow_ixp_update", values[i])
-			} else if value.Valid {
-				_m.AllowIxpUpdate = value.Bool
-			}
-		case network.FieldStatusDashboard:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field status_dashboard", values[i])
-			} else if value.Valid {
-				_m.StatusDashboard = new(string)
-				*_m.StatusDashboard = value.String
+				_m.PolicyURL = value.String
 			}
 		case network.FieldRirStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -398,12 +378,32 @@ func (_m *Network) assignValues(columns []string, values []any) error {
 				_m.RirStatusUpdated = new(time.Time)
 				*_m.RirStatusUpdated = value.Time
 			}
-		case network.FieldLogo:
+		case network.FieldRouteServer:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field logo", values[i])
+				return fmt.Errorf("unexpected type %T for field route_server", values[i])
 			} else if value.Valid {
-				_m.Logo = new(string)
-				*_m.Logo = value.String
+				_m.RouteServer = value.String
+			}
+		case network.FieldSocialMedia:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field social_media", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.SocialMedia); err != nil {
+					return fmt.Errorf("unmarshal field social_media: %w", err)
+				}
+			}
+		case network.FieldStatusDashboard:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field status_dashboard", values[i])
+			} else if value.Valid {
+				_m.StatusDashboard = new(string)
+				*_m.StatusDashboard = value.String
+			}
+		case network.FieldWebsite:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field website", values[i])
+			} else if value.Valid {
+				_m.Website = value.String
 			}
 		case network.FieldIxCount:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -469,16 +469,6 @@ func (_m *Network) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryOrganization queries the "organization" edge of the Network entity.
-func (_m *Network) QueryOrganization() *OrganizationQuery {
-	return NewNetworkClient(_m.config).QueryOrganization(_m)
-}
-
-// QueryPocs queries the "pocs" edge of the Network entity.
-func (_m *Network) QueryPocs() *PocQuery {
-	return NewNetworkClient(_m.config).QueryPocs(_m)
-}
-
 // QueryNetworkFacilities queries the "network_facilities" edge of the Network entity.
 func (_m *Network) QueryNetworkFacilities() *NetworkFacilityQuery {
 	return NewNetworkClient(_m.config).QueryNetworkFacilities(_m)
@@ -487,6 +477,16 @@ func (_m *Network) QueryNetworkFacilities() *NetworkFacilityQuery {
 // QueryNetworkIxLans queries the "network_ix_lans" edge of the Network entity.
 func (_m *Network) QueryNetworkIxLans() *NetworkIxLanQuery {
 	return NewNetworkClient(_m.config).QueryNetworkIxLans(_m)
+}
+
+// QueryOrganization queries the "organization" edge of the Network entity.
+func (_m *Network) QueryOrganization() *OrganizationQuery {
+	return NewNetworkClient(_m.config).QueryOrganization(_m)
+}
+
+// QueryPocs queries the "pocs" edge of the Network entity.
+func (_m *Network) QueryPocs() *PocQuery {
+	return NewNetworkClient(_m.config).QueryPocs(_m)
 }
 
 // Update returns a builder for updating this Network.
@@ -517,38 +517,23 @@ func (_m *Network) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(_m.Name)
-	builder.WriteString(", ")
 	builder.WriteString("aka=")
 	builder.WriteString(_m.Aka)
 	builder.WriteString(", ")
-	builder.WriteString("name_long=")
-	builder.WriteString(_m.NameLong)
-	builder.WriteString(", ")
-	builder.WriteString("website=")
-	builder.WriteString(_m.Website)
-	builder.WriteString(", ")
-	builder.WriteString("social_media=")
-	builder.WriteString(fmt.Sprintf("%v", _m.SocialMedia))
+	builder.WriteString("allow_ixp_update=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AllowIxpUpdate))
 	builder.WriteString(", ")
 	builder.WriteString("asn=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Asn))
 	builder.WriteString(", ")
-	builder.WriteString("looking_glass=")
-	builder.WriteString(_m.LookingGlass)
+	builder.WriteString("info_ipv6=")
+	builder.WriteString(fmt.Sprintf("%v", _m.InfoIpv6))
 	builder.WriteString(", ")
-	builder.WriteString("route_server=")
-	builder.WriteString(_m.RouteServer)
+	builder.WriteString("info_multicast=")
+	builder.WriteString(fmt.Sprintf("%v", _m.InfoMulticast))
 	builder.WriteString(", ")
-	builder.WriteString("irr_as_set=")
-	builder.WriteString(_m.IrrAsSet)
-	builder.WriteString(", ")
-	builder.WriteString("info_type=")
-	builder.WriteString(_m.InfoType)
-	builder.WriteString(", ")
-	builder.WriteString("info_types=")
-	builder.WriteString(fmt.Sprintf("%v", _m.InfoTypes))
+	builder.WriteString("info_never_via_route_servers=")
+	builder.WriteString(fmt.Sprintf("%v", _m.InfoNeverViaRouteServers))
 	builder.WriteString(", ")
 	if v := _m.InfoPrefixes4; v != nil {
 		builder.WriteString("info_prefixes4=")
@@ -560,32 +545,46 @@ func (_m *Network) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("info_traffic=")
-	builder.WriteString(_m.InfoTraffic)
-	builder.WriteString(", ")
 	builder.WriteString("info_ratio=")
 	builder.WriteString(_m.InfoRatio)
 	builder.WriteString(", ")
 	builder.WriteString("info_scope=")
 	builder.WriteString(_m.InfoScope)
 	builder.WriteString(", ")
+	builder.WriteString("info_traffic=")
+	builder.WriteString(_m.InfoTraffic)
+	builder.WriteString(", ")
+	builder.WriteString("info_type=")
+	builder.WriteString(_m.InfoType)
+	builder.WriteString(", ")
+	builder.WriteString("info_types=")
+	builder.WriteString(fmt.Sprintf("%v", _m.InfoTypes))
+	builder.WriteString(", ")
 	builder.WriteString("info_unicast=")
 	builder.WriteString(fmt.Sprintf("%v", _m.InfoUnicast))
 	builder.WriteString(", ")
-	builder.WriteString("info_multicast=")
-	builder.WriteString(fmt.Sprintf("%v", _m.InfoMulticast))
+	builder.WriteString("irr_as_set=")
+	builder.WriteString(_m.IrrAsSet)
 	builder.WriteString(", ")
-	builder.WriteString("info_ipv6=")
-	builder.WriteString(fmt.Sprintf("%v", _m.InfoIpv6))
+	if v := _m.Logo; v != nil {
+		builder.WriteString("logo=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
-	builder.WriteString("info_never_via_route_servers=")
-	builder.WriteString(fmt.Sprintf("%v", _m.InfoNeverViaRouteServers))
+	builder.WriteString("looking_glass=")
+	builder.WriteString(_m.LookingGlass)
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("name_long=")
+	builder.WriteString(_m.NameLong)
 	builder.WriteString(", ")
 	builder.WriteString("notes=")
 	builder.WriteString(_m.Notes)
 	builder.WriteString(", ")
-	builder.WriteString("policy_url=")
-	builder.WriteString(_m.PolicyURL)
+	builder.WriteString("policy_contracts=")
+	builder.WriteString(_m.PolicyContracts)
 	builder.WriteString(", ")
 	builder.WriteString("policy_general=")
 	builder.WriteString(_m.PolicyGeneral)
@@ -596,16 +595,8 @@ func (_m *Network) String() string {
 	builder.WriteString("policy_ratio=")
 	builder.WriteString(fmt.Sprintf("%v", _m.PolicyRatio))
 	builder.WriteString(", ")
-	builder.WriteString("policy_contracts=")
-	builder.WriteString(_m.PolicyContracts)
-	builder.WriteString(", ")
-	builder.WriteString("allow_ixp_update=")
-	builder.WriteString(fmt.Sprintf("%v", _m.AllowIxpUpdate))
-	builder.WriteString(", ")
-	if v := _m.StatusDashboard; v != nil {
-		builder.WriteString("status_dashboard=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("policy_url=")
+	builder.WriteString(_m.PolicyURL)
 	builder.WriteString(", ")
 	if v := _m.RirStatus; v != nil {
 		builder.WriteString("rir_status=")
@@ -617,10 +608,19 @@ func (_m *Network) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	if v := _m.Logo; v != nil {
-		builder.WriteString("logo=")
+	builder.WriteString("route_server=")
+	builder.WriteString(_m.RouteServer)
+	builder.WriteString(", ")
+	builder.WriteString("social_media=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SocialMedia))
+	builder.WriteString(", ")
+	if v := _m.StatusDashboard; v != nil {
+		builder.WriteString("status_dashboard=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("website=")
+	builder.WriteString(_m.Website)
 	builder.WriteString(", ")
 	builder.WriteString("ix_count=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IxCount))
@@ -653,30 +653,6 @@ func (_m *Network) String() string {
 	builder.WriteString(_m.Status)
 	builder.WriteByte(')')
 	return builder.String()
-}
-
-// NamedPocs returns the Pocs named value or an error if the edge was not
-// loaded in eager-loading with this name.
-func (_m *Network) NamedPocs(name string) ([]*Poc, error) {
-	if _m.Edges.namedPocs == nil {
-		return nil, &NotLoadedError{edge: name}
-	}
-	nodes, ok := _m.Edges.namedPocs[name]
-	if !ok {
-		return nil, &NotLoadedError{edge: name}
-	}
-	return nodes, nil
-}
-
-func (_m *Network) appendNamedPocs(name string, edges ...*Poc) {
-	if _m.Edges.namedPocs == nil {
-		_m.Edges.namedPocs = make(map[string][]*Poc)
-	}
-	if len(edges) == 0 {
-		_m.Edges.namedPocs[name] = []*Poc{}
-	} else {
-		_m.Edges.namedPocs[name] = append(_m.Edges.namedPocs[name], edges...)
-	}
 }
 
 // NamedNetworkFacilities returns the NetworkFacilities named value or an error if the edge was not
@@ -724,6 +700,30 @@ func (_m *Network) appendNamedNetworkIxLans(name string, edges ...*NetworkIxLan)
 		_m.Edges.namedNetworkIxLans[name] = []*NetworkIxLan{}
 	} else {
 		_m.Edges.namedNetworkIxLans[name] = append(_m.Edges.namedNetworkIxLans[name], edges...)
+	}
+}
+
+// NamedPocs returns the Pocs named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (_m *Network) NamedPocs(name string) ([]*Poc, error) {
+	if _m.Edges.namedPocs == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := _m.Edges.namedPocs[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (_m *Network) appendNamedPocs(name string, edges ...*Poc) {
+	if _m.Edges.namedPocs == nil {
+		_m.Edges.namedPocs = make(map[string][]*Poc)
+	}
+	if len(edges) == 0 {
+		_m.Edges.namedPocs[name] = []*Poc{}
+	} else {
+		_m.Edges.namedPocs[name] = append(_m.Edges.namedPocs[name], edges...)
 	}
 }
 

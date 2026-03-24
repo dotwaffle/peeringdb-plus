@@ -30,12 +30,9 @@ jobs:
 
       - name: Check for generated code drift
         run: |
-          # Only check ent codegen drift; schema generation (./schema) is excluded
-          # because pdb-schema-generate has known issues with edge relationships
-          # and annotations that produce non-idempotent output.
-          go generate ./ent
+          go generate ./ent ./schema
           if ! git diff --exit-code; then
-            echo "::error::Generated code is out of date. Run 'go generate ./ent' and commit the changes."
+            echo "::error::Generated code is out of date. Run 'go generate ./ent ./schema' and commit the changes."
             exit 1
           fi
 

@@ -24,8 +24,8 @@ type NetworkIxLanQuery struct {
 	order       []networkixlan.OrderOption
 	inters      []Interceptor
 	predicates  []predicate.NetworkIxLan
-	withNetwork *NetworkQuery
 	withIxLan   *IxLanQuery
+	withNetwork *NetworkQuery
 	modifiers   []func(*sql.Selector)
 	loadTotal   []func(context.Context, []*NetworkIxLan) error
 	// intermediate query (i.e. traversal path).
@@ -64,28 +64,6 @@ func (_q *NetworkIxLanQuery) Order(o ...networkixlan.OrderOption) *NetworkIxLanQ
 	return _q
 }
 
-// QueryNetwork chains the current query on the "network" edge.
-func (_q *NetworkIxLanQuery) QueryNetwork() *NetworkQuery {
-	query := (&NetworkClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(networkixlan.Table, networkixlan.FieldID, selector),
-			sqlgraph.To(network.Table, network.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, networkixlan.NetworkTable, networkixlan.NetworkColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
 // QueryIxLan chains the current query on the "ix_lan" edge.
 func (_q *NetworkIxLanQuery) QueryIxLan() *IxLanQuery {
 	query := (&IxLanClient{config: _q.config}).Query()
@@ -101,6 +79,28 @@ func (_q *NetworkIxLanQuery) QueryIxLan() *IxLanQuery {
 			sqlgraph.From(networkixlan.Table, networkixlan.FieldID, selector),
 			sqlgraph.To(ixlan.Table, ixlan.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, networkixlan.IxLanTable, networkixlan.IxLanColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryNetwork chains the current query on the "network" edge.
+func (_q *NetworkIxLanQuery) QueryNetwork() *NetworkQuery {
+	query := (&NetworkClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(networkixlan.Table, networkixlan.FieldID, selector),
+			sqlgraph.To(network.Table, network.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, networkixlan.NetworkTable, networkixlan.NetworkColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -300,23 +300,12 @@ func (_q *NetworkIxLanQuery) Clone() *NetworkIxLanQuery {
 		order:       append([]networkixlan.OrderOption{}, _q.order...),
 		inters:      append([]Interceptor{}, _q.inters...),
 		predicates:  append([]predicate.NetworkIxLan{}, _q.predicates...),
-		withNetwork: _q.withNetwork.Clone(),
 		withIxLan:   _q.withIxLan.Clone(),
+		withNetwork: _q.withNetwork.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
-}
-
-// WithNetwork tells the query-builder to eager-load the nodes that are connected to
-// the "network" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *NetworkIxLanQuery) WithNetwork(opts ...func(*NetworkQuery)) *NetworkIxLanQuery {
-	query := (&NetworkClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withNetwork = query
-	return _q
 }
 
 // WithIxLan tells the query-builder to eager-load the nodes that are connected to
@@ -330,18 +319,29 @@ func (_q *NetworkIxLanQuery) WithIxLan(opts ...func(*IxLanQuery)) *NetworkIxLanQ
 	return _q
 }
 
+// WithNetwork tells the query-builder to eager-load the nodes that are connected to
+// the "network" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *NetworkIxLanQuery) WithNetwork(opts ...func(*NetworkQuery)) *NetworkIxLanQuery {
+	query := (&NetworkClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withNetwork = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
 // Example:
 //
 //	var v []struct {
-//		NetID int `json:"net_id"`
+//		IxSideID int `json:"ix_side_id"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.NetworkIxLan.Query().
-//		GroupBy(networkixlan.FieldNetID).
+//		GroupBy(networkixlan.FieldIxSideID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *NetworkIxLanQuery) GroupBy(field string, fields ...string) *NetworkIxLanGroupBy {
@@ -359,11 +359,11 @@ func (_q *NetworkIxLanQuery) GroupBy(field string, fields ...string) *NetworkIxL
 // Example:
 //
 //	var v []struct {
-//		NetID int `json:"net_id"`
+//		IxSideID int `json:"ix_side_id"`
 //	}
 //
 //	client.NetworkIxLan.Query().
-//		Select(networkixlan.FieldNetID).
+//		Select(networkixlan.FieldIxSideID).
 //		Scan(ctx, &v)
 func (_q *NetworkIxLanQuery) Select(fields ...string) *NetworkIxLanSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
@@ -409,8 +409,8 @@ func (_q *NetworkIxLanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 		nodes       = []*NetworkIxLan{}
 		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			_q.withNetwork != nil,
 			_q.withIxLan != nil,
+			_q.withNetwork != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -434,15 +434,15 @@ func (_q *NetworkIxLanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withNetwork; query != nil {
-		if err := _q.loadNetwork(ctx, query, nodes, nil,
-			func(n *NetworkIxLan, e *Network) { n.Edges.Network = e }); err != nil {
-			return nil, err
-		}
-	}
 	if query := _q.withIxLan; query != nil {
 		if err := _q.loadIxLan(ctx, query, nodes, nil,
 			func(n *NetworkIxLan, e *IxLan) { n.Edges.IxLan = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withNetwork; query != nil {
+		if err := _q.loadNetwork(ctx, query, nodes, nil,
+			func(n *NetworkIxLan, e *Network) { n.Edges.Network = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -454,38 +454,6 @@ func (_q *NetworkIxLanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	return nodes, nil
 }
 
-func (_q *NetworkIxLanQuery) loadNetwork(ctx context.Context, query *NetworkQuery, nodes []*NetworkIxLan, init func(*NetworkIxLan), assign func(*NetworkIxLan, *Network)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*NetworkIxLan)
-	for i := range nodes {
-		if nodes[i].NetID == nil {
-			continue
-		}
-		fk := *nodes[i].NetID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(network.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "net_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
 func (_q *NetworkIxLanQuery) loadIxLan(ctx context.Context, query *IxLanQuery, nodes []*NetworkIxLan, init func(*NetworkIxLan), assign func(*NetworkIxLan, *IxLan)) error {
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*NetworkIxLan)
@@ -511,6 +479,38 @@ func (_q *NetworkIxLanQuery) loadIxLan(ctx context.Context, query *IxLanQuery, n
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "ixlan_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *NetworkIxLanQuery) loadNetwork(ctx context.Context, query *NetworkQuery, nodes []*NetworkIxLan, init func(*NetworkIxLan), assign func(*NetworkIxLan, *Network)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*NetworkIxLan)
+	for i := range nodes {
+		if nodes[i].NetID == nil {
+			continue
+		}
+		fk := *nodes[i].NetID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(network.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "net_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -547,11 +547,11 @@ func (_q *NetworkIxLanQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if _q.withNetwork != nil {
-			_spec.Node.AddColumnOnce(networkixlan.FieldNetID)
-		}
 		if _q.withIxLan != nil {
 			_spec.Node.AddColumnOnce(networkixlan.FieldIxlanID)
+		}
+		if _q.withNetwork != nil {
+			_spec.Node.AddColumnOnce(networkixlan.FieldNetID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

@@ -39,16 +39,58 @@ func (_c *CampusCreate) SetNillableOrgID(v *int) *CampusCreate {
 	return _c
 }
 
-// SetOrgName sets the "org_name" field.
-func (_c *CampusCreate) SetOrgName(v string) *CampusCreate {
-	_c.mutation.SetOrgName(v)
+// SetAka sets the "aka" field.
+func (_c *CampusCreate) SetAka(v string) *CampusCreate {
+	_c.mutation.SetAka(v)
 	return _c
 }
 
-// SetNillableOrgName sets the "org_name" field if the given value is not nil.
-func (_c *CampusCreate) SetNillableOrgName(v *string) *CampusCreate {
+// SetNillableAka sets the "aka" field if the given value is not nil.
+func (_c *CampusCreate) SetNillableAka(v *string) *CampusCreate {
 	if v != nil {
-		_c.SetOrgName(*v)
+		_c.SetAka(*v)
+	}
+	return _c
+}
+
+// SetCity sets the "city" field.
+func (_c *CampusCreate) SetCity(v string) *CampusCreate {
+	_c.mutation.SetCity(v)
+	return _c
+}
+
+// SetNillableCity sets the "city" field if the given value is not nil.
+func (_c *CampusCreate) SetNillableCity(v *string) *CampusCreate {
+	if v != nil {
+		_c.SetCity(*v)
+	}
+	return _c
+}
+
+// SetCountry sets the "country" field.
+func (_c *CampusCreate) SetCountry(v string) *CampusCreate {
+	_c.mutation.SetCountry(v)
+	return _c
+}
+
+// SetNillableCountry sets the "country" field if the given value is not nil.
+func (_c *CampusCreate) SetNillableCountry(v *string) *CampusCreate {
+	if v != nil {
+		_c.SetCountry(*v)
+	}
+	return _c
+}
+
+// SetLogo sets the "logo" field.
+func (_c *CampusCreate) SetLogo(v string) *CampusCreate {
+	_c.mutation.SetLogo(v)
+	return _c
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_c *CampusCreate) SetNillableLogo(v *string) *CampusCreate {
+	if v != nil {
+		_c.SetLogo(*v)
 	}
 	return _c
 }
@@ -73,16 +115,36 @@ func (_c *CampusCreate) SetNillableNameLong(v *string) *CampusCreate {
 	return _c
 }
 
-// SetAka sets the "aka" field.
-func (_c *CampusCreate) SetAka(v string) *CampusCreate {
-	_c.mutation.SetAka(v)
+// SetNotes sets the "notes" field.
+func (_c *CampusCreate) SetNotes(v string) *CampusCreate {
+	_c.mutation.SetNotes(v)
 	return _c
 }
 
-// SetNillableAka sets the "aka" field if the given value is not nil.
-func (_c *CampusCreate) SetNillableAka(v *string) *CampusCreate {
+// SetNillableNotes sets the "notes" field if the given value is not nil.
+func (_c *CampusCreate) SetNillableNotes(v *string) *CampusCreate {
 	if v != nil {
-		_c.SetAka(*v)
+		_c.SetNotes(*v)
+	}
+	return _c
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (_c *CampusCreate) SetSocialMedia(v []schema.SocialMedia) *CampusCreate {
+	_c.mutation.SetSocialMedia(v)
+	return _c
+}
+
+// SetState sets the "state" field.
+func (_c *CampusCreate) SetState(v string) *CampusCreate {
+	_c.mutation.SetState(v)
+	return _c
+}
+
+// SetNillableState sets the "state" field if the given value is not nil.
+func (_c *CampusCreate) SetNillableState(v *string) *CampusCreate {
+	if v != nil {
+		_c.SetState(*v)
 	}
 	return _c
 }
@@ -101,54 +163,6 @@ func (_c *CampusCreate) SetNillableWebsite(v *string) *CampusCreate {
 	return _c
 }
 
-// SetSocialMedia sets the "social_media" field.
-func (_c *CampusCreate) SetSocialMedia(v []schema.SocialMedia) *CampusCreate {
-	_c.mutation.SetSocialMedia(v)
-	return _c
-}
-
-// SetNotes sets the "notes" field.
-func (_c *CampusCreate) SetNotes(v string) *CampusCreate {
-	_c.mutation.SetNotes(v)
-	return _c
-}
-
-// SetNillableNotes sets the "notes" field if the given value is not nil.
-func (_c *CampusCreate) SetNillableNotes(v *string) *CampusCreate {
-	if v != nil {
-		_c.SetNotes(*v)
-	}
-	return _c
-}
-
-// SetCountry sets the "country" field.
-func (_c *CampusCreate) SetCountry(v string) *CampusCreate {
-	_c.mutation.SetCountry(v)
-	return _c
-}
-
-// SetNillableCountry sets the "country" field if the given value is not nil.
-func (_c *CampusCreate) SetNillableCountry(v *string) *CampusCreate {
-	if v != nil {
-		_c.SetCountry(*v)
-	}
-	return _c
-}
-
-// SetCity sets the "city" field.
-func (_c *CampusCreate) SetCity(v string) *CampusCreate {
-	_c.mutation.SetCity(v)
-	return _c
-}
-
-// SetNillableCity sets the "city" field if the given value is not nil.
-func (_c *CampusCreate) SetNillableCity(v *string) *CampusCreate {
-	if v != nil {
-		_c.SetCity(*v)
-	}
-	return _c
-}
-
 // SetZipcode sets the "zipcode" field.
 func (_c *CampusCreate) SetZipcode(v string) *CampusCreate {
 	_c.mutation.SetZipcode(v)
@@ -163,30 +177,16 @@ func (_c *CampusCreate) SetNillableZipcode(v *string) *CampusCreate {
 	return _c
 }
 
-// SetState sets the "state" field.
-func (_c *CampusCreate) SetState(v string) *CampusCreate {
-	_c.mutation.SetState(v)
+// SetOrgName sets the "org_name" field.
+func (_c *CampusCreate) SetOrgName(v string) *CampusCreate {
+	_c.mutation.SetOrgName(v)
 	return _c
 }
 
-// SetNillableState sets the "state" field if the given value is not nil.
-func (_c *CampusCreate) SetNillableState(v *string) *CampusCreate {
+// SetNillableOrgName sets the "org_name" field if the given value is not nil.
+func (_c *CampusCreate) SetNillableOrgName(v *string) *CampusCreate {
 	if v != nil {
-		_c.SetState(*v)
-	}
-	return _c
-}
-
-// SetLogo sets the "logo" field.
-func (_c *CampusCreate) SetLogo(v string) *CampusCreate {
-	_c.mutation.SetLogo(v)
-	return _c
-}
-
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_c *CampusCreate) SetNillableLogo(v *string) *CampusCreate {
-	if v != nil {
-		_c.SetLogo(*v)
+		_c.SetOrgName(*v)
 	}
 	return _c
 }
@@ -223,6 +223,21 @@ func (_c *CampusCreate) SetID(v int) *CampusCreate {
 	return _c
 }
 
+// AddFacilityIDs adds the "facilities" edge to the Facility entity by IDs.
+func (_c *CampusCreate) AddFacilityIDs(ids ...int) *CampusCreate {
+	_c.mutation.AddFacilityIDs(ids...)
+	return _c
+}
+
+// AddFacilities adds the "facilities" edges to the Facility entity.
+func (_c *CampusCreate) AddFacilities(v ...*Facility) *CampusCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddFacilityIDs(ids...)
+}
+
 // SetOrganizationID sets the "organization" edge to the Organization entity by ID.
 func (_c *CampusCreate) SetOrganizationID(id int) *CampusCreate {
 	_c.mutation.SetOrganizationID(id)
@@ -240,21 +255,6 @@ func (_c *CampusCreate) SetNillableOrganizationID(id *int) *CampusCreate {
 // SetOrganization sets the "organization" edge to the Organization entity.
 func (_c *CampusCreate) SetOrganization(v *Organization) *CampusCreate {
 	return _c.SetOrganizationID(v.ID)
-}
-
-// AddFacilityIDs adds the "facilities" edge to the Facility entity by IDs.
-func (_c *CampusCreate) AddFacilityIDs(ids ...int) *CampusCreate {
-	_c.mutation.AddFacilityIDs(ids...)
-	return _c
-}
-
-// AddFacilities adds the "facilities" edges to the Facility entity.
-func (_c *CampusCreate) AddFacilities(v ...*Facility) *CampusCreate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddFacilityIDs(ids...)
 }
 
 // Mutation returns the CampusMutation object of the builder.
@@ -294,29 +294,33 @@ func (_c *CampusCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *CampusCreate) defaults() error {
-	if _, ok := _c.mutation.Website(); !ok {
-		v := campus.DefaultWebsite
-		_c.mutation.SetWebsite(v)
-	}
-	if _, ok := _c.mutation.Notes(); !ok {
-		v := campus.DefaultNotes
-		_c.mutation.SetNotes(v)
+	if _, ok := _c.mutation.City(); !ok {
+		v := campus.DefaultCity
+		_c.mutation.SetCity(v)
 	}
 	if _, ok := _c.mutation.Country(); !ok {
 		v := campus.DefaultCountry
 		_c.mutation.SetCountry(v)
 	}
-	if _, ok := _c.mutation.City(); !ok {
-		v := campus.DefaultCity
-		_c.mutation.SetCity(v)
+	if _, ok := _c.mutation.Notes(); !ok {
+		v := campus.DefaultNotes
+		_c.mutation.SetNotes(v)
+	}
+	if _, ok := _c.mutation.State(); !ok {
+		v := campus.DefaultState
+		_c.mutation.SetState(v)
+	}
+	if _, ok := _c.mutation.Website(); !ok {
+		v := campus.DefaultWebsite
+		_c.mutation.SetWebsite(v)
 	}
 	if _, ok := _c.mutation.Zipcode(); !ok {
 		v := campus.DefaultZipcode
 		_c.mutation.SetZipcode(v)
 	}
-	if _, ok := _c.mutation.State(); !ok {
-		v := campus.DefaultState
-		_c.mutation.SetState(v)
+	if _, ok := _c.mutation.OrgName(); !ok {
+		v := campus.DefaultOrgName
+		_c.mutation.SetOrgName(v)
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := campus.DefaultStatus
@@ -327,6 +331,11 @@ func (_c *CampusCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *CampusCreate) check() error {
+	if v, ok := _c.mutation.Aka(); ok {
+		if err := campus.AkaValidator(v); err != nil {
+			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Campus.aka": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Campus.name"`)}
 	}
@@ -338,11 +347,6 @@ func (_c *CampusCreate) check() error {
 	if v, ok := _c.mutation.NameLong(); ok {
 		if err := campus.NameLongValidator(v); err != nil {
 			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Campus.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.Aka(); ok {
-		if err := campus.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Campus.aka": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Created(); !ok {
@@ -397,9 +401,21 @@ func (_c *CampusCreate) createSpec() (*Campus, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.OrgName(); ok {
-		_spec.SetField(campus.FieldOrgName, field.TypeString, value)
-		_node.OrgName = value
+	if value, ok := _c.mutation.Aka(); ok {
+		_spec.SetField(campus.FieldAka, field.TypeString, value)
+		_node.Aka = &value
+	}
+	if value, ok := _c.mutation.City(); ok {
+		_spec.SetField(campus.FieldCity, field.TypeString, value)
+		_node.City = value
+	}
+	if value, ok := _c.mutation.Country(); ok {
+		_spec.SetField(campus.FieldCountry, field.TypeString, value)
+		_node.Country = value
+	}
+	if value, ok := _c.mutation.Logo(); ok {
+		_spec.SetField(campus.FieldLogo, field.TypeString, value)
+		_node.Logo = &value
 	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(campus.FieldName, field.TypeString, value)
@@ -409,41 +425,29 @@ func (_c *CampusCreate) createSpec() (*Campus, *sqlgraph.CreateSpec) {
 		_spec.SetField(campus.FieldNameLong, field.TypeString, value)
 		_node.NameLong = &value
 	}
-	if value, ok := _c.mutation.Aka(); ok {
-		_spec.SetField(campus.FieldAka, field.TypeString, value)
-		_node.Aka = &value
-	}
-	if value, ok := _c.mutation.Website(); ok {
-		_spec.SetField(campus.FieldWebsite, field.TypeString, value)
-		_node.Website = value
+	if value, ok := _c.mutation.Notes(); ok {
+		_spec.SetField(campus.FieldNotes, field.TypeString, value)
+		_node.Notes = value
 	}
 	if value, ok := _c.mutation.SocialMedia(); ok {
 		_spec.SetField(campus.FieldSocialMedia, field.TypeJSON, value)
 		_node.SocialMedia = value
 	}
-	if value, ok := _c.mutation.Notes(); ok {
-		_spec.SetField(campus.FieldNotes, field.TypeString, value)
-		_node.Notes = value
+	if value, ok := _c.mutation.State(); ok {
+		_spec.SetField(campus.FieldState, field.TypeString, value)
+		_node.State = value
 	}
-	if value, ok := _c.mutation.Country(); ok {
-		_spec.SetField(campus.FieldCountry, field.TypeString, value)
-		_node.Country = value
-	}
-	if value, ok := _c.mutation.City(); ok {
-		_spec.SetField(campus.FieldCity, field.TypeString, value)
-		_node.City = value
+	if value, ok := _c.mutation.Website(); ok {
+		_spec.SetField(campus.FieldWebsite, field.TypeString, value)
+		_node.Website = value
 	}
 	if value, ok := _c.mutation.Zipcode(); ok {
 		_spec.SetField(campus.FieldZipcode, field.TypeString, value)
 		_node.Zipcode = value
 	}
-	if value, ok := _c.mutation.State(); ok {
-		_spec.SetField(campus.FieldState, field.TypeString, value)
-		_node.State = value
-	}
-	if value, ok := _c.mutation.Logo(); ok {
-		_spec.SetField(campus.FieldLogo, field.TypeString, value)
-		_node.Logo = &value
+	if value, ok := _c.mutation.OrgName(); ok {
+		_spec.SetField(campus.FieldOrgName, field.TypeString, value)
+		_node.OrgName = value
 	}
 	if value, ok := _c.mutation.Created(); ok {
 		_spec.SetField(campus.FieldCreated, field.TypeTime, value)
@@ -456,6 +460,22 @@ func (_c *CampusCreate) createSpec() (*Campus, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(campus.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if nodes := _c.mutation.FacilitiesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campus.FacilitiesTable,
+			Columns: []string{campus.FacilitiesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(facility.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.OrganizationIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -472,22 +492,6 @@ func (_c *CampusCreate) createSpec() (*Campus, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.OrgID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.FacilitiesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   campus.FacilitiesTable,
-			Columns: []string{campus.FacilitiesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(facility.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -560,21 +564,75 @@ func (u *CampusUpsert) ClearOrgID() *CampusUpsert {
 	return u
 }
 
-// SetOrgName sets the "org_name" field.
-func (u *CampusUpsert) SetOrgName(v string) *CampusUpsert {
-	u.Set(campus.FieldOrgName, v)
+// SetAka sets the "aka" field.
+func (u *CampusUpsert) SetAka(v string) *CampusUpsert {
+	u.Set(campus.FieldAka, v)
 	return u
 }
 
-// UpdateOrgName sets the "org_name" field to the value that was provided on create.
-func (u *CampusUpsert) UpdateOrgName() *CampusUpsert {
-	u.SetExcluded(campus.FieldOrgName)
+// UpdateAka sets the "aka" field to the value that was provided on create.
+func (u *CampusUpsert) UpdateAka() *CampusUpsert {
+	u.SetExcluded(campus.FieldAka)
 	return u
 }
 
-// ClearOrgName clears the value of the "org_name" field.
-func (u *CampusUpsert) ClearOrgName() *CampusUpsert {
-	u.SetNull(campus.FieldOrgName)
+// ClearAka clears the value of the "aka" field.
+func (u *CampusUpsert) ClearAka() *CampusUpsert {
+	u.SetNull(campus.FieldAka)
+	return u
+}
+
+// SetCity sets the "city" field.
+func (u *CampusUpsert) SetCity(v string) *CampusUpsert {
+	u.Set(campus.FieldCity, v)
+	return u
+}
+
+// UpdateCity sets the "city" field to the value that was provided on create.
+func (u *CampusUpsert) UpdateCity() *CampusUpsert {
+	u.SetExcluded(campus.FieldCity)
+	return u
+}
+
+// ClearCity clears the value of the "city" field.
+func (u *CampusUpsert) ClearCity() *CampusUpsert {
+	u.SetNull(campus.FieldCity)
+	return u
+}
+
+// SetCountry sets the "country" field.
+func (u *CampusUpsert) SetCountry(v string) *CampusUpsert {
+	u.Set(campus.FieldCountry, v)
+	return u
+}
+
+// UpdateCountry sets the "country" field to the value that was provided on create.
+func (u *CampusUpsert) UpdateCountry() *CampusUpsert {
+	u.SetExcluded(campus.FieldCountry)
+	return u
+}
+
+// ClearCountry clears the value of the "country" field.
+func (u *CampusUpsert) ClearCountry() *CampusUpsert {
+	u.SetNull(campus.FieldCountry)
+	return u
+}
+
+// SetLogo sets the "logo" field.
+func (u *CampusUpsert) SetLogo(v string) *CampusUpsert {
+	u.Set(campus.FieldLogo, v)
+	return u
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *CampusUpsert) UpdateLogo() *CampusUpsert {
+	u.SetExcluded(campus.FieldLogo)
+	return u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *CampusUpsert) ClearLogo() *CampusUpsert {
+	u.SetNull(campus.FieldLogo)
 	return u
 }
 
@@ -608,39 +666,21 @@ func (u *CampusUpsert) ClearNameLong() *CampusUpsert {
 	return u
 }
 
-// SetAka sets the "aka" field.
-func (u *CampusUpsert) SetAka(v string) *CampusUpsert {
-	u.Set(campus.FieldAka, v)
+// SetNotes sets the "notes" field.
+func (u *CampusUpsert) SetNotes(v string) *CampusUpsert {
+	u.Set(campus.FieldNotes, v)
 	return u
 }
 
-// UpdateAka sets the "aka" field to the value that was provided on create.
-func (u *CampusUpsert) UpdateAka() *CampusUpsert {
-	u.SetExcluded(campus.FieldAka)
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *CampusUpsert) UpdateNotes() *CampusUpsert {
+	u.SetExcluded(campus.FieldNotes)
 	return u
 }
 
-// ClearAka clears the value of the "aka" field.
-func (u *CampusUpsert) ClearAka() *CampusUpsert {
-	u.SetNull(campus.FieldAka)
-	return u
-}
-
-// SetWebsite sets the "website" field.
-func (u *CampusUpsert) SetWebsite(v string) *CampusUpsert {
-	u.Set(campus.FieldWebsite, v)
-	return u
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *CampusUpsert) UpdateWebsite() *CampusUpsert {
-	u.SetExcluded(campus.FieldWebsite)
-	return u
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *CampusUpsert) ClearWebsite() *CampusUpsert {
-	u.SetNull(campus.FieldWebsite)
+// ClearNotes clears the value of the "notes" field.
+func (u *CampusUpsert) ClearNotes() *CampusUpsert {
+	u.SetNull(campus.FieldNotes)
 	return u
 }
 
@@ -662,57 +702,39 @@ func (u *CampusUpsert) ClearSocialMedia() *CampusUpsert {
 	return u
 }
 
-// SetNotes sets the "notes" field.
-func (u *CampusUpsert) SetNotes(v string) *CampusUpsert {
-	u.Set(campus.FieldNotes, v)
+// SetState sets the "state" field.
+func (u *CampusUpsert) SetState(v string) *CampusUpsert {
+	u.Set(campus.FieldState, v)
 	return u
 }
 
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *CampusUpsert) UpdateNotes() *CampusUpsert {
-	u.SetExcluded(campus.FieldNotes)
+// UpdateState sets the "state" field to the value that was provided on create.
+func (u *CampusUpsert) UpdateState() *CampusUpsert {
+	u.SetExcluded(campus.FieldState)
 	return u
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (u *CampusUpsert) ClearNotes() *CampusUpsert {
-	u.SetNull(campus.FieldNotes)
+// ClearState clears the value of the "state" field.
+func (u *CampusUpsert) ClearState() *CampusUpsert {
+	u.SetNull(campus.FieldState)
 	return u
 }
 
-// SetCountry sets the "country" field.
-func (u *CampusUpsert) SetCountry(v string) *CampusUpsert {
-	u.Set(campus.FieldCountry, v)
+// SetWebsite sets the "website" field.
+func (u *CampusUpsert) SetWebsite(v string) *CampusUpsert {
+	u.Set(campus.FieldWebsite, v)
 	return u
 }
 
-// UpdateCountry sets the "country" field to the value that was provided on create.
-func (u *CampusUpsert) UpdateCountry() *CampusUpsert {
-	u.SetExcluded(campus.FieldCountry)
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *CampusUpsert) UpdateWebsite() *CampusUpsert {
+	u.SetExcluded(campus.FieldWebsite)
 	return u
 }
 
-// ClearCountry clears the value of the "country" field.
-func (u *CampusUpsert) ClearCountry() *CampusUpsert {
-	u.SetNull(campus.FieldCountry)
-	return u
-}
-
-// SetCity sets the "city" field.
-func (u *CampusUpsert) SetCity(v string) *CampusUpsert {
-	u.Set(campus.FieldCity, v)
-	return u
-}
-
-// UpdateCity sets the "city" field to the value that was provided on create.
-func (u *CampusUpsert) UpdateCity() *CampusUpsert {
-	u.SetExcluded(campus.FieldCity)
-	return u
-}
-
-// ClearCity clears the value of the "city" field.
-func (u *CampusUpsert) ClearCity() *CampusUpsert {
-	u.SetNull(campus.FieldCity)
+// ClearWebsite clears the value of the "website" field.
+func (u *CampusUpsert) ClearWebsite() *CampusUpsert {
+	u.SetNull(campus.FieldWebsite)
 	return u
 }
 
@@ -734,39 +756,21 @@ func (u *CampusUpsert) ClearZipcode() *CampusUpsert {
 	return u
 }
 
-// SetState sets the "state" field.
-func (u *CampusUpsert) SetState(v string) *CampusUpsert {
-	u.Set(campus.FieldState, v)
+// SetOrgName sets the "org_name" field.
+func (u *CampusUpsert) SetOrgName(v string) *CampusUpsert {
+	u.Set(campus.FieldOrgName, v)
 	return u
 }
 
-// UpdateState sets the "state" field to the value that was provided on create.
-func (u *CampusUpsert) UpdateState() *CampusUpsert {
-	u.SetExcluded(campus.FieldState)
+// UpdateOrgName sets the "org_name" field to the value that was provided on create.
+func (u *CampusUpsert) UpdateOrgName() *CampusUpsert {
+	u.SetExcluded(campus.FieldOrgName)
 	return u
 }
 
-// ClearState clears the value of the "state" field.
-func (u *CampusUpsert) ClearState() *CampusUpsert {
-	u.SetNull(campus.FieldState)
-	return u
-}
-
-// SetLogo sets the "logo" field.
-func (u *CampusUpsert) SetLogo(v string) *CampusUpsert {
-	u.Set(campus.FieldLogo, v)
-	return u
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *CampusUpsert) UpdateLogo() *CampusUpsert {
-	u.SetExcluded(campus.FieldLogo)
-	return u
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *CampusUpsert) ClearLogo() *CampusUpsert {
-	u.SetNull(campus.FieldLogo)
+// ClearOrgName clears the value of the "org_name" field.
+func (u *CampusUpsert) ClearOrgName() *CampusUpsert {
+	u.SetNull(campus.FieldOrgName)
 	return u
 }
 
@@ -866,24 +870,87 @@ func (u *CampusUpsertOne) ClearOrgID() *CampusUpsertOne {
 	})
 }
 
-// SetOrgName sets the "org_name" field.
-func (u *CampusUpsertOne) SetOrgName(v string) *CampusUpsertOne {
+// SetAka sets the "aka" field.
+func (u *CampusUpsertOne) SetAka(v string) *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.SetOrgName(v)
+		s.SetAka(v)
 	})
 }
 
-// UpdateOrgName sets the "org_name" field to the value that was provided on create.
-func (u *CampusUpsertOne) UpdateOrgName() *CampusUpsertOne {
+// UpdateAka sets the "aka" field to the value that was provided on create.
+func (u *CampusUpsertOne) UpdateAka() *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.UpdateOrgName()
+		s.UpdateAka()
 	})
 }
 
-// ClearOrgName clears the value of the "org_name" field.
-func (u *CampusUpsertOne) ClearOrgName() *CampusUpsertOne {
+// ClearAka clears the value of the "aka" field.
+func (u *CampusUpsertOne) ClearAka() *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.ClearOrgName()
+		s.ClearAka()
+	})
+}
+
+// SetCity sets the "city" field.
+func (u *CampusUpsertOne) SetCity(v string) *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.SetCity(v)
+	})
+}
+
+// UpdateCity sets the "city" field to the value that was provided on create.
+func (u *CampusUpsertOne) UpdateCity() *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.UpdateCity()
+	})
+}
+
+// ClearCity clears the value of the "city" field.
+func (u *CampusUpsertOne) ClearCity() *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.ClearCity()
+	})
+}
+
+// SetCountry sets the "country" field.
+func (u *CampusUpsertOne) SetCountry(v string) *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.SetCountry(v)
+	})
+}
+
+// UpdateCountry sets the "country" field to the value that was provided on create.
+func (u *CampusUpsertOne) UpdateCountry() *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.UpdateCountry()
+	})
+}
+
+// ClearCountry clears the value of the "country" field.
+func (u *CampusUpsertOne) ClearCountry() *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.ClearCountry()
+	})
+}
+
+// SetLogo sets the "logo" field.
+func (u *CampusUpsertOne) SetLogo(v string) *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.SetLogo(v)
+	})
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *CampusUpsertOne) UpdateLogo() *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.UpdateLogo()
+	})
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *CampusUpsertOne) ClearLogo() *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.ClearLogo()
 	})
 }
 
@@ -922,45 +989,24 @@ func (u *CampusUpsertOne) ClearNameLong() *CampusUpsertOne {
 	})
 }
 
-// SetAka sets the "aka" field.
-func (u *CampusUpsertOne) SetAka(v string) *CampusUpsertOne {
+// SetNotes sets the "notes" field.
+func (u *CampusUpsertOne) SetNotes(v string) *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.SetAka(v)
+		s.SetNotes(v)
 	})
 }
 
-// UpdateAka sets the "aka" field to the value that was provided on create.
-func (u *CampusUpsertOne) UpdateAka() *CampusUpsertOne {
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *CampusUpsertOne) UpdateNotes() *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.UpdateAka()
+		s.UpdateNotes()
 	})
 }
 
-// ClearAka clears the value of the "aka" field.
-func (u *CampusUpsertOne) ClearAka() *CampusUpsertOne {
+// ClearNotes clears the value of the "notes" field.
+func (u *CampusUpsertOne) ClearNotes() *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.ClearAka()
-	})
-}
-
-// SetWebsite sets the "website" field.
-func (u *CampusUpsertOne) SetWebsite(v string) *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.SetWebsite(v)
-	})
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *CampusUpsertOne) UpdateWebsite() *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.UpdateWebsite()
-	})
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *CampusUpsertOne) ClearWebsite() *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.ClearWebsite()
+		s.ClearNotes()
 	})
 }
 
@@ -985,66 +1031,45 @@ func (u *CampusUpsertOne) ClearSocialMedia() *CampusUpsertOne {
 	})
 }
 
-// SetNotes sets the "notes" field.
-func (u *CampusUpsertOne) SetNotes(v string) *CampusUpsertOne {
+// SetState sets the "state" field.
+func (u *CampusUpsertOne) SetState(v string) *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.SetNotes(v)
+		s.SetState(v)
 	})
 }
 
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *CampusUpsertOne) UpdateNotes() *CampusUpsertOne {
+// UpdateState sets the "state" field to the value that was provided on create.
+func (u *CampusUpsertOne) UpdateState() *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.UpdateNotes()
+		s.UpdateState()
 	})
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (u *CampusUpsertOne) ClearNotes() *CampusUpsertOne {
+// ClearState clears the value of the "state" field.
+func (u *CampusUpsertOne) ClearState() *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.ClearNotes()
+		s.ClearState()
 	})
 }
 
-// SetCountry sets the "country" field.
-func (u *CampusUpsertOne) SetCountry(v string) *CampusUpsertOne {
+// SetWebsite sets the "website" field.
+func (u *CampusUpsertOne) SetWebsite(v string) *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.SetCountry(v)
+		s.SetWebsite(v)
 	})
 }
 
-// UpdateCountry sets the "country" field to the value that was provided on create.
-func (u *CampusUpsertOne) UpdateCountry() *CampusUpsertOne {
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *CampusUpsertOne) UpdateWebsite() *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.UpdateCountry()
+		s.UpdateWebsite()
 	})
 }
 
-// ClearCountry clears the value of the "country" field.
-func (u *CampusUpsertOne) ClearCountry() *CampusUpsertOne {
+// ClearWebsite clears the value of the "website" field.
+func (u *CampusUpsertOne) ClearWebsite() *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.ClearCountry()
-	})
-}
-
-// SetCity sets the "city" field.
-func (u *CampusUpsertOne) SetCity(v string) *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.SetCity(v)
-	})
-}
-
-// UpdateCity sets the "city" field to the value that was provided on create.
-func (u *CampusUpsertOne) UpdateCity() *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.UpdateCity()
-	})
-}
-
-// ClearCity clears the value of the "city" field.
-func (u *CampusUpsertOne) ClearCity() *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.ClearCity()
+		s.ClearWebsite()
 	})
 }
 
@@ -1069,45 +1094,24 @@ func (u *CampusUpsertOne) ClearZipcode() *CampusUpsertOne {
 	})
 }
 
-// SetState sets the "state" field.
-func (u *CampusUpsertOne) SetState(v string) *CampusUpsertOne {
+// SetOrgName sets the "org_name" field.
+func (u *CampusUpsertOne) SetOrgName(v string) *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.SetState(v)
+		s.SetOrgName(v)
 	})
 }
 
-// UpdateState sets the "state" field to the value that was provided on create.
-func (u *CampusUpsertOne) UpdateState() *CampusUpsertOne {
+// UpdateOrgName sets the "org_name" field to the value that was provided on create.
+func (u *CampusUpsertOne) UpdateOrgName() *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.UpdateState()
+		s.UpdateOrgName()
 	})
 }
 
-// ClearState clears the value of the "state" field.
-func (u *CampusUpsertOne) ClearState() *CampusUpsertOne {
+// ClearOrgName clears the value of the "org_name" field.
+func (u *CampusUpsertOne) ClearOrgName() *CampusUpsertOne {
 	return u.Update(func(s *CampusUpsert) {
-		s.ClearState()
-	})
-}
-
-// SetLogo sets the "logo" field.
-func (u *CampusUpsertOne) SetLogo(v string) *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.SetLogo(v)
-	})
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *CampusUpsertOne) UpdateLogo() *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.UpdateLogo()
-	})
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *CampusUpsertOne) ClearLogo() *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.ClearLogo()
+		s.ClearOrgName()
 	})
 }
 
@@ -1377,24 +1381,87 @@ func (u *CampusUpsertBulk) ClearOrgID() *CampusUpsertBulk {
 	})
 }
 
-// SetOrgName sets the "org_name" field.
-func (u *CampusUpsertBulk) SetOrgName(v string) *CampusUpsertBulk {
+// SetAka sets the "aka" field.
+func (u *CampusUpsertBulk) SetAka(v string) *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.SetOrgName(v)
+		s.SetAka(v)
 	})
 }
 
-// UpdateOrgName sets the "org_name" field to the value that was provided on create.
-func (u *CampusUpsertBulk) UpdateOrgName() *CampusUpsertBulk {
+// UpdateAka sets the "aka" field to the value that was provided on create.
+func (u *CampusUpsertBulk) UpdateAka() *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.UpdateOrgName()
+		s.UpdateAka()
 	})
 }
 
-// ClearOrgName clears the value of the "org_name" field.
-func (u *CampusUpsertBulk) ClearOrgName() *CampusUpsertBulk {
+// ClearAka clears the value of the "aka" field.
+func (u *CampusUpsertBulk) ClearAka() *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.ClearOrgName()
+		s.ClearAka()
+	})
+}
+
+// SetCity sets the "city" field.
+func (u *CampusUpsertBulk) SetCity(v string) *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.SetCity(v)
+	})
+}
+
+// UpdateCity sets the "city" field to the value that was provided on create.
+func (u *CampusUpsertBulk) UpdateCity() *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.UpdateCity()
+	})
+}
+
+// ClearCity clears the value of the "city" field.
+func (u *CampusUpsertBulk) ClearCity() *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.ClearCity()
+	})
+}
+
+// SetCountry sets the "country" field.
+func (u *CampusUpsertBulk) SetCountry(v string) *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.SetCountry(v)
+	})
+}
+
+// UpdateCountry sets the "country" field to the value that was provided on create.
+func (u *CampusUpsertBulk) UpdateCountry() *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.UpdateCountry()
+	})
+}
+
+// ClearCountry clears the value of the "country" field.
+func (u *CampusUpsertBulk) ClearCountry() *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.ClearCountry()
+	})
+}
+
+// SetLogo sets the "logo" field.
+func (u *CampusUpsertBulk) SetLogo(v string) *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.SetLogo(v)
+	})
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *CampusUpsertBulk) UpdateLogo() *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.UpdateLogo()
+	})
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *CampusUpsertBulk) ClearLogo() *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.ClearLogo()
 	})
 }
 
@@ -1433,45 +1500,24 @@ func (u *CampusUpsertBulk) ClearNameLong() *CampusUpsertBulk {
 	})
 }
 
-// SetAka sets the "aka" field.
-func (u *CampusUpsertBulk) SetAka(v string) *CampusUpsertBulk {
+// SetNotes sets the "notes" field.
+func (u *CampusUpsertBulk) SetNotes(v string) *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.SetAka(v)
+		s.SetNotes(v)
 	})
 }
 
-// UpdateAka sets the "aka" field to the value that was provided on create.
-func (u *CampusUpsertBulk) UpdateAka() *CampusUpsertBulk {
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *CampusUpsertBulk) UpdateNotes() *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.UpdateAka()
+		s.UpdateNotes()
 	})
 }
 
-// ClearAka clears the value of the "aka" field.
-func (u *CampusUpsertBulk) ClearAka() *CampusUpsertBulk {
+// ClearNotes clears the value of the "notes" field.
+func (u *CampusUpsertBulk) ClearNotes() *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.ClearAka()
-	})
-}
-
-// SetWebsite sets the "website" field.
-func (u *CampusUpsertBulk) SetWebsite(v string) *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.SetWebsite(v)
-	})
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *CampusUpsertBulk) UpdateWebsite() *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.UpdateWebsite()
-	})
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *CampusUpsertBulk) ClearWebsite() *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.ClearWebsite()
+		s.ClearNotes()
 	})
 }
 
@@ -1496,66 +1542,45 @@ func (u *CampusUpsertBulk) ClearSocialMedia() *CampusUpsertBulk {
 	})
 }
 
-// SetNotes sets the "notes" field.
-func (u *CampusUpsertBulk) SetNotes(v string) *CampusUpsertBulk {
+// SetState sets the "state" field.
+func (u *CampusUpsertBulk) SetState(v string) *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.SetNotes(v)
+		s.SetState(v)
 	})
 }
 
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *CampusUpsertBulk) UpdateNotes() *CampusUpsertBulk {
+// UpdateState sets the "state" field to the value that was provided on create.
+func (u *CampusUpsertBulk) UpdateState() *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.UpdateNotes()
+		s.UpdateState()
 	})
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (u *CampusUpsertBulk) ClearNotes() *CampusUpsertBulk {
+// ClearState clears the value of the "state" field.
+func (u *CampusUpsertBulk) ClearState() *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.ClearNotes()
+		s.ClearState()
 	})
 }
 
-// SetCountry sets the "country" field.
-func (u *CampusUpsertBulk) SetCountry(v string) *CampusUpsertBulk {
+// SetWebsite sets the "website" field.
+func (u *CampusUpsertBulk) SetWebsite(v string) *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.SetCountry(v)
+		s.SetWebsite(v)
 	})
 }
 
-// UpdateCountry sets the "country" field to the value that was provided on create.
-func (u *CampusUpsertBulk) UpdateCountry() *CampusUpsertBulk {
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *CampusUpsertBulk) UpdateWebsite() *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.UpdateCountry()
+		s.UpdateWebsite()
 	})
 }
 
-// ClearCountry clears the value of the "country" field.
-func (u *CampusUpsertBulk) ClearCountry() *CampusUpsertBulk {
+// ClearWebsite clears the value of the "website" field.
+func (u *CampusUpsertBulk) ClearWebsite() *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.ClearCountry()
-	})
-}
-
-// SetCity sets the "city" field.
-func (u *CampusUpsertBulk) SetCity(v string) *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.SetCity(v)
-	})
-}
-
-// UpdateCity sets the "city" field to the value that was provided on create.
-func (u *CampusUpsertBulk) UpdateCity() *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.UpdateCity()
-	})
-}
-
-// ClearCity clears the value of the "city" field.
-func (u *CampusUpsertBulk) ClearCity() *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.ClearCity()
+		s.ClearWebsite()
 	})
 }
 
@@ -1580,45 +1605,24 @@ func (u *CampusUpsertBulk) ClearZipcode() *CampusUpsertBulk {
 	})
 }
 
-// SetState sets the "state" field.
-func (u *CampusUpsertBulk) SetState(v string) *CampusUpsertBulk {
+// SetOrgName sets the "org_name" field.
+func (u *CampusUpsertBulk) SetOrgName(v string) *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.SetState(v)
+		s.SetOrgName(v)
 	})
 }
 
-// UpdateState sets the "state" field to the value that was provided on create.
-func (u *CampusUpsertBulk) UpdateState() *CampusUpsertBulk {
+// UpdateOrgName sets the "org_name" field to the value that was provided on create.
+func (u *CampusUpsertBulk) UpdateOrgName() *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.UpdateState()
+		s.UpdateOrgName()
 	})
 }
 
-// ClearState clears the value of the "state" field.
-func (u *CampusUpsertBulk) ClearState() *CampusUpsertBulk {
+// ClearOrgName clears the value of the "org_name" field.
+func (u *CampusUpsertBulk) ClearOrgName() *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
-		s.ClearState()
-	})
-}
-
-// SetLogo sets the "logo" field.
-func (u *CampusUpsertBulk) SetLogo(v string) *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.SetLogo(v)
-	})
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *CampusUpsertBulk) UpdateLogo() *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.UpdateLogo()
-	})
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *CampusUpsertBulk) ClearLogo() *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.ClearLogo()
+		s.ClearOrgName()
 	})
 }
 

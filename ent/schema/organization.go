@@ -1,4 +1,3 @@
-// Package schema defines the entgo schema types for PeeringDB objects.
 package schema
 
 import (
@@ -24,76 +23,35 @@ func (Organization) Fields() []ent.Field {
 			Positive().
 			Immutable().
 			Comment("PeeringDB organization ID"),
-		field.String("name").
-			MaxLen(255).
-			NotEmpty().
-			Annotations(
-				entgql.OrderField("NAME"),
-				entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray),
-			).
-			Comment("Organization name"),
-		field.String("aka").
-			Optional().
-			MaxLen(255).
-			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Also known as"),
-		field.String("name_long").
-			Optional().
-			MaxLen(255).
-			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Long name"),
-		field.String("website").
-			Optional().
-			Default("").
-			Comment("Organization website URL"),
-		field.JSON("social_media", []SocialMedia{}).
-			Optional().
-			Annotations(entrest.WithSchema(socialMediaSchema())).
-			Comment("Social media links"),
-		field.String("notes").
-			Optional().
-			Default("").
-			Comment("Notes"),
-		field.String("logo").
-			Optional().
-			Nillable().
-			Comment("Logo URL"),
-
-		// AddressModel fields
 		field.String("address1").
+			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Address line 1"),
 		field.String("address2").
+			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Address line 2"),
+		field.String("aka").
+			MaxLen(255).
+			Optional().
+			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("Also known as"),
 		field.String("city").
+			MaxLen(255).
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("City"),
-		field.String("state").
-			Optional().
-			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("State or province"),
 		field.String("country").
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Country code"),
-		field.String("zipcode").
-			Optional().
-			Default("").
-			Comment("Postal / ZIP code"),
-		field.String("suite").
-			Optional().
-			Default("").
-			Comment("Suite number"),
 		field.String("floor").
+			MaxLen(255).
 			Optional().
 			Default("").
 			Comment("Floor"),
@@ -101,10 +59,67 @@ func (Organization) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("Latitude"),
+		field.String("logo").
+			Optional().
+			Nillable().
+			Comment("Logo URL"),
 		field.Float("longitude").
 			Optional().
 			Nillable().
 			Comment("Longitude"),
+		field.String("name").
+			MaxLen(255).
+			NotEmpty().
+			Unique().
+			Annotations(
+				entgql.OrderField("NAME"),
+				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
+			).
+			Comment("Organization name"),
+		field.String("name_long").
+			MaxLen(255).
+			Optional().
+			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("Long name"),
+		field.String("notes").
+			Optional().
+			Default("").
+			Comment("Notes"),
+		field.JSON("social_media", []SocialMedia{}).
+			Optional().
+			Annotations(entrest.WithSchema(socialMediaSchema())).
+			Comment("Social media links"),
+		field.String("state").
+			MaxLen(255).
+			Optional().
+			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("State or province"),
+		field.String("suite").
+			MaxLen(255).
+			Optional().
+			Default("").
+			Comment("Suite number"),
+		field.String("website").
+			Optional().
+			Default("").
+			Comment("Organization website URL"),
+		field.String("zipcode").
+			MaxLen(48).
+			Optional().
+			Default("").
+			Comment("Postal / ZIP code"),
+
+		// Computed fields (from serializer, stored per D-40)
+		field.Int("net_count").
+			Optional().
+			Default(0).
+			Comment("Net Count (computed)"),
+		field.Int("fac_count").
+			Optional().
+			Default(0).
+			Comment("Fac Count (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").
@@ -125,15 +140,15 @@ func (Organization) Fields() []ent.Field {
 // Edges of the Organization.
 func (Organization) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("networks", Network.Type).
+		edge.To("campuses", Campus.Type).
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("carriers", Carrier.Type).
 			Annotations(entrest.WithEagerLoad(true)),
 		edge.To("facilities", Facility.Type).
 			Annotations(entrest.WithEagerLoad(true)),
 		edge.To("internet_exchanges", InternetExchange.Type).
 			Annotations(entrest.WithEagerLoad(true)),
-		edge.To("carriers", Carrier.Type).
-			Annotations(entrest.WithEagerLoad(true)),
-		edge.To("campuses", Campus.Type).
+		edge.To("networks", Network.Type).
 			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
@@ -155,7 +170,7 @@ func (Organization) Annotations() []schema.Annotation {
 	}
 }
 
-// Hooks returns Organization's mutation hooks for OTel tracing per D-46.
+// Hooks returns Organization mutation hooks for OTel tracing per D-46.
 func (Organization) Hooks() []ent.Hook {
 	return []ent.Hook{
 		otelMutationHook("Organization"),

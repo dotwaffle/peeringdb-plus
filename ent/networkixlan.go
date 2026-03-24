@@ -18,36 +18,36 @@ import (
 type NetworkIxLan struct {
 	config `json:"-"`
 	// ID of the ent.
-	// PeeringDB network-IXLan ID
+	// PeeringDB networkixlan ID
 	ID int `json:"id,omitempty"`
+	// IX-side facility FK
+	IxSideID *int `json:"ix_side_id"`
+	// FK to IX LAN
+	IxlanID *int `json:"ixlan_id"`
 	// FK to network
 	NetID *int `json:"net_id"`
-	// Internet exchange ID (computed, not an edge)
-	IxID int `json:"ix_id"`
-	// FK to IXLan
-	IxlanID *int `json:"ixlan_id"`
-	// Exchange name (computed)
-	Name string `json:"name"`
-	// Notes
-	Notes string `json:"notes"`
-	// Port speed in Mbps
-	Speed int `json:"speed"`
+	// Net-side facility FK
+	NetSideID *int `json:"net_side_id"`
 	// Autonomous System Number
 	Asn int `json:"asn"`
+	// BFD support
+	BfdSupport bool `json:"bfd_support"`
 	// IPv4 address
 	Ipaddr4 *string `json:"ipaddr4"`
 	// IPv6 address
 	Ipaddr6 *string `json:"ipaddr6"`
-	// Is route server peer
+	// Route server peer
 	IsRsPeer bool `json:"is_rs_peer"`
-	// BFD support
-	BfdSupport bool `json:"bfd_support"`
+	// Notes
+	Notes string `json:"notes"`
 	// Operational status
 	Operational bool `json:"operational"`
-	// Network-side facility ID
-	NetSideID *int `json:"net_side_id"`
-	// IX-side facility ID
-	IxSideID *int `json:"ix_side_id"`
+	// Port speed in Mbps
+	Speed int `json:"speed"`
+	// Internet exchange ID (computed)
+	IxID int `json:"ix_id"`
+	// Name (computed)
+	Name string `json:"name"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -62,10 +62,10 @@ type NetworkIxLan struct {
 
 // NetworkIxLanEdges holds the relations/edges for other nodes in the graph.
 type NetworkIxLanEdges struct {
-	// Network holds the value of the network edge.
-	Network *Network `json:"network,omitempty"`
 	// IxLan holds the value of the ix_lan edge.
 	IxLan *IxLan `json:"ix_lan,omitempty"`
+	// Network holds the value of the network edge.
+	Network *Network `json:"network,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -73,26 +73,26 @@ type NetworkIxLanEdges struct {
 	totalCount [2]map[string]int
 }
 
-// NetworkOrErr returns the Network value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e NetworkIxLanEdges) NetworkOrErr() (*Network, error) {
-	if e.Network != nil {
-		return e.Network, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: network.Label}
-	}
-	return nil, &NotLoadedError{edge: "network"}
-}
-
 // IxLanOrErr returns the IxLan value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e NetworkIxLanEdges) IxLanOrErr() (*IxLan, error) {
 	if e.IxLan != nil {
 		return e.IxLan, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: ixlan.Label}
 	}
 	return nil, &NotLoadedError{edge: "ix_lan"}
+}
+
+// NetworkOrErr returns the Network value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NetworkIxLanEdges) NetworkOrErr() (*Network, error) {
+	if e.Network != nil {
+		return e.Network, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: network.Label}
+	}
+	return nil, &NotLoadedError{edge: "network"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -100,11 +100,11 @@ func (*NetworkIxLan) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case networkixlan.FieldIsRsPeer, networkixlan.FieldBfdSupport, networkixlan.FieldOperational:
+		case networkixlan.FieldBfdSupport, networkixlan.FieldIsRsPeer, networkixlan.FieldOperational:
 			values[i] = new(sql.NullBool)
-		case networkixlan.FieldID, networkixlan.FieldNetID, networkixlan.FieldIxID, networkixlan.FieldIxlanID, networkixlan.FieldSpeed, networkixlan.FieldAsn, networkixlan.FieldNetSideID, networkixlan.FieldIxSideID:
+		case networkixlan.FieldID, networkixlan.FieldIxSideID, networkixlan.FieldIxlanID, networkixlan.FieldNetID, networkixlan.FieldNetSideID, networkixlan.FieldAsn, networkixlan.FieldSpeed, networkixlan.FieldIxID:
 			values[i] = new(sql.NullInt64)
-		case networkixlan.FieldName, networkixlan.FieldNotes, networkixlan.FieldIpaddr4, networkixlan.FieldIpaddr6, networkixlan.FieldStatus:
+		case networkixlan.FieldIpaddr4, networkixlan.FieldIpaddr6, networkixlan.FieldNotes, networkixlan.FieldName, networkixlan.FieldStatus:
 			values[i] = new(sql.NullString)
 		case networkixlan.FieldCreated, networkixlan.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -129,18 +129,12 @@ func (_m *NetworkIxLan) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
-		case networkixlan.FieldNetID:
+		case networkixlan.FieldIxSideID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field net_id", values[i])
+				return fmt.Errorf("unexpected type %T for field ix_side_id", values[i])
 			} else if value.Valid {
-				_m.NetID = new(int)
-				*_m.NetID = int(value.Int64)
-			}
-		case networkixlan.FieldIxID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field ix_id", values[i])
-			} else if value.Valid {
-				_m.IxID = int(value.Int64)
+				_m.IxSideID = new(int)
+				*_m.IxSideID = int(value.Int64)
 			}
 		case networkixlan.FieldIxlanID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -149,29 +143,31 @@ func (_m *NetworkIxLan) assignValues(columns []string, values []any) error {
 				_m.IxlanID = new(int)
 				*_m.IxlanID = int(value.Int64)
 			}
-		case networkixlan.FieldName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
-			} else if value.Valid {
-				_m.Name = value.String
-			}
-		case networkixlan.FieldNotes:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field notes", values[i])
-			} else if value.Valid {
-				_m.Notes = value.String
-			}
-		case networkixlan.FieldSpeed:
+		case networkixlan.FieldNetID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field speed", values[i])
+				return fmt.Errorf("unexpected type %T for field net_id", values[i])
 			} else if value.Valid {
-				_m.Speed = int(value.Int64)
+				_m.NetID = new(int)
+				*_m.NetID = int(value.Int64)
+			}
+		case networkixlan.FieldNetSideID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field net_side_id", values[i])
+			} else if value.Valid {
+				_m.NetSideID = new(int)
+				*_m.NetSideID = int(value.Int64)
 			}
 		case networkixlan.FieldAsn:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field asn", values[i])
 			} else if value.Valid {
 				_m.Asn = int(value.Int64)
+			}
+		case networkixlan.FieldBfdSupport:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field bfd_support", values[i])
+			} else if value.Valid {
+				_m.BfdSupport = value.Bool
 			}
 		case networkixlan.FieldIpaddr4:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -193,11 +189,11 @@ func (_m *NetworkIxLan) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.IsRsPeer = value.Bool
 			}
-		case networkixlan.FieldBfdSupport:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field bfd_support", values[i])
+		case networkixlan.FieldNotes:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field notes", values[i])
 			} else if value.Valid {
-				_m.BfdSupport = value.Bool
+				_m.Notes = value.String
 			}
 		case networkixlan.FieldOperational:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -205,19 +201,23 @@ func (_m *NetworkIxLan) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Operational = value.Bool
 			}
-		case networkixlan.FieldNetSideID:
+		case networkixlan.FieldSpeed:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field net_side_id", values[i])
+				return fmt.Errorf("unexpected type %T for field speed", values[i])
 			} else if value.Valid {
-				_m.NetSideID = new(int)
-				*_m.NetSideID = int(value.Int64)
+				_m.Speed = int(value.Int64)
 			}
-		case networkixlan.FieldIxSideID:
+		case networkixlan.FieldIxID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field ix_side_id", values[i])
+				return fmt.Errorf("unexpected type %T for field ix_id", values[i])
 			} else if value.Valid {
-				_m.IxSideID = new(int)
-				*_m.IxSideID = int(value.Int64)
+				_m.IxID = int(value.Int64)
+			}
+		case networkixlan.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				_m.Name = value.String
 			}
 		case networkixlan.FieldCreated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -250,14 +250,14 @@ func (_m *NetworkIxLan) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryNetwork queries the "network" edge of the NetworkIxLan entity.
-func (_m *NetworkIxLan) QueryNetwork() *NetworkQuery {
-	return NewNetworkIxLanClient(_m.config).QueryNetwork(_m)
-}
-
 // QueryIxLan queries the "ix_lan" edge of the NetworkIxLan entity.
 func (_m *NetworkIxLan) QueryIxLan() *IxLanQuery {
 	return NewNetworkIxLanClient(_m.config).QueryIxLan(_m)
+}
+
+// QueryNetwork queries the "network" edge of the NetworkIxLan entity.
+func (_m *NetworkIxLan) QueryNetwork() *NetworkQuery {
+	return NewNetworkIxLanClient(_m.config).QueryNetwork(_m)
 }
 
 // Update returns a builder for updating this NetworkIxLan.
@@ -283,30 +283,31 @@ func (_m *NetworkIxLan) String() string {
 	var builder strings.Builder
 	builder.WriteString("NetworkIxLan(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
-	if v := _m.NetID; v != nil {
-		builder.WriteString("net_id=")
+	if v := _m.IxSideID; v != nil {
+		builder.WriteString("ix_side_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("ix_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.IxID))
 	builder.WriteString(", ")
 	if v := _m.IxlanID; v != nil {
 		builder.WriteString("ixlan_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(_m.Name)
+	if v := _m.NetID; v != nil {
+		builder.WriteString("net_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
-	builder.WriteString("notes=")
-	builder.WriteString(_m.Notes)
-	builder.WriteString(", ")
-	builder.WriteString("speed=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Speed))
+	if v := _m.NetSideID; v != nil {
+		builder.WriteString("net_side_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("asn=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Asn))
+	builder.WriteString(", ")
+	builder.WriteString("bfd_support=")
+	builder.WriteString(fmt.Sprintf("%v", _m.BfdSupport))
 	builder.WriteString(", ")
 	if v := _m.Ipaddr4; v != nil {
 		builder.WriteString("ipaddr4=")
@@ -321,21 +322,20 @@ func (_m *NetworkIxLan) String() string {
 	builder.WriteString("is_rs_peer=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IsRsPeer))
 	builder.WriteString(", ")
-	builder.WriteString("bfd_support=")
-	builder.WriteString(fmt.Sprintf("%v", _m.BfdSupport))
+	builder.WriteString("notes=")
+	builder.WriteString(_m.Notes)
 	builder.WriteString(", ")
 	builder.WriteString("operational=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Operational))
 	builder.WriteString(", ")
-	if v := _m.NetSideID; v != nil {
-		builder.WriteString("net_side_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
+	builder.WriteString("speed=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Speed))
 	builder.WriteString(", ")
-	if v := _m.IxSideID; v != nil {
-		builder.WriteString("ix_side_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
+	builder.WriteString("ix_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IxID))
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
 	builder.WriteString("created=")
 	builder.WriteString(_m.Created.Format(time.ANSIC))

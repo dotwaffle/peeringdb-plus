@@ -24,30 +24,16 @@ type NetworkIxLanCreate struct {
 	conflict []sql.ConflictOption
 }
 
-// SetNetID sets the "net_id" field.
-func (_c *NetworkIxLanCreate) SetNetID(v int) *NetworkIxLanCreate {
-	_c.mutation.SetNetID(v)
+// SetIxSideID sets the "ix_side_id" field.
+func (_c *NetworkIxLanCreate) SetIxSideID(v int) *NetworkIxLanCreate {
+	_c.mutation.SetIxSideID(v)
 	return _c
 }
 
-// SetNillableNetID sets the "net_id" field if the given value is not nil.
-func (_c *NetworkIxLanCreate) SetNillableNetID(v *int) *NetworkIxLanCreate {
+// SetNillableIxSideID sets the "ix_side_id" field if the given value is not nil.
+func (_c *NetworkIxLanCreate) SetNillableIxSideID(v *int) *NetworkIxLanCreate {
 	if v != nil {
-		_c.SetNetID(*v)
-	}
-	return _c
-}
-
-// SetIxID sets the "ix_id" field.
-func (_c *NetworkIxLanCreate) SetIxID(v int) *NetworkIxLanCreate {
-	_c.mutation.SetIxID(v)
-	return _c
-}
-
-// SetNillableIxID sets the "ix_id" field if the given value is not nil.
-func (_c *NetworkIxLanCreate) SetNillableIxID(v *int) *NetworkIxLanCreate {
-	if v != nil {
-		_c.SetIxID(*v)
+		_c.SetIxSideID(*v)
 	}
 	return _c
 }
@@ -66,43 +52,51 @@ func (_c *NetworkIxLanCreate) SetNillableIxlanID(v *int) *NetworkIxLanCreate {
 	return _c
 }
 
-// SetName sets the "name" field.
-func (_c *NetworkIxLanCreate) SetName(v string) *NetworkIxLanCreate {
-	_c.mutation.SetName(v)
+// SetNetID sets the "net_id" field.
+func (_c *NetworkIxLanCreate) SetNetID(v int) *NetworkIxLanCreate {
+	_c.mutation.SetNetID(v)
 	return _c
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_c *NetworkIxLanCreate) SetNillableName(v *string) *NetworkIxLanCreate {
+// SetNillableNetID sets the "net_id" field if the given value is not nil.
+func (_c *NetworkIxLanCreate) SetNillableNetID(v *int) *NetworkIxLanCreate {
 	if v != nil {
-		_c.SetName(*v)
+		_c.SetNetID(*v)
 	}
 	return _c
 }
 
-// SetNotes sets the "notes" field.
-func (_c *NetworkIxLanCreate) SetNotes(v string) *NetworkIxLanCreate {
-	_c.mutation.SetNotes(v)
+// SetNetSideID sets the "net_side_id" field.
+func (_c *NetworkIxLanCreate) SetNetSideID(v int) *NetworkIxLanCreate {
+	_c.mutation.SetNetSideID(v)
 	return _c
 }
 
-// SetNillableNotes sets the "notes" field if the given value is not nil.
-func (_c *NetworkIxLanCreate) SetNillableNotes(v *string) *NetworkIxLanCreate {
+// SetNillableNetSideID sets the "net_side_id" field if the given value is not nil.
+func (_c *NetworkIxLanCreate) SetNillableNetSideID(v *int) *NetworkIxLanCreate {
 	if v != nil {
-		_c.SetNotes(*v)
+		_c.SetNetSideID(*v)
 	}
-	return _c
-}
-
-// SetSpeed sets the "speed" field.
-func (_c *NetworkIxLanCreate) SetSpeed(v int) *NetworkIxLanCreate {
-	_c.mutation.SetSpeed(v)
 	return _c
 }
 
 // SetAsn sets the "asn" field.
 func (_c *NetworkIxLanCreate) SetAsn(v int) *NetworkIxLanCreate {
 	_c.mutation.SetAsn(v)
+	return _c
+}
+
+// SetBfdSupport sets the "bfd_support" field.
+func (_c *NetworkIxLanCreate) SetBfdSupport(v bool) *NetworkIxLanCreate {
+	_c.mutation.SetBfdSupport(v)
+	return _c
+}
+
+// SetNillableBfdSupport sets the "bfd_support" field if the given value is not nil.
+func (_c *NetworkIxLanCreate) SetNillableBfdSupport(v *bool) *NetworkIxLanCreate {
+	if v != nil {
+		_c.SetBfdSupport(*v)
+	}
 	return _c
 }
 
@@ -148,16 +142,16 @@ func (_c *NetworkIxLanCreate) SetNillableIsRsPeer(v *bool) *NetworkIxLanCreate {
 	return _c
 }
 
-// SetBfdSupport sets the "bfd_support" field.
-func (_c *NetworkIxLanCreate) SetBfdSupport(v bool) *NetworkIxLanCreate {
-	_c.mutation.SetBfdSupport(v)
+// SetNotes sets the "notes" field.
+func (_c *NetworkIxLanCreate) SetNotes(v string) *NetworkIxLanCreate {
+	_c.mutation.SetNotes(v)
 	return _c
 }
 
-// SetNillableBfdSupport sets the "bfd_support" field if the given value is not nil.
-func (_c *NetworkIxLanCreate) SetNillableBfdSupport(v *bool) *NetworkIxLanCreate {
+// SetNillableNotes sets the "notes" field if the given value is not nil.
+func (_c *NetworkIxLanCreate) SetNillableNotes(v *string) *NetworkIxLanCreate {
 	if v != nil {
-		_c.SetBfdSupport(*v)
+		_c.SetNotes(*v)
 	}
 	return _c
 }
@@ -176,30 +170,36 @@ func (_c *NetworkIxLanCreate) SetNillableOperational(v *bool) *NetworkIxLanCreat
 	return _c
 }
 
-// SetNetSideID sets the "net_side_id" field.
-func (_c *NetworkIxLanCreate) SetNetSideID(v int) *NetworkIxLanCreate {
-	_c.mutation.SetNetSideID(v)
+// SetSpeed sets the "speed" field.
+func (_c *NetworkIxLanCreate) SetSpeed(v int) *NetworkIxLanCreate {
+	_c.mutation.SetSpeed(v)
 	return _c
 }
 
-// SetNillableNetSideID sets the "net_side_id" field if the given value is not nil.
-func (_c *NetworkIxLanCreate) SetNillableNetSideID(v *int) *NetworkIxLanCreate {
+// SetIxID sets the "ix_id" field.
+func (_c *NetworkIxLanCreate) SetIxID(v int) *NetworkIxLanCreate {
+	_c.mutation.SetIxID(v)
+	return _c
+}
+
+// SetNillableIxID sets the "ix_id" field if the given value is not nil.
+func (_c *NetworkIxLanCreate) SetNillableIxID(v *int) *NetworkIxLanCreate {
 	if v != nil {
-		_c.SetNetSideID(*v)
+		_c.SetIxID(*v)
 	}
 	return _c
 }
 
-// SetIxSideID sets the "ix_side_id" field.
-func (_c *NetworkIxLanCreate) SetIxSideID(v int) *NetworkIxLanCreate {
-	_c.mutation.SetIxSideID(v)
+// SetName sets the "name" field.
+func (_c *NetworkIxLanCreate) SetName(v string) *NetworkIxLanCreate {
+	_c.mutation.SetName(v)
 	return _c
 }
 
-// SetNillableIxSideID sets the "ix_side_id" field if the given value is not nil.
-func (_c *NetworkIxLanCreate) SetNillableIxSideID(v *int) *NetworkIxLanCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_c *NetworkIxLanCreate) SetNillableName(v *string) *NetworkIxLanCreate {
 	if v != nil {
-		_c.SetIxSideID(*v)
+		_c.SetName(*v)
 	}
 	return _c
 }
@@ -236,25 +236,6 @@ func (_c *NetworkIxLanCreate) SetID(v int) *NetworkIxLanCreate {
 	return _c
 }
 
-// SetNetworkID sets the "network" edge to the Network entity by ID.
-func (_c *NetworkIxLanCreate) SetNetworkID(id int) *NetworkIxLanCreate {
-	_c.mutation.SetNetworkID(id)
-	return _c
-}
-
-// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
-func (_c *NetworkIxLanCreate) SetNillableNetworkID(id *int) *NetworkIxLanCreate {
-	if id != nil {
-		_c = _c.SetNetworkID(*id)
-	}
-	return _c
-}
-
-// SetNetwork sets the "network" edge to the Network entity.
-func (_c *NetworkIxLanCreate) SetNetwork(v *Network) *NetworkIxLanCreate {
-	return _c.SetNetworkID(v.ID)
-}
-
 // SetIxLanID sets the "ix_lan" edge to the IxLan entity by ID.
 func (_c *NetworkIxLanCreate) SetIxLanID(id int) *NetworkIxLanCreate {
 	_c.mutation.SetIxLanID(id)
@@ -272,6 +253,25 @@ func (_c *NetworkIxLanCreate) SetNillableIxLanID(id *int) *NetworkIxLanCreate {
 // SetIxLan sets the "ix_lan" edge to the IxLan entity.
 func (_c *NetworkIxLanCreate) SetIxLan(v *IxLan) *NetworkIxLanCreate {
 	return _c.SetIxLanID(v.ID)
+}
+
+// SetNetworkID sets the "network" edge to the Network entity by ID.
+func (_c *NetworkIxLanCreate) SetNetworkID(id int) *NetworkIxLanCreate {
+	_c.mutation.SetNetworkID(id)
+	return _c
+}
+
+// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
+func (_c *NetworkIxLanCreate) SetNillableNetworkID(id *int) *NetworkIxLanCreate {
+	if id != nil {
+		_c = _c.SetNetworkID(*id)
+	}
+	return _c
+}
+
+// SetNetwork sets the "network" edge to the Network entity.
+func (_c *NetworkIxLanCreate) SetNetwork(v *Network) *NetworkIxLanCreate {
+	return _c.SetNetworkID(v.ID)
 }
 
 // Mutation returns the NetworkIxLanMutation object of the builder.
@@ -311,29 +311,25 @@ func (_c *NetworkIxLanCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *NetworkIxLanCreate) defaults() error {
-	if _, ok := _c.mutation.IxID(); !ok {
-		v := networkixlan.DefaultIxID
-		_c.mutation.SetIxID(v)
-	}
-	if _, ok := _c.mutation.Name(); !ok {
-		v := networkixlan.DefaultName
-		_c.mutation.SetName(v)
-	}
-	if _, ok := _c.mutation.Notes(); !ok {
-		v := networkixlan.DefaultNotes
-		_c.mutation.SetNotes(v)
+	if _, ok := _c.mutation.BfdSupport(); !ok {
+		v := networkixlan.DefaultBfdSupport
+		_c.mutation.SetBfdSupport(v)
 	}
 	if _, ok := _c.mutation.IsRsPeer(); !ok {
 		v := networkixlan.DefaultIsRsPeer
 		_c.mutation.SetIsRsPeer(v)
 	}
-	if _, ok := _c.mutation.BfdSupport(); !ok {
-		v := networkixlan.DefaultBfdSupport
-		_c.mutation.SetBfdSupport(v)
+	if _, ok := _c.mutation.Notes(); !ok {
+		v := networkixlan.DefaultNotes
+		_c.mutation.SetNotes(v)
 	}
 	if _, ok := _c.mutation.Operational(); !ok {
 		v := networkixlan.DefaultOperational
 		_c.mutation.SetOperational(v)
+	}
+	if _, ok := _c.mutation.Name(); !ok {
+		v := networkixlan.DefaultName
+		_c.mutation.SetName(v)
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := networkixlan.DefaultStatus
@@ -344,25 +340,30 @@ func (_c *NetworkIxLanCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *NetworkIxLanCreate) check() error {
+	if _, ok := _c.mutation.Asn(); !ok {
+		return &ValidationError{Name: "asn", err: errors.New(`ent: missing required field "NetworkIxLan.asn"`)}
+	}
+	if v, ok := _c.mutation.Asn(); ok {
+		if err := networkixlan.AsnValidator(v); err != nil {
+			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.asn": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.BfdSupport(); !ok {
+		return &ValidationError{Name: "bfd_support", err: errors.New(`ent: missing required field "NetworkIxLan.bfd_support"`)}
+	}
+	if _, ok := _c.mutation.IsRsPeer(); !ok {
+		return &ValidationError{Name: "is_rs_peer", err: errors.New(`ent: missing required field "NetworkIxLan.is_rs_peer"`)}
+	}
 	if v, ok := _c.mutation.Notes(); ok {
 		if err := networkixlan.NotesValidator(v); err != nil {
 			return &ValidationError{Name: "notes", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.notes": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Speed(); !ok {
-		return &ValidationError{Name: "speed", err: errors.New(`ent: missing required field "NetworkIxLan.speed"`)}
-	}
-	if _, ok := _c.mutation.Asn(); !ok {
-		return &ValidationError{Name: "asn", err: errors.New(`ent: missing required field "NetworkIxLan.asn"`)}
-	}
-	if _, ok := _c.mutation.IsRsPeer(); !ok {
-		return &ValidationError{Name: "is_rs_peer", err: errors.New(`ent: missing required field "NetworkIxLan.is_rs_peer"`)}
-	}
-	if _, ok := _c.mutation.BfdSupport(); !ok {
-		return &ValidationError{Name: "bfd_support", err: errors.New(`ent: missing required field "NetworkIxLan.bfd_support"`)}
-	}
 	if _, ok := _c.mutation.Operational(); !ok {
 		return &ValidationError{Name: "operational", err: errors.New(`ent: missing required field "NetworkIxLan.operational"`)}
+	}
+	if _, ok := _c.mutation.Speed(); !ok {
+		return &ValidationError{Name: "speed", err: errors.New(`ent: missing required field "NetworkIxLan.speed"`)}
 	}
 	if _, ok := _c.mutation.Created(); !ok {
 		return &ValidationError{Name: "created", err: errors.New(`ent: missing required field "NetworkIxLan.created"`)}
@@ -416,25 +417,21 @@ func (_c *NetworkIxLanCreate) createSpec() (*NetworkIxLan, *sqlgraph.CreateSpec)
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.IxID(); ok {
-		_spec.SetField(networkixlan.FieldIxID, field.TypeInt, value)
-		_node.IxID = value
+	if value, ok := _c.mutation.IxSideID(); ok {
+		_spec.SetField(networkixlan.FieldIxSideID, field.TypeInt, value)
+		_node.IxSideID = &value
 	}
-	if value, ok := _c.mutation.Name(); ok {
-		_spec.SetField(networkixlan.FieldName, field.TypeString, value)
-		_node.Name = value
-	}
-	if value, ok := _c.mutation.Notes(); ok {
-		_spec.SetField(networkixlan.FieldNotes, field.TypeString, value)
-		_node.Notes = value
-	}
-	if value, ok := _c.mutation.Speed(); ok {
-		_spec.SetField(networkixlan.FieldSpeed, field.TypeInt, value)
-		_node.Speed = value
+	if value, ok := _c.mutation.NetSideID(); ok {
+		_spec.SetField(networkixlan.FieldNetSideID, field.TypeInt, value)
+		_node.NetSideID = &value
 	}
 	if value, ok := _c.mutation.Asn(); ok {
 		_spec.SetField(networkixlan.FieldAsn, field.TypeInt, value)
 		_node.Asn = value
+	}
+	if value, ok := _c.mutation.BfdSupport(); ok {
+		_spec.SetField(networkixlan.FieldBfdSupport, field.TypeBool, value)
+		_node.BfdSupport = value
 	}
 	if value, ok := _c.mutation.Ipaddr4(); ok {
 		_spec.SetField(networkixlan.FieldIpaddr4, field.TypeString, value)
@@ -448,21 +445,25 @@ func (_c *NetworkIxLanCreate) createSpec() (*NetworkIxLan, *sqlgraph.CreateSpec)
 		_spec.SetField(networkixlan.FieldIsRsPeer, field.TypeBool, value)
 		_node.IsRsPeer = value
 	}
-	if value, ok := _c.mutation.BfdSupport(); ok {
-		_spec.SetField(networkixlan.FieldBfdSupport, field.TypeBool, value)
-		_node.BfdSupport = value
+	if value, ok := _c.mutation.Notes(); ok {
+		_spec.SetField(networkixlan.FieldNotes, field.TypeString, value)
+		_node.Notes = value
 	}
 	if value, ok := _c.mutation.Operational(); ok {
 		_spec.SetField(networkixlan.FieldOperational, field.TypeBool, value)
 		_node.Operational = value
 	}
-	if value, ok := _c.mutation.NetSideID(); ok {
-		_spec.SetField(networkixlan.FieldNetSideID, field.TypeInt, value)
-		_node.NetSideID = &value
+	if value, ok := _c.mutation.Speed(); ok {
+		_spec.SetField(networkixlan.FieldSpeed, field.TypeInt, value)
+		_node.Speed = value
 	}
-	if value, ok := _c.mutation.IxSideID(); ok {
-		_spec.SetField(networkixlan.FieldIxSideID, field.TypeInt, value)
-		_node.IxSideID = &value
+	if value, ok := _c.mutation.IxID(); ok {
+		_spec.SetField(networkixlan.FieldIxID, field.TypeInt, value)
+		_node.IxID = value
+	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(networkixlan.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := _c.mutation.Created(); ok {
 		_spec.SetField(networkixlan.FieldCreated, field.TypeTime, value)
@@ -475,23 +476,6 @@ func (_c *NetworkIxLanCreate) createSpec() (*NetworkIxLan, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(networkixlan.FieldStatus, field.TypeString, value)
 		_node.Status = value
-	}
-	if nodes := _c.mutation.NetworkIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   networkixlan.NetworkTable,
-			Columns: []string{networkixlan.NetworkColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.NetID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.IxLanIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -510,6 +494,23 @@ func (_c *NetworkIxLanCreate) createSpec() (*NetworkIxLan, *sqlgraph.CreateSpec)
 		_node.IxlanID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.NetworkIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   networkixlan.NetworkTable,
+			Columns: []string{networkixlan.NetworkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.NetID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -517,7 +518,7 @@ func (_c *NetworkIxLanCreate) createSpec() (*NetworkIxLan, *sqlgraph.CreateSpec)
 // of the `INSERT` statement. For example:
 //
 //	client.NetworkIxLan.Create().
-//		SetNetID(v).
+//		SetIxSideID(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -526,7 +527,7 @@ func (_c *NetworkIxLanCreate) createSpec() (*NetworkIxLan, *sqlgraph.CreateSpec)
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.NetworkIxLanUpsert) {
-//			SetNetID(v+v).
+//			SetIxSideID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *NetworkIxLanCreate) OnConflict(opts ...sql.ConflictOption) *NetworkIxLanUpsertOne {
@@ -562,45 +563,27 @@ type (
 	}
 )
 
-// SetNetID sets the "net_id" field.
-func (u *NetworkIxLanUpsert) SetNetID(v int) *NetworkIxLanUpsert {
-	u.Set(networkixlan.FieldNetID, v)
+// SetIxSideID sets the "ix_side_id" field.
+func (u *NetworkIxLanUpsert) SetIxSideID(v int) *NetworkIxLanUpsert {
+	u.Set(networkixlan.FieldIxSideID, v)
 	return u
 }
 
-// UpdateNetID sets the "net_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsert) UpdateNetID() *NetworkIxLanUpsert {
-	u.SetExcluded(networkixlan.FieldNetID)
+// UpdateIxSideID sets the "ix_side_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsert) UpdateIxSideID() *NetworkIxLanUpsert {
+	u.SetExcluded(networkixlan.FieldIxSideID)
 	return u
 }
 
-// ClearNetID clears the value of the "net_id" field.
-func (u *NetworkIxLanUpsert) ClearNetID() *NetworkIxLanUpsert {
-	u.SetNull(networkixlan.FieldNetID)
+// AddIxSideID adds v to the "ix_side_id" field.
+func (u *NetworkIxLanUpsert) AddIxSideID(v int) *NetworkIxLanUpsert {
+	u.Add(networkixlan.FieldIxSideID, v)
 	return u
 }
 
-// SetIxID sets the "ix_id" field.
-func (u *NetworkIxLanUpsert) SetIxID(v int) *NetworkIxLanUpsert {
-	u.Set(networkixlan.FieldIxID, v)
-	return u
-}
-
-// UpdateIxID sets the "ix_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsert) UpdateIxID() *NetworkIxLanUpsert {
-	u.SetExcluded(networkixlan.FieldIxID)
-	return u
-}
-
-// AddIxID adds v to the "ix_id" field.
-func (u *NetworkIxLanUpsert) AddIxID(v int) *NetworkIxLanUpsert {
-	u.Add(networkixlan.FieldIxID, v)
-	return u
-}
-
-// ClearIxID clears the value of the "ix_id" field.
-func (u *NetworkIxLanUpsert) ClearIxID() *NetworkIxLanUpsert {
-	u.SetNull(networkixlan.FieldIxID)
+// ClearIxSideID clears the value of the "ix_side_id" field.
+func (u *NetworkIxLanUpsert) ClearIxSideID() *NetworkIxLanUpsert {
+	u.SetNull(networkixlan.FieldIxSideID)
 	return u
 }
 
@@ -622,57 +605,45 @@ func (u *NetworkIxLanUpsert) ClearIxlanID() *NetworkIxLanUpsert {
 	return u
 }
 
-// SetName sets the "name" field.
-func (u *NetworkIxLanUpsert) SetName(v string) *NetworkIxLanUpsert {
-	u.Set(networkixlan.FieldName, v)
+// SetNetID sets the "net_id" field.
+func (u *NetworkIxLanUpsert) SetNetID(v int) *NetworkIxLanUpsert {
+	u.Set(networkixlan.FieldNetID, v)
 	return u
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *NetworkIxLanUpsert) UpdateName() *NetworkIxLanUpsert {
-	u.SetExcluded(networkixlan.FieldName)
+// UpdateNetID sets the "net_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsert) UpdateNetID() *NetworkIxLanUpsert {
+	u.SetExcluded(networkixlan.FieldNetID)
 	return u
 }
 
-// ClearName clears the value of the "name" field.
-func (u *NetworkIxLanUpsert) ClearName() *NetworkIxLanUpsert {
-	u.SetNull(networkixlan.FieldName)
+// ClearNetID clears the value of the "net_id" field.
+func (u *NetworkIxLanUpsert) ClearNetID() *NetworkIxLanUpsert {
+	u.SetNull(networkixlan.FieldNetID)
 	return u
 }
 
-// SetNotes sets the "notes" field.
-func (u *NetworkIxLanUpsert) SetNotes(v string) *NetworkIxLanUpsert {
-	u.Set(networkixlan.FieldNotes, v)
+// SetNetSideID sets the "net_side_id" field.
+func (u *NetworkIxLanUpsert) SetNetSideID(v int) *NetworkIxLanUpsert {
+	u.Set(networkixlan.FieldNetSideID, v)
 	return u
 }
 
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *NetworkIxLanUpsert) UpdateNotes() *NetworkIxLanUpsert {
-	u.SetExcluded(networkixlan.FieldNotes)
+// UpdateNetSideID sets the "net_side_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsert) UpdateNetSideID() *NetworkIxLanUpsert {
+	u.SetExcluded(networkixlan.FieldNetSideID)
 	return u
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (u *NetworkIxLanUpsert) ClearNotes() *NetworkIxLanUpsert {
-	u.SetNull(networkixlan.FieldNotes)
+// AddNetSideID adds v to the "net_side_id" field.
+func (u *NetworkIxLanUpsert) AddNetSideID(v int) *NetworkIxLanUpsert {
+	u.Add(networkixlan.FieldNetSideID, v)
 	return u
 }
 
-// SetSpeed sets the "speed" field.
-func (u *NetworkIxLanUpsert) SetSpeed(v int) *NetworkIxLanUpsert {
-	u.Set(networkixlan.FieldSpeed, v)
-	return u
-}
-
-// UpdateSpeed sets the "speed" field to the value that was provided on create.
-func (u *NetworkIxLanUpsert) UpdateSpeed() *NetworkIxLanUpsert {
-	u.SetExcluded(networkixlan.FieldSpeed)
-	return u
-}
-
-// AddSpeed adds v to the "speed" field.
-func (u *NetworkIxLanUpsert) AddSpeed(v int) *NetworkIxLanUpsert {
-	u.Add(networkixlan.FieldSpeed, v)
+// ClearNetSideID clears the value of the "net_side_id" field.
+func (u *NetworkIxLanUpsert) ClearNetSideID() *NetworkIxLanUpsert {
+	u.SetNull(networkixlan.FieldNetSideID)
 	return u
 }
 
@@ -691,6 +662,18 @@ func (u *NetworkIxLanUpsert) UpdateAsn() *NetworkIxLanUpsert {
 // AddAsn adds v to the "asn" field.
 func (u *NetworkIxLanUpsert) AddAsn(v int) *NetworkIxLanUpsert {
 	u.Add(networkixlan.FieldAsn, v)
+	return u
+}
+
+// SetBfdSupport sets the "bfd_support" field.
+func (u *NetworkIxLanUpsert) SetBfdSupport(v bool) *NetworkIxLanUpsert {
+	u.Set(networkixlan.FieldBfdSupport, v)
+	return u
+}
+
+// UpdateBfdSupport sets the "bfd_support" field to the value that was provided on create.
+func (u *NetworkIxLanUpsert) UpdateBfdSupport() *NetworkIxLanUpsert {
+	u.SetExcluded(networkixlan.FieldBfdSupport)
 	return u
 }
 
@@ -742,15 +725,21 @@ func (u *NetworkIxLanUpsert) UpdateIsRsPeer() *NetworkIxLanUpsert {
 	return u
 }
 
-// SetBfdSupport sets the "bfd_support" field.
-func (u *NetworkIxLanUpsert) SetBfdSupport(v bool) *NetworkIxLanUpsert {
-	u.Set(networkixlan.FieldBfdSupport, v)
+// SetNotes sets the "notes" field.
+func (u *NetworkIxLanUpsert) SetNotes(v string) *NetworkIxLanUpsert {
+	u.Set(networkixlan.FieldNotes, v)
 	return u
 }
 
-// UpdateBfdSupport sets the "bfd_support" field to the value that was provided on create.
-func (u *NetworkIxLanUpsert) UpdateBfdSupport() *NetworkIxLanUpsert {
-	u.SetExcluded(networkixlan.FieldBfdSupport)
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *NetworkIxLanUpsert) UpdateNotes() *NetworkIxLanUpsert {
+	u.SetExcluded(networkixlan.FieldNotes)
+	return u
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (u *NetworkIxLanUpsert) ClearNotes() *NetworkIxLanUpsert {
+	u.SetNull(networkixlan.FieldNotes)
 	return u
 }
 
@@ -766,51 +755,63 @@ func (u *NetworkIxLanUpsert) UpdateOperational() *NetworkIxLanUpsert {
 	return u
 }
 
-// SetNetSideID sets the "net_side_id" field.
-func (u *NetworkIxLanUpsert) SetNetSideID(v int) *NetworkIxLanUpsert {
-	u.Set(networkixlan.FieldNetSideID, v)
+// SetSpeed sets the "speed" field.
+func (u *NetworkIxLanUpsert) SetSpeed(v int) *NetworkIxLanUpsert {
+	u.Set(networkixlan.FieldSpeed, v)
 	return u
 }
 
-// UpdateNetSideID sets the "net_side_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsert) UpdateNetSideID() *NetworkIxLanUpsert {
-	u.SetExcluded(networkixlan.FieldNetSideID)
+// UpdateSpeed sets the "speed" field to the value that was provided on create.
+func (u *NetworkIxLanUpsert) UpdateSpeed() *NetworkIxLanUpsert {
+	u.SetExcluded(networkixlan.FieldSpeed)
 	return u
 }
 
-// AddNetSideID adds v to the "net_side_id" field.
-func (u *NetworkIxLanUpsert) AddNetSideID(v int) *NetworkIxLanUpsert {
-	u.Add(networkixlan.FieldNetSideID, v)
+// AddSpeed adds v to the "speed" field.
+func (u *NetworkIxLanUpsert) AddSpeed(v int) *NetworkIxLanUpsert {
+	u.Add(networkixlan.FieldSpeed, v)
 	return u
 }
 
-// ClearNetSideID clears the value of the "net_side_id" field.
-func (u *NetworkIxLanUpsert) ClearNetSideID() *NetworkIxLanUpsert {
-	u.SetNull(networkixlan.FieldNetSideID)
+// SetIxID sets the "ix_id" field.
+func (u *NetworkIxLanUpsert) SetIxID(v int) *NetworkIxLanUpsert {
+	u.Set(networkixlan.FieldIxID, v)
 	return u
 }
 
-// SetIxSideID sets the "ix_side_id" field.
-func (u *NetworkIxLanUpsert) SetIxSideID(v int) *NetworkIxLanUpsert {
-	u.Set(networkixlan.FieldIxSideID, v)
+// UpdateIxID sets the "ix_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsert) UpdateIxID() *NetworkIxLanUpsert {
+	u.SetExcluded(networkixlan.FieldIxID)
 	return u
 }
 
-// UpdateIxSideID sets the "ix_side_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsert) UpdateIxSideID() *NetworkIxLanUpsert {
-	u.SetExcluded(networkixlan.FieldIxSideID)
+// AddIxID adds v to the "ix_id" field.
+func (u *NetworkIxLanUpsert) AddIxID(v int) *NetworkIxLanUpsert {
+	u.Add(networkixlan.FieldIxID, v)
 	return u
 }
 
-// AddIxSideID adds v to the "ix_side_id" field.
-func (u *NetworkIxLanUpsert) AddIxSideID(v int) *NetworkIxLanUpsert {
-	u.Add(networkixlan.FieldIxSideID, v)
+// ClearIxID clears the value of the "ix_id" field.
+func (u *NetworkIxLanUpsert) ClearIxID() *NetworkIxLanUpsert {
+	u.SetNull(networkixlan.FieldIxID)
 	return u
 }
 
-// ClearIxSideID clears the value of the "ix_side_id" field.
-func (u *NetworkIxLanUpsert) ClearIxSideID() *NetworkIxLanUpsert {
-	u.SetNull(networkixlan.FieldIxSideID)
+// SetName sets the "name" field.
+func (u *NetworkIxLanUpsert) SetName(v string) *NetworkIxLanUpsert {
+	u.Set(networkixlan.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *NetworkIxLanUpsert) UpdateName() *NetworkIxLanUpsert {
+	u.SetExcluded(networkixlan.FieldName)
+	return u
+}
+
+// ClearName clears the value of the "name" field.
+func (u *NetworkIxLanUpsert) ClearName() *NetworkIxLanUpsert {
+	u.SetNull(networkixlan.FieldName)
 	return u
 }
 
@@ -889,52 +890,31 @@ func (u *NetworkIxLanUpsertOne) Update(set func(*NetworkIxLanUpsert)) *NetworkIx
 	return u
 }
 
-// SetNetID sets the "net_id" field.
-func (u *NetworkIxLanUpsertOne) SetNetID(v int) *NetworkIxLanUpsertOne {
+// SetIxSideID sets the "ix_side_id" field.
+func (u *NetworkIxLanUpsertOne) SetIxSideID(v int) *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetNetID(v)
+		s.SetIxSideID(v)
 	})
 }
 
-// UpdateNetID sets the "net_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertOne) UpdateNetID() *NetworkIxLanUpsertOne {
+// AddIxSideID adds v to the "ix_side_id" field.
+func (u *NetworkIxLanUpsertOne) AddIxSideID(v int) *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateNetID()
+		s.AddIxSideID(v)
 	})
 }
 
-// ClearNetID clears the value of the "net_id" field.
-func (u *NetworkIxLanUpsertOne) ClearNetID() *NetworkIxLanUpsertOne {
+// UpdateIxSideID sets the "ix_side_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertOne) UpdateIxSideID() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearNetID()
+		s.UpdateIxSideID()
 	})
 }
 
-// SetIxID sets the "ix_id" field.
-func (u *NetworkIxLanUpsertOne) SetIxID(v int) *NetworkIxLanUpsertOne {
+// ClearIxSideID clears the value of the "ix_side_id" field.
+func (u *NetworkIxLanUpsertOne) ClearIxSideID() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetIxID(v)
-	})
-}
-
-// AddIxID adds v to the "ix_id" field.
-func (u *NetworkIxLanUpsertOne) AddIxID(v int) *NetworkIxLanUpsertOne {
-	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.AddIxID(v)
-	})
-}
-
-// UpdateIxID sets the "ix_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertOne) UpdateIxID() *NetworkIxLanUpsertOne {
-	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateIxID()
-	})
-}
-
-// ClearIxID clears the value of the "ix_id" field.
-func (u *NetworkIxLanUpsertOne) ClearIxID() *NetworkIxLanUpsertOne {
-	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearIxID()
+		s.ClearIxSideID()
 	})
 }
 
@@ -959,66 +939,52 @@ func (u *NetworkIxLanUpsertOne) ClearIxlanID() *NetworkIxLanUpsertOne {
 	})
 }
 
-// SetName sets the "name" field.
-func (u *NetworkIxLanUpsertOne) SetName(v string) *NetworkIxLanUpsertOne {
+// SetNetID sets the "net_id" field.
+func (u *NetworkIxLanUpsertOne) SetNetID(v int) *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetName(v)
+		s.SetNetID(v)
 	})
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertOne) UpdateName() *NetworkIxLanUpsertOne {
+// UpdateNetID sets the "net_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertOne) UpdateNetID() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateName()
+		s.UpdateNetID()
 	})
 }
 
-// ClearName clears the value of the "name" field.
-func (u *NetworkIxLanUpsertOne) ClearName() *NetworkIxLanUpsertOne {
+// ClearNetID clears the value of the "net_id" field.
+func (u *NetworkIxLanUpsertOne) ClearNetID() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearName()
+		s.ClearNetID()
 	})
 }
 
-// SetNotes sets the "notes" field.
-func (u *NetworkIxLanUpsertOne) SetNotes(v string) *NetworkIxLanUpsertOne {
+// SetNetSideID sets the "net_side_id" field.
+func (u *NetworkIxLanUpsertOne) SetNetSideID(v int) *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetNotes(v)
+		s.SetNetSideID(v)
 	})
 }
 
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertOne) UpdateNotes() *NetworkIxLanUpsertOne {
+// AddNetSideID adds v to the "net_side_id" field.
+func (u *NetworkIxLanUpsertOne) AddNetSideID(v int) *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateNotes()
+		s.AddNetSideID(v)
 	})
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (u *NetworkIxLanUpsertOne) ClearNotes() *NetworkIxLanUpsertOne {
+// UpdateNetSideID sets the "net_side_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertOne) UpdateNetSideID() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearNotes()
+		s.UpdateNetSideID()
 	})
 }
 
-// SetSpeed sets the "speed" field.
-func (u *NetworkIxLanUpsertOne) SetSpeed(v int) *NetworkIxLanUpsertOne {
+// ClearNetSideID clears the value of the "net_side_id" field.
+func (u *NetworkIxLanUpsertOne) ClearNetSideID() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetSpeed(v)
-	})
-}
-
-// AddSpeed adds v to the "speed" field.
-func (u *NetworkIxLanUpsertOne) AddSpeed(v int) *NetworkIxLanUpsertOne {
-	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.AddSpeed(v)
-	})
-}
-
-// UpdateSpeed sets the "speed" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertOne) UpdateSpeed() *NetworkIxLanUpsertOne {
-	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateSpeed()
+		s.ClearNetSideID()
 	})
 }
 
@@ -1040,6 +1006,20 @@ func (u *NetworkIxLanUpsertOne) AddAsn(v int) *NetworkIxLanUpsertOne {
 func (u *NetworkIxLanUpsertOne) UpdateAsn() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
 		s.UpdateAsn()
+	})
+}
+
+// SetBfdSupport sets the "bfd_support" field.
+func (u *NetworkIxLanUpsertOne) SetBfdSupport(v bool) *NetworkIxLanUpsertOne {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.SetBfdSupport(v)
+	})
+}
+
+// UpdateBfdSupport sets the "bfd_support" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertOne) UpdateBfdSupport() *NetworkIxLanUpsertOne {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.UpdateBfdSupport()
 	})
 }
 
@@ -1099,17 +1079,24 @@ func (u *NetworkIxLanUpsertOne) UpdateIsRsPeer() *NetworkIxLanUpsertOne {
 	})
 }
 
-// SetBfdSupport sets the "bfd_support" field.
-func (u *NetworkIxLanUpsertOne) SetBfdSupport(v bool) *NetworkIxLanUpsertOne {
+// SetNotes sets the "notes" field.
+func (u *NetworkIxLanUpsertOne) SetNotes(v string) *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetBfdSupport(v)
+		s.SetNotes(v)
 	})
 }
 
-// UpdateBfdSupport sets the "bfd_support" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertOne) UpdateBfdSupport() *NetworkIxLanUpsertOne {
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertOne) UpdateNotes() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateBfdSupport()
+		s.UpdateNotes()
+	})
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (u *NetworkIxLanUpsertOne) ClearNotes() *NetworkIxLanUpsertOne {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.ClearNotes()
 	})
 }
 
@@ -1127,59 +1114,73 @@ func (u *NetworkIxLanUpsertOne) UpdateOperational() *NetworkIxLanUpsertOne {
 	})
 }
 
-// SetNetSideID sets the "net_side_id" field.
-func (u *NetworkIxLanUpsertOne) SetNetSideID(v int) *NetworkIxLanUpsertOne {
+// SetSpeed sets the "speed" field.
+func (u *NetworkIxLanUpsertOne) SetSpeed(v int) *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetNetSideID(v)
+		s.SetSpeed(v)
 	})
 }
 
-// AddNetSideID adds v to the "net_side_id" field.
-func (u *NetworkIxLanUpsertOne) AddNetSideID(v int) *NetworkIxLanUpsertOne {
+// AddSpeed adds v to the "speed" field.
+func (u *NetworkIxLanUpsertOne) AddSpeed(v int) *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.AddNetSideID(v)
+		s.AddSpeed(v)
 	})
 }
 
-// UpdateNetSideID sets the "net_side_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertOne) UpdateNetSideID() *NetworkIxLanUpsertOne {
+// UpdateSpeed sets the "speed" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertOne) UpdateSpeed() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateNetSideID()
+		s.UpdateSpeed()
 	})
 }
 
-// ClearNetSideID clears the value of the "net_side_id" field.
-func (u *NetworkIxLanUpsertOne) ClearNetSideID() *NetworkIxLanUpsertOne {
+// SetIxID sets the "ix_id" field.
+func (u *NetworkIxLanUpsertOne) SetIxID(v int) *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearNetSideID()
+		s.SetIxID(v)
 	})
 }
 
-// SetIxSideID sets the "ix_side_id" field.
-func (u *NetworkIxLanUpsertOne) SetIxSideID(v int) *NetworkIxLanUpsertOne {
+// AddIxID adds v to the "ix_id" field.
+func (u *NetworkIxLanUpsertOne) AddIxID(v int) *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetIxSideID(v)
+		s.AddIxID(v)
 	})
 }
 
-// AddIxSideID adds v to the "ix_side_id" field.
-func (u *NetworkIxLanUpsertOne) AddIxSideID(v int) *NetworkIxLanUpsertOne {
+// UpdateIxID sets the "ix_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertOne) UpdateIxID() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.AddIxSideID(v)
+		s.UpdateIxID()
 	})
 }
 
-// UpdateIxSideID sets the "ix_side_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertOne) UpdateIxSideID() *NetworkIxLanUpsertOne {
+// ClearIxID clears the value of the "ix_id" field.
+func (u *NetworkIxLanUpsertOne) ClearIxID() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateIxSideID()
+		s.ClearIxID()
 	})
 }
 
-// ClearIxSideID clears the value of the "ix_side_id" field.
-func (u *NetworkIxLanUpsertOne) ClearIxSideID() *NetworkIxLanUpsertOne {
+// SetName sets the "name" field.
+func (u *NetworkIxLanUpsertOne) SetName(v string) *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearIxSideID()
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertOne) UpdateName() *NetworkIxLanUpsertOne {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.UpdateName()
+	})
+}
+
+// ClearName clears the value of the "name" field.
+func (u *NetworkIxLanUpsertOne) ClearName() *NetworkIxLanUpsertOne {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.ClearName()
 	})
 }
 
@@ -1346,7 +1347,7 @@ func (_c *NetworkIxLanCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.NetworkIxLanUpsert) {
-//			SetNetID(v+v).
+//			SetIxSideID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *NetworkIxLanCreateBulk) OnConflict(opts ...sql.ConflictOption) *NetworkIxLanUpsertBulk {
@@ -1428,52 +1429,31 @@ func (u *NetworkIxLanUpsertBulk) Update(set func(*NetworkIxLanUpsert)) *NetworkI
 	return u
 }
 
-// SetNetID sets the "net_id" field.
-func (u *NetworkIxLanUpsertBulk) SetNetID(v int) *NetworkIxLanUpsertBulk {
+// SetIxSideID sets the "ix_side_id" field.
+func (u *NetworkIxLanUpsertBulk) SetIxSideID(v int) *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetNetID(v)
+		s.SetIxSideID(v)
 	})
 }
 
-// UpdateNetID sets the "net_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertBulk) UpdateNetID() *NetworkIxLanUpsertBulk {
+// AddIxSideID adds v to the "ix_side_id" field.
+func (u *NetworkIxLanUpsertBulk) AddIxSideID(v int) *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateNetID()
+		s.AddIxSideID(v)
 	})
 }
 
-// ClearNetID clears the value of the "net_id" field.
-func (u *NetworkIxLanUpsertBulk) ClearNetID() *NetworkIxLanUpsertBulk {
+// UpdateIxSideID sets the "ix_side_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertBulk) UpdateIxSideID() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearNetID()
+		s.UpdateIxSideID()
 	})
 }
 
-// SetIxID sets the "ix_id" field.
-func (u *NetworkIxLanUpsertBulk) SetIxID(v int) *NetworkIxLanUpsertBulk {
+// ClearIxSideID clears the value of the "ix_side_id" field.
+func (u *NetworkIxLanUpsertBulk) ClearIxSideID() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetIxID(v)
-	})
-}
-
-// AddIxID adds v to the "ix_id" field.
-func (u *NetworkIxLanUpsertBulk) AddIxID(v int) *NetworkIxLanUpsertBulk {
-	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.AddIxID(v)
-	})
-}
-
-// UpdateIxID sets the "ix_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertBulk) UpdateIxID() *NetworkIxLanUpsertBulk {
-	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateIxID()
-	})
-}
-
-// ClearIxID clears the value of the "ix_id" field.
-func (u *NetworkIxLanUpsertBulk) ClearIxID() *NetworkIxLanUpsertBulk {
-	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearIxID()
+		s.ClearIxSideID()
 	})
 }
 
@@ -1498,66 +1478,52 @@ func (u *NetworkIxLanUpsertBulk) ClearIxlanID() *NetworkIxLanUpsertBulk {
 	})
 }
 
-// SetName sets the "name" field.
-func (u *NetworkIxLanUpsertBulk) SetName(v string) *NetworkIxLanUpsertBulk {
+// SetNetID sets the "net_id" field.
+func (u *NetworkIxLanUpsertBulk) SetNetID(v int) *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetName(v)
+		s.SetNetID(v)
 	})
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertBulk) UpdateName() *NetworkIxLanUpsertBulk {
+// UpdateNetID sets the "net_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertBulk) UpdateNetID() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateName()
+		s.UpdateNetID()
 	})
 }
 
-// ClearName clears the value of the "name" field.
-func (u *NetworkIxLanUpsertBulk) ClearName() *NetworkIxLanUpsertBulk {
+// ClearNetID clears the value of the "net_id" field.
+func (u *NetworkIxLanUpsertBulk) ClearNetID() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearName()
+		s.ClearNetID()
 	})
 }
 
-// SetNotes sets the "notes" field.
-func (u *NetworkIxLanUpsertBulk) SetNotes(v string) *NetworkIxLanUpsertBulk {
+// SetNetSideID sets the "net_side_id" field.
+func (u *NetworkIxLanUpsertBulk) SetNetSideID(v int) *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetNotes(v)
+		s.SetNetSideID(v)
 	})
 }
 
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertBulk) UpdateNotes() *NetworkIxLanUpsertBulk {
+// AddNetSideID adds v to the "net_side_id" field.
+func (u *NetworkIxLanUpsertBulk) AddNetSideID(v int) *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateNotes()
+		s.AddNetSideID(v)
 	})
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (u *NetworkIxLanUpsertBulk) ClearNotes() *NetworkIxLanUpsertBulk {
+// UpdateNetSideID sets the "net_side_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertBulk) UpdateNetSideID() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearNotes()
+		s.UpdateNetSideID()
 	})
 }
 
-// SetSpeed sets the "speed" field.
-func (u *NetworkIxLanUpsertBulk) SetSpeed(v int) *NetworkIxLanUpsertBulk {
+// ClearNetSideID clears the value of the "net_side_id" field.
+func (u *NetworkIxLanUpsertBulk) ClearNetSideID() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetSpeed(v)
-	})
-}
-
-// AddSpeed adds v to the "speed" field.
-func (u *NetworkIxLanUpsertBulk) AddSpeed(v int) *NetworkIxLanUpsertBulk {
-	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.AddSpeed(v)
-	})
-}
-
-// UpdateSpeed sets the "speed" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertBulk) UpdateSpeed() *NetworkIxLanUpsertBulk {
-	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateSpeed()
+		s.ClearNetSideID()
 	})
 }
 
@@ -1579,6 +1545,20 @@ func (u *NetworkIxLanUpsertBulk) AddAsn(v int) *NetworkIxLanUpsertBulk {
 func (u *NetworkIxLanUpsertBulk) UpdateAsn() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
 		s.UpdateAsn()
+	})
+}
+
+// SetBfdSupport sets the "bfd_support" field.
+func (u *NetworkIxLanUpsertBulk) SetBfdSupport(v bool) *NetworkIxLanUpsertBulk {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.SetBfdSupport(v)
+	})
+}
+
+// UpdateBfdSupport sets the "bfd_support" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertBulk) UpdateBfdSupport() *NetworkIxLanUpsertBulk {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.UpdateBfdSupport()
 	})
 }
 
@@ -1638,17 +1618,24 @@ func (u *NetworkIxLanUpsertBulk) UpdateIsRsPeer() *NetworkIxLanUpsertBulk {
 	})
 }
 
-// SetBfdSupport sets the "bfd_support" field.
-func (u *NetworkIxLanUpsertBulk) SetBfdSupport(v bool) *NetworkIxLanUpsertBulk {
+// SetNotes sets the "notes" field.
+func (u *NetworkIxLanUpsertBulk) SetNotes(v string) *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetBfdSupport(v)
+		s.SetNotes(v)
 	})
 }
 
-// UpdateBfdSupport sets the "bfd_support" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertBulk) UpdateBfdSupport() *NetworkIxLanUpsertBulk {
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertBulk) UpdateNotes() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateBfdSupport()
+		s.UpdateNotes()
+	})
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (u *NetworkIxLanUpsertBulk) ClearNotes() *NetworkIxLanUpsertBulk {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.ClearNotes()
 	})
 }
 
@@ -1666,59 +1653,73 @@ func (u *NetworkIxLanUpsertBulk) UpdateOperational() *NetworkIxLanUpsertBulk {
 	})
 }
 
-// SetNetSideID sets the "net_side_id" field.
-func (u *NetworkIxLanUpsertBulk) SetNetSideID(v int) *NetworkIxLanUpsertBulk {
+// SetSpeed sets the "speed" field.
+func (u *NetworkIxLanUpsertBulk) SetSpeed(v int) *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetNetSideID(v)
+		s.SetSpeed(v)
 	})
 }
 
-// AddNetSideID adds v to the "net_side_id" field.
-func (u *NetworkIxLanUpsertBulk) AddNetSideID(v int) *NetworkIxLanUpsertBulk {
+// AddSpeed adds v to the "speed" field.
+func (u *NetworkIxLanUpsertBulk) AddSpeed(v int) *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.AddNetSideID(v)
+		s.AddSpeed(v)
 	})
 }
 
-// UpdateNetSideID sets the "net_side_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertBulk) UpdateNetSideID() *NetworkIxLanUpsertBulk {
+// UpdateSpeed sets the "speed" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertBulk) UpdateSpeed() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateNetSideID()
+		s.UpdateSpeed()
 	})
 }
 
-// ClearNetSideID clears the value of the "net_side_id" field.
-func (u *NetworkIxLanUpsertBulk) ClearNetSideID() *NetworkIxLanUpsertBulk {
+// SetIxID sets the "ix_id" field.
+func (u *NetworkIxLanUpsertBulk) SetIxID(v int) *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearNetSideID()
+		s.SetIxID(v)
 	})
 }
 
-// SetIxSideID sets the "ix_side_id" field.
-func (u *NetworkIxLanUpsertBulk) SetIxSideID(v int) *NetworkIxLanUpsertBulk {
+// AddIxID adds v to the "ix_id" field.
+func (u *NetworkIxLanUpsertBulk) AddIxID(v int) *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.SetIxSideID(v)
+		s.AddIxID(v)
 	})
 }
 
-// AddIxSideID adds v to the "ix_side_id" field.
-func (u *NetworkIxLanUpsertBulk) AddIxSideID(v int) *NetworkIxLanUpsertBulk {
+// UpdateIxID sets the "ix_id" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertBulk) UpdateIxID() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.AddIxSideID(v)
+		s.UpdateIxID()
 	})
 }
 
-// UpdateIxSideID sets the "ix_side_id" field to the value that was provided on create.
-func (u *NetworkIxLanUpsertBulk) UpdateIxSideID() *NetworkIxLanUpsertBulk {
+// ClearIxID clears the value of the "ix_id" field.
+func (u *NetworkIxLanUpsertBulk) ClearIxID() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.UpdateIxSideID()
+		s.ClearIxID()
 	})
 }
 
-// ClearIxSideID clears the value of the "ix_side_id" field.
-func (u *NetworkIxLanUpsertBulk) ClearIxSideID() *NetworkIxLanUpsertBulk {
+// SetName sets the "name" field.
+func (u *NetworkIxLanUpsertBulk) SetName(v string) *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
-		s.ClearIxSideID()
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertBulk) UpdateName() *NetworkIxLanUpsertBulk {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.UpdateName()
+	})
+}
+
+// ClearName clears the value of the "name" field.
+func (u *NetworkIxLanUpsertBulk) ClearName() *NetworkIxLanUpsertBulk {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.ClearName()
 	})
 }
 

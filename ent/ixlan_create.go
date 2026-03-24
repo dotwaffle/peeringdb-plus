@@ -39,16 +39,16 @@ func (_c *IxLanCreate) SetNillableIxID(v *int) *IxLanCreate {
 	return _c
 }
 
-// SetName sets the "name" field.
-func (_c *IxLanCreate) SetName(v string) *IxLanCreate {
-	_c.mutation.SetName(v)
+// SetArpSponge sets the "arp_sponge" field.
+func (_c *IxLanCreate) SetArpSponge(v string) *IxLanCreate {
+	_c.mutation.SetArpSponge(v)
 	return _c
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_c *IxLanCreate) SetNillableName(v *string) *IxLanCreate {
+// SetNillableArpSponge sets the "arp_sponge" field if the given value is not nil.
+func (_c *IxLanCreate) SetNillableArpSponge(v *string) *IxLanCreate {
 	if v != nil {
-		_c.SetName(*v)
+		_c.SetArpSponge(*v)
 	}
 	return _c
 }
@@ -67,20 +67,6 @@ func (_c *IxLanCreate) SetNillableDescr(v *string) *IxLanCreate {
 	return _c
 }
 
-// SetMtu sets the "mtu" field.
-func (_c *IxLanCreate) SetMtu(v int) *IxLanCreate {
-	_c.mutation.SetMtu(v)
-	return _c
-}
-
-// SetNillableMtu sets the "mtu" field if the given value is not nil.
-func (_c *IxLanCreate) SetNillableMtu(v *int) *IxLanCreate {
-	if v != nil {
-		_c.SetMtu(*v)
-	}
-	return _c
-}
-
 // SetDot1qSupport sets the "dot1q_support" field.
 func (_c *IxLanCreate) SetDot1qSupport(v bool) *IxLanCreate {
 	_c.mutation.SetDot1qSupport(v)
@@ -95,30 +81,16 @@ func (_c *IxLanCreate) SetNillableDot1qSupport(v *bool) *IxLanCreate {
 	return _c
 }
 
-// SetRsAsn sets the "rs_asn" field.
-func (_c *IxLanCreate) SetRsAsn(v int) *IxLanCreate {
-	_c.mutation.SetRsAsn(v)
+// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
+func (_c *IxLanCreate) SetIxfIxpImportEnabled(v bool) *IxLanCreate {
+	_c.mutation.SetIxfIxpImportEnabled(v)
 	return _c
 }
 
-// SetNillableRsAsn sets the "rs_asn" field if the given value is not nil.
-func (_c *IxLanCreate) SetNillableRsAsn(v *int) *IxLanCreate {
+// SetNillableIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field if the given value is not nil.
+func (_c *IxLanCreate) SetNillableIxfIxpImportEnabled(v *bool) *IxLanCreate {
 	if v != nil {
-		_c.SetRsAsn(*v)
-	}
-	return _c
-}
-
-// SetArpSponge sets the "arp_sponge" field.
-func (_c *IxLanCreate) SetArpSponge(v string) *IxLanCreate {
-	_c.mutation.SetArpSponge(v)
-	return _c
-}
-
-// SetNillableArpSponge sets the "arp_sponge" field if the given value is not nil.
-func (_c *IxLanCreate) SetNillableArpSponge(v *string) *IxLanCreate {
-	if v != nil {
-		_c.SetArpSponge(*v)
+		_c.SetIxfIxpImportEnabled(*v)
 	}
 	return _c
 }
@@ -137,16 +109,44 @@ func (_c *IxLanCreate) SetNillableIxfIxpMemberListURLVisible(v *string) *IxLanCr
 	return _c
 }
 
-// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
-func (_c *IxLanCreate) SetIxfIxpImportEnabled(v bool) *IxLanCreate {
-	_c.mutation.SetIxfIxpImportEnabled(v)
+// SetMtu sets the "mtu" field.
+func (_c *IxLanCreate) SetMtu(v int) *IxLanCreate {
+	_c.mutation.SetMtu(v)
 	return _c
 }
 
-// SetNillableIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field if the given value is not nil.
-func (_c *IxLanCreate) SetNillableIxfIxpImportEnabled(v *bool) *IxLanCreate {
+// SetNillableMtu sets the "mtu" field if the given value is not nil.
+func (_c *IxLanCreate) SetNillableMtu(v *int) *IxLanCreate {
 	if v != nil {
-		_c.SetIxfIxpImportEnabled(*v)
+		_c.SetMtu(*v)
+	}
+	return _c
+}
+
+// SetName sets the "name" field.
+func (_c *IxLanCreate) SetName(v string) *IxLanCreate {
+	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_c *IxLanCreate) SetNillableName(v *string) *IxLanCreate {
+	if v != nil {
+		_c.SetName(*v)
+	}
+	return _c
+}
+
+// SetRsAsn sets the "rs_asn" field.
+func (_c *IxLanCreate) SetRsAsn(v int) *IxLanCreate {
+	_c.mutation.SetRsAsn(v)
+	return _c
+}
+
+// SetNillableRsAsn sets the "rs_asn" field if the given value is not nil.
+func (_c *IxLanCreate) SetNillableRsAsn(v *int) *IxLanCreate {
+	if v != nil {
+		_c.SetRsAsn(*v)
 	}
 	return _c
 }
@@ -269,33 +269,33 @@ func (_c *IxLanCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *IxLanCreate) defaults() error {
-	if _, ok := _c.mutation.Name(); !ok {
-		v := ixlan.DefaultName
-		_c.mutation.SetName(v)
-	}
 	if _, ok := _c.mutation.Descr(); !ok {
 		v := ixlan.DefaultDescr
 		_c.mutation.SetDescr(v)
-	}
-	if _, ok := _c.mutation.Mtu(); !ok {
-		v := ixlan.DefaultMtu
-		_c.mutation.SetMtu(v)
 	}
 	if _, ok := _c.mutation.Dot1qSupport(); !ok {
 		v := ixlan.DefaultDot1qSupport
 		_c.mutation.SetDot1qSupport(v)
 	}
-	if _, ok := _c.mutation.RsAsn(); !ok {
-		v := ixlan.DefaultRsAsn
-		_c.mutation.SetRsAsn(v)
+	if _, ok := _c.mutation.IxfIxpImportEnabled(); !ok {
+		v := ixlan.DefaultIxfIxpImportEnabled
+		_c.mutation.SetIxfIxpImportEnabled(v)
 	}
 	if _, ok := _c.mutation.IxfIxpMemberListURLVisible(); !ok {
 		v := ixlan.DefaultIxfIxpMemberListURLVisible
 		_c.mutation.SetIxfIxpMemberListURLVisible(v)
 	}
-	if _, ok := _c.mutation.IxfIxpImportEnabled(); !ok {
-		v := ixlan.DefaultIxfIxpImportEnabled
-		_c.mutation.SetIxfIxpImportEnabled(v)
+	if _, ok := _c.mutation.Mtu(); !ok {
+		v := ixlan.DefaultMtu
+		_c.mutation.SetMtu(v)
+	}
+	if _, ok := _c.mutation.Name(); !ok {
+		v := ixlan.DefaultName
+		_c.mutation.SetName(v)
+	}
+	if _, ok := _c.mutation.RsAsn(); !ok {
+		v := ixlan.DefaultRsAsn
+		_c.mutation.SetRsAsn(v)
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := ixlan.DefaultStatus
@@ -306,27 +306,21 @@ func (_c *IxLanCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *IxLanCreate) check() error {
-	if v, ok := _c.mutation.Name(); ok {
-		if err := ixlan.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "IxLan.name": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.Mtu(); !ok {
-		return &ValidationError{Name: "mtu", err: errors.New(`ent: missing required field "IxLan.mtu"`)}
-	}
 	if _, ok := _c.mutation.Dot1qSupport(); !ok {
 		return &ValidationError{Name: "dot1q_support", err: errors.New(`ent: missing required field "IxLan.dot1q_support"`)}
 	}
-	if _, ok := _c.mutation.IxfIxpMemberListURLVisible(); !ok {
-		return &ValidationError{Name: "ixf_ixp_member_list_url_visible", err: errors.New(`ent: missing required field "IxLan.ixf_ixp_member_list_url_visible"`)}
+	if _, ok := _c.mutation.IxfIxpImportEnabled(); !ok {
+		return &ValidationError{Name: "ixf_ixp_import_enabled", err: errors.New(`ent: missing required field "IxLan.ixf_ixp_import_enabled"`)}
 	}
 	if v, ok := _c.mutation.IxfIxpMemberListURLVisible(); ok {
 		if err := ixlan.IxfIxpMemberListURLVisibleValidator(v); err != nil {
 			return &ValidationError{Name: "ixf_ixp_member_list_url_visible", err: fmt.Errorf(`ent: validator failed for field "IxLan.ixf_ixp_member_list_url_visible": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.IxfIxpImportEnabled(); !ok {
-		return &ValidationError{Name: "ixf_ixp_import_enabled", err: errors.New(`ent: missing required field "IxLan.ixf_ixp_import_enabled"`)}
+	if v, ok := _c.mutation.Name(); ok {
+		if err := ixlan.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "IxLan.name": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.Created(); !ok {
 		return &ValidationError{Name: "created", err: errors.New(`ent: missing required field "IxLan.created"`)}
@@ -380,37 +374,37 @@ func (_c *IxLanCreate) createSpec() (*IxLan, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.Name(); ok {
-		_spec.SetField(ixlan.FieldName, field.TypeString, value)
-		_node.Name = value
+	if value, ok := _c.mutation.ArpSponge(); ok {
+		_spec.SetField(ixlan.FieldArpSponge, field.TypeString, value)
+		_node.ArpSponge = &value
 	}
 	if value, ok := _c.mutation.Descr(); ok {
 		_spec.SetField(ixlan.FieldDescr, field.TypeString, value)
 		_node.Descr = value
 	}
-	if value, ok := _c.mutation.Mtu(); ok {
-		_spec.SetField(ixlan.FieldMtu, field.TypeInt, value)
-		_node.Mtu = value
-	}
 	if value, ok := _c.mutation.Dot1qSupport(); ok {
 		_spec.SetField(ixlan.FieldDot1qSupport, field.TypeBool, value)
 		_node.Dot1qSupport = value
 	}
-	if value, ok := _c.mutation.RsAsn(); ok {
-		_spec.SetField(ixlan.FieldRsAsn, field.TypeInt, value)
-		_node.RsAsn = &value
-	}
-	if value, ok := _c.mutation.ArpSponge(); ok {
-		_spec.SetField(ixlan.FieldArpSponge, field.TypeString, value)
-		_node.ArpSponge = &value
+	if value, ok := _c.mutation.IxfIxpImportEnabled(); ok {
+		_spec.SetField(ixlan.FieldIxfIxpImportEnabled, field.TypeBool, value)
+		_node.IxfIxpImportEnabled = value
 	}
 	if value, ok := _c.mutation.IxfIxpMemberListURLVisible(); ok {
 		_spec.SetField(ixlan.FieldIxfIxpMemberListURLVisible, field.TypeString, value)
 		_node.IxfIxpMemberListURLVisible = value
 	}
-	if value, ok := _c.mutation.IxfIxpImportEnabled(); ok {
-		_spec.SetField(ixlan.FieldIxfIxpImportEnabled, field.TypeBool, value)
-		_node.IxfIxpImportEnabled = value
+	if value, ok := _c.mutation.Mtu(); ok {
+		_spec.SetField(ixlan.FieldMtu, field.TypeInt, value)
+		_node.Mtu = value
+	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(ixlan.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := _c.mutation.RsAsn(); ok {
+		_spec.SetField(ixlan.FieldRsAsn, field.TypeInt, value)
+		_node.RsAsn = &value
 	}
 	if value, ok := _c.mutation.Created(); ok {
 		_spec.SetField(ixlan.FieldCreated, field.TypeTime, value)
@@ -543,21 +537,21 @@ func (u *IxLanUpsert) ClearIxID() *IxLanUpsert {
 	return u
 }
 
-// SetName sets the "name" field.
-func (u *IxLanUpsert) SetName(v string) *IxLanUpsert {
-	u.Set(ixlan.FieldName, v)
+// SetArpSponge sets the "arp_sponge" field.
+func (u *IxLanUpsert) SetArpSponge(v string) *IxLanUpsert {
+	u.Set(ixlan.FieldArpSponge, v)
 	return u
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *IxLanUpsert) UpdateName() *IxLanUpsert {
-	u.SetExcluded(ixlan.FieldName)
+// UpdateArpSponge sets the "arp_sponge" field to the value that was provided on create.
+func (u *IxLanUpsert) UpdateArpSponge() *IxLanUpsert {
+	u.SetExcluded(ixlan.FieldArpSponge)
 	return u
 }
 
-// ClearName clears the value of the "name" field.
-func (u *IxLanUpsert) ClearName() *IxLanUpsert {
-	u.SetNull(ixlan.FieldName)
+// ClearArpSponge clears the value of the "arp_sponge" field.
+func (u *IxLanUpsert) ClearArpSponge() *IxLanUpsert {
+	u.SetNull(ixlan.FieldArpSponge)
 	return u
 }
 
@@ -579,6 +573,48 @@ func (u *IxLanUpsert) ClearDescr() *IxLanUpsert {
 	return u
 }
 
+// SetDot1qSupport sets the "dot1q_support" field.
+func (u *IxLanUpsert) SetDot1qSupport(v bool) *IxLanUpsert {
+	u.Set(ixlan.FieldDot1qSupport, v)
+	return u
+}
+
+// UpdateDot1qSupport sets the "dot1q_support" field to the value that was provided on create.
+func (u *IxLanUpsert) UpdateDot1qSupport() *IxLanUpsert {
+	u.SetExcluded(ixlan.FieldDot1qSupport)
+	return u
+}
+
+// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
+func (u *IxLanUpsert) SetIxfIxpImportEnabled(v bool) *IxLanUpsert {
+	u.Set(ixlan.FieldIxfIxpImportEnabled, v)
+	return u
+}
+
+// UpdateIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field to the value that was provided on create.
+func (u *IxLanUpsert) UpdateIxfIxpImportEnabled() *IxLanUpsert {
+	u.SetExcluded(ixlan.FieldIxfIxpImportEnabled)
+	return u
+}
+
+// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
+func (u *IxLanUpsert) SetIxfIxpMemberListURLVisible(v string) *IxLanUpsert {
+	u.Set(ixlan.FieldIxfIxpMemberListURLVisible, v)
+	return u
+}
+
+// UpdateIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field to the value that was provided on create.
+func (u *IxLanUpsert) UpdateIxfIxpMemberListURLVisible() *IxLanUpsert {
+	u.SetExcluded(ixlan.FieldIxfIxpMemberListURLVisible)
+	return u
+}
+
+// ClearIxfIxpMemberListURLVisible clears the value of the "ixf_ixp_member_list_url_visible" field.
+func (u *IxLanUpsert) ClearIxfIxpMemberListURLVisible() *IxLanUpsert {
+	u.SetNull(ixlan.FieldIxfIxpMemberListURLVisible)
+	return u
+}
+
 // SetMtu sets the "mtu" field.
 func (u *IxLanUpsert) SetMtu(v int) *IxLanUpsert {
 	u.Set(ixlan.FieldMtu, v)
@@ -597,15 +633,27 @@ func (u *IxLanUpsert) AddMtu(v int) *IxLanUpsert {
 	return u
 }
 
-// SetDot1qSupport sets the "dot1q_support" field.
-func (u *IxLanUpsert) SetDot1qSupport(v bool) *IxLanUpsert {
-	u.Set(ixlan.FieldDot1qSupport, v)
+// ClearMtu clears the value of the "mtu" field.
+func (u *IxLanUpsert) ClearMtu() *IxLanUpsert {
+	u.SetNull(ixlan.FieldMtu)
 	return u
 }
 
-// UpdateDot1qSupport sets the "dot1q_support" field to the value that was provided on create.
-func (u *IxLanUpsert) UpdateDot1qSupport() *IxLanUpsert {
-	u.SetExcluded(ixlan.FieldDot1qSupport)
+// SetName sets the "name" field.
+func (u *IxLanUpsert) SetName(v string) *IxLanUpsert {
+	u.Set(ixlan.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *IxLanUpsert) UpdateName() *IxLanUpsert {
+	u.SetExcluded(ixlan.FieldName)
+	return u
+}
+
+// ClearName clears the value of the "name" field.
+func (u *IxLanUpsert) ClearName() *IxLanUpsert {
+	u.SetNull(ixlan.FieldName)
 	return u
 }
 
@@ -630,48 +678,6 @@ func (u *IxLanUpsert) AddRsAsn(v int) *IxLanUpsert {
 // ClearRsAsn clears the value of the "rs_asn" field.
 func (u *IxLanUpsert) ClearRsAsn() *IxLanUpsert {
 	u.SetNull(ixlan.FieldRsAsn)
-	return u
-}
-
-// SetArpSponge sets the "arp_sponge" field.
-func (u *IxLanUpsert) SetArpSponge(v string) *IxLanUpsert {
-	u.Set(ixlan.FieldArpSponge, v)
-	return u
-}
-
-// UpdateArpSponge sets the "arp_sponge" field to the value that was provided on create.
-func (u *IxLanUpsert) UpdateArpSponge() *IxLanUpsert {
-	u.SetExcluded(ixlan.FieldArpSponge)
-	return u
-}
-
-// ClearArpSponge clears the value of the "arp_sponge" field.
-func (u *IxLanUpsert) ClearArpSponge() *IxLanUpsert {
-	u.SetNull(ixlan.FieldArpSponge)
-	return u
-}
-
-// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
-func (u *IxLanUpsert) SetIxfIxpMemberListURLVisible(v string) *IxLanUpsert {
-	u.Set(ixlan.FieldIxfIxpMemberListURLVisible, v)
-	return u
-}
-
-// UpdateIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field to the value that was provided on create.
-func (u *IxLanUpsert) UpdateIxfIxpMemberListURLVisible() *IxLanUpsert {
-	u.SetExcluded(ixlan.FieldIxfIxpMemberListURLVisible)
-	return u
-}
-
-// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
-func (u *IxLanUpsert) SetIxfIxpImportEnabled(v bool) *IxLanUpsert {
-	u.Set(ixlan.FieldIxfIxpImportEnabled, v)
-	return u
-}
-
-// UpdateIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field to the value that was provided on create.
-func (u *IxLanUpsert) UpdateIxfIxpImportEnabled() *IxLanUpsert {
-	u.SetExcluded(ixlan.FieldIxfIxpImportEnabled)
 	return u
 }
 
@@ -771,24 +777,24 @@ func (u *IxLanUpsertOne) ClearIxID() *IxLanUpsertOne {
 	})
 }
 
-// SetName sets the "name" field.
-func (u *IxLanUpsertOne) SetName(v string) *IxLanUpsertOne {
+// SetArpSponge sets the "arp_sponge" field.
+func (u *IxLanUpsertOne) SetArpSponge(v string) *IxLanUpsertOne {
 	return u.Update(func(s *IxLanUpsert) {
-		s.SetName(v)
+		s.SetArpSponge(v)
 	})
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *IxLanUpsertOne) UpdateName() *IxLanUpsertOne {
+// UpdateArpSponge sets the "arp_sponge" field to the value that was provided on create.
+func (u *IxLanUpsertOne) UpdateArpSponge() *IxLanUpsertOne {
 	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateName()
+		s.UpdateArpSponge()
 	})
 }
 
-// ClearName clears the value of the "name" field.
-func (u *IxLanUpsertOne) ClearName() *IxLanUpsertOne {
+// ClearArpSponge clears the value of the "arp_sponge" field.
+func (u *IxLanUpsertOne) ClearArpSponge() *IxLanUpsertOne {
 	return u.Update(func(s *IxLanUpsert) {
-		s.ClearName()
+		s.ClearArpSponge()
 	})
 }
 
@@ -813,6 +819,55 @@ func (u *IxLanUpsertOne) ClearDescr() *IxLanUpsertOne {
 	})
 }
 
+// SetDot1qSupport sets the "dot1q_support" field.
+func (u *IxLanUpsertOne) SetDot1qSupport(v bool) *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.SetDot1qSupport(v)
+	})
+}
+
+// UpdateDot1qSupport sets the "dot1q_support" field to the value that was provided on create.
+func (u *IxLanUpsertOne) UpdateDot1qSupport() *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.UpdateDot1qSupport()
+	})
+}
+
+// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
+func (u *IxLanUpsertOne) SetIxfIxpImportEnabled(v bool) *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.SetIxfIxpImportEnabled(v)
+	})
+}
+
+// UpdateIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field to the value that was provided on create.
+func (u *IxLanUpsertOne) UpdateIxfIxpImportEnabled() *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.UpdateIxfIxpImportEnabled()
+	})
+}
+
+// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
+func (u *IxLanUpsertOne) SetIxfIxpMemberListURLVisible(v string) *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.SetIxfIxpMemberListURLVisible(v)
+	})
+}
+
+// UpdateIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field to the value that was provided on create.
+func (u *IxLanUpsertOne) UpdateIxfIxpMemberListURLVisible() *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.UpdateIxfIxpMemberListURLVisible()
+	})
+}
+
+// ClearIxfIxpMemberListURLVisible clears the value of the "ixf_ixp_member_list_url_visible" field.
+func (u *IxLanUpsertOne) ClearIxfIxpMemberListURLVisible() *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.ClearIxfIxpMemberListURLVisible()
+	})
+}
+
 // SetMtu sets the "mtu" field.
 func (u *IxLanUpsertOne) SetMtu(v int) *IxLanUpsertOne {
 	return u.Update(func(s *IxLanUpsert) {
@@ -834,17 +889,31 @@ func (u *IxLanUpsertOne) UpdateMtu() *IxLanUpsertOne {
 	})
 }
 
-// SetDot1qSupport sets the "dot1q_support" field.
-func (u *IxLanUpsertOne) SetDot1qSupport(v bool) *IxLanUpsertOne {
+// ClearMtu clears the value of the "mtu" field.
+func (u *IxLanUpsertOne) ClearMtu() *IxLanUpsertOne {
 	return u.Update(func(s *IxLanUpsert) {
-		s.SetDot1qSupport(v)
+		s.ClearMtu()
 	})
 }
 
-// UpdateDot1qSupport sets the "dot1q_support" field to the value that was provided on create.
-func (u *IxLanUpsertOne) UpdateDot1qSupport() *IxLanUpsertOne {
+// SetName sets the "name" field.
+func (u *IxLanUpsertOne) SetName(v string) *IxLanUpsertOne {
 	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateDot1qSupport()
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *IxLanUpsertOne) UpdateName() *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.UpdateName()
+	})
+}
+
+// ClearName clears the value of the "name" field.
+func (u *IxLanUpsertOne) ClearName() *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.ClearName()
 	})
 }
 
@@ -873,55 +942,6 @@ func (u *IxLanUpsertOne) UpdateRsAsn() *IxLanUpsertOne {
 func (u *IxLanUpsertOne) ClearRsAsn() *IxLanUpsertOne {
 	return u.Update(func(s *IxLanUpsert) {
 		s.ClearRsAsn()
-	})
-}
-
-// SetArpSponge sets the "arp_sponge" field.
-func (u *IxLanUpsertOne) SetArpSponge(v string) *IxLanUpsertOne {
-	return u.Update(func(s *IxLanUpsert) {
-		s.SetArpSponge(v)
-	})
-}
-
-// UpdateArpSponge sets the "arp_sponge" field to the value that was provided on create.
-func (u *IxLanUpsertOne) UpdateArpSponge() *IxLanUpsertOne {
-	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateArpSponge()
-	})
-}
-
-// ClearArpSponge clears the value of the "arp_sponge" field.
-func (u *IxLanUpsertOne) ClearArpSponge() *IxLanUpsertOne {
-	return u.Update(func(s *IxLanUpsert) {
-		s.ClearArpSponge()
-	})
-}
-
-// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
-func (u *IxLanUpsertOne) SetIxfIxpMemberListURLVisible(v string) *IxLanUpsertOne {
-	return u.Update(func(s *IxLanUpsert) {
-		s.SetIxfIxpMemberListURLVisible(v)
-	})
-}
-
-// UpdateIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field to the value that was provided on create.
-func (u *IxLanUpsertOne) UpdateIxfIxpMemberListURLVisible() *IxLanUpsertOne {
-	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateIxfIxpMemberListURLVisible()
-	})
-}
-
-// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
-func (u *IxLanUpsertOne) SetIxfIxpImportEnabled(v bool) *IxLanUpsertOne {
-	return u.Update(func(s *IxLanUpsert) {
-		s.SetIxfIxpImportEnabled(v)
-	})
-}
-
-// UpdateIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field to the value that was provided on create.
-func (u *IxLanUpsertOne) UpdateIxfIxpImportEnabled() *IxLanUpsertOne {
-	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateIxfIxpImportEnabled()
 	})
 }
 
@@ -1191,24 +1211,24 @@ func (u *IxLanUpsertBulk) ClearIxID() *IxLanUpsertBulk {
 	})
 }
 
-// SetName sets the "name" field.
-func (u *IxLanUpsertBulk) SetName(v string) *IxLanUpsertBulk {
+// SetArpSponge sets the "arp_sponge" field.
+func (u *IxLanUpsertBulk) SetArpSponge(v string) *IxLanUpsertBulk {
 	return u.Update(func(s *IxLanUpsert) {
-		s.SetName(v)
+		s.SetArpSponge(v)
 	})
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *IxLanUpsertBulk) UpdateName() *IxLanUpsertBulk {
+// UpdateArpSponge sets the "arp_sponge" field to the value that was provided on create.
+func (u *IxLanUpsertBulk) UpdateArpSponge() *IxLanUpsertBulk {
 	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateName()
+		s.UpdateArpSponge()
 	})
 }
 
-// ClearName clears the value of the "name" field.
-func (u *IxLanUpsertBulk) ClearName() *IxLanUpsertBulk {
+// ClearArpSponge clears the value of the "arp_sponge" field.
+func (u *IxLanUpsertBulk) ClearArpSponge() *IxLanUpsertBulk {
 	return u.Update(func(s *IxLanUpsert) {
-		s.ClearName()
+		s.ClearArpSponge()
 	})
 }
 
@@ -1233,6 +1253,55 @@ func (u *IxLanUpsertBulk) ClearDescr() *IxLanUpsertBulk {
 	})
 }
 
+// SetDot1qSupport sets the "dot1q_support" field.
+func (u *IxLanUpsertBulk) SetDot1qSupport(v bool) *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.SetDot1qSupport(v)
+	})
+}
+
+// UpdateDot1qSupport sets the "dot1q_support" field to the value that was provided on create.
+func (u *IxLanUpsertBulk) UpdateDot1qSupport() *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.UpdateDot1qSupport()
+	})
+}
+
+// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
+func (u *IxLanUpsertBulk) SetIxfIxpImportEnabled(v bool) *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.SetIxfIxpImportEnabled(v)
+	})
+}
+
+// UpdateIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field to the value that was provided on create.
+func (u *IxLanUpsertBulk) UpdateIxfIxpImportEnabled() *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.UpdateIxfIxpImportEnabled()
+	})
+}
+
+// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
+func (u *IxLanUpsertBulk) SetIxfIxpMemberListURLVisible(v string) *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.SetIxfIxpMemberListURLVisible(v)
+	})
+}
+
+// UpdateIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field to the value that was provided on create.
+func (u *IxLanUpsertBulk) UpdateIxfIxpMemberListURLVisible() *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.UpdateIxfIxpMemberListURLVisible()
+	})
+}
+
+// ClearIxfIxpMemberListURLVisible clears the value of the "ixf_ixp_member_list_url_visible" field.
+func (u *IxLanUpsertBulk) ClearIxfIxpMemberListURLVisible() *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.ClearIxfIxpMemberListURLVisible()
+	})
+}
+
 // SetMtu sets the "mtu" field.
 func (u *IxLanUpsertBulk) SetMtu(v int) *IxLanUpsertBulk {
 	return u.Update(func(s *IxLanUpsert) {
@@ -1254,17 +1323,31 @@ func (u *IxLanUpsertBulk) UpdateMtu() *IxLanUpsertBulk {
 	})
 }
 
-// SetDot1qSupport sets the "dot1q_support" field.
-func (u *IxLanUpsertBulk) SetDot1qSupport(v bool) *IxLanUpsertBulk {
+// ClearMtu clears the value of the "mtu" field.
+func (u *IxLanUpsertBulk) ClearMtu() *IxLanUpsertBulk {
 	return u.Update(func(s *IxLanUpsert) {
-		s.SetDot1qSupport(v)
+		s.ClearMtu()
 	})
 }
 
-// UpdateDot1qSupport sets the "dot1q_support" field to the value that was provided on create.
-func (u *IxLanUpsertBulk) UpdateDot1qSupport() *IxLanUpsertBulk {
+// SetName sets the "name" field.
+func (u *IxLanUpsertBulk) SetName(v string) *IxLanUpsertBulk {
 	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateDot1qSupport()
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *IxLanUpsertBulk) UpdateName() *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.UpdateName()
+	})
+}
+
+// ClearName clears the value of the "name" field.
+func (u *IxLanUpsertBulk) ClearName() *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.ClearName()
 	})
 }
 
@@ -1293,55 +1376,6 @@ func (u *IxLanUpsertBulk) UpdateRsAsn() *IxLanUpsertBulk {
 func (u *IxLanUpsertBulk) ClearRsAsn() *IxLanUpsertBulk {
 	return u.Update(func(s *IxLanUpsert) {
 		s.ClearRsAsn()
-	})
-}
-
-// SetArpSponge sets the "arp_sponge" field.
-func (u *IxLanUpsertBulk) SetArpSponge(v string) *IxLanUpsertBulk {
-	return u.Update(func(s *IxLanUpsert) {
-		s.SetArpSponge(v)
-	})
-}
-
-// UpdateArpSponge sets the "arp_sponge" field to the value that was provided on create.
-func (u *IxLanUpsertBulk) UpdateArpSponge() *IxLanUpsertBulk {
-	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateArpSponge()
-	})
-}
-
-// ClearArpSponge clears the value of the "arp_sponge" field.
-func (u *IxLanUpsertBulk) ClearArpSponge() *IxLanUpsertBulk {
-	return u.Update(func(s *IxLanUpsert) {
-		s.ClearArpSponge()
-	})
-}
-
-// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
-func (u *IxLanUpsertBulk) SetIxfIxpMemberListURLVisible(v string) *IxLanUpsertBulk {
-	return u.Update(func(s *IxLanUpsert) {
-		s.SetIxfIxpMemberListURLVisible(v)
-	})
-}
-
-// UpdateIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field to the value that was provided on create.
-func (u *IxLanUpsertBulk) UpdateIxfIxpMemberListURLVisible() *IxLanUpsertBulk {
-	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateIxfIxpMemberListURLVisible()
-	})
-}
-
-// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
-func (u *IxLanUpsertBulk) SetIxfIxpImportEnabled(v bool) *IxLanUpsertBulk {
-	return u.Update(func(s *IxLanUpsert) {
-		s.SetIxfIxpImportEnabled(v)
-	})
-}
-
-// UpdateIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field to the value that was provided on create.
-func (u *IxLanUpsertBulk) UpdateIxfIxpImportEnabled() *IxLanUpsertBulk {
-	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateIxfIxpImportEnabled()
 	})
 }
 

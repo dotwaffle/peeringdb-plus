@@ -15,22 +15,22 @@ const (
 	FieldID = "id"
 	// FieldIxID holds the string denoting the ix_id field in the database.
 	FieldIxID = "ix_id"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
-	// FieldDescr holds the string denoting the descr field in the database.
-	FieldDescr = "descr"
-	// FieldMtu holds the string denoting the mtu field in the database.
-	FieldMtu = "mtu"
-	// FieldDot1qSupport holds the string denoting the dot1q_support field in the database.
-	FieldDot1qSupport = "dot1q_support"
-	// FieldRsAsn holds the string denoting the rs_asn field in the database.
-	FieldRsAsn = "rs_asn"
 	// FieldArpSponge holds the string denoting the arp_sponge field in the database.
 	FieldArpSponge = "arp_sponge"
-	// FieldIxfIxpMemberListURLVisible holds the string denoting the ixf_ixp_member_list_url_visible field in the database.
-	FieldIxfIxpMemberListURLVisible = "ixf_ixp_member_list_url_visible"
+	// FieldDescr holds the string denoting the descr field in the database.
+	FieldDescr = "descr"
+	// FieldDot1qSupport holds the string denoting the dot1q_support field in the database.
+	FieldDot1qSupport = "dot1q_support"
 	// FieldIxfIxpImportEnabled holds the string denoting the ixf_ixp_import_enabled field in the database.
 	FieldIxfIxpImportEnabled = "ixf_ixp_import_enabled"
+	// FieldIxfIxpMemberListURLVisible holds the string denoting the ixf_ixp_member_list_url_visible field in the database.
+	FieldIxfIxpMemberListURLVisible = "ixf_ixp_member_list_url_visible"
+	// FieldMtu holds the string denoting the mtu field in the database.
+	FieldMtu = "mtu"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldRsAsn holds the string denoting the rs_asn field in the database.
+	FieldRsAsn = "rs_asn"
 	// FieldCreated holds the string denoting the created field in the database.
 	FieldCreated = "created"
 	// FieldUpdated holds the string denoting the updated field in the database.
@@ -72,14 +72,14 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldIxID,
-	FieldName,
-	FieldDescr,
-	FieldMtu,
-	FieldDot1qSupport,
-	FieldRsAsn,
 	FieldArpSponge,
-	FieldIxfIxpMemberListURLVisible,
+	FieldDescr,
+	FieldDot1qSupport,
 	FieldIxfIxpImportEnabled,
+	FieldIxfIxpMemberListURLVisible,
+	FieldMtu,
+	FieldName,
+	FieldRsAsn,
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
@@ -102,24 +102,24 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
-	// DefaultName holds the default value on creation for the "name" field.
-	DefaultName string
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
 	// DefaultDescr holds the default value on creation for the "descr" field.
 	DefaultDescr string
-	// DefaultMtu holds the default value on creation for the "mtu" field.
-	DefaultMtu int
 	// DefaultDot1qSupport holds the default value on creation for the "dot1q_support" field.
 	DefaultDot1qSupport bool
-	// DefaultRsAsn holds the default value on creation for the "rs_asn" field.
-	DefaultRsAsn int
+	// DefaultIxfIxpImportEnabled holds the default value on creation for the "ixf_ixp_import_enabled" field.
+	DefaultIxfIxpImportEnabled bool
 	// DefaultIxfIxpMemberListURLVisible holds the default value on creation for the "ixf_ixp_member_list_url_visible" field.
 	DefaultIxfIxpMemberListURLVisible string
 	// IxfIxpMemberListURLVisibleValidator is a validator for the "ixf_ixp_member_list_url_visible" field. It is called by the builders before save.
 	IxfIxpMemberListURLVisibleValidator func(string) error
-	// DefaultIxfIxpImportEnabled holds the default value on creation for the "ixf_ixp_import_enabled" field.
-	DefaultIxfIxpImportEnabled bool
+	// DefaultMtu holds the default value on creation for the "mtu" field.
+	DefaultMtu int
+	// DefaultName holds the default value on creation for the "name" field.
+	DefaultName string
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator func(string) error
+	// DefaultRsAsn holds the default value on creation for the "rs_asn" field.
+	DefaultRsAsn int
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
@@ -141,9 +141,9 @@ func ByIxID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIxID, opts...).ToFunc()
 }
 
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
+// ByArpSponge orders the results by the arp_sponge field.
+func ByArpSponge(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldArpSponge, opts...).ToFunc()
 }
 
 // ByDescr orders the results by the descr field.
@@ -151,24 +151,14 @@ func ByDescr(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescr, opts...).ToFunc()
 }
 
-// ByMtu orders the results by the mtu field.
-func ByMtu(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldMtu, opts...).ToFunc()
-}
-
 // ByDot1qSupport orders the results by the dot1q_support field.
 func ByDot1qSupport(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDot1qSupport, opts...).ToFunc()
 }
 
-// ByRsAsn orders the results by the rs_asn field.
-func ByRsAsn(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRsAsn, opts...).ToFunc()
-}
-
-// ByArpSponge orders the results by the arp_sponge field.
-func ByArpSponge(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldArpSponge, opts...).ToFunc()
+// ByIxfIxpImportEnabled orders the results by the ixf_ixp_import_enabled field.
+func ByIxfIxpImportEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIxfIxpImportEnabled, opts...).ToFunc()
 }
 
 // ByIxfIxpMemberListURLVisible orders the results by the ixf_ixp_member_list_url_visible field.
@@ -176,9 +166,19 @@ func ByIxfIxpMemberListURLVisible(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIxfIxpMemberListURLVisible, opts...).ToFunc()
 }
 
-// ByIxfIxpImportEnabled orders the results by the ixf_ixp_import_enabled field.
-func ByIxfIxpImportEnabled(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIxfIxpImportEnabled, opts...).ToFunc()
+// ByMtu orders the results by the mtu field.
+func ByMtu(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMtu, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByRsAsn orders the results by the rs_asn field.
+func ByRsAsn(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRsAsn, opts...).ToFunc()
 }
 
 // ByCreated orders the results by the created field.

@@ -55,14 +55,14 @@ func IDLTE(id int) predicate.IxFacility {
 	return predicate.IxFacility(sql.FieldLTE(FieldID, id))
 }
 
-// IxID applies equality check predicate on the "ix_id" field. It's identical to IxIDEQ.
-func IxID(v int) predicate.IxFacility {
-	return predicate.IxFacility(sql.FieldEQ(FieldIxID, v))
-}
-
 // FacID applies equality check predicate on the "fac_id" field. It's identical to FacIDEQ.
 func FacID(v int) predicate.IxFacility {
 	return predicate.IxFacility(sql.FieldEQ(FieldFacID, v))
+}
+
+// IxID applies equality check predicate on the "ix_id" field. It's identical to IxIDEQ.
+func IxID(v int) predicate.IxFacility {
+	return predicate.IxFacility(sql.FieldEQ(FieldIxID, v))
 }
 
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
@@ -95,36 +95,6 @@ func Status(v string) predicate.IxFacility {
 	return predicate.IxFacility(sql.FieldEQ(FieldStatus, v))
 }
 
-// IxIDEQ applies the EQ predicate on the "ix_id" field.
-func IxIDEQ(v int) predicate.IxFacility {
-	return predicate.IxFacility(sql.FieldEQ(FieldIxID, v))
-}
-
-// IxIDNEQ applies the NEQ predicate on the "ix_id" field.
-func IxIDNEQ(v int) predicate.IxFacility {
-	return predicate.IxFacility(sql.FieldNEQ(FieldIxID, v))
-}
-
-// IxIDIn applies the In predicate on the "ix_id" field.
-func IxIDIn(vs ...int) predicate.IxFacility {
-	return predicate.IxFacility(sql.FieldIn(FieldIxID, vs...))
-}
-
-// IxIDNotIn applies the NotIn predicate on the "ix_id" field.
-func IxIDNotIn(vs ...int) predicate.IxFacility {
-	return predicate.IxFacility(sql.FieldNotIn(FieldIxID, vs...))
-}
-
-// IxIDIsNil applies the IsNil predicate on the "ix_id" field.
-func IxIDIsNil() predicate.IxFacility {
-	return predicate.IxFacility(sql.FieldIsNull(FieldIxID))
-}
-
-// IxIDNotNil applies the NotNil predicate on the "ix_id" field.
-func IxIDNotNil() predicate.IxFacility {
-	return predicate.IxFacility(sql.FieldNotNull(FieldIxID))
-}
-
 // FacIDEQ applies the EQ predicate on the "fac_id" field.
 func FacIDEQ(v int) predicate.IxFacility {
 	return predicate.IxFacility(sql.FieldEQ(FieldFacID, v))
@@ -153,6 +123,36 @@ func FacIDIsNil() predicate.IxFacility {
 // FacIDNotNil applies the NotNil predicate on the "fac_id" field.
 func FacIDNotNil() predicate.IxFacility {
 	return predicate.IxFacility(sql.FieldNotNull(FieldFacID))
+}
+
+// IxIDEQ applies the EQ predicate on the "ix_id" field.
+func IxIDEQ(v int) predicate.IxFacility {
+	return predicate.IxFacility(sql.FieldEQ(FieldIxID, v))
+}
+
+// IxIDNEQ applies the NEQ predicate on the "ix_id" field.
+func IxIDNEQ(v int) predicate.IxFacility {
+	return predicate.IxFacility(sql.FieldNEQ(FieldIxID, v))
+}
+
+// IxIDIn applies the In predicate on the "ix_id" field.
+func IxIDIn(vs ...int) predicate.IxFacility {
+	return predicate.IxFacility(sql.FieldIn(FieldIxID, vs...))
+}
+
+// IxIDNotIn applies the NotIn predicate on the "ix_id" field.
+func IxIDNotIn(vs ...int) predicate.IxFacility {
+	return predicate.IxFacility(sql.FieldNotIn(FieldIxID, vs...))
+}
+
+// IxIDIsNil applies the IsNil predicate on the "ix_id" field.
+func IxIDIsNil() predicate.IxFacility {
+	return predicate.IxFacility(sql.FieldIsNull(FieldIxID))
+}
+
+// IxIDNotNil applies the NotNil predicate on the "ix_id" field.
+func IxIDNotNil() predicate.IxFacility {
+	return predicate.IxFacility(sql.FieldNotNull(FieldIxID))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
@@ -525,29 +525,6 @@ func StatusContainsFold(v string) predicate.IxFacility {
 	return predicate.IxFacility(sql.FieldContainsFold(FieldStatus, v))
 }
 
-// HasInternetExchange applies the HasEdge predicate on the "internet_exchange" edge.
-func HasInternetExchange() predicate.IxFacility {
-	return predicate.IxFacility(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, InternetExchangeTable, InternetExchangeColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasInternetExchangeWith applies the HasEdge predicate on the "internet_exchange" edge with a given conditions (other predicates).
-func HasInternetExchangeWith(preds ...predicate.InternetExchange) predicate.IxFacility {
-	return predicate.IxFacility(func(s *sql.Selector) {
-		step := newInternetExchangeStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasFacility applies the HasEdge predicate on the "facility" edge.
 func HasFacility() predicate.IxFacility {
 	return predicate.IxFacility(func(s *sql.Selector) {
@@ -563,6 +540,29 @@ func HasFacility() predicate.IxFacility {
 func HasFacilityWith(preds ...predicate.Facility) predicate.IxFacility {
 	return predicate.IxFacility(func(s *sql.Selector) {
 		step := newFacilityStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasInternetExchange applies the HasEdge predicate on the "internet_exchange" edge.
+func HasInternetExchange() predicate.IxFacility {
+	return predicate.IxFacility(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, InternetExchangeTable, InternetExchangeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasInternetExchangeWith applies the HasEdge predicate on the "internet_exchange" edge with a given conditions (other predicates).
+func HasInternetExchangeWith(preds ...predicate.InternetExchange) predicate.IxFacility {
+	return predicate.IxFacility(func(s *sql.Selector) {
+		step := newInternetExchangeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -18,20 +18,20 @@ import (
 type NetworkFacility struct {
 	config `json:"-"`
 	// ID of the ent.
-	// PeeringDB network-facility ID
+	// PeeringDB networkfacility ID
 	ID int `json:"id,omitempty"`
-	// FK to network
-	NetID *int `json:"net_id"`
 	// FK to facility
 	FacID *int `json:"fac_id"`
-	// Facility name (computed)
+	// FK to network
+	NetID *int `json:"net_id"`
+	// Local ASN
+	LocalAsn int `json:"local_asn"`
+	// Name (computed)
 	Name string `json:"name"`
 	// City (computed)
 	City string `json:"city"`
 	// Country (computed)
 	Country string `json:"country"`
-	// Local ASN at this facility
-	LocalAsn int `json:"local_asn"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -46,10 +46,10 @@ type NetworkFacility struct {
 
 // NetworkFacilityEdges holds the relations/edges for other nodes in the graph.
 type NetworkFacilityEdges struct {
-	// Network holds the value of the network edge.
-	Network *Network `json:"network,omitempty"`
 	// Facility holds the value of the facility edge.
 	Facility *Facility `json:"facility,omitempty"`
+	// Network holds the value of the network edge.
+	Network *Network `json:"network,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -57,26 +57,26 @@ type NetworkFacilityEdges struct {
 	totalCount [2]map[string]int
 }
 
-// NetworkOrErr returns the Network value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e NetworkFacilityEdges) NetworkOrErr() (*Network, error) {
-	if e.Network != nil {
-		return e.Network, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: network.Label}
-	}
-	return nil, &NotLoadedError{edge: "network"}
-}
-
 // FacilityOrErr returns the Facility value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e NetworkFacilityEdges) FacilityOrErr() (*Facility, error) {
 	if e.Facility != nil {
 		return e.Facility, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: facility.Label}
 	}
 	return nil, &NotLoadedError{edge: "facility"}
+}
+
+// NetworkOrErr returns the Network value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NetworkFacilityEdges) NetworkOrErr() (*Network, error) {
+	if e.Network != nil {
+		return e.Network, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: network.Label}
+	}
+	return nil, &NotLoadedError{edge: "network"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -84,7 +84,7 @@ func (*NetworkFacility) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case networkfacility.FieldID, networkfacility.FieldNetID, networkfacility.FieldFacID, networkfacility.FieldLocalAsn:
+		case networkfacility.FieldID, networkfacility.FieldFacID, networkfacility.FieldNetID, networkfacility.FieldLocalAsn:
 			values[i] = new(sql.NullInt64)
 		case networkfacility.FieldName, networkfacility.FieldCity, networkfacility.FieldCountry, networkfacility.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -111,6 +111,13 @@ func (_m *NetworkFacility) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
+		case networkfacility.FieldFacID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field fac_id", values[i])
+			} else if value.Valid {
+				_m.FacID = new(int)
+				*_m.FacID = int(value.Int64)
+			}
 		case networkfacility.FieldNetID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field net_id", values[i])
@@ -118,12 +125,11 @@ func (_m *NetworkFacility) assignValues(columns []string, values []any) error {
 				_m.NetID = new(int)
 				*_m.NetID = int(value.Int64)
 			}
-		case networkfacility.FieldFacID:
+		case networkfacility.FieldLocalAsn:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field fac_id", values[i])
+				return fmt.Errorf("unexpected type %T for field local_asn", values[i])
 			} else if value.Valid {
-				_m.FacID = new(int)
-				*_m.FacID = int(value.Int64)
+				_m.LocalAsn = int(value.Int64)
 			}
 		case networkfacility.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -142,12 +148,6 @@ func (_m *NetworkFacility) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field country", values[i])
 			} else if value.Valid {
 				_m.Country = value.String
-			}
-		case networkfacility.FieldLocalAsn:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field local_asn", values[i])
-			} else if value.Valid {
-				_m.LocalAsn = int(value.Int64)
 			}
 		case networkfacility.FieldCreated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -180,14 +180,14 @@ func (_m *NetworkFacility) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryNetwork queries the "network" edge of the NetworkFacility entity.
-func (_m *NetworkFacility) QueryNetwork() *NetworkQuery {
-	return NewNetworkFacilityClient(_m.config).QueryNetwork(_m)
-}
-
 // QueryFacility queries the "facility" edge of the NetworkFacility entity.
 func (_m *NetworkFacility) QueryFacility() *FacilityQuery {
 	return NewNetworkFacilityClient(_m.config).QueryFacility(_m)
+}
+
+// QueryNetwork queries the "network" edge of the NetworkFacility entity.
+func (_m *NetworkFacility) QueryNetwork() *NetworkQuery {
+	return NewNetworkFacilityClient(_m.config).QueryNetwork(_m)
 }
 
 // Update returns a builder for updating this NetworkFacility.
@@ -213,15 +213,18 @@ func (_m *NetworkFacility) String() string {
 	var builder strings.Builder
 	builder.WriteString("NetworkFacility(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	if v := _m.FacID; v != nil {
+		builder.WriteString("fac_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
 	if v := _m.NetID; v != nil {
 		builder.WriteString("net_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := _m.FacID; v != nil {
-		builder.WriteString("fac_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
+	builder.WriteString("local_asn=")
+	builder.WriteString(fmt.Sprintf("%v", _m.LocalAsn))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
@@ -231,9 +234,6 @@ func (_m *NetworkFacility) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("country=")
 	builder.WriteString(_m.Country)
-	builder.WriteString(", ")
-	builder.WriteString("local_asn=")
-	builder.WriteString(fmt.Sprintf("%v", _m.LocalAsn))
 	builder.WriteString(", ")
 	builder.WriteString("created=")
 	builder.WriteString(_m.Created.Format(time.ANSIC))

@@ -49,34 +49,6 @@ func (_u *IxPrefixUpdate) ClearIxlanID() *IxPrefixUpdate {
 	return _u
 }
 
-// SetProtocol sets the "protocol" field.
-func (_u *IxPrefixUpdate) SetProtocol(v string) *IxPrefixUpdate {
-	_u.mutation.SetProtocol(v)
-	return _u
-}
-
-// SetNillableProtocol sets the "protocol" field if the given value is not nil.
-func (_u *IxPrefixUpdate) SetNillableProtocol(v *string) *IxPrefixUpdate {
-	if v != nil {
-		_u.SetProtocol(*v)
-	}
-	return _u
-}
-
-// SetPrefix sets the "prefix" field.
-func (_u *IxPrefixUpdate) SetPrefix(v string) *IxPrefixUpdate {
-	_u.mutation.SetPrefix(v)
-	return _u
-}
-
-// SetNillablePrefix sets the "prefix" field if the given value is not nil.
-func (_u *IxPrefixUpdate) SetNillablePrefix(v *string) *IxPrefixUpdate {
-	if v != nil {
-		_u.SetPrefix(*v)
-	}
-	return _u
-}
-
 // SetInDfz sets the "in_dfz" field.
 func (_u *IxPrefixUpdate) SetInDfz(v bool) *IxPrefixUpdate {
 	_u.mutation.SetInDfz(v)
@@ -108,6 +80,40 @@ func (_u *IxPrefixUpdate) SetNillableNotes(v *string) *IxPrefixUpdate {
 // ClearNotes clears the value of the "notes" field.
 func (_u *IxPrefixUpdate) ClearNotes() *IxPrefixUpdate {
 	_u.mutation.ClearNotes()
+	return _u
+}
+
+// SetPrefix sets the "prefix" field.
+func (_u *IxPrefixUpdate) SetPrefix(v string) *IxPrefixUpdate {
+	_u.mutation.SetPrefix(v)
+	return _u
+}
+
+// SetNillablePrefix sets the "prefix" field if the given value is not nil.
+func (_u *IxPrefixUpdate) SetNillablePrefix(v *string) *IxPrefixUpdate {
+	if v != nil {
+		_u.SetPrefix(*v)
+	}
+	return _u
+}
+
+// SetProtocol sets the "protocol" field.
+func (_u *IxPrefixUpdate) SetProtocol(v string) *IxPrefixUpdate {
+	_u.mutation.SetProtocol(v)
+	return _u
+}
+
+// SetNillableProtocol sets the "protocol" field if the given value is not nil.
+func (_u *IxPrefixUpdate) SetNillableProtocol(v *string) *IxPrefixUpdate {
+	if v != nil {
+		_u.SetProtocol(*v)
+	}
+	return _u
+}
+
+// ClearProtocol clears the value of the "protocol" field.
+func (_u *IxPrefixUpdate) ClearProtocol() *IxPrefixUpdate {
+	_u.mutation.ClearProtocol()
 	return _u
 }
 
@@ -198,14 +204,19 @@ func (_u *IxPrefixUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *IxPrefixUpdate) check() error {
-	if v, ok := _u.mutation.Protocol(); ok {
-		if err := ixprefix.ProtocolValidator(v); err != nil {
-			return &ValidationError{Name: "protocol", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.protocol": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Notes(); ok {
 		if err := ixprefix.NotesValidator(v); err != nil {
 			return &ValidationError{Name: "notes", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.notes": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Prefix(); ok {
+		if err := ixprefix.PrefixValidator(v); err != nil {
+			return &ValidationError{Name: "prefix", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.prefix": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Protocol(); ok {
+		if err := ixprefix.ProtocolValidator(v); err != nil {
+			return &ValidationError{Name: "protocol", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.protocol": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Status(); ok {
@@ -228,12 +239,6 @@ func (_u *IxPrefixUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if value, ok := _u.mutation.Protocol(); ok {
-		_spec.SetField(ixprefix.FieldProtocol, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Prefix(); ok {
-		_spec.SetField(ixprefix.FieldPrefix, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.InDfz(); ok {
 		_spec.SetField(ixprefix.FieldInDfz, field.TypeBool, value)
 	}
@@ -242,6 +247,15 @@ func (_u *IxPrefixUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.NotesCleared() {
 		_spec.ClearField(ixprefix.FieldNotes, field.TypeString)
+	}
+	if value, ok := _u.mutation.Prefix(); ok {
+		_spec.SetField(ixprefix.FieldPrefix, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Protocol(); ok {
+		_spec.SetField(ixprefix.FieldProtocol, field.TypeString, value)
+	}
+	if _u.mutation.ProtocolCleared() {
+		_spec.ClearField(ixprefix.FieldProtocol, field.TypeString)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(ixprefix.FieldUpdated, field.TypeTime, value)
@@ -318,34 +332,6 @@ func (_u *IxPrefixUpdateOne) ClearIxlanID() *IxPrefixUpdateOne {
 	return _u
 }
 
-// SetProtocol sets the "protocol" field.
-func (_u *IxPrefixUpdateOne) SetProtocol(v string) *IxPrefixUpdateOne {
-	_u.mutation.SetProtocol(v)
-	return _u
-}
-
-// SetNillableProtocol sets the "protocol" field if the given value is not nil.
-func (_u *IxPrefixUpdateOne) SetNillableProtocol(v *string) *IxPrefixUpdateOne {
-	if v != nil {
-		_u.SetProtocol(*v)
-	}
-	return _u
-}
-
-// SetPrefix sets the "prefix" field.
-func (_u *IxPrefixUpdateOne) SetPrefix(v string) *IxPrefixUpdateOne {
-	_u.mutation.SetPrefix(v)
-	return _u
-}
-
-// SetNillablePrefix sets the "prefix" field if the given value is not nil.
-func (_u *IxPrefixUpdateOne) SetNillablePrefix(v *string) *IxPrefixUpdateOne {
-	if v != nil {
-		_u.SetPrefix(*v)
-	}
-	return _u
-}
-
 // SetInDfz sets the "in_dfz" field.
 func (_u *IxPrefixUpdateOne) SetInDfz(v bool) *IxPrefixUpdateOne {
 	_u.mutation.SetInDfz(v)
@@ -377,6 +363,40 @@ func (_u *IxPrefixUpdateOne) SetNillableNotes(v *string) *IxPrefixUpdateOne {
 // ClearNotes clears the value of the "notes" field.
 func (_u *IxPrefixUpdateOne) ClearNotes() *IxPrefixUpdateOne {
 	_u.mutation.ClearNotes()
+	return _u
+}
+
+// SetPrefix sets the "prefix" field.
+func (_u *IxPrefixUpdateOne) SetPrefix(v string) *IxPrefixUpdateOne {
+	_u.mutation.SetPrefix(v)
+	return _u
+}
+
+// SetNillablePrefix sets the "prefix" field if the given value is not nil.
+func (_u *IxPrefixUpdateOne) SetNillablePrefix(v *string) *IxPrefixUpdateOne {
+	if v != nil {
+		_u.SetPrefix(*v)
+	}
+	return _u
+}
+
+// SetProtocol sets the "protocol" field.
+func (_u *IxPrefixUpdateOne) SetProtocol(v string) *IxPrefixUpdateOne {
+	_u.mutation.SetProtocol(v)
+	return _u
+}
+
+// SetNillableProtocol sets the "protocol" field if the given value is not nil.
+func (_u *IxPrefixUpdateOne) SetNillableProtocol(v *string) *IxPrefixUpdateOne {
+	if v != nil {
+		_u.SetProtocol(*v)
+	}
+	return _u
+}
+
+// ClearProtocol clears the value of the "protocol" field.
+func (_u *IxPrefixUpdateOne) ClearProtocol() *IxPrefixUpdateOne {
+	_u.mutation.ClearProtocol()
 	return _u
 }
 
@@ -480,14 +500,19 @@ func (_u *IxPrefixUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *IxPrefixUpdateOne) check() error {
-	if v, ok := _u.mutation.Protocol(); ok {
-		if err := ixprefix.ProtocolValidator(v); err != nil {
-			return &ValidationError{Name: "protocol", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.protocol": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Notes(); ok {
 		if err := ixprefix.NotesValidator(v); err != nil {
 			return &ValidationError{Name: "notes", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.notes": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Prefix(); ok {
+		if err := ixprefix.PrefixValidator(v); err != nil {
+			return &ValidationError{Name: "prefix", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.prefix": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Protocol(); ok {
+		if err := ixprefix.ProtocolValidator(v); err != nil {
+			return &ValidationError{Name: "protocol", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.protocol": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Status(); ok {
@@ -527,12 +552,6 @@ func (_u *IxPrefixUpdateOne) sqlSave(ctx context.Context) (_node *IxPrefix, err 
 			}
 		}
 	}
-	if value, ok := _u.mutation.Protocol(); ok {
-		_spec.SetField(ixprefix.FieldProtocol, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Prefix(); ok {
-		_spec.SetField(ixprefix.FieldPrefix, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.InDfz(); ok {
 		_spec.SetField(ixprefix.FieldInDfz, field.TypeBool, value)
 	}
@@ -541,6 +560,15 @@ func (_u *IxPrefixUpdateOne) sqlSave(ctx context.Context) (_node *IxPrefix, err 
 	}
 	if _u.mutation.NotesCleared() {
 		_spec.ClearField(ixprefix.FieldNotes, field.TypeString)
+	}
+	if value, ok := _u.mutation.Prefix(); ok {
+		_spec.SetField(ixprefix.FieldPrefix, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Protocol(); ok {
+		_spec.SetField(ixprefix.FieldProtocol, field.TypeString, value)
+	}
+	if _u.mutation.ProtocolCleared() {
+		_spec.ClearField(ixprefix.FieldProtocol, field.TypeString)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(ixprefix.FieldUpdated, field.TypeTime, value)

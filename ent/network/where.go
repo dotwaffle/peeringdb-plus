@@ -60,24 +60,14 @@ func OrgID(v int) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldOrgID, v))
 }
 
-// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
-func Name(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldName, v))
-}
-
 // Aka applies equality check predicate on the "aka" field. It's identical to AkaEQ.
 func Aka(v string) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldAka, v))
 }
 
-// NameLong applies equality check predicate on the "name_long" field. It's identical to NameLongEQ.
-func NameLong(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldNameLong, v))
-}
-
-// Website applies equality check predicate on the "website" field. It's identical to WebsiteEQ.
-func Website(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldWebsite, v))
+// AllowIxpUpdate applies equality check predicate on the "allow_ixp_update" field. It's identical to AllowIxpUpdateEQ.
+func AllowIxpUpdate(v bool) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldAllowIxpUpdate, v))
 }
 
 // Asn applies equality check predicate on the "asn" field. It's identical to AsnEQ.
@@ -85,24 +75,19 @@ func Asn(v int) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldAsn, v))
 }
 
-// LookingGlass applies equality check predicate on the "looking_glass" field. It's identical to LookingGlassEQ.
-func LookingGlass(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldLookingGlass, v))
+// InfoIpv6 applies equality check predicate on the "info_ipv6" field. It's identical to InfoIpv6EQ.
+func InfoIpv6(v bool) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldInfoIpv6, v))
 }
 
-// RouteServer applies equality check predicate on the "route_server" field. It's identical to RouteServerEQ.
-func RouteServer(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldRouteServer, v))
+// InfoMulticast applies equality check predicate on the "info_multicast" field. It's identical to InfoMulticastEQ.
+func InfoMulticast(v bool) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldInfoMulticast, v))
 }
 
-// IrrAsSet applies equality check predicate on the "irr_as_set" field. It's identical to IrrAsSetEQ.
-func IrrAsSet(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldIrrAsSet, v))
-}
-
-// InfoType applies equality check predicate on the "info_type" field. It's identical to InfoTypeEQ.
-func InfoType(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldInfoType, v))
+// InfoNeverViaRouteServers applies equality check predicate on the "info_never_via_route_servers" field. It's identical to InfoNeverViaRouteServersEQ.
+func InfoNeverViaRouteServers(v bool) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldInfoNeverViaRouteServers, v))
 }
 
 // InfoPrefixes4 applies equality check predicate on the "info_prefixes4" field. It's identical to InfoPrefixes4EQ.
@@ -115,11 +100,6 @@ func InfoPrefixes6(v int) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldInfoPrefixes6, v))
 }
 
-// InfoTraffic applies equality check predicate on the "info_traffic" field. It's identical to InfoTrafficEQ.
-func InfoTraffic(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldInfoTraffic, v))
-}
-
 // InfoRatio applies equality check predicate on the "info_ratio" field. It's identical to InfoRatioEQ.
 func InfoRatio(v string) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldInfoRatio, v))
@@ -130,24 +110,44 @@ func InfoScope(v string) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldInfoScope, v))
 }
 
+// InfoTraffic applies equality check predicate on the "info_traffic" field. It's identical to InfoTrafficEQ.
+func InfoTraffic(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldInfoTraffic, v))
+}
+
+// InfoType applies equality check predicate on the "info_type" field. It's identical to InfoTypeEQ.
+func InfoType(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldInfoType, v))
+}
+
 // InfoUnicast applies equality check predicate on the "info_unicast" field. It's identical to InfoUnicastEQ.
 func InfoUnicast(v bool) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldInfoUnicast, v))
 }
 
-// InfoMulticast applies equality check predicate on the "info_multicast" field. It's identical to InfoMulticastEQ.
-func InfoMulticast(v bool) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldInfoMulticast, v))
+// IrrAsSet applies equality check predicate on the "irr_as_set" field. It's identical to IrrAsSetEQ.
+func IrrAsSet(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldIrrAsSet, v))
 }
 
-// InfoIpv6 applies equality check predicate on the "info_ipv6" field. It's identical to InfoIpv6EQ.
-func InfoIpv6(v bool) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldInfoIpv6, v))
+// Logo applies equality check predicate on the "logo" field. It's identical to LogoEQ.
+func Logo(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldLogo, v))
 }
 
-// InfoNeverViaRouteServers applies equality check predicate on the "info_never_via_route_servers" field. It's identical to InfoNeverViaRouteServersEQ.
-func InfoNeverViaRouteServers(v bool) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldInfoNeverViaRouteServers, v))
+// LookingGlass applies equality check predicate on the "looking_glass" field. It's identical to LookingGlassEQ.
+func LookingGlass(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldLookingGlass, v))
+}
+
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldName, v))
+}
+
+// NameLong applies equality check predicate on the "name_long" field. It's identical to NameLongEQ.
+func NameLong(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldNameLong, v))
 }
 
 // Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
@@ -155,9 +155,9 @@ func Notes(v string) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldNotes, v))
 }
 
-// PolicyURL applies equality check predicate on the "policy_url" field. It's identical to PolicyURLEQ.
-func PolicyURL(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldPolicyURL, v))
+// PolicyContracts applies equality check predicate on the "policy_contracts" field. It's identical to PolicyContractsEQ.
+func PolicyContracts(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldPolicyContracts, v))
 }
 
 // PolicyGeneral applies equality check predicate on the "policy_general" field. It's identical to PolicyGeneralEQ.
@@ -175,19 +175,9 @@ func PolicyRatio(v bool) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldPolicyRatio, v))
 }
 
-// PolicyContracts applies equality check predicate on the "policy_contracts" field. It's identical to PolicyContractsEQ.
-func PolicyContracts(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldPolicyContracts, v))
-}
-
-// AllowIxpUpdate applies equality check predicate on the "allow_ixp_update" field. It's identical to AllowIxpUpdateEQ.
-func AllowIxpUpdate(v bool) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldAllowIxpUpdate, v))
-}
-
-// StatusDashboard applies equality check predicate on the "status_dashboard" field. It's identical to StatusDashboardEQ.
-func StatusDashboard(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldStatusDashboard, v))
+// PolicyURL applies equality check predicate on the "policy_url" field. It's identical to PolicyURLEQ.
+func PolicyURL(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldPolicyURL, v))
 }
 
 // RirStatus applies equality check predicate on the "rir_status" field. It's identical to RirStatusEQ.
@@ -200,9 +190,19 @@ func RirStatusUpdated(v time.Time) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldRirStatusUpdated, v))
 }
 
-// Logo applies equality check predicate on the "logo" field. It's identical to LogoEQ.
-func Logo(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldLogo, v))
+// RouteServer applies equality check predicate on the "route_server" field. It's identical to RouteServerEQ.
+func RouteServer(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldRouteServer, v))
+}
+
+// StatusDashboard applies equality check predicate on the "status_dashboard" field. It's identical to StatusDashboardEQ.
+func StatusDashboard(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldStatusDashboard, v))
+}
+
+// Website applies equality check predicate on the "website" field. It's identical to WebsiteEQ.
+func Website(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldWebsite, v))
 }
 
 // IxCount applies equality check predicate on the "ix_count" field. It's identical to IxCountEQ.
@@ -273,71 +273,6 @@ func OrgIDIsNil() predicate.Network {
 // OrgIDNotNil applies the NotNil predicate on the "org_id" field.
 func OrgIDNotNil() predicate.Network {
 	return predicate.Network(sql.FieldNotNull(FieldOrgID))
-}
-
-// NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldName, v))
-}
-
-// NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldName, v))
-}
-
-// NameIn applies the In predicate on the "name" field.
-func NameIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldName, vs...))
-}
-
-// NameNotIn applies the NotIn predicate on the "name" field.
-func NameNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldName, vs...))
-}
-
-// NameGT applies the GT predicate on the "name" field.
-func NameGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldName, v))
-}
-
-// NameGTE applies the GTE predicate on the "name" field.
-func NameGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldName, v))
-}
-
-// NameLT applies the LT predicate on the "name" field.
-func NameLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldName, v))
-}
-
-// NameLTE applies the LTE predicate on the "name" field.
-func NameLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldName, v))
-}
-
-// NameContains applies the Contains predicate on the "name" field.
-func NameContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldName, v))
-}
-
-// NameHasPrefix applies the HasPrefix predicate on the "name" field.
-func NameHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldName, v))
-}
-
-// NameHasSuffix applies the HasSuffix predicate on the "name" field.
-func NameHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldName, v))
-}
-
-// NameEqualFold applies the EqualFold predicate on the "name" field.
-func NameEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldName, v))
-}
-
-// NameContainsFold applies the ContainsFold predicate on the "name" field.
-func NameContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldName, v))
 }
 
 // AkaEQ applies the EQ predicate on the "aka" field.
@@ -415,164 +350,14 @@ func AkaContainsFold(v string) predicate.Network {
 	return predicate.Network(sql.FieldContainsFold(FieldAka, v))
 }
 
-// NameLongEQ applies the EQ predicate on the "name_long" field.
-func NameLongEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldNameLong, v))
+// AllowIxpUpdateEQ applies the EQ predicate on the "allow_ixp_update" field.
+func AllowIxpUpdateEQ(v bool) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldAllowIxpUpdate, v))
 }
 
-// NameLongNEQ applies the NEQ predicate on the "name_long" field.
-func NameLongNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldNameLong, v))
-}
-
-// NameLongIn applies the In predicate on the "name_long" field.
-func NameLongIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldNameLong, vs...))
-}
-
-// NameLongNotIn applies the NotIn predicate on the "name_long" field.
-func NameLongNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldNameLong, vs...))
-}
-
-// NameLongGT applies the GT predicate on the "name_long" field.
-func NameLongGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldNameLong, v))
-}
-
-// NameLongGTE applies the GTE predicate on the "name_long" field.
-func NameLongGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldNameLong, v))
-}
-
-// NameLongLT applies the LT predicate on the "name_long" field.
-func NameLongLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldNameLong, v))
-}
-
-// NameLongLTE applies the LTE predicate on the "name_long" field.
-func NameLongLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldNameLong, v))
-}
-
-// NameLongContains applies the Contains predicate on the "name_long" field.
-func NameLongContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldNameLong, v))
-}
-
-// NameLongHasPrefix applies the HasPrefix predicate on the "name_long" field.
-func NameLongHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldNameLong, v))
-}
-
-// NameLongHasSuffix applies the HasSuffix predicate on the "name_long" field.
-func NameLongHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldNameLong, v))
-}
-
-// NameLongIsNil applies the IsNil predicate on the "name_long" field.
-func NameLongIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldNameLong))
-}
-
-// NameLongNotNil applies the NotNil predicate on the "name_long" field.
-func NameLongNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldNameLong))
-}
-
-// NameLongEqualFold applies the EqualFold predicate on the "name_long" field.
-func NameLongEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldNameLong, v))
-}
-
-// NameLongContainsFold applies the ContainsFold predicate on the "name_long" field.
-func NameLongContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldNameLong, v))
-}
-
-// WebsiteEQ applies the EQ predicate on the "website" field.
-func WebsiteEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldWebsite, v))
-}
-
-// WebsiteNEQ applies the NEQ predicate on the "website" field.
-func WebsiteNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldWebsite, v))
-}
-
-// WebsiteIn applies the In predicate on the "website" field.
-func WebsiteIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldWebsite, vs...))
-}
-
-// WebsiteNotIn applies the NotIn predicate on the "website" field.
-func WebsiteNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldWebsite, vs...))
-}
-
-// WebsiteGT applies the GT predicate on the "website" field.
-func WebsiteGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldWebsite, v))
-}
-
-// WebsiteGTE applies the GTE predicate on the "website" field.
-func WebsiteGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldWebsite, v))
-}
-
-// WebsiteLT applies the LT predicate on the "website" field.
-func WebsiteLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldWebsite, v))
-}
-
-// WebsiteLTE applies the LTE predicate on the "website" field.
-func WebsiteLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldWebsite, v))
-}
-
-// WebsiteContains applies the Contains predicate on the "website" field.
-func WebsiteContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldWebsite, v))
-}
-
-// WebsiteHasPrefix applies the HasPrefix predicate on the "website" field.
-func WebsiteHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldWebsite, v))
-}
-
-// WebsiteHasSuffix applies the HasSuffix predicate on the "website" field.
-func WebsiteHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldWebsite, v))
-}
-
-// WebsiteIsNil applies the IsNil predicate on the "website" field.
-func WebsiteIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldWebsite))
-}
-
-// WebsiteNotNil applies the NotNil predicate on the "website" field.
-func WebsiteNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldWebsite))
-}
-
-// WebsiteEqualFold applies the EqualFold predicate on the "website" field.
-func WebsiteEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldWebsite, v))
-}
-
-// WebsiteContainsFold applies the ContainsFold predicate on the "website" field.
-func WebsiteContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldWebsite, v))
-}
-
-// SocialMediaIsNil applies the IsNil predicate on the "social_media" field.
-func SocialMediaIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldSocialMedia))
-}
-
-// SocialMediaNotNil applies the NotNil predicate on the "social_media" field.
-func SocialMediaNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldSocialMedia))
+// AllowIxpUpdateNEQ applies the NEQ predicate on the "allow_ixp_update" field.
+func AllowIxpUpdateNEQ(v bool) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldAllowIxpUpdate, v))
 }
 
 // AsnEQ applies the EQ predicate on the "asn" field.
@@ -615,314 +400,34 @@ func AsnLTE(v int) predicate.Network {
 	return predicate.Network(sql.FieldLTE(FieldAsn, v))
 }
 
-// LookingGlassEQ applies the EQ predicate on the "looking_glass" field.
-func LookingGlassEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldLookingGlass, v))
+// InfoIpv6EQ applies the EQ predicate on the "info_ipv6" field.
+func InfoIpv6EQ(v bool) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldInfoIpv6, v))
 }
 
-// LookingGlassNEQ applies the NEQ predicate on the "looking_glass" field.
-func LookingGlassNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldLookingGlass, v))
+// InfoIpv6NEQ applies the NEQ predicate on the "info_ipv6" field.
+func InfoIpv6NEQ(v bool) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldInfoIpv6, v))
 }
 
-// LookingGlassIn applies the In predicate on the "looking_glass" field.
-func LookingGlassIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldLookingGlass, vs...))
+// InfoMulticastEQ applies the EQ predicate on the "info_multicast" field.
+func InfoMulticastEQ(v bool) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldInfoMulticast, v))
 }
 
-// LookingGlassNotIn applies the NotIn predicate on the "looking_glass" field.
-func LookingGlassNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldLookingGlass, vs...))
+// InfoMulticastNEQ applies the NEQ predicate on the "info_multicast" field.
+func InfoMulticastNEQ(v bool) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldInfoMulticast, v))
 }
 
-// LookingGlassGT applies the GT predicate on the "looking_glass" field.
-func LookingGlassGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldLookingGlass, v))
+// InfoNeverViaRouteServersEQ applies the EQ predicate on the "info_never_via_route_servers" field.
+func InfoNeverViaRouteServersEQ(v bool) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldInfoNeverViaRouteServers, v))
 }
 
-// LookingGlassGTE applies the GTE predicate on the "looking_glass" field.
-func LookingGlassGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldLookingGlass, v))
-}
-
-// LookingGlassLT applies the LT predicate on the "looking_glass" field.
-func LookingGlassLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldLookingGlass, v))
-}
-
-// LookingGlassLTE applies the LTE predicate on the "looking_glass" field.
-func LookingGlassLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldLookingGlass, v))
-}
-
-// LookingGlassContains applies the Contains predicate on the "looking_glass" field.
-func LookingGlassContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldLookingGlass, v))
-}
-
-// LookingGlassHasPrefix applies the HasPrefix predicate on the "looking_glass" field.
-func LookingGlassHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldLookingGlass, v))
-}
-
-// LookingGlassHasSuffix applies the HasSuffix predicate on the "looking_glass" field.
-func LookingGlassHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldLookingGlass, v))
-}
-
-// LookingGlassIsNil applies the IsNil predicate on the "looking_glass" field.
-func LookingGlassIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldLookingGlass))
-}
-
-// LookingGlassNotNil applies the NotNil predicate on the "looking_glass" field.
-func LookingGlassNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldLookingGlass))
-}
-
-// LookingGlassEqualFold applies the EqualFold predicate on the "looking_glass" field.
-func LookingGlassEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldLookingGlass, v))
-}
-
-// LookingGlassContainsFold applies the ContainsFold predicate on the "looking_glass" field.
-func LookingGlassContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldLookingGlass, v))
-}
-
-// RouteServerEQ applies the EQ predicate on the "route_server" field.
-func RouteServerEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldRouteServer, v))
-}
-
-// RouteServerNEQ applies the NEQ predicate on the "route_server" field.
-func RouteServerNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldRouteServer, v))
-}
-
-// RouteServerIn applies the In predicate on the "route_server" field.
-func RouteServerIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldRouteServer, vs...))
-}
-
-// RouteServerNotIn applies the NotIn predicate on the "route_server" field.
-func RouteServerNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldRouteServer, vs...))
-}
-
-// RouteServerGT applies the GT predicate on the "route_server" field.
-func RouteServerGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldRouteServer, v))
-}
-
-// RouteServerGTE applies the GTE predicate on the "route_server" field.
-func RouteServerGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldRouteServer, v))
-}
-
-// RouteServerLT applies the LT predicate on the "route_server" field.
-func RouteServerLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldRouteServer, v))
-}
-
-// RouteServerLTE applies the LTE predicate on the "route_server" field.
-func RouteServerLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldRouteServer, v))
-}
-
-// RouteServerContains applies the Contains predicate on the "route_server" field.
-func RouteServerContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldRouteServer, v))
-}
-
-// RouteServerHasPrefix applies the HasPrefix predicate on the "route_server" field.
-func RouteServerHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldRouteServer, v))
-}
-
-// RouteServerHasSuffix applies the HasSuffix predicate on the "route_server" field.
-func RouteServerHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldRouteServer, v))
-}
-
-// RouteServerIsNil applies the IsNil predicate on the "route_server" field.
-func RouteServerIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldRouteServer))
-}
-
-// RouteServerNotNil applies the NotNil predicate on the "route_server" field.
-func RouteServerNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldRouteServer))
-}
-
-// RouteServerEqualFold applies the EqualFold predicate on the "route_server" field.
-func RouteServerEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldRouteServer, v))
-}
-
-// RouteServerContainsFold applies the ContainsFold predicate on the "route_server" field.
-func RouteServerContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldRouteServer, v))
-}
-
-// IrrAsSetEQ applies the EQ predicate on the "irr_as_set" field.
-func IrrAsSetEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldIrrAsSet, v))
-}
-
-// IrrAsSetNEQ applies the NEQ predicate on the "irr_as_set" field.
-func IrrAsSetNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldIrrAsSet, v))
-}
-
-// IrrAsSetIn applies the In predicate on the "irr_as_set" field.
-func IrrAsSetIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldIrrAsSet, vs...))
-}
-
-// IrrAsSetNotIn applies the NotIn predicate on the "irr_as_set" field.
-func IrrAsSetNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldIrrAsSet, vs...))
-}
-
-// IrrAsSetGT applies the GT predicate on the "irr_as_set" field.
-func IrrAsSetGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldIrrAsSet, v))
-}
-
-// IrrAsSetGTE applies the GTE predicate on the "irr_as_set" field.
-func IrrAsSetGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldIrrAsSet, v))
-}
-
-// IrrAsSetLT applies the LT predicate on the "irr_as_set" field.
-func IrrAsSetLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldIrrAsSet, v))
-}
-
-// IrrAsSetLTE applies the LTE predicate on the "irr_as_set" field.
-func IrrAsSetLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldIrrAsSet, v))
-}
-
-// IrrAsSetContains applies the Contains predicate on the "irr_as_set" field.
-func IrrAsSetContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldIrrAsSet, v))
-}
-
-// IrrAsSetHasPrefix applies the HasPrefix predicate on the "irr_as_set" field.
-func IrrAsSetHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldIrrAsSet, v))
-}
-
-// IrrAsSetHasSuffix applies the HasSuffix predicate on the "irr_as_set" field.
-func IrrAsSetHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldIrrAsSet, v))
-}
-
-// IrrAsSetIsNil applies the IsNil predicate on the "irr_as_set" field.
-func IrrAsSetIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldIrrAsSet))
-}
-
-// IrrAsSetNotNil applies the NotNil predicate on the "irr_as_set" field.
-func IrrAsSetNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldIrrAsSet))
-}
-
-// IrrAsSetEqualFold applies the EqualFold predicate on the "irr_as_set" field.
-func IrrAsSetEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldIrrAsSet, v))
-}
-
-// IrrAsSetContainsFold applies the ContainsFold predicate on the "irr_as_set" field.
-func IrrAsSetContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldIrrAsSet, v))
-}
-
-// InfoTypeEQ applies the EQ predicate on the "info_type" field.
-func InfoTypeEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldInfoType, v))
-}
-
-// InfoTypeNEQ applies the NEQ predicate on the "info_type" field.
-func InfoTypeNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldInfoType, v))
-}
-
-// InfoTypeIn applies the In predicate on the "info_type" field.
-func InfoTypeIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldInfoType, vs...))
-}
-
-// InfoTypeNotIn applies the NotIn predicate on the "info_type" field.
-func InfoTypeNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldInfoType, vs...))
-}
-
-// InfoTypeGT applies the GT predicate on the "info_type" field.
-func InfoTypeGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldInfoType, v))
-}
-
-// InfoTypeGTE applies the GTE predicate on the "info_type" field.
-func InfoTypeGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldInfoType, v))
-}
-
-// InfoTypeLT applies the LT predicate on the "info_type" field.
-func InfoTypeLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldInfoType, v))
-}
-
-// InfoTypeLTE applies the LTE predicate on the "info_type" field.
-func InfoTypeLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldInfoType, v))
-}
-
-// InfoTypeContains applies the Contains predicate on the "info_type" field.
-func InfoTypeContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldInfoType, v))
-}
-
-// InfoTypeHasPrefix applies the HasPrefix predicate on the "info_type" field.
-func InfoTypeHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldInfoType, v))
-}
-
-// InfoTypeHasSuffix applies the HasSuffix predicate on the "info_type" field.
-func InfoTypeHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldInfoType, v))
-}
-
-// InfoTypeIsNil applies the IsNil predicate on the "info_type" field.
-func InfoTypeIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldInfoType))
-}
-
-// InfoTypeNotNil applies the NotNil predicate on the "info_type" field.
-func InfoTypeNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldInfoType))
-}
-
-// InfoTypeEqualFold applies the EqualFold predicate on the "info_type" field.
-func InfoTypeEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldInfoType, v))
-}
-
-// InfoTypeContainsFold applies the ContainsFold predicate on the "info_type" field.
-func InfoTypeContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldInfoType, v))
-}
-
-// InfoTypesIsNil applies the IsNil predicate on the "info_types" field.
-func InfoTypesIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldInfoTypes))
-}
-
-// InfoTypesNotNil applies the NotNil predicate on the "info_types" field.
-func InfoTypesNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldInfoTypes))
+// InfoNeverViaRouteServersNEQ applies the NEQ predicate on the "info_never_via_route_servers" field.
+func InfoNeverViaRouteServersNEQ(v bool) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldInfoNeverViaRouteServers, v))
 }
 
 // InfoPrefixes4EQ applies the EQ predicate on the "info_prefixes4" field.
@@ -1023,81 +528,6 @@ func InfoPrefixes6IsNil() predicate.Network {
 // InfoPrefixes6NotNil applies the NotNil predicate on the "info_prefixes6" field.
 func InfoPrefixes6NotNil() predicate.Network {
 	return predicate.Network(sql.FieldNotNull(FieldInfoPrefixes6))
-}
-
-// InfoTrafficEQ applies the EQ predicate on the "info_traffic" field.
-func InfoTrafficEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldInfoTraffic, v))
-}
-
-// InfoTrafficNEQ applies the NEQ predicate on the "info_traffic" field.
-func InfoTrafficNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldInfoTraffic, v))
-}
-
-// InfoTrafficIn applies the In predicate on the "info_traffic" field.
-func InfoTrafficIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldInfoTraffic, vs...))
-}
-
-// InfoTrafficNotIn applies the NotIn predicate on the "info_traffic" field.
-func InfoTrafficNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldInfoTraffic, vs...))
-}
-
-// InfoTrafficGT applies the GT predicate on the "info_traffic" field.
-func InfoTrafficGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldInfoTraffic, v))
-}
-
-// InfoTrafficGTE applies the GTE predicate on the "info_traffic" field.
-func InfoTrafficGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldInfoTraffic, v))
-}
-
-// InfoTrafficLT applies the LT predicate on the "info_traffic" field.
-func InfoTrafficLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldInfoTraffic, v))
-}
-
-// InfoTrafficLTE applies the LTE predicate on the "info_traffic" field.
-func InfoTrafficLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldInfoTraffic, v))
-}
-
-// InfoTrafficContains applies the Contains predicate on the "info_traffic" field.
-func InfoTrafficContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldInfoTraffic, v))
-}
-
-// InfoTrafficHasPrefix applies the HasPrefix predicate on the "info_traffic" field.
-func InfoTrafficHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldInfoTraffic, v))
-}
-
-// InfoTrafficHasSuffix applies the HasSuffix predicate on the "info_traffic" field.
-func InfoTrafficHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldInfoTraffic, v))
-}
-
-// InfoTrafficIsNil applies the IsNil predicate on the "info_traffic" field.
-func InfoTrafficIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldInfoTraffic))
-}
-
-// InfoTrafficNotNil applies the NotNil predicate on the "info_traffic" field.
-func InfoTrafficNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldInfoTraffic))
-}
-
-// InfoTrafficEqualFold applies the EqualFold predicate on the "info_traffic" field.
-func InfoTrafficEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldInfoTraffic, v))
-}
-
-// InfoTrafficContainsFold applies the ContainsFold predicate on the "info_traffic" field.
-func InfoTrafficContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldInfoTraffic, v))
 }
 
 // InfoRatioEQ applies the EQ predicate on the "info_ratio" field.
@@ -1250,6 +680,166 @@ func InfoScopeContainsFold(v string) predicate.Network {
 	return predicate.Network(sql.FieldContainsFold(FieldInfoScope, v))
 }
 
+// InfoTrafficEQ applies the EQ predicate on the "info_traffic" field.
+func InfoTrafficEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldInfoTraffic, v))
+}
+
+// InfoTrafficNEQ applies the NEQ predicate on the "info_traffic" field.
+func InfoTrafficNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldInfoTraffic, v))
+}
+
+// InfoTrafficIn applies the In predicate on the "info_traffic" field.
+func InfoTrafficIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldInfoTraffic, vs...))
+}
+
+// InfoTrafficNotIn applies the NotIn predicate on the "info_traffic" field.
+func InfoTrafficNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldInfoTraffic, vs...))
+}
+
+// InfoTrafficGT applies the GT predicate on the "info_traffic" field.
+func InfoTrafficGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldInfoTraffic, v))
+}
+
+// InfoTrafficGTE applies the GTE predicate on the "info_traffic" field.
+func InfoTrafficGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldInfoTraffic, v))
+}
+
+// InfoTrafficLT applies the LT predicate on the "info_traffic" field.
+func InfoTrafficLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldInfoTraffic, v))
+}
+
+// InfoTrafficLTE applies the LTE predicate on the "info_traffic" field.
+func InfoTrafficLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldInfoTraffic, v))
+}
+
+// InfoTrafficContains applies the Contains predicate on the "info_traffic" field.
+func InfoTrafficContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldInfoTraffic, v))
+}
+
+// InfoTrafficHasPrefix applies the HasPrefix predicate on the "info_traffic" field.
+func InfoTrafficHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldInfoTraffic, v))
+}
+
+// InfoTrafficHasSuffix applies the HasSuffix predicate on the "info_traffic" field.
+func InfoTrafficHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldInfoTraffic, v))
+}
+
+// InfoTrafficIsNil applies the IsNil predicate on the "info_traffic" field.
+func InfoTrafficIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldInfoTraffic))
+}
+
+// InfoTrafficNotNil applies the NotNil predicate on the "info_traffic" field.
+func InfoTrafficNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldInfoTraffic))
+}
+
+// InfoTrafficEqualFold applies the EqualFold predicate on the "info_traffic" field.
+func InfoTrafficEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldInfoTraffic, v))
+}
+
+// InfoTrafficContainsFold applies the ContainsFold predicate on the "info_traffic" field.
+func InfoTrafficContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldInfoTraffic, v))
+}
+
+// InfoTypeEQ applies the EQ predicate on the "info_type" field.
+func InfoTypeEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldInfoType, v))
+}
+
+// InfoTypeNEQ applies the NEQ predicate on the "info_type" field.
+func InfoTypeNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldInfoType, v))
+}
+
+// InfoTypeIn applies the In predicate on the "info_type" field.
+func InfoTypeIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldInfoType, vs...))
+}
+
+// InfoTypeNotIn applies the NotIn predicate on the "info_type" field.
+func InfoTypeNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldInfoType, vs...))
+}
+
+// InfoTypeGT applies the GT predicate on the "info_type" field.
+func InfoTypeGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldInfoType, v))
+}
+
+// InfoTypeGTE applies the GTE predicate on the "info_type" field.
+func InfoTypeGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldInfoType, v))
+}
+
+// InfoTypeLT applies the LT predicate on the "info_type" field.
+func InfoTypeLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldInfoType, v))
+}
+
+// InfoTypeLTE applies the LTE predicate on the "info_type" field.
+func InfoTypeLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldInfoType, v))
+}
+
+// InfoTypeContains applies the Contains predicate on the "info_type" field.
+func InfoTypeContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldInfoType, v))
+}
+
+// InfoTypeHasPrefix applies the HasPrefix predicate on the "info_type" field.
+func InfoTypeHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldInfoType, v))
+}
+
+// InfoTypeHasSuffix applies the HasSuffix predicate on the "info_type" field.
+func InfoTypeHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldInfoType, v))
+}
+
+// InfoTypeIsNil applies the IsNil predicate on the "info_type" field.
+func InfoTypeIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldInfoType))
+}
+
+// InfoTypeNotNil applies the NotNil predicate on the "info_type" field.
+func InfoTypeNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldInfoType))
+}
+
+// InfoTypeEqualFold applies the EqualFold predicate on the "info_type" field.
+func InfoTypeEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldInfoType, v))
+}
+
+// InfoTypeContainsFold applies the ContainsFold predicate on the "info_type" field.
+func InfoTypeContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldInfoType, v))
+}
+
+// InfoTypesIsNil applies the IsNil predicate on the "info_types" field.
+func InfoTypesIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldInfoTypes))
+}
+
+// InfoTypesNotNil applies the NotNil predicate on the "info_types" field.
+func InfoTypesNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldInfoTypes))
+}
+
 // InfoUnicastEQ applies the EQ predicate on the "info_unicast" field.
 func InfoUnicastEQ(v bool) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldInfoUnicast, v))
@@ -1260,34 +850,369 @@ func InfoUnicastNEQ(v bool) predicate.Network {
 	return predicate.Network(sql.FieldNEQ(FieldInfoUnicast, v))
 }
 
-// InfoMulticastEQ applies the EQ predicate on the "info_multicast" field.
-func InfoMulticastEQ(v bool) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldInfoMulticast, v))
+// IrrAsSetEQ applies the EQ predicate on the "irr_as_set" field.
+func IrrAsSetEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldIrrAsSet, v))
 }
 
-// InfoMulticastNEQ applies the NEQ predicate on the "info_multicast" field.
-func InfoMulticastNEQ(v bool) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldInfoMulticast, v))
+// IrrAsSetNEQ applies the NEQ predicate on the "irr_as_set" field.
+func IrrAsSetNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldIrrAsSet, v))
 }
 
-// InfoIpv6EQ applies the EQ predicate on the "info_ipv6" field.
-func InfoIpv6EQ(v bool) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldInfoIpv6, v))
+// IrrAsSetIn applies the In predicate on the "irr_as_set" field.
+func IrrAsSetIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldIrrAsSet, vs...))
 }
 
-// InfoIpv6NEQ applies the NEQ predicate on the "info_ipv6" field.
-func InfoIpv6NEQ(v bool) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldInfoIpv6, v))
+// IrrAsSetNotIn applies the NotIn predicate on the "irr_as_set" field.
+func IrrAsSetNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldIrrAsSet, vs...))
 }
 
-// InfoNeverViaRouteServersEQ applies the EQ predicate on the "info_never_via_route_servers" field.
-func InfoNeverViaRouteServersEQ(v bool) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldInfoNeverViaRouteServers, v))
+// IrrAsSetGT applies the GT predicate on the "irr_as_set" field.
+func IrrAsSetGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldIrrAsSet, v))
 }
 
-// InfoNeverViaRouteServersNEQ applies the NEQ predicate on the "info_never_via_route_servers" field.
-func InfoNeverViaRouteServersNEQ(v bool) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldInfoNeverViaRouteServers, v))
+// IrrAsSetGTE applies the GTE predicate on the "irr_as_set" field.
+func IrrAsSetGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldIrrAsSet, v))
+}
+
+// IrrAsSetLT applies the LT predicate on the "irr_as_set" field.
+func IrrAsSetLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldIrrAsSet, v))
+}
+
+// IrrAsSetLTE applies the LTE predicate on the "irr_as_set" field.
+func IrrAsSetLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldIrrAsSet, v))
+}
+
+// IrrAsSetContains applies the Contains predicate on the "irr_as_set" field.
+func IrrAsSetContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldIrrAsSet, v))
+}
+
+// IrrAsSetHasPrefix applies the HasPrefix predicate on the "irr_as_set" field.
+func IrrAsSetHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldIrrAsSet, v))
+}
+
+// IrrAsSetHasSuffix applies the HasSuffix predicate on the "irr_as_set" field.
+func IrrAsSetHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldIrrAsSet, v))
+}
+
+// IrrAsSetIsNil applies the IsNil predicate on the "irr_as_set" field.
+func IrrAsSetIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldIrrAsSet))
+}
+
+// IrrAsSetNotNil applies the NotNil predicate on the "irr_as_set" field.
+func IrrAsSetNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldIrrAsSet))
+}
+
+// IrrAsSetEqualFold applies the EqualFold predicate on the "irr_as_set" field.
+func IrrAsSetEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldIrrAsSet, v))
+}
+
+// IrrAsSetContainsFold applies the ContainsFold predicate on the "irr_as_set" field.
+func IrrAsSetContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldIrrAsSet, v))
+}
+
+// LogoEQ applies the EQ predicate on the "logo" field.
+func LogoEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldLogo, v))
+}
+
+// LogoNEQ applies the NEQ predicate on the "logo" field.
+func LogoNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldLogo, v))
+}
+
+// LogoIn applies the In predicate on the "logo" field.
+func LogoIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldLogo, vs...))
+}
+
+// LogoNotIn applies the NotIn predicate on the "logo" field.
+func LogoNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldLogo, vs...))
+}
+
+// LogoGT applies the GT predicate on the "logo" field.
+func LogoGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldLogo, v))
+}
+
+// LogoGTE applies the GTE predicate on the "logo" field.
+func LogoGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldLogo, v))
+}
+
+// LogoLT applies the LT predicate on the "logo" field.
+func LogoLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldLogo, v))
+}
+
+// LogoLTE applies the LTE predicate on the "logo" field.
+func LogoLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldLogo, v))
+}
+
+// LogoContains applies the Contains predicate on the "logo" field.
+func LogoContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldLogo, v))
+}
+
+// LogoHasPrefix applies the HasPrefix predicate on the "logo" field.
+func LogoHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldLogo, v))
+}
+
+// LogoHasSuffix applies the HasSuffix predicate on the "logo" field.
+func LogoHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldLogo, v))
+}
+
+// LogoIsNil applies the IsNil predicate on the "logo" field.
+func LogoIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldLogo))
+}
+
+// LogoNotNil applies the NotNil predicate on the "logo" field.
+func LogoNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldLogo))
+}
+
+// LogoEqualFold applies the EqualFold predicate on the "logo" field.
+func LogoEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldLogo, v))
+}
+
+// LogoContainsFold applies the ContainsFold predicate on the "logo" field.
+func LogoContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldLogo, v))
+}
+
+// LookingGlassEQ applies the EQ predicate on the "looking_glass" field.
+func LookingGlassEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldLookingGlass, v))
+}
+
+// LookingGlassNEQ applies the NEQ predicate on the "looking_glass" field.
+func LookingGlassNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldLookingGlass, v))
+}
+
+// LookingGlassIn applies the In predicate on the "looking_glass" field.
+func LookingGlassIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldLookingGlass, vs...))
+}
+
+// LookingGlassNotIn applies the NotIn predicate on the "looking_glass" field.
+func LookingGlassNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldLookingGlass, vs...))
+}
+
+// LookingGlassGT applies the GT predicate on the "looking_glass" field.
+func LookingGlassGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldLookingGlass, v))
+}
+
+// LookingGlassGTE applies the GTE predicate on the "looking_glass" field.
+func LookingGlassGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldLookingGlass, v))
+}
+
+// LookingGlassLT applies the LT predicate on the "looking_glass" field.
+func LookingGlassLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldLookingGlass, v))
+}
+
+// LookingGlassLTE applies the LTE predicate on the "looking_glass" field.
+func LookingGlassLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldLookingGlass, v))
+}
+
+// LookingGlassContains applies the Contains predicate on the "looking_glass" field.
+func LookingGlassContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldLookingGlass, v))
+}
+
+// LookingGlassHasPrefix applies the HasPrefix predicate on the "looking_glass" field.
+func LookingGlassHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldLookingGlass, v))
+}
+
+// LookingGlassHasSuffix applies the HasSuffix predicate on the "looking_glass" field.
+func LookingGlassHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldLookingGlass, v))
+}
+
+// LookingGlassIsNil applies the IsNil predicate on the "looking_glass" field.
+func LookingGlassIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldLookingGlass))
+}
+
+// LookingGlassNotNil applies the NotNil predicate on the "looking_glass" field.
+func LookingGlassNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldLookingGlass))
+}
+
+// LookingGlassEqualFold applies the EqualFold predicate on the "looking_glass" field.
+func LookingGlassEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldLookingGlass, v))
+}
+
+// LookingGlassContainsFold applies the ContainsFold predicate on the "looking_glass" field.
+func LookingGlassContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldLookingGlass, v))
+}
+
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldName, v))
+}
+
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldName, v))
+}
+
+// NameLongEQ applies the EQ predicate on the "name_long" field.
+func NameLongEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldNameLong, v))
+}
+
+// NameLongNEQ applies the NEQ predicate on the "name_long" field.
+func NameLongNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldNameLong, v))
+}
+
+// NameLongIn applies the In predicate on the "name_long" field.
+func NameLongIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldNameLong, vs...))
+}
+
+// NameLongNotIn applies the NotIn predicate on the "name_long" field.
+func NameLongNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldNameLong, vs...))
+}
+
+// NameLongGT applies the GT predicate on the "name_long" field.
+func NameLongGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldNameLong, v))
+}
+
+// NameLongGTE applies the GTE predicate on the "name_long" field.
+func NameLongGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldNameLong, v))
+}
+
+// NameLongLT applies the LT predicate on the "name_long" field.
+func NameLongLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldNameLong, v))
+}
+
+// NameLongLTE applies the LTE predicate on the "name_long" field.
+func NameLongLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldNameLong, v))
+}
+
+// NameLongContains applies the Contains predicate on the "name_long" field.
+func NameLongContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldNameLong, v))
+}
+
+// NameLongHasPrefix applies the HasPrefix predicate on the "name_long" field.
+func NameLongHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldNameLong, v))
+}
+
+// NameLongHasSuffix applies the HasSuffix predicate on the "name_long" field.
+func NameLongHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldNameLong, v))
+}
+
+// NameLongIsNil applies the IsNil predicate on the "name_long" field.
+func NameLongIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldNameLong))
+}
+
+// NameLongNotNil applies the NotNil predicate on the "name_long" field.
+func NameLongNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldNameLong))
+}
+
+// NameLongEqualFold applies the EqualFold predicate on the "name_long" field.
+func NameLongEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldNameLong, v))
+}
+
+// NameLongContainsFold applies the ContainsFold predicate on the "name_long" field.
+func NameLongContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldNameLong, v))
 }
 
 // NotesEQ applies the EQ predicate on the "notes" field.
@@ -1365,79 +1290,79 @@ func NotesContainsFold(v string) predicate.Network {
 	return predicate.Network(sql.FieldContainsFold(FieldNotes, v))
 }
 
-// PolicyURLEQ applies the EQ predicate on the "policy_url" field.
-func PolicyURLEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldPolicyURL, v))
+// PolicyContractsEQ applies the EQ predicate on the "policy_contracts" field.
+func PolicyContractsEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldPolicyContracts, v))
 }
 
-// PolicyURLNEQ applies the NEQ predicate on the "policy_url" field.
-func PolicyURLNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldPolicyURL, v))
+// PolicyContractsNEQ applies the NEQ predicate on the "policy_contracts" field.
+func PolicyContractsNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldPolicyContracts, v))
 }
 
-// PolicyURLIn applies the In predicate on the "policy_url" field.
-func PolicyURLIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldPolicyURL, vs...))
+// PolicyContractsIn applies the In predicate on the "policy_contracts" field.
+func PolicyContractsIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldPolicyContracts, vs...))
 }
 
-// PolicyURLNotIn applies the NotIn predicate on the "policy_url" field.
-func PolicyURLNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldPolicyURL, vs...))
+// PolicyContractsNotIn applies the NotIn predicate on the "policy_contracts" field.
+func PolicyContractsNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldPolicyContracts, vs...))
 }
 
-// PolicyURLGT applies the GT predicate on the "policy_url" field.
-func PolicyURLGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldPolicyURL, v))
+// PolicyContractsGT applies the GT predicate on the "policy_contracts" field.
+func PolicyContractsGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldPolicyContracts, v))
 }
 
-// PolicyURLGTE applies the GTE predicate on the "policy_url" field.
-func PolicyURLGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldPolicyURL, v))
+// PolicyContractsGTE applies the GTE predicate on the "policy_contracts" field.
+func PolicyContractsGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldPolicyContracts, v))
 }
 
-// PolicyURLLT applies the LT predicate on the "policy_url" field.
-func PolicyURLLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldPolicyURL, v))
+// PolicyContractsLT applies the LT predicate on the "policy_contracts" field.
+func PolicyContractsLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldPolicyContracts, v))
 }
 
-// PolicyURLLTE applies the LTE predicate on the "policy_url" field.
-func PolicyURLLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldPolicyURL, v))
+// PolicyContractsLTE applies the LTE predicate on the "policy_contracts" field.
+func PolicyContractsLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldPolicyContracts, v))
 }
 
-// PolicyURLContains applies the Contains predicate on the "policy_url" field.
-func PolicyURLContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldPolicyURL, v))
+// PolicyContractsContains applies the Contains predicate on the "policy_contracts" field.
+func PolicyContractsContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldPolicyContracts, v))
 }
 
-// PolicyURLHasPrefix applies the HasPrefix predicate on the "policy_url" field.
-func PolicyURLHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldPolicyURL, v))
+// PolicyContractsHasPrefix applies the HasPrefix predicate on the "policy_contracts" field.
+func PolicyContractsHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldPolicyContracts, v))
 }
 
-// PolicyURLHasSuffix applies the HasSuffix predicate on the "policy_url" field.
-func PolicyURLHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldPolicyURL, v))
+// PolicyContractsHasSuffix applies the HasSuffix predicate on the "policy_contracts" field.
+func PolicyContractsHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldPolicyContracts, v))
 }
 
-// PolicyURLIsNil applies the IsNil predicate on the "policy_url" field.
-func PolicyURLIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldPolicyURL))
+// PolicyContractsIsNil applies the IsNil predicate on the "policy_contracts" field.
+func PolicyContractsIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldPolicyContracts))
 }
 
-// PolicyURLNotNil applies the NotNil predicate on the "policy_url" field.
-func PolicyURLNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldPolicyURL))
+// PolicyContractsNotNil applies the NotNil predicate on the "policy_contracts" field.
+func PolicyContractsNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldPolicyContracts))
 }
 
-// PolicyURLEqualFold applies the EqualFold predicate on the "policy_url" field.
-func PolicyURLEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldPolicyURL, v))
+// PolicyContractsEqualFold applies the EqualFold predicate on the "policy_contracts" field.
+func PolicyContractsEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldPolicyContracts, v))
 }
 
-// PolicyURLContainsFold applies the ContainsFold predicate on the "policy_url" field.
-func PolicyURLContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldPolicyURL, v))
+// PolicyContractsContainsFold applies the ContainsFold predicate on the "policy_contracts" field.
+func PolicyContractsContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldPolicyContracts, v))
 }
 
 // PolicyGeneralEQ applies the EQ predicate on the "policy_general" field.
@@ -1600,164 +1525,79 @@ func PolicyRatioNEQ(v bool) predicate.Network {
 	return predicate.Network(sql.FieldNEQ(FieldPolicyRatio, v))
 }
 
-// PolicyContractsEQ applies the EQ predicate on the "policy_contracts" field.
-func PolicyContractsEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldPolicyContracts, v))
+// PolicyURLEQ applies the EQ predicate on the "policy_url" field.
+func PolicyURLEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldPolicyURL, v))
 }
 
-// PolicyContractsNEQ applies the NEQ predicate on the "policy_contracts" field.
-func PolicyContractsNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldPolicyContracts, v))
+// PolicyURLNEQ applies the NEQ predicate on the "policy_url" field.
+func PolicyURLNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldPolicyURL, v))
 }
 
-// PolicyContractsIn applies the In predicate on the "policy_contracts" field.
-func PolicyContractsIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldPolicyContracts, vs...))
+// PolicyURLIn applies the In predicate on the "policy_url" field.
+func PolicyURLIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldPolicyURL, vs...))
 }
 
-// PolicyContractsNotIn applies the NotIn predicate on the "policy_contracts" field.
-func PolicyContractsNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldPolicyContracts, vs...))
+// PolicyURLNotIn applies the NotIn predicate on the "policy_url" field.
+func PolicyURLNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldPolicyURL, vs...))
 }
 
-// PolicyContractsGT applies the GT predicate on the "policy_contracts" field.
-func PolicyContractsGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldPolicyContracts, v))
+// PolicyURLGT applies the GT predicate on the "policy_url" field.
+func PolicyURLGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldPolicyURL, v))
 }
 
-// PolicyContractsGTE applies the GTE predicate on the "policy_contracts" field.
-func PolicyContractsGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldPolicyContracts, v))
+// PolicyURLGTE applies the GTE predicate on the "policy_url" field.
+func PolicyURLGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldPolicyURL, v))
 }
 
-// PolicyContractsLT applies the LT predicate on the "policy_contracts" field.
-func PolicyContractsLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldPolicyContracts, v))
+// PolicyURLLT applies the LT predicate on the "policy_url" field.
+func PolicyURLLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldPolicyURL, v))
 }
 
-// PolicyContractsLTE applies the LTE predicate on the "policy_contracts" field.
-func PolicyContractsLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldPolicyContracts, v))
+// PolicyURLLTE applies the LTE predicate on the "policy_url" field.
+func PolicyURLLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldPolicyURL, v))
 }
 
-// PolicyContractsContains applies the Contains predicate on the "policy_contracts" field.
-func PolicyContractsContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldPolicyContracts, v))
+// PolicyURLContains applies the Contains predicate on the "policy_url" field.
+func PolicyURLContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldPolicyURL, v))
 }
 
-// PolicyContractsHasPrefix applies the HasPrefix predicate on the "policy_contracts" field.
-func PolicyContractsHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldPolicyContracts, v))
+// PolicyURLHasPrefix applies the HasPrefix predicate on the "policy_url" field.
+func PolicyURLHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldPolicyURL, v))
 }
 
-// PolicyContractsHasSuffix applies the HasSuffix predicate on the "policy_contracts" field.
-func PolicyContractsHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldPolicyContracts, v))
+// PolicyURLHasSuffix applies the HasSuffix predicate on the "policy_url" field.
+func PolicyURLHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldPolicyURL, v))
 }
 
-// PolicyContractsIsNil applies the IsNil predicate on the "policy_contracts" field.
-func PolicyContractsIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldPolicyContracts))
+// PolicyURLIsNil applies the IsNil predicate on the "policy_url" field.
+func PolicyURLIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldPolicyURL))
 }
 
-// PolicyContractsNotNil applies the NotNil predicate on the "policy_contracts" field.
-func PolicyContractsNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldPolicyContracts))
+// PolicyURLNotNil applies the NotNil predicate on the "policy_url" field.
+func PolicyURLNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldPolicyURL))
 }
 
-// PolicyContractsEqualFold applies the EqualFold predicate on the "policy_contracts" field.
-func PolicyContractsEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldPolicyContracts, v))
+// PolicyURLEqualFold applies the EqualFold predicate on the "policy_url" field.
+func PolicyURLEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldPolicyURL, v))
 }
 
-// PolicyContractsContainsFold applies the ContainsFold predicate on the "policy_contracts" field.
-func PolicyContractsContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldPolicyContracts, v))
-}
-
-// AllowIxpUpdateEQ applies the EQ predicate on the "allow_ixp_update" field.
-func AllowIxpUpdateEQ(v bool) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldAllowIxpUpdate, v))
-}
-
-// AllowIxpUpdateNEQ applies the NEQ predicate on the "allow_ixp_update" field.
-func AllowIxpUpdateNEQ(v bool) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldAllowIxpUpdate, v))
-}
-
-// StatusDashboardEQ applies the EQ predicate on the "status_dashboard" field.
-func StatusDashboardEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldStatusDashboard, v))
-}
-
-// StatusDashboardNEQ applies the NEQ predicate on the "status_dashboard" field.
-func StatusDashboardNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldStatusDashboard, v))
-}
-
-// StatusDashboardIn applies the In predicate on the "status_dashboard" field.
-func StatusDashboardIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldStatusDashboard, vs...))
-}
-
-// StatusDashboardNotIn applies the NotIn predicate on the "status_dashboard" field.
-func StatusDashboardNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldStatusDashboard, vs...))
-}
-
-// StatusDashboardGT applies the GT predicate on the "status_dashboard" field.
-func StatusDashboardGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldStatusDashboard, v))
-}
-
-// StatusDashboardGTE applies the GTE predicate on the "status_dashboard" field.
-func StatusDashboardGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldStatusDashboard, v))
-}
-
-// StatusDashboardLT applies the LT predicate on the "status_dashboard" field.
-func StatusDashboardLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldStatusDashboard, v))
-}
-
-// StatusDashboardLTE applies the LTE predicate on the "status_dashboard" field.
-func StatusDashboardLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldStatusDashboard, v))
-}
-
-// StatusDashboardContains applies the Contains predicate on the "status_dashboard" field.
-func StatusDashboardContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldStatusDashboard, v))
-}
-
-// StatusDashboardHasPrefix applies the HasPrefix predicate on the "status_dashboard" field.
-func StatusDashboardHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldStatusDashboard, v))
-}
-
-// StatusDashboardHasSuffix applies the HasSuffix predicate on the "status_dashboard" field.
-func StatusDashboardHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldStatusDashboard, v))
-}
-
-// StatusDashboardIsNil applies the IsNil predicate on the "status_dashboard" field.
-func StatusDashboardIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldStatusDashboard))
-}
-
-// StatusDashboardNotNil applies the NotNil predicate on the "status_dashboard" field.
-func StatusDashboardNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldStatusDashboard))
-}
-
-// StatusDashboardEqualFold applies the EqualFold predicate on the "status_dashboard" field.
-func StatusDashboardEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldStatusDashboard, v))
-}
-
-// StatusDashboardContainsFold applies the ContainsFold predicate on the "status_dashboard" field.
-func StatusDashboardContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldStatusDashboard, v))
+// PolicyURLContainsFold applies the ContainsFold predicate on the "policy_url" field.
+func PolicyURLContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldPolicyURL, v))
 }
 
 // RirStatusEQ applies the EQ predicate on the "rir_status" field.
@@ -1885,79 +1725,239 @@ func RirStatusUpdatedNotNil() predicate.Network {
 	return predicate.Network(sql.FieldNotNull(FieldRirStatusUpdated))
 }
 
-// LogoEQ applies the EQ predicate on the "logo" field.
-func LogoEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldEQ(FieldLogo, v))
+// RouteServerEQ applies the EQ predicate on the "route_server" field.
+func RouteServerEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldRouteServer, v))
 }
 
-// LogoNEQ applies the NEQ predicate on the "logo" field.
-func LogoNEQ(v string) predicate.Network {
-	return predicate.Network(sql.FieldNEQ(FieldLogo, v))
+// RouteServerNEQ applies the NEQ predicate on the "route_server" field.
+func RouteServerNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldRouteServer, v))
 }
 
-// LogoIn applies the In predicate on the "logo" field.
-func LogoIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldIn(FieldLogo, vs...))
+// RouteServerIn applies the In predicate on the "route_server" field.
+func RouteServerIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldRouteServer, vs...))
 }
 
-// LogoNotIn applies the NotIn predicate on the "logo" field.
-func LogoNotIn(vs ...string) predicate.Network {
-	return predicate.Network(sql.FieldNotIn(FieldLogo, vs...))
+// RouteServerNotIn applies the NotIn predicate on the "route_server" field.
+func RouteServerNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldRouteServer, vs...))
 }
 
-// LogoGT applies the GT predicate on the "logo" field.
-func LogoGT(v string) predicate.Network {
-	return predicate.Network(sql.FieldGT(FieldLogo, v))
+// RouteServerGT applies the GT predicate on the "route_server" field.
+func RouteServerGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldRouteServer, v))
 }
 
-// LogoGTE applies the GTE predicate on the "logo" field.
-func LogoGTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldGTE(FieldLogo, v))
+// RouteServerGTE applies the GTE predicate on the "route_server" field.
+func RouteServerGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldRouteServer, v))
 }
 
-// LogoLT applies the LT predicate on the "logo" field.
-func LogoLT(v string) predicate.Network {
-	return predicate.Network(sql.FieldLT(FieldLogo, v))
+// RouteServerLT applies the LT predicate on the "route_server" field.
+func RouteServerLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldRouteServer, v))
 }
 
-// LogoLTE applies the LTE predicate on the "logo" field.
-func LogoLTE(v string) predicate.Network {
-	return predicate.Network(sql.FieldLTE(FieldLogo, v))
+// RouteServerLTE applies the LTE predicate on the "route_server" field.
+func RouteServerLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldRouteServer, v))
 }
 
-// LogoContains applies the Contains predicate on the "logo" field.
-func LogoContains(v string) predicate.Network {
-	return predicate.Network(sql.FieldContains(FieldLogo, v))
+// RouteServerContains applies the Contains predicate on the "route_server" field.
+func RouteServerContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldRouteServer, v))
 }
 
-// LogoHasPrefix applies the HasPrefix predicate on the "logo" field.
-func LogoHasPrefix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasPrefix(FieldLogo, v))
+// RouteServerHasPrefix applies the HasPrefix predicate on the "route_server" field.
+func RouteServerHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldRouteServer, v))
 }
 
-// LogoHasSuffix applies the HasSuffix predicate on the "logo" field.
-func LogoHasSuffix(v string) predicate.Network {
-	return predicate.Network(sql.FieldHasSuffix(FieldLogo, v))
+// RouteServerHasSuffix applies the HasSuffix predicate on the "route_server" field.
+func RouteServerHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldRouteServer, v))
 }
 
-// LogoIsNil applies the IsNil predicate on the "logo" field.
-func LogoIsNil() predicate.Network {
-	return predicate.Network(sql.FieldIsNull(FieldLogo))
+// RouteServerIsNil applies the IsNil predicate on the "route_server" field.
+func RouteServerIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldRouteServer))
 }
 
-// LogoNotNil applies the NotNil predicate on the "logo" field.
-func LogoNotNil() predicate.Network {
-	return predicate.Network(sql.FieldNotNull(FieldLogo))
+// RouteServerNotNil applies the NotNil predicate on the "route_server" field.
+func RouteServerNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldRouteServer))
 }
 
-// LogoEqualFold applies the EqualFold predicate on the "logo" field.
-func LogoEqualFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldEqualFold(FieldLogo, v))
+// RouteServerEqualFold applies the EqualFold predicate on the "route_server" field.
+func RouteServerEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldRouteServer, v))
 }
 
-// LogoContainsFold applies the ContainsFold predicate on the "logo" field.
-func LogoContainsFold(v string) predicate.Network {
-	return predicate.Network(sql.FieldContainsFold(FieldLogo, v))
+// RouteServerContainsFold applies the ContainsFold predicate on the "route_server" field.
+func RouteServerContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldRouteServer, v))
+}
+
+// SocialMediaIsNil applies the IsNil predicate on the "social_media" field.
+func SocialMediaIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldSocialMedia))
+}
+
+// SocialMediaNotNil applies the NotNil predicate on the "social_media" field.
+func SocialMediaNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldSocialMedia))
+}
+
+// StatusDashboardEQ applies the EQ predicate on the "status_dashboard" field.
+func StatusDashboardEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldStatusDashboard, v))
+}
+
+// StatusDashboardNEQ applies the NEQ predicate on the "status_dashboard" field.
+func StatusDashboardNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldStatusDashboard, v))
+}
+
+// StatusDashboardIn applies the In predicate on the "status_dashboard" field.
+func StatusDashboardIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldStatusDashboard, vs...))
+}
+
+// StatusDashboardNotIn applies the NotIn predicate on the "status_dashboard" field.
+func StatusDashboardNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldStatusDashboard, vs...))
+}
+
+// StatusDashboardGT applies the GT predicate on the "status_dashboard" field.
+func StatusDashboardGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldStatusDashboard, v))
+}
+
+// StatusDashboardGTE applies the GTE predicate on the "status_dashboard" field.
+func StatusDashboardGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldStatusDashboard, v))
+}
+
+// StatusDashboardLT applies the LT predicate on the "status_dashboard" field.
+func StatusDashboardLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldStatusDashboard, v))
+}
+
+// StatusDashboardLTE applies the LTE predicate on the "status_dashboard" field.
+func StatusDashboardLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldStatusDashboard, v))
+}
+
+// StatusDashboardContains applies the Contains predicate on the "status_dashboard" field.
+func StatusDashboardContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldStatusDashboard, v))
+}
+
+// StatusDashboardHasPrefix applies the HasPrefix predicate on the "status_dashboard" field.
+func StatusDashboardHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldStatusDashboard, v))
+}
+
+// StatusDashboardHasSuffix applies the HasSuffix predicate on the "status_dashboard" field.
+func StatusDashboardHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldStatusDashboard, v))
+}
+
+// StatusDashboardIsNil applies the IsNil predicate on the "status_dashboard" field.
+func StatusDashboardIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldStatusDashboard))
+}
+
+// StatusDashboardNotNil applies the NotNil predicate on the "status_dashboard" field.
+func StatusDashboardNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldStatusDashboard))
+}
+
+// StatusDashboardEqualFold applies the EqualFold predicate on the "status_dashboard" field.
+func StatusDashboardEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldStatusDashboard, v))
+}
+
+// StatusDashboardContainsFold applies the ContainsFold predicate on the "status_dashboard" field.
+func StatusDashboardContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldStatusDashboard, v))
+}
+
+// WebsiteEQ applies the EQ predicate on the "website" field.
+func WebsiteEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldWebsite, v))
+}
+
+// WebsiteNEQ applies the NEQ predicate on the "website" field.
+func WebsiteNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldWebsite, v))
+}
+
+// WebsiteIn applies the In predicate on the "website" field.
+func WebsiteIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldWebsite, vs...))
+}
+
+// WebsiteNotIn applies the NotIn predicate on the "website" field.
+func WebsiteNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldWebsite, vs...))
+}
+
+// WebsiteGT applies the GT predicate on the "website" field.
+func WebsiteGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldWebsite, v))
+}
+
+// WebsiteGTE applies the GTE predicate on the "website" field.
+func WebsiteGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldWebsite, v))
+}
+
+// WebsiteLT applies the LT predicate on the "website" field.
+func WebsiteLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldWebsite, v))
+}
+
+// WebsiteLTE applies the LTE predicate on the "website" field.
+func WebsiteLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldWebsite, v))
+}
+
+// WebsiteContains applies the Contains predicate on the "website" field.
+func WebsiteContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldWebsite, v))
+}
+
+// WebsiteHasPrefix applies the HasPrefix predicate on the "website" field.
+func WebsiteHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldWebsite, v))
+}
+
+// WebsiteHasSuffix applies the HasSuffix predicate on the "website" field.
+func WebsiteHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldWebsite, v))
+}
+
+// WebsiteIsNil applies the IsNil predicate on the "website" field.
+func WebsiteIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldWebsite))
+}
+
+// WebsiteNotNil applies the NotNil predicate on the "website" field.
+func WebsiteNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldWebsite))
+}
+
+// WebsiteEqualFold applies the EqualFold predicate on the "website" field.
+func WebsiteEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldWebsite, v))
+}
+
+// WebsiteContainsFold applies the ContainsFold predicate on the "website" field.
+func WebsiteContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldWebsite, v))
 }
 
 // IxCountEQ applies the EQ predicate on the "ix_count" field.
@@ -2355,52 +2355,6 @@ func StatusContainsFold(v string) predicate.Network {
 	return predicate.Network(sql.FieldContainsFold(FieldStatus, v))
 }
 
-// HasOrganization applies the HasEdge predicate on the "organization" edge.
-func HasOrganization() predicate.Network {
-	return predicate.Network(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasOrganizationWith applies the HasEdge predicate on the "organization" edge with a given conditions (other predicates).
-func HasOrganizationWith(preds ...predicate.Organization) predicate.Network {
-	return predicate.Network(func(s *sql.Selector) {
-		step := newOrganizationStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasPocs applies the HasEdge predicate on the "pocs" edge.
-func HasPocs() predicate.Network {
-	return predicate.Network(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, PocsTable, PocsColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasPocsWith applies the HasEdge predicate on the "pocs" edge with a given conditions (other predicates).
-func HasPocsWith(preds ...predicate.Poc) predicate.Network {
-	return predicate.Network(func(s *sql.Selector) {
-		step := newPocsStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasNetworkFacilities applies the HasEdge predicate on the "network_facilities" edge.
 func HasNetworkFacilities() predicate.Network {
 	return predicate.Network(func(s *sql.Selector) {
@@ -2439,6 +2393,52 @@ func HasNetworkIxLans() predicate.Network {
 func HasNetworkIxLansWith(preds ...predicate.NetworkIxLan) predicate.Network {
 	return predicate.Network(func(s *sql.Selector) {
 		step := newNetworkIxLansStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOrganization applies the HasEdge predicate on the "organization" edge.
+func HasOrganization() predicate.Network {
+	return predicate.Network(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrganizationWith applies the HasEdge predicate on the "organization" edge with a given conditions (other predicates).
+func HasOrganizationWith(preds ...predicate.Organization) predicate.Network {
+	return predicate.Network(func(s *sql.Selector) {
+		step := newOrganizationStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPocs applies the HasEdge predicate on the "pocs" edge.
+func HasPocs() predicate.Network {
+	return predicate.Network(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PocsTable, PocsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPocsWith applies the HasEdge predicate on the "pocs" edge with a given conditions (other predicates).
+func HasPocsWith(preds ...predicate.Poc) predicate.Network {
+	return predicate.Network(func(s *sql.Selector) {
+		step := newPocsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

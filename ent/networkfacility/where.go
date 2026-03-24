@@ -55,14 +55,19 @@ func IDLTE(id int) predicate.NetworkFacility {
 	return predicate.NetworkFacility(sql.FieldLTE(FieldID, id))
 }
 
+// FacID applies equality check predicate on the "fac_id" field. It's identical to FacIDEQ.
+func FacID(v int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldEQ(FieldFacID, v))
+}
+
 // NetID applies equality check predicate on the "net_id" field. It's identical to NetIDEQ.
 func NetID(v int) predicate.NetworkFacility {
 	return predicate.NetworkFacility(sql.FieldEQ(FieldNetID, v))
 }
 
-// FacID applies equality check predicate on the "fac_id" field. It's identical to FacIDEQ.
-func FacID(v int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldEQ(FieldFacID, v))
+// LocalAsn applies equality check predicate on the "local_asn" field. It's identical to LocalAsnEQ.
+func LocalAsn(v int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldEQ(FieldLocalAsn, v))
 }
 
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
@@ -80,11 +85,6 @@ func Country(v string) predicate.NetworkFacility {
 	return predicate.NetworkFacility(sql.FieldEQ(FieldCountry, v))
 }
 
-// LocalAsn applies equality check predicate on the "local_asn" field. It's identical to LocalAsnEQ.
-func LocalAsn(v int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldEQ(FieldLocalAsn, v))
-}
-
 // Created applies equality check predicate on the "created" field. It's identical to CreatedEQ.
 func Created(v time.Time) predicate.NetworkFacility {
 	return predicate.NetworkFacility(sql.FieldEQ(FieldCreated, v))
@@ -98,6 +98,36 @@ func Updated(v time.Time) predicate.NetworkFacility {
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
 func Status(v string) predicate.NetworkFacility {
 	return predicate.NetworkFacility(sql.FieldEQ(FieldStatus, v))
+}
+
+// FacIDEQ applies the EQ predicate on the "fac_id" field.
+func FacIDEQ(v int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldEQ(FieldFacID, v))
+}
+
+// FacIDNEQ applies the NEQ predicate on the "fac_id" field.
+func FacIDNEQ(v int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldNEQ(FieldFacID, v))
+}
+
+// FacIDIn applies the In predicate on the "fac_id" field.
+func FacIDIn(vs ...int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldIn(FieldFacID, vs...))
+}
+
+// FacIDNotIn applies the NotIn predicate on the "fac_id" field.
+func FacIDNotIn(vs ...int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldNotIn(FieldFacID, vs...))
+}
+
+// FacIDIsNil applies the IsNil predicate on the "fac_id" field.
+func FacIDIsNil() predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldIsNull(FieldFacID))
+}
+
+// FacIDNotNil applies the NotNil predicate on the "fac_id" field.
+func FacIDNotNil() predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldNotNull(FieldFacID))
 }
 
 // NetIDEQ applies the EQ predicate on the "net_id" field.
@@ -130,34 +160,44 @@ func NetIDNotNil() predicate.NetworkFacility {
 	return predicate.NetworkFacility(sql.FieldNotNull(FieldNetID))
 }
 
-// FacIDEQ applies the EQ predicate on the "fac_id" field.
-func FacIDEQ(v int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldEQ(FieldFacID, v))
+// LocalAsnEQ applies the EQ predicate on the "local_asn" field.
+func LocalAsnEQ(v int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldEQ(FieldLocalAsn, v))
 }
 
-// FacIDNEQ applies the NEQ predicate on the "fac_id" field.
-func FacIDNEQ(v int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldNEQ(FieldFacID, v))
+// LocalAsnNEQ applies the NEQ predicate on the "local_asn" field.
+func LocalAsnNEQ(v int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldNEQ(FieldLocalAsn, v))
 }
 
-// FacIDIn applies the In predicate on the "fac_id" field.
-func FacIDIn(vs ...int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldIn(FieldFacID, vs...))
+// LocalAsnIn applies the In predicate on the "local_asn" field.
+func LocalAsnIn(vs ...int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldIn(FieldLocalAsn, vs...))
 }
 
-// FacIDNotIn applies the NotIn predicate on the "fac_id" field.
-func FacIDNotIn(vs ...int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldNotIn(FieldFacID, vs...))
+// LocalAsnNotIn applies the NotIn predicate on the "local_asn" field.
+func LocalAsnNotIn(vs ...int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldNotIn(FieldLocalAsn, vs...))
 }
 
-// FacIDIsNil applies the IsNil predicate on the "fac_id" field.
-func FacIDIsNil() predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldIsNull(FieldFacID))
+// LocalAsnGT applies the GT predicate on the "local_asn" field.
+func LocalAsnGT(v int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldGT(FieldLocalAsn, v))
 }
 
-// FacIDNotNil applies the NotNil predicate on the "fac_id" field.
-func FacIDNotNil() predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldNotNull(FieldFacID))
+// LocalAsnGTE applies the GTE predicate on the "local_asn" field.
+func LocalAsnGTE(v int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldGTE(FieldLocalAsn, v))
+}
+
+// LocalAsnLT applies the LT predicate on the "local_asn" field.
+func LocalAsnLT(v int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldLT(FieldLocalAsn, v))
+}
+
+// LocalAsnLTE applies the LTE predicate on the "local_asn" field.
+func LocalAsnLTE(v int) predicate.NetworkFacility {
+	return predicate.NetworkFacility(sql.FieldLTE(FieldLocalAsn, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
@@ -385,46 +425,6 @@ func CountryContainsFold(v string) predicate.NetworkFacility {
 	return predicate.NetworkFacility(sql.FieldContainsFold(FieldCountry, v))
 }
 
-// LocalAsnEQ applies the EQ predicate on the "local_asn" field.
-func LocalAsnEQ(v int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldEQ(FieldLocalAsn, v))
-}
-
-// LocalAsnNEQ applies the NEQ predicate on the "local_asn" field.
-func LocalAsnNEQ(v int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldNEQ(FieldLocalAsn, v))
-}
-
-// LocalAsnIn applies the In predicate on the "local_asn" field.
-func LocalAsnIn(vs ...int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldIn(FieldLocalAsn, vs...))
-}
-
-// LocalAsnNotIn applies the NotIn predicate on the "local_asn" field.
-func LocalAsnNotIn(vs ...int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldNotIn(FieldLocalAsn, vs...))
-}
-
-// LocalAsnGT applies the GT predicate on the "local_asn" field.
-func LocalAsnGT(v int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldGT(FieldLocalAsn, v))
-}
-
-// LocalAsnGTE applies the GTE predicate on the "local_asn" field.
-func LocalAsnGTE(v int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldGTE(FieldLocalAsn, v))
-}
-
-// LocalAsnLT applies the LT predicate on the "local_asn" field.
-func LocalAsnLT(v int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldLT(FieldLocalAsn, v))
-}
-
-// LocalAsnLTE applies the LTE predicate on the "local_asn" field.
-func LocalAsnLTE(v int) predicate.NetworkFacility {
-	return predicate.NetworkFacility(sql.FieldLTE(FieldLocalAsn, v))
-}
-
 // CreatedEQ applies the EQ predicate on the "created" field.
 func CreatedEQ(v time.Time) predicate.NetworkFacility {
 	return predicate.NetworkFacility(sql.FieldEQ(FieldCreated, v))
@@ -570,29 +570,6 @@ func StatusContainsFold(v string) predicate.NetworkFacility {
 	return predicate.NetworkFacility(sql.FieldContainsFold(FieldStatus, v))
 }
 
-// HasNetwork applies the HasEdge predicate on the "network" edge.
-func HasNetwork() predicate.NetworkFacility {
-	return predicate.NetworkFacility(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, NetworkTable, NetworkColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasNetworkWith applies the HasEdge predicate on the "network" edge with a given conditions (other predicates).
-func HasNetworkWith(preds ...predicate.Network) predicate.NetworkFacility {
-	return predicate.NetworkFacility(func(s *sql.Selector) {
-		step := newNetworkStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasFacility applies the HasEdge predicate on the "facility" edge.
 func HasFacility() predicate.NetworkFacility {
 	return predicate.NetworkFacility(func(s *sql.Selector) {
@@ -608,6 +585,29 @@ func HasFacility() predicate.NetworkFacility {
 func HasFacilityWith(preds ...predicate.Facility) predicate.NetworkFacility {
 	return predicate.NetworkFacility(func(s *sql.Selector) {
 		step := newFacilityStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasNetwork applies the HasEdge predicate on the "network" edge.
+func HasNetwork() predicate.NetworkFacility {
+	return predicate.NetworkFacility(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, NetworkTable, NetworkColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNetworkWith applies the HasEdge predicate on the "network" edge with a given conditions (other predicates).
+func HasNetworkWith(preds ...predicate.Network) predicate.NetworkFacility {
+	return predicate.NetworkFacility(func(s *sql.Selector) {
+		step := newNetworkStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

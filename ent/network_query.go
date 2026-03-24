@@ -27,15 +27,15 @@ type NetworkQuery struct {
 	order                      []network.OrderOption
 	inters                     []Interceptor
 	predicates                 []predicate.Network
-	withOrganization           *OrganizationQuery
-	withPocs                   *PocQuery
 	withNetworkFacilities      *NetworkFacilityQuery
 	withNetworkIxLans          *NetworkIxLanQuery
+	withOrganization           *OrganizationQuery
+	withPocs                   *PocQuery
 	modifiers                  []func(*sql.Selector)
 	loadTotal                  []func(context.Context, []*Network) error
-	withNamedPocs              map[string]*PocQuery
 	withNamedNetworkFacilities map[string]*NetworkFacilityQuery
 	withNamedNetworkIxLans     map[string]*NetworkIxLanQuery
+	withNamedPocs              map[string]*PocQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -70,50 +70,6 @@ func (_q *NetworkQuery) Unique(unique bool) *NetworkQuery {
 func (_q *NetworkQuery) Order(o ...network.OrderOption) *NetworkQuery {
 	_q.order = append(_q.order, o...)
 	return _q
-}
-
-// QueryOrganization chains the current query on the "organization" edge.
-func (_q *NetworkQuery) QueryOrganization() *OrganizationQuery {
-	query := (&OrganizationClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(network.Table, network.FieldID, selector),
-			sqlgraph.To(organization.Table, organization.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, network.OrganizationTable, network.OrganizationColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryPocs chains the current query on the "pocs" edge.
-func (_q *NetworkQuery) QueryPocs() *PocQuery {
-	query := (&PocClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(network.Table, network.FieldID, selector),
-			sqlgraph.To(poc.Table, poc.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, network.PocsTable, network.PocsColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
 }
 
 // QueryNetworkFacilities chains the current query on the "network_facilities" edge.
@@ -153,6 +109,50 @@ func (_q *NetworkQuery) QueryNetworkIxLans() *NetworkIxLanQuery {
 			sqlgraph.From(network.Table, network.FieldID, selector),
 			sqlgraph.To(networkixlan.Table, networkixlan.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, network.NetworkIxLansTable, network.NetworkIxLansColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOrganization chains the current query on the "organization" edge.
+func (_q *NetworkQuery) QueryOrganization() *OrganizationQuery {
+	query := (&OrganizationClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(network.Table, network.FieldID, selector),
+			sqlgraph.To(organization.Table, organization.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, network.OrganizationTable, network.OrganizationColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPocs chains the current query on the "pocs" edge.
+func (_q *NetworkQuery) QueryPocs() *PocQuery {
+	query := (&PocClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(network.Table, network.FieldID, selector),
+			sqlgraph.To(poc.Table, poc.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, network.PocsTable, network.PocsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -352,36 +352,14 @@ func (_q *NetworkQuery) Clone() *NetworkQuery {
 		order:                 append([]network.OrderOption{}, _q.order...),
 		inters:                append([]Interceptor{}, _q.inters...),
 		predicates:            append([]predicate.Network{}, _q.predicates...),
-		withOrganization:      _q.withOrganization.Clone(),
-		withPocs:              _q.withPocs.Clone(),
 		withNetworkFacilities: _q.withNetworkFacilities.Clone(),
 		withNetworkIxLans:     _q.withNetworkIxLans.Clone(),
+		withOrganization:      _q.withOrganization.Clone(),
+		withPocs:              _q.withPocs.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
-}
-
-// WithOrganization tells the query-builder to eager-load the nodes that are connected to
-// the "organization" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *NetworkQuery) WithOrganization(opts ...func(*OrganizationQuery)) *NetworkQuery {
-	query := (&OrganizationClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withOrganization = query
-	return _q
-}
-
-// WithPocs tells the query-builder to eager-load the nodes that are connected to
-// the "pocs" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *NetworkQuery) WithPocs(opts ...func(*PocQuery)) *NetworkQuery {
-	query := (&PocClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withPocs = query
-	return _q
 }
 
 // WithNetworkFacilities tells the query-builder to eager-load the nodes that are connected to
@@ -403,6 +381,28 @@ func (_q *NetworkQuery) WithNetworkIxLans(opts ...func(*NetworkIxLanQuery)) *Net
 		opt(query)
 	}
 	_q.withNetworkIxLans = query
+	return _q
+}
+
+// WithOrganization tells the query-builder to eager-load the nodes that are connected to
+// the "organization" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *NetworkQuery) WithOrganization(opts ...func(*OrganizationQuery)) *NetworkQuery {
+	query := (&OrganizationClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOrganization = query
+	return _q
+}
+
+// WithPocs tells the query-builder to eager-load the nodes that are connected to
+// the "pocs" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *NetworkQuery) WithPocs(opts ...func(*PocQuery)) *NetworkQuery {
+	query := (&PocClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPocs = query
 	return _q
 }
 
@@ -485,10 +485,10 @@ func (_q *NetworkQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Netw
 		nodes       = []*Network{}
 		_spec       = _q.querySpec()
 		loadedTypes = [4]bool{
-			_q.withOrganization != nil,
-			_q.withPocs != nil,
 			_q.withNetworkFacilities != nil,
 			_q.withNetworkIxLans != nil,
+			_q.withOrganization != nil,
+			_q.withPocs != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -512,19 +512,6 @@ func (_q *NetworkQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Netw
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withOrganization; query != nil {
-		if err := _q.loadOrganization(ctx, query, nodes, nil,
-			func(n *Network, e *Organization) { n.Edges.Organization = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withPocs; query != nil {
-		if err := _q.loadPocs(ctx, query, nodes,
-			func(n *Network) { n.Edges.Pocs = []*Poc{} },
-			func(n *Network, e *Poc) { n.Edges.Pocs = append(n.Edges.Pocs, e) }); err != nil {
-			return nil, err
-		}
-	}
 	if query := _q.withNetworkFacilities; query != nil {
 		if err := _q.loadNetworkFacilities(ctx, query, nodes,
 			func(n *Network) { n.Edges.NetworkFacilities = []*NetworkFacility{} },
@@ -539,10 +526,16 @@ func (_q *NetworkQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Netw
 			return nil, err
 		}
 	}
-	for name, query := range _q.withNamedPocs {
+	if query := _q.withOrganization; query != nil {
+		if err := _q.loadOrganization(ctx, query, nodes, nil,
+			func(n *Network, e *Organization) { n.Edges.Organization = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPocs; query != nil {
 		if err := _q.loadPocs(ctx, query, nodes,
-			func(n *Network) { n.appendNamedPocs(name) },
-			func(n *Network, e *Poc) { n.appendNamedPocs(name, e) }); err != nil {
+			func(n *Network) { n.Edges.Pocs = []*Poc{} },
+			func(n *Network, e *Poc) { n.Edges.Pocs = append(n.Edges.Pocs, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -560,6 +553,13 @@ func (_q *NetworkQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Netw
 			return nil, err
 		}
 	}
+	for name, query := range _q.withNamedPocs {
+		if err := _q.loadPocs(ctx, query, nodes,
+			func(n *Network) { n.appendNamedPocs(name) },
+			func(n *Network, e *Poc) { n.appendNamedPocs(name, e) }); err != nil {
+			return nil, err
+		}
+	}
 	for i := range _q.loadTotal {
 		if err := _q.loadTotal[i](ctx, nodes); err != nil {
 			return nil, err
@@ -568,71 +568,6 @@ func (_q *NetworkQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Netw
 	return nodes, nil
 }
 
-func (_q *NetworkQuery) loadOrganization(ctx context.Context, query *OrganizationQuery, nodes []*Network, init func(*Network), assign func(*Network, *Organization)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Network)
-	for i := range nodes {
-		if nodes[i].OrgID == nil {
-			continue
-		}
-		fk := *nodes[i].OrgID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(organization.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "org_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (_q *NetworkQuery) loadPocs(ctx context.Context, query *PocQuery, nodes []*Network, init func(*Network), assign func(*Network, *Poc)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Network)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(poc.FieldNetID)
-	}
-	query.Where(predicate.Poc(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(network.PocsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.NetID
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "net_id" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "net_id" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
 func (_q *NetworkQuery) loadNetworkFacilities(ctx context.Context, query *NetworkFacilityQuery, nodes []*Network, init func(*Network), assign func(*Network, *NetworkFacility)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*Network)
@@ -681,6 +616,71 @@ func (_q *NetworkQuery) loadNetworkIxLans(ctx context.Context, query *NetworkIxL
 	}
 	query.Where(predicate.NetworkIxLan(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(network.NetworkIxLansColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.NetID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "net_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "net_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *NetworkQuery) loadOrganization(ctx context.Context, query *OrganizationQuery, nodes []*Network, init func(*Network), assign func(*Network, *Organization)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Network)
+	for i := range nodes {
+		if nodes[i].OrgID == nil {
+			continue
+		}
+		fk := *nodes[i].OrgID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(organization.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "org_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *NetworkQuery) loadPocs(ctx context.Context, query *PocQuery, nodes []*Network, init func(*Network), assign func(*Network, *Poc)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Network)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(poc.FieldNetID)
+	}
+	query.Where(predicate.Poc(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(network.PocsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -787,20 +787,6 @@ func (_q *NetworkQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// WithNamedPocs tells the query-builder to eager-load the nodes that are connected to the "pocs"
-// edge with the given name. The optional arguments are used to configure the query builder of the edge.
-func (_q *NetworkQuery) WithNamedPocs(name string, opts ...func(*PocQuery)) *NetworkQuery {
-	query := (&PocClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	if _q.withNamedPocs == nil {
-		_q.withNamedPocs = make(map[string]*PocQuery)
-	}
-	_q.withNamedPocs[name] = query
-	return _q
-}
-
 // WithNamedNetworkFacilities tells the query-builder to eager-load the nodes that are connected to the "network_facilities"
 // edge with the given name. The optional arguments are used to configure the query builder of the edge.
 func (_q *NetworkQuery) WithNamedNetworkFacilities(name string, opts ...func(*NetworkFacilityQuery)) *NetworkQuery {
@@ -826,6 +812,20 @@ func (_q *NetworkQuery) WithNamedNetworkIxLans(name string, opts ...func(*Networ
 		_q.withNamedNetworkIxLans = make(map[string]*NetworkIxLanQuery)
 	}
 	_q.withNamedNetworkIxLans[name] = query
+	return _q
+}
+
+// WithNamedPocs tells the query-builder to eager-load the nodes that are connected to the "pocs"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (_q *NetworkQuery) WithNamedPocs(name string, opts ...func(*PocQuery)) *NetworkQuery {
+	query := (&PocClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	if _q.withNamedPocs == nil {
+		_q.withNamedPocs = make(map[string]*PocQuery)
+	}
+	_q.withNamedPocs[name] = query
 	return _q
 }
 

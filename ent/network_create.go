@@ -41,12 +41,6 @@ func (_c *NetworkCreate) SetNillableOrgID(v *int) *NetworkCreate {
 	return _c
 }
 
-// SetName sets the "name" field.
-func (_c *NetworkCreate) SetName(v string) *NetworkCreate {
-	_c.mutation.SetName(v)
-	return _c
-}
-
 // SetAka sets the "aka" field.
 func (_c *NetworkCreate) SetAka(v string) *NetworkCreate {
 	_c.mutation.SetAka(v)
@@ -61,37 +55,17 @@ func (_c *NetworkCreate) SetNillableAka(v *string) *NetworkCreate {
 	return _c
 }
 
-// SetNameLong sets the "name_long" field.
-func (_c *NetworkCreate) SetNameLong(v string) *NetworkCreate {
-	_c.mutation.SetNameLong(v)
+// SetAllowIxpUpdate sets the "allow_ixp_update" field.
+func (_c *NetworkCreate) SetAllowIxpUpdate(v bool) *NetworkCreate {
+	_c.mutation.SetAllowIxpUpdate(v)
 	return _c
 }
 
-// SetNillableNameLong sets the "name_long" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableNameLong(v *string) *NetworkCreate {
+// SetNillableAllowIxpUpdate sets the "allow_ixp_update" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableAllowIxpUpdate(v *bool) *NetworkCreate {
 	if v != nil {
-		_c.SetNameLong(*v)
+		_c.SetAllowIxpUpdate(*v)
 	}
-	return _c
-}
-
-// SetWebsite sets the "website" field.
-func (_c *NetworkCreate) SetWebsite(v string) *NetworkCreate {
-	_c.mutation.SetWebsite(v)
-	return _c
-}
-
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableWebsite(v *string) *NetworkCreate {
-	if v != nil {
-		_c.SetWebsite(*v)
-	}
-	return _c
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (_c *NetworkCreate) SetSocialMedia(v []schema.SocialMedia) *NetworkCreate {
-	_c.mutation.SetSocialMedia(v)
 	return _c
 }
 
@@ -101,65 +75,45 @@ func (_c *NetworkCreate) SetAsn(v int) *NetworkCreate {
 	return _c
 }
 
-// SetLookingGlass sets the "looking_glass" field.
-func (_c *NetworkCreate) SetLookingGlass(v string) *NetworkCreate {
-	_c.mutation.SetLookingGlass(v)
+// SetInfoIpv6 sets the "info_ipv6" field.
+func (_c *NetworkCreate) SetInfoIpv6(v bool) *NetworkCreate {
+	_c.mutation.SetInfoIpv6(v)
 	return _c
 }
 
-// SetNillableLookingGlass sets the "looking_glass" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableLookingGlass(v *string) *NetworkCreate {
+// SetNillableInfoIpv6 sets the "info_ipv6" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableInfoIpv6(v *bool) *NetworkCreate {
 	if v != nil {
-		_c.SetLookingGlass(*v)
+		_c.SetInfoIpv6(*v)
 	}
 	return _c
 }
 
-// SetRouteServer sets the "route_server" field.
-func (_c *NetworkCreate) SetRouteServer(v string) *NetworkCreate {
-	_c.mutation.SetRouteServer(v)
+// SetInfoMulticast sets the "info_multicast" field.
+func (_c *NetworkCreate) SetInfoMulticast(v bool) *NetworkCreate {
+	_c.mutation.SetInfoMulticast(v)
 	return _c
 }
 
-// SetNillableRouteServer sets the "route_server" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableRouteServer(v *string) *NetworkCreate {
+// SetNillableInfoMulticast sets the "info_multicast" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableInfoMulticast(v *bool) *NetworkCreate {
 	if v != nil {
-		_c.SetRouteServer(*v)
+		_c.SetInfoMulticast(*v)
 	}
 	return _c
 }
 
-// SetIrrAsSet sets the "irr_as_set" field.
-func (_c *NetworkCreate) SetIrrAsSet(v string) *NetworkCreate {
-	_c.mutation.SetIrrAsSet(v)
+// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
+func (_c *NetworkCreate) SetInfoNeverViaRouteServers(v bool) *NetworkCreate {
+	_c.mutation.SetInfoNeverViaRouteServers(v)
 	return _c
 }
 
-// SetNillableIrrAsSet sets the "irr_as_set" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableIrrAsSet(v *string) *NetworkCreate {
+// SetNillableInfoNeverViaRouteServers sets the "info_never_via_route_servers" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableInfoNeverViaRouteServers(v *bool) *NetworkCreate {
 	if v != nil {
-		_c.SetIrrAsSet(*v)
+		_c.SetInfoNeverViaRouteServers(*v)
 	}
-	return _c
-}
-
-// SetInfoType sets the "info_type" field.
-func (_c *NetworkCreate) SetInfoType(v string) *NetworkCreate {
-	_c.mutation.SetInfoType(v)
-	return _c
-}
-
-// SetNillableInfoType sets the "info_type" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableInfoType(v *string) *NetworkCreate {
-	if v != nil {
-		_c.SetInfoType(*v)
-	}
-	return _c
-}
-
-// SetInfoTypes sets the "info_types" field.
-func (_c *NetworkCreate) SetInfoTypes(v []string) *NetworkCreate {
-	_c.mutation.SetInfoTypes(v)
 	return _c
 }
 
@@ -187,20 +141,6 @@ func (_c *NetworkCreate) SetInfoPrefixes6(v int) *NetworkCreate {
 func (_c *NetworkCreate) SetNillableInfoPrefixes6(v *int) *NetworkCreate {
 	if v != nil {
 		_c.SetInfoPrefixes6(*v)
-	}
-	return _c
-}
-
-// SetInfoTraffic sets the "info_traffic" field.
-func (_c *NetworkCreate) SetInfoTraffic(v string) *NetworkCreate {
-	_c.mutation.SetInfoTraffic(v)
-	return _c
-}
-
-// SetNillableInfoTraffic sets the "info_traffic" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableInfoTraffic(v *string) *NetworkCreate {
-	if v != nil {
-		_c.SetInfoTraffic(*v)
 	}
 	return _c
 }
@@ -233,6 +173,40 @@ func (_c *NetworkCreate) SetNillableInfoScope(v *string) *NetworkCreate {
 	return _c
 }
 
+// SetInfoTraffic sets the "info_traffic" field.
+func (_c *NetworkCreate) SetInfoTraffic(v string) *NetworkCreate {
+	_c.mutation.SetInfoTraffic(v)
+	return _c
+}
+
+// SetNillableInfoTraffic sets the "info_traffic" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableInfoTraffic(v *string) *NetworkCreate {
+	if v != nil {
+		_c.SetInfoTraffic(*v)
+	}
+	return _c
+}
+
+// SetInfoType sets the "info_type" field.
+func (_c *NetworkCreate) SetInfoType(v string) *NetworkCreate {
+	_c.mutation.SetInfoType(v)
+	return _c
+}
+
+// SetNillableInfoType sets the "info_type" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableInfoType(v *string) *NetworkCreate {
+	if v != nil {
+		_c.SetInfoType(*v)
+	}
+	return _c
+}
+
+// SetInfoTypes sets the "info_types" field.
+func (_c *NetworkCreate) SetInfoTypes(v []string) *NetworkCreate {
+	_c.mutation.SetInfoTypes(v)
+	return _c
+}
+
 // SetInfoUnicast sets the "info_unicast" field.
 func (_c *NetworkCreate) SetInfoUnicast(v bool) *NetworkCreate {
 	_c.mutation.SetInfoUnicast(v)
@@ -247,44 +221,64 @@ func (_c *NetworkCreate) SetNillableInfoUnicast(v *bool) *NetworkCreate {
 	return _c
 }
 
-// SetInfoMulticast sets the "info_multicast" field.
-func (_c *NetworkCreate) SetInfoMulticast(v bool) *NetworkCreate {
-	_c.mutation.SetInfoMulticast(v)
+// SetIrrAsSet sets the "irr_as_set" field.
+func (_c *NetworkCreate) SetIrrAsSet(v string) *NetworkCreate {
+	_c.mutation.SetIrrAsSet(v)
 	return _c
 }
 
-// SetNillableInfoMulticast sets the "info_multicast" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableInfoMulticast(v *bool) *NetworkCreate {
+// SetNillableIrrAsSet sets the "irr_as_set" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableIrrAsSet(v *string) *NetworkCreate {
 	if v != nil {
-		_c.SetInfoMulticast(*v)
+		_c.SetIrrAsSet(*v)
 	}
 	return _c
 }
 
-// SetInfoIpv6 sets the "info_ipv6" field.
-func (_c *NetworkCreate) SetInfoIpv6(v bool) *NetworkCreate {
-	_c.mutation.SetInfoIpv6(v)
+// SetLogo sets the "logo" field.
+func (_c *NetworkCreate) SetLogo(v string) *NetworkCreate {
+	_c.mutation.SetLogo(v)
 	return _c
 }
 
-// SetNillableInfoIpv6 sets the "info_ipv6" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableInfoIpv6(v *bool) *NetworkCreate {
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableLogo(v *string) *NetworkCreate {
 	if v != nil {
-		_c.SetInfoIpv6(*v)
+		_c.SetLogo(*v)
 	}
 	return _c
 }
 
-// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
-func (_c *NetworkCreate) SetInfoNeverViaRouteServers(v bool) *NetworkCreate {
-	_c.mutation.SetInfoNeverViaRouteServers(v)
+// SetLookingGlass sets the "looking_glass" field.
+func (_c *NetworkCreate) SetLookingGlass(v string) *NetworkCreate {
+	_c.mutation.SetLookingGlass(v)
 	return _c
 }
 
-// SetNillableInfoNeverViaRouteServers sets the "info_never_via_route_servers" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableInfoNeverViaRouteServers(v *bool) *NetworkCreate {
+// SetNillableLookingGlass sets the "looking_glass" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableLookingGlass(v *string) *NetworkCreate {
 	if v != nil {
-		_c.SetInfoNeverViaRouteServers(*v)
+		_c.SetLookingGlass(*v)
+	}
+	return _c
+}
+
+// SetName sets the "name" field.
+func (_c *NetworkCreate) SetName(v string) *NetworkCreate {
+	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetNameLong sets the "name_long" field.
+func (_c *NetworkCreate) SetNameLong(v string) *NetworkCreate {
+	_c.mutation.SetNameLong(v)
+	return _c
+}
+
+// SetNillableNameLong sets the "name_long" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableNameLong(v *string) *NetworkCreate {
+	if v != nil {
+		_c.SetNameLong(*v)
 	}
 	return _c
 }
@@ -303,16 +297,16 @@ func (_c *NetworkCreate) SetNillableNotes(v *string) *NetworkCreate {
 	return _c
 }
 
-// SetPolicyURL sets the "policy_url" field.
-func (_c *NetworkCreate) SetPolicyURL(v string) *NetworkCreate {
-	_c.mutation.SetPolicyURL(v)
+// SetPolicyContracts sets the "policy_contracts" field.
+func (_c *NetworkCreate) SetPolicyContracts(v string) *NetworkCreate {
+	_c.mutation.SetPolicyContracts(v)
 	return _c
 }
 
-// SetNillablePolicyURL sets the "policy_url" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillablePolicyURL(v *string) *NetworkCreate {
+// SetNillablePolicyContracts sets the "policy_contracts" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillablePolicyContracts(v *string) *NetworkCreate {
 	if v != nil {
-		_c.SetPolicyURL(*v)
+		_c.SetPolicyContracts(*v)
 	}
 	return _c
 }
@@ -359,44 +353,16 @@ func (_c *NetworkCreate) SetNillablePolicyRatio(v *bool) *NetworkCreate {
 	return _c
 }
 
-// SetPolicyContracts sets the "policy_contracts" field.
-func (_c *NetworkCreate) SetPolicyContracts(v string) *NetworkCreate {
-	_c.mutation.SetPolicyContracts(v)
+// SetPolicyURL sets the "policy_url" field.
+func (_c *NetworkCreate) SetPolicyURL(v string) *NetworkCreate {
+	_c.mutation.SetPolicyURL(v)
 	return _c
 }
 
-// SetNillablePolicyContracts sets the "policy_contracts" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillablePolicyContracts(v *string) *NetworkCreate {
+// SetNillablePolicyURL sets the "policy_url" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillablePolicyURL(v *string) *NetworkCreate {
 	if v != nil {
-		_c.SetPolicyContracts(*v)
-	}
-	return _c
-}
-
-// SetAllowIxpUpdate sets the "allow_ixp_update" field.
-func (_c *NetworkCreate) SetAllowIxpUpdate(v bool) *NetworkCreate {
-	_c.mutation.SetAllowIxpUpdate(v)
-	return _c
-}
-
-// SetNillableAllowIxpUpdate sets the "allow_ixp_update" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableAllowIxpUpdate(v *bool) *NetworkCreate {
-	if v != nil {
-		_c.SetAllowIxpUpdate(*v)
-	}
-	return _c
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (_c *NetworkCreate) SetStatusDashboard(v string) *NetworkCreate {
-	_c.mutation.SetStatusDashboard(v)
-	return _c
-}
-
-// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableStatusDashboard(v *string) *NetworkCreate {
-	if v != nil {
-		_c.SetStatusDashboard(*v)
+		_c.SetPolicyURL(*v)
 	}
 	return _c
 }
@@ -429,16 +395,50 @@ func (_c *NetworkCreate) SetNillableRirStatusUpdated(v *time.Time) *NetworkCreat
 	return _c
 }
 
-// SetLogo sets the "logo" field.
-func (_c *NetworkCreate) SetLogo(v string) *NetworkCreate {
-	_c.mutation.SetLogo(v)
+// SetRouteServer sets the "route_server" field.
+func (_c *NetworkCreate) SetRouteServer(v string) *NetworkCreate {
+	_c.mutation.SetRouteServer(v)
 	return _c
 }
 
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableLogo(v *string) *NetworkCreate {
+// SetNillableRouteServer sets the "route_server" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableRouteServer(v *string) *NetworkCreate {
 	if v != nil {
-		_c.SetLogo(*v)
+		_c.SetRouteServer(*v)
+	}
+	return _c
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (_c *NetworkCreate) SetSocialMedia(v []schema.SocialMedia) *NetworkCreate {
+	_c.mutation.SetSocialMedia(v)
+	return _c
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (_c *NetworkCreate) SetStatusDashboard(v string) *NetworkCreate {
+	_c.mutation.SetStatusDashboard(v)
+	return _c
+}
+
+// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableStatusDashboard(v *string) *NetworkCreate {
+	if v != nil {
+		_c.SetStatusDashboard(*v)
+	}
+	return _c
+}
+
+// SetWebsite sets the "website" field.
+func (_c *NetworkCreate) SetWebsite(v string) *NetworkCreate {
+	_c.mutation.SetWebsite(v)
+	return _c
+}
+
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableWebsite(v *string) *NetworkCreate {
+	if v != nil {
+		_c.SetWebsite(*v)
 	}
 	return _c
 }
@@ -545,6 +545,36 @@ func (_c *NetworkCreate) SetID(v int) *NetworkCreate {
 	return _c
 }
 
+// AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by IDs.
+func (_c *NetworkCreate) AddNetworkFacilityIDs(ids ...int) *NetworkCreate {
+	_c.mutation.AddNetworkFacilityIDs(ids...)
+	return _c
+}
+
+// AddNetworkFacilities adds the "network_facilities" edges to the NetworkFacility entity.
+func (_c *NetworkCreate) AddNetworkFacilities(v ...*NetworkFacility) *NetworkCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddNetworkFacilityIDs(ids...)
+}
+
+// AddNetworkIxLanIDs adds the "network_ix_lans" edge to the NetworkIxLan entity by IDs.
+func (_c *NetworkCreate) AddNetworkIxLanIDs(ids ...int) *NetworkCreate {
+	_c.mutation.AddNetworkIxLanIDs(ids...)
+	return _c
+}
+
+// AddNetworkIxLans adds the "network_ix_lans" edges to the NetworkIxLan entity.
+func (_c *NetworkCreate) AddNetworkIxLans(v ...*NetworkIxLan) *NetworkCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddNetworkIxLanIDs(ids...)
+}
+
 // SetOrganizationID sets the "organization" edge to the Organization entity by ID.
 func (_c *NetworkCreate) SetOrganizationID(id int) *NetworkCreate {
 	_c.mutation.SetOrganizationID(id)
@@ -577,36 +607,6 @@ func (_c *NetworkCreate) AddPocs(v ...*Poc) *NetworkCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddPocIDs(ids...)
-}
-
-// AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by IDs.
-func (_c *NetworkCreate) AddNetworkFacilityIDs(ids ...int) *NetworkCreate {
-	_c.mutation.AddNetworkFacilityIDs(ids...)
-	return _c
-}
-
-// AddNetworkFacilities adds the "network_facilities" edges to the NetworkFacility entity.
-func (_c *NetworkCreate) AddNetworkFacilities(v ...*NetworkFacility) *NetworkCreate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddNetworkFacilityIDs(ids...)
-}
-
-// AddNetworkIxLanIDs adds the "network_ix_lans" edge to the NetworkIxLan entity by IDs.
-func (_c *NetworkCreate) AddNetworkIxLanIDs(ids ...int) *NetworkCreate {
-	_c.mutation.AddNetworkIxLanIDs(ids...)
-	return _c
-}
-
-// AddNetworkIxLans adds the "network_ix_lans" edges to the NetworkIxLan entity.
-func (_c *NetworkCreate) AddNetworkIxLans(v ...*NetworkIxLan) *NetworkCreate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddNetworkIxLanIDs(ids...)
 }
 
 // Mutation returns the NetworkMutation object of the builder.
@@ -650,33 +650,21 @@ func (_c *NetworkCreate) defaults() error {
 		v := network.DefaultAka
 		_c.mutation.SetAka(v)
 	}
-	if _, ok := _c.mutation.NameLong(); !ok {
-		v := network.DefaultNameLong
-		_c.mutation.SetNameLong(v)
+	if _, ok := _c.mutation.AllowIxpUpdate(); !ok {
+		v := network.DefaultAllowIxpUpdate
+		_c.mutation.SetAllowIxpUpdate(v)
 	}
-	if _, ok := _c.mutation.Website(); !ok {
-		v := network.DefaultWebsite
-		_c.mutation.SetWebsite(v)
+	if _, ok := _c.mutation.InfoIpv6(); !ok {
+		v := network.DefaultInfoIpv6
+		_c.mutation.SetInfoIpv6(v)
 	}
-	if _, ok := _c.mutation.LookingGlass(); !ok {
-		v := network.DefaultLookingGlass
-		_c.mutation.SetLookingGlass(v)
+	if _, ok := _c.mutation.InfoMulticast(); !ok {
+		v := network.DefaultInfoMulticast
+		_c.mutation.SetInfoMulticast(v)
 	}
-	if _, ok := _c.mutation.RouteServer(); !ok {
-		v := network.DefaultRouteServer
-		_c.mutation.SetRouteServer(v)
-	}
-	if _, ok := _c.mutation.IrrAsSet(); !ok {
-		v := network.DefaultIrrAsSet
-		_c.mutation.SetIrrAsSet(v)
-	}
-	if _, ok := _c.mutation.InfoType(); !ok {
-		v := network.DefaultInfoType
-		_c.mutation.SetInfoType(v)
-	}
-	if _, ok := _c.mutation.InfoTraffic(); !ok {
-		v := network.DefaultInfoTraffic
-		_c.mutation.SetInfoTraffic(v)
+	if _, ok := _c.mutation.InfoNeverViaRouteServers(); !ok {
+		v := network.DefaultInfoNeverViaRouteServers
+		_c.mutation.SetInfoNeverViaRouteServers(v)
 	}
 	if _, ok := _c.mutation.InfoRatio(); !ok {
 		v := network.DefaultInfoRatio
@@ -686,29 +674,37 @@ func (_c *NetworkCreate) defaults() error {
 		v := network.DefaultInfoScope
 		_c.mutation.SetInfoScope(v)
 	}
+	if _, ok := _c.mutation.InfoTraffic(); !ok {
+		v := network.DefaultInfoTraffic
+		_c.mutation.SetInfoTraffic(v)
+	}
+	if _, ok := _c.mutation.InfoType(); !ok {
+		v := network.DefaultInfoType
+		_c.mutation.SetInfoType(v)
+	}
 	if _, ok := _c.mutation.InfoUnicast(); !ok {
 		v := network.DefaultInfoUnicast
 		_c.mutation.SetInfoUnicast(v)
 	}
-	if _, ok := _c.mutation.InfoMulticast(); !ok {
-		v := network.DefaultInfoMulticast
-		_c.mutation.SetInfoMulticast(v)
+	if _, ok := _c.mutation.IrrAsSet(); !ok {
+		v := network.DefaultIrrAsSet
+		_c.mutation.SetIrrAsSet(v)
 	}
-	if _, ok := _c.mutation.InfoIpv6(); !ok {
-		v := network.DefaultInfoIpv6
-		_c.mutation.SetInfoIpv6(v)
+	if _, ok := _c.mutation.LookingGlass(); !ok {
+		v := network.DefaultLookingGlass
+		_c.mutation.SetLookingGlass(v)
 	}
-	if _, ok := _c.mutation.InfoNeverViaRouteServers(); !ok {
-		v := network.DefaultInfoNeverViaRouteServers
-		_c.mutation.SetInfoNeverViaRouteServers(v)
+	if _, ok := _c.mutation.NameLong(); !ok {
+		v := network.DefaultNameLong
+		_c.mutation.SetNameLong(v)
 	}
 	if _, ok := _c.mutation.Notes(); !ok {
 		v := network.DefaultNotes
 		_c.mutation.SetNotes(v)
 	}
-	if _, ok := _c.mutation.PolicyURL(); !ok {
-		v := network.DefaultPolicyURL
-		_c.mutation.SetPolicyURL(v)
+	if _, ok := _c.mutation.PolicyContracts(); !ok {
+		v := network.DefaultPolicyContracts
+		_c.mutation.SetPolicyContracts(v)
 	}
 	if _, ok := _c.mutation.PolicyGeneral(); !ok {
 		v := network.DefaultPolicyGeneral
@@ -722,13 +718,17 @@ func (_c *NetworkCreate) defaults() error {
 		v := network.DefaultPolicyRatio
 		_c.mutation.SetPolicyRatio(v)
 	}
-	if _, ok := _c.mutation.PolicyContracts(); !ok {
-		v := network.DefaultPolicyContracts
-		_c.mutation.SetPolicyContracts(v)
+	if _, ok := _c.mutation.PolicyURL(); !ok {
+		v := network.DefaultPolicyURL
+		_c.mutation.SetPolicyURL(v)
 	}
-	if _, ok := _c.mutation.AllowIxpUpdate(); !ok {
-		v := network.DefaultAllowIxpUpdate
-		_c.mutation.SetAllowIxpUpdate(v)
+	if _, ok := _c.mutation.RouteServer(); !ok {
+		v := network.DefaultRouteServer
+		_c.mutation.SetRouteServer(v)
+	}
+	if _, ok := _c.mutation.Website(); !ok {
+		v := network.DefaultWebsite
+		_c.mutation.SetWebsite(v)
 	}
 	if _, ok := _c.mutation.IxCount(); !ok {
 		v := network.DefaultIxCount
@@ -747,23 +747,13 @@ func (_c *NetworkCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *NetworkCreate) check() error {
-	if _, ok := _c.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Network.name"`)}
-	}
-	if v, ok := _c.mutation.Name(); ok {
-		if err := network.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
-		}
-	}
 	if v, ok := _c.mutation.Aka(); ok {
 		if err := network.AkaValidator(v); err != nil {
 			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Network.aka": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.NameLong(); ok {
-		if err := network.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Network.name_long": %w`, err)}
-		}
+	if _, ok := _c.mutation.AllowIxpUpdate(); !ok {
+		return &ValidationError{Name: "allow_ixp_update", err: errors.New(`ent: missing required field "Network.allow_ixp_update"`)}
 	}
 	if _, ok := _c.mutation.Asn(); !ok {
 		return &ValidationError{Name: "asn", err: errors.New(`ent: missing required field "Network.asn"`)}
@@ -773,20 +763,14 @@ func (_c *NetworkCreate) check() error {
 			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "Network.asn": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.IrrAsSet(); ok {
-		if err := network.IrrAsSetValidator(v); err != nil {
-			return &ValidationError{Name: "irr_as_set", err: fmt.Errorf(`ent: validator failed for field "Network.irr_as_set": %w`, err)}
-		}
+	if _, ok := _c.mutation.InfoIpv6(); !ok {
+		return &ValidationError{Name: "info_ipv6", err: errors.New(`ent: missing required field "Network.info_ipv6"`)}
 	}
-	if v, ok := _c.mutation.InfoType(); ok {
-		if err := network.InfoTypeValidator(v); err != nil {
-			return &ValidationError{Name: "info_type", err: fmt.Errorf(`ent: validator failed for field "Network.info_type": %w`, err)}
-		}
+	if _, ok := _c.mutation.InfoMulticast(); !ok {
+		return &ValidationError{Name: "info_multicast", err: errors.New(`ent: missing required field "Network.info_multicast"`)}
 	}
-	if v, ok := _c.mutation.InfoTraffic(); ok {
-		if err := network.InfoTrafficValidator(v); err != nil {
-			return &ValidationError{Name: "info_traffic", err: fmt.Errorf(`ent: validator failed for field "Network.info_traffic": %w`, err)}
-		}
+	if _, ok := _c.mutation.InfoNeverViaRouteServers(); !ok {
+		return &ValidationError{Name: "info_never_via_route_servers", err: errors.New(`ent: missing required field "Network.info_never_via_route_servers"`)}
 	}
 	if v, ok := _c.mutation.InfoRatio(); ok {
 		if err := network.InfoRatioValidator(v); err != nil {
@@ -798,17 +782,41 @@ func (_c *NetworkCreate) check() error {
 			return &ValidationError{Name: "info_scope", err: fmt.Errorf(`ent: validator failed for field "Network.info_scope": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.InfoTraffic(); ok {
+		if err := network.InfoTrafficValidator(v); err != nil {
+			return &ValidationError{Name: "info_traffic", err: fmt.Errorf(`ent: validator failed for field "Network.info_traffic": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.InfoType(); ok {
+		if err := network.InfoTypeValidator(v); err != nil {
+			return &ValidationError{Name: "info_type", err: fmt.Errorf(`ent: validator failed for field "Network.info_type": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.InfoUnicast(); !ok {
 		return &ValidationError{Name: "info_unicast", err: errors.New(`ent: missing required field "Network.info_unicast"`)}
 	}
-	if _, ok := _c.mutation.InfoMulticast(); !ok {
-		return &ValidationError{Name: "info_multicast", err: errors.New(`ent: missing required field "Network.info_multicast"`)}
+	if v, ok := _c.mutation.IrrAsSet(); ok {
+		if err := network.IrrAsSetValidator(v); err != nil {
+			return &ValidationError{Name: "irr_as_set", err: fmt.Errorf(`ent: validator failed for field "Network.irr_as_set": %w`, err)}
+		}
 	}
-	if _, ok := _c.mutation.InfoIpv6(); !ok {
-		return &ValidationError{Name: "info_ipv6", err: errors.New(`ent: missing required field "Network.info_ipv6"`)}
+	if _, ok := _c.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Network.name"`)}
 	}
-	if _, ok := _c.mutation.InfoNeverViaRouteServers(); !ok {
-		return &ValidationError{Name: "info_never_via_route_servers", err: errors.New(`ent: missing required field "Network.info_never_via_route_servers"`)}
+	if v, ok := _c.mutation.Name(); ok {
+		if err := network.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.NameLong(); ok {
+		if err := network.NameLongValidator(v); err != nil {
+			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Network.name_long": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.PolicyContracts(); ok {
+		if err := network.PolicyContractsValidator(v); err != nil {
+			return &ValidationError{Name: "policy_contracts", err: fmt.Errorf(`ent: validator failed for field "Network.policy_contracts": %w`, err)}
+		}
 	}
 	if v, ok := _c.mutation.PolicyGeneral(); ok {
 		if err := network.PolicyGeneralValidator(v); err != nil {
@@ -822,14 +830,6 @@ func (_c *NetworkCreate) check() error {
 	}
 	if _, ok := _c.mutation.PolicyRatio(); !ok {
 		return &ValidationError{Name: "policy_ratio", err: errors.New(`ent: missing required field "Network.policy_ratio"`)}
-	}
-	if v, ok := _c.mutation.PolicyContracts(); ok {
-		if err := network.PolicyContractsValidator(v); err != nil {
-			return &ValidationError{Name: "policy_contracts", err: fmt.Errorf(`ent: validator failed for field "Network.policy_contracts": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.AllowIxpUpdate(); !ok {
-		return &ValidationError{Name: "allow_ixp_update", err: errors.New(`ent: missing required field "Network.allow_ixp_update"`)}
 	}
 	if v, ok := _c.mutation.RirStatus(); ok {
 		if err := network.RirStatusValidator(v); err != nil {
@@ -888,49 +888,29 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.Name(); ok {
-		_spec.SetField(network.FieldName, field.TypeString, value)
-		_node.Name = value
-	}
 	if value, ok := _c.mutation.Aka(); ok {
 		_spec.SetField(network.FieldAka, field.TypeString, value)
 		_node.Aka = value
 	}
-	if value, ok := _c.mutation.NameLong(); ok {
-		_spec.SetField(network.FieldNameLong, field.TypeString, value)
-		_node.NameLong = value
-	}
-	if value, ok := _c.mutation.Website(); ok {
-		_spec.SetField(network.FieldWebsite, field.TypeString, value)
-		_node.Website = value
-	}
-	if value, ok := _c.mutation.SocialMedia(); ok {
-		_spec.SetField(network.FieldSocialMedia, field.TypeJSON, value)
-		_node.SocialMedia = value
+	if value, ok := _c.mutation.AllowIxpUpdate(); ok {
+		_spec.SetField(network.FieldAllowIxpUpdate, field.TypeBool, value)
+		_node.AllowIxpUpdate = value
 	}
 	if value, ok := _c.mutation.Asn(); ok {
 		_spec.SetField(network.FieldAsn, field.TypeInt, value)
 		_node.Asn = value
 	}
-	if value, ok := _c.mutation.LookingGlass(); ok {
-		_spec.SetField(network.FieldLookingGlass, field.TypeString, value)
-		_node.LookingGlass = value
+	if value, ok := _c.mutation.InfoIpv6(); ok {
+		_spec.SetField(network.FieldInfoIpv6, field.TypeBool, value)
+		_node.InfoIpv6 = value
 	}
-	if value, ok := _c.mutation.RouteServer(); ok {
-		_spec.SetField(network.FieldRouteServer, field.TypeString, value)
-		_node.RouteServer = value
+	if value, ok := _c.mutation.InfoMulticast(); ok {
+		_spec.SetField(network.FieldInfoMulticast, field.TypeBool, value)
+		_node.InfoMulticast = value
 	}
-	if value, ok := _c.mutation.IrrAsSet(); ok {
-		_spec.SetField(network.FieldIrrAsSet, field.TypeString, value)
-		_node.IrrAsSet = value
-	}
-	if value, ok := _c.mutation.InfoType(); ok {
-		_spec.SetField(network.FieldInfoType, field.TypeString, value)
-		_node.InfoType = value
-	}
-	if value, ok := _c.mutation.InfoTypes(); ok {
-		_spec.SetField(network.FieldInfoTypes, field.TypeJSON, value)
-		_node.InfoTypes = value
+	if value, ok := _c.mutation.InfoNeverViaRouteServers(); ok {
+		_spec.SetField(network.FieldInfoNeverViaRouteServers, field.TypeBool, value)
+		_node.InfoNeverViaRouteServers = value
 	}
 	if value, ok := _c.mutation.InfoPrefixes4(); ok {
 		_spec.SetField(network.FieldInfoPrefixes4, field.TypeInt, value)
@@ -940,10 +920,6 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 		_spec.SetField(network.FieldInfoPrefixes6, field.TypeInt, value)
 		_node.InfoPrefixes6 = &value
 	}
-	if value, ok := _c.mutation.InfoTraffic(); ok {
-		_spec.SetField(network.FieldInfoTraffic, field.TypeString, value)
-		_node.InfoTraffic = value
-	}
 	if value, ok := _c.mutation.InfoRatio(); ok {
 		_spec.SetField(network.FieldInfoRatio, field.TypeString, value)
 		_node.InfoRatio = value
@@ -952,29 +928,49 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 		_spec.SetField(network.FieldInfoScope, field.TypeString, value)
 		_node.InfoScope = value
 	}
+	if value, ok := _c.mutation.InfoTraffic(); ok {
+		_spec.SetField(network.FieldInfoTraffic, field.TypeString, value)
+		_node.InfoTraffic = value
+	}
+	if value, ok := _c.mutation.InfoType(); ok {
+		_spec.SetField(network.FieldInfoType, field.TypeString, value)
+		_node.InfoType = value
+	}
+	if value, ok := _c.mutation.InfoTypes(); ok {
+		_spec.SetField(network.FieldInfoTypes, field.TypeJSON, value)
+		_node.InfoTypes = value
+	}
 	if value, ok := _c.mutation.InfoUnicast(); ok {
 		_spec.SetField(network.FieldInfoUnicast, field.TypeBool, value)
 		_node.InfoUnicast = value
 	}
-	if value, ok := _c.mutation.InfoMulticast(); ok {
-		_spec.SetField(network.FieldInfoMulticast, field.TypeBool, value)
-		_node.InfoMulticast = value
+	if value, ok := _c.mutation.IrrAsSet(); ok {
+		_spec.SetField(network.FieldIrrAsSet, field.TypeString, value)
+		_node.IrrAsSet = value
 	}
-	if value, ok := _c.mutation.InfoIpv6(); ok {
-		_spec.SetField(network.FieldInfoIpv6, field.TypeBool, value)
-		_node.InfoIpv6 = value
+	if value, ok := _c.mutation.Logo(); ok {
+		_spec.SetField(network.FieldLogo, field.TypeString, value)
+		_node.Logo = &value
 	}
-	if value, ok := _c.mutation.InfoNeverViaRouteServers(); ok {
-		_spec.SetField(network.FieldInfoNeverViaRouteServers, field.TypeBool, value)
-		_node.InfoNeverViaRouteServers = value
+	if value, ok := _c.mutation.LookingGlass(); ok {
+		_spec.SetField(network.FieldLookingGlass, field.TypeString, value)
+		_node.LookingGlass = value
+	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(network.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := _c.mutation.NameLong(); ok {
+		_spec.SetField(network.FieldNameLong, field.TypeString, value)
+		_node.NameLong = value
 	}
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(network.FieldNotes, field.TypeString, value)
 		_node.Notes = value
 	}
-	if value, ok := _c.mutation.PolicyURL(); ok {
-		_spec.SetField(network.FieldPolicyURL, field.TypeString, value)
-		_node.PolicyURL = value
+	if value, ok := _c.mutation.PolicyContracts(); ok {
+		_spec.SetField(network.FieldPolicyContracts, field.TypeString, value)
+		_node.PolicyContracts = value
 	}
 	if value, ok := _c.mutation.PolicyGeneral(); ok {
 		_spec.SetField(network.FieldPolicyGeneral, field.TypeString, value)
@@ -988,17 +984,9 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 		_spec.SetField(network.FieldPolicyRatio, field.TypeBool, value)
 		_node.PolicyRatio = value
 	}
-	if value, ok := _c.mutation.PolicyContracts(); ok {
-		_spec.SetField(network.FieldPolicyContracts, field.TypeString, value)
-		_node.PolicyContracts = value
-	}
-	if value, ok := _c.mutation.AllowIxpUpdate(); ok {
-		_spec.SetField(network.FieldAllowIxpUpdate, field.TypeBool, value)
-		_node.AllowIxpUpdate = value
-	}
-	if value, ok := _c.mutation.StatusDashboard(); ok {
-		_spec.SetField(network.FieldStatusDashboard, field.TypeString, value)
-		_node.StatusDashboard = &value
+	if value, ok := _c.mutation.PolicyURL(); ok {
+		_spec.SetField(network.FieldPolicyURL, field.TypeString, value)
+		_node.PolicyURL = value
 	}
 	if value, ok := _c.mutation.RirStatus(); ok {
 		_spec.SetField(network.FieldRirStatus, field.TypeString, value)
@@ -1008,9 +996,21 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 		_spec.SetField(network.FieldRirStatusUpdated, field.TypeTime, value)
 		_node.RirStatusUpdated = &value
 	}
-	if value, ok := _c.mutation.Logo(); ok {
-		_spec.SetField(network.FieldLogo, field.TypeString, value)
-		_node.Logo = &value
+	if value, ok := _c.mutation.RouteServer(); ok {
+		_spec.SetField(network.FieldRouteServer, field.TypeString, value)
+		_node.RouteServer = value
+	}
+	if value, ok := _c.mutation.SocialMedia(); ok {
+		_spec.SetField(network.FieldSocialMedia, field.TypeJSON, value)
+		_node.SocialMedia = value
+	}
+	if value, ok := _c.mutation.StatusDashboard(); ok {
+		_spec.SetField(network.FieldStatusDashboard, field.TypeString, value)
+		_node.StatusDashboard = &value
+	}
+	if value, ok := _c.mutation.Website(); ok {
+		_spec.SetField(network.FieldWebsite, field.TypeString, value)
+		_node.Website = value
 	}
 	if value, ok := _c.mutation.IxCount(); ok {
 		_spec.SetField(network.FieldIxCount, field.TypeInt, value)
@@ -1044,6 +1044,38 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 		_spec.SetField(network.FieldStatus, field.TypeString, value)
 		_node.Status = value
 	}
+	if nodes := _c.mutation.NetworkFacilitiesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   network.NetworkFacilitiesTable,
+			Columns: []string{network.NetworkFacilitiesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(networkfacility.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.NetworkIxLansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   network.NetworkIxLansTable,
+			Columns: []string{network.NetworkIxLansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(networkixlan.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	if nodes := _c.mutation.OrganizationIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -1070,38 +1102,6 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.NetworkFacilitiesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   network.NetworkFacilitiesTable,
-			Columns: []string{network.NetworkFacilitiesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(networkfacility.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.NetworkIxLansIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   network.NetworkIxLansTable,
-			Columns: []string{network.NetworkIxLansColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(networkixlan.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -1179,18 +1179,6 @@ func (u *NetworkUpsert) ClearOrgID() *NetworkUpsert {
 	return u
 }
 
-// SetName sets the "name" field.
-func (u *NetworkUpsert) SetName(v string) *NetworkUpsert {
-	u.Set(network.FieldName, v)
-	return u
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateName() *NetworkUpsert {
-	u.SetExcluded(network.FieldName)
-	return u
-}
-
 // SetAka sets the "aka" field.
 func (u *NetworkUpsert) SetAka(v string) *NetworkUpsert {
 	u.Set(network.FieldAka, v)
@@ -1209,57 +1197,15 @@ func (u *NetworkUpsert) ClearAka() *NetworkUpsert {
 	return u
 }
 
-// SetNameLong sets the "name_long" field.
-func (u *NetworkUpsert) SetNameLong(v string) *NetworkUpsert {
-	u.Set(network.FieldNameLong, v)
+// SetAllowIxpUpdate sets the "allow_ixp_update" field.
+func (u *NetworkUpsert) SetAllowIxpUpdate(v bool) *NetworkUpsert {
+	u.Set(network.FieldAllowIxpUpdate, v)
 	return u
 }
 
-// UpdateNameLong sets the "name_long" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateNameLong() *NetworkUpsert {
-	u.SetExcluded(network.FieldNameLong)
-	return u
-}
-
-// ClearNameLong clears the value of the "name_long" field.
-func (u *NetworkUpsert) ClearNameLong() *NetworkUpsert {
-	u.SetNull(network.FieldNameLong)
-	return u
-}
-
-// SetWebsite sets the "website" field.
-func (u *NetworkUpsert) SetWebsite(v string) *NetworkUpsert {
-	u.Set(network.FieldWebsite, v)
-	return u
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateWebsite() *NetworkUpsert {
-	u.SetExcluded(network.FieldWebsite)
-	return u
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *NetworkUpsert) ClearWebsite() *NetworkUpsert {
-	u.SetNull(network.FieldWebsite)
-	return u
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *NetworkUpsert) SetSocialMedia(v []schema.SocialMedia) *NetworkUpsert {
-	u.Set(network.FieldSocialMedia, v)
-	return u
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateSocialMedia() *NetworkUpsert {
-	u.SetExcluded(network.FieldSocialMedia)
-	return u
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *NetworkUpsert) ClearSocialMedia() *NetworkUpsert {
-	u.SetNull(network.FieldSocialMedia)
+// UpdateAllowIxpUpdate sets the "allow_ixp_update" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateAllowIxpUpdate() *NetworkUpsert {
+	u.SetExcluded(network.FieldAllowIxpUpdate)
 	return u
 }
 
@@ -1281,93 +1227,39 @@ func (u *NetworkUpsert) AddAsn(v int) *NetworkUpsert {
 	return u
 }
 
-// SetLookingGlass sets the "looking_glass" field.
-func (u *NetworkUpsert) SetLookingGlass(v string) *NetworkUpsert {
-	u.Set(network.FieldLookingGlass, v)
+// SetInfoIpv6 sets the "info_ipv6" field.
+func (u *NetworkUpsert) SetInfoIpv6(v bool) *NetworkUpsert {
+	u.Set(network.FieldInfoIpv6, v)
 	return u
 }
 
-// UpdateLookingGlass sets the "looking_glass" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateLookingGlass() *NetworkUpsert {
-	u.SetExcluded(network.FieldLookingGlass)
+// UpdateInfoIpv6 sets the "info_ipv6" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateInfoIpv6() *NetworkUpsert {
+	u.SetExcluded(network.FieldInfoIpv6)
 	return u
 }
 
-// ClearLookingGlass clears the value of the "looking_glass" field.
-func (u *NetworkUpsert) ClearLookingGlass() *NetworkUpsert {
-	u.SetNull(network.FieldLookingGlass)
+// SetInfoMulticast sets the "info_multicast" field.
+func (u *NetworkUpsert) SetInfoMulticast(v bool) *NetworkUpsert {
+	u.Set(network.FieldInfoMulticast, v)
 	return u
 }
 
-// SetRouteServer sets the "route_server" field.
-func (u *NetworkUpsert) SetRouteServer(v string) *NetworkUpsert {
-	u.Set(network.FieldRouteServer, v)
+// UpdateInfoMulticast sets the "info_multicast" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateInfoMulticast() *NetworkUpsert {
+	u.SetExcluded(network.FieldInfoMulticast)
 	return u
 }
 
-// UpdateRouteServer sets the "route_server" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateRouteServer() *NetworkUpsert {
-	u.SetExcluded(network.FieldRouteServer)
+// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
+func (u *NetworkUpsert) SetInfoNeverViaRouteServers(v bool) *NetworkUpsert {
+	u.Set(network.FieldInfoNeverViaRouteServers, v)
 	return u
 }
 
-// ClearRouteServer clears the value of the "route_server" field.
-func (u *NetworkUpsert) ClearRouteServer() *NetworkUpsert {
-	u.SetNull(network.FieldRouteServer)
-	return u
-}
-
-// SetIrrAsSet sets the "irr_as_set" field.
-func (u *NetworkUpsert) SetIrrAsSet(v string) *NetworkUpsert {
-	u.Set(network.FieldIrrAsSet, v)
-	return u
-}
-
-// UpdateIrrAsSet sets the "irr_as_set" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateIrrAsSet() *NetworkUpsert {
-	u.SetExcluded(network.FieldIrrAsSet)
-	return u
-}
-
-// ClearIrrAsSet clears the value of the "irr_as_set" field.
-func (u *NetworkUpsert) ClearIrrAsSet() *NetworkUpsert {
-	u.SetNull(network.FieldIrrAsSet)
-	return u
-}
-
-// SetInfoType sets the "info_type" field.
-func (u *NetworkUpsert) SetInfoType(v string) *NetworkUpsert {
-	u.Set(network.FieldInfoType, v)
-	return u
-}
-
-// UpdateInfoType sets the "info_type" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateInfoType() *NetworkUpsert {
-	u.SetExcluded(network.FieldInfoType)
-	return u
-}
-
-// ClearInfoType clears the value of the "info_type" field.
-func (u *NetworkUpsert) ClearInfoType() *NetworkUpsert {
-	u.SetNull(network.FieldInfoType)
-	return u
-}
-
-// SetInfoTypes sets the "info_types" field.
-func (u *NetworkUpsert) SetInfoTypes(v []string) *NetworkUpsert {
-	u.Set(network.FieldInfoTypes, v)
-	return u
-}
-
-// UpdateInfoTypes sets the "info_types" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateInfoTypes() *NetworkUpsert {
-	u.SetExcluded(network.FieldInfoTypes)
-	return u
-}
-
-// ClearInfoTypes clears the value of the "info_types" field.
-func (u *NetworkUpsert) ClearInfoTypes() *NetworkUpsert {
-	u.SetNull(network.FieldInfoTypes)
+// UpdateInfoNeverViaRouteServers sets the "info_never_via_route_servers" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateInfoNeverViaRouteServers() *NetworkUpsert {
+	u.SetExcluded(network.FieldInfoNeverViaRouteServers)
 	return u
 }
 
@@ -1419,24 +1311,6 @@ func (u *NetworkUpsert) ClearInfoPrefixes6() *NetworkUpsert {
 	return u
 }
 
-// SetInfoTraffic sets the "info_traffic" field.
-func (u *NetworkUpsert) SetInfoTraffic(v string) *NetworkUpsert {
-	u.Set(network.FieldInfoTraffic, v)
-	return u
-}
-
-// UpdateInfoTraffic sets the "info_traffic" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateInfoTraffic() *NetworkUpsert {
-	u.SetExcluded(network.FieldInfoTraffic)
-	return u
-}
-
-// ClearInfoTraffic clears the value of the "info_traffic" field.
-func (u *NetworkUpsert) ClearInfoTraffic() *NetworkUpsert {
-	u.SetNull(network.FieldInfoTraffic)
-	return u
-}
-
 // SetInfoRatio sets the "info_ratio" field.
 func (u *NetworkUpsert) SetInfoRatio(v string) *NetworkUpsert {
 	u.Set(network.FieldInfoRatio, v)
@@ -1473,6 +1347,60 @@ func (u *NetworkUpsert) ClearInfoScope() *NetworkUpsert {
 	return u
 }
 
+// SetInfoTraffic sets the "info_traffic" field.
+func (u *NetworkUpsert) SetInfoTraffic(v string) *NetworkUpsert {
+	u.Set(network.FieldInfoTraffic, v)
+	return u
+}
+
+// UpdateInfoTraffic sets the "info_traffic" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateInfoTraffic() *NetworkUpsert {
+	u.SetExcluded(network.FieldInfoTraffic)
+	return u
+}
+
+// ClearInfoTraffic clears the value of the "info_traffic" field.
+func (u *NetworkUpsert) ClearInfoTraffic() *NetworkUpsert {
+	u.SetNull(network.FieldInfoTraffic)
+	return u
+}
+
+// SetInfoType sets the "info_type" field.
+func (u *NetworkUpsert) SetInfoType(v string) *NetworkUpsert {
+	u.Set(network.FieldInfoType, v)
+	return u
+}
+
+// UpdateInfoType sets the "info_type" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateInfoType() *NetworkUpsert {
+	u.SetExcluded(network.FieldInfoType)
+	return u
+}
+
+// ClearInfoType clears the value of the "info_type" field.
+func (u *NetworkUpsert) ClearInfoType() *NetworkUpsert {
+	u.SetNull(network.FieldInfoType)
+	return u
+}
+
+// SetInfoTypes sets the "info_types" field.
+func (u *NetworkUpsert) SetInfoTypes(v []string) *NetworkUpsert {
+	u.Set(network.FieldInfoTypes, v)
+	return u
+}
+
+// UpdateInfoTypes sets the "info_types" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateInfoTypes() *NetworkUpsert {
+	u.SetExcluded(network.FieldInfoTypes)
+	return u
+}
+
+// ClearInfoTypes clears the value of the "info_types" field.
+func (u *NetworkUpsert) ClearInfoTypes() *NetworkUpsert {
+	u.SetNull(network.FieldInfoTypes)
+	return u
+}
+
 // SetInfoUnicast sets the "info_unicast" field.
 func (u *NetworkUpsert) SetInfoUnicast(v bool) *NetworkUpsert {
 	u.Set(network.FieldInfoUnicast, v)
@@ -1485,39 +1413,87 @@ func (u *NetworkUpsert) UpdateInfoUnicast() *NetworkUpsert {
 	return u
 }
 
-// SetInfoMulticast sets the "info_multicast" field.
-func (u *NetworkUpsert) SetInfoMulticast(v bool) *NetworkUpsert {
-	u.Set(network.FieldInfoMulticast, v)
+// SetIrrAsSet sets the "irr_as_set" field.
+func (u *NetworkUpsert) SetIrrAsSet(v string) *NetworkUpsert {
+	u.Set(network.FieldIrrAsSet, v)
 	return u
 }
 
-// UpdateInfoMulticast sets the "info_multicast" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateInfoMulticast() *NetworkUpsert {
-	u.SetExcluded(network.FieldInfoMulticast)
+// UpdateIrrAsSet sets the "irr_as_set" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateIrrAsSet() *NetworkUpsert {
+	u.SetExcluded(network.FieldIrrAsSet)
 	return u
 }
 
-// SetInfoIpv6 sets the "info_ipv6" field.
-func (u *NetworkUpsert) SetInfoIpv6(v bool) *NetworkUpsert {
-	u.Set(network.FieldInfoIpv6, v)
+// ClearIrrAsSet clears the value of the "irr_as_set" field.
+func (u *NetworkUpsert) ClearIrrAsSet() *NetworkUpsert {
+	u.SetNull(network.FieldIrrAsSet)
 	return u
 }
 
-// UpdateInfoIpv6 sets the "info_ipv6" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateInfoIpv6() *NetworkUpsert {
-	u.SetExcluded(network.FieldInfoIpv6)
+// SetLogo sets the "logo" field.
+func (u *NetworkUpsert) SetLogo(v string) *NetworkUpsert {
+	u.Set(network.FieldLogo, v)
 	return u
 }
 
-// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
-func (u *NetworkUpsert) SetInfoNeverViaRouteServers(v bool) *NetworkUpsert {
-	u.Set(network.FieldInfoNeverViaRouteServers, v)
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateLogo() *NetworkUpsert {
+	u.SetExcluded(network.FieldLogo)
 	return u
 }
 
-// UpdateInfoNeverViaRouteServers sets the "info_never_via_route_servers" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateInfoNeverViaRouteServers() *NetworkUpsert {
-	u.SetExcluded(network.FieldInfoNeverViaRouteServers)
+// ClearLogo clears the value of the "logo" field.
+func (u *NetworkUpsert) ClearLogo() *NetworkUpsert {
+	u.SetNull(network.FieldLogo)
+	return u
+}
+
+// SetLookingGlass sets the "looking_glass" field.
+func (u *NetworkUpsert) SetLookingGlass(v string) *NetworkUpsert {
+	u.Set(network.FieldLookingGlass, v)
+	return u
+}
+
+// UpdateLookingGlass sets the "looking_glass" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateLookingGlass() *NetworkUpsert {
+	u.SetExcluded(network.FieldLookingGlass)
+	return u
+}
+
+// ClearLookingGlass clears the value of the "looking_glass" field.
+func (u *NetworkUpsert) ClearLookingGlass() *NetworkUpsert {
+	u.SetNull(network.FieldLookingGlass)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *NetworkUpsert) SetName(v string) *NetworkUpsert {
+	u.Set(network.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateName() *NetworkUpsert {
+	u.SetExcluded(network.FieldName)
+	return u
+}
+
+// SetNameLong sets the "name_long" field.
+func (u *NetworkUpsert) SetNameLong(v string) *NetworkUpsert {
+	u.Set(network.FieldNameLong, v)
+	return u
+}
+
+// UpdateNameLong sets the "name_long" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateNameLong() *NetworkUpsert {
+	u.SetExcluded(network.FieldNameLong)
+	return u
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (u *NetworkUpsert) ClearNameLong() *NetworkUpsert {
+	u.SetNull(network.FieldNameLong)
 	return u
 }
 
@@ -1539,21 +1515,21 @@ func (u *NetworkUpsert) ClearNotes() *NetworkUpsert {
 	return u
 }
 
-// SetPolicyURL sets the "policy_url" field.
-func (u *NetworkUpsert) SetPolicyURL(v string) *NetworkUpsert {
-	u.Set(network.FieldPolicyURL, v)
+// SetPolicyContracts sets the "policy_contracts" field.
+func (u *NetworkUpsert) SetPolicyContracts(v string) *NetworkUpsert {
+	u.Set(network.FieldPolicyContracts, v)
 	return u
 }
 
-// UpdatePolicyURL sets the "policy_url" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdatePolicyURL() *NetworkUpsert {
-	u.SetExcluded(network.FieldPolicyURL)
+// UpdatePolicyContracts sets the "policy_contracts" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdatePolicyContracts() *NetworkUpsert {
+	u.SetExcluded(network.FieldPolicyContracts)
 	return u
 }
 
-// ClearPolicyURL clears the value of the "policy_url" field.
-func (u *NetworkUpsert) ClearPolicyURL() *NetworkUpsert {
-	u.SetNull(network.FieldPolicyURL)
+// ClearPolicyContracts clears the value of the "policy_contracts" field.
+func (u *NetworkUpsert) ClearPolicyContracts() *NetworkUpsert {
+	u.SetNull(network.FieldPolicyContracts)
 	return u
 }
 
@@ -1605,51 +1581,21 @@ func (u *NetworkUpsert) UpdatePolicyRatio() *NetworkUpsert {
 	return u
 }
 
-// SetPolicyContracts sets the "policy_contracts" field.
-func (u *NetworkUpsert) SetPolicyContracts(v string) *NetworkUpsert {
-	u.Set(network.FieldPolicyContracts, v)
+// SetPolicyURL sets the "policy_url" field.
+func (u *NetworkUpsert) SetPolicyURL(v string) *NetworkUpsert {
+	u.Set(network.FieldPolicyURL, v)
 	return u
 }
 
-// UpdatePolicyContracts sets the "policy_contracts" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdatePolicyContracts() *NetworkUpsert {
-	u.SetExcluded(network.FieldPolicyContracts)
+// UpdatePolicyURL sets the "policy_url" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdatePolicyURL() *NetworkUpsert {
+	u.SetExcluded(network.FieldPolicyURL)
 	return u
 }
 
-// ClearPolicyContracts clears the value of the "policy_contracts" field.
-func (u *NetworkUpsert) ClearPolicyContracts() *NetworkUpsert {
-	u.SetNull(network.FieldPolicyContracts)
-	return u
-}
-
-// SetAllowIxpUpdate sets the "allow_ixp_update" field.
-func (u *NetworkUpsert) SetAllowIxpUpdate(v bool) *NetworkUpsert {
-	u.Set(network.FieldAllowIxpUpdate, v)
-	return u
-}
-
-// UpdateAllowIxpUpdate sets the "allow_ixp_update" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateAllowIxpUpdate() *NetworkUpsert {
-	u.SetExcluded(network.FieldAllowIxpUpdate)
-	return u
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (u *NetworkUpsert) SetStatusDashboard(v string) *NetworkUpsert {
-	u.Set(network.FieldStatusDashboard, v)
-	return u
-}
-
-// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateStatusDashboard() *NetworkUpsert {
-	u.SetExcluded(network.FieldStatusDashboard)
-	return u
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (u *NetworkUpsert) ClearStatusDashboard() *NetworkUpsert {
-	u.SetNull(network.FieldStatusDashboard)
+// ClearPolicyURL clears the value of the "policy_url" field.
+func (u *NetworkUpsert) ClearPolicyURL() *NetworkUpsert {
+	u.SetNull(network.FieldPolicyURL)
 	return u
 }
 
@@ -1689,21 +1635,75 @@ func (u *NetworkUpsert) ClearRirStatusUpdated() *NetworkUpsert {
 	return u
 }
 
-// SetLogo sets the "logo" field.
-func (u *NetworkUpsert) SetLogo(v string) *NetworkUpsert {
-	u.Set(network.FieldLogo, v)
+// SetRouteServer sets the "route_server" field.
+func (u *NetworkUpsert) SetRouteServer(v string) *NetworkUpsert {
+	u.Set(network.FieldRouteServer, v)
 	return u
 }
 
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateLogo() *NetworkUpsert {
-	u.SetExcluded(network.FieldLogo)
+// UpdateRouteServer sets the "route_server" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateRouteServer() *NetworkUpsert {
+	u.SetExcluded(network.FieldRouteServer)
 	return u
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (u *NetworkUpsert) ClearLogo() *NetworkUpsert {
-	u.SetNull(network.FieldLogo)
+// ClearRouteServer clears the value of the "route_server" field.
+func (u *NetworkUpsert) ClearRouteServer() *NetworkUpsert {
+	u.SetNull(network.FieldRouteServer)
+	return u
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (u *NetworkUpsert) SetSocialMedia(v []schema.SocialMedia) *NetworkUpsert {
+	u.Set(network.FieldSocialMedia, v)
+	return u
+}
+
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateSocialMedia() *NetworkUpsert {
+	u.SetExcluded(network.FieldSocialMedia)
+	return u
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *NetworkUpsert) ClearSocialMedia() *NetworkUpsert {
+	u.SetNull(network.FieldSocialMedia)
+	return u
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (u *NetworkUpsert) SetStatusDashboard(v string) *NetworkUpsert {
+	u.Set(network.FieldStatusDashboard, v)
+	return u
+}
+
+// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateStatusDashboard() *NetworkUpsert {
+	u.SetExcluded(network.FieldStatusDashboard)
+	return u
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (u *NetworkUpsert) ClearStatusDashboard() *NetworkUpsert {
+	u.SetNull(network.FieldStatusDashboard)
+	return u
+}
+
+// SetWebsite sets the "website" field.
+func (u *NetworkUpsert) SetWebsite(v string) *NetworkUpsert {
+	u.Set(network.FieldWebsite, v)
+	return u
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateWebsite() *NetworkUpsert {
+	u.SetExcluded(network.FieldWebsite)
+	return u
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *NetworkUpsert) ClearWebsite() *NetworkUpsert {
+	u.SetNull(network.FieldWebsite)
 	return u
 }
 
@@ -1905,20 +1905,6 @@ func (u *NetworkUpsertOne) ClearOrgID() *NetworkUpsertOne {
 	})
 }
 
-// SetName sets the "name" field.
-func (u *NetworkUpsertOne) SetName(v string) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateName() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateName()
-	})
-}
-
 // SetAka sets the "aka" field.
 func (u *NetworkUpsertOne) SetAka(v string) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
@@ -1940,66 +1926,17 @@ func (u *NetworkUpsertOne) ClearAka() *NetworkUpsertOne {
 	})
 }
 
-// SetNameLong sets the "name_long" field.
-func (u *NetworkUpsertOne) SetNameLong(v string) *NetworkUpsertOne {
+// SetAllowIxpUpdate sets the "allow_ixp_update" field.
+func (u *NetworkUpsertOne) SetAllowIxpUpdate(v bool) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetNameLong(v)
+		s.SetAllowIxpUpdate(v)
 	})
 }
 
-// UpdateNameLong sets the "name_long" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateNameLong() *NetworkUpsertOne {
+// UpdateAllowIxpUpdate sets the "allow_ixp_update" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateAllowIxpUpdate() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateNameLong()
-	})
-}
-
-// ClearNameLong clears the value of the "name_long" field.
-func (u *NetworkUpsertOne) ClearNameLong() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearNameLong()
-	})
-}
-
-// SetWebsite sets the "website" field.
-func (u *NetworkUpsertOne) SetWebsite(v string) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetWebsite(v)
-	})
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateWebsite() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateWebsite()
-	})
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *NetworkUpsertOne) ClearWebsite() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearWebsite()
-	})
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *NetworkUpsertOne) SetSocialMedia(v []schema.SocialMedia) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetSocialMedia(v)
-	})
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateSocialMedia() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateSocialMedia()
-	})
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *NetworkUpsertOne) ClearSocialMedia() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearSocialMedia()
+		s.UpdateAllowIxpUpdate()
 	})
 }
 
@@ -2024,108 +1961,45 @@ func (u *NetworkUpsertOne) UpdateAsn() *NetworkUpsertOne {
 	})
 }
 
-// SetLookingGlass sets the "looking_glass" field.
-func (u *NetworkUpsertOne) SetLookingGlass(v string) *NetworkUpsertOne {
+// SetInfoIpv6 sets the "info_ipv6" field.
+func (u *NetworkUpsertOne) SetInfoIpv6(v bool) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetLookingGlass(v)
+		s.SetInfoIpv6(v)
 	})
 }
 
-// UpdateLookingGlass sets the "looking_glass" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateLookingGlass() *NetworkUpsertOne {
+// UpdateInfoIpv6 sets the "info_ipv6" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateInfoIpv6() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateLookingGlass()
+		s.UpdateInfoIpv6()
 	})
 }
 
-// ClearLookingGlass clears the value of the "looking_glass" field.
-func (u *NetworkUpsertOne) ClearLookingGlass() *NetworkUpsertOne {
+// SetInfoMulticast sets the "info_multicast" field.
+func (u *NetworkUpsertOne) SetInfoMulticast(v bool) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.ClearLookingGlass()
+		s.SetInfoMulticast(v)
 	})
 }
 
-// SetRouteServer sets the "route_server" field.
-func (u *NetworkUpsertOne) SetRouteServer(v string) *NetworkUpsertOne {
+// UpdateInfoMulticast sets the "info_multicast" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateInfoMulticast() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetRouteServer(v)
+		s.UpdateInfoMulticast()
 	})
 }
 
-// UpdateRouteServer sets the "route_server" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateRouteServer() *NetworkUpsertOne {
+// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
+func (u *NetworkUpsertOne) SetInfoNeverViaRouteServers(v bool) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateRouteServer()
+		s.SetInfoNeverViaRouteServers(v)
 	})
 }
 
-// ClearRouteServer clears the value of the "route_server" field.
-func (u *NetworkUpsertOne) ClearRouteServer() *NetworkUpsertOne {
+// UpdateInfoNeverViaRouteServers sets the "info_never_via_route_servers" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateInfoNeverViaRouteServers() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.ClearRouteServer()
-	})
-}
-
-// SetIrrAsSet sets the "irr_as_set" field.
-func (u *NetworkUpsertOne) SetIrrAsSet(v string) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetIrrAsSet(v)
-	})
-}
-
-// UpdateIrrAsSet sets the "irr_as_set" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateIrrAsSet() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateIrrAsSet()
-	})
-}
-
-// ClearIrrAsSet clears the value of the "irr_as_set" field.
-func (u *NetworkUpsertOne) ClearIrrAsSet() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearIrrAsSet()
-	})
-}
-
-// SetInfoType sets the "info_type" field.
-func (u *NetworkUpsertOne) SetInfoType(v string) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoType(v)
-	})
-}
-
-// UpdateInfoType sets the "info_type" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateInfoType() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoType()
-	})
-}
-
-// ClearInfoType clears the value of the "info_type" field.
-func (u *NetworkUpsertOne) ClearInfoType() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearInfoType()
-	})
-}
-
-// SetInfoTypes sets the "info_types" field.
-func (u *NetworkUpsertOne) SetInfoTypes(v []string) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoTypes(v)
-	})
-}
-
-// UpdateInfoTypes sets the "info_types" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateInfoTypes() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoTypes()
-	})
-}
-
-// ClearInfoTypes clears the value of the "info_types" field.
-func (u *NetworkUpsertOne) ClearInfoTypes() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearInfoTypes()
+		s.UpdateInfoNeverViaRouteServers()
 	})
 }
 
@@ -2185,27 +2059,6 @@ func (u *NetworkUpsertOne) ClearInfoPrefixes6() *NetworkUpsertOne {
 	})
 }
 
-// SetInfoTraffic sets the "info_traffic" field.
-func (u *NetworkUpsertOne) SetInfoTraffic(v string) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoTraffic(v)
-	})
-}
-
-// UpdateInfoTraffic sets the "info_traffic" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateInfoTraffic() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoTraffic()
-	})
-}
-
-// ClearInfoTraffic clears the value of the "info_traffic" field.
-func (u *NetworkUpsertOne) ClearInfoTraffic() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearInfoTraffic()
-	})
-}
-
 // SetInfoRatio sets the "info_ratio" field.
 func (u *NetworkUpsertOne) SetInfoRatio(v string) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
@@ -2248,6 +2101,69 @@ func (u *NetworkUpsertOne) ClearInfoScope() *NetworkUpsertOne {
 	})
 }
 
+// SetInfoTraffic sets the "info_traffic" field.
+func (u *NetworkUpsertOne) SetInfoTraffic(v string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetInfoTraffic(v)
+	})
+}
+
+// UpdateInfoTraffic sets the "info_traffic" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateInfoTraffic() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateInfoTraffic()
+	})
+}
+
+// ClearInfoTraffic clears the value of the "info_traffic" field.
+func (u *NetworkUpsertOne) ClearInfoTraffic() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearInfoTraffic()
+	})
+}
+
+// SetInfoType sets the "info_type" field.
+func (u *NetworkUpsertOne) SetInfoType(v string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetInfoType(v)
+	})
+}
+
+// UpdateInfoType sets the "info_type" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateInfoType() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateInfoType()
+	})
+}
+
+// ClearInfoType clears the value of the "info_type" field.
+func (u *NetworkUpsertOne) ClearInfoType() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearInfoType()
+	})
+}
+
+// SetInfoTypes sets the "info_types" field.
+func (u *NetworkUpsertOne) SetInfoTypes(v []string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetInfoTypes(v)
+	})
+}
+
+// UpdateInfoTypes sets the "info_types" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateInfoTypes() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateInfoTypes()
+	})
+}
+
+// ClearInfoTypes clears the value of the "info_types" field.
+func (u *NetworkUpsertOne) ClearInfoTypes() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearInfoTypes()
+	})
+}
+
 // SetInfoUnicast sets the "info_unicast" field.
 func (u *NetworkUpsertOne) SetInfoUnicast(v bool) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
@@ -2262,45 +2178,101 @@ func (u *NetworkUpsertOne) UpdateInfoUnicast() *NetworkUpsertOne {
 	})
 }
 
-// SetInfoMulticast sets the "info_multicast" field.
-func (u *NetworkUpsertOne) SetInfoMulticast(v bool) *NetworkUpsertOne {
+// SetIrrAsSet sets the "irr_as_set" field.
+func (u *NetworkUpsertOne) SetIrrAsSet(v string) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoMulticast(v)
+		s.SetIrrAsSet(v)
 	})
 }
 
-// UpdateInfoMulticast sets the "info_multicast" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateInfoMulticast() *NetworkUpsertOne {
+// UpdateIrrAsSet sets the "irr_as_set" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateIrrAsSet() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoMulticast()
+		s.UpdateIrrAsSet()
 	})
 }
 
-// SetInfoIpv6 sets the "info_ipv6" field.
-func (u *NetworkUpsertOne) SetInfoIpv6(v bool) *NetworkUpsertOne {
+// ClearIrrAsSet clears the value of the "irr_as_set" field.
+func (u *NetworkUpsertOne) ClearIrrAsSet() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoIpv6(v)
+		s.ClearIrrAsSet()
 	})
 }
 
-// UpdateInfoIpv6 sets the "info_ipv6" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateInfoIpv6() *NetworkUpsertOne {
+// SetLogo sets the "logo" field.
+func (u *NetworkUpsertOne) SetLogo(v string) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoIpv6()
+		s.SetLogo(v)
 	})
 }
 
-// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
-func (u *NetworkUpsertOne) SetInfoNeverViaRouteServers(v bool) *NetworkUpsertOne {
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateLogo() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoNeverViaRouteServers(v)
+		s.UpdateLogo()
 	})
 }
 
-// UpdateInfoNeverViaRouteServers sets the "info_never_via_route_servers" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateInfoNeverViaRouteServers() *NetworkUpsertOne {
+// ClearLogo clears the value of the "logo" field.
+func (u *NetworkUpsertOne) ClearLogo() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoNeverViaRouteServers()
+		s.ClearLogo()
+	})
+}
+
+// SetLookingGlass sets the "looking_glass" field.
+func (u *NetworkUpsertOne) SetLookingGlass(v string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetLookingGlass(v)
+	})
+}
+
+// UpdateLookingGlass sets the "looking_glass" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateLookingGlass() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateLookingGlass()
+	})
+}
+
+// ClearLookingGlass clears the value of the "looking_glass" field.
+func (u *NetworkUpsertOne) ClearLookingGlass() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearLookingGlass()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *NetworkUpsertOne) SetName(v string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateName() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetNameLong sets the "name_long" field.
+func (u *NetworkUpsertOne) SetNameLong(v string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetNameLong(v)
+	})
+}
+
+// UpdateNameLong sets the "name_long" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateNameLong() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateNameLong()
+	})
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (u *NetworkUpsertOne) ClearNameLong() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearNameLong()
 	})
 }
 
@@ -2325,24 +2297,24 @@ func (u *NetworkUpsertOne) ClearNotes() *NetworkUpsertOne {
 	})
 }
 
-// SetPolicyURL sets the "policy_url" field.
-func (u *NetworkUpsertOne) SetPolicyURL(v string) *NetworkUpsertOne {
+// SetPolicyContracts sets the "policy_contracts" field.
+func (u *NetworkUpsertOne) SetPolicyContracts(v string) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetPolicyURL(v)
+		s.SetPolicyContracts(v)
 	})
 }
 
-// UpdatePolicyURL sets the "policy_url" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdatePolicyURL() *NetworkUpsertOne {
+// UpdatePolicyContracts sets the "policy_contracts" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdatePolicyContracts() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdatePolicyURL()
+		s.UpdatePolicyContracts()
 	})
 }
 
-// ClearPolicyURL clears the value of the "policy_url" field.
-func (u *NetworkUpsertOne) ClearPolicyURL() *NetworkUpsertOne {
+// ClearPolicyContracts clears the value of the "policy_contracts" field.
+func (u *NetworkUpsertOne) ClearPolicyContracts() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.ClearPolicyURL()
+		s.ClearPolicyContracts()
 	})
 }
 
@@ -2402,59 +2374,24 @@ func (u *NetworkUpsertOne) UpdatePolicyRatio() *NetworkUpsertOne {
 	})
 }
 
-// SetPolicyContracts sets the "policy_contracts" field.
-func (u *NetworkUpsertOne) SetPolicyContracts(v string) *NetworkUpsertOne {
+// SetPolicyURL sets the "policy_url" field.
+func (u *NetworkUpsertOne) SetPolicyURL(v string) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetPolicyContracts(v)
+		s.SetPolicyURL(v)
 	})
 }
 
-// UpdatePolicyContracts sets the "policy_contracts" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdatePolicyContracts() *NetworkUpsertOne {
+// UpdatePolicyURL sets the "policy_url" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdatePolicyURL() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdatePolicyContracts()
+		s.UpdatePolicyURL()
 	})
 }
 
-// ClearPolicyContracts clears the value of the "policy_contracts" field.
-func (u *NetworkUpsertOne) ClearPolicyContracts() *NetworkUpsertOne {
+// ClearPolicyURL clears the value of the "policy_url" field.
+func (u *NetworkUpsertOne) ClearPolicyURL() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.ClearPolicyContracts()
-	})
-}
-
-// SetAllowIxpUpdate sets the "allow_ixp_update" field.
-func (u *NetworkUpsertOne) SetAllowIxpUpdate(v bool) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetAllowIxpUpdate(v)
-	})
-}
-
-// UpdateAllowIxpUpdate sets the "allow_ixp_update" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateAllowIxpUpdate() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateAllowIxpUpdate()
-	})
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (u *NetworkUpsertOne) SetStatusDashboard(v string) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetStatusDashboard(v)
-	})
-}
-
-// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateStatusDashboard() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateStatusDashboard()
-	})
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (u *NetworkUpsertOne) ClearStatusDashboard() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearStatusDashboard()
+		s.ClearPolicyURL()
 	})
 }
 
@@ -2500,24 +2437,87 @@ func (u *NetworkUpsertOne) ClearRirStatusUpdated() *NetworkUpsertOne {
 	})
 }
 
-// SetLogo sets the "logo" field.
-func (u *NetworkUpsertOne) SetLogo(v string) *NetworkUpsertOne {
+// SetRouteServer sets the "route_server" field.
+func (u *NetworkUpsertOne) SetRouteServer(v string) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetLogo(v)
+		s.SetRouteServer(v)
 	})
 }
 
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateLogo() *NetworkUpsertOne {
+// UpdateRouteServer sets the "route_server" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateRouteServer() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateLogo()
+		s.UpdateRouteServer()
 	})
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (u *NetworkUpsertOne) ClearLogo() *NetworkUpsertOne {
+// ClearRouteServer clears the value of the "route_server" field.
+func (u *NetworkUpsertOne) ClearRouteServer() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
-		s.ClearLogo()
+		s.ClearRouteServer()
+	})
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (u *NetworkUpsertOne) SetSocialMedia(v []schema.SocialMedia) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetSocialMedia(v)
+	})
+}
+
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateSocialMedia() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateSocialMedia()
+	})
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *NetworkUpsertOne) ClearSocialMedia() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearSocialMedia()
+	})
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (u *NetworkUpsertOne) SetStatusDashboard(v string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetStatusDashboard(v)
+	})
+}
+
+// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateStatusDashboard() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateStatusDashboard()
+	})
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (u *NetworkUpsertOne) ClearStatusDashboard() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearStatusDashboard()
+	})
+}
+
+// SetWebsite sets the "website" field.
+func (u *NetworkUpsertOne) SetWebsite(v string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetWebsite(v)
+	})
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateWebsite() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateWebsite()
+	})
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *NetworkUpsertOne) ClearWebsite() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearWebsite()
 	})
 }
 
@@ -2906,20 +2906,6 @@ func (u *NetworkUpsertBulk) ClearOrgID() *NetworkUpsertBulk {
 	})
 }
 
-// SetName sets the "name" field.
-func (u *NetworkUpsertBulk) SetName(v string) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateName() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateName()
-	})
-}
-
 // SetAka sets the "aka" field.
 func (u *NetworkUpsertBulk) SetAka(v string) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
@@ -2941,66 +2927,17 @@ func (u *NetworkUpsertBulk) ClearAka() *NetworkUpsertBulk {
 	})
 }
 
-// SetNameLong sets the "name_long" field.
-func (u *NetworkUpsertBulk) SetNameLong(v string) *NetworkUpsertBulk {
+// SetAllowIxpUpdate sets the "allow_ixp_update" field.
+func (u *NetworkUpsertBulk) SetAllowIxpUpdate(v bool) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetNameLong(v)
+		s.SetAllowIxpUpdate(v)
 	})
 }
 
-// UpdateNameLong sets the "name_long" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateNameLong() *NetworkUpsertBulk {
+// UpdateAllowIxpUpdate sets the "allow_ixp_update" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateAllowIxpUpdate() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateNameLong()
-	})
-}
-
-// ClearNameLong clears the value of the "name_long" field.
-func (u *NetworkUpsertBulk) ClearNameLong() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearNameLong()
-	})
-}
-
-// SetWebsite sets the "website" field.
-func (u *NetworkUpsertBulk) SetWebsite(v string) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetWebsite(v)
-	})
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateWebsite() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateWebsite()
-	})
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *NetworkUpsertBulk) ClearWebsite() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearWebsite()
-	})
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *NetworkUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetSocialMedia(v)
-	})
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateSocialMedia() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateSocialMedia()
-	})
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *NetworkUpsertBulk) ClearSocialMedia() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearSocialMedia()
+		s.UpdateAllowIxpUpdate()
 	})
 }
 
@@ -3025,108 +2962,45 @@ func (u *NetworkUpsertBulk) UpdateAsn() *NetworkUpsertBulk {
 	})
 }
 
-// SetLookingGlass sets the "looking_glass" field.
-func (u *NetworkUpsertBulk) SetLookingGlass(v string) *NetworkUpsertBulk {
+// SetInfoIpv6 sets the "info_ipv6" field.
+func (u *NetworkUpsertBulk) SetInfoIpv6(v bool) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetLookingGlass(v)
+		s.SetInfoIpv6(v)
 	})
 }
 
-// UpdateLookingGlass sets the "looking_glass" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateLookingGlass() *NetworkUpsertBulk {
+// UpdateInfoIpv6 sets the "info_ipv6" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateInfoIpv6() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateLookingGlass()
+		s.UpdateInfoIpv6()
 	})
 }
 
-// ClearLookingGlass clears the value of the "looking_glass" field.
-func (u *NetworkUpsertBulk) ClearLookingGlass() *NetworkUpsertBulk {
+// SetInfoMulticast sets the "info_multicast" field.
+func (u *NetworkUpsertBulk) SetInfoMulticast(v bool) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.ClearLookingGlass()
+		s.SetInfoMulticast(v)
 	})
 }
 
-// SetRouteServer sets the "route_server" field.
-func (u *NetworkUpsertBulk) SetRouteServer(v string) *NetworkUpsertBulk {
+// UpdateInfoMulticast sets the "info_multicast" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateInfoMulticast() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetRouteServer(v)
+		s.UpdateInfoMulticast()
 	})
 }
 
-// UpdateRouteServer sets the "route_server" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateRouteServer() *NetworkUpsertBulk {
+// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
+func (u *NetworkUpsertBulk) SetInfoNeverViaRouteServers(v bool) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateRouteServer()
+		s.SetInfoNeverViaRouteServers(v)
 	})
 }
 
-// ClearRouteServer clears the value of the "route_server" field.
-func (u *NetworkUpsertBulk) ClearRouteServer() *NetworkUpsertBulk {
+// UpdateInfoNeverViaRouteServers sets the "info_never_via_route_servers" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateInfoNeverViaRouteServers() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.ClearRouteServer()
-	})
-}
-
-// SetIrrAsSet sets the "irr_as_set" field.
-func (u *NetworkUpsertBulk) SetIrrAsSet(v string) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetIrrAsSet(v)
-	})
-}
-
-// UpdateIrrAsSet sets the "irr_as_set" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateIrrAsSet() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateIrrAsSet()
-	})
-}
-
-// ClearIrrAsSet clears the value of the "irr_as_set" field.
-func (u *NetworkUpsertBulk) ClearIrrAsSet() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearIrrAsSet()
-	})
-}
-
-// SetInfoType sets the "info_type" field.
-func (u *NetworkUpsertBulk) SetInfoType(v string) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoType(v)
-	})
-}
-
-// UpdateInfoType sets the "info_type" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateInfoType() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoType()
-	})
-}
-
-// ClearInfoType clears the value of the "info_type" field.
-func (u *NetworkUpsertBulk) ClearInfoType() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearInfoType()
-	})
-}
-
-// SetInfoTypes sets the "info_types" field.
-func (u *NetworkUpsertBulk) SetInfoTypes(v []string) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoTypes(v)
-	})
-}
-
-// UpdateInfoTypes sets the "info_types" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateInfoTypes() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoTypes()
-	})
-}
-
-// ClearInfoTypes clears the value of the "info_types" field.
-func (u *NetworkUpsertBulk) ClearInfoTypes() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearInfoTypes()
+		s.UpdateInfoNeverViaRouteServers()
 	})
 }
 
@@ -3186,27 +3060,6 @@ func (u *NetworkUpsertBulk) ClearInfoPrefixes6() *NetworkUpsertBulk {
 	})
 }
 
-// SetInfoTraffic sets the "info_traffic" field.
-func (u *NetworkUpsertBulk) SetInfoTraffic(v string) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoTraffic(v)
-	})
-}
-
-// UpdateInfoTraffic sets the "info_traffic" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateInfoTraffic() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoTraffic()
-	})
-}
-
-// ClearInfoTraffic clears the value of the "info_traffic" field.
-func (u *NetworkUpsertBulk) ClearInfoTraffic() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearInfoTraffic()
-	})
-}
-
 // SetInfoRatio sets the "info_ratio" field.
 func (u *NetworkUpsertBulk) SetInfoRatio(v string) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
@@ -3249,6 +3102,69 @@ func (u *NetworkUpsertBulk) ClearInfoScope() *NetworkUpsertBulk {
 	})
 }
 
+// SetInfoTraffic sets the "info_traffic" field.
+func (u *NetworkUpsertBulk) SetInfoTraffic(v string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetInfoTraffic(v)
+	})
+}
+
+// UpdateInfoTraffic sets the "info_traffic" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateInfoTraffic() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateInfoTraffic()
+	})
+}
+
+// ClearInfoTraffic clears the value of the "info_traffic" field.
+func (u *NetworkUpsertBulk) ClearInfoTraffic() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearInfoTraffic()
+	})
+}
+
+// SetInfoType sets the "info_type" field.
+func (u *NetworkUpsertBulk) SetInfoType(v string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetInfoType(v)
+	})
+}
+
+// UpdateInfoType sets the "info_type" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateInfoType() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateInfoType()
+	})
+}
+
+// ClearInfoType clears the value of the "info_type" field.
+func (u *NetworkUpsertBulk) ClearInfoType() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearInfoType()
+	})
+}
+
+// SetInfoTypes sets the "info_types" field.
+func (u *NetworkUpsertBulk) SetInfoTypes(v []string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetInfoTypes(v)
+	})
+}
+
+// UpdateInfoTypes sets the "info_types" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateInfoTypes() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateInfoTypes()
+	})
+}
+
+// ClearInfoTypes clears the value of the "info_types" field.
+func (u *NetworkUpsertBulk) ClearInfoTypes() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearInfoTypes()
+	})
+}
+
 // SetInfoUnicast sets the "info_unicast" field.
 func (u *NetworkUpsertBulk) SetInfoUnicast(v bool) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
@@ -3263,45 +3179,101 @@ func (u *NetworkUpsertBulk) UpdateInfoUnicast() *NetworkUpsertBulk {
 	})
 }
 
-// SetInfoMulticast sets the "info_multicast" field.
-func (u *NetworkUpsertBulk) SetInfoMulticast(v bool) *NetworkUpsertBulk {
+// SetIrrAsSet sets the "irr_as_set" field.
+func (u *NetworkUpsertBulk) SetIrrAsSet(v string) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoMulticast(v)
+		s.SetIrrAsSet(v)
 	})
 }
 
-// UpdateInfoMulticast sets the "info_multicast" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateInfoMulticast() *NetworkUpsertBulk {
+// UpdateIrrAsSet sets the "irr_as_set" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateIrrAsSet() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoMulticast()
+		s.UpdateIrrAsSet()
 	})
 }
 
-// SetInfoIpv6 sets the "info_ipv6" field.
-func (u *NetworkUpsertBulk) SetInfoIpv6(v bool) *NetworkUpsertBulk {
+// ClearIrrAsSet clears the value of the "irr_as_set" field.
+func (u *NetworkUpsertBulk) ClearIrrAsSet() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoIpv6(v)
+		s.ClearIrrAsSet()
 	})
 }
 
-// UpdateInfoIpv6 sets the "info_ipv6" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateInfoIpv6() *NetworkUpsertBulk {
+// SetLogo sets the "logo" field.
+func (u *NetworkUpsertBulk) SetLogo(v string) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoIpv6()
+		s.SetLogo(v)
 	})
 }
 
-// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
-func (u *NetworkUpsertBulk) SetInfoNeverViaRouteServers(v bool) *NetworkUpsertBulk {
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateLogo() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetInfoNeverViaRouteServers(v)
+		s.UpdateLogo()
 	})
 }
 
-// UpdateInfoNeverViaRouteServers sets the "info_never_via_route_servers" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateInfoNeverViaRouteServers() *NetworkUpsertBulk {
+// ClearLogo clears the value of the "logo" field.
+func (u *NetworkUpsertBulk) ClearLogo() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateInfoNeverViaRouteServers()
+		s.ClearLogo()
+	})
+}
+
+// SetLookingGlass sets the "looking_glass" field.
+func (u *NetworkUpsertBulk) SetLookingGlass(v string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetLookingGlass(v)
+	})
+}
+
+// UpdateLookingGlass sets the "looking_glass" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateLookingGlass() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateLookingGlass()
+	})
+}
+
+// ClearLookingGlass clears the value of the "looking_glass" field.
+func (u *NetworkUpsertBulk) ClearLookingGlass() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearLookingGlass()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *NetworkUpsertBulk) SetName(v string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateName() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetNameLong sets the "name_long" field.
+func (u *NetworkUpsertBulk) SetNameLong(v string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetNameLong(v)
+	})
+}
+
+// UpdateNameLong sets the "name_long" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateNameLong() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateNameLong()
+	})
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (u *NetworkUpsertBulk) ClearNameLong() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearNameLong()
 	})
 }
 
@@ -3326,24 +3298,24 @@ func (u *NetworkUpsertBulk) ClearNotes() *NetworkUpsertBulk {
 	})
 }
 
-// SetPolicyURL sets the "policy_url" field.
-func (u *NetworkUpsertBulk) SetPolicyURL(v string) *NetworkUpsertBulk {
+// SetPolicyContracts sets the "policy_contracts" field.
+func (u *NetworkUpsertBulk) SetPolicyContracts(v string) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetPolicyURL(v)
+		s.SetPolicyContracts(v)
 	})
 }
 
-// UpdatePolicyURL sets the "policy_url" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdatePolicyURL() *NetworkUpsertBulk {
+// UpdatePolicyContracts sets the "policy_contracts" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdatePolicyContracts() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdatePolicyURL()
+		s.UpdatePolicyContracts()
 	})
 }
 
-// ClearPolicyURL clears the value of the "policy_url" field.
-func (u *NetworkUpsertBulk) ClearPolicyURL() *NetworkUpsertBulk {
+// ClearPolicyContracts clears the value of the "policy_contracts" field.
+func (u *NetworkUpsertBulk) ClearPolicyContracts() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.ClearPolicyURL()
+		s.ClearPolicyContracts()
 	})
 }
 
@@ -3403,59 +3375,24 @@ func (u *NetworkUpsertBulk) UpdatePolicyRatio() *NetworkUpsertBulk {
 	})
 }
 
-// SetPolicyContracts sets the "policy_contracts" field.
-func (u *NetworkUpsertBulk) SetPolicyContracts(v string) *NetworkUpsertBulk {
+// SetPolicyURL sets the "policy_url" field.
+func (u *NetworkUpsertBulk) SetPolicyURL(v string) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetPolicyContracts(v)
+		s.SetPolicyURL(v)
 	})
 }
 
-// UpdatePolicyContracts sets the "policy_contracts" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdatePolicyContracts() *NetworkUpsertBulk {
+// UpdatePolicyURL sets the "policy_url" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdatePolicyURL() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdatePolicyContracts()
+		s.UpdatePolicyURL()
 	})
 }
 
-// ClearPolicyContracts clears the value of the "policy_contracts" field.
-func (u *NetworkUpsertBulk) ClearPolicyContracts() *NetworkUpsertBulk {
+// ClearPolicyURL clears the value of the "policy_url" field.
+func (u *NetworkUpsertBulk) ClearPolicyURL() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.ClearPolicyContracts()
-	})
-}
-
-// SetAllowIxpUpdate sets the "allow_ixp_update" field.
-func (u *NetworkUpsertBulk) SetAllowIxpUpdate(v bool) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetAllowIxpUpdate(v)
-	})
-}
-
-// UpdateAllowIxpUpdate sets the "allow_ixp_update" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateAllowIxpUpdate() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateAllowIxpUpdate()
-	})
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (u *NetworkUpsertBulk) SetStatusDashboard(v string) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetStatusDashboard(v)
-	})
-}
-
-// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateStatusDashboard() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateStatusDashboard()
-	})
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (u *NetworkUpsertBulk) ClearStatusDashboard() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearStatusDashboard()
+		s.ClearPolicyURL()
 	})
 }
 
@@ -3501,24 +3438,87 @@ func (u *NetworkUpsertBulk) ClearRirStatusUpdated() *NetworkUpsertBulk {
 	})
 }
 
-// SetLogo sets the "logo" field.
-func (u *NetworkUpsertBulk) SetLogo(v string) *NetworkUpsertBulk {
+// SetRouteServer sets the "route_server" field.
+func (u *NetworkUpsertBulk) SetRouteServer(v string) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.SetLogo(v)
+		s.SetRouteServer(v)
 	})
 }
 
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateLogo() *NetworkUpsertBulk {
+// UpdateRouteServer sets the "route_server" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateRouteServer() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateLogo()
+		s.UpdateRouteServer()
 	})
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (u *NetworkUpsertBulk) ClearLogo() *NetworkUpsertBulk {
+// ClearRouteServer clears the value of the "route_server" field.
+func (u *NetworkUpsertBulk) ClearRouteServer() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
-		s.ClearLogo()
+		s.ClearRouteServer()
+	})
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (u *NetworkUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetSocialMedia(v)
+	})
+}
+
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateSocialMedia() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateSocialMedia()
+	})
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *NetworkUpsertBulk) ClearSocialMedia() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearSocialMedia()
+	})
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (u *NetworkUpsertBulk) SetStatusDashboard(v string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetStatusDashboard(v)
+	})
+}
+
+// UpdateStatusDashboard sets the "status_dashboard" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateStatusDashboard() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateStatusDashboard()
+	})
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (u *NetworkUpsertBulk) ClearStatusDashboard() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearStatusDashboard()
+	})
+}
+
+// SetWebsite sets the "website" field.
+func (u *NetworkUpsertBulk) SetWebsite(v string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetWebsite(v)
+	})
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateWebsite() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateWebsite()
+	})
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *NetworkUpsertBulk) ClearWebsite() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearWebsite()
 	})
 }
 

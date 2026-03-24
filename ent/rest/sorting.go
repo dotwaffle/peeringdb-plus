@@ -252,8 +252,6 @@ func applySortingCampu(query *ent.CampusQuery, field string, order orderDirectio
 		isCount, isSum := isSpecializedSort(parts)
 
 		switch parts[0] {
-		case campus.EdgeOrganization:
-			return query.Order(campus.ByOrganizationField(parts[1], dir))
 		case campus.EdgeFacilities:
 			switch {
 			case isCount:
@@ -263,6 +261,8 @@ func applySortingCampu(query *ent.CampusQuery, field string, order orderDirectio
 			default:
 				return query.Order(campus.ByFacilities(sql.OrderByField(parts[1], dir)))
 			}
+		case campus.EdgeOrganization:
+			return query.Order(campus.ByOrganizationField(parts[1], dir))
 		}
 	}
 	if field == "random" {
@@ -280,8 +280,6 @@ func applySortingCarrier(query *ent.CarrierQuery, field string, order orderDirec
 		isCount, isSum := isSpecializedSort(parts)
 
 		switch parts[0] {
-		case carrier.EdgeOrganization:
-			return query.Order(carrier.ByOrganizationField(parts[1], dir))
 		case carrier.EdgeCarrierFacilities:
 			switch {
 			case isCount:
@@ -291,6 +289,8 @@ func applySortingCarrier(query *ent.CarrierQuery, field string, order orderDirec
 			default:
 				return query.Order(carrier.ByCarrierFacilities(sql.OrderByField(parts[1], dir)))
 			}
+		case carrier.EdgeOrganization:
+			return query.Order(carrier.ByOrganizationField(parts[1], dir))
 		}
 	}
 	if field == "random" {
@@ -327,18 +327,16 @@ func applySortingFacility(query *ent.FacilityQuery, field string, order orderDir
 		isCount, isSum := isSpecializedSort(parts)
 
 		switch parts[0] {
-		case facility.EdgeOrganization:
-			return query.Order(facility.ByOrganizationField(parts[1], dir))
 		case facility.EdgeCampus:
 			return query.Order(facility.ByCampusField(parts[1], dir))
-		case facility.EdgeNetworkFacilities:
+		case facility.EdgeCarrierFacilities:
 			switch {
 			case isCount:
-				return query.Order(facility.ByNetworkFacilitiesCount(dir))
+				return query.Order(facility.ByCarrierFacilitiesCount(dir))
 			case isSum:
-				return query.Order(facility.ByNetworkFacilities(sql.OrderBySum(parts[1], dir)))
+				return query.Order(facility.ByCarrierFacilities(sql.OrderBySum(parts[1], dir)))
 			default:
-				return query.Order(facility.ByNetworkFacilities(sql.OrderByField(parts[1], dir)))
+				return query.Order(facility.ByCarrierFacilities(sql.OrderByField(parts[1], dir)))
 			}
 		case facility.EdgeIxFacilities:
 			switch {
@@ -349,15 +347,17 @@ func applySortingFacility(query *ent.FacilityQuery, field string, order orderDir
 			default:
 				return query.Order(facility.ByIxFacilities(sql.OrderByField(parts[1], dir)))
 			}
-		case facility.EdgeCarrierFacilities:
+		case facility.EdgeNetworkFacilities:
 			switch {
 			case isCount:
-				return query.Order(facility.ByCarrierFacilitiesCount(dir))
+				return query.Order(facility.ByNetworkFacilitiesCount(dir))
 			case isSum:
-				return query.Order(facility.ByCarrierFacilities(sql.OrderBySum(parts[1], dir)))
+				return query.Order(facility.ByNetworkFacilities(sql.OrderBySum(parts[1], dir)))
 			default:
-				return query.Order(facility.ByCarrierFacilities(sql.OrderByField(parts[1], dir)))
+				return query.Order(facility.ByNetworkFacilities(sql.OrderByField(parts[1], dir)))
 			}
+		case facility.EdgeOrganization:
+			return query.Order(facility.ByOrganizationField(parts[1], dir))
 		}
 	}
 	if field == "random" {
@@ -375,17 +375,6 @@ func applySortingInternetExchange(query *ent.InternetExchangeQuery, field string
 		isCount, isSum := isSpecializedSort(parts)
 
 		switch parts[0] {
-		case internetexchange.EdgeOrganization:
-			return query.Order(internetexchange.ByOrganizationField(parts[1], dir))
-		case internetexchange.EdgeIxLans:
-			switch {
-			case isCount:
-				return query.Order(internetexchange.ByIxLansCount(dir))
-			case isSum:
-				return query.Order(internetexchange.ByIxLans(sql.OrderBySum(parts[1], dir)))
-			default:
-				return query.Order(internetexchange.ByIxLans(sql.OrderByField(parts[1], dir)))
-			}
 		case internetexchange.EdgeIxFacilities:
 			switch {
 			case isCount:
@@ -395,6 +384,17 @@ func applySortingInternetExchange(query *ent.InternetExchangeQuery, field string
 			default:
 				return query.Order(internetexchange.ByIxFacilities(sql.OrderByField(parts[1], dir)))
 			}
+		case internetexchange.EdgeIxLans:
+			switch {
+			case isCount:
+				return query.Order(internetexchange.ByIxLansCount(dir))
+			case isSum:
+				return query.Order(internetexchange.ByIxLans(sql.OrderBySum(parts[1], dir)))
+			default:
+				return query.Order(internetexchange.ByIxLans(sql.OrderByField(parts[1], dir)))
+			}
+		case internetexchange.EdgeOrganization:
+			return query.Order(internetexchange.ByOrganizationField(parts[1], dir))
 		}
 	}
 	if field == "random" {
@@ -410,10 +410,10 @@ func applySortingIxFacility(query *ent.IxFacilityQuery, field string, order orde
 		dir := withOrderTerm(order)
 
 		switch parts[0] {
-		case ixfacility.EdgeInternetExchange:
-			return query.Order(ixfacility.ByInternetExchangeField(parts[1], dir))
 		case ixfacility.EdgeFacility:
 			return query.Order(ixfacility.ByFacilityField(parts[1], dir))
+		case ixfacility.EdgeInternetExchange:
+			return query.Order(ixfacility.ByInternetExchangeField(parts[1], dir))
 		}
 	}
 	if field == "random" {
@@ -485,17 +485,6 @@ func applySortingNetwork(query *ent.NetworkQuery, field string, order orderDirec
 		isCount, isSum := isSpecializedSort(parts)
 
 		switch parts[0] {
-		case network.EdgeOrganization:
-			return query.Order(network.ByOrganizationField(parts[1], dir))
-		case network.EdgePocs:
-			switch {
-			case isCount:
-				return query.Order(network.ByPocsCount(dir))
-			case isSum:
-				return query.Order(network.ByPocs(sql.OrderBySum(parts[1], dir)))
-			default:
-				return query.Order(network.ByPocs(sql.OrderByField(parts[1], dir)))
-			}
 		case network.EdgeNetworkFacilities:
 			switch {
 			case isCount:
@@ -514,6 +503,17 @@ func applySortingNetwork(query *ent.NetworkQuery, field string, order orderDirec
 			default:
 				return query.Order(network.ByNetworkIxLans(sql.OrderByField(parts[1], dir)))
 			}
+		case network.EdgeOrganization:
+			return query.Order(network.ByOrganizationField(parts[1], dir))
+		case network.EdgePocs:
+			switch {
+			case isCount:
+				return query.Order(network.ByPocsCount(dir))
+			case isSum:
+				return query.Order(network.ByPocs(sql.OrderBySum(parts[1], dir)))
+			default:
+				return query.Order(network.ByPocs(sql.OrderByField(parts[1], dir)))
+			}
 		}
 	}
 	if field == "random" {
@@ -529,10 +529,10 @@ func applySortingNetworkFacility(query *ent.NetworkFacilityQuery, field string, 
 		dir := withOrderTerm(order)
 
 		switch parts[0] {
-		case networkfacility.EdgeNetwork:
-			return query.Order(networkfacility.ByNetworkField(parts[1], dir))
 		case networkfacility.EdgeFacility:
 			return query.Order(networkfacility.ByFacilityField(parts[1], dir))
+		case networkfacility.EdgeNetwork:
+			return query.Order(networkfacility.ByNetworkField(parts[1], dir))
 		}
 	}
 	if field == "random" {
@@ -548,10 +548,10 @@ func applySortingNetworkIxLan(query *ent.NetworkIxLanQuery, field string, order 
 		dir := withOrderTerm(order)
 
 		switch parts[0] {
-		case networkixlan.EdgeNetwork:
-			return query.Order(networkixlan.ByNetworkField(parts[1], dir))
 		case networkixlan.EdgeIxLan:
 			return query.Order(networkixlan.ByIxLanField(parts[1], dir))
+		case networkixlan.EdgeNetwork:
+			return query.Order(networkixlan.ByNetworkField(parts[1], dir))
 		}
 	}
 	if field == "random" {
@@ -569,14 +569,23 @@ func applySortingOrganization(query *ent.OrganizationQuery, field string, order 
 		isCount, isSum := isSpecializedSort(parts)
 
 		switch parts[0] {
-		case organization.EdgeNetworks:
+		case organization.EdgeCampuses:
 			switch {
 			case isCount:
-				return query.Order(organization.ByNetworksCount(dir))
+				return query.Order(organization.ByCampusesCount(dir))
 			case isSum:
-				return query.Order(organization.ByNetworks(sql.OrderBySum(parts[1], dir)))
+				return query.Order(organization.ByCampuses(sql.OrderBySum(parts[1], dir)))
 			default:
-				return query.Order(organization.ByNetworks(sql.OrderByField(parts[1], dir)))
+				return query.Order(organization.ByCampuses(sql.OrderByField(parts[1], dir)))
+			}
+		case organization.EdgeCarriers:
+			switch {
+			case isCount:
+				return query.Order(organization.ByCarriersCount(dir))
+			case isSum:
+				return query.Order(organization.ByCarriers(sql.OrderBySum(parts[1], dir)))
+			default:
+				return query.Order(organization.ByCarriers(sql.OrderByField(parts[1], dir)))
 			}
 		case organization.EdgeFacilities:
 			switch {
@@ -596,23 +605,14 @@ func applySortingOrganization(query *ent.OrganizationQuery, field string, order 
 			default:
 				return query.Order(organization.ByInternetExchanges(sql.OrderByField(parts[1], dir)))
 			}
-		case organization.EdgeCarriers:
+		case organization.EdgeNetworks:
 			switch {
 			case isCount:
-				return query.Order(organization.ByCarriersCount(dir))
+				return query.Order(organization.ByNetworksCount(dir))
 			case isSum:
-				return query.Order(organization.ByCarriers(sql.OrderBySum(parts[1], dir)))
+				return query.Order(organization.ByNetworks(sql.OrderBySum(parts[1], dir)))
 			default:
-				return query.Order(organization.ByCarriers(sql.OrderByField(parts[1], dir)))
-			}
-		case organization.EdgeCampuses:
-			switch {
-			case isCount:
-				return query.Order(organization.ByCampusesCount(dir))
-			case isSum:
-				return query.Order(organization.ByCampuses(sql.OrderBySum(parts[1], dir)))
-			default:
-				return query.Order(organization.ByCampuses(sql.OrderByField(parts[1], dir)))
+				return query.Order(organization.ByNetworks(sql.OrderByField(parts[1], dir)))
 			}
 		}
 	}

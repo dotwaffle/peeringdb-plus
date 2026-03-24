@@ -28,34 +28,6 @@ type FacilityCreate struct {
 	conflict []sql.ConflictOption
 }
 
-// SetOrgID sets the "org_id" field.
-func (_c *FacilityCreate) SetOrgID(v int) *FacilityCreate {
-	_c.mutation.SetOrgID(v)
-	return _c
-}
-
-// SetNillableOrgID sets the "org_id" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableOrgID(v *int) *FacilityCreate {
-	if v != nil {
-		_c.SetOrgID(*v)
-	}
-	return _c
-}
-
-// SetOrgName sets the "org_name" field.
-func (_c *FacilityCreate) SetOrgName(v string) *FacilityCreate {
-	_c.mutation.SetOrgName(v)
-	return _c
-}
-
-// SetNillableOrgName sets the "org_name" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableOrgName(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetOrgName(*v)
-	}
-	return _c
-}
-
 // SetCampusID sets the "campus_id" field.
 func (_c *FacilityCreate) SetCampusID(v int) *FacilityCreate {
 	_c.mutation.SetCampusID(v)
@@ -70,9 +42,45 @@ func (_c *FacilityCreate) SetNillableCampusID(v *int) *FacilityCreate {
 	return _c
 }
 
-// SetName sets the "name" field.
-func (_c *FacilityCreate) SetName(v string) *FacilityCreate {
-	_c.mutation.SetName(v)
+// SetOrgID sets the "org_id" field.
+func (_c *FacilityCreate) SetOrgID(v int) *FacilityCreate {
+	_c.mutation.SetOrgID(v)
+	return _c
+}
+
+// SetNillableOrgID sets the "org_id" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableOrgID(v *int) *FacilityCreate {
+	if v != nil {
+		_c.SetOrgID(*v)
+	}
+	return _c
+}
+
+// SetAddress1 sets the "address1" field.
+func (_c *FacilityCreate) SetAddress1(v string) *FacilityCreate {
+	_c.mutation.SetAddress1(v)
+	return _c
+}
+
+// SetNillableAddress1 sets the "address1" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableAddress1(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetAddress1(*v)
+	}
+	return _c
+}
+
+// SetAddress2 sets the "address2" field.
+func (_c *FacilityCreate) SetAddress2(v string) *FacilityCreate {
+	_c.mutation.SetAddress2(v)
+	return _c
+}
+
+// SetNillableAddress2 sets the "address2" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableAddress2(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetAddress2(*v)
+	}
 	return _c
 }
 
@@ -90,37 +98,23 @@ func (_c *FacilityCreate) SetNillableAka(v *string) *FacilityCreate {
 	return _c
 }
 
-// SetNameLong sets the "name_long" field.
-func (_c *FacilityCreate) SetNameLong(v string) *FacilityCreate {
-	_c.mutation.SetNameLong(v)
+// SetAvailableVoltageServices sets the "available_voltage_services" field.
+func (_c *FacilityCreate) SetAvailableVoltageServices(v []string) *FacilityCreate {
+	_c.mutation.SetAvailableVoltageServices(v)
 	return _c
 }
 
-// SetNillableNameLong sets the "name_long" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableNameLong(v *string) *FacilityCreate {
+// SetCity sets the "city" field.
+func (_c *FacilityCreate) SetCity(v string) *FacilityCreate {
+	_c.mutation.SetCity(v)
+	return _c
+}
+
+// SetNillableCity sets the "city" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableCity(v *string) *FacilityCreate {
 	if v != nil {
-		_c.SetNameLong(*v)
+		_c.SetCity(*v)
 	}
-	return _c
-}
-
-// SetWebsite sets the "website" field.
-func (_c *FacilityCreate) SetWebsite(v string) *FacilityCreate {
-	_c.mutation.SetWebsite(v)
-	return _c
-}
-
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableWebsite(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetWebsite(*v)
-	}
-	return _c
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (_c *FacilityCreate) SetSocialMedia(v []schema.SocialMedia) *FacilityCreate {
-	_c.mutation.SetSocialMedia(v)
 	return _c
 }
 
@@ -138,16 +132,120 @@ func (_c *FacilityCreate) SetNillableClli(v *string) *FacilityCreate {
 	return _c
 }
 
-// SetRencode sets the "rencode" field.
-func (_c *FacilityCreate) SetRencode(v string) *FacilityCreate {
-	_c.mutation.SetRencode(v)
+// SetCountry sets the "country" field.
+func (_c *FacilityCreate) SetCountry(v string) *FacilityCreate {
+	_c.mutation.SetCountry(v)
 	return _c
 }
 
-// SetNillableRencode sets the "rencode" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableRencode(v *string) *FacilityCreate {
+// SetNillableCountry sets the "country" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableCountry(v *string) *FacilityCreate {
 	if v != nil {
-		_c.SetRencode(*v)
+		_c.SetCountry(*v)
+	}
+	return _c
+}
+
+// SetDiverseServingSubstations sets the "diverse_serving_substations" field.
+func (_c *FacilityCreate) SetDiverseServingSubstations(v bool) *FacilityCreate {
+	_c.mutation.SetDiverseServingSubstations(v)
+	return _c
+}
+
+// SetNillableDiverseServingSubstations sets the "diverse_serving_substations" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableDiverseServingSubstations(v *bool) *FacilityCreate {
+	if v != nil {
+		_c.SetDiverseServingSubstations(*v)
+	}
+	return _c
+}
+
+// SetFloor sets the "floor" field.
+func (_c *FacilityCreate) SetFloor(v string) *FacilityCreate {
+	_c.mutation.SetFloor(v)
+	return _c
+}
+
+// SetNillableFloor sets the "floor" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableFloor(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetFloor(*v)
+	}
+	return _c
+}
+
+// SetLatitude sets the "latitude" field.
+func (_c *FacilityCreate) SetLatitude(v float64) *FacilityCreate {
+	_c.mutation.SetLatitude(v)
+	return _c
+}
+
+// SetNillableLatitude sets the "latitude" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableLatitude(v *float64) *FacilityCreate {
+	if v != nil {
+		_c.SetLatitude(*v)
+	}
+	return _c
+}
+
+// SetLogo sets the "logo" field.
+func (_c *FacilityCreate) SetLogo(v string) *FacilityCreate {
+	_c.mutation.SetLogo(v)
+	return _c
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableLogo(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetLogo(*v)
+	}
+	return _c
+}
+
+// SetLongitude sets the "longitude" field.
+func (_c *FacilityCreate) SetLongitude(v float64) *FacilityCreate {
+	_c.mutation.SetLongitude(v)
+	return _c
+}
+
+// SetNillableLongitude sets the "longitude" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableLongitude(v *float64) *FacilityCreate {
+	if v != nil {
+		_c.SetLongitude(*v)
+	}
+	return _c
+}
+
+// SetName sets the "name" field.
+func (_c *FacilityCreate) SetName(v string) *FacilityCreate {
+	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetNameLong sets the "name_long" field.
+func (_c *FacilityCreate) SetNameLong(v string) *FacilityCreate {
+	_c.mutation.SetNameLong(v)
+	return _c
+}
+
+// SetNillableNameLong sets the "name_long" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableNameLong(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetNameLong(*v)
+	}
+	return _c
+}
+
+// SetNotes sets the "notes" field.
+func (_c *FacilityCreate) SetNotes(v string) *FacilityCreate {
+	_c.mutation.SetNotes(v)
+	return _c
+}
+
+// SetNillableNotes sets the "notes" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableNotes(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetNotes(*v)
 	}
 	return _c
 }
@@ -166,30 +264,44 @@ func (_c *FacilityCreate) SetNillableNpanxx(v *string) *FacilityCreate {
 	return _c
 }
 
-// SetTechEmail sets the "tech_email" field.
-func (_c *FacilityCreate) SetTechEmail(v string) *FacilityCreate {
-	_c.mutation.SetTechEmail(v)
+// SetProperty sets the "property" field.
+func (_c *FacilityCreate) SetProperty(v string) *FacilityCreate {
+	_c.mutation.SetProperty(v)
 	return _c
 }
 
-// SetNillableTechEmail sets the "tech_email" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableTechEmail(v *string) *FacilityCreate {
+// SetNillableProperty sets the "property" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableProperty(v *string) *FacilityCreate {
 	if v != nil {
-		_c.SetTechEmail(*v)
+		_c.SetProperty(*v)
 	}
 	return _c
 }
 
-// SetTechPhone sets the "tech_phone" field.
-func (_c *FacilityCreate) SetTechPhone(v string) *FacilityCreate {
-	_c.mutation.SetTechPhone(v)
+// SetRegionContinent sets the "region_continent" field.
+func (_c *FacilityCreate) SetRegionContinent(v string) *FacilityCreate {
+	_c.mutation.SetRegionContinent(v)
 	return _c
 }
 
-// SetNillableTechPhone sets the "tech_phone" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableTechPhone(v *string) *FacilityCreate {
+// SetNillableRegionContinent sets the "region_continent" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableRegionContinent(v *string) *FacilityCreate {
 	if v != nil {
-		_c.SetTechPhone(*v)
+		_c.SetRegionContinent(*v)
+	}
+	return _c
+}
+
+// SetRencode sets the "rencode" field.
+func (_c *FacilityCreate) SetRencode(v string) *FacilityCreate {
+	_c.mutation.SetRencode(v)
+	return _c
+}
+
+// SetNillableRencode sets the "rencode" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableRencode(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetRencode(*v)
 	}
 	return _c
 }
@@ -222,64 +334,22 @@ func (_c *FacilityCreate) SetNillableSalesPhone(v *string) *FacilityCreate {
 	return _c
 }
 
-// SetProperty sets the "property" field.
-func (_c *FacilityCreate) SetProperty(v string) *FacilityCreate {
-	_c.mutation.SetProperty(v)
+// SetSocialMedia sets the "social_media" field.
+func (_c *FacilityCreate) SetSocialMedia(v []schema.SocialMedia) *FacilityCreate {
+	_c.mutation.SetSocialMedia(v)
 	return _c
 }
 
-// SetNillableProperty sets the "property" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableProperty(v *string) *FacilityCreate {
+// SetState sets the "state" field.
+func (_c *FacilityCreate) SetState(v string) *FacilityCreate {
+	_c.mutation.SetState(v)
+	return _c
+}
+
+// SetNillableState sets the "state" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableState(v *string) *FacilityCreate {
 	if v != nil {
-		_c.SetProperty(*v)
-	}
-	return _c
-}
-
-// SetDiverseServingSubstations sets the "diverse_serving_substations" field.
-func (_c *FacilityCreate) SetDiverseServingSubstations(v bool) *FacilityCreate {
-	_c.mutation.SetDiverseServingSubstations(v)
-	return _c
-}
-
-// SetNillableDiverseServingSubstations sets the "diverse_serving_substations" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableDiverseServingSubstations(v *bool) *FacilityCreate {
-	if v != nil {
-		_c.SetDiverseServingSubstations(*v)
-	}
-	return _c
-}
-
-// SetAvailableVoltageServices sets the "available_voltage_services" field.
-func (_c *FacilityCreate) SetAvailableVoltageServices(v []string) *FacilityCreate {
-	_c.mutation.SetAvailableVoltageServices(v)
-	return _c
-}
-
-// SetNotes sets the "notes" field.
-func (_c *FacilityCreate) SetNotes(v string) *FacilityCreate {
-	_c.mutation.SetNotes(v)
-	return _c
-}
-
-// SetNillableNotes sets the "notes" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableNotes(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetNotes(*v)
-	}
-	return _c
-}
-
-// SetRegionContinent sets the "region_continent" field.
-func (_c *FacilityCreate) SetRegionContinent(v string) *FacilityCreate {
-	_c.mutation.SetRegionContinent(v)
-	return _c
-}
-
-// SetNillableRegionContinent sets the "region_continent" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableRegionContinent(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetRegionContinent(*v)
+		_c.SetState(*v)
 	}
 	return _c
 }
@@ -298,16 +368,86 @@ func (_c *FacilityCreate) SetNillableStatusDashboard(v *string) *FacilityCreate 
 	return _c
 }
 
-// SetLogo sets the "logo" field.
-func (_c *FacilityCreate) SetLogo(v string) *FacilityCreate {
-	_c.mutation.SetLogo(v)
+// SetSuite sets the "suite" field.
+func (_c *FacilityCreate) SetSuite(v string) *FacilityCreate {
+	_c.mutation.SetSuite(v)
 	return _c
 }
 
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableLogo(v *string) *FacilityCreate {
+// SetNillableSuite sets the "suite" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableSuite(v *string) *FacilityCreate {
 	if v != nil {
-		_c.SetLogo(*v)
+		_c.SetSuite(*v)
+	}
+	return _c
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (_c *FacilityCreate) SetTechEmail(v string) *FacilityCreate {
+	_c.mutation.SetTechEmail(v)
+	return _c
+}
+
+// SetNillableTechEmail sets the "tech_email" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableTechEmail(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetTechEmail(*v)
+	}
+	return _c
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (_c *FacilityCreate) SetTechPhone(v string) *FacilityCreate {
+	_c.mutation.SetTechPhone(v)
+	return _c
+}
+
+// SetNillableTechPhone sets the "tech_phone" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableTechPhone(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetTechPhone(*v)
+	}
+	return _c
+}
+
+// SetWebsite sets the "website" field.
+func (_c *FacilityCreate) SetWebsite(v string) *FacilityCreate {
+	_c.mutation.SetWebsite(v)
+	return _c
+}
+
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableWebsite(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetWebsite(*v)
+	}
+	return _c
+}
+
+// SetZipcode sets the "zipcode" field.
+func (_c *FacilityCreate) SetZipcode(v string) *FacilityCreate {
+	_c.mutation.SetZipcode(v)
+	return _c
+}
+
+// SetNillableZipcode sets the "zipcode" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableZipcode(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetZipcode(*v)
+	}
+	return _c
+}
+
+// SetOrgName sets the "org_name" field.
+func (_c *FacilityCreate) SetOrgName(v string) *FacilityCreate {
+	_c.mutation.SetOrgName(v)
+	return _c
+}
+
+// SetNillableOrgName sets the "org_name" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableOrgName(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetOrgName(*v)
 	}
 	return _c
 }
@@ -354,146 +494,6 @@ func (_c *FacilityCreate) SetNillableCarrierCount(v *int) *FacilityCreate {
 	return _c
 }
 
-// SetAddress1 sets the "address1" field.
-func (_c *FacilityCreate) SetAddress1(v string) *FacilityCreate {
-	_c.mutation.SetAddress1(v)
-	return _c
-}
-
-// SetNillableAddress1 sets the "address1" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableAddress1(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetAddress1(*v)
-	}
-	return _c
-}
-
-// SetAddress2 sets the "address2" field.
-func (_c *FacilityCreate) SetAddress2(v string) *FacilityCreate {
-	_c.mutation.SetAddress2(v)
-	return _c
-}
-
-// SetNillableAddress2 sets the "address2" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableAddress2(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetAddress2(*v)
-	}
-	return _c
-}
-
-// SetCity sets the "city" field.
-func (_c *FacilityCreate) SetCity(v string) *FacilityCreate {
-	_c.mutation.SetCity(v)
-	return _c
-}
-
-// SetNillableCity sets the "city" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableCity(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetCity(*v)
-	}
-	return _c
-}
-
-// SetState sets the "state" field.
-func (_c *FacilityCreate) SetState(v string) *FacilityCreate {
-	_c.mutation.SetState(v)
-	return _c
-}
-
-// SetNillableState sets the "state" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableState(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetState(*v)
-	}
-	return _c
-}
-
-// SetCountry sets the "country" field.
-func (_c *FacilityCreate) SetCountry(v string) *FacilityCreate {
-	_c.mutation.SetCountry(v)
-	return _c
-}
-
-// SetNillableCountry sets the "country" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableCountry(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetCountry(*v)
-	}
-	return _c
-}
-
-// SetZipcode sets the "zipcode" field.
-func (_c *FacilityCreate) SetZipcode(v string) *FacilityCreate {
-	_c.mutation.SetZipcode(v)
-	return _c
-}
-
-// SetNillableZipcode sets the "zipcode" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableZipcode(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetZipcode(*v)
-	}
-	return _c
-}
-
-// SetSuite sets the "suite" field.
-func (_c *FacilityCreate) SetSuite(v string) *FacilityCreate {
-	_c.mutation.SetSuite(v)
-	return _c
-}
-
-// SetNillableSuite sets the "suite" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableSuite(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetSuite(*v)
-	}
-	return _c
-}
-
-// SetFloor sets the "floor" field.
-func (_c *FacilityCreate) SetFloor(v string) *FacilityCreate {
-	_c.mutation.SetFloor(v)
-	return _c
-}
-
-// SetNillableFloor sets the "floor" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableFloor(v *string) *FacilityCreate {
-	if v != nil {
-		_c.SetFloor(*v)
-	}
-	return _c
-}
-
-// SetLatitude sets the "latitude" field.
-func (_c *FacilityCreate) SetLatitude(v float64) *FacilityCreate {
-	_c.mutation.SetLatitude(v)
-	return _c
-}
-
-// SetNillableLatitude sets the "latitude" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableLatitude(v *float64) *FacilityCreate {
-	if v != nil {
-		_c.SetLatitude(*v)
-	}
-	return _c
-}
-
-// SetLongitude sets the "longitude" field.
-func (_c *FacilityCreate) SetLongitude(v float64) *FacilityCreate {
-	_c.mutation.SetLongitude(v)
-	return _c
-}
-
-// SetNillableLongitude sets the "longitude" field if the given value is not nil.
-func (_c *FacilityCreate) SetNillableLongitude(v *float64) *FacilityCreate {
-	if v != nil {
-		_c.SetLongitude(*v)
-	}
-	return _c
-}
-
 // SetCreated sets the "created" field.
 func (_c *FacilityCreate) SetCreated(v time.Time) *FacilityCreate {
 	_c.mutation.SetCreated(v)
@@ -526,43 +526,24 @@ func (_c *FacilityCreate) SetID(v int) *FacilityCreate {
 	return _c
 }
 
-// SetOrganizationID sets the "organization" edge to the Organization entity by ID.
-func (_c *FacilityCreate) SetOrganizationID(id int) *FacilityCreate {
-	_c.mutation.SetOrganizationID(id)
-	return _c
-}
-
-// SetNillableOrganizationID sets the "organization" edge to the Organization entity by ID if the given value is not nil.
-func (_c *FacilityCreate) SetNillableOrganizationID(id *int) *FacilityCreate {
-	if id != nil {
-		_c = _c.SetOrganizationID(*id)
-	}
-	return _c
-}
-
-// SetOrganization sets the "organization" edge to the Organization entity.
-func (_c *FacilityCreate) SetOrganization(v *Organization) *FacilityCreate {
-	return _c.SetOrganizationID(v.ID)
-}
-
 // SetCampus sets the "campus" edge to the Campus entity.
 func (_c *FacilityCreate) SetCampus(v *Campus) *FacilityCreate {
 	return _c.SetCampusID(v.ID)
 }
 
-// AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by IDs.
-func (_c *FacilityCreate) AddNetworkFacilityIDs(ids ...int) *FacilityCreate {
-	_c.mutation.AddNetworkFacilityIDs(ids...)
+// AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by IDs.
+func (_c *FacilityCreate) AddCarrierFacilityIDs(ids ...int) *FacilityCreate {
+	_c.mutation.AddCarrierFacilityIDs(ids...)
 	return _c
 }
 
-// AddNetworkFacilities adds the "network_facilities" edges to the NetworkFacility entity.
-func (_c *FacilityCreate) AddNetworkFacilities(v ...*NetworkFacility) *FacilityCreate {
+// AddCarrierFacilities adds the "carrier_facilities" edges to the CarrierFacility entity.
+func (_c *FacilityCreate) AddCarrierFacilities(v ...*CarrierFacility) *FacilityCreate {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddNetworkFacilityIDs(ids...)
+	return _c.AddCarrierFacilityIDs(ids...)
 }
 
 // AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by IDs.
@@ -580,19 +561,38 @@ func (_c *FacilityCreate) AddIxFacilities(v ...*IxFacility) *FacilityCreate {
 	return _c.AddIxFacilityIDs(ids...)
 }
 
-// AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by IDs.
-func (_c *FacilityCreate) AddCarrierFacilityIDs(ids ...int) *FacilityCreate {
-	_c.mutation.AddCarrierFacilityIDs(ids...)
+// AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by IDs.
+func (_c *FacilityCreate) AddNetworkFacilityIDs(ids ...int) *FacilityCreate {
+	_c.mutation.AddNetworkFacilityIDs(ids...)
 	return _c
 }
 
-// AddCarrierFacilities adds the "carrier_facilities" edges to the CarrierFacility entity.
-func (_c *FacilityCreate) AddCarrierFacilities(v ...*CarrierFacility) *FacilityCreate {
+// AddNetworkFacilities adds the "network_facilities" edges to the NetworkFacility entity.
+func (_c *FacilityCreate) AddNetworkFacilities(v ...*NetworkFacility) *FacilityCreate {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddCarrierFacilityIDs(ids...)
+	return _c.AddNetworkFacilityIDs(ids...)
+}
+
+// SetOrganizationID sets the "organization" edge to the Organization entity by ID.
+func (_c *FacilityCreate) SetOrganizationID(id int) *FacilityCreate {
+	_c.mutation.SetOrganizationID(id)
+	return _c
+}
+
+// SetNillableOrganizationID sets the "organization" edge to the Organization entity by ID if the given value is not nil.
+func (_c *FacilityCreate) SetNillableOrganizationID(id *int) *FacilityCreate {
+	if id != nil {
+		_c = _c.SetOrganizationID(*id)
+	}
+	return _c
+}
+
+// SetOrganization sets the "organization" edge to the Organization entity.
+func (_c *FacilityCreate) SetOrganization(v *Organization) *FacilityCreate {
+	return _c.SetOrganizationID(v.ID)
 }
 
 // Mutation returns the FacilityMutation object of the builder.
@@ -632,41 +632,49 @@ func (_c *FacilityCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *FacilityCreate) defaults() error {
-	if _, ok := _c.mutation.OrgName(); !ok {
-		v := facility.DefaultOrgName
-		_c.mutation.SetOrgName(v)
+	if _, ok := _c.mutation.Address1(); !ok {
+		v := facility.DefaultAddress1
+		_c.mutation.SetAddress1(v)
+	}
+	if _, ok := _c.mutation.Address2(); !ok {
+		v := facility.DefaultAddress2
+		_c.mutation.SetAddress2(v)
 	}
 	if _, ok := _c.mutation.Aka(); !ok {
 		v := facility.DefaultAka
 		_c.mutation.SetAka(v)
 	}
-	if _, ok := _c.mutation.NameLong(); !ok {
-		v := facility.DefaultNameLong
-		_c.mutation.SetNameLong(v)
-	}
-	if _, ok := _c.mutation.Website(); !ok {
-		v := facility.DefaultWebsite
-		_c.mutation.SetWebsite(v)
+	if _, ok := _c.mutation.City(); !ok {
+		v := facility.DefaultCity
+		_c.mutation.SetCity(v)
 	}
 	if _, ok := _c.mutation.Clli(); !ok {
 		v := facility.DefaultClli
 		_c.mutation.SetClli(v)
 	}
-	if _, ok := _c.mutation.Rencode(); !ok {
-		v := facility.DefaultRencode
-		_c.mutation.SetRencode(v)
+	if _, ok := _c.mutation.Country(); !ok {
+		v := facility.DefaultCountry
+		_c.mutation.SetCountry(v)
+	}
+	if _, ok := _c.mutation.Floor(); !ok {
+		v := facility.DefaultFloor
+		_c.mutation.SetFloor(v)
+	}
+	if _, ok := _c.mutation.NameLong(); !ok {
+		v := facility.DefaultNameLong
+		_c.mutation.SetNameLong(v)
+	}
+	if _, ok := _c.mutation.Notes(); !ok {
+		v := facility.DefaultNotes
+		_c.mutation.SetNotes(v)
 	}
 	if _, ok := _c.mutation.Npanxx(); !ok {
 		v := facility.DefaultNpanxx
 		_c.mutation.SetNpanxx(v)
 	}
-	if _, ok := _c.mutation.TechEmail(); !ok {
-		v := facility.DefaultTechEmail
-		_c.mutation.SetTechEmail(v)
-	}
-	if _, ok := _c.mutation.TechPhone(); !ok {
-		v := facility.DefaultTechPhone
-		_c.mutation.SetTechPhone(v)
+	if _, ok := _c.mutation.Rencode(); !ok {
+		v := facility.DefaultRencode
+		_c.mutation.SetRencode(v)
 	}
 	if _, ok := _c.mutation.SalesEmail(); !ok {
 		v := facility.DefaultSalesEmail
@@ -676,9 +684,33 @@ func (_c *FacilityCreate) defaults() error {
 		v := facility.DefaultSalesPhone
 		_c.mutation.SetSalesPhone(v)
 	}
-	if _, ok := _c.mutation.Notes(); !ok {
-		v := facility.DefaultNotes
-		_c.mutation.SetNotes(v)
+	if _, ok := _c.mutation.State(); !ok {
+		v := facility.DefaultState
+		_c.mutation.SetState(v)
+	}
+	if _, ok := _c.mutation.Suite(); !ok {
+		v := facility.DefaultSuite
+		_c.mutation.SetSuite(v)
+	}
+	if _, ok := _c.mutation.TechEmail(); !ok {
+		v := facility.DefaultTechEmail
+		_c.mutation.SetTechEmail(v)
+	}
+	if _, ok := _c.mutation.TechPhone(); !ok {
+		v := facility.DefaultTechPhone
+		_c.mutation.SetTechPhone(v)
+	}
+	if _, ok := _c.mutation.Website(); !ok {
+		v := facility.DefaultWebsite
+		_c.mutation.SetWebsite(v)
+	}
+	if _, ok := _c.mutation.Zipcode(); !ok {
+		v := facility.DefaultZipcode
+		_c.mutation.SetZipcode(v)
+	}
+	if _, ok := _c.mutation.OrgName(); !ok {
+		v := facility.DefaultOrgName
+		_c.mutation.SetOrgName(v)
 	}
 	if _, ok := _c.mutation.NetCount(); !ok {
 		v := facility.DefaultNetCount
@@ -692,38 +724,6 @@ func (_c *FacilityCreate) defaults() error {
 		v := facility.DefaultCarrierCount
 		_c.mutation.SetCarrierCount(v)
 	}
-	if _, ok := _c.mutation.Address1(); !ok {
-		v := facility.DefaultAddress1
-		_c.mutation.SetAddress1(v)
-	}
-	if _, ok := _c.mutation.Address2(); !ok {
-		v := facility.DefaultAddress2
-		_c.mutation.SetAddress2(v)
-	}
-	if _, ok := _c.mutation.City(); !ok {
-		v := facility.DefaultCity
-		_c.mutation.SetCity(v)
-	}
-	if _, ok := _c.mutation.State(); !ok {
-		v := facility.DefaultState
-		_c.mutation.SetState(v)
-	}
-	if _, ok := _c.mutation.Country(); !ok {
-		v := facility.DefaultCountry
-		_c.mutation.SetCountry(v)
-	}
-	if _, ok := _c.mutation.Zipcode(); !ok {
-		v := facility.DefaultZipcode
-		_c.mutation.SetZipcode(v)
-	}
-	if _, ok := _c.mutation.Suite(); !ok {
-		v := facility.DefaultSuite
-		_c.mutation.SetSuite(v)
-	}
-	if _, ok := _c.mutation.Floor(); !ok {
-		v := facility.DefaultFloor
-		_c.mutation.SetFloor(v)
-	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := facility.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -733,6 +733,36 @@ func (_c *FacilityCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *FacilityCreate) check() error {
+	if v, ok := _c.mutation.Address1(); ok {
+		if err := facility.Address1Validator(v); err != nil {
+			return &ValidationError{Name: "address1", err: fmt.Errorf(`ent: validator failed for field "Facility.address1": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Address2(); ok {
+		if err := facility.Address2Validator(v); err != nil {
+			return &ValidationError{Name: "address2", err: fmt.Errorf(`ent: validator failed for field "Facility.address2": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Aka(); ok {
+		if err := facility.AkaValidator(v); err != nil {
+			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Facility.aka": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.City(); ok {
+		if err := facility.CityValidator(v); err != nil {
+			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "Facility.city": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Clli(); ok {
+		if err := facility.ClliValidator(v); err != nil {
+			return &ValidationError{Name: "clli", err: fmt.Errorf(`ent: validator failed for field "Facility.clli": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Floor(); ok {
+		if err := facility.FloorValidator(v); err != nil {
+			return &ValidationError{Name: "floor", err: fmt.Errorf(`ent: validator failed for field "Facility.floor": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Facility.name"`)}
 	}
@@ -741,24 +771,9 @@ func (_c *FacilityCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Facility.name": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.Aka(); ok {
-		if err := facility.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Facility.aka": %w`, err)}
-		}
-	}
 	if v, ok := _c.mutation.NameLong(); ok {
 		if err := facility.NameLongValidator(v); err != nil {
 			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Facility.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.Clli(); ok {
-		if err := facility.ClliValidator(v); err != nil {
-			return &ValidationError{Name: "clli", err: fmt.Errorf(`ent: validator failed for field "Facility.clli": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.Rencode(); ok {
-		if err := facility.RencodeValidator(v); err != nil {
-			return &ValidationError{Name: "rencode", err: fmt.Errorf(`ent: validator failed for field "Facility.rencode": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.Npanxx(); ok {
@@ -766,14 +781,14 @@ func (_c *FacilityCreate) check() error {
 			return &ValidationError{Name: "npanxx", err: fmt.Errorf(`ent: validator failed for field "Facility.npanxx": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.TechEmail(); ok {
-		if err := facility.TechEmailValidator(v); err != nil {
-			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "Facility.tech_email": %w`, err)}
+	if v, ok := _c.mutation.Property(); ok {
+		if err := facility.PropertyValidator(v); err != nil {
+			return &ValidationError{Name: "property", err: fmt.Errorf(`ent: validator failed for field "Facility.property": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.TechPhone(); ok {
-		if err := facility.TechPhoneValidator(v); err != nil {
-			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "Facility.tech_phone": %w`, err)}
+	if v, ok := _c.mutation.Rencode(); ok {
+		if err := facility.RencodeValidator(v); err != nil {
+			return &ValidationError{Name: "rencode", err: fmt.Errorf(`ent: validator failed for field "Facility.rencode": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.SalesEmail(); ok {
@@ -786,14 +801,9 @@ func (_c *FacilityCreate) check() error {
 			return &ValidationError{Name: "sales_phone", err: fmt.Errorf(`ent: validator failed for field "Facility.sales_phone": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.Property(); ok {
-		if err := facility.PropertyValidator(v); err != nil {
-			return &ValidationError{Name: "property", err: fmt.Errorf(`ent: validator failed for field "Facility.property": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.Zipcode(); ok {
-		if err := facility.ZipcodeValidator(v); err != nil {
-			return &ValidationError{Name: "zipcode", err: fmt.Errorf(`ent: validator failed for field "Facility.zipcode": %w`, err)}
+	if v, ok := _c.mutation.State(); ok {
+		if err := facility.StateValidator(v); err != nil {
+			return &ValidationError{Name: "state", err: fmt.Errorf(`ent: validator failed for field "Facility.state": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.Suite(); ok {
@@ -801,9 +811,19 @@ func (_c *FacilityCreate) check() error {
 			return &ValidationError{Name: "suite", err: fmt.Errorf(`ent: validator failed for field "Facility.suite": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.Floor(); ok {
-		if err := facility.FloorValidator(v); err != nil {
-			return &ValidationError{Name: "floor", err: fmt.Errorf(`ent: validator failed for field "Facility.floor": %w`, err)}
+	if v, ok := _c.mutation.TechEmail(); ok {
+		if err := facility.TechEmailValidator(v); err != nil {
+			return &ValidationError{Name: "tech_email", err: fmt.Errorf(`ent: validator failed for field "Facility.tech_email": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.TechPhone(); ok {
+		if err := facility.TechPhoneValidator(v); err != nil {
+			return &ValidationError{Name: "tech_phone", err: fmt.Errorf(`ent: validator failed for field "Facility.tech_phone": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Zipcode(); ok {
+		if err := facility.ZipcodeValidator(v); err != nil {
+			return &ValidationError{Name: "zipcode", err: fmt.Errorf(`ent: validator failed for field "Facility.zipcode": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Created(); !ok {
@@ -858,49 +878,81 @@ func (_c *FacilityCreate) createSpec() (*Facility, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.OrgName(); ok {
-		_spec.SetField(facility.FieldOrgName, field.TypeString, value)
-		_node.OrgName = value
+	if value, ok := _c.mutation.Address1(); ok {
+		_spec.SetField(facility.FieldAddress1, field.TypeString, value)
+		_node.Address1 = value
 	}
-	if value, ok := _c.mutation.Name(); ok {
-		_spec.SetField(facility.FieldName, field.TypeString, value)
-		_node.Name = value
+	if value, ok := _c.mutation.Address2(); ok {
+		_spec.SetField(facility.FieldAddress2, field.TypeString, value)
+		_node.Address2 = value
 	}
 	if value, ok := _c.mutation.Aka(); ok {
 		_spec.SetField(facility.FieldAka, field.TypeString, value)
 		_node.Aka = value
 	}
-	if value, ok := _c.mutation.NameLong(); ok {
-		_spec.SetField(facility.FieldNameLong, field.TypeString, value)
-		_node.NameLong = value
+	if value, ok := _c.mutation.AvailableVoltageServices(); ok {
+		_spec.SetField(facility.FieldAvailableVoltageServices, field.TypeJSON, value)
+		_node.AvailableVoltageServices = value
 	}
-	if value, ok := _c.mutation.Website(); ok {
-		_spec.SetField(facility.FieldWebsite, field.TypeString, value)
-		_node.Website = value
-	}
-	if value, ok := _c.mutation.SocialMedia(); ok {
-		_spec.SetField(facility.FieldSocialMedia, field.TypeJSON, value)
-		_node.SocialMedia = value
+	if value, ok := _c.mutation.City(); ok {
+		_spec.SetField(facility.FieldCity, field.TypeString, value)
+		_node.City = value
 	}
 	if value, ok := _c.mutation.Clli(); ok {
 		_spec.SetField(facility.FieldClli, field.TypeString, value)
 		_node.Clli = value
 	}
-	if value, ok := _c.mutation.Rencode(); ok {
-		_spec.SetField(facility.FieldRencode, field.TypeString, value)
-		_node.Rencode = value
+	if value, ok := _c.mutation.Country(); ok {
+		_spec.SetField(facility.FieldCountry, field.TypeString, value)
+		_node.Country = value
+	}
+	if value, ok := _c.mutation.DiverseServingSubstations(); ok {
+		_spec.SetField(facility.FieldDiverseServingSubstations, field.TypeBool, value)
+		_node.DiverseServingSubstations = &value
+	}
+	if value, ok := _c.mutation.Floor(); ok {
+		_spec.SetField(facility.FieldFloor, field.TypeString, value)
+		_node.Floor = value
+	}
+	if value, ok := _c.mutation.Latitude(); ok {
+		_spec.SetField(facility.FieldLatitude, field.TypeFloat64, value)
+		_node.Latitude = &value
+	}
+	if value, ok := _c.mutation.Logo(); ok {
+		_spec.SetField(facility.FieldLogo, field.TypeString, value)
+		_node.Logo = &value
+	}
+	if value, ok := _c.mutation.Longitude(); ok {
+		_spec.SetField(facility.FieldLongitude, field.TypeFloat64, value)
+		_node.Longitude = &value
+	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(facility.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := _c.mutation.NameLong(); ok {
+		_spec.SetField(facility.FieldNameLong, field.TypeString, value)
+		_node.NameLong = value
+	}
+	if value, ok := _c.mutation.Notes(); ok {
+		_spec.SetField(facility.FieldNotes, field.TypeString, value)
+		_node.Notes = value
 	}
 	if value, ok := _c.mutation.Npanxx(); ok {
 		_spec.SetField(facility.FieldNpanxx, field.TypeString, value)
 		_node.Npanxx = value
 	}
-	if value, ok := _c.mutation.TechEmail(); ok {
-		_spec.SetField(facility.FieldTechEmail, field.TypeString, value)
-		_node.TechEmail = value
+	if value, ok := _c.mutation.Property(); ok {
+		_spec.SetField(facility.FieldProperty, field.TypeString, value)
+		_node.Property = &value
 	}
-	if value, ok := _c.mutation.TechPhone(); ok {
-		_spec.SetField(facility.FieldTechPhone, field.TypeString, value)
-		_node.TechPhone = value
+	if value, ok := _c.mutation.RegionContinent(); ok {
+		_spec.SetField(facility.FieldRegionContinent, field.TypeString, value)
+		_node.RegionContinent = &value
+	}
+	if value, ok := _c.mutation.Rencode(); ok {
+		_spec.SetField(facility.FieldRencode, field.TypeString, value)
+		_node.Rencode = value
 	}
 	if value, ok := _c.mutation.SalesEmail(); ok {
 		_spec.SetField(facility.FieldSalesEmail, field.TypeString, value)
@@ -910,33 +962,41 @@ func (_c *FacilityCreate) createSpec() (*Facility, *sqlgraph.CreateSpec) {
 		_spec.SetField(facility.FieldSalesPhone, field.TypeString, value)
 		_node.SalesPhone = value
 	}
-	if value, ok := _c.mutation.Property(); ok {
-		_spec.SetField(facility.FieldProperty, field.TypeString, value)
-		_node.Property = &value
+	if value, ok := _c.mutation.SocialMedia(); ok {
+		_spec.SetField(facility.FieldSocialMedia, field.TypeJSON, value)
+		_node.SocialMedia = value
 	}
-	if value, ok := _c.mutation.DiverseServingSubstations(); ok {
-		_spec.SetField(facility.FieldDiverseServingSubstations, field.TypeBool, value)
-		_node.DiverseServingSubstations = &value
-	}
-	if value, ok := _c.mutation.AvailableVoltageServices(); ok {
-		_spec.SetField(facility.FieldAvailableVoltageServices, field.TypeJSON, value)
-		_node.AvailableVoltageServices = value
-	}
-	if value, ok := _c.mutation.Notes(); ok {
-		_spec.SetField(facility.FieldNotes, field.TypeString, value)
-		_node.Notes = value
-	}
-	if value, ok := _c.mutation.RegionContinent(); ok {
-		_spec.SetField(facility.FieldRegionContinent, field.TypeString, value)
-		_node.RegionContinent = &value
+	if value, ok := _c.mutation.State(); ok {
+		_spec.SetField(facility.FieldState, field.TypeString, value)
+		_node.State = value
 	}
 	if value, ok := _c.mutation.StatusDashboard(); ok {
 		_spec.SetField(facility.FieldStatusDashboard, field.TypeString, value)
 		_node.StatusDashboard = &value
 	}
-	if value, ok := _c.mutation.Logo(); ok {
-		_spec.SetField(facility.FieldLogo, field.TypeString, value)
-		_node.Logo = &value
+	if value, ok := _c.mutation.Suite(); ok {
+		_spec.SetField(facility.FieldSuite, field.TypeString, value)
+		_node.Suite = value
+	}
+	if value, ok := _c.mutation.TechEmail(); ok {
+		_spec.SetField(facility.FieldTechEmail, field.TypeString, value)
+		_node.TechEmail = value
+	}
+	if value, ok := _c.mutation.TechPhone(); ok {
+		_spec.SetField(facility.FieldTechPhone, field.TypeString, value)
+		_node.TechPhone = value
+	}
+	if value, ok := _c.mutation.Website(); ok {
+		_spec.SetField(facility.FieldWebsite, field.TypeString, value)
+		_node.Website = value
+	}
+	if value, ok := _c.mutation.Zipcode(); ok {
+		_spec.SetField(facility.FieldZipcode, field.TypeString, value)
+		_node.Zipcode = value
+	}
+	if value, ok := _c.mutation.OrgName(); ok {
+		_spec.SetField(facility.FieldOrgName, field.TypeString, value)
+		_node.OrgName = value
 	}
 	if value, ok := _c.mutation.NetCount(); ok {
 		_spec.SetField(facility.FieldNetCount, field.TypeInt, value)
@@ -950,46 +1010,6 @@ func (_c *FacilityCreate) createSpec() (*Facility, *sqlgraph.CreateSpec) {
 		_spec.SetField(facility.FieldCarrierCount, field.TypeInt, value)
 		_node.CarrierCount = value
 	}
-	if value, ok := _c.mutation.Address1(); ok {
-		_spec.SetField(facility.FieldAddress1, field.TypeString, value)
-		_node.Address1 = value
-	}
-	if value, ok := _c.mutation.Address2(); ok {
-		_spec.SetField(facility.FieldAddress2, field.TypeString, value)
-		_node.Address2 = value
-	}
-	if value, ok := _c.mutation.City(); ok {
-		_spec.SetField(facility.FieldCity, field.TypeString, value)
-		_node.City = value
-	}
-	if value, ok := _c.mutation.State(); ok {
-		_spec.SetField(facility.FieldState, field.TypeString, value)
-		_node.State = value
-	}
-	if value, ok := _c.mutation.Country(); ok {
-		_spec.SetField(facility.FieldCountry, field.TypeString, value)
-		_node.Country = value
-	}
-	if value, ok := _c.mutation.Zipcode(); ok {
-		_spec.SetField(facility.FieldZipcode, field.TypeString, value)
-		_node.Zipcode = value
-	}
-	if value, ok := _c.mutation.Suite(); ok {
-		_spec.SetField(facility.FieldSuite, field.TypeString, value)
-		_node.Suite = value
-	}
-	if value, ok := _c.mutation.Floor(); ok {
-		_spec.SetField(facility.FieldFloor, field.TypeString, value)
-		_node.Floor = value
-	}
-	if value, ok := _c.mutation.Latitude(); ok {
-		_spec.SetField(facility.FieldLatitude, field.TypeFloat64, value)
-		_node.Latitude = &value
-	}
-	if value, ok := _c.mutation.Longitude(); ok {
-		_spec.SetField(facility.FieldLongitude, field.TypeFloat64, value)
-		_node.Longitude = &value
-	}
 	if value, ok := _c.mutation.Created(); ok {
 		_spec.SetField(facility.FieldCreated, field.TypeTime, value)
 		_node.Created = value
@@ -1001,23 +1021,6 @@ func (_c *FacilityCreate) createSpec() (*Facility, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(facility.FieldStatus, field.TypeString, value)
 		_node.Status = value
-	}
-	if nodes := _c.mutation.OrganizationIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   facility.OrganizationTable,
-			Columns: []string{facility.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.OrgID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.CampusIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1036,15 +1039,15 @@ func (_c *FacilityCreate) createSpec() (*Facility, *sqlgraph.CreateSpec) {
 		_node.CampusID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.NetworkFacilitiesIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.CarrierFacilitiesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   facility.NetworkFacilitiesTable,
-			Columns: []string{facility.NetworkFacilitiesColumn},
+			Table:   facility.CarrierFacilitiesTable,
+			Columns: []string{facility.CarrierFacilitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(networkfacility.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(carrierfacility.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -1068,20 +1071,37 @@ func (_c *FacilityCreate) createSpec() (*Facility, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.CarrierFacilitiesIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.NetworkFacilitiesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   facility.CarrierFacilitiesTable,
-			Columns: []string{facility.CarrierFacilitiesColumn},
+			Table:   facility.NetworkFacilitiesTable,
+			Columns: []string{facility.NetworkFacilitiesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(carrierfacility.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(networkfacility.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OrganizationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   facility.OrganizationTable,
+			Columns: []string{facility.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.OrgID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -1091,7 +1111,7 @@ func (_c *FacilityCreate) createSpec() (*Facility, *sqlgraph.CreateSpec) {
 // of the `INSERT` statement. For example:
 //
 //	client.Facility.Create().
-//		SetOrgID(v).
+//		SetCampusID(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -1100,7 +1120,7 @@ func (_c *FacilityCreate) createSpec() (*Facility, *sqlgraph.CreateSpec) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.FacilityUpsert) {
-//			SetOrgID(v+v).
+//			SetCampusID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *FacilityCreate) OnConflict(opts ...sql.ConflictOption) *FacilityUpsertOne {
@@ -1136,42 +1156,6 @@ type (
 	}
 )
 
-// SetOrgID sets the "org_id" field.
-func (u *FacilityUpsert) SetOrgID(v int) *FacilityUpsert {
-	u.Set(facility.FieldOrgID, v)
-	return u
-}
-
-// UpdateOrgID sets the "org_id" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateOrgID() *FacilityUpsert {
-	u.SetExcluded(facility.FieldOrgID)
-	return u
-}
-
-// ClearOrgID clears the value of the "org_id" field.
-func (u *FacilityUpsert) ClearOrgID() *FacilityUpsert {
-	u.SetNull(facility.FieldOrgID)
-	return u
-}
-
-// SetOrgName sets the "org_name" field.
-func (u *FacilityUpsert) SetOrgName(v string) *FacilityUpsert {
-	u.Set(facility.FieldOrgName, v)
-	return u
-}
-
-// UpdateOrgName sets the "org_name" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateOrgName() *FacilityUpsert {
-	u.SetExcluded(facility.FieldOrgName)
-	return u
-}
-
-// ClearOrgName clears the value of the "org_name" field.
-func (u *FacilityUpsert) ClearOrgName() *FacilityUpsert {
-	u.SetNull(facility.FieldOrgName)
-	return u
-}
-
 // SetCampusID sets the "campus_id" field.
 func (u *FacilityUpsert) SetCampusID(v int) *FacilityUpsert {
 	u.Set(facility.FieldCampusID, v)
@@ -1190,15 +1174,57 @@ func (u *FacilityUpsert) ClearCampusID() *FacilityUpsert {
 	return u
 }
 
-// SetName sets the "name" field.
-func (u *FacilityUpsert) SetName(v string) *FacilityUpsert {
-	u.Set(facility.FieldName, v)
+// SetOrgID sets the "org_id" field.
+func (u *FacilityUpsert) SetOrgID(v int) *FacilityUpsert {
+	u.Set(facility.FieldOrgID, v)
 	return u
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateName() *FacilityUpsert {
-	u.SetExcluded(facility.FieldName)
+// UpdateOrgID sets the "org_id" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateOrgID() *FacilityUpsert {
+	u.SetExcluded(facility.FieldOrgID)
+	return u
+}
+
+// ClearOrgID clears the value of the "org_id" field.
+func (u *FacilityUpsert) ClearOrgID() *FacilityUpsert {
+	u.SetNull(facility.FieldOrgID)
+	return u
+}
+
+// SetAddress1 sets the "address1" field.
+func (u *FacilityUpsert) SetAddress1(v string) *FacilityUpsert {
+	u.Set(facility.FieldAddress1, v)
+	return u
+}
+
+// UpdateAddress1 sets the "address1" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateAddress1() *FacilityUpsert {
+	u.SetExcluded(facility.FieldAddress1)
+	return u
+}
+
+// ClearAddress1 clears the value of the "address1" field.
+func (u *FacilityUpsert) ClearAddress1() *FacilityUpsert {
+	u.SetNull(facility.FieldAddress1)
+	return u
+}
+
+// SetAddress2 sets the "address2" field.
+func (u *FacilityUpsert) SetAddress2(v string) *FacilityUpsert {
+	u.Set(facility.FieldAddress2, v)
+	return u
+}
+
+// UpdateAddress2 sets the "address2" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateAddress2() *FacilityUpsert {
+	u.SetExcluded(facility.FieldAddress2)
+	return u
+}
+
+// ClearAddress2 clears the value of the "address2" field.
+func (u *FacilityUpsert) ClearAddress2() *FacilityUpsert {
+	u.SetNull(facility.FieldAddress2)
 	return u
 }
 
@@ -1220,57 +1246,39 @@ func (u *FacilityUpsert) ClearAka() *FacilityUpsert {
 	return u
 }
 
-// SetNameLong sets the "name_long" field.
-func (u *FacilityUpsert) SetNameLong(v string) *FacilityUpsert {
-	u.Set(facility.FieldNameLong, v)
+// SetAvailableVoltageServices sets the "available_voltage_services" field.
+func (u *FacilityUpsert) SetAvailableVoltageServices(v []string) *FacilityUpsert {
+	u.Set(facility.FieldAvailableVoltageServices, v)
 	return u
 }
 
-// UpdateNameLong sets the "name_long" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateNameLong() *FacilityUpsert {
-	u.SetExcluded(facility.FieldNameLong)
+// UpdateAvailableVoltageServices sets the "available_voltage_services" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateAvailableVoltageServices() *FacilityUpsert {
+	u.SetExcluded(facility.FieldAvailableVoltageServices)
 	return u
 }
 
-// ClearNameLong clears the value of the "name_long" field.
-func (u *FacilityUpsert) ClearNameLong() *FacilityUpsert {
-	u.SetNull(facility.FieldNameLong)
+// ClearAvailableVoltageServices clears the value of the "available_voltage_services" field.
+func (u *FacilityUpsert) ClearAvailableVoltageServices() *FacilityUpsert {
+	u.SetNull(facility.FieldAvailableVoltageServices)
 	return u
 }
 
-// SetWebsite sets the "website" field.
-func (u *FacilityUpsert) SetWebsite(v string) *FacilityUpsert {
-	u.Set(facility.FieldWebsite, v)
+// SetCity sets the "city" field.
+func (u *FacilityUpsert) SetCity(v string) *FacilityUpsert {
+	u.Set(facility.FieldCity, v)
 	return u
 }
 
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateWebsite() *FacilityUpsert {
-	u.SetExcluded(facility.FieldWebsite)
+// UpdateCity sets the "city" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateCity() *FacilityUpsert {
+	u.SetExcluded(facility.FieldCity)
 	return u
 }
 
-// ClearWebsite clears the value of the "website" field.
-func (u *FacilityUpsert) ClearWebsite() *FacilityUpsert {
-	u.SetNull(facility.FieldWebsite)
-	return u
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *FacilityUpsert) SetSocialMedia(v []schema.SocialMedia) *FacilityUpsert {
-	u.Set(facility.FieldSocialMedia, v)
-	return u
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateSocialMedia() *FacilityUpsert {
-	u.SetExcluded(facility.FieldSocialMedia)
-	return u
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *FacilityUpsert) ClearSocialMedia() *FacilityUpsert {
-	u.SetNull(facility.FieldSocialMedia)
+// ClearCity clears the value of the "city" field.
+func (u *FacilityUpsert) ClearCity() *FacilityUpsert {
+	u.SetNull(facility.FieldCity)
 	return u
 }
 
@@ -1292,21 +1300,171 @@ func (u *FacilityUpsert) ClearClli() *FacilityUpsert {
 	return u
 }
 
-// SetRencode sets the "rencode" field.
-func (u *FacilityUpsert) SetRencode(v string) *FacilityUpsert {
-	u.Set(facility.FieldRencode, v)
+// SetCountry sets the "country" field.
+func (u *FacilityUpsert) SetCountry(v string) *FacilityUpsert {
+	u.Set(facility.FieldCountry, v)
 	return u
 }
 
-// UpdateRencode sets the "rencode" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateRencode() *FacilityUpsert {
-	u.SetExcluded(facility.FieldRencode)
+// UpdateCountry sets the "country" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateCountry() *FacilityUpsert {
+	u.SetExcluded(facility.FieldCountry)
 	return u
 }
 
-// ClearRencode clears the value of the "rencode" field.
-func (u *FacilityUpsert) ClearRencode() *FacilityUpsert {
-	u.SetNull(facility.FieldRencode)
+// ClearCountry clears the value of the "country" field.
+func (u *FacilityUpsert) ClearCountry() *FacilityUpsert {
+	u.SetNull(facility.FieldCountry)
+	return u
+}
+
+// SetDiverseServingSubstations sets the "diverse_serving_substations" field.
+func (u *FacilityUpsert) SetDiverseServingSubstations(v bool) *FacilityUpsert {
+	u.Set(facility.FieldDiverseServingSubstations, v)
+	return u
+}
+
+// UpdateDiverseServingSubstations sets the "diverse_serving_substations" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateDiverseServingSubstations() *FacilityUpsert {
+	u.SetExcluded(facility.FieldDiverseServingSubstations)
+	return u
+}
+
+// ClearDiverseServingSubstations clears the value of the "diverse_serving_substations" field.
+func (u *FacilityUpsert) ClearDiverseServingSubstations() *FacilityUpsert {
+	u.SetNull(facility.FieldDiverseServingSubstations)
+	return u
+}
+
+// SetFloor sets the "floor" field.
+func (u *FacilityUpsert) SetFloor(v string) *FacilityUpsert {
+	u.Set(facility.FieldFloor, v)
+	return u
+}
+
+// UpdateFloor sets the "floor" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateFloor() *FacilityUpsert {
+	u.SetExcluded(facility.FieldFloor)
+	return u
+}
+
+// ClearFloor clears the value of the "floor" field.
+func (u *FacilityUpsert) ClearFloor() *FacilityUpsert {
+	u.SetNull(facility.FieldFloor)
+	return u
+}
+
+// SetLatitude sets the "latitude" field.
+func (u *FacilityUpsert) SetLatitude(v float64) *FacilityUpsert {
+	u.Set(facility.FieldLatitude, v)
+	return u
+}
+
+// UpdateLatitude sets the "latitude" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateLatitude() *FacilityUpsert {
+	u.SetExcluded(facility.FieldLatitude)
+	return u
+}
+
+// AddLatitude adds v to the "latitude" field.
+func (u *FacilityUpsert) AddLatitude(v float64) *FacilityUpsert {
+	u.Add(facility.FieldLatitude, v)
+	return u
+}
+
+// ClearLatitude clears the value of the "latitude" field.
+func (u *FacilityUpsert) ClearLatitude() *FacilityUpsert {
+	u.SetNull(facility.FieldLatitude)
+	return u
+}
+
+// SetLogo sets the "logo" field.
+func (u *FacilityUpsert) SetLogo(v string) *FacilityUpsert {
+	u.Set(facility.FieldLogo, v)
+	return u
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateLogo() *FacilityUpsert {
+	u.SetExcluded(facility.FieldLogo)
+	return u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *FacilityUpsert) ClearLogo() *FacilityUpsert {
+	u.SetNull(facility.FieldLogo)
+	return u
+}
+
+// SetLongitude sets the "longitude" field.
+func (u *FacilityUpsert) SetLongitude(v float64) *FacilityUpsert {
+	u.Set(facility.FieldLongitude, v)
+	return u
+}
+
+// UpdateLongitude sets the "longitude" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateLongitude() *FacilityUpsert {
+	u.SetExcluded(facility.FieldLongitude)
+	return u
+}
+
+// AddLongitude adds v to the "longitude" field.
+func (u *FacilityUpsert) AddLongitude(v float64) *FacilityUpsert {
+	u.Add(facility.FieldLongitude, v)
+	return u
+}
+
+// ClearLongitude clears the value of the "longitude" field.
+func (u *FacilityUpsert) ClearLongitude() *FacilityUpsert {
+	u.SetNull(facility.FieldLongitude)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *FacilityUpsert) SetName(v string) *FacilityUpsert {
+	u.Set(facility.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateName() *FacilityUpsert {
+	u.SetExcluded(facility.FieldName)
+	return u
+}
+
+// SetNameLong sets the "name_long" field.
+func (u *FacilityUpsert) SetNameLong(v string) *FacilityUpsert {
+	u.Set(facility.FieldNameLong, v)
+	return u
+}
+
+// UpdateNameLong sets the "name_long" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateNameLong() *FacilityUpsert {
+	u.SetExcluded(facility.FieldNameLong)
+	return u
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (u *FacilityUpsert) ClearNameLong() *FacilityUpsert {
+	u.SetNull(facility.FieldNameLong)
+	return u
+}
+
+// SetNotes sets the "notes" field.
+func (u *FacilityUpsert) SetNotes(v string) *FacilityUpsert {
+	u.Set(facility.FieldNotes, v)
+	return u
+}
+
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateNotes() *FacilityUpsert {
+	u.SetExcluded(facility.FieldNotes)
+	return u
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (u *FacilityUpsert) ClearNotes() *FacilityUpsert {
+	u.SetNull(facility.FieldNotes)
 	return u
 }
 
@@ -1328,39 +1486,57 @@ func (u *FacilityUpsert) ClearNpanxx() *FacilityUpsert {
 	return u
 }
 
-// SetTechEmail sets the "tech_email" field.
-func (u *FacilityUpsert) SetTechEmail(v string) *FacilityUpsert {
-	u.Set(facility.FieldTechEmail, v)
+// SetProperty sets the "property" field.
+func (u *FacilityUpsert) SetProperty(v string) *FacilityUpsert {
+	u.Set(facility.FieldProperty, v)
 	return u
 }
 
-// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateTechEmail() *FacilityUpsert {
-	u.SetExcluded(facility.FieldTechEmail)
+// UpdateProperty sets the "property" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateProperty() *FacilityUpsert {
+	u.SetExcluded(facility.FieldProperty)
 	return u
 }
 
-// ClearTechEmail clears the value of the "tech_email" field.
-func (u *FacilityUpsert) ClearTechEmail() *FacilityUpsert {
-	u.SetNull(facility.FieldTechEmail)
+// ClearProperty clears the value of the "property" field.
+func (u *FacilityUpsert) ClearProperty() *FacilityUpsert {
+	u.SetNull(facility.FieldProperty)
 	return u
 }
 
-// SetTechPhone sets the "tech_phone" field.
-func (u *FacilityUpsert) SetTechPhone(v string) *FacilityUpsert {
-	u.Set(facility.FieldTechPhone, v)
+// SetRegionContinent sets the "region_continent" field.
+func (u *FacilityUpsert) SetRegionContinent(v string) *FacilityUpsert {
+	u.Set(facility.FieldRegionContinent, v)
 	return u
 }
 
-// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateTechPhone() *FacilityUpsert {
-	u.SetExcluded(facility.FieldTechPhone)
+// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateRegionContinent() *FacilityUpsert {
+	u.SetExcluded(facility.FieldRegionContinent)
 	return u
 }
 
-// ClearTechPhone clears the value of the "tech_phone" field.
-func (u *FacilityUpsert) ClearTechPhone() *FacilityUpsert {
-	u.SetNull(facility.FieldTechPhone)
+// ClearRegionContinent clears the value of the "region_continent" field.
+func (u *FacilityUpsert) ClearRegionContinent() *FacilityUpsert {
+	u.SetNull(facility.FieldRegionContinent)
+	return u
+}
+
+// SetRencode sets the "rencode" field.
+func (u *FacilityUpsert) SetRencode(v string) *FacilityUpsert {
+	u.Set(facility.FieldRencode, v)
+	return u
+}
+
+// UpdateRencode sets the "rencode" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateRencode() *FacilityUpsert {
+	u.SetExcluded(facility.FieldRencode)
+	return u
+}
+
+// ClearRencode clears the value of the "rencode" field.
+func (u *FacilityUpsert) ClearRencode() *FacilityUpsert {
+	u.SetNull(facility.FieldRencode)
 	return u
 }
 
@@ -1400,93 +1576,39 @@ func (u *FacilityUpsert) ClearSalesPhone() *FacilityUpsert {
 	return u
 }
 
-// SetProperty sets the "property" field.
-func (u *FacilityUpsert) SetProperty(v string) *FacilityUpsert {
-	u.Set(facility.FieldProperty, v)
+// SetSocialMedia sets the "social_media" field.
+func (u *FacilityUpsert) SetSocialMedia(v []schema.SocialMedia) *FacilityUpsert {
+	u.Set(facility.FieldSocialMedia, v)
 	return u
 }
 
-// UpdateProperty sets the "property" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateProperty() *FacilityUpsert {
-	u.SetExcluded(facility.FieldProperty)
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateSocialMedia() *FacilityUpsert {
+	u.SetExcluded(facility.FieldSocialMedia)
 	return u
 }
 
-// ClearProperty clears the value of the "property" field.
-func (u *FacilityUpsert) ClearProperty() *FacilityUpsert {
-	u.SetNull(facility.FieldProperty)
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *FacilityUpsert) ClearSocialMedia() *FacilityUpsert {
+	u.SetNull(facility.FieldSocialMedia)
 	return u
 }
 
-// SetDiverseServingSubstations sets the "diverse_serving_substations" field.
-func (u *FacilityUpsert) SetDiverseServingSubstations(v bool) *FacilityUpsert {
-	u.Set(facility.FieldDiverseServingSubstations, v)
+// SetState sets the "state" field.
+func (u *FacilityUpsert) SetState(v string) *FacilityUpsert {
+	u.Set(facility.FieldState, v)
 	return u
 }
 
-// UpdateDiverseServingSubstations sets the "diverse_serving_substations" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateDiverseServingSubstations() *FacilityUpsert {
-	u.SetExcluded(facility.FieldDiverseServingSubstations)
+// UpdateState sets the "state" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateState() *FacilityUpsert {
+	u.SetExcluded(facility.FieldState)
 	return u
 }
 
-// ClearDiverseServingSubstations clears the value of the "diverse_serving_substations" field.
-func (u *FacilityUpsert) ClearDiverseServingSubstations() *FacilityUpsert {
-	u.SetNull(facility.FieldDiverseServingSubstations)
-	return u
-}
-
-// SetAvailableVoltageServices sets the "available_voltage_services" field.
-func (u *FacilityUpsert) SetAvailableVoltageServices(v []string) *FacilityUpsert {
-	u.Set(facility.FieldAvailableVoltageServices, v)
-	return u
-}
-
-// UpdateAvailableVoltageServices sets the "available_voltage_services" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateAvailableVoltageServices() *FacilityUpsert {
-	u.SetExcluded(facility.FieldAvailableVoltageServices)
-	return u
-}
-
-// ClearAvailableVoltageServices clears the value of the "available_voltage_services" field.
-func (u *FacilityUpsert) ClearAvailableVoltageServices() *FacilityUpsert {
-	u.SetNull(facility.FieldAvailableVoltageServices)
-	return u
-}
-
-// SetNotes sets the "notes" field.
-func (u *FacilityUpsert) SetNotes(v string) *FacilityUpsert {
-	u.Set(facility.FieldNotes, v)
-	return u
-}
-
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateNotes() *FacilityUpsert {
-	u.SetExcluded(facility.FieldNotes)
-	return u
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (u *FacilityUpsert) ClearNotes() *FacilityUpsert {
-	u.SetNull(facility.FieldNotes)
-	return u
-}
-
-// SetRegionContinent sets the "region_continent" field.
-func (u *FacilityUpsert) SetRegionContinent(v string) *FacilityUpsert {
-	u.Set(facility.FieldRegionContinent, v)
-	return u
-}
-
-// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateRegionContinent() *FacilityUpsert {
-	u.SetExcluded(facility.FieldRegionContinent)
-	return u
-}
-
-// ClearRegionContinent clears the value of the "region_continent" field.
-func (u *FacilityUpsert) ClearRegionContinent() *FacilityUpsert {
-	u.SetNull(facility.FieldRegionContinent)
+// ClearState clears the value of the "state" field.
+func (u *FacilityUpsert) ClearState() *FacilityUpsert {
+	u.SetNull(facility.FieldState)
 	return u
 }
 
@@ -1508,21 +1630,111 @@ func (u *FacilityUpsert) ClearStatusDashboard() *FacilityUpsert {
 	return u
 }
 
-// SetLogo sets the "logo" field.
-func (u *FacilityUpsert) SetLogo(v string) *FacilityUpsert {
-	u.Set(facility.FieldLogo, v)
+// SetSuite sets the "suite" field.
+func (u *FacilityUpsert) SetSuite(v string) *FacilityUpsert {
+	u.Set(facility.FieldSuite, v)
 	return u
 }
 
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateLogo() *FacilityUpsert {
-	u.SetExcluded(facility.FieldLogo)
+// UpdateSuite sets the "suite" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateSuite() *FacilityUpsert {
+	u.SetExcluded(facility.FieldSuite)
 	return u
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (u *FacilityUpsert) ClearLogo() *FacilityUpsert {
-	u.SetNull(facility.FieldLogo)
+// ClearSuite clears the value of the "suite" field.
+func (u *FacilityUpsert) ClearSuite() *FacilityUpsert {
+	u.SetNull(facility.FieldSuite)
+	return u
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (u *FacilityUpsert) SetTechEmail(v string) *FacilityUpsert {
+	u.Set(facility.FieldTechEmail, v)
+	return u
+}
+
+// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateTechEmail() *FacilityUpsert {
+	u.SetExcluded(facility.FieldTechEmail)
+	return u
+}
+
+// ClearTechEmail clears the value of the "tech_email" field.
+func (u *FacilityUpsert) ClearTechEmail() *FacilityUpsert {
+	u.SetNull(facility.FieldTechEmail)
+	return u
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (u *FacilityUpsert) SetTechPhone(v string) *FacilityUpsert {
+	u.Set(facility.FieldTechPhone, v)
+	return u
+}
+
+// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateTechPhone() *FacilityUpsert {
+	u.SetExcluded(facility.FieldTechPhone)
+	return u
+}
+
+// ClearTechPhone clears the value of the "tech_phone" field.
+func (u *FacilityUpsert) ClearTechPhone() *FacilityUpsert {
+	u.SetNull(facility.FieldTechPhone)
+	return u
+}
+
+// SetWebsite sets the "website" field.
+func (u *FacilityUpsert) SetWebsite(v string) *FacilityUpsert {
+	u.Set(facility.FieldWebsite, v)
+	return u
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateWebsite() *FacilityUpsert {
+	u.SetExcluded(facility.FieldWebsite)
+	return u
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *FacilityUpsert) ClearWebsite() *FacilityUpsert {
+	u.SetNull(facility.FieldWebsite)
+	return u
+}
+
+// SetZipcode sets the "zipcode" field.
+func (u *FacilityUpsert) SetZipcode(v string) *FacilityUpsert {
+	u.Set(facility.FieldZipcode, v)
+	return u
+}
+
+// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateZipcode() *FacilityUpsert {
+	u.SetExcluded(facility.FieldZipcode)
+	return u
+}
+
+// ClearZipcode clears the value of the "zipcode" field.
+func (u *FacilityUpsert) ClearZipcode() *FacilityUpsert {
+	u.SetNull(facility.FieldZipcode)
+	return u
+}
+
+// SetOrgName sets the "org_name" field.
+func (u *FacilityUpsert) SetOrgName(v string) *FacilityUpsert {
+	u.Set(facility.FieldOrgName, v)
+	return u
+}
+
+// UpdateOrgName sets the "org_name" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateOrgName() *FacilityUpsert {
+	u.SetExcluded(facility.FieldOrgName)
+	return u
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (u *FacilityUpsert) ClearOrgName() *FacilityUpsert {
+	u.SetNull(facility.FieldOrgName)
 	return u
 }
 
@@ -1595,198 +1807,6 @@ func (u *FacilityUpsert) AddCarrierCount(v int) *FacilityUpsert {
 // ClearCarrierCount clears the value of the "carrier_count" field.
 func (u *FacilityUpsert) ClearCarrierCount() *FacilityUpsert {
 	u.SetNull(facility.FieldCarrierCount)
-	return u
-}
-
-// SetAddress1 sets the "address1" field.
-func (u *FacilityUpsert) SetAddress1(v string) *FacilityUpsert {
-	u.Set(facility.FieldAddress1, v)
-	return u
-}
-
-// UpdateAddress1 sets the "address1" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateAddress1() *FacilityUpsert {
-	u.SetExcluded(facility.FieldAddress1)
-	return u
-}
-
-// ClearAddress1 clears the value of the "address1" field.
-func (u *FacilityUpsert) ClearAddress1() *FacilityUpsert {
-	u.SetNull(facility.FieldAddress1)
-	return u
-}
-
-// SetAddress2 sets the "address2" field.
-func (u *FacilityUpsert) SetAddress2(v string) *FacilityUpsert {
-	u.Set(facility.FieldAddress2, v)
-	return u
-}
-
-// UpdateAddress2 sets the "address2" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateAddress2() *FacilityUpsert {
-	u.SetExcluded(facility.FieldAddress2)
-	return u
-}
-
-// ClearAddress2 clears the value of the "address2" field.
-func (u *FacilityUpsert) ClearAddress2() *FacilityUpsert {
-	u.SetNull(facility.FieldAddress2)
-	return u
-}
-
-// SetCity sets the "city" field.
-func (u *FacilityUpsert) SetCity(v string) *FacilityUpsert {
-	u.Set(facility.FieldCity, v)
-	return u
-}
-
-// UpdateCity sets the "city" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateCity() *FacilityUpsert {
-	u.SetExcluded(facility.FieldCity)
-	return u
-}
-
-// ClearCity clears the value of the "city" field.
-func (u *FacilityUpsert) ClearCity() *FacilityUpsert {
-	u.SetNull(facility.FieldCity)
-	return u
-}
-
-// SetState sets the "state" field.
-func (u *FacilityUpsert) SetState(v string) *FacilityUpsert {
-	u.Set(facility.FieldState, v)
-	return u
-}
-
-// UpdateState sets the "state" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateState() *FacilityUpsert {
-	u.SetExcluded(facility.FieldState)
-	return u
-}
-
-// ClearState clears the value of the "state" field.
-func (u *FacilityUpsert) ClearState() *FacilityUpsert {
-	u.SetNull(facility.FieldState)
-	return u
-}
-
-// SetCountry sets the "country" field.
-func (u *FacilityUpsert) SetCountry(v string) *FacilityUpsert {
-	u.Set(facility.FieldCountry, v)
-	return u
-}
-
-// UpdateCountry sets the "country" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateCountry() *FacilityUpsert {
-	u.SetExcluded(facility.FieldCountry)
-	return u
-}
-
-// ClearCountry clears the value of the "country" field.
-func (u *FacilityUpsert) ClearCountry() *FacilityUpsert {
-	u.SetNull(facility.FieldCountry)
-	return u
-}
-
-// SetZipcode sets the "zipcode" field.
-func (u *FacilityUpsert) SetZipcode(v string) *FacilityUpsert {
-	u.Set(facility.FieldZipcode, v)
-	return u
-}
-
-// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateZipcode() *FacilityUpsert {
-	u.SetExcluded(facility.FieldZipcode)
-	return u
-}
-
-// ClearZipcode clears the value of the "zipcode" field.
-func (u *FacilityUpsert) ClearZipcode() *FacilityUpsert {
-	u.SetNull(facility.FieldZipcode)
-	return u
-}
-
-// SetSuite sets the "suite" field.
-func (u *FacilityUpsert) SetSuite(v string) *FacilityUpsert {
-	u.Set(facility.FieldSuite, v)
-	return u
-}
-
-// UpdateSuite sets the "suite" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateSuite() *FacilityUpsert {
-	u.SetExcluded(facility.FieldSuite)
-	return u
-}
-
-// ClearSuite clears the value of the "suite" field.
-func (u *FacilityUpsert) ClearSuite() *FacilityUpsert {
-	u.SetNull(facility.FieldSuite)
-	return u
-}
-
-// SetFloor sets the "floor" field.
-func (u *FacilityUpsert) SetFloor(v string) *FacilityUpsert {
-	u.Set(facility.FieldFloor, v)
-	return u
-}
-
-// UpdateFloor sets the "floor" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateFloor() *FacilityUpsert {
-	u.SetExcluded(facility.FieldFloor)
-	return u
-}
-
-// ClearFloor clears the value of the "floor" field.
-func (u *FacilityUpsert) ClearFloor() *FacilityUpsert {
-	u.SetNull(facility.FieldFloor)
-	return u
-}
-
-// SetLatitude sets the "latitude" field.
-func (u *FacilityUpsert) SetLatitude(v float64) *FacilityUpsert {
-	u.Set(facility.FieldLatitude, v)
-	return u
-}
-
-// UpdateLatitude sets the "latitude" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateLatitude() *FacilityUpsert {
-	u.SetExcluded(facility.FieldLatitude)
-	return u
-}
-
-// AddLatitude adds v to the "latitude" field.
-func (u *FacilityUpsert) AddLatitude(v float64) *FacilityUpsert {
-	u.Add(facility.FieldLatitude, v)
-	return u
-}
-
-// ClearLatitude clears the value of the "latitude" field.
-func (u *FacilityUpsert) ClearLatitude() *FacilityUpsert {
-	u.SetNull(facility.FieldLatitude)
-	return u
-}
-
-// SetLongitude sets the "longitude" field.
-func (u *FacilityUpsert) SetLongitude(v float64) *FacilityUpsert {
-	u.Set(facility.FieldLongitude, v)
-	return u
-}
-
-// UpdateLongitude sets the "longitude" field to the value that was provided on create.
-func (u *FacilityUpsert) UpdateLongitude() *FacilityUpsert {
-	u.SetExcluded(facility.FieldLongitude)
-	return u
-}
-
-// AddLongitude adds v to the "longitude" field.
-func (u *FacilityUpsert) AddLongitude(v float64) *FacilityUpsert {
-	u.Add(facility.FieldLongitude, v)
-	return u
-}
-
-// ClearLongitude clears the value of the "longitude" field.
-func (u *FacilityUpsert) ClearLongitude() *FacilityUpsert {
-	u.SetNull(facility.FieldLongitude)
 	return u
 }
 
@@ -1865,48 +1885,6 @@ func (u *FacilityUpsertOne) Update(set func(*FacilityUpsert)) *FacilityUpsertOne
 	return u
 }
 
-// SetOrgID sets the "org_id" field.
-func (u *FacilityUpsertOne) SetOrgID(v int) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetOrgID(v)
-	})
-}
-
-// UpdateOrgID sets the "org_id" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateOrgID() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateOrgID()
-	})
-}
-
-// ClearOrgID clears the value of the "org_id" field.
-func (u *FacilityUpsertOne) ClearOrgID() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearOrgID()
-	})
-}
-
-// SetOrgName sets the "org_name" field.
-func (u *FacilityUpsertOne) SetOrgName(v string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetOrgName(v)
-	})
-}
-
-// UpdateOrgName sets the "org_name" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateOrgName() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateOrgName()
-	})
-}
-
-// ClearOrgName clears the value of the "org_name" field.
-func (u *FacilityUpsertOne) ClearOrgName() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearOrgName()
-	})
-}
-
 // SetCampusID sets the "campus_id" field.
 func (u *FacilityUpsertOne) SetCampusID(v int) *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
@@ -1928,17 +1906,66 @@ func (u *FacilityUpsertOne) ClearCampusID() *FacilityUpsertOne {
 	})
 }
 
-// SetName sets the "name" field.
-func (u *FacilityUpsertOne) SetName(v string) *FacilityUpsertOne {
+// SetOrgID sets the "org_id" field.
+func (u *FacilityUpsertOne) SetOrgID(v int) *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetName(v)
+		s.SetOrgID(v)
 	})
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateName() *FacilityUpsertOne {
+// UpdateOrgID sets the "org_id" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateOrgID() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateName()
+		s.UpdateOrgID()
+	})
+}
+
+// ClearOrgID clears the value of the "org_id" field.
+func (u *FacilityUpsertOne) ClearOrgID() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearOrgID()
+	})
+}
+
+// SetAddress1 sets the "address1" field.
+func (u *FacilityUpsertOne) SetAddress1(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetAddress1(v)
+	})
+}
+
+// UpdateAddress1 sets the "address1" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateAddress1() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateAddress1()
+	})
+}
+
+// ClearAddress1 clears the value of the "address1" field.
+func (u *FacilityUpsertOne) ClearAddress1() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearAddress1()
+	})
+}
+
+// SetAddress2 sets the "address2" field.
+func (u *FacilityUpsertOne) SetAddress2(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetAddress2(v)
+	})
+}
+
+// UpdateAddress2 sets the "address2" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateAddress2() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateAddress2()
+	})
+}
+
+// ClearAddress2 clears the value of the "address2" field.
+func (u *FacilityUpsertOne) ClearAddress2() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearAddress2()
 	})
 }
 
@@ -1963,66 +1990,45 @@ func (u *FacilityUpsertOne) ClearAka() *FacilityUpsertOne {
 	})
 }
 
-// SetNameLong sets the "name_long" field.
-func (u *FacilityUpsertOne) SetNameLong(v string) *FacilityUpsertOne {
+// SetAvailableVoltageServices sets the "available_voltage_services" field.
+func (u *FacilityUpsertOne) SetAvailableVoltageServices(v []string) *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetNameLong(v)
+		s.SetAvailableVoltageServices(v)
 	})
 }
 
-// UpdateNameLong sets the "name_long" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateNameLong() *FacilityUpsertOne {
+// UpdateAvailableVoltageServices sets the "available_voltage_services" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateAvailableVoltageServices() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateNameLong()
+		s.UpdateAvailableVoltageServices()
 	})
 }
 
-// ClearNameLong clears the value of the "name_long" field.
-func (u *FacilityUpsertOne) ClearNameLong() *FacilityUpsertOne {
+// ClearAvailableVoltageServices clears the value of the "available_voltage_services" field.
+func (u *FacilityUpsertOne) ClearAvailableVoltageServices() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearNameLong()
+		s.ClearAvailableVoltageServices()
 	})
 }
 
-// SetWebsite sets the "website" field.
-func (u *FacilityUpsertOne) SetWebsite(v string) *FacilityUpsertOne {
+// SetCity sets the "city" field.
+func (u *FacilityUpsertOne) SetCity(v string) *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetWebsite(v)
+		s.SetCity(v)
 	})
 }
 
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateWebsite() *FacilityUpsertOne {
+// UpdateCity sets the "city" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateCity() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateWebsite()
+		s.UpdateCity()
 	})
 }
 
-// ClearWebsite clears the value of the "website" field.
-func (u *FacilityUpsertOne) ClearWebsite() *FacilityUpsertOne {
+// ClearCity clears the value of the "city" field.
+func (u *FacilityUpsertOne) ClearCity() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearWebsite()
-	})
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *FacilityUpsertOne) SetSocialMedia(v []schema.SocialMedia) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetSocialMedia(v)
-	})
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateSocialMedia() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateSocialMedia()
-	})
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *FacilityUpsertOne) ClearSocialMedia() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearSocialMedia()
+		s.ClearCity()
 	})
 }
 
@@ -2047,24 +2053,199 @@ func (u *FacilityUpsertOne) ClearClli() *FacilityUpsertOne {
 	})
 }
 
-// SetRencode sets the "rencode" field.
-func (u *FacilityUpsertOne) SetRencode(v string) *FacilityUpsertOne {
+// SetCountry sets the "country" field.
+func (u *FacilityUpsertOne) SetCountry(v string) *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetRencode(v)
+		s.SetCountry(v)
 	})
 }
 
-// UpdateRencode sets the "rencode" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateRencode() *FacilityUpsertOne {
+// UpdateCountry sets the "country" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateCountry() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateRencode()
+		s.UpdateCountry()
 	})
 }
 
-// ClearRencode clears the value of the "rencode" field.
-func (u *FacilityUpsertOne) ClearRencode() *FacilityUpsertOne {
+// ClearCountry clears the value of the "country" field.
+func (u *FacilityUpsertOne) ClearCountry() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearRencode()
+		s.ClearCountry()
+	})
+}
+
+// SetDiverseServingSubstations sets the "diverse_serving_substations" field.
+func (u *FacilityUpsertOne) SetDiverseServingSubstations(v bool) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetDiverseServingSubstations(v)
+	})
+}
+
+// UpdateDiverseServingSubstations sets the "diverse_serving_substations" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateDiverseServingSubstations() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateDiverseServingSubstations()
+	})
+}
+
+// ClearDiverseServingSubstations clears the value of the "diverse_serving_substations" field.
+func (u *FacilityUpsertOne) ClearDiverseServingSubstations() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearDiverseServingSubstations()
+	})
+}
+
+// SetFloor sets the "floor" field.
+func (u *FacilityUpsertOne) SetFloor(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetFloor(v)
+	})
+}
+
+// UpdateFloor sets the "floor" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateFloor() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateFloor()
+	})
+}
+
+// ClearFloor clears the value of the "floor" field.
+func (u *FacilityUpsertOne) ClearFloor() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearFloor()
+	})
+}
+
+// SetLatitude sets the "latitude" field.
+func (u *FacilityUpsertOne) SetLatitude(v float64) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetLatitude(v)
+	})
+}
+
+// AddLatitude adds v to the "latitude" field.
+func (u *FacilityUpsertOne) AddLatitude(v float64) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.AddLatitude(v)
+	})
+}
+
+// UpdateLatitude sets the "latitude" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateLatitude() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateLatitude()
+	})
+}
+
+// ClearLatitude clears the value of the "latitude" field.
+func (u *FacilityUpsertOne) ClearLatitude() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearLatitude()
+	})
+}
+
+// SetLogo sets the "logo" field.
+func (u *FacilityUpsertOne) SetLogo(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetLogo(v)
+	})
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateLogo() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateLogo()
+	})
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *FacilityUpsertOne) ClearLogo() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearLogo()
+	})
+}
+
+// SetLongitude sets the "longitude" field.
+func (u *FacilityUpsertOne) SetLongitude(v float64) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetLongitude(v)
+	})
+}
+
+// AddLongitude adds v to the "longitude" field.
+func (u *FacilityUpsertOne) AddLongitude(v float64) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.AddLongitude(v)
+	})
+}
+
+// UpdateLongitude sets the "longitude" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateLongitude() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateLongitude()
+	})
+}
+
+// ClearLongitude clears the value of the "longitude" field.
+func (u *FacilityUpsertOne) ClearLongitude() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearLongitude()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *FacilityUpsertOne) SetName(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateName() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetNameLong sets the "name_long" field.
+func (u *FacilityUpsertOne) SetNameLong(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetNameLong(v)
+	})
+}
+
+// UpdateNameLong sets the "name_long" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateNameLong() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateNameLong()
+	})
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (u *FacilityUpsertOne) ClearNameLong() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearNameLong()
+	})
+}
+
+// SetNotes sets the "notes" field.
+func (u *FacilityUpsertOne) SetNotes(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetNotes(v)
+	})
+}
+
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateNotes() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateNotes()
+	})
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (u *FacilityUpsertOne) ClearNotes() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearNotes()
 	})
 }
 
@@ -2089,45 +2270,66 @@ func (u *FacilityUpsertOne) ClearNpanxx() *FacilityUpsertOne {
 	})
 }
 
-// SetTechEmail sets the "tech_email" field.
-func (u *FacilityUpsertOne) SetTechEmail(v string) *FacilityUpsertOne {
+// SetProperty sets the "property" field.
+func (u *FacilityUpsertOne) SetProperty(v string) *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetTechEmail(v)
+		s.SetProperty(v)
 	})
 }
 
-// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateTechEmail() *FacilityUpsertOne {
+// UpdateProperty sets the "property" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateProperty() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateTechEmail()
+		s.UpdateProperty()
 	})
 }
 
-// ClearTechEmail clears the value of the "tech_email" field.
-func (u *FacilityUpsertOne) ClearTechEmail() *FacilityUpsertOne {
+// ClearProperty clears the value of the "property" field.
+func (u *FacilityUpsertOne) ClearProperty() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearTechEmail()
+		s.ClearProperty()
 	})
 }
 
-// SetTechPhone sets the "tech_phone" field.
-func (u *FacilityUpsertOne) SetTechPhone(v string) *FacilityUpsertOne {
+// SetRegionContinent sets the "region_continent" field.
+func (u *FacilityUpsertOne) SetRegionContinent(v string) *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetTechPhone(v)
+		s.SetRegionContinent(v)
 	})
 }
 
-// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateTechPhone() *FacilityUpsertOne {
+// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateRegionContinent() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateTechPhone()
+		s.UpdateRegionContinent()
 	})
 }
 
-// ClearTechPhone clears the value of the "tech_phone" field.
-func (u *FacilityUpsertOne) ClearTechPhone() *FacilityUpsertOne {
+// ClearRegionContinent clears the value of the "region_continent" field.
+func (u *FacilityUpsertOne) ClearRegionContinent() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearTechPhone()
+		s.ClearRegionContinent()
+	})
+}
+
+// SetRencode sets the "rencode" field.
+func (u *FacilityUpsertOne) SetRencode(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetRencode(v)
+	})
+}
+
+// UpdateRencode sets the "rencode" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateRencode() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateRencode()
+	})
+}
+
+// ClearRencode clears the value of the "rencode" field.
+func (u *FacilityUpsertOne) ClearRencode() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearRencode()
 	})
 }
 
@@ -2173,108 +2375,45 @@ func (u *FacilityUpsertOne) ClearSalesPhone() *FacilityUpsertOne {
 	})
 }
 
-// SetProperty sets the "property" field.
-func (u *FacilityUpsertOne) SetProperty(v string) *FacilityUpsertOne {
+// SetSocialMedia sets the "social_media" field.
+func (u *FacilityUpsertOne) SetSocialMedia(v []schema.SocialMedia) *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetProperty(v)
+		s.SetSocialMedia(v)
 	})
 }
 
-// UpdateProperty sets the "property" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateProperty() *FacilityUpsertOne {
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateSocialMedia() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateProperty()
+		s.UpdateSocialMedia()
 	})
 }
 
-// ClearProperty clears the value of the "property" field.
-func (u *FacilityUpsertOne) ClearProperty() *FacilityUpsertOne {
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *FacilityUpsertOne) ClearSocialMedia() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearProperty()
+		s.ClearSocialMedia()
 	})
 }
 
-// SetDiverseServingSubstations sets the "diverse_serving_substations" field.
-func (u *FacilityUpsertOne) SetDiverseServingSubstations(v bool) *FacilityUpsertOne {
+// SetState sets the "state" field.
+func (u *FacilityUpsertOne) SetState(v string) *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetDiverseServingSubstations(v)
+		s.SetState(v)
 	})
 }
 
-// UpdateDiverseServingSubstations sets the "diverse_serving_substations" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateDiverseServingSubstations() *FacilityUpsertOne {
+// UpdateState sets the "state" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateState() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateDiverseServingSubstations()
+		s.UpdateState()
 	})
 }
 
-// ClearDiverseServingSubstations clears the value of the "diverse_serving_substations" field.
-func (u *FacilityUpsertOne) ClearDiverseServingSubstations() *FacilityUpsertOne {
+// ClearState clears the value of the "state" field.
+func (u *FacilityUpsertOne) ClearState() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearDiverseServingSubstations()
-	})
-}
-
-// SetAvailableVoltageServices sets the "available_voltage_services" field.
-func (u *FacilityUpsertOne) SetAvailableVoltageServices(v []string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetAvailableVoltageServices(v)
-	})
-}
-
-// UpdateAvailableVoltageServices sets the "available_voltage_services" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateAvailableVoltageServices() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateAvailableVoltageServices()
-	})
-}
-
-// ClearAvailableVoltageServices clears the value of the "available_voltage_services" field.
-func (u *FacilityUpsertOne) ClearAvailableVoltageServices() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearAvailableVoltageServices()
-	})
-}
-
-// SetNotes sets the "notes" field.
-func (u *FacilityUpsertOne) SetNotes(v string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetNotes(v)
-	})
-}
-
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateNotes() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateNotes()
-	})
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (u *FacilityUpsertOne) ClearNotes() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearNotes()
-	})
-}
-
-// SetRegionContinent sets the "region_continent" field.
-func (u *FacilityUpsertOne) SetRegionContinent(v string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetRegionContinent(v)
-	})
-}
-
-// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateRegionContinent() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateRegionContinent()
-	})
-}
-
-// ClearRegionContinent clears the value of the "region_continent" field.
-func (u *FacilityUpsertOne) ClearRegionContinent() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearRegionContinent()
+		s.ClearState()
 	})
 }
 
@@ -2299,24 +2438,129 @@ func (u *FacilityUpsertOne) ClearStatusDashboard() *FacilityUpsertOne {
 	})
 }
 
-// SetLogo sets the "logo" field.
-func (u *FacilityUpsertOne) SetLogo(v string) *FacilityUpsertOne {
+// SetSuite sets the "suite" field.
+func (u *FacilityUpsertOne) SetSuite(v string) *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetLogo(v)
+		s.SetSuite(v)
 	})
 }
 
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateLogo() *FacilityUpsertOne {
+// UpdateSuite sets the "suite" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateSuite() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateLogo()
+		s.UpdateSuite()
 	})
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (u *FacilityUpsertOne) ClearLogo() *FacilityUpsertOne {
+// ClearSuite clears the value of the "suite" field.
+func (u *FacilityUpsertOne) ClearSuite() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearLogo()
+		s.ClearSuite()
+	})
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (u *FacilityUpsertOne) SetTechEmail(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetTechEmail(v)
+	})
+}
+
+// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateTechEmail() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateTechEmail()
+	})
+}
+
+// ClearTechEmail clears the value of the "tech_email" field.
+func (u *FacilityUpsertOne) ClearTechEmail() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearTechEmail()
+	})
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (u *FacilityUpsertOne) SetTechPhone(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetTechPhone(v)
+	})
+}
+
+// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateTechPhone() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateTechPhone()
+	})
+}
+
+// ClearTechPhone clears the value of the "tech_phone" field.
+func (u *FacilityUpsertOne) ClearTechPhone() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearTechPhone()
+	})
+}
+
+// SetWebsite sets the "website" field.
+func (u *FacilityUpsertOne) SetWebsite(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetWebsite(v)
+	})
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateWebsite() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateWebsite()
+	})
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *FacilityUpsertOne) ClearWebsite() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearWebsite()
+	})
+}
+
+// SetZipcode sets the "zipcode" field.
+func (u *FacilityUpsertOne) SetZipcode(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetZipcode(v)
+	})
+}
+
+// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateZipcode() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateZipcode()
+	})
+}
+
+// ClearZipcode clears the value of the "zipcode" field.
+func (u *FacilityUpsertOne) ClearZipcode() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearZipcode()
+	})
+}
+
+// SetOrgName sets the "org_name" field.
+func (u *FacilityUpsertOne) SetOrgName(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetOrgName(v)
+	})
+}
+
+// UpdateOrgName sets the "org_name" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateOrgName() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateOrgName()
+	})
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (u *FacilityUpsertOne) ClearOrgName() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearOrgName()
 	})
 }
 
@@ -2401,230 +2645,6 @@ func (u *FacilityUpsertOne) UpdateCarrierCount() *FacilityUpsertOne {
 func (u *FacilityUpsertOne) ClearCarrierCount() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
 		s.ClearCarrierCount()
-	})
-}
-
-// SetAddress1 sets the "address1" field.
-func (u *FacilityUpsertOne) SetAddress1(v string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetAddress1(v)
-	})
-}
-
-// UpdateAddress1 sets the "address1" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateAddress1() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateAddress1()
-	})
-}
-
-// ClearAddress1 clears the value of the "address1" field.
-func (u *FacilityUpsertOne) ClearAddress1() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearAddress1()
-	})
-}
-
-// SetAddress2 sets the "address2" field.
-func (u *FacilityUpsertOne) SetAddress2(v string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetAddress2(v)
-	})
-}
-
-// UpdateAddress2 sets the "address2" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateAddress2() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateAddress2()
-	})
-}
-
-// ClearAddress2 clears the value of the "address2" field.
-func (u *FacilityUpsertOne) ClearAddress2() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearAddress2()
-	})
-}
-
-// SetCity sets the "city" field.
-func (u *FacilityUpsertOne) SetCity(v string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetCity(v)
-	})
-}
-
-// UpdateCity sets the "city" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateCity() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateCity()
-	})
-}
-
-// ClearCity clears the value of the "city" field.
-func (u *FacilityUpsertOne) ClearCity() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearCity()
-	})
-}
-
-// SetState sets the "state" field.
-func (u *FacilityUpsertOne) SetState(v string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetState(v)
-	})
-}
-
-// UpdateState sets the "state" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateState() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateState()
-	})
-}
-
-// ClearState clears the value of the "state" field.
-func (u *FacilityUpsertOne) ClearState() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearState()
-	})
-}
-
-// SetCountry sets the "country" field.
-func (u *FacilityUpsertOne) SetCountry(v string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetCountry(v)
-	})
-}
-
-// UpdateCountry sets the "country" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateCountry() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateCountry()
-	})
-}
-
-// ClearCountry clears the value of the "country" field.
-func (u *FacilityUpsertOne) ClearCountry() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearCountry()
-	})
-}
-
-// SetZipcode sets the "zipcode" field.
-func (u *FacilityUpsertOne) SetZipcode(v string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetZipcode(v)
-	})
-}
-
-// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateZipcode() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateZipcode()
-	})
-}
-
-// ClearZipcode clears the value of the "zipcode" field.
-func (u *FacilityUpsertOne) ClearZipcode() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearZipcode()
-	})
-}
-
-// SetSuite sets the "suite" field.
-func (u *FacilityUpsertOne) SetSuite(v string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetSuite(v)
-	})
-}
-
-// UpdateSuite sets the "suite" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateSuite() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateSuite()
-	})
-}
-
-// ClearSuite clears the value of the "suite" field.
-func (u *FacilityUpsertOne) ClearSuite() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearSuite()
-	})
-}
-
-// SetFloor sets the "floor" field.
-func (u *FacilityUpsertOne) SetFloor(v string) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetFloor(v)
-	})
-}
-
-// UpdateFloor sets the "floor" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateFloor() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateFloor()
-	})
-}
-
-// ClearFloor clears the value of the "floor" field.
-func (u *FacilityUpsertOne) ClearFloor() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearFloor()
-	})
-}
-
-// SetLatitude sets the "latitude" field.
-func (u *FacilityUpsertOne) SetLatitude(v float64) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetLatitude(v)
-	})
-}
-
-// AddLatitude adds v to the "latitude" field.
-func (u *FacilityUpsertOne) AddLatitude(v float64) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.AddLatitude(v)
-	})
-}
-
-// UpdateLatitude sets the "latitude" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateLatitude() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateLatitude()
-	})
-}
-
-// ClearLatitude clears the value of the "latitude" field.
-func (u *FacilityUpsertOne) ClearLatitude() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearLatitude()
-	})
-}
-
-// SetLongitude sets the "longitude" field.
-func (u *FacilityUpsertOne) SetLongitude(v float64) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetLongitude(v)
-	})
-}
-
-// AddLongitude adds v to the "longitude" field.
-func (u *FacilityUpsertOne) AddLongitude(v float64) *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.AddLongitude(v)
-	})
-}
-
-// UpdateLongitude sets the "longitude" field to the value that was provided on create.
-func (u *FacilityUpsertOne) UpdateLongitude() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateLongitude()
-	})
-}
-
-// ClearLongitude clears the value of the "longitude" field.
-func (u *FacilityUpsertOne) ClearLongitude() *FacilityUpsertOne {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearLongitude()
 	})
 }
 
@@ -2791,7 +2811,7 @@ func (_c *FacilityCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.FacilityUpsert) {
-//			SetOrgID(v+v).
+//			SetCampusID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *FacilityCreateBulk) OnConflict(opts ...sql.ConflictOption) *FacilityUpsertBulk {
@@ -2873,48 +2893,6 @@ func (u *FacilityUpsertBulk) Update(set func(*FacilityUpsert)) *FacilityUpsertBu
 	return u
 }
 
-// SetOrgID sets the "org_id" field.
-func (u *FacilityUpsertBulk) SetOrgID(v int) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetOrgID(v)
-	})
-}
-
-// UpdateOrgID sets the "org_id" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateOrgID() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateOrgID()
-	})
-}
-
-// ClearOrgID clears the value of the "org_id" field.
-func (u *FacilityUpsertBulk) ClearOrgID() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearOrgID()
-	})
-}
-
-// SetOrgName sets the "org_name" field.
-func (u *FacilityUpsertBulk) SetOrgName(v string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetOrgName(v)
-	})
-}
-
-// UpdateOrgName sets the "org_name" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateOrgName() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateOrgName()
-	})
-}
-
-// ClearOrgName clears the value of the "org_name" field.
-func (u *FacilityUpsertBulk) ClearOrgName() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearOrgName()
-	})
-}
-
 // SetCampusID sets the "campus_id" field.
 func (u *FacilityUpsertBulk) SetCampusID(v int) *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
@@ -2936,17 +2914,66 @@ func (u *FacilityUpsertBulk) ClearCampusID() *FacilityUpsertBulk {
 	})
 }
 
-// SetName sets the "name" field.
-func (u *FacilityUpsertBulk) SetName(v string) *FacilityUpsertBulk {
+// SetOrgID sets the "org_id" field.
+func (u *FacilityUpsertBulk) SetOrgID(v int) *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetName(v)
+		s.SetOrgID(v)
 	})
 }
 
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateName() *FacilityUpsertBulk {
+// UpdateOrgID sets the "org_id" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateOrgID() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateName()
+		s.UpdateOrgID()
+	})
+}
+
+// ClearOrgID clears the value of the "org_id" field.
+func (u *FacilityUpsertBulk) ClearOrgID() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearOrgID()
+	})
+}
+
+// SetAddress1 sets the "address1" field.
+func (u *FacilityUpsertBulk) SetAddress1(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetAddress1(v)
+	})
+}
+
+// UpdateAddress1 sets the "address1" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateAddress1() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateAddress1()
+	})
+}
+
+// ClearAddress1 clears the value of the "address1" field.
+func (u *FacilityUpsertBulk) ClearAddress1() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearAddress1()
+	})
+}
+
+// SetAddress2 sets the "address2" field.
+func (u *FacilityUpsertBulk) SetAddress2(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetAddress2(v)
+	})
+}
+
+// UpdateAddress2 sets the "address2" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateAddress2() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateAddress2()
+	})
+}
+
+// ClearAddress2 clears the value of the "address2" field.
+func (u *FacilityUpsertBulk) ClearAddress2() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearAddress2()
 	})
 }
 
@@ -2971,66 +2998,45 @@ func (u *FacilityUpsertBulk) ClearAka() *FacilityUpsertBulk {
 	})
 }
 
-// SetNameLong sets the "name_long" field.
-func (u *FacilityUpsertBulk) SetNameLong(v string) *FacilityUpsertBulk {
+// SetAvailableVoltageServices sets the "available_voltage_services" field.
+func (u *FacilityUpsertBulk) SetAvailableVoltageServices(v []string) *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetNameLong(v)
+		s.SetAvailableVoltageServices(v)
 	})
 }
 
-// UpdateNameLong sets the "name_long" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateNameLong() *FacilityUpsertBulk {
+// UpdateAvailableVoltageServices sets the "available_voltage_services" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateAvailableVoltageServices() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateNameLong()
+		s.UpdateAvailableVoltageServices()
 	})
 }
 
-// ClearNameLong clears the value of the "name_long" field.
-func (u *FacilityUpsertBulk) ClearNameLong() *FacilityUpsertBulk {
+// ClearAvailableVoltageServices clears the value of the "available_voltage_services" field.
+func (u *FacilityUpsertBulk) ClearAvailableVoltageServices() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearNameLong()
+		s.ClearAvailableVoltageServices()
 	})
 }
 
-// SetWebsite sets the "website" field.
-func (u *FacilityUpsertBulk) SetWebsite(v string) *FacilityUpsertBulk {
+// SetCity sets the "city" field.
+func (u *FacilityUpsertBulk) SetCity(v string) *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetWebsite(v)
+		s.SetCity(v)
 	})
 }
 
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateWebsite() *FacilityUpsertBulk {
+// UpdateCity sets the "city" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateCity() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateWebsite()
+		s.UpdateCity()
 	})
 }
 
-// ClearWebsite clears the value of the "website" field.
-func (u *FacilityUpsertBulk) ClearWebsite() *FacilityUpsertBulk {
+// ClearCity clears the value of the "city" field.
+func (u *FacilityUpsertBulk) ClearCity() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearWebsite()
-	})
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *FacilityUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetSocialMedia(v)
-	})
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateSocialMedia() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateSocialMedia()
-	})
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *FacilityUpsertBulk) ClearSocialMedia() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearSocialMedia()
+		s.ClearCity()
 	})
 }
 
@@ -3055,24 +3061,199 @@ func (u *FacilityUpsertBulk) ClearClli() *FacilityUpsertBulk {
 	})
 }
 
-// SetRencode sets the "rencode" field.
-func (u *FacilityUpsertBulk) SetRencode(v string) *FacilityUpsertBulk {
+// SetCountry sets the "country" field.
+func (u *FacilityUpsertBulk) SetCountry(v string) *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetRencode(v)
+		s.SetCountry(v)
 	})
 }
 
-// UpdateRencode sets the "rencode" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateRencode() *FacilityUpsertBulk {
+// UpdateCountry sets the "country" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateCountry() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateRencode()
+		s.UpdateCountry()
 	})
 }
 
-// ClearRencode clears the value of the "rencode" field.
-func (u *FacilityUpsertBulk) ClearRencode() *FacilityUpsertBulk {
+// ClearCountry clears the value of the "country" field.
+func (u *FacilityUpsertBulk) ClearCountry() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearRencode()
+		s.ClearCountry()
+	})
+}
+
+// SetDiverseServingSubstations sets the "diverse_serving_substations" field.
+func (u *FacilityUpsertBulk) SetDiverseServingSubstations(v bool) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetDiverseServingSubstations(v)
+	})
+}
+
+// UpdateDiverseServingSubstations sets the "diverse_serving_substations" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateDiverseServingSubstations() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateDiverseServingSubstations()
+	})
+}
+
+// ClearDiverseServingSubstations clears the value of the "diverse_serving_substations" field.
+func (u *FacilityUpsertBulk) ClearDiverseServingSubstations() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearDiverseServingSubstations()
+	})
+}
+
+// SetFloor sets the "floor" field.
+func (u *FacilityUpsertBulk) SetFloor(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetFloor(v)
+	})
+}
+
+// UpdateFloor sets the "floor" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateFloor() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateFloor()
+	})
+}
+
+// ClearFloor clears the value of the "floor" field.
+func (u *FacilityUpsertBulk) ClearFloor() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearFloor()
+	})
+}
+
+// SetLatitude sets the "latitude" field.
+func (u *FacilityUpsertBulk) SetLatitude(v float64) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetLatitude(v)
+	})
+}
+
+// AddLatitude adds v to the "latitude" field.
+func (u *FacilityUpsertBulk) AddLatitude(v float64) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.AddLatitude(v)
+	})
+}
+
+// UpdateLatitude sets the "latitude" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateLatitude() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateLatitude()
+	})
+}
+
+// ClearLatitude clears the value of the "latitude" field.
+func (u *FacilityUpsertBulk) ClearLatitude() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearLatitude()
+	})
+}
+
+// SetLogo sets the "logo" field.
+func (u *FacilityUpsertBulk) SetLogo(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetLogo(v)
+	})
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateLogo() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateLogo()
+	})
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *FacilityUpsertBulk) ClearLogo() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearLogo()
+	})
+}
+
+// SetLongitude sets the "longitude" field.
+func (u *FacilityUpsertBulk) SetLongitude(v float64) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetLongitude(v)
+	})
+}
+
+// AddLongitude adds v to the "longitude" field.
+func (u *FacilityUpsertBulk) AddLongitude(v float64) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.AddLongitude(v)
+	})
+}
+
+// UpdateLongitude sets the "longitude" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateLongitude() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateLongitude()
+	})
+}
+
+// ClearLongitude clears the value of the "longitude" field.
+func (u *FacilityUpsertBulk) ClearLongitude() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearLongitude()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *FacilityUpsertBulk) SetName(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateName() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetNameLong sets the "name_long" field.
+func (u *FacilityUpsertBulk) SetNameLong(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetNameLong(v)
+	})
+}
+
+// UpdateNameLong sets the "name_long" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateNameLong() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateNameLong()
+	})
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (u *FacilityUpsertBulk) ClearNameLong() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearNameLong()
+	})
+}
+
+// SetNotes sets the "notes" field.
+func (u *FacilityUpsertBulk) SetNotes(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetNotes(v)
+	})
+}
+
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateNotes() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateNotes()
+	})
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (u *FacilityUpsertBulk) ClearNotes() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearNotes()
 	})
 }
 
@@ -3097,45 +3278,66 @@ func (u *FacilityUpsertBulk) ClearNpanxx() *FacilityUpsertBulk {
 	})
 }
 
-// SetTechEmail sets the "tech_email" field.
-func (u *FacilityUpsertBulk) SetTechEmail(v string) *FacilityUpsertBulk {
+// SetProperty sets the "property" field.
+func (u *FacilityUpsertBulk) SetProperty(v string) *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetTechEmail(v)
+		s.SetProperty(v)
 	})
 }
 
-// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateTechEmail() *FacilityUpsertBulk {
+// UpdateProperty sets the "property" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateProperty() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateTechEmail()
+		s.UpdateProperty()
 	})
 }
 
-// ClearTechEmail clears the value of the "tech_email" field.
-func (u *FacilityUpsertBulk) ClearTechEmail() *FacilityUpsertBulk {
+// ClearProperty clears the value of the "property" field.
+func (u *FacilityUpsertBulk) ClearProperty() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearTechEmail()
+		s.ClearProperty()
 	})
 }
 
-// SetTechPhone sets the "tech_phone" field.
-func (u *FacilityUpsertBulk) SetTechPhone(v string) *FacilityUpsertBulk {
+// SetRegionContinent sets the "region_continent" field.
+func (u *FacilityUpsertBulk) SetRegionContinent(v string) *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetTechPhone(v)
+		s.SetRegionContinent(v)
 	})
 }
 
-// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateTechPhone() *FacilityUpsertBulk {
+// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateRegionContinent() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateTechPhone()
+		s.UpdateRegionContinent()
 	})
 }
 
-// ClearTechPhone clears the value of the "tech_phone" field.
-func (u *FacilityUpsertBulk) ClearTechPhone() *FacilityUpsertBulk {
+// ClearRegionContinent clears the value of the "region_continent" field.
+func (u *FacilityUpsertBulk) ClearRegionContinent() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearTechPhone()
+		s.ClearRegionContinent()
+	})
+}
+
+// SetRencode sets the "rencode" field.
+func (u *FacilityUpsertBulk) SetRencode(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetRencode(v)
+	})
+}
+
+// UpdateRencode sets the "rencode" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateRencode() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateRencode()
+	})
+}
+
+// ClearRencode clears the value of the "rencode" field.
+func (u *FacilityUpsertBulk) ClearRencode() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearRencode()
 	})
 }
 
@@ -3181,108 +3383,45 @@ func (u *FacilityUpsertBulk) ClearSalesPhone() *FacilityUpsertBulk {
 	})
 }
 
-// SetProperty sets the "property" field.
-func (u *FacilityUpsertBulk) SetProperty(v string) *FacilityUpsertBulk {
+// SetSocialMedia sets the "social_media" field.
+func (u *FacilityUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetProperty(v)
+		s.SetSocialMedia(v)
 	})
 }
 
-// UpdateProperty sets the "property" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateProperty() *FacilityUpsertBulk {
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateSocialMedia() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateProperty()
+		s.UpdateSocialMedia()
 	})
 }
 
-// ClearProperty clears the value of the "property" field.
-func (u *FacilityUpsertBulk) ClearProperty() *FacilityUpsertBulk {
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *FacilityUpsertBulk) ClearSocialMedia() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearProperty()
+		s.ClearSocialMedia()
 	})
 }
 
-// SetDiverseServingSubstations sets the "diverse_serving_substations" field.
-func (u *FacilityUpsertBulk) SetDiverseServingSubstations(v bool) *FacilityUpsertBulk {
+// SetState sets the "state" field.
+func (u *FacilityUpsertBulk) SetState(v string) *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetDiverseServingSubstations(v)
+		s.SetState(v)
 	})
 }
 
-// UpdateDiverseServingSubstations sets the "diverse_serving_substations" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateDiverseServingSubstations() *FacilityUpsertBulk {
+// UpdateState sets the "state" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateState() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateDiverseServingSubstations()
+		s.UpdateState()
 	})
 }
 
-// ClearDiverseServingSubstations clears the value of the "diverse_serving_substations" field.
-func (u *FacilityUpsertBulk) ClearDiverseServingSubstations() *FacilityUpsertBulk {
+// ClearState clears the value of the "state" field.
+func (u *FacilityUpsertBulk) ClearState() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearDiverseServingSubstations()
-	})
-}
-
-// SetAvailableVoltageServices sets the "available_voltage_services" field.
-func (u *FacilityUpsertBulk) SetAvailableVoltageServices(v []string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetAvailableVoltageServices(v)
-	})
-}
-
-// UpdateAvailableVoltageServices sets the "available_voltage_services" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateAvailableVoltageServices() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateAvailableVoltageServices()
-	})
-}
-
-// ClearAvailableVoltageServices clears the value of the "available_voltage_services" field.
-func (u *FacilityUpsertBulk) ClearAvailableVoltageServices() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearAvailableVoltageServices()
-	})
-}
-
-// SetNotes sets the "notes" field.
-func (u *FacilityUpsertBulk) SetNotes(v string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetNotes(v)
-	})
-}
-
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateNotes() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateNotes()
-	})
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (u *FacilityUpsertBulk) ClearNotes() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearNotes()
-	})
-}
-
-// SetRegionContinent sets the "region_continent" field.
-func (u *FacilityUpsertBulk) SetRegionContinent(v string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetRegionContinent(v)
-	})
-}
-
-// UpdateRegionContinent sets the "region_continent" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateRegionContinent() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateRegionContinent()
-	})
-}
-
-// ClearRegionContinent clears the value of the "region_continent" field.
-func (u *FacilityUpsertBulk) ClearRegionContinent() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearRegionContinent()
+		s.ClearState()
 	})
 }
 
@@ -3307,24 +3446,129 @@ func (u *FacilityUpsertBulk) ClearStatusDashboard() *FacilityUpsertBulk {
 	})
 }
 
-// SetLogo sets the "logo" field.
-func (u *FacilityUpsertBulk) SetLogo(v string) *FacilityUpsertBulk {
+// SetSuite sets the "suite" field.
+func (u *FacilityUpsertBulk) SetSuite(v string) *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.SetLogo(v)
+		s.SetSuite(v)
 	})
 }
 
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateLogo() *FacilityUpsertBulk {
+// UpdateSuite sets the "suite" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateSuite() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateLogo()
+		s.UpdateSuite()
 	})
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (u *FacilityUpsertBulk) ClearLogo() *FacilityUpsertBulk {
+// ClearSuite clears the value of the "suite" field.
+func (u *FacilityUpsertBulk) ClearSuite() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
-		s.ClearLogo()
+		s.ClearSuite()
+	})
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (u *FacilityUpsertBulk) SetTechEmail(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetTechEmail(v)
+	})
+}
+
+// UpdateTechEmail sets the "tech_email" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateTechEmail() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateTechEmail()
+	})
+}
+
+// ClearTechEmail clears the value of the "tech_email" field.
+func (u *FacilityUpsertBulk) ClearTechEmail() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearTechEmail()
+	})
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (u *FacilityUpsertBulk) SetTechPhone(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetTechPhone(v)
+	})
+}
+
+// UpdateTechPhone sets the "tech_phone" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateTechPhone() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateTechPhone()
+	})
+}
+
+// ClearTechPhone clears the value of the "tech_phone" field.
+func (u *FacilityUpsertBulk) ClearTechPhone() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearTechPhone()
+	})
+}
+
+// SetWebsite sets the "website" field.
+func (u *FacilityUpsertBulk) SetWebsite(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetWebsite(v)
+	})
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateWebsite() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateWebsite()
+	})
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *FacilityUpsertBulk) ClearWebsite() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearWebsite()
+	})
+}
+
+// SetZipcode sets the "zipcode" field.
+func (u *FacilityUpsertBulk) SetZipcode(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetZipcode(v)
+	})
+}
+
+// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateZipcode() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateZipcode()
+	})
+}
+
+// ClearZipcode clears the value of the "zipcode" field.
+func (u *FacilityUpsertBulk) ClearZipcode() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearZipcode()
+	})
+}
+
+// SetOrgName sets the "org_name" field.
+func (u *FacilityUpsertBulk) SetOrgName(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetOrgName(v)
+	})
+}
+
+// UpdateOrgName sets the "org_name" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateOrgName() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateOrgName()
+	})
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (u *FacilityUpsertBulk) ClearOrgName() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearOrgName()
 	})
 }
 
@@ -3409,230 +3653,6 @@ func (u *FacilityUpsertBulk) UpdateCarrierCount() *FacilityUpsertBulk {
 func (u *FacilityUpsertBulk) ClearCarrierCount() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
 		s.ClearCarrierCount()
-	})
-}
-
-// SetAddress1 sets the "address1" field.
-func (u *FacilityUpsertBulk) SetAddress1(v string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetAddress1(v)
-	})
-}
-
-// UpdateAddress1 sets the "address1" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateAddress1() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateAddress1()
-	})
-}
-
-// ClearAddress1 clears the value of the "address1" field.
-func (u *FacilityUpsertBulk) ClearAddress1() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearAddress1()
-	})
-}
-
-// SetAddress2 sets the "address2" field.
-func (u *FacilityUpsertBulk) SetAddress2(v string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetAddress2(v)
-	})
-}
-
-// UpdateAddress2 sets the "address2" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateAddress2() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateAddress2()
-	})
-}
-
-// ClearAddress2 clears the value of the "address2" field.
-func (u *FacilityUpsertBulk) ClearAddress2() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearAddress2()
-	})
-}
-
-// SetCity sets the "city" field.
-func (u *FacilityUpsertBulk) SetCity(v string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetCity(v)
-	})
-}
-
-// UpdateCity sets the "city" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateCity() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateCity()
-	})
-}
-
-// ClearCity clears the value of the "city" field.
-func (u *FacilityUpsertBulk) ClearCity() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearCity()
-	})
-}
-
-// SetState sets the "state" field.
-func (u *FacilityUpsertBulk) SetState(v string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetState(v)
-	})
-}
-
-// UpdateState sets the "state" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateState() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateState()
-	})
-}
-
-// ClearState clears the value of the "state" field.
-func (u *FacilityUpsertBulk) ClearState() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearState()
-	})
-}
-
-// SetCountry sets the "country" field.
-func (u *FacilityUpsertBulk) SetCountry(v string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetCountry(v)
-	})
-}
-
-// UpdateCountry sets the "country" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateCountry() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateCountry()
-	})
-}
-
-// ClearCountry clears the value of the "country" field.
-func (u *FacilityUpsertBulk) ClearCountry() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearCountry()
-	})
-}
-
-// SetZipcode sets the "zipcode" field.
-func (u *FacilityUpsertBulk) SetZipcode(v string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetZipcode(v)
-	})
-}
-
-// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateZipcode() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateZipcode()
-	})
-}
-
-// ClearZipcode clears the value of the "zipcode" field.
-func (u *FacilityUpsertBulk) ClearZipcode() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearZipcode()
-	})
-}
-
-// SetSuite sets the "suite" field.
-func (u *FacilityUpsertBulk) SetSuite(v string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetSuite(v)
-	})
-}
-
-// UpdateSuite sets the "suite" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateSuite() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateSuite()
-	})
-}
-
-// ClearSuite clears the value of the "suite" field.
-func (u *FacilityUpsertBulk) ClearSuite() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearSuite()
-	})
-}
-
-// SetFloor sets the "floor" field.
-func (u *FacilityUpsertBulk) SetFloor(v string) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetFloor(v)
-	})
-}
-
-// UpdateFloor sets the "floor" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateFloor() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateFloor()
-	})
-}
-
-// ClearFloor clears the value of the "floor" field.
-func (u *FacilityUpsertBulk) ClearFloor() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearFloor()
-	})
-}
-
-// SetLatitude sets the "latitude" field.
-func (u *FacilityUpsertBulk) SetLatitude(v float64) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetLatitude(v)
-	})
-}
-
-// AddLatitude adds v to the "latitude" field.
-func (u *FacilityUpsertBulk) AddLatitude(v float64) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.AddLatitude(v)
-	})
-}
-
-// UpdateLatitude sets the "latitude" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateLatitude() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateLatitude()
-	})
-}
-
-// ClearLatitude clears the value of the "latitude" field.
-func (u *FacilityUpsertBulk) ClearLatitude() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearLatitude()
-	})
-}
-
-// SetLongitude sets the "longitude" field.
-func (u *FacilityUpsertBulk) SetLongitude(v float64) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.SetLongitude(v)
-	})
-}
-
-// AddLongitude adds v to the "longitude" field.
-func (u *FacilityUpsertBulk) AddLongitude(v float64) *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.AddLongitude(v)
-	})
-}
-
-// UpdateLongitude sets the "longitude" field to the value that was provided on create.
-func (u *FacilityUpsertBulk) UpdateLongitude() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.UpdateLongitude()
-	})
-}
-
-// ClearLongitude clears the value of the "longitude" field.
-func (u *FacilityUpsertBulk) ClearLongitude() *FacilityUpsertBulk {
-	return u.Update(func(s *FacilityUpsert) {
-		s.ClearLongitude()
 	})
 }
 

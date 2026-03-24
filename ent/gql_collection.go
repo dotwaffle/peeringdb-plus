@@ -44,6 +44,19 @@ func (_q *CampusQuery) collectField(ctx context.Context, oneNode bool, opCtx *gr
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
 
+		case "facilities":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&FacilityClient{config: _q.config}).Query()
+			)
+			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, facilityImplementors)...); err != nil {
+				return err
+			}
+			_q.WithNamedFacilities(alias, func(wq *FacilityQuery) {
+				*wq = *query
+			})
+
 		case "organization":
 			var (
 				alias = field.Alias
@@ -58,28 +71,30 @@ func (_q *CampusQuery) collectField(ctx context.Context, oneNode bool, opCtx *gr
 				selectedFields = append(selectedFields, campus.FieldOrgID)
 				fieldSeen[campus.FieldOrgID] = struct{}{}
 			}
-
-		case "facilities":
-			var (
-				alias = field.Alias
-				path  = append(path, alias)
-				query = (&FacilityClient{config: _q.config}).Query()
-			)
-			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, facilityImplementors)...); err != nil {
-				return err
-			}
-			_q.WithNamedFacilities(alias, func(wq *FacilityQuery) {
-				*wq = *query
-			})
 		case "orgID":
 			if _, ok := fieldSeen[campus.FieldOrgID]; !ok {
 				selectedFields = append(selectedFields, campus.FieldOrgID)
 				fieldSeen[campus.FieldOrgID] = struct{}{}
 			}
-		case "orgName":
-			if _, ok := fieldSeen[campus.FieldOrgName]; !ok {
-				selectedFields = append(selectedFields, campus.FieldOrgName)
-				fieldSeen[campus.FieldOrgName] = struct{}{}
+		case "aka":
+			if _, ok := fieldSeen[campus.FieldAka]; !ok {
+				selectedFields = append(selectedFields, campus.FieldAka)
+				fieldSeen[campus.FieldAka] = struct{}{}
+			}
+		case "city":
+			if _, ok := fieldSeen[campus.FieldCity]; !ok {
+				selectedFields = append(selectedFields, campus.FieldCity)
+				fieldSeen[campus.FieldCity] = struct{}{}
+			}
+		case "country":
+			if _, ok := fieldSeen[campus.FieldCountry]; !ok {
+				selectedFields = append(selectedFields, campus.FieldCountry)
+				fieldSeen[campus.FieldCountry] = struct{}{}
+			}
+		case "logo":
+			if _, ok := fieldSeen[campus.FieldLogo]; !ok {
+				selectedFields = append(selectedFields, campus.FieldLogo)
+				fieldSeen[campus.FieldLogo] = struct{}{}
 			}
 		case "name":
 			if _, ok := fieldSeen[campus.FieldName]; !ok {
@@ -91,50 +106,35 @@ func (_q *CampusQuery) collectField(ctx context.Context, oneNode bool, opCtx *gr
 				selectedFields = append(selectedFields, campus.FieldNameLong)
 				fieldSeen[campus.FieldNameLong] = struct{}{}
 			}
-		case "aka":
-			if _, ok := fieldSeen[campus.FieldAka]; !ok {
-				selectedFields = append(selectedFields, campus.FieldAka)
-				fieldSeen[campus.FieldAka] = struct{}{}
-			}
-		case "website":
-			if _, ok := fieldSeen[campus.FieldWebsite]; !ok {
-				selectedFields = append(selectedFields, campus.FieldWebsite)
-				fieldSeen[campus.FieldWebsite] = struct{}{}
+		case "notes":
+			if _, ok := fieldSeen[campus.FieldNotes]; !ok {
+				selectedFields = append(selectedFields, campus.FieldNotes)
+				fieldSeen[campus.FieldNotes] = struct{}{}
 			}
 		case "socialMedia":
 			if _, ok := fieldSeen[campus.FieldSocialMedia]; !ok {
 				selectedFields = append(selectedFields, campus.FieldSocialMedia)
 				fieldSeen[campus.FieldSocialMedia] = struct{}{}
 			}
-		case "notes":
-			if _, ok := fieldSeen[campus.FieldNotes]; !ok {
-				selectedFields = append(selectedFields, campus.FieldNotes)
-				fieldSeen[campus.FieldNotes] = struct{}{}
+		case "state":
+			if _, ok := fieldSeen[campus.FieldState]; !ok {
+				selectedFields = append(selectedFields, campus.FieldState)
+				fieldSeen[campus.FieldState] = struct{}{}
 			}
-		case "country":
-			if _, ok := fieldSeen[campus.FieldCountry]; !ok {
-				selectedFields = append(selectedFields, campus.FieldCountry)
-				fieldSeen[campus.FieldCountry] = struct{}{}
-			}
-		case "city":
-			if _, ok := fieldSeen[campus.FieldCity]; !ok {
-				selectedFields = append(selectedFields, campus.FieldCity)
-				fieldSeen[campus.FieldCity] = struct{}{}
+		case "website":
+			if _, ok := fieldSeen[campus.FieldWebsite]; !ok {
+				selectedFields = append(selectedFields, campus.FieldWebsite)
+				fieldSeen[campus.FieldWebsite] = struct{}{}
 			}
 		case "zipcode":
 			if _, ok := fieldSeen[campus.FieldZipcode]; !ok {
 				selectedFields = append(selectedFields, campus.FieldZipcode)
 				fieldSeen[campus.FieldZipcode] = struct{}{}
 			}
-		case "state":
-			if _, ok := fieldSeen[campus.FieldState]; !ok {
-				selectedFields = append(selectedFields, campus.FieldState)
-				fieldSeen[campus.FieldState] = struct{}{}
-			}
-		case "logo":
-			if _, ok := fieldSeen[campus.FieldLogo]; !ok {
-				selectedFields = append(selectedFields, campus.FieldLogo)
-				fieldSeen[campus.FieldLogo] = struct{}{}
+		case "orgName":
+			if _, ok := fieldSeen[campus.FieldOrgName]; !ok {
+				selectedFields = append(selectedFields, campus.FieldOrgName)
+				fieldSeen[campus.FieldOrgName] = struct{}{}
 			}
 		case "created":
 			if _, ok := fieldSeen[campus.FieldCreated]; !ok {
@@ -236,6 +236,19 @@ func (_q *CarrierQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
 
+		case "carrierFacilities":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&CarrierFacilityClient{config: _q.config}).Query()
+			)
+			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, carrierfacilityImplementors)...); err != nil {
+				return err
+			}
+			_q.WithNamedCarrierFacilities(alias, func(wq *CarrierFacilityQuery) {
+				*wq = *query
+			})
+
 		case "organization":
 			var (
 				alias = field.Alias
@@ -250,68 +263,55 @@ func (_q *CarrierQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, carrier.FieldOrgID)
 				fieldSeen[carrier.FieldOrgID] = struct{}{}
 			}
-
-		case "carrierFacilities":
-			var (
-				alias = field.Alias
-				path  = append(path, alias)
-				query = (&CarrierFacilityClient{config: _q.config}).Query()
-			)
-			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, carrierfacilityImplementors)...); err != nil {
-				return err
-			}
-			_q.WithNamedCarrierFacilities(alias, func(wq *CarrierFacilityQuery) {
-				*wq = *query
-			})
 		case "orgID":
 			if _, ok := fieldSeen[carrier.FieldOrgID]; !ok {
 				selectedFields = append(selectedFields, carrier.FieldOrgID)
 				fieldSeen[carrier.FieldOrgID] = struct{}{}
-			}
-		case "orgName":
-			if _, ok := fieldSeen[carrier.FieldOrgName]; !ok {
-				selectedFields = append(selectedFields, carrier.FieldOrgName)
-				fieldSeen[carrier.FieldOrgName] = struct{}{}
-			}
-		case "name":
-			if _, ok := fieldSeen[carrier.FieldName]; !ok {
-				selectedFields = append(selectedFields, carrier.FieldName)
-				fieldSeen[carrier.FieldName] = struct{}{}
 			}
 		case "aka":
 			if _, ok := fieldSeen[carrier.FieldAka]; !ok {
 				selectedFields = append(selectedFields, carrier.FieldAka)
 				fieldSeen[carrier.FieldAka] = struct{}{}
 			}
+		case "logo":
+			if _, ok := fieldSeen[carrier.FieldLogo]; !ok {
+				selectedFields = append(selectedFields, carrier.FieldLogo)
+				fieldSeen[carrier.FieldLogo] = struct{}{}
+			}
+		case "name":
+			if _, ok := fieldSeen[carrier.FieldName]; !ok {
+				selectedFields = append(selectedFields, carrier.FieldName)
+				fieldSeen[carrier.FieldName] = struct{}{}
+			}
 		case "nameLong":
 			if _, ok := fieldSeen[carrier.FieldNameLong]; !ok {
 				selectedFields = append(selectedFields, carrier.FieldNameLong)
 				fieldSeen[carrier.FieldNameLong] = struct{}{}
-			}
-		case "website":
-			if _, ok := fieldSeen[carrier.FieldWebsite]; !ok {
-				selectedFields = append(selectedFields, carrier.FieldWebsite)
-				fieldSeen[carrier.FieldWebsite] = struct{}{}
-			}
-		case "socialMedia":
-			if _, ok := fieldSeen[carrier.FieldSocialMedia]; !ok {
-				selectedFields = append(selectedFields, carrier.FieldSocialMedia)
-				fieldSeen[carrier.FieldSocialMedia] = struct{}{}
 			}
 		case "notes":
 			if _, ok := fieldSeen[carrier.FieldNotes]; !ok {
 				selectedFields = append(selectedFields, carrier.FieldNotes)
 				fieldSeen[carrier.FieldNotes] = struct{}{}
 			}
+		case "socialMedia":
+			if _, ok := fieldSeen[carrier.FieldSocialMedia]; !ok {
+				selectedFields = append(selectedFields, carrier.FieldSocialMedia)
+				fieldSeen[carrier.FieldSocialMedia] = struct{}{}
+			}
+		case "website":
+			if _, ok := fieldSeen[carrier.FieldWebsite]; !ok {
+				selectedFields = append(selectedFields, carrier.FieldWebsite)
+				fieldSeen[carrier.FieldWebsite] = struct{}{}
+			}
+		case "orgName":
+			if _, ok := fieldSeen[carrier.FieldOrgName]; !ok {
+				selectedFields = append(selectedFields, carrier.FieldOrgName)
+				fieldSeen[carrier.FieldOrgName] = struct{}{}
+			}
 		case "facCount":
 			if _, ok := fieldSeen[carrier.FieldFacCount]; !ok {
 				selectedFields = append(selectedFields, carrier.FieldFacCount)
 				fieldSeen[carrier.FieldFacCount] = struct{}{}
-			}
-		case "logo":
-			if _, ok := fieldSeen[carrier.FieldLogo]; !ok {
-				selectedFields = append(selectedFields, carrier.FieldLogo)
-				fieldSeen[carrier.FieldLogo] = struct{}{}
 			}
 		case "created":
 			if _, ok := fieldSeen[carrier.FieldCreated]; !ok {
@@ -535,21 +535,6 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
 
-		case "organization":
-			var (
-				alias = field.Alias
-				path  = append(path, alias)
-				query = (&OrganizationClient{config: _q.config}).Query()
-			)
-			if err := query.collectField(ctx, oneNode, opCtx, field, path, mayAddCondition(satisfies, organizationImplementors)...); err != nil {
-				return err
-			}
-			_q.withOrganization = query
-			if _, ok := fieldSeen[facility.FieldOrgID]; !ok {
-				selectedFields = append(selectedFields, facility.FieldOrgID)
-				fieldSeen[facility.FieldOrgID] = struct{}{}
-			}
-
 		case "campus":
 			var (
 				alias = field.Alias
@@ -565,16 +550,16 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				fieldSeen[facility.FieldCampusID] = struct{}{}
 			}
 
-		case "networkFacilities":
+		case "carrierFacilities":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
-				query = (&NetworkFacilityClient{config: _q.config}).Query()
+				query = (&CarrierFacilityClient{config: _q.config}).Query()
 			)
-			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, networkfacilityImplementors)...); err != nil {
+			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, carrierfacilityImplementors)...); err != nil {
 				return err
 			}
-			_q.WithNamedNetworkFacilities(alias, func(wq *NetworkFacilityQuery) {
+			_q.WithNamedCarrierFacilities(alias, func(wq *CarrierFacilityQuery) {
 				*wq = *query
 			})
 
@@ -591,82 +576,137 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				*wq = *query
 			})
 
-		case "carrierFacilities":
+		case "networkFacilities":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
-				query = (&CarrierFacilityClient{config: _q.config}).Query()
+				query = (&NetworkFacilityClient{config: _q.config}).Query()
 			)
-			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, carrierfacilityImplementors)...); err != nil {
+			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, networkfacilityImplementors)...); err != nil {
 				return err
 			}
-			_q.WithNamedCarrierFacilities(alias, func(wq *CarrierFacilityQuery) {
+			_q.WithNamedNetworkFacilities(alias, func(wq *NetworkFacilityQuery) {
 				*wq = *query
 			})
-		case "orgID":
+
+		case "organization":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&OrganizationClient{config: _q.config}).Query()
+			)
+			if err := query.collectField(ctx, oneNode, opCtx, field, path, mayAddCondition(satisfies, organizationImplementors)...); err != nil {
+				return err
+			}
+			_q.withOrganization = query
 			if _, ok := fieldSeen[facility.FieldOrgID]; !ok {
 				selectedFields = append(selectedFields, facility.FieldOrgID)
 				fieldSeen[facility.FieldOrgID] = struct{}{}
-			}
-		case "orgName":
-			if _, ok := fieldSeen[facility.FieldOrgName]; !ok {
-				selectedFields = append(selectedFields, facility.FieldOrgName)
-				fieldSeen[facility.FieldOrgName] = struct{}{}
 			}
 		case "campusID":
 			if _, ok := fieldSeen[facility.FieldCampusID]; !ok {
 				selectedFields = append(selectedFields, facility.FieldCampusID)
 				fieldSeen[facility.FieldCampusID] = struct{}{}
 			}
-		case "name":
-			if _, ok := fieldSeen[facility.FieldName]; !ok {
-				selectedFields = append(selectedFields, facility.FieldName)
-				fieldSeen[facility.FieldName] = struct{}{}
+		case "orgID":
+			if _, ok := fieldSeen[facility.FieldOrgID]; !ok {
+				selectedFields = append(selectedFields, facility.FieldOrgID)
+				fieldSeen[facility.FieldOrgID] = struct{}{}
+			}
+		case "address1":
+			if _, ok := fieldSeen[facility.FieldAddress1]; !ok {
+				selectedFields = append(selectedFields, facility.FieldAddress1)
+				fieldSeen[facility.FieldAddress1] = struct{}{}
+			}
+		case "address2":
+			if _, ok := fieldSeen[facility.FieldAddress2]; !ok {
+				selectedFields = append(selectedFields, facility.FieldAddress2)
+				fieldSeen[facility.FieldAddress2] = struct{}{}
 			}
 		case "aka":
 			if _, ok := fieldSeen[facility.FieldAka]; !ok {
 				selectedFields = append(selectedFields, facility.FieldAka)
 				fieldSeen[facility.FieldAka] = struct{}{}
 			}
-		case "nameLong":
-			if _, ok := fieldSeen[facility.FieldNameLong]; !ok {
-				selectedFields = append(selectedFields, facility.FieldNameLong)
-				fieldSeen[facility.FieldNameLong] = struct{}{}
+		case "availableVoltageServices":
+			if _, ok := fieldSeen[facility.FieldAvailableVoltageServices]; !ok {
+				selectedFields = append(selectedFields, facility.FieldAvailableVoltageServices)
+				fieldSeen[facility.FieldAvailableVoltageServices] = struct{}{}
 			}
-		case "website":
-			if _, ok := fieldSeen[facility.FieldWebsite]; !ok {
-				selectedFields = append(selectedFields, facility.FieldWebsite)
-				fieldSeen[facility.FieldWebsite] = struct{}{}
-			}
-		case "socialMedia":
-			if _, ok := fieldSeen[facility.FieldSocialMedia]; !ok {
-				selectedFields = append(selectedFields, facility.FieldSocialMedia)
-				fieldSeen[facility.FieldSocialMedia] = struct{}{}
+		case "city":
+			if _, ok := fieldSeen[facility.FieldCity]; !ok {
+				selectedFields = append(selectedFields, facility.FieldCity)
+				fieldSeen[facility.FieldCity] = struct{}{}
 			}
 		case "clli":
 			if _, ok := fieldSeen[facility.FieldClli]; !ok {
 				selectedFields = append(selectedFields, facility.FieldClli)
 				fieldSeen[facility.FieldClli] = struct{}{}
 			}
-		case "rencode":
-			if _, ok := fieldSeen[facility.FieldRencode]; !ok {
-				selectedFields = append(selectedFields, facility.FieldRencode)
-				fieldSeen[facility.FieldRencode] = struct{}{}
+		case "country":
+			if _, ok := fieldSeen[facility.FieldCountry]; !ok {
+				selectedFields = append(selectedFields, facility.FieldCountry)
+				fieldSeen[facility.FieldCountry] = struct{}{}
+			}
+		case "diverseServingSubstations":
+			if _, ok := fieldSeen[facility.FieldDiverseServingSubstations]; !ok {
+				selectedFields = append(selectedFields, facility.FieldDiverseServingSubstations)
+				fieldSeen[facility.FieldDiverseServingSubstations] = struct{}{}
+			}
+		case "floor":
+			if _, ok := fieldSeen[facility.FieldFloor]; !ok {
+				selectedFields = append(selectedFields, facility.FieldFloor)
+				fieldSeen[facility.FieldFloor] = struct{}{}
+			}
+		case "latitude":
+			if _, ok := fieldSeen[facility.FieldLatitude]; !ok {
+				selectedFields = append(selectedFields, facility.FieldLatitude)
+				fieldSeen[facility.FieldLatitude] = struct{}{}
+			}
+		case "logo":
+			if _, ok := fieldSeen[facility.FieldLogo]; !ok {
+				selectedFields = append(selectedFields, facility.FieldLogo)
+				fieldSeen[facility.FieldLogo] = struct{}{}
+			}
+		case "longitude":
+			if _, ok := fieldSeen[facility.FieldLongitude]; !ok {
+				selectedFields = append(selectedFields, facility.FieldLongitude)
+				fieldSeen[facility.FieldLongitude] = struct{}{}
+			}
+		case "name":
+			if _, ok := fieldSeen[facility.FieldName]; !ok {
+				selectedFields = append(selectedFields, facility.FieldName)
+				fieldSeen[facility.FieldName] = struct{}{}
+			}
+		case "nameLong":
+			if _, ok := fieldSeen[facility.FieldNameLong]; !ok {
+				selectedFields = append(selectedFields, facility.FieldNameLong)
+				fieldSeen[facility.FieldNameLong] = struct{}{}
+			}
+		case "notes":
+			if _, ok := fieldSeen[facility.FieldNotes]; !ok {
+				selectedFields = append(selectedFields, facility.FieldNotes)
+				fieldSeen[facility.FieldNotes] = struct{}{}
 			}
 		case "npanxx":
 			if _, ok := fieldSeen[facility.FieldNpanxx]; !ok {
 				selectedFields = append(selectedFields, facility.FieldNpanxx)
 				fieldSeen[facility.FieldNpanxx] = struct{}{}
 			}
-		case "techEmail":
-			if _, ok := fieldSeen[facility.FieldTechEmail]; !ok {
-				selectedFields = append(selectedFields, facility.FieldTechEmail)
-				fieldSeen[facility.FieldTechEmail] = struct{}{}
+		case "property":
+			if _, ok := fieldSeen[facility.FieldProperty]; !ok {
+				selectedFields = append(selectedFields, facility.FieldProperty)
+				fieldSeen[facility.FieldProperty] = struct{}{}
 			}
-		case "techPhone":
-			if _, ok := fieldSeen[facility.FieldTechPhone]; !ok {
-				selectedFields = append(selectedFields, facility.FieldTechPhone)
-				fieldSeen[facility.FieldTechPhone] = struct{}{}
+		case "regionContinent":
+			if _, ok := fieldSeen[facility.FieldRegionContinent]; !ok {
+				selectedFields = append(selectedFields, facility.FieldRegionContinent)
+				fieldSeen[facility.FieldRegionContinent] = struct{}{}
+			}
+		case "rencode":
+			if _, ok := fieldSeen[facility.FieldRencode]; !ok {
+				selectedFields = append(selectedFields, facility.FieldRencode)
+				fieldSeen[facility.FieldRencode] = struct{}{}
 			}
 		case "salesEmail":
 			if _, ok := fieldSeen[facility.FieldSalesEmail]; !ok {
@@ -678,40 +718,50 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				selectedFields = append(selectedFields, facility.FieldSalesPhone)
 				fieldSeen[facility.FieldSalesPhone] = struct{}{}
 			}
-		case "property":
-			if _, ok := fieldSeen[facility.FieldProperty]; !ok {
-				selectedFields = append(selectedFields, facility.FieldProperty)
-				fieldSeen[facility.FieldProperty] = struct{}{}
+		case "socialMedia":
+			if _, ok := fieldSeen[facility.FieldSocialMedia]; !ok {
+				selectedFields = append(selectedFields, facility.FieldSocialMedia)
+				fieldSeen[facility.FieldSocialMedia] = struct{}{}
 			}
-		case "diverseServingSubstations":
-			if _, ok := fieldSeen[facility.FieldDiverseServingSubstations]; !ok {
-				selectedFields = append(selectedFields, facility.FieldDiverseServingSubstations)
-				fieldSeen[facility.FieldDiverseServingSubstations] = struct{}{}
-			}
-		case "availableVoltageServices":
-			if _, ok := fieldSeen[facility.FieldAvailableVoltageServices]; !ok {
-				selectedFields = append(selectedFields, facility.FieldAvailableVoltageServices)
-				fieldSeen[facility.FieldAvailableVoltageServices] = struct{}{}
-			}
-		case "notes":
-			if _, ok := fieldSeen[facility.FieldNotes]; !ok {
-				selectedFields = append(selectedFields, facility.FieldNotes)
-				fieldSeen[facility.FieldNotes] = struct{}{}
-			}
-		case "regionContinent":
-			if _, ok := fieldSeen[facility.FieldRegionContinent]; !ok {
-				selectedFields = append(selectedFields, facility.FieldRegionContinent)
-				fieldSeen[facility.FieldRegionContinent] = struct{}{}
+		case "state":
+			if _, ok := fieldSeen[facility.FieldState]; !ok {
+				selectedFields = append(selectedFields, facility.FieldState)
+				fieldSeen[facility.FieldState] = struct{}{}
 			}
 		case "statusDashboard":
 			if _, ok := fieldSeen[facility.FieldStatusDashboard]; !ok {
 				selectedFields = append(selectedFields, facility.FieldStatusDashboard)
 				fieldSeen[facility.FieldStatusDashboard] = struct{}{}
 			}
-		case "logo":
-			if _, ok := fieldSeen[facility.FieldLogo]; !ok {
-				selectedFields = append(selectedFields, facility.FieldLogo)
-				fieldSeen[facility.FieldLogo] = struct{}{}
+		case "suite":
+			if _, ok := fieldSeen[facility.FieldSuite]; !ok {
+				selectedFields = append(selectedFields, facility.FieldSuite)
+				fieldSeen[facility.FieldSuite] = struct{}{}
+			}
+		case "techEmail":
+			if _, ok := fieldSeen[facility.FieldTechEmail]; !ok {
+				selectedFields = append(selectedFields, facility.FieldTechEmail)
+				fieldSeen[facility.FieldTechEmail] = struct{}{}
+			}
+		case "techPhone":
+			if _, ok := fieldSeen[facility.FieldTechPhone]; !ok {
+				selectedFields = append(selectedFields, facility.FieldTechPhone)
+				fieldSeen[facility.FieldTechPhone] = struct{}{}
+			}
+		case "website":
+			if _, ok := fieldSeen[facility.FieldWebsite]; !ok {
+				selectedFields = append(selectedFields, facility.FieldWebsite)
+				fieldSeen[facility.FieldWebsite] = struct{}{}
+			}
+		case "zipcode":
+			if _, ok := fieldSeen[facility.FieldZipcode]; !ok {
+				selectedFields = append(selectedFields, facility.FieldZipcode)
+				fieldSeen[facility.FieldZipcode] = struct{}{}
+			}
+		case "orgName":
+			if _, ok := fieldSeen[facility.FieldOrgName]; !ok {
+				selectedFields = append(selectedFields, facility.FieldOrgName)
+				fieldSeen[facility.FieldOrgName] = struct{}{}
 			}
 		case "netCount":
 			if _, ok := fieldSeen[facility.FieldNetCount]; !ok {
@@ -727,56 +777,6 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 			if _, ok := fieldSeen[facility.FieldCarrierCount]; !ok {
 				selectedFields = append(selectedFields, facility.FieldCarrierCount)
 				fieldSeen[facility.FieldCarrierCount] = struct{}{}
-			}
-		case "address1":
-			if _, ok := fieldSeen[facility.FieldAddress1]; !ok {
-				selectedFields = append(selectedFields, facility.FieldAddress1)
-				fieldSeen[facility.FieldAddress1] = struct{}{}
-			}
-		case "address2":
-			if _, ok := fieldSeen[facility.FieldAddress2]; !ok {
-				selectedFields = append(selectedFields, facility.FieldAddress2)
-				fieldSeen[facility.FieldAddress2] = struct{}{}
-			}
-		case "city":
-			if _, ok := fieldSeen[facility.FieldCity]; !ok {
-				selectedFields = append(selectedFields, facility.FieldCity)
-				fieldSeen[facility.FieldCity] = struct{}{}
-			}
-		case "state":
-			if _, ok := fieldSeen[facility.FieldState]; !ok {
-				selectedFields = append(selectedFields, facility.FieldState)
-				fieldSeen[facility.FieldState] = struct{}{}
-			}
-		case "country":
-			if _, ok := fieldSeen[facility.FieldCountry]; !ok {
-				selectedFields = append(selectedFields, facility.FieldCountry)
-				fieldSeen[facility.FieldCountry] = struct{}{}
-			}
-		case "zipcode":
-			if _, ok := fieldSeen[facility.FieldZipcode]; !ok {
-				selectedFields = append(selectedFields, facility.FieldZipcode)
-				fieldSeen[facility.FieldZipcode] = struct{}{}
-			}
-		case "suite":
-			if _, ok := fieldSeen[facility.FieldSuite]; !ok {
-				selectedFields = append(selectedFields, facility.FieldSuite)
-				fieldSeen[facility.FieldSuite] = struct{}{}
-			}
-		case "floor":
-			if _, ok := fieldSeen[facility.FieldFloor]; !ok {
-				selectedFields = append(selectedFields, facility.FieldFloor)
-				fieldSeen[facility.FieldFloor] = struct{}{}
-			}
-		case "latitude":
-			if _, ok := fieldSeen[facility.FieldLatitude]; !ok {
-				selectedFields = append(selectedFields, facility.FieldLatitude)
-				fieldSeen[facility.FieldLatitude] = struct{}{}
-			}
-		case "longitude":
-			if _, ok := fieldSeen[facility.FieldLongitude]; !ok {
-				selectedFields = append(selectedFields, facility.FieldLongitude)
-				fieldSeen[facility.FieldLongitude] = struct{}{}
 			}
 		case "created":
 			if _, ok := fieldSeen[facility.FieldCreated]; !ok {
@@ -878,20 +878,18 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
 
-		case "organization":
+		case "ixFacilities":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
-				query = (&OrganizationClient{config: _q.config}).Query()
+				query = (&IxFacilityClient{config: _q.config}).Query()
 			)
-			if err := query.collectField(ctx, oneNode, opCtx, field, path, mayAddCondition(satisfies, organizationImplementors)...); err != nil {
+			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, ixfacilityImplementors)...); err != nil {
 				return err
 			}
-			_q.withOrganization = query
-			if _, ok := fieldSeen[internetexchange.FieldOrgID]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldOrgID)
-				fieldSeen[internetexchange.FieldOrgID] = struct{}{}
-			}
+			_q.WithNamedIxFacilities(alias, func(wq *IxFacilityQuery) {
+				*wq = *query
+			})
 
 		case "ixLans":
 			var (
@@ -906,37 +904,29 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 				*wq = *query
 			})
 
-		case "ixFacilities":
+		case "organization":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
-				query = (&IxFacilityClient{config: _q.config}).Query()
+				query = (&OrganizationClient{config: _q.config}).Query()
 			)
-			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, ixfacilityImplementors)...); err != nil {
+			if err := query.collectField(ctx, oneNode, opCtx, field, path, mayAddCondition(satisfies, organizationImplementors)...); err != nil {
 				return err
 			}
-			_q.WithNamedIxFacilities(alias, func(wq *IxFacilityQuery) {
-				*wq = *query
-			})
+			_q.withOrganization = query
+			if _, ok := fieldSeen[internetexchange.FieldOrgID]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldOrgID)
+				fieldSeen[internetexchange.FieldOrgID] = struct{}{}
+			}
 		case "orgID":
 			if _, ok := fieldSeen[internetexchange.FieldOrgID]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldOrgID)
 				fieldSeen[internetexchange.FieldOrgID] = struct{}{}
 			}
-		case "name":
-			if _, ok := fieldSeen[internetexchange.FieldName]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldName)
-				fieldSeen[internetexchange.FieldName] = struct{}{}
-			}
 		case "aka":
 			if _, ok := fieldSeen[internetexchange.FieldAka]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldAka)
 				fieldSeen[internetexchange.FieldAka] = struct{}{}
-			}
-		case "nameLong":
-			if _, ok := fieldSeen[internetexchange.FieldNameLong]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldNameLong)
-				fieldSeen[internetexchange.FieldNameLong] = struct{}{}
 			}
 		case "city":
 			if _, ok := fieldSeen[internetexchange.FieldCity]; !ok {
@@ -948,60 +938,40 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 				selectedFields = append(selectedFields, internetexchange.FieldCountry)
 				fieldSeen[internetexchange.FieldCountry] = struct{}{}
 			}
-		case "regionContinent":
-			if _, ok := fieldSeen[internetexchange.FieldRegionContinent]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldRegionContinent)
-				fieldSeen[internetexchange.FieldRegionContinent] = struct{}{}
+		case "ixfLastImport":
+			if _, ok := fieldSeen[internetexchange.FieldIxfLastImport]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldIxfLastImport)
+				fieldSeen[internetexchange.FieldIxfLastImport] = struct{}{}
+			}
+		case "ixfNetCount":
+			if _, ok := fieldSeen[internetexchange.FieldIxfNetCount]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldIxfNetCount)
+				fieldSeen[internetexchange.FieldIxfNetCount] = struct{}{}
+			}
+		case "logo":
+			if _, ok := fieldSeen[internetexchange.FieldLogo]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldLogo)
+				fieldSeen[internetexchange.FieldLogo] = struct{}{}
 			}
 		case "media":
 			if _, ok := fieldSeen[internetexchange.FieldMedia]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldMedia)
 				fieldSeen[internetexchange.FieldMedia] = struct{}{}
 			}
+		case "name":
+			if _, ok := fieldSeen[internetexchange.FieldName]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldName)
+				fieldSeen[internetexchange.FieldName] = struct{}{}
+			}
+		case "nameLong":
+			if _, ok := fieldSeen[internetexchange.FieldNameLong]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldNameLong)
+				fieldSeen[internetexchange.FieldNameLong] = struct{}{}
+			}
 		case "notes":
 			if _, ok := fieldSeen[internetexchange.FieldNotes]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldNotes)
 				fieldSeen[internetexchange.FieldNotes] = struct{}{}
-			}
-		case "protoUnicast":
-			if _, ok := fieldSeen[internetexchange.FieldProtoUnicast]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldProtoUnicast)
-				fieldSeen[internetexchange.FieldProtoUnicast] = struct{}{}
-			}
-		case "protoMulticast":
-			if _, ok := fieldSeen[internetexchange.FieldProtoMulticast]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldProtoMulticast)
-				fieldSeen[internetexchange.FieldProtoMulticast] = struct{}{}
-			}
-		case "protoIpv6":
-			if _, ok := fieldSeen[internetexchange.FieldProtoIpv6]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldProtoIpv6)
-				fieldSeen[internetexchange.FieldProtoIpv6] = struct{}{}
-			}
-		case "website":
-			if _, ok := fieldSeen[internetexchange.FieldWebsite]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldWebsite)
-				fieldSeen[internetexchange.FieldWebsite] = struct{}{}
-			}
-		case "socialMedia":
-			if _, ok := fieldSeen[internetexchange.FieldSocialMedia]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldSocialMedia)
-				fieldSeen[internetexchange.FieldSocialMedia] = struct{}{}
-			}
-		case "urlStats":
-			if _, ok := fieldSeen[internetexchange.FieldURLStats]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldURLStats)
-				fieldSeen[internetexchange.FieldURLStats] = struct{}{}
-			}
-		case "techEmail":
-			if _, ok := fieldSeen[internetexchange.FieldTechEmail]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldTechEmail)
-				fieldSeen[internetexchange.FieldTechEmail] = struct{}{}
-			}
-		case "techPhone":
-			if _, ok := fieldSeen[internetexchange.FieldTechPhone]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldTechPhone)
-				fieldSeen[internetexchange.FieldTechPhone] = struct{}{}
 			}
 		case "policyEmail":
 			if _, ok := fieldSeen[internetexchange.FieldPolicyEmail]; !ok {
@@ -1013,6 +983,26 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 				selectedFields = append(selectedFields, internetexchange.FieldPolicyPhone)
 				fieldSeen[internetexchange.FieldPolicyPhone] = struct{}{}
 			}
+		case "protoIpv6":
+			if _, ok := fieldSeen[internetexchange.FieldProtoIpv6]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldProtoIpv6)
+				fieldSeen[internetexchange.FieldProtoIpv6] = struct{}{}
+			}
+		case "protoMulticast":
+			if _, ok := fieldSeen[internetexchange.FieldProtoMulticast]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldProtoMulticast)
+				fieldSeen[internetexchange.FieldProtoMulticast] = struct{}{}
+			}
+		case "protoUnicast":
+			if _, ok := fieldSeen[internetexchange.FieldProtoUnicast]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldProtoUnicast)
+				fieldSeen[internetexchange.FieldProtoUnicast] = struct{}{}
+			}
+		case "regionContinent":
+			if _, ok := fieldSeen[internetexchange.FieldRegionContinent]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldRegionContinent)
+				fieldSeen[internetexchange.FieldRegionContinent] = struct{}{}
+			}
 		case "salesEmail":
 			if _, ok := fieldSeen[internetexchange.FieldSalesEmail]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldSalesEmail)
@@ -1022,6 +1012,46 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 			if _, ok := fieldSeen[internetexchange.FieldSalesPhone]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldSalesPhone)
 				fieldSeen[internetexchange.FieldSalesPhone] = struct{}{}
+			}
+		case "serviceLevel":
+			if _, ok := fieldSeen[internetexchange.FieldServiceLevel]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldServiceLevel)
+				fieldSeen[internetexchange.FieldServiceLevel] = struct{}{}
+			}
+		case "socialMedia":
+			if _, ok := fieldSeen[internetexchange.FieldSocialMedia]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldSocialMedia)
+				fieldSeen[internetexchange.FieldSocialMedia] = struct{}{}
+			}
+		case "statusDashboard":
+			if _, ok := fieldSeen[internetexchange.FieldStatusDashboard]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldStatusDashboard)
+				fieldSeen[internetexchange.FieldStatusDashboard] = struct{}{}
+			}
+		case "techEmail":
+			if _, ok := fieldSeen[internetexchange.FieldTechEmail]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldTechEmail)
+				fieldSeen[internetexchange.FieldTechEmail] = struct{}{}
+			}
+		case "techPhone":
+			if _, ok := fieldSeen[internetexchange.FieldTechPhone]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldTechPhone)
+				fieldSeen[internetexchange.FieldTechPhone] = struct{}{}
+			}
+		case "terms":
+			if _, ok := fieldSeen[internetexchange.FieldTerms]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldTerms)
+				fieldSeen[internetexchange.FieldTerms] = struct{}{}
+			}
+		case "urlStats":
+			if _, ok := fieldSeen[internetexchange.FieldURLStats]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldURLStats)
+				fieldSeen[internetexchange.FieldURLStats] = struct{}{}
+			}
+		case "website":
+			if _, ok := fieldSeen[internetexchange.FieldWebsite]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldWebsite)
+				fieldSeen[internetexchange.FieldWebsite] = struct{}{}
 			}
 		case "netCount":
 			if _, ok := fieldSeen[internetexchange.FieldNetCount]; !ok {
@@ -1033,16 +1063,6 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 				selectedFields = append(selectedFields, internetexchange.FieldFacCount)
 				fieldSeen[internetexchange.FieldFacCount] = struct{}{}
 			}
-		case "ixfNetCount":
-			if _, ok := fieldSeen[internetexchange.FieldIxfNetCount]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldIxfNetCount)
-				fieldSeen[internetexchange.FieldIxfNetCount] = struct{}{}
-			}
-		case "ixfLastImport":
-			if _, ok := fieldSeen[internetexchange.FieldIxfLastImport]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldIxfLastImport)
-				fieldSeen[internetexchange.FieldIxfLastImport] = struct{}{}
-			}
 		case "ixfImportRequest":
 			if _, ok := fieldSeen[internetexchange.FieldIxfImportRequest]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldIxfImportRequest)
@@ -1052,26 +1072,6 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 			if _, ok := fieldSeen[internetexchange.FieldIxfImportRequestStatus]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldIxfImportRequestStatus)
 				fieldSeen[internetexchange.FieldIxfImportRequestStatus] = struct{}{}
-			}
-		case "serviceLevel":
-			if _, ok := fieldSeen[internetexchange.FieldServiceLevel]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldServiceLevel)
-				fieldSeen[internetexchange.FieldServiceLevel] = struct{}{}
-			}
-		case "terms":
-			if _, ok := fieldSeen[internetexchange.FieldTerms]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldTerms)
-				fieldSeen[internetexchange.FieldTerms] = struct{}{}
-			}
-		case "statusDashboard":
-			if _, ok := fieldSeen[internetexchange.FieldStatusDashboard]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldStatusDashboard)
-				fieldSeen[internetexchange.FieldStatusDashboard] = struct{}{}
-			}
-		case "logo":
-			if _, ok := fieldSeen[internetexchange.FieldLogo]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldLogo)
-				fieldSeen[internetexchange.FieldLogo] = struct{}{}
 			}
 		case "created":
 			if _, ok := fieldSeen[internetexchange.FieldCreated]; !ok {
@@ -1173,21 +1173,6 @@ func (_q *IxFacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
 
-		case "internetExchange":
-			var (
-				alias = field.Alias
-				path  = append(path, alias)
-				query = (&InternetExchangeClient{config: _q.config}).Query()
-			)
-			if err := query.collectField(ctx, oneNode, opCtx, field, path, mayAddCondition(satisfies, internetexchangeImplementors)...); err != nil {
-				return err
-			}
-			_q.withInternetExchange = query
-			if _, ok := fieldSeen[ixfacility.FieldIxID]; !ok {
-				selectedFields = append(selectedFields, ixfacility.FieldIxID)
-				fieldSeen[ixfacility.FieldIxID] = struct{}{}
-			}
-
 		case "facility":
 			var (
 				alias = field.Alias
@@ -1202,7 +1187,17 @@ func (_q *IxFacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx
 				selectedFields = append(selectedFields, ixfacility.FieldFacID)
 				fieldSeen[ixfacility.FieldFacID] = struct{}{}
 			}
-		case "ixID":
+
+		case "internetExchange":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&InternetExchangeClient{config: _q.config}).Query()
+			)
+			if err := query.collectField(ctx, oneNode, opCtx, field, path, mayAddCondition(satisfies, internetexchangeImplementors)...); err != nil {
+				return err
+			}
+			_q.withInternetExchange = query
 			if _, ok := fieldSeen[ixfacility.FieldIxID]; !ok {
 				selectedFields = append(selectedFields, ixfacility.FieldIxID)
 				fieldSeen[ixfacility.FieldIxID] = struct{}{}
@@ -1211,6 +1206,11 @@ func (_q *IxFacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx
 			if _, ok := fieldSeen[ixfacility.FieldFacID]; !ok {
 				selectedFields = append(selectedFields, ixfacility.FieldFacID)
 				fieldSeen[ixfacility.FieldFacID] = struct{}{}
+			}
+		case "ixID":
+			if _, ok := fieldSeen[ixfacility.FieldIxID]; !ok {
+				selectedFields = append(selectedFields, ixfacility.FieldIxID)
+				fieldSeen[ixfacility.FieldIxID] = struct{}{}
 			}
 		case "name":
 			if _, ok := fieldSeen[ixfacility.FieldName]; !ok {
@@ -1350,45 +1350,45 @@ func (_q *IxLanQuery) collectField(ctx context.Context, oneNode bool, opCtx *gra
 				selectedFields = append(selectedFields, ixlan.FieldIxID)
 				fieldSeen[ixlan.FieldIxID] = struct{}{}
 			}
-		case "name":
-			if _, ok := fieldSeen[ixlan.FieldName]; !ok {
-				selectedFields = append(selectedFields, ixlan.FieldName)
-				fieldSeen[ixlan.FieldName] = struct{}{}
+		case "arpSponge":
+			if _, ok := fieldSeen[ixlan.FieldArpSponge]; !ok {
+				selectedFields = append(selectedFields, ixlan.FieldArpSponge)
+				fieldSeen[ixlan.FieldArpSponge] = struct{}{}
 			}
 		case "descr":
 			if _, ok := fieldSeen[ixlan.FieldDescr]; !ok {
 				selectedFields = append(selectedFields, ixlan.FieldDescr)
 				fieldSeen[ixlan.FieldDescr] = struct{}{}
 			}
-		case "mtu":
-			if _, ok := fieldSeen[ixlan.FieldMtu]; !ok {
-				selectedFields = append(selectedFields, ixlan.FieldMtu)
-				fieldSeen[ixlan.FieldMtu] = struct{}{}
-			}
 		case "dot1qSupport":
 			if _, ok := fieldSeen[ixlan.FieldDot1qSupport]; !ok {
 				selectedFields = append(selectedFields, ixlan.FieldDot1qSupport)
 				fieldSeen[ixlan.FieldDot1qSupport] = struct{}{}
 			}
-		case "rsAsn":
-			if _, ok := fieldSeen[ixlan.FieldRsAsn]; !ok {
-				selectedFields = append(selectedFields, ixlan.FieldRsAsn)
-				fieldSeen[ixlan.FieldRsAsn] = struct{}{}
-			}
-		case "arpSponge":
-			if _, ok := fieldSeen[ixlan.FieldArpSponge]; !ok {
-				selectedFields = append(selectedFields, ixlan.FieldArpSponge)
-				fieldSeen[ixlan.FieldArpSponge] = struct{}{}
+		case "ixfIxpImportEnabled":
+			if _, ok := fieldSeen[ixlan.FieldIxfIxpImportEnabled]; !ok {
+				selectedFields = append(selectedFields, ixlan.FieldIxfIxpImportEnabled)
+				fieldSeen[ixlan.FieldIxfIxpImportEnabled] = struct{}{}
 			}
 		case "ixfIxpMemberListURLVisible":
 			if _, ok := fieldSeen[ixlan.FieldIxfIxpMemberListURLVisible]; !ok {
 				selectedFields = append(selectedFields, ixlan.FieldIxfIxpMemberListURLVisible)
 				fieldSeen[ixlan.FieldIxfIxpMemberListURLVisible] = struct{}{}
 			}
-		case "ixfIxpImportEnabled":
-			if _, ok := fieldSeen[ixlan.FieldIxfIxpImportEnabled]; !ok {
-				selectedFields = append(selectedFields, ixlan.FieldIxfIxpImportEnabled)
-				fieldSeen[ixlan.FieldIxfIxpImportEnabled] = struct{}{}
+		case "mtu":
+			if _, ok := fieldSeen[ixlan.FieldMtu]; !ok {
+				selectedFields = append(selectedFields, ixlan.FieldMtu)
+				fieldSeen[ixlan.FieldMtu] = struct{}{}
+			}
+		case "name":
+			if _, ok := fieldSeen[ixlan.FieldName]; !ok {
+				selectedFields = append(selectedFields, ixlan.FieldName)
+				fieldSeen[ixlan.FieldName] = struct{}{}
+			}
+		case "rsAsn":
+			if _, ok := fieldSeen[ixlan.FieldRsAsn]; !ok {
+				selectedFields = append(selectedFields, ixlan.FieldRsAsn)
+				fieldSeen[ixlan.FieldRsAsn] = struct{}{}
 			}
 		case "created":
 			if _, ok := fieldSeen[ixlan.FieldCreated]; !ok {
@@ -1487,16 +1487,6 @@ func (_q *IxPrefixQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				selectedFields = append(selectedFields, ixprefix.FieldIxlanID)
 				fieldSeen[ixprefix.FieldIxlanID] = struct{}{}
 			}
-		case "protocol":
-			if _, ok := fieldSeen[ixprefix.FieldProtocol]; !ok {
-				selectedFields = append(selectedFields, ixprefix.FieldProtocol)
-				fieldSeen[ixprefix.FieldProtocol] = struct{}{}
-			}
-		case "prefix":
-			if _, ok := fieldSeen[ixprefix.FieldPrefix]; !ok {
-				selectedFields = append(selectedFields, ixprefix.FieldPrefix)
-				fieldSeen[ixprefix.FieldPrefix] = struct{}{}
-			}
 		case "inDfz":
 			if _, ok := fieldSeen[ixprefix.FieldInDfz]; !ok {
 				selectedFields = append(selectedFields, ixprefix.FieldInDfz)
@@ -1506,6 +1496,16 @@ func (_q *IxPrefixQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 			if _, ok := fieldSeen[ixprefix.FieldNotes]; !ok {
 				selectedFields = append(selectedFields, ixprefix.FieldNotes)
 				fieldSeen[ixprefix.FieldNotes] = struct{}{}
+			}
+		case "prefix":
+			if _, ok := fieldSeen[ixprefix.FieldPrefix]; !ok {
+				selectedFields = append(selectedFields, ixprefix.FieldPrefix)
+				fieldSeen[ixprefix.FieldPrefix] = struct{}{}
+			}
+		case "protocol":
+			if _, ok := fieldSeen[ixprefix.FieldProtocol]; !ok {
+				selectedFields = append(selectedFields, ixprefix.FieldProtocol)
+				fieldSeen[ixprefix.FieldProtocol] = struct{}{}
 			}
 		case "created":
 			if _, ok := fieldSeen[ixprefix.FieldCreated]; !ok {
@@ -1585,6 +1585,32 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
 
+		case "networkFacilities":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&NetworkFacilityClient{config: _q.config}).Query()
+			)
+			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, networkfacilityImplementors)...); err != nil {
+				return err
+			}
+			_q.WithNamedNetworkFacilities(alias, func(wq *NetworkFacilityQuery) {
+				*wq = *query
+			})
+
+		case "networkIxLans":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&NetworkIxLanClient{config: _q.config}).Query()
+			)
+			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, networkixlanImplementors)...); err != nil {
+				return err
+			}
+			_q.WithNamedNetworkIxLans(alias, func(wq *NetworkIxLanQuery) {
+				*wq = *query
+			})
+
 		case "organization":
 			var (
 				alias = field.Alias
@@ -1612,91 +1638,40 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 			_q.WithNamedPocs(alias, func(wq *PocQuery) {
 				*wq = *query
 			})
-
-		case "networkFacilities":
-			var (
-				alias = field.Alias
-				path  = append(path, alias)
-				query = (&NetworkFacilityClient{config: _q.config}).Query()
-			)
-			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, networkfacilityImplementors)...); err != nil {
-				return err
-			}
-			_q.WithNamedNetworkFacilities(alias, func(wq *NetworkFacilityQuery) {
-				*wq = *query
-			})
-
-		case "networkIxLans":
-			var (
-				alias = field.Alias
-				path  = append(path, alias)
-				query = (&NetworkIxLanClient{config: _q.config}).Query()
-			)
-			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, networkixlanImplementors)...); err != nil {
-				return err
-			}
-			_q.WithNamedNetworkIxLans(alias, func(wq *NetworkIxLanQuery) {
-				*wq = *query
-			})
 		case "orgID":
 			if _, ok := fieldSeen[network.FieldOrgID]; !ok {
 				selectedFields = append(selectedFields, network.FieldOrgID)
 				fieldSeen[network.FieldOrgID] = struct{}{}
-			}
-		case "name":
-			if _, ok := fieldSeen[network.FieldName]; !ok {
-				selectedFields = append(selectedFields, network.FieldName)
-				fieldSeen[network.FieldName] = struct{}{}
 			}
 		case "aka":
 			if _, ok := fieldSeen[network.FieldAka]; !ok {
 				selectedFields = append(selectedFields, network.FieldAka)
 				fieldSeen[network.FieldAka] = struct{}{}
 			}
-		case "nameLong":
-			if _, ok := fieldSeen[network.FieldNameLong]; !ok {
-				selectedFields = append(selectedFields, network.FieldNameLong)
-				fieldSeen[network.FieldNameLong] = struct{}{}
-			}
-		case "website":
-			if _, ok := fieldSeen[network.FieldWebsite]; !ok {
-				selectedFields = append(selectedFields, network.FieldWebsite)
-				fieldSeen[network.FieldWebsite] = struct{}{}
-			}
-		case "socialMedia":
-			if _, ok := fieldSeen[network.FieldSocialMedia]; !ok {
-				selectedFields = append(selectedFields, network.FieldSocialMedia)
-				fieldSeen[network.FieldSocialMedia] = struct{}{}
+		case "allowIxpUpdate":
+			if _, ok := fieldSeen[network.FieldAllowIxpUpdate]; !ok {
+				selectedFields = append(selectedFields, network.FieldAllowIxpUpdate)
+				fieldSeen[network.FieldAllowIxpUpdate] = struct{}{}
 			}
 		case "asn":
 			if _, ok := fieldSeen[network.FieldAsn]; !ok {
 				selectedFields = append(selectedFields, network.FieldAsn)
 				fieldSeen[network.FieldAsn] = struct{}{}
 			}
-		case "lookingGlass":
-			if _, ok := fieldSeen[network.FieldLookingGlass]; !ok {
-				selectedFields = append(selectedFields, network.FieldLookingGlass)
-				fieldSeen[network.FieldLookingGlass] = struct{}{}
+		case "infoIpv6":
+			if _, ok := fieldSeen[network.FieldInfoIpv6]; !ok {
+				selectedFields = append(selectedFields, network.FieldInfoIpv6)
+				fieldSeen[network.FieldInfoIpv6] = struct{}{}
 			}
-		case "routeServer":
-			if _, ok := fieldSeen[network.FieldRouteServer]; !ok {
-				selectedFields = append(selectedFields, network.FieldRouteServer)
-				fieldSeen[network.FieldRouteServer] = struct{}{}
+		case "infoMulticast":
+			if _, ok := fieldSeen[network.FieldInfoMulticast]; !ok {
+				selectedFields = append(selectedFields, network.FieldInfoMulticast)
+				fieldSeen[network.FieldInfoMulticast] = struct{}{}
 			}
-		case "irrAsSet":
-			if _, ok := fieldSeen[network.FieldIrrAsSet]; !ok {
-				selectedFields = append(selectedFields, network.FieldIrrAsSet)
-				fieldSeen[network.FieldIrrAsSet] = struct{}{}
-			}
-		case "infoType":
-			if _, ok := fieldSeen[network.FieldInfoType]; !ok {
-				selectedFields = append(selectedFields, network.FieldInfoType)
-				fieldSeen[network.FieldInfoType] = struct{}{}
-			}
-		case "infoTypes":
-			if _, ok := fieldSeen[network.FieldInfoTypes]; !ok {
-				selectedFields = append(selectedFields, network.FieldInfoTypes)
-				fieldSeen[network.FieldInfoTypes] = struct{}{}
+		case "infoNeverViaRouteServers":
+			if _, ok := fieldSeen[network.FieldInfoNeverViaRouteServers]; !ok {
+				selectedFields = append(selectedFields, network.FieldInfoNeverViaRouteServers)
+				fieldSeen[network.FieldInfoNeverViaRouteServers] = struct{}{}
 			}
 		case "infoPrefixes4":
 			if _, ok := fieldSeen[network.FieldInfoPrefixes4]; !ok {
@@ -1708,11 +1683,6 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, network.FieldInfoPrefixes6)
 				fieldSeen[network.FieldInfoPrefixes6] = struct{}{}
 			}
-		case "infoTraffic":
-			if _, ok := fieldSeen[network.FieldInfoTraffic]; !ok {
-				selectedFields = append(selectedFields, network.FieldInfoTraffic)
-				fieldSeen[network.FieldInfoTraffic] = struct{}{}
-			}
 		case "infoRatio":
 			if _, ok := fieldSeen[network.FieldInfoRatio]; !ok {
 				selectedFields = append(selectedFields, network.FieldInfoRatio)
@@ -1723,35 +1693,60 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, network.FieldInfoScope)
 				fieldSeen[network.FieldInfoScope] = struct{}{}
 			}
+		case "infoTraffic":
+			if _, ok := fieldSeen[network.FieldInfoTraffic]; !ok {
+				selectedFields = append(selectedFields, network.FieldInfoTraffic)
+				fieldSeen[network.FieldInfoTraffic] = struct{}{}
+			}
+		case "infoType":
+			if _, ok := fieldSeen[network.FieldInfoType]; !ok {
+				selectedFields = append(selectedFields, network.FieldInfoType)
+				fieldSeen[network.FieldInfoType] = struct{}{}
+			}
+		case "infoTypes":
+			if _, ok := fieldSeen[network.FieldInfoTypes]; !ok {
+				selectedFields = append(selectedFields, network.FieldInfoTypes)
+				fieldSeen[network.FieldInfoTypes] = struct{}{}
+			}
 		case "infoUnicast":
 			if _, ok := fieldSeen[network.FieldInfoUnicast]; !ok {
 				selectedFields = append(selectedFields, network.FieldInfoUnicast)
 				fieldSeen[network.FieldInfoUnicast] = struct{}{}
 			}
-		case "infoMulticast":
-			if _, ok := fieldSeen[network.FieldInfoMulticast]; !ok {
-				selectedFields = append(selectedFields, network.FieldInfoMulticast)
-				fieldSeen[network.FieldInfoMulticast] = struct{}{}
+		case "irrAsSet":
+			if _, ok := fieldSeen[network.FieldIrrAsSet]; !ok {
+				selectedFields = append(selectedFields, network.FieldIrrAsSet)
+				fieldSeen[network.FieldIrrAsSet] = struct{}{}
 			}
-		case "infoIpv6":
-			if _, ok := fieldSeen[network.FieldInfoIpv6]; !ok {
-				selectedFields = append(selectedFields, network.FieldInfoIpv6)
-				fieldSeen[network.FieldInfoIpv6] = struct{}{}
+		case "logo":
+			if _, ok := fieldSeen[network.FieldLogo]; !ok {
+				selectedFields = append(selectedFields, network.FieldLogo)
+				fieldSeen[network.FieldLogo] = struct{}{}
 			}
-		case "infoNeverViaRouteServers":
-			if _, ok := fieldSeen[network.FieldInfoNeverViaRouteServers]; !ok {
-				selectedFields = append(selectedFields, network.FieldInfoNeverViaRouteServers)
-				fieldSeen[network.FieldInfoNeverViaRouteServers] = struct{}{}
+		case "lookingGlass":
+			if _, ok := fieldSeen[network.FieldLookingGlass]; !ok {
+				selectedFields = append(selectedFields, network.FieldLookingGlass)
+				fieldSeen[network.FieldLookingGlass] = struct{}{}
+			}
+		case "name":
+			if _, ok := fieldSeen[network.FieldName]; !ok {
+				selectedFields = append(selectedFields, network.FieldName)
+				fieldSeen[network.FieldName] = struct{}{}
+			}
+		case "nameLong":
+			if _, ok := fieldSeen[network.FieldNameLong]; !ok {
+				selectedFields = append(selectedFields, network.FieldNameLong)
+				fieldSeen[network.FieldNameLong] = struct{}{}
 			}
 		case "notes":
 			if _, ok := fieldSeen[network.FieldNotes]; !ok {
 				selectedFields = append(selectedFields, network.FieldNotes)
 				fieldSeen[network.FieldNotes] = struct{}{}
 			}
-		case "policyURL":
-			if _, ok := fieldSeen[network.FieldPolicyURL]; !ok {
-				selectedFields = append(selectedFields, network.FieldPolicyURL)
-				fieldSeen[network.FieldPolicyURL] = struct{}{}
+		case "policyContracts":
+			if _, ok := fieldSeen[network.FieldPolicyContracts]; !ok {
+				selectedFields = append(selectedFields, network.FieldPolicyContracts)
+				fieldSeen[network.FieldPolicyContracts] = struct{}{}
 			}
 		case "policyGeneral":
 			if _, ok := fieldSeen[network.FieldPolicyGeneral]; !ok {
@@ -1768,20 +1763,10 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, network.FieldPolicyRatio)
 				fieldSeen[network.FieldPolicyRatio] = struct{}{}
 			}
-		case "policyContracts":
-			if _, ok := fieldSeen[network.FieldPolicyContracts]; !ok {
-				selectedFields = append(selectedFields, network.FieldPolicyContracts)
-				fieldSeen[network.FieldPolicyContracts] = struct{}{}
-			}
-		case "allowIxpUpdate":
-			if _, ok := fieldSeen[network.FieldAllowIxpUpdate]; !ok {
-				selectedFields = append(selectedFields, network.FieldAllowIxpUpdate)
-				fieldSeen[network.FieldAllowIxpUpdate] = struct{}{}
-			}
-		case "statusDashboard":
-			if _, ok := fieldSeen[network.FieldStatusDashboard]; !ok {
-				selectedFields = append(selectedFields, network.FieldStatusDashboard)
-				fieldSeen[network.FieldStatusDashboard] = struct{}{}
+		case "policyURL":
+			if _, ok := fieldSeen[network.FieldPolicyURL]; !ok {
+				selectedFields = append(selectedFields, network.FieldPolicyURL)
+				fieldSeen[network.FieldPolicyURL] = struct{}{}
 			}
 		case "rirStatus":
 			if _, ok := fieldSeen[network.FieldRirStatus]; !ok {
@@ -1793,10 +1778,25 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, network.FieldRirStatusUpdated)
 				fieldSeen[network.FieldRirStatusUpdated] = struct{}{}
 			}
-		case "logo":
-			if _, ok := fieldSeen[network.FieldLogo]; !ok {
-				selectedFields = append(selectedFields, network.FieldLogo)
-				fieldSeen[network.FieldLogo] = struct{}{}
+		case "routeServer":
+			if _, ok := fieldSeen[network.FieldRouteServer]; !ok {
+				selectedFields = append(selectedFields, network.FieldRouteServer)
+				fieldSeen[network.FieldRouteServer] = struct{}{}
+			}
+		case "socialMedia":
+			if _, ok := fieldSeen[network.FieldSocialMedia]; !ok {
+				selectedFields = append(selectedFields, network.FieldSocialMedia)
+				fieldSeen[network.FieldSocialMedia] = struct{}{}
+			}
+		case "statusDashboard":
+			if _, ok := fieldSeen[network.FieldStatusDashboard]; !ok {
+				selectedFields = append(selectedFields, network.FieldStatusDashboard)
+				fieldSeen[network.FieldStatusDashboard] = struct{}{}
+			}
+		case "website":
+			if _, ok := fieldSeen[network.FieldWebsite]; !ok {
+				selectedFields = append(selectedFields, network.FieldWebsite)
+				fieldSeen[network.FieldWebsite] = struct{}{}
 			}
 		case "ixCount":
 			if _, ok := fieldSeen[network.FieldIxCount]; !ok {
@@ -1923,21 +1923,6 @@ func (_q *NetworkFacilityQuery) collectField(ctx context.Context, oneNode bool, 
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
 
-		case "network":
-			var (
-				alias = field.Alias
-				path  = append(path, alias)
-				query = (&NetworkClient{config: _q.config}).Query()
-			)
-			if err := query.collectField(ctx, oneNode, opCtx, field, path, mayAddCondition(satisfies, networkImplementors)...); err != nil {
-				return err
-			}
-			_q.withNetwork = query
-			if _, ok := fieldSeen[networkfacility.FieldNetID]; !ok {
-				selectedFields = append(selectedFields, networkfacility.FieldNetID)
-				fieldSeen[networkfacility.FieldNetID] = struct{}{}
-			}
-
 		case "facility":
 			var (
 				alias = field.Alias
@@ -1952,7 +1937,17 @@ func (_q *NetworkFacilityQuery) collectField(ctx context.Context, oneNode bool, 
 				selectedFields = append(selectedFields, networkfacility.FieldFacID)
 				fieldSeen[networkfacility.FieldFacID] = struct{}{}
 			}
-		case "netID":
+
+		case "network":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&NetworkClient{config: _q.config}).Query()
+			)
+			if err := query.collectField(ctx, oneNode, opCtx, field, path, mayAddCondition(satisfies, networkImplementors)...); err != nil {
+				return err
+			}
+			_q.withNetwork = query
 			if _, ok := fieldSeen[networkfacility.FieldNetID]; !ok {
 				selectedFields = append(selectedFields, networkfacility.FieldNetID)
 				fieldSeen[networkfacility.FieldNetID] = struct{}{}
@@ -1961,6 +1956,16 @@ func (_q *NetworkFacilityQuery) collectField(ctx context.Context, oneNode bool, 
 			if _, ok := fieldSeen[networkfacility.FieldFacID]; !ok {
 				selectedFields = append(selectedFields, networkfacility.FieldFacID)
 				fieldSeen[networkfacility.FieldFacID] = struct{}{}
+			}
+		case "netID":
+			if _, ok := fieldSeen[networkfacility.FieldNetID]; !ok {
+				selectedFields = append(selectedFields, networkfacility.FieldNetID)
+				fieldSeen[networkfacility.FieldNetID] = struct{}{}
+			}
+		case "localAsn":
+			if _, ok := fieldSeen[networkfacility.FieldLocalAsn]; !ok {
+				selectedFields = append(selectedFields, networkfacility.FieldLocalAsn)
+				fieldSeen[networkfacility.FieldLocalAsn] = struct{}{}
 			}
 		case "name":
 			if _, ok := fieldSeen[networkfacility.FieldName]; !ok {
@@ -1976,11 +1981,6 @@ func (_q *NetworkFacilityQuery) collectField(ctx context.Context, oneNode bool, 
 			if _, ok := fieldSeen[networkfacility.FieldCountry]; !ok {
 				selectedFields = append(selectedFields, networkfacility.FieldCountry)
 				fieldSeen[networkfacility.FieldCountry] = struct{}{}
-			}
-		case "localAsn":
-			if _, ok := fieldSeen[networkfacility.FieldLocalAsn]; !ok {
-				selectedFields = append(selectedFields, networkfacility.FieldLocalAsn)
-				fieldSeen[networkfacility.FieldLocalAsn] = struct{}{}
 			}
 		case "created":
 			if _, ok := fieldSeen[networkfacility.FieldCreated]; !ok {
@@ -2060,21 +2060,6 @@ func (_q *NetworkIxLanQuery) collectField(ctx context.Context, oneNode bool, opC
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
 
-		case "network":
-			var (
-				alias = field.Alias
-				path  = append(path, alias)
-				query = (&NetworkClient{config: _q.config}).Query()
-			)
-			if err := query.collectField(ctx, oneNode, opCtx, field, path, mayAddCondition(satisfies, networkImplementors)...); err != nil {
-				return err
-			}
-			_q.withNetwork = query
-			if _, ok := fieldSeen[networkixlan.FieldNetID]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldNetID)
-				fieldSeen[networkixlan.FieldNetID] = struct{}{}
-			}
-
 		case "ixLan":
 			var (
 				alias = field.Alias
@@ -2089,40 +2074,50 @@ func (_q *NetworkIxLanQuery) collectField(ctx context.Context, oneNode bool, opC
 				selectedFields = append(selectedFields, networkixlan.FieldIxlanID)
 				fieldSeen[networkixlan.FieldIxlanID] = struct{}{}
 			}
-		case "netID":
+
+		case "network":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&NetworkClient{config: _q.config}).Query()
+			)
+			if err := query.collectField(ctx, oneNode, opCtx, field, path, mayAddCondition(satisfies, networkImplementors)...); err != nil {
+				return err
+			}
+			_q.withNetwork = query
 			if _, ok := fieldSeen[networkixlan.FieldNetID]; !ok {
 				selectedFields = append(selectedFields, networkixlan.FieldNetID)
 				fieldSeen[networkixlan.FieldNetID] = struct{}{}
 			}
-		case "ixID":
-			if _, ok := fieldSeen[networkixlan.FieldIxID]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldIxID)
-				fieldSeen[networkixlan.FieldIxID] = struct{}{}
+		case "ixSideID":
+			if _, ok := fieldSeen[networkixlan.FieldIxSideID]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldIxSideID)
+				fieldSeen[networkixlan.FieldIxSideID] = struct{}{}
 			}
 		case "ixlanID":
 			if _, ok := fieldSeen[networkixlan.FieldIxlanID]; !ok {
 				selectedFields = append(selectedFields, networkixlan.FieldIxlanID)
 				fieldSeen[networkixlan.FieldIxlanID] = struct{}{}
 			}
-		case "name":
-			if _, ok := fieldSeen[networkixlan.FieldName]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldName)
-				fieldSeen[networkixlan.FieldName] = struct{}{}
+		case "netID":
+			if _, ok := fieldSeen[networkixlan.FieldNetID]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldNetID)
+				fieldSeen[networkixlan.FieldNetID] = struct{}{}
 			}
-		case "notes":
-			if _, ok := fieldSeen[networkixlan.FieldNotes]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldNotes)
-				fieldSeen[networkixlan.FieldNotes] = struct{}{}
-			}
-		case "speed":
-			if _, ok := fieldSeen[networkixlan.FieldSpeed]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldSpeed)
-				fieldSeen[networkixlan.FieldSpeed] = struct{}{}
+		case "netSideID":
+			if _, ok := fieldSeen[networkixlan.FieldNetSideID]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldNetSideID)
+				fieldSeen[networkixlan.FieldNetSideID] = struct{}{}
 			}
 		case "asn":
 			if _, ok := fieldSeen[networkixlan.FieldAsn]; !ok {
 				selectedFields = append(selectedFields, networkixlan.FieldAsn)
 				fieldSeen[networkixlan.FieldAsn] = struct{}{}
+			}
+		case "bfdSupport":
+			if _, ok := fieldSeen[networkixlan.FieldBfdSupport]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldBfdSupport)
+				fieldSeen[networkixlan.FieldBfdSupport] = struct{}{}
 			}
 		case "ipaddr4":
 			if _, ok := fieldSeen[networkixlan.FieldIpaddr4]; !ok {
@@ -2139,25 +2134,30 @@ func (_q *NetworkIxLanQuery) collectField(ctx context.Context, oneNode bool, opC
 				selectedFields = append(selectedFields, networkixlan.FieldIsRsPeer)
 				fieldSeen[networkixlan.FieldIsRsPeer] = struct{}{}
 			}
-		case "bfdSupport":
-			if _, ok := fieldSeen[networkixlan.FieldBfdSupport]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldBfdSupport)
-				fieldSeen[networkixlan.FieldBfdSupport] = struct{}{}
+		case "notes":
+			if _, ok := fieldSeen[networkixlan.FieldNotes]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldNotes)
+				fieldSeen[networkixlan.FieldNotes] = struct{}{}
 			}
 		case "operational":
 			if _, ok := fieldSeen[networkixlan.FieldOperational]; !ok {
 				selectedFields = append(selectedFields, networkixlan.FieldOperational)
 				fieldSeen[networkixlan.FieldOperational] = struct{}{}
 			}
-		case "netSideID":
-			if _, ok := fieldSeen[networkixlan.FieldNetSideID]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldNetSideID)
-				fieldSeen[networkixlan.FieldNetSideID] = struct{}{}
+		case "speed":
+			if _, ok := fieldSeen[networkixlan.FieldSpeed]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldSpeed)
+				fieldSeen[networkixlan.FieldSpeed] = struct{}{}
 			}
-		case "ixSideID":
-			if _, ok := fieldSeen[networkixlan.FieldIxSideID]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldIxSideID)
-				fieldSeen[networkixlan.FieldIxSideID] = struct{}{}
+		case "ixID":
+			if _, ok := fieldSeen[networkixlan.FieldIxID]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldIxID)
+				fieldSeen[networkixlan.FieldIxID] = struct{}{}
+			}
+		case "name":
+			if _, ok := fieldSeen[networkixlan.FieldName]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldName)
+				fieldSeen[networkixlan.FieldName] = struct{}{}
 			}
 		case "created":
 			if _, ok := fieldSeen[networkixlan.FieldCreated]; !ok {
@@ -2237,16 +2237,29 @@ func (_q *OrganizationQuery) collectField(ctx context.Context, oneNode bool, opC
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
 
-		case "networks":
+		case "campuses":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
-				query = (&NetworkClient{config: _q.config}).Query()
+				query = (&CampusClient{config: _q.config}).Query()
 			)
-			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, networkImplementors)...); err != nil {
+			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, campusImplementors)...); err != nil {
 				return err
 			}
-			_q.WithNamedNetworks(alias, func(wq *NetworkQuery) {
+			_q.WithNamedCampuses(alias, func(wq *CampusQuery) {
+				*wq = *query
+			})
+
+		case "carriers":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&CarrierClient{config: _q.config}).Query()
+			)
+			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, carrierImplementors)...); err != nil {
+				return err
+			}
+			_q.WithNamedCarriers(alias, func(wq *CarrierQuery) {
 				*wq = *query
 			})
 
@@ -2276,66 +2289,18 @@ func (_q *OrganizationQuery) collectField(ctx context.Context, oneNode bool, opC
 				*wq = *query
 			})
 
-		case "carriers":
+		case "networks":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
-				query = (&CarrierClient{config: _q.config}).Query()
+				query = (&NetworkClient{config: _q.config}).Query()
 			)
-			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, carrierImplementors)...); err != nil {
+			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, networkImplementors)...); err != nil {
 				return err
 			}
-			_q.WithNamedCarriers(alias, func(wq *CarrierQuery) {
+			_q.WithNamedNetworks(alias, func(wq *NetworkQuery) {
 				*wq = *query
 			})
-
-		case "campuses":
-			var (
-				alias = field.Alias
-				path  = append(path, alias)
-				query = (&CampusClient{config: _q.config}).Query()
-			)
-			if err := query.collectField(ctx, false, opCtx, field, path, mayAddCondition(satisfies, campusImplementors)...); err != nil {
-				return err
-			}
-			_q.WithNamedCampuses(alias, func(wq *CampusQuery) {
-				*wq = *query
-			})
-		case "name":
-			if _, ok := fieldSeen[organization.FieldName]; !ok {
-				selectedFields = append(selectedFields, organization.FieldName)
-				fieldSeen[organization.FieldName] = struct{}{}
-			}
-		case "aka":
-			if _, ok := fieldSeen[organization.FieldAka]; !ok {
-				selectedFields = append(selectedFields, organization.FieldAka)
-				fieldSeen[organization.FieldAka] = struct{}{}
-			}
-		case "nameLong":
-			if _, ok := fieldSeen[organization.FieldNameLong]; !ok {
-				selectedFields = append(selectedFields, organization.FieldNameLong)
-				fieldSeen[organization.FieldNameLong] = struct{}{}
-			}
-		case "website":
-			if _, ok := fieldSeen[organization.FieldWebsite]; !ok {
-				selectedFields = append(selectedFields, organization.FieldWebsite)
-				fieldSeen[organization.FieldWebsite] = struct{}{}
-			}
-		case "socialMedia":
-			if _, ok := fieldSeen[organization.FieldSocialMedia]; !ok {
-				selectedFields = append(selectedFields, organization.FieldSocialMedia)
-				fieldSeen[organization.FieldSocialMedia] = struct{}{}
-			}
-		case "notes":
-			if _, ok := fieldSeen[organization.FieldNotes]; !ok {
-				selectedFields = append(selectedFields, organization.FieldNotes)
-				fieldSeen[organization.FieldNotes] = struct{}{}
-			}
-		case "logo":
-			if _, ok := fieldSeen[organization.FieldLogo]; !ok {
-				selectedFields = append(selectedFields, organization.FieldLogo)
-				fieldSeen[organization.FieldLogo] = struct{}{}
-			}
 		case "address1":
 			if _, ok := fieldSeen[organization.FieldAddress1]; !ok {
 				selectedFields = append(selectedFields, organization.FieldAddress1)
@@ -2346,30 +2311,20 @@ func (_q *OrganizationQuery) collectField(ctx context.Context, oneNode bool, opC
 				selectedFields = append(selectedFields, organization.FieldAddress2)
 				fieldSeen[organization.FieldAddress2] = struct{}{}
 			}
+		case "aka":
+			if _, ok := fieldSeen[organization.FieldAka]; !ok {
+				selectedFields = append(selectedFields, organization.FieldAka)
+				fieldSeen[organization.FieldAka] = struct{}{}
+			}
 		case "city":
 			if _, ok := fieldSeen[organization.FieldCity]; !ok {
 				selectedFields = append(selectedFields, organization.FieldCity)
 				fieldSeen[organization.FieldCity] = struct{}{}
 			}
-		case "state":
-			if _, ok := fieldSeen[organization.FieldState]; !ok {
-				selectedFields = append(selectedFields, organization.FieldState)
-				fieldSeen[organization.FieldState] = struct{}{}
-			}
 		case "country":
 			if _, ok := fieldSeen[organization.FieldCountry]; !ok {
 				selectedFields = append(selectedFields, organization.FieldCountry)
 				fieldSeen[organization.FieldCountry] = struct{}{}
-			}
-		case "zipcode":
-			if _, ok := fieldSeen[organization.FieldZipcode]; !ok {
-				selectedFields = append(selectedFields, organization.FieldZipcode)
-				fieldSeen[organization.FieldZipcode] = struct{}{}
-			}
-		case "suite":
-			if _, ok := fieldSeen[organization.FieldSuite]; !ok {
-				selectedFields = append(selectedFields, organization.FieldSuite)
-				fieldSeen[organization.FieldSuite] = struct{}{}
 			}
 		case "floor":
 			if _, ok := fieldSeen[organization.FieldFloor]; !ok {
@@ -2381,10 +2336,65 @@ func (_q *OrganizationQuery) collectField(ctx context.Context, oneNode bool, opC
 				selectedFields = append(selectedFields, organization.FieldLatitude)
 				fieldSeen[organization.FieldLatitude] = struct{}{}
 			}
+		case "logo":
+			if _, ok := fieldSeen[organization.FieldLogo]; !ok {
+				selectedFields = append(selectedFields, organization.FieldLogo)
+				fieldSeen[organization.FieldLogo] = struct{}{}
+			}
 		case "longitude":
 			if _, ok := fieldSeen[organization.FieldLongitude]; !ok {
 				selectedFields = append(selectedFields, organization.FieldLongitude)
 				fieldSeen[organization.FieldLongitude] = struct{}{}
+			}
+		case "name":
+			if _, ok := fieldSeen[organization.FieldName]; !ok {
+				selectedFields = append(selectedFields, organization.FieldName)
+				fieldSeen[organization.FieldName] = struct{}{}
+			}
+		case "nameLong":
+			if _, ok := fieldSeen[organization.FieldNameLong]; !ok {
+				selectedFields = append(selectedFields, organization.FieldNameLong)
+				fieldSeen[organization.FieldNameLong] = struct{}{}
+			}
+		case "notes":
+			if _, ok := fieldSeen[organization.FieldNotes]; !ok {
+				selectedFields = append(selectedFields, organization.FieldNotes)
+				fieldSeen[organization.FieldNotes] = struct{}{}
+			}
+		case "socialMedia":
+			if _, ok := fieldSeen[organization.FieldSocialMedia]; !ok {
+				selectedFields = append(selectedFields, organization.FieldSocialMedia)
+				fieldSeen[organization.FieldSocialMedia] = struct{}{}
+			}
+		case "state":
+			if _, ok := fieldSeen[organization.FieldState]; !ok {
+				selectedFields = append(selectedFields, organization.FieldState)
+				fieldSeen[organization.FieldState] = struct{}{}
+			}
+		case "suite":
+			if _, ok := fieldSeen[organization.FieldSuite]; !ok {
+				selectedFields = append(selectedFields, organization.FieldSuite)
+				fieldSeen[organization.FieldSuite] = struct{}{}
+			}
+		case "website":
+			if _, ok := fieldSeen[organization.FieldWebsite]; !ok {
+				selectedFields = append(selectedFields, organization.FieldWebsite)
+				fieldSeen[organization.FieldWebsite] = struct{}{}
+			}
+		case "zipcode":
+			if _, ok := fieldSeen[organization.FieldZipcode]; !ok {
+				selectedFields = append(selectedFields, organization.FieldZipcode)
+				fieldSeen[organization.FieldZipcode] = struct{}{}
+			}
+		case "netCount":
+			if _, ok := fieldSeen[organization.FieldNetCount]; !ok {
+				selectedFields = append(selectedFields, organization.FieldNetCount)
+				fieldSeen[organization.FieldNetCount] = struct{}{}
+			}
+		case "facCount":
+			if _, ok := fieldSeen[organization.FieldFacCount]; !ok {
+				selectedFields = append(selectedFields, organization.FieldFacCount)
+				fieldSeen[organization.FieldFacCount] = struct{}{}
 			}
 		case "created":
 			if _, ok := fieldSeen[organization.FieldCreated]; !ok {
@@ -2505,15 +2515,10 @@ func (_q *PocQuery) collectField(ctx context.Context, oneNode bool, opCtx *graph
 				selectedFields = append(selectedFields, poc.FieldNetID)
 				fieldSeen[poc.FieldNetID] = struct{}{}
 			}
-		case "role":
-			if _, ok := fieldSeen[poc.FieldRole]; !ok {
-				selectedFields = append(selectedFields, poc.FieldRole)
-				fieldSeen[poc.FieldRole] = struct{}{}
-			}
-		case "visible":
-			if _, ok := fieldSeen[poc.FieldVisible]; !ok {
-				selectedFields = append(selectedFields, poc.FieldVisible)
-				fieldSeen[poc.FieldVisible] = struct{}{}
+		case "email":
+			if _, ok := fieldSeen[poc.FieldEmail]; !ok {
+				selectedFields = append(selectedFields, poc.FieldEmail)
+				fieldSeen[poc.FieldEmail] = struct{}{}
 			}
 		case "name":
 			if _, ok := fieldSeen[poc.FieldName]; !ok {
@@ -2525,15 +2530,20 @@ func (_q *PocQuery) collectField(ctx context.Context, oneNode bool, opCtx *graph
 				selectedFields = append(selectedFields, poc.FieldPhone)
 				fieldSeen[poc.FieldPhone] = struct{}{}
 			}
-		case "email":
-			if _, ok := fieldSeen[poc.FieldEmail]; !ok {
-				selectedFields = append(selectedFields, poc.FieldEmail)
-				fieldSeen[poc.FieldEmail] = struct{}{}
+		case "role":
+			if _, ok := fieldSeen[poc.FieldRole]; !ok {
+				selectedFields = append(selectedFields, poc.FieldRole)
+				fieldSeen[poc.FieldRole] = struct{}{}
 			}
 		case "url":
 			if _, ok := fieldSeen[poc.FieldURL]; !ok {
 				selectedFields = append(selectedFields, poc.FieldURL)
 				fieldSeen[poc.FieldURL] = struct{}{}
+			}
+		case "visible":
+			if _, ok := fieldSeen[poc.FieldVisible]; !ok {
+				selectedFields = append(selectedFields, poc.FieldVisible)
+				fieldSeen[poc.FieldVisible] = struct{}{}
 			}
 		case "created":
 			if _, ok := fieldSeen[poc.FieldCreated]; !ok {

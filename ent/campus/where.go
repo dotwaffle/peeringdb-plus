@@ -60,9 +60,24 @@ func OrgID(v int) predicate.Campus {
 	return predicate.Campus(sql.FieldEQ(FieldOrgID, v))
 }
 
-// OrgName applies equality check predicate on the "org_name" field. It's identical to OrgNameEQ.
-func OrgName(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldOrgName, v))
+// Aka applies equality check predicate on the "aka" field. It's identical to AkaEQ.
+func Aka(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldAka, v))
+}
+
+// City applies equality check predicate on the "city" field. It's identical to CityEQ.
+func City(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldCity, v))
+}
+
+// Country applies equality check predicate on the "country" field. It's identical to CountryEQ.
+func Country(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldCountry, v))
+}
+
+// Logo applies equality check predicate on the "logo" field. It's identical to LogoEQ.
+func Logo(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldLogo, v))
 }
 
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
@@ -75,34 +90,9 @@ func NameLong(v string) predicate.Campus {
 	return predicate.Campus(sql.FieldEQ(FieldNameLong, v))
 }
 
-// Aka applies equality check predicate on the "aka" field. It's identical to AkaEQ.
-func Aka(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldAka, v))
-}
-
-// Website applies equality check predicate on the "website" field. It's identical to WebsiteEQ.
-func Website(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldWebsite, v))
-}
-
 // Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
 func Notes(v string) predicate.Campus {
 	return predicate.Campus(sql.FieldEQ(FieldNotes, v))
-}
-
-// Country applies equality check predicate on the "country" field. It's identical to CountryEQ.
-func Country(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldCountry, v))
-}
-
-// City applies equality check predicate on the "city" field. It's identical to CityEQ.
-func City(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldCity, v))
-}
-
-// Zipcode applies equality check predicate on the "zipcode" field. It's identical to ZipcodeEQ.
-func Zipcode(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldZipcode, v))
 }
 
 // State applies equality check predicate on the "state" field. It's identical to StateEQ.
@@ -110,9 +100,19 @@ func State(v string) predicate.Campus {
 	return predicate.Campus(sql.FieldEQ(FieldState, v))
 }
 
-// Logo applies equality check predicate on the "logo" field. It's identical to LogoEQ.
-func Logo(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldLogo, v))
+// Website applies equality check predicate on the "website" field. It's identical to WebsiteEQ.
+func Website(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldWebsite, v))
+}
+
+// Zipcode applies equality check predicate on the "zipcode" field. It's identical to ZipcodeEQ.
+func Zipcode(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldZipcode, v))
+}
+
+// OrgName applies equality check predicate on the "org_name" field. It's identical to OrgNameEQ.
+func OrgName(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldOrgName, v))
 }
 
 // Created applies equality check predicate on the "created" field. It's identical to CreatedEQ.
@@ -160,79 +160,304 @@ func OrgIDNotNil() predicate.Campus {
 	return predicate.Campus(sql.FieldNotNull(FieldOrgID))
 }
 
-// OrgNameEQ applies the EQ predicate on the "org_name" field.
-func OrgNameEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldOrgName, v))
+// AkaEQ applies the EQ predicate on the "aka" field.
+func AkaEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldAka, v))
 }
 
-// OrgNameNEQ applies the NEQ predicate on the "org_name" field.
-func OrgNameNEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldNEQ(FieldOrgName, v))
+// AkaNEQ applies the NEQ predicate on the "aka" field.
+func AkaNEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldNEQ(FieldAka, v))
 }
 
-// OrgNameIn applies the In predicate on the "org_name" field.
-func OrgNameIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldIn(FieldOrgName, vs...))
+// AkaIn applies the In predicate on the "aka" field.
+func AkaIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldIn(FieldAka, vs...))
 }
 
-// OrgNameNotIn applies the NotIn predicate on the "org_name" field.
-func OrgNameNotIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldNotIn(FieldOrgName, vs...))
+// AkaNotIn applies the NotIn predicate on the "aka" field.
+func AkaNotIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldNotIn(FieldAka, vs...))
 }
 
-// OrgNameGT applies the GT predicate on the "org_name" field.
-func OrgNameGT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGT(FieldOrgName, v))
+// AkaGT applies the GT predicate on the "aka" field.
+func AkaGT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGT(FieldAka, v))
 }
 
-// OrgNameGTE applies the GTE predicate on the "org_name" field.
-func OrgNameGTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGTE(FieldOrgName, v))
+// AkaGTE applies the GTE predicate on the "aka" field.
+func AkaGTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGTE(FieldAka, v))
 }
 
-// OrgNameLT applies the LT predicate on the "org_name" field.
-func OrgNameLT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLT(FieldOrgName, v))
+// AkaLT applies the LT predicate on the "aka" field.
+func AkaLT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLT(FieldAka, v))
 }
 
-// OrgNameLTE applies the LTE predicate on the "org_name" field.
-func OrgNameLTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLTE(FieldOrgName, v))
+// AkaLTE applies the LTE predicate on the "aka" field.
+func AkaLTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLTE(FieldAka, v))
 }
 
-// OrgNameContains applies the Contains predicate on the "org_name" field.
-func OrgNameContains(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContains(FieldOrgName, v))
+// AkaContains applies the Contains predicate on the "aka" field.
+func AkaContains(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContains(FieldAka, v))
 }
 
-// OrgNameHasPrefix applies the HasPrefix predicate on the "org_name" field.
-func OrgNameHasPrefix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasPrefix(FieldOrgName, v))
+// AkaHasPrefix applies the HasPrefix predicate on the "aka" field.
+func AkaHasPrefix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasPrefix(FieldAka, v))
 }
 
-// OrgNameHasSuffix applies the HasSuffix predicate on the "org_name" field.
-func OrgNameHasSuffix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasSuffix(FieldOrgName, v))
+// AkaHasSuffix applies the HasSuffix predicate on the "aka" field.
+func AkaHasSuffix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasSuffix(FieldAka, v))
 }
 
-// OrgNameIsNil applies the IsNil predicate on the "org_name" field.
-func OrgNameIsNil() predicate.Campus {
-	return predicate.Campus(sql.FieldIsNull(FieldOrgName))
+// AkaIsNil applies the IsNil predicate on the "aka" field.
+func AkaIsNil() predicate.Campus {
+	return predicate.Campus(sql.FieldIsNull(FieldAka))
 }
 
-// OrgNameNotNil applies the NotNil predicate on the "org_name" field.
-func OrgNameNotNil() predicate.Campus {
-	return predicate.Campus(sql.FieldNotNull(FieldOrgName))
+// AkaNotNil applies the NotNil predicate on the "aka" field.
+func AkaNotNil() predicate.Campus {
+	return predicate.Campus(sql.FieldNotNull(FieldAka))
 }
 
-// OrgNameEqualFold applies the EqualFold predicate on the "org_name" field.
-func OrgNameEqualFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEqualFold(FieldOrgName, v))
+// AkaEqualFold applies the EqualFold predicate on the "aka" field.
+func AkaEqualFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEqualFold(FieldAka, v))
 }
 
-// OrgNameContainsFold applies the ContainsFold predicate on the "org_name" field.
-func OrgNameContainsFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContainsFold(FieldOrgName, v))
+// AkaContainsFold applies the ContainsFold predicate on the "aka" field.
+func AkaContainsFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContainsFold(FieldAka, v))
+}
+
+// CityEQ applies the EQ predicate on the "city" field.
+func CityEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldCity, v))
+}
+
+// CityNEQ applies the NEQ predicate on the "city" field.
+func CityNEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldNEQ(FieldCity, v))
+}
+
+// CityIn applies the In predicate on the "city" field.
+func CityIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldIn(FieldCity, vs...))
+}
+
+// CityNotIn applies the NotIn predicate on the "city" field.
+func CityNotIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldNotIn(FieldCity, vs...))
+}
+
+// CityGT applies the GT predicate on the "city" field.
+func CityGT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGT(FieldCity, v))
+}
+
+// CityGTE applies the GTE predicate on the "city" field.
+func CityGTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGTE(FieldCity, v))
+}
+
+// CityLT applies the LT predicate on the "city" field.
+func CityLT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLT(FieldCity, v))
+}
+
+// CityLTE applies the LTE predicate on the "city" field.
+func CityLTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLTE(FieldCity, v))
+}
+
+// CityContains applies the Contains predicate on the "city" field.
+func CityContains(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContains(FieldCity, v))
+}
+
+// CityHasPrefix applies the HasPrefix predicate on the "city" field.
+func CityHasPrefix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasPrefix(FieldCity, v))
+}
+
+// CityHasSuffix applies the HasSuffix predicate on the "city" field.
+func CityHasSuffix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasSuffix(FieldCity, v))
+}
+
+// CityIsNil applies the IsNil predicate on the "city" field.
+func CityIsNil() predicate.Campus {
+	return predicate.Campus(sql.FieldIsNull(FieldCity))
+}
+
+// CityNotNil applies the NotNil predicate on the "city" field.
+func CityNotNil() predicate.Campus {
+	return predicate.Campus(sql.FieldNotNull(FieldCity))
+}
+
+// CityEqualFold applies the EqualFold predicate on the "city" field.
+func CityEqualFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEqualFold(FieldCity, v))
+}
+
+// CityContainsFold applies the ContainsFold predicate on the "city" field.
+func CityContainsFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContainsFold(FieldCity, v))
+}
+
+// CountryEQ applies the EQ predicate on the "country" field.
+func CountryEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldCountry, v))
+}
+
+// CountryNEQ applies the NEQ predicate on the "country" field.
+func CountryNEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldNEQ(FieldCountry, v))
+}
+
+// CountryIn applies the In predicate on the "country" field.
+func CountryIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldIn(FieldCountry, vs...))
+}
+
+// CountryNotIn applies the NotIn predicate on the "country" field.
+func CountryNotIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldNotIn(FieldCountry, vs...))
+}
+
+// CountryGT applies the GT predicate on the "country" field.
+func CountryGT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGT(FieldCountry, v))
+}
+
+// CountryGTE applies the GTE predicate on the "country" field.
+func CountryGTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGTE(FieldCountry, v))
+}
+
+// CountryLT applies the LT predicate on the "country" field.
+func CountryLT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLT(FieldCountry, v))
+}
+
+// CountryLTE applies the LTE predicate on the "country" field.
+func CountryLTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLTE(FieldCountry, v))
+}
+
+// CountryContains applies the Contains predicate on the "country" field.
+func CountryContains(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContains(FieldCountry, v))
+}
+
+// CountryHasPrefix applies the HasPrefix predicate on the "country" field.
+func CountryHasPrefix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasPrefix(FieldCountry, v))
+}
+
+// CountryHasSuffix applies the HasSuffix predicate on the "country" field.
+func CountryHasSuffix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasSuffix(FieldCountry, v))
+}
+
+// CountryIsNil applies the IsNil predicate on the "country" field.
+func CountryIsNil() predicate.Campus {
+	return predicate.Campus(sql.FieldIsNull(FieldCountry))
+}
+
+// CountryNotNil applies the NotNil predicate on the "country" field.
+func CountryNotNil() predicate.Campus {
+	return predicate.Campus(sql.FieldNotNull(FieldCountry))
+}
+
+// CountryEqualFold applies the EqualFold predicate on the "country" field.
+func CountryEqualFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEqualFold(FieldCountry, v))
+}
+
+// CountryContainsFold applies the ContainsFold predicate on the "country" field.
+func CountryContainsFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContainsFold(FieldCountry, v))
+}
+
+// LogoEQ applies the EQ predicate on the "logo" field.
+func LogoEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldLogo, v))
+}
+
+// LogoNEQ applies the NEQ predicate on the "logo" field.
+func LogoNEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldNEQ(FieldLogo, v))
+}
+
+// LogoIn applies the In predicate on the "logo" field.
+func LogoIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldIn(FieldLogo, vs...))
+}
+
+// LogoNotIn applies the NotIn predicate on the "logo" field.
+func LogoNotIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldNotIn(FieldLogo, vs...))
+}
+
+// LogoGT applies the GT predicate on the "logo" field.
+func LogoGT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGT(FieldLogo, v))
+}
+
+// LogoGTE applies the GTE predicate on the "logo" field.
+func LogoGTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGTE(FieldLogo, v))
+}
+
+// LogoLT applies the LT predicate on the "logo" field.
+func LogoLT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLT(FieldLogo, v))
+}
+
+// LogoLTE applies the LTE predicate on the "logo" field.
+func LogoLTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLTE(FieldLogo, v))
+}
+
+// LogoContains applies the Contains predicate on the "logo" field.
+func LogoContains(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContains(FieldLogo, v))
+}
+
+// LogoHasPrefix applies the HasPrefix predicate on the "logo" field.
+func LogoHasPrefix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasPrefix(FieldLogo, v))
+}
+
+// LogoHasSuffix applies the HasSuffix predicate on the "logo" field.
+func LogoHasSuffix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasSuffix(FieldLogo, v))
+}
+
+// LogoIsNil applies the IsNil predicate on the "logo" field.
+func LogoIsNil() predicate.Campus {
+	return predicate.Campus(sql.FieldIsNull(FieldLogo))
+}
+
+// LogoNotNil applies the NotNil predicate on the "logo" field.
+func LogoNotNil() predicate.Campus {
+	return predicate.Campus(sql.FieldNotNull(FieldLogo))
+}
+
+// LogoEqualFold applies the EqualFold predicate on the "logo" field.
+func LogoEqualFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEqualFold(FieldLogo, v))
+}
+
+// LogoContainsFold applies the ContainsFold predicate on the "logo" field.
+func LogoContainsFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContainsFold(FieldLogo, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
@@ -375,166 +600,6 @@ func NameLongContainsFold(v string) predicate.Campus {
 	return predicate.Campus(sql.FieldContainsFold(FieldNameLong, v))
 }
 
-// AkaEQ applies the EQ predicate on the "aka" field.
-func AkaEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldAka, v))
-}
-
-// AkaNEQ applies the NEQ predicate on the "aka" field.
-func AkaNEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldNEQ(FieldAka, v))
-}
-
-// AkaIn applies the In predicate on the "aka" field.
-func AkaIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldIn(FieldAka, vs...))
-}
-
-// AkaNotIn applies the NotIn predicate on the "aka" field.
-func AkaNotIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldNotIn(FieldAka, vs...))
-}
-
-// AkaGT applies the GT predicate on the "aka" field.
-func AkaGT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGT(FieldAka, v))
-}
-
-// AkaGTE applies the GTE predicate on the "aka" field.
-func AkaGTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGTE(FieldAka, v))
-}
-
-// AkaLT applies the LT predicate on the "aka" field.
-func AkaLT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLT(FieldAka, v))
-}
-
-// AkaLTE applies the LTE predicate on the "aka" field.
-func AkaLTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLTE(FieldAka, v))
-}
-
-// AkaContains applies the Contains predicate on the "aka" field.
-func AkaContains(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContains(FieldAka, v))
-}
-
-// AkaHasPrefix applies the HasPrefix predicate on the "aka" field.
-func AkaHasPrefix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasPrefix(FieldAka, v))
-}
-
-// AkaHasSuffix applies the HasSuffix predicate on the "aka" field.
-func AkaHasSuffix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasSuffix(FieldAka, v))
-}
-
-// AkaIsNil applies the IsNil predicate on the "aka" field.
-func AkaIsNil() predicate.Campus {
-	return predicate.Campus(sql.FieldIsNull(FieldAka))
-}
-
-// AkaNotNil applies the NotNil predicate on the "aka" field.
-func AkaNotNil() predicate.Campus {
-	return predicate.Campus(sql.FieldNotNull(FieldAka))
-}
-
-// AkaEqualFold applies the EqualFold predicate on the "aka" field.
-func AkaEqualFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEqualFold(FieldAka, v))
-}
-
-// AkaContainsFold applies the ContainsFold predicate on the "aka" field.
-func AkaContainsFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContainsFold(FieldAka, v))
-}
-
-// WebsiteEQ applies the EQ predicate on the "website" field.
-func WebsiteEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldWebsite, v))
-}
-
-// WebsiteNEQ applies the NEQ predicate on the "website" field.
-func WebsiteNEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldNEQ(FieldWebsite, v))
-}
-
-// WebsiteIn applies the In predicate on the "website" field.
-func WebsiteIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldIn(FieldWebsite, vs...))
-}
-
-// WebsiteNotIn applies the NotIn predicate on the "website" field.
-func WebsiteNotIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldNotIn(FieldWebsite, vs...))
-}
-
-// WebsiteGT applies the GT predicate on the "website" field.
-func WebsiteGT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGT(FieldWebsite, v))
-}
-
-// WebsiteGTE applies the GTE predicate on the "website" field.
-func WebsiteGTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGTE(FieldWebsite, v))
-}
-
-// WebsiteLT applies the LT predicate on the "website" field.
-func WebsiteLT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLT(FieldWebsite, v))
-}
-
-// WebsiteLTE applies the LTE predicate on the "website" field.
-func WebsiteLTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLTE(FieldWebsite, v))
-}
-
-// WebsiteContains applies the Contains predicate on the "website" field.
-func WebsiteContains(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContains(FieldWebsite, v))
-}
-
-// WebsiteHasPrefix applies the HasPrefix predicate on the "website" field.
-func WebsiteHasPrefix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasPrefix(FieldWebsite, v))
-}
-
-// WebsiteHasSuffix applies the HasSuffix predicate on the "website" field.
-func WebsiteHasSuffix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasSuffix(FieldWebsite, v))
-}
-
-// WebsiteIsNil applies the IsNil predicate on the "website" field.
-func WebsiteIsNil() predicate.Campus {
-	return predicate.Campus(sql.FieldIsNull(FieldWebsite))
-}
-
-// WebsiteNotNil applies the NotNil predicate on the "website" field.
-func WebsiteNotNil() predicate.Campus {
-	return predicate.Campus(sql.FieldNotNull(FieldWebsite))
-}
-
-// WebsiteEqualFold applies the EqualFold predicate on the "website" field.
-func WebsiteEqualFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEqualFold(FieldWebsite, v))
-}
-
-// WebsiteContainsFold applies the ContainsFold predicate on the "website" field.
-func WebsiteContainsFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContainsFold(FieldWebsite, v))
-}
-
-// SocialMediaIsNil applies the IsNil predicate on the "social_media" field.
-func SocialMediaIsNil() predicate.Campus {
-	return predicate.Campus(sql.FieldIsNull(FieldSocialMedia))
-}
-
-// SocialMediaNotNil applies the NotNil predicate on the "social_media" field.
-func SocialMediaNotNil() predicate.Campus {
-	return predicate.Campus(sql.FieldNotNull(FieldSocialMedia))
-}
-
 // NotesEQ applies the EQ predicate on the "notes" field.
 func NotesEQ(v string) predicate.Campus {
 	return predicate.Campus(sql.FieldEQ(FieldNotes, v))
@@ -610,229 +675,14 @@ func NotesContainsFold(v string) predicate.Campus {
 	return predicate.Campus(sql.FieldContainsFold(FieldNotes, v))
 }
 
-// CountryEQ applies the EQ predicate on the "country" field.
-func CountryEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldCountry, v))
+// SocialMediaIsNil applies the IsNil predicate on the "social_media" field.
+func SocialMediaIsNil() predicate.Campus {
+	return predicate.Campus(sql.FieldIsNull(FieldSocialMedia))
 }
 
-// CountryNEQ applies the NEQ predicate on the "country" field.
-func CountryNEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldNEQ(FieldCountry, v))
-}
-
-// CountryIn applies the In predicate on the "country" field.
-func CountryIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldIn(FieldCountry, vs...))
-}
-
-// CountryNotIn applies the NotIn predicate on the "country" field.
-func CountryNotIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldNotIn(FieldCountry, vs...))
-}
-
-// CountryGT applies the GT predicate on the "country" field.
-func CountryGT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGT(FieldCountry, v))
-}
-
-// CountryGTE applies the GTE predicate on the "country" field.
-func CountryGTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGTE(FieldCountry, v))
-}
-
-// CountryLT applies the LT predicate on the "country" field.
-func CountryLT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLT(FieldCountry, v))
-}
-
-// CountryLTE applies the LTE predicate on the "country" field.
-func CountryLTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLTE(FieldCountry, v))
-}
-
-// CountryContains applies the Contains predicate on the "country" field.
-func CountryContains(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContains(FieldCountry, v))
-}
-
-// CountryHasPrefix applies the HasPrefix predicate on the "country" field.
-func CountryHasPrefix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasPrefix(FieldCountry, v))
-}
-
-// CountryHasSuffix applies the HasSuffix predicate on the "country" field.
-func CountryHasSuffix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasSuffix(FieldCountry, v))
-}
-
-// CountryIsNil applies the IsNil predicate on the "country" field.
-func CountryIsNil() predicate.Campus {
-	return predicate.Campus(sql.FieldIsNull(FieldCountry))
-}
-
-// CountryNotNil applies the NotNil predicate on the "country" field.
-func CountryNotNil() predicate.Campus {
-	return predicate.Campus(sql.FieldNotNull(FieldCountry))
-}
-
-// CountryEqualFold applies the EqualFold predicate on the "country" field.
-func CountryEqualFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEqualFold(FieldCountry, v))
-}
-
-// CountryContainsFold applies the ContainsFold predicate on the "country" field.
-func CountryContainsFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContainsFold(FieldCountry, v))
-}
-
-// CityEQ applies the EQ predicate on the "city" field.
-func CityEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldCity, v))
-}
-
-// CityNEQ applies the NEQ predicate on the "city" field.
-func CityNEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldNEQ(FieldCity, v))
-}
-
-// CityIn applies the In predicate on the "city" field.
-func CityIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldIn(FieldCity, vs...))
-}
-
-// CityNotIn applies the NotIn predicate on the "city" field.
-func CityNotIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldNotIn(FieldCity, vs...))
-}
-
-// CityGT applies the GT predicate on the "city" field.
-func CityGT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGT(FieldCity, v))
-}
-
-// CityGTE applies the GTE predicate on the "city" field.
-func CityGTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGTE(FieldCity, v))
-}
-
-// CityLT applies the LT predicate on the "city" field.
-func CityLT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLT(FieldCity, v))
-}
-
-// CityLTE applies the LTE predicate on the "city" field.
-func CityLTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLTE(FieldCity, v))
-}
-
-// CityContains applies the Contains predicate on the "city" field.
-func CityContains(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContains(FieldCity, v))
-}
-
-// CityHasPrefix applies the HasPrefix predicate on the "city" field.
-func CityHasPrefix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasPrefix(FieldCity, v))
-}
-
-// CityHasSuffix applies the HasSuffix predicate on the "city" field.
-func CityHasSuffix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasSuffix(FieldCity, v))
-}
-
-// CityIsNil applies the IsNil predicate on the "city" field.
-func CityIsNil() predicate.Campus {
-	return predicate.Campus(sql.FieldIsNull(FieldCity))
-}
-
-// CityNotNil applies the NotNil predicate on the "city" field.
-func CityNotNil() predicate.Campus {
-	return predicate.Campus(sql.FieldNotNull(FieldCity))
-}
-
-// CityEqualFold applies the EqualFold predicate on the "city" field.
-func CityEqualFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEqualFold(FieldCity, v))
-}
-
-// CityContainsFold applies the ContainsFold predicate on the "city" field.
-func CityContainsFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContainsFold(FieldCity, v))
-}
-
-// ZipcodeEQ applies the EQ predicate on the "zipcode" field.
-func ZipcodeEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldZipcode, v))
-}
-
-// ZipcodeNEQ applies the NEQ predicate on the "zipcode" field.
-func ZipcodeNEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldNEQ(FieldZipcode, v))
-}
-
-// ZipcodeIn applies the In predicate on the "zipcode" field.
-func ZipcodeIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldIn(FieldZipcode, vs...))
-}
-
-// ZipcodeNotIn applies the NotIn predicate on the "zipcode" field.
-func ZipcodeNotIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldNotIn(FieldZipcode, vs...))
-}
-
-// ZipcodeGT applies the GT predicate on the "zipcode" field.
-func ZipcodeGT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGT(FieldZipcode, v))
-}
-
-// ZipcodeGTE applies the GTE predicate on the "zipcode" field.
-func ZipcodeGTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGTE(FieldZipcode, v))
-}
-
-// ZipcodeLT applies the LT predicate on the "zipcode" field.
-func ZipcodeLT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLT(FieldZipcode, v))
-}
-
-// ZipcodeLTE applies the LTE predicate on the "zipcode" field.
-func ZipcodeLTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLTE(FieldZipcode, v))
-}
-
-// ZipcodeContains applies the Contains predicate on the "zipcode" field.
-func ZipcodeContains(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContains(FieldZipcode, v))
-}
-
-// ZipcodeHasPrefix applies the HasPrefix predicate on the "zipcode" field.
-func ZipcodeHasPrefix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasPrefix(FieldZipcode, v))
-}
-
-// ZipcodeHasSuffix applies the HasSuffix predicate on the "zipcode" field.
-func ZipcodeHasSuffix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasSuffix(FieldZipcode, v))
-}
-
-// ZipcodeIsNil applies the IsNil predicate on the "zipcode" field.
-func ZipcodeIsNil() predicate.Campus {
-	return predicate.Campus(sql.FieldIsNull(FieldZipcode))
-}
-
-// ZipcodeNotNil applies the NotNil predicate on the "zipcode" field.
-func ZipcodeNotNil() predicate.Campus {
-	return predicate.Campus(sql.FieldNotNull(FieldZipcode))
-}
-
-// ZipcodeEqualFold applies the EqualFold predicate on the "zipcode" field.
-func ZipcodeEqualFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEqualFold(FieldZipcode, v))
-}
-
-// ZipcodeContainsFold applies the ContainsFold predicate on the "zipcode" field.
-func ZipcodeContainsFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContainsFold(FieldZipcode, v))
+// SocialMediaNotNil applies the NotNil predicate on the "social_media" field.
+func SocialMediaNotNil() predicate.Campus {
+	return predicate.Campus(sql.FieldNotNull(FieldSocialMedia))
 }
 
 // StateEQ applies the EQ predicate on the "state" field.
@@ -910,79 +760,229 @@ func StateContainsFold(v string) predicate.Campus {
 	return predicate.Campus(sql.FieldContainsFold(FieldState, v))
 }
 
-// LogoEQ applies the EQ predicate on the "logo" field.
-func LogoEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldLogo, v))
+// WebsiteEQ applies the EQ predicate on the "website" field.
+func WebsiteEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldWebsite, v))
 }
 
-// LogoNEQ applies the NEQ predicate on the "logo" field.
-func LogoNEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldNEQ(FieldLogo, v))
+// WebsiteNEQ applies the NEQ predicate on the "website" field.
+func WebsiteNEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldNEQ(FieldWebsite, v))
 }
 
-// LogoIn applies the In predicate on the "logo" field.
-func LogoIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldIn(FieldLogo, vs...))
+// WebsiteIn applies the In predicate on the "website" field.
+func WebsiteIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldIn(FieldWebsite, vs...))
 }
 
-// LogoNotIn applies the NotIn predicate on the "logo" field.
-func LogoNotIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldNotIn(FieldLogo, vs...))
+// WebsiteNotIn applies the NotIn predicate on the "website" field.
+func WebsiteNotIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldNotIn(FieldWebsite, vs...))
 }
 
-// LogoGT applies the GT predicate on the "logo" field.
-func LogoGT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGT(FieldLogo, v))
+// WebsiteGT applies the GT predicate on the "website" field.
+func WebsiteGT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGT(FieldWebsite, v))
 }
 
-// LogoGTE applies the GTE predicate on the "logo" field.
-func LogoGTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGTE(FieldLogo, v))
+// WebsiteGTE applies the GTE predicate on the "website" field.
+func WebsiteGTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGTE(FieldWebsite, v))
 }
 
-// LogoLT applies the LT predicate on the "logo" field.
-func LogoLT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLT(FieldLogo, v))
+// WebsiteLT applies the LT predicate on the "website" field.
+func WebsiteLT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLT(FieldWebsite, v))
 }
 
-// LogoLTE applies the LTE predicate on the "logo" field.
-func LogoLTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLTE(FieldLogo, v))
+// WebsiteLTE applies the LTE predicate on the "website" field.
+func WebsiteLTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLTE(FieldWebsite, v))
 }
 
-// LogoContains applies the Contains predicate on the "logo" field.
-func LogoContains(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContains(FieldLogo, v))
+// WebsiteContains applies the Contains predicate on the "website" field.
+func WebsiteContains(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContains(FieldWebsite, v))
 }
 
-// LogoHasPrefix applies the HasPrefix predicate on the "logo" field.
-func LogoHasPrefix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasPrefix(FieldLogo, v))
+// WebsiteHasPrefix applies the HasPrefix predicate on the "website" field.
+func WebsiteHasPrefix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasPrefix(FieldWebsite, v))
 }
 
-// LogoHasSuffix applies the HasSuffix predicate on the "logo" field.
-func LogoHasSuffix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasSuffix(FieldLogo, v))
+// WebsiteHasSuffix applies the HasSuffix predicate on the "website" field.
+func WebsiteHasSuffix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasSuffix(FieldWebsite, v))
 }
 
-// LogoIsNil applies the IsNil predicate on the "logo" field.
-func LogoIsNil() predicate.Campus {
-	return predicate.Campus(sql.FieldIsNull(FieldLogo))
+// WebsiteIsNil applies the IsNil predicate on the "website" field.
+func WebsiteIsNil() predicate.Campus {
+	return predicate.Campus(sql.FieldIsNull(FieldWebsite))
 }
 
-// LogoNotNil applies the NotNil predicate on the "logo" field.
-func LogoNotNil() predicate.Campus {
-	return predicate.Campus(sql.FieldNotNull(FieldLogo))
+// WebsiteNotNil applies the NotNil predicate on the "website" field.
+func WebsiteNotNil() predicate.Campus {
+	return predicate.Campus(sql.FieldNotNull(FieldWebsite))
 }
 
-// LogoEqualFold applies the EqualFold predicate on the "logo" field.
-func LogoEqualFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEqualFold(FieldLogo, v))
+// WebsiteEqualFold applies the EqualFold predicate on the "website" field.
+func WebsiteEqualFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEqualFold(FieldWebsite, v))
 }
 
-// LogoContainsFold applies the ContainsFold predicate on the "logo" field.
-func LogoContainsFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContainsFold(FieldLogo, v))
+// WebsiteContainsFold applies the ContainsFold predicate on the "website" field.
+func WebsiteContainsFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContainsFold(FieldWebsite, v))
+}
+
+// ZipcodeEQ applies the EQ predicate on the "zipcode" field.
+func ZipcodeEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldZipcode, v))
+}
+
+// ZipcodeNEQ applies the NEQ predicate on the "zipcode" field.
+func ZipcodeNEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldNEQ(FieldZipcode, v))
+}
+
+// ZipcodeIn applies the In predicate on the "zipcode" field.
+func ZipcodeIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldIn(FieldZipcode, vs...))
+}
+
+// ZipcodeNotIn applies the NotIn predicate on the "zipcode" field.
+func ZipcodeNotIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldNotIn(FieldZipcode, vs...))
+}
+
+// ZipcodeGT applies the GT predicate on the "zipcode" field.
+func ZipcodeGT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGT(FieldZipcode, v))
+}
+
+// ZipcodeGTE applies the GTE predicate on the "zipcode" field.
+func ZipcodeGTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGTE(FieldZipcode, v))
+}
+
+// ZipcodeLT applies the LT predicate on the "zipcode" field.
+func ZipcodeLT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLT(FieldZipcode, v))
+}
+
+// ZipcodeLTE applies the LTE predicate on the "zipcode" field.
+func ZipcodeLTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLTE(FieldZipcode, v))
+}
+
+// ZipcodeContains applies the Contains predicate on the "zipcode" field.
+func ZipcodeContains(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContains(FieldZipcode, v))
+}
+
+// ZipcodeHasPrefix applies the HasPrefix predicate on the "zipcode" field.
+func ZipcodeHasPrefix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasPrefix(FieldZipcode, v))
+}
+
+// ZipcodeHasSuffix applies the HasSuffix predicate on the "zipcode" field.
+func ZipcodeHasSuffix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasSuffix(FieldZipcode, v))
+}
+
+// ZipcodeIsNil applies the IsNil predicate on the "zipcode" field.
+func ZipcodeIsNil() predicate.Campus {
+	return predicate.Campus(sql.FieldIsNull(FieldZipcode))
+}
+
+// ZipcodeNotNil applies the NotNil predicate on the "zipcode" field.
+func ZipcodeNotNil() predicate.Campus {
+	return predicate.Campus(sql.FieldNotNull(FieldZipcode))
+}
+
+// ZipcodeEqualFold applies the EqualFold predicate on the "zipcode" field.
+func ZipcodeEqualFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEqualFold(FieldZipcode, v))
+}
+
+// ZipcodeContainsFold applies the ContainsFold predicate on the "zipcode" field.
+func ZipcodeContainsFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContainsFold(FieldZipcode, v))
+}
+
+// OrgNameEQ applies the EQ predicate on the "org_name" field.
+func OrgNameEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldOrgName, v))
+}
+
+// OrgNameNEQ applies the NEQ predicate on the "org_name" field.
+func OrgNameNEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldNEQ(FieldOrgName, v))
+}
+
+// OrgNameIn applies the In predicate on the "org_name" field.
+func OrgNameIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldIn(FieldOrgName, vs...))
+}
+
+// OrgNameNotIn applies the NotIn predicate on the "org_name" field.
+func OrgNameNotIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldNotIn(FieldOrgName, vs...))
+}
+
+// OrgNameGT applies the GT predicate on the "org_name" field.
+func OrgNameGT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGT(FieldOrgName, v))
+}
+
+// OrgNameGTE applies the GTE predicate on the "org_name" field.
+func OrgNameGTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGTE(FieldOrgName, v))
+}
+
+// OrgNameLT applies the LT predicate on the "org_name" field.
+func OrgNameLT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLT(FieldOrgName, v))
+}
+
+// OrgNameLTE applies the LTE predicate on the "org_name" field.
+func OrgNameLTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLTE(FieldOrgName, v))
+}
+
+// OrgNameContains applies the Contains predicate on the "org_name" field.
+func OrgNameContains(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContains(FieldOrgName, v))
+}
+
+// OrgNameHasPrefix applies the HasPrefix predicate on the "org_name" field.
+func OrgNameHasPrefix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasPrefix(FieldOrgName, v))
+}
+
+// OrgNameHasSuffix applies the HasSuffix predicate on the "org_name" field.
+func OrgNameHasSuffix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasSuffix(FieldOrgName, v))
+}
+
+// OrgNameIsNil applies the IsNil predicate on the "org_name" field.
+func OrgNameIsNil() predicate.Campus {
+	return predicate.Campus(sql.FieldIsNull(FieldOrgName))
+}
+
+// OrgNameNotNil applies the NotNil predicate on the "org_name" field.
+func OrgNameNotNil() predicate.Campus {
+	return predicate.Campus(sql.FieldNotNull(FieldOrgName))
+}
+
+// OrgNameEqualFold applies the EqualFold predicate on the "org_name" field.
+func OrgNameEqualFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEqualFold(FieldOrgName, v))
+}
+
+// OrgNameContainsFold applies the ContainsFold predicate on the "org_name" field.
+func OrgNameContainsFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContainsFold(FieldOrgName, v))
 }
 
 // CreatedEQ applies the EQ predicate on the "created" field.
@@ -1130,29 +1130,6 @@ func StatusContainsFold(v string) predicate.Campus {
 	return predicate.Campus(sql.FieldContainsFold(FieldStatus, v))
 }
 
-// HasOrganization applies the HasEdge predicate on the "organization" edge.
-func HasOrganization() predicate.Campus {
-	return predicate.Campus(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasOrganizationWith applies the HasEdge predicate on the "organization" edge with a given conditions (other predicates).
-func HasOrganizationWith(preds ...predicate.Organization) predicate.Campus {
-	return predicate.Campus(func(s *sql.Selector) {
-		step := newOrganizationStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasFacilities applies the HasEdge predicate on the "facilities" edge.
 func HasFacilities() predicate.Campus {
 	return predicate.Campus(func(s *sql.Selector) {
@@ -1168,6 +1145,29 @@ func HasFacilities() predicate.Campus {
 func HasFacilitiesWith(preds ...predicate.Facility) predicate.Campus {
 	return predicate.Campus(func(s *sql.Selector) {
 		step := newFacilitiesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOrganization applies the HasEdge predicate on the "organization" edge.
+func HasOrganization() predicate.Campus {
+	return predicate.Campus(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrganizationWith applies the HasEdge predicate on the "organization" edge with a given conditions (other predicates).
+func HasOrganizationWith(preds ...predicate.Organization) predicate.Campus {
+	return predicate.Campus(func(s *sql.Selector) {
+		step := newOrganizationStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

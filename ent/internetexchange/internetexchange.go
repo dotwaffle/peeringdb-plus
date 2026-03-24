@@ -15,94 +15,80 @@ const (
 	FieldID = "id"
 	// FieldOrgID holds the string denoting the org_id field in the database.
 	FieldOrgID = "org_id"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
 	// FieldAka holds the string denoting the aka field in the database.
 	FieldAka = "aka"
-	// FieldNameLong holds the string denoting the name_long field in the database.
-	FieldNameLong = "name_long"
 	// FieldCity holds the string denoting the city field in the database.
 	FieldCity = "city"
 	// FieldCountry holds the string denoting the country field in the database.
 	FieldCountry = "country"
-	// FieldRegionContinent holds the string denoting the region_continent field in the database.
-	FieldRegionContinent = "region_continent"
+	// FieldIxfLastImport holds the string denoting the ixf_last_import field in the database.
+	FieldIxfLastImport = "ixf_last_import"
+	// FieldIxfNetCount holds the string denoting the ixf_net_count field in the database.
+	FieldIxfNetCount = "ixf_net_count"
+	// FieldLogo holds the string denoting the logo field in the database.
+	FieldLogo = "logo"
 	// FieldMedia holds the string denoting the media field in the database.
 	FieldMedia = "media"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldNameLong holds the string denoting the name_long field in the database.
+	FieldNameLong = "name_long"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
-	// FieldProtoUnicast holds the string denoting the proto_unicast field in the database.
-	FieldProtoUnicast = "proto_unicast"
-	// FieldProtoMulticast holds the string denoting the proto_multicast field in the database.
-	FieldProtoMulticast = "proto_multicast"
-	// FieldProtoIpv6 holds the string denoting the proto_ipv6 field in the database.
-	FieldProtoIpv6 = "proto_ipv6"
-	// FieldWebsite holds the string denoting the website field in the database.
-	FieldWebsite = "website"
-	// FieldSocialMedia holds the string denoting the social_media field in the database.
-	FieldSocialMedia = "social_media"
-	// FieldURLStats holds the string denoting the url_stats field in the database.
-	FieldURLStats = "url_stats"
-	// FieldTechEmail holds the string denoting the tech_email field in the database.
-	FieldTechEmail = "tech_email"
-	// FieldTechPhone holds the string denoting the tech_phone field in the database.
-	FieldTechPhone = "tech_phone"
 	// FieldPolicyEmail holds the string denoting the policy_email field in the database.
 	FieldPolicyEmail = "policy_email"
 	// FieldPolicyPhone holds the string denoting the policy_phone field in the database.
 	FieldPolicyPhone = "policy_phone"
+	// FieldProtoIpv6 holds the string denoting the proto_ipv6 field in the database.
+	FieldProtoIpv6 = "proto_ipv6"
+	// FieldProtoMulticast holds the string denoting the proto_multicast field in the database.
+	FieldProtoMulticast = "proto_multicast"
+	// FieldProtoUnicast holds the string denoting the proto_unicast field in the database.
+	FieldProtoUnicast = "proto_unicast"
+	// FieldRegionContinent holds the string denoting the region_continent field in the database.
+	FieldRegionContinent = "region_continent"
 	// FieldSalesEmail holds the string denoting the sales_email field in the database.
 	FieldSalesEmail = "sales_email"
 	// FieldSalesPhone holds the string denoting the sales_phone field in the database.
 	FieldSalesPhone = "sales_phone"
+	// FieldServiceLevel holds the string denoting the service_level field in the database.
+	FieldServiceLevel = "service_level"
+	// FieldSocialMedia holds the string denoting the social_media field in the database.
+	FieldSocialMedia = "social_media"
+	// FieldStatusDashboard holds the string denoting the status_dashboard field in the database.
+	FieldStatusDashboard = "status_dashboard"
+	// FieldTechEmail holds the string denoting the tech_email field in the database.
+	FieldTechEmail = "tech_email"
+	// FieldTechPhone holds the string denoting the tech_phone field in the database.
+	FieldTechPhone = "tech_phone"
+	// FieldTerms holds the string denoting the terms field in the database.
+	FieldTerms = "terms"
+	// FieldURLStats holds the string denoting the url_stats field in the database.
+	FieldURLStats = "url_stats"
+	// FieldWebsite holds the string denoting the website field in the database.
+	FieldWebsite = "website"
 	// FieldNetCount holds the string denoting the net_count field in the database.
 	FieldNetCount = "net_count"
 	// FieldFacCount holds the string denoting the fac_count field in the database.
 	FieldFacCount = "fac_count"
-	// FieldIxfNetCount holds the string denoting the ixf_net_count field in the database.
-	FieldIxfNetCount = "ixf_net_count"
-	// FieldIxfLastImport holds the string denoting the ixf_last_import field in the database.
-	FieldIxfLastImport = "ixf_last_import"
 	// FieldIxfImportRequest holds the string denoting the ixf_import_request field in the database.
 	FieldIxfImportRequest = "ixf_import_request"
 	// FieldIxfImportRequestStatus holds the string denoting the ixf_import_request_status field in the database.
 	FieldIxfImportRequestStatus = "ixf_import_request_status"
-	// FieldServiceLevel holds the string denoting the service_level field in the database.
-	FieldServiceLevel = "service_level"
-	// FieldTerms holds the string denoting the terms field in the database.
-	FieldTerms = "terms"
-	// FieldStatusDashboard holds the string denoting the status_dashboard field in the database.
-	FieldStatusDashboard = "status_dashboard"
-	// FieldLogo holds the string denoting the logo field in the database.
-	FieldLogo = "logo"
 	// FieldCreated holds the string denoting the created field in the database.
 	FieldCreated = "created"
 	// FieldUpdated holds the string denoting the updated field in the database.
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// EdgeOrganization holds the string denoting the organization edge name in mutations.
-	EdgeOrganization = "organization"
-	// EdgeIxLans holds the string denoting the ix_lans edge name in mutations.
-	EdgeIxLans = "ix_lans"
 	// EdgeIxFacilities holds the string denoting the ix_facilities edge name in mutations.
 	EdgeIxFacilities = "ix_facilities"
+	// EdgeIxLans holds the string denoting the ix_lans edge name in mutations.
+	EdgeIxLans = "ix_lans"
+	// EdgeOrganization holds the string denoting the organization edge name in mutations.
+	EdgeOrganization = "organization"
 	// Table holds the table name of the internetexchange in the database.
 	Table = "internet_exchanges"
-	// OrganizationTable is the table that holds the organization relation/edge.
-	OrganizationTable = "internet_exchanges"
-	// OrganizationInverseTable is the table name for the Organization entity.
-	// It exists in this package in order to avoid circular dependency with the "organization" package.
-	OrganizationInverseTable = "organizations"
-	// OrganizationColumn is the table column denoting the organization relation/edge.
-	OrganizationColumn = "org_id"
-	// IxLansTable is the table that holds the ix_lans relation/edge.
-	IxLansTable = "ix_lans"
-	// IxLansInverseTable is the table name for the IxLan entity.
-	// It exists in this package in order to avoid circular dependency with the "ixlan" package.
-	IxLansInverseTable = "ix_lans"
-	// IxLansColumn is the table column denoting the ix_lans relation/edge.
-	IxLansColumn = "ix_id"
 	// IxFacilitiesTable is the table that holds the ix_facilities relation/edge.
 	IxFacilitiesTable = "ix_facilities"
 	// IxFacilitiesInverseTable is the table name for the IxFacility entity.
@@ -110,42 +96,56 @@ const (
 	IxFacilitiesInverseTable = "ix_facilities"
 	// IxFacilitiesColumn is the table column denoting the ix_facilities relation/edge.
 	IxFacilitiesColumn = "ix_id"
+	// IxLansTable is the table that holds the ix_lans relation/edge.
+	IxLansTable = "ix_lans"
+	// IxLansInverseTable is the table name for the IxLan entity.
+	// It exists in this package in order to avoid circular dependency with the "ixlan" package.
+	IxLansInverseTable = "ix_lans"
+	// IxLansColumn is the table column denoting the ix_lans relation/edge.
+	IxLansColumn = "ix_id"
+	// OrganizationTable is the table that holds the organization relation/edge.
+	OrganizationTable = "internet_exchanges"
+	// OrganizationInverseTable is the table name for the Organization entity.
+	// It exists in this package in order to avoid circular dependency with the "organization" package.
+	OrganizationInverseTable = "organizations"
+	// OrganizationColumn is the table column denoting the organization relation/edge.
+	OrganizationColumn = "org_id"
 )
 
 // Columns holds all SQL columns for internetexchange fields.
 var Columns = []string{
 	FieldID,
 	FieldOrgID,
-	FieldName,
 	FieldAka,
-	FieldNameLong,
 	FieldCity,
 	FieldCountry,
-	FieldRegionContinent,
+	FieldIxfLastImport,
+	FieldIxfNetCount,
+	FieldLogo,
 	FieldMedia,
+	FieldName,
+	FieldNameLong,
 	FieldNotes,
-	FieldProtoUnicast,
-	FieldProtoMulticast,
-	FieldProtoIpv6,
-	FieldWebsite,
-	FieldSocialMedia,
-	FieldURLStats,
-	FieldTechEmail,
-	FieldTechPhone,
 	FieldPolicyEmail,
 	FieldPolicyPhone,
+	FieldProtoIpv6,
+	FieldProtoMulticast,
+	FieldProtoUnicast,
+	FieldRegionContinent,
 	FieldSalesEmail,
 	FieldSalesPhone,
+	FieldServiceLevel,
+	FieldSocialMedia,
+	FieldStatusDashboard,
+	FieldTechEmail,
+	FieldTechPhone,
+	FieldTerms,
+	FieldURLStats,
+	FieldWebsite,
 	FieldNetCount,
 	FieldFacCount,
-	FieldIxfNetCount,
-	FieldIxfLastImport,
 	FieldIxfImportRequest,
 	FieldIxfImportRequestStatus,
-	FieldServiceLevel,
-	FieldTerms,
-	FieldStatusDashboard,
-	FieldLogo,
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
@@ -168,50 +168,30 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
 	// DefaultAka holds the default value on creation for the "aka" field.
 	DefaultAka string
 	// AkaValidator is a validator for the "aka" field. It is called by the builders before save.
 	AkaValidator func(string) error
-	// DefaultNameLong holds the default value on creation for the "name_long" field.
-	DefaultNameLong string
-	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	NameLongValidator func(string) error
 	// DefaultCity holds the default value on creation for the "city" field.
 	DefaultCity string
 	// CityValidator is a validator for the "city" field. It is called by the builders before save.
 	CityValidator func(string) error
 	// DefaultCountry holds the default value on creation for the "country" field.
 	DefaultCountry string
-	// DefaultRegionContinent holds the default value on creation for the "region_continent" field.
-	DefaultRegionContinent string
-	// RegionContinentValidator is a validator for the "region_continent" field. It is called by the builders before save.
-	RegionContinentValidator func(string) error
+	// DefaultIxfNetCount holds the default value on creation for the "ixf_net_count" field.
+	DefaultIxfNetCount int
 	// DefaultMedia holds the default value on creation for the "media" field.
 	DefaultMedia string
 	// MediaValidator is a validator for the "media" field. It is called by the builders before save.
 	MediaValidator func(string) error
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator func(string) error
+	// DefaultNameLong holds the default value on creation for the "name_long" field.
+	DefaultNameLong string
+	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
+	NameLongValidator func(string) error
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
-	// DefaultProtoUnicast holds the default value on creation for the "proto_unicast" field.
-	DefaultProtoUnicast bool
-	// DefaultProtoMulticast holds the default value on creation for the "proto_multicast" field.
-	DefaultProtoMulticast bool
-	// DefaultProtoIpv6 holds the default value on creation for the "proto_ipv6" field.
-	DefaultProtoIpv6 bool
-	// DefaultWebsite holds the default value on creation for the "website" field.
-	DefaultWebsite string
-	// DefaultURLStats holds the default value on creation for the "url_stats" field.
-	DefaultURLStats string
-	// DefaultTechEmail holds the default value on creation for the "tech_email" field.
-	DefaultTechEmail string
-	// TechEmailValidator is a validator for the "tech_email" field. It is called by the builders before save.
-	TechEmailValidator func(string) error
-	// DefaultTechPhone holds the default value on creation for the "tech_phone" field.
-	DefaultTechPhone string
-	// TechPhoneValidator is a validator for the "tech_phone" field. It is called by the builders before save.
-	TechPhoneValidator func(string) error
 	// DefaultPolicyEmail holds the default value on creation for the "policy_email" field.
 	DefaultPolicyEmail string
 	// PolicyEmailValidator is a validator for the "policy_email" field. It is called by the builders before save.
@@ -220,6 +200,16 @@ var (
 	DefaultPolicyPhone string
 	// PolicyPhoneValidator is a validator for the "policy_phone" field. It is called by the builders before save.
 	PolicyPhoneValidator func(string) error
+	// DefaultProtoIpv6 holds the default value on creation for the "proto_ipv6" field.
+	DefaultProtoIpv6 bool
+	// DefaultProtoMulticast holds the default value on creation for the "proto_multicast" field.
+	DefaultProtoMulticast bool
+	// DefaultProtoUnicast holds the default value on creation for the "proto_unicast" field.
+	DefaultProtoUnicast bool
+	// DefaultRegionContinent holds the default value on creation for the "region_continent" field.
+	DefaultRegionContinent string
+	// RegionContinentValidator is a validator for the "region_continent" field. It is called by the builders before save.
+	RegionContinentValidator func(string) error
 	// DefaultSalesEmail holds the default value on creation for the "sales_email" field.
 	DefaultSalesEmail string
 	// SalesEmailValidator is a validator for the "sales_email" field. It is called by the builders before save.
@@ -228,22 +218,32 @@ var (
 	DefaultSalesPhone string
 	// SalesPhoneValidator is a validator for the "sales_phone" field. It is called by the builders before save.
 	SalesPhoneValidator func(string) error
-	// DefaultNetCount holds the default value on creation for the "net_count" field.
-	DefaultNetCount int
-	// DefaultFacCount holds the default value on creation for the "fac_count" field.
-	DefaultFacCount int
-	// DefaultIxfNetCount holds the default value on creation for the "ixf_net_count" field.
-	DefaultIxfNetCount int
-	// DefaultIxfImportRequestStatus holds the default value on creation for the "ixf_import_request_status" field.
-	DefaultIxfImportRequestStatus string
 	// DefaultServiceLevel holds the default value on creation for the "service_level" field.
 	DefaultServiceLevel string
 	// ServiceLevelValidator is a validator for the "service_level" field. It is called by the builders before save.
 	ServiceLevelValidator func(string) error
+	// DefaultTechEmail holds the default value on creation for the "tech_email" field.
+	DefaultTechEmail string
+	// TechEmailValidator is a validator for the "tech_email" field. It is called by the builders before save.
+	TechEmailValidator func(string) error
+	// DefaultTechPhone holds the default value on creation for the "tech_phone" field.
+	DefaultTechPhone string
+	// TechPhoneValidator is a validator for the "tech_phone" field. It is called by the builders before save.
+	TechPhoneValidator func(string) error
 	// DefaultTerms holds the default value on creation for the "terms" field.
 	DefaultTerms string
 	// TermsValidator is a validator for the "terms" field. It is called by the builders before save.
 	TermsValidator func(string) error
+	// DefaultURLStats holds the default value on creation for the "url_stats" field.
+	DefaultURLStats string
+	// DefaultWebsite holds the default value on creation for the "website" field.
+	DefaultWebsite string
+	// DefaultNetCount holds the default value on creation for the "net_count" field.
+	DefaultNetCount int
+	// DefaultFacCount holds the default value on creation for the "fac_count" field.
+	DefaultFacCount int
+	// DefaultIxfImportRequestStatus holds the default value on creation for the "ixf_import_request_status" field.
+	DefaultIxfImportRequestStatus string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
@@ -265,19 +265,9 @@ func ByOrgID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOrgID, opts...).ToFunc()
 }
 
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
-}
-
 // ByAka orders the results by the aka field.
 func ByAka(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAka, opts...).ToFunc()
-}
-
-// ByNameLong orders the results by the name_long field.
-func ByNameLong(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNameLong, opts...).ToFunc()
 }
 
 // ByCity orders the results by the city field.
@@ -290,9 +280,19 @@ func ByCountry(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCountry, opts...).ToFunc()
 }
 
-// ByRegionContinent orders the results by the region_continent field.
-func ByRegionContinent(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRegionContinent, opts...).ToFunc()
+// ByIxfLastImport orders the results by the ixf_last_import field.
+func ByIxfLastImport(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIxfLastImport, opts...).ToFunc()
+}
+
+// ByIxfNetCount orders the results by the ixf_net_count field.
+func ByIxfNetCount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIxfNetCount, opts...).ToFunc()
+}
+
+// ByLogo orders the results by the logo field.
+func ByLogo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLogo, opts...).ToFunc()
 }
 
 // ByMedia orders the results by the media field.
@@ -300,44 +300,19 @@ func ByMedia(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMedia, opts...).ToFunc()
 }
 
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByNameLong orders the results by the name_long field.
+func ByNameLong(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNameLong, opts...).ToFunc()
+}
+
 // ByNotes orders the results by the notes field.
 func ByNotes(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotes, opts...).ToFunc()
-}
-
-// ByProtoUnicast orders the results by the proto_unicast field.
-func ByProtoUnicast(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProtoUnicast, opts...).ToFunc()
-}
-
-// ByProtoMulticast orders the results by the proto_multicast field.
-func ByProtoMulticast(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProtoMulticast, opts...).ToFunc()
-}
-
-// ByProtoIpv6 orders the results by the proto_ipv6 field.
-func ByProtoIpv6(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProtoIpv6, opts...).ToFunc()
-}
-
-// ByWebsite orders the results by the website field.
-func ByWebsite(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldWebsite, opts...).ToFunc()
-}
-
-// ByURLStats orders the results by the url_stats field.
-func ByURLStats(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldURLStats, opts...).ToFunc()
-}
-
-// ByTechEmail orders the results by the tech_email field.
-func ByTechEmail(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTechEmail, opts...).ToFunc()
-}
-
-// ByTechPhone orders the results by the tech_phone field.
-func ByTechPhone(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTechPhone, opts...).ToFunc()
 }
 
 // ByPolicyEmail orders the results by the policy_email field.
@@ -350,6 +325,26 @@ func ByPolicyPhone(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPolicyPhone, opts...).ToFunc()
 }
 
+// ByProtoIpv6 orders the results by the proto_ipv6 field.
+func ByProtoIpv6(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProtoIpv6, opts...).ToFunc()
+}
+
+// ByProtoMulticast orders the results by the proto_multicast field.
+func ByProtoMulticast(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProtoMulticast, opts...).ToFunc()
+}
+
+// ByProtoUnicast orders the results by the proto_unicast field.
+func ByProtoUnicast(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProtoUnicast, opts...).ToFunc()
+}
+
+// ByRegionContinent orders the results by the region_continent field.
+func ByRegionContinent(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRegionContinent, opts...).ToFunc()
+}
+
 // BySalesEmail orders the results by the sales_email field.
 func BySalesEmail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSalesEmail, opts...).ToFunc()
@@ -358,6 +353,41 @@ func BySalesEmail(opts ...sql.OrderTermOption) OrderOption {
 // BySalesPhone orders the results by the sales_phone field.
 func BySalesPhone(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSalesPhone, opts...).ToFunc()
+}
+
+// ByServiceLevel orders the results by the service_level field.
+func ByServiceLevel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldServiceLevel, opts...).ToFunc()
+}
+
+// ByStatusDashboard orders the results by the status_dashboard field.
+func ByStatusDashboard(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatusDashboard, opts...).ToFunc()
+}
+
+// ByTechEmail orders the results by the tech_email field.
+func ByTechEmail(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTechEmail, opts...).ToFunc()
+}
+
+// ByTechPhone orders the results by the tech_phone field.
+func ByTechPhone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTechPhone, opts...).ToFunc()
+}
+
+// ByTerms orders the results by the terms field.
+func ByTerms(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTerms, opts...).ToFunc()
+}
+
+// ByURLStats orders the results by the url_stats field.
+func ByURLStats(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldURLStats, opts...).ToFunc()
+}
+
+// ByWebsite orders the results by the website field.
+func ByWebsite(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWebsite, opts...).ToFunc()
 }
 
 // ByNetCount orders the results by the net_count field.
@@ -370,16 +400,6 @@ func ByFacCount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFacCount, opts...).ToFunc()
 }
 
-// ByIxfNetCount orders the results by the ixf_net_count field.
-func ByIxfNetCount(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIxfNetCount, opts...).ToFunc()
-}
-
-// ByIxfLastImport orders the results by the ixf_last_import field.
-func ByIxfLastImport(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIxfLastImport, opts...).ToFunc()
-}
-
 // ByIxfImportRequest orders the results by the ixf_import_request field.
 func ByIxfImportRequest(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIxfImportRequest, opts...).ToFunc()
@@ -388,26 +408,6 @@ func ByIxfImportRequest(opts ...sql.OrderTermOption) OrderOption {
 // ByIxfImportRequestStatus orders the results by the ixf_import_request_status field.
 func ByIxfImportRequestStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIxfImportRequestStatus, opts...).ToFunc()
-}
-
-// ByServiceLevel orders the results by the service_level field.
-func ByServiceLevel(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldServiceLevel, opts...).ToFunc()
-}
-
-// ByTerms orders the results by the terms field.
-func ByTerms(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTerms, opts...).ToFunc()
-}
-
-// ByStatusDashboard orders the results by the status_dashboard field.
-func ByStatusDashboard(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldStatusDashboard, opts...).ToFunc()
-}
-
-// ByLogo orders the results by the logo field.
-func ByLogo(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLogo, opts...).ToFunc()
 }
 
 // ByCreated orders the results by the created field.
@@ -425,10 +425,17 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
-// ByOrganizationField orders the results by organization field.
-func ByOrganizationField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByIxFacilitiesCount orders the results by ix_facilities count.
+func ByIxFacilitiesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborsCount(s, newIxFacilitiesStep(), opts...)
+	}
+}
+
+// ByIxFacilities orders the results by ix_facilities terms.
+func ByIxFacilities(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newIxFacilitiesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -446,24 +453,17 @@ func ByIxLans(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByIxFacilitiesCount orders the results by ix_facilities count.
-func ByIxFacilitiesCount(opts ...sql.OrderTermOption) OrderOption {
+// ByOrganizationField orders the results by organization field.
+func ByOrganizationField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newIxFacilitiesStep(), opts...)
+		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), sql.OrderByField(field, opts...))
 	}
 }
-
-// ByIxFacilities orders the results by ix_facilities terms.
-func ByIxFacilities(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newIxFacilitiesStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-func newOrganizationStep() *sqlgraph.Step {
+func newIxFacilitiesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(OrganizationInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
+		sqlgraph.To(IxFacilitiesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, IxFacilitiesTable, IxFacilitiesColumn),
 	)
 }
 func newIxLansStep() *sqlgraph.Step {
@@ -473,10 +473,10 @@ func newIxLansStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, IxLansTable, IxLansColumn),
 	)
 }
-func newIxFacilitiesStep() *sqlgraph.Step {
+func newOrganizationStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(IxFacilitiesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, IxFacilitiesTable, IxFacilitiesColumn),
+		sqlgraph.To(OrganizationInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
 	)
 }

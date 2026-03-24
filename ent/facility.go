@@ -22,76 +22,76 @@ type Facility struct {
 	// ID of the ent.
 	// PeeringDB facility ID
 	ID int `json:"id,omitempty"`
-	// FK to organization
-	OrgID *int `json:"org_id"`
-	// Organization name (computed)
-	OrgName string `json:"org_name"`
 	// FK to campus
 	CampusID *int `json:"campus_id"`
-	// Facility name
-	Name string `json:"name"`
-	// Also known as
-	Aka string `json:"aka"`
-	// Long name
-	NameLong string `json:"name_long"`
-	// Facility website URL
-	Website string `json:"website"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media"`
-	// CLLI code
-	Clli string `json:"clli"`
-	// Rencode
-	Rencode string `json:"rencode"`
-	// NPANXX
-	Npanxx string `json:"npanxx"`
-	// Technical contact email
-	TechEmail string `json:"tech_email"`
-	// Technical contact phone
-	TechPhone string `json:"tech_phone"`
-	// Sales contact email
-	SalesEmail string `json:"sales_email"`
-	// Sales contact phone
-	SalesPhone string `json:"sales_phone"`
-	// Property type
-	Property *string `json:"property"`
-	// Has diverse serving substations
-	DiverseServingSubstations *bool `json:"diverse_serving_substations"`
-	// Available voltage services
-	AvailableVoltageServices []string `json:"available_voltage_services"`
-	// Notes
-	Notes string `json:"notes"`
-	// Region / continent
-	RegionContinent *string `json:"region_continent"`
-	// Status dashboard URL
-	StatusDashboard *string `json:"status_dashboard"`
-	// Logo URL
-	Logo *string `json:"logo"`
-	// Network count (computed)
-	NetCount int `json:"net_count"`
-	// Internet exchange count (computed)
-	IxCount int `json:"ix_count"`
-	// Carrier count (computed)
-	CarrierCount int `json:"carrier_count"`
+	// FK to organization
+	OrgID *int `json:"org_id"`
 	// Address line 1
 	Address1 string `json:"address1"`
 	// Address line 2
 	Address2 string `json:"address2"`
+	// Also known as
+	Aka string `json:"aka"`
+	// Available voltage services
+	AvailableVoltageServices []string `json:"available_voltage_services"`
 	// City
 	City string `json:"city"`
-	// State or province
-	State string `json:"state"`
+	// CLLI code
+	Clli string `json:"clli"`
 	// Country code
 	Country string `json:"country"`
-	// Postal / ZIP code
-	Zipcode string `json:"zipcode"`
-	// Suite number
-	Suite string `json:"suite"`
+	// Diverse serving substations
+	DiverseServingSubstations *bool `json:"diverse_serving_substations"`
 	// Floor
 	Floor string `json:"floor"`
 	// Latitude
 	Latitude *float64 `json:"latitude"`
+	// Logo URL
+	Logo *string `json:"logo"`
 	// Longitude
 	Longitude *float64 `json:"longitude"`
+	// Facility name
+	Name string `json:"name"`
+	// Long name
+	NameLong string `json:"name_long"`
+	// Notes
+	Notes string `json:"notes"`
+	// NPA-NXX code
+	Npanxx string `json:"npanxx"`
+	// Property type
+	Property *string `json:"property"`
+	// Region/continent
+	RegionContinent *string `json:"region_continent"`
+	// Rencode
+	Rencode string `json:"rencode"`
+	// Sales email
+	SalesEmail string `json:"sales_email"`
+	// Sales phone
+	SalesPhone string `json:"sales_phone"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media"`
+	// State or province
+	State string `json:"state"`
+	// Status dashboard URL
+	StatusDashboard *string `json:"status_dashboard"`
+	// Suite number
+	Suite string `json:"suite"`
+	// Technical email
+	TechEmail string `json:"tech_email"`
+	// Technical phone
+	TechPhone string `json:"tech_phone"`
+	// Facility website URL
+	Website string `json:"website"`
+	// Postal / ZIP code
+	Zipcode string `json:"zipcode"`
+	// Org Name (computed)
+	OrgName string `json:"org_name"`
+	// Net Count (computed)
+	NetCount int `json:"net_count"`
+	// Ix Count (computed)
+	IxCount int `json:"ix_count"`
+	// Carrier Count (computed)
+	CarrierCount int `json:"carrier_count"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -106,36 +106,25 @@ type Facility struct {
 
 // FacilityEdges holds the relations/edges for other nodes in the graph.
 type FacilityEdges struct {
-	// Organization holds the value of the organization edge.
-	Organization *Organization `json:"organization,omitempty"`
 	// Campus holds the value of the campus edge.
 	Campus *Campus `json:"campus,omitempty"`
-	// NetworkFacilities holds the value of the network_facilities edge.
-	NetworkFacilities []*NetworkFacility `json:"network_facilities,omitempty"`
-	// IxFacilities holds the value of the ix_facilities edge.
-	IxFacilities []*IxFacility `json:"ix_facilities,omitempty"`
 	// CarrierFacilities holds the value of the carrier_facilities edge.
 	CarrierFacilities []*CarrierFacility `json:"carrier_facilities,omitempty"`
+	// IxFacilities holds the value of the ix_facilities edge.
+	IxFacilities []*IxFacility `json:"ix_facilities,omitempty"`
+	// NetworkFacilities holds the value of the network_facilities edge.
+	NetworkFacilities []*NetworkFacility `json:"network_facilities,omitempty"`
+	// Organization holds the value of the organization edge.
+	Organization *Organization `json:"organization,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [5]bool
 	// totalCount holds the count of the edges above.
 	totalCount [5]map[string]int
 
-	namedNetworkFacilities map[string][]*NetworkFacility
-	namedIxFacilities      map[string][]*IxFacility
 	namedCarrierFacilities map[string][]*CarrierFacility
-}
-
-// OrganizationOrErr returns the Organization value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e FacilityEdges) OrganizationOrErr() (*Organization, error) {
-	if e.Organization != nil {
-		return e.Organization, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: organization.Label}
-	}
-	return nil, &NotLoadedError{edge: "organization"}
+	namedIxFacilities      map[string][]*IxFacility
+	namedNetworkFacilities map[string][]*NetworkFacility
 }
 
 // CampusOrErr returns the Campus value or an error if the edge
@@ -143,37 +132,48 @@ func (e FacilityEdges) OrganizationOrErr() (*Organization, error) {
 func (e FacilityEdges) CampusOrErr() (*Campus, error) {
 	if e.Campus != nil {
 		return e.Campus, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: campus.Label}
 	}
 	return nil, &NotLoadedError{edge: "campus"}
 }
 
-// NetworkFacilitiesOrErr returns the NetworkFacilities value or an error if the edge
+// CarrierFacilitiesOrErr returns the CarrierFacilities value or an error if the edge
 // was not loaded in eager-loading.
-func (e FacilityEdges) NetworkFacilitiesOrErr() ([]*NetworkFacility, error) {
-	if e.loadedTypes[2] {
-		return e.NetworkFacilities, nil
+func (e FacilityEdges) CarrierFacilitiesOrErr() ([]*CarrierFacility, error) {
+	if e.loadedTypes[1] {
+		return e.CarrierFacilities, nil
 	}
-	return nil, &NotLoadedError{edge: "network_facilities"}
+	return nil, &NotLoadedError{edge: "carrier_facilities"}
 }
 
 // IxFacilitiesOrErr returns the IxFacilities value or an error if the edge
 // was not loaded in eager-loading.
 func (e FacilityEdges) IxFacilitiesOrErr() ([]*IxFacility, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[2] {
 		return e.IxFacilities, nil
 	}
 	return nil, &NotLoadedError{edge: "ix_facilities"}
 }
 
-// CarrierFacilitiesOrErr returns the CarrierFacilities value or an error if the edge
+// NetworkFacilitiesOrErr returns the NetworkFacilities value or an error if the edge
 // was not loaded in eager-loading.
-func (e FacilityEdges) CarrierFacilitiesOrErr() ([]*CarrierFacility, error) {
-	if e.loadedTypes[4] {
-		return e.CarrierFacilities, nil
+func (e FacilityEdges) NetworkFacilitiesOrErr() ([]*NetworkFacility, error) {
+	if e.loadedTypes[3] {
+		return e.NetworkFacilities, nil
 	}
-	return nil, &NotLoadedError{edge: "carrier_facilities"}
+	return nil, &NotLoadedError{edge: "network_facilities"}
+}
+
+// OrganizationOrErr returns the Organization value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e FacilityEdges) OrganizationOrErr() (*Organization, error) {
+	if e.Organization != nil {
+		return e.Organization, nil
+	} else if e.loadedTypes[4] {
+		return nil, &NotFoundError{label: organization.Label}
+	}
+	return nil, &NotLoadedError{edge: "organization"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -181,15 +181,15 @@ func (*Facility) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case facility.FieldSocialMedia, facility.FieldAvailableVoltageServices:
+		case facility.FieldAvailableVoltageServices, facility.FieldSocialMedia:
 			values[i] = new([]byte)
 		case facility.FieldDiverseServingSubstations:
 			values[i] = new(sql.NullBool)
 		case facility.FieldLatitude, facility.FieldLongitude:
 			values[i] = new(sql.NullFloat64)
-		case facility.FieldID, facility.FieldOrgID, facility.FieldCampusID, facility.FieldNetCount, facility.FieldIxCount, facility.FieldCarrierCount:
+		case facility.FieldID, facility.FieldCampusID, facility.FieldOrgID, facility.FieldNetCount, facility.FieldIxCount, facility.FieldCarrierCount:
 			values[i] = new(sql.NullInt64)
-		case facility.FieldOrgName, facility.FieldName, facility.FieldAka, facility.FieldNameLong, facility.FieldWebsite, facility.FieldClli, facility.FieldRencode, facility.FieldNpanxx, facility.FieldTechEmail, facility.FieldTechPhone, facility.FieldSalesEmail, facility.FieldSalesPhone, facility.FieldProperty, facility.FieldNotes, facility.FieldRegionContinent, facility.FieldStatusDashboard, facility.FieldLogo, facility.FieldAddress1, facility.FieldAddress2, facility.FieldCity, facility.FieldState, facility.FieldCountry, facility.FieldZipcode, facility.FieldSuite, facility.FieldFloor, facility.FieldStatus:
+		case facility.FieldAddress1, facility.FieldAddress2, facility.FieldAka, facility.FieldCity, facility.FieldClli, facility.FieldCountry, facility.FieldFloor, facility.FieldLogo, facility.FieldName, facility.FieldNameLong, facility.FieldNotes, facility.FieldNpanxx, facility.FieldProperty, facility.FieldRegionContinent, facility.FieldRencode, facility.FieldSalesEmail, facility.FieldSalesPhone, facility.FieldState, facility.FieldStatusDashboard, facility.FieldSuite, facility.FieldTechEmail, facility.FieldTechPhone, facility.FieldWebsite, facility.FieldZipcode, facility.FieldOrgName, facility.FieldStatus:
 			values[i] = new(sql.NullString)
 		case facility.FieldCreated, facility.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -214,19 +214,6 @@ func (_m *Facility) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
-		case facility.FieldOrgID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field org_id", values[i])
-			} else if value.Valid {
-				_m.OrgID = new(int)
-				*_m.OrgID = int(value.Int64)
-			}
-		case facility.FieldOrgName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field org_name", values[i])
-			} else if value.Valid {
-				_m.OrgName = value.String
-			}
 		case facility.FieldCampusID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field campus_id", values[i])
@@ -234,11 +221,24 @@ func (_m *Facility) assignValues(columns []string, values []any) error {
 				_m.CampusID = new(int)
 				*_m.CampusID = int(value.Int64)
 			}
-		case facility.FieldName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
+		case facility.FieldOrgID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field org_id", values[i])
 			} else if value.Valid {
-				_m.Name = value.String
+				_m.OrgID = new(int)
+				*_m.OrgID = int(value.Int64)
+			}
+		case facility.FieldAddress1:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field address1", values[i])
+			} else if value.Valid {
+				_m.Address1 = value.String
+			}
+		case facility.FieldAddress2:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field address2", values[i])
+			} else if value.Valid {
+				_m.Address2 = value.String
 			}
 		case facility.FieldAka:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -246,25 +246,19 @@ func (_m *Facility) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Aka = value.String
 			}
-		case facility.FieldNameLong:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name_long", values[i])
-			} else if value.Valid {
-				_m.NameLong = value.String
-			}
-		case facility.FieldWebsite:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field website", values[i])
-			} else if value.Valid {
-				_m.Website = value.String
-			}
-		case facility.FieldSocialMedia:
+		case facility.FieldAvailableVoltageServices:
 			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field social_media", values[i])
+				return fmt.Errorf("unexpected type %T for field available_voltage_services", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.SocialMedia); err != nil {
-					return fmt.Errorf("unmarshal field social_media: %w", err)
+				if err := json.Unmarshal(*value, &_m.AvailableVoltageServices); err != nil {
+					return fmt.Errorf("unmarshal field available_voltage_services: %w", err)
 				}
+			}
+		case facility.FieldCity:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field city", values[i])
+			} else if value.Valid {
+				_m.City = value.String
 			}
 		case facility.FieldClli:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -272,11 +266,63 @@ func (_m *Facility) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Clli = value.String
 			}
-		case facility.FieldRencode:
+		case facility.FieldCountry:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field rencode", values[i])
+				return fmt.Errorf("unexpected type %T for field country", values[i])
 			} else if value.Valid {
-				_m.Rencode = value.String
+				_m.Country = value.String
+			}
+		case facility.FieldDiverseServingSubstations:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field diverse_serving_substations", values[i])
+			} else if value.Valid {
+				_m.DiverseServingSubstations = new(bool)
+				*_m.DiverseServingSubstations = value.Bool
+			}
+		case facility.FieldFloor:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field floor", values[i])
+			} else if value.Valid {
+				_m.Floor = value.String
+			}
+		case facility.FieldLatitude:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field latitude", values[i])
+			} else if value.Valid {
+				_m.Latitude = new(float64)
+				*_m.Latitude = value.Float64
+			}
+		case facility.FieldLogo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field logo", values[i])
+			} else if value.Valid {
+				_m.Logo = new(string)
+				*_m.Logo = value.String
+			}
+		case facility.FieldLongitude:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field longitude", values[i])
+			} else if value.Valid {
+				_m.Longitude = new(float64)
+				*_m.Longitude = value.Float64
+			}
+		case facility.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				_m.Name = value.String
+			}
+		case facility.FieldNameLong:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_long", values[i])
+			} else if value.Valid {
+				_m.NameLong = value.String
+			}
+		case facility.FieldNotes:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field notes", values[i])
+			} else if value.Valid {
+				_m.Notes = value.String
 			}
 		case facility.FieldNpanxx:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -284,17 +330,25 @@ func (_m *Facility) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Npanxx = value.String
 			}
-		case facility.FieldTechEmail:
+		case facility.FieldProperty:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tech_email", values[i])
+				return fmt.Errorf("unexpected type %T for field property", values[i])
 			} else if value.Valid {
-				_m.TechEmail = value.String
+				_m.Property = new(string)
+				*_m.Property = value.String
 			}
-		case facility.FieldTechPhone:
+		case facility.FieldRegionContinent:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tech_phone", values[i])
+				return fmt.Errorf("unexpected type %T for field region_continent", values[i])
 			} else if value.Valid {
-				_m.TechPhone = value.String
+				_m.RegionContinent = new(string)
+				*_m.RegionContinent = value.String
+			}
+		case facility.FieldRencode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field rencode", values[i])
+			} else if value.Valid {
+				_m.Rencode = value.String
 			}
 		case facility.FieldSalesEmail:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -308,40 +362,19 @@ func (_m *Facility) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.SalesPhone = value.String
 			}
-		case facility.FieldProperty:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field property", values[i])
-			} else if value.Valid {
-				_m.Property = new(string)
-				*_m.Property = value.String
-			}
-		case facility.FieldDiverseServingSubstations:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field diverse_serving_substations", values[i])
-			} else if value.Valid {
-				_m.DiverseServingSubstations = new(bool)
-				*_m.DiverseServingSubstations = value.Bool
-			}
-		case facility.FieldAvailableVoltageServices:
+		case facility.FieldSocialMedia:
 			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field available_voltage_services", values[i])
+				return fmt.Errorf("unexpected type %T for field social_media", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.AvailableVoltageServices); err != nil {
-					return fmt.Errorf("unmarshal field available_voltage_services: %w", err)
+				if err := json.Unmarshal(*value, &_m.SocialMedia); err != nil {
+					return fmt.Errorf("unmarshal field social_media: %w", err)
 				}
 			}
-		case facility.FieldNotes:
+		case facility.FieldState:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field notes", values[i])
+				return fmt.Errorf("unexpected type %T for field state", values[i])
 			} else if value.Valid {
-				_m.Notes = value.String
-			}
-		case facility.FieldRegionContinent:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field region_continent", values[i])
-			} else if value.Valid {
-				_m.RegionContinent = new(string)
-				*_m.RegionContinent = value.String
+				_m.State = value.String
 			}
 		case facility.FieldStatusDashboard:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -350,12 +383,41 @@ func (_m *Facility) assignValues(columns []string, values []any) error {
 				_m.StatusDashboard = new(string)
 				*_m.StatusDashboard = value.String
 			}
-		case facility.FieldLogo:
+		case facility.FieldSuite:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field logo", values[i])
+				return fmt.Errorf("unexpected type %T for field suite", values[i])
 			} else if value.Valid {
-				_m.Logo = new(string)
-				*_m.Logo = value.String
+				_m.Suite = value.String
+			}
+		case facility.FieldTechEmail:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tech_email", values[i])
+			} else if value.Valid {
+				_m.TechEmail = value.String
+			}
+		case facility.FieldTechPhone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tech_phone", values[i])
+			} else if value.Valid {
+				_m.TechPhone = value.String
+			}
+		case facility.FieldWebsite:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field website", values[i])
+			} else if value.Valid {
+				_m.Website = value.String
+			}
+		case facility.FieldZipcode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field zipcode", values[i])
+			} else if value.Valid {
+				_m.Zipcode = value.String
+			}
+		case facility.FieldOrgName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field org_name", values[i])
+			} else if value.Valid {
+				_m.OrgName = value.String
 			}
 		case facility.FieldNetCount:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -374,68 +436,6 @@ func (_m *Facility) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field carrier_count", values[i])
 			} else if value.Valid {
 				_m.CarrierCount = int(value.Int64)
-			}
-		case facility.FieldAddress1:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field address1", values[i])
-			} else if value.Valid {
-				_m.Address1 = value.String
-			}
-		case facility.FieldAddress2:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field address2", values[i])
-			} else if value.Valid {
-				_m.Address2 = value.String
-			}
-		case facility.FieldCity:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field city", values[i])
-			} else if value.Valid {
-				_m.City = value.String
-			}
-		case facility.FieldState:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field state", values[i])
-			} else if value.Valid {
-				_m.State = value.String
-			}
-		case facility.FieldCountry:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field country", values[i])
-			} else if value.Valid {
-				_m.Country = value.String
-			}
-		case facility.FieldZipcode:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field zipcode", values[i])
-			} else if value.Valid {
-				_m.Zipcode = value.String
-			}
-		case facility.FieldSuite:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field suite", values[i])
-			} else if value.Valid {
-				_m.Suite = value.String
-			}
-		case facility.FieldFloor:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field floor", values[i])
-			} else if value.Valid {
-				_m.Floor = value.String
-			}
-		case facility.FieldLatitude:
-			if value, ok := values[i].(*sql.NullFloat64); !ok {
-				return fmt.Errorf("unexpected type %T for field latitude", values[i])
-			} else if value.Valid {
-				_m.Latitude = new(float64)
-				*_m.Latitude = value.Float64
-			}
-		case facility.FieldLongitude:
-			if value, ok := values[i].(*sql.NullFloat64); !ok {
-				return fmt.Errorf("unexpected type %T for field longitude", values[i])
-			} else if value.Valid {
-				_m.Longitude = new(float64)
-				*_m.Longitude = value.Float64
 			}
 		case facility.FieldCreated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -468,19 +468,14 @@ func (_m *Facility) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryOrganization queries the "organization" edge of the Facility entity.
-func (_m *Facility) QueryOrganization() *OrganizationQuery {
-	return NewFacilityClient(_m.config).QueryOrganization(_m)
-}
-
 // QueryCampus queries the "campus" edge of the Facility entity.
 func (_m *Facility) QueryCampus() *CampusQuery {
 	return NewFacilityClient(_m.config).QueryCampus(_m)
 }
 
-// QueryNetworkFacilities queries the "network_facilities" edge of the Facility entity.
-func (_m *Facility) QueryNetworkFacilities() *NetworkFacilityQuery {
-	return NewFacilityClient(_m.config).QueryNetworkFacilities(_m)
+// QueryCarrierFacilities queries the "carrier_facilities" edge of the Facility entity.
+func (_m *Facility) QueryCarrierFacilities() *CarrierFacilityQuery {
+	return NewFacilityClient(_m.config).QueryCarrierFacilities(_m)
 }
 
 // QueryIxFacilities queries the "ix_facilities" edge of the Facility entity.
@@ -488,9 +483,14 @@ func (_m *Facility) QueryIxFacilities() *IxFacilityQuery {
 	return NewFacilityClient(_m.config).QueryIxFacilities(_m)
 }
 
-// QueryCarrierFacilities queries the "carrier_facilities" edge of the Facility entity.
-func (_m *Facility) QueryCarrierFacilities() *CarrierFacilityQuery {
-	return NewFacilityClient(_m.config).QueryCarrierFacilities(_m)
+// QueryNetworkFacilities queries the "network_facilities" edge of the Facility entity.
+func (_m *Facility) QueryNetworkFacilities() *NetworkFacilityQuery {
+	return NewFacilityClient(_m.config).QueryNetworkFacilities(_m)
+}
+
+// QueryOrganization queries the "organization" edge of the Facility entity.
+func (_m *Facility) QueryOrganization() *OrganizationQuery {
+	return NewFacilityClient(_m.config).QueryOrganization(_m)
 }
 
 // Update returns a builder for updating this Facility.
@@ -516,94 +516,15 @@ func (_m *Facility) String() string {
 	var builder strings.Builder
 	builder.WriteString("Facility(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
-	if v := _m.OrgID; v != nil {
-		builder.WriteString("org_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	builder.WriteString("org_name=")
-	builder.WriteString(_m.OrgName)
-	builder.WriteString(", ")
 	if v := _m.CampusID; v != nil {
 		builder.WriteString("campus_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(_m.Name)
-	builder.WriteString(", ")
-	builder.WriteString("aka=")
-	builder.WriteString(_m.Aka)
-	builder.WriteString(", ")
-	builder.WriteString("name_long=")
-	builder.WriteString(_m.NameLong)
-	builder.WriteString(", ")
-	builder.WriteString("website=")
-	builder.WriteString(_m.Website)
-	builder.WriteString(", ")
-	builder.WriteString("social_media=")
-	builder.WriteString(fmt.Sprintf("%v", _m.SocialMedia))
-	builder.WriteString(", ")
-	builder.WriteString("clli=")
-	builder.WriteString(_m.Clli)
-	builder.WriteString(", ")
-	builder.WriteString("rencode=")
-	builder.WriteString(_m.Rencode)
-	builder.WriteString(", ")
-	builder.WriteString("npanxx=")
-	builder.WriteString(_m.Npanxx)
-	builder.WriteString(", ")
-	builder.WriteString("tech_email=")
-	builder.WriteString(_m.TechEmail)
-	builder.WriteString(", ")
-	builder.WriteString("tech_phone=")
-	builder.WriteString(_m.TechPhone)
-	builder.WriteString(", ")
-	builder.WriteString("sales_email=")
-	builder.WriteString(_m.SalesEmail)
-	builder.WriteString(", ")
-	builder.WriteString("sales_phone=")
-	builder.WriteString(_m.SalesPhone)
-	builder.WriteString(", ")
-	if v := _m.Property; v != nil {
-		builder.WriteString("property=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.DiverseServingSubstations; v != nil {
-		builder.WriteString("diverse_serving_substations=")
+	if v := _m.OrgID; v != nil {
+		builder.WriteString("org_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("available_voltage_services=")
-	builder.WriteString(fmt.Sprintf("%v", _m.AvailableVoltageServices))
-	builder.WriteString(", ")
-	builder.WriteString("notes=")
-	builder.WriteString(_m.Notes)
-	builder.WriteString(", ")
-	if v := _m.RegionContinent; v != nil {
-		builder.WriteString("region_continent=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.StatusDashboard; v != nil {
-		builder.WriteString("status_dashboard=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.Logo; v != nil {
-		builder.WriteString("logo=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	builder.WriteString("net_count=")
-	builder.WriteString(fmt.Sprintf("%v", _m.NetCount))
-	builder.WriteString(", ")
-	builder.WriteString("ix_count=")
-	builder.WriteString(fmt.Sprintf("%v", _m.IxCount))
-	builder.WriteString(", ")
-	builder.WriteString("carrier_count=")
-	builder.WriteString(fmt.Sprintf("%v", _m.CarrierCount))
 	builder.WriteString(", ")
 	builder.WriteString("address1=")
 	builder.WriteString(_m.Address1)
@@ -611,20 +532,25 @@ func (_m *Facility) String() string {
 	builder.WriteString("address2=")
 	builder.WriteString(_m.Address2)
 	builder.WriteString(", ")
+	builder.WriteString("aka=")
+	builder.WriteString(_m.Aka)
+	builder.WriteString(", ")
+	builder.WriteString("available_voltage_services=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AvailableVoltageServices))
+	builder.WriteString(", ")
 	builder.WriteString("city=")
 	builder.WriteString(_m.City)
 	builder.WriteString(", ")
-	builder.WriteString("state=")
-	builder.WriteString(_m.State)
+	builder.WriteString("clli=")
+	builder.WriteString(_m.Clli)
 	builder.WriteString(", ")
 	builder.WriteString("country=")
 	builder.WriteString(_m.Country)
 	builder.WriteString(", ")
-	builder.WriteString("zipcode=")
-	builder.WriteString(_m.Zipcode)
-	builder.WriteString(", ")
-	builder.WriteString("suite=")
-	builder.WriteString(_m.Suite)
+	if v := _m.DiverseServingSubstations; v != nil {
+		builder.WriteString("diverse_serving_substations=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("floor=")
 	builder.WriteString(_m.Floor)
@@ -634,10 +560,84 @@ func (_m *Facility) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
+	if v := _m.Logo; v != nil {
+		builder.WriteString("logo=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
 	if v := _m.Longitude; v != nil {
 		builder.WriteString("longitude=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("name_long=")
+	builder.WriteString(_m.NameLong)
+	builder.WriteString(", ")
+	builder.WriteString("notes=")
+	builder.WriteString(_m.Notes)
+	builder.WriteString(", ")
+	builder.WriteString("npanxx=")
+	builder.WriteString(_m.Npanxx)
+	builder.WriteString(", ")
+	if v := _m.Property; v != nil {
+		builder.WriteString("property=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.RegionContinent; v != nil {
+		builder.WriteString("region_continent=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("rencode=")
+	builder.WriteString(_m.Rencode)
+	builder.WriteString(", ")
+	builder.WriteString("sales_email=")
+	builder.WriteString(_m.SalesEmail)
+	builder.WriteString(", ")
+	builder.WriteString("sales_phone=")
+	builder.WriteString(_m.SalesPhone)
+	builder.WriteString(", ")
+	builder.WriteString("social_media=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SocialMedia))
+	builder.WriteString(", ")
+	builder.WriteString("state=")
+	builder.WriteString(_m.State)
+	builder.WriteString(", ")
+	if v := _m.StatusDashboard; v != nil {
+		builder.WriteString("status_dashboard=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("suite=")
+	builder.WriteString(_m.Suite)
+	builder.WriteString(", ")
+	builder.WriteString("tech_email=")
+	builder.WriteString(_m.TechEmail)
+	builder.WriteString(", ")
+	builder.WriteString("tech_phone=")
+	builder.WriteString(_m.TechPhone)
+	builder.WriteString(", ")
+	builder.WriteString("website=")
+	builder.WriteString(_m.Website)
+	builder.WriteString(", ")
+	builder.WriteString("zipcode=")
+	builder.WriteString(_m.Zipcode)
+	builder.WriteString(", ")
+	builder.WriteString("org_name=")
+	builder.WriteString(_m.OrgName)
+	builder.WriteString(", ")
+	builder.WriteString("net_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.NetCount))
+	builder.WriteString(", ")
+	builder.WriteString("ix_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IxCount))
+	builder.WriteString(", ")
+	builder.WriteString("carrier_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CarrierCount))
 	builder.WriteString(", ")
 	builder.WriteString("created=")
 	builder.WriteString(_m.Created.Format(time.ANSIC))
@@ -651,27 +651,27 @@ func (_m *Facility) String() string {
 	return builder.String()
 }
 
-// NamedNetworkFacilities returns the NetworkFacilities named value or an error if the edge was not
+// NamedCarrierFacilities returns the CarrierFacilities named value or an error if the edge was not
 // loaded in eager-loading with this name.
-func (_m *Facility) NamedNetworkFacilities(name string) ([]*NetworkFacility, error) {
-	if _m.Edges.namedNetworkFacilities == nil {
+func (_m *Facility) NamedCarrierFacilities(name string) ([]*CarrierFacility, error) {
+	if _m.Edges.namedCarrierFacilities == nil {
 		return nil, &NotLoadedError{edge: name}
 	}
-	nodes, ok := _m.Edges.namedNetworkFacilities[name]
+	nodes, ok := _m.Edges.namedCarrierFacilities[name]
 	if !ok {
 		return nil, &NotLoadedError{edge: name}
 	}
 	return nodes, nil
 }
 
-func (_m *Facility) appendNamedNetworkFacilities(name string, edges ...*NetworkFacility) {
-	if _m.Edges.namedNetworkFacilities == nil {
-		_m.Edges.namedNetworkFacilities = make(map[string][]*NetworkFacility)
+func (_m *Facility) appendNamedCarrierFacilities(name string, edges ...*CarrierFacility) {
+	if _m.Edges.namedCarrierFacilities == nil {
+		_m.Edges.namedCarrierFacilities = make(map[string][]*CarrierFacility)
 	}
 	if len(edges) == 0 {
-		_m.Edges.namedNetworkFacilities[name] = []*NetworkFacility{}
+		_m.Edges.namedCarrierFacilities[name] = []*CarrierFacility{}
 	} else {
-		_m.Edges.namedNetworkFacilities[name] = append(_m.Edges.namedNetworkFacilities[name], edges...)
+		_m.Edges.namedCarrierFacilities[name] = append(_m.Edges.namedCarrierFacilities[name], edges...)
 	}
 }
 
@@ -699,27 +699,27 @@ func (_m *Facility) appendNamedIxFacilities(name string, edges ...*IxFacility) {
 	}
 }
 
-// NamedCarrierFacilities returns the CarrierFacilities named value or an error if the edge was not
+// NamedNetworkFacilities returns the NetworkFacilities named value or an error if the edge was not
 // loaded in eager-loading with this name.
-func (_m *Facility) NamedCarrierFacilities(name string) ([]*CarrierFacility, error) {
-	if _m.Edges.namedCarrierFacilities == nil {
+func (_m *Facility) NamedNetworkFacilities(name string) ([]*NetworkFacility, error) {
+	if _m.Edges.namedNetworkFacilities == nil {
 		return nil, &NotLoadedError{edge: name}
 	}
-	nodes, ok := _m.Edges.namedCarrierFacilities[name]
+	nodes, ok := _m.Edges.namedNetworkFacilities[name]
 	if !ok {
 		return nil, &NotLoadedError{edge: name}
 	}
 	return nodes, nil
 }
 
-func (_m *Facility) appendNamedCarrierFacilities(name string, edges ...*CarrierFacility) {
-	if _m.Edges.namedCarrierFacilities == nil {
-		_m.Edges.namedCarrierFacilities = make(map[string][]*CarrierFacility)
+func (_m *Facility) appendNamedNetworkFacilities(name string, edges ...*NetworkFacility) {
+	if _m.Edges.namedNetworkFacilities == nil {
+		_m.Edges.namedNetworkFacilities = make(map[string][]*NetworkFacility)
 	}
 	if len(edges) == 0 {
-		_m.Edges.namedCarrierFacilities[name] = []*CarrierFacility{}
+		_m.Edges.namedNetworkFacilities[name] = []*NetworkFacility{}
 	} else {
-		_m.Edges.namedCarrierFacilities[name] = append(_m.Edges.namedCarrierFacilities[name], edges...)
+		_m.Edges.namedNetworkFacilities[name] = append(_m.Edges.namedNetworkFacilities[name], edges...)
 	}
 }
 

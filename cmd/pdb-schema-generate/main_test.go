@@ -57,6 +57,60 @@ func TestLoadSchema(t *testing.T) {
 	}
 }
 
+func TestResolveModelName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"Organization", "Organization"},
+		{"IXLan", "IxLan"},
+		{"IXPrefix", "IxPrefix"},
+		{"IXFacility", "IxFacility"},
+		{"NetworkIXLan", "NetworkIxLan"},
+		{"NetworkContact", "Poc"},
+		{"Network", "Network"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			t.Parallel()
+			got := resolveModelName(tt.input)
+			if got != tt.want {
+				t.Errorf("resolveModelName(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSimplePlural(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"network", "networks"},
+		{"facility", "facilities"},
+		{"carrier_facility", "carrier_facilities"},
+		{"campus", "campuses"},
+		{"prefix", "prefixes"},
+		{"ix_lan", "ix_lans"},
+		{"poc", "pocs"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			t.Parallel()
+			got := simplePlural(tt.input)
+			if got != tt.want {
+				t.Errorf("simplePlural(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestGenerateEntSchemaCompiles(t *testing.T) {
 	t.Parallel()
 
@@ -136,7 +190,12 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 				`field.String("name")`,
 				`Unique()`,
 				`entgql.QueryField()`,
+				`entgql.RelayConnection()`,
+				`entrest.WithIncludeOperations`,
+				`entrest.WithEagerLoad(true)`,
 				`edge.To("networks"`,
+				`otelMutationHook("Organization")`,
+				`entgql.OrderField("NAME")`,
 			},
 		},
 		{
@@ -148,6 +207,8 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 				`Optional()`,
 				`Nillable()`,
 				`edge.From("organization"`,
+				`entrest.WithFilter(entrest.FilterEQ`,
+				`otelMutationHook("Network")`,
 			},
 		},
 	}
@@ -185,12 +246,12 @@ func TestGenerateFieldCode(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		field    FieldDef
-		wantSub  []string
+		name    string
+		field   FieldDef
+		wantSub []string
 	}{
 		{
-			name: "required_string",
+			name: "name",
 			field: FieldDef{
 				Type:      "string",
 				MaxLength: 255,
@@ -199,9 +260,26 @@ func TestGenerateFieldCode(t *testing.T) {
 				HelpText:  "Name",
 			},
 			wantSub: []string{
-				`field.String("required_string")`,
+				`field.String("name")`,
 				`MaxLen(255)`,
+				`NotEmpty()`,
 				`Unique()`,
+				`entgql.OrderField("NAME")`,
+				`entrest.WithFilter(entrest.FilterGroupEqual`,
+			},
+		},
+		{
+			name: "city",
+			field: FieldDef{
+				Type:     "string",
+				Required: true,
+				HelpText: "City",
+			},
+			wantSub: []string{
+				`field.String("city")`,
+				`Optional()`,
+				`Default("")`,
+				`entrest.WithFilter(entrest.FilterGroupEqual`,
 			},
 		},
 		{
@@ -229,6 +307,22 @@ func TestGenerateFieldCode(t *testing.T) {
 				`field.Int("fk_field")`,
 				`Optional()`,
 				`Nillable()`,
+				`entrest.WithFilter(entrest.FilterEQ`,
+			},
+		},
+		{
+			name: "asn",
+			field: FieldDef{
+				Type:     "integer",
+				Required: true,
+				Unique:   true,
+				HelpText: "ASN",
+			},
+			wantSub: []string{
+				`field.Int("asn")`,
+				`Positive()`,
+				`Unique()`,
+				`entrest.WithFilter(entrest.FilterEQ`,
 			},
 		},
 		{
@@ -262,6 +356,7 @@ func TestGenerateFieldCode(t *testing.T) {
 			wantSub: []string{
 				`field.JSON("social_media", []SocialMedia{})`,
 				`Optional()`,
+				`socialMediaSchema()`,
 			},
 		},
 	}
@@ -346,17 +441,70 @@ func TestGenerateTypesFile(t *testing.T) {
 	}
 
 	src := string(code)
-	if !strings.Contains(src, "SocialMedia") {
-		t.Error("types.go missing SocialMedia type")
-	}
-	if !strings.Contains(src, `json:"service"`) {
-		t.Error("types.go missing service json tag")
+	for _, want := range []string{
+		"SocialMedia",
+		`json:"service"`,
+		"socialMediaSchema()",
+		"ogen.NewSchema()",
+	} {
+		if !strings.Contains(src, want) {
+			t.Errorf("types.go missing %q", want)
+		}
 	}
 
 	// Verify it parses.
 	fset := token.NewFileSet()
 	if _, err := parser.ParseFile(fset, "types.go", code, parser.AllErrors); err != nil {
 		t.Fatalf("types.go does not parse: %v", err)
+	}
+}
+
+func TestSynthesizeReverseEdges(t *testing.T) {
+	t.Parallel()
+
+	schema := &Schema{
+		ObjectTypes: map[string]ObjectType{
+			"fac": {
+				ModelName: "Facility",
+				APIPath:   "fac",
+			},
+			"carrierfac": {
+				ModelName: "CarrierFacility",
+				APIPath:   "carrierfac",
+				Relationships: map[string]Relationship{
+					"facility": {
+						Target: "fac",
+						Type:   "many_to_one",
+						Field:  "fac_id",
+					},
+				},
+			},
+		},
+	}
+
+	synthesizeReverseEdges(schema)
+
+	facOT := schema.ObjectTypes["fac"]
+	if len(facOT.Relationships) != 1 {
+		t.Fatalf("expected 1 synthesized relationship on Facility, got %d", len(facOT.Relationships))
+	}
+
+	rel, ok := facOT.Relationships["carrier_facilities"]
+	if !ok {
+		t.Fatalf("missing synthesized carrier_facilities relationship; got keys: %v", func() []string {
+			var keys []string
+			for k := range facOT.Relationships {
+				keys = append(keys, k)
+			}
+			return keys
+		}())
+	}
+
+	if rel.Target != "carrierfac" {
+		t.Errorf("target = %q, want %q", rel.Target, "carrierfac")
+	}
+	if rel.Type != "one_to_many" {
+		t.Errorf("type = %q, want %q", rel.Type, "one_to_many")
 	}
 }
 
@@ -373,6 +521,13 @@ func TestFullPipelineFromJSON(t *testing.T) {
 		t.Errorf("expected 13 object types, got %d", len(schema.ObjectTypes))
 	}
 
+	// Resolve model names (as main() does).
+	for key, ot := range schema.ObjectTypes {
+		ot.ModelName = resolveModelName(ot.ModelName)
+		schema.ObjectTypes[key] = ot
+	}
+	synthesizeReverseEdges(schema)
+
 	// Generate all schemas to a temp dir and verify they parse.
 	dir := t.TempDir()
 	for apiPath, ot := range schema.ObjectTypes {
@@ -387,8 +542,10 @@ func TestFullPipelineFromJSON(t *testing.T) {
 			t.Errorf("generated code for %s does not parse: %v", apiPath, parseErr)
 		}
 
-		filename := filepath.Join(dir, toSnakeCase(ot.ModelName)+".go")
-		if err := os.WriteFile(filename, code, 0o644); err != nil {
+		// Verify lowercase filename convention.
+		filename := strings.ToLower(ot.ModelName) + ".go"
+		fullPath := filepath.Join(dir, filename)
+		if err := os.WriteFile(fullPath, code, 0o644); err != nil {
 			t.Fatalf("write: %v", err)
 		}
 	}

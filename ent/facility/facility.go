@@ -13,101 +13,94 @@ const (
 	Label = "facility"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldOrgID holds the string denoting the org_id field in the database.
-	FieldOrgID = "org_id"
-	// FieldOrgName holds the string denoting the org_name field in the database.
-	FieldOrgName = "org_name"
 	// FieldCampusID holds the string denoting the campus_id field in the database.
 	FieldCampusID = "campus_id"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
+	// FieldOrgID holds the string denoting the org_id field in the database.
+	FieldOrgID = "org_id"
+	// FieldAddress1 holds the string denoting the address1 field in the database.
+	FieldAddress1 = "address1"
+	// FieldAddress2 holds the string denoting the address2 field in the database.
+	FieldAddress2 = "address2"
 	// FieldAka holds the string denoting the aka field in the database.
 	FieldAka = "aka"
-	// FieldNameLong holds the string denoting the name_long field in the database.
-	FieldNameLong = "name_long"
-	// FieldWebsite holds the string denoting the website field in the database.
-	FieldWebsite = "website"
-	// FieldSocialMedia holds the string denoting the social_media field in the database.
-	FieldSocialMedia = "social_media"
+	// FieldAvailableVoltageServices holds the string denoting the available_voltage_services field in the database.
+	FieldAvailableVoltageServices = "available_voltage_services"
+	// FieldCity holds the string denoting the city field in the database.
+	FieldCity = "city"
 	// FieldClli holds the string denoting the clli field in the database.
 	FieldClli = "clli"
-	// FieldRencode holds the string denoting the rencode field in the database.
-	FieldRencode = "rencode"
+	// FieldCountry holds the string denoting the country field in the database.
+	FieldCountry = "country"
+	// FieldDiverseServingSubstations holds the string denoting the diverse_serving_substations field in the database.
+	FieldDiverseServingSubstations = "diverse_serving_substations"
+	// FieldFloor holds the string denoting the floor field in the database.
+	FieldFloor = "floor"
+	// FieldLatitude holds the string denoting the latitude field in the database.
+	FieldLatitude = "latitude"
+	// FieldLogo holds the string denoting the logo field in the database.
+	FieldLogo = "logo"
+	// FieldLongitude holds the string denoting the longitude field in the database.
+	FieldLongitude = "longitude"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldNameLong holds the string denoting the name_long field in the database.
+	FieldNameLong = "name_long"
+	// FieldNotes holds the string denoting the notes field in the database.
+	FieldNotes = "notes"
 	// FieldNpanxx holds the string denoting the npanxx field in the database.
 	FieldNpanxx = "npanxx"
-	// FieldTechEmail holds the string denoting the tech_email field in the database.
-	FieldTechEmail = "tech_email"
-	// FieldTechPhone holds the string denoting the tech_phone field in the database.
-	FieldTechPhone = "tech_phone"
+	// FieldProperty holds the string denoting the property field in the database.
+	FieldProperty = "property"
+	// FieldRegionContinent holds the string denoting the region_continent field in the database.
+	FieldRegionContinent = "region_continent"
+	// FieldRencode holds the string denoting the rencode field in the database.
+	FieldRencode = "rencode"
 	// FieldSalesEmail holds the string denoting the sales_email field in the database.
 	FieldSalesEmail = "sales_email"
 	// FieldSalesPhone holds the string denoting the sales_phone field in the database.
 	FieldSalesPhone = "sales_phone"
-	// FieldProperty holds the string denoting the property field in the database.
-	FieldProperty = "property"
-	// FieldDiverseServingSubstations holds the string denoting the diverse_serving_substations field in the database.
-	FieldDiverseServingSubstations = "diverse_serving_substations"
-	// FieldAvailableVoltageServices holds the string denoting the available_voltage_services field in the database.
-	FieldAvailableVoltageServices = "available_voltage_services"
-	// FieldNotes holds the string denoting the notes field in the database.
-	FieldNotes = "notes"
-	// FieldRegionContinent holds the string denoting the region_continent field in the database.
-	FieldRegionContinent = "region_continent"
+	// FieldSocialMedia holds the string denoting the social_media field in the database.
+	FieldSocialMedia = "social_media"
+	// FieldState holds the string denoting the state field in the database.
+	FieldState = "state"
 	// FieldStatusDashboard holds the string denoting the status_dashboard field in the database.
 	FieldStatusDashboard = "status_dashboard"
-	// FieldLogo holds the string denoting the logo field in the database.
-	FieldLogo = "logo"
+	// FieldSuite holds the string denoting the suite field in the database.
+	FieldSuite = "suite"
+	// FieldTechEmail holds the string denoting the tech_email field in the database.
+	FieldTechEmail = "tech_email"
+	// FieldTechPhone holds the string denoting the tech_phone field in the database.
+	FieldTechPhone = "tech_phone"
+	// FieldWebsite holds the string denoting the website field in the database.
+	FieldWebsite = "website"
+	// FieldZipcode holds the string denoting the zipcode field in the database.
+	FieldZipcode = "zipcode"
+	// FieldOrgName holds the string denoting the org_name field in the database.
+	FieldOrgName = "org_name"
 	// FieldNetCount holds the string denoting the net_count field in the database.
 	FieldNetCount = "net_count"
 	// FieldIxCount holds the string denoting the ix_count field in the database.
 	FieldIxCount = "ix_count"
 	// FieldCarrierCount holds the string denoting the carrier_count field in the database.
 	FieldCarrierCount = "carrier_count"
-	// FieldAddress1 holds the string denoting the address1 field in the database.
-	FieldAddress1 = "address1"
-	// FieldAddress2 holds the string denoting the address2 field in the database.
-	FieldAddress2 = "address2"
-	// FieldCity holds the string denoting the city field in the database.
-	FieldCity = "city"
-	// FieldState holds the string denoting the state field in the database.
-	FieldState = "state"
-	// FieldCountry holds the string denoting the country field in the database.
-	FieldCountry = "country"
-	// FieldZipcode holds the string denoting the zipcode field in the database.
-	FieldZipcode = "zipcode"
-	// FieldSuite holds the string denoting the suite field in the database.
-	FieldSuite = "suite"
-	// FieldFloor holds the string denoting the floor field in the database.
-	FieldFloor = "floor"
-	// FieldLatitude holds the string denoting the latitude field in the database.
-	FieldLatitude = "latitude"
-	// FieldLongitude holds the string denoting the longitude field in the database.
-	FieldLongitude = "longitude"
 	// FieldCreated holds the string denoting the created field in the database.
 	FieldCreated = "created"
 	// FieldUpdated holds the string denoting the updated field in the database.
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// EdgeOrganization holds the string denoting the organization edge name in mutations.
-	EdgeOrganization = "organization"
 	// EdgeCampus holds the string denoting the campus edge name in mutations.
 	EdgeCampus = "campus"
-	// EdgeNetworkFacilities holds the string denoting the network_facilities edge name in mutations.
-	EdgeNetworkFacilities = "network_facilities"
-	// EdgeIxFacilities holds the string denoting the ix_facilities edge name in mutations.
-	EdgeIxFacilities = "ix_facilities"
 	// EdgeCarrierFacilities holds the string denoting the carrier_facilities edge name in mutations.
 	EdgeCarrierFacilities = "carrier_facilities"
+	// EdgeIxFacilities holds the string denoting the ix_facilities edge name in mutations.
+	EdgeIxFacilities = "ix_facilities"
+	// EdgeNetworkFacilities holds the string denoting the network_facilities edge name in mutations.
+	EdgeNetworkFacilities = "network_facilities"
+	// EdgeOrganization holds the string denoting the organization edge name in mutations.
+	EdgeOrganization = "organization"
 	// Table holds the table name of the facility in the database.
 	Table = "facilities"
-	// OrganizationTable is the table that holds the organization relation/edge.
-	OrganizationTable = "facilities"
-	// OrganizationInverseTable is the table name for the Organization entity.
-	// It exists in this package in order to avoid circular dependency with the "organization" package.
-	OrganizationInverseTable = "organizations"
-	// OrganizationColumn is the table column denoting the organization relation/edge.
-	OrganizationColumn = "org_id"
 	// CampusTable is the table that holds the campus relation/edge.
 	CampusTable = "facilities"
 	// CampusInverseTable is the table name for the Campus entity.
@@ -115,20 +108,6 @@ const (
 	CampusInverseTable = "campus"
 	// CampusColumn is the table column denoting the campus relation/edge.
 	CampusColumn = "campus_id"
-	// NetworkFacilitiesTable is the table that holds the network_facilities relation/edge.
-	NetworkFacilitiesTable = "network_facilities"
-	// NetworkFacilitiesInverseTable is the table name for the NetworkFacility entity.
-	// It exists in this package in order to avoid circular dependency with the "networkfacility" package.
-	NetworkFacilitiesInverseTable = "network_facilities"
-	// NetworkFacilitiesColumn is the table column denoting the network_facilities relation/edge.
-	NetworkFacilitiesColumn = "fac_id"
-	// IxFacilitiesTable is the table that holds the ix_facilities relation/edge.
-	IxFacilitiesTable = "ix_facilities"
-	// IxFacilitiesInverseTable is the table name for the IxFacility entity.
-	// It exists in this package in order to avoid circular dependency with the "ixfacility" package.
-	IxFacilitiesInverseTable = "ix_facilities"
-	// IxFacilitiesColumn is the table column denoting the ix_facilities relation/edge.
-	IxFacilitiesColumn = "fac_id"
 	// CarrierFacilitiesTable is the table that holds the carrier_facilities relation/edge.
 	CarrierFacilitiesTable = "carrier_facilities"
 	// CarrierFacilitiesInverseTable is the table name for the CarrierFacility entity.
@@ -136,46 +115,67 @@ const (
 	CarrierFacilitiesInverseTable = "carrier_facilities"
 	// CarrierFacilitiesColumn is the table column denoting the carrier_facilities relation/edge.
 	CarrierFacilitiesColumn = "fac_id"
+	// IxFacilitiesTable is the table that holds the ix_facilities relation/edge.
+	IxFacilitiesTable = "ix_facilities"
+	// IxFacilitiesInverseTable is the table name for the IxFacility entity.
+	// It exists in this package in order to avoid circular dependency with the "ixfacility" package.
+	IxFacilitiesInverseTable = "ix_facilities"
+	// IxFacilitiesColumn is the table column denoting the ix_facilities relation/edge.
+	IxFacilitiesColumn = "fac_id"
+	// NetworkFacilitiesTable is the table that holds the network_facilities relation/edge.
+	NetworkFacilitiesTable = "network_facilities"
+	// NetworkFacilitiesInverseTable is the table name for the NetworkFacility entity.
+	// It exists in this package in order to avoid circular dependency with the "networkfacility" package.
+	NetworkFacilitiesInverseTable = "network_facilities"
+	// NetworkFacilitiesColumn is the table column denoting the network_facilities relation/edge.
+	NetworkFacilitiesColumn = "fac_id"
+	// OrganizationTable is the table that holds the organization relation/edge.
+	OrganizationTable = "facilities"
+	// OrganizationInverseTable is the table name for the Organization entity.
+	// It exists in this package in order to avoid circular dependency with the "organization" package.
+	OrganizationInverseTable = "organizations"
+	// OrganizationColumn is the table column denoting the organization relation/edge.
+	OrganizationColumn = "org_id"
 )
 
 // Columns holds all SQL columns for facility fields.
 var Columns = []string{
 	FieldID,
-	FieldOrgID,
-	FieldOrgName,
 	FieldCampusID,
-	FieldName,
+	FieldOrgID,
+	FieldAddress1,
+	FieldAddress2,
 	FieldAka,
-	FieldNameLong,
-	FieldWebsite,
-	FieldSocialMedia,
+	FieldAvailableVoltageServices,
+	FieldCity,
 	FieldClli,
-	FieldRencode,
+	FieldCountry,
+	FieldDiverseServingSubstations,
+	FieldFloor,
+	FieldLatitude,
+	FieldLogo,
+	FieldLongitude,
+	FieldName,
+	FieldNameLong,
+	FieldNotes,
 	FieldNpanxx,
-	FieldTechEmail,
-	FieldTechPhone,
+	FieldProperty,
+	FieldRegionContinent,
+	FieldRencode,
 	FieldSalesEmail,
 	FieldSalesPhone,
-	FieldProperty,
-	FieldDiverseServingSubstations,
-	FieldAvailableVoltageServices,
-	FieldNotes,
-	FieldRegionContinent,
+	FieldSocialMedia,
+	FieldState,
 	FieldStatusDashboard,
-	FieldLogo,
+	FieldSuite,
+	FieldTechEmail,
+	FieldTechPhone,
+	FieldWebsite,
+	FieldZipcode,
+	FieldOrgName,
 	FieldNetCount,
 	FieldIxCount,
 	FieldCarrierCount,
-	FieldAddress1,
-	FieldAddress2,
-	FieldCity,
-	FieldState,
-	FieldCountry,
-	FieldZipcode,
-	FieldSuite,
-	FieldFloor,
-	FieldLatitude,
-	FieldLongitude,
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
@@ -198,40 +198,50 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
-	// DefaultOrgName holds the default value on creation for the "org_name" field.
-	DefaultOrgName string
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
+	// DefaultAddress1 holds the default value on creation for the "address1" field.
+	DefaultAddress1 string
+	// Address1Validator is a validator for the "address1" field. It is called by the builders before save.
+	Address1Validator func(string) error
+	// DefaultAddress2 holds the default value on creation for the "address2" field.
+	DefaultAddress2 string
+	// Address2Validator is a validator for the "address2" field. It is called by the builders before save.
+	Address2Validator func(string) error
 	// DefaultAka holds the default value on creation for the "aka" field.
 	DefaultAka string
 	// AkaValidator is a validator for the "aka" field. It is called by the builders before save.
 	AkaValidator func(string) error
-	// DefaultNameLong holds the default value on creation for the "name_long" field.
-	DefaultNameLong string
-	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
-	NameLongValidator func(string) error
-	// DefaultWebsite holds the default value on creation for the "website" field.
-	DefaultWebsite string
+	// DefaultCity holds the default value on creation for the "city" field.
+	DefaultCity string
+	// CityValidator is a validator for the "city" field. It is called by the builders before save.
+	CityValidator func(string) error
 	// DefaultClli holds the default value on creation for the "clli" field.
 	DefaultClli string
 	// ClliValidator is a validator for the "clli" field. It is called by the builders before save.
 	ClliValidator func(string) error
-	// DefaultRencode holds the default value on creation for the "rencode" field.
-	DefaultRencode string
-	// RencodeValidator is a validator for the "rencode" field. It is called by the builders before save.
-	RencodeValidator func(string) error
+	// DefaultCountry holds the default value on creation for the "country" field.
+	DefaultCountry string
+	// DefaultFloor holds the default value on creation for the "floor" field.
+	DefaultFloor string
+	// FloorValidator is a validator for the "floor" field. It is called by the builders before save.
+	FloorValidator func(string) error
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator func(string) error
+	// DefaultNameLong holds the default value on creation for the "name_long" field.
+	DefaultNameLong string
+	// NameLongValidator is a validator for the "name_long" field. It is called by the builders before save.
+	NameLongValidator func(string) error
+	// DefaultNotes holds the default value on creation for the "notes" field.
+	DefaultNotes string
 	// DefaultNpanxx holds the default value on creation for the "npanxx" field.
 	DefaultNpanxx string
 	// NpanxxValidator is a validator for the "npanxx" field. It is called by the builders before save.
 	NpanxxValidator func(string) error
-	// DefaultTechEmail holds the default value on creation for the "tech_email" field.
-	DefaultTechEmail string
-	// TechEmailValidator is a validator for the "tech_email" field. It is called by the builders before save.
-	TechEmailValidator func(string) error
-	// DefaultTechPhone holds the default value on creation for the "tech_phone" field.
-	DefaultTechPhone string
-	// TechPhoneValidator is a validator for the "tech_phone" field. It is called by the builders before save.
-	TechPhoneValidator func(string) error
+	// PropertyValidator is a validator for the "property" field. It is called by the builders before save.
+	PropertyValidator func(string) error
+	// DefaultRencode holds the default value on creation for the "rencode" field.
+	DefaultRencode string
+	// RencodeValidator is a validator for the "rencode" field. It is called by the builders before save.
+	RencodeValidator func(string) error
 	// DefaultSalesEmail holds the default value on creation for the "sales_email" field.
 	DefaultSalesEmail string
 	// SalesEmailValidator is a validator for the "sales_email" field. It is called by the builders before save.
@@ -240,38 +250,36 @@ var (
 	DefaultSalesPhone string
 	// SalesPhoneValidator is a validator for the "sales_phone" field. It is called by the builders before save.
 	SalesPhoneValidator func(string) error
-	// PropertyValidator is a validator for the "property" field. It is called by the builders before save.
-	PropertyValidator func(string) error
-	// DefaultNotes holds the default value on creation for the "notes" field.
-	DefaultNotes string
+	// DefaultState holds the default value on creation for the "state" field.
+	DefaultState string
+	// StateValidator is a validator for the "state" field. It is called by the builders before save.
+	StateValidator func(string) error
+	// DefaultSuite holds the default value on creation for the "suite" field.
+	DefaultSuite string
+	// SuiteValidator is a validator for the "suite" field. It is called by the builders before save.
+	SuiteValidator func(string) error
+	// DefaultTechEmail holds the default value on creation for the "tech_email" field.
+	DefaultTechEmail string
+	// TechEmailValidator is a validator for the "tech_email" field. It is called by the builders before save.
+	TechEmailValidator func(string) error
+	// DefaultTechPhone holds the default value on creation for the "tech_phone" field.
+	DefaultTechPhone string
+	// TechPhoneValidator is a validator for the "tech_phone" field. It is called by the builders before save.
+	TechPhoneValidator func(string) error
+	// DefaultWebsite holds the default value on creation for the "website" field.
+	DefaultWebsite string
+	// DefaultZipcode holds the default value on creation for the "zipcode" field.
+	DefaultZipcode string
+	// ZipcodeValidator is a validator for the "zipcode" field. It is called by the builders before save.
+	ZipcodeValidator func(string) error
+	// DefaultOrgName holds the default value on creation for the "org_name" field.
+	DefaultOrgName string
 	// DefaultNetCount holds the default value on creation for the "net_count" field.
 	DefaultNetCount int
 	// DefaultIxCount holds the default value on creation for the "ix_count" field.
 	DefaultIxCount int
 	// DefaultCarrierCount holds the default value on creation for the "carrier_count" field.
 	DefaultCarrierCount int
-	// DefaultAddress1 holds the default value on creation for the "address1" field.
-	DefaultAddress1 string
-	// DefaultAddress2 holds the default value on creation for the "address2" field.
-	DefaultAddress2 string
-	// DefaultCity holds the default value on creation for the "city" field.
-	DefaultCity string
-	// DefaultState holds the default value on creation for the "state" field.
-	DefaultState string
-	// DefaultCountry holds the default value on creation for the "country" field.
-	DefaultCountry string
-	// DefaultZipcode holds the default value on creation for the "zipcode" field.
-	DefaultZipcode string
-	// ZipcodeValidator is a validator for the "zipcode" field. It is called by the builders before save.
-	ZipcodeValidator func(string) error
-	// DefaultSuite holds the default value on creation for the "suite" field.
-	DefaultSuite string
-	// SuiteValidator is a validator for the "suite" field. It is called by the builders before save.
-	SuiteValidator func(string) error
-	// DefaultFloor holds the default value on creation for the "floor" field.
-	DefaultFloor string
-	// FloorValidator is a validator for the "floor" field. It is called by the builders before save.
-	FloorValidator func(string) error
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
@@ -288,24 +296,24 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// ByOrgID orders the results by the org_id field.
-func ByOrgID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOrgID, opts...).ToFunc()
-}
-
-// ByOrgName orders the results by the org_name field.
-func ByOrgName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOrgName, opts...).ToFunc()
-}
-
 // ByCampusID orders the results by the campus_id field.
 func ByCampusID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCampusID, opts...).ToFunc()
 }
 
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
+// ByOrgID orders the results by the org_id field.
+func ByOrgID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOrgID, opts...).ToFunc()
+}
+
+// ByAddress1 orders the results by the address1 field.
+func ByAddress1(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAddress1, opts...).ToFunc()
+}
+
+// ByAddress2 orders the results by the address2 field.
+func ByAddress2(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAddress2, opts...).ToFunc()
 }
 
 // ByAka orders the results by the aka field.
@@ -313,14 +321,9 @@ func ByAka(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAka, opts...).ToFunc()
 }
 
-// ByNameLong orders the results by the name_long field.
-func ByNameLong(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNameLong, opts...).ToFunc()
-}
-
-// ByWebsite orders the results by the website field.
-func ByWebsite(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldWebsite, opts...).ToFunc()
+// ByCity orders the results by the city field.
+func ByCity(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCity, opts...).ToFunc()
 }
 
 // ByClli orders the results by the clli field.
@@ -328,9 +331,49 @@ func ByClli(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldClli, opts...).ToFunc()
 }
 
-// ByRencode orders the results by the rencode field.
-func ByRencode(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRencode, opts...).ToFunc()
+// ByCountry orders the results by the country field.
+func ByCountry(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCountry, opts...).ToFunc()
+}
+
+// ByDiverseServingSubstations orders the results by the diverse_serving_substations field.
+func ByDiverseServingSubstations(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDiverseServingSubstations, opts...).ToFunc()
+}
+
+// ByFloor orders the results by the floor field.
+func ByFloor(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFloor, opts...).ToFunc()
+}
+
+// ByLatitude orders the results by the latitude field.
+func ByLatitude(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLatitude, opts...).ToFunc()
+}
+
+// ByLogo orders the results by the logo field.
+func ByLogo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLogo, opts...).ToFunc()
+}
+
+// ByLongitude orders the results by the longitude field.
+func ByLongitude(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLongitude, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByNameLong orders the results by the name_long field.
+func ByNameLong(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNameLong, opts...).ToFunc()
+}
+
+// ByNotes orders the results by the notes field.
+func ByNotes(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNotes, opts...).ToFunc()
 }
 
 // ByNpanxx orders the results by the npanxx field.
@@ -338,14 +381,19 @@ func ByNpanxx(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNpanxx, opts...).ToFunc()
 }
 
-// ByTechEmail orders the results by the tech_email field.
-func ByTechEmail(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTechEmail, opts...).ToFunc()
+// ByProperty orders the results by the property field.
+func ByProperty(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProperty, opts...).ToFunc()
 }
 
-// ByTechPhone orders the results by the tech_phone field.
-func ByTechPhone(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTechPhone, opts...).ToFunc()
+// ByRegionContinent orders the results by the region_continent field.
+func ByRegionContinent(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRegionContinent, opts...).ToFunc()
+}
+
+// ByRencode orders the results by the rencode field.
+func ByRencode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRencode, opts...).ToFunc()
 }
 
 // BySalesEmail orders the results by the sales_email field.
@@ -358,24 +406,9 @@ func BySalesPhone(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSalesPhone, opts...).ToFunc()
 }
 
-// ByProperty orders the results by the property field.
-func ByProperty(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProperty, opts...).ToFunc()
-}
-
-// ByDiverseServingSubstations orders the results by the diverse_serving_substations field.
-func ByDiverseServingSubstations(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDiverseServingSubstations, opts...).ToFunc()
-}
-
-// ByNotes orders the results by the notes field.
-func ByNotes(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNotes, opts...).ToFunc()
-}
-
-// ByRegionContinent orders the results by the region_continent field.
-func ByRegionContinent(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRegionContinent, opts...).ToFunc()
+// ByState orders the results by the state field.
+func ByState(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldState, opts...).ToFunc()
 }
 
 // ByStatusDashboard orders the results by the status_dashboard field.
@@ -383,9 +416,34 @@ func ByStatusDashboard(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatusDashboard, opts...).ToFunc()
 }
 
-// ByLogo orders the results by the logo field.
-func ByLogo(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLogo, opts...).ToFunc()
+// BySuite orders the results by the suite field.
+func BySuite(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSuite, opts...).ToFunc()
+}
+
+// ByTechEmail orders the results by the tech_email field.
+func ByTechEmail(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTechEmail, opts...).ToFunc()
+}
+
+// ByTechPhone orders the results by the tech_phone field.
+func ByTechPhone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTechPhone, opts...).ToFunc()
+}
+
+// ByWebsite orders the results by the website field.
+func ByWebsite(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWebsite, opts...).ToFunc()
+}
+
+// ByZipcode orders the results by the zipcode field.
+func ByZipcode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldZipcode, opts...).ToFunc()
+}
+
+// ByOrgName orders the results by the org_name field.
+func ByOrgName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOrgName, opts...).ToFunc()
 }
 
 // ByNetCount orders the results by the net_count field.
@@ -403,56 +461,6 @@ func ByCarrierCount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCarrierCount, opts...).ToFunc()
 }
 
-// ByAddress1 orders the results by the address1 field.
-func ByAddress1(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAddress1, opts...).ToFunc()
-}
-
-// ByAddress2 orders the results by the address2 field.
-func ByAddress2(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAddress2, opts...).ToFunc()
-}
-
-// ByCity orders the results by the city field.
-func ByCity(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCity, opts...).ToFunc()
-}
-
-// ByState orders the results by the state field.
-func ByState(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldState, opts...).ToFunc()
-}
-
-// ByCountry orders the results by the country field.
-func ByCountry(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCountry, opts...).ToFunc()
-}
-
-// ByZipcode orders the results by the zipcode field.
-func ByZipcode(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldZipcode, opts...).ToFunc()
-}
-
-// BySuite orders the results by the suite field.
-func BySuite(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSuite, opts...).ToFunc()
-}
-
-// ByFloor orders the results by the floor field.
-func ByFloor(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFloor, opts...).ToFunc()
-}
-
-// ByLatitude orders the results by the latitude field.
-func ByLatitude(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLatitude, opts...).ToFunc()
-}
-
-// ByLongitude orders the results by the longitude field.
-func ByLongitude(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLongitude, opts...).ToFunc()
-}
-
 // ByCreated orders the results by the created field.
 func ByCreated(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreated, opts...).ToFunc()
@@ -468,13 +476,6 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
-// ByOrganizationField orders the results by organization field.
-func ByOrganizationField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByCampusField orders the results by campus field.
 func ByCampusField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -482,17 +483,17 @@ func ByCampusField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByNetworkFacilitiesCount orders the results by network_facilities count.
-func ByNetworkFacilitiesCount(opts ...sql.OrderTermOption) OrderOption {
+// ByCarrierFacilitiesCount orders the results by carrier_facilities count.
+func ByCarrierFacilitiesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newNetworkFacilitiesStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newCarrierFacilitiesStep(), opts...)
 	}
 }
 
-// ByNetworkFacilities orders the results by network_facilities terms.
-func ByNetworkFacilities(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByCarrierFacilities orders the results by carrier_facilities terms.
+func ByCarrierFacilities(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newNetworkFacilitiesStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newCarrierFacilitiesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -510,25 +511,25 @@ func ByIxFacilities(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByCarrierFacilitiesCount orders the results by carrier_facilities count.
-func ByCarrierFacilitiesCount(opts ...sql.OrderTermOption) OrderOption {
+// ByNetworkFacilitiesCount orders the results by network_facilities count.
+func ByNetworkFacilitiesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newCarrierFacilitiesStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newNetworkFacilitiesStep(), opts...)
 	}
 }
 
-// ByCarrierFacilities orders the results by carrier_facilities terms.
-func ByCarrierFacilities(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByNetworkFacilities orders the results by network_facilities terms.
+func ByNetworkFacilities(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCarrierFacilitiesStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newNetworkFacilitiesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newOrganizationStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(OrganizationInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
-	)
+
+// ByOrganizationField orders the results by organization field.
+func ByOrganizationField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), sql.OrderByField(field, opts...))
+	}
 }
 func newCampusStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
@@ -537,11 +538,11 @@ func newCampusStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, CampusTable, CampusColumn),
 	)
 }
-func newNetworkFacilitiesStep() *sqlgraph.Step {
+func newCarrierFacilitiesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(NetworkFacilitiesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, NetworkFacilitiesTable, NetworkFacilitiesColumn),
+		sqlgraph.To(CarrierFacilitiesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CarrierFacilitiesTable, CarrierFacilitiesColumn),
 	)
 }
 func newIxFacilitiesStep() *sqlgraph.Step {
@@ -551,10 +552,17 @@ func newIxFacilitiesStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, IxFacilitiesTable, IxFacilitiesColumn),
 	)
 }
-func newCarrierFacilitiesStep() *sqlgraph.Step {
+func newNetworkFacilitiesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CarrierFacilitiesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, CarrierFacilitiesTable, CarrierFacilitiesColumn),
+		sqlgraph.To(NetworkFacilitiesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, NetworkFacilitiesTable, NetworkFacilitiesColumn),
+	)
+}
+func newOrganizationStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrganizationInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
 	)
 }

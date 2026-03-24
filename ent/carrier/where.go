@@ -60,9 +60,14 @@ func OrgID(v int) predicate.Carrier {
 	return predicate.Carrier(sql.FieldEQ(FieldOrgID, v))
 }
 
-// OrgName applies equality check predicate on the "org_name" field. It's identical to OrgNameEQ.
-func OrgName(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEQ(FieldOrgName, v))
+// Aka applies equality check predicate on the "aka" field. It's identical to AkaEQ.
+func Aka(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEQ(FieldAka, v))
+}
+
+// Logo applies equality check predicate on the "logo" field. It's identical to LogoEQ.
+func Logo(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEQ(FieldLogo, v))
 }
 
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
@@ -70,19 +75,9 @@ func Name(v string) predicate.Carrier {
 	return predicate.Carrier(sql.FieldEQ(FieldName, v))
 }
 
-// Aka applies equality check predicate on the "aka" field. It's identical to AkaEQ.
-func Aka(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEQ(FieldAka, v))
-}
-
 // NameLong applies equality check predicate on the "name_long" field. It's identical to NameLongEQ.
 func NameLong(v string) predicate.Carrier {
 	return predicate.Carrier(sql.FieldEQ(FieldNameLong, v))
-}
-
-// Website applies equality check predicate on the "website" field. It's identical to WebsiteEQ.
-func Website(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEQ(FieldWebsite, v))
 }
 
 // Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
@@ -90,14 +85,19 @@ func Notes(v string) predicate.Carrier {
 	return predicate.Carrier(sql.FieldEQ(FieldNotes, v))
 }
 
+// Website applies equality check predicate on the "website" field. It's identical to WebsiteEQ.
+func Website(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEQ(FieldWebsite, v))
+}
+
+// OrgName applies equality check predicate on the "org_name" field. It's identical to OrgNameEQ.
+func OrgName(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEQ(FieldOrgName, v))
+}
+
 // FacCount applies equality check predicate on the "fac_count" field. It's identical to FacCountEQ.
 func FacCount(v int) predicate.Carrier {
 	return predicate.Carrier(sql.FieldEQ(FieldFacCount, v))
-}
-
-// Logo applies equality check predicate on the "logo" field. It's identical to LogoEQ.
-func Logo(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEQ(FieldLogo, v))
 }
 
 // Created applies equality check predicate on the "created" field. It's identical to CreatedEQ.
@@ -143,146 +143,6 @@ func OrgIDIsNil() predicate.Carrier {
 // OrgIDNotNil applies the NotNil predicate on the "org_id" field.
 func OrgIDNotNil() predicate.Carrier {
 	return predicate.Carrier(sql.FieldNotNull(FieldOrgID))
-}
-
-// OrgNameEQ applies the EQ predicate on the "org_name" field.
-func OrgNameEQ(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEQ(FieldOrgName, v))
-}
-
-// OrgNameNEQ applies the NEQ predicate on the "org_name" field.
-func OrgNameNEQ(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldNEQ(FieldOrgName, v))
-}
-
-// OrgNameIn applies the In predicate on the "org_name" field.
-func OrgNameIn(vs ...string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldIn(FieldOrgName, vs...))
-}
-
-// OrgNameNotIn applies the NotIn predicate on the "org_name" field.
-func OrgNameNotIn(vs ...string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldNotIn(FieldOrgName, vs...))
-}
-
-// OrgNameGT applies the GT predicate on the "org_name" field.
-func OrgNameGT(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldGT(FieldOrgName, v))
-}
-
-// OrgNameGTE applies the GTE predicate on the "org_name" field.
-func OrgNameGTE(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldGTE(FieldOrgName, v))
-}
-
-// OrgNameLT applies the LT predicate on the "org_name" field.
-func OrgNameLT(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldLT(FieldOrgName, v))
-}
-
-// OrgNameLTE applies the LTE predicate on the "org_name" field.
-func OrgNameLTE(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldLTE(FieldOrgName, v))
-}
-
-// OrgNameContains applies the Contains predicate on the "org_name" field.
-func OrgNameContains(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldContains(FieldOrgName, v))
-}
-
-// OrgNameHasPrefix applies the HasPrefix predicate on the "org_name" field.
-func OrgNameHasPrefix(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldHasPrefix(FieldOrgName, v))
-}
-
-// OrgNameHasSuffix applies the HasSuffix predicate on the "org_name" field.
-func OrgNameHasSuffix(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldHasSuffix(FieldOrgName, v))
-}
-
-// OrgNameIsNil applies the IsNil predicate on the "org_name" field.
-func OrgNameIsNil() predicate.Carrier {
-	return predicate.Carrier(sql.FieldIsNull(FieldOrgName))
-}
-
-// OrgNameNotNil applies the NotNil predicate on the "org_name" field.
-func OrgNameNotNil() predicate.Carrier {
-	return predicate.Carrier(sql.FieldNotNull(FieldOrgName))
-}
-
-// OrgNameEqualFold applies the EqualFold predicate on the "org_name" field.
-func OrgNameEqualFold(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEqualFold(FieldOrgName, v))
-}
-
-// OrgNameContainsFold applies the ContainsFold predicate on the "org_name" field.
-func OrgNameContainsFold(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldContainsFold(FieldOrgName, v))
-}
-
-// NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEQ(FieldName, v))
-}
-
-// NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldNEQ(FieldName, v))
-}
-
-// NameIn applies the In predicate on the "name" field.
-func NameIn(vs ...string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldIn(FieldName, vs...))
-}
-
-// NameNotIn applies the NotIn predicate on the "name" field.
-func NameNotIn(vs ...string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldNotIn(FieldName, vs...))
-}
-
-// NameGT applies the GT predicate on the "name" field.
-func NameGT(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldGT(FieldName, v))
-}
-
-// NameGTE applies the GTE predicate on the "name" field.
-func NameGTE(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldGTE(FieldName, v))
-}
-
-// NameLT applies the LT predicate on the "name" field.
-func NameLT(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldLT(FieldName, v))
-}
-
-// NameLTE applies the LTE predicate on the "name" field.
-func NameLTE(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldLTE(FieldName, v))
-}
-
-// NameContains applies the Contains predicate on the "name" field.
-func NameContains(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldContains(FieldName, v))
-}
-
-// NameHasPrefix applies the HasPrefix predicate on the "name" field.
-func NameHasPrefix(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldHasPrefix(FieldName, v))
-}
-
-// NameHasSuffix applies the HasSuffix predicate on the "name" field.
-func NameHasSuffix(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldHasSuffix(FieldName, v))
-}
-
-// NameEqualFold applies the EqualFold predicate on the "name" field.
-func NameEqualFold(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEqualFold(FieldName, v))
-}
-
-// NameContainsFold applies the ContainsFold predicate on the "name" field.
-func NameContainsFold(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldContainsFold(FieldName, v))
 }
 
 // AkaEQ applies the EQ predicate on the "aka" field.
@@ -360,6 +220,146 @@ func AkaContainsFold(v string) predicate.Carrier {
 	return predicate.Carrier(sql.FieldContainsFold(FieldAka, v))
 }
 
+// LogoEQ applies the EQ predicate on the "logo" field.
+func LogoEQ(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEQ(FieldLogo, v))
+}
+
+// LogoNEQ applies the NEQ predicate on the "logo" field.
+func LogoNEQ(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldNEQ(FieldLogo, v))
+}
+
+// LogoIn applies the In predicate on the "logo" field.
+func LogoIn(vs ...string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldIn(FieldLogo, vs...))
+}
+
+// LogoNotIn applies the NotIn predicate on the "logo" field.
+func LogoNotIn(vs ...string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldNotIn(FieldLogo, vs...))
+}
+
+// LogoGT applies the GT predicate on the "logo" field.
+func LogoGT(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldGT(FieldLogo, v))
+}
+
+// LogoGTE applies the GTE predicate on the "logo" field.
+func LogoGTE(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldGTE(FieldLogo, v))
+}
+
+// LogoLT applies the LT predicate on the "logo" field.
+func LogoLT(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldLT(FieldLogo, v))
+}
+
+// LogoLTE applies the LTE predicate on the "logo" field.
+func LogoLTE(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldLTE(FieldLogo, v))
+}
+
+// LogoContains applies the Contains predicate on the "logo" field.
+func LogoContains(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldContains(FieldLogo, v))
+}
+
+// LogoHasPrefix applies the HasPrefix predicate on the "logo" field.
+func LogoHasPrefix(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldHasPrefix(FieldLogo, v))
+}
+
+// LogoHasSuffix applies the HasSuffix predicate on the "logo" field.
+func LogoHasSuffix(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldHasSuffix(FieldLogo, v))
+}
+
+// LogoIsNil applies the IsNil predicate on the "logo" field.
+func LogoIsNil() predicate.Carrier {
+	return predicate.Carrier(sql.FieldIsNull(FieldLogo))
+}
+
+// LogoNotNil applies the NotNil predicate on the "logo" field.
+func LogoNotNil() predicate.Carrier {
+	return predicate.Carrier(sql.FieldNotNull(FieldLogo))
+}
+
+// LogoEqualFold applies the EqualFold predicate on the "logo" field.
+func LogoEqualFold(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEqualFold(FieldLogo, v))
+}
+
+// LogoContainsFold applies the ContainsFold predicate on the "logo" field.
+func LogoContainsFold(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldContainsFold(FieldLogo, v))
+}
+
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEQ(FieldName, v))
+}
+
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldContainsFold(FieldName, v))
+}
+
 // NameLongEQ applies the EQ predicate on the "name_long" field.
 func NameLongEQ(v string) predicate.Carrier {
 	return predicate.Carrier(sql.FieldEQ(FieldNameLong, v))
@@ -433,91 +433,6 @@ func NameLongEqualFold(v string) predicate.Carrier {
 // NameLongContainsFold applies the ContainsFold predicate on the "name_long" field.
 func NameLongContainsFold(v string) predicate.Carrier {
 	return predicate.Carrier(sql.FieldContainsFold(FieldNameLong, v))
-}
-
-// WebsiteEQ applies the EQ predicate on the "website" field.
-func WebsiteEQ(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEQ(FieldWebsite, v))
-}
-
-// WebsiteNEQ applies the NEQ predicate on the "website" field.
-func WebsiteNEQ(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldNEQ(FieldWebsite, v))
-}
-
-// WebsiteIn applies the In predicate on the "website" field.
-func WebsiteIn(vs ...string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldIn(FieldWebsite, vs...))
-}
-
-// WebsiteNotIn applies the NotIn predicate on the "website" field.
-func WebsiteNotIn(vs ...string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldNotIn(FieldWebsite, vs...))
-}
-
-// WebsiteGT applies the GT predicate on the "website" field.
-func WebsiteGT(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldGT(FieldWebsite, v))
-}
-
-// WebsiteGTE applies the GTE predicate on the "website" field.
-func WebsiteGTE(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldGTE(FieldWebsite, v))
-}
-
-// WebsiteLT applies the LT predicate on the "website" field.
-func WebsiteLT(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldLT(FieldWebsite, v))
-}
-
-// WebsiteLTE applies the LTE predicate on the "website" field.
-func WebsiteLTE(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldLTE(FieldWebsite, v))
-}
-
-// WebsiteContains applies the Contains predicate on the "website" field.
-func WebsiteContains(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldContains(FieldWebsite, v))
-}
-
-// WebsiteHasPrefix applies the HasPrefix predicate on the "website" field.
-func WebsiteHasPrefix(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldHasPrefix(FieldWebsite, v))
-}
-
-// WebsiteHasSuffix applies the HasSuffix predicate on the "website" field.
-func WebsiteHasSuffix(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldHasSuffix(FieldWebsite, v))
-}
-
-// WebsiteIsNil applies the IsNil predicate on the "website" field.
-func WebsiteIsNil() predicate.Carrier {
-	return predicate.Carrier(sql.FieldIsNull(FieldWebsite))
-}
-
-// WebsiteNotNil applies the NotNil predicate on the "website" field.
-func WebsiteNotNil() predicate.Carrier {
-	return predicate.Carrier(sql.FieldNotNull(FieldWebsite))
-}
-
-// WebsiteEqualFold applies the EqualFold predicate on the "website" field.
-func WebsiteEqualFold(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEqualFold(FieldWebsite, v))
-}
-
-// WebsiteContainsFold applies the ContainsFold predicate on the "website" field.
-func WebsiteContainsFold(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldContainsFold(FieldWebsite, v))
-}
-
-// SocialMediaIsNil applies the IsNil predicate on the "social_media" field.
-func SocialMediaIsNil() predicate.Carrier {
-	return predicate.Carrier(sql.FieldIsNull(FieldSocialMedia))
-}
-
-// SocialMediaNotNil applies the NotNil predicate on the "social_media" field.
-func SocialMediaNotNil() predicate.Carrier {
-	return predicate.Carrier(sql.FieldNotNull(FieldSocialMedia))
 }
 
 // NotesEQ applies the EQ predicate on the "notes" field.
@@ -595,6 +510,166 @@ func NotesContainsFold(v string) predicate.Carrier {
 	return predicate.Carrier(sql.FieldContainsFold(FieldNotes, v))
 }
 
+// SocialMediaIsNil applies the IsNil predicate on the "social_media" field.
+func SocialMediaIsNil() predicate.Carrier {
+	return predicate.Carrier(sql.FieldIsNull(FieldSocialMedia))
+}
+
+// SocialMediaNotNil applies the NotNil predicate on the "social_media" field.
+func SocialMediaNotNil() predicate.Carrier {
+	return predicate.Carrier(sql.FieldNotNull(FieldSocialMedia))
+}
+
+// WebsiteEQ applies the EQ predicate on the "website" field.
+func WebsiteEQ(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEQ(FieldWebsite, v))
+}
+
+// WebsiteNEQ applies the NEQ predicate on the "website" field.
+func WebsiteNEQ(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldNEQ(FieldWebsite, v))
+}
+
+// WebsiteIn applies the In predicate on the "website" field.
+func WebsiteIn(vs ...string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldIn(FieldWebsite, vs...))
+}
+
+// WebsiteNotIn applies the NotIn predicate on the "website" field.
+func WebsiteNotIn(vs ...string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldNotIn(FieldWebsite, vs...))
+}
+
+// WebsiteGT applies the GT predicate on the "website" field.
+func WebsiteGT(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldGT(FieldWebsite, v))
+}
+
+// WebsiteGTE applies the GTE predicate on the "website" field.
+func WebsiteGTE(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldGTE(FieldWebsite, v))
+}
+
+// WebsiteLT applies the LT predicate on the "website" field.
+func WebsiteLT(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldLT(FieldWebsite, v))
+}
+
+// WebsiteLTE applies the LTE predicate on the "website" field.
+func WebsiteLTE(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldLTE(FieldWebsite, v))
+}
+
+// WebsiteContains applies the Contains predicate on the "website" field.
+func WebsiteContains(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldContains(FieldWebsite, v))
+}
+
+// WebsiteHasPrefix applies the HasPrefix predicate on the "website" field.
+func WebsiteHasPrefix(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldHasPrefix(FieldWebsite, v))
+}
+
+// WebsiteHasSuffix applies the HasSuffix predicate on the "website" field.
+func WebsiteHasSuffix(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldHasSuffix(FieldWebsite, v))
+}
+
+// WebsiteIsNil applies the IsNil predicate on the "website" field.
+func WebsiteIsNil() predicate.Carrier {
+	return predicate.Carrier(sql.FieldIsNull(FieldWebsite))
+}
+
+// WebsiteNotNil applies the NotNil predicate on the "website" field.
+func WebsiteNotNil() predicate.Carrier {
+	return predicate.Carrier(sql.FieldNotNull(FieldWebsite))
+}
+
+// WebsiteEqualFold applies the EqualFold predicate on the "website" field.
+func WebsiteEqualFold(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEqualFold(FieldWebsite, v))
+}
+
+// WebsiteContainsFold applies the ContainsFold predicate on the "website" field.
+func WebsiteContainsFold(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldContainsFold(FieldWebsite, v))
+}
+
+// OrgNameEQ applies the EQ predicate on the "org_name" field.
+func OrgNameEQ(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEQ(FieldOrgName, v))
+}
+
+// OrgNameNEQ applies the NEQ predicate on the "org_name" field.
+func OrgNameNEQ(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldNEQ(FieldOrgName, v))
+}
+
+// OrgNameIn applies the In predicate on the "org_name" field.
+func OrgNameIn(vs ...string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldIn(FieldOrgName, vs...))
+}
+
+// OrgNameNotIn applies the NotIn predicate on the "org_name" field.
+func OrgNameNotIn(vs ...string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldNotIn(FieldOrgName, vs...))
+}
+
+// OrgNameGT applies the GT predicate on the "org_name" field.
+func OrgNameGT(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldGT(FieldOrgName, v))
+}
+
+// OrgNameGTE applies the GTE predicate on the "org_name" field.
+func OrgNameGTE(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldGTE(FieldOrgName, v))
+}
+
+// OrgNameLT applies the LT predicate on the "org_name" field.
+func OrgNameLT(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldLT(FieldOrgName, v))
+}
+
+// OrgNameLTE applies the LTE predicate on the "org_name" field.
+func OrgNameLTE(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldLTE(FieldOrgName, v))
+}
+
+// OrgNameContains applies the Contains predicate on the "org_name" field.
+func OrgNameContains(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldContains(FieldOrgName, v))
+}
+
+// OrgNameHasPrefix applies the HasPrefix predicate on the "org_name" field.
+func OrgNameHasPrefix(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldHasPrefix(FieldOrgName, v))
+}
+
+// OrgNameHasSuffix applies the HasSuffix predicate on the "org_name" field.
+func OrgNameHasSuffix(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldHasSuffix(FieldOrgName, v))
+}
+
+// OrgNameIsNil applies the IsNil predicate on the "org_name" field.
+func OrgNameIsNil() predicate.Carrier {
+	return predicate.Carrier(sql.FieldIsNull(FieldOrgName))
+}
+
+// OrgNameNotNil applies the NotNil predicate on the "org_name" field.
+func OrgNameNotNil() predicate.Carrier {
+	return predicate.Carrier(sql.FieldNotNull(FieldOrgName))
+}
+
+// OrgNameEqualFold applies the EqualFold predicate on the "org_name" field.
+func OrgNameEqualFold(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldEqualFold(FieldOrgName, v))
+}
+
+// OrgNameContainsFold applies the ContainsFold predicate on the "org_name" field.
+func OrgNameContainsFold(v string) predicate.Carrier {
+	return predicate.Carrier(sql.FieldContainsFold(FieldOrgName, v))
+}
+
 // FacCountEQ applies the EQ predicate on the "fac_count" field.
 func FacCountEQ(v int) predicate.Carrier {
 	return predicate.Carrier(sql.FieldEQ(FieldFacCount, v))
@@ -643,81 +718,6 @@ func FacCountIsNil() predicate.Carrier {
 // FacCountNotNil applies the NotNil predicate on the "fac_count" field.
 func FacCountNotNil() predicate.Carrier {
 	return predicate.Carrier(sql.FieldNotNull(FieldFacCount))
-}
-
-// LogoEQ applies the EQ predicate on the "logo" field.
-func LogoEQ(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEQ(FieldLogo, v))
-}
-
-// LogoNEQ applies the NEQ predicate on the "logo" field.
-func LogoNEQ(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldNEQ(FieldLogo, v))
-}
-
-// LogoIn applies the In predicate on the "logo" field.
-func LogoIn(vs ...string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldIn(FieldLogo, vs...))
-}
-
-// LogoNotIn applies the NotIn predicate on the "logo" field.
-func LogoNotIn(vs ...string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldNotIn(FieldLogo, vs...))
-}
-
-// LogoGT applies the GT predicate on the "logo" field.
-func LogoGT(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldGT(FieldLogo, v))
-}
-
-// LogoGTE applies the GTE predicate on the "logo" field.
-func LogoGTE(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldGTE(FieldLogo, v))
-}
-
-// LogoLT applies the LT predicate on the "logo" field.
-func LogoLT(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldLT(FieldLogo, v))
-}
-
-// LogoLTE applies the LTE predicate on the "logo" field.
-func LogoLTE(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldLTE(FieldLogo, v))
-}
-
-// LogoContains applies the Contains predicate on the "logo" field.
-func LogoContains(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldContains(FieldLogo, v))
-}
-
-// LogoHasPrefix applies the HasPrefix predicate on the "logo" field.
-func LogoHasPrefix(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldHasPrefix(FieldLogo, v))
-}
-
-// LogoHasSuffix applies the HasSuffix predicate on the "logo" field.
-func LogoHasSuffix(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldHasSuffix(FieldLogo, v))
-}
-
-// LogoIsNil applies the IsNil predicate on the "logo" field.
-func LogoIsNil() predicate.Carrier {
-	return predicate.Carrier(sql.FieldIsNull(FieldLogo))
-}
-
-// LogoNotNil applies the NotNil predicate on the "logo" field.
-func LogoNotNil() predicate.Carrier {
-	return predicate.Carrier(sql.FieldNotNull(FieldLogo))
-}
-
-// LogoEqualFold applies the EqualFold predicate on the "logo" field.
-func LogoEqualFold(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldEqualFold(FieldLogo, v))
-}
-
-// LogoContainsFold applies the ContainsFold predicate on the "logo" field.
-func LogoContainsFold(v string) predicate.Carrier {
-	return predicate.Carrier(sql.FieldContainsFold(FieldLogo, v))
 }
 
 // CreatedEQ applies the EQ predicate on the "created" field.
@@ -865,29 +865,6 @@ func StatusContainsFold(v string) predicate.Carrier {
 	return predicate.Carrier(sql.FieldContainsFold(FieldStatus, v))
 }
 
-// HasOrganization applies the HasEdge predicate on the "organization" edge.
-func HasOrganization() predicate.Carrier {
-	return predicate.Carrier(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasOrganizationWith applies the HasEdge predicate on the "organization" edge with a given conditions (other predicates).
-func HasOrganizationWith(preds ...predicate.Organization) predicate.Carrier {
-	return predicate.Carrier(func(s *sql.Selector) {
-		step := newOrganizationStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasCarrierFacilities applies the HasEdge predicate on the "carrier_facilities" edge.
 func HasCarrierFacilities() predicate.Carrier {
 	return predicate.Carrier(func(s *sql.Selector) {
@@ -903,6 +880,29 @@ func HasCarrierFacilities() predicate.Carrier {
 func HasCarrierFacilitiesWith(preds ...predicate.CarrierFacility) predicate.Carrier {
 	return predicate.Carrier(func(s *sql.Selector) {
 		step := newCarrierFacilitiesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOrganization applies the HasEdge predicate on the "organization" edge.
+func HasOrganization() predicate.Carrier {
+	return predicate.Carrier(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrganizationWith applies the HasEdge predicate on the "organization" edge with a given conditions (other predicates).
+func HasOrganizationWith(preds ...predicate.Organization) predicate.Carrier {
+	return predicate.Carrier(func(s *sql.Selector) {
+		step := newOrganizationStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

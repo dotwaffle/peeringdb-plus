@@ -37,18 +37,6 @@ func (_c *IxPrefixCreate) SetNillableIxlanID(v *int) *IxPrefixCreate {
 	return _c
 }
 
-// SetProtocol sets the "protocol" field.
-func (_c *IxPrefixCreate) SetProtocol(v string) *IxPrefixCreate {
-	_c.mutation.SetProtocol(v)
-	return _c
-}
-
-// SetPrefix sets the "prefix" field.
-func (_c *IxPrefixCreate) SetPrefix(v string) *IxPrefixCreate {
-	_c.mutation.SetPrefix(v)
-	return _c
-}
-
 // SetInDfz sets the "in_dfz" field.
 func (_c *IxPrefixCreate) SetInDfz(v bool) *IxPrefixCreate {
 	_c.mutation.SetInDfz(v)
@@ -73,6 +61,26 @@ func (_c *IxPrefixCreate) SetNotes(v string) *IxPrefixCreate {
 func (_c *IxPrefixCreate) SetNillableNotes(v *string) *IxPrefixCreate {
 	if v != nil {
 		_c.SetNotes(*v)
+	}
+	return _c
+}
+
+// SetPrefix sets the "prefix" field.
+func (_c *IxPrefixCreate) SetPrefix(v string) *IxPrefixCreate {
+	_c.mutation.SetPrefix(v)
+	return _c
+}
+
+// SetProtocol sets the "protocol" field.
+func (_c *IxPrefixCreate) SetProtocol(v string) *IxPrefixCreate {
+	_c.mutation.SetProtocol(v)
+	return _c
+}
+
+// SetNillableProtocol sets the "protocol" field if the given value is not nil.
+func (_c *IxPrefixCreate) SetNillableProtocol(v *string) *IxPrefixCreate {
+	if v != nil {
+		_c.SetProtocol(*v)
 	}
 	return _c
 }
@@ -173,6 +181,10 @@ func (_c *IxPrefixCreate) defaults() error {
 		v := ixprefix.DefaultNotes
 		_c.mutation.SetNotes(v)
 	}
+	if _, ok := _c.mutation.Protocol(); !ok {
+		v := ixprefix.DefaultProtocol
+		_c.mutation.SetProtocol(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := ixprefix.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -182,23 +194,25 @@ func (_c *IxPrefixCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *IxPrefixCreate) check() error {
-	if _, ok := _c.mutation.Protocol(); !ok {
-		return &ValidationError{Name: "protocol", err: errors.New(`ent: missing required field "IxPrefix.protocol"`)}
-	}
-	if v, ok := _c.mutation.Protocol(); ok {
-		if err := ixprefix.ProtocolValidator(v); err != nil {
-			return &ValidationError{Name: "protocol", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.protocol": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.Prefix(); !ok {
-		return &ValidationError{Name: "prefix", err: errors.New(`ent: missing required field "IxPrefix.prefix"`)}
-	}
 	if _, ok := _c.mutation.InDfz(); !ok {
 		return &ValidationError{Name: "in_dfz", err: errors.New(`ent: missing required field "IxPrefix.in_dfz"`)}
 	}
 	if v, ok := _c.mutation.Notes(); ok {
 		if err := ixprefix.NotesValidator(v); err != nil {
 			return &ValidationError{Name: "notes", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.notes": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Prefix(); !ok {
+		return &ValidationError{Name: "prefix", err: errors.New(`ent: missing required field "IxPrefix.prefix"`)}
+	}
+	if v, ok := _c.mutation.Prefix(); ok {
+		if err := ixprefix.PrefixValidator(v); err != nil {
+			return &ValidationError{Name: "prefix", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.prefix": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Protocol(); ok {
+		if err := ixprefix.ProtocolValidator(v); err != nil {
+			return &ValidationError{Name: "protocol", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.protocol": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Created(); !ok {
@@ -253,14 +267,6 @@ func (_c *IxPrefixCreate) createSpec() (*IxPrefix, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.Protocol(); ok {
-		_spec.SetField(ixprefix.FieldProtocol, field.TypeString, value)
-		_node.Protocol = value
-	}
-	if value, ok := _c.mutation.Prefix(); ok {
-		_spec.SetField(ixprefix.FieldPrefix, field.TypeString, value)
-		_node.Prefix = value
-	}
 	if value, ok := _c.mutation.InDfz(); ok {
 		_spec.SetField(ixprefix.FieldInDfz, field.TypeBool, value)
 		_node.InDfz = value
@@ -268,6 +274,14 @@ func (_c *IxPrefixCreate) createSpec() (*IxPrefix, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(ixprefix.FieldNotes, field.TypeString, value)
 		_node.Notes = value
+	}
+	if value, ok := _c.mutation.Prefix(); ok {
+		_spec.SetField(ixprefix.FieldPrefix, field.TypeString, value)
+		_node.Prefix = value
+	}
+	if value, ok := _c.mutation.Protocol(); ok {
+		_spec.SetField(ixprefix.FieldProtocol, field.TypeString, value)
+		_node.Protocol = value
 	}
 	if value, ok := _c.mutation.Created(); ok {
 		_spec.SetField(ixprefix.FieldCreated, field.TypeTime, value)
@@ -368,30 +382,6 @@ func (u *IxPrefixUpsert) ClearIxlanID() *IxPrefixUpsert {
 	return u
 }
 
-// SetProtocol sets the "protocol" field.
-func (u *IxPrefixUpsert) SetProtocol(v string) *IxPrefixUpsert {
-	u.Set(ixprefix.FieldProtocol, v)
-	return u
-}
-
-// UpdateProtocol sets the "protocol" field to the value that was provided on create.
-func (u *IxPrefixUpsert) UpdateProtocol() *IxPrefixUpsert {
-	u.SetExcluded(ixprefix.FieldProtocol)
-	return u
-}
-
-// SetPrefix sets the "prefix" field.
-func (u *IxPrefixUpsert) SetPrefix(v string) *IxPrefixUpsert {
-	u.Set(ixprefix.FieldPrefix, v)
-	return u
-}
-
-// UpdatePrefix sets the "prefix" field to the value that was provided on create.
-func (u *IxPrefixUpsert) UpdatePrefix() *IxPrefixUpsert {
-	u.SetExcluded(ixprefix.FieldPrefix)
-	return u
-}
-
 // SetInDfz sets the "in_dfz" field.
 func (u *IxPrefixUpsert) SetInDfz(v bool) *IxPrefixUpsert {
 	u.Set(ixprefix.FieldInDfz, v)
@@ -419,6 +409,36 @@ func (u *IxPrefixUpsert) UpdateNotes() *IxPrefixUpsert {
 // ClearNotes clears the value of the "notes" field.
 func (u *IxPrefixUpsert) ClearNotes() *IxPrefixUpsert {
 	u.SetNull(ixprefix.FieldNotes)
+	return u
+}
+
+// SetPrefix sets the "prefix" field.
+func (u *IxPrefixUpsert) SetPrefix(v string) *IxPrefixUpsert {
+	u.Set(ixprefix.FieldPrefix, v)
+	return u
+}
+
+// UpdatePrefix sets the "prefix" field to the value that was provided on create.
+func (u *IxPrefixUpsert) UpdatePrefix() *IxPrefixUpsert {
+	u.SetExcluded(ixprefix.FieldPrefix)
+	return u
+}
+
+// SetProtocol sets the "protocol" field.
+func (u *IxPrefixUpsert) SetProtocol(v string) *IxPrefixUpsert {
+	u.Set(ixprefix.FieldProtocol, v)
+	return u
+}
+
+// UpdateProtocol sets the "protocol" field to the value that was provided on create.
+func (u *IxPrefixUpsert) UpdateProtocol() *IxPrefixUpsert {
+	u.SetExcluded(ixprefix.FieldProtocol)
+	return u
+}
+
+// ClearProtocol clears the value of the "protocol" field.
+func (u *IxPrefixUpsert) ClearProtocol() *IxPrefixUpsert {
+	u.SetNull(ixprefix.FieldProtocol)
 	return u
 }
 
@@ -518,34 +538,6 @@ func (u *IxPrefixUpsertOne) ClearIxlanID() *IxPrefixUpsertOne {
 	})
 }
 
-// SetProtocol sets the "protocol" field.
-func (u *IxPrefixUpsertOne) SetProtocol(v string) *IxPrefixUpsertOne {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.SetProtocol(v)
-	})
-}
-
-// UpdateProtocol sets the "protocol" field to the value that was provided on create.
-func (u *IxPrefixUpsertOne) UpdateProtocol() *IxPrefixUpsertOne {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.UpdateProtocol()
-	})
-}
-
-// SetPrefix sets the "prefix" field.
-func (u *IxPrefixUpsertOne) SetPrefix(v string) *IxPrefixUpsertOne {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.SetPrefix(v)
-	})
-}
-
-// UpdatePrefix sets the "prefix" field to the value that was provided on create.
-func (u *IxPrefixUpsertOne) UpdatePrefix() *IxPrefixUpsertOne {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.UpdatePrefix()
-	})
-}
-
 // SetInDfz sets the "in_dfz" field.
 func (u *IxPrefixUpsertOne) SetInDfz(v bool) *IxPrefixUpsertOne {
 	return u.Update(func(s *IxPrefixUpsert) {
@@ -578,6 +570,41 @@ func (u *IxPrefixUpsertOne) UpdateNotes() *IxPrefixUpsertOne {
 func (u *IxPrefixUpsertOne) ClearNotes() *IxPrefixUpsertOne {
 	return u.Update(func(s *IxPrefixUpsert) {
 		s.ClearNotes()
+	})
+}
+
+// SetPrefix sets the "prefix" field.
+func (u *IxPrefixUpsertOne) SetPrefix(v string) *IxPrefixUpsertOne {
+	return u.Update(func(s *IxPrefixUpsert) {
+		s.SetPrefix(v)
+	})
+}
+
+// UpdatePrefix sets the "prefix" field to the value that was provided on create.
+func (u *IxPrefixUpsertOne) UpdatePrefix() *IxPrefixUpsertOne {
+	return u.Update(func(s *IxPrefixUpsert) {
+		s.UpdatePrefix()
+	})
+}
+
+// SetProtocol sets the "protocol" field.
+func (u *IxPrefixUpsertOne) SetProtocol(v string) *IxPrefixUpsertOne {
+	return u.Update(func(s *IxPrefixUpsert) {
+		s.SetProtocol(v)
+	})
+}
+
+// UpdateProtocol sets the "protocol" field to the value that was provided on create.
+func (u *IxPrefixUpsertOne) UpdateProtocol() *IxPrefixUpsertOne {
+	return u.Update(func(s *IxPrefixUpsert) {
+		s.UpdateProtocol()
+	})
+}
+
+// ClearProtocol clears the value of the "protocol" field.
+func (u *IxPrefixUpsertOne) ClearProtocol() *IxPrefixUpsertOne {
+	return u.Update(func(s *IxPrefixUpsert) {
+		s.ClearProtocol()
 	})
 }
 
@@ -847,34 +874,6 @@ func (u *IxPrefixUpsertBulk) ClearIxlanID() *IxPrefixUpsertBulk {
 	})
 }
 
-// SetProtocol sets the "protocol" field.
-func (u *IxPrefixUpsertBulk) SetProtocol(v string) *IxPrefixUpsertBulk {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.SetProtocol(v)
-	})
-}
-
-// UpdateProtocol sets the "protocol" field to the value that was provided on create.
-func (u *IxPrefixUpsertBulk) UpdateProtocol() *IxPrefixUpsertBulk {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.UpdateProtocol()
-	})
-}
-
-// SetPrefix sets the "prefix" field.
-func (u *IxPrefixUpsertBulk) SetPrefix(v string) *IxPrefixUpsertBulk {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.SetPrefix(v)
-	})
-}
-
-// UpdatePrefix sets the "prefix" field to the value that was provided on create.
-func (u *IxPrefixUpsertBulk) UpdatePrefix() *IxPrefixUpsertBulk {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.UpdatePrefix()
-	})
-}
-
 // SetInDfz sets the "in_dfz" field.
 func (u *IxPrefixUpsertBulk) SetInDfz(v bool) *IxPrefixUpsertBulk {
 	return u.Update(func(s *IxPrefixUpsert) {
@@ -907,6 +906,41 @@ func (u *IxPrefixUpsertBulk) UpdateNotes() *IxPrefixUpsertBulk {
 func (u *IxPrefixUpsertBulk) ClearNotes() *IxPrefixUpsertBulk {
 	return u.Update(func(s *IxPrefixUpsert) {
 		s.ClearNotes()
+	})
+}
+
+// SetPrefix sets the "prefix" field.
+func (u *IxPrefixUpsertBulk) SetPrefix(v string) *IxPrefixUpsertBulk {
+	return u.Update(func(s *IxPrefixUpsert) {
+		s.SetPrefix(v)
+	})
+}
+
+// UpdatePrefix sets the "prefix" field to the value that was provided on create.
+func (u *IxPrefixUpsertBulk) UpdatePrefix() *IxPrefixUpsertBulk {
+	return u.Update(func(s *IxPrefixUpsert) {
+		s.UpdatePrefix()
+	})
+}
+
+// SetProtocol sets the "protocol" field.
+func (u *IxPrefixUpsertBulk) SetProtocol(v string) *IxPrefixUpsertBulk {
+	return u.Update(func(s *IxPrefixUpsert) {
+		s.SetProtocol(v)
+	})
+}
+
+// UpdateProtocol sets the "protocol" field to the value that was provided on create.
+func (u *IxPrefixUpsertBulk) UpdateProtocol() *IxPrefixUpsertBulk {
+	return u.Update(func(s *IxPrefixUpsert) {
+		s.UpdateProtocol()
+	})
+}
+
+// ClearProtocol clears the value of the "protocol" field.
+func (u *IxPrefixUpsertBulk) ClearProtocol() *IxPrefixUpsertBulk {
+	return u.Update(func(s *IxPrefixUpsert) {
+		s.ClearProtocol()
 	})
 }
 

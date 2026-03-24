@@ -18,13 +18,13 @@ import (
 type CarrierFacility struct {
 	config `json:"-"`
 	// ID of the ent.
-	// PeeringDB carrier-facility ID
+	// PeeringDB carrierfacility ID
 	ID int `json:"id,omitempty"`
 	// FK to carrier
 	CarrierID *int `json:"carrier_id"`
 	// FK to facility
 	FacID *int `json:"fac_id"`
-	// Facility name (computed)
+	// Name (computed)
 	Name string `json:"name"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`

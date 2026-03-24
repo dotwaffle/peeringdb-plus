@@ -22,7 +22,7 @@ func (CarrierFacility) Fields() []ent.Field {
 		field.Int("id").
 			Positive().
 			Immutable().
-			Comment("PeeringDB carrier-facility ID"),
+			Comment("PeeringDB carrierfacility ID"),
 		field.Int("carrier_id").
 			Optional().
 			Nillable().
@@ -39,7 +39,7 @@ func (CarrierFacility) Fields() []ent.Field {
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Facility name (computed)"),
+			Comment("Name (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").
@@ -76,9 +76,9 @@ func (CarrierFacility) Edges() []ent.Edge {
 // Indexes of the CarrierFacility.
 func (CarrierFacility) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("status"),
 		index.Fields("carrier_id"),
 		index.Fields("fac_id"),
+		index.Fields("status"),
 	}
 }
 

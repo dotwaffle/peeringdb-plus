@@ -22,45 +22,46 @@ func (IxLan) Fields() []ent.Field {
 		field.Int("id").
 			Positive().
 			Immutable().
-			Comment("PeeringDB IXLan ID"),
+			Comment("PeeringDB ixlan ID"),
 		field.Int("ix_id").
 			Optional().
 			Nillable().
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to internet exchange"),
-		field.String("name").
+		field.String("arp_sponge").
 			Optional().
-			MaxLen(255).
-			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("IXLan name"),
+			Nillable().
+			Comment("ARP sponge MAC address"),
 		field.String("descr").
 			Optional().
 			Default("").
 			Comment("Description"),
-		field.Int("mtu").
-			Default(1500).
-			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
-			Comment("MTU"),
 		field.Bool("dot1q_support").
 			Default(false).
 			Comment("802.1Q support"),
+		field.Bool("ixf_ixp_import_enabled").
+			Default(false).
+			Comment("IXF import enabled"),
+		field.String("ixf_ixp_member_list_url_visible").
+			MaxLen(64).
+			Optional().
+			Default("Private").
+			Comment("IXF member list URL visibility"),
+		field.Int("mtu").
+			Optional().
+			Default(1500).
+			Comment("MTU size"),
+		field.String("name").
+			MaxLen(255).
+			Optional().
+			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("LAN name"),
 		field.Int("rs_asn").
 			Optional().
 			Nillable().
 			Default(0).
 			Comment("Route server ASN"),
-		field.String("arp_sponge").
-			Optional().
-			Nillable().
-			Comment("ARP sponge MAC address"),
-		field.String("ixf_ixp_member_list_url_visible").
-			MaxLen(64).
-			Default("Private").
-			Comment("IXF member list URL visibility"),
-		field.Bool("ixf_ixp_import_enabled").
-			Default(false).
-			Comment("IXF import enabled"),
 
 		// HandleRefModel common fields
 		field.Time("created").
@@ -96,8 +97,9 @@ func (IxLan) Edges() []ent.Edge {
 // Indexes of the IxLan.
 func (IxLan) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("status"),
 		index.Fields("ix_id"),
+		index.Fields("name"),
+		index.Fields("status"),
 	}
 }
 

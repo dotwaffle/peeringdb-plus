@@ -17,22 +17,22 @@ import (
 type Poc struct {
 	config `json:"-"`
 	// ID of the ent.
-	// PeeringDB POC ID
+	// PeeringDB poc ID
 	ID int `json:"id,omitempty"`
 	// FK to network
 	NetID *int `json:"net_id"`
-	// Contact role
-	Role string `json:"role"`
-	// Visibility level
-	Visible string `json:"visible"`
+	// Email address
+	Email string `json:"email"`
 	// Contact name
 	Name string `json:"name"`
-	// Contact phone
+	// Phone number
 	Phone string `json:"phone"`
-	// Contact email
-	Email string `json:"email"`
-	// Contact URL
+	// Contact role
+	Role string `json:"role"`
+	// URL
 	URL string `json:"url"`
+	// Visibility level
+	Visible string `json:"visible"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -74,7 +74,7 @@ func (*Poc) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case poc.FieldID, poc.FieldNetID:
 			values[i] = new(sql.NullInt64)
-		case poc.FieldRole, poc.FieldVisible, poc.FieldName, poc.FieldPhone, poc.FieldEmail, poc.FieldURL, poc.FieldStatus:
+		case poc.FieldEmail, poc.FieldName, poc.FieldPhone, poc.FieldRole, poc.FieldURL, poc.FieldVisible, poc.FieldStatus:
 			values[i] = new(sql.NullString)
 		case poc.FieldCreated, poc.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -106,17 +106,11 @@ func (_m *Poc) assignValues(columns []string, values []any) error {
 				_m.NetID = new(int)
 				*_m.NetID = int(value.Int64)
 			}
-		case poc.FieldRole:
+		case poc.FieldEmail:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field role", values[i])
+				return fmt.Errorf("unexpected type %T for field email", values[i])
 			} else if value.Valid {
-				_m.Role = value.String
-			}
-		case poc.FieldVisible:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field visible", values[i])
-			} else if value.Valid {
-				_m.Visible = value.String
+				_m.Email = value.String
 			}
 		case poc.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -130,17 +124,23 @@ func (_m *Poc) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Phone = value.String
 			}
-		case poc.FieldEmail:
+		case poc.FieldRole:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field email", values[i])
+				return fmt.Errorf("unexpected type %T for field role", values[i])
 			} else if value.Valid {
-				_m.Email = value.String
+				_m.Role = value.String
 			}
 		case poc.FieldURL:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field url", values[i])
 			} else if value.Valid {
 				_m.URL = value.String
+			}
+		case poc.FieldVisible:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field visible", values[i])
+			} else if value.Valid {
+				_m.Visible = value.String
 			}
 		case poc.FieldCreated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -206,11 +206,8 @@ func (_m *Poc) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("role=")
-	builder.WriteString(_m.Role)
-	builder.WriteString(", ")
-	builder.WriteString("visible=")
-	builder.WriteString(_m.Visible)
+	builder.WriteString("email=")
+	builder.WriteString(_m.Email)
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
@@ -218,11 +215,14 @@ func (_m *Poc) String() string {
 	builder.WriteString("phone=")
 	builder.WriteString(_m.Phone)
 	builder.WriteString(", ")
-	builder.WriteString("email=")
-	builder.WriteString(_m.Email)
+	builder.WriteString("role=")
+	builder.WriteString(_m.Role)
 	builder.WriteString(", ")
 	builder.WriteString("url=")
 	builder.WriteString(_m.URL)
+	builder.WriteString(", ")
+	builder.WriteString("visible=")
+	builder.WriteString(_m.Visible)
 	builder.WriteString(", ")
 	builder.WriteString("created=")
 	builder.WriteString(_m.Created.Format(time.ANSIC))

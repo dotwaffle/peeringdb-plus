@@ -18,13 +18,13 @@ import (
 type IxFacility struct {
 	config `json:"-"`
 	// ID of the ent.
-	// PeeringDB IX-Facility ID
+	// PeeringDB ixfacility ID
 	ID int `json:"id,omitempty"`
-	// FK to internet exchange
-	IxID *int `json:"ix_id"`
 	// FK to facility
 	FacID *int `json:"fac_id"`
-	// Facility name (computed)
+	// FK to internet exchange
+	IxID *int `json:"ix_id"`
+	// Name (computed)
 	Name string `json:"name"`
 	// City (computed)
 	City string `json:"city"`
@@ -44,10 +44,10 @@ type IxFacility struct {
 
 // IxFacilityEdges holds the relations/edges for other nodes in the graph.
 type IxFacilityEdges struct {
-	// InternetExchange holds the value of the internet_exchange edge.
-	InternetExchange *InternetExchange `json:"internet_exchange,omitempty"`
 	// Facility holds the value of the facility edge.
 	Facility *Facility `json:"facility,omitempty"`
+	// InternetExchange holds the value of the internet_exchange edge.
+	InternetExchange *InternetExchange `json:"internet_exchange,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -55,26 +55,26 @@ type IxFacilityEdges struct {
 	totalCount [2]map[string]int
 }
 
-// InternetExchangeOrErr returns the InternetExchange value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e IxFacilityEdges) InternetExchangeOrErr() (*InternetExchange, error) {
-	if e.InternetExchange != nil {
-		return e.InternetExchange, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: internetexchange.Label}
-	}
-	return nil, &NotLoadedError{edge: "internet_exchange"}
-}
-
 // FacilityOrErr returns the Facility value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e IxFacilityEdges) FacilityOrErr() (*Facility, error) {
 	if e.Facility != nil {
 		return e.Facility, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: facility.Label}
 	}
 	return nil, &NotLoadedError{edge: "facility"}
+}
+
+// InternetExchangeOrErr returns the InternetExchange value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e IxFacilityEdges) InternetExchangeOrErr() (*InternetExchange, error) {
+	if e.InternetExchange != nil {
+		return e.InternetExchange, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: internetexchange.Label}
+	}
+	return nil, &NotLoadedError{edge: "internet_exchange"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -82,7 +82,7 @@ func (*IxFacility) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case ixfacility.FieldID, ixfacility.FieldIxID, ixfacility.FieldFacID:
+		case ixfacility.FieldID, ixfacility.FieldFacID, ixfacility.FieldIxID:
 			values[i] = new(sql.NullInt64)
 		case ixfacility.FieldName, ixfacility.FieldCity, ixfacility.FieldCountry, ixfacility.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -109,19 +109,19 @@ func (_m *IxFacility) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
-		case ixfacility.FieldIxID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field ix_id", values[i])
-			} else if value.Valid {
-				_m.IxID = new(int)
-				*_m.IxID = int(value.Int64)
-			}
 		case ixfacility.FieldFacID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field fac_id", values[i])
 			} else if value.Valid {
 				_m.FacID = new(int)
 				*_m.FacID = int(value.Int64)
+			}
+		case ixfacility.FieldIxID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field ix_id", values[i])
+			} else if value.Valid {
+				_m.IxID = new(int)
+				*_m.IxID = int(value.Int64)
 			}
 		case ixfacility.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -172,14 +172,14 @@ func (_m *IxFacility) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryInternetExchange queries the "internet_exchange" edge of the IxFacility entity.
-func (_m *IxFacility) QueryInternetExchange() *InternetExchangeQuery {
-	return NewIxFacilityClient(_m.config).QueryInternetExchange(_m)
-}
-
 // QueryFacility queries the "facility" edge of the IxFacility entity.
 func (_m *IxFacility) QueryFacility() *FacilityQuery {
 	return NewIxFacilityClient(_m.config).QueryFacility(_m)
+}
+
+// QueryInternetExchange queries the "internet_exchange" edge of the IxFacility entity.
+func (_m *IxFacility) QueryInternetExchange() *InternetExchangeQuery {
+	return NewIxFacilityClient(_m.config).QueryInternetExchange(_m)
 }
 
 // Update returns a builder for updating this IxFacility.
@@ -205,13 +205,13 @@ func (_m *IxFacility) String() string {
 	var builder strings.Builder
 	builder.WriteString("IxFacility(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
-	if v := _m.IxID; v != nil {
-		builder.WriteString("ix_id=")
+	if v := _m.FacID; v != nil {
+		builder.WriteString("fac_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := _m.FacID; v != nil {
-		builder.WriteString("fac_id=")
+	if v := _m.IxID; v != nil {
+		builder.WriteString("ix_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

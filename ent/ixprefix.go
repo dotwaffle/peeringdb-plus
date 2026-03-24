@@ -17,18 +17,18 @@ import (
 type IxPrefix struct {
 	config `json:"-"`
 	// ID of the ent.
-	// PeeringDB IX prefix ID
+	// PeeringDB ixprefix ID
 	ID int `json:"id,omitempty"`
-	// FK to IXLan
+	// FK to IX LAN
 	IxlanID *int `json:"ixlan_id"`
-	// Protocol (IPv4 or IPv6)
-	Protocol string `json:"protocol"`
-	// IP prefix
-	Prefix string `json:"prefix"`
 	// In default-free zone
 	InDfz bool `json:"in_dfz"`
 	// Notes
 	Notes string `json:"notes"`
+	// IP prefix
+	Prefix string `json:"prefix"`
+	// Protocol (IPv4/IPv6)
+	Protocol string `json:"protocol"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -72,7 +72,7 @@ func (*IxPrefix) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case ixprefix.FieldID, ixprefix.FieldIxlanID:
 			values[i] = new(sql.NullInt64)
-		case ixprefix.FieldProtocol, ixprefix.FieldPrefix, ixprefix.FieldNotes, ixprefix.FieldStatus:
+		case ixprefix.FieldNotes, ixprefix.FieldPrefix, ixprefix.FieldProtocol, ixprefix.FieldStatus:
 			values[i] = new(sql.NullString)
 		case ixprefix.FieldCreated, ixprefix.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -104,18 +104,6 @@ func (_m *IxPrefix) assignValues(columns []string, values []any) error {
 				_m.IxlanID = new(int)
 				*_m.IxlanID = int(value.Int64)
 			}
-		case ixprefix.FieldProtocol:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field protocol", values[i])
-			} else if value.Valid {
-				_m.Protocol = value.String
-			}
-		case ixprefix.FieldPrefix:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field prefix", values[i])
-			} else if value.Valid {
-				_m.Prefix = value.String
-			}
 		case ixprefix.FieldInDfz:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field in_dfz", values[i])
@@ -127,6 +115,18 @@ func (_m *IxPrefix) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field notes", values[i])
 			} else if value.Valid {
 				_m.Notes = value.String
+			}
+		case ixprefix.FieldPrefix:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field prefix", values[i])
+			} else if value.Valid {
+				_m.Prefix = value.String
+			}
+		case ixprefix.FieldProtocol:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field protocol", values[i])
+			} else if value.Valid {
+				_m.Protocol = value.String
 			}
 		case ixprefix.FieldCreated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -192,17 +192,17 @@ func (_m *IxPrefix) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("protocol=")
-	builder.WriteString(_m.Protocol)
-	builder.WriteString(", ")
-	builder.WriteString("prefix=")
-	builder.WriteString(_m.Prefix)
-	builder.WriteString(", ")
 	builder.WriteString("in_dfz=")
 	builder.WriteString(fmt.Sprintf("%v", _m.InDfz))
 	builder.WriteString(", ")
 	builder.WriteString("notes=")
 	builder.WriteString(_m.Notes)
+	builder.WriteString(", ")
+	builder.WriteString("prefix=")
+	builder.WriteString(_m.Prefix)
+	builder.WriteString(", ")
+	builder.WriteString("protocol=")
+	builder.WriteString(_m.Protocol)
 	builder.WriteString(", ")
 	builder.WriteString("created=")
 	builder.WriteString(_m.Created.Format(time.ANSIC))

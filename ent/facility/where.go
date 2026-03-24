@@ -55,24 +55,24 @@ func IDLTE(id int) predicate.Facility {
 	return predicate.Facility(sql.FieldLTE(FieldID, id))
 }
 
-// OrgID applies equality check predicate on the "org_id" field. It's identical to OrgIDEQ.
-func OrgID(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldOrgID, v))
-}
-
-// OrgName applies equality check predicate on the "org_name" field. It's identical to OrgNameEQ.
-func OrgName(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldOrgName, v))
-}
-
 // CampusID applies equality check predicate on the "campus_id" field. It's identical to CampusIDEQ.
 func CampusID(v int) predicate.Facility {
 	return predicate.Facility(sql.FieldEQ(FieldCampusID, v))
 }
 
-// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
-func Name(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldName, v))
+// OrgID applies equality check predicate on the "org_id" field. It's identical to OrgIDEQ.
+func OrgID(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldOrgID, v))
+}
+
+// Address1 applies equality check predicate on the "address1" field. It's identical to Address1EQ.
+func Address1(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldAddress1, v))
+}
+
+// Address2 applies equality check predicate on the "address2" field. It's identical to Address2EQ.
+func Address2(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldAddress2, v))
 }
 
 // Aka applies equality check predicate on the "aka" field. It's identical to AkaEQ.
@@ -80,14 +80,9 @@ func Aka(v string) predicate.Facility {
 	return predicate.Facility(sql.FieldEQ(FieldAka, v))
 }
 
-// NameLong applies equality check predicate on the "name_long" field. It's identical to NameLongEQ.
-func NameLong(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldNameLong, v))
-}
-
-// Website applies equality check predicate on the "website" field. It's identical to WebsiteEQ.
-func Website(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldWebsite, v))
+// City applies equality check predicate on the "city" field. It's identical to CityEQ.
+func City(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldCity, v))
 }
 
 // Clli applies equality check predicate on the "clli" field. It's identical to ClliEQ.
@@ -95,9 +90,49 @@ func Clli(v string) predicate.Facility {
 	return predicate.Facility(sql.FieldEQ(FieldClli, v))
 }
 
-// Rencode applies equality check predicate on the "rencode" field. It's identical to RencodeEQ.
-func Rencode(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldRencode, v))
+// Country applies equality check predicate on the "country" field. It's identical to CountryEQ.
+func Country(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldCountry, v))
+}
+
+// DiverseServingSubstations applies equality check predicate on the "diverse_serving_substations" field. It's identical to DiverseServingSubstationsEQ.
+func DiverseServingSubstations(v bool) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldDiverseServingSubstations, v))
+}
+
+// Floor applies equality check predicate on the "floor" field. It's identical to FloorEQ.
+func Floor(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldFloor, v))
+}
+
+// Latitude applies equality check predicate on the "latitude" field. It's identical to LatitudeEQ.
+func Latitude(v float64) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldLatitude, v))
+}
+
+// Logo applies equality check predicate on the "logo" field. It's identical to LogoEQ.
+func Logo(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldLogo, v))
+}
+
+// Longitude applies equality check predicate on the "longitude" field. It's identical to LongitudeEQ.
+func Longitude(v float64) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldLongitude, v))
+}
+
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldName, v))
+}
+
+// NameLong applies equality check predicate on the "name_long" field. It's identical to NameLongEQ.
+func NameLong(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldNameLong, v))
+}
+
+// Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
+func Notes(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldNotes, v))
 }
 
 // Npanxx applies equality check predicate on the "npanxx" field. It's identical to NpanxxEQ.
@@ -105,14 +140,19 @@ func Npanxx(v string) predicate.Facility {
 	return predicate.Facility(sql.FieldEQ(FieldNpanxx, v))
 }
 
-// TechEmail applies equality check predicate on the "tech_email" field. It's identical to TechEmailEQ.
-func TechEmail(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldTechEmail, v))
+// Property applies equality check predicate on the "property" field. It's identical to PropertyEQ.
+func Property(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldProperty, v))
 }
 
-// TechPhone applies equality check predicate on the "tech_phone" field. It's identical to TechPhoneEQ.
-func TechPhone(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldTechPhone, v))
+// RegionContinent applies equality check predicate on the "region_continent" field. It's identical to RegionContinentEQ.
+func RegionContinent(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldRegionContinent, v))
+}
+
+// Rencode applies equality check predicate on the "rencode" field. It's identical to RencodeEQ.
+func Rencode(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldRencode, v))
 }
 
 // SalesEmail applies equality check predicate on the "sales_email" field. It's identical to SalesEmailEQ.
@@ -125,24 +165,9 @@ func SalesPhone(v string) predicate.Facility {
 	return predicate.Facility(sql.FieldEQ(FieldSalesPhone, v))
 }
 
-// Property applies equality check predicate on the "property" field. It's identical to PropertyEQ.
-func Property(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldProperty, v))
-}
-
-// DiverseServingSubstations applies equality check predicate on the "diverse_serving_substations" field. It's identical to DiverseServingSubstationsEQ.
-func DiverseServingSubstations(v bool) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldDiverseServingSubstations, v))
-}
-
-// Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
-func Notes(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldNotes, v))
-}
-
-// RegionContinent applies equality check predicate on the "region_continent" field. It's identical to RegionContinentEQ.
-func RegionContinent(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldRegionContinent, v))
+// State applies equality check predicate on the "state" field. It's identical to StateEQ.
+func State(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldState, v))
 }
 
 // StatusDashboard applies equality check predicate on the "status_dashboard" field. It's identical to StatusDashboardEQ.
@@ -150,9 +175,34 @@ func StatusDashboard(v string) predicate.Facility {
 	return predicate.Facility(sql.FieldEQ(FieldStatusDashboard, v))
 }
 
-// Logo applies equality check predicate on the "logo" field. It's identical to LogoEQ.
-func Logo(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldLogo, v))
+// Suite applies equality check predicate on the "suite" field. It's identical to SuiteEQ.
+func Suite(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldSuite, v))
+}
+
+// TechEmail applies equality check predicate on the "tech_email" field. It's identical to TechEmailEQ.
+func TechEmail(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldTechEmail, v))
+}
+
+// TechPhone applies equality check predicate on the "tech_phone" field. It's identical to TechPhoneEQ.
+func TechPhone(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldTechPhone, v))
+}
+
+// Website applies equality check predicate on the "website" field. It's identical to WebsiteEQ.
+func Website(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldWebsite, v))
+}
+
+// Zipcode applies equality check predicate on the "zipcode" field. It's identical to ZipcodeEQ.
+func Zipcode(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldZipcode, v))
+}
+
+// OrgName applies equality check predicate on the "org_name" field. It's identical to OrgNameEQ.
+func OrgName(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldOrgName, v))
 }
 
 // NetCount applies equality check predicate on the "net_count" field. It's identical to NetCountEQ.
@@ -170,56 +220,6 @@ func CarrierCount(v int) predicate.Facility {
 	return predicate.Facility(sql.FieldEQ(FieldCarrierCount, v))
 }
 
-// Address1 applies equality check predicate on the "address1" field. It's identical to Address1EQ.
-func Address1(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldAddress1, v))
-}
-
-// Address2 applies equality check predicate on the "address2" field. It's identical to Address2EQ.
-func Address2(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldAddress2, v))
-}
-
-// City applies equality check predicate on the "city" field. It's identical to CityEQ.
-func City(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldCity, v))
-}
-
-// State applies equality check predicate on the "state" field. It's identical to StateEQ.
-func State(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldState, v))
-}
-
-// Country applies equality check predicate on the "country" field. It's identical to CountryEQ.
-func Country(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldCountry, v))
-}
-
-// Zipcode applies equality check predicate on the "zipcode" field. It's identical to ZipcodeEQ.
-func Zipcode(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldZipcode, v))
-}
-
-// Suite applies equality check predicate on the "suite" field. It's identical to SuiteEQ.
-func Suite(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldSuite, v))
-}
-
-// Floor applies equality check predicate on the "floor" field. It's identical to FloorEQ.
-func Floor(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldFloor, v))
-}
-
-// Latitude applies equality check predicate on the "latitude" field. It's identical to LatitudeEQ.
-func Latitude(v float64) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldLatitude, v))
-}
-
-// Longitude applies equality check predicate on the "longitude" field. It's identical to LongitudeEQ.
-func Longitude(v float64) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldLongitude, v))
-}
-
 // Created applies equality check predicate on the "created" field. It's identical to CreatedEQ.
 func Created(v time.Time) predicate.Facility {
 	return predicate.Facility(sql.FieldEQ(FieldCreated, v))
@@ -233,111 +233,6 @@ func Updated(v time.Time) predicate.Facility {
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
 func Status(v string) predicate.Facility {
 	return predicate.Facility(sql.FieldEQ(FieldStatus, v))
-}
-
-// OrgIDEQ applies the EQ predicate on the "org_id" field.
-func OrgIDEQ(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldOrgID, v))
-}
-
-// OrgIDNEQ applies the NEQ predicate on the "org_id" field.
-func OrgIDNEQ(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldOrgID, v))
-}
-
-// OrgIDIn applies the In predicate on the "org_id" field.
-func OrgIDIn(vs ...int) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldOrgID, vs...))
-}
-
-// OrgIDNotIn applies the NotIn predicate on the "org_id" field.
-func OrgIDNotIn(vs ...int) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldOrgID, vs...))
-}
-
-// OrgIDIsNil applies the IsNil predicate on the "org_id" field.
-func OrgIDIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldOrgID))
-}
-
-// OrgIDNotNil applies the NotNil predicate on the "org_id" field.
-func OrgIDNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldOrgID))
-}
-
-// OrgNameEQ applies the EQ predicate on the "org_name" field.
-func OrgNameEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldOrgName, v))
-}
-
-// OrgNameNEQ applies the NEQ predicate on the "org_name" field.
-func OrgNameNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldOrgName, v))
-}
-
-// OrgNameIn applies the In predicate on the "org_name" field.
-func OrgNameIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldOrgName, vs...))
-}
-
-// OrgNameNotIn applies the NotIn predicate on the "org_name" field.
-func OrgNameNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldOrgName, vs...))
-}
-
-// OrgNameGT applies the GT predicate on the "org_name" field.
-func OrgNameGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldOrgName, v))
-}
-
-// OrgNameGTE applies the GTE predicate on the "org_name" field.
-func OrgNameGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldOrgName, v))
-}
-
-// OrgNameLT applies the LT predicate on the "org_name" field.
-func OrgNameLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldOrgName, v))
-}
-
-// OrgNameLTE applies the LTE predicate on the "org_name" field.
-func OrgNameLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldOrgName, v))
-}
-
-// OrgNameContains applies the Contains predicate on the "org_name" field.
-func OrgNameContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldOrgName, v))
-}
-
-// OrgNameHasPrefix applies the HasPrefix predicate on the "org_name" field.
-func OrgNameHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldOrgName, v))
-}
-
-// OrgNameHasSuffix applies the HasSuffix predicate on the "org_name" field.
-func OrgNameHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldOrgName, v))
-}
-
-// OrgNameIsNil applies the IsNil predicate on the "org_name" field.
-func OrgNameIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldOrgName))
-}
-
-// OrgNameNotNil applies the NotNil predicate on the "org_name" field.
-func OrgNameNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldOrgName))
-}
-
-// OrgNameEqualFold applies the EqualFold predicate on the "org_name" field.
-func OrgNameEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldOrgName, v))
-}
-
-// OrgNameContainsFold applies the ContainsFold predicate on the "org_name" field.
-func OrgNameContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldOrgName, v))
 }
 
 // CampusIDEQ applies the EQ predicate on the "campus_id" field.
@@ -370,1384 +265,34 @@ func CampusIDNotNil() predicate.Facility {
 	return predicate.Facility(sql.FieldNotNull(FieldCampusID))
 }
 
-// NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldName, v))
+// OrgIDEQ applies the EQ predicate on the "org_id" field.
+func OrgIDEQ(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldOrgID, v))
 }
 
-// NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldName, v))
+// OrgIDNEQ applies the NEQ predicate on the "org_id" field.
+func OrgIDNEQ(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldOrgID, v))
 }
 
-// NameIn applies the In predicate on the "name" field.
-func NameIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldName, vs...))
+// OrgIDIn applies the In predicate on the "org_id" field.
+func OrgIDIn(vs ...int) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldOrgID, vs...))
 }
 
-// NameNotIn applies the NotIn predicate on the "name" field.
-func NameNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldName, vs...))
+// OrgIDNotIn applies the NotIn predicate on the "org_id" field.
+func OrgIDNotIn(vs ...int) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldOrgID, vs...))
 }
 
-// NameGT applies the GT predicate on the "name" field.
-func NameGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldName, v))
+// OrgIDIsNil applies the IsNil predicate on the "org_id" field.
+func OrgIDIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldOrgID))
 }
 
-// NameGTE applies the GTE predicate on the "name" field.
-func NameGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldName, v))
-}
-
-// NameLT applies the LT predicate on the "name" field.
-func NameLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldName, v))
-}
-
-// NameLTE applies the LTE predicate on the "name" field.
-func NameLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldName, v))
-}
-
-// NameContains applies the Contains predicate on the "name" field.
-func NameContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldName, v))
-}
-
-// NameHasPrefix applies the HasPrefix predicate on the "name" field.
-func NameHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldName, v))
-}
-
-// NameHasSuffix applies the HasSuffix predicate on the "name" field.
-func NameHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldName, v))
-}
-
-// NameEqualFold applies the EqualFold predicate on the "name" field.
-func NameEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldName, v))
-}
-
-// NameContainsFold applies the ContainsFold predicate on the "name" field.
-func NameContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldName, v))
-}
-
-// AkaEQ applies the EQ predicate on the "aka" field.
-func AkaEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldAka, v))
-}
-
-// AkaNEQ applies the NEQ predicate on the "aka" field.
-func AkaNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldAka, v))
-}
-
-// AkaIn applies the In predicate on the "aka" field.
-func AkaIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldAka, vs...))
-}
-
-// AkaNotIn applies the NotIn predicate on the "aka" field.
-func AkaNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldAka, vs...))
-}
-
-// AkaGT applies the GT predicate on the "aka" field.
-func AkaGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldAka, v))
-}
-
-// AkaGTE applies the GTE predicate on the "aka" field.
-func AkaGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldAka, v))
-}
-
-// AkaLT applies the LT predicate on the "aka" field.
-func AkaLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldAka, v))
-}
-
-// AkaLTE applies the LTE predicate on the "aka" field.
-func AkaLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldAka, v))
-}
-
-// AkaContains applies the Contains predicate on the "aka" field.
-func AkaContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldAka, v))
-}
-
-// AkaHasPrefix applies the HasPrefix predicate on the "aka" field.
-func AkaHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldAka, v))
-}
-
-// AkaHasSuffix applies the HasSuffix predicate on the "aka" field.
-func AkaHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldAka, v))
-}
-
-// AkaIsNil applies the IsNil predicate on the "aka" field.
-func AkaIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldAka))
-}
-
-// AkaNotNil applies the NotNil predicate on the "aka" field.
-func AkaNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldAka))
-}
-
-// AkaEqualFold applies the EqualFold predicate on the "aka" field.
-func AkaEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldAka, v))
-}
-
-// AkaContainsFold applies the ContainsFold predicate on the "aka" field.
-func AkaContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldAka, v))
-}
-
-// NameLongEQ applies the EQ predicate on the "name_long" field.
-func NameLongEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldNameLong, v))
-}
-
-// NameLongNEQ applies the NEQ predicate on the "name_long" field.
-func NameLongNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldNameLong, v))
-}
-
-// NameLongIn applies the In predicate on the "name_long" field.
-func NameLongIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldNameLong, vs...))
-}
-
-// NameLongNotIn applies the NotIn predicate on the "name_long" field.
-func NameLongNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldNameLong, vs...))
-}
-
-// NameLongGT applies the GT predicate on the "name_long" field.
-func NameLongGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldNameLong, v))
-}
-
-// NameLongGTE applies the GTE predicate on the "name_long" field.
-func NameLongGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldNameLong, v))
-}
-
-// NameLongLT applies the LT predicate on the "name_long" field.
-func NameLongLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldNameLong, v))
-}
-
-// NameLongLTE applies the LTE predicate on the "name_long" field.
-func NameLongLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldNameLong, v))
-}
-
-// NameLongContains applies the Contains predicate on the "name_long" field.
-func NameLongContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldNameLong, v))
-}
-
-// NameLongHasPrefix applies the HasPrefix predicate on the "name_long" field.
-func NameLongHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldNameLong, v))
-}
-
-// NameLongHasSuffix applies the HasSuffix predicate on the "name_long" field.
-func NameLongHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldNameLong, v))
-}
-
-// NameLongIsNil applies the IsNil predicate on the "name_long" field.
-func NameLongIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldNameLong))
-}
-
-// NameLongNotNil applies the NotNil predicate on the "name_long" field.
-func NameLongNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldNameLong))
-}
-
-// NameLongEqualFold applies the EqualFold predicate on the "name_long" field.
-func NameLongEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldNameLong, v))
-}
-
-// NameLongContainsFold applies the ContainsFold predicate on the "name_long" field.
-func NameLongContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldNameLong, v))
-}
-
-// WebsiteEQ applies the EQ predicate on the "website" field.
-func WebsiteEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldWebsite, v))
-}
-
-// WebsiteNEQ applies the NEQ predicate on the "website" field.
-func WebsiteNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldWebsite, v))
-}
-
-// WebsiteIn applies the In predicate on the "website" field.
-func WebsiteIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldWebsite, vs...))
-}
-
-// WebsiteNotIn applies the NotIn predicate on the "website" field.
-func WebsiteNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldWebsite, vs...))
-}
-
-// WebsiteGT applies the GT predicate on the "website" field.
-func WebsiteGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldWebsite, v))
-}
-
-// WebsiteGTE applies the GTE predicate on the "website" field.
-func WebsiteGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldWebsite, v))
-}
-
-// WebsiteLT applies the LT predicate on the "website" field.
-func WebsiteLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldWebsite, v))
-}
-
-// WebsiteLTE applies the LTE predicate on the "website" field.
-func WebsiteLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldWebsite, v))
-}
-
-// WebsiteContains applies the Contains predicate on the "website" field.
-func WebsiteContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldWebsite, v))
-}
-
-// WebsiteHasPrefix applies the HasPrefix predicate on the "website" field.
-func WebsiteHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldWebsite, v))
-}
-
-// WebsiteHasSuffix applies the HasSuffix predicate on the "website" field.
-func WebsiteHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldWebsite, v))
-}
-
-// WebsiteIsNil applies the IsNil predicate on the "website" field.
-func WebsiteIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldWebsite))
-}
-
-// WebsiteNotNil applies the NotNil predicate on the "website" field.
-func WebsiteNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldWebsite))
-}
-
-// WebsiteEqualFold applies the EqualFold predicate on the "website" field.
-func WebsiteEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldWebsite, v))
-}
-
-// WebsiteContainsFold applies the ContainsFold predicate on the "website" field.
-func WebsiteContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldWebsite, v))
-}
-
-// SocialMediaIsNil applies the IsNil predicate on the "social_media" field.
-func SocialMediaIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldSocialMedia))
-}
-
-// SocialMediaNotNil applies the NotNil predicate on the "social_media" field.
-func SocialMediaNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldSocialMedia))
-}
-
-// ClliEQ applies the EQ predicate on the "clli" field.
-func ClliEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldClli, v))
-}
-
-// ClliNEQ applies the NEQ predicate on the "clli" field.
-func ClliNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldClli, v))
-}
-
-// ClliIn applies the In predicate on the "clli" field.
-func ClliIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldClli, vs...))
-}
-
-// ClliNotIn applies the NotIn predicate on the "clli" field.
-func ClliNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldClli, vs...))
-}
-
-// ClliGT applies the GT predicate on the "clli" field.
-func ClliGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldClli, v))
-}
-
-// ClliGTE applies the GTE predicate on the "clli" field.
-func ClliGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldClli, v))
-}
-
-// ClliLT applies the LT predicate on the "clli" field.
-func ClliLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldClli, v))
-}
-
-// ClliLTE applies the LTE predicate on the "clli" field.
-func ClliLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldClli, v))
-}
-
-// ClliContains applies the Contains predicate on the "clli" field.
-func ClliContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldClli, v))
-}
-
-// ClliHasPrefix applies the HasPrefix predicate on the "clli" field.
-func ClliHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldClli, v))
-}
-
-// ClliHasSuffix applies the HasSuffix predicate on the "clli" field.
-func ClliHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldClli, v))
-}
-
-// ClliIsNil applies the IsNil predicate on the "clli" field.
-func ClliIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldClli))
-}
-
-// ClliNotNil applies the NotNil predicate on the "clli" field.
-func ClliNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldClli))
-}
-
-// ClliEqualFold applies the EqualFold predicate on the "clli" field.
-func ClliEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldClli, v))
-}
-
-// ClliContainsFold applies the ContainsFold predicate on the "clli" field.
-func ClliContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldClli, v))
-}
-
-// RencodeEQ applies the EQ predicate on the "rencode" field.
-func RencodeEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldRencode, v))
-}
-
-// RencodeNEQ applies the NEQ predicate on the "rencode" field.
-func RencodeNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldRencode, v))
-}
-
-// RencodeIn applies the In predicate on the "rencode" field.
-func RencodeIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldRencode, vs...))
-}
-
-// RencodeNotIn applies the NotIn predicate on the "rencode" field.
-func RencodeNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldRencode, vs...))
-}
-
-// RencodeGT applies the GT predicate on the "rencode" field.
-func RencodeGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldRencode, v))
-}
-
-// RencodeGTE applies the GTE predicate on the "rencode" field.
-func RencodeGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldRencode, v))
-}
-
-// RencodeLT applies the LT predicate on the "rencode" field.
-func RencodeLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldRencode, v))
-}
-
-// RencodeLTE applies the LTE predicate on the "rencode" field.
-func RencodeLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldRencode, v))
-}
-
-// RencodeContains applies the Contains predicate on the "rencode" field.
-func RencodeContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldRencode, v))
-}
-
-// RencodeHasPrefix applies the HasPrefix predicate on the "rencode" field.
-func RencodeHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldRencode, v))
-}
-
-// RencodeHasSuffix applies the HasSuffix predicate on the "rencode" field.
-func RencodeHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldRencode, v))
-}
-
-// RencodeIsNil applies the IsNil predicate on the "rencode" field.
-func RencodeIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldRencode))
-}
-
-// RencodeNotNil applies the NotNil predicate on the "rencode" field.
-func RencodeNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldRencode))
-}
-
-// RencodeEqualFold applies the EqualFold predicate on the "rencode" field.
-func RencodeEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldRencode, v))
-}
-
-// RencodeContainsFold applies the ContainsFold predicate on the "rencode" field.
-func RencodeContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldRencode, v))
-}
-
-// NpanxxEQ applies the EQ predicate on the "npanxx" field.
-func NpanxxEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldNpanxx, v))
-}
-
-// NpanxxNEQ applies the NEQ predicate on the "npanxx" field.
-func NpanxxNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldNpanxx, v))
-}
-
-// NpanxxIn applies the In predicate on the "npanxx" field.
-func NpanxxIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldNpanxx, vs...))
-}
-
-// NpanxxNotIn applies the NotIn predicate on the "npanxx" field.
-func NpanxxNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldNpanxx, vs...))
-}
-
-// NpanxxGT applies the GT predicate on the "npanxx" field.
-func NpanxxGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldNpanxx, v))
-}
-
-// NpanxxGTE applies the GTE predicate on the "npanxx" field.
-func NpanxxGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldNpanxx, v))
-}
-
-// NpanxxLT applies the LT predicate on the "npanxx" field.
-func NpanxxLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldNpanxx, v))
-}
-
-// NpanxxLTE applies the LTE predicate on the "npanxx" field.
-func NpanxxLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldNpanxx, v))
-}
-
-// NpanxxContains applies the Contains predicate on the "npanxx" field.
-func NpanxxContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldNpanxx, v))
-}
-
-// NpanxxHasPrefix applies the HasPrefix predicate on the "npanxx" field.
-func NpanxxHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldNpanxx, v))
-}
-
-// NpanxxHasSuffix applies the HasSuffix predicate on the "npanxx" field.
-func NpanxxHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldNpanxx, v))
-}
-
-// NpanxxIsNil applies the IsNil predicate on the "npanxx" field.
-func NpanxxIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldNpanxx))
-}
-
-// NpanxxNotNil applies the NotNil predicate on the "npanxx" field.
-func NpanxxNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldNpanxx))
-}
-
-// NpanxxEqualFold applies the EqualFold predicate on the "npanxx" field.
-func NpanxxEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldNpanxx, v))
-}
-
-// NpanxxContainsFold applies the ContainsFold predicate on the "npanxx" field.
-func NpanxxContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldNpanxx, v))
-}
-
-// TechEmailEQ applies the EQ predicate on the "tech_email" field.
-func TechEmailEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldTechEmail, v))
-}
-
-// TechEmailNEQ applies the NEQ predicate on the "tech_email" field.
-func TechEmailNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldTechEmail, v))
-}
-
-// TechEmailIn applies the In predicate on the "tech_email" field.
-func TechEmailIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldTechEmail, vs...))
-}
-
-// TechEmailNotIn applies the NotIn predicate on the "tech_email" field.
-func TechEmailNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldTechEmail, vs...))
-}
-
-// TechEmailGT applies the GT predicate on the "tech_email" field.
-func TechEmailGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldTechEmail, v))
-}
-
-// TechEmailGTE applies the GTE predicate on the "tech_email" field.
-func TechEmailGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldTechEmail, v))
-}
-
-// TechEmailLT applies the LT predicate on the "tech_email" field.
-func TechEmailLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldTechEmail, v))
-}
-
-// TechEmailLTE applies the LTE predicate on the "tech_email" field.
-func TechEmailLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldTechEmail, v))
-}
-
-// TechEmailContains applies the Contains predicate on the "tech_email" field.
-func TechEmailContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldTechEmail, v))
-}
-
-// TechEmailHasPrefix applies the HasPrefix predicate on the "tech_email" field.
-func TechEmailHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldTechEmail, v))
-}
-
-// TechEmailHasSuffix applies the HasSuffix predicate on the "tech_email" field.
-func TechEmailHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldTechEmail, v))
-}
-
-// TechEmailIsNil applies the IsNil predicate on the "tech_email" field.
-func TechEmailIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldTechEmail))
-}
-
-// TechEmailNotNil applies the NotNil predicate on the "tech_email" field.
-func TechEmailNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldTechEmail))
-}
-
-// TechEmailEqualFold applies the EqualFold predicate on the "tech_email" field.
-func TechEmailEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldTechEmail, v))
-}
-
-// TechEmailContainsFold applies the ContainsFold predicate on the "tech_email" field.
-func TechEmailContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldTechEmail, v))
-}
-
-// TechPhoneEQ applies the EQ predicate on the "tech_phone" field.
-func TechPhoneEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldTechPhone, v))
-}
-
-// TechPhoneNEQ applies the NEQ predicate on the "tech_phone" field.
-func TechPhoneNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldTechPhone, v))
-}
-
-// TechPhoneIn applies the In predicate on the "tech_phone" field.
-func TechPhoneIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldTechPhone, vs...))
-}
-
-// TechPhoneNotIn applies the NotIn predicate on the "tech_phone" field.
-func TechPhoneNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldTechPhone, vs...))
-}
-
-// TechPhoneGT applies the GT predicate on the "tech_phone" field.
-func TechPhoneGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldTechPhone, v))
-}
-
-// TechPhoneGTE applies the GTE predicate on the "tech_phone" field.
-func TechPhoneGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldTechPhone, v))
-}
-
-// TechPhoneLT applies the LT predicate on the "tech_phone" field.
-func TechPhoneLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldTechPhone, v))
-}
-
-// TechPhoneLTE applies the LTE predicate on the "tech_phone" field.
-func TechPhoneLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldTechPhone, v))
-}
-
-// TechPhoneContains applies the Contains predicate on the "tech_phone" field.
-func TechPhoneContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldTechPhone, v))
-}
-
-// TechPhoneHasPrefix applies the HasPrefix predicate on the "tech_phone" field.
-func TechPhoneHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldTechPhone, v))
-}
-
-// TechPhoneHasSuffix applies the HasSuffix predicate on the "tech_phone" field.
-func TechPhoneHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldTechPhone, v))
-}
-
-// TechPhoneIsNil applies the IsNil predicate on the "tech_phone" field.
-func TechPhoneIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldTechPhone))
-}
-
-// TechPhoneNotNil applies the NotNil predicate on the "tech_phone" field.
-func TechPhoneNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldTechPhone))
-}
-
-// TechPhoneEqualFold applies the EqualFold predicate on the "tech_phone" field.
-func TechPhoneEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldTechPhone, v))
-}
-
-// TechPhoneContainsFold applies the ContainsFold predicate on the "tech_phone" field.
-func TechPhoneContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldTechPhone, v))
-}
-
-// SalesEmailEQ applies the EQ predicate on the "sales_email" field.
-func SalesEmailEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldSalesEmail, v))
-}
-
-// SalesEmailNEQ applies the NEQ predicate on the "sales_email" field.
-func SalesEmailNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldSalesEmail, v))
-}
-
-// SalesEmailIn applies the In predicate on the "sales_email" field.
-func SalesEmailIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldSalesEmail, vs...))
-}
-
-// SalesEmailNotIn applies the NotIn predicate on the "sales_email" field.
-func SalesEmailNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldSalesEmail, vs...))
-}
-
-// SalesEmailGT applies the GT predicate on the "sales_email" field.
-func SalesEmailGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldSalesEmail, v))
-}
-
-// SalesEmailGTE applies the GTE predicate on the "sales_email" field.
-func SalesEmailGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldSalesEmail, v))
-}
-
-// SalesEmailLT applies the LT predicate on the "sales_email" field.
-func SalesEmailLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldSalesEmail, v))
-}
-
-// SalesEmailLTE applies the LTE predicate on the "sales_email" field.
-func SalesEmailLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldSalesEmail, v))
-}
-
-// SalesEmailContains applies the Contains predicate on the "sales_email" field.
-func SalesEmailContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldSalesEmail, v))
-}
-
-// SalesEmailHasPrefix applies the HasPrefix predicate on the "sales_email" field.
-func SalesEmailHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldSalesEmail, v))
-}
-
-// SalesEmailHasSuffix applies the HasSuffix predicate on the "sales_email" field.
-func SalesEmailHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldSalesEmail, v))
-}
-
-// SalesEmailIsNil applies the IsNil predicate on the "sales_email" field.
-func SalesEmailIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldSalesEmail))
-}
-
-// SalesEmailNotNil applies the NotNil predicate on the "sales_email" field.
-func SalesEmailNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldSalesEmail))
-}
-
-// SalesEmailEqualFold applies the EqualFold predicate on the "sales_email" field.
-func SalesEmailEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldSalesEmail, v))
-}
-
-// SalesEmailContainsFold applies the ContainsFold predicate on the "sales_email" field.
-func SalesEmailContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldSalesEmail, v))
-}
-
-// SalesPhoneEQ applies the EQ predicate on the "sales_phone" field.
-func SalesPhoneEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldSalesPhone, v))
-}
-
-// SalesPhoneNEQ applies the NEQ predicate on the "sales_phone" field.
-func SalesPhoneNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldSalesPhone, v))
-}
-
-// SalesPhoneIn applies the In predicate on the "sales_phone" field.
-func SalesPhoneIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldSalesPhone, vs...))
-}
-
-// SalesPhoneNotIn applies the NotIn predicate on the "sales_phone" field.
-func SalesPhoneNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldSalesPhone, vs...))
-}
-
-// SalesPhoneGT applies the GT predicate on the "sales_phone" field.
-func SalesPhoneGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldSalesPhone, v))
-}
-
-// SalesPhoneGTE applies the GTE predicate on the "sales_phone" field.
-func SalesPhoneGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldSalesPhone, v))
-}
-
-// SalesPhoneLT applies the LT predicate on the "sales_phone" field.
-func SalesPhoneLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldSalesPhone, v))
-}
-
-// SalesPhoneLTE applies the LTE predicate on the "sales_phone" field.
-func SalesPhoneLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldSalesPhone, v))
-}
-
-// SalesPhoneContains applies the Contains predicate on the "sales_phone" field.
-func SalesPhoneContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldSalesPhone, v))
-}
-
-// SalesPhoneHasPrefix applies the HasPrefix predicate on the "sales_phone" field.
-func SalesPhoneHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldSalesPhone, v))
-}
-
-// SalesPhoneHasSuffix applies the HasSuffix predicate on the "sales_phone" field.
-func SalesPhoneHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldSalesPhone, v))
-}
-
-// SalesPhoneIsNil applies the IsNil predicate on the "sales_phone" field.
-func SalesPhoneIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldSalesPhone))
-}
-
-// SalesPhoneNotNil applies the NotNil predicate on the "sales_phone" field.
-func SalesPhoneNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldSalesPhone))
-}
-
-// SalesPhoneEqualFold applies the EqualFold predicate on the "sales_phone" field.
-func SalesPhoneEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldSalesPhone, v))
-}
-
-// SalesPhoneContainsFold applies the ContainsFold predicate on the "sales_phone" field.
-func SalesPhoneContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldSalesPhone, v))
-}
-
-// PropertyEQ applies the EQ predicate on the "property" field.
-func PropertyEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldProperty, v))
-}
-
-// PropertyNEQ applies the NEQ predicate on the "property" field.
-func PropertyNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldProperty, v))
-}
-
-// PropertyIn applies the In predicate on the "property" field.
-func PropertyIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldProperty, vs...))
-}
-
-// PropertyNotIn applies the NotIn predicate on the "property" field.
-func PropertyNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldProperty, vs...))
-}
-
-// PropertyGT applies the GT predicate on the "property" field.
-func PropertyGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldProperty, v))
-}
-
-// PropertyGTE applies the GTE predicate on the "property" field.
-func PropertyGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldProperty, v))
-}
-
-// PropertyLT applies the LT predicate on the "property" field.
-func PropertyLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldProperty, v))
-}
-
-// PropertyLTE applies the LTE predicate on the "property" field.
-func PropertyLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldProperty, v))
-}
-
-// PropertyContains applies the Contains predicate on the "property" field.
-func PropertyContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldProperty, v))
-}
-
-// PropertyHasPrefix applies the HasPrefix predicate on the "property" field.
-func PropertyHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldProperty, v))
-}
-
-// PropertyHasSuffix applies the HasSuffix predicate on the "property" field.
-func PropertyHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldProperty, v))
-}
-
-// PropertyIsNil applies the IsNil predicate on the "property" field.
-func PropertyIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldProperty))
-}
-
-// PropertyNotNil applies the NotNil predicate on the "property" field.
-func PropertyNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldProperty))
-}
-
-// PropertyEqualFold applies the EqualFold predicate on the "property" field.
-func PropertyEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldProperty, v))
-}
-
-// PropertyContainsFold applies the ContainsFold predicate on the "property" field.
-func PropertyContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldProperty, v))
-}
-
-// DiverseServingSubstationsEQ applies the EQ predicate on the "diverse_serving_substations" field.
-func DiverseServingSubstationsEQ(v bool) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldDiverseServingSubstations, v))
-}
-
-// DiverseServingSubstationsNEQ applies the NEQ predicate on the "diverse_serving_substations" field.
-func DiverseServingSubstationsNEQ(v bool) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldDiverseServingSubstations, v))
-}
-
-// DiverseServingSubstationsIsNil applies the IsNil predicate on the "diverse_serving_substations" field.
-func DiverseServingSubstationsIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldDiverseServingSubstations))
-}
-
-// DiverseServingSubstationsNotNil applies the NotNil predicate on the "diverse_serving_substations" field.
-func DiverseServingSubstationsNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldDiverseServingSubstations))
-}
-
-// AvailableVoltageServicesIsNil applies the IsNil predicate on the "available_voltage_services" field.
-func AvailableVoltageServicesIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldAvailableVoltageServices))
-}
-
-// AvailableVoltageServicesNotNil applies the NotNil predicate on the "available_voltage_services" field.
-func AvailableVoltageServicesNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldAvailableVoltageServices))
-}
-
-// NotesEQ applies the EQ predicate on the "notes" field.
-func NotesEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldNotes, v))
-}
-
-// NotesNEQ applies the NEQ predicate on the "notes" field.
-func NotesNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldNotes, v))
-}
-
-// NotesIn applies the In predicate on the "notes" field.
-func NotesIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldNotes, vs...))
-}
-
-// NotesNotIn applies the NotIn predicate on the "notes" field.
-func NotesNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldNotes, vs...))
-}
-
-// NotesGT applies the GT predicate on the "notes" field.
-func NotesGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldNotes, v))
-}
-
-// NotesGTE applies the GTE predicate on the "notes" field.
-func NotesGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldNotes, v))
-}
-
-// NotesLT applies the LT predicate on the "notes" field.
-func NotesLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldNotes, v))
-}
-
-// NotesLTE applies the LTE predicate on the "notes" field.
-func NotesLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldNotes, v))
-}
-
-// NotesContains applies the Contains predicate on the "notes" field.
-func NotesContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldNotes, v))
-}
-
-// NotesHasPrefix applies the HasPrefix predicate on the "notes" field.
-func NotesHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldNotes, v))
-}
-
-// NotesHasSuffix applies the HasSuffix predicate on the "notes" field.
-func NotesHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldNotes, v))
-}
-
-// NotesIsNil applies the IsNil predicate on the "notes" field.
-func NotesIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldNotes))
-}
-
-// NotesNotNil applies the NotNil predicate on the "notes" field.
-func NotesNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldNotes))
-}
-
-// NotesEqualFold applies the EqualFold predicate on the "notes" field.
-func NotesEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldNotes, v))
-}
-
-// NotesContainsFold applies the ContainsFold predicate on the "notes" field.
-func NotesContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldNotes, v))
-}
-
-// RegionContinentEQ applies the EQ predicate on the "region_continent" field.
-func RegionContinentEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldRegionContinent, v))
-}
-
-// RegionContinentNEQ applies the NEQ predicate on the "region_continent" field.
-func RegionContinentNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldRegionContinent, v))
-}
-
-// RegionContinentIn applies the In predicate on the "region_continent" field.
-func RegionContinentIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldRegionContinent, vs...))
-}
-
-// RegionContinentNotIn applies the NotIn predicate on the "region_continent" field.
-func RegionContinentNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldRegionContinent, vs...))
-}
-
-// RegionContinentGT applies the GT predicate on the "region_continent" field.
-func RegionContinentGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldRegionContinent, v))
-}
-
-// RegionContinentGTE applies the GTE predicate on the "region_continent" field.
-func RegionContinentGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldRegionContinent, v))
-}
-
-// RegionContinentLT applies the LT predicate on the "region_continent" field.
-func RegionContinentLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldRegionContinent, v))
-}
-
-// RegionContinentLTE applies the LTE predicate on the "region_continent" field.
-func RegionContinentLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldRegionContinent, v))
-}
-
-// RegionContinentContains applies the Contains predicate on the "region_continent" field.
-func RegionContinentContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldRegionContinent, v))
-}
-
-// RegionContinentHasPrefix applies the HasPrefix predicate on the "region_continent" field.
-func RegionContinentHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldRegionContinent, v))
-}
-
-// RegionContinentHasSuffix applies the HasSuffix predicate on the "region_continent" field.
-func RegionContinentHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldRegionContinent, v))
-}
-
-// RegionContinentIsNil applies the IsNil predicate on the "region_continent" field.
-func RegionContinentIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldRegionContinent))
-}
-
-// RegionContinentNotNil applies the NotNil predicate on the "region_continent" field.
-func RegionContinentNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldRegionContinent))
-}
-
-// RegionContinentEqualFold applies the EqualFold predicate on the "region_continent" field.
-func RegionContinentEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldRegionContinent, v))
-}
-
-// RegionContinentContainsFold applies the ContainsFold predicate on the "region_continent" field.
-func RegionContinentContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldRegionContinent, v))
-}
-
-// StatusDashboardEQ applies the EQ predicate on the "status_dashboard" field.
-func StatusDashboardEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldStatusDashboard, v))
-}
-
-// StatusDashboardNEQ applies the NEQ predicate on the "status_dashboard" field.
-func StatusDashboardNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldStatusDashboard, v))
-}
-
-// StatusDashboardIn applies the In predicate on the "status_dashboard" field.
-func StatusDashboardIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldStatusDashboard, vs...))
-}
-
-// StatusDashboardNotIn applies the NotIn predicate on the "status_dashboard" field.
-func StatusDashboardNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldStatusDashboard, vs...))
-}
-
-// StatusDashboardGT applies the GT predicate on the "status_dashboard" field.
-func StatusDashboardGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldStatusDashboard, v))
-}
-
-// StatusDashboardGTE applies the GTE predicate on the "status_dashboard" field.
-func StatusDashboardGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldStatusDashboard, v))
-}
-
-// StatusDashboardLT applies the LT predicate on the "status_dashboard" field.
-func StatusDashboardLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldStatusDashboard, v))
-}
-
-// StatusDashboardLTE applies the LTE predicate on the "status_dashboard" field.
-func StatusDashboardLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldStatusDashboard, v))
-}
-
-// StatusDashboardContains applies the Contains predicate on the "status_dashboard" field.
-func StatusDashboardContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldStatusDashboard, v))
-}
-
-// StatusDashboardHasPrefix applies the HasPrefix predicate on the "status_dashboard" field.
-func StatusDashboardHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldStatusDashboard, v))
-}
-
-// StatusDashboardHasSuffix applies the HasSuffix predicate on the "status_dashboard" field.
-func StatusDashboardHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldStatusDashboard, v))
-}
-
-// StatusDashboardIsNil applies the IsNil predicate on the "status_dashboard" field.
-func StatusDashboardIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldStatusDashboard))
-}
-
-// StatusDashboardNotNil applies the NotNil predicate on the "status_dashboard" field.
-func StatusDashboardNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldStatusDashboard))
-}
-
-// StatusDashboardEqualFold applies the EqualFold predicate on the "status_dashboard" field.
-func StatusDashboardEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldStatusDashboard, v))
-}
-
-// StatusDashboardContainsFold applies the ContainsFold predicate on the "status_dashboard" field.
-func StatusDashboardContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldStatusDashboard, v))
-}
-
-// LogoEQ applies the EQ predicate on the "logo" field.
-func LogoEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldLogo, v))
-}
-
-// LogoNEQ applies the NEQ predicate on the "logo" field.
-func LogoNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldLogo, v))
-}
-
-// LogoIn applies the In predicate on the "logo" field.
-func LogoIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldLogo, vs...))
-}
-
-// LogoNotIn applies the NotIn predicate on the "logo" field.
-func LogoNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldLogo, vs...))
-}
-
-// LogoGT applies the GT predicate on the "logo" field.
-func LogoGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldLogo, v))
-}
-
-// LogoGTE applies the GTE predicate on the "logo" field.
-func LogoGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldLogo, v))
-}
-
-// LogoLT applies the LT predicate on the "logo" field.
-func LogoLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldLogo, v))
-}
-
-// LogoLTE applies the LTE predicate on the "logo" field.
-func LogoLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldLogo, v))
-}
-
-// LogoContains applies the Contains predicate on the "logo" field.
-func LogoContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldLogo, v))
-}
-
-// LogoHasPrefix applies the HasPrefix predicate on the "logo" field.
-func LogoHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldLogo, v))
-}
-
-// LogoHasSuffix applies the HasSuffix predicate on the "logo" field.
-func LogoHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldLogo, v))
-}
-
-// LogoIsNil applies the IsNil predicate on the "logo" field.
-func LogoIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldLogo))
-}
-
-// LogoNotNil applies the NotNil predicate on the "logo" field.
-func LogoNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldLogo))
-}
-
-// LogoEqualFold applies the EqualFold predicate on the "logo" field.
-func LogoEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldLogo, v))
-}
-
-// LogoContainsFold applies the ContainsFold predicate on the "logo" field.
-func LogoContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldLogo, v))
-}
-
-// NetCountEQ applies the EQ predicate on the "net_count" field.
-func NetCountEQ(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldNetCount, v))
-}
-
-// NetCountNEQ applies the NEQ predicate on the "net_count" field.
-func NetCountNEQ(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldNetCount, v))
-}
-
-// NetCountIn applies the In predicate on the "net_count" field.
-func NetCountIn(vs ...int) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldNetCount, vs...))
-}
-
-// NetCountNotIn applies the NotIn predicate on the "net_count" field.
-func NetCountNotIn(vs ...int) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldNetCount, vs...))
-}
-
-// NetCountGT applies the GT predicate on the "net_count" field.
-func NetCountGT(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldNetCount, v))
-}
-
-// NetCountGTE applies the GTE predicate on the "net_count" field.
-func NetCountGTE(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldNetCount, v))
-}
-
-// NetCountLT applies the LT predicate on the "net_count" field.
-func NetCountLT(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldNetCount, v))
-}
-
-// NetCountLTE applies the LTE predicate on the "net_count" field.
-func NetCountLTE(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldNetCount, v))
-}
-
-// NetCountIsNil applies the IsNil predicate on the "net_count" field.
-func NetCountIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldNetCount))
-}
-
-// NetCountNotNil applies the NotNil predicate on the "net_count" field.
-func NetCountNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldNetCount))
-}
-
-// IxCountEQ applies the EQ predicate on the "ix_count" field.
-func IxCountEQ(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldIxCount, v))
-}
-
-// IxCountNEQ applies the NEQ predicate on the "ix_count" field.
-func IxCountNEQ(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldIxCount, v))
-}
-
-// IxCountIn applies the In predicate on the "ix_count" field.
-func IxCountIn(vs ...int) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldIxCount, vs...))
-}
-
-// IxCountNotIn applies the NotIn predicate on the "ix_count" field.
-func IxCountNotIn(vs ...int) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldIxCount, vs...))
-}
-
-// IxCountGT applies the GT predicate on the "ix_count" field.
-func IxCountGT(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldIxCount, v))
-}
-
-// IxCountGTE applies the GTE predicate on the "ix_count" field.
-func IxCountGTE(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldIxCount, v))
-}
-
-// IxCountLT applies the LT predicate on the "ix_count" field.
-func IxCountLT(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldIxCount, v))
-}
-
-// IxCountLTE applies the LTE predicate on the "ix_count" field.
-func IxCountLTE(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldIxCount, v))
-}
-
-// IxCountIsNil applies the IsNil predicate on the "ix_count" field.
-func IxCountIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldIxCount))
-}
-
-// IxCountNotNil applies the NotNil predicate on the "ix_count" field.
-func IxCountNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldIxCount))
-}
-
-// CarrierCountEQ applies the EQ predicate on the "carrier_count" field.
-func CarrierCountEQ(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldCarrierCount, v))
-}
-
-// CarrierCountNEQ applies the NEQ predicate on the "carrier_count" field.
-func CarrierCountNEQ(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldCarrierCount, v))
-}
-
-// CarrierCountIn applies the In predicate on the "carrier_count" field.
-func CarrierCountIn(vs ...int) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldCarrierCount, vs...))
-}
-
-// CarrierCountNotIn applies the NotIn predicate on the "carrier_count" field.
-func CarrierCountNotIn(vs ...int) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldCarrierCount, vs...))
-}
-
-// CarrierCountGT applies the GT predicate on the "carrier_count" field.
-func CarrierCountGT(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldCarrierCount, v))
-}
-
-// CarrierCountGTE applies the GTE predicate on the "carrier_count" field.
-func CarrierCountGTE(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldCarrierCount, v))
-}
-
-// CarrierCountLT applies the LT predicate on the "carrier_count" field.
-func CarrierCountLT(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldCarrierCount, v))
-}
-
-// CarrierCountLTE applies the LTE predicate on the "carrier_count" field.
-func CarrierCountLTE(v int) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldCarrierCount, v))
-}
-
-// CarrierCountIsNil applies the IsNil predicate on the "carrier_count" field.
-func CarrierCountIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldCarrierCount))
-}
-
-// CarrierCountNotNil applies the NotNil predicate on the "carrier_count" field.
-func CarrierCountNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldCarrierCount))
+// OrgIDNotNil applies the NotNil predicate on the "org_id" field.
+func OrgIDNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldOrgID))
 }
 
 // Address1EQ applies the EQ predicate on the "address1" field.
@@ -1900,6 +445,91 @@ func Address2ContainsFold(v string) predicate.Facility {
 	return predicate.Facility(sql.FieldContainsFold(FieldAddress2, v))
 }
 
+// AkaEQ applies the EQ predicate on the "aka" field.
+func AkaEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldAka, v))
+}
+
+// AkaNEQ applies the NEQ predicate on the "aka" field.
+func AkaNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldAka, v))
+}
+
+// AkaIn applies the In predicate on the "aka" field.
+func AkaIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldAka, vs...))
+}
+
+// AkaNotIn applies the NotIn predicate on the "aka" field.
+func AkaNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldAka, vs...))
+}
+
+// AkaGT applies the GT predicate on the "aka" field.
+func AkaGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldAka, v))
+}
+
+// AkaGTE applies the GTE predicate on the "aka" field.
+func AkaGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldAka, v))
+}
+
+// AkaLT applies the LT predicate on the "aka" field.
+func AkaLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldAka, v))
+}
+
+// AkaLTE applies the LTE predicate on the "aka" field.
+func AkaLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldAka, v))
+}
+
+// AkaContains applies the Contains predicate on the "aka" field.
+func AkaContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldAka, v))
+}
+
+// AkaHasPrefix applies the HasPrefix predicate on the "aka" field.
+func AkaHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldAka, v))
+}
+
+// AkaHasSuffix applies the HasSuffix predicate on the "aka" field.
+func AkaHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldAka, v))
+}
+
+// AkaIsNil applies the IsNil predicate on the "aka" field.
+func AkaIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldAka))
+}
+
+// AkaNotNil applies the NotNil predicate on the "aka" field.
+func AkaNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldAka))
+}
+
+// AkaEqualFold applies the EqualFold predicate on the "aka" field.
+func AkaEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldAka, v))
+}
+
+// AkaContainsFold applies the ContainsFold predicate on the "aka" field.
+func AkaContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldAka, v))
+}
+
+// AvailableVoltageServicesIsNil applies the IsNil predicate on the "available_voltage_services" field.
+func AvailableVoltageServicesIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldAvailableVoltageServices))
+}
+
+// AvailableVoltageServicesNotNil applies the NotNil predicate on the "available_voltage_services" field.
+func AvailableVoltageServicesNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldAvailableVoltageServices))
+}
+
 // CityEQ applies the EQ predicate on the "city" field.
 func CityEQ(v string) predicate.Facility {
 	return predicate.Facility(sql.FieldEQ(FieldCity, v))
@@ -1975,79 +605,79 @@ func CityContainsFold(v string) predicate.Facility {
 	return predicate.Facility(sql.FieldContainsFold(FieldCity, v))
 }
 
-// StateEQ applies the EQ predicate on the "state" field.
-func StateEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldState, v))
+// ClliEQ applies the EQ predicate on the "clli" field.
+func ClliEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldClli, v))
 }
 
-// StateNEQ applies the NEQ predicate on the "state" field.
-func StateNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldState, v))
+// ClliNEQ applies the NEQ predicate on the "clli" field.
+func ClliNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldClli, v))
 }
 
-// StateIn applies the In predicate on the "state" field.
-func StateIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldState, vs...))
+// ClliIn applies the In predicate on the "clli" field.
+func ClliIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldClli, vs...))
 }
 
-// StateNotIn applies the NotIn predicate on the "state" field.
-func StateNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldState, vs...))
+// ClliNotIn applies the NotIn predicate on the "clli" field.
+func ClliNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldClli, vs...))
 }
 
-// StateGT applies the GT predicate on the "state" field.
-func StateGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldState, v))
+// ClliGT applies the GT predicate on the "clli" field.
+func ClliGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldClli, v))
 }
 
-// StateGTE applies the GTE predicate on the "state" field.
-func StateGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldState, v))
+// ClliGTE applies the GTE predicate on the "clli" field.
+func ClliGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldClli, v))
 }
 
-// StateLT applies the LT predicate on the "state" field.
-func StateLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldState, v))
+// ClliLT applies the LT predicate on the "clli" field.
+func ClliLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldClli, v))
 }
 
-// StateLTE applies the LTE predicate on the "state" field.
-func StateLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldState, v))
+// ClliLTE applies the LTE predicate on the "clli" field.
+func ClliLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldClli, v))
 }
 
-// StateContains applies the Contains predicate on the "state" field.
-func StateContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldState, v))
+// ClliContains applies the Contains predicate on the "clli" field.
+func ClliContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldClli, v))
 }
 
-// StateHasPrefix applies the HasPrefix predicate on the "state" field.
-func StateHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldState, v))
+// ClliHasPrefix applies the HasPrefix predicate on the "clli" field.
+func ClliHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldClli, v))
 }
 
-// StateHasSuffix applies the HasSuffix predicate on the "state" field.
-func StateHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldState, v))
+// ClliHasSuffix applies the HasSuffix predicate on the "clli" field.
+func ClliHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldClli, v))
 }
 
-// StateIsNil applies the IsNil predicate on the "state" field.
-func StateIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldState))
+// ClliIsNil applies the IsNil predicate on the "clli" field.
+func ClliIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldClli))
 }
 
-// StateNotNil applies the NotNil predicate on the "state" field.
-func StateNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldState))
+// ClliNotNil applies the NotNil predicate on the "clli" field.
+func ClliNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldClli))
 }
 
-// StateEqualFold applies the EqualFold predicate on the "state" field.
-func StateEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldState, v))
+// ClliEqualFold applies the EqualFold predicate on the "clli" field.
+func ClliEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldClli, v))
 }
 
-// StateContainsFold applies the ContainsFold predicate on the "state" field.
-func StateContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldState, v))
+// ClliContainsFold applies the ContainsFold predicate on the "clli" field.
+func ClliContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldClli, v))
 }
 
 // CountryEQ applies the EQ predicate on the "country" field.
@@ -2125,154 +755,24 @@ func CountryContainsFold(v string) predicate.Facility {
 	return predicate.Facility(sql.FieldContainsFold(FieldCountry, v))
 }
 
-// ZipcodeEQ applies the EQ predicate on the "zipcode" field.
-func ZipcodeEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldZipcode, v))
+// DiverseServingSubstationsEQ applies the EQ predicate on the "diverse_serving_substations" field.
+func DiverseServingSubstationsEQ(v bool) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldDiverseServingSubstations, v))
 }
 
-// ZipcodeNEQ applies the NEQ predicate on the "zipcode" field.
-func ZipcodeNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldZipcode, v))
+// DiverseServingSubstationsNEQ applies the NEQ predicate on the "diverse_serving_substations" field.
+func DiverseServingSubstationsNEQ(v bool) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldDiverseServingSubstations, v))
 }
 
-// ZipcodeIn applies the In predicate on the "zipcode" field.
-func ZipcodeIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldZipcode, vs...))
+// DiverseServingSubstationsIsNil applies the IsNil predicate on the "diverse_serving_substations" field.
+func DiverseServingSubstationsIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldDiverseServingSubstations))
 }
 
-// ZipcodeNotIn applies the NotIn predicate on the "zipcode" field.
-func ZipcodeNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldZipcode, vs...))
-}
-
-// ZipcodeGT applies the GT predicate on the "zipcode" field.
-func ZipcodeGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldZipcode, v))
-}
-
-// ZipcodeGTE applies the GTE predicate on the "zipcode" field.
-func ZipcodeGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldZipcode, v))
-}
-
-// ZipcodeLT applies the LT predicate on the "zipcode" field.
-func ZipcodeLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldZipcode, v))
-}
-
-// ZipcodeLTE applies the LTE predicate on the "zipcode" field.
-func ZipcodeLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldZipcode, v))
-}
-
-// ZipcodeContains applies the Contains predicate on the "zipcode" field.
-func ZipcodeContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldZipcode, v))
-}
-
-// ZipcodeHasPrefix applies the HasPrefix predicate on the "zipcode" field.
-func ZipcodeHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldZipcode, v))
-}
-
-// ZipcodeHasSuffix applies the HasSuffix predicate on the "zipcode" field.
-func ZipcodeHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldZipcode, v))
-}
-
-// ZipcodeIsNil applies the IsNil predicate on the "zipcode" field.
-func ZipcodeIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldZipcode))
-}
-
-// ZipcodeNotNil applies the NotNil predicate on the "zipcode" field.
-func ZipcodeNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldZipcode))
-}
-
-// ZipcodeEqualFold applies the EqualFold predicate on the "zipcode" field.
-func ZipcodeEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldZipcode, v))
-}
-
-// ZipcodeContainsFold applies the ContainsFold predicate on the "zipcode" field.
-func ZipcodeContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldZipcode, v))
-}
-
-// SuiteEQ applies the EQ predicate on the "suite" field.
-func SuiteEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEQ(FieldSuite, v))
-}
-
-// SuiteNEQ applies the NEQ predicate on the "suite" field.
-func SuiteNEQ(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldNEQ(FieldSuite, v))
-}
-
-// SuiteIn applies the In predicate on the "suite" field.
-func SuiteIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldIn(FieldSuite, vs...))
-}
-
-// SuiteNotIn applies the NotIn predicate on the "suite" field.
-func SuiteNotIn(vs ...string) predicate.Facility {
-	return predicate.Facility(sql.FieldNotIn(FieldSuite, vs...))
-}
-
-// SuiteGT applies the GT predicate on the "suite" field.
-func SuiteGT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGT(FieldSuite, v))
-}
-
-// SuiteGTE applies the GTE predicate on the "suite" field.
-func SuiteGTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldGTE(FieldSuite, v))
-}
-
-// SuiteLT applies the LT predicate on the "suite" field.
-func SuiteLT(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLT(FieldSuite, v))
-}
-
-// SuiteLTE applies the LTE predicate on the "suite" field.
-func SuiteLTE(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldLTE(FieldSuite, v))
-}
-
-// SuiteContains applies the Contains predicate on the "suite" field.
-func SuiteContains(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContains(FieldSuite, v))
-}
-
-// SuiteHasPrefix applies the HasPrefix predicate on the "suite" field.
-func SuiteHasPrefix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasPrefix(FieldSuite, v))
-}
-
-// SuiteHasSuffix applies the HasSuffix predicate on the "suite" field.
-func SuiteHasSuffix(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldHasSuffix(FieldSuite, v))
-}
-
-// SuiteIsNil applies the IsNil predicate on the "suite" field.
-func SuiteIsNil() predicate.Facility {
-	return predicate.Facility(sql.FieldIsNull(FieldSuite))
-}
-
-// SuiteNotNil applies the NotNil predicate on the "suite" field.
-func SuiteNotNil() predicate.Facility {
-	return predicate.Facility(sql.FieldNotNull(FieldSuite))
-}
-
-// SuiteEqualFold applies the EqualFold predicate on the "suite" field.
-func SuiteEqualFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldEqualFold(FieldSuite, v))
-}
-
-// SuiteContainsFold applies the ContainsFold predicate on the "suite" field.
-func SuiteContainsFold(v string) predicate.Facility {
-	return predicate.Facility(sql.FieldContainsFold(FieldSuite, v))
+// DiverseServingSubstationsNotNil applies the NotNil predicate on the "diverse_serving_substations" field.
+func DiverseServingSubstationsNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldDiverseServingSubstations))
 }
 
 // FloorEQ applies the EQ predicate on the "floor" field.
@@ -2400,6 +900,81 @@ func LatitudeNotNil() predicate.Facility {
 	return predicate.Facility(sql.FieldNotNull(FieldLatitude))
 }
 
+// LogoEQ applies the EQ predicate on the "logo" field.
+func LogoEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldLogo, v))
+}
+
+// LogoNEQ applies the NEQ predicate on the "logo" field.
+func LogoNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldLogo, v))
+}
+
+// LogoIn applies the In predicate on the "logo" field.
+func LogoIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldLogo, vs...))
+}
+
+// LogoNotIn applies the NotIn predicate on the "logo" field.
+func LogoNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldLogo, vs...))
+}
+
+// LogoGT applies the GT predicate on the "logo" field.
+func LogoGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldLogo, v))
+}
+
+// LogoGTE applies the GTE predicate on the "logo" field.
+func LogoGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldLogo, v))
+}
+
+// LogoLT applies the LT predicate on the "logo" field.
+func LogoLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldLogo, v))
+}
+
+// LogoLTE applies the LTE predicate on the "logo" field.
+func LogoLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldLogo, v))
+}
+
+// LogoContains applies the Contains predicate on the "logo" field.
+func LogoContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldLogo, v))
+}
+
+// LogoHasPrefix applies the HasPrefix predicate on the "logo" field.
+func LogoHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldLogo, v))
+}
+
+// LogoHasSuffix applies the HasSuffix predicate on the "logo" field.
+func LogoHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldLogo, v))
+}
+
+// LogoIsNil applies the IsNil predicate on the "logo" field.
+func LogoIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldLogo))
+}
+
+// LogoNotNil applies the NotNil predicate on the "logo" field.
+func LogoNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldLogo))
+}
+
+// LogoEqualFold applies the EqualFold predicate on the "logo" field.
+func LogoEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldLogo, v))
+}
+
+// LogoContainsFold applies the ContainsFold predicate on the "logo" field.
+func LogoContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldLogo, v))
+}
+
 // LongitudeEQ applies the EQ predicate on the "longitude" field.
 func LongitudeEQ(v float64) predicate.Facility {
 	return predicate.Facility(sql.FieldEQ(FieldLongitude, v))
@@ -2448,6 +1023,1431 @@ func LongitudeIsNil() predicate.Facility {
 // LongitudeNotNil applies the NotNil predicate on the "longitude" field.
 func LongitudeNotNil() predicate.Facility {
 	return predicate.Facility(sql.FieldNotNull(FieldLongitude))
+}
+
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldName, v))
+}
+
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldName, v))
+}
+
+// NameLongEQ applies the EQ predicate on the "name_long" field.
+func NameLongEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldNameLong, v))
+}
+
+// NameLongNEQ applies the NEQ predicate on the "name_long" field.
+func NameLongNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldNameLong, v))
+}
+
+// NameLongIn applies the In predicate on the "name_long" field.
+func NameLongIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldNameLong, vs...))
+}
+
+// NameLongNotIn applies the NotIn predicate on the "name_long" field.
+func NameLongNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldNameLong, vs...))
+}
+
+// NameLongGT applies the GT predicate on the "name_long" field.
+func NameLongGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldNameLong, v))
+}
+
+// NameLongGTE applies the GTE predicate on the "name_long" field.
+func NameLongGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldNameLong, v))
+}
+
+// NameLongLT applies the LT predicate on the "name_long" field.
+func NameLongLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldNameLong, v))
+}
+
+// NameLongLTE applies the LTE predicate on the "name_long" field.
+func NameLongLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldNameLong, v))
+}
+
+// NameLongContains applies the Contains predicate on the "name_long" field.
+func NameLongContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldNameLong, v))
+}
+
+// NameLongHasPrefix applies the HasPrefix predicate on the "name_long" field.
+func NameLongHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldNameLong, v))
+}
+
+// NameLongHasSuffix applies the HasSuffix predicate on the "name_long" field.
+func NameLongHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldNameLong, v))
+}
+
+// NameLongIsNil applies the IsNil predicate on the "name_long" field.
+func NameLongIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldNameLong))
+}
+
+// NameLongNotNil applies the NotNil predicate on the "name_long" field.
+func NameLongNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldNameLong))
+}
+
+// NameLongEqualFold applies the EqualFold predicate on the "name_long" field.
+func NameLongEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldNameLong, v))
+}
+
+// NameLongContainsFold applies the ContainsFold predicate on the "name_long" field.
+func NameLongContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldNameLong, v))
+}
+
+// NotesEQ applies the EQ predicate on the "notes" field.
+func NotesEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldNotes, v))
+}
+
+// NotesNEQ applies the NEQ predicate on the "notes" field.
+func NotesNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldNotes, v))
+}
+
+// NotesIn applies the In predicate on the "notes" field.
+func NotesIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldNotes, vs...))
+}
+
+// NotesNotIn applies the NotIn predicate on the "notes" field.
+func NotesNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldNotes, vs...))
+}
+
+// NotesGT applies the GT predicate on the "notes" field.
+func NotesGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldNotes, v))
+}
+
+// NotesGTE applies the GTE predicate on the "notes" field.
+func NotesGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldNotes, v))
+}
+
+// NotesLT applies the LT predicate on the "notes" field.
+func NotesLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldNotes, v))
+}
+
+// NotesLTE applies the LTE predicate on the "notes" field.
+func NotesLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldNotes, v))
+}
+
+// NotesContains applies the Contains predicate on the "notes" field.
+func NotesContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldNotes, v))
+}
+
+// NotesHasPrefix applies the HasPrefix predicate on the "notes" field.
+func NotesHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldNotes, v))
+}
+
+// NotesHasSuffix applies the HasSuffix predicate on the "notes" field.
+func NotesHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldNotes, v))
+}
+
+// NotesIsNil applies the IsNil predicate on the "notes" field.
+func NotesIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldNotes))
+}
+
+// NotesNotNil applies the NotNil predicate on the "notes" field.
+func NotesNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldNotes))
+}
+
+// NotesEqualFold applies the EqualFold predicate on the "notes" field.
+func NotesEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldNotes, v))
+}
+
+// NotesContainsFold applies the ContainsFold predicate on the "notes" field.
+func NotesContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldNotes, v))
+}
+
+// NpanxxEQ applies the EQ predicate on the "npanxx" field.
+func NpanxxEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldNpanxx, v))
+}
+
+// NpanxxNEQ applies the NEQ predicate on the "npanxx" field.
+func NpanxxNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldNpanxx, v))
+}
+
+// NpanxxIn applies the In predicate on the "npanxx" field.
+func NpanxxIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldNpanxx, vs...))
+}
+
+// NpanxxNotIn applies the NotIn predicate on the "npanxx" field.
+func NpanxxNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldNpanxx, vs...))
+}
+
+// NpanxxGT applies the GT predicate on the "npanxx" field.
+func NpanxxGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldNpanxx, v))
+}
+
+// NpanxxGTE applies the GTE predicate on the "npanxx" field.
+func NpanxxGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldNpanxx, v))
+}
+
+// NpanxxLT applies the LT predicate on the "npanxx" field.
+func NpanxxLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldNpanxx, v))
+}
+
+// NpanxxLTE applies the LTE predicate on the "npanxx" field.
+func NpanxxLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldNpanxx, v))
+}
+
+// NpanxxContains applies the Contains predicate on the "npanxx" field.
+func NpanxxContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldNpanxx, v))
+}
+
+// NpanxxHasPrefix applies the HasPrefix predicate on the "npanxx" field.
+func NpanxxHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldNpanxx, v))
+}
+
+// NpanxxHasSuffix applies the HasSuffix predicate on the "npanxx" field.
+func NpanxxHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldNpanxx, v))
+}
+
+// NpanxxIsNil applies the IsNil predicate on the "npanxx" field.
+func NpanxxIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldNpanxx))
+}
+
+// NpanxxNotNil applies the NotNil predicate on the "npanxx" field.
+func NpanxxNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldNpanxx))
+}
+
+// NpanxxEqualFold applies the EqualFold predicate on the "npanxx" field.
+func NpanxxEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldNpanxx, v))
+}
+
+// NpanxxContainsFold applies the ContainsFold predicate on the "npanxx" field.
+func NpanxxContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldNpanxx, v))
+}
+
+// PropertyEQ applies the EQ predicate on the "property" field.
+func PropertyEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldProperty, v))
+}
+
+// PropertyNEQ applies the NEQ predicate on the "property" field.
+func PropertyNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldProperty, v))
+}
+
+// PropertyIn applies the In predicate on the "property" field.
+func PropertyIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldProperty, vs...))
+}
+
+// PropertyNotIn applies the NotIn predicate on the "property" field.
+func PropertyNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldProperty, vs...))
+}
+
+// PropertyGT applies the GT predicate on the "property" field.
+func PropertyGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldProperty, v))
+}
+
+// PropertyGTE applies the GTE predicate on the "property" field.
+func PropertyGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldProperty, v))
+}
+
+// PropertyLT applies the LT predicate on the "property" field.
+func PropertyLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldProperty, v))
+}
+
+// PropertyLTE applies the LTE predicate on the "property" field.
+func PropertyLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldProperty, v))
+}
+
+// PropertyContains applies the Contains predicate on the "property" field.
+func PropertyContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldProperty, v))
+}
+
+// PropertyHasPrefix applies the HasPrefix predicate on the "property" field.
+func PropertyHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldProperty, v))
+}
+
+// PropertyHasSuffix applies the HasSuffix predicate on the "property" field.
+func PropertyHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldProperty, v))
+}
+
+// PropertyIsNil applies the IsNil predicate on the "property" field.
+func PropertyIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldProperty))
+}
+
+// PropertyNotNil applies the NotNil predicate on the "property" field.
+func PropertyNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldProperty))
+}
+
+// PropertyEqualFold applies the EqualFold predicate on the "property" field.
+func PropertyEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldProperty, v))
+}
+
+// PropertyContainsFold applies the ContainsFold predicate on the "property" field.
+func PropertyContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldProperty, v))
+}
+
+// RegionContinentEQ applies the EQ predicate on the "region_continent" field.
+func RegionContinentEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldRegionContinent, v))
+}
+
+// RegionContinentNEQ applies the NEQ predicate on the "region_continent" field.
+func RegionContinentNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldRegionContinent, v))
+}
+
+// RegionContinentIn applies the In predicate on the "region_continent" field.
+func RegionContinentIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldRegionContinent, vs...))
+}
+
+// RegionContinentNotIn applies the NotIn predicate on the "region_continent" field.
+func RegionContinentNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldRegionContinent, vs...))
+}
+
+// RegionContinentGT applies the GT predicate on the "region_continent" field.
+func RegionContinentGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldRegionContinent, v))
+}
+
+// RegionContinentGTE applies the GTE predicate on the "region_continent" field.
+func RegionContinentGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldRegionContinent, v))
+}
+
+// RegionContinentLT applies the LT predicate on the "region_continent" field.
+func RegionContinentLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldRegionContinent, v))
+}
+
+// RegionContinentLTE applies the LTE predicate on the "region_continent" field.
+func RegionContinentLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldRegionContinent, v))
+}
+
+// RegionContinentContains applies the Contains predicate on the "region_continent" field.
+func RegionContinentContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldRegionContinent, v))
+}
+
+// RegionContinentHasPrefix applies the HasPrefix predicate on the "region_continent" field.
+func RegionContinentHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldRegionContinent, v))
+}
+
+// RegionContinentHasSuffix applies the HasSuffix predicate on the "region_continent" field.
+func RegionContinentHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldRegionContinent, v))
+}
+
+// RegionContinentIsNil applies the IsNil predicate on the "region_continent" field.
+func RegionContinentIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldRegionContinent))
+}
+
+// RegionContinentNotNil applies the NotNil predicate on the "region_continent" field.
+func RegionContinentNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldRegionContinent))
+}
+
+// RegionContinentEqualFold applies the EqualFold predicate on the "region_continent" field.
+func RegionContinentEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldRegionContinent, v))
+}
+
+// RegionContinentContainsFold applies the ContainsFold predicate on the "region_continent" field.
+func RegionContinentContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldRegionContinent, v))
+}
+
+// RencodeEQ applies the EQ predicate on the "rencode" field.
+func RencodeEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldRencode, v))
+}
+
+// RencodeNEQ applies the NEQ predicate on the "rencode" field.
+func RencodeNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldRencode, v))
+}
+
+// RencodeIn applies the In predicate on the "rencode" field.
+func RencodeIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldRencode, vs...))
+}
+
+// RencodeNotIn applies the NotIn predicate on the "rencode" field.
+func RencodeNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldRencode, vs...))
+}
+
+// RencodeGT applies the GT predicate on the "rencode" field.
+func RencodeGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldRencode, v))
+}
+
+// RencodeGTE applies the GTE predicate on the "rencode" field.
+func RencodeGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldRencode, v))
+}
+
+// RencodeLT applies the LT predicate on the "rencode" field.
+func RencodeLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldRencode, v))
+}
+
+// RencodeLTE applies the LTE predicate on the "rencode" field.
+func RencodeLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldRencode, v))
+}
+
+// RencodeContains applies the Contains predicate on the "rencode" field.
+func RencodeContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldRencode, v))
+}
+
+// RencodeHasPrefix applies the HasPrefix predicate on the "rencode" field.
+func RencodeHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldRencode, v))
+}
+
+// RencodeHasSuffix applies the HasSuffix predicate on the "rencode" field.
+func RencodeHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldRencode, v))
+}
+
+// RencodeIsNil applies the IsNil predicate on the "rencode" field.
+func RencodeIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldRencode))
+}
+
+// RencodeNotNil applies the NotNil predicate on the "rencode" field.
+func RencodeNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldRencode))
+}
+
+// RencodeEqualFold applies the EqualFold predicate on the "rencode" field.
+func RencodeEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldRencode, v))
+}
+
+// RencodeContainsFold applies the ContainsFold predicate on the "rencode" field.
+func RencodeContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldRencode, v))
+}
+
+// SalesEmailEQ applies the EQ predicate on the "sales_email" field.
+func SalesEmailEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldSalesEmail, v))
+}
+
+// SalesEmailNEQ applies the NEQ predicate on the "sales_email" field.
+func SalesEmailNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldSalesEmail, v))
+}
+
+// SalesEmailIn applies the In predicate on the "sales_email" field.
+func SalesEmailIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldSalesEmail, vs...))
+}
+
+// SalesEmailNotIn applies the NotIn predicate on the "sales_email" field.
+func SalesEmailNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldSalesEmail, vs...))
+}
+
+// SalesEmailGT applies the GT predicate on the "sales_email" field.
+func SalesEmailGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldSalesEmail, v))
+}
+
+// SalesEmailGTE applies the GTE predicate on the "sales_email" field.
+func SalesEmailGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldSalesEmail, v))
+}
+
+// SalesEmailLT applies the LT predicate on the "sales_email" field.
+func SalesEmailLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldSalesEmail, v))
+}
+
+// SalesEmailLTE applies the LTE predicate on the "sales_email" field.
+func SalesEmailLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldSalesEmail, v))
+}
+
+// SalesEmailContains applies the Contains predicate on the "sales_email" field.
+func SalesEmailContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldSalesEmail, v))
+}
+
+// SalesEmailHasPrefix applies the HasPrefix predicate on the "sales_email" field.
+func SalesEmailHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldSalesEmail, v))
+}
+
+// SalesEmailHasSuffix applies the HasSuffix predicate on the "sales_email" field.
+func SalesEmailHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldSalesEmail, v))
+}
+
+// SalesEmailIsNil applies the IsNil predicate on the "sales_email" field.
+func SalesEmailIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldSalesEmail))
+}
+
+// SalesEmailNotNil applies the NotNil predicate on the "sales_email" field.
+func SalesEmailNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldSalesEmail))
+}
+
+// SalesEmailEqualFold applies the EqualFold predicate on the "sales_email" field.
+func SalesEmailEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldSalesEmail, v))
+}
+
+// SalesEmailContainsFold applies the ContainsFold predicate on the "sales_email" field.
+func SalesEmailContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldSalesEmail, v))
+}
+
+// SalesPhoneEQ applies the EQ predicate on the "sales_phone" field.
+func SalesPhoneEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldSalesPhone, v))
+}
+
+// SalesPhoneNEQ applies the NEQ predicate on the "sales_phone" field.
+func SalesPhoneNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldSalesPhone, v))
+}
+
+// SalesPhoneIn applies the In predicate on the "sales_phone" field.
+func SalesPhoneIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldSalesPhone, vs...))
+}
+
+// SalesPhoneNotIn applies the NotIn predicate on the "sales_phone" field.
+func SalesPhoneNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldSalesPhone, vs...))
+}
+
+// SalesPhoneGT applies the GT predicate on the "sales_phone" field.
+func SalesPhoneGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldSalesPhone, v))
+}
+
+// SalesPhoneGTE applies the GTE predicate on the "sales_phone" field.
+func SalesPhoneGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldSalesPhone, v))
+}
+
+// SalesPhoneLT applies the LT predicate on the "sales_phone" field.
+func SalesPhoneLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldSalesPhone, v))
+}
+
+// SalesPhoneLTE applies the LTE predicate on the "sales_phone" field.
+func SalesPhoneLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldSalesPhone, v))
+}
+
+// SalesPhoneContains applies the Contains predicate on the "sales_phone" field.
+func SalesPhoneContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldSalesPhone, v))
+}
+
+// SalesPhoneHasPrefix applies the HasPrefix predicate on the "sales_phone" field.
+func SalesPhoneHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldSalesPhone, v))
+}
+
+// SalesPhoneHasSuffix applies the HasSuffix predicate on the "sales_phone" field.
+func SalesPhoneHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldSalesPhone, v))
+}
+
+// SalesPhoneIsNil applies the IsNil predicate on the "sales_phone" field.
+func SalesPhoneIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldSalesPhone))
+}
+
+// SalesPhoneNotNil applies the NotNil predicate on the "sales_phone" field.
+func SalesPhoneNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldSalesPhone))
+}
+
+// SalesPhoneEqualFold applies the EqualFold predicate on the "sales_phone" field.
+func SalesPhoneEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldSalesPhone, v))
+}
+
+// SalesPhoneContainsFold applies the ContainsFold predicate on the "sales_phone" field.
+func SalesPhoneContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldSalesPhone, v))
+}
+
+// SocialMediaIsNil applies the IsNil predicate on the "social_media" field.
+func SocialMediaIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldSocialMedia))
+}
+
+// SocialMediaNotNil applies the NotNil predicate on the "social_media" field.
+func SocialMediaNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldSocialMedia))
+}
+
+// StateEQ applies the EQ predicate on the "state" field.
+func StateEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldState, v))
+}
+
+// StateNEQ applies the NEQ predicate on the "state" field.
+func StateNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldState, v))
+}
+
+// StateIn applies the In predicate on the "state" field.
+func StateIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldState, vs...))
+}
+
+// StateNotIn applies the NotIn predicate on the "state" field.
+func StateNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldState, vs...))
+}
+
+// StateGT applies the GT predicate on the "state" field.
+func StateGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldState, v))
+}
+
+// StateGTE applies the GTE predicate on the "state" field.
+func StateGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldState, v))
+}
+
+// StateLT applies the LT predicate on the "state" field.
+func StateLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldState, v))
+}
+
+// StateLTE applies the LTE predicate on the "state" field.
+func StateLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldState, v))
+}
+
+// StateContains applies the Contains predicate on the "state" field.
+func StateContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldState, v))
+}
+
+// StateHasPrefix applies the HasPrefix predicate on the "state" field.
+func StateHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldState, v))
+}
+
+// StateHasSuffix applies the HasSuffix predicate on the "state" field.
+func StateHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldState, v))
+}
+
+// StateIsNil applies the IsNil predicate on the "state" field.
+func StateIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldState))
+}
+
+// StateNotNil applies the NotNil predicate on the "state" field.
+func StateNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldState))
+}
+
+// StateEqualFold applies the EqualFold predicate on the "state" field.
+func StateEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldState, v))
+}
+
+// StateContainsFold applies the ContainsFold predicate on the "state" field.
+func StateContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldState, v))
+}
+
+// StatusDashboardEQ applies the EQ predicate on the "status_dashboard" field.
+func StatusDashboardEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldStatusDashboard, v))
+}
+
+// StatusDashboardNEQ applies the NEQ predicate on the "status_dashboard" field.
+func StatusDashboardNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldStatusDashboard, v))
+}
+
+// StatusDashboardIn applies the In predicate on the "status_dashboard" field.
+func StatusDashboardIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldStatusDashboard, vs...))
+}
+
+// StatusDashboardNotIn applies the NotIn predicate on the "status_dashboard" field.
+func StatusDashboardNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldStatusDashboard, vs...))
+}
+
+// StatusDashboardGT applies the GT predicate on the "status_dashboard" field.
+func StatusDashboardGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldStatusDashboard, v))
+}
+
+// StatusDashboardGTE applies the GTE predicate on the "status_dashboard" field.
+func StatusDashboardGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldStatusDashboard, v))
+}
+
+// StatusDashboardLT applies the LT predicate on the "status_dashboard" field.
+func StatusDashboardLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldStatusDashboard, v))
+}
+
+// StatusDashboardLTE applies the LTE predicate on the "status_dashboard" field.
+func StatusDashboardLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldStatusDashboard, v))
+}
+
+// StatusDashboardContains applies the Contains predicate on the "status_dashboard" field.
+func StatusDashboardContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldStatusDashboard, v))
+}
+
+// StatusDashboardHasPrefix applies the HasPrefix predicate on the "status_dashboard" field.
+func StatusDashboardHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldStatusDashboard, v))
+}
+
+// StatusDashboardHasSuffix applies the HasSuffix predicate on the "status_dashboard" field.
+func StatusDashboardHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldStatusDashboard, v))
+}
+
+// StatusDashboardIsNil applies the IsNil predicate on the "status_dashboard" field.
+func StatusDashboardIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldStatusDashboard))
+}
+
+// StatusDashboardNotNil applies the NotNil predicate on the "status_dashboard" field.
+func StatusDashboardNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldStatusDashboard))
+}
+
+// StatusDashboardEqualFold applies the EqualFold predicate on the "status_dashboard" field.
+func StatusDashboardEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldStatusDashboard, v))
+}
+
+// StatusDashboardContainsFold applies the ContainsFold predicate on the "status_dashboard" field.
+func StatusDashboardContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldStatusDashboard, v))
+}
+
+// SuiteEQ applies the EQ predicate on the "suite" field.
+func SuiteEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldSuite, v))
+}
+
+// SuiteNEQ applies the NEQ predicate on the "suite" field.
+func SuiteNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldSuite, v))
+}
+
+// SuiteIn applies the In predicate on the "suite" field.
+func SuiteIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldSuite, vs...))
+}
+
+// SuiteNotIn applies the NotIn predicate on the "suite" field.
+func SuiteNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldSuite, vs...))
+}
+
+// SuiteGT applies the GT predicate on the "suite" field.
+func SuiteGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldSuite, v))
+}
+
+// SuiteGTE applies the GTE predicate on the "suite" field.
+func SuiteGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldSuite, v))
+}
+
+// SuiteLT applies the LT predicate on the "suite" field.
+func SuiteLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldSuite, v))
+}
+
+// SuiteLTE applies the LTE predicate on the "suite" field.
+func SuiteLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldSuite, v))
+}
+
+// SuiteContains applies the Contains predicate on the "suite" field.
+func SuiteContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldSuite, v))
+}
+
+// SuiteHasPrefix applies the HasPrefix predicate on the "suite" field.
+func SuiteHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldSuite, v))
+}
+
+// SuiteHasSuffix applies the HasSuffix predicate on the "suite" field.
+func SuiteHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldSuite, v))
+}
+
+// SuiteIsNil applies the IsNil predicate on the "suite" field.
+func SuiteIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldSuite))
+}
+
+// SuiteNotNil applies the NotNil predicate on the "suite" field.
+func SuiteNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldSuite))
+}
+
+// SuiteEqualFold applies the EqualFold predicate on the "suite" field.
+func SuiteEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldSuite, v))
+}
+
+// SuiteContainsFold applies the ContainsFold predicate on the "suite" field.
+func SuiteContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldSuite, v))
+}
+
+// TechEmailEQ applies the EQ predicate on the "tech_email" field.
+func TechEmailEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldTechEmail, v))
+}
+
+// TechEmailNEQ applies the NEQ predicate on the "tech_email" field.
+func TechEmailNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldTechEmail, v))
+}
+
+// TechEmailIn applies the In predicate on the "tech_email" field.
+func TechEmailIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldTechEmail, vs...))
+}
+
+// TechEmailNotIn applies the NotIn predicate on the "tech_email" field.
+func TechEmailNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldTechEmail, vs...))
+}
+
+// TechEmailGT applies the GT predicate on the "tech_email" field.
+func TechEmailGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldTechEmail, v))
+}
+
+// TechEmailGTE applies the GTE predicate on the "tech_email" field.
+func TechEmailGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldTechEmail, v))
+}
+
+// TechEmailLT applies the LT predicate on the "tech_email" field.
+func TechEmailLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldTechEmail, v))
+}
+
+// TechEmailLTE applies the LTE predicate on the "tech_email" field.
+func TechEmailLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldTechEmail, v))
+}
+
+// TechEmailContains applies the Contains predicate on the "tech_email" field.
+func TechEmailContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldTechEmail, v))
+}
+
+// TechEmailHasPrefix applies the HasPrefix predicate on the "tech_email" field.
+func TechEmailHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldTechEmail, v))
+}
+
+// TechEmailHasSuffix applies the HasSuffix predicate on the "tech_email" field.
+func TechEmailHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldTechEmail, v))
+}
+
+// TechEmailIsNil applies the IsNil predicate on the "tech_email" field.
+func TechEmailIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldTechEmail))
+}
+
+// TechEmailNotNil applies the NotNil predicate on the "tech_email" field.
+func TechEmailNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldTechEmail))
+}
+
+// TechEmailEqualFold applies the EqualFold predicate on the "tech_email" field.
+func TechEmailEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldTechEmail, v))
+}
+
+// TechEmailContainsFold applies the ContainsFold predicate on the "tech_email" field.
+func TechEmailContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldTechEmail, v))
+}
+
+// TechPhoneEQ applies the EQ predicate on the "tech_phone" field.
+func TechPhoneEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldTechPhone, v))
+}
+
+// TechPhoneNEQ applies the NEQ predicate on the "tech_phone" field.
+func TechPhoneNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldTechPhone, v))
+}
+
+// TechPhoneIn applies the In predicate on the "tech_phone" field.
+func TechPhoneIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldTechPhone, vs...))
+}
+
+// TechPhoneNotIn applies the NotIn predicate on the "tech_phone" field.
+func TechPhoneNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldTechPhone, vs...))
+}
+
+// TechPhoneGT applies the GT predicate on the "tech_phone" field.
+func TechPhoneGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldTechPhone, v))
+}
+
+// TechPhoneGTE applies the GTE predicate on the "tech_phone" field.
+func TechPhoneGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldTechPhone, v))
+}
+
+// TechPhoneLT applies the LT predicate on the "tech_phone" field.
+func TechPhoneLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldTechPhone, v))
+}
+
+// TechPhoneLTE applies the LTE predicate on the "tech_phone" field.
+func TechPhoneLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldTechPhone, v))
+}
+
+// TechPhoneContains applies the Contains predicate on the "tech_phone" field.
+func TechPhoneContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldTechPhone, v))
+}
+
+// TechPhoneHasPrefix applies the HasPrefix predicate on the "tech_phone" field.
+func TechPhoneHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldTechPhone, v))
+}
+
+// TechPhoneHasSuffix applies the HasSuffix predicate on the "tech_phone" field.
+func TechPhoneHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldTechPhone, v))
+}
+
+// TechPhoneIsNil applies the IsNil predicate on the "tech_phone" field.
+func TechPhoneIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldTechPhone))
+}
+
+// TechPhoneNotNil applies the NotNil predicate on the "tech_phone" field.
+func TechPhoneNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldTechPhone))
+}
+
+// TechPhoneEqualFold applies the EqualFold predicate on the "tech_phone" field.
+func TechPhoneEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldTechPhone, v))
+}
+
+// TechPhoneContainsFold applies the ContainsFold predicate on the "tech_phone" field.
+func TechPhoneContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldTechPhone, v))
+}
+
+// WebsiteEQ applies the EQ predicate on the "website" field.
+func WebsiteEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldWebsite, v))
+}
+
+// WebsiteNEQ applies the NEQ predicate on the "website" field.
+func WebsiteNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldWebsite, v))
+}
+
+// WebsiteIn applies the In predicate on the "website" field.
+func WebsiteIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldWebsite, vs...))
+}
+
+// WebsiteNotIn applies the NotIn predicate on the "website" field.
+func WebsiteNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldWebsite, vs...))
+}
+
+// WebsiteGT applies the GT predicate on the "website" field.
+func WebsiteGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldWebsite, v))
+}
+
+// WebsiteGTE applies the GTE predicate on the "website" field.
+func WebsiteGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldWebsite, v))
+}
+
+// WebsiteLT applies the LT predicate on the "website" field.
+func WebsiteLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldWebsite, v))
+}
+
+// WebsiteLTE applies the LTE predicate on the "website" field.
+func WebsiteLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldWebsite, v))
+}
+
+// WebsiteContains applies the Contains predicate on the "website" field.
+func WebsiteContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldWebsite, v))
+}
+
+// WebsiteHasPrefix applies the HasPrefix predicate on the "website" field.
+func WebsiteHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldWebsite, v))
+}
+
+// WebsiteHasSuffix applies the HasSuffix predicate on the "website" field.
+func WebsiteHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldWebsite, v))
+}
+
+// WebsiteIsNil applies the IsNil predicate on the "website" field.
+func WebsiteIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldWebsite))
+}
+
+// WebsiteNotNil applies the NotNil predicate on the "website" field.
+func WebsiteNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldWebsite))
+}
+
+// WebsiteEqualFold applies the EqualFold predicate on the "website" field.
+func WebsiteEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldWebsite, v))
+}
+
+// WebsiteContainsFold applies the ContainsFold predicate on the "website" field.
+func WebsiteContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldWebsite, v))
+}
+
+// ZipcodeEQ applies the EQ predicate on the "zipcode" field.
+func ZipcodeEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldZipcode, v))
+}
+
+// ZipcodeNEQ applies the NEQ predicate on the "zipcode" field.
+func ZipcodeNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldZipcode, v))
+}
+
+// ZipcodeIn applies the In predicate on the "zipcode" field.
+func ZipcodeIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldZipcode, vs...))
+}
+
+// ZipcodeNotIn applies the NotIn predicate on the "zipcode" field.
+func ZipcodeNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldZipcode, vs...))
+}
+
+// ZipcodeGT applies the GT predicate on the "zipcode" field.
+func ZipcodeGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldZipcode, v))
+}
+
+// ZipcodeGTE applies the GTE predicate on the "zipcode" field.
+func ZipcodeGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldZipcode, v))
+}
+
+// ZipcodeLT applies the LT predicate on the "zipcode" field.
+func ZipcodeLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldZipcode, v))
+}
+
+// ZipcodeLTE applies the LTE predicate on the "zipcode" field.
+func ZipcodeLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldZipcode, v))
+}
+
+// ZipcodeContains applies the Contains predicate on the "zipcode" field.
+func ZipcodeContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldZipcode, v))
+}
+
+// ZipcodeHasPrefix applies the HasPrefix predicate on the "zipcode" field.
+func ZipcodeHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldZipcode, v))
+}
+
+// ZipcodeHasSuffix applies the HasSuffix predicate on the "zipcode" field.
+func ZipcodeHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldZipcode, v))
+}
+
+// ZipcodeIsNil applies the IsNil predicate on the "zipcode" field.
+func ZipcodeIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldZipcode))
+}
+
+// ZipcodeNotNil applies the NotNil predicate on the "zipcode" field.
+func ZipcodeNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldZipcode))
+}
+
+// ZipcodeEqualFold applies the EqualFold predicate on the "zipcode" field.
+func ZipcodeEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldZipcode, v))
+}
+
+// ZipcodeContainsFold applies the ContainsFold predicate on the "zipcode" field.
+func ZipcodeContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldZipcode, v))
+}
+
+// OrgNameEQ applies the EQ predicate on the "org_name" field.
+func OrgNameEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldOrgName, v))
+}
+
+// OrgNameNEQ applies the NEQ predicate on the "org_name" field.
+func OrgNameNEQ(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldOrgName, v))
+}
+
+// OrgNameIn applies the In predicate on the "org_name" field.
+func OrgNameIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldOrgName, vs...))
+}
+
+// OrgNameNotIn applies the NotIn predicate on the "org_name" field.
+func OrgNameNotIn(vs ...string) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldOrgName, vs...))
+}
+
+// OrgNameGT applies the GT predicate on the "org_name" field.
+func OrgNameGT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldOrgName, v))
+}
+
+// OrgNameGTE applies the GTE predicate on the "org_name" field.
+func OrgNameGTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldOrgName, v))
+}
+
+// OrgNameLT applies the LT predicate on the "org_name" field.
+func OrgNameLT(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldOrgName, v))
+}
+
+// OrgNameLTE applies the LTE predicate on the "org_name" field.
+func OrgNameLTE(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldOrgName, v))
+}
+
+// OrgNameContains applies the Contains predicate on the "org_name" field.
+func OrgNameContains(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContains(FieldOrgName, v))
+}
+
+// OrgNameHasPrefix applies the HasPrefix predicate on the "org_name" field.
+func OrgNameHasPrefix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasPrefix(FieldOrgName, v))
+}
+
+// OrgNameHasSuffix applies the HasSuffix predicate on the "org_name" field.
+func OrgNameHasSuffix(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldHasSuffix(FieldOrgName, v))
+}
+
+// OrgNameIsNil applies the IsNil predicate on the "org_name" field.
+func OrgNameIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldOrgName))
+}
+
+// OrgNameNotNil applies the NotNil predicate on the "org_name" field.
+func OrgNameNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldOrgName))
+}
+
+// OrgNameEqualFold applies the EqualFold predicate on the "org_name" field.
+func OrgNameEqualFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldEqualFold(FieldOrgName, v))
+}
+
+// OrgNameContainsFold applies the ContainsFold predicate on the "org_name" field.
+func OrgNameContainsFold(v string) predicate.Facility {
+	return predicate.Facility(sql.FieldContainsFold(FieldOrgName, v))
+}
+
+// NetCountEQ applies the EQ predicate on the "net_count" field.
+func NetCountEQ(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldNetCount, v))
+}
+
+// NetCountNEQ applies the NEQ predicate on the "net_count" field.
+func NetCountNEQ(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldNetCount, v))
+}
+
+// NetCountIn applies the In predicate on the "net_count" field.
+func NetCountIn(vs ...int) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldNetCount, vs...))
+}
+
+// NetCountNotIn applies the NotIn predicate on the "net_count" field.
+func NetCountNotIn(vs ...int) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldNetCount, vs...))
+}
+
+// NetCountGT applies the GT predicate on the "net_count" field.
+func NetCountGT(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldNetCount, v))
+}
+
+// NetCountGTE applies the GTE predicate on the "net_count" field.
+func NetCountGTE(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldNetCount, v))
+}
+
+// NetCountLT applies the LT predicate on the "net_count" field.
+func NetCountLT(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldNetCount, v))
+}
+
+// NetCountLTE applies the LTE predicate on the "net_count" field.
+func NetCountLTE(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldNetCount, v))
+}
+
+// NetCountIsNil applies the IsNil predicate on the "net_count" field.
+func NetCountIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldNetCount))
+}
+
+// NetCountNotNil applies the NotNil predicate on the "net_count" field.
+func NetCountNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldNetCount))
+}
+
+// IxCountEQ applies the EQ predicate on the "ix_count" field.
+func IxCountEQ(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldIxCount, v))
+}
+
+// IxCountNEQ applies the NEQ predicate on the "ix_count" field.
+func IxCountNEQ(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldIxCount, v))
+}
+
+// IxCountIn applies the In predicate on the "ix_count" field.
+func IxCountIn(vs ...int) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldIxCount, vs...))
+}
+
+// IxCountNotIn applies the NotIn predicate on the "ix_count" field.
+func IxCountNotIn(vs ...int) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldIxCount, vs...))
+}
+
+// IxCountGT applies the GT predicate on the "ix_count" field.
+func IxCountGT(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldIxCount, v))
+}
+
+// IxCountGTE applies the GTE predicate on the "ix_count" field.
+func IxCountGTE(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldIxCount, v))
+}
+
+// IxCountLT applies the LT predicate on the "ix_count" field.
+func IxCountLT(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldIxCount, v))
+}
+
+// IxCountLTE applies the LTE predicate on the "ix_count" field.
+func IxCountLTE(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldIxCount, v))
+}
+
+// IxCountIsNil applies the IsNil predicate on the "ix_count" field.
+func IxCountIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldIxCount))
+}
+
+// IxCountNotNil applies the NotNil predicate on the "ix_count" field.
+func IxCountNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldIxCount))
+}
+
+// CarrierCountEQ applies the EQ predicate on the "carrier_count" field.
+func CarrierCountEQ(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldEQ(FieldCarrierCount, v))
+}
+
+// CarrierCountNEQ applies the NEQ predicate on the "carrier_count" field.
+func CarrierCountNEQ(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldNEQ(FieldCarrierCount, v))
+}
+
+// CarrierCountIn applies the In predicate on the "carrier_count" field.
+func CarrierCountIn(vs ...int) predicate.Facility {
+	return predicate.Facility(sql.FieldIn(FieldCarrierCount, vs...))
+}
+
+// CarrierCountNotIn applies the NotIn predicate on the "carrier_count" field.
+func CarrierCountNotIn(vs ...int) predicate.Facility {
+	return predicate.Facility(sql.FieldNotIn(FieldCarrierCount, vs...))
+}
+
+// CarrierCountGT applies the GT predicate on the "carrier_count" field.
+func CarrierCountGT(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldGT(FieldCarrierCount, v))
+}
+
+// CarrierCountGTE applies the GTE predicate on the "carrier_count" field.
+func CarrierCountGTE(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldGTE(FieldCarrierCount, v))
+}
+
+// CarrierCountLT applies the LT predicate on the "carrier_count" field.
+func CarrierCountLT(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldLT(FieldCarrierCount, v))
+}
+
+// CarrierCountLTE applies the LTE predicate on the "carrier_count" field.
+func CarrierCountLTE(v int) predicate.Facility {
+	return predicate.Facility(sql.FieldLTE(FieldCarrierCount, v))
+}
+
+// CarrierCountIsNil applies the IsNil predicate on the "carrier_count" field.
+func CarrierCountIsNil() predicate.Facility {
+	return predicate.Facility(sql.FieldIsNull(FieldCarrierCount))
+}
+
+// CarrierCountNotNil applies the NotNil predicate on the "carrier_count" field.
+func CarrierCountNotNil() predicate.Facility {
+	return predicate.Facility(sql.FieldNotNull(FieldCarrierCount))
 }
 
 // CreatedEQ applies the EQ predicate on the "created" field.
@@ -2595,29 +2595,6 @@ func StatusContainsFold(v string) predicate.Facility {
 	return predicate.Facility(sql.FieldContainsFold(FieldStatus, v))
 }
 
-// HasOrganization applies the HasEdge predicate on the "organization" edge.
-func HasOrganization() predicate.Facility {
-	return predicate.Facility(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasOrganizationWith applies the HasEdge predicate on the "organization" edge with a given conditions (other predicates).
-func HasOrganizationWith(preds ...predicate.Organization) predicate.Facility {
-	return predicate.Facility(func(s *sql.Selector) {
-		step := newOrganizationStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasCampus applies the HasEdge predicate on the "campus" edge.
 func HasCampus() predicate.Facility {
 	return predicate.Facility(func(s *sql.Selector) {
@@ -2641,21 +2618,21 @@ func HasCampusWith(preds ...predicate.Campus) predicate.Facility {
 	})
 }
 
-// HasNetworkFacilities applies the HasEdge predicate on the "network_facilities" edge.
-func HasNetworkFacilities() predicate.Facility {
+// HasCarrierFacilities applies the HasEdge predicate on the "carrier_facilities" edge.
+func HasCarrierFacilities() predicate.Facility {
 	return predicate.Facility(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, NetworkFacilitiesTable, NetworkFacilitiesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, CarrierFacilitiesTable, CarrierFacilitiesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasNetworkFacilitiesWith applies the HasEdge predicate on the "network_facilities" edge with a given conditions (other predicates).
-func HasNetworkFacilitiesWith(preds ...predicate.NetworkFacility) predicate.Facility {
+// HasCarrierFacilitiesWith applies the HasEdge predicate on the "carrier_facilities" edge with a given conditions (other predicates).
+func HasCarrierFacilitiesWith(preds ...predicate.CarrierFacility) predicate.Facility {
 	return predicate.Facility(func(s *sql.Selector) {
-		step := newNetworkFacilitiesStep()
+		step := newCarrierFacilitiesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -2687,21 +2664,44 @@ func HasIxFacilitiesWith(preds ...predicate.IxFacility) predicate.Facility {
 	})
 }
 
-// HasCarrierFacilities applies the HasEdge predicate on the "carrier_facilities" edge.
-func HasCarrierFacilities() predicate.Facility {
+// HasNetworkFacilities applies the HasEdge predicate on the "network_facilities" edge.
+func HasNetworkFacilities() predicate.Facility {
 	return predicate.Facility(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, CarrierFacilitiesTable, CarrierFacilitiesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, NetworkFacilitiesTable, NetworkFacilitiesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasCarrierFacilitiesWith applies the HasEdge predicate on the "carrier_facilities" edge with a given conditions (other predicates).
-func HasCarrierFacilitiesWith(preds ...predicate.CarrierFacility) predicate.Facility {
+// HasNetworkFacilitiesWith applies the HasEdge predicate on the "network_facilities" edge with a given conditions (other predicates).
+func HasNetworkFacilitiesWith(preds ...predicate.NetworkFacility) predicate.Facility {
 	return predicate.Facility(func(s *sql.Selector) {
-		step := newCarrierFacilitiesStep()
+		step := newNetworkFacilitiesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOrganization applies the HasEdge predicate on the "organization" edge.
+func HasOrganization() predicate.Facility {
+	return predicate.Facility(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrganizationWith applies the HasEdge predicate on the "organization" edge with a given conditions (other predicates).
+func HasOrganizationWith(preds ...predicate.Organization) predicate.Facility {
+	return predicate.Facility(func(s *sql.Selector) {
+		step := newOrganizationStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

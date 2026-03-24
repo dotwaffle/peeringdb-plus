@@ -10,9 +10,21 @@ type Campus implements Node {
   """
   orgID: ID
   """
-  Organization name (computed)
+  Also known as
   """
-  orgName: String
+  aka: String
+  """
+  City
+  """
+  city: String
+  """
+  Country code
+  """
+  country: String
+  """
+  Logo URL
+  """
+  logo: String
   """
   Campus name
   """
@@ -22,41 +34,29 @@ type Campus implements Node {
   """
   nameLong: String
   """
-  Also known as
+  Notes
   """
-  aka: String
-  """
-  Campus website URL
-  """
-  website: String
+  notes: String
   """
   Social media links
   """
   socialMedia: [SocialMedia!]
   """
-  Notes
+  State or province
   """
-  notes: String
+  state: String
   """
-  Country code
+  Campus website URL
   """
-  country: String
-  """
-  City
-  """
-  city: String
+  website: String
   """
   Postal / ZIP code
   """
   zipcode: String
   """
-  State or province
+  Org Name (computed)
   """
-  state: String
-  """
-  Logo URL
-  """
-  logo: String
+  orgName: String
   """
   PeeringDB creation timestamp
   """
@@ -69,8 +69,8 @@ type Campus implements Node {
   Record status
   """
   status: String!
-  organization: Organization
   facilities: [Facility!]
+  organization: Organization
 }
 """
 A connection to a list of items.
@@ -150,23 +150,77 @@ input CampusWhereInput {
   orgIDIsNil: Boolean
   orgIDNotNil: Boolean
   """
-  org_name field predicates
+  aka field predicates
   """
-  orgName: String
-  orgNameNEQ: String
-  orgNameIn: [String!]
-  orgNameNotIn: [String!]
-  orgNameGT: String
-  orgNameGTE: String
-  orgNameLT: String
-  orgNameLTE: String
-  orgNameContains: String
-  orgNameHasPrefix: String
-  orgNameHasSuffix: String
-  orgNameIsNil: Boolean
-  orgNameNotNil: Boolean
-  orgNameEqualFold: String
-  orgNameContainsFold: String
+  aka: String
+  akaNEQ: String
+  akaIn: [String!]
+  akaNotIn: [String!]
+  akaGT: String
+  akaGTE: String
+  akaLT: String
+  akaLTE: String
+  akaContains: String
+  akaHasPrefix: String
+  akaHasSuffix: String
+  akaIsNil: Boolean
+  akaNotNil: Boolean
+  akaEqualFold: String
+  akaContainsFold: String
+  """
+  city field predicates
+  """
+  city: String
+  cityNEQ: String
+  cityIn: [String!]
+  cityNotIn: [String!]
+  cityGT: String
+  cityGTE: String
+  cityLT: String
+  cityLTE: String
+  cityContains: String
+  cityHasPrefix: String
+  cityHasSuffix: String
+  cityIsNil: Boolean
+  cityNotNil: Boolean
+  cityEqualFold: String
+  cityContainsFold: String
+  """
+  country field predicates
+  """
+  country: String
+  countryNEQ: String
+  countryIn: [String!]
+  countryNotIn: [String!]
+  countryGT: String
+  countryGTE: String
+  countryLT: String
+  countryLTE: String
+  countryContains: String
+  countryHasPrefix: String
+  countryHasSuffix: String
+  countryIsNil: Boolean
+  countryNotNil: Boolean
+  countryEqualFold: String
+  countryContainsFold: String
+  """
+  logo field predicates
+  """
+  logo: String
+  logoNEQ: String
+  logoIn: [String!]
+  logoNotIn: [String!]
+  logoGT: String
+  logoGTE: String
+  logoLT: String
+  logoLTE: String
+  logoContains: String
+  logoHasPrefix: String
+  logoHasSuffix: String
+  logoIsNil: Boolean
+  logoNotNil: Boolean
+  logoEqualFold: String
+  logoContainsFold: String
   """
   name field predicates
   """
@@ -202,42 +256,6 @@ input CampusWhereInput {
   nameLongEqualFold: String
   nameLongContainsFold: String
   """
-  aka field predicates
-  """
-  aka: String
-  akaNEQ: String
-  akaIn: [String!]
-  akaNotIn: [String!]
-  akaGT: String
-  akaGTE: String
-  akaLT: String
-  akaLTE: String
-  akaContains: String
-  akaHasPrefix: String
-  akaHasSuffix: String
-  akaIsNil: Boolean
-  akaNotNil: Boolean
-  akaEqualFold: String
-  akaContainsFold: String
-  """
-  website field predicates
-  """
-  website: String
-  websiteNEQ: String
-  websiteIn: [String!]
-  websiteNotIn: [String!]
-  websiteGT: String
-  websiteGTE: String
-  websiteLT: String
-  websiteLTE: String
-  websiteContains: String
-  websiteHasPrefix: String
-  websiteHasSuffix: String
-  websiteIsNil: Boolean
-  websiteNotNil: Boolean
-  websiteEqualFold: String
-  websiteContainsFold: String
-  """
   notes field predicates
   """
   notes: String
@@ -255,60 +273,6 @@ input CampusWhereInput {
   notesNotNil: Boolean
   notesEqualFold: String
   notesContainsFold: String
-  """
-  country field predicates
-  """
-  country: String
-  countryNEQ: String
-  countryIn: [String!]
-  countryNotIn: [String!]
-  countryGT: String
-  countryGTE: String
-  countryLT: String
-  countryLTE: String
-  countryContains: String
-  countryHasPrefix: String
-  countryHasSuffix: String
-  countryIsNil: Boolean
-  countryNotNil: Boolean
-  countryEqualFold: String
-  countryContainsFold: String
-  """
-  city field predicates
-  """
-  city: String
-  cityNEQ: String
-  cityIn: [String!]
-  cityNotIn: [String!]
-  cityGT: String
-  cityGTE: String
-  cityLT: String
-  cityLTE: String
-  cityContains: String
-  cityHasPrefix: String
-  cityHasSuffix: String
-  cityIsNil: Boolean
-  cityNotNil: Boolean
-  cityEqualFold: String
-  cityContainsFold: String
-  """
-  zipcode field predicates
-  """
-  zipcode: String
-  zipcodeNEQ: String
-  zipcodeIn: [String!]
-  zipcodeNotIn: [String!]
-  zipcodeGT: String
-  zipcodeGTE: String
-  zipcodeLT: String
-  zipcodeLTE: String
-  zipcodeContains: String
-  zipcodeHasPrefix: String
-  zipcodeHasSuffix: String
-  zipcodeIsNil: Boolean
-  zipcodeNotNil: Boolean
-  zipcodeEqualFold: String
-  zipcodeContainsFold: String
   """
   state field predicates
   """
@@ -328,23 +292,59 @@ input CampusWhereInput {
   stateEqualFold: String
   stateContainsFold: String
   """
-  logo field predicates
+  website field predicates
   """
-  logo: String
-  logoNEQ: String
-  logoIn: [String!]
-  logoNotIn: [String!]
-  logoGT: String
-  logoGTE: String
-  logoLT: String
-  logoLTE: String
-  logoContains: String
-  logoHasPrefix: String
-  logoHasSuffix: String
-  logoIsNil: Boolean
-  logoNotNil: Boolean
-  logoEqualFold: String
-  logoContainsFold: String
+  website: String
+  websiteNEQ: String
+  websiteIn: [String!]
+  websiteNotIn: [String!]
+  websiteGT: String
+  websiteGTE: String
+  websiteLT: String
+  websiteLTE: String
+  websiteContains: String
+  websiteHasPrefix: String
+  websiteHasSuffix: String
+  websiteIsNil: Boolean
+  websiteNotNil: Boolean
+  websiteEqualFold: String
+  websiteContainsFold: String
+  """
+  zipcode field predicates
+  """
+  zipcode: String
+  zipcodeNEQ: String
+  zipcodeIn: [String!]
+  zipcodeNotIn: [String!]
+  zipcodeGT: String
+  zipcodeGTE: String
+  zipcodeLT: String
+  zipcodeLTE: String
+  zipcodeContains: String
+  zipcodeHasPrefix: String
+  zipcodeHasSuffix: String
+  zipcodeIsNil: Boolean
+  zipcodeNotNil: Boolean
+  zipcodeEqualFold: String
+  zipcodeContainsFold: String
+  """
+  org_name field predicates
+  """
+  orgName: String
+  orgNameNEQ: String
+  orgNameIn: [String!]
+  orgNameNotIn: [String!]
+  orgNameGT: String
+  orgNameGTE: String
+  orgNameLT: String
+  orgNameLTE: String
+  orgNameContains: String
+  orgNameHasPrefix: String
+  orgNameHasSuffix: String
+  orgNameIsNil: Boolean
+  orgNameNotNil: Boolean
+  orgNameEqualFold: String
+  orgNameContainsFold: String
   """
   created field predicates
   """
@@ -384,15 +384,15 @@ input CampusWhereInput {
   statusEqualFold: String
   statusContainsFold: String
   """
-  organization edge predicates
-  """
-  hasOrganization: Boolean
-  hasOrganizationWith: [OrganizationWhereInput!]
-  """
   facilities edge predicates
   """
   hasFacilities: Boolean
   hasFacilitiesWith: [FacilityWhereInput!]
+  """
+  organization edge predicates
+  """
+  hasOrganization: Boolean
+  hasOrganizationWith: [OrganizationWhereInput!]
 }
 type Carrier implements Node {
   """
@@ -404,41 +404,41 @@ type Carrier implements Node {
   """
   orgID: ID
   """
-  Organization name (computed)
+  Also known as
   """
-  orgName: String
+  aka: String
+  """
+  Logo URL
+  """
+  logo: String
   """
   Carrier name
   """
   name: String!
   """
-  Also known as
-  """
-  aka: String
-  """
   Long name
   """
   nameLong: String
-  """
-  Carrier website URL
-  """
-  website: String
-  """
-  Social media links
-  """
-  socialMedia: [SocialMedia!]
   """
   Notes
   """
   notes: String
   """
-  Facility count (computed)
+  Social media links
+  """
+  socialMedia: [SocialMedia!]
+  """
+  Carrier website URL
+  """
+  website: String
+  """
+  Org Name (computed)
+  """
+  orgName: String
+  """
+  Fac Count (computed)
   """
   facCount: Int
-  """
-  Logo URL
-  """
-  logo: String
   """
   PeeringDB creation timestamp
   """
@@ -451,8 +451,8 @@ type Carrier implements Node {
   Record status
   """
   status: String!
-  organization: Organization
   carrierFacilities: [CarrierFacility!]
+  organization: Organization
 }
 """
 A connection to a list of items.
@@ -486,7 +486,7 @@ type CarrierEdge {
 }
 type CarrierFacility implements Node {
   """
-  PeeringDB carrier-facility ID
+  PeeringDB carrierfacility ID
   """
   id: ID!
   """
@@ -498,7 +498,7 @@ type CarrierFacility implements Node {
   """
   facID: ID
   """
-  Facility name (computed)
+  Name (computed)
   """
   name: String
   """
@@ -698,40 +698,6 @@ input CarrierWhereInput {
   orgIDIsNil: Boolean
   orgIDNotNil: Boolean
   """
-  org_name field predicates
-  """
-  orgName: String
-  orgNameNEQ: String
-  orgNameIn: [String!]
-  orgNameNotIn: [String!]
-  orgNameGT: String
-  orgNameGTE: String
-  orgNameLT: String
-  orgNameLTE: String
-  orgNameContains: String
-  orgNameHasPrefix: String
-  orgNameHasSuffix: String
-  orgNameIsNil: Boolean
-  orgNameNotNil: Boolean
-  orgNameEqualFold: String
-  orgNameContainsFold: String
-  """
-  name field predicates
-  """
-  name: String
-  nameNEQ: String
-  nameIn: [String!]
-  nameNotIn: [String!]
-  nameGT: String
-  nameGTE: String
-  nameLT: String
-  nameLTE: String
-  nameContains: String
-  nameHasPrefix: String
-  nameHasSuffix: String
-  nameEqualFold: String
-  nameContainsFold: String
-  """
   aka field predicates
   """
   aka: String
@@ -749,6 +715,40 @@ input CarrierWhereInput {
   akaNotNil: Boolean
   akaEqualFold: String
   akaContainsFold: String
+  """
+  logo field predicates
+  """
+  logo: String
+  logoNEQ: String
+  logoIn: [String!]
+  logoNotIn: [String!]
+  logoGT: String
+  logoGTE: String
+  logoLT: String
+  logoLTE: String
+  logoContains: String
+  logoHasPrefix: String
+  logoHasSuffix: String
+  logoIsNil: Boolean
+  logoNotNil: Boolean
+  logoEqualFold: String
+  logoContainsFold: String
+  """
+  name field predicates
+  """
+  name: String
+  nameNEQ: String
+  nameIn: [String!]
+  nameNotIn: [String!]
+  nameGT: String
+  nameGTE: String
+  nameLT: String
+  nameLTE: String
+  nameContains: String
+  nameHasPrefix: String
+  nameHasSuffix: String
+  nameEqualFold: String
+  nameContainsFold: String
   """
   name_long field predicates
   """
@@ -768,24 +768,6 @@ input CarrierWhereInput {
   nameLongEqualFold: String
   nameLongContainsFold: String
   """
-  website field predicates
-  """
-  website: String
-  websiteNEQ: String
-  websiteIn: [String!]
-  websiteNotIn: [String!]
-  websiteGT: String
-  websiteGTE: String
-  websiteLT: String
-  websiteLTE: String
-  websiteContains: String
-  websiteHasPrefix: String
-  websiteHasSuffix: String
-  websiteIsNil: Boolean
-  websiteNotNil: Boolean
-  websiteEqualFold: String
-  websiteContainsFold: String
-  """
   notes field predicates
   """
   notes: String
@@ -804,6 +786,42 @@ input CarrierWhereInput {
   notesEqualFold: String
   notesContainsFold: String
   """
+  website field predicates
+  """
+  website: String
+  websiteNEQ: String
+  websiteIn: [String!]
+  websiteNotIn: [String!]
+  websiteGT: String
+  websiteGTE: String
+  websiteLT: String
+  websiteLTE: String
+  websiteContains: String
+  websiteHasPrefix: String
+  websiteHasSuffix: String
+  websiteIsNil: Boolean
+  websiteNotNil: Boolean
+  websiteEqualFold: String
+  websiteContainsFold: String
+  """
+  org_name field predicates
+  """
+  orgName: String
+  orgNameNEQ: String
+  orgNameIn: [String!]
+  orgNameNotIn: [String!]
+  orgNameGT: String
+  orgNameGTE: String
+  orgNameLT: String
+  orgNameLTE: String
+  orgNameContains: String
+  orgNameHasPrefix: String
+  orgNameHasSuffix: String
+  orgNameIsNil: Boolean
+  orgNameNotNil: Boolean
+  orgNameEqualFold: String
+  orgNameContainsFold: String
+  """
   fac_count field predicates
   """
   facCount: Int
@@ -816,24 +834,6 @@ input CarrierWhereInput {
   facCountLTE: Int
   facCountIsNil: Boolean
   facCountNotNil: Boolean
-  """
-  logo field predicates
-  """
-  logo: String
-  logoNEQ: String
-  logoIn: [String!]
-  logoNotIn: [String!]
-  logoGT: String
-  logoGTE: String
-  logoLT: String
-  logoLTE: String
-  logoContains: String
-  logoHasPrefix: String
-  logoHasSuffix: String
-  logoIsNil: Boolean
-  logoNotNil: Boolean
-  logoEqualFold: String
-  logoContainsFold: String
   """
   created field predicates
   """
@@ -873,15 +873,15 @@ input CarrierWhereInput {
   statusEqualFold: String
   statusContainsFold: String
   """
-  organization edge predicates
-  """
-  hasOrganization: Boolean
-  hasOrganizationWith: [OrganizationWhereInput!]
-  """
   carrier_facilities edge predicates
   """
   hasCarrierFacilities: Boolean
   hasCarrierFacilitiesWith: [CarrierFacilityWhereInput!]
+  """
+  organization edge predicates
+  """
+  hasOrganization: Boolean
+  hasOrganizationWith: [OrganizationWhereInput!]
 }
 """
 Define a Relay Cursor type:
@@ -894,105 +894,13 @@ type Facility implements Node {
   """
   id: ID!
   """
-  FK to organization
-  """
-  orgID: ID
-  """
-  Organization name (computed)
-  """
-  orgName: String
-  """
   FK to campus
   """
   campusID: ID
   """
-  Facility name
+  FK to organization
   """
-  name: String!
-  """
-  Also known as
-  """
-  aka: String
-  """
-  Long name
-  """
-  nameLong: String
-  """
-  Facility website URL
-  """
-  website: String
-  """
-  Social media links
-  """
-  socialMedia: [SocialMedia!]
-  """
-  CLLI code
-  """
-  clli: String
-  """
-  Rencode
-  """
-  rencode: String
-  """
-  NPANXX
-  """
-  npanxx: String
-  """
-  Technical contact email
-  """
-  techEmail: String
-  """
-  Technical contact phone
-  """
-  techPhone: String
-  """
-  Sales contact email
-  """
-  salesEmail: String
-  """
-  Sales contact phone
-  """
-  salesPhone: String
-  """
-  Property type
-  """
-  property: String
-  """
-  Has diverse serving substations
-  """
-  diverseServingSubstations: Boolean
-  """
-  Available voltage services
-  """
-  availableVoltageServices: [String!]
-  """
-  Notes
-  """
-  notes: String
-  """
-  Region / continent
-  """
-  regionContinent: String
-  """
-  Status dashboard URL
-  """
-  statusDashboard: String
-  """
-  Logo URL
-  """
-  logo: String
-  """
-  Network count (computed)
-  """
-  netCount: Int
-  """
-  Internet exchange count (computed)
-  """
-  ixCount: Int
-  """
-  Carrier count (computed)
-  """
-  carrierCount: Int
+  orgID: ID
   """
   Address line 1
   """
@@ -1002,25 +910,29 @@ type Facility implements Node {
   """
   address2: String
   """
+  Also known as
+  """
+  aka: String
+  """
+  Available voltage services
+  """
+  availableVoltageServices: [String!]
+  """
   City
   """
   city: String
   """
-  State or province
+  CLLI code
   """
-  state: String
+  clli: String
   """
   Country code
   """
   country: String
   """
-  Postal / ZIP code
+  Diverse serving substations
   """
-  zipcode: String
-  """
-  Suite number
-  """
-  suite: String
+  diverseServingSubstations: Boolean
   """
   Floor
   """
@@ -1030,9 +942,97 @@ type Facility implements Node {
   """
   latitude: Float
   """
+  Logo URL
+  """
+  logo: String
+  """
   Longitude
   """
   longitude: Float
+  """
+  Facility name
+  """
+  name: String!
+  """
+  Long name
+  """
+  nameLong: String
+  """
+  Notes
+  """
+  notes: String
+  """
+  NPA-NXX code
+  """
+  npanxx: String
+  """
+  Property type
+  """
+  property: String
+  """
+  Region/continent
+  """
+  regionContinent: String
+  """
+  Rencode
+  """
+  rencode: String
+  """
+  Sales email
+  """
+  salesEmail: String
+  """
+  Sales phone
+  """
+  salesPhone: String
+  """
+  Social media links
+  """
+  socialMedia: [SocialMedia!]
+  """
+  State or province
+  """
+  state: String
+  """
+  Status dashboard URL
+  """
+  statusDashboard: String
+  """
+  Suite number
+  """
+  suite: String
+  """
+  Technical email
+  """
+  techEmail: String
+  """
+  Technical phone
+  """
+  techPhone: String
+  """
+  Facility website URL
+  """
+  website: String
+  """
+  Postal / ZIP code
+  """
+  zipcode: String
+  """
+  Org Name (computed)
+  """
+  orgName: String
+  """
+  Net Count (computed)
+  """
+  netCount: Int
+  """
+  Ix Count (computed)
+  """
+  ixCount: Int
+  """
+  Carrier Count (computed)
+  """
+  carrierCount: Int
   """
   PeeringDB creation timestamp
   """
@@ -1045,11 +1045,11 @@ type Facility implements Node {
   Record status
   """
   status: String!
-  organization: Organization
   campus: Campus
-  networkFacilities: [NetworkFacility!]
-  ixFacilities: [IxFacility!]
   carrierFacilities: [CarrierFacility!]
+  ixFacilities: [IxFacility!]
+  networkFacilities: [NetworkFacility!]
+  organization: Organization
 }
 """
 A connection to a list of items.
@@ -1120,33 +1120,6 @@ input FacilityWhereInput {
   idLT: ID
   idLTE: ID
   """
-  org_id field predicates
-  """
-  orgID: ID
-  orgIDNEQ: ID
-  orgIDIn: [ID!]
-  orgIDNotIn: [ID!]
-  orgIDIsNil: Boolean
-  orgIDNotNil: Boolean
-  """
-  org_name field predicates
-  """
-  orgName: String
-  orgNameNEQ: String
-  orgNameIn: [String!]
-  orgNameNotIn: [String!]
-  orgNameGT: String
-  orgNameGTE: String
-  orgNameLT: String
-  orgNameLTE: String
-  orgNameContains: String
-  orgNameHasPrefix: String
-  orgNameHasSuffix: String
-  orgNameIsNil: Boolean
-  orgNameNotNil: Boolean
-  orgNameEqualFold: String
-  orgNameContainsFold: String
-  """
   campus_id field predicates
   """
   campusID: ID
@@ -1156,21 +1129,50 @@ input FacilityWhereInput {
   campusIDIsNil: Boolean
   campusIDNotNil: Boolean
   """
-  name field predicates
+  org_id field predicates
   """
-  name: String
-  nameNEQ: String
-  nameIn: [String!]
-  nameNotIn: [String!]
-  nameGT: String
-  nameGTE: String
-  nameLT: String
-  nameLTE: String
-  nameContains: String
-  nameHasPrefix: String
-  nameHasSuffix: String
-  nameEqualFold: String
-  nameContainsFold: String
+  orgID: ID
+  orgIDNEQ: ID
+  orgIDIn: [ID!]
+  orgIDNotIn: [ID!]
+  orgIDIsNil: Boolean
+  orgIDNotNil: Boolean
+  """
+  address1 field predicates
+  """
+  address1: String
+  address1NEQ: String
+  address1In: [String!]
+  address1NotIn: [String!]
+  address1GT: String
+  address1GTE: String
+  address1LT: String
+  address1LTE: String
+  address1Contains: String
+  address1HasPrefix: String
+  address1HasSuffix: String
+  address1IsNil: Boolean
+  address1NotNil: Boolean
+  address1EqualFold: String
+  address1ContainsFold: String
+  """
+  address2 field predicates
+  """
+  address2: String
+  address2NEQ: String
+  address2In: [String!]
+  address2NotIn: [String!]
+  address2GT: String
+  address2GTE: String
+  address2LT: String
+  address2LTE: String
+  address2Contains: String
+  address2HasPrefix: String
+  address2HasSuffix: String
+  address2IsNil: Boolean
+  address2NotNil: Boolean
+  address2EqualFold: String
+  address2ContainsFold: String
   """
   aka field predicates
   """
@@ -1190,41 +1192,23 @@ input FacilityWhereInput {
   akaEqualFold: String
   akaContainsFold: String
   """
-  name_long field predicates
+  city field predicates
   """
-  nameLong: String
-  nameLongNEQ: String
-  nameLongIn: [String!]
-  nameLongNotIn: [String!]
-  nameLongGT: String
-  nameLongGTE: String
-  nameLongLT: String
-  nameLongLTE: String
-  nameLongContains: String
-  nameLongHasPrefix: String
-  nameLongHasSuffix: String
-  nameLongIsNil: Boolean
-  nameLongNotNil: Boolean
-  nameLongEqualFold: String
-  nameLongContainsFold: String
-  """
-  website field predicates
-  """
-  website: String
-  websiteNEQ: String
-  websiteIn: [String!]
-  websiteNotIn: [String!]
-  websiteGT: String
-  websiteGTE: String
-  websiteLT: String
-  websiteLTE: String
-  websiteContains: String
-  websiteHasPrefix: String
-  websiteHasSuffix: String
-  websiteIsNil: Boolean
-  websiteNotNil: Boolean
-  websiteEqualFold: String
-  websiteContainsFold: String
+  city: String
+  cityNEQ: String
+  cityIn: [String!]
+  cityNotIn: [String!]
+  cityGT: String
+  cityGTE: String
+  cityLT: String
+  cityLTE: String
+  cityContains: String
+  cityHasPrefix: String
+  cityHasSuffix: String
+  cityIsNil: Boolean
+  cityNotNil: Boolean
+  cityEqualFold: String
+  cityContainsFold: String
   """
   clli field predicates
   """
@@ -1244,23 +1228,144 @@ input FacilityWhereInput {
   clliEqualFold: String
   clliContainsFold: String
   """
-  rencode field predicates
+  country field predicates
   """
-  rencode: String
-  rencodeNEQ: String
-  rencodeIn: [String!]
-  rencodeNotIn: [String!]
-  rencodeGT: String
-  rencodeGTE: String
-  rencodeLT: String
-  rencodeLTE: String
-  rencodeContains: String
-  rencodeHasPrefix: String
-  rencodeHasSuffix: String
-  rencodeIsNil: Boolean
-  rencodeNotNil: Boolean
-  rencodeEqualFold: String
-  rencodeContainsFold: String
+  country: String
+  countryNEQ: String
+  countryIn: [String!]
+  countryNotIn: [String!]
+  countryGT: String
+  countryGTE: String
+  countryLT: String
+  countryLTE: String
+  countryContains: String
+  countryHasPrefix: String
+  countryHasSuffix: String
+  countryIsNil: Boolean
+  countryNotNil: Boolean
+  countryEqualFold: String
+  countryContainsFold: String
+  """
+  diverse_serving_substations field predicates
+  """
+  diverseServingSubstations: Boolean
+  diverseServingSubstationsNEQ: Boolean
+  diverseServingSubstationsIsNil: Boolean
+  diverseServingSubstationsNotNil: Boolean
+  """
+  floor field predicates
+  """
+  floor: String
+  floorNEQ: String
+  floorIn: [String!]
+  floorNotIn: [String!]
+  floorGT: String
+  floorGTE: String
+  floorLT: String
+  floorLTE: String
+  floorContains: String
+  floorHasPrefix: String
+  floorHasSuffix: String
+  floorIsNil: Boolean
+  floorNotNil: Boolean
+  floorEqualFold: String
+  floorContainsFold: String
+  """
+  latitude field predicates
+  """
+  latitude: Float
+  latitudeNEQ: Float
+  latitudeIn: [Float!]
+  latitudeNotIn: [Float!]
+  latitudeGT: Float
+  latitudeGTE: Float
+  latitudeLT: Float
+  latitudeLTE: Float
+  latitudeIsNil: Boolean
+  latitudeNotNil: Boolean
+  """
+  logo field predicates
+  """
+  logo: String
+  logoNEQ: String
+  logoIn: [String!]
+  logoNotIn: [String!]
+  logoGT: String
+  logoGTE: String
+  logoLT: String
+  logoLTE: String
+  logoContains: String
+  logoHasPrefix: String
+  logoHasSuffix: String
+  logoIsNil: Boolean
+  logoNotNil: Boolean
+  logoEqualFold: String
+  logoContainsFold: String
+  """
+  longitude field predicates
+  """
+  longitude: Float
+  longitudeNEQ: Float
+  longitudeIn: [Float!]
+  longitudeNotIn: [Float!]
+  longitudeGT: Float
+  longitudeGTE: Float
+  longitudeLT: Float
+  longitudeLTE: Float
+  longitudeIsNil: Boolean
+  longitudeNotNil: Boolean
+  """
+  name field predicates
+  """
+  name: String
+  nameNEQ: String
+  nameIn: [String!]
+  nameNotIn: [String!]
+  nameGT: String
+  nameGTE: String
+  nameLT: String
+  nameLTE: String
+  nameContains: String
+  nameHasPrefix: String
+  nameHasSuffix: String
+  nameEqualFold: String
+  nameContainsFold: String
+  """
+  name_long field predicates
+  """
+  nameLong: String
+  nameLongNEQ: String
+  nameLongIn: [String!]
+  nameLongNotIn: [String!]
+  nameLongGT: String
+  nameLongGTE: String
+  nameLongLT: String
+  nameLongLTE: String
+  nameLongContains: String
+  nameLongHasPrefix: String
+  nameLongHasSuffix: String
+  nameLongIsNil: Boolean
+  nameLongNotNil: Boolean
+  nameLongEqualFold: String
+  nameLongContainsFold: String
+  """
+  notes field predicates
+  """
+  notes: String
+  notesNEQ: String
+  notesIn: [String!]
+  notesNotIn: [String!]
+  notesGT: String
+  notesGTE: String
+  notesLT: String
+  notesLTE: String
+  notesContains: String
+  notesHasPrefix: String
+  notesHasSuffix: String
+  notesIsNil: Boolean
+  notesNotNil: Boolean
+  notesEqualFold: String
+  notesContainsFold: String
   """
   npanxx field predicates
   """
@@ -1280,41 +1385,59 @@ input FacilityWhereInput {
   npanxxEqualFold: String
   npanxxContainsFold: String
   """
-  tech_email field predicates
+  property field predicates
   """
-  techEmail: String
-  techEmailNEQ: String
-  techEmailIn: [String!]
-  techEmailNotIn: [String!]
-  techEmailGT: String
-  techEmailGTE: String
-  techEmailLT: String
-  techEmailLTE: String
-  techEmailContains: String
-  techEmailHasPrefix: String
-  techEmailHasSuffix: String
-  techEmailIsNil: Boolean
-  techEmailNotNil: Boolean
-  techEmailEqualFold: String
-  techEmailContainsFold: String
+  property: String
+  propertyNEQ: String
+  propertyIn: [String!]
+  propertyNotIn: [String!]
+  propertyGT: String
+  propertyGTE: String
+  propertyLT: String
+  propertyLTE: String
+  propertyContains: String
+  propertyHasPrefix: String
+  propertyHasSuffix: String
+  propertyIsNil: Boolean
+  propertyNotNil: Boolean
+  propertyEqualFold: String
+  propertyContainsFold: String
   """
-  tech_phone field predicates
+  region_continent field predicates
   """
-  techPhone: String
-  techPhoneNEQ: String
-  techPhoneIn: [String!]
-  techPhoneNotIn: [String!]
-  techPhoneGT: String
-  techPhoneGTE: String
-  techPhoneLT: String
-  techPhoneLTE: String
-  techPhoneContains: String
-  techPhoneHasPrefix: String
-  techPhoneHasSuffix: String
-  techPhoneIsNil: Boolean
-  techPhoneNotNil: Boolean
-  techPhoneEqualFold: String
-  techPhoneContainsFold: String
+  regionContinent: String
+  regionContinentNEQ: String
+  regionContinentIn: [String!]
+  regionContinentNotIn: [String!]
+  regionContinentGT: String
+  regionContinentGTE: String
+  regionContinentLT: String
+  regionContinentLTE: String
+  regionContinentContains: String
+  regionContinentHasPrefix: String
+  regionContinentHasSuffix: String
+  regionContinentIsNil: Boolean
+  regionContinentNotNil: Boolean
+  regionContinentEqualFold: String
+  regionContinentContainsFold: String
+  """
+  rencode field predicates
+  """
+  rencode: String
+  rencodeNEQ: String
+  rencodeIn: [String!]
+  rencodeNotIn: [String!]
+  rencodeGT: String
+  rencodeGTE: String
+  rencodeLT: String
+  rencodeLTE: String
+  rencodeContains: String
+  rencodeHasPrefix: String
+  rencodeHasSuffix: String
+  rencodeIsNil: Boolean
+  rencodeNotNil: Boolean
+  rencodeEqualFold: String
+  rencodeContainsFold: String
   """
   sales_email field predicates
   """
@@ -1352,66 +1475,23 @@ input FacilityWhereInput {
   salesPhoneEqualFold: String
   salesPhoneContainsFold: String
   """
-  property field predicates
+  state field predicates
   """
-  property: String
-  propertyNEQ: String
-  propertyIn: [String!]
-  propertyNotIn: [String!]
-  propertyGT: String
-  propertyGTE: String
-  propertyLT: String
-  propertyLTE: String
-  propertyContains: String
-  propertyHasPrefix: String
-  propertyHasSuffix: String
-  propertyIsNil: Boolean
-  propertyNotNil: Boolean
-  propertyEqualFold: String
-  propertyContainsFold: String
-  """
-  diverse_serving_substations field predicates
-  """
-  diverseServingSubstations: Boolean
-  diverseServingSubstationsNEQ: Boolean
-  diverseServingSubstationsIsNil: Boolean
-  diverseServingSubstationsNotNil: Boolean
-  """
-  notes field predicates
-  """
-  notes: String
-  notesNEQ: String
-  notesIn: [String!]
-  notesNotIn: [String!]
-  notesGT: String
-  notesGTE: String
-  notesLT: String
-  notesLTE: String
-  notesContains: String
-  notesHasPrefix: String
-  notesHasSuffix: String
-  notesIsNil: Boolean
-  notesNotNil: Boolean
-  notesEqualFold: String
-  notesContainsFold: String
-  """
-  region_continent field predicates
-  """
-  regionContinent: String
-  regionContinentNEQ: String
-  regionContinentIn: [String!]
-  regionContinentNotIn: [String!]
-  regionContinentGT: String
-  regionContinentGTE: String
-  regionContinentLT: String
-  regionContinentLTE: String
-  regionContinentContains: String
-  regionContinentHasPrefix: String
-  regionContinentHasSuffix: String
-  regionContinentIsNil: Boolean
-  regionContinentNotNil: Boolean
-  regionContinentEqualFold: String
-  regionContinentContainsFold: String
+  state: String
+  stateNEQ: String
+  stateIn: [String!]
+  stateNotIn: [String!]
+  stateGT: String
+  stateGTE: String
+  stateLT: String
+  stateLTE: String
+  stateContains: String
+  stateHasPrefix: String
+  stateHasSuffix: String
+  stateIsNil: Boolean
+  stateNotNil: Boolean
+  stateEqualFold: String
+  stateContainsFold: String
   """
   status_dashboard field predicates
   """
@@ -1431,23 +1511,113 @@ input FacilityWhereInput {
   statusDashboardEqualFold: String
   statusDashboardContainsFold: String
   """
-  logo field predicates
+  suite field predicates
   """
-  logo: String
-  logoNEQ: String
-  logoIn: [String!]
-  logoNotIn: [String!]
-  logoGT: String
-  logoGTE: String
-  logoLT: String
-  logoLTE: String
-  logoContains: String
-  logoHasPrefix: String
-  logoHasSuffix: String
-  logoIsNil: Boolean
-  logoNotNil: Boolean
-  logoEqualFold: String
-  logoContainsFold: String
+  suite: String
+  suiteNEQ: String
+  suiteIn: [String!]
+  suiteNotIn: [String!]
+  suiteGT: String
+  suiteGTE: String
+  suiteLT: String
+  suiteLTE: String
+  suiteContains: String
+  suiteHasPrefix: String
+  suiteHasSuffix: String
+  suiteIsNil: Boolean
+  suiteNotNil: Boolean
+  suiteEqualFold: String
+  suiteContainsFold: String
+  """
+  tech_email field predicates
+  """
+  techEmail: String
+  techEmailNEQ: String
+  techEmailIn: [String!]
+  techEmailNotIn: [String!]
+  techEmailGT: String
+  techEmailGTE: String
+  techEmailLT: String
+  techEmailLTE: String
+  techEmailContains: String
+  techEmailHasPrefix: String
+  techEmailHasSuffix: String
+  techEmailIsNil: Boolean
+  techEmailNotNil: Boolean
+  techEmailEqualFold: String
+  techEmailContainsFold: String
+  """
+  tech_phone field predicates
+  """
+  techPhone: String
+  techPhoneNEQ: String
+  techPhoneIn: [String!]
+  techPhoneNotIn: [String!]
+  techPhoneGT: String
+  techPhoneGTE: String
+  techPhoneLT: String
+  techPhoneLTE: String
+  techPhoneContains: String
+  techPhoneHasPrefix: String
+  techPhoneHasSuffix: String
+  techPhoneIsNil: Boolean
+  techPhoneNotNil: Boolean
+  techPhoneEqualFold: String
+  techPhoneContainsFold: String
+  """
+  website field predicates
+  """
+  website: String
+  websiteNEQ: String
+  websiteIn: [String!]
+  websiteNotIn: [String!]
+  websiteGT: String
+  websiteGTE: String
+  websiteLT: String
+  websiteLTE: String
+  websiteContains: String
+  websiteHasPrefix: String
+  websiteHasSuffix: String
+  websiteIsNil: Boolean
+  websiteNotNil: Boolean
+  websiteEqualFold: String
+  websiteContainsFold: String
+  """
+  zipcode field predicates
+  """
+  zipcode: String
+  zipcodeNEQ: String
+  zipcodeIn: [String!]
+  zipcodeNotIn: [String!]
+  zipcodeGT: String
+  zipcodeGTE: String
+  zipcodeLT: String
+  zipcodeLTE: String
+  zipcodeContains: String
+  zipcodeHasPrefix: String
+  zipcodeHasSuffix: String
+  zipcodeIsNil: Boolean
+  zipcodeNotNil: Boolean
+  zipcodeEqualFold: String
+  zipcodeContainsFold: String
+  """
+  org_name field predicates
+  """
+  orgName: String
+  orgNameNEQ: String
+  orgNameIn: [String!]
+  orgNameNotIn: [String!]
+  orgNameGT: String
+  orgNameGTE: String
+  orgNameLT: String
+  orgNameLTE: String
+  orgNameContains: String
+  orgNameHasPrefix: String
+  orgNameHasSuffix: String
+  orgNameIsNil: Boolean
+  orgNameNotNil: Boolean
+  orgNameEqualFold: String
+  orgNameContainsFold: String
   """
   net_count field predicates
   """
@@ -1488,176 +1658,6 @@ input FacilityWhereInput {
   carrierCountIsNil: Boolean
   carrierCountNotNil: Boolean
   """
-  address1 field predicates
-  """
-  address1: String
-  address1NEQ: String
-  address1In: [String!]
-  address1NotIn: [String!]
-  address1GT: String
-  address1GTE: String
-  address1LT: String
-  address1LTE: String
-  address1Contains: String
-  address1HasPrefix: String
-  address1HasSuffix: String
-  address1IsNil: Boolean
-  address1NotNil: Boolean
-  address1EqualFold: String
-  address1ContainsFold: String
-  """
-  address2 field predicates
-  """
-  address2: String
-  address2NEQ: String
-  address2In: [String!]
-  address2NotIn: [String!]
-  address2GT: String
-  address2GTE: String
-  address2LT: String
-  address2LTE: String
-  address2Contains: String
-  address2HasPrefix: String
-  address2HasSuffix: String
-  address2IsNil: Boolean
-  address2NotNil: Boolean
-  address2EqualFold: String
-  address2ContainsFold: String
-  """
-  city field predicates
-  """
-  city: String
-  cityNEQ: String
-  cityIn: [String!]
-  cityNotIn: [String!]
-  cityGT: String
-  cityGTE: String
-  cityLT: String
-  cityLTE: String
-  cityContains: String
-  cityHasPrefix: String
-  cityHasSuffix: String
-  cityIsNil: Boolean
-  cityNotNil: Boolean
-  cityEqualFold: String
-  cityContainsFold: String
-  """
-  state field predicates
-  """
-  state: String
-  stateNEQ: String
-  stateIn: [String!]
-  stateNotIn: [String!]
-  stateGT: String
-  stateGTE: String
-  stateLT: String
-  stateLTE: String
-  stateContains: String
-  stateHasPrefix: String
-  stateHasSuffix: String
-  stateIsNil: Boolean
-  stateNotNil: Boolean
-  stateEqualFold: String
-  stateContainsFold: String
-  """
-  country field predicates
-  """
-  country: String
-  countryNEQ: String
-  countryIn: [String!]
-  countryNotIn: [String!]
-  countryGT: String
-  countryGTE: String
-  countryLT: String
-  countryLTE: String
-  countryContains: String
-  countryHasPrefix: String
-  countryHasSuffix: String
-  countryIsNil: Boolean
-  countryNotNil: Boolean
-  countryEqualFold: String
-  countryContainsFold: String
-  """
-  zipcode field predicates
-  """
-  zipcode: String
-  zipcodeNEQ: String
-  zipcodeIn: [String!]
-  zipcodeNotIn: [String!]
-  zipcodeGT: String
-  zipcodeGTE: String
-  zipcodeLT: String
-  zipcodeLTE: String
-  zipcodeContains: String
-  zipcodeHasPrefix: String
-  zipcodeHasSuffix: String
-  zipcodeIsNil: Boolean
-  zipcodeNotNil: Boolean
-  zipcodeEqualFold: String
-  zipcodeContainsFold: String
-  """
-  suite field predicates
-  """
-  suite: String
-  suiteNEQ: String
-  suiteIn: [String!]
-  suiteNotIn: [String!]
-  suiteGT: String
-  suiteGTE: String
-  suiteLT: String
-  suiteLTE: String
-  suiteContains: String
-  suiteHasPrefix: String
-  suiteHasSuffix: String
-  suiteIsNil: Boolean
-  suiteNotNil: Boolean
-  suiteEqualFold: String
-  suiteContainsFold: String
-  """
-  floor field predicates
-  """
-  floor: String
-  floorNEQ: String
-  floorIn: [String!]
-  floorNotIn: [String!]
-  floorGT: String
-  floorGTE: String
-  floorLT: String
-  floorLTE: String
-  floorContains: String
-  floorHasPrefix: String
-  floorHasSuffix: String
-  floorIsNil: Boolean
-  floorNotNil: Boolean
-  floorEqualFold: String
-  floorContainsFold: String
-  """
-  latitude field predicates
-  """
-  latitude: Float
-  latitudeNEQ: Float
-  latitudeIn: [Float!]
-  latitudeNotIn: [Float!]
-  latitudeGT: Float
-  latitudeGTE: Float
-  latitudeLT: Float
-  latitudeLTE: Float
-  latitudeIsNil: Boolean
-  latitudeNotNil: Boolean
-  """
-  longitude field predicates
-  """
-  longitude: Float
-  longitudeNEQ: Float
-  longitudeIn: [Float!]
-  longitudeNotIn: [Float!]
-  longitudeGT: Float
-  longitudeGTE: Float
-  longitudeLT: Float
-  longitudeLTE: Float
-  longitudeIsNil: Boolean
-  longitudeNotNil: Boolean
-  """
   created field predicates
   """
   created: Time
@@ -1696,34 +1696,34 @@ input FacilityWhereInput {
   statusEqualFold: String
   statusContainsFold: String
   """
-  organization edge predicates
-  """
-  hasOrganization: Boolean
-  hasOrganizationWith: [OrganizationWhereInput!]
-  """
   campus edge predicates
   """
   hasCampus: Boolean
   hasCampusWith: [CampusWhereInput!]
   """
-  network_facilities edge predicates
+  carrier_facilities edge predicates
   """
-  hasNetworkFacilities: Boolean
-  hasNetworkFacilitiesWith: [NetworkFacilityWhereInput!]
+  hasCarrierFacilities: Boolean
+  hasCarrierFacilitiesWith: [CarrierFacilityWhereInput!]
   """
   ix_facilities edge predicates
   """
   hasIxFacilities: Boolean
   hasIxFacilitiesWith: [IxFacilityWhereInput!]
   """
-  carrier_facilities edge predicates
+  network_facilities edge predicates
   """
-  hasCarrierFacilities: Boolean
-  hasCarrierFacilitiesWith: [CarrierFacilityWhereInput!]
+  hasNetworkFacilities: Boolean
+  hasNetworkFacilitiesWith: [NetworkFacilityWhereInput!]
+  """
+  organization edge predicates
+  """
+  hasOrganization: Boolean
+  hasOrganizationWith: [OrganizationWhereInput!]
 }
 type InternetExchange implements Node {
   """
-  PeeringDB internet exchange ID
+  PeeringDB internetexchange ID
   """
   id: ID!
   """
@@ -1731,125 +1731,125 @@ type InternetExchange implements Node {
   """
   orgID: ID
   """
-  Internet exchange name
-  """
-  name: String!
-  """
   Also known as
   """
   aka: String
+  """
+  City
+  """
+  city: String
+  """
+  Country code
+  """
+  country: String
+  """
+  IXF last import timestamp
+  """
+  ixfLastImport: Time
+  """
+  IXF net count
+  """
+  ixfNetCount: Int
+  """
+  Logo URL
+  """
+  logo: String
+  """
+  Exchange media type
+  """
+  media: String
+  """
+  Internet exchange name
+  """
+  name: String!
   """
   Long name
   """
   nameLong: String
   """
-  City
-  """
-  city: String!
-  """
-  Country code
-  """
-  country: String!
-  """
-  Region / continent
-  """
-  regionContinent: String!
-  """
-  Media type
-  """
-  media: String!
-  """
   Notes
   """
   notes: String
   """
-  Supports unicast
+  Policy email
   """
-  protoUnicast: Boolean!
+  policyEmail: String
   """
-  Supports multicast
+  Policy phone
   """
-  protoMulticast: Boolean!
+  policyPhone: String
   """
   Supports IPv6
   """
   protoIpv6: Boolean!
   """
-  Internet exchange website URL
+  Supports multicast
   """
-  website: String
+  protoMulticast: Boolean!
   """
-  Social media links
+  Supports unicast
   """
-  socialMedia: [SocialMedia!]
+  protoUnicast: Boolean!
   """
-  Statistics URL
+  Region/continent
   """
-  urlStats: String
+  regionContinent: String
   """
-  Technical contact email
-  """
-  techEmail: String
-  """
-  Technical contact phone
-  """
-  techPhone: String
-  """
-  Policy contact email
-  """
-  policyEmail: String
-  """
-  Policy contact phone
-  """
-  policyPhone: String
-  """
-  Sales contact email
+  Sales email
   """
   salesEmail: String
   """
-  Sales contact phone
+  Sales phone
   """
   salesPhone: String
-  """
-  Network count (computed)
-  """
-  netCount: Int
-  """
-  Facility count (computed)
-  """
-  facCount: Int
-  """
-  IXF net count
-  """
-  ixfNetCount: Int!
-  """
-  Last IXF import timestamp
-  """
-  ixfLastImport: Time
-  """
-  IXF import request
-  """
-  ixfImportRequest: String
-  """
-  IXF import request status
-  """
-  ixfImportRequestStatus: String
   """
   Service level
   """
   serviceLevel: String
   """
-  Terms
+  Social media links
   """
-  terms: String
+  socialMedia: [SocialMedia!]
   """
   Status dashboard URL
   """
   statusDashboard: String
   """
-  Logo URL
+  Technical email
   """
-  logo: String
+  techEmail: String
+  """
+  Technical phone
+  """
+  techPhone: String
+  """
+  Terms
+  """
+  terms: String
+  """
+  Statistics URL
+  """
+  urlStats: String
+  """
+  IX website URL
+  """
+  website: String
+  """
+  Net Count (computed)
+  """
+  netCount: Int
+  """
+  Fac Count (computed)
+  """
+  facCount: Int
+  """
+  Ixf Import Request (computed)
+  """
+  ixfImportRequest: String
+  """
+  Ixf Import Request Status (computed)
+  """
+  ixfImportRequestStatus: String
   """
   PeeringDB creation timestamp
   """
@@ -1862,9 +1862,9 @@ type InternetExchange implements Node {
   Record status
   """
   status: String!
-  organization: Organization
-  ixLans: [IxLan!]
   ixFacilities: [IxFacility!]
+  ixLans: [IxLan!]
+  organization: Organization
 }
 """
 A connection to a list of items.
@@ -1944,22 +1944,6 @@ input InternetExchangeWhereInput {
   orgIDIsNil: Boolean
   orgIDNotNil: Boolean
   """
-  name field predicates
-  """
-  name: String
-  nameNEQ: String
-  nameIn: [String!]
-  nameNotIn: [String!]
-  nameGT: String
-  nameGTE: String
-  nameLT: String
-  nameLTE: String
-  nameContains: String
-  nameHasPrefix: String
-  nameHasSuffix: String
-  nameEqualFold: String
-  nameContainsFold: String
-  """
   aka field predicates
   """
   aka: String
@@ -1977,6 +1961,120 @@ input InternetExchangeWhereInput {
   akaNotNil: Boolean
   akaEqualFold: String
   akaContainsFold: String
+  """
+  city field predicates
+  """
+  city: String
+  cityNEQ: String
+  cityIn: [String!]
+  cityNotIn: [String!]
+  cityGT: String
+  cityGTE: String
+  cityLT: String
+  cityLTE: String
+  cityContains: String
+  cityHasPrefix: String
+  cityHasSuffix: String
+  cityIsNil: Boolean
+  cityNotNil: Boolean
+  cityEqualFold: String
+  cityContainsFold: String
+  """
+  country field predicates
+  """
+  country: String
+  countryNEQ: String
+  countryIn: [String!]
+  countryNotIn: [String!]
+  countryGT: String
+  countryGTE: String
+  countryLT: String
+  countryLTE: String
+  countryContains: String
+  countryHasPrefix: String
+  countryHasSuffix: String
+  countryIsNil: Boolean
+  countryNotNil: Boolean
+  countryEqualFold: String
+  countryContainsFold: String
+  """
+  ixf_last_import field predicates
+  """
+  ixfLastImport: Time
+  ixfLastImportNEQ: Time
+  ixfLastImportIn: [Time!]
+  ixfLastImportNotIn: [Time!]
+  ixfLastImportGT: Time
+  ixfLastImportGTE: Time
+  ixfLastImportLT: Time
+  ixfLastImportLTE: Time
+  ixfLastImportIsNil: Boolean
+  ixfLastImportNotNil: Boolean
+  """
+  ixf_net_count field predicates
+  """
+  ixfNetCount: Int
+  ixfNetCountNEQ: Int
+  ixfNetCountIn: [Int!]
+  ixfNetCountNotIn: [Int!]
+  ixfNetCountGT: Int
+  ixfNetCountGTE: Int
+  ixfNetCountLT: Int
+  ixfNetCountLTE: Int
+  ixfNetCountIsNil: Boolean
+  ixfNetCountNotNil: Boolean
+  """
+  logo field predicates
+  """
+  logo: String
+  logoNEQ: String
+  logoIn: [String!]
+  logoNotIn: [String!]
+  logoGT: String
+  logoGTE: String
+  logoLT: String
+  logoLTE: String
+  logoContains: String
+  logoHasPrefix: String
+  logoHasSuffix: String
+  logoIsNil: Boolean
+  logoNotNil: Boolean
+  logoEqualFold: String
+  logoContainsFold: String
+  """
+  media field predicates
+  """
+  media: String
+  mediaNEQ: String
+  mediaIn: [String!]
+  mediaNotIn: [String!]
+  mediaGT: String
+  mediaGTE: String
+  mediaLT: String
+  mediaLTE: String
+  mediaContains: String
+  mediaHasPrefix: String
+  mediaHasSuffix: String
+  mediaIsNil: Boolean
+  mediaNotNil: Boolean
+  mediaEqualFold: String
+  mediaContainsFold: String
+  """
+  name field predicates
+  """
+  name: String
+  nameNEQ: String
+  nameIn: [String!]
+  nameNotIn: [String!]
+  nameGT: String
+  nameGTE: String
+  nameLT: String
+  nameLTE: String
+  nameContains: String
+  nameHasPrefix: String
+  nameHasSuffix: String
+  nameEqualFold: String
+  nameContainsFold: String
   """
   name_long field predicates
   """
@@ -1996,70 +2094,6 @@ input InternetExchangeWhereInput {
   nameLongEqualFold: String
   nameLongContainsFold: String
   """
-  city field predicates
-  """
-  city: String
-  cityNEQ: String
-  cityIn: [String!]
-  cityNotIn: [String!]
-  cityGT: String
-  cityGTE: String
-  cityLT: String
-  cityLTE: String
-  cityContains: String
-  cityHasPrefix: String
-  cityHasSuffix: String
-  cityEqualFold: String
-  cityContainsFold: String
-  """
-  country field predicates
-  """
-  country: String
-  countryNEQ: String
-  countryIn: [String!]
-  countryNotIn: [String!]
-  countryGT: String
-  countryGTE: String
-  countryLT: String
-  countryLTE: String
-  countryContains: String
-  countryHasPrefix: String
-  countryHasSuffix: String
-  countryEqualFold: String
-  countryContainsFold: String
-  """
-  region_continent field predicates
-  """
-  regionContinent: String
-  regionContinentNEQ: String
-  regionContinentIn: [String!]
-  regionContinentNotIn: [String!]
-  regionContinentGT: String
-  regionContinentGTE: String
-  regionContinentLT: String
-  regionContinentLTE: String
-  regionContinentContains: String
-  regionContinentHasPrefix: String
-  regionContinentHasSuffix: String
-  regionContinentEqualFold: String
-  regionContinentContainsFold: String
-  """
-  media field predicates
-  """
-  media: String
-  mediaNEQ: String
-  mediaIn: [String!]
-  mediaNotIn: [String!]
-  mediaGT: String
-  mediaGTE: String
-  mediaLT: String
-  mediaLTE: String
-  mediaContains: String
-  mediaHasPrefix: String
-  mediaHasSuffix: String
-  mediaEqualFold: String
-  mediaContainsFold: String
-  """
   notes field predicates
   """
   notes: String
@@ -2077,93 +2111,6 @@ input InternetExchangeWhereInput {
   notesNotNil: Boolean
   notesEqualFold: String
   notesContainsFold: String
-  """
-  proto_unicast field predicates
-  """
-  protoUnicast: Boolean
-  protoUnicastNEQ: Boolean
-  """
-  proto_multicast field predicates
-  """
-  protoMulticast: Boolean
-  protoMulticastNEQ: Boolean
-  """
-  proto_ipv6 field predicates
-  """
-  protoIpv6: Boolean
-  protoIpv6NEQ: Boolean
-  """
-  website field predicates
-  """
-  website: String
-  websiteNEQ: String
-  websiteIn: [String!]
-  websiteNotIn: [String!]
-  websiteGT: String
-  websiteGTE: String
-  websiteLT: String
-  websiteLTE: String
-  websiteContains: String
-  websiteHasPrefix: String
-  websiteHasSuffix: String
-  websiteIsNil: Boolean
-  websiteNotNil: Boolean
-  websiteEqualFold: String
-  websiteContainsFold: String
-  """
-  url_stats field predicates
-  """
-  urlStats: String
-  urlStatsNEQ: String
-  urlStatsIn: [String!]
-  urlStatsNotIn: [String!]
-  urlStatsGT: String
-  urlStatsGTE: String
-  urlStatsLT: String
-  urlStatsLTE: String
-  urlStatsContains: String
-  urlStatsHasPrefix: String
-  urlStatsHasSuffix: String
-  urlStatsIsNil: Boolean
-  urlStatsNotNil: Boolean
-  urlStatsEqualFold: String
-  urlStatsContainsFold: String
-  """
-  tech_email field predicates
-  """
-  techEmail: String
-  techEmailNEQ: String
-  techEmailIn: [String!]
-  techEmailNotIn: [String!]
-  techEmailGT: String
-  techEmailGTE: String
-  techEmailLT: String
-  techEmailLTE: String
-  techEmailContains: String
-  techEmailHasPrefix: String
-  techEmailHasSuffix: String
-  techEmailIsNil: Boolean
-  techEmailNotNil: Boolean
-  techEmailEqualFold: String
-  techEmailContainsFold: String
-  """
-  tech_phone field predicates
-  """
-  techPhone: String
-  techPhoneNEQ: String
-  techPhoneIn: [String!]
-  techPhoneNotIn: [String!]
-  techPhoneGT: String
-  techPhoneGTE: String
-  techPhoneLT: String
-  techPhoneLTE: String
-  techPhoneContains: String
-  techPhoneHasPrefix: String
-  techPhoneHasSuffix: String
-  techPhoneIsNil: Boolean
-  techPhoneNotNil: Boolean
-  techPhoneEqualFold: String
-  techPhoneContainsFold: String
   """
   policy_email field predicates
   """
@@ -2201,6 +2148,39 @@ input InternetExchangeWhereInput {
   policyPhoneEqualFold: String
   policyPhoneContainsFold: String
   """
+  proto_ipv6 field predicates
+  """
+  protoIpv6: Boolean
+  protoIpv6NEQ: Boolean
+  """
+  proto_multicast field predicates
+  """
+  protoMulticast: Boolean
+  protoMulticastNEQ: Boolean
+  """
+  proto_unicast field predicates
+  """
+  protoUnicast: Boolean
+  protoUnicastNEQ: Boolean
+  """
+  region_continent field predicates
+  """
+  regionContinent: String
+  regionContinentNEQ: String
+  regionContinentIn: [String!]
+  regionContinentNotIn: [String!]
+  regionContinentGT: String
+  regionContinentGTE: String
+  regionContinentLT: String
+  regionContinentLTE: String
+  regionContinentContains: String
+  regionContinentHasPrefix: String
+  regionContinentHasSuffix: String
+  regionContinentIsNil: Boolean
+  regionContinentNotNil: Boolean
+  regionContinentEqualFold: String
+  regionContinentContainsFold: String
+  """
   sales_email field predicates
   """
   salesEmail: String
@@ -2237,6 +2217,132 @@ input InternetExchangeWhereInput {
   salesPhoneEqualFold: String
   salesPhoneContainsFold: String
   """
+  service_level field predicates
+  """
+  serviceLevel: String
+  serviceLevelNEQ: String
+  serviceLevelIn: [String!]
+  serviceLevelNotIn: [String!]
+  serviceLevelGT: String
+  serviceLevelGTE: String
+  serviceLevelLT: String
+  serviceLevelLTE: String
+  serviceLevelContains: String
+  serviceLevelHasPrefix: String
+  serviceLevelHasSuffix: String
+  serviceLevelIsNil: Boolean
+  serviceLevelNotNil: Boolean
+  serviceLevelEqualFold: String
+  serviceLevelContainsFold: String
+  """
+  status_dashboard field predicates
+  """
+  statusDashboard: String
+  statusDashboardNEQ: String
+  statusDashboardIn: [String!]
+  statusDashboardNotIn: [String!]
+  statusDashboardGT: String
+  statusDashboardGTE: String
+  statusDashboardLT: String
+  statusDashboardLTE: String
+  statusDashboardContains: String
+  statusDashboardHasPrefix: String
+  statusDashboardHasSuffix: String
+  statusDashboardIsNil: Boolean
+  statusDashboardNotNil: Boolean
+  statusDashboardEqualFold: String
+  statusDashboardContainsFold: String
+  """
+  tech_email field predicates
+  """
+  techEmail: String
+  techEmailNEQ: String
+  techEmailIn: [String!]
+  techEmailNotIn: [String!]
+  techEmailGT: String
+  techEmailGTE: String
+  techEmailLT: String
+  techEmailLTE: String
+  techEmailContains: String
+  techEmailHasPrefix: String
+  techEmailHasSuffix: String
+  techEmailIsNil: Boolean
+  techEmailNotNil: Boolean
+  techEmailEqualFold: String
+  techEmailContainsFold: String
+  """
+  tech_phone field predicates
+  """
+  techPhone: String
+  techPhoneNEQ: String
+  techPhoneIn: [String!]
+  techPhoneNotIn: [String!]
+  techPhoneGT: String
+  techPhoneGTE: String
+  techPhoneLT: String
+  techPhoneLTE: String
+  techPhoneContains: String
+  techPhoneHasPrefix: String
+  techPhoneHasSuffix: String
+  techPhoneIsNil: Boolean
+  techPhoneNotNil: Boolean
+  techPhoneEqualFold: String
+  techPhoneContainsFold: String
+  """
+  terms field predicates
+  """
+  terms: String
+  termsNEQ: String
+  termsIn: [String!]
+  termsNotIn: [String!]
+  termsGT: String
+  termsGTE: String
+  termsLT: String
+  termsLTE: String
+  termsContains: String
+  termsHasPrefix: String
+  termsHasSuffix: String
+  termsIsNil: Boolean
+  termsNotNil: Boolean
+  termsEqualFold: String
+  termsContainsFold: String
+  """
+  url_stats field predicates
+  """
+  urlStats: String
+  urlStatsNEQ: String
+  urlStatsIn: [String!]
+  urlStatsNotIn: [String!]
+  urlStatsGT: String
+  urlStatsGTE: String
+  urlStatsLT: String
+  urlStatsLTE: String
+  urlStatsContains: String
+  urlStatsHasPrefix: String
+  urlStatsHasSuffix: String
+  urlStatsIsNil: Boolean
+  urlStatsNotNil: Boolean
+  urlStatsEqualFold: String
+  urlStatsContainsFold: String
+  """
+  website field predicates
+  """
+  website: String
+  websiteNEQ: String
+  websiteIn: [String!]
+  websiteNotIn: [String!]
+  websiteGT: String
+  websiteGTE: String
+  websiteLT: String
+  websiteLTE: String
+  websiteContains: String
+  websiteHasPrefix: String
+  websiteHasSuffix: String
+  websiteIsNil: Boolean
+  websiteNotNil: Boolean
+  websiteEqualFold: String
+  websiteContainsFold: String
+  """
   net_count field predicates
   """
   netCount: Int
@@ -2262,30 +2368,6 @@ input InternetExchangeWhereInput {
   facCountLTE: Int
   facCountIsNil: Boolean
   facCountNotNil: Boolean
-  """
-  ixf_net_count field predicates
-  """
-  ixfNetCount: Int
-  ixfNetCountNEQ: Int
-  ixfNetCountIn: [Int!]
-  ixfNetCountNotIn: [Int!]
-  ixfNetCountGT: Int
-  ixfNetCountGTE: Int
-  ixfNetCountLT: Int
-  ixfNetCountLTE: Int
-  """
-  ixf_last_import field predicates
-  """
-  ixfLastImport: Time
-  ixfLastImportNEQ: Time
-  ixfLastImportIn: [Time!]
-  ixfLastImportNotIn: [Time!]
-  ixfLastImportGT: Time
-  ixfLastImportGTE: Time
-  ixfLastImportLT: Time
-  ixfLastImportLTE: Time
-  ixfLastImportIsNil: Boolean
-  ixfLastImportNotNil: Boolean
   """
   ixf_import_request field predicates
   """
@@ -2322,78 +2404,6 @@ input InternetExchangeWhereInput {
   ixfImportRequestStatusNotNil: Boolean
   ixfImportRequestStatusEqualFold: String
   ixfImportRequestStatusContainsFold: String
-  """
-  service_level field predicates
-  """
-  serviceLevel: String
-  serviceLevelNEQ: String
-  serviceLevelIn: [String!]
-  serviceLevelNotIn: [String!]
-  serviceLevelGT: String
-  serviceLevelGTE: String
-  serviceLevelLT: String
-  serviceLevelLTE: String
-  serviceLevelContains: String
-  serviceLevelHasPrefix: String
-  serviceLevelHasSuffix: String
-  serviceLevelIsNil: Boolean
-  serviceLevelNotNil: Boolean
-  serviceLevelEqualFold: String
-  serviceLevelContainsFold: String
-  """
-  terms field predicates
-  """
-  terms: String
-  termsNEQ: String
-  termsIn: [String!]
-  termsNotIn: [String!]
-  termsGT: String
-  termsGTE: String
-  termsLT: String
-  termsLTE: String
-  termsContains: String
-  termsHasPrefix: String
-  termsHasSuffix: String
-  termsIsNil: Boolean
-  termsNotNil: Boolean
-  termsEqualFold: String
-  termsContainsFold: String
-  """
-  status_dashboard field predicates
-  """
-  statusDashboard: String
-  statusDashboardNEQ: String
-  statusDashboardIn: [String!]
-  statusDashboardNotIn: [String!]
-  statusDashboardGT: String
-  statusDashboardGTE: String
-  statusDashboardLT: String
-  statusDashboardLTE: String
-  statusDashboardContains: String
-  statusDashboardHasPrefix: String
-  statusDashboardHasSuffix: String
-  statusDashboardIsNil: Boolean
-  statusDashboardNotNil: Boolean
-  statusDashboardEqualFold: String
-  statusDashboardContainsFold: String
-  """
-  logo field predicates
-  """
-  logo: String
-  logoNEQ: String
-  logoIn: [String!]
-  logoNotIn: [String!]
-  logoGT: String
-  logoGTE: String
-  logoLT: String
-  logoLTE: String
-  logoContains: String
-  logoHasPrefix: String
-  logoHasSuffix: String
-  logoIsNil: Boolean
-  logoNotNil: Boolean
-  logoEqualFold: String
-  logoContainsFold: String
   """
   created field predicates
   """
@@ -2433,36 +2443,36 @@ input InternetExchangeWhereInput {
   statusEqualFold: String
   statusContainsFold: String
   """
-  organization edge predicates
+  ix_facilities edge predicates
   """
-  hasOrganization: Boolean
-  hasOrganizationWith: [OrganizationWhereInput!]
+  hasIxFacilities: Boolean
+  hasIxFacilitiesWith: [IxFacilityWhereInput!]
   """
   ix_lans edge predicates
   """
   hasIxLans: Boolean
   hasIxLansWith: [IxLanWhereInput!]
   """
-  ix_facilities edge predicates
+  organization edge predicates
   """
-  hasIxFacilities: Boolean
-  hasIxFacilitiesWith: [IxFacilityWhereInput!]
+  hasOrganization: Boolean
+  hasOrganizationWith: [OrganizationWhereInput!]
 }
 type IxFacility implements Node {
   """
-  PeeringDB IX-Facility ID
+  PeeringDB ixfacility ID
   """
   id: ID!
-  """
-  FK to internet exchange
-  """
-  ixID: ID
   """
   FK to facility
   """
   facID: ID
   """
-  Facility name (computed)
+  FK to internet exchange
+  """
+  ixID: ID
+  """
+  Name (computed)
   """
   name: String
   """
@@ -2485,8 +2495,8 @@ type IxFacility implements Node {
   Record status
   """
   status: String!
-  internetExchange: InternetExchange
   facility: Facility
+  internetExchange: InternetExchange
 }
 """
 A connection to a list of items.
@@ -2538,15 +2548,6 @@ input IxFacilityWhereInput {
   idLT: ID
   idLTE: ID
   """
-  ix_id field predicates
-  """
-  ixID: ID
-  ixIDNEQ: ID
-  ixIDIn: [ID!]
-  ixIDNotIn: [ID!]
-  ixIDIsNil: Boolean
-  ixIDNotNil: Boolean
-  """
   fac_id field predicates
   """
   facID: ID
@@ -2555,6 +2556,15 @@ input IxFacilityWhereInput {
   facIDNotIn: [ID!]
   facIDIsNil: Boolean
   facIDNotNil: Boolean
+  """
+  ix_id field predicates
+  """
+  ixID: ID
+  ixIDNEQ: ID
+  ixIDIn: [ID!]
+  ixIDNotIn: [ID!]
+  ixIDIsNil: Boolean
+  ixIDNotNil: Boolean
   """
   name field predicates
   """
@@ -2648,19 +2658,19 @@ input IxFacilityWhereInput {
   statusEqualFold: String
   statusContainsFold: String
   """
-  internet_exchange edge predicates
-  """
-  hasInternetExchange: Boolean
-  hasInternetExchangeWith: [InternetExchangeWhereInput!]
-  """
   facility edge predicates
   """
   hasFacility: Boolean
   hasFacilityWith: [FacilityWhereInput!]
+  """
+  internet_exchange edge predicates
+  """
+  hasInternetExchange: Boolean
+  hasInternetExchangeWith: [InternetExchangeWhereInput!]
 }
 type IxLan implements Node {
   """
-  PeeringDB IXLan ID
+  PeeringDB ixlan ID
   """
   id: ID!
   """
@@ -2668,37 +2678,37 @@ type IxLan implements Node {
   """
   ixID: ID
   """
-  IXLan name
+  ARP sponge MAC address
   """
-  name: String
+  arpSponge: String
   """
   Description
   """
   descr: String
   """
-  MTU
-  """
-  mtu: Int!
-  """
   802.1Q support
   """
   dot1qSupport: Boolean!
   """
-  Route server ASN
-  """
-  rsAsn: Int
-  """
-  ARP sponge MAC address
-  """
-  arpSponge: String
-  """
-  IXF member list URL visibility
-  """
-  ixfIxpMemberListURLVisible: String!
-  """
   IXF import enabled
   """
   ixfIxpImportEnabled: Boolean!
+  """
+  IXF member list URL visibility
+  """
+  ixfIxpMemberListURLVisible: String
+  """
+  MTU size
+  """
+  mtu: Int
+  """
+  LAN name
+  """
+  name: String
+  """
+  Route server ASN
+  """
+  rsAsn: Int
   """
   PeeringDB creation timestamp
   """
@@ -2774,23 +2784,23 @@ input IxLanWhereInput {
   ixIDIsNil: Boolean
   ixIDNotNil: Boolean
   """
-  name field predicates
+  arp_sponge field predicates
   """
-  name: String
-  nameNEQ: String
-  nameIn: [String!]
-  nameNotIn: [String!]
-  nameGT: String
-  nameGTE: String
-  nameLT: String
-  nameLTE: String
-  nameContains: String
-  nameHasPrefix: String
-  nameHasSuffix: String
-  nameIsNil: Boolean
-  nameNotNil: Boolean
-  nameEqualFold: String
-  nameContainsFold: String
+  arpSponge: String
+  arpSpongeNEQ: String
+  arpSpongeIn: [String!]
+  arpSpongeNotIn: [String!]
+  arpSpongeGT: String
+  arpSpongeGTE: String
+  arpSpongeLT: String
+  arpSpongeLTE: String
+  arpSpongeContains: String
+  arpSpongeHasPrefix: String
+  arpSpongeHasSuffix: String
+  arpSpongeIsNil: Boolean
+  arpSpongeNotNil: Boolean
+  arpSpongeEqualFold: String
+  arpSpongeContainsFold: String
   """
   descr field predicates
   """
@@ -2810,52 +2820,15 @@ input IxLanWhereInput {
   descrEqualFold: String
   descrContainsFold: String
   """
-  mtu field predicates
-  """
-  mtu: Int
-  mtuNEQ: Int
-  mtuIn: [Int!]
-  mtuNotIn: [Int!]
-  mtuGT: Int
-  mtuGTE: Int
-  mtuLT: Int
-  mtuLTE: Int
-  """
   dot1q_support field predicates
   """
   dot1qSupport: Boolean
   dot1qSupportNEQ: Boolean
   """
-  rs_asn field predicates
+  ixf_ixp_import_enabled field predicates
   """
-  rsAsn: Int
-  rsAsnNEQ: Int
-  rsAsnIn: [Int!]
-  rsAsnNotIn: [Int!]
-  rsAsnGT: Int
-  rsAsnGTE: Int
-  rsAsnLT: Int
-  rsAsnLTE: Int
-  rsAsnIsNil: Boolean
-  rsAsnNotNil: Boolean
-  """
-  arp_sponge field predicates
-  """
-  arpSponge: String
-  arpSpongeNEQ: String
-  arpSpongeIn: [String!]
-  arpSpongeNotIn: [String!]
-  arpSpongeGT: String
-  arpSpongeGTE: String
-  arpSpongeLT: String
-  arpSpongeLTE: String
-  arpSpongeContains: String
-  arpSpongeHasPrefix: String
-  arpSpongeHasSuffix: String
-  arpSpongeIsNil: Boolean
-  arpSpongeNotNil: Boolean
-  arpSpongeEqualFold: String
-  arpSpongeContainsFold: String
+  ixfIxpImportEnabled: Boolean
+  ixfIxpImportEnabledNEQ: Boolean
   """
   ixf_ixp_member_list_url_visible field predicates
   """
@@ -2870,13 +2843,54 @@ input IxLanWhereInput {
   ixfIxpMemberListURLVisibleContains: String
   ixfIxpMemberListURLVisibleHasPrefix: String
   ixfIxpMemberListURLVisibleHasSuffix: String
+  ixfIxpMemberListURLVisibleIsNil: Boolean
+  ixfIxpMemberListURLVisibleNotNil: Boolean
   ixfIxpMemberListURLVisibleEqualFold: String
   ixfIxpMemberListURLVisibleContainsFold: String
   """
-  ixf_ixp_import_enabled field predicates
+  mtu field predicates
   """
-  ixfIxpImportEnabled: Boolean
-  ixfIxpImportEnabledNEQ: Boolean
+  mtu: Int
+  mtuNEQ: Int
+  mtuIn: [Int!]
+  mtuNotIn: [Int!]
+  mtuGT: Int
+  mtuGTE: Int
+  mtuLT: Int
+  mtuLTE: Int
+  mtuIsNil: Boolean
+  mtuNotNil: Boolean
+  """
+  name field predicates
+  """
+  name: String
+  nameNEQ: String
+  nameIn: [String!]
+  nameNotIn: [String!]
+  nameGT: String
+  nameGTE: String
+  nameLT: String
+  nameLTE: String
+  nameContains: String
+  nameHasPrefix: String
+  nameHasSuffix: String
+  nameIsNil: Boolean
+  nameNotNil: Boolean
+  nameEqualFold: String
+  nameContainsFold: String
+  """
+  rs_asn field predicates
+  """
+  rsAsn: Int
+  rsAsnNEQ: Int
+  rsAsnIn: [Int!]
+  rsAsnNotIn: [Int!]
+  rsAsnGT: Int
+  rsAsnGTE: Int
+  rsAsnLT: Int
+  rsAsnLTE: Int
+  rsAsnIsNil: Boolean
+  rsAsnNotNil: Boolean
   """
   created field predicates
   """
@@ -2933,21 +2947,13 @@ input IxLanWhereInput {
 }
 type IxPrefix implements Node {
   """
-  PeeringDB IX prefix ID
+  PeeringDB ixprefix ID
   """
   id: ID!
   """
-  FK to IXLan
+  FK to IX LAN
   """
   ixlanID: ID
-  """
-  Protocol (IPv4 or IPv6)
-  """
-  protocol: String!
-  """
-  IP prefix
-  """
-  prefix: String!
   """
   In default-free zone
   """
@@ -2956,6 +2962,14 @@ type IxPrefix implements Node {
   Notes
   """
   notes: String
+  """
+  IP prefix
+  """
+  prefix: String!
+  """
+  Protocol (IPv4/IPv6)
+  """
+  protocol: String
   """
   PeeringDB creation timestamp
   """
@@ -3029,38 +3043,6 @@ input IxPrefixWhereInput {
   ixlanIDIsNil: Boolean
   ixlanIDNotNil: Boolean
   """
-  protocol field predicates
-  """
-  protocol: String
-  protocolNEQ: String
-  protocolIn: [String!]
-  protocolNotIn: [String!]
-  protocolGT: String
-  protocolGTE: String
-  protocolLT: String
-  protocolLTE: String
-  protocolContains: String
-  protocolHasPrefix: String
-  protocolHasSuffix: String
-  protocolEqualFold: String
-  protocolContainsFold: String
-  """
-  prefix field predicates
-  """
-  prefix: String
-  prefixNEQ: String
-  prefixIn: [String!]
-  prefixNotIn: [String!]
-  prefixGT: String
-  prefixGTE: String
-  prefixLT: String
-  prefixLTE: String
-  prefixContains: String
-  prefixHasPrefix: String
-  prefixHasSuffix: String
-  prefixEqualFold: String
-  prefixContainsFold: String
-  """
   in_dfz field predicates
   """
   inDfz: Boolean
@@ -3083,6 +3065,40 @@ input IxPrefixWhereInput {
   notesNotNil: Boolean
   notesEqualFold: String
   notesContainsFold: String
+  """
+  prefix field predicates
+  """
+  prefix: String
+  prefixNEQ: String
+  prefixIn: [String!]
+  prefixNotIn: [String!]
+  prefixGT: String
+  prefixGTE: String
+  prefixLT: String
+  prefixLTE: String
+  prefixContains: String
+  prefixHasPrefix: String
+  prefixHasSuffix: String
+  prefixEqualFold: String
+  prefixContainsFold: String
+  """
+  protocol field predicates
+  """
+  protocol: String
+  protocolNEQ: String
+  protocolIn: [String!]
+  protocolNotIn: [String!]
+  protocolGT: String
+  protocolGTE: String
+  protocolLT: String
+  protocolLTE: String
+  protocolContains: String
+  protocolHasPrefix: String
+  protocolHasSuffix: String
+  protocolIsNil: Boolean
+  protocolNotNil: Boolean
+  protocolEqualFold: String
+  protocolContainsFold: String
   """
   created field predicates
   """
@@ -3137,49 +3153,29 @@ type Network implements Node {
   """
   orgID: ID
   """
-  Network name
-  """
-  name: String!
-  """
   Also known as
   """
   aka: String
   """
-  Long name
+  Allow IXP update
   """
-  nameLong: String
-  """
-  Network website URL
-  """
-  website: String
-  """
-  Social media links
-  """
-  socialMedia: [SocialMedia!]
+  allowIxpUpdate: Boolean!
   """
   Autonomous System Number
   """
   asn: Int!
   """
-  Looking glass URL
+  Supports IPv6
   """
-  lookingGlass: String
+  infoIpv6: Boolean!
   """
-  Route server URL
+  Supports multicast
   """
-  routeServer: String
+  infoMulticast: Boolean!
   """
-  IRR AS-SET
+  Never via route servers
   """
-  irrAsSet: String
-  """
-  Network type
-  """
-  infoType: String
-  """
-  Network types (multi-choice)
-  """
-  infoTypes: [String!]
+  infoNeverViaRouteServers: Boolean!
   """
   IPv4 prefix count
   """
@@ -3189,10 +3185,6 @@ type Network implements Node {
   """
   infoPrefixes6: Int
   """
-  Traffic level
-  """
-  infoTraffic: String
-  """
   Traffic ratio
   """
   infoRatio: String
@@ -3201,29 +3193,49 @@ type Network implements Node {
   """
   infoScope: String
   """
+  Traffic level
+  """
+  infoTraffic: String
+  """
+  Network type
+  """
+  infoType: String
+  """
+  Network types (multi-choice)
+  """
+  infoTypes: [String!]
+  """
   Supports unicast
   """
   infoUnicast: Boolean!
   """
-  Supports multicast
+  IRR AS-SET
   """
-  infoMulticast: Boolean!
+  irrAsSet: String
   """
-  Supports IPv6
+  Logo URL
   """
-  infoIpv6: Boolean!
+  logo: String
   """
-  Never via route servers
+  Looking glass URL
   """
-  infoNeverViaRouteServers: Boolean!
+  lookingGlass: String
+  """
+  Network name
+  """
+  name: String!
+  """
+  Long name
+  """
+  nameLong: String
   """
   Notes
   """
   notes: String
   """
-  Peering policy URL
+  Peering policy contracts
   """
-  policyURL: String
+  policyContracts: String
   """
   General peering policy
   """
@@ -3237,17 +3249,9 @@ type Network implements Node {
   """
   policyRatio: Boolean!
   """
-  Peering policy contracts
+  Peering policy URL
   """
-  policyContracts: String
-  """
-  Allow IXP update
-  """
-  allowIxpUpdate: Boolean!
-  """
-  Status dashboard URL
-  """
-  statusDashboard: String
+  policyURL: String
   """
   RIR status
   """
@@ -3257,27 +3261,39 @@ type Network implements Node {
   """
   rirStatusUpdated: Time
   """
-  Logo URL
+  Route server URL
   """
-  logo: String
+  routeServer: String
   """
-  Internet exchange count (computed)
+  Social media links
+  """
+  socialMedia: [SocialMedia!]
+  """
+  Status dashboard URL
+  """
+  statusDashboard: String
+  """
+  Network website URL
+  """
+  website: String
+  """
+  Ix Count (computed)
   """
   ixCount: Int
   """
-  Facility count (computed)
+  Fac Count (computed)
   """
   facCount: Int
   """
-  Last netixlan update (computed)
+  Netixlan Updated (computed)
   """
   netixlanUpdated: Time
   """
-  Last netfac update (computed)
+  Netfac Updated (computed)
   """
   netfacUpdated: Time
   """
-  Last POC update (computed)
+  Poc Updated (computed)
   """
   pocUpdated: Time
   """
@@ -3292,10 +3308,10 @@ type Network implements Node {
   Record status
   """
   status: String!
-  organization: Organization
-  pocs: [Poc!]
   networkFacilities: [NetworkFacility!]
   networkIxLans: [NetworkIxLan!]
+  organization: Organization
+  pocs: [Poc!]
 }
 """
 A connection to a list of items.
@@ -3329,19 +3345,23 @@ type NetworkEdge {
 }
 type NetworkFacility implements Node {
   """
-  PeeringDB network-facility ID
+  PeeringDB networkfacility ID
   """
   id: ID!
-  """
-  FK to network
-  """
-  netID: ID
   """
   FK to facility
   """
   facID: ID
   """
-  Facility name (computed)
+  FK to network
+  """
+  netID: ID
+  """
+  Local ASN
+  """
+  localAsn: Int!
+  """
+  Name (computed)
   """
   name: String
   """
@@ -3352,10 +3372,6 @@ type NetworkFacility implements Node {
   Country (computed)
   """
   country: String
-  """
-  Local ASN at this facility
-  """
-  localAsn: Int!
   """
   PeeringDB creation timestamp
   """
@@ -3368,8 +3384,8 @@ type NetworkFacility implements Node {
   Record status
   """
   status: String!
-  network: Network
   facility: Facility
+  network: Network
 }
 """
 A connection to a list of items.
@@ -3421,6 +3437,15 @@ input NetworkFacilityWhereInput {
   idLT: ID
   idLTE: ID
   """
+  fac_id field predicates
+  """
+  facID: ID
+  facIDNEQ: ID
+  facIDIn: [ID!]
+  facIDNotIn: [ID!]
+  facIDIsNil: Boolean
+  facIDNotNil: Boolean
+  """
   net_id field predicates
   """
   netID: ID
@@ -3430,14 +3455,16 @@ input NetworkFacilityWhereInput {
   netIDIsNil: Boolean
   netIDNotNil: Boolean
   """
-  fac_id field predicates
+  local_asn field predicates
   """
-  facID: ID
-  facIDNEQ: ID
-  facIDIn: [ID!]
-  facIDNotIn: [ID!]
-  facIDIsNil: Boolean
-  facIDNotNil: Boolean
+  localAsn: Int
+  localAsnNEQ: Int
+  localAsnIn: [Int!]
+  localAsnNotIn: [Int!]
+  localAsnGT: Int
+  localAsnGTE: Int
+  localAsnLT: Int
+  localAsnLTE: Int
   """
   name field predicates
   """
@@ -3493,17 +3520,6 @@ input NetworkFacilityWhereInput {
   countryEqualFold: String
   countryContainsFold: String
   """
-  local_asn field predicates
-  """
-  localAsn: Int
-  localAsnNEQ: Int
-  localAsnIn: [Int!]
-  localAsnNotIn: [Int!]
-  localAsnGT: Int
-  localAsnGTE: Int
-  localAsnLT: Int
-  localAsnLTE: Int
-  """
   created field predicates
   """
   created: Time
@@ -3542,49 +3558,45 @@ input NetworkFacilityWhereInput {
   statusEqualFold: String
   statusContainsFold: String
   """
-  network edge predicates
-  """
-  hasNetwork: Boolean
-  hasNetworkWith: [NetworkWhereInput!]
-  """
   facility edge predicates
   """
   hasFacility: Boolean
   hasFacilityWith: [FacilityWhereInput!]
+  """
+  network edge predicates
+  """
+  hasNetwork: Boolean
+  hasNetworkWith: [NetworkWhereInput!]
 }
 type NetworkIxLan implements Node {
   """
-  PeeringDB network-IXLan ID
+  PeeringDB networkixlan ID
   """
   id: ID!
+  """
+  IX-side facility FK
+  """
+  ixSideID: Int
+  """
+  FK to IX LAN
+  """
+  ixlanID: ID
   """
   FK to network
   """
   netID: ID
   """
-  Internet exchange ID (computed, not an edge)
+  Net-side facility FK
   """
-  ixID: Int
-  """
-  FK to IXLan
-  """
-  ixlanID: ID
-  """
-  Exchange name (computed)
-  """
-  name: String
-  """
-  Notes
-  """
-  notes: String
-  """
-  Port speed in Mbps
-  """
-  speed: Int!
+  netSideID: Int
   """
   Autonomous System Number
   """
   asn: Int!
+  """
+  BFD support
+  """
+  bfdSupport: Boolean!
   """
   IPv4 address
   """
@@ -3594,25 +3606,29 @@ type NetworkIxLan implements Node {
   """
   ipaddr6: String
   """
-  Is route server peer
+  Route server peer
   """
   isRsPeer: Boolean!
   """
-  BFD support
+  Notes
   """
-  bfdSupport: Boolean!
+  notes: String
   """
   Operational status
   """
   operational: Boolean!
   """
-  Network-side facility ID
+  Port speed in Mbps
   """
-  netSideID: Int
+  speed: Int!
   """
-  IX-side facility ID
+  Internet exchange ID (computed)
   """
-  ixSideID: Int
+  ixID: Int
+  """
+  Name (computed)
+  """
+  name: String
   """
   PeeringDB creation timestamp
   """
@@ -3625,8 +3641,8 @@ type NetworkIxLan implements Node {
   Record status
   """
   status: String!
-  network: Network
   ixLan: IxLan
+  network: Network
 }
 """
 A connection to a list of items.
@@ -3678,27 +3694,18 @@ input NetworkIxLanWhereInput {
   idLT: ID
   idLTE: ID
   """
-  net_id field predicates
+  ix_side_id field predicates
   """
-  netID: ID
-  netIDNEQ: ID
-  netIDIn: [ID!]
-  netIDNotIn: [ID!]
-  netIDIsNil: Boolean
-  netIDNotNil: Boolean
-  """
-  ix_id field predicates
-  """
-  ixID: Int
-  ixIDNEQ: Int
-  ixIDIn: [Int!]
-  ixIDNotIn: [Int!]
-  ixIDGT: Int
-  ixIDGTE: Int
-  ixIDLT: Int
-  ixIDLTE: Int
-  ixIDIsNil: Boolean
-  ixIDNotNil: Boolean
+  ixSideID: Int
+  ixSideIDNEQ: Int
+  ixSideIDIn: [Int!]
+  ixSideIDNotIn: [Int!]
+  ixSideIDGT: Int
+  ixSideIDGTE: Int
+  ixSideIDLT: Int
+  ixSideIDLTE: Int
+  ixSideIDIsNil: Boolean
+  ixSideIDNotNil: Boolean
   """
   ixlan_id field predicates
   """
@@ -3709,52 +3716,27 @@ input NetworkIxLanWhereInput {
   ixlanIDIsNil: Boolean
   ixlanIDNotNil: Boolean
   """
-  name field predicates
+  net_id field predicates
   """
-  name: String
-  nameNEQ: String
-  nameIn: [String!]
-  nameNotIn: [String!]
-  nameGT: String
-  nameGTE: String
-  nameLT: String
-  nameLTE: String
-  nameContains: String
-  nameHasPrefix: String
-  nameHasSuffix: String
-  nameIsNil: Boolean
-  nameNotNil: Boolean
-  nameEqualFold: String
-  nameContainsFold: String
+  netID: ID
+  netIDNEQ: ID
+  netIDIn: [ID!]
+  netIDNotIn: [ID!]
+  netIDIsNil: Boolean
+  netIDNotNil: Boolean
   """
-  notes field predicates
+  net_side_id field predicates
   """
-  notes: String
-  notesNEQ: String
-  notesIn: [String!]
-  notesNotIn: [String!]
-  notesGT: String
-  notesGTE: String
-  notesLT: String
-  notesLTE: String
-  notesContains: String
-  notesHasPrefix: String
-  notesHasSuffix: String
-  notesIsNil: Boolean
-  notesNotNil: Boolean
-  notesEqualFold: String
-  notesContainsFold: String
-  """
-  speed field predicates
-  """
-  speed: Int
-  speedNEQ: Int
-  speedIn: [Int!]
-  speedNotIn: [Int!]
-  speedGT: Int
-  speedGTE: Int
-  speedLT: Int
-  speedLTE: Int
+  netSideID: Int
+  netSideIDNEQ: Int
+  netSideIDIn: [Int!]
+  netSideIDNotIn: [Int!]
+  netSideIDGT: Int
+  netSideIDGTE: Int
+  netSideIDLT: Int
+  netSideIDLTE: Int
+  netSideIDIsNil: Boolean
+  netSideIDNotNil: Boolean
   """
   asn field predicates
   """
@@ -3766,6 +3748,11 @@ input NetworkIxLanWhereInput {
   asnGTE: Int
   asnLT: Int
   asnLTE: Int
+  """
+  bfd_support field predicates
+  """
+  bfdSupport: Boolean
+  bfdSupportNEQ: Boolean
   """
   ipaddr4 field predicates
   """
@@ -3808,41 +3795,70 @@ input NetworkIxLanWhereInput {
   isRsPeer: Boolean
   isRsPeerNEQ: Boolean
   """
-  bfd_support field predicates
+  notes field predicates
   """
-  bfdSupport: Boolean
-  bfdSupportNEQ: Boolean
+  notes: String
+  notesNEQ: String
+  notesIn: [String!]
+  notesNotIn: [String!]
+  notesGT: String
+  notesGTE: String
+  notesLT: String
+  notesLTE: String
+  notesContains: String
+  notesHasPrefix: String
+  notesHasSuffix: String
+  notesIsNil: Boolean
+  notesNotNil: Boolean
+  notesEqualFold: String
+  notesContainsFold: String
   """
   operational field predicates
   """
   operational: Boolean
   operationalNEQ: Boolean
   """
-  net_side_id field predicates
+  speed field predicates
   """
-  netSideID: Int
-  netSideIDNEQ: Int
-  netSideIDIn: [Int!]
-  netSideIDNotIn: [Int!]
-  netSideIDGT: Int
-  netSideIDGTE: Int
-  netSideIDLT: Int
-  netSideIDLTE: Int
-  netSideIDIsNil: Boolean
-  netSideIDNotNil: Boolean
+  speed: Int
+  speedNEQ: Int
+  speedIn: [Int!]
+  speedNotIn: [Int!]
+  speedGT: Int
+  speedGTE: Int
+  speedLT: Int
+  speedLTE: Int
   """
-  ix_side_id field predicates
+  ix_id field predicates
   """
-  ixSideID: Int
-  ixSideIDNEQ: Int
-  ixSideIDIn: [Int!]
-  ixSideIDNotIn: [Int!]
-  ixSideIDGT: Int
-  ixSideIDGTE: Int
-  ixSideIDLT: Int
-  ixSideIDLTE: Int
-  ixSideIDIsNil: Boolean
-  ixSideIDNotNil: Boolean
+  ixID: Int
+  ixIDNEQ: Int
+  ixIDIn: [Int!]
+  ixIDNotIn: [Int!]
+  ixIDGT: Int
+  ixIDGTE: Int
+  ixIDLT: Int
+  ixIDLTE: Int
+  ixIDIsNil: Boolean
+  ixIDNotNil: Boolean
+  """
+  name field predicates
+  """
+  name: String
+  nameNEQ: String
+  nameIn: [String!]
+  nameNotIn: [String!]
+  nameGT: String
+  nameGTE: String
+  nameLT: String
+  nameLTE: String
+  nameContains: String
+  nameHasPrefix: String
+  nameHasSuffix: String
+  nameIsNil: Boolean
+  nameNotNil: Boolean
+  nameEqualFold: String
+  nameContainsFold: String
   """
   created field predicates
   """
@@ -3882,15 +3898,15 @@ input NetworkIxLanWhereInput {
   statusEqualFold: String
   statusContainsFold: String
   """
-  network edge predicates
-  """
-  hasNetwork: Boolean
-  hasNetworkWith: [NetworkWhereInput!]
-  """
   ix_lan edge predicates
   """
   hasIxLan: Boolean
   hasIxLanWith: [IxLanWhereInput!]
+  """
+  network edge predicates
+  """
+  hasNetwork: Boolean
+  hasNetworkWith: [NetworkWhereInput!]
 }
 """
 Ordering options for Network connections
@@ -3940,22 +3956,6 @@ input NetworkWhereInput {
   orgIDIsNil: Boolean
   orgIDNotNil: Boolean
   """
-  name field predicates
-  """
-  name: String
-  nameNEQ: String
-  nameIn: [String!]
-  nameNotIn: [String!]
-  nameGT: String
-  nameGTE: String
-  nameLT: String
-  nameLTE: String
-  nameContains: String
-  nameHasPrefix: String
-  nameHasSuffix: String
-  nameEqualFold: String
-  nameContainsFold: String
-  """
   aka field predicates
   """
   aka: String
@@ -3974,41 +3974,10 @@ input NetworkWhereInput {
   akaEqualFold: String
   akaContainsFold: String
   """
-  name_long field predicates
+  allow_ixp_update field predicates
   """
-  nameLong: String
-  nameLongNEQ: String
-  nameLongIn: [String!]
-  nameLongNotIn: [String!]
-  nameLongGT: String
-  nameLongGTE: String
-  nameLongLT: String
-  nameLongLTE: String
-  nameLongContains: String
-  nameLongHasPrefix: String
-  nameLongHasSuffix: String
-  nameLongIsNil: Boolean
-  nameLongNotNil: Boolean
-  nameLongEqualFold: String
-  nameLongContainsFold: String
-  """
-  website field predicates
-  """
-  website: String
-  websiteNEQ: String
-  websiteIn: [String!]
-  websiteNotIn: [String!]
-  websiteGT: String
-  websiteGTE: String
-  websiteLT: String
-  websiteLTE: String
-  websiteContains: String
-  websiteHasPrefix: String
-  websiteHasSuffix: String
-  websiteIsNil: Boolean
-  websiteNotNil: Boolean
-  websiteEqualFold: String
-  websiteContainsFold: String
+  allowIxpUpdate: Boolean
+  allowIxpUpdateNEQ: Boolean
   """
   asn field predicates
   """
@@ -4021,77 +3990,20 @@ input NetworkWhereInput {
   asnLT: Int
   asnLTE: Int
   """
-  looking_glass field predicates
+  info_ipv6 field predicates
   """
-  lookingGlass: String
-  lookingGlassNEQ: String
-  lookingGlassIn: [String!]
-  lookingGlassNotIn: [String!]
-  lookingGlassGT: String
-  lookingGlassGTE: String
-  lookingGlassLT: String
-  lookingGlassLTE: String
-  lookingGlassContains: String
-  lookingGlassHasPrefix: String
-  lookingGlassHasSuffix: String
-  lookingGlassIsNil: Boolean
-  lookingGlassNotNil: Boolean
-  lookingGlassEqualFold: String
-  lookingGlassContainsFold: String
+  infoIpv6: Boolean
+  infoIpv6NEQ: Boolean
   """
-  route_server field predicates
+  info_multicast field predicates
   """
-  routeServer: String
-  routeServerNEQ: String
-  routeServerIn: [String!]
-  routeServerNotIn: [String!]
-  routeServerGT: String
-  routeServerGTE: String
-  routeServerLT: String
-  routeServerLTE: String
-  routeServerContains: String
-  routeServerHasPrefix: String
-  routeServerHasSuffix: String
-  routeServerIsNil: Boolean
-  routeServerNotNil: Boolean
-  routeServerEqualFold: String
-  routeServerContainsFold: String
+  infoMulticast: Boolean
+  infoMulticastNEQ: Boolean
   """
-  irr_as_set field predicates
+  info_never_via_route_servers field predicates
   """
-  irrAsSet: String
-  irrAsSetNEQ: String
-  irrAsSetIn: [String!]
-  irrAsSetNotIn: [String!]
-  irrAsSetGT: String
-  irrAsSetGTE: String
-  irrAsSetLT: String
-  irrAsSetLTE: String
-  irrAsSetContains: String
-  irrAsSetHasPrefix: String
-  irrAsSetHasSuffix: String
-  irrAsSetIsNil: Boolean
-  irrAsSetNotNil: Boolean
-  irrAsSetEqualFold: String
-  irrAsSetContainsFold: String
-  """
-  info_type field predicates
-  """
-  infoType: String
-  infoTypeNEQ: String
-  infoTypeIn: [String!]
-  infoTypeNotIn: [String!]
-  infoTypeGT: String
-  infoTypeGTE: String
-  infoTypeLT: String
-  infoTypeLTE: String
-  infoTypeContains: String
-  infoTypeHasPrefix: String
-  infoTypeHasSuffix: String
-  infoTypeIsNil: Boolean
-  infoTypeNotNil: Boolean
-  infoTypeEqualFold: String
-  infoTypeContainsFold: String
+  infoNeverViaRouteServers: Boolean
+  infoNeverViaRouteServersNEQ: Boolean
   """
   info_prefixes4 field predicates
   """
@@ -4118,24 +4030,6 @@ input NetworkWhereInput {
   infoPrefixes6LTE: Int
   infoPrefixes6IsNil: Boolean
   infoPrefixes6NotNil: Boolean
-  """
-  info_traffic field predicates
-  """
-  infoTraffic: String
-  infoTrafficNEQ: String
-  infoTrafficIn: [String!]
-  infoTrafficNotIn: [String!]
-  infoTrafficGT: String
-  infoTrafficGTE: String
-  infoTrafficLT: String
-  infoTrafficLTE: String
-  infoTrafficContains: String
-  infoTrafficHasPrefix: String
-  infoTrafficHasSuffix: String
-  infoTrafficIsNil: Boolean
-  infoTrafficNotNil: Boolean
-  infoTrafficEqualFold: String
-  infoTrafficContainsFold: String
   """
   info_ratio field predicates
   """
@@ -4173,25 +4067,134 @@ input NetworkWhereInput {
   infoScopeEqualFold: String
   infoScopeContainsFold: String
   """
+  info_traffic field predicates
+  """
+  infoTraffic: String
+  infoTrafficNEQ: String
+  infoTrafficIn: [String!]
+  infoTrafficNotIn: [String!]
+  infoTrafficGT: String
+  infoTrafficGTE: String
+  infoTrafficLT: String
+  infoTrafficLTE: String
+  infoTrafficContains: String
+  infoTrafficHasPrefix: String
+  infoTrafficHasSuffix: String
+  infoTrafficIsNil: Boolean
+  infoTrafficNotNil: Boolean
+  infoTrafficEqualFold: String
+  infoTrafficContainsFold: String
+  """
+  info_type field predicates
+  """
+  infoType: String
+  infoTypeNEQ: String
+  infoTypeIn: [String!]
+  infoTypeNotIn: [String!]
+  infoTypeGT: String
+  infoTypeGTE: String
+  infoTypeLT: String
+  infoTypeLTE: String
+  infoTypeContains: String
+  infoTypeHasPrefix: String
+  infoTypeHasSuffix: String
+  infoTypeIsNil: Boolean
+  infoTypeNotNil: Boolean
+  infoTypeEqualFold: String
+  infoTypeContainsFold: String
+  """
   info_unicast field predicates
   """
   infoUnicast: Boolean
   infoUnicastNEQ: Boolean
   """
-  info_multicast field predicates
+  irr_as_set field predicates
   """
-  infoMulticast: Boolean
-  infoMulticastNEQ: Boolean
+  irrAsSet: String
+  irrAsSetNEQ: String
+  irrAsSetIn: [String!]
+  irrAsSetNotIn: [String!]
+  irrAsSetGT: String
+  irrAsSetGTE: String
+  irrAsSetLT: String
+  irrAsSetLTE: String
+  irrAsSetContains: String
+  irrAsSetHasPrefix: String
+  irrAsSetHasSuffix: String
+  irrAsSetIsNil: Boolean
+  irrAsSetNotNil: Boolean
+  irrAsSetEqualFold: String
+  irrAsSetContainsFold: String
   """
-  info_ipv6 field predicates
+  logo field predicates
   """
-  infoIpv6: Boolean
-  infoIpv6NEQ: Boolean
+  logo: String
+  logoNEQ: String
+  logoIn: [String!]
+  logoNotIn: [String!]
+  logoGT: String
+  logoGTE: String
+  logoLT: String
+  logoLTE: String
+  logoContains: String
+  logoHasPrefix: String
+  logoHasSuffix: String
+  logoIsNil: Boolean
+  logoNotNil: Boolean
+  logoEqualFold: String
+  logoContainsFold: String
   """
-  info_never_via_route_servers field predicates
+  looking_glass field predicates
   """
-  infoNeverViaRouteServers: Boolean
-  infoNeverViaRouteServersNEQ: Boolean
+  lookingGlass: String
+  lookingGlassNEQ: String
+  lookingGlassIn: [String!]
+  lookingGlassNotIn: [String!]
+  lookingGlassGT: String
+  lookingGlassGTE: String
+  lookingGlassLT: String
+  lookingGlassLTE: String
+  lookingGlassContains: String
+  lookingGlassHasPrefix: String
+  lookingGlassHasSuffix: String
+  lookingGlassIsNil: Boolean
+  lookingGlassNotNil: Boolean
+  lookingGlassEqualFold: String
+  lookingGlassContainsFold: String
+  """
+  name field predicates
+  """
+  name: String
+  nameNEQ: String
+  nameIn: [String!]
+  nameNotIn: [String!]
+  nameGT: String
+  nameGTE: String
+  nameLT: String
+  nameLTE: String
+  nameContains: String
+  nameHasPrefix: String
+  nameHasSuffix: String
+  nameEqualFold: String
+  nameContainsFold: String
+  """
+  name_long field predicates
+  """
+  nameLong: String
+  nameLongNEQ: String
+  nameLongIn: [String!]
+  nameLongNotIn: [String!]
+  nameLongGT: String
+  nameLongGTE: String
+  nameLongLT: String
+  nameLongLTE: String
+  nameLongContains: String
+  nameLongHasPrefix: String
+  nameLongHasSuffix: String
+  nameLongIsNil: Boolean
+  nameLongNotNil: Boolean
+  nameLongEqualFold: String
+  nameLongContainsFold: String
   """
   notes field predicates
   """
@@ -4211,23 +4214,23 @@ input NetworkWhereInput {
   notesEqualFold: String
   notesContainsFold: String
   """
-  policy_url field predicates
+  policy_contracts field predicates
   """
-  policyURL: String
-  policyURLNEQ: String
-  policyURLIn: [String!]
-  policyURLNotIn: [String!]
-  policyURLGT: String
-  policyURLGTE: String
-  policyURLLT: String
-  policyURLLTE: String
-  policyURLContains: String
-  policyURLHasPrefix: String
-  policyURLHasSuffix: String
-  policyURLIsNil: Boolean
-  policyURLNotNil: Boolean
-  policyURLEqualFold: String
-  policyURLContainsFold: String
+  policyContracts: String
+  policyContractsNEQ: String
+  policyContractsIn: [String!]
+  policyContractsNotIn: [String!]
+  policyContractsGT: String
+  policyContractsGTE: String
+  policyContractsLT: String
+  policyContractsLTE: String
+  policyContractsContains: String
+  policyContractsHasPrefix: String
+  policyContractsHasSuffix: String
+  policyContractsIsNil: Boolean
+  policyContractsNotNil: Boolean
+  policyContractsEqualFold: String
+  policyContractsContainsFold: String
   """
   policy_general field predicates
   """
@@ -4270,46 +4273,23 @@ input NetworkWhereInput {
   policyRatio: Boolean
   policyRatioNEQ: Boolean
   """
-  policy_contracts field predicates
+  policy_url field predicates
   """
-  policyContracts: String
-  policyContractsNEQ: String
-  policyContractsIn: [String!]
-  policyContractsNotIn: [String!]
-  policyContractsGT: String
-  policyContractsGTE: String
-  policyContractsLT: String
-  policyContractsLTE: String
-  policyContractsContains: String
-  policyContractsHasPrefix: String
-  policyContractsHasSuffix: String
-  policyContractsIsNil: Boolean
-  policyContractsNotNil: Boolean
-  policyContractsEqualFold: String
-  policyContractsContainsFold: String
-  """
-  allow_ixp_update field predicates
-  """
-  allowIxpUpdate: Boolean
-  allowIxpUpdateNEQ: Boolean
-  """
-  status_dashboard field predicates
-  """
-  statusDashboard: String
-  statusDashboardNEQ: String
-  statusDashboardIn: [String!]
-  statusDashboardNotIn: [String!]
-  statusDashboardGT: String
-  statusDashboardGTE: String
-  statusDashboardLT: String
-  statusDashboardLTE: String
-  statusDashboardContains: String
-  statusDashboardHasPrefix: String
-  statusDashboardHasSuffix: String
-  statusDashboardIsNil: Boolean
-  statusDashboardNotNil: Boolean
-  statusDashboardEqualFold: String
-  statusDashboardContainsFold: String
+  policyURL: String
+  policyURLNEQ: String
+  policyURLIn: [String!]
+  policyURLNotIn: [String!]
+  policyURLGT: String
+  policyURLGTE: String
+  policyURLLT: String
+  policyURLLTE: String
+  policyURLContains: String
+  policyURLHasPrefix: String
+  policyURLHasSuffix: String
+  policyURLIsNil: Boolean
+  policyURLNotNil: Boolean
+  policyURLEqualFold: String
+  policyURLContainsFold: String
   """
   rir_status field predicates
   """
@@ -4342,23 +4322,59 @@ input NetworkWhereInput {
   rirStatusUpdatedIsNil: Boolean
   rirStatusUpdatedNotNil: Boolean
   """
-  logo field predicates
+  route_server field predicates
   """
-  logo: String
-  logoNEQ: String
-  logoIn: [String!]
-  logoNotIn: [String!]
-  logoGT: String
-  logoGTE: String
-  logoLT: String
-  logoLTE: String
-  logoContains: String
-  logoHasPrefix: String
-  logoHasSuffix: String
-  logoIsNil: Boolean
-  logoNotNil: Boolean
-  logoEqualFold: String
-  logoContainsFold: String
+  routeServer: String
+  routeServerNEQ: String
+  routeServerIn: [String!]
+  routeServerNotIn: [String!]
+  routeServerGT: String
+  routeServerGTE: String
+  routeServerLT: String
+  routeServerLTE: String
+  routeServerContains: String
+  routeServerHasPrefix: String
+  routeServerHasSuffix: String
+  routeServerIsNil: Boolean
+  routeServerNotNil: Boolean
+  routeServerEqualFold: String
+  routeServerContainsFold: String
+  """
+  status_dashboard field predicates
+  """
+  statusDashboard: String
+  statusDashboardNEQ: String
+  statusDashboardIn: [String!]
+  statusDashboardNotIn: [String!]
+  statusDashboardGT: String
+  statusDashboardGTE: String
+  statusDashboardLT: String
+  statusDashboardLTE: String
+  statusDashboardContains: String
+  statusDashboardHasPrefix: String
+  statusDashboardHasSuffix: String
+  statusDashboardIsNil: Boolean
+  statusDashboardNotNil: Boolean
+  statusDashboardEqualFold: String
+  statusDashboardContainsFold: String
+  """
+  website field predicates
+  """
+  website: String
+  websiteNEQ: String
+  websiteIn: [String!]
+  websiteNotIn: [String!]
+  websiteGT: String
+  websiteGTE: String
+  websiteLT: String
+  websiteLTE: String
+  websiteContains: String
+  websiteHasPrefix: String
+  websiteHasSuffix: String
+  websiteIsNil: Boolean
+  websiteNotNil: Boolean
+  websiteEqualFold: String
+  websiteContainsFold: String
   """
   ix_count field predicates
   """
@@ -4463,16 +4479,6 @@ input NetworkWhereInput {
   statusEqualFold: String
   statusContainsFold: String
   """
-  organization edge predicates
-  """
-  hasOrganization: Boolean
-  hasOrganizationWith: [OrganizationWhereInput!]
-  """
-  pocs edge predicates
-  """
-  hasPocs: Boolean
-  hasPocsWith: [PocWhereInput!]
-  """
   network_facilities edge predicates
   """
   hasNetworkFacilities: Boolean
@@ -4482,6 +4488,16 @@ input NetworkWhereInput {
   """
   hasNetworkIxLans: Boolean
   hasNetworkIxLansWith: [NetworkIxLanWhereInput!]
+  """
+  organization edge predicates
+  """
+  hasOrganization: Boolean
+  hasOrganizationWith: [OrganizationWhereInput!]
+  """
+  pocs edge predicates
+  """
+  hasPocs: Boolean
+  hasPocsWith: [PocWhereInput!]
 }
 """
 An object with an ID.
@@ -4512,34 +4528,6 @@ type Organization implements Node {
   """
   id: ID!
   """
-  Organization name
-  """
-  name: String!
-  """
-  Also known as
-  """
-  aka: String
-  """
-  Long name
-  """
-  nameLong: String
-  """
-  Organization website URL
-  """
-  website: String
-  """
-  Social media links
-  """
-  socialMedia: [SocialMedia!]
-  """
-  Notes
-  """
-  notes: String
-  """
-  Logo URL
-  """
-  logo: String
-  """
   Address line 1
   """
   address1: String
@@ -4548,25 +4536,17 @@ type Organization implements Node {
   """
   address2: String
   """
+  Also known as
+  """
+  aka: String
+  """
   City
   """
   city: String
   """
-  State or province
-  """
-  state: String
-  """
   Country code
   """
   country: String
-  """
-  Postal / ZIP code
-  """
-  zipcode: String
-  """
-  Suite number
-  """
-  suite: String
   """
   Floor
   """
@@ -4576,9 +4556,53 @@ type Organization implements Node {
   """
   latitude: Float
   """
+  Logo URL
+  """
+  logo: String
+  """
   Longitude
   """
   longitude: Float
+  """
+  Organization name
+  """
+  name: String!
+  """
+  Long name
+  """
+  nameLong: String
+  """
+  Notes
+  """
+  notes: String
+  """
+  Social media links
+  """
+  socialMedia: [SocialMedia!]
+  """
+  State or province
+  """
+  state: String
+  """
+  Suite number
+  """
+  suite: String
+  """
+  Organization website URL
+  """
+  website: String
+  """
+  Postal / ZIP code
+  """
+  zipcode: String
+  """
+  Net Count (computed)
+  """
+  netCount: Int
+  """
+  Fac Count (computed)
+  """
+  facCount: Int
   """
   PeeringDB creation timestamp
   """
@@ -4591,11 +4615,11 @@ type Organization implements Node {
   Record status
   """
   status: String!
-  networks: [Network!]
+  campuses: [Campus!]
+  carriers: [Carrier!]
   facilities: [Facility!]
   internetExchanges: [InternetExchange!]
-  carriers: [Carrier!]
-  campuses: [Campus!]
+  networks: [Network!]
 }
 """
 A connection to a list of items.
@@ -4666,112 +4690,6 @@ input OrganizationWhereInput {
   idLT: ID
   idLTE: ID
   """
-  name field predicates
-  """
-  name: String
-  nameNEQ: String
-  nameIn: [String!]
-  nameNotIn: [String!]
-  nameGT: String
-  nameGTE: String
-  nameLT: String
-  nameLTE: String
-  nameContains: String
-  nameHasPrefix: String
-  nameHasSuffix: String
-  nameEqualFold: String
-  nameContainsFold: String
-  """
-  aka field predicates
-  """
-  aka: String
-  akaNEQ: String
-  akaIn: [String!]
-  akaNotIn: [String!]
-  akaGT: String
-  akaGTE: String
-  akaLT: String
-  akaLTE: String
-  akaContains: String
-  akaHasPrefix: String
-  akaHasSuffix: String
-  akaIsNil: Boolean
-  akaNotNil: Boolean
-  akaEqualFold: String
-  akaContainsFold: String
-  """
-  name_long field predicates
-  """
-  nameLong: String
-  nameLongNEQ: String
-  nameLongIn: [String!]
-  nameLongNotIn: [String!]
-  nameLongGT: String
-  nameLongGTE: String
-  nameLongLT: String
-  nameLongLTE: String
-  nameLongContains: String
-  nameLongHasPrefix: String
-  nameLongHasSuffix: String
-  nameLongIsNil: Boolean
-  nameLongNotNil: Boolean
-  nameLongEqualFold: String
-  nameLongContainsFold: String
-  """
-  website field predicates
-  """
-  website: String
-  websiteNEQ: String
-  websiteIn: [String!]
-  websiteNotIn: [String!]
-  websiteGT: String
-  websiteGTE: String
-  websiteLT: String
-  websiteLTE: String
-  websiteContains: String
-  websiteHasPrefix: String
-  websiteHasSuffix: String
-  websiteIsNil: Boolean
-  websiteNotNil: Boolean
-  websiteEqualFold: String
-  websiteContainsFold: String
-  """
-  notes field predicates
-  """
-  notes: String
-  notesNEQ: String
-  notesIn: [String!]
-  notesNotIn: [String!]
-  notesGT: String
-  notesGTE: String
-  notesLT: String
-  notesLTE: String
-  notesContains: String
-  notesHasPrefix: String
-  notesHasSuffix: String
-  notesIsNil: Boolean
-  notesNotNil: Boolean
-  notesEqualFold: String
-  notesContainsFold: String
-  """
-  logo field predicates
-  """
-  logo: String
-  logoNEQ: String
-  logoIn: [String!]
-  logoNotIn: [String!]
-  logoGT: String
-  logoGTE: String
-  logoLT: String
-  logoLTE: String
-  logoContains: String
-  logoHasPrefix: String
-  logoHasSuffix: String
-  logoIsNil: Boolean
-  logoNotNil: Boolean
-  logoEqualFold: String
-  logoContainsFold: String
-  """
   address1 field predicates
   """
   address1: String
@@ -4808,6 +4726,24 @@ input OrganizationWhereInput {
   address2EqualFold: String
   address2ContainsFold: String
   """
+  aka field predicates
+  """
+  aka: String
+  akaNEQ: String
+  akaIn: [String!]
+  akaNotIn: [String!]
+  akaGT: String
+  akaGTE: String
+  akaLT: String
+  akaLTE: String
+  akaContains: String
+  akaHasPrefix: String
+  akaHasSuffix: String
+  akaIsNil: Boolean
+  akaNotNil: Boolean
+  akaEqualFold: String
+  akaContainsFold: String
+  """
   city field predicates
   """
   city: String
@@ -4826,24 +4762,6 @@ input OrganizationWhereInput {
   cityEqualFold: String
   cityContainsFold: String
   """
-  state field predicates
-  """
-  state: String
-  stateNEQ: String
-  stateIn: [String!]
-  stateNotIn: [String!]
-  stateGT: String
-  stateGTE: String
-  stateLT: String
-  stateLTE: String
-  stateContains: String
-  stateHasPrefix: String
-  stateHasSuffix: String
-  stateIsNil: Boolean
-  stateNotNil: Boolean
-  stateEqualFold: String
-  stateContainsFold: String
-  """
   country field predicates
   """
   country: String
@@ -4861,42 +4779,6 @@ input OrganizationWhereInput {
   countryNotNil: Boolean
   countryEqualFold: String
   countryContainsFold: String
-  """
-  zipcode field predicates
-  """
-  zipcode: String
-  zipcodeNEQ: String
-  zipcodeIn: [String!]
-  zipcodeNotIn: [String!]
-  zipcodeGT: String
-  zipcodeGTE: String
-  zipcodeLT: String
-  zipcodeLTE: String
-  zipcodeContains: String
-  zipcodeHasPrefix: String
-  zipcodeHasSuffix: String
-  zipcodeIsNil: Boolean
-  zipcodeNotNil: Boolean
-  zipcodeEqualFold: String
-  zipcodeContainsFold: String
-  """
-  suite field predicates
-  """
-  suite: String
-  suiteNEQ: String
-  suiteIn: [String!]
-  suiteNotIn: [String!]
-  suiteGT: String
-  suiteGTE: String
-  suiteLT: String
-  suiteLTE: String
-  suiteContains: String
-  suiteHasPrefix: String
-  suiteHasSuffix: String
-  suiteIsNil: Boolean
-  suiteNotNil: Boolean
-  suiteEqualFold: String
-  suiteContainsFold: String
   """
   floor field predicates
   """
@@ -4929,6 +4811,24 @@ input OrganizationWhereInput {
   latitudeIsNil: Boolean
   latitudeNotNil: Boolean
   """
+  logo field predicates
+  """
+  logo: String
+  logoNEQ: String
+  logoIn: [String!]
+  logoNotIn: [String!]
+  logoGT: String
+  logoGTE: String
+  logoLT: String
+  logoLTE: String
+  logoContains: String
+  logoHasPrefix: String
+  logoHasSuffix: String
+  logoIsNil: Boolean
+  logoNotNil: Boolean
+  logoEqualFold: String
+  logoContainsFold: String
+  """
   longitude field predicates
   """
   longitude: Float
@@ -4941,6 +4841,156 @@ input OrganizationWhereInput {
   longitudeLTE: Float
   longitudeIsNil: Boolean
   longitudeNotNil: Boolean
+  """
+  name field predicates
+  """
+  name: String
+  nameNEQ: String
+  nameIn: [String!]
+  nameNotIn: [String!]
+  nameGT: String
+  nameGTE: String
+  nameLT: String
+  nameLTE: String
+  nameContains: String
+  nameHasPrefix: String
+  nameHasSuffix: String
+  nameEqualFold: String
+  nameContainsFold: String
+  """
+  name_long field predicates
+  """
+  nameLong: String
+  nameLongNEQ: String
+  nameLongIn: [String!]
+  nameLongNotIn: [String!]
+  nameLongGT: String
+  nameLongGTE: String
+  nameLongLT: String
+  nameLongLTE: String
+  nameLongContains: String
+  nameLongHasPrefix: String
+  nameLongHasSuffix: String
+  nameLongIsNil: Boolean
+  nameLongNotNil: Boolean
+  nameLongEqualFold: String
+  nameLongContainsFold: String
+  """
+  notes field predicates
+  """
+  notes: String
+  notesNEQ: String
+  notesIn: [String!]
+  notesNotIn: [String!]
+  notesGT: String
+  notesGTE: String
+  notesLT: String
+  notesLTE: String
+  notesContains: String
+  notesHasPrefix: String
+  notesHasSuffix: String
+  notesIsNil: Boolean
+  notesNotNil: Boolean
+  notesEqualFold: String
+  notesContainsFold: String
+  """
+  state field predicates
+  """
+  state: String
+  stateNEQ: String
+  stateIn: [String!]
+  stateNotIn: [String!]
+  stateGT: String
+  stateGTE: String
+  stateLT: String
+  stateLTE: String
+  stateContains: String
+  stateHasPrefix: String
+  stateHasSuffix: String
+  stateIsNil: Boolean
+  stateNotNil: Boolean
+  stateEqualFold: String
+  stateContainsFold: String
+  """
+  suite field predicates
+  """
+  suite: String
+  suiteNEQ: String
+  suiteIn: [String!]
+  suiteNotIn: [String!]
+  suiteGT: String
+  suiteGTE: String
+  suiteLT: String
+  suiteLTE: String
+  suiteContains: String
+  suiteHasPrefix: String
+  suiteHasSuffix: String
+  suiteIsNil: Boolean
+  suiteNotNil: Boolean
+  suiteEqualFold: String
+  suiteContainsFold: String
+  """
+  website field predicates
+  """
+  website: String
+  websiteNEQ: String
+  websiteIn: [String!]
+  websiteNotIn: [String!]
+  websiteGT: String
+  websiteGTE: String
+  websiteLT: String
+  websiteLTE: String
+  websiteContains: String
+  websiteHasPrefix: String
+  websiteHasSuffix: String
+  websiteIsNil: Boolean
+  websiteNotNil: Boolean
+  websiteEqualFold: String
+  websiteContainsFold: String
+  """
+  zipcode field predicates
+  """
+  zipcode: String
+  zipcodeNEQ: String
+  zipcodeIn: [String!]
+  zipcodeNotIn: [String!]
+  zipcodeGT: String
+  zipcodeGTE: String
+  zipcodeLT: String
+  zipcodeLTE: String
+  zipcodeContains: String
+  zipcodeHasPrefix: String
+  zipcodeHasSuffix: String
+  zipcodeIsNil: Boolean
+  zipcodeNotNil: Boolean
+  zipcodeEqualFold: String
+  zipcodeContainsFold: String
+  """
+  net_count field predicates
+  """
+  netCount: Int
+  netCountNEQ: Int
+  netCountIn: [Int!]
+  netCountNotIn: [Int!]
+  netCountGT: Int
+  netCountGTE: Int
+  netCountLT: Int
+  netCountLTE: Int
+  netCountIsNil: Boolean
+  netCountNotNil: Boolean
+  """
+  fac_count field predicates
+  """
+  facCount: Int
+  facCountNEQ: Int
+  facCountIn: [Int!]
+  facCountNotIn: [Int!]
+  facCountGT: Int
+  facCountGTE: Int
+  facCountLT: Int
+  facCountLTE: Int
+  facCountIsNil: Boolean
+  facCountNotNil: Boolean
   """
   created field predicates
   """
@@ -4980,10 +5030,15 @@ input OrganizationWhereInput {
   statusEqualFold: String
   statusContainsFold: String
   """
-  networks edge predicates
+  campuses edge predicates
   """
-  hasNetworks: Boolean
-  hasNetworksWith: [NetworkWhereInput!]
+  hasCampuses: Boolean
+  hasCampusesWith: [CampusWhereInput!]
+  """
+  carriers edge predicates
+  """
+  hasCarriers: Boolean
+  hasCarriersWith: [CarrierWhereInput!]
   """
   facilities edge predicates
   """
@@ -4995,15 +5050,10 @@ input OrganizationWhereInput {
   hasInternetExchanges: Boolean
   hasInternetExchangesWith: [InternetExchangeWhereInput!]
   """
-  carriers edge predicates
+  networks edge predicates
   """
-  hasCarriers: Boolean
-  hasCarriersWith: [CarrierWhereInput!]
-  """
-  campuses edge predicates
-  """
-  hasCampuses: Boolean
-  hasCampusesWith: [CampusWhereInput!]
+  hasNetworks: Boolean
+  hasNetworksWith: [NetworkWhereInput!]
 }
 """
 Information about pagination in a connection.
@@ -5029,7 +5079,7 @@ type PageInfo {
 }
 type Poc implements Node {
   """
-  PeeringDB POC ID
+  PeeringDB poc ID
   """
   id: ID!
   """
@@ -5037,29 +5087,29 @@ type Poc implements Node {
   """
   netID: ID
   """
-  Contact role
+  Email address
   """
-  role: String!
-  """
-  Visibility level
-  """
-  visible: String!
+  email: String
   """
   Contact name
   """
   name: String
   """
-  Contact phone
+  Phone number
   """
   phone: String
   """
-  Contact email
+  Contact role
   """
-  email: String
+  role: String!
   """
-  Contact URL
+  URL
   """
   url: String
+  """
+  Visibility level
+  """
+  visible: String
   """
   PeeringDB creation timestamp
   """
@@ -5133,37 +5183,23 @@ input PocWhereInput {
   netIDIsNil: Boolean
   netIDNotNil: Boolean
   """
-  role field predicates
+  email field predicates
   """
-  role: String
-  roleNEQ: String
-  roleIn: [String!]
-  roleNotIn: [String!]
-  roleGT: String
-  roleGTE: String
-  roleLT: String
-  roleLTE: String
-  roleContains: String
-  roleHasPrefix: String
-  roleHasSuffix: String
-  roleEqualFold: String
-  roleContainsFold: String
-  """
-  visible field predicates
-  """
-  visible: String
-  visibleNEQ: String
-  visibleIn: [String!]
-  visibleNotIn: [String!]
-  visibleGT: String
-  visibleGTE: String
-  visibleLT: String
-  visibleLTE: String
-  visibleContains: String
-  visibleHasPrefix: String
-  visibleHasSuffix: String
-  visibleEqualFold: String
-  visibleContainsFold: String
+  email: String
+  emailNEQ: String
+  emailIn: [String!]
+  emailNotIn: [String!]
+  emailGT: String
+  emailGTE: String
+  emailLT: String
+  emailLTE: String
+  emailContains: String
+  emailHasPrefix: String
+  emailHasSuffix: String
+  emailIsNil: Boolean
+  emailNotNil: Boolean
+  emailEqualFold: String
+  emailContainsFold: String
   """
   name field predicates
   """
@@ -5201,23 +5237,21 @@ input PocWhereInput {
   phoneEqualFold: String
   phoneContainsFold: String
   """
-  email field predicates
+  role field predicates
   """
-  email: String
-  emailNEQ: String
-  emailIn: [String!]
-  emailNotIn: [String!]
-  emailGT: String
-  emailGTE: String
-  emailLT: String
-  emailLTE: String
-  emailContains: String
-  emailHasPrefix: String
-  emailHasSuffix: String
-  emailIsNil: Boolean
-  emailNotNil: Boolean
-  emailEqualFold: String
-  emailContainsFold: String
+  role: String
+  roleNEQ: String
+  roleIn: [String!]
+  roleNotIn: [String!]
+  roleGT: String
+  roleGTE: String
+  roleLT: String
+  roleLTE: String
+  roleContains: String
+  roleHasPrefix: String
+  roleHasSuffix: String
+  roleEqualFold: String
+  roleContainsFold: String
   """
   url field predicates
   """
@@ -5236,6 +5270,24 @@ input PocWhereInput {
   urlNotNil: Boolean
   urlEqualFold: String
   urlContainsFold: String
+  """
+  visible field predicates
+  """
+  visible: String
+  visibleNEQ: String
+  visibleIn: [String!]
+  visibleNotIn: [String!]
+  visibleGT: String
+  visibleGTE: String
+  visibleLT: String
+  visibleLTE: String
+  visibleContains: String
+  visibleHasPrefix: String
+  visibleHasSuffix: String
+  visibleIsNil: Boolean
+  visibleNotNil: Boolean
+  visibleEqualFold: String
+  visibleContainsFold: String
   """
   created field predicates
   """

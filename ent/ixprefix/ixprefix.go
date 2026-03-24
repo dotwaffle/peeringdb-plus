@@ -15,14 +15,14 @@ const (
 	FieldID = "id"
 	// FieldIxlanID holds the string denoting the ixlan_id field in the database.
 	FieldIxlanID = "ixlan_id"
-	// FieldProtocol holds the string denoting the protocol field in the database.
-	FieldProtocol = "protocol"
-	// FieldPrefix holds the string denoting the prefix field in the database.
-	FieldPrefix = "prefix"
 	// FieldInDfz holds the string denoting the in_dfz field in the database.
 	FieldInDfz = "in_dfz"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
+	// FieldPrefix holds the string denoting the prefix field in the database.
+	FieldPrefix = "prefix"
+	// FieldProtocol holds the string denoting the protocol field in the database.
+	FieldProtocol = "protocol"
 	// FieldCreated holds the string denoting the created field in the database.
 	FieldCreated = "created"
 	// FieldUpdated holds the string denoting the updated field in the database.
@@ -46,10 +46,10 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldIxlanID,
-	FieldProtocol,
-	FieldPrefix,
 	FieldInDfz,
 	FieldNotes,
+	FieldPrefix,
+	FieldProtocol,
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
@@ -72,14 +72,18 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
-	// ProtocolValidator is a validator for the "protocol" field. It is called by the builders before save.
-	ProtocolValidator func(string) error
 	// DefaultInDfz holds the default value on creation for the "in_dfz" field.
 	DefaultInDfz bool
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
 	// NotesValidator is a validator for the "notes" field. It is called by the builders before save.
 	NotesValidator func(string) error
+	// PrefixValidator is a validator for the "prefix" field. It is called by the builders before save.
+	PrefixValidator func(string) error
+	// DefaultProtocol holds the default value on creation for the "protocol" field.
+	DefaultProtocol string
+	// ProtocolValidator is a validator for the "protocol" field. It is called by the builders before save.
+	ProtocolValidator func(string) error
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
@@ -101,16 +105,6 @@ func ByIxlanID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIxlanID, opts...).ToFunc()
 }
 
-// ByProtocol orders the results by the protocol field.
-func ByProtocol(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProtocol, opts...).ToFunc()
-}
-
-// ByPrefix orders the results by the prefix field.
-func ByPrefix(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPrefix, opts...).ToFunc()
-}
-
 // ByInDfz orders the results by the in_dfz field.
 func ByInDfz(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInDfz, opts...).ToFunc()
@@ -119,6 +113,16 @@ func ByInDfz(opts ...sql.OrderTermOption) OrderOption {
 // ByNotes orders the results by the notes field.
 func ByNotes(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotes, opts...).ToFunc()
+}
+
+// ByPrefix orders the results by the prefix field.
+func ByPrefix(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPrefix, opts...).ToFunc()
+}
+
+// ByProtocol orders the results by the protocol field.
+func ByProtocol(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProtocol, opts...).ToFunc()
 }
 
 // ByCreated orders the results by the created field.

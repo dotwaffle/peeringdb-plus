@@ -39,26 +39,6 @@ func (_c *CarrierCreate) SetNillableOrgID(v *int) *CarrierCreate {
 	return _c
 }
 
-// SetOrgName sets the "org_name" field.
-func (_c *CarrierCreate) SetOrgName(v string) *CarrierCreate {
-	_c.mutation.SetOrgName(v)
-	return _c
-}
-
-// SetNillableOrgName sets the "org_name" field if the given value is not nil.
-func (_c *CarrierCreate) SetNillableOrgName(v *string) *CarrierCreate {
-	if v != nil {
-		_c.SetOrgName(*v)
-	}
-	return _c
-}
-
-// SetName sets the "name" field.
-func (_c *CarrierCreate) SetName(v string) *CarrierCreate {
-	_c.mutation.SetName(v)
-	return _c
-}
-
 // SetAka sets the "aka" field.
 func (_c *CarrierCreate) SetAka(v string) *CarrierCreate {
 	_c.mutation.SetAka(v)
@@ -70,6 +50,26 @@ func (_c *CarrierCreate) SetNillableAka(v *string) *CarrierCreate {
 	if v != nil {
 		_c.SetAka(*v)
 	}
+	return _c
+}
+
+// SetLogo sets the "logo" field.
+func (_c *CarrierCreate) SetLogo(v string) *CarrierCreate {
+	_c.mutation.SetLogo(v)
+	return _c
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_c *CarrierCreate) SetNillableLogo(v *string) *CarrierCreate {
+	if v != nil {
+		_c.SetLogo(*v)
+	}
+	return _c
+}
+
+// SetName sets the "name" field.
+func (_c *CarrierCreate) SetName(v string) *CarrierCreate {
+	_c.mutation.SetName(v)
 	return _c
 }
 
@@ -87,26 +87,6 @@ func (_c *CarrierCreate) SetNillableNameLong(v *string) *CarrierCreate {
 	return _c
 }
 
-// SetWebsite sets the "website" field.
-func (_c *CarrierCreate) SetWebsite(v string) *CarrierCreate {
-	_c.mutation.SetWebsite(v)
-	return _c
-}
-
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_c *CarrierCreate) SetNillableWebsite(v *string) *CarrierCreate {
-	if v != nil {
-		_c.SetWebsite(*v)
-	}
-	return _c
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (_c *CarrierCreate) SetSocialMedia(v []schema.SocialMedia) *CarrierCreate {
-	_c.mutation.SetSocialMedia(v)
-	return _c
-}
-
 // SetNotes sets the "notes" field.
 func (_c *CarrierCreate) SetNotes(v string) *CarrierCreate {
 	_c.mutation.SetNotes(v)
@@ -121,6 +101,40 @@ func (_c *CarrierCreate) SetNillableNotes(v *string) *CarrierCreate {
 	return _c
 }
 
+// SetSocialMedia sets the "social_media" field.
+func (_c *CarrierCreate) SetSocialMedia(v []schema.SocialMedia) *CarrierCreate {
+	_c.mutation.SetSocialMedia(v)
+	return _c
+}
+
+// SetWebsite sets the "website" field.
+func (_c *CarrierCreate) SetWebsite(v string) *CarrierCreate {
+	_c.mutation.SetWebsite(v)
+	return _c
+}
+
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_c *CarrierCreate) SetNillableWebsite(v *string) *CarrierCreate {
+	if v != nil {
+		_c.SetWebsite(*v)
+	}
+	return _c
+}
+
+// SetOrgName sets the "org_name" field.
+func (_c *CarrierCreate) SetOrgName(v string) *CarrierCreate {
+	_c.mutation.SetOrgName(v)
+	return _c
+}
+
+// SetNillableOrgName sets the "org_name" field if the given value is not nil.
+func (_c *CarrierCreate) SetNillableOrgName(v *string) *CarrierCreate {
+	if v != nil {
+		_c.SetOrgName(*v)
+	}
+	return _c
+}
+
 // SetFacCount sets the "fac_count" field.
 func (_c *CarrierCreate) SetFacCount(v int) *CarrierCreate {
 	_c.mutation.SetFacCount(v)
@@ -131,20 +145,6 @@ func (_c *CarrierCreate) SetFacCount(v int) *CarrierCreate {
 func (_c *CarrierCreate) SetNillableFacCount(v *int) *CarrierCreate {
 	if v != nil {
 		_c.SetFacCount(*v)
-	}
-	return _c
-}
-
-// SetLogo sets the "logo" field.
-func (_c *CarrierCreate) SetLogo(v string) *CarrierCreate {
-	_c.mutation.SetLogo(v)
-	return _c
-}
-
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_c *CarrierCreate) SetNillableLogo(v *string) *CarrierCreate {
-	if v != nil {
-		_c.SetLogo(*v)
 	}
 	return _c
 }
@@ -181,6 +181,21 @@ func (_c *CarrierCreate) SetID(v int) *CarrierCreate {
 	return _c
 }
 
+// AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by IDs.
+func (_c *CarrierCreate) AddCarrierFacilityIDs(ids ...int) *CarrierCreate {
+	_c.mutation.AddCarrierFacilityIDs(ids...)
+	return _c
+}
+
+// AddCarrierFacilities adds the "carrier_facilities" edges to the CarrierFacility entity.
+func (_c *CarrierCreate) AddCarrierFacilities(v ...*CarrierFacility) *CarrierCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCarrierFacilityIDs(ids...)
+}
+
 // SetOrganizationID sets the "organization" edge to the Organization entity by ID.
 func (_c *CarrierCreate) SetOrganizationID(id int) *CarrierCreate {
 	_c.mutation.SetOrganizationID(id)
@@ -198,21 +213,6 @@ func (_c *CarrierCreate) SetNillableOrganizationID(id *int) *CarrierCreate {
 // SetOrganization sets the "organization" edge to the Organization entity.
 func (_c *CarrierCreate) SetOrganization(v *Organization) *CarrierCreate {
 	return _c.SetOrganizationID(v.ID)
-}
-
-// AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by IDs.
-func (_c *CarrierCreate) AddCarrierFacilityIDs(ids ...int) *CarrierCreate {
-	_c.mutation.AddCarrierFacilityIDs(ids...)
-	return _c
-}
-
-// AddCarrierFacilities adds the "carrier_facilities" edges to the CarrierFacility entity.
-func (_c *CarrierCreate) AddCarrierFacilities(v ...*CarrierFacility) *CarrierCreate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddCarrierFacilityIDs(ids...)
 }
 
 // Mutation returns the CarrierMutation object of the builder.
@@ -252,10 +252,6 @@ func (_c *CarrierCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *CarrierCreate) defaults() error {
-	if _, ok := _c.mutation.OrgName(); !ok {
-		v := carrier.DefaultOrgName
-		_c.mutation.SetOrgName(v)
-	}
 	if _, ok := _c.mutation.Aka(); !ok {
 		v := carrier.DefaultAka
 		_c.mutation.SetAka(v)
@@ -264,13 +260,17 @@ func (_c *CarrierCreate) defaults() error {
 		v := carrier.DefaultNameLong
 		_c.mutation.SetNameLong(v)
 	}
+	if _, ok := _c.mutation.Notes(); !ok {
+		v := carrier.DefaultNotes
+		_c.mutation.SetNotes(v)
+	}
 	if _, ok := _c.mutation.Website(); !ok {
 		v := carrier.DefaultWebsite
 		_c.mutation.SetWebsite(v)
 	}
-	if _, ok := _c.mutation.Notes(); !ok {
-		v := carrier.DefaultNotes
-		_c.mutation.SetNotes(v)
+	if _, ok := _c.mutation.OrgName(); !ok {
+		v := carrier.DefaultOrgName
+		_c.mutation.SetOrgName(v)
 	}
 	if _, ok := _c.mutation.FacCount(); !ok {
 		v := carrier.DefaultFacCount
@@ -285,17 +285,17 @@ func (_c *CarrierCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *CarrierCreate) check() error {
+	if v, ok := _c.mutation.Aka(); ok {
+		if err := carrier.AkaValidator(v); err != nil {
+			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Carrier.aka": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Carrier.name"`)}
 	}
 	if v, ok := _c.mutation.Name(); ok {
 		if err := carrier.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Carrier.name": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.Aka(); ok {
-		if err := carrier.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Carrier.aka": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.NameLong(); ok {
@@ -355,41 +355,41 @@ func (_c *CarrierCreate) createSpec() (*Carrier, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.OrgName(); ok {
-		_spec.SetField(carrier.FieldOrgName, field.TypeString, value)
-		_node.OrgName = value
+	if value, ok := _c.mutation.Aka(); ok {
+		_spec.SetField(carrier.FieldAka, field.TypeString, value)
+		_node.Aka = value
+	}
+	if value, ok := _c.mutation.Logo(); ok {
+		_spec.SetField(carrier.FieldLogo, field.TypeString, value)
+		_node.Logo = &value
 	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(carrier.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := _c.mutation.Aka(); ok {
-		_spec.SetField(carrier.FieldAka, field.TypeString, value)
-		_node.Aka = value
-	}
 	if value, ok := _c.mutation.NameLong(); ok {
 		_spec.SetField(carrier.FieldNameLong, field.TypeString, value)
 		_node.NameLong = value
-	}
-	if value, ok := _c.mutation.Website(); ok {
-		_spec.SetField(carrier.FieldWebsite, field.TypeString, value)
-		_node.Website = value
-	}
-	if value, ok := _c.mutation.SocialMedia(); ok {
-		_spec.SetField(carrier.FieldSocialMedia, field.TypeJSON, value)
-		_node.SocialMedia = value
 	}
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(carrier.FieldNotes, field.TypeString, value)
 		_node.Notes = value
 	}
+	if value, ok := _c.mutation.SocialMedia(); ok {
+		_spec.SetField(carrier.FieldSocialMedia, field.TypeJSON, value)
+		_node.SocialMedia = value
+	}
+	if value, ok := _c.mutation.Website(); ok {
+		_spec.SetField(carrier.FieldWebsite, field.TypeString, value)
+		_node.Website = value
+	}
+	if value, ok := _c.mutation.OrgName(); ok {
+		_spec.SetField(carrier.FieldOrgName, field.TypeString, value)
+		_node.OrgName = value
+	}
 	if value, ok := _c.mutation.FacCount(); ok {
 		_spec.SetField(carrier.FieldFacCount, field.TypeInt, value)
 		_node.FacCount = value
-	}
-	if value, ok := _c.mutation.Logo(); ok {
-		_spec.SetField(carrier.FieldLogo, field.TypeString, value)
-		_node.Logo = &value
 	}
 	if value, ok := _c.mutation.Created(); ok {
 		_spec.SetField(carrier.FieldCreated, field.TypeTime, value)
@@ -402,6 +402,22 @@ func (_c *CarrierCreate) createSpec() (*Carrier, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(carrier.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if nodes := _c.mutation.CarrierFacilitiesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   carrier.CarrierFacilitiesTable,
+			Columns: []string{carrier.CarrierFacilitiesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(carrierfacility.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.OrganizationIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -418,22 +434,6 @@ func (_c *CarrierCreate) createSpec() (*Carrier, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.OrgID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.CarrierFacilitiesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   carrier.CarrierFacilitiesTable,
-			Columns: []string{carrier.CarrierFacilitiesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(carrierfacility.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -506,36 +506,6 @@ func (u *CarrierUpsert) ClearOrgID() *CarrierUpsert {
 	return u
 }
 
-// SetOrgName sets the "org_name" field.
-func (u *CarrierUpsert) SetOrgName(v string) *CarrierUpsert {
-	u.Set(carrier.FieldOrgName, v)
-	return u
-}
-
-// UpdateOrgName sets the "org_name" field to the value that was provided on create.
-func (u *CarrierUpsert) UpdateOrgName() *CarrierUpsert {
-	u.SetExcluded(carrier.FieldOrgName)
-	return u
-}
-
-// ClearOrgName clears the value of the "org_name" field.
-func (u *CarrierUpsert) ClearOrgName() *CarrierUpsert {
-	u.SetNull(carrier.FieldOrgName)
-	return u
-}
-
-// SetName sets the "name" field.
-func (u *CarrierUpsert) SetName(v string) *CarrierUpsert {
-	u.Set(carrier.FieldName, v)
-	return u
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *CarrierUpsert) UpdateName() *CarrierUpsert {
-	u.SetExcluded(carrier.FieldName)
-	return u
-}
-
 // SetAka sets the "aka" field.
 func (u *CarrierUpsert) SetAka(v string) *CarrierUpsert {
 	u.Set(carrier.FieldAka, v)
@@ -551,6 +521,36 @@ func (u *CarrierUpsert) UpdateAka() *CarrierUpsert {
 // ClearAka clears the value of the "aka" field.
 func (u *CarrierUpsert) ClearAka() *CarrierUpsert {
 	u.SetNull(carrier.FieldAka)
+	return u
+}
+
+// SetLogo sets the "logo" field.
+func (u *CarrierUpsert) SetLogo(v string) *CarrierUpsert {
+	u.Set(carrier.FieldLogo, v)
+	return u
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *CarrierUpsert) UpdateLogo() *CarrierUpsert {
+	u.SetExcluded(carrier.FieldLogo)
+	return u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *CarrierUpsert) ClearLogo() *CarrierUpsert {
+	u.SetNull(carrier.FieldLogo)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *CarrierUpsert) SetName(v string) *CarrierUpsert {
+	u.Set(carrier.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *CarrierUpsert) UpdateName() *CarrierUpsert {
+	u.SetExcluded(carrier.FieldName)
 	return u
 }
 
@@ -572,21 +572,21 @@ func (u *CarrierUpsert) ClearNameLong() *CarrierUpsert {
 	return u
 }
 
-// SetWebsite sets the "website" field.
-func (u *CarrierUpsert) SetWebsite(v string) *CarrierUpsert {
-	u.Set(carrier.FieldWebsite, v)
+// SetNotes sets the "notes" field.
+func (u *CarrierUpsert) SetNotes(v string) *CarrierUpsert {
+	u.Set(carrier.FieldNotes, v)
 	return u
 }
 
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *CarrierUpsert) UpdateWebsite() *CarrierUpsert {
-	u.SetExcluded(carrier.FieldWebsite)
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *CarrierUpsert) UpdateNotes() *CarrierUpsert {
+	u.SetExcluded(carrier.FieldNotes)
 	return u
 }
 
-// ClearWebsite clears the value of the "website" field.
-func (u *CarrierUpsert) ClearWebsite() *CarrierUpsert {
-	u.SetNull(carrier.FieldWebsite)
+// ClearNotes clears the value of the "notes" field.
+func (u *CarrierUpsert) ClearNotes() *CarrierUpsert {
+	u.SetNull(carrier.FieldNotes)
 	return u
 }
 
@@ -608,21 +608,39 @@ func (u *CarrierUpsert) ClearSocialMedia() *CarrierUpsert {
 	return u
 }
 
-// SetNotes sets the "notes" field.
-func (u *CarrierUpsert) SetNotes(v string) *CarrierUpsert {
-	u.Set(carrier.FieldNotes, v)
+// SetWebsite sets the "website" field.
+func (u *CarrierUpsert) SetWebsite(v string) *CarrierUpsert {
+	u.Set(carrier.FieldWebsite, v)
 	return u
 }
 
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *CarrierUpsert) UpdateNotes() *CarrierUpsert {
-	u.SetExcluded(carrier.FieldNotes)
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *CarrierUpsert) UpdateWebsite() *CarrierUpsert {
+	u.SetExcluded(carrier.FieldWebsite)
 	return u
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (u *CarrierUpsert) ClearNotes() *CarrierUpsert {
-	u.SetNull(carrier.FieldNotes)
+// ClearWebsite clears the value of the "website" field.
+func (u *CarrierUpsert) ClearWebsite() *CarrierUpsert {
+	u.SetNull(carrier.FieldWebsite)
+	return u
+}
+
+// SetOrgName sets the "org_name" field.
+func (u *CarrierUpsert) SetOrgName(v string) *CarrierUpsert {
+	u.Set(carrier.FieldOrgName, v)
+	return u
+}
+
+// UpdateOrgName sets the "org_name" field to the value that was provided on create.
+func (u *CarrierUpsert) UpdateOrgName() *CarrierUpsert {
+	u.SetExcluded(carrier.FieldOrgName)
+	return u
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (u *CarrierUpsert) ClearOrgName() *CarrierUpsert {
+	u.SetNull(carrier.FieldOrgName)
 	return u
 }
 
@@ -647,24 +665,6 @@ func (u *CarrierUpsert) AddFacCount(v int) *CarrierUpsert {
 // ClearFacCount clears the value of the "fac_count" field.
 func (u *CarrierUpsert) ClearFacCount() *CarrierUpsert {
 	u.SetNull(carrier.FieldFacCount)
-	return u
-}
-
-// SetLogo sets the "logo" field.
-func (u *CarrierUpsert) SetLogo(v string) *CarrierUpsert {
-	u.Set(carrier.FieldLogo, v)
-	return u
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *CarrierUpsert) UpdateLogo() *CarrierUpsert {
-	u.SetExcluded(carrier.FieldLogo)
-	return u
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *CarrierUpsert) ClearLogo() *CarrierUpsert {
-	u.SetNull(carrier.FieldLogo)
 	return u
 }
 
@@ -764,41 +764,6 @@ func (u *CarrierUpsertOne) ClearOrgID() *CarrierUpsertOne {
 	})
 }
 
-// SetOrgName sets the "org_name" field.
-func (u *CarrierUpsertOne) SetOrgName(v string) *CarrierUpsertOne {
-	return u.Update(func(s *CarrierUpsert) {
-		s.SetOrgName(v)
-	})
-}
-
-// UpdateOrgName sets the "org_name" field to the value that was provided on create.
-func (u *CarrierUpsertOne) UpdateOrgName() *CarrierUpsertOne {
-	return u.Update(func(s *CarrierUpsert) {
-		s.UpdateOrgName()
-	})
-}
-
-// ClearOrgName clears the value of the "org_name" field.
-func (u *CarrierUpsertOne) ClearOrgName() *CarrierUpsertOne {
-	return u.Update(func(s *CarrierUpsert) {
-		s.ClearOrgName()
-	})
-}
-
-// SetName sets the "name" field.
-func (u *CarrierUpsertOne) SetName(v string) *CarrierUpsertOne {
-	return u.Update(func(s *CarrierUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *CarrierUpsertOne) UpdateName() *CarrierUpsertOne {
-	return u.Update(func(s *CarrierUpsert) {
-		s.UpdateName()
-	})
-}
-
 // SetAka sets the "aka" field.
 func (u *CarrierUpsertOne) SetAka(v string) *CarrierUpsertOne {
 	return u.Update(func(s *CarrierUpsert) {
@@ -817,6 +782,41 @@ func (u *CarrierUpsertOne) UpdateAka() *CarrierUpsertOne {
 func (u *CarrierUpsertOne) ClearAka() *CarrierUpsertOne {
 	return u.Update(func(s *CarrierUpsert) {
 		s.ClearAka()
+	})
+}
+
+// SetLogo sets the "logo" field.
+func (u *CarrierUpsertOne) SetLogo(v string) *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.SetLogo(v)
+	})
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *CarrierUpsertOne) UpdateLogo() *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.UpdateLogo()
+	})
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *CarrierUpsertOne) ClearLogo() *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.ClearLogo()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *CarrierUpsertOne) SetName(v string) *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *CarrierUpsertOne) UpdateName() *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.UpdateName()
 	})
 }
 
@@ -841,24 +841,24 @@ func (u *CarrierUpsertOne) ClearNameLong() *CarrierUpsertOne {
 	})
 }
 
-// SetWebsite sets the "website" field.
-func (u *CarrierUpsertOne) SetWebsite(v string) *CarrierUpsertOne {
+// SetNotes sets the "notes" field.
+func (u *CarrierUpsertOne) SetNotes(v string) *CarrierUpsertOne {
 	return u.Update(func(s *CarrierUpsert) {
-		s.SetWebsite(v)
+		s.SetNotes(v)
 	})
 }
 
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *CarrierUpsertOne) UpdateWebsite() *CarrierUpsertOne {
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *CarrierUpsertOne) UpdateNotes() *CarrierUpsertOne {
 	return u.Update(func(s *CarrierUpsert) {
-		s.UpdateWebsite()
+		s.UpdateNotes()
 	})
 }
 
-// ClearWebsite clears the value of the "website" field.
-func (u *CarrierUpsertOne) ClearWebsite() *CarrierUpsertOne {
+// ClearNotes clears the value of the "notes" field.
+func (u *CarrierUpsertOne) ClearNotes() *CarrierUpsertOne {
 	return u.Update(func(s *CarrierUpsert) {
-		s.ClearWebsite()
+		s.ClearNotes()
 	})
 }
 
@@ -883,24 +883,45 @@ func (u *CarrierUpsertOne) ClearSocialMedia() *CarrierUpsertOne {
 	})
 }
 
-// SetNotes sets the "notes" field.
-func (u *CarrierUpsertOne) SetNotes(v string) *CarrierUpsertOne {
+// SetWebsite sets the "website" field.
+func (u *CarrierUpsertOne) SetWebsite(v string) *CarrierUpsertOne {
 	return u.Update(func(s *CarrierUpsert) {
-		s.SetNotes(v)
+		s.SetWebsite(v)
 	})
 }
 
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *CarrierUpsertOne) UpdateNotes() *CarrierUpsertOne {
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *CarrierUpsertOne) UpdateWebsite() *CarrierUpsertOne {
 	return u.Update(func(s *CarrierUpsert) {
-		s.UpdateNotes()
+		s.UpdateWebsite()
 	})
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (u *CarrierUpsertOne) ClearNotes() *CarrierUpsertOne {
+// ClearWebsite clears the value of the "website" field.
+func (u *CarrierUpsertOne) ClearWebsite() *CarrierUpsertOne {
 	return u.Update(func(s *CarrierUpsert) {
-		s.ClearNotes()
+		s.ClearWebsite()
+	})
+}
+
+// SetOrgName sets the "org_name" field.
+func (u *CarrierUpsertOne) SetOrgName(v string) *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.SetOrgName(v)
+	})
+}
+
+// UpdateOrgName sets the "org_name" field to the value that was provided on create.
+func (u *CarrierUpsertOne) UpdateOrgName() *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.UpdateOrgName()
+	})
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (u *CarrierUpsertOne) ClearOrgName() *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.ClearOrgName()
 	})
 }
 
@@ -929,27 +950,6 @@ func (u *CarrierUpsertOne) UpdateFacCount() *CarrierUpsertOne {
 func (u *CarrierUpsertOne) ClearFacCount() *CarrierUpsertOne {
 	return u.Update(func(s *CarrierUpsert) {
 		s.ClearFacCount()
-	})
-}
-
-// SetLogo sets the "logo" field.
-func (u *CarrierUpsertOne) SetLogo(v string) *CarrierUpsertOne {
-	return u.Update(func(s *CarrierUpsert) {
-		s.SetLogo(v)
-	})
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *CarrierUpsertOne) UpdateLogo() *CarrierUpsertOne {
-	return u.Update(func(s *CarrierUpsert) {
-		s.UpdateLogo()
-	})
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *CarrierUpsertOne) ClearLogo() *CarrierUpsertOne {
-	return u.Update(func(s *CarrierUpsert) {
-		s.ClearLogo()
 	})
 }
 
@@ -1219,41 +1219,6 @@ func (u *CarrierUpsertBulk) ClearOrgID() *CarrierUpsertBulk {
 	})
 }
 
-// SetOrgName sets the "org_name" field.
-func (u *CarrierUpsertBulk) SetOrgName(v string) *CarrierUpsertBulk {
-	return u.Update(func(s *CarrierUpsert) {
-		s.SetOrgName(v)
-	})
-}
-
-// UpdateOrgName sets the "org_name" field to the value that was provided on create.
-func (u *CarrierUpsertBulk) UpdateOrgName() *CarrierUpsertBulk {
-	return u.Update(func(s *CarrierUpsert) {
-		s.UpdateOrgName()
-	})
-}
-
-// ClearOrgName clears the value of the "org_name" field.
-func (u *CarrierUpsertBulk) ClearOrgName() *CarrierUpsertBulk {
-	return u.Update(func(s *CarrierUpsert) {
-		s.ClearOrgName()
-	})
-}
-
-// SetName sets the "name" field.
-func (u *CarrierUpsertBulk) SetName(v string) *CarrierUpsertBulk {
-	return u.Update(func(s *CarrierUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *CarrierUpsertBulk) UpdateName() *CarrierUpsertBulk {
-	return u.Update(func(s *CarrierUpsert) {
-		s.UpdateName()
-	})
-}
-
 // SetAka sets the "aka" field.
 func (u *CarrierUpsertBulk) SetAka(v string) *CarrierUpsertBulk {
 	return u.Update(func(s *CarrierUpsert) {
@@ -1272,6 +1237,41 @@ func (u *CarrierUpsertBulk) UpdateAka() *CarrierUpsertBulk {
 func (u *CarrierUpsertBulk) ClearAka() *CarrierUpsertBulk {
 	return u.Update(func(s *CarrierUpsert) {
 		s.ClearAka()
+	})
+}
+
+// SetLogo sets the "logo" field.
+func (u *CarrierUpsertBulk) SetLogo(v string) *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.SetLogo(v)
+	})
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *CarrierUpsertBulk) UpdateLogo() *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.UpdateLogo()
+	})
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *CarrierUpsertBulk) ClearLogo() *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.ClearLogo()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *CarrierUpsertBulk) SetName(v string) *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *CarrierUpsertBulk) UpdateName() *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.UpdateName()
 	})
 }
 
@@ -1296,24 +1296,24 @@ func (u *CarrierUpsertBulk) ClearNameLong() *CarrierUpsertBulk {
 	})
 }
 
-// SetWebsite sets the "website" field.
-func (u *CarrierUpsertBulk) SetWebsite(v string) *CarrierUpsertBulk {
+// SetNotes sets the "notes" field.
+func (u *CarrierUpsertBulk) SetNotes(v string) *CarrierUpsertBulk {
 	return u.Update(func(s *CarrierUpsert) {
-		s.SetWebsite(v)
+		s.SetNotes(v)
 	})
 }
 
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *CarrierUpsertBulk) UpdateWebsite() *CarrierUpsertBulk {
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *CarrierUpsertBulk) UpdateNotes() *CarrierUpsertBulk {
 	return u.Update(func(s *CarrierUpsert) {
-		s.UpdateWebsite()
+		s.UpdateNotes()
 	})
 }
 
-// ClearWebsite clears the value of the "website" field.
-func (u *CarrierUpsertBulk) ClearWebsite() *CarrierUpsertBulk {
+// ClearNotes clears the value of the "notes" field.
+func (u *CarrierUpsertBulk) ClearNotes() *CarrierUpsertBulk {
 	return u.Update(func(s *CarrierUpsert) {
-		s.ClearWebsite()
+		s.ClearNotes()
 	})
 }
 
@@ -1338,24 +1338,45 @@ func (u *CarrierUpsertBulk) ClearSocialMedia() *CarrierUpsertBulk {
 	})
 }
 
-// SetNotes sets the "notes" field.
-func (u *CarrierUpsertBulk) SetNotes(v string) *CarrierUpsertBulk {
+// SetWebsite sets the "website" field.
+func (u *CarrierUpsertBulk) SetWebsite(v string) *CarrierUpsertBulk {
 	return u.Update(func(s *CarrierUpsert) {
-		s.SetNotes(v)
+		s.SetWebsite(v)
 	})
 }
 
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *CarrierUpsertBulk) UpdateNotes() *CarrierUpsertBulk {
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *CarrierUpsertBulk) UpdateWebsite() *CarrierUpsertBulk {
 	return u.Update(func(s *CarrierUpsert) {
-		s.UpdateNotes()
+		s.UpdateWebsite()
 	})
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (u *CarrierUpsertBulk) ClearNotes() *CarrierUpsertBulk {
+// ClearWebsite clears the value of the "website" field.
+func (u *CarrierUpsertBulk) ClearWebsite() *CarrierUpsertBulk {
 	return u.Update(func(s *CarrierUpsert) {
-		s.ClearNotes()
+		s.ClearWebsite()
+	})
+}
+
+// SetOrgName sets the "org_name" field.
+func (u *CarrierUpsertBulk) SetOrgName(v string) *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.SetOrgName(v)
+	})
+}
+
+// UpdateOrgName sets the "org_name" field to the value that was provided on create.
+func (u *CarrierUpsertBulk) UpdateOrgName() *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.UpdateOrgName()
+	})
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (u *CarrierUpsertBulk) ClearOrgName() *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.ClearOrgName()
 	})
 }
 
@@ -1384,27 +1405,6 @@ func (u *CarrierUpsertBulk) UpdateFacCount() *CarrierUpsertBulk {
 func (u *CarrierUpsertBulk) ClearFacCount() *CarrierUpsertBulk {
 	return u.Update(func(s *CarrierUpsert) {
 		s.ClearFacCount()
-	})
-}
-
-// SetLogo sets the "logo" field.
-func (u *CarrierUpsertBulk) SetLogo(v string) *CarrierUpsertBulk {
-	return u.Update(func(s *CarrierUpsert) {
-		s.SetLogo(v)
-	})
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *CarrierUpsertBulk) UpdateLogo() *CarrierUpsertBulk {
-	return u.Update(func(s *CarrierUpsert) {
-		s.UpdateLogo()
-	})
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *CarrierUpsertBulk) ClearLogo() *CarrierUpsertBulk {
-	return u.Update(func(s *CarrierUpsert) {
-		s.ClearLogo()
 	})
 }
 

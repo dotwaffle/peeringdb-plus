@@ -49,31 +49,23 @@ func (_u *PocUpdate) ClearNetID() *PocUpdate {
 	return _u
 }
 
-// SetRole sets the "role" field.
-func (_u *PocUpdate) SetRole(v string) *PocUpdate {
-	_u.mutation.SetRole(v)
+// SetEmail sets the "email" field.
+func (_u *PocUpdate) SetEmail(v string) *PocUpdate {
+	_u.mutation.SetEmail(v)
 	return _u
 }
 
-// SetNillableRole sets the "role" field if the given value is not nil.
-func (_u *PocUpdate) SetNillableRole(v *string) *PocUpdate {
+// SetNillableEmail sets the "email" field if the given value is not nil.
+func (_u *PocUpdate) SetNillableEmail(v *string) *PocUpdate {
 	if v != nil {
-		_u.SetRole(*v)
+		_u.SetEmail(*v)
 	}
 	return _u
 }
 
-// SetVisible sets the "visible" field.
-func (_u *PocUpdate) SetVisible(v string) *PocUpdate {
-	_u.mutation.SetVisible(v)
-	return _u
-}
-
-// SetNillableVisible sets the "visible" field if the given value is not nil.
-func (_u *PocUpdate) SetNillableVisible(v *string) *PocUpdate {
-	if v != nil {
-		_u.SetVisible(*v)
-	}
+// ClearEmail clears the value of the "email" field.
+func (_u *PocUpdate) ClearEmail() *PocUpdate {
+	_u.mutation.ClearEmail()
 	return _u
 }
 
@@ -117,23 +109,17 @@ func (_u *PocUpdate) ClearPhone() *PocUpdate {
 	return _u
 }
 
-// SetEmail sets the "email" field.
-func (_u *PocUpdate) SetEmail(v string) *PocUpdate {
-	_u.mutation.SetEmail(v)
+// SetRole sets the "role" field.
+func (_u *PocUpdate) SetRole(v string) *PocUpdate {
+	_u.mutation.SetRole(v)
 	return _u
 }
 
-// SetNillableEmail sets the "email" field if the given value is not nil.
-func (_u *PocUpdate) SetNillableEmail(v *string) *PocUpdate {
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (_u *PocUpdate) SetNillableRole(v *string) *PocUpdate {
 	if v != nil {
-		_u.SetEmail(*v)
+		_u.SetRole(*v)
 	}
-	return _u
-}
-
-// ClearEmail clears the value of the "email" field.
-func (_u *PocUpdate) ClearEmail() *PocUpdate {
-	_u.mutation.ClearEmail()
 	return _u
 }
 
@@ -154,6 +140,26 @@ func (_u *PocUpdate) SetNillableURL(v *string) *PocUpdate {
 // ClearURL clears the value of the "url" field.
 func (_u *PocUpdate) ClearURL() *PocUpdate {
 	_u.mutation.ClearURL()
+	return _u
+}
+
+// SetVisible sets the "visible" field.
+func (_u *PocUpdate) SetVisible(v string) *PocUpdate {
+	_u.mutation.SetVisible(v)
+	return _u
+}
+
+// SetNillableVisible sets the "visible" field if the given value is not nil.
+func (_u *PocUpdate) SetNillableVisible(v *string) *PocUpdate {
+	if v != nil {
+		_u.SetVisible(*v)
+	}
+	return _u
+}
+
+// ClearVisible clears the value of the "visible" field.
+func (_u *PocUpdate) ClearVisible() *PocUpdate {
+	_u.mutation.ClearVisible()
 	return _u
 }
 
@@ -244,14 +250,9 @@ func (_u *PocUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *PocUpdate) check() error {
-	if v, ok := _u.mutation.Role(); ok {
-		if err := poc.RoleValidator(v); err != nil {
-			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Visible(); ok {
-		if err := poc.VisibleValidator(v); err != nil {
-			return &ValidationError{Name: "visible", err: fmt.Errorf(`ent: validator failed for field "Poc.visible": %w`, err)}
+	if v, ok := _u.mutation.Email(); ok {
+		if err := poc.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Poc.email": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Name(); ok {
@@ -264,9 +265,14 @@ func (_u *PocUpdate) check() error {
 			return &ValidationError{Name: "phone", err: fmt.Errorf(`ent: validator failed for field "Poc.phone": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Email(); ok {
-		if err := poc.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Poc.email": %w`, err)}
+	if v, ok := _u.mutation.Role(); ok {
+		if err := poc.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Visible(); ok {
+		if err := poc.VisibleValidator(v); err != nil {
+			return &ValidationError{Name: "visible", err: fmt.Errorf(`ent: validator failed for field "Poc.visible": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Status(); ok {
@@ -289,11 +295,11 @@ func (_u *PocUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if value, ok := _u.mutation.Role(); ok {
-		_spec.SetField(poc.FieldRole, field.TypeString, value)
+	if value, ok := _u.mutation.Email(); ok {
+		_spec.SetField(poc.FieldEmail, field.TypeString, value)
 	}
-	if value, ok := _u.mutation.Visible(); ok {
-		_spec.SetField(poc.FieldVisible, field.TypeString, value)
+	if _u.mutation.EmailCleared() {
+		_spec.ClearField(poc.FieldEmail, field.TypeString)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(poc.FieldName, field.TypeString, value)
@@ -307,17 +313,20 @@ func (_u *PocUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.PhoneCleared() {
 		_spec.ClearField(poc.FieldPhone, field.TypeString)
 	}
-	if value, ok := _u.mutation.Email(); ok {
-		_spec.SetField(poc.FieldEmail, field.TypeString, value)
-	}
-	if _u.mutation.EmailCleared() {
-		_spec.ClearField(poc.FieldEmail, field.TypeString)
+	if value, ok := _u.mutation.Role(); ok {
+		_spec.SetField(poc.FieldRole, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.URL(); ok {
 		_spec.SetField(poc.FieldURL, field.TypeString, value)
 	}
 	if _u.mutation.URLCleared() {
 		_spec.ClearField(poc.FieldURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.Visible(); ok {
+		_spec.SetField(poc.FieldVisible, field.TypeString, value)
+	}
+	if _u.mutation.VisibleCleared() {
+		_spec.ClearField(poc.FieldVisible, field.TypeString)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(poc.FieldUpdated, field.TypeTime, value)
@@ -394,31 +403,23 @@ func (_u *PocUpdateOne) ClearNetID() *PocUpdateOne {
 	return _u
 }
 
-// SetRole sets the "role" field.
-func (_u *PocUpdateOne) SetRole(v string) *PocUpdateOne {
-	_u.mutation.SetRole(v)
+// SetEmail sets the "email" field.
+func (_u *PocUpdateOne) SetEmail(v string) *PocUpdateOne {
+	_u.mutation.SetEmail(v)
 	return _u
 }
 
-// SetNillableRole sets the "role" field if the given value is not nil.
-func (_u *PocUpdateOne) SetNillableRole(v *string) *PocUpdateOne {
+// SetNillableEmail sets the "email" field if the given value is not nil.
+func (_u *PocUpdateOne) SetNillableEmail(v *string) *PocUpdateOne {
 	if v != nil {
-		_u.SetRole(*v)
+		_u.SetEmail(*v)
 	}
 	return _u
 }
 
-// SetVisible sets the "visible" field.
-func (_u *PocUpdateOne) SetVisible(v string) *PocUpdateOne {
-	_u.mutation.SetVisible(v)
-	return _u
-}
-
-// SetNillableVisible sets the "visible" field if the given value is not nil.
-func (_u *PocUpdateOne) SetNillableVisible(v *string) *PocUpdateOne {
-	if v != nil {
-		_u.SetVisible(*v)
-	}
+// ClearEmail clears the value of the "email" field.
+func (_u *PocUpdateOne) ClearEmail() *PocUpdateOne {
+	_u.mutation.ClearEmail()
 	return _u
 }
 
@@ -462,23 +463,17 @@ func (_u *PocUpdateOne) ClearPhone() *PocUpdateOne {
 	return _u
 }
 
-// SetEmail sets the "email" field.
-func (_u *PocUpdateOne) SetEmail(v string) *PocUpdateOne {
-	_u.mutation.SetEmail(v)
+// SetRole sets the "role" field.
+func (_u *PocUpdateOne) SetRole(v string) *PocUpdateOne {
+	_u.mutation.SetRole(v)
 	return _u
 }
 
-// SetNillableEmail sets the "email" field if the given value is not nil.
-func (_u *PocUpdateOne) SetNillableEmail(v *string) *PocUpdateOne {
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (_u *PocUpdateOne) SetNillableRole(v *string) *PocUpdateOne {
 	if v != nil {
-		_u.SetEmail(*v)
+		_u.SetRole(*v)
 	}
-	return _u
-}
-
-// ClearEmail clears the value of the "email" field.
-func (_u *PocUpdateOne) ClearEmail() *PocUpdateOne {
-	_u.mutation.ClearEmail()
 	return _u
 }
 
@@ -499,6 +494,26 @@ func (_u *PocUpdateOne) SetNillableURL(v *string) *PocUpdateOne {
 // ClearURL clears the value of the "url" field.
 func (_u *PocUpdateOne) ClearURL() *PocUpdateOne {
 	_u.mutation.ClearURL()
+	return _u
+}
+
+// SetVisible sets the "visible" field.
+func (_u *PocUpdateOne) SetVisible(v string) *PocUpdateOne {
+	_u.mutation.SetVisible(v)
+	return _u
+}
+
+// SetNillableVisible sets the "visible" field if the given value is not nil.
+func (_u *PocUpdateOne) SetNillableVisible(v *string) *PocUpdateOne {
+	if v != nil {
+		_u.SetVisible(*v)
+	}
+	return _u
+}
+
+// ClearVisible clears the value of the "visible" field.
+func (_u *PocUpdateOne) ClearVisible() *PocUpdateOne {
+	_u.mutation.ClearVisible()
 	return _u
 }
 
@@ -602,14 +617,9 @@ func (_u *PocUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *PocUpdateOne) check() error {
-	if v, ok := _u.mutation.Role(); ok {
-		if err := poc.RoleValidator(v); err != nil {
-			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Visible(); ok {
-		if err := poc.VisibleValidator(v); err != nil {
-			return &ValidationError{Name: "visible", err: fmt.Errorf(`ent: validator failed for field "Poc.visible": %w`, err)}
+	if v, ok := _u.mutation.Email(); ok {
+		if err := poc.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Poc.email": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Name(); ok {
@@ -622,9 +632,14 @@ func (_u *PocUpdateOne) check() error {
 			return &ValidationError{Name: "phone", err: fmt.Errorf(`ent: validator failed for field "Poc.phone": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Email(); ok {
-		if err := poc.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Poc.email": %w`, err)}
+	if v, ok := _u.mutation.Role(); ok {
+		if err := poc.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Visible(); ok {
+		if err := poc.VisibleValidator(v); err != nil {
+			return &ValidationError{Name: "visible", err: fmt.Errorf(`ent: validator failed for field "Poc.visible": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Status(); ok {
@@ -664,11 +679,11 @@ func (_u *PocUpdateOne) sqlSave(ctx context.Context) (_node *Poc, err error) {
 			}
 		}
 	}
-	if value, ok := _u.mutation.Role(); ok {
-		_spec.SetField(poc.FieldRole, field.TypeString, value)
+	if value, ok := _u.mutation.Email(); ok {
+		_spec.SetField(poc.FieldEmail, field.TypeString, value)
 	}
-	if value, ok := _u.mutation.Visible(); ok {
-		_spec.SetField(poc.FieldVisible, field.TypeString, value)
+	if _u.mutation.EmailCleared() {
+		_spec.ClearField(poc.FieldEmail, field.TypeString)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(poc.FieldName, field.TypeString, value)
@@ -682,17 +697,20 @@ func (_u *PocUpdateOne) sqlSave(ctx context.Context) (_node *Poc, err error) {
 	if _u.mutation.PhoneCleared() {
 		_spec.ClearField(poc.FieldPhone, field.TypeString)
 	}
-	if value, ok := _u.mutation.Email(); ok {
-		_spec.SetField(poc.FieldEmail, field.TypeString, value)
-	}
-	if _u.mutation.EmailCleared() {
-		_spec.ClearField(poc.FieldEmail, field.TypeString)
+	if value, ok := _u.mutation.Role(); ok {
+		_spec.SetField(poc.FieldRole, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.URL(); ok {
 		_spec.SetField(poc.FieldURL, field.TypeString, value)
 	}
 	if _u.mutation.URLCleared() {
 		_spec.ClearField(poc.FieldURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.Visible(); ok {
+		_spec.SetField(poc.FieldVisible, field.TypeString, value)
+	}
+	if _u.mutation.VisibleCleared() {
+		_spec.ClearField(poc.FieldVisible, field.TypeString)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(poc.FieldUpdated, field.TypeTime, value)

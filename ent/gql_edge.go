@@ -8,14 +8,6 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 )
 
-func (_m *Campus) Organization(ctx context.Context) (*Organization, error) {
-	result, err := _m.Edges.OrganizationOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryOrganization().Only(ctx)
-	}
-	return result, MaskNotFound(err)
-}
-
 func (_m *Campus) Facilities(ctx context.Context) (result []*Facility, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
 		result, err = _m.NamedFacilities(graphql.GetFieldContext(ctx).Field.Alias)
@@ -28,7 +20,7 @@ func (_m *Campus) Facilities(ctx context.Context) (result []*Facility, err error
 	return result, err
 }
 
-func (_m *Carrier) Organization(ctx context.Context) (*Organization, error) {
+func (_m *Campus) Organization(ctx context.Context) (*Organization, error) {
 	result, err := _m.Edges.OrganizationOrErr()
 	if IsNotLoaded(err) {
 		result, err = _m.QueryOrganization().Only(ctx)
@@ -48,6 +40,14 @@ func (_m *Carrier) CarrierFacilities(ctx context.Context) (result []*CarrierFaci
 	return result, err
 }
 
+func (_m *Carrier) Organization(ctx context.Context) (*Organization, error) {
+	result, err := _m.Edges.OrganizationOrErr()
+	if IsNotLoaded(err) {
+		result, err = _m.QueryOrganization().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
 func (_m *CarrierFacility) Carrier(ctx context.Context) (*Carrier, error) {
 	result, err := _m.Edges.CarrierOrErr()
 	if IsNotLoaded(err) {
@@ -64,14 +64,6 @@ func (_m *CarrierFacility) Facility(ctx context.Context) (*Facility, error) {
 	return result, MaskNotFound(err)
 }
 
-func (_m *Facility) Organization(ctx context.Context) (*Organization, error) {
-	result, err := _m.Edges.OrganizationOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryOrganization().Only(ctx)
-	}
-	return result, MaskNotFound(err)
-}
-
 func (_m *Facility) Campus(ctx context.Context) (*Campus, error) {
 	result, err := _m.Edges.CampusOrErr()
 	if IsNotLoaded(err) {
@@ -80,14 +72,14 @@ func (_m *Facility) Campus(ctx context.Context) (*Campus, error) {
 	return result, MaskNotFound(err)
 }
 
-func (_m *Facility) NetworkFacilities(ctx context.Context) (result []*NetworkFacility, err error) {
+func (_m *Facility) CarrierFacilities(ctx context.Context) (result []*CarrierFacility, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = _m.NamedNetworkFacilities(graphql.GetFieldContext(ctx).Field.Alias)
+		result, err = _m.NamedCarrierFacilities(graphql.GetFieldContext(ctx).Field.Alias)
 	} else {
-		result, err = _m.Edges.NetworkFacilitiesOrErr()
+		result, err = _m.Edges.CarrierFacilitiesOrErr()
 	}
 	if IsNotLoaded(err) {
-		result, err = _m.QueryNetworkFacilities().All(ctx)
+		result, err = _m.QueryCarrierFacilities().All(ctx)
 	}
 	return result, err
 }
@@ -104,36 +96,24 @@ func (_m *Facility) IxFacilities(ctx context.Context) (result []*IxFacility, err
 	return result, err
 }
 
-func (_m *Facility) CarrierFacilities(ctx context.Context) (result []*CarrierFacility, err error) {
+func (_m *Facility) NetworkFacilities(ctx context.Context) (result []*NetworkFacility, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = _m.NamedCarrierFacilities(graphql.GetFieldContext(ctx).Field.Alias)
+		result, err = _m.NamedNetworkFacilities(graphql.GetFieldContext(ctx).Field.Alias)
 	} else {
-		result, err = _m.Edges.CarrierFacilitiesOrErr()
+		result, err = _m.Edges.NetworkFacilitiesOrErr()
 	}
 	if IsNotLoaded(err) {
-		result, err = _m.QueryCarrierFacilities().All(ctx)
+		result, err = _m.QueryNetworkFacilities().All(ctx)
 	}
 	return result, err
 }
 
-func (_m *InternetExchange) Organization(ctx context.Context) (*Organization, error) {
+func (_m *Facility) Organization(ctx context.Context) (*Organization, error) {
 	result, err := _m.Edges.OrganizationOrErr()
 	if IsNotLoaded(err) {
 		result, err = _m.QueryOrganization().Only(ctx)
 	}
 	return result, MaskNotFound(err)
-}
-
-func (_m *InternetExchange) IxLans(ctx context.Context) (result []*IxLan, err error) {
-	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = _m.NamedIxLans(graphql.GetFieldContext(ctx).Field.Alias)
-	} else {
-		result, err = _m.Edges.IxLansOrErr()
-	}
-	if IsNotLoaded(err) {
-		result, err = _m.QueryIxLans().All(ctx)
-	}
-	return result, err
 }
 
 func (_m *InternetExchange) IxFacilities(ctx context.Context) (result []*IxFacility, err error) {
@@ -148,10 +128,22 @@ func (_m *InternetExchange) IxFacilities(ctx context.Context) (result []*IxFacil
 	return result, err
 }
 
-func (_m *IxFacility) InternetExchange(ctx context.Context) (*InternetExchange, error) {
-	result, err := _m.Edges.InternetExchangeOrErr()
+func (_m *InternetExchange) IxLans(ctx context.Context) (result []*IxLan, err error) {
+	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
+		result, err = _m.NamedIxLans(graphql.GetFieldContext(ctx).Field.Alias)
+	} else {
+		result, err = _m.Edges.IxLansOrErr()
+	}
 	if IsNotLoaded(err) {
-		result, err = _m.QueryInternetExchange().Only(ctx)
+		result, err = _m.QueryIxLans().All(ctx)
+	}
+	return result, err
+}
+
+func (_m *InternetExchange) Organization(ctx context.Context) (*Organization, error) {
+	result, err := _m.Edges.OrganizationOrErr()
+	if IsNotLoaded(err) {
+		result, err = _m.QueryOrganization().Only(ctx)
 	}
 	return result, MaskNotFound(err)
 }
@@ -160,6 +152,14 @@ func (_m *IxFacility) Facility(ctx context.Context) (*Facility, error) {
 	result, err := _m.Edges.FacilityOrErr()
 	if IsNotLoaded(err) {
 		result, err = _m.QueryFacility().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (_m *IxFacility) InternetExchange(ctx context.Context) (*InternetExchange, error) {
+	result, err := _m.Edges.InternetExchangeOrErr()
+	if IsNotLoaded(err) {
+		result, err = _m.QueryInternetExchange().Only(ctx)
 	}
 	return result, MaskNotFound(err)
 }
@@ -204,26 +204,6 @@ func (_m *IxPrefix) IxLan(ctx context.Context) (*IxLan, error) {
 	return result, MaskNotFound(err)
 }
 
-func (_m *Network) Organization(ctx context.Context) (*Organization, error) {
-	result, err := _m.Edges.OrganizationOrErr()
-	if IsNotLoaded(err) {
-		result, err = _m.QueryOrganization().Only(ctx)
-	}
-	return result, MaskNotFound(err)
-}
-
-func (_m *Network) Pocs(ctx context.Context) (result []*Poc, err error) {
-	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = _m.NamedPocs(graphql.GetFieldContext(ctx).Field.Alias)
-	} else {
-		result, err = _m.Edges.PocsOrErr()
-	}
-	if IsNotLoaded(err) {
-		result, err = _m.QueryPocs().All(ctx)
-	}
-	return result, err
-}
-
 func (_m *Network) NetworkFacilities(ctx context.Context) (result []*NetworkFacility, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
 		result, err = _m.NamedNetworkFacilities(graphql.GetFieldContext(ctx).Field.Alias)
@@ -248,12 +228,24 @@ func (_m *Network) NetworkIxLans(ctx context.Context) (result []*NetworkIxLan, e
 	return result, err
 }
 
-func (_m *NetworkFacility) Network(ctx context.Context) (*Network, error) {
-	result, err := _m.Edges.NetworkOrErr()
+func (_m *Network) Organization(ctx context.Context) (*Organization, error) {
+	result, err := _m.Edges.OrganizationOrErr()
 	if IsNotLoaded(err) {
-		result, err = _m.QueryNetwork().Only(ctx)
+		result, err = _m.QueryOrganization().Only(ctx)
 	}
 	return result, MaskNotFound(err)
+}
+
+func (_m *Network) Pocs(ctx context.Context) (result []*Poc, err error) {
+	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
+		result, err = _m.NamedPocs(graphql.GetFieldContext(ctx).Field.Alias)
+	} else {
+		result, err = _m.Edges.PocsOrErr()
+	}
+	if IsNotLoaded(err) {
+		result, err = _m.QueryPocs().All(ctx)
+	}
+	return result, err
 }
 
 func (_m *NetworkFacility) Facility(ctx context.Context) (*Facility, error) {
@@ -264,7 +256,7 @@ func (_m *NetworkFacility) Facility(ctx context.Context) (*Facility, error) {
 	return result, MaskNotFound(err)
 }
 
-func (_m *NetworkIxLan) Network(ctx context.Context) (*Network, error) {
+func (_m *NetworkFacility) Network(ctx context.Context) (*Network, error) {
 	result, err := _m.Edges.NetworkOrErr()
 	if IsNotLoaded(err) {
 		result, err = _m.QueryNetwork().Only(ctx)
@@ -280,14 +272,34 @@ func (_m *NetworkIxLan) IxLan(ctx context.Context) (*IxLan, error) {
 	return result, MaskNotFound(err)
 }
 
-func (_m *Organization) Networks(ctx context.Context) (result []*Network, err error) {
+func (_m *NetworkIxLan) Network(ctx context.Context) (*Network, error) {
+	result, err := _m.Edges.NetworkOrErr()
+	if IsNotLoaded(err) {
+		result, err = _m.QueryNetwork().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (_m *Organization) Campuses(ctx context.Context) (result []*Campus, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = _m.NamedNetworks(graphql.GetFieldContext(ctx).Field.Alias)
+		result, err = _m.NamedCampuses(graphql.GetFieldContext(ctx).Field.Alias)
 	} else {
-		result, err = _m.Edges.NetworksOrErr()
+		result, err = _m.Edges.CampusesOrErr()
 	}
 	if IsNotLoaded(err) {
-		result, err = _m.QueryNetworks().All(ctx)
+		result, err = _m.QueryCampuses().All(ctx)
+	}
+	return result, err
+}
+
+func (_m *Organization) Carriers(ctx context.Context) (result []*Carrier, err error) {
+	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
+		result, err = _m.NamedCarriers(graphql.GetFieldContext(ctx).Field.Alias)
+	} else {
+		result, err = _m.Edges.CarriersOrErr()
+	}
+	if IsNotLoaded(err) {
+		result, err = _m.QueryCarriers().All(ctx)
 	}
 	return result, err
 }
@@ -316,26 +328,14 @@ func (_m *Organization) InternetExchanges(ctx context.Context) (result []*Intern
 	return result, err
 }
 
-func (_m *Organization) Carriers(ctx context.Context) (result []*Carrier, err error) {
+func (_m *Organization) Networks(ctx context.Context) (result []*Network, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = _m.NamedCarriers(graphql.GetFieldContext(ctx).Field.Alias)
+		result, err = _m.NamedNetworks(graphql.GetFieldContext(ctx).Field.Alias)
 	} else {
-		result, err = _m.Edges.CarriersOrErr()
+		result, err = _m.Edges.NetworksOrErr()
 	}
 	if IsNotLoaded(err) {
-		result, err = _m.QueryCarriers().All(ctx)
-	}
-	return result, err
-}
-
-func (_m *Organization) Campuses(ctx context.Context) (result []*Campus, err error) {
-	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = _m.NamedCampuses(graphql.GetFieldContext(ctx).Field.Alias)
-	} else {
-		result, err = _m.Edges.CampusesOrErr()
-	}
-	if IsNotLoaded(err) {
-		result, err = _m.QueryCampuses().All(ctx)
+		result, err = _m.QueryNetworks().All(ctx)
 	}
 	return result, err
 }

@@ -60,16 +60,6 @@ func IxlanID(v int) predicate.IxPrefix {
 	return predicate.IxPrefix(sql.FieldEQ(FieldIxlanID, v))
 }
 
-// Protocol applies equality check predicate on the "protocol" field. It's identical to ProtocolEQ.
-func Protocol(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldEQ(FieldProtocol, v))
-}
-
-// Prefix applies equality check predicate on the "prefix" field. It's identical to PrefixEQ.
-func Prefix(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldEQ(FieldPrefix, v))
-}
-
 // InDfz applies equality check predicate on the "in_dfz" field. It's identical to InDfzEQ.
 func InDfz(v bool) predicate.IxPrefix {
 	return predicate.IxPrefix(sql.FieldEQ(FieldInDfz, v))
@@ -78,6 +68,16 @@ func InDfz(v bool) predicate.IxPrefix {
 // Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
 func Notes(v string) predicate.IxPrefix {
 	return predicate.IxPrefix(sql.FieldEQ(FieldNotes, v))
+}
+
+// Prefix applies equality check predicate on the "prefix" field. It's identical to PrefixEQ.
+func Prefix(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldEQ(FieldPrefix, v))
+}
+
+// Protocol applies equality check predicate on the "protocol" field. It's identical to ProtocolEQ.
+func Protocol(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldEQ(FieldProtocol, v))
 }
 
 // Created applies equality check predicate on the "created" field. It's identical to CreatedEQ.
@@ -123,136 +123,6 @@ func IxlanIDIsNil() predicate.IxPrefix {
 // IxlanIDNotNil applies the NotNil predicate on the "ixlan_id" field.
 func IxlanIDNotNil() predicate.IxPrefix {
 	return predicate.IxPrefix(sql.FieldNotNull(FieldIxlanID))
-}
-
-// ProtocolEQ applies the EQ predicate on the "protocol" field.
-func ProtocolEQ(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldEQ(FieldProtocol, v))
-}
-
-// ProtocolNEQ applies the NEQ predicate on the "protocol" field.
-func ProtocolNEQ(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldNEQ(FieldProtocol, v))
-}
-
-// ProtocolIn applies the In predicate on the "protocol" field.
-func ProtocolIn(vs ...string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldIn(FieldProtocol, vs...))
-}
-
-// ProtocolNotIn applies the NotIn predicate on the "protocol" field.
-func ProtocolNotIn(vs ...string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldNotIn(FieldProtocol, vs...))
-}
-
-// ProtocolGT applies the GT predicate on the "protocol" field.
-func ProtocolGT(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldGT(FieldProtocol, v))
-}
-
-// ProtocolGTE applies the GTE predicate on the "protocol" field.
-func ProtocolGTE(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldGTE(FieldProtocol, v))
-}
-
-// ProtocolLT applies the LT predicate on the "protocol" field.
-func ProtocolLT(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldLT(FieldProtocol, v))
-}
-
-// ProtocolLTE applies the LTE predicate on the "protocol" field.
-func ProtocolLTE(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldLTE(FieldProtocol, v))
-}
-
-// ProtocolContains applies the Contains predicate on the "protocol" field.
-func ProtocolContains(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldContains(FieldProtocol, v))
-}
-
-// ProtocolHasPrefix applies the HasPrefix predicate on the "protocol" field.
-func ProtocolHasPrefix(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldHasPrefix(FieldProtocol, v))
-}
-
-// ProtocolHasSuffix applies the HasSuffix predicate on the "protocol" field.
-func ProtocolHasSuffix(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldHasSuffix(FieldProtocol, v))
-}
-
-// ProtocolEqualFold applies the EqualFold predicate on the "protocol" field.
-func ProtocolEqualFold(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldEqualFold(FieldProtocol, v))
-}
-
-// ProtocolContainsFold applies the ContainsFold predicate on the "protocol" field.
-func ProtocolContainsFold(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldContainsFold(FieldProtocol, v))
-}
-
-// PrefixEQ applies the EQ predicate on the "prefix" field.
-func PrefixEQ(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldEQ(FieldPrefix, v))
-}
-
-// PrefixNEQ applies the NEQ predicate on the "prefix" field.
-func PrefixNEQ(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldNEQ(FieldPrefix, v))
-}
-
-// PrefixIn applies the In predicate on the "prefix" field.
-func PrefixIn(vs ...string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldIn(FieldPrefix, vs...))
-}
-
-// PrefixNotIn applies the NotIn predicate on the "prefix" field.
-func PrefixNotIn(vs ...string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldNotIn(FieldPrefix, vs...))
-}
-
-// PrefixGT applies the GT predicate on the "prefix" field.
-func PrefixGT(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldGT(FieldPrefix, v))
-}
-
-// PrefixGTE applies the GTE predicate on the "prefix" field.
-func PrefixGTE(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldGTE(FieldPrefix, v))
-}
-
-// PrefixLT applies the LT predicate on the "prefix" field.
-func PrefixLT(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldLT(FieldPrefix, v))
-}
-
-// PrefixLTE applies the LTE predicate on the "prefix" field.
-func PrefixLTE(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldLTE(FieldPrefix, v))
-}
-
-// PrefixContains applies the Contains predicate on the "prefix" field.
-func PrefixContains(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldContains(FieldPrefix, v))
-}
-
-// PrefixHasPrefix applies the HasPrefix predicate on the "prefix" field.
-func PrefixHasPrefix(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldHasPrefix(FieldPrefix, v))
-}
-
-// PrefixHasSuffix applies the HasSuffix predicate on the "prefix" field.
-func PrefixHasSuffix(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldHasSuffix(FieldPrefix, v))
-}
-
-// PrefixEqualFold applies the EqualFold predicate on the "prefix" field.
-func PrefixEqualFold(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldEqualFold(FieldPrefix, v))
-}
-
-// PrefixContainsFold applies the ContainsFold predicate on the "prefix" field.
-func PrefixContainsFold(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldContainsFold(FieldPrefix, v))
 }
 
 // InDfzEQ applies the EQ predicate on the "in_dfz" field.
@@ -338,6 +208,146 @@ func NotesEqualFold(v string) predicate.IxPrefix {
 // NotesContainsFold applies the ContainsFold predicate on the "notes" field.
 func NotesContainsFold(v string) predicate.IxPrefix {
 	return predicate.IxPrefix(sql.FieldContainsFold(FieldNotes, v))
+}
+
+// PrefixEQ applies the EQ predicate on the "prefix" field.
+func PrefixEQ(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldEQ(FieldPrefix, v))
+}
+
+// PrefixNEQ applies the NEQ predicate on the "prefix" field.
+func PrefixNEQ(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldNEQ(FieldPrefix, v))
+}
+
+// PrefixIn applies the In predicate on the "prefix" field.
+func PrefixIn(vs ...string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldIn(FieldPrefix, vs...))
+}
+
+// PrefixNotIn applies the NotIn predicate on the "prefix" field.
+func PrefixNotIn(vs ...string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldNotIn(FieldPrefix, vs...))
+}
+
+// PrefixGT applies the GT predicate on the "prefix" field.
+func PrefixGT(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldGT(FieldPrefix, v))
+}
+
+// PrefixGTE applies the GTE predicate on the "prefix" field.
+func PrefixGTE(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldGTE(FieldPrefix, v))
+}
+
+// PrefixLT applies the LT predicate on the "prefix" field.
+func PrefixLT(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldLT(FieldPrefix, v))
+}
+
+// PrefixLTE applies the LTE predicate on the "prefix" field.
+func PrefixLTE(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldLTE(FieldPrefix, v))
+}
+
+// PrefixContains applies the Contains predicate on the "prefix" field.
+func PrefixContains(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldContains(FieldPrefix, v))
+}
+
+// PrefixHasPrefix applies the HasPrefix predicate on the "prefix" field.
+func PrefixHasPrefix(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldHasPrefix(FieldPrefix, v))
+}
+
+// PrefixHasSuffix applies the HasSuffix predicate on the "prefix" field.
+func PrefixHasSuffix(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldHasSuffix(FieldPrefix, v))
+}
+
+// PrefixEqualFold applies the EqualFold predicate on the "prefix" field.
+func PrefixEqualFold(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldEqualFold(FieldPrefix, v))
+}
+
+// PrefixContainsFold applies the ContainsFold predicate on the "prefix" field.
+func PrefixContainsFold(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldContainsFold(FieldPrefix, v))
+}
+
+// ProtocolEQ applies the EQ predicate on the "protocol" field.
+func ProtocolEQ(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldEQ(FieldProtocol, v))
+}
+
+// ProtocolNEQ applies the NEQ predicate on the "protocol" field.
+func ProtocolNEQ(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldNEQ(FieldProtocol, v))
+}
+
+// ProtocolIn applies the In predicate on the "protocol" field.
+func ProtocolIn(vs ...string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldIn(FieldProtocol, vs...))
+}
+
+// ProtocolNotIn applies the NotIn predicate on the "protocol" field.
+func ProtocolNotIn(vs ...string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldNotIn(FieldProtocol, vs...))
+}
+
+// ProtocolGT applies the GT predicate on the "protocol" field.
+func ProtocolGT(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldGT(FieldProtocol, v))
+}
+
+// ProtocolGTE applies the GTE predicate on the "protocol" field.
+func ProtocolGTE(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldGTE(FieldProtocol, v))
+}
+
+// ProtocolLT applies the LT predicate on the "protocol" field.
+func ProtocolLT(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldLT(FieldProtocol, v))
+}
+
+// ProtocolLTE applies the LTE predicate on the "protocol" field.
+func ProtocolLTE(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldLTE(FieldProtocol, v))
+}
+
+// ProtocolContains applies the Contains predicate on the "protocol" field.
+func ProtocolContains(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldContains(FieldProtocol, v))
+}
+
+// ProtocolHasPrefix applies the HasPrefix predicate on the "protocol" field.
+func ProtocolHasPrefix(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldHasPrefix(FieldProtocol, v))
+}
+
+// ProtocolHasSuffix applies the HasSuffix predicate on the "protocol" field.
+func ProtocolHasSuffix(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldHasSuffix(FieldProtocol, v))
+}
+
+// ProtocolIsNil applies the IsNil predicate on the "protocol" field.
+func ProtocolIsNil() predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldIsNull(FieldProtocol))
+}
+
+// ProtocolNotNil applies the NotNil predicate on the "protocol" field.
+func ProtocolNotNil() predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldNotNull(FieldProtocol))
+}
+
+// ProtocolEqualFold applies the EqualFold predicate on the "protocol" field.
+func ProtocolEqualFold(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldEqualFold(FieldProtocol, v))
+}
+
+// ProtocolContainsFold applies the ContainsFold predicate on the "protocol" field.
+func ProtocolContainsFold(v string) predicate.IxPrefix {
+	return predicate.IxPrefix(sql.FieldContainsFold(FieldProtocol, v))
 }
 
 // CreatedEQ applies the EQ predicate on the "created" field.

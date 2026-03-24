@@ -52,23 +52,83 @@ func (_u *CampusUpdate) ClearOrgID() *CampusUpdate {
 	return _u
 }
 
-// SetOrgName sets the "org_name" field.
-func (_u *CampusUpdate) SetOrgName(v string) *CampusUpdate {
-	_u.mutation.SetOrgName(v)
+// SetAka sets the "aka" field.
+func (_u *CampusUpdate) SetAka(v string) *CampusUpdate {
+	_u.mutation.SetAka(v)
 	return _u
 }
 
-// SetNillableOrgName sets the "org_name" field if the given value is not nil.
-func (_u *CampusUpdate) SetNillableOrgName(v *string) *CampusUpdate {
+// SetNillableAka sets the "aka" field if the given value is not nil.
+func (_u *CampusUpdate) SetNillableAka(v *string) *CampusUpdate {
 	if v != nil {
-		_u.SetOrgName(*v)
+		_u.SetAka(*v)
 	}
 	return _u
 }
 
-// ClearOrgName clears the value of the "org_name" field.
-func (_u *CampusUpdate) ClearOrgName() *CampusUpdate {
-	_u.mutation.ClearOrgName()
+// ClearAka clears the value of the "aka" field.
+func (_u *CampusUpdate) ClearAka() *CampusUpdate {
+	_u.mutation.ClearAka()
+	return _u
+}
+
+// SetCity sets the "city" field.
+func (_u *CampusUpdate) SetCity(v string) *CampusUpdate {
+	_u.mutation.SetCity(v)
+	return _u
+}
+
+// SetNillableCity sets the "city" field if the given value is not nil.
+func (_u *CampusUpdate) SetNillableCity(v *string) *CampusUpdate {
+	if v != nil {
+		_u.SetCity(*v)
+	}
+	return _u
+}
+
+// ClearCity clears the value of the "city" field.
+func (_u *CampusUpdate) ClearCity() *CampusUpdate {
+	_u.mutation.ClearCity()
+	return _u
+}
+
+// SetCountry sets the "country" field.
+func (_u *CampusUpdate) SetCountry(v string) *CampusUpdate {
+	_u.mutation.SetCountry(v)
+	return _u
+}
+
+// SetNillableCountry sets the "country" field if the given value is not nil.
+func (_u *CampusUpdate) SetNillableCountry(v *string) *CampusUpdate {
+	if v != nil {
+		_u.SetCountry(*v)
+	}
+	return _u
+}
+
+// ClearCountry clears the value of the "country" field.
+func (_u *CampusUpdate) ClearCountry() *CampusUpdate {
+	_u.mutation.ClearCountry()
+	return _u
+}
+
+// SetLogo sets the "logo" field.
+func (_u *CampusUpdate) SetLogo(v string) *CampusUpdate {
+	_u.mutation.SetLogo(v)
+	return _u
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_u *CampusUpdate) SetNillableLogo(v *string) *CampusUpdate {
+	if v != nil {
+		_u.SetLogo(*v)
+	}
+	return _u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (_u *CampusUpdate) ClearLogo() *CampusUpdate {
+	_u.mutation.ClearLogo()
 	return _u
 }
 
@@ -106,64 +166,6 @@ func (_u *CampusUpdate) ClearNameLong() *CampusUpdate {
 	return _u
 }
 
-// SetAka sets the "aka" field.
-func (_u *CampusUpdate) SetAka(v string) *CampusUpdate {
-	_u.mutation.SetAka(v)
-	return _u
-}
-
-// SetNillableAka sets the "aka" field if the given value is not nil.
-func (_u *CampusUpdate) SetNillableAka(v *string) *CampusUpdate {
-	if v != nil {
-		_u.SetAka(*v)
-	}
-	return _u
-}
-
-// ClearAka clears the value of the "aka" field.
-func (_u *CampusUpdate) ClearAka() *CampusUpdate {
-	_u.mutation.ClearAka()
-	return _u
-}
-
-// SetWebsite sets the "website" field.
-func (_u *CampusUpdate) SetWebsite(v string) *CampusUpdate {
-	_u.mutation.SetWebsite(v)
-	return _u
-}
-
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_u *CampusUpdate) SetNillableWebsite(v *string) *CampusUpdate {
-	if v != nil {
-		_u.SetWebsite(*v)
-	}
-	return _u
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (_u *CampusUpdate) ClearWebsite() *CampusUpdate {
-	_u.mutation.ClearWebsite()
-	return _u
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (_u *CampusUpdate) SetSocialMedia(v []schema.SocialMedia) *CampusUpdate {
-	_u.mutation.SetSocialMedia(v)
-	return _u
-}
-
-// AppendSocialMedia appends value to the "social_media" field.
-func (_u *CampusUpdate) AppendSocialMedia(v []schema.SocialMedia) *CampusUpdate {
-	_u.mutation.AppendSocialMedia(v)
-	return _u
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (_u *CampusUpdate) ClearSocialMedia() *CampusUpdate {
-	_u.mutation.ClearSocialMedia()
-	return _u
-}
-
 // SetNotes sets the "notes" field.
 func (_u *CampusUpdate) SetNotes(v string) *CampusUpdate {
 	_u.mutation.SetNotes(v)
@@ -184,63 +186,21 @@ func (_u *CampusUpdate) ClearNotes() *CampusUpdate {
 	return _u
 }
 
-// SetCountry sets the "country" field.
-func (_u *CampusUpdate) SetCountry(v string) *CampusUpdate {
-	_u.mutation.SetCountry(v)
+// SetSocialMedia sets the "social_media" field.
+func (_u *CampusUpdate) SetSocialMedia(v []schema.SocialMedia) *CampusUpdate {
+	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
-// SetNillableCountry sets the "country" field if the given value is not nil.
-func (_u *CampusUpdate) SetNillableCountry(v *string) *CampusUpdate {
-	if v != nil {
-		_u.SetCountry(*v)
-	}
+// AppendSocialMedia appends value to the "social_media" field.
+func (_u *CampusUpdate) AppendSocialMedia(v []schema.SocialMedia) *CampusUpdate {
+	_u.mutation.AppendSocialMedia(v)
 	return _u
 }
 
-// ClearCountry clears the value of the "country" field.
-func (_u *CampusUpdate) ClearCountry() *CampusUpdate {
-	_u.mutation.ClearCountry()
-	return _u
-}
-
-// SetCity sets the "city" field.
-func (_u *CampusUpdate) SetCity(v string) *CampusUpdate {
-	_u.mutation.SetCity(v)
-	return _u
-}
-
-// SetNillableCity sets the "city" field if the given value is not nil.
-func (_u *CampusUpdate) SetNillableCity(v *string) *CampusUpdate {
-	if v != nil {
-		_u.SetCity(*v)
-	}
-	return _u
-}
-
-// ClearCity clears the value of the "city" field.
-func (_u *CampusUpdate) ClearCity() *CampusUpdate {
-	_u.mutation.ClearCity()
-	return _u
-}
-
-// SetZipcode sets the "zipcode" field.
-func (_u *CampusUpdate) SetZipcode(v string) *CampusUpdate {
-	_u.mutation.SetZipcode(v)
-	return _u
-}
-
-// SetNillableZipcode sets the "zipcode" field if the given value is not nil.
-func (_u *CampusUpdate) SetNillableZipcode(v *string) *CampusUpdate {
-	if v != nil {
-		_u.SetZipcode(*v)
-	}
-	return _u
-}
-
-// ClearZipcode clears the value of the "zipcode" field.
-func (_u *CampusUpdate) ClearZipcode() *CampusUpdate {
-	_u.mutation.ClearZipcode()
+// ClearSocialMedia clears the value of the "social_media" field.
+func (_u *CampusUpdate) ClearSocialMedia() *CampusUpdate {
+	_u.mutation.ClearSocialMedia()
 	return _u
 }
 
@@ -264,23 +224,63 @@ func (_u *CampusUpdate) ClearState() *CampusUpdate {
 	return _u
 }
 
-// SetLogo sets the "logo" field.
-func (_u *CampusUpdate) SetLogo(v string) *CampusUpdate {
-	_u.mutation.SetLogo(v)
+// SetWebsite sets the "website" field.
+func (_u *CampusUpdate) SetWebsite(v string) *CampusUpdate {
+	_u.mutation.SetWebsite(v)
 	return _u
 }
 
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_u *CampusUpdate) SetNillableLogo(v *string) *CampusUpdate {
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_u *CampusUpdate) SetNillableWebsite(v *string) *CampusUpdate {
 	if v != nil {
-		_u.SetLogo(*v)
+		_u.SetWebsite(*v)
 	}
 	return _u
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (_u *CampusUpdate) ClearLogo() *CampusUpdate {
-	_u.mutation.ClearLogo()
+// ClearWebsite clears the value of the "website" field.
+func (_u *CampusUpdate) ClearWebsite() *CampusUpdate {
+	_u.mutation.ClearWebsite()
+	return _u
+}
+
+// SetZipcode sets the "zipcode" field.
+func (_u *CampusUpdate) SetZipcode(v string) *CampusUpdate {
+	_u.mutation.SetZipcode(v)
+	return _u
+}
+
+// SetNillableZipcode sets the "zipcode" field if the given value is not nil.
+func (_u *CampusUpdate) SetNillableZipcode(v *string) *CampusUpdate {
+	if v != nil {
+		_u.SetZipcode(*v)
+	}
+	return _u
+}
+
+// ClearZipcode clears the value of the "zipcode" field.
+func (_u *CampusUpdate) ClearZipcode() *CampusUpdate {
+	_u.mutation.ClearZipcode()
+	return _u
+}
+
+// SetOrgName sets the "org_name" field.
+func (_u *CampusUpdate) SetOrgName(v string) *CampusUpdate {
+	_u.mutation.SetOrgName(v)
+	return _u
+}
+
+// SetNillableOrgName sets the "org_name" field if the given value is not nil.
+func (_u *CampusUpdate) SetNillableOrgName(v *string) *CampusUpdate {
+	if v != nil {
+		_u.SetOrgName(*v)
+	}
+	return _u
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (_u *CampusUpdate) ClearOrgName() *CampusUpdate {
+	_u.mutation.ClearOrgName()
 	return _u
 }
 
@@ -312,6 +312,21 @@ func (_u *CampusUpdate) SetNillableStatus(v *string) *CampusUpdate {
 	return _u
 }
 
+// AddFacilityIDs adds the "facilities" edge to the Facility entity by IDs.
+func (_u *CampusUpdate) AddFacilityIDs(ids ...int) *CampusUpdate {
+	_u.mutation.AddFacilityIDs(ids...)
+	return _u
+}
+
+// AddFacilities adds the "facilities" edges to the Facility entity.
+func (_u *CampusUpdate) AddFacilities(v ...*Facility) *CampusUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFacilityIDs(ids...)
+}
+
 // SetOrganizationID sets the "organization" edge to the Organization entity by ID.
 func (_u *CampusUpdate) SetOrganizationID(id int) *CampusUpdate {
 	_u.mutation.SetOrganizationID(id)
@@ -331,30 +346,9 @@ func (_u *CampusUpdate) SetOrganization(v *Organization) *CampusUpdate {
 	return _u.SetOrganizationID(v.ID)
 }
 
-// AddFacilityIDs adds the "facilities" edge to the Facility entity by IDs.
-func (_u *CampusUpdate) AddFacilityIDs(ids ...int) *CampusUpdate {
-	_u.mutation.AddFacilityIDs(ids...)
-	return _u
-}
-
-// AddFacilities adds the "facilities" edges to the Facility entity.
-func (_u *CampusUpdate) AddFacilities(v ...*Facility) *CampusUpdate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddFacilityIDs(ids...)
-}
-
 // Mutation returns the CampusMutation object of the builder.
 func (_u *CampusUpdate) Mutation() *CampusMutation {
 	return _u.mutation
-}
-
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (_u *CampusUpdate) ClearOrganization() *CampusUpdate {
-	_u.mutation.ClearOrganization()
-	return _u
 }
 
 // ClearFacilities clears all "facilities" edges to the Facility entity.
@@ -376,6 +370,12 @@ func (_u *CampusUpdate) RemoveFacilities(v ...*Facility) *CampusUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveFacilityIDs(ids...)
+}
+
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (_u *CampusUpdate) ClearOrganization() *CampusUpdate {
+	_u.mutation.ClearOrganization()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -407,6 +407,11 @@ func (_u *CampusUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *CampusUpdate) check() error {
+	if v, ok := _u.mutation.Aka(); ok {
+		if err := campus.AkaValidator(v); err != nil {
+			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Campus.aka": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := campus.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Campus.name": %w`, err)}
@@ -415,11 +420,6 @@ func (_u *CampusUpdate) check() error {
 	if v, ok := _u.mutation.NameLong(); ok {
 		if err := campus.NameLongValidator(v); err != nil {
 			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Campus.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := campus.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Campus.aka": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Status(); ok {
@@ -442,11 +442,29 @@ func (_u *CampusUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if value, ok := _u.mutation.OrgName(); ok {
-		_spec.SetField(campus.FieldOrgName, field.TypeString, value)
+	if value, ok := _u.mutation.Aka(); ok {
+		_spec.SetField(campus.FieldAka, field.TypeString, value)
 	}
-	if _u.mutation.OrgNameCleared() {
-		_spec.ClearField(campus.FieldOrgName, field.TypeString)
+	if _u.mutation.AkaCleared() {
+		_spec.ClearField(campus.FieldAka, field.TypeString)
+	}
+	if value, ok := _u.mutation.City(); ok {
+		_spec.SetField(campus.FieldCity, field.TypeString, value)
+	}
+	if _u.mutation.CityCleared() {
+		_spec.ClearField(campus.FieldCity, field.TypeString)
+	}
+	if value, ok := _u.mutation.Country(); ok {
+		_spec.SetField(campus.FieldCountry, field.TypeString, value)
+	}
+	if _u.mutation.CountryCleared() {
+		_spec.ClearField(campus.FieldCountry, field.TypeString)
+	}
+	if value, ok := _u.mutation.Logo(); ok {
+		_spec.SetField(campus.FieldLogo, field.TypeString, value)
+	}
+	if _u.mutation.LogoCleared() {
+		_spec.ClearField(campus.FieldLogo, field.TypeString)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(campus.FieldName, field.TypeString, value)
@@ -457,17 +475,11 @@ func (_u *CampusUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.NameLongCleared() {
 		_spec.ClearField(campus.FieldNameLong, field.TypeString)
 	}
-	if value, ok := _u.mutation.Aka(); ok {
-		_spec.SetField(campus.FieldAka, field.TypeString, value)
+	if value, ok := _u.mutation.Notes(); ok {
+		_spec.SetField(campus.FieldNotes, field.TypeString, value)
 	}
-	if _u.mutation.AkaCleared() {
-		_spec.ClearField(campus.FieldAka, field.TypeString)
-	}
-	if value, ok := _u.mutation.Website(); ok {
-		_spec.SetField(campus.FieldWebsite, field.TypeString, value)
-	}
-	if _u.mutation.WebsiteCleared() {
-		_spec.ClearField(campus.FieldWebsite, field.TypeString)
+	if _u.mutation.NotesCleared() {
+		_spec.ClearField(campus.FieldNotes, field.TypeString)
 	}
 	if value, ok := _u.mutation.SocialMedia(); ok {
 		_spec.SetField(campus.FieldSocialMedia, field.TypeJSON, value)
@@ -480,23 +492,17 @@ func (_u *CampusUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.SocialMediaCleared() {
 		_spec.ClearField(campus.FieldSocialMedia, field.TypeJSON)
 	}
-	if value, ok := _u.mutation.Notes(); ok {
-		_spec.SetField(campus.FieldNotes, field.TypeString, value)
+	if value, ok := _u.mutation.State(); ok {
+		_spec.SetField(campus.FieldState, field.TypeString, value)
 	}
-	if _u.mutation.NotesCleared() {
-		_spec.ClearField(campus.FieldNotes, field.TypeString)
+	if _u.mutation.StateCleared() {
+		_spec.ClearField(campus.FieldState, field.TypeString)
 	}
-	if value, ok := _u.mutation.Country(); ok {
-		_spec.SetField(campus.FieldCountry, field.TypeString, value)
+	if value, ok := _u.mutation.Website(); ok {
+		_spec.SetField(campus.FieldWebsite, field.TypeString, value)
 	}
-	if _u.mutation.CountryCleared() {
-		_spec.ClearField(campus.FieldCountry, field.TypeString)
-	}
-	if value, ok := _u.mutation.City(); ok {
-		_spec.SetField(campus.FieldCity, field.TypeString, value)
-	}
-	if _u.mutation.CityCleared() {
-		_spec.ClearField(campus.FieldCity, field.TypeString)
+	if _u.mutation.WebsiteCleared() {
+		_spec.ClearField(campus.FieldWebsite, field.TypeString)
 	}
 	if value, ok := _u.mutation.Zipcode(); ok {
 		_spec.SetField(campus.FieldZipcode, field.TypeString, value)
@@ -504,52 +510,17 @@ func (_u *CampusUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.ZipcodeCleared() {
 		_spec.ClearField(campus.FieldZipcode, field.TypeString)
 	}
-	if value, ok := _u.mutation.State(); ok {
-		_spec.SetField(campus.FieldState, field.TypeString, value)
+	if value, ok := _u.mutation.OrgName(); ok {
+		_spec.SetField(campus.FieldOrgName, field.TypeString, value)
 	}
-	if _u.mutation.StateCleared() {
-		_spec.ClearField(campus.FieldState, field.TypeString)
-	}
-	if value, ok := _u.mutation.Logo(); ok {
-		_spec.SetField(campus.FieldLogo, field.TypeString, value)
-	}
-	if _u.mutation.LogoCleared() {
-		_spec.ClearField(campus.FieldLogo, field.TypeString)
+	if _u.mutation.OrgNameCleared() {
+		_spec.ClearField(campus.FieldOrgName, field.TypeString)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(campus.FieldUpdated, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(campus.FieldStatus, field.TypeString, value)
-	}
-	if _u.mutation.OrganizationCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   campus.OrganizationTable,
-			Columns: []string{campus.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   campus.OrganizationTable,
-			Columns: []string{campus.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.FacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -589,6 +560,35 @@ func (_u *CampusUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(facility.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OrganizationCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   campus.OrganizationTable,
+			Columns: []string{campus.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   campus.OrganizationTable,
+			Columns: []string{campus.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -636,23 +636,83 @@ func (_u *CampusUpdateOne) ClearOrgID() *CampusUpdateOne {
 	return _u
 }
 
-// SetOrgName sets the "org_name" field.
-func (_u *CampusUpdateOne) SetOrgName(v string) *CampusUpdateOne {
-	_u.mutation.SetOrgName(v)
+// SetAka sets the "aka" field.
+func (_u *CampusUpdateOne) SetAka(v string) *CampusUpdateOne {
+	_u.mutation.SetAka(v)
 	return _u
 }
 
-// SetNillableOrgName sets the "org_name" field if the given value is not nil.
-func (_u *CampusUpdateOne) SetNillableOrgName(v *string) *CampusUpdateOne {
+// SetNillableAka sets the "aka" field if the given value is not nil.
+func (_u *CampusUpdateOne) SetNillableAka(v *string) *CampusUpdateOne {
 	if v != nil {
-		_u.SetOrgName(*v)
+		_u.SetAka(*v)
 	}
 	return _u
 }
 
-// ClearOrgName clears the value of the "org_name" field.
-func (_u *CampusUpdateOne) ClearOrgName() *CampusUpdateOne {
-	_u.mutation.ClearOrgName()
+// ClearAka clears the value of the "aka" field.
+func (_u *CampusUpdateOne) ClearAka() *CampusUpdateOne {
+	_u.mutation.ClearAka()
+	return _u
+}
+
+// SetCity sets the "city" field.
+func (_u *CampusUpdateOne) SetCity(v string) *CampusUpdateOne {
+	_u.mutation.SetCity(v)
+	return _u
+}
+
+// SetNillableCity sets the "city" field if the given value is not nil.
+func (_u *CampusUpdateOne) SetNillableCity(v *string) *CampusUpdateOne {
+	if v != nil {
+		_u.SetCity(*v)
+	}
+	return _u
+}
+
+// ClearCity clears the value of the "city" field.
+func (_u *CampusUpdateOne) ClearCity() *CampusUpdateOne {
+	_u.mutation.ClearCity()
+	return _u
+}
+
+// SetCountry sets the "country" field.
+func (_u *CampusUpdateOne) SetCountry(v string) *CampusUpdateOne {
+	_u.mutation.SetCountry(v)
+	return _u
+}
+
+// SetNillableCountry sets the "country" field if the given value is not nil.
+func (_u *CampusUpdateOne) SetNillableCountry(v *string) *CampusUpdateOne {
+	if v != nil {
+		_u.SetCountry(*v)
+	}
+	return _u
+}
+
+// ClearCountry clears the value of the "country" field.
+func (_u *CampusUpdateOne) ClearCountry() *CampusUpdateOne {
+	_u.mutation.ClearCountry()
+	return _u
+}
+
+// SetLogo sets the "logo" field.
+func (_u *CampusUpdateOne) SetLogo(v string) *CampusUpdateOne {
+	_u.mutation.SetLogo(v)
+	return _u
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_u *CampusUpdateOne) SetNillableLogo(v *string) *CampusUpdateOne {
+	if v != nil {
+		_u.SetLogo(*v)
+	}
+	return _u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (_u *CampusUpdateOne) ClearLogo() *CampusUpdateOne {
+	_u.mutation.ClearLogo()
 	return _u
 }
 
@@ -690,64 +750,6 @@ func (_u *CampusUpdateOne) ClearNameLong() *CampusUpdateOne {
 	return _u
 }
 
-// SetAka sets the "aka" field.
-func (_u *CampusUpdateOne) SetAka(v string) *CampusUpdateOne {
-	_u.mutation.SetAka(v)
-	return _u
-}
-
-// SetNillableAka sets the "aka" field if the given value is not nil.
-func (_u *CampusUpdateOne) SetNillableAka(v *string) *CampusUpdateOne {
-	if v != nil {
-		_u.SetAka(*v)
-	}
-	return _u
-}
-
-// ClearAka clears the value of the "aka" field.
-func (_u *CampusUpdateOne) ClearAka() *CampusUpdateOne {
-	_u.mutation.ClearAka()
-	return _u
-}
-
-// SetWebsite sets the "website" field.
-func (_u *CampusUpdateOne) SetWebsite(v string) *CampusUpdateOne {
-	_u.mutation.SetWebsite(v)
-	return _u
-}
-
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_u *CampusUpdateOne) SetNillableWebsite(v *string) *CampusUpdateOne {
-	if v != nil {
-		_u.SetWebsite(*v)
-	}
-	return _u
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (_u *CampusUpdateOne) ClearWebsite() *CampusUpdateOne {
-	_u.mutation.ClearWebsite()
-	return _u
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (_u *CampusUpdateOne) SetSocialMedia(v []schema.SocialMedia) *CampusUpdateOne {
-	_u.mutation.SetSocialMedia(v)
-	return _u
-}
-
-// AppendSocialMedia appends value to the "social_media" field.
-func (_u *CampusUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *CampusUpdateOne {
-	_u.mutation.AppendSocialMedia(v)
-	return _u
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (_u *CampusUpdateOne) ClearSocialMedia() *CampusUpdateOne {
-	_u.mutation.ClearSocialMedia()
-	return _u
-}
-
 // SetNotes sets the "notes" field.
 func (_u *CampusUpdateOne) SetNotes(v string) *CampusUpdateOne {
 	_u.mutation.SetNotes(v)
@@ -768,63 +770,21 @@ func (_u *CampusUpdateOne) ClearNotes() *CampusUpdateOne {
 	return _u
 }
 
-// SetCountry sets the "country" field.
-func (_u *CampusUpdateOne) SetCountry(v string) *CampusUpdateOne {
-	_u.mutation.SetCountry(v)
+// SetSocialMedia sets the "social_media" field.
+func (_u *CampusUpdateOne) SetSocialMedia(v []schema.SocialMedia) *CampusUpdateOne {
+	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
-// SetNillableCountry sets the "country" field if the given value is not nil.
-func (_u *CampusUpdateOne) SetNillableCountry(v *string) *CampusUpdateOne {
-	if v != nil {
-		_u.SetCountry(*v)
-	}
+// AppendSocialMedia appends value to the "social_media" field.
+func (_u *CampusUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *CampusUpdateOne {
+	_u.mutation.AppendSocialMedia(v)
 	return _u
 }
 
-// ClearCountry clears the value of the "country" field.
-func (_u *CampusUpdateOne) ClearCountry() *CampusUpdateOne {
-	_u.mutation.ClearCountry()
-	return _u
-}
-
-// SetCity sets the "city" field.
-func (_u *CampusUpdateOne) SetCity(v string) *CampusUpdateOne {
-	_u.mutation.SetCity(v)
-	return _u
-}
-
-// SetNillableCity sets the "city" field if the given value is not nil.
-func (_u *CampusUpdateOne) SetNillableCity(v *string) *CampusUpdateOne {
-	if v != nil {
-		_u.SetCity(*v)
-	}
-	return _u
-}
-
-// ClearCity clears the value of the "city" field.
-func (_u *CampusUpdateOne) ClearCity() *CampusUpdateOne {
-	_u.mutation.ClearCity()
-	return _u
-}
-
-// SetZipcode sets the "zipcode" field.
-func (_u *CampusUpdateOne) SetZipcode(v string) *CampusUpdateOne {
-	_u.mutation.SetZipcode(v)
-	return _u
-}
-
-// SetNillableZipcode sets the "zipcode" field if the given value is not nil.
-func (_u *CampusUpdateOne) SetNillableZipcode(v *string) *CampusUpdateOne {
-	if v != nil {
-		_u.SetZipcode(*v)
-	}
-	return _u
-}
-
-// ClearZipcode clears the value of the "zipcode" field.
-func (_u *CampusUpdateOne) ClearZipcode() *CampusUpdateOne {
-	_u.mutation.ClearZipcode()
+// ClearSocialMedia clears the value of the "social_media" field.
+func (_u *CampusUpdateOne) ClearSocialMedia() *CampusUpdateOne {
+	_u.mutation.ClearSocialMedia()
 	return _u
 }
 
@@ -848,23 +808,63 @@ func (_u *CampusUpdateOne) ClearState() *CampusUpdateOne {
 	return _u
 }
 
-// SetLogo sets the "logo" field.
-func (_u *CampusUpdateOne) SetLogo(v string) *CampusUpdateOne {
-	_u.mutation.SetLogo(v)
+// SetWebsite sets the "website" field.
+func (_u *CampusUpdateOne) SetWebsite(v string) *CampusUpdateOne {
+	_u.mutation.SetWebsite(v)
 	return _u
 }
 
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_u *CampusUpdateOne) SetNillableLogo(v *string) *CampusUpdateOne {
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_u *CampusUpdateOne) SetNillableWebsite(v *string) *CampusUpdateOne {
 	if v != nil {
-		_u.SetLogo(*v)
+		_u.SetWebsite(*v)
 	}
 	return _u
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (_u *CampusUpdateOne) ClearLogo() *CampusUpdateOne {
-	_u.mutation.ClearLogo()
+// ClearWebsite clears the value of the "website" field.
+func (_u *CampusUpdateOne) ClearWebsite() *CampusUpdateOne {
+	_u.mutation.ClearWebsite()
+	return _u
+}
+
+// SetZipcode sets the "zipcode" field.
+func (_u *CampusUpdateOne) SetZipcode(v string) *CampusUpdateOne {
+	_u.mutation.SetZipcode(v)
+	return _u
+}
+
+// SetNillableZipcode sets the "zipcode" field if the given value is not nil.
+func (_u *CampusUpdateOne) SetNillableZipcode(v *string) *CampusUpdateOne {
+	if v != nil {
+		_u.SetZipcode(*v)
+	}
+	return _u
+}
+
+// ClearZipcode clears the value of the "zipcode" field.
+func (_u *CampusUpdateOne) ClearZipcode() *CampusUpdateOne {
+	_u.mutation.ClearZipcode()
+	return _u
+}
+
+// SetOrgName sets the "org_name" field.
+func (_u *CampusUpdateOne) SetOrgName(v string) *CampusUpdateOne {
+	_u.mutation.SetOrgName(v)
+	return _u
+}
+
+// SetNillableOrgName sets the "org_name" field if the given value is not nil.
+func (_u *CampusUpdateOne) SetNillableOrgName(v *string) *CampusUpdateOne {
+	if v != nil {
+		_u.SetOrgName(*v)
+	}
+	return _u
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (_u *CampusUpdateOne) ClearOrgName() *CampusUpdateOne {
+	_u.mutation.ClearOrgName()
 	return _u
 }
 
@@ -896,6 +896,21 @@ func (_u *CampusUpdateOne) SetNillableStatus(v *string) *CampusUpdateOne {
 	return _u
 }
 
+// AddFacilityIDs adds the "facilities" edge to the Facility entity by IDs.
+func (_u *CampusUpdateOne) AddFacilityIDs(ids ...int) *CampusUpdateOne {
+	_u.mutation.AddFacilityIDs(ids...)
+	return _u
+}
+
+// AddFacilities adds the "facilities" edges to the Facility entity.
+func (_u *CampusUpdateOne) AddFacilities(v ...*Facility) *CampusUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFacilityIDs(ids...)
+}
+
 // SetOrganizationID sets the "organization" edge to the Organization entity by ID.
 func (_u *CampusUpdateOne) SetOrganizationID(id int) *CampusUpdateOne {
 	_u.mutation.SetOrganizationID(id)
@@ -915,30 +930,9 @@ func (_u *CampusUpdateOne) SetOrganization(v *Organization) *CampusUpdateOne {
 	return _u.SetOrganizationID(v.ID)
 }
 
-// AddFacilityIDs adds the "facilities" edge to the Facility entity by IDs.
-func (_u *CampusUpdateOne) AddFacilityIDs(ids ...int) *CampusUpdateOne {
-	_u.mutation.AddFacilityIDs(ids...)
-	return _u
-}
-
-// AddFacilities adds the "facilities" edges to the Facility entity.
-func (_u *CampusUpdateOne) AddFacilities(v ...*Facility) *CampusUpdateOne {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddFacilityIDs(ids...)
-}
-
 // Mutation returns the CampusMutation object of the builder.
 func (_u *CampusUpdateOne) Mutation() *CampusMutation {
 	return _u.mutation
-}
-
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (_u *CampusUpdateOne) ClearOrganization() *CampusUpdateOne {
-	_u.mutation.ClearOrganization()
-	return _u
 }
 
 // ClearFacilities clears all "facilities" edges to the Facility entity.
@@ -960,6 +954,12 @@ func (_u *CampusUpdateOne) RemoveFacilities(v ...*Facility) *CampusUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveFacilityIDs(ids...)
+}
+
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (_u *CampusUpdateOne) ClearOrganization() *CampusUpdateOne {
+	_u.mutation.ClearOrganization()
+	return _u
 }
 
 // Where appends a list predicates to the CampusUpdate builder.
@@ -1004,6 +1004,11 @@ func (_u *CampusUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *CampusUpdateOne) check() error {
+	if v, ok := _u.mutation.Aka(); ok {
+		if err := campus.AkaValidator(v); err != nil {
+			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Campus.aka": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := campus.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Campus.name": %w`, err)}
@@ -1012,11 +1017,6 @@ func (_u *CampusUpdateOne) check() error {
 	if v, ok := _u.mutation.NameLong(); ok {
 		if err := campus.NameLongValidator(v); err != nil {
 			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Campus.name_long": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Aka(); ok {
-		if err := campus.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Campus.aka": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Status(); ok {
@@ -1056,11 +1056,29 @@ func (_u *CampusUpdateOne) sqlSave(ctx context.Context) (_node *Campus, err erro
 			}
 		}
 	}
-	if value, ok := _u.mutation.OrgName(); ok {
-		_spec.SetField(campus.FieldOrgName, field.TypeString, value)
+	if value, ok := _u.mutation.Aka(); ok {
+		_spec.SetField(campus.FieldAka, field.TypeString, value)
 	}
-	if _u.mutation.OrgNameCleared() {
-		_spec.ClearField(campus.FieldOrgName, field.TypeString)
+	if _u.mutation.AkaCleared() {
+		_spec.ClearField(campus.FieldAka, field.TypeString)
+	}
+	if value, ok := _u.mutation.City(); ok {
+		_spec.SetField(campus.FieldCity, field.TypeString, value)
+	}
+	if _u.mutation.CityCleared() {
+		_spec.ClearField(campus.FieldCity, field.TypeString)
+	}
+	if value, ok := _u.mutation.Country(); ok {
+		_spec.SetField(campus.FieldCountry, field.TypeString, value)
+	}
+	if _u.mutation.CountryCleared() {
+		_spec.ClearField(campus.FieldCountry, field.TypeString)
+	}
+	if value, ok := _u.mutation.Logo(); ok {
+		_spec.SetField(campus.FieldLogo, field.TypeString, value)
+	}
+	if _u.mutation.LogoCleared() {
+		_spec.ClearField(campus.FieldLogo, field.TypeString)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(campus.FieldName, field.TypeString, value)
@@ -1071,17 +1089,11 @@ func (_u *CampusUpdateOne) sqlSave(ctx context.Context) (_node *Campus, err erro
 	if _u.mutation.NameLongCleared() {
 		_spec.ClearField(campus.FieldNameLong, field.TypeString)
 	}
-	if value, ok := _u.mutation.Aka(); ok {
-		_spec.SetField(campus.FieldAka, field.TypeString, value)
+	if value, ok := _u.mutation.Notes(); ok {
+		_spec.SetField(campus.FieldNotes, field.TypeString, value)
 	}
-	if _u.mutation.AkaCleared() {
-		_spec.ClearField(campus.FieldAka, field.TypeString)
-	}
-	if value, ok := _u.mutation.Website(); ok {
-		_spec.SetField(campus.FieldWebsite, field.TypeString, value)
-	}
-	if _u.mutation.WebsiteCleared() {
-		_spec.ClearField(campus.FieldWebsite, field.TypeString)
+	if _u.mutation.NotesCleared() {
+		_spec.ClearField(campus.FieldNotes, field.TypeString)
 	}
 	if value, ok := _u.mutation.SocialMedia(); ok {
 		_spec.SetField(campus.FieldSocialMedia, field.TypeJSON, value)
@@ -1094,23 +1106,17 @@ func (_u *CampusUpdateOne) sqlSave(ctx context.Context) (_node *Campus, err erro
 	if _u.mutation.SocialMediaCleared() {
 		_spec.ClearField(campus.FieldSocialMedia, field.TypeJSON)
 	}
-	if value, ok := _u.mutation.Notes(); ok {
-		_spec.SetField(campus.FieldNotes, field.TypeString, value)
+	if value, ok := _u.mutation.State(); ok {
+		_spec.SetField(campus.FieldState, field.TypeString, value)
 	}
-	if _u.mutation.NotesCleared() {
-		_spec.ClearField(campus.FieldNotes, field.TypeString)
+	if _u.mutation.StateCleared() {
+		_spec.ClearField(campus.FieldState, field.TypeString)
 	}
-	if value, ok := _u.mutation.Country(); ok {
-		_spec.SetField(campus.FieldCountry, field.TypeString, value)
+	if value, ok := _u.mutation.Website(); ok {
+		_spec.SetField(campus.FieldWebsite, field.TypeString, value)
 	}
-	if _u.mutation.CountryCleared() {
-		_spec.ClearField(campus.FieldCountry, field.TypeString)
-	}
-	if value, ok := _u.mutation.City(); ok {
-		_spec.SetField(campus.FieldCity, field.TypeString, value)
-	}
-	if _u.mutation.CityCleared() {
-		_spec.ClearField(campus.FieldCity, field.TypeString)
+	if _u.mutation.WebsiteCleared() {
+		_spec.ClearField(campus.FieldWebsite, field.TypeString)
 	}
 	if value, ok := _u.mutation.Zipcode(); ok {
 		_spec.SetField(campus.FieldZipcode, field.TypeString, value)
@@ -1118,52 +1124,17 @@ func (_u *CampusUpdateOne) sqlSave(ctx context.Context) (_node *Campus, err erro
 	if _u.mutation.ZipcodeCleared() {
 		_spec.ClearField(campus.FieldZipcode, field.TypeString)
 	}
-	if value, ok := _u.mutation.State(); ok {
-		_spec.SetField(campus.FieldState, field.TypeString, value)
+	if value, ok := _u.mutation.OrgName(); ok {
+		_spec.SetField(campus.FieldOrgName, field.TypeString, value)
 	}
-	if _u.mutation.StateCleared() {
-		_spec.ClearField(campus.FieldState, field.TypeString)
-	}
-	if value, ok := _u.mutation.Logo(); ok {
-		_spec.SetField(campus.FieldLogo, field.TypeString, value)
-	}
-	if _u.mutation.LogoCleared() {
-		_spec.ClearField(campus.FieldLogo, field.TypeString)
+	if _u.mutation.OrgNameCleared() {
+		_spec.ClearField(campus.FieldOrgName, field.TypeString)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(campus.FieldUpdated, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(campus.FieldStatus, field.TypeString, value)
-	}
-	if _u.mutation.OrganizationCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   campus.OrganizationTable,
-			Columns: []string{campus.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   campus.OrganizationTable,
-			Columns: []string{campus.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.FacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1203,6 +1174,35 @@ func (_u *CampusUpdateOne) sqlSave(ctx context.Context) (_node *Campus, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(facility.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OrganizationCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   campus.OrganizationTable,
+			Columns: []string{campus.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   campus.OrganizationTable,
+			Columns: []string{campus.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

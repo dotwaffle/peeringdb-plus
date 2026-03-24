@@ -52,40 +52,6 @@ func (_u *CarrierUpdate) ClearOrgID() *CarrierUpdate {
 	return _u
 }
 
-// SetOrgName sets the "org_name" field.
-func (_u *CarrierUpdate) SetOrgName(v string) *CarrierUpdate {
-	_u.mutation.SetOrgName(v)
-	return _u
-}
-
-// SetNillableOrgName sets the "org_name" field if the given value is not nil.
-func (_u *CarrierUpdate) SetNillableOrgName(v *string) *CarrierUpdate {
-	if v != nil {
-		_u.SetOrgName(*v)
-	}
-	return _u
-}
-
-// ClearOrgName clears the value of the "org_name" field.
-func (_u *CarrierUpdate) ClearOrgName() *CarrierUpdate {
-	_u.mutation.ClearOrgName()
-	return _u
-}
-
-// SetName sets the "name" field.
-func (_u *CarrierUpdate) SetName(v string) *CarrierUpdate {
-	_u.mutation.SetName(v)
-	return _u
-}
-
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *CarrierUpdate) SetNillableName(v *string) *CarrierUpdate {
-	if v != nil {
-		_u.SetName(*v)
-	}
-	return _u
-}
-
 // SetAka sets the "aka" field.
 func (_u *CarrierUpdate) SetAka(v string) *CarrierUpdate {
 	_u.mutation.SetAka(v)
@@ -103,6 +69,40 @@ func (_u *CarrierUpdate) SetNillableAka(v *string) *CarrierUpdate {
 // ClearAka clears the value of the "aka" field.
 func (_u *CarrierUpdate) ClearAka() *CarrierUpdate {
 	_u.mutation.ClearAka()
+	return _u
+}
+
+// SetLogo sets the "logo" field.
+func (_u *CarrierUpdate) SetLogo(v string) *CarrierUpdate {
+	_u.mutation.SetLogo(v)
+	return _u
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_u *CarrierUpdate) SetNillableLogo(v *string) *CarrierUpdate {
+	if v != nil {
+		_u.SetLogo(*v)
+	}
+	return _u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (_u *CarrierUpdate) ClearLogo() *CarrierUpdate {
+	_u.mutation.ClearLogo()
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *CarrierUpdate) SetName(v string) *CarrierUpdate {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *CarrierUpdate) SetNillableName(v *string) *CarrierUpdate {
+	if v != nil {
+		_u.SetName(*v)
+	}
 	return _u
 }
 
@@ -126,23 +126,23 @@ func (_u *CarrierUpdate) ClearNameLong() *CarrierUpdate {
 	return _u
 }
 
-// SetWebsite sets the "website" field.
-func (_u *CarrierUpdate) SetWebsite(v string) *CarrierUpdate {
-	_u.mutation.SetWebsite(v)
+// SetNotes sets the "notes" field.
+func (_u *CarrierUpdate) SetNotes(v string) *CarrierUpdate {
+	_u.mutation.SetNotes(v)
 	return _u
 }
 
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_u *CarrierUpdate) SetNillableWebsite(v *string) *CarrierUpdate {
+// SetNillableNotes sets the "notes" field if the given value is not nil.
+func (_u *CarrierUpdate) SetNillableNotes(v *string) *CarrierUpdate {
 	if v != nil {
-		_u.SetWebsite(*v)
+		_u.SetNotes(*v)
 	}
 	return _u
 }
 
-// ClearWebsite clears the value of the "website" field.
-func (_u *CarrierUpdate) ClearWebsite() *CarrierUpdate {
-	_u.mutation.ClearWebsite()
+// ClearNotes clears the value of the "notes" field.
+func (_u *CarrierUpdate) ClearNotes() *CarrierUpdate {
+	_u.mutation.ClearNotes()
 	return _u
 }
 
@@ -164,23 +164,43 @@ func (_u *CarrierUpdate) ClearSocialMedia() *CarrierUpdate {
 	return _u
 }
 
-// SetNotes sets the "notes" field.
-func (_u *CarrierUpdate) SetNotes(v string) *CarrierUpdate {
-	_u.mutation.SetNotes(v)
+// SetWebsite sets the "website" field.
+func (_u *CarrierUpdate) SetWebsite(v string) *CarrierUpdate {
+	_u.mutation.SetWebsite(v)
 	return _u
 }
 
-// SetNillableNotes sets the "notes" field if the given value is not nil.
-func (_u *CarrierUpdate) SetNillableNotes(v *string) *CarrierUpdate {
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_u *CarrierUpdate) SetNillableWebsite(v *string) *CarrierUpdate {
 	if v != nil {
-		_u.SetNotes(*v)
+		_u.SetWebsite(*v)
 	}
 	return _u
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (_u *CarrierUpdate) ClearNotes() *CarrierUpdate {
-	_u.mutation.ClearNotes()
+// ClearWebsite clears the value of the "website" field.
+func (_u *CarrierUpdate) ClearWebsite() *CarrierUpdate {
+	_u.mutation.ClearWebsite()
+	return _u
+}
+
+// SetOrgName sets the "org_name" field.
+func (_u *CarrierUpdate) SetOrgName(v string) *CarrierUpdate {
+	_u.mutation.SetOrgName(v)
+	return _u
+}
+
+// SetNillableOrgName sets the "org_name" field if the given value is not nil.
+func (_u *CarrierUpdate) SetNillableOrgName(v *string) *CarrierUpdate {
+	if v != nil {
+		_u.SetOrgName(*v)
+	}
+	return _u
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (_u *CarrierUpdate) ClearOrgName() *CarrierUpdate {
+	_u.mutation.ClearOrgName()
 	return _u
 }
 
@@ -208,26 +228,6 @@ func (_u *CarrierUpdate) AddFacCount(v int) *CarrierUpdate {
 // ClearFacCount clears the value of the "fac_count" field.
 func (_u *CarrierUpdate) ClearFacCount() *CarrierUpdate {
 	_u.mutation.ClearFacCount()
-	return _u
-}
-
-// SetLogo sets the "logo" field.
-func (_u *CarrierUpdate) SetLogo(v string) *CarrierUpdate {
-	_u.mutation.SetLogo(v)
-	return _u
-}
-
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_u *CarrierUpdate) SetNillableLogo(v *string) *CarrierUpdate {
-	if v != nil {
-		_u.SetLogo(*v)
-	}
-	return _u
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (_u *CarrierUpdate) ClearLogo() *CarrierUpdate {
-	_u.mutation.ClearLogo()
 	return _u
 }
 
@@ -259,6 +259,21 @@ func (_u *CarrierUpdate) SetNillableStatus(v *string) *CarrierUpdate {
 	return _u
 }
 
+// AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by IDs.
+func (_u *CarrierUpdate) AddCarrierFacilityIDs(ids ...int) *CarrierUpdate {
+	_u.mutation.AddCarrierFacilityIDs(ids...)
+	return _u
+}
+
+// AddCarrierFacilities adds the "carrier_facilities" edges to the CarrierFacility entity.
+func (_u *CarrierUpdate) AddCarrierFacilities(v ...*CarrierFacility) *CarrierUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCarrierFacilityIDs(ids...)
+}
+
 // SetOrganizationID sets the "organization" edge to the Organization entity by ID.
 func (_u *CarrierUpdate) SetOrganizationID(id int) *CarrierUpdate {
 	_u.mutation.SetOrganizationID(id)
@@ -278,30 +293,9 @@ func (_u *CarrierUpdate) SetOrganization(v *Organization) *CarrierUpdate {
 	return _u.SetOrganizationID(v.ID)
 }
 
-// AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by IDs.
-func (_u *CarrierUpdate) AddCarrierFacilityIDs(ids ...int) *CarrierUpdate {
-	_u.mutation.AddCarrierFacilityIDs(ids...)
-	return _u
-}
-
-// AddCarrierFacilities adds the "carrier_facilities" edges to the CarrierFacility entity.
-func (_u *CarrierUpdate) AddCarrierFacilities(v ...*CarrierFacility) *CarrierUpdate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddCarrierFacilityIDs(ids...)
-}
-
 // Mutation returns the CarrierMutation object of the builder.
 func (_u *CarrierUpdate) Mutation() *CarrierMutation {
 	return _u.mutation
-}
-
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (_u *CarrierUpdate) ClearOrganization() *CarrierUpdate {
-	_u.mutation.ClearOrganization()
-	return _u
 }
 
 // ClearCarrierFacilities clears all "carrier_facilities" edges to the CarrierFacility entity.
@@ -323,6 +317,12 @@ func (_u *CarrierUpdate) RemoveCarrierFacilities(v ...*CarrierFacility) *Carrier
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCarrierFacilityIDs(ids...)
+}
+
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (_u *CarrierUpdate) ClearOrganization() *CarrierUpdate {
+	_u.mutation.ClearOrganization()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -354,14 +354,14 @@ func (_u *CarrierUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *CarrierUpdate) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := carrier.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Carrier.name": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Aka(); ok {
 		if err := carrier.AkaValidator(v); err != nil {
 			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Carrier.aka": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Name(); ok {
+		if err := carrier.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Carrier.name": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.NameLong(); ok {
@@ -389,20 +389,20 @@ func (_u *CarrierUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if value, ok := _u.mutation.OrgName(); ok {
-		_spec.SetField(carrier.FieldOrgName, field.TypeString, value)
-	}
-	if _u.mutation.OrgNameCleared() {
-		_spec.ClearField(carrier.FieldOrgName, field.TypeString)
-	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(carrier.FieldName, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(carrier.FieldAka, field.TypeString, value)
 	}
 	if _u.mutation.AkaCleared() {
 		_spec.ClearField(carrier.FieldAka, field.TypeString)
+	}
+	if value, ok := _u.mutation.Logo(); ok {
+		_spec.SetField(carrier.FieldLogo, field.TypeString, value)
+	}
+	if _u.mutation.LogoCleared() {
+		_spec.ClearField(carrier.FieldLogo, field.TypeString)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(carrier.FieldName, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.NameLong(); ok {
 		_spec.SetField(carrier.FieldNameLong, field.TypeString, value)
@@ -410,11 +410,11 @@ func (_u *CarrierUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.NameLongCleared() {
 		_spec.ClearField(carrier.FieldNameLong, field.TypeString)
 	}
-	if value, ok := _u.mutation.Website(); ok {
-		_spec.SetField(carrier.FieldWebsite, field.TypeString, value)
+	if value, ok := _u.mutation.Notes(); ok {
+		_spec.SetField(carrier.FieldNotes, field.TypeString, value)
 	}
-	if _u.mutation.WebsiteCleared() {
-		_spec.ClearField(carrier.FieldWebsite, field.TypeString)
+	if _u.mutation.NotesCleared() {
+		_spec.ClearField(carrier.FieldNotes, field.TypeString)
 	}
 	if value, ok := _u.mutation.SocialMedia(); ok {
 		_spec.SetField(carrier.FieldSocialMedia, field.TypeJSON, value)
@@ -427,11 +427,17 @@ func (_u *CarrierUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.SocialMediaCleared() {
 		_spec.ClearField(carrier.FieldSocialMedia, field.TypeJSON)
 	}
-	if value, ok := _u.mutation.Notes(); ok {
-		_spec.SetField(carrier.FieldNotes, field.TypeString, value)
+	if value, ok := _u.mutation.Website(); ok {
+		_spec.SetField(carrier.FieldWebsite, field.TypeString, value)
 	}
-	if _u.mutation.NotesCleared() {
-		_spec.ClearField(carrier.FieldNotes, field.TypeString)
+	if _u.mutation.WebsiteCleared() {
+		_spec.ClearField(carrier.FieldWebsite, field.TypeString)
+	}
+	if value, ok := _u.mutation.OrgName(); ok {
+		_spec.SetField(carrier.FieldOrgName, field.TypeString, value)
+	}
+	if _u.mutation.OrgNameCleared() {
+		_spec.ClearField(carrier.FieldOrgName, field.TypeString)
 	}
 	if value, ok := _u.mutation.FacCount(); ok {
 		_spec.SetField(carrier.FieldFacCount, field.TypeInt, value)
@@ -442,46 +448,11 @@ func (_u *CarrierUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.FacCountCleared() {
 		_spec.ClearField(carrier.FieldFacCount, field.TypeInt)
 	}
-	if value, ok := _u.mutation.Logo(); ok {
-		_spec.SetField(carrier.FieldLogo, field.TypeString, value)
-	}
-	if _u.mutation.LogoCleared() {
-		_spec.ClearField(carrier.FieldLogo, field.TypeString)
-	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(carrier.FieldUpdated, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(carrier.FieldStatus, field.TypeString, value)
-	}
-	if _u.mutation.OrganizationCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   carrier.OrganizationTable,
-			Columns: []string{carrier.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   carrier.OrganizationTable,
-			Columns: []string{carrier.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.CarrierFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -521,6 +492,35 @@ func (_u *CarrierUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(carrierfacility.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OrganizationCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   carrier.OrganizationTable,
+			Columns: []string{carrier.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   carrier.OrganizationTable,
+			Columns: []string{carrier.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -568,40 +568,6 @@ func (_u *CarrierUpdateOne) ClearOrgID() *CarrierUpdateOne {
 	return _u
 }
 
-// SetOrgName sets the "org_name" field.
-func (_u *CarrierUpdateOne) SetOrgName(v string) *CarrierUpdateOne {
-	_u.mutation.SetOrgName(v)
-	return _u
-}
-
-// SetNillableOrgName sets the "org_name" field if the given value is not nil.
-func (_u *CarrierUpdateOne) SetNillableOrgName(v *string) *CarrierUpdateOne {
-	if v != nil {
-		_u.SetOrgName(*v)
-	}
-	return _u
-}
-
-// ClearOrgName clears the value of the "org_name" field.
-func (_u *CarrierUpdateOne) ClearOrgName() *CarrierUpdateOne {
-	_u.mutation.ClearOrgName()
-	return _u
-}
-
-// SetName sets the "name" field.
-func (_u *CarrierUpdateOne) SetName(v string) *CarrierUpdateOne {
-	_u.mutation.SetName(v)
-	return _u
-}
-
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *CarrierUpdateOne) SetNillableName(v *string) *CarrierUpdateOne {
-	if v != nil {
-		_u.SetName(*v)
-	}
-	return _u
-}
-
 // SetAka sets the "aka" field.
 func (_u *CarrierUpdateOne) SetAka(v string) *CarrierUpdateOne {
 	_u.mutation.SetAka(v)
@@ -619,6 +585,40 @@ func (_u *CarrierUpdateOne) SetNillableAka(v *string) *CarrierUpdateOne {
 // ClearAka clears the value of the "aka" field.
 func (_u *CarrierUpdateOne) ClearAka() *CarrierUpdateOne {
 	_u.mutation.ClearAka()
+	return _u
+}
+
+// SetLogo sets the "logo" field.
+func (_u *CarrierUpdateOne) SetLogo(v string) *CarrierUpdateOne {
+	_u.mutation.SetLogo(v)
+	return _u
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_u *CarrierUpdateOne) SetNillableLogo(v *string) *CarrierUpdateOne {
+	if v != nil {
+		_u.SetLogo(*v)
+	}
+	return _u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (_u *CarrierUpdateOne) ClearLogo() *CarrierUpdateOne {
+	_u.mutation.ClearLogo()
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *CarrierUpdateOne) SetName(v string) *CarrierUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *CarrierUpdateOne) SetNillableName(v *string) *CarrierUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
+	}
 	return _u
 }
 
@@ -642,23 +642,23 @@ func (_u *CarrierUpdateOne) ClearNameLong() *CarrierUpdateOne {
 	return _u
 }
 
-// SetWebsite sets the "website" field.
-func (_u *CarrierUpdateOne) SetWebsite(v string) *CarrierUpdateOne {
-	_u.mutation.SetWebsite(v)
+// SetNotes sets the "notes" field.
+func (_u *CarrierUpdateOne) SetNotes(v string) *CarrierUpdateOne {
+	_u.mutation.SetNotes(v)
 	return _u
 }
 
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_u *CarrierUpdateOne) SetNillableWebsite(v *string) *CarrierUpdateOne {
+// SetNillableNotes sets the "notes" field if the given value is not nil.
+func (_u *CarrierUpdateOne) SetNillableNotes(v *string) *CarrierUpdateOne {
 	if v != nil {
-		_u.SetWebsite(*v)
+		_u.SetNotes(*v)
 	}
 	return _u
 }
 
-// ClearWebsite clears the value of the "website" field.
-func (_u *CarrierUpdateOne) ClearWebsite() *CarrierUpdateOne {
-	_u.mutation.ClearWebsite()
+// ClearNotes clears the value of the "notes" field.
+func (_u *CarrierUpdateOne) ClearNotes() *CarrierUpdateOne {
+	_u.mutation.ClearNotes()
 	return _u
 }
 
@@ -680,23 +680,43 @@ func (_u *CarrierUpdateOne) ClearSocialMedia() *CarrierUpdateOne {
 	return _u
 }
 
-// SetNotes sets the "notes" field.
-func (_u *CarrierUpdateOne) SetNotes(v string) *CarrierUpdateOne {
-	_u.mutation.SetNotes(v)
+// SetWebsite sets the "website" field.
+func (_u *CarrierUpdateOne) SetWebsite(v string) *CarrierUpdateOne {
+	_u.mutation.SetWebsite(v)
 	return _u
 }
 
-// SetNillableNotes sets the "notes" field if the given value is not nil.
-func (_u *CarrierUpdateOne) SetNillableNotes(v *string) *CarrierUpdateOne {
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_u *CarrierUpdateOne) SetNillableWebsite(v *string) *CarrierUpdateOne {
 	if v != nil {
-		_u.SetNotes(*v)
+		_u.SetWebsite(*v)
 	}
 	return _u
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (_u *CarrierUpdateOne) ClearNotes() *CarrierUpdateOne {
-	_u.mutation.ClearNotes()
+// ClearWebsite clears the value of the "website" field.
+func (_u *CarrierUpdateOne) ClearWebsite() *CarrierUpdateOne {
+	_u.mutation.ClearWebsite()
+	return _u
+}
+
+// SetOrgName sets the "org_name" field.
+func (_u *CarrierUpdateOne) SetOrgName(v string) *CarrierUpdateOne {
+	_u.mutation.SetOrgName(v)
+	return _u
+}
+
+// SetNillableOrgName sets the "org_name" field if the given value is not nil.
+func (_u *CarrierUpdateOne) SetNillableOrgName(v *string) *CarrierUpdateOne {
+	if v != nil {
+		_u.SetOrgName(*v)
+	}
+	return _u
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (_u *CarrierUpdateOne) ClearOrgName() *CarrierUpdateOne {
+	_u.mutation.ClearOrgName()
 	return _u
 }
 
@@ -724,26 +744,6 @@ func (_u *CarrierUpdateOne) AddFacCount(v int) *CarrierUpdateOne {
 // ClearFacCount clears the value of the "fac_count" field.
 func (_u *CarrierUpdateOne) ClearFacCount() *CarrierUpdateOne {
 	_u.mutation.ClearFacCount()
-	return _u
-}
-
-// SetLogo sets the "logo" field.
-func (_u *CarrierUpdateOne) SetLogo(v string) *CarrierUpdateOne {
-	_u.mutation.SetLogo(v)
-	return _u
-}
-
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_u *CarrierUpdateOne) SetNillableLogo(v *string) *CarrierUpdateOne {
-	if v != nil {
-		_u.SetLogo(*v)
-	}
-	return _u
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (_u *CarrierUpdateOne) ClearLogo() *CarrierUpdateOne {
-	_u.mutation.ClearLogo()
 	return _u
 }
 
@@ -775,6 +775,21 @@ func (_u *CarrierUpdateOne) SetNillableStatus(v *string) *CarrierUpdateOne {
 	return _u
 }
 
+// AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by IDs.
+func (_u *CarrierUpdateOne) AddCarrierFacilityIDs(ids ...int) *CarrierUpdateOne {
+	_u.mutation.AddCarrierFacilityIDs(ids...)
+	return _u
+}
+
+// AddCarrierFacilities adds the "carrier_facilities" edges to the CarrierFacility entity.
+func (_u *CarrierUpdateOne) AddCarrierFacilities(v ...*CarrierFacility) *CarrierUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCarrierFacilityIDs(ids...)
+}
+
 // SetOrganizationID sets the "organization" edge to the Organization entity by ID.
 func (_u *CarrierUpdateOne) SetOrganizationID(id int) *CarrierUpdateOne {
 	_u.mutation.SetOrganizationID(id)
@@ -794,30 +809,9 @@ func (_u *CarrierUpdateOne) SetOrganization(v *Organization) *CarrierUpdateOne {
 	return _u.SetOrganizationID(v.ID)
 }
 
-// AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by IDs.
-func (_u *CarrierUpdateOne) AddCarrierFacilityIDs(ids ...int) *CarrierUpdateOne {
-	_u.mutation.AddCarrierFacilityIDs(ids...)
-	return _u
-}
-
-// AddCarrierFacilities adds the "carrier_facilities" edges to the CarrierFacility entity.
-func (_u *CarrierUpdateOne) AddCarrierFacilities(v ...*CarrierFacility) *CarrierUpdateOne {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddCarrierFacilityIDs(ids...)
-}
-
 // Mutation returns the CarrierMutation object of the builder.
 func (_u *CarrierUpdateOne) Mutation() *CarrierMutation {
 	return _u.mutation
-}
-
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (_u *CarrierUpdateOne) ClearOrganization() *CarrierUpdateOne {
-	_u.mutation.ClearOrganization()
-	return _u
 }
 
 // ClearCarrierFacilities clears all "carrier_facilities" edges to the CarrierFacility entity.
@@ -839,6 +833,12 @@ func (_u *CarrierUpdateOne) RemoveCarrierFacilities(v ...*CarrierFacility) *Carr
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCarrierFacilityIDs(ids...)
+}
+
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (_u *CarrierUpdateOne) ClearOrganization() *CarrierUpdateOne {
+	_u.mutation.ClearOrganization()
+	return _u
 }
 
 // Where appends a list predicates to the CarrierUpdate builder.
@@ -883,14 +883,14 @@ func (_u *CarrierUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *CarrierUpdateOne) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := carrier.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Carrier.name": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Aka(); ok {
 		if err := carrier.AkaValidator(v); err != nil {
 			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Carrier.aka": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Name(); ok {
+		if err := carrier.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Carrier.name": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.NameLong(); ok {
@@ -935,20 +935,20 @@ func (_u *CarrierUpdateOne) sqlSave(ctx context.Context) (_node *Carrier, err er
 			}
 		}
 	}
-	if value, ok := _u.mutation.OrgName(); ok {
-		_spec.SetField(carrier.FieldOrgName, field.TypeString, value)
-	}
-	if _u.mutation.OrgNameCleared() {
-		_spec.ClearField(carrier.FieldOrgName, field.TypeString)
-	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(carrier.FieldName, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(carrier.FieldAka, field.TypeString, value)
 	}
 	if _u.mutation.AkaCleared() {
 		_spec.ClearField(carrier.FieldAka, field.TypeString)
+	}
+	if value, ok := _u.mutation.Logo(); ok {
+		_spec.SetField(carrier.FieldLogo, field.TypeString, value)
+	}
+	if _u.mutation.LogoCleared() {
+		_spec.ClearField(carrier.FieldLogo, field.TypeString)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(carrier.FieldName, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.NameLong(); ok {
 		_spec.SetField(carrier.FieldNameLong, field.TypeString, value)
@@ -956,11 +956,11 @@ func (_u *CarrierUpdateOne) sqlSave(ctx context.Context) (_node *Carrier, err er
 	if _u.mutation.NameLongCleared() {
 		_spec.ClearField(carrier.FieldNameLong, field.TypeString)
 	}
-	if value, ok := _u.mutation.Website(); ok {
-		_spec.SetField(carrier.FieldWebsite, field.TypeString, value)
+	if value, ok := _u.mutation.Notes(); ok {
+		_spec.SetField(carrier.FieldNotes, field.TypeString, value)
 	}
-	if _u.mutation.WebsiteCleared() {
-		_spec.ClearField(carrier.FieldWebsite, field.TypeString)
+	if _u.mutation.NotesCleared() {
+		_spec.ClearField(carrier.FieldNotes, field.TypeString)
 	}
 	if value, ok := _u.mutation.SocialMedia(); ok {
 		_spec.SetField(carrier.FieldSocialMedia, field.TypeJSON, value)
@@ -973,11 +973,17 @@ func (_u *CarrierUpdateOne) sqlSave(ctx context.Context) (_node *Carrier, err er
 	if _u.mutation.SocialMediaCleared() {
 		_spec.ClearField(carrier.FieldSocialMedia, field.TypeJSON)
 	}
-	if value, ok := _u.mutation.Notes(); ok {
-		_spec.SetField(carrier.FieldNotes, field.TypeString, value)
+	if value, ok := _u.mutation.Website(); ok {
+		_spec.SetField(carrier.FieldWebsite, field.TypeString, value)
 	}
-	if _u.mutation.NotesCleared() {
-		_spec.ClearField(carrier.FieldNotes, field.TypeString)
+	if _u.mutation.WebsiteCleared() {
+		_spec.ClearField(carrier.FieldWebsite, field.TypeString)
+	}
+	if value, ok := _u.mutation.OrgName(); ok {
+		_spec.SetField(carrier.FieldOrgName, field.TypeString, value)
+	}
+	if _u.mutation.OrgNameCleared() {
+		_spec.ClearField(carrier.FieldOrgName, field.TypeString)
 	}
 	if value, ok := _u.mutation.FacCount(); ok {
 		_spec.SetField(carrier.FieldFacCount, field.TypeInt, value)
@@ -988,46 +994,11 @@ func (_u *CarrierUpdateOne) sqlSave(ctx context.Context) (_node *Carrier, err er
 	if _u.mutation.FacCountCleared() {
 		_spec.ClearField(carrier.FieldFacCount, field.TypeInt)
 	}
-	if value, ok := _u.mutation.Logo(); ok {
-		_spec.SetField(carrier.FieldLogo, field.TypeString, value)
-	}
-	if _u.mutation.LogoCleared() {
-		_spec.ClearField(carrier.FieldLogo, field.TypeString)
-	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(carrier.FieldUpdated, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(carrier.FieldStatus, field.TypeString, value)
-	}
-	if _u.mutation.OrganizationCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   carrier.OrganizationTable,
-			Columns: []string{carrier.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   carrier.OrganizationTable,
-			Columns: []string{carrier.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.CarrierFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1067,6 +1038,35 @@ func (_u *CarrierUpdateOne) sqlSave(ctx context.Context) (_node *Carrier, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(carrierfacility.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OrganizationCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   carrier.OrganizationTable,
+			Columns: []string{carrier.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   carrier.OrganizationTable,
+			Columns: []string{carrier.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

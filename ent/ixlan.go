@@ -17,26 +17,26 @@ import (
 type IxLan struct {
 	config `json:"-"`
 	// ID of the ent.
-	// PeeringDB IXLan ID
+	// PeeringDB ixlan ID
 	ID int `json:"id,omitempty"`
 	// FK to internet exchange
 	IxID *int `json:"ix_id"`
-	// IXLan name
-	Name string `json:"name"`
-	// Description
-	Descr string `json:"descr"`
-	// MTU
-	Mtu int `json:"mtu"`
-	// 802.1Q support
-	Dot1qSupport bool `json:"dot1q_support"`
-	// Route server ASN
-	RsAsn *int `json:"rs_asn"`
 	// ARP sponge MAC address
 	ArpSponge *string `json:"arp_sponge"`
-	// IXF member list URL visibility
-	IxfIxpMemberListURLVisible string `json:"ixf_ixp_member_list_url_visible"`
+	// Description
+	Descr string `json:"descr"`
+	// 802.1Q support
+	Dot1qSupport bool `json:"dot1q_support"`
 	// IXF import enabled
 	IxfIxpImportEnabled bool `json:"ixf_ixp_import_enabled"`
+	// IXF member list URL visibility
+	IxfIxpMemberListURLVisible string `json:"ixf_ixp_member_list_url_visible"`
+	// MTU size
+	Mtu int `json:"mtu"`
+	// LAN name
+	Name string `json:"name"`
+	// Route server ASN
+	RsAsn *int `json:"rs_asn"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -105,7 +105,7 @@ func (*IxLan) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case ixlan.FieldID, ixlan.FieldIxID, ixlan.FieldMtu, ixlan.FieldRsAsn:
 			values[i] = new(sql.NullInt64)
-		case ixlan.FieldName, ixlan.FieldDescr, ixlan.FieldArpSponge, ixlan.FieldIxfIxpMemberListURLVisible, ixlan.FieldStatus:
+		case ixlan.FieldArpSponge, ixlan.FieldDescr, ixlan.FieldIxfIxpMemberListURLVisible, ixlan.FieldName, ixlan.FieldStatus:
 			values[i] = new(sql.NullString)
 		case ixlan.FieldCreated, ixlan.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -137,37 +137,6 @@ func (_m *IxLan) assignValues(columns []string, values []any) error {
 				_m.IxID = new(int)
 				*_m.IxID = int(value.Int64)
 			}
-		case ixlan.FieldName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
-			} else if value.Valid {
-				_m.Name = value.String
-			}
-		case ixlan.FieldDescr:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field descr", values[i])
-			} else if value.Valid {
-				_m.Descr = value.String
-			}
-		case ixlan.FieldMtu:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field mtu", values[i])
-			} else if value.Valid {
-				_m.Mtu = int(value.Int64)
-			}
-		case ixlan.FieldDot1qSupport:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field dot1q_support", values[i])
-			} else if value.Valid {
-				_m.Dot1qSupport = value.Bool
-			}
-		case ixlan.FieldRsAsn:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field rs_asn", values[i])
-			} else if value.Valid {
-				_m.RsAsn = new(int)
-				*_m.RsAsn = int(value.Int64)
-			}
 		case ixlan.FieldArpSponge:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field arp_sponge", values[i])
@@ -175,17 +144,48 @@ func (_m *IxLan) assignValues(columns []string, values []any) error {
 				_m.ArpSponge = new(string)
 				*_m.ArpSponge = value.String
 			}
-		case ixlan.FieldIxfIxpMemberListURLVisible:
+		case ixlan.FieldDescr:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field ixf_ixp_member_list_url_visible", values[i])
+				return fmt.Errorf("unexpected type %T for field descr", values[i])
 			} else if value.Valid {
-				_m.IxfIxpMemberListURLVisible = value.String
+				_m.Descr = value.String
+			}
+		case ixlan.FieldDot1qSupport:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field dot1q_support", values[i])
+			} else if value.Valid {
+				_m.Dot1qSupport = value.Bool
 			}
 		case ixlan.FieldIxfIxpImportEnabled:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field ixf_ixp_import_enabled", values[i])
 			} else if value.Valid {
 				_m.IxfIxpImportEnabled = value.Bool
+			}
+		case ixlan.FieldIxfIxpMemberListURLVisible:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ixf_ixp_member_list_url_visible", values[i])
+			} else if value.Valid {
+				_m.IxfIxpMemberListURLVisible = value.String
+			}
+		case ixlan.FieldMtu:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field mtu", values[i])
+			} else if value.Valid {
+				_m.Mtu = int(value.Int64)
+			}
+		case ixlan.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				_m.Name = value.String
+			}
+		case ixlan.FieldRsAsn:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field rs_asn", values[i])
+			} else if value.Valid {
+				_m.RsAsn = new(int)
+				*_m.RsAsn = int(value.Int64)
 			}
 		case ixlan.FieldCreated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -261,33 +261,33 @@ func (_m *IxLan) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(_m.Name)
-	builder.WriteString(", ")
-	builder.WriteString("descr=")
-	builder.WriteString(_m.Descr)
-	builder.WriteString(", ")
-	builder.WriteString("mtu=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Mtu))
-	builder.WriteString(", ")
-	builder.WriteString("dot1q_support=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Dot1qSupport))
-	builder.WriteString(", ")
-	if v := _m.RsAsn; v != nil {
-		builder.WriteString("rs_asn=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
 	if v := _m.ArpSponge; v != nil {
 		builder.WriteString("arp_sponge=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("ixf_ixp_member_list_url_visible=")
-	builder.WriteString(_m.IxfIxpMemberListURLVisible)
+	builder.WriteString("descr=")
+	builder.WriteString(_m.Descr)
+	builder.WriteString(", ")
+	builder.WriteString("dot1q_support=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Dot1qSupport))
 	builder.WriteString(", ")
 	builder.WriteString("ixf_ixp_import_enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IxfIxpImportEnabled))
+	builder.WriteString(", ")
+	builder.WriteString("ixf_ixp_member_list_url_visible=")
+	builder.WriteString(_m.IxfIxpMemberListURLVisible)
+	builder.WriteString(", ")
+	builder.WriteString("mtu=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Mtu))
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	if v := _m.RsAsn; v != nil {
+		builder.WriteString("rs_asn=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created=")
 	builder.WriteString(_m.Created.Format(time.ANSIC))

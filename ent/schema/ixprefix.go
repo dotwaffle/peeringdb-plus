@@ -22,29 +22,29 @@ func (IxPrefix) Fields() []ent.Field {
 		field.Int("id").
 			Positive().
 			Immutable().
-			Comment("PeeringDB IX prefix ID"),
+			Comment("PeeringDB ixprefix ID"),
 		field.Int("ixlan_id").
 			Optional().
 			Nillable().
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
-			Comment("FK to IXLan"),
-		field.String("protocol").
-			MaxLen(64).
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Protocol (IPv4 or IPv6)"),
-		field.String("prefix").
-			Unique().
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("IP prefix"),
+			Comment("FK to IX LAN"),
 		field.Bool("in_dfz").
 			Default(false).
-			Annotations(entrest.WithFilter(entrest.FilterEQ)).
 			Comment("In default-free zone"),
 		field.String("notes").
-			Optional().
 			MaxLen(255).
+			Optional().
 			Default("").
 			Comment("Notes"),
+		field.String("prefix").
+			NotEmpty().
+			Unique().
+			Comment("IP prefix"),
+		field.String("protocol").
+			MaxLen(64).
+			Optional().
+			Default("").
+			Comment("Protocol (IPv4/IPv6)"),
 
 		// HandleRefModel common fields
 		field.Time("created").
@@ -76,9 +76,9 @@ func (IxPrefix) Edges() []ent.Edge {
 // Indexes of the IxPrefix.
 func (IxPrefix) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("status"),
 		index.Fields("ixlan_id"),
-		index.Fields("protocol"),
+		index.Fields("prefix"),
+		index.Fields("status"),
 	}
 }
 

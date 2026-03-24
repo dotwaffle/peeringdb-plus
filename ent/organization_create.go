@@ -28,88 +28,6 @@ type OrganizationCreate struct {
 	conflict []sql.ConflictOption
 }
 
-// SetName sets the "name" field.
-func (_c *OrganizationCreate) SetName(v string) *OrganizationCreate {
-	_c.mutation.SetName(v)
-	return _c
-}
-
-// SetAka sets the "aka" field.
-func (_c *OrganizationCreate) SetAka(v string) *OrganizationCreate {
-	_c.mutation.SetAka(v)
-	return _c
-}
-
-// SetNillableAka sets the "aka" field if the given value is not nil.
-func (_c *OrganizationCreate) SetNillableAka(v *string) *OrganizationCreate {
-	if v != nil {
-		_c.SetAka(*v)
-	}
-	return _c
-}
-
-// SetNameLong sets the "name_long" field.
-func (_c *OrganizationCreate) SetNameLong(v string) *OrganizationCreate {
-	_c.mutation.SetNameLong(v)
-	return _c
-}
-
-// SetNillableNameLong sets the "name_long" field if the given value is not nil.
-func (_c *OrganizationCreate) SetNillableNameLong(v *string) *OrganizationCreate {
-	if v != nil {
-		_c.SetNameLong(*v)
-	}
-	return _c
-}
-
-// SetWebsite sets the "website" field.
-func (_c *OrganizationCreate) SetWebsite(v string) *OrganizationCreate {
-	_c.mutation.SetWebsite(v)
-	return _c
-}
-
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_c *OrganizationCreate) SetNillableWebsite(v *string) *OrganizationCreate {
-	if v != nil {
-		_c.SetWebsite(*v)
-	}
-	return _c
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (_c *OrganizationCreate) SetSocialMedia(v []schema.SocialMedia) *OrganizationCreate {
-	_c.mutation.SetSocialMedia(v)
-	return _c
-}
-
-// SetNotes sets the "notes" field.
-func (_c *OrganizationCreate) SetNotes(v string) *OrganizationCreate {
-	_c.mutation.SetNotes(v)
-	return _c
-}
-
-// SetNillableNotes sets the "notes" field if the given value is not nil.
-func (_c *OrganizationCreate) SetNillableNotes(v *string) *OrganizationCreate {
-	if v != nil {
-		_c.SetNotes(*v)
-	}
-	return _c
-}
-
-// SetLogo sets the "logo" field.
-func (_c *OrganizationCreate) SetLogo(v string) *OrganizationCreate {
-	_c.mutation.SetLogo(v)
-	return _c
-}
-
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_c *OrganizationCreate) SetNillableLogo(v *string) *OrganizationCreate {
-	if v != nil {
-		_c.SetLogo(*v)
-	}
-	return _c
-}
-
 // SetAddress1 sets the "address1" field.
 func (_c *OrganizationCreate) SetAddress1(v string) *OrganizationCreate {
 	_c.mutation.SetAddress1(v)
@@ -138,6 +56,20 @@ func (_c *OrganizationCreate) SetNillableAddress2(v *string) *OrganizationCreate
 	return _c
 }
 
+// SetAka sets the "aka" field.
+func (_c *OrganizationCreate) SetAka(v string) *OrganizationCreate {
+	_c.mutation.SetAka(v)
+	return _c
+}
+
+// SetNillableAka sets the "aka" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableAka(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetAka(*v)
+	}
+	return _c
+}
+
 // SetCity sets the "city" field.
 func (_c *OrganizationCreate) SetCity(v string) *OrganizationCreate {
 	_c.mutation.SetCity(v)
@@ -152,20 +84,6 @@ func (_c *OrganizationCreate) SetNillableCity(v *string) *OrganizationCreate {
 	return _c
 }
 
-// SetState sets the "state" field.
-func (_c *OrganizationCreate) SetState(v string) *OrganizationCreate {
-	_c.mutation.SetState(v)
-	return _c
-}
-
-// SetNillableState sets the "state" field if the given value is not nil.
-func (_c *OrganizationCreate) SetNillableState(v *string) *OrganizationCreate {
-	if v != nil {
-		_c.SetState(*v)
-	}
-	return _c
-}
-
 // SetCountry sets the "country" field.
 func (_c *OrganizationCreate) SetCountry(v string) *OrganizationCreate {
 	_c.mutation.SetCountry(v)
@@ -176,34 +94,6 @@ func (_c *OrganizationCreate) SetCountry(v string) *OrganizationCreate {
 func (_c *OrganizationCreate) SetNillableCountry(v *string) *OrganizationCreate {
 	if v != nil {
 		_c.SetCountry(*v)
-	}
-	return _c
-}
-
-// SetZipcode sets the "zipcode" field.
-func (_c *OrganizationCreate) SetZipcode(v string) *OrganizationCreate {
-	_c.mutation.SetZipcode(v)
-	return _c
-}
-
-// SetNillableZipcode sets the "zipcode" field if the given value is not nil.
-func (_c *OrganizationCreate) SetNillableZipcode(v *string) *OrganizationCreate {
-	if v != nil {
-		_c.SetZipcode(*v)
-	}
-	return _c
-}
-
-// SetSuite sets the "suite" field.
-func (_c *OrganizationCreate) SetSuite(v string) *OrganizationCreate {
-	_c.mutation.SetSuite(v)
-	return _c
-}
-
-// SetNillableSuite sets the "suite" field if the given value is not nil.
-func (_c *OrganizationCreate) SetNillableSuite(v *string) *OrganizationCreate {
-	if v != nil {
-		_c.SetSuite(*v)
 	}
 	return _c
 }
@@ -236,6 +126,20 @@ func (_c *OrganizationCreate) SetNillableLatitude(v *float64) *OrganizationCreat
 	return _c
 }
 
+// SetLogo sets the "logo" field.
+func (_c *OrganizationCreate) SetLogo(v string) *OrganizationCreate {
+	_c.mutation.SetLogo(v)
+	return _c
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableLogo(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetLogo(*v)
+	}
+	return _c
+}
+
 // SetLongitude sets the "longitude" field.
 func (_c *OrganizationCreate) SetLongitude(v float64) *OrganizationCreate {
 	_c.mutation.SetLongitude(v)
@@ -246,6 +150,130 @@ func (_c *OrganizationCreate) SetLongitude(v float64) *OrganizationCreate {
 func (_c *OrganizationCreate) SetNillableLongitude(v *float64) *OrganizationCreate {
 	if v != nil {
 		_c.SetLongitude(*v)
+	}
+	return _c
+}
+
+// SetName sets the "name" field.
+func (_c *OrganizationCreate) SetName(v string) *OrganizationCreate {
+	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetNameLong sets the "name_long" field.
+func (_c *OrganizationCreate) SetNameLong(v string) *OrganizationCreate {
+	_c.mutation.SetNameLong(v)
+	return _c
+}
+
+// SetNillableNameLong sets the "name_long" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableNameLong(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetNameLong(*v)
+	}
+	return _c
+}
+
+// SetNotes sets the "notes" field.
+func (_c *OrganizationCreate) SetNotes(v string) *OrganizationCreate {
+	_c.mutation.SetNotes(v)
+	return _c
+}
+
+// SetNillableNotes sets the "notes" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableNotes(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetNotes(*v)
+	}
+	return _c
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (_c *OrganizationCreate) SetSocialMedia(v []schema.SocialMedia) *OrganizationCreate {
+	_c.mutation.SetSocialMedia(v)
+	return _c
+}
+
+// SetState sets the "state" field.
+func (_c *OrganizationCreate) SetState(v string) *OrganizationCreate {
+	_c.mutation.SetState(v)
+	return _c
+}
+
+// SetNillableState sets the "state" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableState(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetState(*v)
+	}
+	return _c
+}
+
+// SetSuite sets the "suite" field.
+func (_c *OrganizationCreate) SetSuite(v string) *OrganizationCreate {
+	_c.mutation.SetSuite(v)
+	return _c
+}
+
+// SetNillableSuite sets the "suite" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableSuite(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetSuite(*v)
+	}
+	return _c
+}
+
+// SetWebsite sets the "website" field.
+func (_c *OrganizationCreate) SetWebsite(v string) *OrganizationCreate {
+	_c.mutation.SetWebsite(v)
+	return _c
+}
+
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableWebsite(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetWebsite(*v)
+	}
+	return _c
+}
+
+// SetZipcode sets the "zipcode" field.
+func (_c *OrganizationCreate) SetZipcode(v string) *OrganizationCreate {
+	_c.mutation.SetZipcode(v)
+	return _c
+}
+
+// SetNillableZipcode sets the "zipcode" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableZipcode(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetZipcode(*v)
+	}
+	return _c
+}
+
+// SetNetCount sets the "net_count" field.
+func (_c *OrganizationCreate) SetNetCount(v int) *OrganizationCreate {
+	_c.mutation.SetNetCount(v)
+	return _c
+}
+
+// SetNillableNetCount sets the "net_count" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableNetCount(v *int) *OrganizationCreate {
+	if v != nil {
+		_c.SetNetCount(*v)
+	}
+	return _c
+}
+
+// SetFacCount sets the "fac_count" field.
+func (_c *OrganizationCreate) SetFacCount(v int) *OrganizationCreate {
+	_c.mutation.SetFacCount(v)
+	return _c
+}
+
+// SetNillableFacCount sets the "fac_count" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableFacCount(v *int) *OrganizationCreate {
+	if v != nil {
+		_c.SetFacCount(*v)
 	}
 	return _c
 }
@@ -282,19 +310,34 @@ func (_c *OrganizationCreate) SetID(v int) *OrganizationCreate {
 	return _c
 }
 
-// AddNetworkIDs adds the "networks" edge to the Network entity by IDs.
-func (_c *OrganizationCreate) AddNetworkIDs(ids ...int) *OrganizationCreate {
-	_c.mutation.AddNetworkIDs(ids...)
+// AddCampuseIDs adds the "campuses" edge to the Campus entity by IDs.
+func (_c *OrganizationCreate) AddCampuseIDs(ids ...int) *OrganizationCreate {
+	_c.mutation.AddCampuseIDs(ids...)
 	return _c
 }
 
-// AddNetworks adds the "networks" edges to the Network entity.
-func (_c *OrganizationCreate) AddNetworks(v ...*Network) *OrganizationCreate {
+// AddCampuses adds the "campuses" edges to the Campus entity.
+func (_c *OrganizationCreate) AddCampuses(v ...*Campus) *OrganizationCreate {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddNetworkIDs(ids...)
+	return _c.AddCampuseIDs(ids...)
+}
+
+// AddCarrierIDs adds the "carriers" edge to the Carrier entity by IDs.
+func (_c *OrganizationCreate) AddCarrierIDs(ids ...int) *OrganizationCreate {
+	_c.mutation.AddCarrierIDs(ids...)
+	return _c
+}
+
+// AddCarriers adds the "carriers" edges to the Carrier entity.
+func (_c *OrganizationCreate) AddCarriers(v ...*Carrier) *OrganizationCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCarrierIDs(ids...)
 }
 
 // AddFacilityIDs adds the "facilities" edge to the Facility entity by IDs.
@@ -327,34 +370,19 @@ func (_c *OrganizationCreate) AddInternetExchanges(v ...*InternetExchange) *Orga
 	return _c.AddInternetExchangeIDs(ids...)
 }
 
-// AddCarrierIDs adds the "carriers" edge to the Carrier entity by IDs.
-func (_c *OrganizationCreate) AddCarrierIDs(ids ...int) *OrganizationCreate {
-	_c.mutation.AddCarrierIDs(ids...)
+// AddNetworkIDs adds the "networks" edge to the Network entity by IDs.
+func (_c *OrganizationCreate) AddNetworkIDs(ids ...int) *OrganizationCreate {
+	_c.mutation.AddNetworkIDs(ids...)
 	return _c
 }
 
-// AddCarriers adds the "carriers" edges to the Carrier entity.
-func (_c *OrganizationCreate) AddCarriers(v ...*Carrier) *OrganizationCreate {
+// AddNetworks adds the "networks" edges to the Network entity.
+func (_c *OrganizationCreate) AddNetworks(v ...*Network) *OrganizationCreate {
 	ids := make([]int, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddCarrierIDs(ids...)
-}
-
-// AddCampuseIDs adds the "campuses" edge to the Campus entity by IDs.
-func (_c *OrganizationCreate) AddCampuseIDs(ids ...int) *OrganizationCreate {
-	_c.mutation.AddCampuseIDs(ids...)
-	return _c
-}
-
-// AddCampuses adds the "campuses" edges to the Campus entity.
-func (_c *OrganizationCreate) AddCampuses(v ...*Campus) *OrganizationCreate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddCampuseIDs(ids...)
+	return _c.AddNetworkIDs(ids...)
 }
 
 // Mutation returns the OrganizationMutation object of the builder.
@@ -394,22 +422,6 @@ func (_c *OrganizationCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *OrganizationCreate) defaults() error {
-	if _, ok := _c.mutation.Aka(); !ok {
-		v := organization.DefaultAka
-		_c.mutation.SetAka(v)
-	}
-	if _, ok := _c.mutation.NameLong(); !ok {
-		v := organization.DefaultNameLong
-		_c.mutation.SetNameLong(v)
-	}
-	if _, ok := _c.mutation.Website(); !ok {
-		v := organization.DefaultWebsite
-		_c.mutation.SetWebsite(v)
-	}
-	if _, ok := _c.mutation.Notes(); !ok {
-		v := organization.DefaultNotes
-		_c.mutation.SetNotes(v)
-	}
 	if _, ok := _c.mutation.Address1(); !ok {
 		v := organization.DefaultAddress1
 		_c.mutation.SetAddress1(v)
@@ -418,29 +430,53 @@ func (_c *OrganizationCreate) defaults() error {
 		v := organization.DefaultAddress2
 		_c.mutation.SetAddress2(v)
 	}
+	if _, ok := _c.mutation.Aka(); !ok {
+		v := organization.DefaultAka
+		_c.mutation.SetAka(v)
+	}
 	if _, ok := _c.mutation.City(); !ok {
 		v := organization.DefaultCity
 		_c.mutation.SetCity(v)
-	}
-	if _, ok := _c.mutation.State(); !ok {
-		v := organization.DefaultState
-		_c.mutation.SetState(v)
 	}
 	if _, ok := _c.mutation.Country(); !ok {
 		v := organization.DefaultCountry
 		_c.mutation.SetCountry(v)
 	}
-	if _, ok := _c.mutation.Zipcode(); !ok {
-		v := organization.DefaultZipcode
-		_c.mutation.SetZipcode(v)
+	if _, ok := _c.mutation.Floor(); !ok {
+		v := organization.DefaultFloor
+		_c.mutation.SetFloor(v)
+	}
+	if _, ok := _c.mutation.NameLong(); !ok {
+		v := organization.DefaultNameLong
+		_c.mutation.SetNameLong(v)
+	}
+	if _, ok := _c.mutation.Notes(); !ok {
+		v := organization.DefaultNotes
+		_c.mutation.SetNotes(v)
+	}
+	if _, ok := _c.mutation.State(); !ok {
+		v := organization.DefaultState
+		_c.mutation.SetState(v)
 	}
 	if _, ok := _c.mutation.Suite(); !ok {
 		v := organization.DefaultSuite
 		_c.mutation.SetSuite(v)
 	}
-	if _, ok := _c.mutation.Floor(); !ok {
-		v := organization.DefaultFloor
-		_c.mutation.SetFloor(v)
+	if _, ok := _c.mutation.Website(); !ok {
+		v := organization.DefaultWebsite
+		_c.mutation.SetWebsite(v)
+	}
+	if _, ok := _c.mutation.Zipcode(); !ok {
+		v := organization.DefaultZipcode
+		_c.mutation.SetZipcode(v)
+	}
+	if _, ok := _c.mutation.NetCount(); !ok {
+		v := organization.DefaultNetCount
+		_c.mutation.SetNetCount(v)
+	}
+	if _, ok := _c.mutation.FacCount(); !ok {
+		v := organization.DefaultFacCount
+		_c.mutation.SetFacCount(v)
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := organization.DefaultStatus
@@ -451,6 +487,31 @@ func (_c *OrganizationCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *OrganizationCreate) check() error {
+	if v, ok := _c.mutation.Address1(); ok {
+		if err := organization.Address1Validator(v); err != nil {
+			return &ValidationError{Name: "address1", err: fmt.Errorf(`ent: validator failed for field "Organization.address1": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Address2(); ok {
+		if err := organization.Address2Validator(v); err != nil {
+			return &ValidationError{Name: "address2", err: fmt.Errorf(`ent: validator failed for field "Organization.address2": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Aka(); ok {
+		if err := organization.AkaValidator(v); err != nil {
+			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Organization.aka": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.City(); ok {
+		if err := organization.CityValidator(v); err != nil {
+			return &ValidationError{Name: "city", err: fmt.Errorf(`ent: validator failed for field "Organization.city": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Floor(); ok {
+		if err := organization.FloorValidator(v); err != nil {
+			return &ValidationError{Name: "floor", err: fmt.Errorf(`ent: validator failed for field "Organization.floor": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Organization.name"`)}
 	}
@@ -459,14 +520,24 @@ func (_c *OrganizationCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Organization.name": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.Aka(); ok {
-		if err := organization.AkaValidator(v); err != nil {
-			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Organization.aka": %w`, err)}
-		}
-	}
 	if v, ok := _c.mutation.NameLong(); ok {
 		if err := organization.NameLongValidator(v); err != nil {
 			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Organization.name_long": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.State(); ok {
+		if err := organization.StateValidator(v); err != nil {
+			return &ValidationError{Name: "state", err: fmt.Errorf(`ent: validator failed for field "Organization.state": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Suite(); ok {
+		if err := organization.SuiteValidator(v); err != nil {
+			return &ValidationError{Name: "suite", err: fmt.Errorf(`ent: validator failed for field "Organization.suite": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Zipcode(); ok {
+		if err := organization.ZipcodeValidator(v); err != nil {
+			return &ValidationError{Name: "zipcode", err: fmt.Errorf(`ent: validator failed for field "Organization.zipcode": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Created(); !ok {
@@ -521,34 +592,6 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.Name(); ok {
-		_spec.SetField(organization.FieldName, field.TypeString, value)
-		_node.Name = value
-	}
-	if value, ok := _c.mutation.Aka(); ok {
-		_spec.SetField(organization.FieldAka, field.TypeString, value)
-		_node.Aka = value
-	}
-	if value, ok := _c.mutation.NameLong(); ok {
-		_spec.SetField(organization.FieldNameLong, field.TypeString, value)
-		_node.NameLong = value
-	}
-	if value, ok := _c.mutation.Website(); ok {
-		_spec.SetField(organization.FieldWebsite, field.TypeString, value)
-		_node.Website = value
-	}
-	if value, ok := _c.mutation.SocialMedia(); ok {
-		_spec.SetField(organization.FieldSocialMedia, field.TypeJSON, value)
-		_node.SocialMedia = value
-	}
-	if value, ok := _c.mutation.Notes(); ok {
-		_spec.SetField(organization.FieldNotes, field.TypeString, value)
-		_node.Notes = value
-	}
-	if value, ok := _c.mutation.Logo(); ok {
-		_spec.SetField(organization.FieldLogo, field.TypeString, value)
-		_node.Logo = &value
-	}
 	if value, ok := _c.mutation.Address1(); ok {
 		_spec.SetField(organization.FieldAddress1, field.TypeString, value)
 		_node.Address1 = value
@@ -557,25 +600,17 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 		_spec.SetField(organization.FieldAddress2, field.TypeString, value)
 		_node.Address2 = value
 	}
+	if value, ok := _c.mutation.Aka(); ok {
+		_spec.SetField(organization.FieldAka, field.TypeString, value)
+		_node.Aka = value
+	}
 	if value, ok := _c.mutation.City(); ok {
 		_spec.SetField(organization.FieldCity, field.TypeString, value)
 		_node.City = value
 	}
-	if value, ok := _c.mutation.State(); ok {
-		_spec.SetField(organization.FieldState, field.TypeString, value)
-		_node.State = value
-	}
 	if value, ok := _c.mutation.Country(); ok {
 		_spec.SetField(organization.FieldCountry, field.TypeString, value)
 		_node.Country = value
-	}
-	if value, ok := _c.mutation.Zipcode(); ok {
-		_spec.SetField(organization.FieldZipcode, field.TypeString, value)
-		_node.Zipcode = value
-	}
-	if value, ok := _c.mutation.Suite(); ok {
-		_spec.SetField(organization.FieldSuite, field.TypeString, value)
-		_node.Suite = value
 	}
 	if value, ok := _c.mutation.Floor(); ok {
 		_spec.SetField(organization.FieldFloor, field.TypeString, value)
@@ -585,9 +620,53 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 		_spec.SetField(organization.FieldLatitude, field.TypeFloat64, value)
 		_node.Latitude = &value
 	}
+	if value, ok := _c.mutation.Logo(); ok {
+		_spec.SetField(organization.FieldLogo, field.TypeString, value)
+		_node.Logo = &value
+	}
 	if value, ok := _c.mutation.Longitude(); ok {
 		_spec.SetField(organization.FieldLongitude, field.TypeFloat64, value)
 		_node.Longitude = &value
+	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(organization.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := _c.mutation.NameLong(); ok {
+		_spec.SetField(organization.FieldNameLong, field.TypeString, value)
+		_node.NameLong = value
+	}
+	if value, ok := _c.mutation.Notes(); ok {
+		_spec.SetField(organization.FieldNotes, field.TypeString, value)
+		_node.Notes = value
+	}
+	if value, ok := _c.mutation.SocialMedia(); ok {
+		_spec.SetField(organization.FieldSocialMedia, field.TypeJSON, value)
+		_node.SocialMedia = value
+	}
+	if value, ok := _c.mutation.State(); ok {
+		_spec.SetField(organization.FieldState, field.TypeString, value)
+		_node.State = value
+	}
+	if value, ok := _c.mutation.Suite(); ok {
+		_spec.SetField(organization.FieldSuite, field.TypeString, value)
+		_node.Suite = value
+	}
+	if value, ok := _c.mutation.Website(); ok {
+		_spec.SetField(organization.FieldWebsite, field.TypeString, value)
+		_node.Website = value
+	}
+	if value, ok := _c.mutation.Zipcode(); ok {
+		_spec.SetField(organization.FieldZipcode, field.TypeString, value)
+		_node.Zipcode = value
+	}
+	if value, ok := _c.mutation.NetCount(); ok {
+		_spec.SetField(organization.FieldNetCount, field.TypeInt, value)
+		_node.NetCount = value
+	}
+	if value, ok := _c.mutation.FacCount(); ok {
+		_spec.SetField(organization.FieldFacCount, field.TypeInt, value)
+		_node.FacCount = value
 	}
 	if value, ok := _c.mutation.Created(); ok {
 		_spec.SetField(organization.FieldCreated, field.TypeTime, value)
@@ -601,15 +680,31 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 		_spec.SetField(organization.FieldStatus, field.TypeString, value)
 		_node.Status = value
 	}
-	if nodes := _c.mutation.NetworksIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.CampusesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   organization.NetworksTable,
-			Columns: []string{organization.NetworksColumn},
+			Table:   organization.CampusesTable,
+			Columns: []string{organization.CampusesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(campus.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CarriersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   organization.CarriersTable,
+			Columns: []string{organization.CarriersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(carrier.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -649,31 +744,15 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.CarriersIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.NetworksIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   organization.CarriersTable,
-			Columns: []string{organization.CarriersColumn},
+			Table:   organization.NetworksTable,
+			Columns: []string{organization.NetworksColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(carrier.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.CampusesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   organization.CampusesTable,
-			Columns: []string{organization.CampusesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(campus.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -688,7 +767,7 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 // of the `INSERT` statement. For example:
 //
 //	client.Organization.Create().
-//		SetName(v).
+//		SetAddress1(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -697,7 +776,7 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.OrganizationUpsert) {
-//			SetName(v+v).
+//			SetAddress1(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *OrganizationCreate) OnConflict(opts ...sql.ConflictOption) *OrganizationUpsertOne {
@@ -732,126 +811,6 @@ type (
 		*sql.UpdateSet
 	}
 )
-
-// SetName sets the "name" field.
-func (u *OrganizationUpsert) SetName(v string) *OrganizationUpsert {
-	u.Set(organization.FieldName, v)
-	return u
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateName() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldName)
-	return u
-}
-
-// SetAka sets the "aka" field.
-func (u *OrganizationUpsert) SetAka(v string) *OrganizationUpsert {
-	u.Set(organization.FieldAka, v)
-	return u
-}
-
-// UpdateAka sets the "aka" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateAka() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldAka)
-	return u
-}
-
-// ClearAka clears the value of the "aka" field.
-func (u *OrganizationUpsert) ClearAka() *OrganizationUpsert {
-	u.SetNull(organization.FieldAka)
-	return u
-}
-
-// SetNameLong sets the "name_long" field.
-func (u *OrganizationUpsert) SetNameLong(v string) *OrganizationUpsert {
-	u.Set(organization.FieldNameLong, v)
-	return u
-}
-
-// UpdateNameLong sets the "name_long" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateNameLong() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldNameLong)
-	return u
-}
-
-// ClearNameLong clears the value of the "name_long" field.
-func (u *OrganizationUpsert) ClearNameLong() *OrganizationUpsert {
-	u.SetNull(organization.FieldNameLong)
-	return u
-}
-
-// SetWebsite sets the "website" field.
-func (u *OrganizationUpsert) SetWebsite(v string) *OrganizationUpsert {
-	u.Set(organization.FieldWebsite, v)
-	return u
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateWebsite() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldWebsite)
-	return u
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *OrganizationUpsert) ClearWebsite() *OrganizationUpsert {
-	u.SetNull(organization.FieldWebsite)
-	return u
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *OrganizationUpsert) SetSocialMedia(v []schema.SocialMedia) *OrganizationUpsert {
-	u.Set(organization.FieldSocialMedia, v)
-	return u
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateSocialMedia() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldSocialMedia)
-	return u
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *OrganizationUpsert) ClearSocialMedia() *OrganizationUpsert {
-	u.SetNull(organization.FieldSocialMedia)
-	return u
-}
-
-// SetNotes sets the "notes" field.
-func (u *OrganizationUpsert) SetNotes(v string) *OrganizationUpsert {
-	u.Set(organization.FieldNotes, v)
-	return u
-}
-
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateNotes() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldNotes)
-	return u
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (u *OrganizationUpsert) ClearNotes() *OrganizationUpsert {
-	u.SetNull(organization.FieldNotes)
-	return u
-}
-
-// SetLogo sets the "logo" field.
-func (u *OrganizationUpsert) SetLogo(v string) *OrganizationUpsert {
-	u.Set(organization.FieldLogo, v)
-	return u
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateLogo() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldLogo)
-	return u
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *OrganizationUpsert) ClearLogo() *OrganizationUpsert {
-	u.SetNull(organization.FieldLogo)
-	return u
-}
 
 // SetAddress1 sets the "address1" field.
 func (u *OrganizationUpsert) SetAddress1(v string) *OrganizationUpsert {
@@ -889,6 +848,24 @@ func (u *OrganizationUpsert) ClearAddress2() *OrganizationUpsert {
 	return u
 }
 
+// SetAka sets the "aka" field.
+func (u *OrganizationUpsert) SetAka(v string) *OrganizationUpsert {
+	u.Set(organization.FieldAka, v)
+	return u
+}
+
+// UpdateAka sets the "aka" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateAka() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldAka)
+	return u
+}
+
+// ClearAka clears the value of the "aka" field.
+func (u *OrganizationUpsert) ClearAka() *OrganizationUpsert {
+	u.SetNull(organization.FieldAka)
+	return u
+}
+
 // SetCity sets the "city" field.
 func (u *OrganizationUpsert) SetCity(v string) *OrganizationUpsert {
 	u.Set(organization.FieldCity, v)
@@ -907,24 +884,6 @@ func (u *OrganizationUpsert) ClearCity() *OrganizationUpsert {
 	return u
 }
 
-// SetState sets the "state" field.
-func (u *OrganizationUpsert) SetState(v string) *OrganizationUpsert {
-	u.Set(organization.FieldState, v)
-	return u
-}
-
-// UpdateState sets the "state" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateState() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldState)
-	return u
-}
-
-// ClearState clears the value of the "state" field.
-func (u *OrganizationUpsert) ClearState() *OrganizationUpsert {
-	u.SetNull(organization.FieldState)
-	return u
-}
-
 // SetCountry sets the "country" field.
 func (u *OrganizationUpsert) SetCountry(v string) *OrganizationUpsert {
 	u.Set(organization.FieldCountry, v)
@@ -940,42 +899,6 @@ func (u *OrganizationUpsert) UpdateCountry() *OrganizationUpsert {
 // ClearCountry clears the value of the "country" field.
 func (u *OrganizationUpsert) ClearCountry() *OrganizationUpsert {
 	u.SetNull(organization.FieldCountry)
-	return u
-}
-
-// SetZipcode sets the "zipcode" field.
-func (u *OrganizationUpsert) SetZipcode(v string) *OrganizationUpsert {
-	u.Set(organization.FieldZipcode, v)
-	return u
-}
-
-// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateZipcode() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldZipcode)
-	return u
-}
-
-// ClearZipcode clears the value of the "zipcode" field.
-func (u *OrganizationUpsert) ClearZipcode() *OrganizationUpsert {
-	u.SetNull(organization.FieldZipcode)
-	return u
-}
-
-// SetSuite sets the "suite" field.
-func (u *OrganizationUpsert) SetSuite(v string) *OrganizationUpsert {
-	u.Set(organization.FieldSuite, v)
-	return u
-}
-
-// UpdateSuite sets the "suite" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateSuite() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldSuite)
-	return u
-}
-
-// ClearSuite clears the value of the "suite" field.
-func (u *OrganizationUpsert) ClearSuite() *OrganizationUpsert {
-	u.SetNull(organization.FieldSuite)
 	return u
 }
 
@@ -1021,6 +944,24 @@ func (u *OrganizationUpsert) ClearLatitude() *OrganizationUpsert {
 	return u
 }
 
+// SetLogo sets the "logo" field.
+func (u *OrganizationUpsert) SetLogo(v string) *OrganizationUpsert {
+	u.Set(organization.FieldLogo, v)
+	return u
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateLogo() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldLogo)
+	return u
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *OrganizationUpsert) ClearLogo() *OrganizationUpsert {
+	u.SetNull(organization.FieldLogo)
+	return u
+}
+
 // SetLongitude sets the "longitude" field.
 func (u *OrganizationUpsert) SetLongitude(v float64) *OrganizationUpsert {
 	u.Set(organization.FieldLongitude, v)
@@ -1042,6 +983,192 @@ func (u *OrganizationUpsert) AddLongitude(v float64) *OrganizationUpsert {
 // ClearLongitude clears the value of the "longitude" field.
 func (u *OrganizationUpsert) ClearLongitude() *OrganizationUpsert {
 	u.SetNull(organization.FieldLongitude)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *OrganizationUpsert) SetName(v string) *OrganizationUpsert {
+	u.Set(organization.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateName() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldName)
+	return u
+}
+
+// SetNameLong sets the "name_long" field.
+func (u *OrganizationUpsert) SetNameLong(v string) *OrganizationUpsert {
+	u.Set(organization.FieldNameLong, v)
+	return u
+}
+
+// UpdateNameLong sets the "name_long" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateNameLong() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldNameLong)
+	return u
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (u *OrganizationUpsert) ClearNameLong() *OrganizationUpsert {
+	u.SetNull(organization.FieldNameLong)
+	return u
+}
+
+// SetNotes sets the "notes" field.
+func (u *OrganizationUpsert) SetNotes(v string) *OrganizationUpsert {
+	u.Set(organization.FieldNotes, v)
+	return u
+}
+
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateNotes() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldNotes)
+	return u
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (u *OrganizationUpsert) ClearNotes() *OrganizationUpsert {
+	u.SetNull(organization.FieldNotes)
+	return u
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (u *OrganizationUpsert) SetSocialMedia(v []schema.SocialMedia) *OrganizationUpsert {
+	u.Set(organization.FieldSocialMedia, v)
+	return u
+}
+
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateSocialMedia() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldSocialMedia)
+	return u
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *OrganizationUpsert) ClearSocialMedia() *OrganizationUpsert {
+	u.SetNull(organization.FieldSocialMedia)
+	return u
+}
+
+// SetState sets the "state" field.
+func (u *OrganizationUpsert) SetState(v string) *OrganizationUpsert {
+	u.Set(organization.FieldState, v)
+	return u
+}
+
+// UpdateState sets the "state" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateState() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldState)
+	return u
+}
+
+// ClearState clears the value of the "state" field.
+func (u *OrganizationUpsert) ClearState() *OrganizationUpsert {
+	u.SetNull(organization.FieldState)
+	return u
+}
+
+// SetSuite sets the "suite" field.
+func (u *OrganizationUpsert) SetSuite(v string) *OrganizationUpsert {
+	u.Set(organization.FieldSuite, v)
+	return u
+}
+
+// UpdateSuite sets the "suite" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateSuite() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldSuite)
+	return u
+}
+
+// ClearSuite clears the value of the "suite" field.
+func (u *OrganizationUpsert) ClearSuite() *OrganizationUpsert {
+	u.SetNull(organization.FieldSuite)
+	return u
+}
+
+// SetWebsite sets the "website" field.
+func (u *OrganizationUpsert) SetWebsite(v string) *OrganizationUpsert {
+	u.Set(organization.FieldWebsite, v)
+	return u
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateWebsite() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldWebsite)
+	return u
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *OrganizationUpsert) ClearWebsite() *OrganizationUpsert {
+	u.SetNull(organization.FieldWebsite)
+	return u
+}
+
+// SetZipcode sets the "zipcode" field.
+func (u *OrganizationUpsert) SetZipcode(v string) *OrganizationUpsert {
+	u.Set(organization.FieldZipcode, v)
+	return u
+}
+
+// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateZipcode() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldZipcode)
+	return u
+}
+
+// ClearZipcode clears the value of the "zipcode" field.
+func (u *OrganizationUpsert) ClearZipcode() *OrganizationUpsert {
+	u.SetNull(organization.FieldZipcode)
+	return u
+}
+
+// SetNetCount sets the "net_count" field.
+func (u *OrganizationUpsert) SetNetCount(v int) *OrganizationUpsert {
+	u.Set(organization.FieldNetCount, v)
+	return u
+}
+
+// UpdateNetCount sets the "net_count" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateNetCount() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldNetCount)
+	return u
+}
+
+// AddNetCount adds v to the "net_count" field.
+func (u *OrganizationUpsert) AddNetCount(v int) *OrganizationUpsert {
+	u.Add(organization.FieldNetCount, v)
+	return u
+}
+
+// ClearNetCount clears the value of the "net_count" field.
+func (u *OrganizationUpsert) ClearNetCount() *OrganizationUpsert {
+	u.SetNull(organization.FieldNetCount)
+	return u
+}
+
+// SetFacCount sets the "fac_count" field.
+func (u *OrganizationUpsert) SetFacCount(v int) *OrganizationUpsert {
+	u.Set(organization.FieldFacCount, v)
+	return u
+}
+
+// UpdateFacCount sets the "fac_count" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateFacCount() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldFacCount)
+	return u
+}
+
+// AddFacCount adds v to the "fac_count" field.
+func (u *OrganizationUpsert) AddFacCount(v int) *OrganizationUpsert {
+	u.Add(organization.FieldFacCount, v)
+	return u
+}
+
+// ClearFacCount clears the value of the "fac_count" field.
+func (u *OrganizationUpsert) ClearFacCount() *OrganizationUpsert {
+	u.SetNull(organization.FieldFacCount)
 	return u
 }
 
@@ -1120,146 +1247,6 @@ func (u *OrganizationUpsertOne) Update(set func(*OrganizationUpsert)) *Organizat
 	return u
 }
 
-// SetName sets the "name" field.
-func (u *OrganizationUpsertOne) SetName(v string) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateName() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateName()
-	})
-}
-
-// SetAka sets the "aka" field.
-func (u *OrganizationUpsertOne) SetAka(v string) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetAka(v)
-	})
-}
-
-// UpdateAka sets the "aka" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateAka() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateAka()
-	})
-}
-
-// ClearAka clears the value of the "aka" field.
-func (u *OrganizationUpsertOne) ClearAka() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearAka()
-	})
-}
-
-// SetNameLong sets the "name_long" field.
-func (u *OrganizationUpsertOne) SetNameLong(v string) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetNameLong(v)
-	})
-}
-
-// UpdateNameLong sets the "name_long" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateNameLong() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateNameLong()
-	})
-}
-
-// ClearNameLong clears the value of the "name_long" field.
-func (u *OrganizationUpsertOne) ClearNameLong() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearNameLong()
-	})
-}
-
-// SetWebsite sets the "website" field.
-func (u *OrganizationUpsertOne) SetWebsite(v string) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetWebsite(v)
-	})
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateWebsite() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateWebsite()
-	})
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *OrganizationUpsertOne) ClearWebsite() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearWebsite()
-	})
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *OrganizationUpsertOne) SetSocialMedia(v []schema.SocialMedia) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetSocialMedia(v)
-	})
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateSocialMedia() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateSocialMedia()
-	})
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *OrganizationUpsertOne) ClearSocialMedia() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearSocialMedia()
-	})
-}
-
-// SetNotes sets the "notes" field.
-func (u *OrganizationUpsertOne) SetNotes(v string) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetNotes(v)
-	})
-}
-
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateNotes() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateNotes()
-	})
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (u *OrganizationUpsertOne) ClearNotes() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearNotes()
-	})
-}
-
-// SetLogo sets the "logo" field.
-func (u *OrganizationUpsertOne) SetLogo(v string) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetLogo(v)
-	})
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateLogo() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateLogo()
-	})
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *OrganizationUpsertOne) ClearLogo() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearLogo()
-	})
-}
-
 // SetAddress1 sets the "address1" field.
 func (u *OrganizationUpsertOne) SetAddress1(v string) *OrganizationUpsertOne {
 	return u.Update(func(s *OrganizationUpsert) {
@@ -1302,6 +1289,27 @@ func (u *OrganizationUpsertOne) ClearAddress2() *OrganizationUpsertOne {
 	})
 }
 
+// SetAka sets the "aka" field.
+func (u *OrganizationUpsertOne) SetAka(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetAka(v)
+	})
+}
+
+// UpdateAka sets the "aka" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateAka() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateAka()
+	})
+}
+
+// ClearAka clears the value of the "aka" field.
+func (u *OrganizationUpsertOne) ClearAka() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearAka()
+	})
+}
+
 // SetCity sets the "city" field.
 func (u *OrganizationUpsertOne) SetCity(v string) *OrganizationUpsertOne {
 	return u.Update(func(s *OrganizationUpsert) {
@@ -1323,27 +1331,6 @@ func (u *OrganizationUpsertOne) ClearCity() *OrganizationUpsertOne {
 	})
 }
 
-// SetState sets the "state" field.
-func (u *OrganizationUpsertOne) SetState(v string) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetState(v)
-	})
-}
-
-// UpdateState sets the "state" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateState() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateState()
-	})
-}
-
-// ClearState clears the value of the "state" field.
-func (u *OrganizationUpsertOne) ClearState() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearState()
-	})
-}
-
 // SetCountry sets the "country" field.
 func (u *OrganizationUpsertOne) SetCountry(v string) *OrganizationUpsertOne {
 	return u.Update(func(s *OrganizationUpsert) {
@@ -1362,48 +1349,6 @@ func (u *OrganizationUpsertOne) UpdateCountry() *OrganizationUpsertOne {
 func (u *OrganizationUpsertOne) ClearCountry() *OrganizationUpsertOne {
 	return u.Update(func(s *OrganizationUpsert) {
 		s.ClearCountry()
-	})
-}
-
-// SetZipcode sets the "zipcode" field.
-func (u *OrganizationUpsertOne) SetZipcode(v string) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetZipcode(v)
-	})
-}
-
-// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateZipcode() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateZipcode()
-	})
-}
-
-// ClearZipcode clears the value of the "zipcode" field.
-func (u *OrganizationUpsertOne) ClearZipcode() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearZipcode()
-	})
-}
-
-// SetSuite sets the "suite" field.
-func (u *OrganizationUpsertOne) SetSuite(v string) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetSuite(v)
-	})
-}
-
-// UpdateSuite sets the "suite" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateSuite() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateSuite()
-	})
-}
-
-// ClearSuite clears the value of the "suite" field.
-func (u *OrganizationUpsertOne) ClearSuite() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearSuite()
 	})
 }
 
@@ -1456,6 +1401,27 @@ func (u *OrganizationUpsertOne) ClearLatitude() *OrganizationUpsertOne {
 	})
 }
 
+// SetLogo sets the "logo" field.
+func (u *OrganizationUpsertOne) SetLogo(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetLogo(v)
+	})
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateLogo() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateLogo()
+	})
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *OrganizationUpsertOne) ClearLogo() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearLogo()
+	})
+}
+
 // SetLongitude sets the "longitude" field.
 func (u *OrganizationUpsertOne) SetLongitude(v float64) *OrganizationUpsertOne {
 	return u.Update(func(s *OrganizationUpsert) {
@@ -1481,6 +1447,223 @@ func (u *OrganizationUpsertOne) UpdateLongitude() *OrganizationUpsertOne {
 func (u *OrganizationUpsertOne) ClearLongitude() *OrganizationUpsertOne {
 	return u.Update(func(s *OrganizationUpsert) {
 		s.ClearLongitude()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *OrganizationUpsertOne) SetName(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateName() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetNameLong sets the "name_long" field.
+func (u *OrganizationUpsertOne) SetNameLong(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetNameLong(v)
+	})
+}
+
+// UpdateNameLong sets the "name_long" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateNameLong() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateNameLong()
+	})
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (u *OrganizationUpsertOne) ClearNameLong() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearNameLong()
+	})
+}
+
+// SetNotes sets the "notes" field.
+func (u *OrganizationUpsertOne) SetNotes(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetNotes(v)
+	})
+}
+
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateNotes() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateNotes()
+	})
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (u *OrganizationUpsertOne) ClearNotes() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearNotes()
+	})
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (u *OrganizationUpsertOne) SetSocialMedia(v []schema.SocialMedia) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetSocialMedia(v)
+	})
+}
+
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateSocialMedia() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateSocialMedia()
+	})
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *OrganizationUpsertOne) ClearSocialMedia() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearSocialMedia()
+	})
+}
+
+// SetState sets the "state" field.
+func (u *OrganizationUpsertOne) SetState(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetState(v)
+	})
+}
+
+// UpdateState sets the "state" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateState() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateState()
+	})
+}
+
+// ClearState clears the value of the "state" field.
+func (u *OrganizationUpsertOne) ClearState() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearState()
+	})
+}
+
+// SetSuite sets the "suite" field.
+func (u *OrganizationUpsertOne) SetSuite(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetSuite(v)
+	})
+}
+
+// UpdateSuite sets the "suite" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateSuite() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateSuite()
+	})
+}
+
+// ClearSuite clears the value of the "suite" field.
+func (u *OrganizationUpsertOne) ClearSuite() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearSuite()
+	})
+}
+
+// SetWebsite sets the "website" field.
+func (u *OrganizationUpsertOne) SetWebsite(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetWebsite(v)
+	})
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateWebsite() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateWebsite()
+	})
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *OrganizationUpsertOne) ClearWebsite() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearWebsite()
+	})
+}
+
+// SetZipcode sets the "zipcode" field.
+func (u *OrganizationUpsertOne) SetZipcode(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetZipcode(v)
+	})
+}
+
+// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateZipcode() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateZipcode()
+	})
+}
+
+// ClearZipcode clears the value of the "zipcode" field.
+func (u *OrganizationUpsertOne) ClearZipcode() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearZipcode()
+	})
+}
+
+// SetNetCount sets the "net_count" field.
+func (u *OrganizationUpsertOne) SetNetCount(v int) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetNetCount(v)
+	})
+}
+
+// AddNetCount adds v to the "net_count" field.
+func (u *OrganizationUpsertOne) AddNetCount(v int) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.AddNetCount(v)
+	})
+}
+
+// UpdateNetCount sets the "net_count" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateNetCount() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateNetCount()
+	})
+}
+
+// ClearNetCount clears the value of the "net_count" field.
+func (u *OrganizationUpsertOne) ClearNetCount() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearNetCount()
+	})
+}
+
+// SetFacCount sets the "fac_count" field.
+func (u *OrganizationUpsertOne) SetFacCount(v int) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetFacCount(v)
+	})
+}
+
+// AddFacCount adds v to the "fac_count" field.
+func (u *OrganizationUpsertOne) AddFacCount(v int) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.AddFacCount(v)
+	})
+}
+
+// UpdateFacCount sets the "fac_count" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateFacCount() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateFacCount()
+	})
+}
+
+// ClearFacCount clears the value of the "fac_count" field.
+func (u *OrganizationUpsertOne) ClearFacCount() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearFacCount()
 	})
 }
 
@@ -1647,7 +1830,7 @@ func (_c *OrganizationCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.OrganizationUpsert) {
-//			SetName(v+v).
+//			SetAddress1(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *OrganizationCreateBulk) OnConflict(opts ...sql.ConflictOption) *OrganizationUpsertBulk {
@@ -1729,146 +1912,6 @@ func (u *OrganizationUpsertBulk) Update(set func(*OrganizationUpsert)) *Organiza
 	return u
 }
 
-// SetName sets the "name" field.
-func (u *OrganizationUpsertBulk) SetName(v string) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateName() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateName()
-	})
-}
-
-// SetAka sets the "aka" field.
-func (u *OrganizationUpsertBulk) SetAka(v string) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetAka(v)
-	})
-}
-
-// UpdateAka sets the "aka" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateAka() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateAka()
-	})
-}
-
-// ClearAka clears the value of the "aka" field.
-func (u *OrganizationUpsertBulk) ClearAka() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearAka()
-	})
-}
-
-// SetNameLong sets the "name_long" field.
-func (u *OrganizationUpsertBulk) SetNameLong(v string) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetNameLong(v)
-	})
-}
-
-// UpdateNameLong sets the "name_long" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateNameLong() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateNameLong()
-	})
-}
-
-// ClearNameLong clears the value of the "name_long" field.
-func (u *OrganizationUpsertBulk) ClearNameLong() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearNameLong()
-	})
-}
-
-// SetWebsite sets the "website" field.
-func (u *OrganizationUpsertBulk) SetWebsite(v string) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetWebsite(v)
-	})
-}
-
-// UpdateWebsite sets the "website" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateWebsite() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateWebsite()
-	})
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (u *OrganizationUpsertBulk) ClearWebsite() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearWebsite()
-	})
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (u *OrganizationUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetSocialMedia(v)
-	})
-}
-
-// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateSocialMedia() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateSocialMedia()
-	})
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (u *OrganizationUpsertBulk) ClearSocialMedia() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearSocialMedia()
-	})
-}
-
-// SetNotes sets the "notes" field.
-func (u *OrganizationUpsertBulk) SetNotes(v string) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetNotes(v)
-	})
-}
-
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateNotes() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateNotes()
-	})
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (u *OrganizationUpsertBulk) ClearNotes() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearNotes()
-	})
-}
-
-// SetLogo sets the "logo" field.
-func (u *OrganizationUpsertBulk) SetLogo(v string) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetLogo(v)
-	})
-}
-
-// UpdateLogo sets the "logo" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateLogo() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateLogo()
-	})
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (u *OrganizationUpsertBulk) ClearLogo() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearLogo()
-	})
-}
-
 // SetAddress1 sets the "address1" field.
 func (u *OrganizationUpsertBulk) SetAddress1(v string) *OrganizationUpsertBulk {
 	return u.Update(func(s *OrganizationUpsert) {
@@ -1911,6 +1954,27 @@ func (u *OrganizationUpsertBulk) ClearAddress2() *OrganizationUpsertBulk {
 	})
 }
 
+// SetAka sets the "aka" field.
+func (u *OrganizationUpsertBulk) SetAka(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetAka(v)
+	})
+}
+
+// UpdateAka sets the "aka" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateAka() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateAka()
+	})
+}
+
+// ClearAka clears the value of the "aka" field.
+func (u *OrganizationUpsertBulk) ClearAka() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearAka()
+	})
+}
+
 // SetCity sets the "city" field.
 func (u *OrganizationUpsertBulk) SetCity(v string) *OrganizationUpsertBulk {
 	return u.Update(func(s *OrganizationUpsert) {
@@ -1932,27 +1996,6 @@ func (u *OrganizationUpsertBulk) ClearCity() *OrganizationUpsertBulk {
 	})
 }
 
-// SetState sets the "state" field.
-func (u *OrganizationUpsertBulk) SetState(v string) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetState(v)
-	})
-}
-
-// UpdateState sets the "state" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateState() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateState()
-	})
-}
-
-// ClearState clears the value of the "state" field.
-func (u *OrganizationUpsertBulk) ClearState() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearState()
-	})
-}
-
 // SetCountry sets the "country" field.
 func (u *OrganizationUpsertBulk) SetCountry(v string) *OrganizationUpsertBulk {
 	return u.Update(func(s *OrganizationUpsert) {
@@ -1971,48 +2014,6 @@ func (u *OrganizationUpsertBulk) UpdateCountry() *OrganizationUpsertBulk {
 func (u *OrganizationUpsertBulk) ClearCountry() *OrganizationUpsertBulk {
 	return u.Update(func(s *OrganizationUpsert) {
 		s.ClearCountry()
-	})
-}
-
-// SetZipcode sets the "zipcode" field.
-func (u *OrganizationUpsertBulk) SetZipcode(v string) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetZipcode(v)
-	})
-}
-
-// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateZipcode() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateZipcode()
-	})
-}
-
-// ClearZipcode clears the value of the "zipcode" field.
-func (u *OrganizationUpsertBulk) ClearZipcode() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearZipcode()
-	})
-}
-
-// SetSuite sets the "suite" field.
-func (u *OrganizationUpsertBulk) SetSuite(v string) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetSuite(v)
-	})
-}
-
-// UpdateSuite sets the "suite" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateSuite() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateSuite()
-	})
-}
-
-// ClearSuite clears the value of the "suite" field.
-func (u *OrganizationUpsertBulk) ClearSuite() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearSuite()
 	})
 }
 
@@ -2065,6 +2066,27 @@ func (u *OrganizationUpsertBulk) ClearLatitude() *OrganizationUpsertBulk {
 	})
 }
 
+// SetLogo sets the "logo" field.
+func (u *OrganizationUpsertBulk) SetLogo(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetLogo(v)
+	})
+}
+
+// UpdateLogo sets the "logo" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateLogo() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateLogo()
+	})
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (u *OrganizationUpsertBulk) ClearLogo() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearLogo()
+	})
+}
+
 // SetLongitude sets the "longitude" field.
 func (u *OrganizationUpsertBulk) SetLongitude(v float64) *OrganizationUpsertBulk {
 	return u.Update(func(s *OrganizationUpsert) {
@@ -2090,6 +2112,223 @@ func (u *OrganizationUpsertBulk) UpdateLongitude() *OrganizationUpsertBulk {
 func (u *OrganizationUpsertBulk) ClearLongitude() *OrganizationUpsertBulk {
 	return u.Update(func(s *OrganizationUpsert) {
 		s.ClearLongitude()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *OrganizationUpsertBulk) SetName(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateName() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetNameLong sets the "name_long" field.
+func (u *OrganizationUpsertBulk) SetNameLong(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetNameLong(v)
+	})
+}
+
+// UpdateNameLong sets the "name_long" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateNameLong() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateNameLong()
+	})
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (u *OrganizationUpsertBulk) ClearNameLong() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearNameLong()
+	})
+}
+
+// SetNotes sets the "notes" field.
+func (u *OrganizationUpsertBulk) SetNotes(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetNotes(v)
+	})
+}
+
+// UpdateNotes sets the "notes" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateNotes() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateNotes()
+	})
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (u *OrganizationUpsertBulk) ClearNotes() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearNotes()
+	})
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (u *OrganizationUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetSocialMedia(v)
+	})
+}
+
+// UpdateSocialMedia sets the "social_media" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateSocialMedia() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateSocialMedia()
+	})
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (u *OrganizationUpsertBulk) ClearSocialMedia() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearSocialMedia()
+	})
+}
+
+// SetState sets the "state" field.
+func (u *OrganizationUpsertBulk) SetState(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetState(v)
+	})
+}
+
+// UpdateState sets the "state" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateState() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateState()
+	})
+}
+
+// ClearState clears the value of the "state" field.
+func (u *OrganizationUpsertBulk) ClearState() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearState()
+	})
+}
+
+// SetSuite sets the "suite" field.
+func (u *OrganizationUpsertBulk) SetSuite(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetSuite(v)
+	})
+}
+
+// UpdateSuite sets the "suite" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateSuite() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateSuite()
+	})
+}
+
+// ClearSuite clears the value of the "suite" field.
+func (u *OrganizationUpsertBulk) ClearSuite() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearSuite()
+	})
+}
+
+// SetWebsite sets the "website" field.
+func (u *OrganizationUpsertBulk) SetWebsite(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetWebsite(v)
+	})
+}
+
+// UpdateWebsite sets the "website" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateWebsite() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateWebsite()
+	})
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (u *OrganizationUpsertBulk) ClearWebsite() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearWebsite()
+	})
+}
+
+// SetZipcode sets the "zipcode" field.
+func (u *OrganizationUpsertBulk) SetZipcode(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetZipcode(v)
+	})
+}
+
+// UpdateZipcode sets the "zipcode" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateZipcode() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateZipcode()
+	})
+}
+
+// ClearZipcode clears the value of the "zipcode" field.
+func (u *OrganizationUpsertBulk) ClearZipcode() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearZipcode()
+	})
+}
+
+// SetNetCount sets the "net_count" field.
+func (u *OrganizationUpsertBulk) SetNetCount(v int) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetNetCount(v)
+	})
+}
+
+// AddNetCount adds v to the "net_count" field.
+func (u *OrganizationUpsertBulk) AddNetCount(v int) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.AddNetCount(v)
+	})
+}
+
+// UpdateNetCount sets the "net_count" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateNetCount() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateNetCount()
+	})
+}
+
+// ClearNetCount clears the value of the "net_count" field.
+func (u *OrganizationUpsertBulk) ClearNetCount() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearNetCount()
+	})
+}
+
+// SetFacCount sets the "fac_count" field.
+func (u *OrganizationUpsertBulk) SetFacCount(v int) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetFacCount(v)
+	})
+}
+
+// AddFacCount adds v to the "fac_count" field.
+func (u *OrganizationUpsertBulk) AddFacCount(v int) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.AddFacCount(v)
+	})
+}
+
+// UpdateFacCount sets the "fac_count" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateFacCount() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateFacCount()
+	})
+}
+
+// ClearFacCount clears the value of the "fac_count" field.
+func (u *OrganizationUpsertBulk) ClearFacCount() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearFacCount()
 	})
 }
 

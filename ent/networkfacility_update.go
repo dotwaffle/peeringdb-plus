@@ -30,6 +30,26 @@ func (_u *NetworkFacilityUpdate) Where(ps ...predicate.NetworkFacility) *Network
 	return _u
 }
 
+// SetFacID sets the "fac_id" field.
+func (_u *NetworkFacilityUpdate) SetFacID(v int) *NetworkFacilityUpdate {
+	_u.mutation.SetFacID(v)
+	return _u
+}
+
+// SetNillableFacID sets the "fac_id" field if the given value is not nil.
+func (_u *NetworkFacilityUpdate) SetNillableFacID(v *int) *NetworkFacilityUpdate {
+	if v != nil {
+		_u.SetFacID(*v)
+	}
+	return _u
+}
+
+// ClearFacID clears the value of the "fac_id" field.
+func (_u *NetworkFacilityUpdate) ClearFacID() *NetworkFacilityUpdate {
+	_u.mutation.ClearFacID()
+	return _u
+}
+
 // SetNetID sets the "net_id" field.
 func (_u *NetworkFacilityUpdate) SetNetID(v int) *NetworkFacilityUpdate {
 	_u.mutation.SetNetID(v)
@@ -50,23 +70,24 @@ func (_u *NetworkFacilityUpdate) ClearNetID() *NetworkFacilityUpdate {
 	return _u
 }
 
-// SetFacID sets the "fac_id" field.
-func (_u *NetworkFacilityUpdate) SetFacID(v int) *NetworkFacilityUpdate {
-	_u.mutation.SetFacID(v)
+// SetLocalAsn sets the "local_asn" field.
+func (_u *NetworkFacilityUpdate) SetLocalAsn(v int) *NetworkFacilityUpdate {
+	_u.mutation.ResetLocalAsn()
+	_u.mutation.SetLocalAsn(v)
 	return _u
 }
 
-// SetNillableFacID sets the "fac_id" field if the given value is not nil.
-func (_u *NetworkFacilityUpdate) SetNillableFacID(v *int) *NetworkFacilityUpdate {
+// SetNillableLocalAsn sets the "local_asn" field if the given value is not nil.
+func (_u *NetworkFacilityUpdate) SetNillableLocalAsn(v *int) *NetworkFacilityUpdate {
 	if v != nil {
-		_u.SetFacID(*v)
+		_u.SetLocalAsn(*v)
 	}
 	return _u
 }
 
-// ClearFacID clears the value of the "fac_id" field.
-func (_u *NetworkFacilityUpdate) ClearFacID() *NetworkFacilityUpdate {
-	_u.mutation.ClearFacID()
+// AddLocalAsn adds value to the "local_asn" field.
+func (_u *NetworkFacilityUpdate) AddLocalAsn(v int) *NetworkFacilityUpdate {
+	_u.mutation.AddLocalAsn(v)
 	return _u
 }
 
@@ -130,27 +151,6 @@ func (_u *NetworkFacilityUpdate) ClearCountry() *NetworkFacilityUpdate {
 	return _u
 }
 
-// SetLocalAsn sets the "local_asn" field.
-func (_u *NetworkFacilityUpdate) SetLocalAsn(v int) *NetworkFacilityUpdate {
-	_u.mutation.ResetLocalAsn()
-	_u.mutation.SetLocalAsn(v)
-	return _u
-}
-
-// SetNillableLocalAsn sets the "local_asn" field if the given value is not nil.
-func (_u *NetworkFacilityUpdate) SetNillableLocalAsn(v *int) *NetworkFacilityUpdate {
-	if v != nil {
-		_u.SetLocalAsn(*v)
-	}
-	return _u
-}
-
-// AddLocalAsn adds value to the "local_asn" field.
-func (_u *NetworkFacilityUpdate) AddLocalAsn(v int) *NetworkFacilityUpdate {
-	_u.mutation.AddLocalAsn(v)
-	return _u
-}
-
 // SetUpdated sets the "updated" field.
 func (_u *NetworkFacilityUpdate) SetUpdated(v time.Time) *NetworkFacilityUpdate {
 	_u.mutation.SetUpdated(v)
@@ -179,25 +179,6 @@ func (_u *NetworkFacilityUpdate) SetNillableStatus(v *string) *NetworkFacilityUp
 	return _u
 }
 
-// SetNetworkID sets the "network" edge to the Network entity by ID.
-func (_u *NetworkFacilityUpdate) SetNetworkID(id int) *NetworkFacilityUpdate {
-	_u.mutation.SetNetworkID(id)
-	return _u
-}
-
-// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
-func (_u *NetworkFacilityUpdate) SetNillableNetworkID(id *int) *NetworkFacilityUpdate {
-	if id != nil {
-		_u = _u.SetNetworkID(*id)
-	}
-	return _u
-}
-
-// SetNetwork sets the "network" edge to the Network entity.
-func (_u *NetworkFacilityUpdate) SetNetwork(v *Network) *NetworkFacilityUpdate {
-	return _u.SetNetworkID(v.ID)
-}
-
 // SetFacilityID sets the "facility" edge to the Facility entity by ID.
 func (_u *NetworkFacilityUpdate) SetFacilityID(id int) *NetworkFacilityUpdate {
 	_u.mutation.SetFacilityID(id)
@@ -217,20 +198,39 @@ func (_u *NetworkFacilityUpdate) SetFacility(v *Facility) *NetworkFacilityUpdate
 	return _u.SetFacilityID(v.ID)
 }
 
+// SetNetworkID sets the "network" edge to the Network entity by ID.
+func (_u *NetworkFacilityUpdate) SetNetworkID(id int) *NetworkFacilityUpdate {
+	_u.mutation.SetNetworkID(id)
+	return _u
+}
+
+// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
+func (_u *NetworkFacilityUpdate) SetNillableNetworkID(id *int) *NetworkFacilityUpdate {
+	if id != nil {
+		_u = _u.SetNetworkID(*id)
+	}
+	return _u
+}
+
+// SetNetwork sets the "network" edge to the Network entity.
+func (_u *NetworkFacilityUpdate) SetNetwork(v *Network) *NetworkFacilityUpdate {
+	return _u.SetNetworkID(v.ID)
+}
+
 // Mutation returns the NetworkFacilityMutation object of the builder.
 func (_u *NetworkFacilityUpdate) Mutation() *NetworkFacilityMutation {
 	return _u.mutation
 }
 
-// ClearNetwork clears the "network" edge to the Network entity.
-func (_u *NetworkFacilityUpdate) ClearNetwork() *NetworkFacilityUpdate {
-	_u.mutation.ClearNetwork()
-	return _u
-}
-
 // ClearFacility clears the "facility" edge to the Facility entity.
 func (_u *NetworkFacilityUpdate) ClearFacility() *NetworkFacilityUpdate {
 	_u.mutation.ClearFacility()
+	return _u
+}
+
+// ClearNetwork clears the "network" edge to the Network entity.
+func (_u *NetworkFacilityUpdate) ClearNetwork() *NetworkFacilityUpdate {
+	_u.mutation.ClearNetwork()
 	return _u
 }
 
@@ -283,6 +283,12 @@ func (_u *NetworkFacilityUpdate) sqlSave(ctx context.Context) (_node int, err er
 			}
 		}
 	}
+	if value, ok := _u.mutation.LocalAsn(); ok {
+		_spec.SetField(networkfacility.FieldLocalAsn, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedLocalAsn(); ok {
+		_spec.AddField(networkfacility.FieldLocalAsn, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(networkfacility.FieldName, field.TypeString, value)
 	}
@@ -301,46 +307,11 @@ func (_u *NetworkFacilityUpdate) sqlSave(ctx context.Context) (_node int, err er
 	if _u.mutation.CountryCleared() {
 		_spec.ClearField(networkfacility.FieldCountry, field.TypeString)
 	}
-	if value, ok := _u.mutation.LocalAsn(); ok {
-		_spec.SetField(networkfacility.FieldLocalAsn, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedLocalAsn(); ok {
-		_spec.AddField(networkfacility.FieldLocalAsn, field.TypeInt, value)
-	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(networkfacility.FieldUpdated, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(networkfacility.FieldStatus, field.TypeString, value)
-	}
-	if _u.mutation.NetworkCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   networkfacility.NetworkTable,
-			Columns: []string{networkfacility.NetworkColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.NetworkIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   networkfacility.NetworkTable,
-			Columns: []string{networkfacility.NetworkColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.FacilityCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -371,6 +342,35 @@ func (_u *NetworkFacilityUpdate) sqlSave(ctx context.Context) (_node int, err er
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.NetworkCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   networkfacility.NetworkTable,
+			Columns: []string{networkfacility.NetworkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NetworkIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   networkfacility.NetworkTable,
+			Columns: []string{networkfacility.NetworkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{networkfacility.Label}
@@ -389,6 +389,26 @@ type NetworkFacilityUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *NetworkFacilityMutation
+}
+
+// SetFacID sets the "fac_id" field.
+func (_u *NetworkFacilityUpdateOne) SetFacID(v int) *NetworkFacilityUpdateOne {
+	_u.mutation.SetFacID(v)
+	return _u
+}
+
+// SetNillableFacID sets the "fac_id" field if the given value is not nil.
+func (_u *NetworkFacilityUpdateOne) SetNillableFacID(v *int) *NetworkFacilityUpdateOne {
+	if v != nil {
+		_u.SetFacID(*v)
+	}
+	return _u
+}
+
+// ClearFacID clears the value of the "fac_id" field.
+func (_u *NetworkFacilityUpdateOne) ClearFacID() *NetworkFacilityUpdateOne {
+	_u.mutation.ClearFacID()
+	return _u
 }
 
 // SetNetID sets the "net_id" field.
@@ -411,23 +431,24 @@ func (_u *NetworkFacilityUpdateOne) ClearNetID() *NetworkFacilityUpdateOne {
 	return _u
 }
 
-// SetFacID sets the "fac_id" field.
-func (_u *NetworkFacilityUpdateOne) SetFacID(v int) *NetworkFacilityUpdateOne {
-	_u.mutation.SetFacID(v)
+// SetLocalAsn sets the "local_asn" field.
+func (_u *NetworkFacilityUpdateOne) SetLocalAsn(v int) *NetworkFacilityUpdateOne {
+	_u.mutation.ResetLocalAsn()
+	_u.mutation.SetLocalAsn(v)
 	return _u
 }
 
-// SetNillableFacID sets the "fac_id" field if the given value is not nil.
-func (_u *NetworkFacilityUpdateOne) SetNillableFacID(v *int) *NetworkFacilityUpdateOne {
+// SetNillableLocalAsn sets the "local_asn" field if the given value is not nil.
+func (_u *NetworkFacilityUpdateOne) SetNillableLocalAsn(v *int) *NetworkFacilityUpdateOne {
 	if v != nil {
-		_u.SetFacID(*v)
+		_u.SetLocalAsn(*v)
 	}
 	return _u
 }
 
-// ClearFacID clears the value of the "fac_id" field.
-func (_u *NetworkFacilityUpdateOne) ClearFacID() *NetworkFacilityUpdateOne {
-	_u.mutation.ClearFacID()
+// AddLocalAsn adds value to the "local_asn" field.
+func (_u *NetworkFacilityUpdateOne) AddLocalAsn(v int) *NetworkFacilityUpdateOne {
+	_u.mutation.AddLocalAsn(v)
 	return _u
 }
 
@@ -491,27 +512,6 @@ func (_u *NetworkFacilityUpdateOne) ClearCountry() *NetworkFacilityUpdateOne {
 	return _u
 }
 
-// SetLocalAsn sets the "local_asn" field.
-func (_u *NetworkFacilityUpdateOne) SetLocalAsn(v int) *NetworkFacilityUpdateOne {
-	_u.mutation.ResetLocalAsn()
-	_u.mutation.SetLocalAsn(v)
-	return _u
-}
-
-// SetNillableLocalAsn sets the "local_asn" field if the given value is not nil.
-func (_u *NetworkFacilityUpdateOne) SetNillableLocalAsn(v *int) *NetworkFacilityUpdateOne {
-	if v != nil {
-		_u.SetLocalAsn(*v)
-	}
-	return _u
-}
-
-// AddLocalAsn adds value to the "local_asn" field.
-func (_u *NetworkFacilityUpdateOne) AddLocalAsn(v int) *NetworkFacilityUpdateOne {
-	_u.mutation.AddLocalAsn(v)
-	return _u
-}
-
 // SetUpdated sets the "updated" field.
 func (_u *NetworkFacilityUpdateOne) SetUpdated(v time.Time) *NetworkFacilityUpdateOne {
 	_u.mutation.SetUpdated(v)
@@ -540,25 +540,6 @@ func (_u *NetworkFacilityUpdateOne) SetNillableStatus(v *string) *NetworkFacilit
 	return _u
 }
 
-// SetNetworkID sets the "network" edge to the Network entity by ID.
-func (_u *NetworkFacilityUpdateOne) SetNetworkID(id int) *NetworkFacilityUpdateOne {
-	_u.mutation.SetNetworkID(id)
-	return _u
-}
-
-// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
-func (_u *NetworkFacilityUpdateOne) SetNillableNetworkID(id *int) *NetworkFacilityUpdateOne {
-	if id != nil {
-		_u = _u.SetNetworkID(*id)
-	}
-	return _u
-}
-
-// SetNetwork sets the "network" edge to the Network entity.
-func (_u *NetworkFacilityUpdateOne) SetNetwork(v *Network) *NetworkFacilityUpdateOne {
-	return _u.SetNetworkID(v.ID)
-}
-
 // SetFacilityID sets the "facility" edge to the Facility entity by ID.
 func (_u *NetworkFacilityUpdateOne) SetFacilityID(id int) *NetworkFacilityUpdateOne {
 	_u.mutation.SetFacilityID(id)
@@ -578,20 +559,39 @@ func (_u *NetworkFacilityUpdateOne) SetFacility(v *Facility) *NetworkFacilityUpd
 	return _u.SetFacilityID(v.ID)
 }
 
+// SetNetworkID sets the "network" edge to the Network entity by ID.
+func (_u *NetworkFacilityUpdateOne) SetNetworkID(id int) *NetworkFacilityUpdateOne {
+	_u.mutation.SetNetworkID(id)
+	return _u
+}
+
+// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
+func (_u *NetworkFacilityUpdateOne) SetNillableNetworkID(id *int) *NetworkFacilityUpdateOne {
+	if id != nil {
+		_u = _u.SetNetworkID(*id)
+	}
+	return _u
+}
+
+// SetNetwork sets the "network" edge to the Network entity.
+func (_u *NetworkFacilityUpdateOne) SetNetwork(v *Network) *NetworkFacilityUpdateOne {
+	return _u.SetNetworkID(v.ID)
+}
+
 // Mutation returns the NetworkFacilityMutation object of the builder.
 func (_u *NetworkFacilityUpdateOne) Mutation() *NetworkFacilityMutation {
 	return _u.mutation
 }
 
-// ClearNetwork clears the "network" edge to the Network entity.
-func (_u *NetworkFacilityUpdateOne) ClearNetwork() *NetworkFacilityUpdateOne {
-	_u.mutation.ClearNetwork()
-	return _u
-}
-
 // ClearFacility clears the "facility" edge to the Facility entity.
 func (_u *NetworkFacilityUpdateOne) ClearFacility() *NetworkFacilityUpdateOne {
 	_u.mutation.ClearFacility()
+	return _u
+}
+
+// ClearNetwork clears the "network" edge to the Network entity.
+func (_u *NetworkFacilityUpdateOne) ClearNetwork() *NetworkFacilityUpdateOne {
+	_u.mutation.ClearNetwork()
 	return _u
 }
 
@@ -674,6 +674,12 @@ func (_u *NetworkFacilityUpdateOne) sqlSave(ctx context.Context) (_node *Network
 			}
 		}
 	}
+	if value, ok := _u.mutation.LocalAsn(); ok {
+		_spec.SetField(networkfacility.FieldLocalAsn, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedLocalAsn(); ok {
+		_spec.AddField(networkfacility.FieldLocalAsn, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(networkfacility.FieldName, field.TypeString, value)
 	}
@@ -692,46 +698,11 @@ func (_u *NetworkFacilityUpdateOne) sqlSave(ctx context.Context) (_node *Network
 	if _u.mutation.CountryCleared() {
 		_spec.ClearField(networkfacility.FieldCountry, field.TypeString)
 	}
-	if value, ok := _u.mutation.LocalAsn(); ok {
-		_spec.SetField(networkfacility.FieldLocalAsn, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedLocalAsn(); ok {
-		_spec.AddField(networkfacility.FieldLocalAsn, field.TypeInt, value)
-	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(networkfacility.FieldUpdated, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(networkfacility.FieldStatus, field.TypeString, value)
-	}
-	if _u.mutation.NetworkCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   networkfacility.NetworkTable,
-			Columns: []string{networkfacility.NetworkColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.NetworkIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   networkfacility.NetworkTable,
-			Columns: []string{networkfacility.NetworkColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.FacilityCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -755,6 +726,35 @@ func (_u *NetworkFacilityUpdateOne) sqlSave(ctx context.Context) (_node *Network
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(facility.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.NetworkCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   networkfacility.NetworkTable,
+			Columns: []string{networkfacility.NetworkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NetworkIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   networkfacility.NetworkTable,
+			Columns: []string{networkfacility.NetworkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

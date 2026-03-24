@@ -22,70 +22,65 @@ func (NetworkIxLan) Fields() []ent.Field {
 		field.Int("id").
 			Positive().
 			Immutable().
-			Comment("PeeringDB network-IXLan ID"),
+			Comment("PeeringDB networkixlan ID"),
+		field.Int("ix_side_id").
+			Optional().
+			Nillable().
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
+			Comment("IX-side facility FK"),
+		field.Int("ixlan_id").
+			Optional().
+			Nillable().
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
+			Comment("FK to IX LAN"),
 		field.Int("net_id").
 			Optional().
 			Nillable().
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to network"),
-		field.Int("ix_id").
-			Optional().
-			Default(0).
-			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
-			Comment("Internet exchange ID (computed, not an edge)"),
-		field.Int("ixlan_id").
+		field.Int("net_side_id").
 			Optional().
 			Nillable().
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
-			Comment("FK to IXLan"),
-
-		// Computed fields (from serializer, stored per D-40)
-		field.String("name").
-			Optional().
-			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Exchange name (computed)"),
-
-		field.String("notes").
-			Optional().
-			MaxLen(255).
-			Default("").
-			Comment("Notes"),
-		field.Int("speed").
-			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
-			Comment("Port speed in Mbps"),
+			Comment("Net-side facility FK"),
 		field.Int("asn").
+			Positive().
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("Autonomous System Number"),
+		field.Bool("bfd_support").
+			Default(false).
+			Comment("BFD support"),
 		field.String("ipaddr4").
 			Optional().
 			Nillable().
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("IPv4 address"),
 		field.String("ipaddr6").
 			Optional().
 			Nillable().
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("IPv6 address"),
 		field.Bool("is_rs_peer").
 			Default(false).
-			Annotations(entrest.WithFilter(entrest.FilterEQ)).
-			Comment("Is route server peer"),
-		field.Bool("bfd_support").
-			Default(false).
-			Comment("BFD support"),
+			Comment("Route server peer"),
+		field.String("notes").
+			MaxLen(255).
+			Optional().
+			Default("").
+			Comment("Notes"),
 		field.Bool("operational").
 			Default(true).
-			Annotations(entrest.WithFilter(entrest.FilterEQ)).
 			Comment("Operational status"),
-		field.Int("net_side_id").
+		field.Int("speed").
+			Comment("Port speed in Mbps"),
+
+		// Computed fields (from serializer, stored per D-40)
+		field.Int("ix_id").
 			Optional().
-			Nillable().
-			Comment("Network-side facility ID"),
-		field.Int("ix_side_id").
+			Comment("Internet exchange ID (computed)"),
+		field.String("name").
 			Optional().
-			Nillable().
-			Comment("IX-side facility ID"),
+			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("Name (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").
@@ -106,14 +101,14 @@ func (NetworkIxLan) Fields() []ent.Field {
 // Edges of the NetworkIxLan.
 func (NetworkIxLan) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("network", Network.Type).
-			Ref("network_ix_lans").
-			Field("net_id").
-			Unique().
-			Annotations(entrest.WithEagerLoad(true)),
 		edge.From("ix_lan", IxLan.Type).
 			Ref("network_ix_lans").
 			Field("ixlan_id").
+			Unique().
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.From("network", Network.Type).
+			Ref("network_ix_lans").
+			Field("net_id").
 			Unique().
 			Annotations(entrest.WithEagerLoad(true)),
 	}
@@ -122,12 +117,11 @@ func (NetworkIxLan) Edges() []ent.Edge {
 // Indexes of the NetworkIxLan.
 func (NetworkIxLan) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("status"),
-		index.Fields("net_id"),
+		index.Fields("ix_side_id"),
 		index.Fields("ixlan_id"),
-		index.Fields("asn"),
-		index.Fields("ipaddr4"),
-		index.Fields("ipaddr6"),
+		index.Fields("net_id"),
+		index.Fields("net_side_id"),
+		index.Fields("status"),
 	}
 }
 

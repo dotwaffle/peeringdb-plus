@@ -19,70 +19,70 @@ import (
 type InternetExchange struct {
 	config `json:"-"`
 	// ID of the ent.
-	// PeeringDB internet exchange ID
+	// PeeringDB internetexchange ID
 	ID int `json:"id,omitempty"`
 	// FK to organization
 	OrgID *int `json:"org_id"`
-	// Internet exchange name
-	Name string `json:"name"`
 	// Also known as
 	Aka string `json:"aka"`
-	// Long name
-	NameLong string `json:"name_long"`
 	// City
 	City string `json:"city"`
 	// Country code
 	Country string `json:"country"`
-	// Region / continent
-	RegionContinent string `json:"region_continent"`
-	// Media type
-	Media string `json:"media"`
-	// Notes
-	Notes string `json:"notes"`
-	// Supports unicast
-	ProtoUnicast bool `json:"proto_unicast"`
-	// Supports multicast
-	ProtoMulticast bool `json:"proto_multicast"`
-	// Supports IPv6
-	ProtoIpv6 bool `json:"proto_ipv6"`
-	// Internet exchange website URL
-	Website string `json:"website"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media"`
-	// Statistics URL
-	URLStats string `json:"url_stats"`
-	// Technical contact email
-	TechEmail string `json:"tech_email"`
-	// Technical contact phone
-	TechPhone string `json:"tech_phone"`
-	// Policy contact email
-	PolicyEmail string `json:"policy_email"`
-	// Policy contact phone
-	PolicyPhone string `json:"policy_phone"`
-	// Sales contact email
-	SalesEmail string `json:"sales_email"`
-	// Sales contact phone
-	SalesPhone string `json:"sales_phone"`
-	// Network count (computed)
-	NetCount int `json:"net_count"`
-	// Facility count (computed)
-	FacCount int `json:"fac_count"`
+	// IXF last import timestamp
+	IxfLastImport *time.Time `json:"ixf_last_import"`
 	// IXF net count
 	IxfNetCount int `json:"ixf_net_count"`
-	// Last IXF import timestamp
-	IxfLastImport *time.Time `json:"ixf_last_import"`
-	// IXF import request
-	IxfImportRequest *string `json:"ixf_import_request"`
-	// IXF import request status
-	IxfImportRequestStatus string `json:"ixf_import_request_status"`
-	// Service level
-	ServiceLevel string `json:"service_level"`
-	// Terms
-	Terms string `json:"terms"`
-	// Status dashboard URL
-	StatusDashboard *string `json:"status_dashboard"`
 	// Logo URL
 	Logo *string `json:"logo"`
+	// Exchange media type
+	Media string `json:"media"`
+	// Internet exchange name
+	Name string `json:"name"`
+	// Long name
+	NameLong string `json:"name_long"`
+	// Notes
+	Notes string `json:"notes"`
+	// Policy email
+	PolicyEmail string `json:"policy_email"`
+	// Policy phone
+	PolicyPhone string `json:"policy_phone"`
+	// Supports IPv6
+	ProtoIpv6 bool `json:"proto_ipv6"`
+	// Supports multicast
+	ProtoMulticast bool `json:"proto_multicast"`
+	// Supports unicast
+	ProtoUnicast bool `json:"proto_unicast"`
+	// Region/continent
+	RegionContinent string `json:"region_continent"`
+	// Sales email
+	SalesEmail string `json:"sales_email"`
+	// Sales phone
+	SalesPhone string `json:"sales_phone"`
+	// Service level
+	ServiceLevel string `json:"service_level"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media"`
+	// Status dashboard URL
+	StatusDashboard *string `json:"status_dashboard"`
+	// Technical email
+	TechEmail string `json:"tech_email"`
+	// Technical phone
+	TechPhone string `json:"tech_phone"`
+	// Terms
+	Terms string `json:"terms"`
+	// Statistics URL
+	URLStats string `json:"url_stats"`
+	// IX website URL
+	Website string `json:"website"`
+	// Net Count (computed)
+	NetCount int `json:"net_count"`
+	// Fac Count (computed)
+	FacCount int `json:"fac_count"`
+	// Ixf Import Request (computed)
+	IxfImportRequest *string `json:"ixf_import_request"`
+	// Ixf Import Request Status (computed)
+	IxfImportRequestStatus string `json:"ixf_import_request_status"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -97,31 +97,29 @@ type InternetExchange struct {
 
 // InternetExchangeEdges holds the relations/edges for other nodes in the graph.
 type InternetExchangeEdges struct {
-	// Organization holds the value of the organization edge.
-	Organization *Organization `json:"organization,omitempty"`
-	// IxLans holds the value of the ix_lans edge.
-	IxLans []*IxLan `json:"ix_lans,omitempty"`
 	// IxFacilities holds the value of the ix_facilities edge.
 	IxFacilities []*IxFacility `json:"ix_facilities,omitempty"`
+	// IxLans holds the value of the ix_lans edge.
+	IxLans []*IxLan `json:"ix_lans,omitempty"`
+	// Organization holds the value of the organization edge.
+	Organization *Organization `json:"organization,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [3]bool
 	// totalCount holds the count of the edges above.
 	totalCount [3]map[string]int
 
-	namedIxLans       map[string][]*IxLan
 	namedIxFacilities map[string][]*IxFacility
+	namedIxLans       map[string][]*IxLan
 }
 
-// OrganizationOrErr returns the Organization value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e InternetExchangeEdges) OrganizationOrErr() (*Organization, error) {
-	if e.Organization != nil {
-		return e.Organization, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: organization.Label}
+// IxFacilitiesOrErr returns the IxFacilities value or an error if the edge
+// was not loaded in eager-loading.
+func (e InternetExchangeEdges) IxFacilitiesOrErr() ([]*IxFacility, error) {
+	if e.loadedTypes[0] {
+		return e.IxFacilities, nil
 	}
-	return nil, &NotLoadedError{edge: "organization"}
+	return nil, &NotLoadedError{edge: "ix_facilities"}
 }
 
 // IxLansOrErr returns the IxLans value or an error if the edge
@@ -133,13 +131,15 @@ func (e InternetExchangeEdges) IxLansOrErr() ([]*IxLan, error) {
 	return nil, &NotLoadedError{edge: "ix_lans"}
 }
 
-// IxFacilitiesOrErr returns the IxFacilities value or an error if the edge
-// was not loaded in eager-loading.
-func (e InternetExchangeEdges) IxFacilitiesOrErr() ([]*IxFacility, error) {
-	if e.loadedTypes[2] {
-		return e.IxFacilities, nil
+// OrganizationOrErr returns the Organization value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e InternetExchangeEdges) OrganizationOrErr() (*Organization, error) {
+	if e.Organization != nil {
+		return e.Organization, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: organization.Label}
 	}
-	return nil, &NotLoadedError{edge: "ix_facilities"}
+	return nil, &NotLoadedError{edge: "organization"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -149,11 +149,11 @@ func (*InternetExchange) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case internetexchange.FieldSocialMedia:
 			values[i] = new([]byte)
-		case internetexchange.FieldProtoUnicast, internetexchange.FieldProtoMulticast, internetexchange.FieldProtoIpv6:
+		case internetexchange.FieldProtoIpv6, internetexchange.FieldProtoMulticast, internetexchange.FieldProtoUnicast:
 			values[i] = new(sql.NullBool)
-		case internetexchange.FieldID, internetexchange.FieldOrgID, internetexchange.FieldNetCount, internetexchange.FieldFacCount, internetexchange.FieldIxfNetCount:
+		case internetexchange.FieldID, internetexchange.FieldOrgID, internetexchange.FieldIxfNetCount, internetexchange.FieldNetCount, internetexchange.FieldFacCount:
 			values[i] = new(sql.NullInt64)
-		case internetexchange.FieldName, internetexchange.FieldAka, internetexchange.FieldNameLong, internetexchange.FieldCity, internetexchange.FieldCountry, internetexchange.FieldRegionContinent, internetexchange.FieldMedia, internetexchange.FieldNotes, internetexchange.FieldWebsite, internetexchange.FieldURLStats, internetexchange.FieldTechEmail, internetexchange.FieldTechPhone, internetexchange.FieldPolicyEmail, internetexchange.FieldPolicyPhone, internetexchange.FieldSalesEmail, internetexchange.FieldSalesPhone, internetexchange.FieldIxfImportRequest, internetexchange.FieldIxfImportRequestStatus, internetexchange.FieldServiceLevel, internetexchange.FieldTerms, internetexchange.FieldStatusDashboard, internetexchange.FieldLogo, internetexchange.FieldStatus:
+		case internetexchange.FieldAka, internetexchange.FieldCity, internetexchange.FieldCountry, internetexchange.FieldLogo, internetexchange.FieldMedia, internetexchange.FieldName, internetexchange.FieldNameLong, internetexchange.FieldNotes, internetexchange.FieldPolicyEmail, internetexchange.FieldPolicyPhone, internetexchange.FieldRegionContinent, internetexchange.FieldSalesEmail, internetexchange.FieldSalesPhone, internetexchange.FieldServiceLevel, internetexchange.FieldStatusDashboard, internetexchange.FieldTechEmail, internetexchange.FieldTechPhone, internetexchange.FieldTerms, internetexchange.FieldURLStats, internetexchange.FieldWebsite, internetexchange.FieldIxfImportRequest, internetexchange.FieldIxfImportRequestStatus, internetexchange.FieldStatus:
 			values[i] = new(sql.NullString)
 		case internetexchange.FieldIxfLastImport, internetexchange.FieldCreated, internetexchange.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -185,23 +185,11 @@ func (_m *InternetExchange) assignValues(columns []string, values []any) error {
 				_m.OrgID = new(int)
 				*_m.OrgID = int(value.Int64)
 			}
-		case internetexchange.FieldName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
-			} else if value.Valid {
-				_m.Name = value.String
-			}
 		case internetexchange.FieldAka:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field aka", values[i])
 			} else if value.Valid {
 				_m.Aka = value.String
-			}
-		case internetexchange.FieldNameLong:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name_long", values[i])
-			} else if value.Valid {
-				_m.NameLong = value.String
 			}
 		case internetexchange.FieldCity:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -215,11 +203,25 @@ func (_m *InternetExchange) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Country = value.String
 			}
-		case internetexchange.FieldRegionContinent:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field region_continent", values[i])
+		case internetexchange.FieldIxfLastImport:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field ixf_last_import", values[i])
 			} else if value.Valid {
-				_m.RegionContinent = value.String
+				_m.IxfLastImport = new(time.Time)
+				*_m.IxfLastImport = value.Time
+			}
+		case internetexchange.FieldIxfNetCount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field ixf_net_count", values[i])
+			} else if value.Valid {
+				_m.IxfNetCount = int(value.Int64)
+			}
+		case internetexchange.FieldLogo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field logo", values[i])
+			} else if value.Valid {
+				_m.Logo = new(string)
+				*_m.Logo = value.String
 			}
 		case internetexchange.FieldMedia:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -227,61 +229,23 @@ func (_m *InternetExchange) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Media = value.String
 			}
+		case internetexchange.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				_m.Name = value.String
+			}
+		case internetexchange.FieldNameLong:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_long", values[i])
+			} else if value.Valid {
+				_m.NameLong = value.String
+			}
 		case internetexchange.FieldNotes:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field notes", values[i])
 			} else if value.Valid {
 				_m.Notes = value.String
-			}
-		case internetexchange.FieldProtoUnicast:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field proto_unicast", values[i])
-			} else if value.Valid {
-				_m.ProtoUnicast = value.Bool
-			}
-		case internetexchange.FieldProtoMulticast:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field proto_multicast", values[i])
-			} else if value.Valid {
-				_m.ProtoMulticast = value.Bool
-			}
-		case internetexchange.FieldProtoIpv6:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field proto_ipv6", values[i])
-			} else if value.Valid {
-				_m.ProtoIpv6 = value.Bool
-			}
-		case internetexchange.FieldWebsite:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field website", values[i])
-			} else if value.Valid {
-				_m.Website = value.String
-			}
-		case internetexchange.FieldSocialMedia:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field social_media", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.SocialMedia); err != nil {
-					return fmt.Errorf("unmarshal field social_media: %w", err)
-				}
-			}
-		case internetexchange.FieldURLStats:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field url_stats", values[i])
-			} else if value.Valid {
-				_m.URLStats = value.String
-			}
-		case internetexchange.FieldTechEmail:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tech_email", values[i])
-			} else if value.Valid {
-				_m.TechEmail = value.String
-			}
-		case internetexchange.FieldTechPhone:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tech_phone", values[i])
-			} else if value.Valid {
-				_m.TechPhone = value.String
 			}
 		case internetexchange.FieldPolicyEmail:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -295,6 +259,30 @@ func (_m *InternetExchange) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.PolicyPhone = value.String
 			}
+		case internetexchange.FieldProtoIpv6:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field proto_ipv6", values[i])
+			} else if value.Valid {
+				_m.ProtoIpv6 = value.Bool
+			}
+		case internetexchange.FieldProtoMulticast:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field proto_multicast", values[i])
+			} else if value.Valid {
+				_m.ProtoMulticast = value.Bool
+			}
+		case internetexchange.FieldProtoUnicast:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field proto_unicast", values[i])
+			} else if value.Valid {
+				_m.ProtoUnicast = value.Bool
+			}
+		case internetexchange.FieldRegionContinent:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field region_continent", values[i])
+			} else if value.Valid {
+				_m.RegionContinent = value.String
+			}
 		case internetexchange.FieldSalesEmail:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field sales_email", values[i])
@@ -306,6 +294,57 @@ func (_m *InternetExchange) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field sales_phone", values[i])
 			} else if value.Valid {
 				_m.SalesPhone = value.String
+			}
+		case internetexchange.FieldServiceLevel:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field service_level", values[i])
+			} else if value.Valid {
+				_m.ServiceLevel = value.String
+			}
+		case internetexchange.FieldSocialMedia:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field social_media", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.SocialMedia); err != nil {
+					return fmt.Errorf("unmarshal field social_media: %w", err)
+				}
+			}
+		case internetexchange.FieldStatusDashboard:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field status_dashboard", values[i])
+			} else if value.Valid {
+				_m.StatusDashboard = new(string)
+				*_m.StatusDashboard = value.String
+			}
+		case internetexchange.FieldTechEmail:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tech_email", values[i])
+			} else if value.Valid {
+				_m.TechEmail = value.String
+			}
+		case internetexchange.FieldTechPhone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tech_phone", values[i])
+			} else if value.Valid {
+				_m.TechPhone = value.String
+			}
+		case internetexchange.FieldTerms:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field terms", values[i])
+			} else if value.Valid {
+				_m.Terms = value.String
+			}
+		case internetexchange.FieldURLStats:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field url_stats", values[i])
+			} else if value.Valid {
+				_m.URLStats = value.String
+			}
+		case internetexchange.FieldWebsite:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field website", values[i])
+			} else if value.Valid {
+				_m.Website = value.String
 			}
 		case internetexchange.FieldNetCount:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -319,19 +358,6 @@ func (_m *InternetExchange) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.FacCount = int(value.Int64)
 			}
-		case internetexchange.FieldIxfNetCount:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field ixf_net_count", values[i])
-			} else if value.Valid {
-				_m.IxfNetCount = int(value.Int64)
-			}
-		case internetexchange.FieldIxfLastImport:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field ixf_last_import", values[i])
-			} else if value.Valid {
-				_m.IxfLastImport = new(time.Time)
-				*_m.IxfLastImport = value.Time
-			}
 		case internetexchange.FieldIxfImportRequest:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field ixf_import_request", values[i])
@@ -344,32 +370,6 @@ func (_m *InternetExchange) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field ixf_import_request_status", values[i])
 			} else if value.Valid {
 				_m.IxfImportRequestStatus = value.String
-			}
-		case internetexchange.FieldServiceLevel:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field service_level", values[i])
-			} else if value.Valid {
-				_m.ServiceLevel = value.String
-			}
-		case internetexchange.FieldTerms:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field terms", values[i])
-			} else if value.Valid {
-				_m.Terms = value.String
-			}
-		case internetexchange.FieldStatusDashboard:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field status_dashboard", values[i])
-			} else if value.Valid {
-				_m.StatusDashboard = new(string)
-				*_m.StatusDashboard = value.String
-			}
-		case internetexchange.FieldLogo:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field logo", values[i])
-			} else if value.Valid {
-				_m.Logo = new(string)
-				*_m.Logo = value.String
 			}
 		case internetexchange.FieldCreated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -402,9 +402,9 @@ func (_m *InternetExchange) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryOrganization queries the "organization" edge of the InternetExchange entity.
-func (_m *InternetExchange) QueryOrganization() *OrganizationQuery {
-	return NewInternetExchangeClient(_m.config).QueryOrganization(_m)
+// QueryIxFacilities queries the "ix_facilities" edge of the InternetExchange entity.
+func (_m *InternetExchange) QueryIxFacilities() *IxFacilityQuery {
+	return NewInternetExchangeClient(_m.config).QueryIxFacilities(_m)
 }
 
 // QueryIxLans queries the "ix_lans" edge of the InternetExchange entity.
@@ -412,9 +412,9 @@ func (_m *InternetExchange) QueryIxLans() *IxLanQuery {
 	return NewInternetExchangeClient(_m.config).QueryIxLans(_m)
 }
 
-// QueryIxFacilities queries the "ix_facilities" edge of the InternetExchange entity.
-func (_m *InternetExchange) QueryIxFacilities() *IxFacilityQuery {
-	return NewInternetExchangeClient(_m.config).QueryIxFacilities(_m)
+// QueryOrganization queries the "organization" edge of the InternetExchange entity.
+func (_m *InternetExchange) QueryOrganization() *OrganizationQuery {
+	return NewInternetExchangeClient(_m.config).QueryOrganization(_m)
 }
 
 // Update returns a builder for updating this InternetExchange.
@@ -445,14 +445,8 @@ func (_m *InternetExchange) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(_m.Name)
-	builder.WriteString(", ")
 	builder.WriteString("aka=")
 	builder.WriteString(_m.Aka)
-	builder.WriteString(", ")
-	builder.WriteString("name_long=")
-	builder.WriteString(_m.NameLong)
 	builder.WriteString(", ")
 	builder.WriteString("city=")
 	builder.WriteString(_m.City)
@@ -460,38 +454,30 @@ func (_m *InternetExchange) String() string {
 	builder.WriteString("country=")
 	builder.WriteString(_m.Country)
 	builder.WriteString(", ")
-	builder.WriteString("region_continent=")
-	builder.WriteString(_m.RegionContinent)
+	if v := _m.IxfLastImport; v != nil {
+		builder.WriteString("ixf_last_import=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("ixf_net_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IxfNetCount))
+	builder.WriteString(", ")
+	if v := _m.Logo; v != nil {
+		builder.WriteString("logo=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("media=")
 	builder.WriteString(_m.Media)
 	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("name_long=")
+	builder.WriteString(_m.NameLong)
+	builder.WriteString(", ")
 	builder.WriteString("notes=")
 	builder.WriteString(_m.Notes)
-	builder.WriteString(", ")
-	builder.WriteString("proto_unicast=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ProtoUnicast))
-	builder.WriteString(", ")
-	builder.WriteString("proto_multicast=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ProtoMulticast))
-	builder.WriteString(", ")
-	builder.WriteString("proto_ipv6=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ProtoIpv6))
-	builder.WriteString(", ")
-	builder.WriteString("website=")
-	builder.WriteString(_m.Website)
-	builder.WriteString(", ")
-	builder.WriteString("social_media=")
-	builder.WriteString(fmt.Sprintf("%v", _m.SocialMedia))
-	builder.WriteString(", ")
-	builder.WriteString("url_stats=")
-	builder.WriteString(_m.URLStats)
-	builder.WriteString(", ")
-	builder.WriteString("tech_email=")
-	builder.WriteString(_m.TechEmail)
-	builder.WriteString(", ")
-	builder.WriteString("tech_phone=")
-	builder.WriteString(_m.TechPhone)
 	builder.WriteString(", ")
 	builder.WriteString("policy_email=")
 	builder.WriteString(_m.PolicyEmail)
@@ -499,25 +485,55 @@ func (_m *InternetExchange) String() string {
 	builder.WriteString("policy_phone=")
 	builder.WriteString(_m.PolicyPhone)
 	builder.WriteString(", ")
+	builder.WriteString("proto_ipv6=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ProtoIpv6))
+	builder.WriteString(", ")
+	builder.WriteString("proto_multicast=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ProtoMulticast))
+	builder.WriteString(", ")
+	builder.WriteString("proto_unicast=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ProtoUnicast))
+	builder.WriteString(", ")
+	builder.WriteString("region_continent=")
+	builder.WriteString(_m.RegionContinent)
+	builder.WriteString(", ")
 	builder.WriteString("sales_email=")
 	builder.WriteString(_m.SalesEmail)
 	builder.WriteString(", ")
 	builder.WriteString("sales_phone=")
 	builder.WriteString(_m.SalesPhone)
 	builder.WriteString(", ")
+	builder.WriteString("service_level=")
+	builder.WriteString(_m.ServiceLevel)
+	builder.WriteString(", ")
+	builder.WriteString("social_media=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SocialMedia))
+	builder.WriteString(", ")
+	if v := _m.StatusDashboard; v != nil {
+		builder.WriteString("status_dashboard=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("tech_email=")
+	builder.WriteString(_m.TechEmail)
+	builder.WriteString(", ")
+	builder.WriteString("tech_phone=")
+	builder.WriteString(_m.TechPhone)
+	builder.WriteString(", ")
+	builder.WriteString("terms=")
+	builder.WriteString(_m.Terms)
+	builder.WriteString(", ")
+	builder.WriteString("url_stats=")
+	builder.WriteString(_m.URLStats)
+	builder.WriteString(", ")
+	builder.WriteString("website=")
+	builder.WriteString(_m.Website)
+	builder.WriteString(", ")
 	builder.WriteString("net_count=")
 	builder.WriteString(fmt.Sprintf("%v", _m.NetCount))
 	builder.WriteString(", ")
 	builder.WriteString("fac_count=")
 	builder.WriteString(fmt.Sprintf("%v", _m.FacCount))
-	builder.WriteString(", ")
-	builder.WriteString("ixf_net_count=")
-	builder.WriteString(fmt.Sprintf("%v", _m.IxfNetCount))
-	builder.WriteString(", ")
-	if v := _m.IxfLastImport; v != nil {
-		builder.WriteString("ixf_last_import=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
 	builder.WriteString(", ")
 	if v := _m.IxfImportRequest; v != nil {
 		builder.WriteString("ixf_import_request=")
@@ -526,22 +542,6 @@ func (_m *InternetExchange) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("ixf_import_request_status=")
 	builder.WriteString(_m.IxfImportRequestStatus)
-	builder.WriteString(", ")
-	builder.WriteString("service_level=")
-	builder.WriteString(_m.ServiceLevel)
-	builder.WriteString(", ")
-	builder.WriteString("terms=")
-	builder.WriteString(_m.Terms)
-	builder.WriteString(", ")
-	if v := _m.StatusDashboard; v != nil {
-		builder.WriteString("status_dashboard=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.Logo; v != nil {
-		builder.WriteString("logo=")
-		builder.WriteString(*v)
-	}
 	builder.WriteString(", ")
 	builder.WriteString("created=")
 	builder.WriteString(_m.Created.Format(time.ANSIC))
@@ -553,30 +553,6 @@ func (_m *InternetExchange) String() string {
 	builder.WriteString(_m.Status)
 	builder.WriteByte(')')
 	return builder.String()
-}
-
-// NamedIxLans returns the IxLans named value or an error if the edge was not
-// loaded in eager-loading with this name.
-func (_m *InternetExchange) NamedIxLans(name string) ([]*IxLan, error) {
-	if _m.Edges.namedIxLans == nil {
-		return nil, &NotLoadedError{edge: name}
-	}
-	nodes, ok := _m.Edges.namedIxLans[name]
-	if !ok {
-		return nil, &NotLoadedError{edge: name}
-	}
-	return nodes, nil
-}
-
-func (_m *InternetExchange) appendNamedIxLans(name string, edges ...*IxLan) {
-	if _m.Edges.namedIxLans == nil {
-		_m.Edges.namedIxLans = make(map[string][]*IxLan)
-	}
-	if len(edges) == 0 {
-		_m.Edges.namedIxLans[name] = []*IxLan{}
-	} else {
-		_m.Edges.namedIxLans[name] = append(_m.Edges.namedIxLans[name], edges...)
-	}
 }
 
 // NamedIxFacilities returns the IxFacilities named value or an error if the edge was not
@@ -600,6 +576,30 @@ func (_m *InternetExchange) appendNamedIxFacilities(name string, edges ...*IxFac
 		_m.Edges.namedIxFacilities[name] = []*IxFacility{}
 	} else {
 		_m.Edges.namedIxFacilities[name] = append(_m.Edges.namedIxFacilities[name], edges...)
+	}
+}
+
+// NamedIxLans returns the IxLans named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (_m *InternetExchange) NamedIxLans(name string) ([]*IxLan, error) {
+	if _m.Edges.namedIxLans == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := _m.Edges.namedIxLans[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (_m *InternetExchange) appendNamedIxLans(name string, edges ...*IxLan) {
+	if _m.Edges.namedIxLans == nil {
+		_m.Edges.namedIxLans = make(map[string][]*IxLan)
+	}
+	if len(edges) == 0 {
+		_m.Edges.namedIxLans[name] = []*IxLan{}
+	} else {
+		_m.Edges.namedIxLans[name] = append(_m.Edges.namedIxLans[name], edges...)
 	}
 }
 

@@ -37,22 +37,16 @@ func (_c *PocCreate) SetNillableNetID(v *int) *PocCreate {
 	return _c
 }
 
-// SetRole sets the "role" field.
-func (_c *PocCreate) SetRole(v string) *PocCreate {
-	_c.mutation.SetRole(v)
+// SetEmail sets the "email" field.
+func (_c *PocCreate) SetEmail(v string) *PocCreate {
+	_c.mutation.SetEmail(v)
 	return _c
 }
 
-// SetVisible sets the "visible" field.
-func (_c *PocCreate) SetVisible(v string) *PocCreate {
-	_c.mutation.SetVisible(v)
-	return _c
-}
-
-// SetNillableVisible sets the "visible" field if the given value is not nil.
-func (_c *PocCreate) SetNillableVisible(v *string) *PocCreate {
+// SetNillableEmail sets the "email" field if the given value is not nil.
+func (_c *PocCreate) SetNillableEmail(v *string) *PocCreate {
 	if v != nil {
-		_c.SetVisible(*v)
+		_c.SetEmail(*v)
 	}
 	return _c
 }
@@ -85,17 +79,9 @@ func (_c *PocCreate) SetNillablePhone(v *string) *PocCreate {
 	return _c
 }
 
-// SetEmail sets the "email" field.
-func (_c *PocCreate) SetEmail(v string) *PocCreate {
-	_c.mutation.SetEmail(v)
-	return _c
-}
-
-// SetNillableEmail sets the "email" field if the given value is not nil.
-func (_c *PocCreate) SetNillableEmail(v *string) *PocCreate {
-	if v != nil {
-		_c.SetEmail(*v)
-	}
+// SetRole sets the "role" field.
+func (_c *PocCreate) SetRole(v string) *PocCreate {
+	_c.mutation.SetRole(v)
 	return _c
 }
 
@@ -109,6 +95,20 @@ func (_c *PocCreate) SetURL(v string) *PocCreate {
 func (_c *PocCreate) SetNillableURL(v *string) *PocCreate {
 	if v != nil {
 		_c.SetURL(*v)
+	}
+	return _c
+}
+
+// SetVisible sets the "visible" field.
+func (_c *PocCreate) SetVisible(v string) *PocCreate {
+	_c.mutation.SetVisible(v)
+	return _c
+}
+
+// SetNillableVisible sets the "visible" field if the given value is not nil.
+func (_c *PocCreate) SetNillableVisible(v *string) *PocCreate {
+	if v != nil {
+		_c.SetVisible(*v)
 	}
 	return _c
 }
@@ -201,9 +201,9 @@ func (_c *PocCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *PocCreate) defaults() error {
-	if _, ok := _c.mutation.Visible(); !ok {
-		v := poc.DefaultVisible
-		_c.mutation.SetVisible(v)
+	if _, ok := _c.mutation.Email(); !ok {
+		v := poc.DefaultEmail
+		_c.mutation.SetEmail(v)
 	}
 	if _, ok := _c.mutation.Name(); !ok {
 		v := poc.DefaultName
@@ -213,13 +213,13 @@ func (_c *PocCreate) defaults() error {
 		v := poc.DefaultPhone
 		_c.mutation.SetPhone(v)
 	}
-	if _, ok := _c.mutation.Email(); !ok {
-		v := poc.DefaultEmail
-		_c.mutation.SetEmail(v)
-	}
 	if _, ok := _c.mutation.URL(); !ok {
 		v := poc.DefaultURL
 		_c.mutation.SetURL(v)
+	}
+	if _, ok := _c.mutation.Visible(); !ok {
+		v := poc.DefaultVisible
+		_c.mutation.SetVisible(v)
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := poc.DefaultStatus
@@ -230,20 +230,9 @@ func (_c *PocCreate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *PocCreate) check() error {
-	if _, ok := _c.mutation.Role(); !ok {
-		return &ValidationError{Name: "role", err: errors.New(`ent: missing required field "Poc.role"`)}
-	}
-	if v, ok := _c.mutation.Role(); ok {
-		if err := poc.RoleValidator(v); err != nil {
-			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
-		}
-	}
-	if _, ok := _c.mutation.Visible(); !ok {
-		return &ValidationError{Name: "visible", err: errors.New(`ent: missing required field "Poc.visible"`)}
-	}
-	if v, ok := _c.mutation.Visible(); ok {
-		if err := poc.VisibleValidator(v); err != nil {
-			return &ValidationError{Name: "visible", err: fmt.Errorf(`ent: validator failed for field "Poc.visible": %w`, err)}
+	if v, ok := _c.mutation.Email(); ok {
+		if err := poc.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Poc.email": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.Name(); ok {
@@ -256,9 +245,17 @@ func (_c *PocCreate) check() error {
 			return &ValidationError{Name: "phone", err: fmt.Errorf(`ent: validator failed for field "Poc.phone": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.Email(); ok {
-		if err := poc.EmailValidator(v); err != nil {
-			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Poc.email": %w`, err)}
+	if _, ok := _c.mutation.Role(); !ok {
+		return &ValidationError{Name: "role", err: errors.New(`ent: missing required field "Poc.role"`)}
+	}
+	if v, ok := _c.mutation.Role(); ok {
+		if err := poc.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.Visible(); ok {
+		if err := poc.VisibleValidator(v); err != nil {
+			return &ValidationError{Name: "visible", err: fmt.Errorf(`ent: validator failed for field "Poc.visible": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Created(); !ok {
@@ -313,13 +310,9 @@ func (_c *PocCreate) createSpec() (*Poc, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.Role(); ok {
-		_spec.SetField(poc.FieldRole, field.TypeString, value)
-		_node.Role = value
-	}
-	if value, ok := _c.mutation.Visible(); ok {
-		_spec.SetField(poc.FieldVisible, field.TypeString, value)
-		_node.Visible = value
+	if value, ok := _c.mutation.Email(); ok {
+		_spec.SetField(poc.FieldEmail, field.TypeString, value)
+		_node.Email = value
 	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(poc.FieldName, field.TypeString, value)
@@ -329,13 +322,17 @@ func (_c *PocCreate) createSpec() (*Poc, *sqlgraph.CreateSpec) {
 		_spec.SetField(poc.FieldPhone, field.TypeString, value)
 		_node.Phone = value
 	}
-	if value, ok := _c.mutation.Email(); ok {
-		_spec.SetField(poc.FieldEmail, field.TypeString, value)
-		_node.Email = value
+	if value, ok := _c.mutation.Role(); ok {
+		_spec.SetField(poc.FieldRole, field.TypeString, value)
+		_node.Role = value
 	}
 	if value, ok := _c.mutation.URL(); ok {
 		_spec.SetField(poc.FieldURL, field.TypeString, value)
 		_node.URL = value
+	}
+	if value, ok := _c.mutation.Visible(); ok {
+		_spec.SetField(poc.FieldVisible, field.TypeString, value)
+		_node.Visible = value
 	}
 	if value, ok := _c.mutation.Created(); ok {
 		_spec.SetField(poc.FieldCreated, field.TypeTime, value)
@@ -436,27 +433,21 @@ func (u *PocUpsert) ClearNetID() *PocUpsert {
 	return u
 }
 
-// SetRole sets the "role" field.
-func (u *PocUpsert) SetRole(v string) *PocUpsert {
-	u.Set(poc.FieldRole, v)
+// SetEmail sets the "email" field.
+func (u *PocUpsert) SetEmail(v string) *PocUpsert {
+	u.Set(poc.FieldEmail, v)
 	return u
 }
 
-// UpdateRole sets the "role" field to the value that was provided on create.
-func (u *PocUpsert) UpdateRole() *PocUpsert {
-	u.SetExcluded(poc.FieldRole)
+// UpdateEmail sets the "email" field to the value that was provided on create.
+func (u *PocUpsert) UpdateEmail() *PocUpsert {
+	u.SetExcluded(poc.FieldEmail)
 	return u
 }
 
-// SetVisible sets the "visible" field.
-func (u *PocUpsert) SetVisible(v string) *PocUpsert {
-	u.Set(poc.FieldVisible, v)
-	return u
-}
-
-// UpdateVisible sets the "visible" field to the value that was provided on create.
-func (u *PocUpsert) UpdateVisible() *PocUpsert {
-	u.SetExcluded(poc.FieldVisible)
+// ClearEmail clears the value of the "email" field.
+func (u *PocUpsert) ClearEmail() *PocUpsert {
+	u.SetNull(poc.FieldEmail)
 	return u
 }
 
@@ -496,21 +487,15 @@ func (u *PocUpsert) ClearPhone() *PocUpsert {
 	return u
 }
 
-// SetEmail sets the "email" field.
-func (u *PocUpsert) SetEmail(v string) *PocUpsert {
-	u.Set(poc.FieldEmail, v)
+// SetRole sets the "role" field.
+func (u *PocUpsert) SetRole(v string) *PocUpsert {
+	u.Set(poc.FieldRole, v)
 	return u
 }
 
-// UpdateEmail sets the "email" field to the value that was provided on create.
-func (u *PocUpsert) UpdateEmail() *PocUpsert {
-	u.SetExcluded(poc.FieldEmail)
-	return u
-}
-
-// ClearEmail clears the value of the "email" field.
-func (u *PocUpsert) ClearEmail() *PocUpsert {
-	u.SetNull(poc.FieldEmail)
+// UpdateRole sets the "role" field to the value that was provided on create.
+func (u *PocUpsert) UpdateRole() *PocUpsert {
+	u.SetExcluded(poc.FieldRole)
 	return u
 }
 
@@ -529,6 +514,24 @@ func (u *PocUpsert) UpdateURL() *PocUpsert {
 // ClearURL clears the value of the "url" field.
 func (u *PocUpsert) ClearURL() *PocUpsert {
 	u.SetNull(poc.FieldURL)
+	return u
+}
+
+// SetVisible sets the "visible" field.
+func (u *PocUpsert) SetVisible(v string) *PocUpsert {
+	u.Set(poc.FieldVisible, v)
+	return u
+}
+
+// UpdateVisible sets the "visible" field to the value that was provided on create.
+func (u *PocUpsert) UpdateVisible() *PocUpsert {
+	u.SetExcluded(poc.FieldVisible)
+	return u
+}
+
+// ClearVisible clears the value of the "visible" field.
+func (u *PocUpsert) ClearVisible() *PocUpsert {
+	u.SetNull(poc.FieldVisible)
 	return u
 }
 
@@ -628,31 +631,24 @@ func (u *PocUpsertOne) ClearNetID() *PocUpsertOne {
 	})
 }
 
-// SetRole sets the "role" field.
-func (u *PocUpsertOne) SetRole(v string) *PocUpsertOne {
+// SetEmail sets the "email" field.
+func (u *PocUpsertOne) SetEmail(v string) *PocUpsertOne {
 	return u.Update(func(s *PocUpsert) {
-		s.SetRole(v)
+		s.SetEmail(v)
 	})
 }
 
-// UpdateRole sets the "role" field to the value that was provided on create.
-func (u *PocUpsertOne) UpdateRole() *PocUpsertOne {
+// UpdateEmail sets the "email" field to the value that was provided on create.
+func (u *PocUpsertOne) UpdateEmail() *PocUpsertOne {
 	return u.Update(func(s *PocUpsert) {
-		s.UpdateRole()
+		s.UpdateEmail()
 	})
 }
 
-// SetVisible sets the "visible" field.
-func (u *PocUpsertOne) SetVisible(v string) *PocUpsertOne {
+// ClearEmail clears the value of the "email" field.
+func (u *PocUpsertOne) ClearEmail() *PocUpsertOne {
 	return u.Update(func(s *PocUpsert) {
-		s.SetVisible(v)
-	})
-}
-
-// UpdateVisible sets the "visible" field to the value that was provided on create.
-func (u *PocUpsertOne) UpdateVisible() *PocUpsertOne {
-	return u.Update(func(s *PocUpsert) {
-		s.UpdateVisible()
+		s.ClearEmail()
 	})
 }
 
@@ -698,24 +694,17 @@ func (u *PocUpsertOne) ClearPhone() *PocUpsertOne {
 	})
 }
 
-// SetEmail sets the "email" field.
-func (u *PocUpsertOne) SetEmail(v string) *PocUpsertOne {
+// SetRole sets the "role" field.
+func (u *PocUpsertOne) SetRole(v string) *PocUpsertOne {
 	return u.Update(func(s *PocUpsert) {
-		s.SetEmail(v)
+		s.SetRole(v)
 	})
 }
 
-// UpdateEmail sets the "email" field to the value that was provided on create.
-func (u *PocUpsertOne) UpdateEmail() *PocUpsertOne {
+// UpdateRole sets the "role" field to the value that was provided on create.
+func (u *PocUpsertOne) UpdateRole() *PocUpsertOne {
 	return u.Update(func(s *PocUpsert) {
-		s.UpdateEmail()
-	})
-}
-
-// ClearEmail clears the value of the "email" field.
-func (u *PocUpsertOne) ClearEmail() *PocUpsertOne {
-	return u.Update(func(s *PocUpsert) {
-		s.ClearEmail()
+		s.UpdateRole()
 	})
 }
 
@@ -737,6 +726,27 @@ func (u *PocUpsertOne) UpdateURL() *PocUpsertOne {
 func (u *PocUpsertOne) ClearURL() *PocUpsertOne {
 	return u.Update(func(s *PocUpsert) {
 		s.ClearURL()
+	})
+}
+
+// SetVisible sets the "visible" field.
+func (u *PocUpsertOne) SetVisible(v string) *PocUpsertOne {
+	return u.Update(func(s *PocUpsert) {
+		s.SetVisible(v)
+	})
+}
+
+// UpdateVisible sets the "visible" field to the value that was provided on create.
+func (u *PocUpsertOne) UpdateVisible() *PocUpsertOne {
+	return u.Update(func(s *PocUpsert) {
+		s.UpdateVisible()
+	})
+}
+
+// ClearVisible clears the value of the "visible" field.
+func (u *PocUpsertOne) ClearVisible() *PocUpsertOne {
+	return u.Update(func(s *PocUpsert) {
+		s.ClearVisible()
 	})
 }
 
@@ -1006,31 +1016,24 @@ func (u *PocUpsertBulk) ClearNetID() *PocUpsertBulk {
 	})
 }
 
-// SetRole sets the "role" field.
-func (u *PocUpsertBulk) SetRole(v string) *PocUpsertBulk {
+// SetEmail sets the "email" field.
+func (u *PocUpsertBulk) SetEmail(v string) *PocUpsertBulk {
 	return u.Update(func(s *PocUpsert) {
-		s.SetRole(v)
+		s.SetEmail(v)
 	})
 }
 
-// UpdateRole sets the "role" field to the value that was provided on create.
-func (u *PocUpsertBulk) UpdateRole() *PocUpsertBulk {
+// UpdateEmail sets the "email" field to the value that was provided on create.
+func (u *PocUpsertBulk) UpdateEmail() *PocUpsertBulk {
 	return u.Update(func(s *PocUpsert) {
-		s.UpdateRole()
+		s.UpdateEmail()
 	})
 }
 
-// SetVisible sets the "visible" field.
-func (u *PocUpsertBulk) SetVisible(v string) *PocUpsertBulk {
+// ClearEmail clears the value of the "email" field.
+func (u *PocUpsertBulk) ClearEmail() *PocUpsertBulk {
 	return u.Update(func(s *PocUpsert) {
-		s.SetVisible(v)
-	})
-}
-
-// UpdateVisible sets the "visible" field to the value that was provided on create.
-func (u *PocUpsertBulk) UpdateVisible() *PocUpsertBulk {
-	return u.Update(func(s *PocUpsert) {
-		s.UpdateVisible()
+		s.ClearEmail()
 	})
 }
 
@@ -1076,24 +1079,17 @@ func (u *PocUpsertBulk) ClearPhone() *PocUpsertBulk {
 	})
 }
 
-// SetEmail sets the "email" field.
-func (u *PocUpsertBulk) SetEmail(v string) *PocUpsertBulk {
+// SetRole sets the "role" field.
+func (u *PocUpsertBulk) SetRole(v string) *PocUpsertBulk {
 	return u.Update(func(s *PocUpsert) {
-		s.SetEmail(v)
+		s.SetRole(v)
 	})
 }
 
-// UpdateEmail sets the "email" field to the value that was provided on create.
-func (u *PocUpsertBulk) UpdateEmail() *PocUpsertBulk {
+// UpdateRole sets the "role" field to the value that was provided on create.
+func (u *PocUpsertBulk) UpdateRole() *PocUpsertBulk {
 	return u.Update(func(s *PocUpsert) {
-		s.UpdateEmail()
-	})
-}
-
-// ClearEmail clears the value of the "email" field.
-func (u *PocUpsertBulk) ClearEmail() *PocUpsertBulk {
-	return u.Update(func(s *PocUpsert) {
-		s.ClearEmail()
+		s.UpdateRole()
 	})
 }
 
@@ -1115,6 +1111,27 @@ func (u *PocUpsertBulk) UpdateURL() *PocUpsertBulk {
 func (u *PocUpsertBulk) ClearURL() *PocUpsertBulk {
 	return u.Update(func(s *PocUpsert) {
 		s.ClearURL()
+	})
+}
+
+// SetVisible sets the "visible" field.
+func (u *PocUpsertBulk) SetVisible(v string) *PocUpsertBulk {
+	return u.Update(func(s *PocUpsert) {
+		s.SetVisible(v)
+	})
+}
+
+// UpdateVisible sets the "visible" field to the value that was provided on create.
+func (u *PocUpsertBulk) UpdateVisible() *PocUpsertBulk {
+	return u.Update(func(s *PocUpsert) {
+		s.UpdateVisible()
+	})
+}
+
+// ClearVisible clears the value of the "visible" field.
+func (u *PocUpsertBulk) ClearVisible() *PocUpsertBulk {
+	return u.Update(func(s *PocUpsert) {
+		s.ClearVisible()
 	})
 }
 

@@ -28,16 +28,16 @@ type FacilityQuery struct {
 	order                      []facility.OrderOption
 	inters                     []Interceptor
 	predicates                 []predicate.Facility
-	withOrganization           *OrganizationQuery
 	withCampus                 *CampusQuery
-	withNetworkFacilities      *NetworkFacilityQuery
-	withIxFacilities           *IxFacilityQuery
 	withCarrierFacilities      *CarrierFacilityQuery
+	withIxFacilities           *IxFacilityQuery
+	withNetworkFacilities      *NetworkFacilityQuery
+	withOrganization           *OrganizationQuery
 	modifiers                  []func(*sql.Selector)
 	loadTotal                  []func(context.Context, []*Facility) error
-	withNamedNetworkFacilities map[string]*NetworkFacilityQuery
-	withNamedIxFacilities      map[string]*IxFacilityQuery
 	withNamedCarrierFacilities map[string]*CarrierFacilityQuery
+	withNamedIxFacilities      map[string]*IxFacilityQuery
+	withNamedNetworkFacilities map[string]*NetworkFacilityQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -74,28 +74,6 @@ func (_q *FacilityQuery) Order(o ...facility.OrderOption) *FacilityQuery {
 	return _q
 }
 
-// QueryOrganization chains the current query on the "organization" edge.
-func (_q *FacilityQuery) QueryOrganization() *OrganizationQuery {
-	query := (&OrganizationClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(facility.Table, facility.FieldID, selector),
-			sqlgraph.To(organization.Table, organization.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, facility.OrganizationTable, facility.OrganizationColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
 // QueryCampus chains the current query on the "campus" edge.
 func (_q *FacilityQuery) QueryCampus() *CampusQuery {
 	query := (&CampusClient{config: _q.config}).Query()
@@ -118,9 +96,9 @@ func (_q *FacilityQuery) QueryCampus() *CampusQuery {
 	return query
 }
 
-// QueryNetworkFacilities chains the current query on the "network_facilities" edge.
-func (_q *FacilityQuery) QueryNetworkFacilities() *NetworkFacilityQuery {
-	query := (&NetworkFacilityClient{config: _q.config}).Query()
+// QueryCarrierFacilities chains the current query on the "carrier_facilities" edge.
+func (_q *FacilityQuery) QueryCarrierFacilities() *CarrierFacilityQuery {
+	query := (&CarrierFacilityClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -131,8 +109,8 @@ func (_q *FacilityQuery) QueryNetworkFacilities() *NetworkFacilityQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(facility.Table, facility.FieldID, selector),
-			sqlgraph.To(networkfacility.Table, networkfacility.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, facility.NetworkFacilitiesTable, facility.NetworkFacilitiesColumn),
+			sqlgraph.To(carrierfacility.Table, carrierfacility.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, facility.CarrierFacilitiesTable, facility.CarrierFacilitiesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -162,9 +140,9 @@ func (_q *FacilityQuery) QueryIxFacilities() *IxFacilityQuery {
 	return query
 }
 
-// QueryCarrierFacilities chains the current query on the "carrier_facilities" edge.
-func (_q *FacilityQuery) QueryCarrierFacilities() *CarrierFacilityQuery {
-	query := (&CarrierFacilityClient{config: _q.config}).Query()
+// QueryNetworkFacilities chains the current query on the "network_facilities" edge.
+func (_q *FacilityQuery) QueryNetworkFacilities() *NetworkFacilityQuery {
+	query := (&NetworkFacilityClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -175,8 +153,30 @@ func (_q *FacilityQuery) QueryCarrierFacilities() *CarrierFacilityQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(facility.Table, facility.FieldID, selector),
-			sqlgraph.To(carrierfacility.Table, carrierfacility.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, facility.CarrierFacilitiesTable, facility.CarrierFacilitiesColumn),
+			sqlgraph.To(networkfacility.Table, networkfacility.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, facility.NetworkFacilitiesTable, facility.NetworkFacilitiesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOrganization chains the current query on the "organization" edge.
+func (_q *FacilityQuery) QueryOrganization() *OrganizationQuery {
+	query := (&OrganizationClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(facility.Table, facility.FieldID, selector),
+			sqlgraph.To(organization.Table, organization.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, facility.OrganizationTable, facility.OrganizationColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -376,26 +376,15 @@ func (_q *FacilityQuery) Clone() *FacilityQuery {
 		order:                 append([]facility.OrderOption{}, _q.order...),
 		inters:                append([]Interceptor{}, _q.inters...),
 		predicates:            append([]predicate.Facility{}, _q.predicates...),
-		withOrganization:      _q.withOrganization.Clone(),
 		withCampus:            _q.withCampus.Clone(),
-		withNetworkFacilities: _q.withNetworkFacilities.Clone(),
-		withIxFacilities:      _q.withIxFacilities.Clone(),
 		withCarrierFacilities: _q.withCarrierFacilities.Clone(),
+		withIxFacilities:      _q.withIxFacilities.Clone(),
+		withNetworkFacilities: _q.withNetworkFacilities.Clone(),
+		withOrganization:      _q.withOrganization.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
-}
-
-// WithOrganization tells the query-builder to eager-load the nodes that are connected to
-// the "organization" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *FacilityQuery) WithOrganization(opts ...func(*OrganizationQuery)) *FacilityQuery {
-	query := (&OrganizationClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withOrganization = query
-	return _q
 }
 
 // WithCampus tells the query-builder to eager-load the nodes that are connected to
@@ -406,28 +395,6 @@ func (_q *FacilityQuery) WithCampus(opts ...func(*CampusQuery)) *FacilityQuery {
 		opt(query)
 	}
 	_q.withCampus = query
-	return _q
-}
-
-// WithNetworkFacilities tells the query-builder to eager-load the nodes that are connected to
-// the "network_facilities" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *FacilityQuery) WithNetworkFacilities(opts ...func(*NetworkFacilityQuery)) *FacilityQuery {
-	query := (&NetworkFacilityClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withNetworkFacilities = query
-	return _q
-}
-
-// WithIxFacilities tells the query-builder to eager-load the nodes that are connected to
-// the "ix_facilities" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *FacilityQuery) WithIxFacilities(opts ...func(*IxFacilityQuery)) *FacilityQuery {
-	query := (&IxFacilityClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withIxFacilities = query
 	return _q
 }
 
@@ -442,18 +409,51 @@ func (_q *FacilityQuery) WithCarrierFacilities(opts ...func(*CarrierFacilityQuer
 	return _q
 }
 
+// WithIxFacilities tells the query-builder to eager-load the nodes that are connected to
+// the "ix_facilities" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *FacilityQuery) WithIxFacilities(opts ...func(*IxFacilityQuery)) *FacilityQuery {
+	query := (&IxFacilityClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withIxFacilities = query
+	return _q
+}
+
+// WithNetworkFacilities tells the query-builder to eager-load the nodes that are connected to
+// the "network_facilities" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *FacilityQuery) WithNetworkFacilities(opts ...func(*NetworkFacilityQuery)) *FacilityQuery {
+	query := (&NetworkFacilityClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withNetworkFacilities = query
+	return _q
+}
+
+// WithOrganization tells the query-builder to eager-load the nodes that are connected to
+// the "organization" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *FacilityQuery) WithOrganization(opts ...func(*OrganizationQuery)) *FacilityQuery {
+	query := (&OrganizationClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOrganization = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id"`
+//		CampusID int `json:"campus_id"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Facility.Query().
-//		GroupBy(facility.FieldOrgID).
+//		GroupBy(facility.FieldCampusID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *FacilityQuery) GroupBy(field string, fields ...string) *FacilityGroupBy {
@@ -471,11 +471,11 @@ func (_q *FacilityQuery) GroupBy(field string, fields ...string) *FacilityGroupB
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id"`
+//		CampusID int `json:"campus_id"`
 //	}
 //
 //	client.Facility.Query().
-//		Select(facility.FieldOrgID).
+//		Select(facility.FieldCampusID).
 //		Scan(ctx, &v)
 func (_q *FacilityQuery) Select(fields ...string) *FacilitySelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
@@ -521,11 +521,11 @@ func (_q *FacilityQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Fac
 		nodes       = []*Facility{}
 		_spec       = _q.querySpec()
 		loadedTypes = [5]bool{
-			_q.withOrganization != nil,
 			_q.withCampus != nil,
-			_q.withNetworkFacilities != nil,
-			_q.withIxFacilities != nil,
 			_q.withCarrierFacilities != nil,
+			_q.withIxFacilities != nil,
+			_q.withNetworkFacilities != nil,
+			_q.withOrganization != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -549,31 +549,9 @@ func (_q *FacilityQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Fac
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withOrganization; query != nil {
-		if err := _q.loadOrganization(ctx, query, nodes, nil,
-			func(n *Facility, e *Organization) { n.Edges.Organization = e }); err != nil {
-			return nil, err
-		}
-	}
 	if query := _q.withCampus; query != nil {
 		if err := _q.loadCampus(ctx, query, nodes, nil,
 			func(n *Facility, e *Campus) { n.Edges.Campus = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withNetworkFacilities; query != nil {
-		if err := _q.loadNetworkFacilities(ctx, query, nodes,
-			func(n *Facility) { n.Edges.NetworkFacilities = []*NetworkFacility{} },
-			func(n *Facility, e *NetworkFacility) {
-				n.Edges.NetworkFacilities = append(n.Edges.NetworkFacilities, e)
-			}); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withIxFacilities; query != nil {
-		if err := _q.loadIxFacilities(ctx, query, nodes,
-			func(n *Facility) { n.Edges.IxFacilities = []*IxFacility{} },
-			func(n *Facility, e *IxFacility) { n.Edges.IxFacilities = append(n.Edges.IxFacilities, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -586,10 +564,32 @@ func (_q *FacilityQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Fac
 			return nil, err
 		}
 	}
-	for name, query := range _q.withNamedNetworkFacilities {
+	if query := _q.withIxFacilities; query != nil {
+		if err := _q.loadIxFacilities(ctx, query, nodes,
+			func(n *Facility) { n.Edges.IxFacilities = []*IxFacility{} },
+			func(n *Facility, e *IxFacility) { n.Edges.IxFacilities = append(n.Edges.IxFacilities, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withNetworkFacilities; query != nil {
 		if err := _q.loadNetworkFacilities(ctx, query, nodes,
-			func(n *Facility) { n.appendNamedNetworkFacilities(name) },
-			func(n *Facility, e *NetworkFacility) { n.appendNamedNetworkFacilities(name, e) }); err != nil {
+			func(n *Facility) { n.Edges.NetworkFacilities = []*NetworkFacility{} },
+			func(n *Facility, e *NetworkFacility) {
+				n.Edges.NetworkFacilities = append(n.Edges.NetworkFacilities, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOrganization; query != nil {
+		if err := _q.loadOrganization(ctx, query, nodes, nil,
+			func(n *Facility, e *Organization) { n.Edges.Organization = e }); err != nil {
+			return nil, err
+		}
+	}
+	for name, query := range _q.withNamedCarrierFacilities {
+		if err := _q.loadCarrierFacilities(ctx, query, nodes,
+			func(n *Facility) { n.appendNamedCarrierFacilities(name) },
+			func(n *Facility, e *CarrierFacility) { n.appendNamedCarrierFacilities(name, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -600,10 +600,10 @@ func (_q *FacilityQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Fac
 			return nil, err
 		}
 	}
-	for name, query := range _q.withNamedCarrierFacilities {
-		if err := _q.loadCarrierFacilities(ctx, query, nodes,
-			func(n *Facility) { n.appendNamedCarrierFacilities(name) },
-			func(n *Facility, e *CarrierFacility) { n.appendNamedCarrierFacilities(name, e) }); err != nil {
+	for name, query := range _q.withNamedNetworkFacilities {
+		if err := _q.loadNetworkFacilities(ctx, query, nodes,
+			func(n *Facility) { n.appendNamedNetworkFacilities(name) },
+			func(n *Facility, e *NetworkFacility) { n.appendNamedNetworkFacilities(name, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -615,38 +615,6 @@ func (_q *FacilityQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Fac
 	return nodes, nil
 }
 
-func (_q *FacilityQuery) loadOrganization(ctx context.Context, query *OrganizationQuery, nodes []*Facility, init func(*Facility), assign func(*Facility, *Organization)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Facility)
-	for i := range nodes {
-		if nodes[i].OrgID == nil {
-			continue
-		}
-		fk := *nodes[i].OrgID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(organization.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "org_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
 func (_q *FacilityQuery) loadCampus(ctx context.Context, query *CampusQuery, nodes []*Facility, init func(*Facility), assign func(*Facility, *Campus)) error {
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Facility)
@@ -679,7 +647,7 @@ func (_q *FacilityQuery) loadCampus(ctx context.Context, query *CampusQuery, nod
 	}
 	return nil
 }
-func (_q *FacilityQuery) loadNetworkFacilities(ctx context.Context, query *NetworkFacilityQuery, nodes []*Facility, init func(*Facility), assign func(*Facility, *NetworkFacility)) error {
+func (_q *FacilityQuery) loadCarrierFacilities(ctx context.Context, query *CarrierFacilityQuery, nodes []*Facility, init func(*Facility), assign func(*Facility, *CarrierFacility)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*Facility)
 	for i := range nodes {
@@ -690,10 +658,10 @@ func (_q *FacilityQuery) loadNetworkFacilities(ctx context.Context, query *Netwo
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(networkfacility.FieldFacID)
+		query.ctx.AppendFieldOnce(carrierfacility.FieldFacID)
 	}
-	query.Where(predicate.NetworkFacility(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(facility.NetworkFacilitiesColumn), fks...))
+	query.Where(predicate.CarrierFacility(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(facility.CarrierFacilitiesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -745,7 +713,7 @@ func (_q *FacilityQuery) loadIxFacilities(ctx context.Context, query *IxFacility
 	}
 	return nil
 }
-func (_q *FacilityQuery) loadCarrierFacilities(ctx context.Context, query *CarrierFacilityQuery, nodes []*Facility, init func(*Facility), assign func(*Facility, *CarrierFacility)) error {
+func (_q *FacilityQuery) loadNetworkFacilities(ctx context.Context, query *NetworkFacilityQuery, nodes []*Facility, init func(*Facility), assign func(*Facility, *NetworkFacility)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*Facility)
 	for i := range nodes {
@@ -756,10 +724,10 @@ func (_q *FacilityQuery) loadCarrierFacilities(ctx context.Context, query *Carri
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(carrierfacility.FieldFacID)
+		query.ctx.AppendFieldOnce(networkfacility.FieldFacID)
 	}
-	query.Where(predicate.CarrierFacility(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(facility.CarrierFacilitiesColumn), fks...))
+	query.Where(predicate.NetworkFacility(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(facility.NetworkFacilitiesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -775,6 +743,38 @@ func (_q *FacilityQuery) loadCarrierFacilities(ctx context.Context, query *Carri
 			return fmt.Errorf(`unexpected referenced foreign-key "fac_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
+	}
+	return nil
+}
+func (_q *FacilityQuery) loadOrganization(ctx context.Context, query *OrganizationQuery, nodes []*Facility, init func(*Facility), assign func(*Facility, *Organization)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Facility)
+	for i := range nodes {
+		if nodes[i].OrgID == nil {
+			continue
+		}
+		fk := *nodes[i].OrgID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(organization.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "org_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }
@@ -807,11 +807,11 @@ func (_q *FacilityQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if _q.withOrganization != nil {
-			_spec.Node.AddColumnOnce(facility.FieldOrgID)
-		}
 		if _q.withCampus != nil {
 			_spec.Node.AddColumnOnce(facility.FieldCampusID)
+		}
+		if _q.withOrganization != nil {
+			_spec.Node.AddColumnOnce(facility.FieldOrgID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -869,17 +869,17 @@ func (_q *FacilityQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// WithNamedNetworkFacilities tells the query-builder to eager-load the nodes that are connected to the "network_facilities"
+// WithNamedCarrierFacilities tells the query-builder to eager-load the nodes that are connected to the "carrier_facilities"
 // edge with the given name. The optional arguments are used to configure the query builder of the edge.
-func (_q *FacilityQuery) WithNamedNetworkFacilities(name string, opts ...func(*NetworkFacilityQuery)) *FacilityQuery {
-	query := (&NetworkFacilityClient{config: _q.config}).Query()
+func (_q *FacilityQuery) WithNamedCarrierFacilities(name string, opts ...func(*CarrierFacilityQuery)) *FacilityQuery {
+	query := (&CarrierFacilityClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	if _q.withNamedNetworkFacilities == nil {
-		_q.withNamedNetworkFacilities = make(map[string]*NetworkFacilityQuery)
+	if _q.withNamedCarrierFacilities == nil {
+		_q.withNamedCarrierFacilities = make(map[string]*CarrierFacilityQuery)
 	}
-	_q.withNamedNetworkFacilities[name] = query
+	_q.withNamedCarrierFacilities[name] = query
 	return _q
 }
 
@@ -897,17 +897,17 @@ func (_q *FacilityQuery) WithNamedIxFacilities(name string, opts ...func(*IxFaci
 	return _q
 }
 
-// WithNamedCarrierFacilities tells the query-builder to eager-load the nodes that are connected to the "carrier_facilities"
+// WithNamedNetworkFacilities tells the query-builder to eager-load the nodes that are connected to the "network_facilities"
 // edge with the given name. The optional arguments are used to configure the query builder of the edge.
-func (_q *FacilityQuery) WithNamedCarrierFacilities(name string, opts ...func(*CarrierFacilityQuery)) *FacilityQuery {
-	query := (&CarrierFacilityClient{config: _q.config}).Query()
+func (_q *FacilityQuery) WithNamedNetworkFacilities(name string, opts ...func(*NetworkFacilityQuery)) *FacilityQuery {
+	query := (&NetworkFacilityClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	if _q.withNamedCarrierFacilities == nil {
-		_q.withNamedCarrierFacilities = make(map[string]*CarrierFacilityQuery)
+	if _q.withNamedNetworkFacilities == nil {
+		_q.withNamedNetworkFacilities = make(map[string]*NetworkFacilityQuery)
 	}
-	_q.withNamedCarrierFacilities[name] = query
+	_q.withNamedNetworkFacilities[name] = query
 	return _q
 }
 

@@ -25,8 +25,8 @@ type CarrierQuery struct {
 	order                      []carrier.OrderOption
 	inters                     []Interceptor
 	predicates                 []predicate.Carrier
-	withOrganization           *OrganizationQuery
 	withCarrierFacilities      *CarrierFacilityQuery
+	withOrganization           *OrganizationQuery
 	modifiers                  []func(*sql.Selector)
 	loadTotal                  []func(context.Context, []*Carrier) error
 	withNamedCarrierFacilities map[string]*CarrierFacilityQuery
@@ -66,28 +66,6 @@ func (_q *CarrierQuery) Order(o ...carrier.OrderOption) *CarrierQuery {
 	return _q
 }
 
-// QueryOrganization chains the current query on the "organization" edge.
-func (_q *CarrierQuery) QueryOrganization() *OrganizationQuery {
-	query := (&OrganizationClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(carrier.Table, carrier.FieldID, selector),
-			sqlgraph.To(organization.Table, organization.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, carrier.OrganizationTable, carrier.OrganizationColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
 // QueryCarrierFacilities chains the current query on the "carrier_facilities" edge.
 func (_q *CarrierQuery) QueryCarrierFacilities() *CarrierFacilityQuery {
 	query := (&CarrierFacilityClient{config: _q.config}).Query()
@@ -103,6 +81,28 @@ func (_q *CarrierQuery) QueryCarrierFacilities() *CarrierFacilityQuery {
 			sqlgraph.From(carrier.Table, carrier.FieldID, selector),
 			sqlgraph.To(carrierfacility.Table, carrierfacility.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, carrier.CarrierFacilitiesTable, carrier.CarrierFacilitiesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOrganization chains the current query on the "organization" edge.
+func (_q *CarrierQuery) QueryOrganization() *OrganizationQuery {
+	query := (&OrganizationClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(carrier.Table, carrier.FieldID, selector),
+			sqlgraph.To(organization.Table, organization.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, carrier.OrganizationTable, carrier.OrganizationColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -302,23 +302,12 @@ func (_q *CarrierQuery) Clone() *CarrierQuery {
 		order:                 append([]carrier.OrderOption{}, _q.order...),
 		inters:                append([]Interceptor{}, _q.inters...),
 		predicates:            append([]predicate.Carrier{}, _q.predicates...),
-		withOrganization:      _q.withOrganization.Clone(),
 		withCarrierFacilities: _q.withCarrierFacilities.Clone(),
+		withOrganization:      _q.withOrganization.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
-}
-
-// WithOrganization tells the query-builder to eager-load the nodes that are connected to
-// the "organization" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *CarrierQuery) WithOrganization(opts ...func(*OrganizationQuery)) *CarrierQuery {
-	query := (&OrganizationClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withOrganization = query
-	return _q
 }
 
 // WithCarrierFacilities tells the query-builder to eager-load the nodes that are connected to
@@ -329,6 +318,17 @@ func (_q *CarrierQuery) WithCarrierFacilities(opts ...func(*CarrierFacilityQuery
 		opt(query)
 	}
 	_q.withCarrierFacilities = query
+	return _q
+}
+
+// WithOrganization tells the query-builder to eager-load the nodes that are connected to
+// the "organization" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CarrierQuery) WithOrganization(opts ...func(*OrganizationQuery)) *CarrierQuery {
+	query := (&OrganizationClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOrganization = query
 	return _q
 }
 
@@ -411,8 +411,8 @@ func (_q *CarrierQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Carr
 		nodes       = []*Carrier{}
 		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			_q.withOrganization != nil,
 			_q.withCarrierFacilities != nil,
+			_q.withOrganization != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -436,16 +436,16 @@ func (_q *CarrierQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Carr
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withOrganization; query != nil {
-		if err := _q.loadOrganization(ctx, query, nodes, nil,
-			func(n *Carrier, e *Organization) { n.Edges.Organization = e }); err != nil {
-			return nil, err
-		}
-	}
 	if query := _q.withCarrierFacilities; query != nil {
 		if err := _q.loadCarrierFacilities(ctx, query, nodes,
 			func(n *Carrier) { n.Edges.CarrierFacilities = []*CarrierFacility{} },
 			func(n *Carrier, e *CarrierFacility) { n.Edges.CarrierFacilities = append(n.Edges.CarrierFacilities, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOrganization; query != nil {
+		if err := _q.loadOrganization(ctx, query, nodes, nil,
+			func(n *Carrier, e *Organization) { n.Edges.Organization = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -464,38 +464,6 @@ func (_q *CarrierQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Carr
 	return nodes, nil
 }
 
-func (_q *CarrierQuery) loadOrganization(ctx context.Context, query *OrganizationQuery, nodes []*Carrier, init func(*Carrier), assign func(*Carrier, *Organization)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Carrier)
-	for i := range nodes {
-		if nodes[i].OrgID == nil {
-			continue
-		}
-		fk := *nodes[i].OrgID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(organization.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "org_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
 func (_q *CarrierQuery) loadCarrierFacilities(ctx context.Context, query *CarrierFacilityQuery, nodes []*Carrier, init func(*Carrier), assign func(*Carrier, *CarrierFacility)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*Carrier)
@@ -526,6 +494,38 @@ func (_q *CarrierQuery) loadCarrierFacilities(ctx context.Context, query *Carrie
 			return fmt.Errorf(`unexpected referenced foreign-key "carrier_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
+	}
+	return nil
+}
+func (_q *CarrierQuery) loadOrganization(ctx context.Context, query *OrganizationQuery, nodes []*Carrier, init func(*Carrier), assign func(*Carrier, *Organization)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Carrier)
+	for i := range nodes {
+		if nodes[i].OrgID == nil {
+			continue
+		}
+		fk := *nodes[i].OrgID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(organization.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "org_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }

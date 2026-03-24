@@ -24,20 +24,6 @@ type IxFacilityCreate struct {
 	conflict []sql.ConflictOption
 }
 
-// SetIxID sets the "ix_id" field.
-func (_c *IxFacilityCreate) SetIxID(v int) *IxFacilityCreate {
-	_c.mutation.SetIxID(v)
-	return _c
-}
-
-// SetNillableIxID sets the "ix_id" field if the given value is not nil.
-func (_c *IxFacilityCreate) SetNillableIxID(v *int) *IxFacilityCreate {
-	if v != nil {
-		_c.SetIxID(*v)
-	}
-	return _c
-}
-
 // SetFacID sets the "fac_id" field.
 func (_c *IxFacilityCreate) SetFacID(v int) *IxFacilityCreate {
 	_c.mutation.SetFacID(v)
@@ -48,6 +34,20 @@ func (_c *IxFacilityCreate) SetFacID(v int) *IxFacilityCreate {
 func (_c *IxFacilityCreate) SetNillableFacID(v *int) *IxFacilityCreate {
 	if v != nil {
 		_c.SetFacID(*v)
+	}
+	return _c
+}
+
+// SetIxID sets the "ix_id" field.
+func (_c *IxFacilityCreate) SetIxID(v int) *IxFacilityCreate {
+	_c.mutation.SetIxID(v)
+	return _c
+}
+
+// SetNillableIxID sets the "ix_id" field if the given value is not nil.
+func (_c *IxFacilityCreate) SetNillableIxID(v *int) *IxFacilityCreate {
+	if v != nil {
+		_c.SetIxID(*v)
 	}
 	return _c
 }
@@ -126,25 +126,6 @@ func (_c *IxFacilityCreate) SetID(v int) *IxFacilityCreate {
 	return _c
 }
 
-// SetInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID.
-func (_c *IxFacilityCreate) SetInternetExchangeID(id int) *IxFacilityCreate {
-	_c.mutation.SetInternetExchangeID(id)
-	return _c
-}
-
-// SetNillableInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID if the given value is not nil.
-func (_c *IxFacilityCreate) SetNillableInternetExchangeID(id *int) *IxFacilityCreate {
-	if id != nil {
-		_c = _c.SetInternetExchangeID(*id)
-	}
-	return _c
-}
-
-// SetInternetExchange sets the "internet_exchange" edge to the InternetExchange entity.
-func (_c *IxFacilityCreate) SetInternetExchange(v *InternetExchange) *IxFacilityCreate {
-	return _c.SetInternetExchangeID(v.ID)
-}
-
 // SetFacilityID sets the "facility" edge to the Facility entity by ID.
 func (_c *IxFacilityCreate) SetFacilityID(id int) *IxFacilityCreate {
 	_c.mutation.SetFacilityID(id)
@@ -162,6 +143,25 @@ func (_c *IxFacilityCreate) SetNillableFacilityID(id *int) *IxFacilityCreate {
 // SetFacility sets the "facility" edge to the Facility entity.
 func (_c *IxFacilityCreate) SetFacility(v *Facility) *IxFacilityCreate {
 	return _c.SetFacilityID(v.ID)
+}
+
+// SetInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID.
+func (_c *IxFacilityCreate) SetInternetExchangeID(id int) *IxFacilityCreate {
+	_c.mutation.SetInternetExchangeID(id)
+	return _c
+}
+
+// SetNillableInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID if the given value is not nil.
+func (_c *IxFacilityCreate) SetNillableInternetExchangeID(id *int) *IxFacilityCreate {
+	if id != nil {
+		_c = _c.SetInternetExchangeID(*id)
+	}
+	return _c
+}
+
+// SetInternetExchange sets the "internet_exchange" edge to the InternetExchange entity.
+func (_c *IxFacilityCreate) SetInternetExchange(v *InternetExchange) *IxFacilityCreate {
+	return _c.SetInternetExchangeID(v.ID)
 }
 
 // Mutation returns the IxFacilityMutation object of the builder.
@@ -298,23 +298,6 @@ func (_c *IxFacilityCreate) createSpec() (*IxFacility, *sqlgraph.CreateSpec) {
 		_spec.SetField(ixfacility.FieldStatus, field.TypeString, value)
 		_node.Status = value
 	}
-	if nodes := _c.mutation.InternetExchangeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   ixfacility.InternetExchangeTable,
-			Columns: []string{ixfacility.InternetExchangeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.IxID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
 	if nodes := _c.mutation.FacilityIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -332,6 +315,23 @@ func (_c *IxFacilityCreate) createSpec() (*IxFacility, *sqlgraph.CreateSpec) {
 		_node.FacID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.InternetExchangeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ixfacility.InternetExchangeTable,
+			Columns: []string{ixfacility.InternetExchangeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.IxID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -339,7 +339,7 @@ func (_c *IxFacilityCreate) createSpec() (*IxFacility, *sqlgraph.CreateSpec) {
 // of the `INSERT` statement. For example:
 //
 //	client.IxFacility.Create().
-//		SetIxID(v).
+//		SetFacID(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -348,7 +348,7 @@ func (_c *IxFacilityCreate) createSpec() (*IxFacility, *sqlgraph.CreateSpec) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.IxFacilityUpsert) {
-//			SetIxID(v+v).
+//			SetFacID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *IxFacilityCreate) OnConflict(opts ...sql.ConflictOption) *IxFacilityUpsertOne {
@@ -384,24 +384,6 @@ type (
 	}
 )
 
-// SetIxID sets the "ix_id" field.
-func (u *IxFacilityUpsert) SetIxID(v int) *IxFacilityUpsert {
-	u.Set(ixfacility.FieldIxID, v)
-	return u
-}
-
-// UpdateIxID sets the "ix_id" field to the value that was provided on create.
-func (u *IxFacilityUpsert) UpdateIxID() *IxFacilityUpsert {
-	u.SetExcluded(ixfacility.FieldIxID)
-	return u
-}
-
-// ClearIxID clears the value of the "ix_id" field.
-func (u *IxFacilityUpsert) ClearIxID() *IxFacilityUpsert {
-	u.SetNull(ixfacility.FieldIxID)
-	return u
-}
-
 // SetFacID sets the "fac_id" field.
 func (u *IxFacilityUpsert) SetFacID(v int) *IxFacilityUpsert {
 	u.Set(ixfacility.FieldFacID, v)
@@ -417,6 +399,24 @@ func (u *IxFacilityUpsert) UpdateFacID() *IxFacilityUpsert {
 // ClearFacID clears the value of the "fac_id" field.
 func (u *IxFacilityUpsert) ClearFacID() *IxFacilityUpsert {
 	u.SetNull(ixfacility.FieldFacID)
+	return u
+}
+
+// SetIxID sets the "ix_id" field.
+func (u *IxFacilityUpsert) SetIxID(v int) *IxFacilityUpsert {
+	u.Set(ixfacility.FieldIxID, v)
+	return u
+}
+
+// UpdateIxID sets the "ix_id" field to the value that was provided on create.
+func (u *IxFacilityUpsert) UpdateIxID() *IxFacilityUpsert {
+	u.SetExcluded(ixfacility.FieldIxID)
+	return u
+}
+
+// ClearIxID clears the value of the "ix_id" field.
+func (u *IxFacilityUpsert) ClearIxID() *IxFacilityUpsert {
+	u.SetNull(ixfacility.FieldIxID)
 	return u
 }
 
@@ -549,27 +549,6 @@ func (u *IxFacilityUpsertOne) Update(set func(*IxFacilityUpsert)) *IxFacilityUps
 	return u
 }
 
-// SetIxID sets the "ix_id" field.
-func (u *IxFacilityUpsertOne) SetIxID(v int) *IxFacilityUpsertOne {
-	return u.Update(func(s *IxFacilityUpsert) {
-		s.SetIxID(v)
-	})
-}
-
-// UpdateIxID sets the "ix_id" field to the value that was provided on create.
-func (u *IxFacilityUpsertOne) UpdateIxID() *IxFacilityUpsertOne {
-	return u.Update(func(s *IxFacilityUpsert) {
-		s.UpdateIxID()
-	})
-}
-
-// ClearIxID clears the value of the "ix_id" field.
-func (u *IxFacilityUpsertOne) ClearIxID() *IxFacilityUpsertOne {
-	return u.Update(func(s *IxFacilityUpsert) {
-		s.ClearIxID()
-	})
-}
-
 // SetFacID sets the "fac_id" field.
 func (u *IxFacilityUpsertOne) SetFacID(v int) *IxFacilityUpsertOne {
 	return u.Update(func(s *IxFacilityUpsert) {
@@ -588,6 +567,27 @@ func (u *IxFacilityUpsertOne) UpdateFacID() *IxFacilityUpsertOne {
 func (u *IxFacilityUpsertOne) ClearFacID() *IxFacilityUpsertOne {
 	return u.Update(func(s *IxFacilityUpsert) {
 		s.ClearFacID()
+	})
+}
+
+// SetIxID sets the "ix_id" field.
+func (u *IxFacilityUpsertOne) SetIxID(v int) *IxFacilityUpsertOne {
+	return u.Update(func(s *IxFacilityUpsert) {
+		s.SetIxID(v)
+	})
+}
+
+// UpdateIxID sets the "ix_id" field to the value that was provided on create.
+func (u *IxFacilityUpsertOne) UpdateIxID() *IxFacilityUpsertOne {
+	return u.Update(func(s *IxFacilityUpsert) {
+		s.UpdateIxID()
+	})
+}
+
+// ClearIxID clears the value of the "ix_id" field.
+func (u *IxFacilityUpsertOne) ClearIxID() *IxFacilityUpsertOne {
+	return u.Update(func(s *IxFacilityUpsert) {
+		s.ClearIxID()
 	})
 }
 
@@ -817,7 +817,7 @@ func (_c *IxFacilityCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.IxFacilityUpsert) {
-//			SetIxID(v+v).
+//			SetFacID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *IxFacilityCreateBulk) OnConflict(opts ...sql.ConflictOption) *IxFacilityUpsertBulk {
@@ -899,27 +899,6 @@ func (u *IxFacilityUpsertBulk) Update(set func(*IxFacilityUpsert)) *IxFacilityUp
 	return u
 }
 
-// SetIxID sets the "ix_id" field.
-func (u *IxFacilityUpsertBulk) SetIxID(v int) *IxFacilityUpsertBulk {
-	return u.Update(func(s *IxFacilityUpsert) {
-		s.SetIxID(v)
-	})
-}
-
-// UpdateIxID sets the "ix_id" field to the value that was provided on create.
-func (u *IxFacilityUpsertBulk) UpdateIxID() *IxFacilityUpsertBulk {
-	return u.Update(func(s *IxFacilityUpsert) {
-		s.UpdateIxID()
-	})
-}
-
-// ClearIxID clears the value of the "ix_id" field.
-func (u *IxFacilityUpsertBulk) ClearIxID() *IxFacilityUpsertBulk {
-	return u.Update(func(s *IxFacilityUpsert) {
-		s.ClearIxID()
-	})
-}
-
 // SetFacID sets the "fac_id" field.
 func (u *IxFacilityUpsertBulk) SetFacID(v int) *IxFacilityUpsertBulk {
 	return u.Update(func(s *IxFacilityUpsert) {
@@ -938,6 +917,27 @@ func (u *IxFacilityUpsertBulk) UpdateFacID() *IxFacilityUpsertBulk {
 func (u *IxFacilityUpsertBulk) ClearFacID() *IxFacilityUpsertBulk {
 	return u.Update(func(s *IxFacilityUpsert) {
 		s.ClearFacID()
+	})
+}
+
+// SetIxID sets the "ix_id" field.
+func (u *IxFacilityUpsertBulk) SetIxID(v int) *IxFacilityUpsertBulk {
+	return u.Update(func(s *IxFacilityUpsert) {
+		s.SetIxID(v)
+	})
+}
+
+// UpdateIxID sets the "ix_id" field to the value that was provided on create.
+func (u *IxFacilityUpsertBulk) UpdateIxID() *IxFacilityUpsertBulk {
+	return u.Update(func(s *IxFacilityUpsert) {
+		s.UpdateIxID()
+	})
+}
+
+// ClearIxID clears the value of the "ix_id" field.
+func (u *IxFacilityUpsertBulk) ClearIxID() *IxFacilityUpsertBulk {
+	return u.Update(func(s *IxFacilityUpsert) {
+		s.ClearIxID()
 	})
 }
 

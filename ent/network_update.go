@@ -54,20 +54,6 @@ func (_u *NetworkUpdate) ClearOrgID() *NetworkUpdate {
 	return _u
 }
 
-// SetName sets the "name" field.
-func (_u *NetworkUpdate) SetName(v string) *NetworkUpdate {
-	_u.mutation.SetName(v)
-	return _u
-}
-
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableName(v *string) *NetworkUpdate {
-	if v != nil {
-		_u.SetName(*v)
-	}
-	return _u
-}
-
 // SetAka sets the "aka" field.
 func (_u *NetworkUpdate) SetAka(v string) *NetworkUpdate {
 	_u.mutation.SetAka(v)
@@ -88,61 +74,17 @@ func (_u *NetworkUpdate) ClearAka() *NetworkUpdate {
 	return _u
 }
 
-// SetNameLong sets the "name_long" field.
-func (_u *NetworkUpdate) SetNameLong(v string) *NetworkUpdate {
-	_u.mutation.SetNameLong(v)
+// SetAllowIxpUpdate sets the "allow_ixp_update" field.
+func (_u *NetworkUpdate) SetAllowIxpUpdate(v bool) *NetworkUpdate {
+	_u.mutation.SetAllowIxpUpdate(v)
 	return _u
 }
 
-// SetNillableNameLong sets the "name_long" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableNameLong(v *string) *NetworkUpdate {
+// SetNillableAllowIxpUpdate sets the "allow_ixp_update" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableAllowIxpUpdate(v *bool) *NetworkUpdate {
 	if v != nil {
-		_u.SetNameLong(*v)
+		_u.SetAllowIxpUpdate(*v)
 	}
-	return _u
-}
-
-// ClearNameLong clears the value of the "name_long" field.
-func (_u *NetworkUpdate) ClearNameLong() *NetworkUpdate {
-	_u.mutation.ClearNameLong()
-	return _u
-}
-
-// SetWebsite sets the "website" field.
-func (_u *NetworkUpdate) SetWebsite(v string) *NetworkUpdate {
-	_u.mutation.SetWebsite(v)
-	return _u
-}
-
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableWebsite(v *string) *NetworkUpdate {
-	if v != nil {
-		_u.SetWebsite(*v)
-	}
-	return _u
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (_u *NetworkUpdate) ClearWebsite() *NetworkUpdate {
-	_u.mutation.ClearWebsite()
-	return _u
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (_u *NetworkUpdate) SetSocialMedia(v []schema.SocialMedia) *NetworkUpdate {
-	_u.mutation.SetSocialMedia(v)
-	return _u
-}
-
-// AppendSocialMedia appends value to the "social_media" field.
-func (_u *NetworkUpdate) AppendSocialMedia(v []schema.SocialMedia) *NetworkUpdate {
-	_u.mutation.AppendSocialMedia(v)
-	return _u
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (_u *NetworkUpdate) ClearSocialMedia() *NetworkUpdate {
-	_u.mutation.ClearSocialMedia()
 	return _u
 }
 
@@ -167,101 +109,45 @@ func (_u *NetworkUpdate) AddAsn(v int) *NetworkUpdate {
 	return _u
 }
 
-// SetLookingGlass sets the "looking_glass" field.
-func (_u *NetworkUpdate) SetLookingGlass(v string) *NetworkUpdate {
-	_u.mutation.SetLookingGlass(v)
+// SetInfoIpv6 sets the "info_ipv6" field.
+func (_u *NetworkUpdate) SetInfoIpv6(v bool) *NetworkUpdate {
+	_u.mutation.SetInfoIpv6(v)
 	return _u
 }
 
-// SetNillableLookingGlass sets the "looking_glass" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableLookingGlass(v *string) *NetworkUpdate {
+// SetNillableInfoIpv6 sets the "info_ipv6" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableInfoIpv6(v *bool) *NetworkUpdate {
 	if v != nil {
-		_u.SetLookingGlass(*v)
+		_u.SetInfoIpv6(*v)
 	}
 	return _u
 }
 
-// ClearLookingGlass clears the value of the "looking_glass" field.
-func (_u *NetworkUpdate) ClearLookingGlass() *NetworkUpdate {
-	_u.mutation.ClearLookingGlass()
+// SetInfoMulticast sets the "info_multicast" field.
+func (_u *NetworkUpdate) SetInfoMulticast(v bool) *NetworkUpdate {
+	_u.mutation.SetInfoMulticast(v)
 	return _u
 }
 
-// SetRouteServer sets the "route_server" field.
-func (_u *NetworkUpdate) SetRouteServer(v string) *NetworkUpdate {
-	_u.mutation.SetRouteServer(v)
-	return _u
-}
-
-// SetNillableRouteServer sets the "route_server" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableRouteServer(v *string) *NetworkUpdate {
+// SetNillableInfoMulticast sets the "info_multicast" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableInfoMulticast(v *bool) *NetworkUpdate {
 	if v != nil {
-		_u.SetRouteServer(*v)
+		_u.SetInfoMulticast(*v)
 	}
 	return _u
 }
 
-// ClearRouteServer clears the value of the "route_server" field.
-func (_u *NetworkUpdate) ClearRouteServer() *NetworkUpdate {
-	_u.mutation.ClearRouteServer()
+// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
+func (_u *NetworkUpdate) SetInfoNeverViaRouteServers(v bool) *NetworkUpdate {
+	_u.mutation.SetInfoNeverViaRouteServers(v)
 	return _u
 }
 
-// SetIrrAsSet sets the "irr_as_set" field.
-func (_u *NetworkUpdate) SetIrrAsSet(v string) *NetworkUpdate {
-	_u.mutation.SetIrrAsSet(v)
-	return _u
-}
-
-// SetNillableIrrAsSet sets the "irr_as_set" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableIrrAsSet(v *string) *NetworkUpdate {
+// SetNillableInfoNeverViaRouteServers sets the "info_never_via_route_servers" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableInfoNeverViaRouteServers(v *bool) *NetworkUpdate {
 	if v != nil {
-		_u.SetIrrAsSet(*v)
+		_u.SetInfoNeverViaRouteServers(*v)
 	}
-	return _u
-}
-
-// ClearIrrAsSet clears the value of the "irr_as_set" field.
-func (_u *NetworkUpdate) ClearIrrAsSet() *NetworkUpdate {
-	_u.mutation.ClearIrrAsSet()
-	return _u
-}
-
-// SetInfoType sets the "info_type" field.
-func (_u *NetworkUpdate) SetInfoType(v string) *NetworkUpdate {
-	_u.mutation.SetInfoType(v)
-	return _u
-}
-
-// SetNillableInfoType sets the "info_type" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableInfoType(v *string) *NetworkUpdate {
-	if v != nil {
-		_u.SetInfoType(*v)
-	}
-	return _u
-}
-
-// ClearInfoType clears the value of the "info_type" field.
-func (_u *NetworkUpdate) ClearInfoType() *NetworkUpdate {
-	_u.mutation.ClearInfoType()
-	return _u
-}
-
-// SetInfoTypes sets the "info_types" field.
-func (_u *NetworkUpdate) SetInfoTypes(v []string) *NetworkUpdate {
-	_u.mutation.SetInfoTypes(v)
-	return _u
-}
-
-// AppendInfoTypes appends value to the "info_types" field.
-func (_u *NetworkUpdate) AppendInfoTypes(v []string) *NetworkUpdate {
-	_u.mutation.AppendInfoTypes(v)
-	return _u
-}
-
-// ClearInfoTypes clears the value of the "info_types" field.
-func (_u *NetworkUpdate) ClearInfoTypes() *NetworkUpdate {
-	_u.mutation.ClearInfoTypes()
 	return _u
 }
 
@@ -319,26 +205,6 @@ func (_u *NetworkUpdate) ClearInfoPrefixes6() *NetworkUpdate {
 	return _u
 }
 
-// SetInfoTraffic sets the "info_traffic" field.
-func (_u *NetworkUpdate) SetInfoTraffic(v string) *NetworkUpdate {
-	_u.mutation.SetInfoTraffic(v)
-	return _u
-}
-
-// SetNillableInfoTraffic sets the "info_traffic" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableInfoTraffic(v *string) *NetworkUpdate {
-	if v != nil {
-		_u.SetInfoTraffic(*v)
-	}
-	return _u
-}
-
-// ClearInfoTraffic clears the value of the "info_traffic" field.
-func (_u *NetworkUpdate) ClearInfoTraffic() *NetworkUpdate {
-	_u.mutation.ClearInfoTraffic()
-	return _u
-}
-
 // SetInfoRatio sets the "info_ratio" field.
 func (_u *NetworkUpdate) SetInfoRatio(v string) *NetworkUpdate {
 	_u.mutation.SetInfoRatio(v)
@@ -379,6 +245,64 @@ func (_u *NetworkUpdate) ClearInfoScope() *NetworkUpdate {
 	return _u
 }
 
+// SetInfoTraffic sets the "info_traffic" field.
+func (_u *NetworkUpdate) SetInfoTraffic(v string) *NetworkUpdate {
+	_u.mutation.SetInfoTraffic(v)
+	return _u
+}
+
+// SetNillableInfoTraffic sets the "info_traffic" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableInfoTraffic(v *string) *NetworkUpdate {
+	if v != nil {
+		_u.SetInfoTraffic(*v)
+	}
+	return _u
+}
+
+// ClearInfoTraffic clears the value of the "info_traffic" field.
+func (_u *NetworkUpdate) ClearInfoTraffic() *NetworkUpdate {
+	_u.mutation.ClearInfoTraffic()
+	return _u
+}
+
+// SetInfoType sets the "info_type" field.
+func (_u *NetworkUpdate) SetInfoType(v string) *NetworkUpdate {
+	_u.mutation.SetInfoType(v)
+	return _u
+}
+
+// SetNillableInfoType sets the "info_type" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableInfoType(v *string) *NetworkUpdate {
+	if v != nil {
+		_u.SetInfoType(*v)
+	}
+	return _u
+}
+
+// ClearInfoType clears the value of the "info_type" field.
+func (_u *NetworkUpdate) ClearInfoType() *NetworkUpdate {
+	_u.mutation.ClearInfoType()
+	return _u
+}
+
+// SetInfoTypes sets the "info_types" field.
+func (_u *NetworkUpdate) SetInfoTypes(v []string) *NetworkUpdate {
+	_u.mutation.SetInfoTypes(v)
+	return _u
+}
+
+// AppendInfoTypes appends value to the "info_types" field.
+func (_u *NetworkUpdate) AppendInfoTypes(v []string) *NetworkUpdate {
+	_u.mutation.AppendInfoTypes(v)
+	return _u
+}
+
+// ClearInfoTypes clears the value of the "info_types" field.
+func (_u *NetworkUpdate) ClearInfoTypes() *NetworkUpdate {
+	_u.mutation.ClearInfoTypes()
+	return _u
+}
+
 // SetInfoUnicast sets the "info_unicast" field.
 func (_u *NetworkUpdate) SetInfoUnicast(v bool) *NetworkUpdate {
 	_u.mutation.SetInfoUnicast(v)
@@ -393,45 +317,97 @@ func (_u *NetworkUpdate) SetNillableInfoUnicast(v *bool) *NetworkUpdate {
 	return _u
 }
 
-// SetInfoMulticast sets the "info_multicast" field.
-func (_u *NetworkUpdate) SetInfoMulticast(v bool) *NetworkUpdate {
-	_u.mutation.SetInfoMulticast(v)
+// SetIrrAsSet sets the "irr_as_set" field.
+func (_u *NetworkUpdate) SetIrrAsSet(v string) *NetworkUpdate {
+	_u.mutation.SetIrrAsSet(v)
 	return _u
 }
 
-// SetNillableInfoMulticast sets the "info_multicast" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableInfoMulticast(v *bool) *NetworkUpdate {
+// SetNillableIrrAsSet sets the "irr_as_set" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableIrrAsSet(v *string) *NetworkUpdate {
 	if v != nil {
-		_u.SetInfoMulticast(*v)
+		_u.SetIrrAsSet(*v)
 	}
 	return _u
 }
 
-// SetInfoIpv6 sets the "info_ipv6" field.
-func (_u *NetworkUpdate) SetInfoIpv6(v bool) *NetworkUpdate {
-	_u.mutation.SetInfoIpv6(v)
+// ClearIrrAsSet clears the value of the "irr_as_set" field.
+func (_u *NetworkUpdate) ClearIrrAsSet() *NetworkUpdate {
+	_u.mutation.ClearIrrAsSet()
 	return _u
 }
 
-// SetNillableInfoIpv6 sets the "info_ipv6" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableInfoIpv6(v *bool) *NetworkUpdate {
+// SetLogo sets the "logo" field.
+func (_u *NetworkUpdate) SetLogo(v string) *NetworkUpdate {
+	_u.mutation.SetLogo(v)
+	return _u
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableLogo(v *string) *NetworkUpdate {
 	if v != nil {
-		_u.SetInfoIpv6(*v)
+		_u.SetLogo(*v)
 	}
 	return _u
 }
 
-// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
-func (_u *NetworkUpdate) SetInfoNeverViaRouteServers(v bool) *NetworkUpdate {
-	_u.mutation.SetInfoNeverViaRouteServers(v)
+// ClearLogo clears the value of the "logo" field.
+func (_u *NetworkUpdate) ClearLogo() *NetworkUpdate {
+	_u.mutation.ClearLogo()
 	return _u
 }
 
-// SetNillableInfoNeverViaRouteServers sets the "info_never_via_route_servers" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableInfoNeverViaRouteServers(v *bool) *NetworkUpdate {
+// SetLookingGlass sets the "looking_glass" field.
+func (_u *NetworkUpdate) SetLookingGlass(v string) *NetworkUpdate {
+	_u.mutation.SetLookingGlass(v)
+	return _u
+}
+
+// SetNillableLookingGlass sets the "looking_glass" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableLookingGlass(v *string) *NetworkUpdate {
 	if v != nil {
-		_u.SetInfoNeverViaRouteServers(*v)
+		_u.SetLookingGlass(*v)
 	}
+	return _u
+}
+
+// ClearLookingGlass clears the value of the "looking_glass" field.
+func (_u *NetworkUpdate) ClearLookingGlass() *NetworkUpdate {
+	_u.mutation.ClearLookingGlass()
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *NetworkUpdate) SetName(v string) *NetworkUpdate {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableName(v *string) *NetworkUpdate {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetNameLong sets the "name_long" field.
+func (_u *NetworkUpdate) SetNameLong(v string) *NetworkUpdate {
+	_u.mutation.SetNameLong(v)
+	return _u
+}
+
+// SetNillableNameLong sets the "name_long" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableNameLong(v *string) *NetworkUpdate {
+	if v != nil {
+		_u.SetNameLong(*v)
+	}
+	return _u
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (_u *NetworkUpdate) ClearNameLong() *NetworkUpdate {
+	_u.mutation.ClearNameLong()
 	return _u
 }
 
@@ -455,23 +431,23 @@ func (_u *NetworkUpdate) ClearNotes() *NetworkUpdate {
 	return _u
 }
 
-// SetPolicyURL sets the "policy_url" field.
-func (_u *NetworkUpdate) SetPolicyURL(v string) *NetworkUpdate {
-	_u.mutation.SetPolicyURL(v)
+// SetPolicyContracts sets the "policy_contracts" field.
+func (_u *NetworkUpdate) SetPolicyContracts(v string) *NetworkUpdate {
+	_u.mutation.SetPolicyContracts(v)
 	return _u
 }
 
-// SetNillablePolicyURL sets the "policy_url" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillablePolicyURL(v *string) *NetworkUpdate {
+// SetNillablePolicyContracts sets the "policy_contracts" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillablePolicyContracts(v *string) *NetworkUpdate {
 	if v != nil {
-		_u.SetPolicyURL(*v)
+		_u.SetPolicyContracts(*v)
 	}
 	return _u
 }
 
-// ClearPolicyURL clears the value of the "policy_url" field.
-func (_u *NetworkUpdate) ClearPolicyURL() *NetworkUpdate {
-	_u.mutation.ClearPolicyURL()
+// ClearPolicyContracts clears the value of the "policy_contracts" field.
+func (_u *NetworkUpdate) ClearPolicyContracts() *NetworkUpdate {
+	_u.mutation.ClearPolicyContracts()
 	return _u
 }
 
@@ -529,57 +505,23 @@ func (_u *NetworkUpdate) SetNillablePolicyRatio(v *bool) *NetworkUpdate {
 	return _u
 }
 
-// SetPolicyContracts sets the "policy_contracts" field.
-func (_u *NetworkUpdate) SetPolicyContracts(v string) *NetworkUpdate {
-	_u.mutation.SetPolicyContracts(v)
+// SetPolicyURL sets the "policy_url" field.
+func (_u *NetworkUpdate) SetPolicyURL(v string) *NetworkUpdate {
+	_u.mutation.SetPolicyURL(v)
 	return _u
 }
 
-// SetNillablePolicyContracts sets the "policy_contracts" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillablePolicyContracts(v *string) *NetworkUpdate {
+// SetNillablePolicyURL sets the "policy_url" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillablePolicyURL(v *string) *NetworkUpdate {
 	if v != nil {
-		_u.SetPolicyContracts(*v)
+		_u.SetPolicyURL(*v)
 	}
 	return _u
 }
 
-// ClearPolicyContracts clears the value of the "policy_contracts" field.
-func (_u *NetworkUpdate) ClearPolicyContracts() *NetworkUpdate {
-	_u.mutation.ClearPolicyContracts()
-	return _u
-}
-
-// SetAllowIxpUpdate sets the "allow_ixp_update" field.
-func (_u *NetworkUpdate) SetAllowIxpUpdate(v bool) *NetworkUpdate {
-	_u.mutation.SetAllowIxpUpdate(v)
-	return _u
-}
-
-// SetNillableAllowIxpUpdate sets the "allow_ixp_update" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableAllowIxpUpdate(v *bool) *NetworkUpdate {
-	if v != nil {
-		_u.SetAllowIxpUpdate(*v)
-	}
-	return _u
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (_u *NetworkUpdate) SetStatusDashboard(v string) *NetworkUpdate {
-	_u.mutation.SetStatusDashboard(v)
-	return _u
-}
-
-// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableStatusDashboard(v *string) *NetworkUpdate {
-	if v != nil {
-		_u.SetStatusDashboard(*v)
-	}
-	return _u
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (_u *NetworkUpdate) ClearStatusDashboard() *NetworkUpdate {
-	_u.mutation.ClearStatusDashboard()
+// ClearPolicyURL clears the value of the "policy_url" field.
+func (_u *NetworkUpdate) ClearPolicyURL() *NetworkUpdate {
+	_u.mutation.ClearPolicyURL()
 	return _u
 }
 
@@ -623,23 +565,81 @@ func (_u *NetworkUpdate) ClearRirStatusUpdated() *NetworkUpdate {
 	return _u
 }
 
-// SetLogo sets the "logo" field.
-func (_u *NetworkUpdate) SetLogo(v string) *NetworkUpdate {
-	_u.mutation.SetLogo(v)
+// SetRouteServer sets the "route_server" field.
+func (_u *NetworkUpdate) SetRouteServer(v string) *NetworkUpdate {
+	_u.mutation.SetRouteServer(v)
 	return _u
 }
 
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableLogo(v *string) *NetworkUpdate {
+// SetNillableRouteServer sets the "route_server" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableRouteServer(v *string) *NetworkUpdate {
 	if v != nil {
-		_u.SetLogo(*v)
+		_u.SetRouteServer(*v)
 	}
 	return _u
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (_u *NetworkUpdate) ClearLogo() *NetworkUpdate {
-	_u.mutation.ClearLogo()
+// ClearRouteServer clears the value of the "route_server" field.
+func (_u *NetworkUpdate) ClearRouteServer() *NetworkUpdate {
+	_u.mutation.ClearRouteServer()
+	return _u
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (_u *NetworkUpdate) SetSocialMedia(v []schema.SocialMedia) *NetworkUpdate {
+	_u.mutation.SetSocialMedia(v)
+	return _u
+}
+
+// AppendSocialMedia appends value to the "social_media" field.
+func (_u *NetworkUpdate) AppendSocialMedia(v []schema.SocialMedia) *NetworkUpdate {
+	_u.mutation.AppendSocialMedia(v)
+	return _u
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (_u *NetworkUpdate) ClearSocialMedia() *NetworkUpdate {
+	_u.mutation.ClearSocialMedia()
+	return _u
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (_u *NetworkUpdate) SetStatusDashboard(v string) *NetworkUpdate {
+	_u.mutation.SetStatusDashboard(v)
+	return _u
+}
+
+// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableStatusDashboard(v *string) *NetworkUpdate {
+	if v != nil {
+		_u.SetStatusDashboard(*v)
+	}
+	return _u
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (_u *NetworkUpdate) ClearStatusDashboard() *NetworkUpdate {
+	_u.mutation.ClearStatusDashboard()
+	return _u
+}
+
+// SetWebsite sets the "website" field.
+func (_u *NetworkUpdate) SetWebsite(v string) *NetworkUpdate {
+	_u.mutation.SetWebsite(v)
+	return _u
+}
+
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableWebsite(v *string) *NetworkUpdate {
+	if v != nil {
+		_u.SetWebsite(*v)
+	}
+	return _u
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (_u *NetworkUpdate) ClearWebsite() *NetworkUpdate {
+	_u.mutation.ClearWebsite()
 	return _u
 }
 
@@ -785,6 +785,36 @@ func (_u *NetworkUpdate) SetNillableStatus(v *string) *NetworkUpdate {
 	return _u
 }
 
+// AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by IDs.
+func (_u *NetworkUpdate) AddNetworkFacilityIDs(ids ...int) *NetworkUpdate {
+	_u.mutation.AddNetworkFacilityIDs(ids...)
+	return _u
+}
+
+// AddNetworkFacilities adds the "network_facilities" edges to the NetworkFacility entity.
+func (_u *NetworkUpdate) AddNetworkFacilities(v ...*NetworkFacility) *NetworkUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNetworkFacilityIDs(ids...)
+}
+
+// AddNetworkIxLanIDs adds the "network_ix_lans" edge to the NetworkIxLan entity by IDs.
+func (_u *NetworkUpdate) AddNetworkIxLanIDs(ids ...int) *NetworkUpdate {
+	_u.mutation.AddNetworkIxLanIDs(ids...)
+	return _u
+}
+
+// AddNetworkIxLans adds the "network_ix_lans" edges to the NetworkIxLan entity.
+func (_u *NetworkUpdate) AddNetworkIxLans(v ...*NetworkIxLan) *NetworkUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNetworkIxLanIDs(ids...)
+}
+
 // SetOrganizationID sets the "organization" edge to the Organization entity by ID.
 func (_u *NetworkUpdate) SetOrganizationID(id int) *NetworkUpdate {
 	_u.mutation.SetOrganizationID(id)
@@ -819,66 +849,9 @@ func (_u *NetworkUpdate) AddPocs(v ...*Poc) *NetworkUpdate {
 	return _u.AddPocIDs(ids...)
 }
 
-// AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by IDs.
-func (_u *NetworkUpdate) AddNetworkFacilityIDs(ids ...int) *NetworkUpdate {
-	_u.mutation.AddNetworkFacilityIDs(ids...)
-	return _u
-}
-
-// AddNetworkFacilities adds the "network_facilities" edges to the NetworkFacility entity.
-func (_u *NetworkUpdate) AddNetworkFacilities(v ...*NetworkFacility) *NetworkUpdate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddNetworkFacilityIDs(ids...)
-}
-
-// AddNetworkIxLanIDs adds the "network_ix_lans" edge to the NetworkIxLan entity by IDs.
-func (_u *NetworkUpdate) AddNetworkIxLanIDs(ids ...int) *NetworkUpdate {
-	_u.mutation.AddNetworkIxLanIDs(ids...)
-	return _u
-}
-
-// AddNetworkIxLans adds the "network_ix_lans" edges to the NetworkIxLan entity.
-func (_u *NetworkUpdate) AddNetworkIxLans(v ...*NetworkIxLan) *NetworkUpdate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddNetworkIxLanIDs(ids...)
-}
-
 // Mutation returns the NetworkMutation object of the builder.
 func (_u *NetworkUpdate) Mutation() *NetworkMutation {
 	return _u.mutation
-}
-
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (_u *NetworkUpdate) ClearOrganization() *NetworkUpdate {
-	_u.mutation.ClearOrganization()
-	return _u
-}
-
-// ClearPocs clears all "pocs" edges to the Poc entity.
-func (_u *NetworkUpdate) ClearPocs() *NetworkUpdate {
-	_u.mutation.ClearPocs()
-	return _u
-}
-
-// RemovePocIDs removes the "pocs" edge to Poc entities by IDs.
-func (_u *NetworkUpdate) RemovePocIDs(ids ...int) *NetworkUpdate {
-	_u.mutation.RemovePocIDs(ids...)
-	return _u
-}
-
-// RemovePocs removes "pocs" edges to Poc entities.
-func (_u *NetworkUpdate) RemovePocs(v ...*Poc) *NetworkUpdate {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemovePocIDs(ids...)
 }
 
 // ClearNetworkFacilities clears all "network_facilities" edges to the NetworkFacility entity.
@@ -923,6 +896,33 @@ func (_u *NetworkUpdate) RemoveNetworkIxLans(v ...*NetworkIxLan) *NetworkUpdate 
 	return _u.RemoveNetworkIxLanIDs(ids...)
 }
 
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (_u *NetworkUpdate) ClearOrganization() *NetworkUpdate {
+	_u.mutation.ClearOrganization()
+	return _u
+}
+
+// ClearPocs clears all "pocs" edges to the Poc entity.
+func (_u *NetworkUpdate) ClearPocs() *NetworkUpdate {
+	_u.mutation.ClearPocs()
+	return _u
+}
+
+// RemovePocIDs removes the "pocs" edge to Poc entities by IDs.
+func (_u *NetworkUpdate) RemovePocIDs(ids ...int) *NetworkUpdate {
+	_u.mutation.RemovePocIDs(ids...)
+	return _u
+}
+
+// RemovePocs removes "pocs" edges to Poc entities.
+func (_u *NetworkUpdate) RemovePocs(v ...*Poc) *NetworkUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePocIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *NetworkUpdate) Save(ctx context.Context) (int, error) {
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
@@ -952,39 +952,14 @@ func (_u *NetworkUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *NetworkUpdate) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := network.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Aka(); ok {
 		if err := network.AkaValidator(v); err != nil {
 			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Network.aka": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := network.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Network.name_long": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Asn(); ok {
 		if err := network.AsnValidator(v); err != nil {
 			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "Network.asn": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.IrrAsSet(); ok {
-		if err := network.IrrAsSetValidator(v); err != nil {
-			return &ValidationError{Name: "irr_as_set", err: fmt.Errorf(`ent: validator failed for field "Network.irr_as_set": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.InfoType(); ok {
-		if err := network.InfoTypeValidator(v); err != nil {
-			return &ValidationError{Name: "info_type", err: fmt.Errorf(`ent: validator failed for field "Network.info_type": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.InfoTraffic(); ok {
-		if err := network.InfoTrafficValidator(v); err != nil {
-			return &ValidationError{Name: "info_traffic", err: fmt.Errorf(`ent: validator failed for field "Network.info_traffic": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.InfoRatio(); ok {
@@ -997,6 +972,36 @@ func (_u *NetworkUpdate) check() error {
 			return &ValidationError{Name: "info_scope", err: fmt.Errorf(`ent: validator failed for field "Network.info_scope": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.InfoTraffic(); ok {
+		if err := network.InfoTrafficValidator(v); err != nil {
+			return &ValidationError{Name: "info_traffic", err: fmt.Errorf(`ent: validator failed for field "Network.info_traffic": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.InfoType(); ok {
+		if err := network.InfoTypeValidator(v); err != nil {
+			return &ValidationError{Name: "info_type", err: fmt.Errorf(`ent: validator failed for field "Network.info_type": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.IrrAsSet(); ok {
+		if err := network.IrrAsSetValidator(v); err != nil {
+			return &ValidationError{Name: "irr_as_set", err: fmt.Errorf(`ent: validator failed for field "Network.irr_as_set": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Name(); ok {
+		if err := network.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.NameLong(); ok {
+		if err := network.NameLongValidator(v); err != nil {
+			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Network.name_long": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.PolicyContracts(); ok {
+		if err := network.PolicyContractsValidator(v); err != nil {
+			return &ValidationError{Name: "policy_contracts", err: fmt.Errorf(`ent: validator failed for field "Network.policy_contracts": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.PolicyGeneral(); ok {
 		if err := network.PolicyGeneralValidator(v); err != nil {
 			return &ValidationError{Name: "policy_general", err: fmt.Errorf(`ent: validator failed for field "Network.policy_general": %w`, err)}
@@ -1005,11 +1010,6 @@ func (_u *NetworkUpdate) check() error {
 	if v, ok := _u.mutation.PolicyLocations(); ok {
 		if err := network.PolicyLocationsValidator(v); err != nil {
 			return &ValidationError{Name: "policy_locations", err: fmt.Errorf(`ent: validator failed for field "Network.policy_locations": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyContracts(); ok {
-		if err := network.PolicyContractsValidator(v); err != nil {
-			return &ValidationError{Name: "policy_contracts", err: fmt.Errorf(`ent: validator failed for field "Network.policy_contracts": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.RirStatus(); ok {
@@ -1037,37 +1037,14 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(network.FieldName, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(network.FieldAka, field.TypeString, value)
 	}
 	if _u.mutation.AkaCleared() {
 		_spec.ClearField(network.FieldAka, field.TypeString)
 	}
-	if value, ok := _u.mutation.NameLong(); ok {
-		_spec.SetField(network.FieldNameLong, field.TypeString, value)
-	}
-	if _u.mutation.NameLongCleared() {
-		_spec.ClearField(network.FieldNameLong, field.TypeString)
-	}
-	if value, ok := _u.mutation.Website(); ok {
-		_spec.SetField(network.FieldWebsite, field.TypeString, value)
-	}
-	if _u.mutation.WebsiteCleared() {
-		_spec.ClearField(network.FieldWebsite, field.TypeString)
-	}
-	if value, ok := _u.mutation.SocialMedia(); ok {
-		_spec.SetField(network.FieldSocialMedia, field.TypeJSON, value)
-	}
-	if value, ok := _u.mutation.AppendedSocialMedia(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, network.FieldSocialMedia, value)
-		})
-	}
-	if _u.mutation.SocialMediaCleared() {
-		_spec.ClearField(network.FieldSocialMedia, field.TypeJSON)
+	if value, ok := _u.mutation.AllowIxpUpdate(); ok {
+		_spec.SetField(network.FieldAllowIxpUpdate, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Asn(); ok {
 		_spec.SetField(network.FieldAsn, field.TypeInt, value)
@@ -1075,40 +1052,14 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedAsn(); ok {
 		_spec.AddField(network.FieldAsn, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.LookingGlass(); ok {
-		_spec.SetField(network.FieldLookingGlass, field.TypeString, value)
+	if value, ok := _u.mutation.InfoIpv6(); ok {
+		_spec.SetField(network.FieldInfoIpv6, field.TypeBool, value)
 	}
-	if _u.mutation.LookingGlassCleared() {
-		_spec.ClearField(network.FieldLookingGlass, field.TypeString)
+	if value, ok := _u.mutation.InfoMulticast(); ok {
+		_spec.SetField(network.FieldInfoMulticast, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.RouteServer(); ok {
-		_spec.SetField(network.FieldRouteServer, field.TypeString, value)
-	}
-	if _u.mutation.RouteServerCleared() {
-		_spec.ClearField(network.FieldRouteServer, field.TypeString)
-	}
-	if value, ok := _u.mutation.IrrAsSet(); ok {
-		_spec.SetField(network.FieldIrrAsSet, field.TypeString, value)
-	}
-	if _u.mutation.IrrAsSetCleared() {
-		_spec.ClearField(network.FieldIrrAsSet, field.TypeString)
-	}
-	if value, ok := _u.mutation.InfoType(); ok {
-		_spec.SetField(network.FieldInfoType, field.TypeString, value)
-	}
-	if _u.mutation.InfoTypeCleared() {
-		_spec.ClearField(network.FieldInfoType, field.TypeString)
-	}
-	if value, ok := _u.mutation.InfoTypes(); ok {
-		_spec.SetField(network.FieldInfoTypes, field.TypeJSON, value)
-	}
-	if value, ok := _u.mutation.AppendedInfoTypes(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, network.FieldInfoTypes, value)
-		})
-	}
-	if _u.mutation.InfoTypesCleared() {
-		_spec.ClearField(network.FieldInfoTypes, field.TypeJSON)
+	if value, ok := _u.mutation.InfoNeverViaRouteServers(); ok {
+		_spec.SetField(network.FieldInfoNeverViaRouteServers, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.InfoPrefixes4(); ok {
 		_spec.SetField(network.FieldInfoPrefixes4, field.TypeInt, value)
@@ -1128,12 +1079,6 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.InfoPrefixes6Cleared() {
 		_spec.ClearField(network.FieldInfoPrefixes6, field.TypeInt)
 	}
-	if value, ok := _u.mutation.InfoTraffic(); ok {
-		_spec.SetField(network.FieldInfoTraffic, field.TypeString, value)
-	}
-	if _u.mutation.InfoTrafficCleared() {
-		_spec.ClearField(network.FieldInfoTraffic, field.TypeString)
-	}
 	if value, ok := _u.mutation.InfoRatio(); ok {
 		_spec.SetField(network.FieldInfoRatio, field.TypeString, value)
 	}
@@ -1146,17 +1091,58 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.InfoScopeCleared() {
 		_spec.ClearField(network.FieldInfoScope, field.TypeString)
 	}
+	if value, ok := _u.mutation.InfoTraffic(); ok {
+		_spec.SetField(network.FieldInfoTraffic, field.TypeString, value)
+	}
+	if _u.mutation.InfoTrafficCleared() {
+		_spec.ClearField(network.FieldInfoTraffic, field.TypeString)
+	}
+	if value, ok := _u.mutation.InfoType(); ok {
+		_spec.SetField(network.FieldInfoType, field.TypeString, value)
+	}
+	if _u.mutation.InfoTypeCleared() {
+		_spec.ClearField(network.FieldInfoType, field.TypeString)
+	}
+	if value, ok := _u.mutation.InfoTypes(); ok {
+		_spec.SetField(network.FieldInfoTypes, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedInfoTypes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, network.FieldInfoTypes, value)
+		})
+	}
+	if _u.mutation.InfoTypesCleared() {
+		_spec.ClearField(network.FieldInfoTypes, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.InfoUnicast(); ok {
 		_spec.SetField(network.FieldInfoUnicast, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.InfoMulticast(); ok {
-		_spec.SetField(network.FieldInfoMulticast, field.TypeBool, value)
+	if value, ok := _u.mutation.IrrAsSet(); ok {
+		_spec.SetField(network.FieldIrrAsSet, field.TypeString, value)
 	}
-	if value, ok := _u.mutation.InfoIpv6(); ok {
-		_spec.SetField(network.FieldInfoIpv6, field.TypeBool, value)
+	if _u.mutation.IrrAsSetCleared() {
+		_spec.ClearField(network.FieldIrrAsSet, field.TypeString)
 	}
-	if value, ok := _u.mutation.InfoNeverViaRouteServers(); ok {
-		_spec.SetField(network.FieldInfoNeverViaRouteServers, field.TypeBool, value)
+	if value, ok := _u.mutation.Logo(); ok {
+		_spec.SetField(network.FieldLogo, field.TypeString, value)
+	}
+	if _u.mutation.LogoCleared() {
+		_spec.ClearField(network.FieldLogo, field.TypeString)
+	}
+	if value, ok := _u.mutation.LookingGlass(); ok {
+		_spec.SetField(network.FieldLookingGlass, field.TypeString, value)
+	}
+	if _u.mutation.LookingGlassCleared() {
+		_spec.ClearField(network.FieldLookingGlass, field.TypeString)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(network.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.NameLong(); ok {
+		_spec.SetField(network.FieldNameLong, field.TypeString, value)
+	}
+	if _u.mutation.NameLongCleared() {
+		_spec.ClearField(network.FieldNameLong, field.TypeString)
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(network.FieldNotes, field.TypeString, value)
@@ -1164,11 +1150,11 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.NotesCleared() {
 		_spec.ClearField(network.FieldNotes, field.TypeString)
 	}
-	if value, ok := _u.mutation.PolicyURL(); ok {
-		_spec.SetField(network.FieldPolicyURL, field.TypeString, value)
+	if value, ok := _u.mutation.PolicyContracts(); ok {
+		_spec.SetField(network.FieldPolicyContracts, field.TypeString, value)
 	}
-	if _u.mutation.PolicyURLCleared() {
-		_spec.ClearField(network.FieldPolicyURL, field.TypeString)
+	if _u.mutation.PolicyContractsCleared() {
+		_spec.ClearField(network.FieldPolicyContracts, field.TypeString)
 	}
 	if value, ok := _u.mutation.PolicyGeneral(); ok {
 		_spec.SetField(network.FieldPolicyGeneral, field.TypeString, value)
@@ -1185,20 +1171,11 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.PolicyRatio(); ok {
 		_spec.SetField(network.FieldPolicyRatio, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.PolicyContracts(); ok {
-		_spec.SetField(network.FieldPolicyContracts, field.TypeString, value)
+	if value, ok := _u.mutation.PolicyURL(); ok {
+		_spec.SetField(network.FieldPolicyURL, field.TypeString, value)
 	}
-	if _u.mutation.PolicyContractsCleared() {
-		_spec.ClearField(network.FieldPolicyContracts, field.TypeString)
-	}
-	if value, ok := _u.mutation.AllowIxpUpdate(); ok {
-		_spec.SetField(network.FieldAllowIxpUpdate, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.StatusDashboard(); ok {
-		_spec.SetField(network.FieldStatusDashboard, field.TypeString, value)
-	}
-	if _u.mutation.StatusDashboardCleared() {
-		_spec.ClearField(network.FieldStatusDashboard, field.TypeString)
+	if _u.mutation.PolicyURLCleared() {
+		_spec.ClearField(network.FieldPolicyURL, field.TypeString)
 	}
 	if value, ok := _u.mutation.RirStatus(); ok {
 		_spec.SetField(network.FieldRirStatus, field.TypeString, value)
@@ -1212,11 +1189,34 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.RirStatusUpdatedCleared() {
 		_spec.ClearField(network.FieldRirStatusUpdated, field.TypeTime)
 	}
-	if value, ok := _u.mutation.Logo(); ok {
-		_spec.SetField(network.FieldLogo, field.TypeString, value)
+	if value, ok := _u.mutation.RouteServer(); ok {
+		_spec.SetField(network.FieldRouteServer, field.TypeString, value)
 	}
-	if _u.mutation.LogoCleared() {
-		_spec.ClearField(network.FieldLogo, field.TypeString)
+	if _u.mutation.RouteServerCleared() {
+		_spec.ClearField(network.FieldRouteServer, field.TypeString)
+	}
+	if value, ok := _u.mutation.SocialMedia(); ok {
+		_spec.SetField(network.FieldSocialMedia, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedSocialMedia(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, network.FieldSocialMedia, value)
+		})
+	}
+	if _u.mutation.SocialMediaCleared() {
+		_spec.ClearField(network.FieldSocialMedia, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.StatusDashboard(); ok {
+		_spec.SetField(network.FieldStatusDashboard, field.TypeString, value)
+	}
+	if _u.mutation.StatusDashboardCleared() {
+		_spec.ClearField(network.FieldStatusDashboard, field.TypeString)
+	}
+	if value, ok := _u.mutation.Website(); ok {
+		_spec.SetField(network.FieldWebsite, field.TypeString, value)
+	}
+	if _u.mutation.WebsiteCleared() {
+		_spec.ClearField(network.FieldWebsite, field.TypeString)
 	}
 	if value, ok := _u.mutation.IxCount(); ok {
 		_spec.SetField(network.FieldIxCount, field.TypeInt, value)
@@ -1259,80 +1259,6 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(network.FieldStatus, field.TypeString, value)
-	}
-	if _u.mutation.OrganizationCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   network.OrganizationTable,
-			Columns: []string{network.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   network.OrganizationTable,
-			Columns: []string{network.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.PocsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   network.PocsTable,
-			Columns: []string{network.PocsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedPocsIDs(); len(nodes) > 0 && !_u.mutation.PocsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   network.PocsTable,
-			Columns: []string{network.PocsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.PocsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   network.PocsTable,
-			Columns: []string{network.PocsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.NetworkFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1424,6 +1350,80 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.OrganizationCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   network.OrganizationTable,
+			Columns: []string{network.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   network.OrganizationTable,
+			Columns: []string{network.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PocsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   network.PocsTable,
+			Columns: []string{network.PocsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPocsIDs(); len(nodes) > 0 && !_u.mutation.PocsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   network.PocsTable,
+			Columns: []string{network.PocsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PocsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   network.PocsTable,
+			Columns: []string{network.PocsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{network.Label}
@@ -1464,20 +1464,6 @@ func (_u *NetworkUpdateOne) ClearOrgID() *NetworkUpdateOne {
 	return _u
 }
 
-// SetName sets the "name" field.
-func (_u *NetworkUpdateOne) SetName(v string) *NetworkUpdateOne {
-	_u.mutation.SetName(v)
-	return _u
-}
-
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableName(v *string) *NetworkUpdateOne {
-	if v != nil {
-		_u.SetName(*v)
-	}
-	return _u
-}
-
 // SetAka sets the "aka" field.
 func (_u *NetworkUpdateOne) SetAka(v string) *NetworkUpdateOne {
 	_u.mutation.SetAka(v)
@@ -1498,61 +1484,17 @@ func (_u *NetworkUpdateOne) ClearAka() *NetworkUpdateOne {
 	return _u
 }
 
-// SetNameLong sets the "name_long" field.
-func (_u *NetworkUpdateOne) SetNameLong(v string) *NetworkUpdateOne {
-	_u.mutation.SetNameLong(v)
+// SetAllowIxpUpdate sets the "allow_ixp_update" field.
+func (_u *NetworkUpdateOne) SetAllowIxpUpdate(v bool) *NetworkUpdateOne {
+	_u.mutation.SetAllowIxpUpdate(v)
 	return _u
 }
 
-// SetNillableNameLong sets the "name_long" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableNameLong(v *string) *NetworkUpdateOne {
+// SetNillableAllowIxpUpdate sets the "allow_ixp_update" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableAllowIxpUpdate(v *bool) *NetworkUpdateOne {
 	if v != nil {
-		_u.SetNameLong(*v)
+		_u.SetAllowIxpUpdate(*v)
 	}
-	return _u
-}
-
-// ClearNameLong clears the value of the "name_long" field.
-func (_u *NetworkUpdateOne) ClearNameLong() *NetworkUpdateOne {
-	_u.mutation.ClearNameLong()
-	return _u
-}
-
-// SetWebsite sets the "website" field.
-func (_u *NetworkUpdateOne) SetWebsite(v string) *NetworkUpdateOne {
-	_u.mutation.SetWebsite(v)
-	return _u
-}
-
-// SetNillableWebsite sets the "website" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableWebsite(v *string) *NetworkUpdateOne {
-	if v != nil {
-		_u.SetWebsite(*v)
-	}
-	return _u
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (_u *NetworkUpdateOne) ClearWebsite() *NetworkUpdateOne {
-	_u.mutation.ClearWebsite()
-	return _u
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (_u *NetworkUpdateOne) SetSocialMedia(v []schema.SocialMedia) *NetworkUpdateOne {
-	_u.mutation.SetSocialMedia(v)
-	return _u
-}
-
-// AppendSocialMedia appends value to the "social_media" field.
-func (_u *NetworkUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *NetworkUpdateOne {
-	_u.mutation.AppendSocialMedia(v)
-	return _u
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (_u *NetworkUpdateOne) ClearSocialMedia() *NetworkUpdateOne {
-	_u.mutation.ClearSocialMedia()
 	return _u
 }
 
@@ -1577,101 +1519,45 @@ func (_u *NetworkUpdateOne) AddAsn(v int) *NetworkUpdateOne {
 	return _u
 }
 
-// SetLookingGlass sets the "looking_glass" field.
-func (_u *NetworkUpdateOne) SetLookingGlass(v string) *NetworkUpdateOne {
-	_u.mutation.SetLookingGlass(v)
+// SetInfoIpv6 sets the "info_ipv6" field.
+func (_u *NetworkUpdateOne) SetInfoIpv6(v bool) *NetworkUpdateOne {
+	_u.mutation.SetInfoIpv6(v)
 	return _u
 }
 
-// SetNillableLookingGlass sets the "looking_glass" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableLookingGlass(v *string) *NetworkUpdateOne {
+// SetNillableInfoIpv6 sets the "info_ipv6" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableInfoIpv6(v *bool) *NetworkUpdateOne {
 	if v != nil {
-		_u.SetLookingGlass(*v)
+		_u.SetInfoIpv6(*v)
 	}
 	return _u
 }
 
-// ClearLookingGlass clears the value of the "looking_glass" field.
-func (_u *NetworkUpdateOne) ClearLookingGlass() *NetworkUpdateOne {
-	_u.mutation.ClearLookingGlass()
+// SetInfoMulticast sets the "info_multicast" field.
+func (_u *NetworkUpdateOne) SetInfoMulticast(v bool) *NetworkUpdateOne {
+	_u.mutation.SetInfoMulticast(v)
 	return _u
 }
 
-// SetRouteServer sets the "route_server" field.
-func (_u *NetworkUpdateOne) SetRouteServer(v string) *NetworkUpdateOne {
-	_u.mutation.SetRouteServer(v)
-	return _u
-}
-
-// SetNillableRouteServer sets the "route_server" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableRouteServer(v *string) *NetworkUpdateOne {
+// SetNillableInfoMulticast sets the "info_multicast" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableInfoMulticast(v *bool) *NetworkUpdateOne {
 	if v != nil {
-		_u.SetRouteServer(*v)
+		_u.SetInfoMulticast(*v)
 	}
 	return _u
 }
 
-// ClearRouteServer clears the value of the "route_server" field.
-func (_u *NetworkUpdateOne) ClearRouteServer() *NetworkUpdateOne {
-	_u.mutation.ClearRouteServer()
+// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
+func (_u *NetworkUpdateOne) SetInfoNeverViaRouteServers(v bool) *NetworkUpdateOne {
+	_u.mutation.SetInfoNeverViaRouteServers(v)
 	return _u
 }
 
-// SetIrrAsSet sets the "irr_as_set" field.
-func (_u *NetworkUpdateOne) SetIrrAsSet(v string) *NetworkUpdateOne {
-	_u.mutation.SetIrrAsSet(v)
-	return _u
-}
-
-// SetNillableIrrAsSet sets the "irr_as_set" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableIrrAsSet(v *string) *NetworkUpdateOne {
+// SetNillableInfoNeverViaRouteServers sets the "info_never_via_route_servers" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableInfoNeverViaRouteServers(v *bool) *NetworkUpdateOne {
 	if v != nil {
-		_u.SetIrrAsSet(*v)
+		_u.SetInfoNeverViaRouteServers(*v)
 	}
-	return _u
-}
-
-// ClearIrrAsSet clears the value of the "irr_as_set" field.
-func (_u *NetworkUpdateOne) ClearIrrAsSet() *NetworkUpdateOne {
-	_u.mutation.ClearIrrAsSet()
-	return _u
-}
-
-// SetInfoType sets the "info_type" field.
-func (_u *NetworkUpdateOne) SetInfoType(v string) *NetworkUpdateOne {
-	_u.mutation.SetInfoType(v)
-	return _u
-}
-
-// SetNillableInfoType sets the "info_type" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableInfoType(v *string) *NetworkUpdateOne {
-	if v != nil {
-		_u.SetInfoType(*v)
-	}
-	return _u
-}
-
-// ClearInfoType clears the value of the "info_type" field.
-func (_u *NetworkUpdateOne) ClearInfoType() *NetworkUpdateOne {
-	_u.mutation.ClearInfoType()
-	return _u
-}
-
-// SetInfoTypes sets the "info_types" field.
-func (_u *NetworkUpdateOne) SetInfoTypes(v []string) *NetworkUpdateOne {
-	_u.mutation.SetInfoTypes(v)
-	return _u
-}
-
-// AppendInfoTypes appends value to the "info_types" field.
-func (_u *NetworkUpdateOne) AppendInfoTypes(v []string) *NetworkUpdateOne {
-	_u.mutation.AppendInfoTypes(v)
-	return _u
-}
-
-// ClearInfoTypes clears the value of the "info_types" field.
-func (_u *NetworkUpdateOne) ClearInfoTypes() *NetworkUpdateOne {
-	_u.mutation.ClearInfoTypes()
 	return _u
 }
 
@@ -1729,26 +1615,6 @@ func (_u *NetworkUpdateOne) ClearInfoPrefixes6() *NetworkUpdateOne {
 	return _u
 }
 
-// SetInfoTraffic sets the "info_traffic" field.
-func (_u *NetworkUpdateOne) SetInfoTraffic(v string) *NetworkUpdateOne {
-	_u.mutation.SetInfoTraffic(v)
-	return _u
-}
-
-// SetNillableInfoTraffic sets the "info_traffic" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableInfoTraffic(v *string) *NetworkUpdateOne {
-	if v != nil {
-		_u.SetInfoTraffic(*v)
-	}
-	return _u
-}
-
-// ClearInfoTraffic clears the value of the "info_traffic" field.
-func (_u *NetworkUpdateOne) ClearInfoTraffic() *NetworkUpdateOne {
-	_u.mutation.ClearInfoTraffic()
-	return _u
-}
-
 // SetInfoRatio sets the "info_ratio" field.
 func (_u *NetworkUpdateOne) SetInfoRatio(v string) *NetworkUpdateOne {
 	_u.mutation.SetInfoRatio(v)
@@ -1789,6 +1655,64 @@ func (_u *NetworkUpdateOne) ClearInfoScope() *NetworkUpdateOne {
 	return _u
 }
 
+// SetInfoTraffic sets the "info_traffic" field.
+func (_u *NetworkUpdateOne) SetInfoTraffic(v string) *NetworkUpdateOne {
+	_u.mutation.SetInfoTraffic(v)
+	return _u
+}
+
+// SetNillableInfoTraffic sets the "info_traffic" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableInfoTraffic(v *string) *NetworkUpdateOne {
+	if v != nil {
+		_u.SetInfoTraffic(*v)
+	}
+	return _u
+}
+
+// ClearInfoTraffic clears the value of the "info_traffic" field.
+func (_u *NetworkUpdateOne) ClearInfoTraffic() *NetworkUpdateOne {
+	_u.mutation.ClearInfoTraffic()
+	return _u
+}
+
+// SetInfoType sets the "info_type" field.
+func (_u *NetworkUpdateOne) SetInfoType(v string) *NetworkUpdateOne {
+	_u.mutation.SetInfoType(v)
+	return _u
+}
+
+// SetNillableInfoType sets the "info_type" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableInfoType(v *string) *NetworkUpdateOne {
+	if v != nil {
+		_u.SetInfoType(*v)
+	}
+	return _u
+}
+
+// ClearInfoType clears the value of the "info_type" field.
+func (_u *NetworkUpdateOne) ClearInfoType() *NetworkUpdateOne {
+	_u.mutation.ClearInfoType()
+	return _u
+}
+
+// SetInfoTypes sets the "info_types" field.
+func (_u *NetworkUpdateOne) SetInfoTypes(v []string) *NetworkUpdateOne {
+	_u.mutation.SetInfoTypes(v)
+	return _u
+}
+
+// AppendInfoTypes appends value to the "info_types" field.
+func (_u *NetworkUpdateOne) AppendInfoTypes(v []string) *NetworkUpdateOne {
+	_u.mutation.AppendInfoTypes(v)
+	return _u
+}
+
+// ClearInfoTypes clears the value of the "info_types" field.
+func (_u *NetworkUpdateOne) ClearInfoTypes() *NetworkUpdateOne {
+	_u.mutation.ClearInfoTypes()
+	return _u
+}
+
 // SetInfoUnicast sets the "info_unicast" field.
 func (_u *NetworkUpdateOne) SetInfoUnicast(v bool) *NetworkUpdateOne {
 	_u.mutation.SetInfoUnicast(v)
@@ -1803,45 +1727,97 @@ func (_u *NetworkUpdateOne) SetNillableInfoUnicast(v *bool) *NetworkUpdateOne {
 	return _u
 }
 
-// SetInfoMulticast sets the "info_multicast" field.
-func (_u *NetworkUpdateOne) SetInfoMulticast(v bool) *NetworkUpdateOne {
-	_u.mutation.SetInfoMulticast(v)
+// SetIrrAsSet sets the "irr_as_set" field.
+func (_u *NetworkUpdateOne) SetIrrAsSet(v string) *NetworkUpdateOne {
+	_u.mutation.SetIrrAsSet(v)
 	return _u
 }
 
-// SetNillableInfoMulticast sets the "info_multicast" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableInfoMulticast(v *bool) *NetworkUpdateOne {
+// SetNillableIrrAsSet sets the "irr_as_set" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableIrrAsSet(v *string) *NetworkUpdateOne {
 	if v != nil {
-		_u.SetInfoMulticast(*v)
+		_u.SetIrrAsSet(*v)
 	}
 	return _u
 }
 
-// SetInfoIpv6 sets the "info_ipv6" field.
-func (_u *NetworkUpdateOne) SetInfoIpv6(v bool) *NetworkUpdateOne {
-	_u.mutation.SetInfoIpv6(v)
+// ClearIrrAsSet clears the value of the "irr_as_set" field.
+func (_u *NetworkUpdateOne) ClearIrrAsSet() *NetworkUpdateOne {
+	_u.mutation.ClearIrrAsSet()
 	return _u
 }
 
-// SetNillableInfoIpv6 sets the "info_ipv6" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableInfoIpv6(v *bool) *NetworkUpdateOne {
+// SetLogo sets the "logo" field.
+func (_u *NetworkUpdateOne) SetLogo(v string) *NetworkUpdateOne {
+	_u.mutation.SetLogo(v)
+	return _u
+}
+
+// SetNillableLogo sets the "logo" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableLogo(v *string) *NetworkUpdateOne {
 	if v != nil {
-		_u.SetInfoIpv6(*v)
+		_u.SetLogo(*v)
 	}
 	return _u
 }
 
-// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
-func (_u *NetworkUpdateOne) SetInfoNeverViaRouteServers(v bool) *NetworkUpdateOne {
-	_u.mutation.SetInfoNeverViaRouteServers(v)
+// ClearLogo clears the value of the "logo" field.
+func (_u *NetworkUpdateOne) ClearLogo() *NetworkUpdateOne {
+	_u.mutation.ClearLogo()
 	return _u
 }
 
-// SetNillableInfoNeverViaRouteServers sets the "info_never_via_route_servers" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableInfoNeverViaRouteServers(v *bool) *NetworkUpdateOne {
+// SetLookingGlass sets the "looking_glass" field.
+func (_u *NetworkUpdateOne) SetLookingGlass(v string) *NetworkUpdateOne {
+	_u.mutation.SetLookingGlass(v)
+	return _u
+}
+
+// SetNillableLookingGlass sets the "looking_glass" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableLookingGlass(v *string) *NetworkUpdateOne {
 	if v != nil {
-		_u.SetInfoNeverViaRouteServers(*v)
+		_u.SetLookingGlass(*v)
 	}
+	return _u
+}
+
+// ClearLookingGlass clears the value of the "looking_glass" field.
+func (_u *NetworkUpdateOne) ClearLookingGlass() *NetworkUpdateOne {
+	_u.mutation.ClearLookingGlass()
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *NetworkUpdateOne) SetName(v string) *NetworkUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableName(v *string) *NetworkUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetNameLong sets the "name_long" field.
+func (_u *NetworkUpdateOne) SetNameLong(v string) *NetworkUpdateOne {
+	_u.mutation.SetNameLong(v)
+	return _u
+}
+
+// SetNillableNameLong sets the "name_long" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableNameLong(v *string) *NetworkUpdateOne {
+	if v != nil {
+		_u.SetNameLong(*v)
+	}
+	return _u
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (_u *NetworkUpdateOne) ClearNameLong() *NetworkUpdateOne {
+	_u.mutation.ClearNameLong()
 	return _u
 }
 
@@ -1865,23 +1841,23 @@ func (_u *NetworkUpdateOne) ClearNotes() *NetworkUpdateOne {
 	return _u
 }
 
-// SetPolicyURL sets the "policy_url" field.
-func (_u *NetworkUpdateOne) SetPolicyURL(v string) *NetworkUpdateOne {
-	_u.mutation.SetPolicyURL(v)
+// SetPolicyContracts sets the "policy_contracts" field.
+func (_u *NetworkUpdateOne) SetPolicyContracts(v string) *NetworkUpdateOne {
+	_u.mutation.SetPolicyContracts(v)
 	return _u
 }
 
-// SetNillablePolicyURL sets the "policy_url" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillablePolicyURL(v *string) *NetworkUpdateOne {
+// SetNillablePolicyContracts sets the "policy_contracts" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillablePolicyContracts(v *string) *NetworkUpdateOne {
 	if v != nil {
-		_u.SetPolicyURL(*v)
+		_u.SetPolicyContracts(*v)
 	}
 	return _u
 }
 
-// ClearPolicyURL clears the value of the "policy_url" field.
-func (_u *NetworkUpdateOne) ClearPolicyURL() *NetworkUpdateOne {
-	_u.mutation.ClearPolicyURL()
+// ClearPolicyContracts clears the value of the "policy_contracts" field.
+func (_u *NetworkUpdateOne) ClearPolicyContracts() *NetworkUpdateOne {
+	_u.mutation.ClearPolicyContracts()
 	return _u
 }
 
@@ -1939,57 +1915,23 @@ func (_u *NetworkUpdateOne) SetNillablePolicyRatio(v *bool) *NetworkUpdateOne {
 	return _u
 }
 
-// SetPolicyContracts sets the "policy_contracts" field.
-func (_u *NetworkUpdateOne) SetPolicyContracts(v string) *NetworkUpdateOne {
-	_u.mutation.SetPolicyContracts(v)
+// SetPolicyURL sets the "policy_url" field.
+func (_u *NetworkUpdateOne) SetPolicyURL(v string) *NetworkUpdateOne {
+	_u.mutation.SetPolicyURL(v)
 	return _u
 }
 
-// SetNillablePolicyContracts sets the "policy_contracts" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillablePolicyContracts(v *string) *NetworkUpdateOne {
+// SetNillablePolicyURL sets the "policy_url" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillablePolicyURL(v *string) *NetworkUpdateOne {
 	if v != nil {
-		_u.SetPolicyContracts(*v)
+		_u.SetPolicyURL(*v)
 	}
 	return _u
 }
 
-// ClearPolicyContracts clears the value of the "policy_contracts" field.
-func (_u *NetworkUpdateOne) ClearPolicyContracts() *NetworkUpdateOne {
-	_u.mutation.ClearPolicyContracts()
-	return _u
-}
-
-// SetAllowIxpUpdate sets the "allow_ixp_update" field.
-func (_u *NetworkUpdateOne) SetAllowIxpUpdate(v bool) *NetworkUpdateOne {
-	_u.mutation.SetAllowIxpUpdate(v)
-	return _u
-}
-
-// SetNillableAllowIxpUpdate sets the "allow_ixp_update" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableAllowIxpUpdate(v *bool) *NetworkUpdateOne {
-	if v != nil {
-		_u.SetAllowIxpUpdate(*v)
-	}
-	return _u
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (_u *NetworkUpdateOne) SetStatusDashboard(v string) *NetworkUpdateOne {
-	_u.mutation.SetStatusDashboard(v)
-	return _u
-}
-
-// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableStatusDashboard(v *string) *NetworkUpdateOne {
-	if v != nil {
-		_u.SetStatusDashboard(*v)
-	}
-	return _u
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (_u *NetworkUpdateOne) ClearStatusDashboard() *NetworkUpdateOne {
-	_u.mutation.ClearStatusDashboard()
+// ClearPolicyURL clears the value of the "policy_url" field.
+func (_u *NetworkUpdateOne) ClearPolicyURL() *NetworkUpdateOne {
+	_u.mutation.ClearPolicyURL()
 	return _u
 }
 
@@ -2033,23 +1975,81 @@ func (_u *NetworkUpdateOne) ClearRirStatusUpdated() *NetworkUpdateOne {
 	return _u
 }
 
-// SetLogo sets the "logo" field.
-func (_u *NetworkUpdateOne) SetLogo(v string) *NetworkUpdateOne {
-	_u.mutation.SetLogo(v)
+// SetRouteServer sets the "route_server" field.
+func (_u *NetworkUpdateOne) SetRouteServer(v string) *NetworkUpdateOne {
+	_u.mutation.SetRouteServer(v)
 	return _u
 }
 
-// SetNillableLogo sets the "logo" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableLogo(v *string) *NetworkUpdateOne {
+// SetNillableRouteServer sets the "route_server" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableRouteServer(v *string) *NetworkUpdateOne {
 	if v != nil {
-		_u.SetLogo(*v)
+		_u.SetRouteServer(*v)
 	}
 	return _u
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (_u *NetworkUpdateOne) ClearLogo() *NetworkUpdateOne {
-	_u.mutation.ClearLogo()
+// ClearRouteServer clears the value of the "route_server" field.
+func (_u *NetworkUpdateOne) ClearRouteServer() *NetworkUpdateOne {
+	_u.mutation.ClearRouteServer()
+	return _u
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (_u *NetworkUpdateOne) SetSocialMedia(v []schema.SocialMedia) *NetworkUpdateOne {
+	_u.mutation.SetSocialMedia(v)
+	return _u
+}
+
+// AppendSocialMedia appends value to the "social_media" field.
+func (_u *NetworkUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *NetworkUpdateOne {
+	_u.mutation.AppendSocialMedia(v)
+	return _u
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (_u *NetworkUpdateOne) ClearSocialMedia() *NetworkUpdateOne {
+	_u.mutation.ClearSocialMedia()
+	return _u
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (_u *NetworkUpdateOne) SetStatusDashboard(v string) *NetworkUpdateOne {
+	_u.mutation.SetStatusDashboard(v)
+	return _u
+}
+
+// SetNillableStatusDashboard sets the "status_dashboard" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableStatusDashboard(v *string) *NetworkUpdateOne {
+	if v != nil {
+		_u.SetStatusDashboard(*v)
+	}
+	return _u
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (_u *NetworkUpdateOne) ClearStatusDashboard() *NetworkUpdateOne {
+	_u.mutation.ClearStatusDashboard()
+	return _u
+}
+
+// SetWebsite sets the "website" field.
+func (_u *NetworkUpdateOne) SetWebsite(v string) *NetworkUpdateOne {
+	_u.mutation.SetWebsite(v)
+	return _u
+}
+
+// SetNillableWebsite sets the "website" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableWebsite(v *string) *NetworkUpdateOne {
+	if v != nil {
+		_u.SetWebsite(*v)
+	}
+	return _u
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (_u *NetworkUpdateOne) ClearWebsite() *NetworkUpdateOne {
+	_u.mutation.ClearWebsite()
 	return _u
 }
 
@@ -2195,6 +2195,36 @@ func (_u *NetworkUpdateOne) SetNillableStatus(v *string) *NetworkUpdateOne {
 	return _u
 }
 
+// AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by IDs.
+func (_u *NetworkUpdateOne) AddNetworkFacilityIDs(ids ...int) *NetworkUpdateOne {
+	_u.mutation.AddNetworkFacilityIDs(ids...)
+	return _u
+}
+
+// AddNetworkFacilities adds the "network_facilities" edges to the NetworkFacility entity.
+func (_u *NetworkUpdateOne) AddNetworkFacilities(v ...*NetworkFacility) *NetworkUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNetworkFacilityIDs(ids...)
+}
+
+// AddNetworkIxLanIDs adds the "network_ix_lans" edge to the NetworkIxLan entity by IDs.
+func (_u *NetworkUpdateOne) AddNetworkIxLanIDs(ids ...int) *NetworkUpdateOne {
+	_u.mutation.AddNetworkIxLanIDs(ids...)
+	return _u
+}
+
+// AddNetworkIxLans adds the "network_ix_lans" edges to the NetworkIxLan entity.
+func (_u *NetworkUpdateOne) AddNetworkIxLans(v ...*NetworkIxLan) *NetworkUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNetworkIxLanIDs(ids...)
+}
+
 // SetOrganizationID sets the "organization" edge to the Organization entity by ID.
 func (_u *NetworkUpdateOne) SetOrganizationID(id int) *NetworkUpdateOne {
 	_u.mutation.SetOrganizationID(id)
@@ -2229,66 +2259,9 @@ func (_u *NetworkUpdateOne) AddPocs(v ...*Poc) *NetworkUpdateOne {
 	return _u.AddPocIDs(ids...)
 }
 
-// AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by IDs.
-func (_u *NetworkUpdateOne) AddNetworkFacilityIDs(ids ...int) *NetworkUpdateOne {
-	_u.mutation.AddNetworkFacilityIDs(ids...)
-	return _u
-}
-
-// AddNetworkFacilities adds the "network_facilities" edges to the NetworkFacility entity.
-func (_u *NetworkUpdateOne) AddNetworkFacilities(v ...*NetworkFacility) *NetworkUpdateOne {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddNetworkFacilityIDs(ids...)
-}
-
-// AddNetworkIxLanIDs adds the "network_ix_lans" edge to the NetworkIxLan entity by IDs.
-func (_u *NetworkUpdateOne) AddNetworkIxLanIDs(ids ...int) *NetworkUpdateOne {
-	_u.mutation.AddNetworkIxLanIDs(ids...)
-	return _u
-}
-
-// AddNetworkIxLans adds the "network_ix_lans" edges to the NetworkIxLan entity.
-func (_u *NetworkUpdateOne) AddNetworkIxLans(v ...*NetworkIxLan) *NetworkUpdateOne {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddNetworkIxLanIDs(ids...)
-}
-
 // Mutation returns the NetworkMutation object of the builder.
 func (_u *NetworkUpdateOne) Mutation() *NetworkMutation {
 	return _u.mutation
-}
-
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (_u *NetworkUpdateOne) ClearOrganization() *NetworkUpdateOne {
-	_u.mutation.ClearOrganization()
-	return _u
-}
-
-// ClearPocs clears all "pocs" edges to the Poc entity.
-func (_u *NetworkUpdateOne) ClearPocs() *NetworkUpdateOne {
-	_u.mutation.ClearPocs()
-	return _u
-}
-
-// RemovePocIDs removes the "pocs" edge to Poc entities by IDs.
-func (_u *NetworkUpdateOne) RemovePocIDs(ids ...int) *NetworkUpdateOne {
-	_u.mutation.RemovePocIDs(ids...)
-	return _u
-}
-
-// RemovePocs removes "pocs" edges to Poc entities.
-func (_u *NetworkUpdateOne) RemovePocs(v ...*Poc) *NetworkUpdateOne {
-	ids := make([]int, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemovePocIDs(ids...)
 }
 
 // ClearNetworkFacilities clears all "network_facilities" edges to the NetworkFacility entity.
@@ -2333,6 +2306,33 @@ func (_u *NetworkUpdateOne) RemoveNetworkIxLans(v ...*NetworkIxLan) *NetworkUpda
 	return _u.RemoveNetworkIxLanIDs(ids...)
 }
 
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (_u *NetworkUpdateOne) ClearOrganization() *NetworkUpdateOne {
+	_u.mutation.ClearOrganization()
+	return _u
+}
+
+// ClearPocs clears all "pocs" edges to the Poc entity.
+func (_u *NetworkUpdateOne) ClearPocs() *NetworkUpdateOne {
+	_u.mutation.ClearPocs()
+	return _u
+}
+
+// RemovePocIDs removes the "pocs" edge to Poc entities by IDs.
+func (_u *NetworkUpdateOne) RemovePocIDs(ids ...int) *NetworkUpdateOne {
+	_u.mutation.RemovePocIDs(ids...)
+	return _u
+}
+
+// RemovePocs removes "pocs" edges to Poc entities.
+func (_u *NetworkUpdateOne) RemovePocs(v ...*Poc) *NetworkUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePocIDs(ids...)
+}
+
 // Where appends a list predicates to the NetworkUpdate builder.
 func (_u *NetworkUpdateOne) Where(ps ...predicate.Network) *NetworkUpdateOne {
 	_u.mutation.Where(ps...)
@@ -2375,39 +2375,14 @@ func (_u *NetworkUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *NetworkUpdateOne) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := network.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Aka(); ok {
 		if err := network.AkaValidator(v); err != nil {
 			return &ValidationError{Name: "aka", err: fmt.Errorf(`ent: validator failed for field "Network.aka": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.NameLong(); ok {
-		if err := network.NameLongValidator(v); err != nil {
-			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Network.name_long": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Asn(); ok {
 		if err := network.AsnValidator(v); err != nil {
 			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "Network.asn": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.IrrAsSet(); ok {
-		if err := network.IrrAsSetValidator(v); err != nil {
-			return &ValidationError{Name: "irr_as_set", err: fmt.Errorf(`ent: validator failed for field "Network.irr_as_set": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.InfoType(); ok {
-		if err := network.InfoTypeValidator(v); err != nil {
-			return &ValidationError{Name: "info_type", err: fmt.Errorf(`ent: validator failed for field "Network.info_type": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.InfoTraffic(); ok {
-		if err := network.InfoTrafficValidator(v); err != nil {
-			return &ValidationError{Name: "info_traffic", err: fmt.Errorf(`ent: validator failed for field "Network.info_traffic": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.InfoRatio(); ok {
@@ -2420,6 +2395,36 @@ func (_u *NetworkUpdateOne) check() error {
 			return &ValidationError{Name: "info_scope", err: fmt.Errorf(`ent: validator failed for field "Network.info_scope": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.InfoTraffic(); ok {
+		if err := network.InfoTrafficValidator(v); err != nil {
+			return &ValidationError{Name: "info_traffic", err: fmt.Errorf(`ent: validator failed for field "Network.info_traffic": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.InfoType(); ok {
+		if err := network.InfoTypeValidator(v); err != nil {
+			return &ValidationError{Name: "info_type", err: fmt.Errorf(`ent: validator failed for field "Network.info_type": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.IrrAsSet(); ok {
+		if err := network.IrrAsSetValidator(v); err != nil {
+			return &ValidationError{Name: "irr_as_set", err: fmt.Errorf(`ent: validator failed for field "Network.irr_as_set": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Name(); ok {
+		if err := network.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.NameLong(); ok {
+		if err := network.NameLongValidator(v); err != nil {
+			return &ValidationError{Name: "name_long", err: fmt.Errorf(`ent: validator failed for field "Network.name_long": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.PolicyContracts(); ok {
+		if err := network.PolicyContractsValidator(v); err != nil {
+			return &ValidationError{Name: "policy_contracts", err: fmt.Errorf(`ent: validator failed for field "Network.policy_contracts": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.PolicyGeneral(); ok {
 		if err := network.PolicyGeneralValidator(v); err != nil {
 			return &ValidationError{Name: "policy_general", err: fmt.Errorf(`ent: validator failed for field "Network.policy_general": %w`, err)}
@@ -2428,11 +2433,6 @@ func (_u *NetworkUpdateOne) check() error {
 	if v, ok := _u.mutation.PolicyLocations(); ok {
 		if err := network.PolicyLocationsValidator(v); err != nil {
 			return &ValidationError{Name: "policy_locations", err: fmt.Errorf(`ent: validator failed for field "Network.policy_locations": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.PolicyContracts(); ok {
-		if err := network.PolicyContractsValidator(v); err != nil {
-			return &ValidationError{Name: "policy_contracts", err: fmt.Errorf(`ent: validator failed for field "Network.policy_contracts": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.RirStatus(); ok {
@@ -2477,37 +2477,14 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 			}
 		}
 	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(network.FieldName, field.TypeString, value)
-	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(network.FieldAka, field.TypeString, value)
 	}
 	if _u.mutation.AkaCleared() {
 		_spec.ClearField(network.FieldAka, field.TypeString)
 	}
-	if value, ok := _u.mutation.NameLong(); ok {
-		_spec.SetField(network.FieldNameLong, field.TypeString, value)
-	}
-	if _u.mutation.NameLongCleared() {
-		_spec.ClearField(network.FieldNameLong, field.TypeString)
-	}
-	if value, ok := _u.mutation.Website(); ok {
-		_spec.SetField(network.FieldWebsite, field.TypeString, value)
-	}
-	if _u.mutation.WebsiteCleared() {
-		_spec.ClearField(network.FieldWebsite, field.TypeString)
-	}
-	if value, ok := _u.mutation.SocialMedia(); ok {
-		_spec.SetField(network.FieldSocialMedia, field.TypeJSON, value)
-	}
-	if value, ok := _u.mutation.AppendedSocialMedia(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, network.FieldSocialMedia, value)
-		})
-	}
-	if _u.mutation.SocialMediaCleared() {
-		_spec.ClearField(network.FieldSocialMedia, field.TypeJSON)
+	if value, ok := _u.mutation.AllowIxpUpdate(); ok {
+		_spec.SetField(network.FieldAllowIxpUpdate, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Asn(); ok {
 		_spec.SetField(network.FieldAsn, field.TypeInt, value)
@@ -2515,40 +2492,14 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 	if value, ok := _u.mutation.AddedAsn(); ok {
 		_spec.AddField(network.FieldAsn, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.LookingGlass(); ok {
-		_spec.SetField(network.FieldLookingGlass, field.TypeString, value)
+	if value, ok := _u.mutation.InfoIpv6(); ok {
+		_spec.SetField(network.FieldInfoIpv6, field.TypeBool, value)
 	}
-	if _u.mutation.LookingGlassCleared() {
-		_spec.ClearField(network.FieldLookingGlass, field.TypeString)
+	if value, ok := _u.mutation.InfoMulticast(); ok {
+		_spec.SetField(network.FieldInfoMulticast, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.RouteServer(); ok {
-		_spec.SetField(network.FieldRouteServer, field.TypeString, value)
-	}
-	if _u.mutation.RouteServerCleared() {
-		_spec.ClearField(network.FieldRouteServer, field.TypeString)
-	}
-	if value, ok := _u.mutation.IrrAsSet(); ok {
-		_spec.SetField(network.FieldIrrAsSet, field.TypeString, value)
-	}
-	if _u.mutation.IrrAsSetCleared() {
-		_spec.ClearField(network.FieldIrrAsSet, field.TypeString)
-	}
-	if value, ok := _u.mutation.InfoType(); ok {
-		_spec.SetField(network.FieldInfoType, field.TypeString, value)
-	}
-	if _u.mutation.InfoTypeCleared() {
-		_spec.ClearField(network.FieldInfoType, field.TypeString)
-	}
-	if value, ok := _u.mutation.InfoTypes(); ok {
-		_spec.SetField(network.FieldInfoTypes, field.TypeJSON, value)
-	}
-	if value, ok := _u.mutation.AppendedInfoTypes(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, network.FieldInfoTypes, value)
-		})
-	}
-	if _u.mutation.InfoTypesCleared() {
-		_spec.ClearField(network.FieldInfoTypes, field.TypeJSON)
+	if value, ok := _u.mutation.InfoNeverViaRouteServers(); ok {
+		_spec.SetField(network.FieldInfoNeverViaRouteServers, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.InfoPrefixes4(); ok {
 		_spec.SetField(network.FieldInfoPrefixes4, field.TypeInt, value)
@@ -2568,12 +2519,6 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 	if _u.mutation.InfoPrefixes6Cleared() {
 		_spec.ClearField(network.FieldInfoPrefixes6, field.TypeInt)
 	}
-	if value, ok := _u.mutation.InfoTraffic(); ok {
-		_spec.SetField(network.FieldInfoTraffic, field.TypeString, value)
-	}
-	if _u.mutation.InfoTrafficCleared() {
-		_spec.ClearField(network.FieldInfoTraffic, field.TypeString)
-	}
 	if value, ok := _u.mutation.InfoRatio(); ok {
 		_spec.SetField(network.FieldInfoRatio, field.TypeString, value)
 	}
@@ -2586,17 +2531,58 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 	if _u.mutation.InfoScopeCleared() {
 		_spec.ClearField(network.FieldInfoScope, field.TypeString)
 	}
+	if value, ok := _u.mutation.InfoTraffic(); ok {
+		_spec.SetField(network.FieldInfoTraffic, field.TypeString, value)
+	}
+	if _u.mutation.InfoTrafficCleared() {
+		_spec.ClearField(network.FieldInfoTraffic, field.TypeString)
+	}
+	if value, ok := _u.mutation.InfoType(); ok {
+		_spec.SetField(network.FieldInfoType, field.TypeString, value)
+	}
+	if _u.mutation.InfoTypeCleared() {
+		_spec.ClearField(network.FieldInfoType, field.TypeString)
+	}
+	if value, ok := _u.mutation.InfoTypes(); ok {
+		_spec.SetField(network.FieldInfoTypes, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedInfoTypes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, network.FieldInfoTypes, value)
+		})
+	}
+	if _u.mutation.InfoTypesCleared() {
+		_spec.ClearField(network.FieldInfoTypes, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.InfoUnicast(); ok {
 		_spec.SetField(network.FieldInfoUnicast, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.InfoMulticast(); ok {
-		_spec.SetField(network.FieldInfoMulticast, field.TypeBool, value)
+	if value, ok := _u.mutation.IrrAsSet(); ok {
+		_spec.SetField(network.FieldIrrAsSet, field.TypeString, value)
 	}
-	if value, ok := _u.mutation.InfoIpv6(); ok {
-		_spec.SetField(network.FieldInfoIpv6, field.TypeBool, value)
+	if _u.mutation.IrrAsSetCleared() {
+		_spec.ClearField(network.FieldIrrAsSet, field.TypeString)
 	}
-	if value, ok := _u.mutation.InfoNeverViaRouteServers(); ok {
-		_spec.SetField(network.FieldInfoNeverViaRouteServers, field.TypeBool, value)
+	if value, ok := _u.mutation.Logo(); ok {
+		_spec.SetField(network.FieldLogo, field.TypeString, value)
+	}
+	if _u.mutation.LogoCleared() {
+		_spec.ClearField(network.FieldLogo, field.TypeString)
+	}
+	if value, ok := _u.mutation.LookingGlass(); ok {
+		_spec.SetField(network.FieldLookingGlass, field.TypeString, value)
+	}
+	if _u.mutation.LookingGlassCleared() {
+		_spec.ClearField(network.FieldLookingGlass, field.TypeString)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(network.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.NameLong(); ok {
+		_spec.SetField(network.FieldNameLong, field.TypeString, value)
+	}
+	if _u.mutation.NameLongCleared() {
+		_spec.ClearField(network.FieldNameLong, field.TypeString)
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(network.FieldNotes, field.TypeString, value)
@@ -2604,11 +2590,11 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 	if _u.mutation.NotesCleared() {
 		_spec.ClearField(network.FieldNotes, field.TypeString)
 	}
-	if value, ok := _u.mutation.PolicyURL(); ok {
-		_spec.SetField(network.FieldPolicyURL, field.TypeString, value)
+	if value, ok := _u.mutation.PolicyContracts(); ok {
+		_spec.SetField(network.FieldPolicyContracts, field.TypeString, value)
 	}
-	if _u.mutation.PolicyURLCleared() {
-		_spec.ClearField(network.FieldPolicyURL, field.TypeString)
+	if _u.mutation.PolicyContractsCleared() {
+		_spec.ClearField(network.FieldPolicyContracts, field.TypeString)
 	}
 	if value, ok := _u.mutation.PolicyGeneral(); ok {
 		_spec.SetField(network.FieldPolicyGeneral, field.TypeString, value)
@@ -2625,20 +2611,11 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 	if value, ok := _u.mutation.PolicyRatio(); ok {
 		_spec.SetField(network.FieldPolicyRatio, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.PolicyContracts(); ok {
-		_spec.SetField(network.FieldPolicyContracts, field.TypeString, value)
+	if value, ok := _u.mutation.PolicyURL(); ok {
+		_spec.SetField(network.FieldPolicyURL, field.TypeString, value)
 	}
-	if _u.mutation.PolicyContractsCleared() {
-		_spec.ClearField(network.FieldPolicyContracts, field.TypeString)
-	}
-	if value, ok := _u.mutation.AllowIxpUpdate(); ok {
-		_spec.SetField(network.FieldAllowIxpUpdate, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.StatusDashboard(); ok {
-		_spec.SetField(network.FieldStatusDashboard, field.TypeString, value)
-	}
-	if _u.mutation.StatusDashboardCleared() {
-		_spec.ClearField(network.FieldStatusDashboard, field.TypeString)
+	if _u.mutation.PolicyURLCleared() {
+		_spec.ClearField(network.FieldPolicyURL, field.TypeString)
 	}
 	if value, ok := _u.mutation.RirStatus(); ok {
 		_spec.SetField(network.FieldRirStatus, field.TypeString, value)
@@ -2652,11 +2629,34 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 	if _u.mutation.RirStatusUpdatedCleared() {
 		_spec.ClearField(network.FieldRirStatusUpdated, field.TypeTime)
 	}
-	if value, ok := _u.mutation.Logo(); ok {
-		_spec.SetField(network.FieldLogo, field.TypeString, value)
+	if value, ok := _u.mutation.RouteServer(); ok {
+		_spec.SetField(network.FieldRouteServer, field.TypeString, value)
 	}
-	if _u.mutation.LogoCleared() {
-		_spec.ClearField(network.FieldLogo, field.TypeString)
+	if _u.mutation.RouteServerCleared() {
+		_spec.ClearField(network.FieldRouteServer, field.TypeString)
+	}
+	if value, ok := _u.mutation.SocialMedia(); ok {
+		_spec.SetField(network.FieldSocialMedia, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedSocialMedia(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, network.FieldSocialMedia, value)
+		})
+	}
+	if _u.mutation.SocialMediaCleared() {
+		_spec.ClearField(network.FieldSocialMedia, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.StatusDashboard(); ok {
+		_spec.SetField(network.FieldStatusDashboard, field.TypeString, value)
+	}
+	if _u.mutation.StatusDashboardCleared() {
+		_spec.ClearField(network.FieldStatusDashboard, field.TypeString)
+	}
+	if value, ok := _u.mutation.Website(); ok {
+		_spec.SetField(network.FieldWebsite, field.TypeString, value)
+	}
+	if _u.mutation.WebsiteCleared() {
+		_spec.ClearField(network.FieldWebsite, field.TypeString)
 	}
 	if value, ok := _u.mutation.IxCount(); ok {
 		_spec.SetField(network.FieldIxCount, field.TypeInt, value)
@@ -2699,80 +2699,6 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(network.FieldStatus, field.TypeString, value)
-	}
-	if _u.mutation.OrganizationCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   network.OrganizationTable,
-			Columns: []string{network.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   network.OrganizationTable,
-			Columns: []string{network.OrganizationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.PocsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   network.PocsTable,
-			Columns: []string{network.PocsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedPocsIDs(); len(nodes) > 0 && !_u.mutation.PocsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   network.PocsTable,
-			Columns: []string{network.PocsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.PocsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   network.PocsTable,
-			Columns: []string{network.PocsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.NetworkFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -2857,6 +2783,80 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(networkixlan.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OrganizationCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   network.OrganizationTable,
+			Columns: []string{network.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   network.OrganizationTable,
+			Columns: []string{network.OrganizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PocsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   network.PocsTable,
+			Columns: []string{network.PocsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPocsIDs(); len(nodes) > 0 && !_u.mutation.PocsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   network.PocsTable,
+			Columns: []string{network.PocsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PocsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   network.PocsTable,
+			Columns: []string{network.PocsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

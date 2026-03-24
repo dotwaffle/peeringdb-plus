@@ -23,24 +23,24 @@ type Carrier struct {
 	ID int `json:"id,omitempty"`
 	// FK to organization
 	OrgID *int `json:"org_id"`
-	// Organization name (computed)
-	OrgName string `json:"org_name"`
-	// Carrier name
-	Name string `json:"name"`
 	// Also known as
 	Aka string `json:"aka"`
-	// Long name
-	NameLong string `json:"name_long"`
-	// Carrier website URL
-	Website string `json:"website"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media"`
-	// Notes
-	Notes string `json:"notes"`
-	// Facility count (computed)
-	FacCount int `json:"fac_count"`
 	// Logo URL
 	Logo *string `json:"logo"`
+	// Carrier name
+	Name string `json:"name"`
+	// Long name
+	NameLong string `json:"name_long"`
+	// Notes
+	Notes string `json:"notes"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media"`
+	// Carrier website URL
+	Website string `json:"website"`
+	// Org Name (computed)
+	OrgName string `json:"org_name"`
+	// Fac Count (computed)
+	FacCount int `json:"fac_count"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -55,10 +55,10 @@ type Carrier struct {
 
 // CarrierEdges holds the relations/edges for other nodes in the graph.
 type CarrierEdges struct {
-	// Organization holds the value of the organization edge.
-	Organization *Organization `json:"organization,omitempty"`
 	// CarrierFacilities holds the value of the carrier_facilities edge.
 	CarrierFacilities []*CarrierFacility `json:"carrier_facilities,omitempty"`
+	// Organization holds the value of the organization edge.
+	Organization *Organization `json:"organization,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -68,24 +68,24 @@ type CarrierEdges struct {
 	namedCarrierFacilities map[string][]*CarrierFacility
 }
 
+// CarrierFacilitiesOrErr returns the CarrierFacilities value or an error if the edge
+// was not loaded in eager-loading.
+func (e CarrierEdges) CarrierFacilitiesOrErr() ([]*CarrierFacility, error) {
+	if e.loadedTypes[0] {
+		return e.CarrierFacilities, nil
+	}
+	return nil, &NotLoadedError{edge: "carrier_facilities"}
+}
+
 // OrganizationOrErr returns the Organization value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e CarrierEdges) OrganizationOrErr() (*Organization, error) {
 	if e.Organization != nil {
 		return e.Organization, nil
-	} else if e.loadedTypes[0] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: organization.Label}
 	}
 	return nil, &NotLoadedError{edge: "organization"}
-}
-
-// CarrierFacilitiesOrErr returns the CarrierFacilities value or an error if the edge
-// was not loaded in eager-loading.
-func (e CarrierEdges) CarrierFacilitiesOrErr() ([]*CarrierFacility, error) {
-	if e.loadedTypes[1] {
-		return e.CarrierFacilities, nil
-	}
-	return nil, &NotLoadedError{edge: "carrier_facilities"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -97,7 +97,7 @@ func (*Carrier) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case carrier.FieldID, carrier.FieldOrgID, carrier.FieldFacCount:
 			values[i] = new(sql.NullInt64)
-		case carrier.FieldOrgName, carrier.FieldName, carrier.FieldAka, carrier.FieldNameLong, carrier.FieldWebsite, carrier.FieldNotes, carrier.FieldLogo, carrier.FieldStatus:
+		case carrier.FieldAka, carrier.FieldLogo, carrier.FieldName, carrier.FieldNameLong, carrier.FieldNotes, carrier.FieldWebsite, carrier.FieldOrgName, carrier.FieldStatus:
 			values[i] = new(sql.NullString)
 		case carrier.FieldCreated, carrier.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -129,11 +129,18 @@ func (_m *Carrier) assignValues(columns []string, values []any) error {
 				_m.OrgID = new(int)
 				*_m.OrgID = int(value.Int64)
 			}
-		case carrier.FieldOrgName:
+		case carrier.FieldAka:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field org_name", values[i])
+				return fmt.Errorf("unexpected type %T for field aka", values[i])
 			} else if value.Valid {
-				_m.OrgName = value.String
+				_m.Aka = value.String
+			}
+		case carrier.FieldLogo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field logo", values[i])
+			} else if value.Valid {
+				_m.Logo = new(string)
+				*_m.Logo = value.String
 			}
 		case carrier.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -141,23 +148,17 @@ func (_m *Carrier) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Name = value.String
 			}
-		case carrier.FieldAka:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field aka", values[i])
-			} else if value.Valid {
-				_m.Aka = value.String
-			}
 		case carrier.FieldNameLong:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name_long", values[i])
 			} else if value.Valid {
 				_m.NameLong = value.String
 			}
-		case carrier.FieldWebsite:
+		case carrier.FieldNotes:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field website", values[i])
+				return fmt.Errorf("unexpected type %T for field notes", values[i])
 			} else if value.Valid {
-				_m.Website = value.String
+				_m.Notes = value.String
 			}
 		case carrier.FieldSocialMedia:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -167,24 +168,23 @@ func (_m *Carrier) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field social_media: %w", err)
 				}
 			}
-		case carrier.FieldNotes:
+		case carrier.FieldWebsite:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field notes", values[i])
+				return fmt.Errorf("unexpected type %T for field website", values[i])
 			} else if value.Valid {
-				_m.Notes = value.String
+				_m.Website = value.String
+			}
+		case carrier.FieldOrgName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field org_name", values[i])
+			} else if value.Valid {
+				_m.OrgName = value.String
 			}
 		case carrier.FieldFacCount:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field fac_count", values[i])
 			} else if value.Valid {
 				_m.FacCount = int(value.Int64)
-			}
-		case carrier.FieldLogo:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field logo", values[i])
-			} else if value.Valid {
-				_m.Logo = new(string)
-				*_m.Logo = value.String
 			}
 		case carrier.FieldCreated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -217,14 +217,14 @@ func (_m *Carrier) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryOrganization queries the "organization" edge of the Carrier entity.
-func (_m *Carrier) QueryOrganization() *OrganizationQuery {
-	return NewCarrierClient(_m.config).QueryOrganization(_m)
-}
-
 // QueryCarrierFacilities queries the "carrier_facilities" edge of the Carrier entity.
 func (_m *Carrier) QueryCarrierFacilities() *CarrierFacilityQuery {
 	return NewCarrierClient(_m.config).QueryCarrierFacilities(_m)
+}
+
+// QueryOrganization queries the "organization" edge of the Carrier entity.
+func (_m *Carrier) QueryOrganization() *OrganizationQuery {
+	return NewCarrierClient(_m.config).QueryOrganization(_m)
 }
 
 // Update returns a builder for updating this Carrier.
@@ -255,34 +255,34 @@ func (_m *Carrier) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("org_name=")
-	builder.WriteString(_m.OrgName)
-	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(_m.Name)
-	builder.WriteString(", ")
 	builder.WriteString("aka=")
 	builder.WriteString(_m.Aka)
-	builder.WriteString(", ")
-	builder.WriteString("name_long=")
-	builder.WriteString(_m.NameLong)
-	builder.WriteString(", ")
-	builder.WriteString("website=")
-	builder.WriteString(_m.Website)
-	builder.WriteString(", ")
-	builder.WriteString("social_media=")
-	builder.WriteString(fmt.Sprintf("%v", _m.SocialMedia))
-	builder.WriteString(", ")
-	builder.WriteString("notes=")
-	builder.WriteString(_m.Notes)
-	builder.WriteString(", ")
-	builder.WriteString("fac_count=")
-	builder.WriteString(fmt.Sprintf("%v", _m.FacCount))
 	builder.WriteString(", ")
 	if v := _m.Logo; v != nil {
 		builder.WriteString("logo=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("name_long=")
+	builder.WriteString(_m.NameLong)
+	builder.WriteString(", ")
+	builder.WriteString("notes=")
+	builder.WriteString(_m.Notes)
+	builder.WriteString(", ")
+	builder.WriteString("social_media=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SocialMedia))
+	builder.WriteString(", ")
+	builder.WriteString("website=")
+	builder.WriteString(_m.Website)
+	builder.WriteString(", ")
+	builder.WriteString("org_name=")
+	builder.WriteString(_m.OrgName)
+	builder.WriteString(", ")
+	builder.WriteString("fac_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.FacCount))
 	builder.WriteString(", ")
 	builder.WriteString("created=")
 	builder.WriteString(_m.Created.Format(time.ANSIC))

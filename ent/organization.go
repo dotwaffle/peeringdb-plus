@@ -20,40 +20,44 @@ type Organization struct {
 	// ID of the ent.
 	// PeeringDB organization ID
 	ID int `json:"id,omitempty"`
-	// Organization name
-	Name string `json:"name"`
-	// Also known as
-	Aka string `json:"aka"`
-	// Long name
-	NameLong string `json:"name_long"`
-	// Organization website URL
-	Website string `json:"website"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media"`
-	// Notes
-	Notes string `json:"notes"`
-	// Logo URL
-	Logo *string `json:"logo"`
 	// Address line 1
 	Address1 string `json:"address1"`
 	// Address line 2
 	Address2 string `json:"address2"`
+	// Also known as
+	Aka string `json:"aka"`
 	// City
 	City string `json:"city"`
-	// State or province
-	State string `json:"state"`
 	// Country code
 	Country string `json:"country"`
-	// Postal / ZIP code
-	Zipcode string `json:"zipcode"`
-	// Suite number
-	Suite string `json:"suite"`
 	// Floor
 	Floor string `json:"floor"`
 	// Latitude
 	Latitude *float64 `json:"latitude"`
+	// Logo URL
+	Logo *string `json:"logo"`
 	// Longitude
 	Longitude *float64 `json:"longitude"`
+	// Organization name
+	Name string `json:"name"`
+	// Long name
+	NameLong string `json:"name_long"`
+	// Notes
+	Notes string `json:"notes"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media"`
+	// State or province
+	State string `json:"state"`
+	// Suite number
+	Suite string `json:"suite"`
+	// Organization website URL
+	Website string `json:"website"`
+	// Postal / ZIP code
+	Zipcode string `json:"zipcode"`
+	// Net Count (computed)
+	NetCount int `json:"net_count"`
+	// Fac Count (computed)
+	FacCount int `json:"fac_count"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -68,42 +72,51 @@ type Organization struct {
 
 // OrganizationEdges holds the relations/edges for other nodes in the graph.
 type OrganizationEdges struct {
-	// Networks holds the value of the networks edge.
-	Networks []*Network `json:"networks,omitempty"`
+	// Campuses holds the value of the campuses edge.
+	Campuses []*Campus `json:"campuses,omitempty"`
+	// Carriers holds the value of the carriers edge.
+	Carriers []*Carrier `json:"carriers,omitempty"`
 	// Facilities holds the value of the facilities edge.
 	Facilities []*Facility `json:"facilities,omitempty"`
 	// InternetExchanges holds the value of the internet_exchanges edge.
 	InternetExchanges []*InternetExchange `json:"internet_exchanges,omitempty"`
-	// Carriers holds the value of the carriers edge.
-	Carriers []*Carrier `json:"carriers,omitempty"`
-	// Campuses holds the value of the campuses edge.
-	Campuses []*Campus `json:"campuses,omitempty"`
+	// Networks holds the value of the networks edge.
+	Networks []*Network `json:"networks,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [5]bool
 	// totalCount holds the count of the edges above.
 	totalCount [5]map[string]int
 
-	namedNetworks          map[string][]*Network
+	namedCampuses          map[string][]*Campus
+	namedCarriers          map[string][]*Carrier
 	namedFacilities        map[string][]*Facility
 	namedInternetExchanges map[string][]*InternetExchange
-	namedCarriers          map[string][]*Carrier
-	namedCampuses          map[string][]*Campus
+	namedNetworks          map[string][]*Network
 }
 
-// NetworksOrErr returns the Networks value or an error if the edge
+// CampusesOrErr returns the Campuses value or an error if the edge
 // was not loaded in eager-loading.
-func (e OrganizationEdges) NetworksOrErr() ([]*Network, error) {
+func (e OrganizationEdges) CampusesOrErr() ([]*Campus, error) {
 	if e.loadedTypes[0] {
-		return e.Networks, nil
+		return e.Campuses, nil
 	}
-	return nil, &NotLoadedError{edge: "networks"}
+	return nil, &NotLoadedError{edge: "campuses"}
+}
+
+// CarriersOrErr returns the Carriers value or an error if the edge
+// was not loaded in eager-loading.
+func (e OrganizationEdges) CarriersOrErr() ([]*Carrier, error) {
+	if e.loadedTypes[1] {
+		return e.Carriers, nil
+	}
+	return nil, &NotLoadedError{edge: "carriers"}
 }
 
 // FacilitiesOrErr returns the Facilities value or an error if the edge
 // was not loaded in eager-loading.
 func (e OrganizationEdges) FacilitiesOrErr() ([]*Facility, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.Facilities, nil
 	}
 	return nil, &NotLoadedError{edge: "facilities"}
@@ -112,28 +125,19 @@ func (e OrganizationEdges) FacilitiesOrErr() ([]*Facility, error) {
 // InternetExchangesOrErr returns the InternetExchanges value or an error if the edge
 // was not loaded in eager-loading.
 func (e OrganizationEdges) InternetExchangesOrErr() ([]*InternetExchange, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.InternetExchanges, nil
 	}
 	return nil, &NotLoadedError{edge: "internet_exchanges"}
 }
 
-// CarriersOrErr returns the Carriers value or an error if the edge
+// NetworksOrErr returns the Networks value or an error if the edge
 // was not loaded in eager-loading.
-func (e OrganizationEdges) CarriersOrErr() ([]*Carrier, error) {
-	if e.loadedTypes[3] {
-		return e.Carriers, nil
-	}
-	return nil, &NotLoadedError{edge: "carriers"}
-}
-
-// CampusesOrErr returns the Campuses value or an error if the edge
-// was not loaded in eager-loading.
-func (e OrganizationEdges) CampusesOrErr() ([]*Campus, error) {
+func (e OrganizationEdges) NetworksOrErr() ([]*Network, error) {
 	if e.loadedTypes[4] {
-		return e.Campuses, nil
+		return e.Networks, nil
 	}
-	return nil, &NotLoadedError{edge: "campuses"}
+	return nil, &NotLoadedError{edge: "networks"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -145,9 +149,9 @@ func (*Organization) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case organization.FieldLatitude, organization.FieldLongitude:
 			values[i] = new(sql.NullFloat64)
-		case organization.FieldID:
+		case organization.FieldID, organization.FieldNetCount, organization.FieldFacCount:
 			values[i] = new(sql.NullInt64)
-		case organization.FieldName, organization.FieldAka, organization.FieldNameLong, organization.FieldWebsite, organization.FieldNotes, organization.FieldLogo, organization.FieldAddress1, organization.FieldAddress2, organization.FieldCity, organization.FieldState, organization.FieldCountry, organization.FieldZipcode, organization.FieldSuite, organization.FieldFloor, organization.FieldStatus:
+		case organization.FieldAddress1, organization.FieldAddress2, organization.FieldAka, organization.FieldCity, organization.FieldCountry, organization.FieldFloor, organization.FieldLogo, organization.FieldName, organization.FieldNameLong, organization.FieldNotes, organization.FieldState, organization.FieldSuite, organization.FieldWebsite, organization.FieldZipcode, organization.FieldStatus:
 			values[i] = new(sql.NullString)
 		case organization.FieldCreated, organization.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -172,51 +176,6 @@ func (_m *Organization) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
-		case organization.FieldName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
-			} else if value.Valid {
-				_m.Name = value.String
-			}
-		case organization.FieldAka:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field aka", values[i])
-			} else if value.Valid {
-				_m.Aka = value.String
-			}
-		case organization.FieldNameLong:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name_long", values[i])
-			} else if value.Valid {
-				_m.NameLong = value.String
-			}
-		case organization.FieldWebsite:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field website", values[i])
-			} else if value.Valid {
-				_m.Website = value.String
-			}
-		case organization.FieldSocialMedia:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field social_media", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.SocialMedia); err != nil {
-					return fmt.Errorf("unmarshal field social_media: %w", err)
-				}
-			}
-		case organization.FieldNotes:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field notes", values[i])
-			} else if value.Valid {
-				_m.Notes = value.String
-			}
-		case organization.FieldLogo:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field logo", values[i])
-			} else if value.Valid {
-				_m.Logo = new(string)
-				*_m.Logo = value.String
-			}
 		case organization.FieldAddress1:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field address1", values[i])
@@ -229,35 +188,23 @@ func (_m *Organization) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Address2 = value.String
 			}
+		case organization.FieldAka:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field aka", values[i])
+			} else if value.Valid {
+				_m.Aka = value.String
+			}
 		case organization.FieldCity:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field city", values[i])
 			} else if value.Valid {
 				_m.City = value.String
 			}
-		case organization.FieldState:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field state", values[i])
-			} else if value.Valid {
-				_m.State = value.String
-			}
 		case organization.FieldCountry:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field country", values[i])
 			} else if value.Valid {
 				_m.Country = value.String
-			}
-		case organization.FieldZipcode:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field zipcode", values[i])
-			} else if value.Valid {
-				_m.Zipcode = value.String
-			}
-		case organization.FieldSuite:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field suite", values[i])
-			} else if value.Valid {
-				_m.Suite = value.String
 			}
 		case organization.FieldFloor:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -272,12 +219,81 @@ func (_m *Organization) assignValues(columns []string, values []any) error {
 				_m.Latitude = new(float64)
 				*_m.Latitude = value.Float64
 			}
+		case organization.FieldLogo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field logo", values[i])
+			} else if value.Valid {
+				_m.Logo = new(string)
+				*_m.Logo = value.String
+			}
 		case organization.FieldLongitude:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field longitude", values[i])
 			} else if value.Valid {
 				_m.Longitude = new(float64)
 				*_m.Longitude = value.Float64
+			}
+		case organization.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				_m.Name = value.String
+			}
+		case organization.FieldNameLong:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_long", values[i])
+			} else if value.Valid {
+				_m.NameLong = value.String
+			}
+		case organization.FieldNotes:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field notes", values[i])
+			} else if value.Valid {
+				_m.Notes = value.String
+			}
+		case organization.FieldSocialMedia:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field social_media", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.SocialMedia); err != nil {
+					return fmt.Errorf("unmarshal field social_media: %w", err)
+				}
+			}
+		case organization.FieldState:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field state", values[i])
+			} else if value.Valid {
+				_m.State = value.String
+			}
+		case organization.FieldSuite:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field suite", values[i])
+			} else if value.Valid {
+				_m.Suite = value.String
+			}
+		case organization.FieldWebsite:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field website", values[i])
+			} else if value.Valid {
+				_m.Website = value.String
+			}
+		case organization.FieldZipcode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field zipcode", values[i])
+			} else if value.Valid {
+				_m.Zipcode = value.String
+			}
+		case organization.FieldNetCount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field net_count", values[i])
+			} else if value.Valid {
+				_m.NetCount = int(value.Int64)
+			}
+		case organization.FieldFacCount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field fac_count", values[i])
+			} else if value.Valid {
+				_m.FacCount = int(value.Int64)
 			}
 		case organization.FieldCreated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -310,9 +326,14 @@ func (_m *Organization) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryNetworks queries the "networks" edge of the Organization entity.
-func (_m *Organization) QueryNetworks() *NetworkQuery {
-	return NewOrganizationClient(_m.config).QueryNetworks(_m)
+// QueryCampuses queries the "campuses" edge of the Organization entity.
+func (_m *Organization) QueryCampuses() *CampusQuery {
+	return NewOrganizationClient(_m.config).QueryCampuses(_m)
+}
+
+// QueryCarriers queries the "carriers" edge of the Organization entity.
+func (_m *Organization) QueryCarriers() *CarrierQuery {
+	return NewOrganizationClient(_m.config).QueryCarriers(_m)
 }
 
 // QueryFacilities queries the "facilities" edge of the Organization entity.
@@ -325,14 +346,9 @@ func (_m *Organization) QueryInternetExchanges() *InternetExchangeQuery {
 	return NewOrganizationClient(_m.config).QueryInternetExchanges(_m)
 }
 
-// QueryCarriers queries the "carriers" edge of the Organization entity.
-func (_m *Organization) QueryCarriers() *CarrierQuery {
-	return NewOrganizationClient(_m.config).QueryCarriers(_m)
-}
-
-// QueryCampuses queries the "campuses" edge of the Organization entity.
-func (_m *Organization) QueryCampuses() *CampusQuery {
-	return NewOrganizationClient(_m.config).QueryCampuses(_m)
+// QueryNetworks queries the "networks" edge of the Organization entity.
+func (_m *Organization) QueryNetworks() *NetworkQuery {
+	return NewOrganizationClient(_m.config).QueryNetworks(_m)
 }
 
 // Update returns a builder for updating this Organization.
@@ -358,49 +374,20 @@ func (_m *Organization) String() string {
 	var builder strings.Builder
 	builder.WriteString("Organization(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
-	builder.WriteString("name=")
-	builder.WriteString(_m.Name)
-	builder.WriteString(", ")
-	builder.WriteString("aka=")
-	builder.WriteString(_m.Aka)
-	builder.WriteString(", ")
-	builder.WriteString("name_long=")
-	builder.WriteString(_m.NameLong)
-	builder.WriteString(", ")
-	builder.WriteString("website=")
-	builder.WriteString(_m.Website)
-	builder.WriteString(", ")
-	builder.WriteString("social_media=")
-	builder.WriteString(fmt.Sprintf("%v", _m.SocialMedia))
-	builder.WriteString(", ")
-	builder.WriteString("notes=")
-	builder.WriteString(_m.Notes)
-	builder.WriteString(", ")
-	if v := _m.Logo; v != nil {
-		builder.WriteString("logo=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
 	builder.WriteString("address1=")
 	builder.WriteString(_m.Address1)
 	builder.WriteString(", ")
 	builder.WriteString("address2=")
 	builder.WriteString(_m.Address2)
 	builder.WriteString(", ")
+	builder.WriteString("aka=")
+	builder.WriteString(_m.Aka)
+	builder.WriteString(", ")
 	builder.WriteString("city=")
 	builder.WriteString(_m.City)
 	builder.WriteString(", ")
-	builder.WriteString("state=")
-	builder.WriteString(_m.State)
-	builder.WriteString(", ")
 	builder.WriteString("country=")
 	builder.WriteString(_m.Country)
-	builder.WriteString(", ")
-	builder.WriteString("zipcode=")
-	builder.WriteString(_m.Zipcode)
-	builder.WriteString(", ")
-	builder.WriteString("suite=")
-	builder.WriteString(_m.Suite)
 	builder.WriteString(", ")
 	builder.WriteString("floor=")
 	builder.WriteString(_m.Floor)
@@ -410,10 +397,45 @@ func (_m *Organization) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
+	if v := _m.Logo; v != nil {
+		builder.WriteString("logo=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
 	if v := _m.Longitude; v != nil {
 		builder.WriteString("longitude=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("name_long=")
+	builder.WriteString(_m.NameLong)
+	builder.WriteString(", ")
+	builder.WriteString("notes=")
+	builder.WriteString(_m.Notes)
+	builder.WriteString(", ")
+	builder.WriteString("social_media=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SocialMedia))
+	builder.WriteString(", ")
+	builder.WriteString("state=")
+	builder.WriteString(_m.State)
+	builder.WriteString(", ")
+	builder.WriteString("suite=")
+	builder.WriteString(_m.Suite)
+	builder.WriteString(", ")
+	builder.WriteString("website=")
+	builder.WriteString(_m.Website)
+	builder.WriteString(", ")
+	builder.WriteString("zipcode=")
+	builder.WriteString(_m.Zipcode)
+	builder.WriteString(", ")
+	builder.WriteString("net_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.NetCount))
+	builder.WriteString(", ")
+	builder.WriteString("fac_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.FacCount))
 	builder.WriteString(", ")
 	builder.WriteString("created=")
 	builder.WriteString(_m.Created.Format(time.ANSIC))
@@ -427,27 +449,51 @@ func (_m *Organization) String() string {
 	return builder.String()
 }
 
-// NamedNetworks returns the Networks named value or an error if the edge was not
+// NamedCampuses returns the Campuses named value or an error if the edge was not
 // loaded in eager-loading with this name.
-func (_m *Organization) NamedNetworks(name string) ([]*Network, error) {
-	if _m.Edges.namedNetworks == nil {
+func (_m *Organization) NamedCampuses(name string) ([]*Campus, error) {
+	if _m.Edges.namedCampuses == nil {
 		return nil, &NotLoadedError{edge: name}
 	}
-	nodes, ok := _m.Edges.namedNetworks[name]
+	nodes, ok := _m.Edges.namedCampuses[name]
 	if !ok {
 		return nil, &NotLoadedError{edge: name}
 	}
 	return nodes, nil
 }
 
-func (_m *Organization) appendNamedNetworks(name string, edges ...*Network) {
-	if _m.Edges.namedNetworks == nil {
-		_m.Edges.namedNetworks = make(map[string][]*Network)
+func (_m *Organization) appendNamedCampuses(name string, edges ...*Campus) {
+	if _m.Edges.namedCampuses == nil {
+		_m.Edges.namedCampuses = make(map[string][]*Campus)
 	}
 	if len(edges) == 0 {
-		_m.Edges.namedNetworks[name] = []*Network{}
+		_m.Edges.namedCampuses[name] = []*Campus{}
 	} else {
-		_m.Edges.namedNetworks[name] = append(_m.Edges.namedNetworks[name], edges...)
+		_m.Edges.namedCampuses[name] = append(_m.Edges.namedCampuses[name], edges...)
+	}
+}
+
+// NamedCarriers returns the Carriers named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (_m *Organization) NamedCarriers(name string) ([]*Carrier, error) {
+	if _m.Edges.namedCarriers == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := _m.Edges.namedCarriers[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (_m *Organization) appendNamedCarriers(name string, edges ...*Carrier) {
+	if _m.Edges.namedCarriers == nil {
+		_m.Edges.namedCarriers = make(map[string][]*Carrier)
+	}
+	if len(edges) == 0 {
+		_m.Edges.namedCarriers[name] = []*Carrier{}
+	} else {
+		_m.Edges.namedCarriers[name] = append(_m.Edges.namedCarriers[name], edges...)
 	}
 }
 
@@ -499,51 +545,27 @@ func (_m *Organization) appendNamedInternetExchanges(name string, edges ...*Inte
 	}
 }
 
-// NamedCarriers returns the Carriers named value or an error if the edge was not
+// NamedNetworks returns the Networks named value or an error if the edge was not
 // loaded in eager-loading with this name.
-func (_m *Organization) NamedCarriers(name string) ([]*Carrier, error) {
-	if _m.Edges.namedCarriers == nil {
+func (_m *Organization) NamedNetworks(name string) ([]*Network, error) {
+	if _m.Edges.namedNetworks == nil {
 		return nil, &NotLoadedError{edge: name}
 	}
-	nodes, ok := _m.Edges.namedCarriers[name]
+	nodes, ok := _m.Edges.namedNetworks[name]
 	if !ok {
 		return nil, &NotLoadedError{edge: name}
 	}
 	return nodes, nil
 }
 
-func (_m *Organization) appendNamedCarriers(name string, edges ...*Carrier) {
-	if _m.Edges.namedCarriers == nil {
-		_m.Edges.namedCarriers = make(map[string][]*Carrier)
+func (_m *Organization) appendNamedNetworks(name string, edges ...*Network) {
+	if _m.Edges.namedNetworks == nil {
+		_m.Edges.namedNetworks = make(map[string][]*Network)
 	}
 	if len(edges) == 0 {
-		_m.Edges.namedCarriers[name] = []*Carrier{}
+		_m.Edges.namedNetworks[name] = []*Network{}
 	} else {
-		_m.Edges.namedCarriers[name] = append(_m.Edges.namedCarriers[name], edges...)
-	}
-}
-
-// NamedCampuses returns the Campuses named value or an error if the edge was not
-// loaded in eager-loading with this name.
-func (_m *Organization) NamedCampuses(name string) ([]*Campus, error) {
-	if _m.Edges.namedCampuses == nil {
-		return nil, &NotLoadedError{edge: name}
-	}
-	nodes, ok := _m.Edges.namedCampuses[name]
-	if !ok {
-		return nil, &NotLoadedError{edge: name}
-	}
-	return nodes, nil
-}
-
-func (_m *Organization) appendNamedCampuses(name string, edges ...*Campus) {
-	if _m.Edges.namedCampuses == nil {
-		_m.Edges.namedCampuses = make(map[string][]*Campus)
-	}
-	if len(edges) == 0 {
-		_m.Edges.namedCampuses[name] = []*Campus{}
-	} else {
-		_m.Edges.namedCampuses[name] = append(_m.Edges.namedCampuses[name], edges...)
+		_m.Edges.namedNetworks[name] = append(_m.Edges.namedNetworks[name], edges...)
 	}
 }
 

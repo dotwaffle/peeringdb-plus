@@ -30,26 +30,6 @@ func (_u *IxFacilityUpdate) Where(ps ...predicate.IxFacility) *IxFacilityUpdate 
 	return _u
 }
 
-// SetIxID sets the "ix_id" field.
-func (_u *IxFacilityUpdate) SetIxID(v int) *IxFacilityUpdate {
-	_u.mutation.SetIxID(v)
-	return _u
-}
-
-// SetNillableIxID sets the "ix_id" field if the given value is not nil.
-func (_u *IxFacilityUpdate) SetNillableIxID(v *int) *IxFacilityUpdate {
-	if v != nil {
-		_u.SetIxID(*v)
-	}
-	return _u
-}
-
-// ClearIxID clears the value of the "ix_id" field.
-func (_u *IxFacilityUpdate) ClearIxID() *IxFacilityUpdate {
-	_u.mutation.ClearIxID()
-	return _u
-}
-
 // SetFacID sets the "fac_id" field.
 func (_u *IxFacilityUpdate) SetFacID(v int) *IxFacilityUpdate {
 	_u.mutation.SetFacID(v)
@@ -67,6 +47,26 @@ func (_u *IxFacilityUpdate) SetNillableFacID(v *int) *IxFacilityUpdate {
 // ClearFacID clears the value of the "fac_id" field.
 func (_u *IxFacilityUpdate) ClearFacID() *IxFacilityUpdate {
 	_u.mutation.ClearFacID()
+	return _u
+}
+
+// SetIxID sets the "ix_id" field.
+func (_u *IxFacilityUpdate) SetIxID(v int) *IxFacilityUpdate {
+	_u.mutation.SetIxID(v)
+	return _u
+}
+
+// SetNillableIxID sets the "ix_id" field if the given value is not nil.
+func (_u *IxFacilityUpdate) SetNillableIxID(v *int) *IxFacilityUpdate {
+	if v != nil {
+		_u.SetIxID(*v)
+	}
+	return _u
+}
+
+// ClearIxID clears the value of the "ix_id" field.
+func (_u *IxFacilityUpdate) ClearIxID() *IxFacilityUpdate {
+	_u.mutation.ClearIxID()
 	return _u
 }
 
@@ -158,25 +158,6 @@ func (_u *IxFacilityUpdate) SetNillableStatus(v *string) *IxFacilityUpdate {
 	return _u
 }
 
-// SetInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID.
-func (_u *IxFacilityUpdate) SetInternetExchangeID(id int) *IxFacilityUpdate {
-	_u.mutation.SetInternetExchangeID(id)
-	return _u
-}
-
-// SetNillableInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID if the given value is not nil.
-func (_u *IxFacilityUpdate) SetNillableInternetExchangeID(id *int) *IxFacilityUpdate {
-	if id != nil {
-		_u = _u.SetInternetExchangeID(*id)
-	}
-	return _u
-}
-
-// SetInternetExchange sets the "internet_exchange" edge to the InternetExchange entity.
-func (_u *IxFacilityUpdate) SetInternetExchange(v *InternetExchange) *IxFacilityUpdate {
-	return _u.SetInternetExchangeID(v.ID)
-}
-
 // SetFacilityID sets the "facility" edge to the Facility entity by ID.
 func (_u *IxFacilityUpdate) SetFacilityID(id int) *IxFacilityUpdate {
 	_u.mutation.SetFacilityID(id)
@@ -196,20 +177,39 @@ func (_u *IxFacilityUpdate) SetFacility(v *Facility) *IxFacilityUpdate {
 	return _u.SetFacilityID(v.ID)
 }
 
+// SetInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID.
+func (_u *IxFacilityUpdate) SetInternetExchangeID(id int) *IxFacilityUpdate {
+	_u.mutation.SetInternetExchangeID(id)
+	return _u
+}
+
+// SetNillableInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID if the given value is not nil.
+func (_u *IxFacilityUpdate) SetNillableInternetExchangeID(id *int) *IxFacilityUpdate {
+	if id != nil {
+		_u = _u.SetInternetExchangeID(*id)
+	}
+	return _u
+}
+
+// SetInternetExchange sets the "internet_exchange" edge to the InternetExchange entity.
+func (_u *IxFacilityUpdate) SetInternetExchange(v *InternetExchange) *IxFacilityUpdate {
+	return _u.SetInternetExchangeID(v.ID)
+}
+
 // Mutation returns the IxFacilityMutation object of the builder.
 func (_u *IxFacilityUpdate) Mutation() *IxFacilityMutation {
 	return _u.mutation
 }
 
-// ClearInternetExchange clears the "internet_exchange" edge to the InternetExchange entity.
-func (_u *IxFacilityUpdate) ClearInternetExchange() *IxFacilityUpdate {
-	_u.mutation.ClearInternetExchange()
-	return _u
-}
-
 // ClearFacility clears the "facility" edge to the Facility entity.
 func (_u *IxFacilityUpdate) ClearFacility() *IxFacilityUpdate {
 	_u.mutation.ClearFacility()
+	return _u
+}
+
+// ClearInternetExchange clears the "internet_exchange" edge to the InternetExchange entity.
+func (_u *IxFacilityUpdate) ClearInternetExchange() *IxFacilityUpdate {
+	_u.mutation.ClearInternetExchange()
 	return _u
 }
 
@@ -286,35 +286,6 @@ func (_u *IxFacilityUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(ixfacility.FieldStatus, field.TypeString, value)
 	}
-	if _u.mutation.InternetExchangeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   ixfacility.InternetExchangeTable,
-			Columns: []string{ixfacility.InternetExchangeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.InternetExchangeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   ixfacility.InternetExchangeTable,
-			Columns: []string{ixfacility.InternetExchangeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if _u.mutation.FacilityCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -344,6 +315,35 @@ func (_u *IxFacilityUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.InternetExchangeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ixfacility.InternetExchangeTable,
+			Columns: []string{ixfacility.InternetExchangeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.InternetExchangeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ixfacility.InternetExchangeTable,
+			Columns: []string{ixfacility.InternetExchangeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{ixfacility.Label}
@@ -364,26 +364,6 @@ type IxFacilityUpdateOne struct {
 	mutation *IxFacilityMutation
 }
 
-// SetIxID sets the "ix_id" field.
-func (_u *IxFacilityUpdateOne) SetIxID(v int) *IxFacilityUpdateOne {
-	_u.mutation.SetIxID(v)
-	return _u
-}
-
-// SetNillableIxID sets the "ix_id" field if the given value is not nil.
-func (_u *IxFacilityUpdateOne) SetNillableIxID(v *int) *IxFacilityUpdateOne {
-	if v != nil {
-		_u.SetIxID(*v)
-	}
-	return _u
-}
-
-// ClearIxID clears the value of the "ix_id" field.
-func (_u *IxFacilityUpdateOne) ClearIxID() *IxFacilityUpdateOne {
-	_u.mutation.ClearIxID()
-	return _u
-}
-
 // SetFacID sets the "fac_id" field.
 func (_u *IxFacilityUpdateOne) SetFacID(v int) *IxFacilityUpdateOne {
 	_u.mutation.SetFacID(v)
@@ -401,6 +381,26 @@ func (_u *IxFacilityUpdateOne) SetNillableFacID(v *int) *IxFacilityUpdateOne {
 // ClearFacID clears the value of the "fac_id" field.
 func (_u *IxFacilityUpdateOne) ClearFacID() *IxFacilityUpdateOne {
 	_u.mutation.ClearFacID()
+	return _u
+}
+
+// SetIxID sets the "ix_id" field.
+func (_u *IxFacilityUpdateOne) SetIxID(v int) *IxFacilityUpdateOne {
+	_u.mutation.SetIxID(v)
+	return _u
+}
+
+// SetNillableIxID sets the "ix_id" field if the given value is not nil.
+func (_u *IxFacilityUpdateOne) SetNillableIxID(v *int) *IxFacilityUpdateOne {
+	if v != nil {
+		_u.SetIxID(*v)
+	}
+	return _u
+}
+
+// ClearIxID clears the value of the "ix_id" field.
+func (_u *IxFacilityUpdateOne) ClearIxID() *IxFacilityUpdateOne {
+	_u.mutation.ClearIxID()
 	return _u
 }
 
@@ -492,25 +492,6 @@ func (_u *IxFacilityUpdateOne) SetNillableStatus(v *string) *IxFacilityUpdateOne
 	return _u
 }
 
-// SetInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID.
-func (_u *IxFacilityUpdateOne) SetInternetExchangeID(id int) *IxFacilityUpdateOne {
-	_u.mutation.SetInternetExchangeID(id)
-	return _u
-}
-
-// SetNillableInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID if the given value is not nil.
-func (_u *IxFacilityUpdateOne) SetNillableInternetExchangeID(id *int) *IxFacilityUpdateOne {
-	if id != nil {
-		_u = _u.SetInternetExchangeID(*id)
-	}
-	return _u
-}
-
-// SetInternetExchange sets the "internet_exchange" edge to the InternetExchange entity.
-func (_u *IxFacilityUpdateOne) SetInternetExchange(v *InternetExchange) *IxFacilityUpdateOne {
-	return _u.SetInternetExchangeID(v.ID)
-}
-
 // SetFacilityID sets the "facility" edge to the Facility entity by ID.
 func (_u *IxFacilityUpdateOne) SetFacilityID(id int) *IxFacilityUpdateOne {
 	_u.mutation.SetFacilityID(id)
@@ -530,20 +511,39 @@ func (_u *IxFacilityUpdateOne) SetFacility(v *Facility) *IxFacilityUpdateOne {
 	return _u.SetFacilityID(v.ID)
 }
 
+// SetInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID.
+func (_u *IxFacilityUpdateOne) SetInternetExchangeID(id int) *IxFacilityUpdateOne {
+	_u.mutation.SetInternetExchangeID(id)
+	return _u
+}
+
+// SetNillableInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by ID if the given value is not nil.
+func (_u *IxFacilityUpdateOne) SetNillableInternetExchangeID(id *int) *IxFacilityUpdateOne {
+	if id != nil {
+		_u = _u.SetInternetExchangeID(*id)
+	}
+	return _u
+}
+
+// SetInternetExchange sets the "internet_exchange" edge to the InternetExchange entity.
+func (_u *IxFacilityUpdateOne) SetInternetExchange(v *InternetExchange) *IxFacilityUpdateOne {
+	return _u.SetInternetExchangeID(v.ID)
+}
+
 // Mutation returns the IxFacilityMutation object of the builder.
 func (_u *IxFacilityUpdateOne) Mutation() *IxFacilityMutation {
 	return _u.mutation
 }
 
-// ClearInternetExchange clears the "internet_exchange" edge to the InternetExchange entity.
-func (_u *IxFacilityUpdateOne) ClearInternetExchange() *IxFacilityUpdateOne {
-	_u.mutation.ClearInternetExchange()
-	return _u
-}
-
 // ClearFacility clears the "facility" edge to the Facility entity.
 func (_u *IxFacilityUpdateOne) ClearFacility() *IxFacilityUpdateOne {
 	_u.mutation.ClearFacility()
+	return _u
+}
+
+// ClearInternetExchange clears the "internet_exchange" edge to the InternetExchange entity.
+func (_u *IxFacilityUpdateOne) ClearInternetExchange() *IxFacilityUpdateOne {
+	_u.mutation.ClearInternetExchange()
 	return _u
 }
 
@@ -650,35 +650,6 @@ func (_u *IxFacilityUpdateOne) sqlSave(ctx context.Context) (_node *IxFacility, 
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(ixfacility.FieldStatus, field.TypeString, value)
 	}
-	if _u.mutation.InternetExchangeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   ixfacility.InternetExchangeTable,
-			Columns: []string{ixfacility.InternetExchangeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.InternetExchangeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   ixfacility.InternetExchangeTable,
-			Columns: []string{ixfacility.InternetExchangeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if _u.mutation.FacilityCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -701,6 +672,35 @@ func (_u *IxFacilityUpdateOne) sqlSave(ctx context.Context) (_node *IxFacility, 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(facility.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.InternetExchangeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ixfacility.InternetExchangeTable,
+			Columns: []string{ixfacility.InternetExchangeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.InternetExchangeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ixfacility.InternetExchangeTable,
+			Columns: []string{ixfacility.InternetExchangeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

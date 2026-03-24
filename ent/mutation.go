@@ -58,28 +58,28 @@ type CampusMutation struct {
 	op                  Op
 	typ                 string
 	id                  *int
-	org_name            *string
+	aka                 *string
+	city                *string
+	country             *string
+	logo                *string
 	name                *string
 	name_long           *string
-	aka                 *string
-	website             *string
+	notes               *string
 	social_media        *[]schema.SocialMedia
 	appendsocial_media  []schema.SocialMedia
-	notes               *string
-	country             *string
-	city                *string
-	zipcode             *string
 	state               *string
-	logo                *string
+	website             *string
+	zipcode             *string
+	org_name            *string
 	created             *time.Time
 	updated             *time.Time
 	status              *string
 	clearedFields       map[string]struct{}
-	organization        *int
-	clearedorganization bool
 	facilities          map[int]struct{}
 	removedfacilities   map[int]struct{}
 	clearedfacilities   bool
+	organization        *int
+	clearedorganization bool
 	done                bool
 	oldValue            func(context.Context) (*Campus, error)
 	predicates          []predicate.Campus
@@ -238,53 +238,200 @@ func (m *CampusMutation) ResetOrgID() {
 	delete(m.clearedFields, campus.FieldOrgID)
 }
 
-// SetOrgName sets the "org_name" field.
-func (m *CampusMutation) SetOrgName(s string) {
-	m.org_name = &s
+// SetAka sets the "aka" field.
+func (m *CampusMutation) SetAka(s string) {
+	m.aka = &s
 }
 
-// OrgName returns the value of the "org_name" field in the mutation.
-func (m *CampusMutation) OrgName() (r string, exists bool) {
-	v := m.org_name
+// Aka returns the value of the "aka" field in the mutation.
+func (m *CampusMutation) Aka() (r string, exists bool) {
+	v := m.aka
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldOrgName returns the old "org_name" field's value of the Campus entity.
+// OldAka returns the old "aka" field's value of the Campus entity.
 // If the Campus object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CampusMutation) OldOrgName(ctx context.Context) (v string, err error) {
+func (m *CampusMutation) OldAka(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOrgName is only allowed on UpdateOne operations")
+		return v, errors.New("OldAka is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOrgName requires an ID field in the mutation")
+		return v, errors.New("OldAka requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOrgName: %w", err)
+		return v, fmt.Errorf("querying old value for OldAka: %w", err)
 	}
-	return oldValue.OrgName, nil
+	return oldValue.Aka, nil
 }
 
-// ClearOrgName clears the value of the "org_name" field.
-func (m *CampusMutation) ClearOrgName() {
-	m.org_name = nil
-	m.clearedFields[campus.FieldOrgName] = struct{}{}
+// ClearAka clears the value of the "aka" field.
+func (m *CampusMutation) ClearAka() {
+	m.aka = nil
+	m.clearedFields[campus.FieldAka] = struct{}{}
 }
 
-// OrgNameCleared returns if the "org_name" field was cleared in this mutation.
-func (m *CampusMutation) OrgNameCleared() bool {
-	_, ok := m.clearedFields[campus.FieldOrgName]
+// AkaCleared returns if the "aka" field was cleared in this mutation.
+func (m *CampusMutation) AkaCleared() bool {
+	_, ok := m.clearedFields[campus.FieldAka]
 	return ok
 }
 
-// ResetOrgName resets all changes to the "org_name" field.
-func (m *CampusMutation) ResetOrgName() {
-	m.org_name = nil
-	delete(m.clearedFields, campus.FieldOrgName)
+// ResetAka resets all changes to the "aka" field.
+func (m *CampusMutation) ResetAka() {
+	m.aka = nil
+	delete(m.clearedFields, campus.FieldAka)
+}
+
+// SetCity sets the "city" field.
+func (m *CampusMutation) SetCity(s string) {
+	m.city = &s
+}
+
+// City returns the value of the "city" field in the mutation.
+func (m *CampusMutation) City() (r string, exists bool) {
+	v := m.city
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCity returns the old "city" field's value of the Campus entity.
+// If the Campus object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CampusMutation) OldCity(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCity: %w", err)
+	}
+	return oldValue.City, nil
+}
+
+// ClearCity clears the value of the "city" field.
+func (m *CampusMutation) ClearCity() {
+	m.city = nil
+	m.clearedFields[campus.FieldCity] = struct{}{}
+}
+
+// CityCleared returns if the "city" field was cleared in this mutation.
+func (m *CampusMutation) CityCleared() bool {
+	_, ok := m.clearedFields[campus.FieldCity]
+	return ok
+}
+
+// ResetCity resets all changes to the "city" field.
+func (m *CampusMutation) ResetCity() {
+	m.city = nil
+	delete(m.clearedFields, campus.FieldCity)
+}
+
+// SetCountry sets the "country" field.
+func (m *CampusMutation) SetCountry(s string) {
+	m.country = &s
+}
+
+// Country returns the value of the "country" field in the mutation.
+func (m *CampusMutation) Country() (r string, exists bool) {
+	v := m.country
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCountry returns the old "country" field's value of the Campus entity.
+// If the Campus object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CampusMutation) OldCountry(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCountry is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCountry requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCountry: %w", err)
+	}
+	return oldValue.Country, nil
+}
+
+// ClearCountry clears the value of the "country" field.
+func (m *CampusMutation) ClearCountry() {
+	m.country = nil
+	m.clearedFields[campus.FieldCountry] = struct{}{}
+}
+
+// CountryCleared returns if the "country" field was cleared in this mutation.
+func (m *CampusMutation) CountryCleared() bool {
+	_, ok := m.clearedFields[campus.FieldCountry]
+	return ok
+}
+
+// ResetCountry resets all changes to the "country" field.
+func (m *CampusMutation) ResetCountry() {
+	m.country = nil
+	delete(m.clearedFields, campus.FieldCountry)
+}
+
+// SetLogo sets the "logo" field.
+func (m *CampusMutation) SetLogo(s string) {
+	m.logo = &s
+}
+
+// Logo returns the value of the "logo" field in the mutation.
+func (m *CampusMutation) Logo() (r string, exists bool) {
+	v := m.logo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLogo returns the old "logo" field's value of the Campus entity.
+// If the Campus object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CampusMutation) OldLogo(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLogo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
+	}
+	return oldValue.Logo, nil
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (m *CampusMutation) ClearLogo() {
+	m.logo = nil
+	m.clearedFields[campus.FieldLogo] = struct{}{}
+}
+
+// LogoCleared returns if the "logo" field was cleared in this mutation.
+func (m *CampusMutation) LogoCleared() bool {
+	_, ok := m.clearedFields[campus.FieldLogo]
+	return ok
+}
+
+// ResetLogo resets all changes to the "logo" field.
+func (m *CampusMutation) ResetLogo() {
+	m.logo = nil
+	delete(m.clearedFields, campus.FieldLogo)
 }
 
 // SetName sets the "name" field.
@@ -372,102 +519,53 @@ func (m *CampusMutation) ResetNameLong() {
 	delete(m.clearedFields, campus.FieldNameLong)
 }
 
-// SetAka sets the "aka" field.
-func (m *CampusMutation) SetAka(s string) {
-	m.aka = &s
+// SetNotes sets the "notes" field.
+func (m *CampusMutation) SetNotes(s string) {
+	m.notes = &s
 }
 
-// Aka returns the value of the "aka" field in the mutation.
-func (m *CampusMutation) Aka() (r string, exists bool) {
-	v := m.aka
+// Notes returns the value of the "notes" field in the mutation.
+func (m *CampusMutation) Notes() (r string, exists bool) {
+	v := m.notes
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldAka returns the old "aka" field's value of the Campus entity.
+// OldNotes returns the old "notes" field's value of the Campus entity.
 // If the Campus object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CampusMutation) OldAka(ctx context.Context) (v *string, err error) {
+func (m *CampusMutation) OldNotes(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAka is only allowed on UpdateOne operations")
+		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAka requires an ID field in the mutation")
+		return v, errors.New("OldNotes requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAka: %w", err)
+		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
 	}
-	return oldValue.Aka, nil
+	return oldValue.Notes, nil
 }
 
-// ClearAka clears the value of the "aka" field.
-func (m *CampusMutation) ClearAka() {
-	m.aka = nil
-	m.clearedFields[campus.FieldAka] = struct{}{}
+// ClearNotes clears the value of the "notes" field.
+func (m *CampusMutation) ClearNotes() {
+	m.notes = nil
+	m.clearedFields[campus.FieldNotes] = struct{}{}
 }
 
-// AkaCleared returns if the "aka" field was cleared in this mutation.
-func (m *CampusMutation) AkaCleared() bool {
-	_, ok := m.clearedFields[campus.FieldAka]
+// NotesCleared returns if the "notes" field was cleared in this mutation.
+func (m *CampusMutation) NotesCleared() bool {
+	_, ok := m.clearedFields[campus.FieldNotes]
 	return ok
 }
 
-// ResetAka resets all changes to the "aka" field.
-func (m *CampusMutation) ResetAka() {
-	m.aka = nil
-	delete(m.clearedFields, campus.FieldAka)
-}
-
-// SetWebsite sets the "website" field.
-func (m *CampusMutation) SetWebsite(s string) {
-	m.website = &s
-}
-
-// Website returns the value of the "website" field in the mutation.
-func (m *CampusMutation) Website() (r string, exists bool) {
-	v := m.website
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldWebsite returns the old "website" field's value of the Campus entity.
-// If the Campus object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CampusMutation) OldWebsite(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldWebsite requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
-	}
-	return oldValue.Website, nil
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (m *CampusMutation) ClearWebsite() {
-	m.website = nil
-	m.clearedFields[campus.FieldWebsite] = struct{}{}
-}
-
-// WebsiteCleared returns if the "website" field was cleared in this mutation.
-func (m *CampusMutation) WebsiteCleared() bool {
-	_, ok := m.clearedFields[campus.FieldWebsite]
-	return ok
-}
-
-// ResetWebsite resets all changes to the "website" field.
-func (m *CampusMutation) ResetWebsite() {
-	m.website = nil
-	delete(m.clearedFields, campus.FieldWebsite)
+// ResetNotes resets all changes to the "notes" field.
+func (m *CampusMutation) ResetNotes() {
+	m.notes = nil
+	delete(m.clearedFields, campus.FieldNotes)
 }
 
 // SetSocialMedia sets the "social_media" field.
@@ -535,151 +633,102 @@ func (m *CampusMutation) ResetSocialMedia() {
 	delete(m.clearedFields, campus.FieldSocialMedia)
 }
 
-// SetNotes sets the "notes" field.
-func (m *CampusMutation) SetNotes(s string) {
-	m.notes = &s
+// SetState sets the "state" field.
+func (m *CampusMutation) SetState(s string) {
+	m.state = &s
 }
 
-// Notes returns the value of the "notes" field in the mutation.
-func (m *CampusMutation) Notes() (r string, exists bool) {
-	v := m.notes
+// State returns the value of the "state" field in the mutation.
+func (m *CampusMutation) State() (r string, exists bool) {
+	v := m.state
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldNotes returns the old "notes" field's value of the Campus entity.
+// OldState returns the old "state" field's value of the Campus entity.
 // If the Campus object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CampusMutation) OldNotes(ctx context.Context) (v string, err error) {
+func (m *CampusMutation) OldState(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNotes requires an ID field in the mutation")
+		return v, errors.New("OldState requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
 	}
-	return oldValue.Notes, nil
+	return oldValue.State, nil
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (m *CampusMutation) ClearNotes() {
-	m.notes = nil
-	m.clearedFields[campus.FieldNotes] = struct{}{}
+// ClearState clears the value of the "state" field.
+func (m *CampusMutation) ClearState() {
+	m.state = nil
+	m.clearedFields[campus.FieldState] = struct{}{}
 }
 
-// NotesCleared returns if the "notes" field was cleared in this mutation.
-func (m *CampusMutation) NotesCleared() bool {
-	_, ok := m.clearedFields[campus.FieldNotes]
+// StateCleared returns if the "state" field was cleared in this mutation.
+func (m *CampusMutation) StateCleared() bool {
+	_, ok := m.clearedFields[campus.FieldState]
 	return ok
 }
 
-// ResetNotes resets all changes to the "notes" field.
-func (m *CampusMutation) ResetNotes() {
-	m.notes = nil
-	delete(m.clearedFields, campus.FieldNotes)
+// ResetState resets all changes to the "state" field.
+func (m *CampusMutation) ResetState() {
+	m.state = nil
+	delete(m.clearedFields, campus.FieldState)
 }
 
-// SetCountry sets the "country" field.
-func (m *CampusMutation) SetCountry(s string) {
-	m.country = &s
+// SetWebsite sets the "website" field.
+func (m *CampusMutation) SetWebsite(s string) {
+	m.website = &s
 }
 
-// Country returns the value of the "country" field in the mutation.
-func (m *CampusMutation) Country() (r string, exists bool) {
-	v := m.country
+// Website returns the value of the "website" field in the mutation.
+func (m *CampusMutation) Website() (r string, exists bool) {
+	v := m.website
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldCountry returns the old "country" field's value of the Campus entity.
+// OldWebsite returns the old "website" field's value of the Campus entity.
 // If the Campus object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CampusMutation) OldCountry(ctx context.Context) (v string, err error) {
+func (m *CampusMutation) OldWebsite(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCountry is only allowed on UpdateOne operations")
+		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCountry requires an ID field in the mutation")
+		return v, errors.New("OldWebsite requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCountry: %w", err)
+		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
 	}
-	return oldValue.Country, nil
+	return oldValue.Website, nil
 }
 
-// ClearCountry clears the value of the "country" field.
-func (m *CampusMutation) ClearCountry() {
-	m.country = nil
-	m.clearedFields[campus.FieldCountry] = struct{}{}
+// ClearWebsite clears the value of the "website" field.
+func (m *CampusMutation) ClearWebsite() {
+	m.website = nil
+	m.clearedFields[campus.FieldWebsite] = struct{}{}
 }
 
-// CountryCleared returns if the "country" field was cleared in this mutation.
-func (m *CampusMutation) CountryCleared() bool {
-	_, ok := m.clearedFields[campus.FieldCountry]
+// WebsiteCleared returns if the "website" field was cleared in this mutation.
+func (m *CampusMutation) WebsiteCleared() bool {
+	_, ok := m.clearedFields[campus.FieldWebsite]
 	return ok
 }
 
-// ResetCountry resets all changes to the "country" field.
-func (m *CampusMutation) ResetCountry() {
-	m.country = nil
-	delete(m.clearedFields, campus.FieldCountry)
-}
-
-// SetCity sets the "city" field.
-func (m *CampusMutation) SetCity(s string) {
-	m.city = &s
-}
-
-// City returns the value of the "city" field in the mutation.
-func (m *CampusMutation) City() (r string, exists bool) {
-	v := m.city
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCity returns the old "city" field's value of the Campus entity.
-// If the Campus object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CampusMutation) OldCity(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCity is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCity requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCity: %w", err)
-	}
-	return oldValue.City, nil
-}
-
-// ClearCity clears the value of the "city" field.
-func (m *CampusMutation) ClearCity() {
-	m.city = nil
-	m.clearedFields[campus.FieldCity] = struct{}{}
-}
-
-// CityCleared returns if the "city" field was cleared in this mutation.
-func (m *CampusMutation) CityCleared() bool {
-	_, ok := m.clearedFields[campus.FieldCity]
-	return ok
-}
-
-// ResetCity resets all changes to the "city" field.
-func (m *CampusMutation) ResetCity() {
-	m.city = nil
-	delete(m.clearedFields, campus.FieldCity)
+// ResetWebsite resets all changes to the "website" field.
+func (m *CampusMutation) ResetWebsite() {
+	m.website = nil
+	delete(m.clearedFields, campus.FieldWebsite)
 }
 
 // SetZipcode sets the "zipcode" field.
@@ -731,102 +780,53 @@ func (m *CampusMutation) ResetZipcode() {
 	delete(m.clearedFields, campus.FieldZipcode)
 }
 
-// SetState sets the "state" field.
-func (m *CampusMutation) SetState(s string) {
-	m.state = &s
+// SetOrgName sets the "org_name" field.
+func (m *CampusMutation) SetOrgName(s string) {
+	m.org_name = &s
 }
 
-// State returns the value of the "state" field in the mutation.
-func (m *CampusMutation) State() (r string, exists bool) {
-	v := m.state
+// OrgName returns the value of the "org_name" field in the mutation.
+func (m *CampusMutation) OrgName() (r string, exists bool) {
+	v := m.org_name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldState returns the old "state" field's value of the Campus entity.
+// OldOrgName returns the old "org_name" field's value of the Campus entity.
 // If the Campus object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CampusMutation) OldState(ctx context.Context) (v string, err error) {
+func (m *CampusMutation) OldOrgName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldState is only allowed on UpdateOne operations")
+		return v, errors.New("OldOrgName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldState requires an ID field in the mutation")
+		return v, errors.New("OldOrgName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldState: %w", err)
+		return v, fmt.Errorf("querying old value for OldOrgName: %w", err)
 	}
-	return oldValue.State, nil
+	return oldValue.OrgName, nil
 }
 
-// ClearState clears the value of the "state" field.
-func (m *CampusMutation) ClearState() {
-	m.state = nil
-	m.clearedFields[campus.FieldState] = struct{}{}
+// ClearOrgName clears the value of the "org_name" field.
+func (m *CampusMutation) ClearOrgName() {
+	m.org_name = nil
+	m.clearedFields[campus.FieldOrgName] = struct{}{}
 }
 
-// StateCleared returns if the "state" field was cleared in this mutation.
-func (m *CampusMutation) StateCleared() bool {
-	_, ok := m.clearedFields[campus.FieldState]
+// OrgNameCleared returns if the "org_name" field was cleared in this mutation.
+func (m *CampusMutation) OrgNameCleared() bool {
+	_, ok := m.clearedFields[campus.FieldOrgName]
 	return ok
 }
 
-// ResetState resets all changes to the "state" field.
-func (m *CampusMutation) ResetState() {
-	m.state = nil
-	delete(m.clearedFields, campus.FieldState)
-}
-
-// SetLogo sets the "logo" field.
-func (m *CampusMutation) SetLogo(s string) {
-	m.logo = &s
-}
-
-// Logo returns the value of the "logo" field in the mutation.
-func (m *CampusMutation) Logo() (r string, exists bool) {
-	v := m.logo
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLogo returns the old "logo" field's value of the Campus entity.
-// If the Campus object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CampusMutation) OldLogo(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLogo requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
-	}
-	return oldValue.Logo, nil
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (m *CampusMutation) ClearLogo() {
-	m.logo = nil
-	m.clearedFields[campus.FieldLogo] = struct{}{}
-}
-
-// LogoCleared returns if the "logo" field was cleared in this mutation.
-func (m *CampusMutation) LogoCleared() bool {
-	_, ok := m.clearedFields[campus.FieldLogo]
-	return ok
-}
-
-// ResetLogo resets all changes to the "logo" field.
-func (m *CampusMutation) ResetLogo() {
-	m.logo = nil
-	delete(m.clearedFields, campus.FieldLogo)
+// ResetOrgName resets all changes to the "org_name" field.
+func (m *CampusMutation) ResetOrgName() {
+	m.org_name = nil
+	delete(m.clearedFields, campus.FieldOrgName)
 }
 
 // SetCreated sets the "created" field.
@@ -937,46 +937,6 @@ func (m *CampusMutation) ResetStatus() {
 	m.status = nil
 }
 
-// SetOrganizationID sets the "organization" edge to the Organization entity by id.
-func (m *CampusMutation) SetOrganizationID(id int) {
-	m.organization = &id
-}
-
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (m *CampusMutation) ClearOrganization() {
-	m.clearedorganization = true
-	m.clearedFields[campus.FieldOrgID] = struct{}{}
-}
-
-// OrganizationCleared reports if the "organization" edge to the Organization entity was cleared.
-func (m *CampusMutation) OrganizationCleared() bool {
-	return m.OrgIDCleared() || m.clearedorganization
-}
-
-// OrganizationID returns the "organization" edge ID in the mutation.
-func (m *CampusMutation) OrganizationID() (id int, exists bool) {
-	if m.organization != nil {
-		return *m.organization, true
-	}
-	return
-}
-
-// OrganizationIDs returns the "organization" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// OrganizationID instead. It exists only for internal usage by the builders.
-func (m *CampusMutation) OrganizationIDs() (ids []int) {
-	if id := m.organization; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetOrganization resets all changes to the "organization" edge.
-func (m *CampusMutation) ResetOrganization() {
-	m.organization = nil
-	m.clearedorganization = false
-}
-
 // AddFacilityIDs adds the "facilities" edge to the Facility entity by ids.
 func (m *CampusMutation) AddFacilityIDs(ids ...int) {
 	if m.facilities == nil {
@@ -1031,6 +991,46 @@ func (m *CampusMutation) ResetFacilities() {
 	m.removedfacilities = nil
 }
 
+// SetOrganizationID sets the "organization" edge to the Organization entity by id.
+func (m *CampusMutation) SetOrganizationID(id int) {
+	m.organization = &id
+}
+
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (m *CampusMutation) ClearOrganization() {
+	m.clearedorganization = true
+	m.clearedFields[campus.FieldOrgID] = struct{}{}
+}
+
+// OrganizationCleared reports if the "organization" edge to the Organization entity was cleared.
+func (m *CampusMutation) OrganizationCleared() bool {
+	return m.OrgIDCleared() || m.clearedorganization
+}
+
+// OrganizationID returns the "organization" edge ID in the mutation.
+func (m *CampusMutation) OrganizationID() (id int, exists bool) {
+	if m.organization != nil {
+		return *m.organization, true
+	}
+	return
+}
+
+// OrganizationIDs returns the "organization" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// OrganizationID instead. It exists only for internal usage by the builders.
+func (m *CampusMutation) OrganizationIDs() (ids []int) {
+	if id := m.organization; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetOrganization resets all changes to the "organization" edge.
+func (m *CampusMutation) ResetOrganization() {
+	m.organization = nil
+	m.clearedorganization = false
+}
+
 // Where appends a list predicates to the CampusMutation builder.
 func (m *CampusMutation) Where(ps ...predicate.Campus) {
 	m.predicates = append(m.predicates, ps...)
@@ -1069,8 +1069,17 @@ func (m *CampusMutation) Fields() []string {
 	if m.organization != nil {
 		fields = append(fields, campus.FieldOrgID)
 	}
-	if m.org_name != nil {
-		fields = append(fields, campus.FieldOrgName)
+	if m.aka != nil {
+		fields = append(fields, campus.FieldAka)
+	}
+	if m.city != nil {
+		fields = append(fields, campus.FieldCity)
+	}
+	if m.country != nil {
+		fields = append(fields, campus.FieldCountry)
+	}
+	if m.logo != nil {
+		fields = append(fields, campus.FieldLogo)
 	}
 	if m.name != nil {
 		fields = append(fields, campus.FieldName)
@@ -1078,32 +1087,23 @@ func (m *CampusMutation) Fields() []string {
 	if m.name_long != nil {
 		fields = append(fields, campus.FieldNameLong)
 	}
-	if m.aka != nil {
-		fields = append(fields, campus.FieldAka)
-	}
-	if m.website != nil {
-		fields = append(fields, campus.FieldWebsite)
+	if m.notes != nil {
+		fields = append(fields, campus.FieldNotes)
 	}
 	if m.social_media != nil {
 		fields = append(fields, campus.FieldSocialMedia)
 	}
-	if m.notes != nil {
-		fields = append(fields, campus.FieldNotes)
+	if m.state != nil {
+		fields = append(fields, campus.FieldState)
 	}
-	if m.country != nil {
-		fields = append(fields, campus.FieldCountry)
-	}
-	if m.city != nil {
-		fields = append(fields, campus.FieldCity)
+	if m.website != nil {
+		fields = append(fields, campus.FieldWebsite)
 	}
 	if m.zipcode != nil {
 		fields = append(fields, campus.FieldZipcode)
 	}
-	if m.state != nil {
-		fields = append(fields, campus.FieldState)
-	}
-	if m.logo != nil {
-		fields = append(fields, campus.FieldLogo)
+	if m.org_name != nil {
+		fields = append(fields, campus.FieldOrgName)
 	}
 	if m.created != nil {
 		fields = append(fields, campus.FieldCreated)
@@ -1124,30 +1124,30 @@ func (m *CampusMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case campus.FieldOrgID:
 		return m.OrgID()
-	case campus.FieldOrgName:
-		return m.OrgName()
+	case campus.FieldAka:
+		return m.Aka()
+	case campus.FieldCity:
+		return m.City()
+	case campus.FieldCountry:
+		return m.Country()
+	case campus.FieldLogo:
+		return m.Logo()
 	case campus.FieldName:
 		return m.Name()
 	case campus.FieldNameLong:
 		return m.NameLong()
-	case campus.FieldAka:
-		return m.Aka()
-	case campus.FieldWebsite:
-		return m.Website()
-	case campus.FieldSocialMedia:
-		return m.SocialMedia()
 	case campus.FieldNotes:
 		return m.Notes()
-	case campus.FieldCountry:
-		return m.Country()
-	case campus.FieldCity:
-		return m.City()
-	case campus.FieldZipcode:
-		return m.Zipcode()
+	case campus.FieldSocialMedia:
+		return m.SocialMedia()
 	case campus.FieldState:
 		return m.State()
-	case campus.FieldLogo:
-		return m.Logo()
+	case campus.FieldWebsite:
+		return m.Website()
+	case campus.FieldZipcode:
+		return m.Zipcode()
+	case campus.FieldOrgName:
+		return m.OrgName()
 	case campus.FieldCreated:
 		return m.Created()
 	case campus.FieldUpdated:
@@ -1165,30 +1165,30 @@ func (m *CampusMutation) OldField(ctx context.Context, name string) (ent.Value, 
 	switch name {
 	case campus.FieldOrgID:
 		return m.OldOrgID(ctx)
-	case campus.FieldOrgName:
-		return m.OldOrgName(ctx)
+	case campus.FieldAka:
+		return m.OldAka(ctx)
+	case campus.FieldCity:
+		return m.OldCity(ctx)
+	case campus.FieldCountry:
+		return m.OldCountry(ctx)
+	case campus.FieldLogo:
+		return m.OldLogo(ctx)
 	case campus.FieldName:
 		return m.OldName(ctx)
 	case campus.FieldNameLong:
 		return m.OldNameLong(ctx)
-	case campus.FieldAka:
-		return m.OldAka(ctx)
-	case campus.FieldWebsite:
-		return m.OldWebsite(ctx)
-	case campus.FieldSocialMedia:
-		return m.OldSocialMedia(ctx)
 	case campus.FieldNotes:
 		return m.OldNotes(ctx)
-	case campus.FieldCountry:
-		return m.OldCountry(ctx)
-	case campus.FieldCity:
-		return m.OldCity(ctx)
-	case campus.FieldZipcode:
-		return m.OldZipcode(ctx)
+	case campus.FieldSocialMedia:
+		return m.OldSocialMedia(ctx)
 	case campus.FieldState:
 		return m.OldState(ctx)
-	case campus.FieldLogo:
-		return m.OldLogo(ctx)
+	case campus.FieldWebsite:
+		return m.OldWebsite(ctx)
+	case campus.FieldZipcode:
+		return m.OldZipcode(ctx)
+	case campus.FieldOrgName:
+		return m.OldOrgName(ctx)
 	case campus.FieldCreated:
 		return m.OldCreated(ctx)
 	case campus.FieldUpdated:
@@ -1211,12 +1211,33 @@ func (m *CampusMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetOrgID(v)
 		return nil
-	case campus.FieldOrgName:
+	case campus.FieldAka:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetOrgName(v)
+		m.SetAka(v)
+		return nil
+	case campus.FieldCity:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCity(v)
+		return nil
+	case campus.FieldCountry:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCountry(v)
+		return nil
+	case campus.FieldLogo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLogo(v)
 		return nil
 	case campus.FieldName:
 		v, ok := value.(string)
@@ -1232,19 +1253,12 @@ func (m *CampusMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetNameLong(v)
 		return nil
-	case campus.FieldAka:
+	case campus.FieldNotes:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetAka(v)
-		return nil
-	case campus.FieldWebsite:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetWebsite(v)
+		m.SetNotes(v)
 		return nil
 	case campus.FieldSocialMedia:
 		v, ok := value.([]schema.SocialMedia)
@@ -1253,26 +1267,19 @@ func (m *CampusMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetSocialMedia(v)
 		return nil
-	case campus.FieldNotes:
+	case campus.FieldState:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetNotes(v)
+		m.SetState(v)
 		return nil
-	case campus.FieldCountry:
+	case campus.FieldWebsite:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetCountry(v)
-		return nil
-	case campus.FieldCity:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCity(v)
+		m.SetWebsite(v)
 		return nil
 	case campus.FieldZipcode:
 		v, ok := value.(string)
@@ -1281,19 +1288,12 @@ func (m *CampusMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetZipcode(v)
 		return nil
-	case campus.FieldState:
+	case campus.FieldOrgName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetState(v)
-		return nil
-	case campus.FieldLogo:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLogo(v)
+		m.SetOrgName(v)
 		return nil
 	case campus.FieldCreated:
 		v, ok := value.(time.Time)
@@ -1352,38 +1352,38 @@ func (m *CampusMutation) ClearedFields() []string {
 	if m.FieldCleared(campus.FieldOrgID) {
 		fields = append(fields, campus.FieldOrgID)
 	}
-	if m.FieldCleared(campus.FieldOrgName) {
-		fields = append(fields, campus.FieldOrgName)
-	}
-	if m.FieldCleared(campus.FieldNameLong) {
-		fields = append(fields, campus.FieldNameLong)
-	}
 	if m.FieldCleared(campus.FieldAka) {
 		fields = append(fields, campus.FieldAka)
-	}
-	if m.FieldCleared(campus.FieldWebsite) {
-		fields = append(fields, campus.FieldWebsite)
-	}
-	if m.FieldCleared(campus.FieldSocialMedia) {
-		fields = append(fields, campus.FieldSocialMedia)
-	}
-	if m.FieldCleared(campus.FieldNotes) {
-		fields = append(fields, campus.FieldNotes)
-	}
-	if m.FieldCleared(campus.FieldCountry) {
-		fields = append(fields, campus.FieldCountry)
 	}
 	if m.FieldCleared(campus.FieldCity) {
 		fields = append(fields, campus.FieldCity)
 	}
-	if m.FieldCleared(campus.FieldZipcode) {
-		fields = append(fields, campus.FieldZipcode)
+	if m.FieldCleared(campus.FieldCountry) {
+		fields = append(fields, campus.FieldCountry)
+	}
+	if m.FieldCleared(campus.FieldLogo) {
+		fields = append(fields, campus.FieldLogo)
+	}
+	if m.FieldCleared(campus.FieldNameLong) {
+		fields = append(fields, campus.FieldNameLong)
+	}
+	if m.FieldCleared(campus.FieldNotes) {
+		fields = append(fields, campus.FieldNotes)
+	}
+	if m.FieldCleared(campus.FieldSocialMedia) {
+		fields = append(fields, campus.FieldSocialMedia)
 	}
 	if m.FieldCleared(campus.FieldState) {
 		fields = append(fields, campus.FieldState)
 	}
-	if m.FieldCleared(campus.FieldLogo) {
-		fields = append(fields, campus.FieldLogo)
+	if m.FieldCleared(campus.FieldWebsite) {
+		fields = append(fields, campus.FieldWebsite)
+	}
+	if m.FieldCleared(campus.FieldZipcode) {
+		fields = append(fields, campus.FieldZipcode)
+	}
+	if m.FieldCleared(campus.FieldOrgName) {
+		fields = append(fields, campus.FieldOrgName)
 	}
 	return fields
 }
@@ -1402,38 +1402,38 @@ func (m *CampusMutation) ClearField(name string) error {
 	case campus.FieldOrgID:
 		m.ClearOrgID()
 		return nil
-	case campus.FieldOrgName:
-		m.ClearOrgName()
-		return nil
-	case campus.FieldNameLong:
-		m.ClearNameLong()
-		return nil
 	case campus.FieldAka:
 		m.ClearAka()
-		return nil
-	case campus.FieldWebsite:
-		m.ClearWebsite()
-		return nil
-	case campus.FieldSocialMedia:
-		m.ClearSocialMedia()
-		return nil
-	case campus.FieldNotes:
-		m.ClearNotes()
-		return nil
-	case campus.FieldCountry:
-		m.ClearCountry()
 		return nil
 	case campus.FieldCity:
 		m.ClearCity()
 		return nil
-	case campus.FieldZipcode:
-		m.ClearZipcode()
+	case campus.FieldCountry:
+		m.ClearCountry()
+		return nil
+	case campus.FieldLogo:
+		m.ClearLogo()
+		return nil
+	case campus.FieldNameLong:
+		m.ClearNameLong()
+		return nil
+	case campus.FieldNotes:
+		m.ClearNotes()
+		return nil
+	case campus.FieldSocialMedia:
+		m.ClearSocialMedia()
 		return nil
 	case campus.FieldState:
 		m.ClearState()
 		return nil
-	case campus.FieldLogo:
-		m.ClearLogo()
+	case campus.FieldWebsite:
+		m.ClearWebsite()
+		return nil
+	case campus.FieldZipcode:
+		m.ClearZipcode()
+		return nil
+	case campus.FieldOrgName:
+		m.ClearOrgName()
 		return nil
 	}
 	return fmt.Errorf("unknown Campus nullable field %s", name)
@@ -1446,8 +1446,17 @@ func (m *CampusMutation) ResetField(name string) error {
 	case campus.FieldOrgID:
 		m.ResetOrgID()
 		return nil
-	case campus.FieldOrgName:
-		m.ResetOrgName()
+	case campus.FieldAka:
+		m.ResetAka()
+		return nil
+	case campus.FieldCity:
+		m.ResetCity()
+		return nil
+	case campus.FieldCountry:
+		m.ResetCountry()
+		return nil
+	case campus.FieldLogo:
+		m.ResetLogo()
 		return nil
 	case campus.FieldName:
 		m.ResetName()
@@ -1455,32 +1464,23 @@ func (m *CampusMutation) ResetField(name string) error {
 	case campus.FieldNameLong:
 		m.ResetNameLong()
 		return nil
-	case campus.FieldAka:
-		m.ResetAka()
-		return nil
-	case campus.FieldWebsite:
-		m.ResetWebsite()
+	case campus.FieldNotes:
+		m.ResetNotes()
 		return nil
 	case campus.FieldSocialMedia:
 		m.ResetSocialMedia()
 		return nil
-	case campus.FieldNotes:
-		m.ResetNotes()
+	case campus.FieldState:
+		m.ResetState()
 		return nil
-	case campus.FieldCountry:
-		m.ResetCountry()
-		return nil
-	case campus.FieldCity:
-		m.ResetCity()
+	case campus.FieldWebsite:
+		m.ResetWebsite()
 		return nil
 	case campus.FieldZipcode:
 		m.ResetZipcode()
 		return nil
-	case campus.FieldState:
-		m.ResetState()
-		return nil
-	case campus.FieldLogo:
-		m.ResetLogo()
+	case campus.FieldOrgName:
+		m.ResetOrgName()
 		return nil
 	case campus.FieldCreated:
 		m.ResetCreated()
@@ -1498,11 +1498,11 @@ func (m *CampusMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CampusMutation) AddedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.organization != nil {
-		edges = append(edges, campus.EdgeOrganization)
-	}
 	if m.facilities != nil {
 		edges = append(edges, campus.EdgeFacilities)
+	}
+	if m.organization != nil {
+		edges = append(edges, campus.EdgeOrganization)
 	}
 	return edges
 }
@@ -1511,16 +1511,16 @@ func (m *CampusMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *CampusMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case campus.EdgeOrganization:
-		if id := m.organization; id != nil {
-			return []ent.Value{*id}
-		}
 	case campus.EdgeFacilities:
 		ids := make([]ent.Value, 0, len(m.facilities))
 		for id := range m.facilities {
 			ids = append(ids, id)
 		}
 		return ids
+	case campus.EdgeOrganization:
+		if id := m.organization; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
@@ -1551,11 +1551,11 @@ func (m *CampusMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CampusMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.clearedorganization {
-		edges = append(edges, campus.EdgeOrganization)
-	}
 	if m.clearedfacilities {
 		edges = append(edges, campus.EdgeFacilities)
+	}
+	if m.clearedorganization {
+		edges = append(edges, campus.EdgeOrganization)
 	}
 	return edges
 }
@@ -1564,10 +1564,10 @@ func (m *CampusMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *CampusMutation) EdgeCleared(name string) bool {
 	switch name {
-	case campus.EdgeOrganization:
-		return m.clearedorganization
 	case campus.EdgeFacilities:
 		return m.clearedfacilities
+	case campus.EdgeOrganization:
+		return m.clearedorganization
 	}
 	return false
 }
@@ -1587,11 +1587,11 @@ func (m *CampusMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *CampusMutation) ResetEdge(name string) error {
 	switch name {
-	case campus.EdgeOrganization:
-		m.ResetOrganization()
-		return nil
 	case campus.EdgeFacilities:
 		m.ResetFacilities()
+		return nil
+	case campus.EdgeOrganization:
+		m.ResetOrganization()
 		return nil
 	}
 	return fmt.Errorf("unknown Campus edge %s", name)
@@ -1603,26 +1603,26 @@ type CarrierMutation struct {
 	op                        Op
 	typ                       string
 	id                        *int
-	org_name                  *string
-	name                      *string
 	aka                       *string
+	logo                      *string
+	name                      *string
 	name_long                 *string
-	website                   *string
+	notes                     *string
 	social_media              *[]schema.SocialMedia
 	appendsocial_media        []schema.SocialMedia
-	notes                     *string
+	website                   *string
+	org_name                  *string
 	fac_count                 *int
 	addfac_count              *int
-	logo                      *string
 	created                   *time.Time
 	updated                   *time.Time
 	status                    *string
 	clearedFields             map[string]struct{}
-	organization              *int
-	clearedorganization       bool
 	carrier_facilities        map[int]struct{}
 	removedcarrier_facilities map[int]struct{}
 	clearedcarrier_facilities bool
+	organization              *int
+	clearedorganization       bool
 	done                      bool
 	oldValue                  func(context.Context) (*Carrier, error)
 	predicates                []predicate.Carrier
@@ -1781,91 +1781,6 @@ func (m *CarrierMutation) ResetOrgID() {
 	delete(m.clearedFields, carrier.FieldOrgID)
 }
 
-// SetOrgName sets the "org_name" field.
-func (m *CarrierMutation) SetOrgName(s string) {
-	m.org_name = &s
-}
-
-// OrgName returns the value of the "org_name" field in the mutation.
-func (m *CarrierMutation) OrgName() (r string, exists bool) {
-	v := m.org_name
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOrgName returns the old "org_name" field's value of the Carrier entity.
-// If the Carrier object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CarrierMutation) OldOrgName(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOrgName is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOrgName requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOrgName: %w", err)
-	}
-	return oldValue.OrgName, nil
-}
-
-// ClearOrgName clears the value of the "org_name" field.
-func (m *CarrierMutation) ClearOrgName() {
-	m.org_name = nil
-	m.clearedFields[carrier.FieldOrgName] = struct{}{}
-}
-
-// OrgNameCleared returns if the "org_name" field was cleared in this mutation.
-func (m *CarrierMutation) OrgNameCleared() bool {
-	_, ok := m.clearedFields[carrier.FieldOrgName]
-	return ok
-}
-
-// ResetOrgName resets all changes to the "org_name" field.
-func (m *CarrierMutation) ResetOrgName() {
-	m.org_name = nil
-	delete(m.clearedFields, carrier.FieldOrgName)
-}
-
-// SetName sets the "name" field.
-func (m *CarrierMutation) SetName(s string) {
-	m.name = &s
-}
-
-// Name returns the value of the "name" field in the mutation.
-func (m *CarrierMutation) Name() (r string, exists bool) {
-	v := m.name
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldName returns the old "name" field's value of the Carrier entity.
-// If the Carrier object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CarrierMutation) OldName(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
-	}
-	return oldValue.Name, nil
-}
-
-// ResetName resets all changes to the "name" field.
-func (m *CarrierMutation) ResetName() {
-	m.name = nil
-}
-
 // SetAka sets the "aka" field.
 func (m *CarrierMutation) SetAka(s string) {
 	m.aka = &s
@@ -1913,6 +1828,91 @@ func (m *CarrierMutation) AkaCleared() bool {
 func (m *CarrierMutation) ResetAka() {
 	m.aka = nil
 	delete(m.clearedFields, carrier.FieldAka)
+}
+
+// SetLogo sets the "logo" field.
+func (m *CarrierMutation) SetLogo(s string) {
+	m.logo = &s
+}
+
+// Logo returns the value of the "logo" field in the mutation.
+func (m *CarrierMutation) Logo() (r string, exists bool) {
+	v := m.logo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLogo returns the old "logo" field's value of the Carrier entity.
+// If the Carrier object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CarrierMutation) OldLogo(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLogo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
+	}
+	return oldValue.Logo, nil
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (m *CarrierMutation) ClearLogo() {
+	m.logo = nil
+	m.clearedFields[carrier.FieldLogo] = struct{}{}
+}
+
+// LogoCleared returns if the "logo" field was cleared in this mutation.
+func (m *CarrierMutation) LogoCleared() bool {
+	_, ok := m.clearedFields[carrier.FieldLogo]
+	return ok
+}
+
+// ResetLogo resets all changes to the "logo" field.
+func (m *CarrierMutation) ResetLogo() {
+	m.logo = nil
+	delete(m.clearedFields, carrier.FieldLogo)
+}
+
+// SetName sets the "name" field.
+func (m *CarrierMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *CarrierMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Carrier entity.
+// If the Carrier object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CarrierMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *CarrierMutation) ResetName() {
+	m.name = nil
 }
 
 // SetNameLong sets the "name_long" field.
@@ -1964,53 +1964,53 @@ func (m *CarrierMutation) ResetNameLong() {
 	delete(m.clearedFields, carrier.FieldNameLong)
 }
 
-// SetWebsite sets the "website" field.
-func (m *CarrierMutation) SetWebsite(s string) {
-	m.website = &s
+// SetNotes sets the "notes" field.
+func (m *CarrierMutation) SetNotes(s string) {
+	m.notes = &s
 }
 
-// Website returns the value of the "website" field in the mutation.
-func (m *CarrierMutation) Website() (r string, exists bool) {
-	v := m.website
+// Notes returns the value of the "notes" field in the mutation.
+func (m *CarrierMutation) Notes() (r string, exists bool) {
+	v := m.notes
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldWebsite returns the old "website" field's value of the Carrier entity.
+// OldNotes returns the old "notes" field's value of the Carrier entity.
 // If the Carrier object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CarrierMutation) OldWebsite(ctx context.Context) (v string, err error) {
+func (m *CarrierMutation) OldNotes(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
+		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldWebsite requires an ID field in the mutation")
+		return v, errors.New("OldNotes requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
+		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
 	}
-	return oldValue.Website, nil
+	return oldValue.Notes, nil
 }
 
-// ClearWebsite clears the value of the "website" field.
-func (m *CarrierMutation) ClearWebsite() {
-	m.website = nil
-	m.clearedFields[carrier.FieldWebsite] = struct{}{}
+// ClearNotes clears the value of the "notes" field.
+func (m *CarrierMutation) ClearNotes() {
+	m.notes = nil
+	m.clearedFields[carrier.FieldNotes] = struct{}{}
 }
 
-// WebsiteCleared returns if the "website" field was cleared in this mutation.
-func (m *CarrierMutation) WebsiteCleared() bool {
-	_, ok := m.clearedFields[carrier.FieldWebsite]
+// NotesCleared returns if the "notes" field was cleared in this mutation.
+func (m *CarrierMutation) NotesCleared() bool {
+	_, ok := m.clearedFields[carrier.FieldNotes]
 	return ok
 }
 
-// ResetWebsite resets all changes to the "website" field.
-func (m *CarrierMutation) ResetWebsite() {
-	m.website = nil
-	delete(m.clearedFields, carrier.FieldWebsite)
+// ResetNotes resets all changes to the "notes" field.
+func (m *CarrierMutation) ResetNotes() {
+	m.notes = nil
+	delete(m.clearedFields, carrier.FieldNotes)
 }
 
 // SetSocialMedia sets the "social_media" field.
@@ -2078,53 +2078,102 @@ func (m *CarrierMutation) ResetSocialMedia() {
 	delete(m.clearedFields, carrier.FieldSocialMedia)
 }
 
-// SetNotes sets the "notes" field.
-func (m *CarrierMutation) SetNotes(s string) {
-	m.notes = &s
+// SetWebsite sets the "website" field.
+func (m *CarrierMutation) SetWebsite(s string) {
+	m.website = &s
 }
 
-// Notes returns the value of the "notes" field in the mutation.
-func (m *CarrierMutation) Notes() (r string, exists bool) {
-	v := m.notes
+// Website returns the value of the "website" field in the mutation.
+func (m *CarrierMutation) Website() (r string, exists bool) {
+	v := m.website
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldNotes returns the old "notes" field's value of the Carrier entity.
+// OldWebsite returns the old "website" field's value of the Carrier entity.
 // If the Carrier object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CarrierMutation) OldNotes(ctx context.Context) (v string, err error) {
+func (m *CarrierMutation) OldWebsite(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNotes requires an ID field in the mutation")
+		return v, errors.New("OldWebsite requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
 	}
-	return oldValue.Notes, nil
+	return oldValue.Website, nil
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (m *CarrierMutation) ClearNotes() {
-	m.notes = nil
-	m.clearedFields[carrier.FieldNotes] = struct{}{}
+// ClearWebsite clears the value of the "website" field.
+func (m *CarrierMutation) ClearWebsite() {
+	m.website = nil
+	m.clearedFields[carrier.FieldWebsite] = struct{}{}
 }
 
-// NotesCleared returns if the "notes" field was cleared in this mutation.
-func (m *CarrierMutation) NotesCleared() bool {
-	_, ok := m.clearedFields[carrier.FieldNotes]
+// WebsiteCleared returns if the "website" field was cleared in this mutation.
+func (m *CarrierMutation) WebsiteCleared() bool {
+	_, ok := m.clearedFields[carrier.FieldWebsite]
 	return ok
 }
 
-// ResetNotes resets all changes to the "notes" field.
-func (m *CarrierMutation) ResetNotes() {
-	m.notes = nil
-	delete(m.clearedFields, carrier.FieldNotes)
+// ResetWebsite resets all changes to the "website" field.
+func (m *CarrierMutation) ResetWebsite() {
+	m.website = nil
+	delete(m.clearedFields, carrier.FieldWebsite)
+}
+
+// SetOrgName sets the "org_name" field.
+func (m *CarrierMutation) SetOrgName(s string) {
+	m.org_name = &s
+}
+
+// OrgName returns the value of the "org_name" field in the mutation.
+func (m *CarrierMutation) OrgName() (r string, exists bool) {
+	v := m.org_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrgName returns the old "org_name" field's value of the Carrier entity.
+// If the Carrier object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CarrierMutation) OldOrgName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrgName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrgName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrgName: %w", err)
+	}
+	return oldValue.OrgName, nil
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (m *CarrierMutation) ClearOrgName() {
+	m.org_name = nil
+	m.clearedFields[carrier.FieldOrgName] = struct{}{}
+}
+
+// OrgNameCleared returns if the "org_name" field was cleared in this mutation.
+func (m *CarrierMutation) OrgNameCleared() bool {
+	_, ok := m.clearedFields[carrier.FieldOrgName]
+	return ok
+}
+
+// ResetOrgName resets all changes to the "org_name" field.
+func (m *CarrierMutation) ResetOrgName() {
+	m.org_name = nil
+	delete(m.clearedFields, carrier.FieldOrgName)
 }
 
 // SetFacCount sets the "fac_count" field.
@@ -2195,55 +2244,6 @@ func (m *CarrierMutation) ResetFacCount() {
 	m.fac_count = nil
 	m.addfac_count = nil
 	delete(m.clearedFields, carrier.FieldFacCount)
-}
-
-// SetLogo sets the "logo" field.
-func (m *CarrierMutation) SetLogo(s string) {
-	m.logo = &s
-}
-
-// Logo returns the value of the "logo" field in the mutation.
-func (m *CarrierMutation) Logo() (r string, exists bool) {
-	v := m.logo
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLogo returns the old "logo" field's value of the Carrier entity.
-// If the Carrier object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CarrierMutation) OldLogo(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLogo requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
-	}
-	return oldValue.Logo, nil
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (m *CarrierMutation) ClearLogo() {
-	m.logo = nil
-	m.clearedFields[carrier.FieldLogo] = struct{}{}
-}
-
-// LogoCleared returns if the "logo" field was cleared in this mutation.
-func (m *CarrierMutation) LogoCleared() bool {
-	_, ok := m.clearedFields[carrier.FieldLogo]
-	return ok
-}
-
-// ResetLogo resets all changes to the "logo" field.
-func (m *CarrierMutation) ResetLogo() {
-	m.logo = nil
-	delete(m.clearedFields, carrier.FieldLogo)
 }
 
 // SetCreated sets the "created" field.
@@ -2354,46 +2354,6 @@ func (m *CarrierMutation) ResetStatus() {
 	m.status = nil
 }
 
-// SetOrganizationID sets the "organization" edge to the Organization entity by id.
-func (m *CarrierMutation) SetOrganizationID(id int) {
-	m.organization = &id
-}
-
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (m *CarrierMutation) ClearOrganization() {
-	m.clearedorganization = true
-	m.clearedFields[carrier.FieldOrgID] = struct{}{}
-}
-
-// OrganizationCleared reports if the "organization" edge to the Organization entity was cleared.
-func (m *CarrierMutation) OrganizationCleared() bool {
-	return m.OrgIDCleared() || m.clearedorganization
-}
-
-// OrganizationID returns the "organization" edge ID in the mutation.
-func (m *CarrierMutation) OrganizationID() (id int, exists bool) {
-	if m.organization != nil {
-		return *m.organization, true
-	}
-	return
-}
-
-// OrganizationIDs returns the "organization" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// OrganizationID instead. It exists only for internal usage by the builders.
-func (m *CarrierMutation) OrganizationIDs() (ids []int) {
-	if id := m.organization; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetOrganization resets all changes to the "organization" edge.
-func (m *CarrierMutation) ResetOrganization() {
-	m.organization = nil
-	m.clearedorganization = false
-}
-
 // AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by ids.
 func (m *CarrierMutation) AddCarrierFacilityIDs(ids ...int) {
 	if m.carrier_facilities == nil {
@@ -2448,6 +2408,46 @@ func (m *CarrierMutation) ResetCarrierFacilities() {
 	m.removedcarrier_facilities = nil
 }
 
+// SetOrganizationID sets the "organization" edge to the Organization entity by id.
+func (m *CarrierMutation) SetOrganizationID(id int) {
+	m.organization = &id
+}
+
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (m *CarrierMutation) ClearOrganization() {
+	m.clearedorganization = true
+	m.clearedFields[carrier.FieldOrgID] = struct{}{}
+}
+
+// OrganizationCleared reports if the "organization" edge to the Organization entity was cleared.
+func (m *CarrierMutation) OrganizationCleared() bool {
+	return m.OrgIDCleared() || m.clearedorganization
+}
+
+// OrganizationID returns the "organization" edge ID in the mutation.
+func (m *CarrierMutation) OrganizationID() (id int, exists bool) {
+	if m.organization != nil {
+		return *m.organization, true
+	}
+	return
+}
+
+// OrganizationIDs returns the "organization" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// OrganizationID instead. It exists only for internal usage by the builders.
+func (m *CarrierMutation) OrganizationIDs() (ids []int) {
+	if id := m.organization; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetOrganization resets all changes to the "organization" edge.
+func (m *CarrierMutation) ResetOrganization() {
+	m.organization = nil
+	m.clearedorganization = false
+}
+
 // Where appends a list predicates to the CarrierMutation builder.
 func (m *CarrierMutation) Where(ps ...predicate.Carrier) {
 	m.predicates = append(m.predicates, ps...)
@@ -2486,32 +2486,32 @@ func (m *CarrierMutation) Fields() []string {
 	if m.organization != nil {
 		fields = append(fields, carrier.FieldOrgID)
 	}
-	if m.org_name != nil {
-		fields = append(fields, carrier.FieldOrgName)
+	if m.aka != nil {
+		fields = append(fields, carrier.FieldAka)
+	}
+	if m.logo != nil {
+		fields = append(fields, carrier.FieldLogo)
 	}
 	if m.name != nil {
 		fields = append(fields, carrier.FieldName)
 	}
-	if m.aka != nil {
-		fields = append(fields, carrier.FieldAka)
-	}
 	if m.name_long != nil {
 		fields = append(fields, carrier.FieldNameLong)
-	}
-	if m.website != nil {
-		fields = append(fields, carrier.FieldWebsite)
-	}
-	if m.social_media != nil {
-		fields = append(fields, carrier.FieldSocialMedia)
 	}
 	if m.notes != nil {
 		fields = append(fields, carrier.FieldNotes)
 	}
+	if m.social_media != nil {
+		fields = append(fields, carrier.FieldSocialMedia)
+	}
+	if m.website != nil {
+		fields = append(fields, carrier.FieldWebsite)
+	}
+	if m.org_name != nil {
+		fields = append(fields, carrier.FieldOrgName)
+	}
 	if m.fac_count != nil {
 		fields = append(fields, carrier.FieldFacCount)
-	}
-	if m.logo != nil {
-		fields = append(fields, carrier.FieldLogo)
 	}
 	if m.created != nil {
 		fields = append(fields, carrier.FieldCreated)
@@ -2532,24 +2532,24 @@ func (m *CarrierMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case carrier.FieldOrgID:
 		return m.OrgID()
-	case carrier.FieldOrgName:
-		return m.OrgName()
-	case carrier.FieldName:
-		return m.Name()
 	case carrier.FieldAka:
 		return m.Aka()
-	case carrier.FieldNameLong:
-		return m.NameLong()
-	case carrier.FieldWebsite:
-		return m.Website()
-	case carrier.FieldSocialMedia:
-		return m.SocialMedia()
-	case carrier.FieldNotes:
-		return m.Notes()
-	case carrier.FieldFacCount:
-		return m.FacCount()
 	case carrier.FieldLogo:
 		return m.Logo()
+	case carrier.FieldName:
+		return m.Name()
+	case carrier.FieldNameLong:
+		return m.NameLong()
+	case carrier.FieldNotes:
+		return m.Notes()
+	case carrier.FieldSocialMedia:
+		return m.SocialMedia()
+	case carrier.FieldWebsite:
+		return m.Website()
+	case carrier.FieldOrgName:
+		return m.OrgName()
+	case carrier.FieldFacCount:
+		return m.FacCount()
 	case carrier.FieldCreated:
 		return m.Created()
 	case carrier.FieldUpdated:
@@ -2567,24 +2567,24 @@ func (m *CarrierMutation) OldField(ctx context.Context, name string) (ent.Value,
 	switch name {
 	case carrier.FieldOrgID:
 		return m.OldOrgID(ctx)
-	case carrier.FieldOrgName:
-		return m.OldOrgName(ctx)
-	case carrier.FieldName:
-		return m.OldName(ctx)
 	case carrier.FieldAka:
 		return m.OldAka(ctx)
-	case carrier.FieldNameLong:
-		return m.OldNameLong(ctx)
-	case carrier.FieldWebsite:
-		return m.OldWebsite(ctx)
-	case carrier.FieldSocialMedia:
-		return m.OldSocialMedia(ctx)
-	case carrier.FieldNotes:
-		return m.OldNotes(ctx)
-	case carrier.FieldFacCount:
-		return m.OldFacCount(ctx)
 	case carrier.FieldLogo:
 		return m.OldLogo(ctx)
+	case carrier.FieldName:
+		return m.OldName(ctx)
+	case carrier.FieldNameLong:
+		return m.OldNameLong(ctx)
+	case carrier.FieldNotes:
+		return m.OldNotes(ctx)
+	case carrier.FieldSocialMedia:
+		return m.OldSocialMedia(ctx)
+	case carrier.FieldWebsite:
+		return m.OldWebsite(ctx)
+	case carrier.FieldOrgName:
+		return m.OldOrgName(ctx)
+	case carrier.FieldFacCount:
+		return m.OldFacCount(ctx)
 	case carrier.FieldCreated:
 		return m.OldCreated(ctx)
 	case carrier.FieldUpdated:
@@ -2607,12 +2607,19 @@ func (m *CarrierMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetOrgID(v)
 		return nil
-	case carrier.FieldOrgName:
+	case carrier.FieldAka:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetOrgName(v)
+		m.SetAka(v)
+		return nil
+	case carrier.FieldLogo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLogo(v)
 		return nil
 	case carrier.FieldName:
 		v, ok := value.(string)
@@ -2621,33 +2628,12 @@ func (m *CarrierMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetName(v)
 		return nil
-	case carrier.FieldAka:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAka(v)
-		return nil
 	case carrier.FieldNameLong:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNameLong(v)
-		return nil
-	case carrier.FieldWebsite:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetWebsite(v)
-		return nil
-	case carrier.FieldSocialMedia:
-		v, ok := value.([]schema.SocialMedia)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSocialMedia(v)
 		return nil
 	case carrier.FieldNotes:
 		v, ok := value.(string)
@@ -2656,19 +2642,33 @@ func (m *CarrierMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetNotes(v)
 		return nil
+	case carrier.FieldSocialMedia:
+		v, ok := value.([]schema.SocialMedia)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSocialMedia(v)
+		return nil
+	case carrier.FieldWebsite:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWebsite(v)
+		return nil
+	case carrier.FieldOrgName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrgName(v)
+		return nil
 	case carrier.FieldFacCount:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetFacCount(v)
-		return nil
-	case carrier.FieldLogo:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLogo(v)
 		return nil
 	case carrier.FieldCreated:
 		v, ok := value.(time.Time)
@@ -2739,29 +2739,29 @@ func (m *CarrierMutation) ClearedFields() []string {
 	if m.FieldCleared(carrier.FieldOrgID) {
 		fields = append(fields, carrier.FieldOrgID)
 	}
-	if m.FieldCleared(carrier.FieldOrgName) {
-		fields = append(fields, carrier.FieldOrgName)
-	}
 	if m.FieldCleared(carrier.FieldAka) {
 		fields = append(fields, carrier.FieldAka)
+	}
+	if m.FieldCleared(carrier.FieldLogo) {
+		fields = append(fields, carrier.FieldLogo)
 	}
 	if m.FieldCleared(carrier.FieldNameLong) {
 		fields = append(fields, carrier.FieldNameLong)
 	}
-	if m.FieldCleared(carrier.FieldWebsite) {
-		fields = append(fields, carrier.FieldWebsite)
+	if m.FieldCleared(carrier.FieldNotes) {
+		fields = append(fields, carrier.FieldNotes)
 	}
 	if m.FieldCleared(carrier.FieldSocialMedia) {
 		fields = append(fields, carrier.FieldSocialMedia)
 	}
-	if m.FieldCleared(carrier.FieldNotes) {
-		fields = append(fields, carrier.FieldNotes)
+	if m.FieldCleared(carrier.FieldWebsite) {
+		fields = append(fields, carrier.FieldWebsite)
+	}
+	if m.FieldCleared(carrier.FieldOrgName) {
+		fields = append(fields, carrier.FieldOrgName)
 	}
 	if m.FieldCleared(carrier.FieldFacCount) {
 		fields = append(fields, carrier.FieldFacCount)
-	}
-	if m.FieldCleared(carrier.FieldLogo) {
-		fields = append(fields, carrier.FieldLogo)
 	}
 	return fields
 }
@@ -2780,29 +2780,29 @@ func (m *CarrierMutation) ClearField(name string) error {
 	case carrier.FieldOrgID:
 		m.ClearOrgID()
 		return nil
-	case carrier.FieldOrgName:
-		m.ClearOrgName()
-		return nil
 	case carrier.FieldAka:
 		m.ClearAka()
+		return nil
+	case carrier.FieldLogo:
+		m.ClearLogo()
 		return nil
 	case carrier.FieldNameLong:
 		m.ClearNameLong()
 		return nil
-	case carrier.FieldWebsite:
-		m.ClearWebsite()
+	case carrier.FieldNotes:
+		m.ClearNotes()
 		return nil
 	case carrier.FieldSocialMedia:
 		m.ClearSocialMedia()
 		return nil
-	case carrier.FieldNotes:
-		m.ClearNotes()
+	case carrier.FieldWebsite:
+		m.ClearWebsite()
+		return nil
+	case carrier.FieldOrgName:
+		m.ClearOrgName()
 		return nil
 	case carrier.FieldFacCount:
 		m.ClearFacCount()
-		return nil
-	case carrier.FieldLogo:
-		m.ClearLogo()
 		return nil
 	}
 	return fmt.Errorf("unknown Carrier nullable field %s", name)
@@ -2815,32 +2815,32 @@ func (m *CarrierMutation) ResetField(name string) error {
 	case carrier.FieldOrgID:
 		m.ResetOrgID()
 		return nil
-	case carrier.FieldOrgName:
-		m.ResetOrgName()
+	case carrier.FieldAka:
+		m.ResetAka()
+		return nil
+	case carrier.FieldLogo:
+		m.ResetLogo()
 		return nil
 	case carrier.FieldName:
 		m.ResetName()
 		return nil
-	case carrier.FieldAka:
-		m.ResetAka()
-		return nil
 	case carrier.FieldNameLong:
 		m.ResetNameLong()
-		return nil
-	case carrier.FieldWebsite:
-		m.ResetWebsite()
-		return nil
-	case carrier.FieldSocialMedia:
-		m.ResetSocialMedia()
 		return nil
 	case carrier.FieldNotes:
 		m.ResetNotes()
 		return nil
+	case carrier.FieldSocialMedia:
+		m.ResetSocialMedia()
+		return nil
+	case carrier.FieldWebsite:
+		m.ResetWebsite()
+		return nil
+	case carrier.FieldOrgName:
+		m.ResetOrgName()
+		return nil
 	case carrier.FieldFacCount:
 		m.ResetFacCount()
-		return nil
-	case carrier.FieldLogo:
-		m.ResetLogo()
 		return nil
 	case carrier.FieldCreated:
 		m.ResetCreated()
@@ -2858,11 +2858,11 @@ func (m *CarrierMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CarrierMutation) AddedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.organization != nil {
-		edges = append(edges, carrier.EdgeOrganization)
-	}
 	if m.carrier_facilities != nil {
 		edges = append(edges, carrier.EdgeCarrierFacilities)
+	}
+	if m.organization != nil {
+		edges = append(edges, carrier.EdgeOrganization)
 	}
 	return edges
 }
@@ -2871,16 +2871,16 @@ func (m *CarrierMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *CarrierMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case carrier.EdgeOrganization:
-		if id := m.organization; id != nil {
-			return []ent.Value{*id}
-		}
 	case carrier.EdgeCarrierFacilities:
 		ids := make([]ent.Value, 0, len(m.carrier_facilities))
 		for id := range m.carrier_facilities {
 			ids = append(ids, id)
 		}
 		return ids
+	case carrier.EdgeOrganization:
+		if id := m.organization; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
@@ -2911,11 +2911,11 @@ func (m *CarrierMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CarrierMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.clearedorganization {
-		edges = append(edges, carrier.EdgeOrganization)
-	}
 	if m.clearedcarrier_facilities {
 		edges = append(edges, carrier.EdgeCarrierFacilities)
+	}
+	if m.clearedorganization {
+		edges = append(edges, carrier.EdgeOrganization)
 	}
 	return edges
 }
@@ -2924,10 +2924,10 @@ func (m *CarrierMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *CarrierMutation) EdgeCleared(name string) bool {
 	switch name {
-	case carrier.EdgeOrganization:
-		return m.clearedorganization
 	case carrier.EdgeCarrierFacilities:
 		return m.clearedcarrier_facilities
+	case carrier.EdgeOrganization:
+		return m.clearedorganization
 	}
 	return false
 }
@@ -2947,11 +2947,11 @@ func (m *CarrierMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *CarrierMutation) ResetEdge(name string) error {
 	switch name {
-	case carrier.EdgeOrganization:
-		m.ResetOrganization()
-		return nil
 	case carrier.EdgeCarrierFacilities:
 		m.ResetCarrierFacilities()
+		return nil
+	case carrier.EdgeOrganization:
+		m.ResetOrganization()
 		return nil
 	}
 	return fmt.Errorf("unknown Carrier edge %s", name)
@@ -3741,63 +3741,63 @@ type FacilityMutation struct {
 	op                               Op
 	typ                              string
 	id                               *int
-	org_name                         *string
-	name                             *string
+	address1                         *string
+	address2                         *string
 	aka                              *string
-	name_long                        *string
-	website                          *string
-	social_media                     *[]schema.SocialMedia
-	appendsocial_media               []schema.SocialMedia
-	clli                             *string
-	rencode                          *string
-	npanxx                           *string
-	tech_email                       *string
-	tech_phone                       *string
-	sales_email                      *string
-	sales_phone                      *string
-	property                         *string
-	diverse_serving_substations      *bool
 	available_voltage_services       *[]string
 	appendavailable_voltage_services []string
-	notes                            *string
-	region_continent                 *string
-	status_dashboard                 *string
+	city                             *string
+	clli                             *string
+	country                          *string
+	diverse_serving_substations      *bool
+	floor                            *string
+	latitude                         *float64
+	addlatitude                      *float64
 	logo                             *string
+	longitude                        *float64
+	addlongitude                     *float64
+	name                             *string
+	name_long                        *string
+	notes                            *string
+	npanxx                           *string
+	property                         *string
+	region_continent                 *string
+	rencode                          *string
+	sales_email                      *string
+	sales_phone                      *string
+	social_media                     *[]schema.SocialMedia
+	appendsocial_media               []schema.SocialMedia
+	state                            *string
+	status_dashboard                 *string
+	suite                            *string
+	tech_email                       *string
+	tech_phone                       *string
+	website                          *string
+	zipcode                          *string
+	org_name                         *string
 	net_count                        *int
 	addnet_count                     *int
 	ix_count                         *int
 	addix_count                      *int
 	carrier_count                    *int
 	addcarrier_count                 *int
-	address1                         *string
-	address2                         *string
-	city                             *string
-	state                            *string
-	country                          *string
-	zipcode                          *string
-	suite                            *string
-	floor                            *string
-	latitude                         *float64
-	addlatitude                      *float64
-	longitude                        *float64
-	addlongitude                     *float64
 	created                          *time.Time
 	updated                          *time.Time
 	status                           *string
 	clearedFields                    map[string]struct{}
-	organization                     *int
-	clearedorganization              bool
 	campus                           *int
 	clearedcampus                    bool
-	network_facilities               map[int]struct{}
-	removednetwork_facilities        map[int]struct{}
-	clearednetwork_facilities        bool
-	ix_facilities                    map[int]struct{}
-	removedix_facilities             map[int]struct{}
-	clearedix_facilities             bool
 	carrier_facilities               map[int]struct{}
 	removedcarrier_facilities        map[int]struct{}
 	clearedcarrier_facilities        bool
+	ix_facilities                    map[int]struct{}
+	removedix_facilities             map[int]struct{}
+	clearedix_facilities             bool
+	network_facilities               map[int]struct{}
+	removednetwork_facilities        map[int]struct{}
+	clearednetwork_facilities        bool
+	organization                     *int
+	clearedorganization              bool
 	done                             bool
 	oldValue                         func(context.Context) (*Facility, error)
 	predicates                       []predicate.Facility
@@ -3907,104 +3907,6 @@ func (m *FacilityMutation) IDs(ctx context.Context) ([]int, error) {
 	}
 }
 
-// SetOrgID sets the "org_id" field.
-func (m *FacilityMutation) SetOrgID(i int) {
-	m.organization = &i
-}
-
-// OrgID returns the value of the "org_id" field in the mutation.
-func (m *FacilityMutation) OrgID() (r int, exists bool) {
-	v := m.organization
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOrgID returns the old "org_id" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldOrgID(ctx context.Context) (v *int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOrgID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOrgID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOrgID: %w", err)
-	}
-	return oldValue.OrgID, nil
-}
-
-// ClearOrgID clears the value of the "org_id" field.
-func (m *FacilityMutation) ClearOrgID() {
-	m.organization = nil
-	m.clearedFields[facility.FieldOrgID] = struct{}{}
-}
-
-// OrgIDCleared returns if the "org_id" field was cleared in this mutation.
-func (m *FacilityMutation) OrgIDCleared() bool {
-	_, ok := m.clearedFields[facility.FieldOrgID]
-	return ok
-}
-
-// ResetOrgID resets all changes to the "org_id" field.
-func (m *FacilityMutation) ResetOrgID() {
-	m.organization = nil
-	delete(m.clearedFields, facility.FieldOrgID)
-}
-
-// SetOrgName sets the "org_name" field.
-func (m *FacilityMutation) SetOrgName(s string) {
-	m.org_name = &s
-}
-
-// OrgName returns the value of the "org_name" field in the mutation.
-func (m *FacilityMutation) OrgName() (r string, exists bool) {
-	v := m.org_name
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOrgName returns the old "org_name" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldOrgName(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOrgName is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOrgName requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOrgName: %w", err)
-	}
-	return oldValue.OrgName, nil
-}
-
-// ClearOrgName clears the value of the "org_name" field.
-func (m *FacilityMutation) ClearOrgName() {
-	m.org_name = nil
-	m.clearedFields[facility.FieldOrgName] = struct{}{}
-}
-
-// OrgNameCleared returns if the "org_name" field was cleared in this mutation.
-func (m *FacilityMutation) OrgNameCleared() bool {
-	_, ok := m.clearedFields[facility.FieldOrgName]
-	return ok
-}
-
-// ResetOrgName resets all changes to the "org_name" field.
-func (m *FacilityMutation) ResetOrgName() {
-	m.org_name = nil
-	delete(m.clearedFields, facility.FieldOrgName)
-}
-
 // SetCampusID sets the "campus_id" field.
 func (m *FacilityMutation) SetCampusID(i int) {
 	m.campus = &i
@@ -4054,40 +3956,151 @@ func (m *FacilityMutation) ResetCampusID() {
 	delete(m.clearedFields, facility.FieldCampusID)
 }
 
-// SetName sets the "name" field.
-func (m *FacilityMutation) SetName(s string) {
-	m.name = &s
+// SetOrgID sets the "org_id" field.
+func (m *FacilityMutation) SetOrgID(i int) {
+	m.organization = &i
 }
 
-// Name returns the value of the "name" field in the mutation.
-func (m *FacilityMutation) Name() (r string, exists bool) {
-	v := m.name
+// OrgID returns the value of the "org_id" field in the mutation.
+func (m *FacilityMutation) OrgID() (r int, exists bool) {
+	v := m.organization
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldName returns the old "name" field's value of the Facility entity.
+// OldOrgID returns the old "org_id" field's value of the Facility entity.
 // If the Facility object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldName(ctx context.Context) (v string, err error) {
+func (m *FacilityMutation) OldOrgID(ctx context.Context) (v *int, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
+		return v, errors.New("OldOrgID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
+		return v, errors.New("OldOrgID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
+		return v, fmt.Errorf("querying old value for OldOrgID: %w", err)
 	}
-	return oldValue.Name, nil
+	return oldValue.OrgID, nil
 }
 
-// ResetName resets all changes to the "name" field.
-func (m *FacilityMutation) ResetName() {
-	m.name = nil
+// ClearOrgID clears the value of the "org_id" field.
+func (m *FacilityMutation) ClearOrgID() {
+	m.organization = nil
+	m.clearedFields[facility.FieldOrgID] = struct{}{}
+}
+
+// OrgIDCleared returns if the "org_id" field was cleared in this mutation.
+func (m *FacilityMutation) OrgIDCleared() bool {
+	_, ok := m.clearedFields[facility.FieldOrgID]
+	return ok
+}
+
+// ResetOrgID resets all changes to the "org_id" field.
+func (m *FacilityMutation) ResetOrgID() {
+	m.organization = nil
+	delete(m.clearedFields, facility.FieldOrgID)
+}
+
+// SetAddress1 sets the "address1" field.
+func (m *FacilityMutation) SetAddress1(s string) {
+	m.address1 = &s
+}
+
+// Address1 returns the value of the "address1" field in the mutation.
+func (m *FacilityMutation) Address1() (r string, exists bool) {
+	v := m.address1
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAddress1 returns the old "address1" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldAddress1(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAddress1 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAddress1 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAddress1: %w", err)
+	}
+	return oldValue.Address1, nil
+}
+
+// ClearAddress1 clears the value of the "address1" field.
+func (m *FacilityMutation) ClearAddress1() {
+	m.address1 = nil
+	m.clearedFields[facility.FieldAddress1] = struct{}{}
+}
+
+// Address1Cleared returns if the "address1" field was cleared in this mutation.
+func (m *FacilityMutation) Address1Cleared() bool {
+	_, ok := m.clearedFields[facility.FieldAddress1]
+	return ok
+}
+
+// ResetAddress1 resets all changes to the "address1" field.
+func (m *FacilityMutation) ResetAddress1() {
+	m.address1 = nil
+	delete(m.clearedFields, facility.FieldAddress1)
+}
+
+// SetAddress2 sets the "address2" field.
+func (m *FacilityMutation) SetAddress2(s string) {
+	m.address2 = &s
+}
+
+// Address2 returns the value of the "address2" field in the mutation.
+func (m *FacilityMutation) Address2() (r string, exists bool) {
+	v := m.address2
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAddress2 returns the old "address2" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldAddress2(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAddress2 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAddress2 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAddress2: %w", err)
+	}
+	return oldValue.Address2, nil
+}
+
+// ClearAddress2 clears the value of the "address2" field.
+func (m *FacilityMutation) ClearAddress2() {
+	m.address2 = nil
+	m.clearedFields[facility.FieldAddress2] = struct{}{}
+}
+
+// Address2Cleared returns if the "address2" field was cleared in this mutation.
+func (m *FacilityMutation) Address2Cleared() bool {
+	_, ok := m.clearedFields[facility.FieldAddress2]
+	return ok
+}
+
+// ResetAddress2 resets all changes to the "address2" field.
+func (m *FacilityMutation) ResetAddress2() {
+	m.address2 = nil
+	delete(m.clearedFields, facility.FieldAddress2)
 }
 
 // SetAka sets the "aka" field.
@@ -4139,167 +4152,118 @@ func (m *FacilityMutation) ResetAka() {
 	delete(m.clearedFields, facility.FieldAka)
 }
 
-// SetNameLong sets the "name_long" field.
-func (m *FacilityMutation) SetNameLong(s string) {
-	m.name_long = &s
+// SetAvailableVoltageServices sets the "available_voltage_services" field.
+func (m *FacilityMutation) SetAvailableVoltageServices(s []string) {
+	m.available_voltage_services = &s
+	m.appendavailable_voltage_services = nil
 }
 
-// NameLong returns the value of the "name_long" field in the mutation.
-func (m *FacilityMutation) NameLong() (r string, exists bool) {
-	v := m.name_long
+// AvailableVoltageServices returns the value of the "available_voltage_services" field in the mutation.
+func (m *FacilityMutation) AvailableVoltageServices() (r []string, exists bool) {
+	v := m.available_voltage_services
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldNameLong returns the old "name_long" field's value of the Facility entity.
+// OldAvailableVoltageServices returns the old "available_voltage_services" field's value of the Facility entity.
 // If the Facility object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldNameLong(ctx context.Context) (v string, err error) {
+func (m *FacilityMutation) OldAvailableVoltageServices(ctx context.Context) (v []string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNameLong is only allowed on UpdateOne operations")
+		return v, errors.New("OldAvailableVoltageServices is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNameLong requires an ID field in the mutation")
+		return v, errors.New("OldAvailableVoltageServices requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNameLong: %w", err)
+		return v, fmt.Errorf("querying old value for OldAvailableVoltageServices: %w", err)
 	}
-	return oldValue.NameLong, nil
+	return oldValue.AvailableVoltageServices, nil
 }
 
-// ClearNameLong clears the value of the "name_long" field.
-func (m *FacilityMutation) ClearNameLong() {
-	m.name_long = nil
-	m.clearedFields[facility.FieldNameLong] = struct{}{}
+// AppendAvailableVoltageServices adds s to the "available_voltage_services" field.
+func (m *FacilityMutation) AppendAvailableVoltageServices(s []string) {
+	m.appendavailable_voltage_services = append(m.appendavailable_voltage_services, s...)
 }
 
-// NameLongCleared returns if the "name_long" field was cleared in this mutation.
-func (m *FacilityMutation) NameLongCleared() bool {
-	_, ok := m.clearedFields[facility.FieldNameLong]
-	return ok
-}
-
-// ResetNameLong resets all changes to the "name_long" field.
-func (m *FacilityMutation) ResetNameLong() {
-	m.name_long = nil
-	delete(m.clearedFields, facility.FieldNameLong)
-}
-
-// SetWebsite sets the "website" field.
-func (m *FacilityMutation) SetWebsite(s string) {
-	m.website = &s
-}
-
-// Website returns the value of the "website" field in the mutation.
-func (m *FacilityMutation) Website() (r string, exists bool) {
-	v := m.website
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldWebsite returns the old "website" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldWebsite(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldWebsite requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
-	}
-	return oldValue.Website, nil
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (m *FacilityMutation) ClearWebsite() {
-	m.website = nil
-	m.clearedFields[facility.FieldWebsite] = struct{}{}
-}
-
-// WebsiteCleared returns if the "website" field was cleared in this mutation.
-func (m *FacilityMutation) WebsiteCleared() bool {
-	_, ok := m.clearedFields[facility.FieldWebsite]
-	return ok
-}
-
-// ResetWebsite resets all changes to the "website" field.
-func (m *FacilityMutation) ResetWebsite() {
-	m.website = nil
-	delete(m.clearedFields, facility.FieldWebsite)
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (m *FacilityMutation) SetSocialMedia(sm []schema.SocialMedia) {
-	m.social_media = &sm
-	m.appendsocial_media = nil
-}
-
-// SocialMedia returns the value of the "social_media" field in the mutation.
-func (m *FacilityMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
-	v := m.social_media
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSocialMedia returns the old "social_media" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSocialMedia requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSocialMedia: %w", err)
-	}
-	return oldValue.SocialMedia, nil
-}
-
-// AppendSocialMedia adds sm to the "social_media" field.
-func (m *FacilityMutation) AppendSocialMedia(sm []schema.SocialMedia) {
-	m.appendsocial_media = append(m.appendsocial_media, sm...)
-}
-
-// AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
-func (m *FacilityMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
-	if len(m.appendsocial_media) == 0 {
+// AppendedAvailableVoltageServices returns the list of values that were appended to the "available_voltage_services" field in this mutation.
+func (m *FacilityMutation) AppendedAvailableVoltageServices() ([]string, bool) {
+	if len(m.appendavailable_voltage_services) == 0 {
 		return nil, false
 	}
-	return m.appendsocial_media, true
+	return m.appendavailable_voltage_services, true
 }
 
-// ClearSocialMedia clears the value of the "social_media" field.
-func (m *FacilityMutation) ClearSocialMedia() {
-	m.social_media = nil
-	m.appendsocial_media = nil
-	m.clearedFields[facility.FieldSocialMedia] = struct{}{}
+// ClearAvailableVoltageServices clears the value of the "available_voltage_services" field.
+func (m *FacilityMutation) ClearAvailableVoltageServices() {
+	m.available_voltage_services = nil
+	m.appendavailable_voltage_services = nil
+	m.clearedFields[facility.FieldAvailableVoltageServices] = struct{}{}
 }
 
-// SocialMediaCleared returns if the "social_media" field was cleared in this mutation.
-func (m *FacilityMutation) SocialMediaCleared() bool {
-	_, ok := m.clearedFields[facility.FieldSocialMedia]
+// AvailableVoltageServicesCleared returns if the "available_voltage_services" field was cleared in this mutation.
+func (m *FacilityMutation) AvailableVoltageServicesCleared() bool {
+	_, ok := m.clearedFields[facility.FieldAvailableVoltageServices]
 	return ok
 }
 
-// ResetSocialMedia resets all changes to the "social_media" field.
-func (m *FacilityMutation) ResetSocialMedia() {
-	m.social_media = nil
-	m.appendsocial_media = nil
-	delete(m.clearedFields, facility.FieldSocialMedia)
+// ResetAvailableVoltageServices resets all changes to the "available_voltage_services" field.
+func (m *FacilityMutation) ResetAvailableVoltageServices() {
+	m.available_voltage_services = nil
+	m.appendavailable_voltage_services = nil
+	delete(m.clearedFields, facility.FieldAvailableVoltageServices)
+}
+
+// SetCity sets the "city" field.
+func (m *FacilityMutation) SetCity(s string) {
+	m.city = &s
+}
+
+// City returns the value of the "city" field in the mutation.
+func (m *FacilityMutation) City() (r string, exists bool) {
+	v := m.city
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCity returns the old "city" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldCity(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCity: %w", err)
+	}
+	return oldValue.City, nil
+}
+
+// ClearCity clears the value of the "city" field.
+func (m *FacilityMutation) ClearCity() {
+	m.city = nil
+	m.clearedFields[facility.FieldCity] = struct{}{}
+}
+
+// CityCleared returns if the "city" field was cleared in this mutation.
+func (m *FacilityMutation) CityCleared() bool {
+	_, ok := m.clearedFields[facility.FieldCity]
+	return ok
+}
+
+// ResetCity resets all changes to the "city" field.
+func (m *FacilityMutation) ResetCity() {
+	m.city = nil
+	delete(m.clearedFields, facility.FieldCity)
 }
 
 // SetClli sets the "clli" field.
@@ -4351,53 +4315,474 @@ func (m *FacilityMutation) ResetClli() {
 	delete(m.clearedFields, facility.FieldClli)
 }
 
-// SetRencode sets the "rencode" field.
-func (m *FacilityMutation) SetRencode(s string) {
-	m.rencode = &s
+// SetCountry sets the "country" field.
+func (m *FacilityMutation) SetCountry(s string) {
+	m.country = &s
 }
 
-// Rencode returns the value of the "rencode" field in the mutation.
-func (m *FacilityMutation) Rencode() (r string, exists bool) {
-	v := m.rencode
+// Country returns the value of the "country" field in the mutation.
+func (m *FacilityMutation) Country() (r string, exists bool) {
+	v := m.country
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldRencode returns the old "rencode" field's value of the Facility entity.
+// OldCountry returns the old "country" field's value of the Facility entity.
 // If the Facility object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldRencode(ctx context.Context) (v string, err error) {
+func (m *FacilityMutation) OldCountry(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldRencode is only allowed on UpdateOne operations")
+		return v, errors.New("OldCountry is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldRencode requires an ID field in the mutation")
+		return v, errors.New("OldCountry requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRencode: %w", err)
+		return v, fmt.Errorf("querying old value for OldCountry: %w", err)
 	}
-	return oldValue.Rencode, nil
+	return oldValue.Country, nil
 }
 
-// ClearRencode clears the value of the "rencode" field.
-func (m *FacilityMutation) ClearRencode() {
-	m.rencode = nil
-	m.clearedFields[facility.FieldRencode] = struct{}{}
+// ClearCountry clears the value of the "country" field.
+func (m *FacilityMutation) ClearCountry() {
+	m.country = nil
+	m.clearedFields[facility.FieldCountry] = struct{}{}
 }
 
-// RencodeCleared returns if the "rencode" field was cleared in this mutation.
-func (m *FacilityMutation) RencodeCleared() bool {
-	_, ok := m.clearedFields[facility.FieldRencode]
+// CountryCleared returns if the "country" field was cleared in this mutation.
+func (m *FacilityMutation) CountryCleared() bool {
+	_, ok := m.clearedFields[facility.FieldCountry]
 	return ok
 }
 
-// ResetRencode resets all changes to the "rencode" field.
-func (m *FacilityMutation) ResetRencode() {
-	m.rencode = nil
-	delete(m.clearedFields, facility.FieldRencode)
+// ResetCountry resets all changes to the "country" field.
+func (m *FacilityMutation) ResetCountry() {
+	m.country = nil
+	delete(m.clearedFields, facility.FieldCountry)
+}
+
+// SetDiverseServingSubstations sets the "diverse_serving_substations" field.
+func (m *FacilityMutation) SetDiverseServingSubstations(b bool) {
+	m.diverse_serving_substations = &b
+}
+
+// DiverseServingSubstations returns the value of the "diverse_serving_substations" field in the mutation.
+func (m *FacilityMutation) DiverseServingSubstations() (r bool, exists bool) {
+	v := m.diverse_serving_substations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiverseServingSubstations returns the old "diverse_serving_substations" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldDiverseServingSubstations(ctx context.Context) (v *bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiverseServingSubstations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiverseServingSubstations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiverseServingSubstations: %w", err)
+	}
+	return oldValue.DiverseServingSubstations, nil
+}
+
+// ClearDiverseServingSubstations clears the value of the "diverse_serving_substations" field.
+func (m *FacilityMutation) ClearDiverseServingSubstations() {
+	m.diverse_serving_substations = nil
+	m.clearedFields[facility.FieldDiverseServingSubstations] = struct{}{}
+}
+
+// DiverseServingSubstationsCleared returns if the "diverse_serving_substations" field was cleared in this mutation.
+func (m *FacilityMutation) DiverseServingSubstationsCleared() bool {
+	_, ok := m.clearedFields[facility.FieldDiverseServingSubstations]
+	return ok
+}
+
+// ResetDiverseServingSubstations resets all changes to the "diverse_serving_substations" field.
+func (m *FacilityMutation) ResetDiverseServingSubstations() {
+	m.diverse_serving_substations = nil
+	delete(m.clearedFields, facility.FieldDiverseServingSubstations)
+}
+
+// SetFloor sets the "floor" field.
+func (m *FacilityMutation) SetFloor(s string) {
+	m.floor = &s
+}
+
+// Floor returns the value of the "floor" field in the mutation.
+func (m *FacilityMutation) Floor() (r string, exists bool) {
+	v := m.floor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFloor returns the old "floor" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldFloor(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFloor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFloor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFloor: %w", err)
+	}
+	return oldValue.Floor, nil
+}
+
+// ClearFloor clears the value of the "floor" field.
+func (m *FacilityMutation) ClearFloor() {
+	m.floor = nil
+	m.clearedFields[facility.FieldFloor] = struct{}{}
+}
+
+// FloorCleared returns if the "floor" field was cleared in this mutation.
+func (m *FacilityMutation) FloorCleared() bool {
+	_, ok := m.clearedFields[facility.FieldFloor]
+	return ok
+}
+
+// ResetFloor resets all changes to the "floor" field.
+func (m *FacilityMutation) ResetFloor() {
+	m.floor = nil
+	delete(m.clearedFields, facility.FieldFloor)
+}
+
+// SetLatitude sets the "latitude" field.
+func (m *FacilityMutation) SetLatitude(f float64) {
+	m.latitude = &f
+	m.addlatitude = nil
+}
+
+// Latitude returns the value of the "latitude" field in the mutation.
+func (m *FacilityMutation) Latitude() (r float64, exists bool) {
+	v := m.latitude
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLatitude returns the old "latitude" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldLatitude(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLatitude is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLatitude requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLatitude: %w", err)
+	}
+	return oldValue.Latitude, nil
+}
+
+// AddLatitude adds f to the "latitude" field.
+func (m *FacilityMutation) AddLatitude(f float64) {
+	if m.addlatitude != nil {
+		*m.addlatitude += f
+	} else {
+		m.addlatitude = &f
+	}
+}
+
+// AddedLatitude returns the value that was added to the "latitude" field in this mutation.
+func (m *FacilityMutation) AddedLatitude() (r float64, exists bool) {
+	v := m.addlatitude
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearLatitude clears the value of the "latitude" field.
+func (m *FacilityMutation) ClearLatitude() {
+	m.latitude = nil
+	m.addlatitude = nil
+	m.clearedFields[facility.FieldLatitude] = struct{}{}
+}
+
+// LatitudeCleared returns if the "latitude" field was cleared in this mutation.
+func (m *FacilityMutation) LatitudeCleared() bool {
+	_, ok := m.clearedFields[facility.FieldLatitude]
+	return ok
+}
+
+// ResetLatitude resets all changes to the "latitude" field.
+func (m *FacilityMutation) ResetLatitude() {
+	m.latitude = nil
+	m.addlatitude = nil
+	delete(m.clearedFields, facility.FieldLatitude)
+}
+
+// SetLogo sets the "logo" field.
+func (m *FacilityMutation) SetLogo(s string) {
+	m.logo = &s
+}
+
+// Logo returns the value of the "logo" field in the mutation.
+func (m *FacilityMutation) Logo() (r string, exists bool) {
+	v := m.logo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLogo returns the old "logo" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldLogo(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLogo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
+	}
+	return oldValue.Logo, nil
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (m *FacilityMutation) ClearLogo() {
+	m.logo = nil
+	m.clearedFields[facility.FieldLogo] = struct{}{}
+}
+
+// LogoCleared returns if the "logo" field was cleared in this mutation.
+func (m *FacilityMutation) LogoCleared() bool {
+	_, ok := m.clearedFields[facility.FieldLogo]
+	return ok
+}
+
+// ResetLogo resets all changes to the "logo" field.
+func (m *FacilityMutation) ResetLogo() {
+	m.logo = nil
+	delete(m.clearedFields, facility.FieldLogo)
+}
+
+// SetLongitude sets the "longitude" field.
+func (m *FacilityMutation) SetLongitude(f float64) {
+	m.longitude = &f
+	m.addlongitude = nil
+}
+
+// Longitude returns the value of the "longitude" field in the mutation.
+func (m *FacilityMutation) Longitude() (r float64, exists bool) {
+	v := m.longitude
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLongitude returns the old "longitude" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldLongitude(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLongitude is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLongitude requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLongitude: %w", err)
+	}
+	return oldValue.Longitude, nil
+}
+
+// AddLongitude adds f to the "longitude" field.
+func (m *FacilityMutation) AddLongitude(f float64) {
+	if m.addlongitude != nil {
+		*m.addlongitude += f
+	} else {
+		m.addlongitude = &f
+	}
+}
+
+// AddedLongitude returns the value that was added to the "longitude" field in this mutation.
+func (m *FacilityMutation) AddedLongitude() (r float64, exists bool) {
+	v := m.addlongitude
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearLongitude clears the value of the "longitude" field.
+func (m *FacilityMutation) ClearLongitude() {
+	m.longitude = nil
+	m.addlongitude = nil
+	m.clearedFields[facility.FieldLongitude] = struct{}{}
+}
+
+// LongitudeCleared returns if the "longitude" field was cleared in this mutation.
+func (m *FacilityMutation) LongitudeCleared() bool {
+	_, ok := m.clearedFields[facility.FieldLongitude]
+	return ok
+}
+
+// ResetLongitude resets all changes to the "longitude" field.
+func (m *FacilityMutation) ResetLongitude() {
+	m.longitude = nil
+	m.addlongitude = nil
+	delete(m.clearedFields, facility.FieldLongitude)
+}
+
+// SetName sets the "name" field.
+func (m *FacilityMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *FacilityMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *FacilityMutation) ResetName() {
+	m.name = nil
+}
+
+// SetNameLong sets the "name_long" field.
+func (m *FacilityMutation) SetNameLong(s string) {
+	m.name_long = &s
+}
+
+// NameLong returns the value of the "name_long" field in the mutation.
+func (m *FacilityMutation) NameLong() (r string, exists bool) {
+	v := m.name_long
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameLong returns the old "name_long" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldNameLong(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameLong is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameLong requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameLong: %w", err)
+	}
+	return oldValue.NameLong, nil
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (m *FacilityMutation) ClearNameLong() {
+	m.name_long = nil
+	m.clearedFields[facility.FieldNameLong] = struct{}{}
+}
+
+// NameLongCleared returns if the "name_long" field was cleared in this mutation.
+func (m *FacilityMutation) NameLongCleared() bool {
+	_, ok := m.clearedFields[facility.FieldNameLong]
+	return ok
+}
+
+// ResetNameLong resets all changes to the "name_long" field.
+func (m *FacilityMutation) ResetNameLong() {
+	m.name_long = nil
+	delete(m.clearedFields, facility.FieldNameLong)
+}
+
+// SetNotes sets the "notes" field.
+func (m *FacilityMutation) SetNotes(s string) {
+	m.notes = &s
+}
+
+// Notes returns the value of the "notes" field in the mutation.
+func (m *FacilityMutation) Notes() (r string, exists bool) {
+	v := m.notes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNotes returns the old "notes" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldNotes(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNotes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+	}
+	return oldValue.Notes, nil
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (m *FacilityMutation) ClearNotes() {
+	m.notes = nil
+	m.clearedFields[facility.FieldNotes] = struct{}{}
+}
+
+// NotesCleared returns if the "notes" field was cleared in this mutation.
+func (m *FacilityMutation) NotesCleared() bool {
+	_, ok := m.clearedFields[facility.FieldNotes]
+	return ok
+}
+
+// ResetNotes resets all changes to the "notes" field.
+func (m *FacilityMutation) ResetNotes() {
+	m.notes = nil
+	delete(m.clearedFields, facility.FieldNotes)
 }
 
 // SetNpanxx sets the "npanxx" field.
@@ -4449,102 +4834,151 @@ func (m *FacilityMutation) ResetNpanxx() {
 	delete(m.clearedFields, facility.FieldNpanxx)
 }
 
-// SetTechEmail sets the "tech_email" field.
-func (m *FacilityMutation) SetTechEmail(s string) {
-	m.tech_email = &s
+// SetProperty sets the "property" field.
+func (m *FacilityMutation) SetProperty(s string) {
+	m.property = &s
 }
 
-// TechEmail returns the value of the "tech_email" field in the mutation.
-func (m *FacilityMutation) TechEmail() (r string, exists bool) {
-	v := m.tech_email
+// Property returns the value of the "property" field in the mutation.
+func (m *FacilityMutation) Property() (r string, exists bool) {
+	v := m.property
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldTechEmail returns the old "tech_email" field's value of the Facility entity.
+// OldProperty returns the old "property" field's value of the Facility entity.
 // If the Facility object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldTechEmail(ctx context.Context) (v string, err error) {
+func (m *FacilityMutation) OldProperty(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTechEmail is only allowed on UpdateOne operations")
+		return v, errors.New("OldProperty is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTechEmail requires an ID field in the mutation")
+		return v, errors.New("OldProperty requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTechEmail: %w", err)
+		return v, fmt.Errorf("querying old value for OldProperty: %w", err)
 	}
-	return oldValue.TechEmail, nil
+	return oldValue.Property, nil
 }
 
-// ClearTechEmail clears the value of the "tech_email" field.
-func (m *FacilityMutation) ClearTechEmail() {
-	m.tech_email = nil
-	m.clearedFields[facility.FieldTechEmail] = struct{}{}
+// ClearProperty clears the value of the "property" field.
+func (m *FacilityMutation) ClearProperty() {
+	m.property = nil
+	m.clearedFields[facility.FieldProperty] = struct{}{}
 }
 
-// TechEmailCleared returns if the "tech_email" field was cleared in this mutation.
-func (m *FacilityMutation) TechEmailCleared() bool {
-	_, ok := m.clearedFields[facility.FieldTechEmail]
+// PropertyCleared returns if the "property" field was cleared in this mutation.
+func (m *FacilityMutation) PropertyCleared() bool {
+	_, ok := m.clearedFields[facility.FieldProperty]
 	return ok
 }
 
-// ResetTechEmail resets all changes to the "tech_email" field.
-func (m *FacilityMutation) ResetTechEmail() {
-	m.tech_email = nil
-	delete(m.clearedFields, facility.FieldTechEmail)
+// ResetProperty resets all changes to the "property" field.
+func (m *FacilityMutation) ResetProperty() {
+	m.property = nil
+	delete(m.clearedFields, facility.FieldProperty)
 }
 
-// SetTechPhone sets the "tech_phone" field.
-func (m *FacilityMutation) SetTechPhone(s string) {
-	m.tech_phone = &s
+// SetRegionContinent sets the "region_continent" field.
+func (m *FacilityMutation) SetRegionContinent(s string) {
+	m.region_continent = &s
 }
 
-// TechPhone returns the value of the "tech_phone" field in the mutation.
-func (m *FacilityMutation) TechPhone() (r string, exists bool) {
-	v := m.tech_phone
+// RegionContinent returns the value of the "region_continent" field in the mutation.
+func (m *FacilityMutation) RegionContinent() (r string, exists bool) {
+	v := m.region_continent
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldTechPhone returns the old "tech_phone" field's value of the Facility entity.
+// OldRegionContinent returns the old "region_continent" field's value of the Facility entity.
 // If the Facility object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldTechPhone(ctx context.Context) (v string, err error) {
+func (m *FacilityMutation) OldRegionContinent(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTechPhone is only allowed on UpdateOne operations")
+		return v, errors.New("OldRegionContinent is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTechPhone requires an ID field in the mutation")
+		return v, errors.New("OldRegionContinent requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTechPhone: %w", err)
+		return v, fmt.Errorf("querying old value for OldRegionContinent: %w", err)
 	}
-	return oldValue.TechPhone, nil
+	return oldValue.RegionContinent, nil
 }
 
-// ClearTechPhone clears the value of the "tech_phone" field.
-func (m *FacilityMutation) ClearTechPhone() {
-	m.tech_phone = nil
-	m.clearedFields[facility.FieldTechPhone] = struct{}{}
+// ClearRegionContinent clears the value of the "region_continent" field.
+func (m *FacilityMutation) ClearRegionContinent() {
+	m.region_continent = nil
+	m.clearedFields[facility.FieldRegionContinent] = struct{}{}
 }
 
-// TechPhoneCleared returns if the "tech_phone" field was cleared in this mutation.
-func (m *FacilityMutation) TechPhoneCleared() bool {
-	_, ok := m.clearedFields[facility.FieldTechPhone]
+// RegionContinentCleared returns if the "region_continent" field was cleared in this mutation.
+func (m *FacilityMutation) RegionContinentCleared() bool {
+	_, ok := m.clearedFields[facility.FieldRegionContinent]
 	return ok
 }
 
-// ResetTechPhone resets all changes to the "tech_phone" field.
-func (m *FacilityMutation) ResetTechPhone() {
-	m.tech_phone = nil
-	delete(m.clearedFields, facility.FieldTechPhone)
+// ResetRegionContinent resets all changes to the "region_continent" field.
+func (m *FacilityMutation) ResetRegionContinent() {
+	m.region_continent = nil
+	delete(m.clearedFields, facility.FieldRegionContinent)
+}
+
+// SetRencode sets the "rencode" field.
+func (m *FacilityMutation) SetRencode(s string) {
+	m.rencode = &s
+}
+
+// Rencode returns the value of the "rencode" field in the mutation.
+func (m *FacilityMutation) Rencode() (r string, exists bool) {
+	v := m.rencode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRencode returns the old "rencode" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldRencode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRencode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRencode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRencode: %w", err)
+	}
+	return oldValue.Rencode, nil
+}
+
+// ClearRencode clears the value of the "rencode" field.
+func (m *FacilityMutation) ClearRencode() {
+	m.rencode = nil
+	m.clearedFields[facility.FieldRencode] = struct{}{}
+}
+
+// RencodeCleared returns if the "rencode" field was cleared in this mutation.
+func (m *FacilityMutation) RencodeCleared() bool {
+	_, ok := m.clearedFields[facility.FieldRencode]
+	return ok
+}
+
+// ResetRencode resets all changes to the "rencode" field.
+func (m *FacilityMutation) ResetRencode() {
+	m.rencode = nil
+	delete(m.clearedFields, facility.FieldRencode)
 }
 
 // SetSalesEmail sets the "sales_email" field.
@@ -4645,265 +5079,118 @@ func (m *FacilityMutation) ResetSalesPhone() {
 	delete(m.clearedFields, facility.FieldSalesPhone)
 }
 
-// SetProperty sets the "property" field.
-func (m *FacilityMutation) SetProperty(s string) {
-	m.property = &s
+// SetSocialMedia sets the "social_media" field.
+func (m *FacilityMutation) SetSocialMedia(sm []schema.SocialMedia) {
+	m.social_media = &sm
+	m.appendsocial_media = nil
 }
 
-// Property returns the value of the "property" field in the mutation.
-func (m *FacilityMutation) Property() (r string, exists bool) {
-	v := m.property
+// SocialMedia returns the value of the "social_media" field in the mutation.
+func (m *FacilityMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
+	v := m.social_media
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldProperty returns the old "property" field's value of the Facility entity.
+// OldSocialMedia returns the old "social_media" field's value of the Facility entity.
 // If the Facility object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldProperty(ctx context.Context) (v *string, err error) {
+func (m *FacilityMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldProperty is only allowed on UpdateOne operations")
+		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldProperty requires an ID field in the mutation")
+		return v, errors.New("OldSocialMedia requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldProperty: %w", err)
+		return v, fmt.Errorf("querying old value for OldSocialMedia: %w", err)
 	}
-	return oldValue.Property, nil
+	return oldValue.SocialMedia, nil
 }
 
-// ClearProperty clears the value of the "property" field.
-func (m *FacilityMutation) ClearProperty() {
-	m.property = nil
-	m.clearedFields[facility.FieldProperty] = struct{}{}
+// AppendSocialMedia adds sm to the "social_media" field.
+func (m *FacilityMutation) AppendSocialMedia(sm []schema.SocialMedia) {
+	m.appendsocial_media = append(m.appendsocial_media, sm...)
 }
 
-// PropertyCleared returns if the "property" field was cleared in this mutation.
-func (m *FacilityMutation) PropertyCleared() bool {
-	_, ok := m.clearedFields[facility.FieldProperty]
-	return ok
-}
-
-// ResetProperty resets all changes to the "property" field.
-func (m *FacilityMutation) ResetProperty() {
-	m.property = nil
-	delete(m.clearedFields, facility.FieldProperty)
-}
-
-// SetDiverseServingSubstations sets the "diverse_serving_substations" field.
-func (m *FacilityMutation) SetDiverseServingSubstations(b bool) {
-	m.diverse_serving_substations = &b
-}
-
-// DiverseServingSubstations returns the value of the "diverse_serving_substations" field in the mutation.
-func (m *FacilityMutation) DiverseServingSubstations() (r bool, exists bool) {
-	v := m.diverse_serving_substations
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDiverseServingSubstations returns the old "diverse_serving_substations" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldDiverseServingSubstations(ctx context.Context) (v *bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDiverseServingSubstations is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDiverseServingSubstations requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDiverseServingSubstations: %w", err)
-	}
-	return oldValue.DiverseServingSubstations, nil
-}
-
-// ClearDiverseServingSubstations clears the value of the "diverse_serving_substations" field.
-func (m *FacilityMutation) ClearDiverseServingSubstations() {
-	m.diverse_serving_substations = nil
-	m.clearedFields[facility.FieldDiverseServingSubstations] = struct{}{}
-}
-
-// DiverseServingSubstationsCleared returns if the "diverse_serving_substations" field was cleared in this mutation.
-func (m *FacilityMutation) DiverseServingSubstationsCleared() bool {
-	_, ok := m.clearedFields[facility.FieldDiverseServingSubstations]
-	return ok
-}
-
-// ResetDiverseServingSubstations resets all changes to the "diverse_serving_substations" field.
-func (m *FacilityMutation) ResetDiverseServingSubstations() {
-	m.diverse_serving_substations = nil
-	delete(m.clearedFields, facility.FieldDiverseServingSubstations)
-}
-
-// SetAvailableVoltageServices sets the "available_voltage_services" field.
-func (m *FacilityMutation) SetAvailableVoltageServices(s []string) {
-	m.available_voltage_services = &s
-	m.appendavailable_voltage_services = nil
-}
-
-// AvailableVoltageServices returns the value of the "available_voltage_services" field in the mutation.
-func (m *FacilityMutation) AvailableVoltageServices() (r []string, exists bool) {
-	v := m.available_voltage_services
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAvailableVoltageServices returns the old "available_voltage_services" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldAvailableVoltageServices(ctx context.Context) (v []string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAvailableVoltageServices is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAvailableVoltageServices requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAvailableVoltageServices: %w", err)
-	}
-	return oldValue.AvailableVoltageServices, nil
-}
-
-// AppendAvailableVoltageServices adds s to the "available_voltage_services" field.
-func (m *FacilityMutation) AppendAvailableVoltageServices(s []string) {
-	m.appendavailable_voltage_services = append(m.appendavailable_voltage_services, s...)
-}
-
-// AppendedAvailableVoltageServices returns the list of values that were appended to the "available_voltage_services" field in this mutation.
-func (m *FacilityMutation) AppendedAvailableVoltageServices() ([]string, bool) {
-	if len(m.appendavailable_voltage_services) == 0 {
+// AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
+func (m *FacilityMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
+	if len(m.appendsocial_media) == 0 {
 		return nil, false
 	}
-	return m.appendavailable_voltage_services, true
+	return m.appendsocial_media, true
 }
 
-// ClearAvailableVoltageServices clears the value of the "available_voltage_services" field.
-func (m *FacilityMutation) ClearAvailableVoltageServices() {
-	m.available_voltage_services = nil
-	m.appendavailable_voltage_services = nil
-	m.clearedFields[facility.FieldAvailableVoltageServices] = struct{}{}
+// ClearSocialMedia clears the value of the "social_media" field.
+func (m *FacilityMutation) ClearSocialMedia() {
+	m.social_media = nil
+	m.appendsocial_media = nil
+	m.clearedFields[facility.FieldSocialMedia] = struct{}{}
 }
 
-// AvailableVoltageServicesCleared returns if the "available_voltage_services" field was cleared in this mutation.
-func (m *FacilityMutation) AvailableVoltageServicesCleared() bool {
-	_, ok := m.clearedFields[facility.FieldAvailableVoltageServices]
+// SocialMediaCleared returns if the "social_media" field was cleared in this mutation.
+func (m *FacilityMutation) SocialMediaCleared() bool {
+	_, ok := m.clearedFields[facility.FieldSocialMedia]
 	return ok
 }
 
-// ResetAvailableVoltageServices resets all changes to the "available_voltage_services" field.
-func (m *FacilityMutation) ResetAvailableVoltageServices() {
-	m.available_voltage_services = nil
-	m.appendavailable_voltage_services = nil
-	delete(m.clearedFields, facility.FieldAvailableVoltageServices)
+// ResetSocialMedia resets all changes to the "social_media" field.
+func (m *FacilityMutation) ResetSocialMedia() {
+	m.social_media = nil
+	m.appendsocial_media = nil
+	delete(m.clearedFields, facility.FieldSocialMedia)
 }
 
-// SetNotes sets the "notes" field.
-func (m *FacilityMutation) SetNotes(s string) {
-	m.notes = &s
+// SetState sets the "state" field.
+func (m *FacilityMutation) SetState(s string) {
+	m.state = &s
 }
 
-// Notes returns the value of the "notes" field in the mutation.
-func (m *FacilityMutation) Notes() (r string, exists bool) {
-	v := m.notes
+// State returns the value of the "state" field in the mutation.
+func (m *FacilityMutation) State() (r string, exists bool) {
+	v := m.state
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldNotes returns the old "notes" field's value of the Facility entity.
+// OldState returns the old "state" field's value of the Facility entity.
 // If the Facility object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldNotes(ctx context.Context) (v string, err error) {
+func (m *FacilityMutation) OldState(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNotes requires an ID field in the mutation")
+		return v, errors.New("OldState requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
 	}
-	return oldValue.Notes, nil
+	return oldValue.State, nil
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (m *FacilityMutation) ClearNotes() {
-	m.notes = nil
-	m.clearedFields[facility.FieldNotes] = struct{}{}
+// ClearState clears the value of the "state" field.
+func (m *FacilityMutation) ClearState() {
+	m.state = nil
+	m.clearedFields[facility.FieldState] = struct{}{}
 }
 
-// NotesCleared returns if the "notes" field was cleared in this mutation.
-func (m *FacilityMutation) NotesCleared() bool {
-	_, ok := m.clearedFields[facility.FieldNotes]
+// StateCleared returns if the "state" field was cleared in this mutation.
+func (m *FacilityMutation) StateCleared() bool {
+	_, ok := m.clearedFields[facility.FieldState]
 	return ok
 }
 
-// ResetNotes resets all changes to the "notes" field.
-func (m *FacilityMutation) ResetNotes() {
-	m.notes = nil
-	delete(m.clearedFields, facility.FieldNotes)
-}
-
-// SetRegionContinent sets the "region_continent" field.
-func (m *FacilityMutation) SetRegionContinent(s string) {
-	m.region_continent = &s
-}
-
-// RegionContinent returns the value of the "region_continent" field in the mutation.
-func (m *FacilityMutation) RegionContinent() (r string, exists bool) {
-	v := m.region_continent
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldRegionContinent returns the old "region_continent" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldRegionContinent(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldRegionContinent is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldRegionContinent requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRegionContinent: %w", err)
-	}
-	return oldValue.RegionContinent, nil
-}
-
-// ClearRegionContinent clears the value of the "region_continent" field.
-func (m *FacilityMutation) ClearRegionContinent() {
-	m.region_continent = nil
-	m.clearedFields[facility.FieldRegionContinent] = struct{}{}
-}
-
-// RegionContinentCleared returns if the "region_continent" field was cleared in this mutation.
-func (m *FacilityMutation) RegionContinentCleared() bool {
-	_, ok := m.clearedFields[facility.FieldRegionContinent]
-	return ok
-}
-
-// ResetRegionContinent resets all changes to the "region_continent" field.
-func (m *FacilityMutation) ResetRegionContinent() {
-	m.region_continent = nil
-	delete(m.clearedFields, facility.FieldRegionContinent)
+// ResetState resets all changes to the "state" field.
+func (m *FacilityMutation) ResetState() {
+	m.state = nil
+	delete(m.clearedFields, facility.FieldState)
 }
 
 // SetStatusDashboard sets the "status_dashboard" field.
@@ -4955,53 +5242,298 @@ func (m *FacilityMutation) ResetStatusDashboard() {
 	delete(m.clearedFields, facility.FieldStatusDashboard)
 }
 
-// SetLogo sets the "logo" field.
-func (m *FacilityMutation) SetLogo(s string) {
-	m.logo = &s
+// SetSuite sets the "suite" field.
+func (m *FacilityMutation) SetSuite(s string) {
+	m.suite = &s
 }
 
-// Logo returns the value of the "logo" field in the mutation.
-func (m *FacilityMutation) Logo() (r string, exists bool) {
-	v := m.logo
+// Suite returns the value of the "suite" field in the mutation.
+func (m *FacilityMutation) Suite() (r string, exists bool) {
+	v := m.suite
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldLogo returns the old "logo" field's value of the Facility entity.
+// OldSuite returns the old "suite" field's value of the Facility entity.
 // If the Facility object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldLogo(ctx context.Context) (v *string, err error) {
+func (m *FacilityMutation) OldSuite(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
+		return v, errors.New("OldSuite is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLogo requires an ID field in the mutation")
+		return v, errors.New("OldSuite requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
+		return v, fmt.Errorf("querying old value for OldSuite: %w", err)
 	}
-	return oldValue.Logo, nil
+	return oldValue.Suite, nil
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (m *FacilityMutation) ClearLogo() {
-	m.logo = nil
-	m.clearedFields[facility.FieldLogo] = struct{}{}
+// ClearSuite clears the value of the "suite" field.
+func (m *FacilityMutation) ClearSuite() {
+	m.suite = nil
+	m.clearedFields[facility.FieldSuite] = struct{}{}
 }
 
-// LogoCleared returns if the "logo" field was cleared in this mutation.
-func (m *FacilityMutation) LogoCleared() bool {
-	_, ok := m.clearedFields[facility.FieldLogo]
+// SuiteCleared returns if the "suite" field was cleared in this mutation.
+func (m *FacilityMutation) SuiteCleared() bool {
+	_, ok := m.clearedFields[facility.FieldSuite]
 	return ok
 }
 
-// ResetLogo resets all changes to the "logo" field.
-func (m *FacilityMutation) ResetLogo() {
-	m.logo = nil
-	delete(m.clearedFields, facility.FieldLogo)
+// ResetSuite resets all changes to the "suite" field.
+func (m *FacilityMutation) ResetSuite() {
+	m.suite = nil
+	delete(m.clearedFields, facility.FieldSuite)
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (m *FacilityMutation) SetTechEmail(s string) {
+	m.tech_email = &s
+}
+
+// TechEmail returns the value of the "tech_email" field in the mutation.
+func (m *FacilityMutation) TechEmail() (r string, exists bool) {
+	v := m.tech_email
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTechEmail returns the old "tech_email" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldTechEmail(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTechEmail is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTechEmail requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTechEmail: %w", err)
+	}
+	return oldValue.TechEmail, nil
+}
+
+// ClearTechEmail clears the value of the "tech_email" field.
+func (m *FacilityMutation) ClearTechEmail() {
+	m.tech_email = nil
+	m.clearedFields[facility.FieldTechEmail] = struct{}{}
+}
+
+// TechEmailCleared returns if the "tech_email" field was cleared in this mutation.
+func (m *FacilityMutation) TechEmailCleared() bool {
+	_, ok := m.clearedFields[facility.FieldTechEmail]
+	return ok
+}
+
+// ResetTechEmail resets all changes to the "tech_email" field.
+func (m *FacilityMutation) ResetTechEmail() {
+	m.tech_email = nil
+	delete(m.clearedFields, facility.FieldTechEmail)
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (m *FacilityMutation) SetTechPhone(s string) {
+	m.tech_phone = &s
+}
+
+// TechPhone returns the value of the "tech_phone" field in the mutation.
+func (m *FacilityMutation) TechPhone() (r string, exists bool) {
+	v := m.tech_phone
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTechPhone returns the old "tech_phone" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldTechPhone(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTechPhone is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTechPhone requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTechPhone: %w", err)
+	}
+	return oldValue.TechPhone, nil
+}
+
+// ClearTechPhone clears the value of the "tech_phone" field.
+func (m *FacilityMutation) ClearTechPhone() {
+	m.tech_phone = nil
+	m.clearedFields[facility.FieldTechPhone] = struct{}{}
+}
+
+// TechPhoneCleared returns if the "tech_phone" field was cleared in this mutation.
+func (m *FacilityMutation) TechPhoneCleared() bool {
+	_, ok := m.clearedFields[facility.FieldTechPhone]
+	return ok
+}
+
+// ResetTechPhone resets all changes to the "tech_phone" field.
+func (m *FacilityMutation) ResetTechPhone() {
+	m.tech_phone = nil
+	delete(m.clearedFields, facility.FieldTechPhone)
+}
+
+// SetWebsite sets the "website" field.
+func (m *FacilityMutation) SetWebsite(s string) {
+	m.website = &s
+}
+
+// Website returns the value of the "website" field in the mutation.
+func (m *FacilityMutation) Website() (r string, exists bool) {
+	v := m.website
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWebsite returns the old "website" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldWebsite(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWebsite requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
+	}
+	return oldValue.Website, nil
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (m *FacilityMutation) ClearWebsite() {
+	m.website = nil
+	m.clearedFields[facility.FieldWebsite] = struct{}{}
+}
+
+// WebsiteCleared returns if the "website" field was cleared in this mutation.
+func (m *FacilityMutation) WebsiteCleared() bool {
+	_, ok := m.clearedFields[facility.FieldWebsite]
+	return ok
+}
+
+// ResetWebsite resets all changes to the "website" field.
+func (m *FacilityMutation) ResetWebsite() {
+	m.website = nil
+	delete(m.clearedFields, facility.FieldWebsite)
+}
+
+// SetZipcode sets the "zipcode" field.
+func (m *FacilityMutation) SetZipcode(s string) {
+	m.zipcode = &s
+}
+
+// Zipcode returns the value of the "zipcode" field in the mutation.
+func (m *FacilityMutation) Zipcode() (r string, exists bool) {
+	v := m.zipcode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldZipcode returns the old "zipcode" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldZipcode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldZipcode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldZipcode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldZipcode: %w", err)
+	}
+	return oldValue.Zipcode, nil
+}
+
+// ClearZipcode clears the value of the "zipcode" field.
+func (m *FacilityMutation) ClearZipcode() {
+	m.zipcode = nil
+	m.clearedFields[facility.FieldZipcode] = struct{}{}
+}
+
+// ZipcodeCleared returns if the "zipcode" field was cleared in this mutation.
+func (m *FacilityMutation) ZipcodeCleared() bool {
+	_, ok := m.clearedFields[facility.FieldZipcode]
+	return ok
+}
+
+// ResetZipcode resets all changes to the "zipcode" field.
+func (m *FacilityMutation) ResetZipcode() {
+	m.zipcode = nil
+	delete(m.clearedFields, facility.FieldZipcode)
+}
+
+// SetOrgName sets the "org_name" field.
+func (m *FacilityMutation) SetOrgName(s string) {
+	m.org_name = &s
+}
+
+// OrgName returns the value of the "org_name" field in the mutation.
+func (m *FacilityMutation) OrgName() (r string, exists bool) {
+	v := m.org_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrgName returns the old "org_name" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldOrgName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrgName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrgName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrgName: %w", err)
+	}
+	return oldValue.OrgName, nil
+}
+
+// ClearOrgName clears the value of the "org_name" field.
+func (m *FacilityMutation) ClearOrgName() {
+	m.org_name = nil
+	m.clearedFields[facility.FieldOrgName] = struct{}{}
+}
+
+// OrgNameCleared returns if the "org_name" field was cleared in this mutation.
+func (m *FacilityMutation) OrgNameCleared() bool {
+	_, ok := m.clearedFields[facility.FieldOrgName]
+	return ok
+}
+
+// ResetOrgName resets all changes to the "org_name" field.
+func (m *FacilityMutation) ResetOrgName() {
+	m.org_name = nil
+	delete(m.clearedFields, facility.FieldOrgName)
 }
 
 // SetNetCount sets the "net_count" field.
@@ -5214,538 +5746,6 @@ func (m *FacilityMutation) ResetCarrierCount() {
 	delete(m.clearedFields, facility.FieldCarrierCount)
 }
 
-// SetAddress1 sets the "address1" field.
-func (m *FacilityMutation) SetAddress1(s string) {
-	m.address1 = &s
-}
-
-// Address1 returns the value of the "address1" field in the mutation.
-func (m *FacilityMutation) Address1() (r string, exists bool) {
-	v := m.address1
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAddress1 returns the old "address1" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldAddress1(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAddress1 is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAddress1 requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAddress1: %w", err)
-	}
-	return oldValue.Address1, nil
-}
-
-// ClearAddress1 clears the value of the "address1" field.
-func (m *FacilityMutation) ClearAddress1() {
-	m.address1 = nil
-	m.clearedFields[facility.FieldAddress1] = struct{}{}
-}
-
-// Address1Cleared returns if the "address1" field was cleared in this mutation.
-func (m *FacilityMutation) Address1Cleared() bool {
-	_, ok := m.clearedFields[facility.FieldAddress1]
-	return ok
-}
-
-// ResetAddress1 resets all changes to the "address1" field.
-func (m *FacilityMutation) ResetAddress1() {
-	m.address1 = nil
-	delete(m.clearedFields, facility.FieldAddress1)
-}
-
-// SetAddress2 sets the "address2" field.
-func (m *FacilityMutation) SetAddress2(s string) {
-	m.address2 = &s
-}
-
-// Address2 returns the value of the "address2" field in the mutation.
-func (m *FacilityMutation) Address2() (r string, exists bool) {
-	v := m.address2
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAddress2 returns the old "address2" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldAddress2(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAddress2 is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAddress2 requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAddress2: %w", err)
-	}
-	return oldValue.Address2, nil
-}
-
-// ClearAddress2 clears the value of the "address2" field.
-func (m *FacilityMutation) ClearAddress2() {
-	m.address2 = nil
-	m.clearedFields[facility.FieldAddress2] = struct{}{}
-}
-
-// Address2Cleared returns if the "address2" field was cleared in this mutation.
-func (m *FacilityMutation) Address2Cleared() bool {
-	_, ok := m.clearedFields[facility.FieldAddress2]
-	return ok
-}
-
-// ResetAddress2 resets all changes to the "address2" field.
-func (m *FacilityMutation) ResetAddress2() {
-	m.address2 = nil
-	delete(m.clearedFields, facility.FieldAddress2)
-}
-
-// SetCity sets the "city" field.
-func (m *FacilityMutation) SetCity(s string) {
-	m.city = &s
-}
-
-// City returns the value of the "city" field in the mutation.
-func (m *FacilityMutation) City() (r string, exists bool) {
-	v := m.city
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCity returns the old "city" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldCity(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCity is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCity requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCity: %w", err)
-	}
-	return oldValue.City, nil
-}
-
-// ClearCity clears the value of the "city" field.
-func (m *FacilityMutation) ClearCity() {
-	m.city = nil
-	m.clearedFields[facility.FieldCity] = struct{}{}
-}
-
-// CityCleared returns if the "city" field was cleared in this mutation.
-func (m *FacilityMutation) CityCleared() bool {
-	_, ok := m.clearedFields[facility.FieldCity]
-	return ok
-}
-
-// ResetCity resets all changes to the "city" field.
-func (m *FacilityMutation) ResetCity() {
-	m.city = nil
-	delete(m.clearedFields, facility.FieldCity)
-}
-
-// SetState sets the "state" field.
-func (m *FacilityMutation) SetState(s string) {
-	m.state = &s
-}
-
-// State returns the value of the "state" field in the mutation.
-func (m *FacilityMutation) State() (r string, exists bool) {
-	v := m.state
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldState returns the old "state" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldState(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldState is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldState requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldState: %w", err)
-	}
-	return oldValue.State, nil
-}
-
-// ClearState clears the value of the "state" field.
-func (m *FacilityMutation) ClearState() {
-	m.state = nil
-	m.clearedFields[facility.FieldState] = struct{}{}
-}
-
-// StateCleared returns if the "state" field was cleared in this mutation.
-func (m *FacilityMutation) StateCleared() bool {
-	_, ok := m.clearedFields[facility.FieldState]
-	return ok
-}
-
-// ResetState resets all changes to the "state" field.
-func (m *FacilityMutation) ResetState() {
-	m.state = nil
-	delete(m.clearedFields, facility.FieldState)
-}
-
-// SetCountry sets the "country" field.
-func (m *FacilityMutation) SetCountry(s string) {
-	m.country = &s
-}
-
-// Country returns the value of the "country" field in the mutation.
-func (m *FacilityMutation) Country() (r string, exists bool) {
-	v := m.country
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCountry returns the old "country" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldCountry(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCountry is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCountry requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCountry: %w", err)
-	}
-	return oldValue.Country, nil
-}
-
-// ClearCountry clears the value of the "country" field.
-func (m *FacilityMutation) ClearCountry() {
-	m.country = nil
-	m.clearedFields[facility.FieldCountry] = struct{}{}
-}
-
-// CountryCleared returns if the "country" field was cleared in this mutation.
-func (m *FacilityMutation) CountryCleared() bool {
-	_, ok := m.clearedFields[facility.FieldCountry]
-	return ok
-}
-
-// ResetCountry resets all changes to the "country" field.
-func (m *FacilityMutation) ResetCountry() {
-	m.country = nil
-	delete(m.clearedFields, facility.FieldCountry)
-}
-
-// SetZipcode sets the "zipcode" field.
-func (m *FacilityMutation) SetZipcode(s string) {
-	m.zipcode = &s
-}
-
-// Zipcode returns the value of the "zipcode" field in the mutation.
-func (m *FacilityMutation) Zipcode() (r string, exists bool) {
-	v := m.zipcode
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldZipcode returns the old "zipcode" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldZipcode(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldZipcode is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldZipcode requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldZipcode: %w", err)
-	}
-	return oldValue.Zipcode, nil
-}
-
-// ClearZipcode clears the value of the "zipcode" field.
-func (m *FacilityMutation) ClearZipcode() {
-	m.zipcode = nil
-	m.clearedFields[facility.FieldZipcode] = struct{}{}
-}
-
-// ZipcodeCleared returns if the "zipcode" field was cleared in this mutation.
-func (m *FacilityMutation) ZipcodeCleared() bool {
-	_, ok := m.clearedFields[facility.FieldZipcode]
-	return ok
-}
-
-// ResetZipcode resets all changes to the "zipcode" field.
-func (m *FacilityMutation) ResetZipcode() {
-	m.zipcode = nil
-	delete(m.clearedFields, facility.FieldZipcode)
-}
-
-// SetSuite sets the "suite" field.
-func (m *FacilityMutation) SetSuite(s string) {
-	m.suite = &s
-}
-
-// Suite returns the value of the "suite" field in the mutation.
-func (m *FacilityMutation) Suite() (r string, exists bool) {
-	v := m.suite
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSuite returns the old "suite" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldSuite(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSuite is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSuite requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSuite: %w", err)
-	}
-	return oldValue.Suite, nil
-}
-
-// ClearSuite clears the value of the "suite" field.
-func (m *FacilityMutation) ClearSuite() {
-	m.suite = nil
-	m.clearedFields[facility.FieldSuite] = struct{}{}
-}
-
-// SuiteCleared returns if the "suite" field was cleared in this mutation.
-func (m *FacilityMutation) SuiteCleared() bool {
-	_, ok := m.clearedFields[facility.FieldSuite]
-	return ok
-}
-
-// ResetSuite resets all changes to the "suite" field.
-func (m *FacilityMutation) ResetSuite() {
-	m.suite = nil
-	delete(m.clearedFields, facility.FieldSuite)
-}
-
-// SetFloor sets the "floor" field.
-func (m *FacilityMutation) SetFloor(s string) {
-	m.floor = &s
-}
-
-// Floor returns the value of the "floor" field in the mutation.
-func (m *FacilityMutation) Floor() (r string, exists bool) {
-	v := m.floor
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldFloor returns the old "floor" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldFloor(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldFloor is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldFloor requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldFloor: %w", err)
-	}
-	return oldValue.Floor, nil
-}
-
-// ClearFloor clears the value of the "floor" field.
-func (m *FacilityMutation) ClearFloor() {
-	m.floor = nil
-	m.clearedFields[facility.FieldFloor] = struct{}{}
-}
-
-// FloorCleared returns if the "floor" field was cleared in this mutation.
-func (m *FacilityMutation) FloorCleared() bool {
-	_, ok := m.clearedFields[facility.FieldFloor]
-	return ok
-}
-
-// ResetFloor resets all changes to the "floor" field.
-func (m *FacilityMutation) ResetFloor() {
-	m.floor = nil
-	delete(m.clearedFields, facility.FieldFloor)
-}
-
-// SetLatitude sets the "latitude" field.
-func (m *FacilityMutation) SetLatitude(f float64) {
-	m.latitude = &f
-	m.addlatitude = nil
-}
-
-// Latitude returns the value of the "latitude" field in the mutation.
-func (m *FacilityMutation) Latitude() (r float64, exists bool) {
-	v := m.latitude
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLatitude returns the old "latitude" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldLatitude(ctx context.Context) (v *float64, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLatitude is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLatitude requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLatitude: %w", err)
-	}
-	return oldValue.Latitude, nil
-}
-
-// AddLatitude adds f to the "latitude" field.
-func (m *FacilityMutation) AddLatitude(f float64) {
-	if m.addlatitude != nil {
-		*m.addlatitude += f
-	} else {
-		m.addlatitude = &f
-	}
-}
-
-// AddedLatitude returns the value that was added to the "latitude" field in this mutation.
-func (m *FacilityMutation) AddedLatitude() (r float64, exists bool) {
-	v := m.addlatitude
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearLatitude clears the value of the "latitude" field.
-func (m *FacilityMutation) ClearLatitude() {
-	m.latitude = nil
-	m.addlatitude = nil
-	m.clearedFields[facility.FieldLatitude] = struct{}{}
-}
-
-// LatitudeCleared returns if the "latitude" field was cleared in this mutation.
-func (m *FacilityMutation) LatitudeCleared() bool {
-	_, ok := m.clearedFields[facility.FieldLatitude]
-	return ok
-}
-
-// ResetLatitude resets all changes to the "latitude" field.
-func (m *FacilityMutation) ResetLatitude() {
-	m.latitude = nil
-	m.addlatitude = nil
-	delete(m.clearedFields, facility.FieldLatitude)
-}
-
-// SetLongitude sets the "longitude" field.
-func (m *FacilityMutation) SetLongitude(f float64) {
-	m.longitude = &f
-	m.addlongitude = nil
-}
-
-// Longitude returns the value of the "longitude" field in the mutation.
-func (m *FacilityMutation) Longitude() (r float64, exists bool) {
-	v := m.longitude
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLongitude returns the old "longitude" field's value of the Facility entity.
-// If the Facility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldLongitude(ctx context.Context) (v *float64, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLongitude is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLongitude requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLongitude: %w", err)
-	}
-	return oldValue.Longitude, nil
-}
-
-// AddLongitude adds f to the "longitude" field.
-func (m *FacilityMutation) AddLongitude(f float64) {
-	if m.addlongitude != nil {
-		*m.addlongitude += f
-	} else {
-		m.addlongitude = &f
-	}
-}
-
-// AddedLongitude returns the value that was added to the "longitude" field in this mutation.
-func (m *FacilityMutation) AddedLongitude() (r float64, exists bool) {
-	v := m.addlongitude
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearLongitude clears the value of the "longitude" field.
-func (m *FacilityMutation) ClearLongitude() {
-	m.longitude = nil
-	m.addlongitude = nil
-	m.clearedFields[facility.FieldLongitude] = struct{}{}
-}
-
-// LongitudeCleared returns if the "longitude" field was cleared in this mutation.
-func (m *FacilityMutation) LongitudeCleared() bool {
-	_, ok := m.clearedFields[facility.FieldLongitude]
-	return ok
-}
-
-// ResetLongitude resets all changes to the "longitude" field.
-func (m *FacilityMutation) ResetLongitude() {
-	m.longitude = nil
-	m.addlongitude = nil
-	delete(m.clearedFields, facility.FieldLongitude)
-}
-
 // SetCreated sets the "created" field.
 func (m *FacilityMutation) SetCreated(t time.Time) {
 	m.created = &t
@@ -5854,46 +5854,6 @@ func (m *FacilityMutation) ResetStatus() {
 	m.status = nil
 }
 
-// SetOrganizationID sets the "organization" edge to the Organization entity by id.
-func (m *FacilityMutation) SetOrganizationID(id int) {
-	m.organization = &id
-}
-
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (m *FacilityMutation) ClearOrganization() {
-	m.clearedorganization = true
-	m.clearedFields[facility.FieldOrgID] = struct{}{}
-}
-
-// OrganizationCleared reports if the "organization" edge to the Organization entity was cleared.
-func (m *FacilityMutation) OrganizationCleared() bool {
-	return m.OrgIDCleared() || m.clearedorganization
-}
-
-// OrganizationID returns the "organization" edge ID in the mutation.
-func (m *FacilityMutation) OrganizationID() (id int, exists bool) {
-	if m.organization != nil {
-		return *m.organization, true
-	}
-	return
-}
-
-// OrganizationIDs returns the "organization" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// OrganizationID instead. It exists only for internal usage by the builders.
-func (m *FacilityMutation) OrganizationIDs() (ids []int) {
-	if id := m.organization; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetOrganization resets all changes to the "organization" edge.
-func (m *FacilityMutation) ResetOrganization() {
-	m.organization = nil
-	m.clearedorganization = false
-}
-
 // ClearCampus clears the "campus" edge to the Campus entity.
 func (m *FacilityMutation) ClearCampus() {
 	m.clearedcampus = true
@@ -5919,114 +5879,6 @@ func (m *FacilityMutation) CampusIDs() (ids []int) {
 func (m *FacilityMutation) ResetCampus() {
 	m.campus = nil
 	m.clearedcampus = false
-}
-
-// AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by ids.
-func (m *FacilityMutation) AddNetworkFacilityIDs(ids ...int) {
-	if m.network_facilities == nil {
-		m.network_facilities = make(map[int]struct{})
-	}
-	for i := range ids {
-		m.network_facilities[ids[i]] = struct{}{}
-	}
-}
-
-// ClearNetworkFacilities clears the "network_facilities" edge to the NetworkFacility entity.
-func (m *FacilityMutation) ClearNetworkFacilities() {
-	m.clearednetwork_facilities = true
-}
-
-// NetworkFacilitiesCleared reports if the "network_facilities" edge to the NetworkFacility entity was cleared.
-func (m *FacilityMutation) NetworkFacilitiesCleared() bool {
-	return m.clearednetwork_facilities
-}
-
-// RemoveNetworkFacilityIDs removes the "network_facilities" edge to the NetworkFacility entity by IDs.
-func (m *FacilityMutation) RemoveNetworkFacilityIDs(ids ...int) {
-	if m.removednetwork_facilities == nil {
-		m.removednetwork_facilities = make(map[int]struct{})
-	}
-	for i := range ids {
-		delete(m.network_facilities, ids[i])
-		m.removednetwork_facilities[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedNetworkFacilities returns the removed IDs of the "network_facilities" edge to the NetworkFacility entity.
-func (m *FacilityMutation) RemovedNetworkFacilitiesIDs() (ids []int) {
-	for id := range m.removednetwork_facilities {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// NetworkFacilitiesIDs returns the "network_facilities" edge IDs in the mutation.
-func (m *FacilityMutation) NetworkFacilitiesIDs() (ids []int) {
-	for id := range m.network_facilities {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetNetworkFacilities resets all changes to the "network_facilities" edge.
-func (m *FacilityMutation) ResetNetworkFacilities() {
-	m.network_facilities = nil
-	m.clearednetwork_facilities = false
-	m.removednetwork_facilities = nil
-}
-
-// AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by ids.
-func (m *FacilityMutation) AddIxFacilityIDs(ids ...int) {
-	if m.ix_facilities == nil {
-		m.ix_facilities = make(map[int]struct{})
-	}
-	for i := range ids {
-		m.ix_facilities[ids[i]] = struct{}{}
-	}
-}
-
-// ClearIxFacilities clears the "ix_facilities" edge to the IxFacility entity.
-func (m *FacilityMutation) ClearIxFacilities() {
-	m.clearedix_facilities = true
-}
-
-// IxFacilitiesCleared reports if the "ix_facilities" edge to the IxFacility entity was cleared.
-func (m *FacilityMutation) IxFacilitiesCleared() bool {
-	return m.clearedix_facilities
-}
-
-// RemoveIxFacilityIDs removes the "ix_facilities" edge to the IxFacility entity by IDs.
-func (m *FacilityMutation) RemoveIxFacilityIDs(ids ...int) {
-	if m.removedix_facilities == nil {
-		m.removedix_facilities = make(map[int]struct{})
-	}
-	for i := range ids {
-		delete(m.ix_facilities, ids[i])
-		m.removedix_facilities[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedIxFacilities returns the removed IDs of the "ix_facilities" edge to the IxFacility entity.
-func (m *FacilityMutation) RemovedIxFacilitiesIDs() (ids []int) {
-	for id := range m.removedix_facilities {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// IxFacilitiesIDs returns the "ix_facilities" edge IDs in the mutation.
-func (m *FacilityMutation) IxFacilitiesIDs() (ids []int) {
-	for id := range m.ix_facilities {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetIxFacilities resets all changes to the "ix_facilities" edge.
-func (m *FacilityMutation) ResetIxFacilities() {
-	m.ix_facilities = nil
-	m.clearedix_facilities = false
-	m.removedix_facilities = nil
 }
 
 // AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by ids.
@@ -6083,6 +5935,154 @@ func (m *FacilityMutation) ResetCarrierFacilities() {
 	m.removedcarrier_facilities = nil
 }
 
+// AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by ids.
+func (m *FacilityMutation) AddIxFacilityIDs(ids ...int) {
+	if m.ix_facilities == nil {
+		m.ix_facilities = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.ix_facilities[ids[i]] = struct{}{}
+	}
+}
+
+// ClearIxFacilities clears the "ix_facilities" edge to the IxFacility entity.
+func (m *FacilityMutation) ClearIxFacilities() {
+	m.clearedix_facilities = true
+}
+
+// IxFacilitiesCleared reports if the "ix_facilities" edge to the IxFacility entity was cleared.
+func (m *FacilityMutation) IxFacilitiesCleared() bool {
+	return m.clearedix_facilities
+}
+
+// RemoveIxFacilityIDs removes the "ix_facilities" edge to the IxFacility entity by IDs.
+func (m *FacilityMutation) RemoveIxFacilityIDs(ids ...int) {
+	if m.removedix_facilities == nil {
+		m.removedix_facilities = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.ix_facilities, ids[i])
+		m.removedix_facilities[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedIxFacilities returns the removed IDs of the "ix_facilities" edge to the IxFacility entity.
+func (m *FacilityMutation) RemovedIxFacilitiesIDs() (ids []int) {
+	for id := range m.removedix_facilities {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// IxFacilitiesIDs returns the "ix_facilities" edge IDs in the mutation.
+func (m *FacilityMutation) IxFacilitiesIDs() (ids []int) {
+	for id := range m.ix_facilities {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetIxFacilities resets all changes to the "ix_facilities" edge.
+func (m *FacilityMutation) ResetIxFacilities() {
+	m.ix_facilities = nil
+	m.clearedix_facilities = false
+	m.removedix_facilities = nil
+}
+
+// AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by ids.
+func (m *FacilityMutation) AddNetworkFacilityIDs(ids ...int) {
+	if m.network_facilities == nil {
+		m.network_facilities = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.network_facilities[ids[i]] = struct{}{}
+	}
+}
+
+// ClearNetworkFacilities clears the "network_facilities" edge to the NetworkFacility entity.
+func (m *FacilityMutation) ClearNetworkFacilities() {
+	m.clearednetwork_facilities = true
+}
+
+// NetworkFacilitiesCleared reports if the "network_facilities" edge to the NetworkFacility entity was cleared.
+func (m *FacilityMutation) NetworkFacilitiesCleared() bool {
+	return m.clearednetwork_facilities
+}
+
+// RemoveNetworkFacilityIDs removes the "network_facilities" edge to the NetworkFacility entity by IDs.
+func (m *FacilityMutation) RemoveNetworkFacilityIDs(ids ...int) {
+	if m.removednetwork_facilities == nil {
+		m.removednetwork_facilities = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.network_facilities, ids[i])
+		m.removednetwork_facilities[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedNetworkFacilities returns the removed IDs of the "network_facilities" edge to the NetworkFacility entity.
+func (m *FacilityMutation) RemovedNetworkFacilitiesIDs() (ids []int) {
+	for id := range m.removednetwork_facilities {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// NetworkFacilitiesIDs returns the "network_facilities" edge IDs in the mutation.
+func (m *FacilityMutation) NetworkFacilitiesIDs() (ids []int) {
+	for id := range m.network_facilities {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetNetworkFacilities resets all changes to the "network_facilities" edge.
+func (m *FacilityMutation) ResetNetworkFacilities() {
+	m.network_facilities = nil
+	m.clearednetwork_facilities = false
+	m.removednetwork_facilities = nil
+}
+
+// SetOrganizationID sets the "organization" edge to the Organization entity by id.
+func (m *FacilityMutation) SetOrganizationID(id int) {
+	m.organization = &id
+}
+
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (m *FacilityMutation) ClearOrganization() {
+	m.clearedorganization = true
+	m.clearedFields[facility.FieldOrgID] = struct{}{}
+}
+
+// OrganizationCleared reports if the "organization" edge to the Organization entity was cleared.
+func (m *FacilityMutation) OrganizationCleared() bool {
+	return m.OrgIDCleared() || m.clearedorganization
+}
+
+// OrganizationID returns the "organization" edge ID in the mutation.
+func (m *FacilityMutation) OrganizationID() (id int, exists bool) {
+	if m.organization != nil {
+		return *m.organization, true
+	}
+	return
+}
+
+// OrganizationIDs returns the "organization" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// OrganizationID instead. It exists only for internal usage by the builders.
+func (m *FacilityMutation) OrganizationIDs() (ids []int) {
+	if id := m.organization; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetOrganization resets all changes to the "organization" edge.
+func (m *FacilityMutation) ResetOrganization() {
+	m.organization = nil
+	m.clearedorganization = false
+}
+
 // Where appends a list predicates to the FacilityMutation builder.
 func (m *FacilityMutation) Where(ps ...predicate.Facility) {
 	m.predicates = append(m.predicates, ps...)
@@ -6118,44 +6118,68 @@ func (m *FacilityMutation) Type() string {
 // AddedFields().
 func (m *FacilityMutation) Fields() []string {
 	fields := make([]string, 0, 38)
-	if m.organization != nil {
-		fields = append(fields, facility.FieldOrgID)
-	}
-	if m.org_name != nil {
-		fields = append(fields, facility.FieldOrgName)
-	}
 	if m.campus != nil {
 		fields = append(fields, facility.FieldCampusID)
 	}
-	if m.name != nil {
-		fields = append(fields, facility.FieldName)
+	if m.organization != nil {
+		fields = append(fields, facility.FieldOrgID)
+	}
+	if m.address1 != nil {
+		fields = append(fields, facility.FieldAddress1)
+	}
+	if m.address2 != nil {
+		fields = append(fields, facility.FieldAddress2)
 	}
 	if m.aka != nil {
 		fields = append(fields, facility.FieldAka)
 	}
-	if m.name_long != nil {
-		fields = append(fields, facility.FieldNameLong)
+	if m.available_voltage_services != nil {
+		fields = append(fields, facility.FieldAvailableVoltageServices)
 	}
-	if m.website != nil {
-		fields = append(fields, facility.FieldWebsite)
-	}
-	if m.social_media != nil {
-		fields = append(fields, facility.FieldSocialMedia)
+	if m.city != nil {
+		fields = append(fields, facility.FieldCity)
 	}
 	if m.clli != nil {
 		fields = append(fields, facility.FieldClli)
 	}
-	if m.rencode != nil {
-		fields = append(fields, facility.FieldRencode)
+	if m.country != nil {
+		fields = append(fields, facility.FieldCountry)
+	}
+	if m.diverse_serving_substations != nil {
+		fields = append(fields, facility.FieldDiverseServingSubstations)
+	}
+	if m.floor != nil {
+		fields = append(fields, facility.FieldFloor)
+	}
+	if m.latitude != nil {
+		fields = append(fields, facility.FieldLatitude)
+	}
+	if m.logo != nil {
+		fields = append(fields, facility.FieldLogo)
+	}
+	if m.longitude != nil {
+		fields = append(fields, facility.FieldLongitude)
+	}
+	if m.name != nil {
+		fields = append(fields, facility.FieldName)
+	}
+	if m.name_long != nil {
+		fields = append(fields, facility.FieldNameLong)
+	}
+	if m.notes != nil {
+		fields = append(fields, facility.FieldNotes)
 	}
 	if m.npanxx != nil {
 		fields = append(fields, facility.FieldNpanxx)
 	}
-	if m.tech_email != nil {
-		fields = append(fields, facility.FieldTechEmail)
+	if m.property != nil {
+		fields = append(fields, facility.FieldProperty)
 	}
-	if m.tech_phone != nil {
-		fields = append(fields, facility.FieldTechPhone)
+	if m.region_continent != nil {
+		fields = append(fields, facility.FieldRegionContinent)
+	}
+	if m.rencode != nil {
+		fields = append(fields, facility.FieldRencode)
 	}
 	if m.sales_email != nil {
 		fields = append(fields, facility.FieldSalesEmail)
@@ -6163,26 +6187,32 @@ func (m *FacilityMutation) Fields() []string {
 	if m.sales_phone != nil {
 		fields = append(fields, facility.FieldSalesPhone)
 	}
-	if m.property != nil {
-		fields = append(fields, facility.FieldProperty)
+	if m.social_media != nil {
+		fields = append(fields, facility.FieldSocialMedia)
 	}
-	if m.diverse_serving_substations != nil {
-		fields = append(fields, facility.FieldDiverseServingSubstations)
-	}
-	if m.available_voltage_services != nil {
-		fields = append(fields, facility.FieldAvailableVoltageServices)
-	}
-	if m.notes != nil {
-		fields = append(fields, facility.FieldNotes)
-	}
-	if m.region_continent != nil {
-		fields = append(fields, facility.FieldRegionContinent)
+	if m.state != nil {
+		fields = append(fields, facility.FieldState)
 	}
 	if m.status_dashboard != nil {
 		fields = append(fields, facility.FieldStatusDashboard)
 	}
-	if m.logo != nil {
-		fields = append(fields, facility.FieldLogo)
+	if m.suite != nil {
+		fields = append(fields, facility.FieldSuite)
+	}
+	if m.tech_email != nil {
+		fields = append(fields, facility.FieldTechEmail)
+	}
+	if m.tech_phone != nil {
+		fields = append(fields, facility.FieldTechPhone)
+	}
+	if m.website != nil {
+		fields = append(fields, facility.FieldWebsite)
+	}
+	if m.zipcode != nil {
+		fields = append(fields, facility.FieldZipcode)
+	}
+	if m.org_name != nil {
+		fields = append(fields, facility.FieldOrgName)
 	}
 	if m.net_count != nil {
 		fields = append(fields, facility.FieldNetCount)
@@ -6192,36 +6222,6 @@ func (m *FacilityMutation) Fields() []string {
 	}
 	if m.carrier_count != nil {
 		fields = append(fields, facility.FieldCarrierCount)
-	}
-	if m.address1 != nil {
-		fields = append(fields, facility.FieldAddress1)
-	}
-	if m.address2 != nil {
-		fields = append(fields, facility.FieldAddress2)
-	}
-	if m.city != nil {
-		fields = append(fields, facility.FieldCity)
-	}
-	if m.state != nil {
-		fields = append(fields, facility.FieldState)
-	}
-	if m.country != nil {
-		fields = append(fields, facility.FieldCountry)
-	}
-	if m.zipcode != nil {
-		fields = append(fields, facility.FieldZipcode)
-	}
-	if m.suite != nil {
-		fields = append(fields, facility.FieldSuite)
-	}
-	if m.floor != nil {
-		fields = append(fields, facility.FieldFloor)
-	}
-	if m.latitude != nil {
-		fields = append(fields, facility.FieldLatitude)
-	}
-	if m.longitude != nil {
-		fields = append(fields, facility.FieldLongitude)
 	}
 	if m.created != nil {
 		fields = append(fields, facility.FieldCreated)
@@ -6240,76 +6240,76 @@ func (m *FacilityMutation) Fields() []string {
 // schema.
 func (m *FacilityMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case facility.FieldOrgID:
-		return m.OrgID()
-	case facility.FieldOrgName:
-		return m.OrgName()
 	case facility.FieldCampusID:
 		return m.CampusID()
-	case facility.FieldName:
-		return m.Name()
+	case facility.FieldOrgID:
+		return m.OrgID()
+	case facility.FieldAddress1:
+		return m.Address1()
+	case facility.FieldAddress2:
+		return m.Address2()
 	case facility.FieldAka:
 		return m.Aka()
-	case facility.FieldNameLong:
-		return m.NameLong()
-	case facility.FieldWebsite:
-		return m.Website()
-	case facility.FieldSocialMedia:
-		return m.SocialMedia()
+	case facility.FieldAvailableVoltageServices:
+		return m.AvailableVoltageServices()
+	case facility.FieldCity:
+		return m.City()
 	case facility.FieldClli:
 		return m.Clli()
-	case facility.FieldRencode:
-		return m.Rencode()
+	case facility.FieldCountry:
+		return m.Country()
+	case facility.FieldDiverseServingSubstations:
+		return m.DiverseServingSubstations()
+	case facility.FieldFloor:
+		return m.Floor()
+	case facility.FieldLatitude:
+		return m.Latitude()
+	case facility.FieldLogo:
+		return m.Logo()
+	case facility.FieldLongitude:
+		return m.Longitude()
+	case facility.FieldName:
+		return m.Name()
+	case facility.FieldNameLong:
+		return m.NameLong()
+	case facility.FieldNotes:
+		return m.Notes()
 	case facility.FieldNpanxx:
 		return m.Npanxx()
-	case facility.FieldTechEmail:
-		return m.TechEmail()
-	case facility.FieldTechPhone:
-		return m.TechPhone()
+	case facility.FieldProperty:
+		return m.Property()
+	case facility.FieldRegionContinent:
+		return m.RegionContinent()
+	case facility.FieldRencode:
+		return m.Rencode()
 	case facility.FieldSalesEmail:
 		return m.SalesEmail()
 	case facility.FieldSalesPhone:
 		return m.SalesPhone()
-	case facility.FieldProperty:
-		return m.Property()
-	case facility.FieldDiverseServingSubstations:
-		return m.DiverseServingSubstations()
-	case facility.FieldAvailableVoltageServices:
-		return m.AvailableVoltageServices()
-	case facility.FieldNotes:
-		return m.Notes()
-	case facility.FieldRegionContinent:
-		return m.RegionContinent()
+	case facility.FieldSocialMedia:
+		return m.SocialMedia()
+	case facility.FieldState:
+		return m.State()
 	case facility.FieldStatusDashboard:
 		return m.StatusDashboard()
-	case facility.FieldLogo:
-		return m.Logo()
+	case facility.FieldSuite:
+		return m.Suite()
+	case facility.FieldTechEmail:
+		return m.TechEmail()
+	case facility.FieldTechPhone:
+		return m.TechPhone()
+	case facility.FieldWebsite:
+		return m.Website()
+	case facility.FieldZipcode:
+		return m.Zipcode()
+	case facility.FieldOrgName:
+		return m.OrgName()
 	case facility.FieldNetCount:
 		return m.NetCount()
 	case facility.FieldIxCount:
 		return m.IxCount()
 	case facility.FieldCarrierCount:
 		return m.CarrierCount()
-	case facility.FieldAddress1:
-		return m.Address1()
-	case facility.FieldAddress2:
-		return m.Address2()
-	case facility.FieldCity:
-		return m.City()
-	case facility.FieldState:
-		return m.State()
-	case facility.FieldCountry:
-		return m.Country()
-	case facility.FieldZipcode:
-		return m.Zipcode()
-	case facility.FieldSuite:
-		return m.Suite()
-	case facility.FieldFloor:
-		return m.Floor()
-	case facility.FieldLatitude:
-		return m.Latitude()
-	case facility.FieldLongitude:
-		return m.Longitude()
 	case facility.FieldCreated:
 		return m.Created()
 	case facility.FieldUpdated:
@@ -6325,76 +6325,76 @@ func (m *FacilityMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *FacilityMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case facility.FieldOrgID:
-		return m.OldOrgID(ctx)
-	case facility.FieldOrgName:
-		return m.OldOrgName(ctx)
 	case facility.FieldCampusID:
 		return m.OldCampusID(ctx)
-	case facility.FieldName:
-		return m.OldName(ctx)
+	case facility.FieldOrgID:
+		return m.OldOrgID(ctx)
+	case facility.FieldAddress1:
+		return m.OldAddress1(ctx)
+	case facility.FieldAddress2:
+		return m.OldAddress2(ctx)
 	case facility.FieldAka:
 		return m.OldAka(ctx)
-	case facility.FieldNameLong:
-		return m.OldNameLong(ctx)
-	case facility.FieldWebsite:
-		return m.OldWebsite(ctx)
-	case facility.FieldSocialMedia:
-		return m.OldSocialMedia(ctx)
+	case facility.FieldAvailableVoltageServices:
+		return m.OldAvailableVoltageServices(ctx)
+	case facility.FieldCity:
+		return m.OldCity(ctx)
 	case facility.FieldClli:
 		return m.OldClli(ctx)
-	case facility.FieldRencode:
-		return m.OldRencode(ctx)
+	case facility.FieldCountry:
+		return m.OldCountry(ctx)
+	case facility.FieldDiverseServingSubstations:
+		return m.OldDiverseServingSubstations(ctx)
+	case facility.FieldFloor:
+		return m.OldFloor(ctx)
+	case facility.FieldLatitude:
+		return m.OldLatitude(ctx)
+	case facility.FieldLogo:
+		return m.OldLogo(ctx)
+	case facility.FieldLongitude:
+		return m.OldLongitude(ctx)
+	case facility.FieldName:
+		return m.OldName(ctx)
+	case facility.FieldNameLong:
+		return m.OldNameLong(ctx)
+	case facility.FieldNotes:
+		return m.OldNotes(ctx)
 	case facility.FieldNpanxx:
 		return m.OldNpanxx(ctx)
-	case facility.FieldTechEmail:
-		return m.OldTechEmail(ctx)
-	case facility.FieldTechPhone:
-		return m.OldTechPhone(ctx)
+	case facility.FieldProperty:
+		return m.OldProperty(ctx)
+	case facility.FieldRegionContinent:
+		return m.OldRegionContinent(ctx)
+	case facility.FieldRencode:
+		return m.OldRencode(ctx)
 	case facility.FieldSalesEmail:
 		return m.OldSalesEmail(ctx)
 	case facility.FieldSalesPhone:
 		return m.OldSalesPhone(ctx)
-	case facility.FieldProperty:
-		return m.OldProperty(ctx)
-	case facility.FieldDiverseServingSubstations:
-		return m.OldDiverseServingSubstations(ctx)
-	case facility.FieldAvailableVoltageServices:
-		return m.OldAvailableVoltageServices(ctx)
-	case facility.FieldNotes:
-		return m.OldNotes(ctx)
-	case facility.FieldRegionContinent:
-		return m.OldRegionContinent(ctx)
+	case facility.FieldSocialMedia:
+		return m.OldSocialMedia(ctx)
+	case facility.FieldState:
+		return m.OldState(ctx)
 	case facility.FieldStatusDashboard:
 		return m.OldStatusDashboard(ctx)
-	case facility.FieldLogo:
-		return m.OldLogo(ctx)
+	case facility.FieldSuite:
+		return m.OldSuite(ctx)
+	case facility.FieldTechEmail:
+		return m.OldTechEmail(ctx)
+	case facility.FieldTechPhone:
+		return m.OldTechPhone(ctx)
+	case facility.FieldWebsite:
+		return m.OldWebsite(ctx)
+	case facility.FieldZipcode:
+		return m.OldZipcode(ctx)
+	case facility.FieldOrgName:
+		return m.OldOrgName(ctx)
 	case facility.FieldNetCount:
 		return m.OldNetCount(ctx)
 	case facility.FieldIxCount:
 		return m.OldIxCount(ctx)
 	case facility.FieldCarrierCount:
 		return m.OldCarrierCount(ctx)
-	case facility.FieldAddress1:
-		return m.OldAddress1(ctx)
-	case facility.FieldAddress2:
-		return m.OldAddress2(ctx)
-	case facility.FieldCity:
-		return m.OldCity(ctx)
-	case facility.FieldState:
-		return m.OldState(ctx)
-	case facility.FieldCountry:
-		return m.OldCountry(ctx)
-	case facility.FieldZipcode:
-		return m.OldZipcode(ctx)
-	case facility.FieldSuite:
-		return m.OldSuite(ctx)
-	case facility.FieldFloor:
-		return m.OldFloor(ctx)
-	case facility.FieldLatitude:
-		return m.OldLatitude(ctx)
-	case facility.FieldLongitude:
-		return m.OldLongitude(ctx)
 	case facility.FieldCreated:
 		return m.OldCreated(ctx)
 	case facility.FieldUpdated:
@@ -6410,20 +6410,6 @@ func (m *FacilityMutation) OldField(ctx context.Context, name string) (ent.Value
 // type.
 func (m *FacilityMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case facility.FieldOrgID:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOrgID(v)
-		return nil
-	case facility.FieldOrgName:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOrgName(v)
-		return nil
 	case facility.FieldCampusID:
 		v, ok := value.(int)
 		if !ok {
@@ -6431,12 +6417,26 @@ func (m *FacilityMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCampusID(v)
 		return nil
-	case facility.FieldName:
+	case facility.FieldOrgID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrgID(v)
+		return nil
+	case facility.FieldAddress1:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetName(v)
+		m.SetAddress1(v)
+		return nil
+	case facility.FieldAddress2:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAddress2(v)
 		return nil
 	case facility.FieldAka:
 		v, ok := value.(string)
@@ -6445,26 +6445,19 @@ func (m *FacilityMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAka(v)
 		return nil
-	case facility.FieldNameLong:
+	case facility.FieldAvailableVoltageServices:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAvailableVoltageServices(v)
+		return nil
+	case facility.FieldCity:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetNameLong(v)
-		return nil
-	case facility.FieldWebsite:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetWebsite(v)
-		return nil
-	case facility.FieldSocialMedia:
-		v, ok := value.([]schema.SocialMedia)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSocialMedia(v)
+		m.SetCity(v)
 		return nil
 	case facility.FieldClli:
 		v, ok := value.(string)
@@ -6473,12 +6466,68 @@ func (m *FacilityMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetClli(v)
 		return nil
-	case facility.FieldRencode:
+	case facility.FieldCountry:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetRencode(v)
+		m.SetCountry(v)
+		return nil
+	case facility.FieldDiverseServingSubstations:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiverseServingSubstations(v)
+		return nil
+	case facility.FieldFloor:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFloor(v)
+		return nil
+	case facility.FieldLatitude:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLatitude(v)
+		return nil
+	case facility.FieldLogo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLogo(v)
+		return nil
+	case facility.FieldLongitude:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLongitude(v)
+		return nil
+	case facility.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case facility.FieldNameLong:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameLong(v)
+		return nil
+	case facility.FieldNotes:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNotes(v)
 		return nil
 	case facility.FieldNpanxx:
 		v, ok := value.(string)
@@ -6487,19 +6536,26 @@ func (m *FacilityMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetNpanxx(v)
 		return nil
-	case facility.FieldTechEmail:
+	case facility.FieldProperty:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetTechEmail(v)
+		m.SetProperty(v)
 		return nil
-	case facility.FieldTechPhone:
+	case facility.FieldRegionContinent:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetTechPhone(v)
+		m.SetRegionContinent(v)
+		return nil
+	case facility.FieldRencode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRencode(v)
 		return nil
 	case facility.FieldSalesEmail:
 		v, ok := value.(string)
@@ -6515,40 +6571,19 @@ func (m *FacilityMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetSalesPhone(v)
 		return nil
-	case facility.FieldProperty:
+	case facility.FieldSocialMedia:
+		v, ok := value.([]schema.SocialMedia)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSocialMedia(v)
+		return nil
+	case facility.FieldState:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetProperty(v)
-		return nil
-	case facility.FieldDiverseServingSubstations:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDiverseServingSubstations(v)
-		return nil
-	case facility.FieldAvailableVoltageServices:
-		v, ok := value.([]string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAvailableVoltageServices(v)
-		return nil
-	case facility.FieldNotes:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetNotes(v)
-		return nil
-	case facility.FieldRegionContinent:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetRegionContinent(v)
+		m.SetState(v)
 		return nil
 	case facility.FieldStatusDashboard:
 		v, ok := value.(string)
@@ -6557,12 +6592,47 @@ func (m *FacilityMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatusDashboard(v)
 		return nil
-	case facility.FieldLogo:
+	case facility.FieldSuite:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetLogo(v)
+		m.SetSuite(v)
+		return nil
+	case facility.FieldTechEmail:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTechEmail(v)
+		return nil
+	case facility.FieldTechPhone:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTechPhone(v)
+		return nil
+	case facility.FieldWebsite:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWebsite(v)
+		return nil
+	case facility.FieldZipcode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetZipcode(v)
+		return nil
+	case facility.FieldOrgName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrgName(v)
 		return nil
 	case facility.FieldNetCount:
 		v, ok := value.(int)
@@ -6584,76 +6654,6 @@ func (m *FacilityMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCarrierCount(v)
-		return nil
-	case facility.FieldAddress1:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAddress1(v)
-		return nil
-	case facility.FieldAddress2:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAddress2(v)
-		return nil
-	case facility.FieldCity:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCity(v)
-		return nil
-	case facility.FieldState:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetState(v)
-		return nil
-	case facility.FieldCountry:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCountry(v)
-		return nil
-	case facility.FieldZipcode:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetZipcode(v)
-		return nil
-	case facility.FieldSuite:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSuite(v)
-		return nil
-	case facility.FieldFloor:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetFloor(v)
-		return nil
-	case facility.FieldLatitude:
-		v, ok := value.(float64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLatitude(v)
-		return nil
-	case facility.FieldLongitude:
-		v, ok := value.(float64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLongitude(v)
 		return nil
 	case facility.FieldCreated:
 		v, ok := value.(time.Time)
@@ -6684,6 +6684,12 @@ func (m *FacilityMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *FacilityMutation) AddedFields() []string {
 	var fields []string
+	if m.addlatitude != nil {
+		fields = append(fields, facility.FieldLatitude)
+	}
+	if m.addlongitude != nil {
+		fields = append(fields, facility.FieldLongitude)
+	}
 	if m.addnet_count != nil {
 		fields = append(fields, facility.FieldNetCount)
 	}
@@ -6693,12 +6699,6 @@ func (m *FacilityMutation) AddedFields() []string {
 	if m.addcarrier_count != nil {
 		fields = append(fields, facility.FieldCarrierCount)
 	}
-	if m.addlatitude != nil {
-		fields = append(fields, facility.FieldLatitude)
-	}
-	if m.addlongitude != nil {
-		fields = append(fields, facility.FieldLongitude)
-	}
 	return fields
 }
 
@@ -6707,16 +6707,16 @@ func (m *FacilityMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *FacilityMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case facility.FieldLatitude:
+		return m.AddedLatitude()
+	case facility.FieldLongitude:
+		return m.AddedLongitude()
 	case facility.FieldNetCount:
 		return m.AddedNetCount()
 	case facility.FieldIxCount:
 		return m.AddedIxCount()
 	case facility.FieldCarrierCount:
 		return m.AddedCarrierCount()
-	case facility.FieldLatitude:
-		return m.AddedLatitude()
-	case facility.FieldLongitude:
-		return m.AddedLongitude()
 	}
 	return nil, false
 }
@@ -6726,6 +6726,20 @@ func (m *FacilityMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *FacilityMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case facility.FieldLatitude:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLatitude(v)
+		return nil
+	case facility.FieldLongitude:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLongitude(v)
+		return nil
 	case facility.FieldNetCount:
 		v, ok := value.(int)
 		if !ok {
@@ -6747,20 +6761,6 @@ func (m *FacilityMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddCarrierCount(v)
 		return nil
-	case facility.FieldLatitude:
-		v, ok := value.(float64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddLatitude(v)
-		return nil
-	case facility.FieldLongitude:
-		v, ok := value.(float64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddLongitude(v)
-		return nil
 	}
 	return fmt.Errorf("unknown Facility numeric field %s", name)
 }
@@ -6769,41 +6769,65 @@ func (m *FacilityMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *FacilityMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(facility.FieldCampusID) {
+		fields = append(fields, facility.FieldCampusID)
+	}
 	if m.FieldCleared(facility.FieldOrgID) {
 		fields = append(fields, facility.FieldOrgID)
 	}
-	if m.FieldCleared(facility.FieldOrgName) {
-		fields = append(fields, facility.FieldOrgName)
+	if m.FieldCleared(facility.FieldAddress1) {
+		fields = append(fields, facility.FieldAddress1)
 	}
-	if m.FieldCleared(facility.FieldCampusID) {
-		fields = append(fields, facility.FieldCampusID)
+	if m.FieldCleared(facility.FieldAddress2) {
+		fields = append(fields, facility.FieldAddress2)
 	}
 	if m.FieldCleared(facility.FieldAka) {
 		fields = append(fields, facility.FieldAka)
 	}
-	if m.FieldCleared(facility.FieldNameLong) {
-		fields = append(fields, facility.FieldNameLong)
+	if m.FieldCleared(facility.FieldAvailableVoltageServices) {
+		fields = append(fields, facility.FieldAvailableVoltageServices)
 	}
-	if m.FieldCleared(facility.FieldWebsite) {
-		fields = append(fields, facility.FieldWebsite)
-	}
-	if m.FieldCleared(facility.FieldSocialMedia) {
-		fields = append(fields, facility.FieldSocialMedia)
+	if m.FieldCleared(facility.FieldCity) {
+		fields = append(fields, facility.FieldCity)
 	}
 	if m.FieldCleared(facility.FieldClli) {
 		fields = append(fields, facility.FieldClli)
 	}
-	if m.FieldCleared(facility.FieldRencode) {
-		fields = append(fields, facility.FieldRencode)
+	if m.FieldCleared(facility.FieldCountry) {
+		fields = append(fields, facility.FieldCountry)
+	}
+	if m.FieldCleared(facility.FieldDiverseServingSubstations) {
+		fields = append(fields, facility.FieldDiverseServingSubstations)
+	}
+	if m.FieldCleared(facility.FieldFloor) {
+		fields = append(fields, facility.FieldFloor)
+	}
+	if m.FieldCleared(facility.FieldLatitude) {
+		fields = append(fields, facility.FieldLatitude)
+	}
+	if m.FieldCleared(facility.FieldLogo) {
+		fields = append(fields, facility.FieldLogo)
+	}
+	if m.FieldCleared(facility.FieldLongitude) {
+		fields = append(fields, facility.FieldLongitude)
+	}
+	if m.FieldCleared(facility.FieldNameLong) {
+		fields = append(fields, facility.FieldNameLong)
+	}
+	if m.FieldCleared(facility.FieldNotes) {
+		fields = append(fields, facility.FieldNotes)
 	}
 	if m.FieldCleared(facility.FieldNpanxx) {
 		fields = append(fields, facility.FieldNpanxx)
 	}
-	if m.FieldCleared(facility.FieldTechEmail) {
-		fields = append(fields, facility.FieldTechEmail)
+	if m.FieldCleared(facility.FieldProperty) {
+		fields = append(fields, facility.FieldProperty)
 	}
-	if m.FieldCleared(facility.FieldTechPhone) {
-		fields = append(fields, facility.FieldTechPhone)
+	if m.FieldCleared(facility.FieldRegionContinent) {
+		fields = append(fields, facility.FieldRegionContinent)
+	}
+	if m.FieldCleared(facility.FieldRencode) {
+		fields = append(fields, facility.FieldRencode)
 	}
 	if m.FieldCleared(facility.FieldSalesEmail) {
 		fields = append(fields, facility.FieldSalesEmail)
@@ -6811,26 +6835,32 @@ func (m *FacilityMutation) ClearedFields() []string {
 	if m.FieldCleared(facility.FieldSalesPhone) {
 		fields = append(fields, facility.FieldSalesPhone)
 	}
-	if m.FieldCleared(facility.FieldProperty) {
-		fields = append(fields, facility.FieldProperty)
+	if m.FieldCleared(facility.FieldSocialMedia) {
+		fields = append(fields, facility.FieldSocialMedia)
 	}
-	if m.FieldCleared(facility.FieldDiverseServingSubstations) {
-		fields = append(fields, facility.FieldDiverseServingSubstations)
-	}
-	if m.FieldCleared(facility.FieldAvailableVoltageServices) {
-		fields = append(fields, facility.FieldAvailableVoltageServices)
-	}
-	if m.FieldCleared(facility.FieldNotes) {
-		fields = append(fields, facility.FieldNotes)
-	}
-	if m.FieldCleared(facility.FieldRegionContinent) {
-		fields = append(fields, facility.FieldRegionContinent)
+	if m.FieldCleared(facility.FieldState) {
+		fields = append(fields, facility.FieldState)
 	}
 	if m.FieldCleared(facility.FieldStatusDashboard) {
 		fields = append(fields, facility.FieldStatusDashboard)
 	}
-	if m.FieldCleared(facility.FieldLogo) {
-		fields = append(fields, facility.FieldLogo)
+	if m.FieldCleared(facility.FieldSuite) {
+		fields = append(fields, facility.FieldSuite)
+	}
+	if m.FieldCleared(facility.FieldTechEmail) {
+		fields = append(fields, facility.FieldTechEmail)
+	}
+	if m.FieldCleared(facility.FieldTechPhone) {
+		fields = append(fields, facility.FieldTechPhone)
+	}
+	if m.FieldCleared(facility.FieldWebsite) {
+		fields = append(fields, facility.FieldWebsite)
+	}
+	if m.FieldCleared(facility.FieldZipcode) {
+		fields = append(fields, facility.FieldZipcode)
+	}
+	if m.FieldCleared(facility.FieldOrgName) {
+		fields = append(fields, facility.FieldOrgName)
 	}
 	if m.FieldCleared(facility.FieldNetCount) {
 		fields = append(fields, facility.FieldNetCount)
@@ -6840,36 +6870,6 @@ func (m *FacilityMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(facility.FieldCarrierCount) {
 		fields = append(fields, facility.FieldCarrierCount)
-	}
-	if m.FieldCleared(facility.FieldAddress1) {
-		fields = append(fields, facility.FieldAddress1)
-	}
-	if m.FieldCleared(facility.FieldAddress2) {
-		fields = append(fields, facility.FieldAddress2)
-	}
-	if m.FieldCleared(facility.FieldCity) {
-		fields = append(fields, facility.FieldCity)
-	}
-	if m.FieldCleared(facility.FieldState) {
-		fields = append(fields, facility.FieldState)
-	}
-	if m.FieldCleared(facility.FieldCountry) {
-		fields = append(fields, facility.FieldCountry)
-	}
-	if m.FieldCleared(facility.FieldZipcode) {
-		fields = append(fields, facility.FieldZipcode)
-	}
-	if m.FieldCleared(facility.FieldSuite) {
-		fields = append(fields, facility.FieldSuite)
-	}
-	if m.FieldCleared(facility.FieldFloor) {
-		fields = append(fields, facility.FieldFloor)
-	}
-	if m.FieldCleared(facility.FieldLatitude) {
-		fields = append(fields, facility.FieldLatitude)
-	}
-	if m.FieldCleared(facility.FieldLongitude) {
-		fields = append(fields, facility.FieldLongitude)
 	}
 	return fields
 }
@@ -6885,41 +6885,65 @@ func (m *FacilityMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *FacilityMutation) ClearField(name string) error {
 	switch name {
+	case facility.FieldCampusID:
+		m.ClearCampusID()
+		return nil
 	case facility.FieldOrgID:
 		m.ClearOrgID()
 		return nil
-	case facility.FieldOrgName:
-		m.ClearOrgName()
+	case facility.FieldAddress1:
+		m.ClearAddress1()
 		return nil
-	case facility.FieldCampusID:
-		m.ClearCampusID()
+	case facility.FieldAddress2:
+		m.ClearAddress2()
 		return nil
 	case facility.FieldAka:
 		m.ClearAka()
 		return nil
-	case facility.FieldNameLong:
-		m.ClearNameLong()
+	case facility.FieldAvailableVoltageServices:
+		m.ClearAvailableVoltageServices()
 		return nil
-	case facility.FieldWebsite:
-		m.ClearWebsite()
-		return nil
-	case facility.FieldSocialMedia:
-		m.ClearSocialMedia()
+	case facility.FieldCity:
+		m.ClearCity()
 		return nil
 	case facility.FieldClli:
 		m.ClearClli()
 		return nil
-	case facility.FieldRencode:
-		m.ClearRencode()
+	case facility.FieldCountry:
+		m.ClearCountry()
+		return nil
+	case facility.FieldDiverseServingSubstations:
+		m.ClearDiverseServingSubstations()
+		return nil
+	case facility.FieldFloor:
+		m.ClearFloor()
+		return nil
+	case facility.FieldLatitude:
+		m.ClearLatitude()
+		return nil
+	case facility.FieldLogo:
+		m.ClearLogo()
+		return nil
+	case facility.FieldLongitude:
+		m.ClearLongitude()
+		return nil
+	case facility.FieldNameLong:
+		m.ClearNameLong()
+		return nil
+	case facility.FieldNotes:
+		m.ClearNotes()
 		return nil
 	case facility.FieldNpanxx:
 		m.ClearNpanxx()
 		return nil
-	case facility.FieldTechEmail:
-		m.ClearTechEmail()
+	case facility.FieldProperty:
+		m.ClearProperty()
 		return nil
-	case facility.FieldTechPhone:
-		m.ClearTechPhone()
+	case facility.FieldRegionContinent:
+		m.ClearRegionContinent()
+		return nil
+	case facility.FieldRencode:
+		m.ClearRencode()
 		return nil
 	case facility.FieldSalesEmail:
 		m.ClearSalesEmail()
@@ -6927,26 +6951,32 @@ func (m *FacilityMutation) ClearField(name string) error {
 	case facility.FieldSalesPhone:
 		m.ClearSalesPhone()
 		return nil
-	case facility.FieldProperty:
-		m.ClearProperty()
+	case facility.FieldSocialMedia:
+		m.ClearSocialMedia()
 		return nil
-	case facility.FieldDiverseServingSubstations:
-		m.ClearDiverseServingSubstations()
-		return nil
-	case facility.FieldAvailableVoltageServices:
-		m.ClearAvailableVoltageServices()
-		return nil
-	case facility.FieldNotes:
-		m.ClearNotes()
-		return nil
-	case facility.FieldRegionContinent:
-		m.ClearRegionContinent()
+	case facility.FieldState:
+		m.ClearState()
 		return nil
 	case facility.FieldStatusDashboard:
 		m.ClearStatusDashboard()
 		return nil
-	case facility.FieldLogo:
-		m.ClearLogo()
+	case facility.FieldSuite:
+		m.ClearSuite()
+		return nil
+	case facility.FieldTechEmail:
+		m.ClearTechEmail()
+		return nil
+	case facility.FieldTechPhone:
+		m.ClearTechPhone()
+		return nil
+	case facility.FieldWebsite:
+		m.ClearWebsite()
+		return nil
+	case facility.FieldZipcode:
+		m.ClearZipcode()
+		return nil
+	case facility.FieldOrgName:
+		m.ClearOrgName()
 		return nil
 	case facility.FieldNetCount:
 		m.ClearNetCount()
@@ -6957,36 +6987,6 @@ func (m *FacilityMutation) ClearField(name string) error {
 	case facility.FieldCarrierCount:
 		m.ClearCarrierCount()
 		return nil
-	case facility.FieldAddress1:
-		m.ClearAddress1()
-		return nil
-	case facility.FieldAddress2:
-		m.ClearAddress2()
-		return nil
-	case facility.FieldCity:
-		m.ClearCity()
-		return nil
-	case facility.FieldState:
-		m.ClearState()
-		return nil
-	case facility.FieldCountry:
-		m.ClearCountry()
-		return nil
-	case facility.FieldZipcode:
-		m.ClearZipcode()
-		return nil
-	case facility.FieldSuite:
-		m.ClearSuite()
-		return nil
-	case facility.FieldFloor:
-		m.ClearFloor()
-		return nil
-	case facility.FieldLatitude:
-		m.ClearLatitude()
-		return nil
-	case facility.FieldLongitude:
-		m.ClearLongitude()
-		return nil
 	}
 	return fmt.Errorf("unknown Facility nullable field %s", name)
 }
@@ -6995,44 +6995,68 @@ func (m *FacilityMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *FacilityMutation) ResetField(name string) error {
 	switch name {
-	case facility.FieldOrgID:
-		m.ResetOrgID()
-		return nil
-	case facility.FieldOrgName:
-		m.ResetOrgName()
-		return nil
 	case facility.FieldCampusID:
 		m.ResetCampusID()
 		return nil
-	case facility.FieldName:
-		m.ResetName()
+	case facility.FieldOrgID:
+		m.ResetOrgID()
+		return nil
+	case facility.FieldAddress1:
+		m.ResetAddress1()
+		return nil
+	case facility.FieldAddress2:
+		m.ResetAddress2()
 		return nil
 	case facility.FieldAka:
 		m.ResetAka()
 		return nil
-	case facility.FieldNameLong:
-		m.ResetNameLong()
+	case facility.FieldAvailableVoltageServices:
+		m.ResetAvailableVoltageServices()
 		return nil
-	case facility.FieldWebsite:
-		m.ResetWebsite()
-		return nil
-	case facility.FieldSocialMedia:
-		m.ResetSocialMedia()
+	case facility.FieldCity:
+		m.ResetCity()
 		return nil
 	case facility.FieldClli:
 		m.ResetClli()
 		return nil
-	case facility.FieldRencode:
-		m.ResetRencode()
+	case facility.FieldCountry:
+		m.ResetCountry()
+		return nil
+	case facility.FieldDiverseServingSubstations:
+		m.ResetDiverseServingSubstations()
+		return nil
+	case facility.FieldFloor:
+		m.ResetFloor()
+		return nil
+	case facility.FieldLatitude:
+		m.ResetLatitude()
+		return nil
+	case facility.FieldLogo:
+		m.ResetLogo()
+		return nil
+	case facility.FieldLongitude:
+		m.ResetLongitude()
+		return nil
+	case facility.FieldName:
+		m.ResetName()
+		return nil
+	case facility.FieldNameLong:
+		m.ResetNameLong()
+		return nil
+	case facility.FieldNotes:
+		m.ResetNotes()
 		return nil
 	case facility.FieldNpanxx:
 		m.ResetNpanxx()
 		return nil
-	case facility.FieldTechEmail:
-		m.ResetTechEmail()
+	case facility.FieldProperty:
+		m.ResetProperty()
 		return nil
-	case facility.FieldTechPhone:
-		m.ResetTechPhone()
+	case facility.FieldRegionContinent:
+		m.ResetRegionContinent()
+		return nil
+	case facility.FieldRencode:
+		m.ResetRencode()
 		return nil
 	case facility.FieldSalesEmail:
 		m.ResetSalesEmail()
@@ -7040,26 +7064,32 @@ func (m *FacilityMutation) ResetField(name string) error {
 	case facility.FieldSalesPhone:
 		m.ResetSalesPhone()
 		return nil
-	case facility.FieldProperty:
-		m.ResetProperty()
+	case facility.FieldSocialMedia:
+		m.ResetSocialMedia()
 		return nil
-	case facility.FieldDiverseServingSubstations:
-		m.ResetDiverseServingSubstations()
-		return nil
-	case facility.FieldAvailableVoltageServices:
-		m.ResetAvailableVoltageServices()
-		return nil
-	case facility.FieldNotes:
-		m.ResetNotes()
-		return nil
-	case facility.FieldRegionContinent:
-		m.ResetRegionContinent()
+	case facility.FieldState:
+		m.ResetState()
 		return nil
 	case facility.FieldStatusDashboard:
 		m.ResetStatusDashboard()
 		return nil
-	case facility.FieldLogo:
-		m.ResetLogo()
+	case facility.FieldSuite:
+		m.ResetSuite()
+		return nil
+	case facility.FieldTechEmail:
+		m.ResetTechEmail()
+		return nil
+	case facility.FieldTechPhone:
+		m.ResetTechPhone()
+		return nil
+	case facility.FieldWebsite:
+		m.ResetWebsite()
+		return nil
+	case facility.FieldZipcode:
+		m.ResetZipcode()
+		return nil
+	case facility.FieldOrgName:
+		m.ResetOrgName()
 		return nil
 	case facility.FieldNetCount:
 		m.ResetNetCount()
@@ -7069,36 +7099,6 @@ func (m *FacilityMutation) ResetField(name string) error {
 		return nil
 	case facility.FieldCarrierCount:
 		m.ResetCarrierCount()
-		return nil
-	case facility.FieldAddress1:
-		m.ResetAddress1()
-		return nil
-	case facility.FieldAddress2:
-		m.ResetAddress2()
-		return nil
-	case facility.FieldCity:
-		m.ResetCity()
-		return nil
-	case facility.FieldState:
-		m.ResetState()
-		return nil
-	case facility.FieldCountry:
-		m.ResetCountry()
-		return nil
-	case facility.FieldZipcode:
-		m.ResetZipcode()
-		return nil
-	case facility.FieldSuite:
-		m.ResetSuite()
-		return nil
-	case facility.FieldFloor:
-		m.ResetFloor()
-		return nil
-	case facility.FieldLatitude:
-		m.ResetLatitude()
-		return nil
-	case facility.FieldLongitude:
-		m.ResetLongitude()
 		return nil
 	case facility.FieldCreated:
 		m.ResetCreated()
@@ -7116,20 +7116,20 @@ func (m *FacilityMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FacilityMutation) AddedEdges() []string {
 	edges := make([]string, 0, 5)
-	if m.organization != nil {
-		edges = append(edges, facility.EdgeOrganization)
-	}
 	if m.campus != nil {
 		edges = append(edges, facility.EdgeCampus)
 	}
-	if m.network_facilities != nil {
-		edges = append(edges, facility.EdgeNetworkFacilities)
+	if m.carrier_facilities != nil {
+		edges = append(edges, facility.EdgeCarrierFacilities)
 	}
 	if m.ix_facilities != nil {
 		edges = append(edges, facility.EdgeIxFacilities)
 	}
-	if m.carrier_facilities != nil {
-		edges = append(edges, facility.EdgeCarrierFacilities)
+	if m.network_facilities != nil {
+		edges = append(edges, facility.EdgeNetworkFacilities)
+	}
+	if m.organization != nil {
+		edges = append(edges, facility.EdgeOrganization)
 	}
 	return edges
 }
@@ -7138,17 +7138,13 @@ func (m *FacilityMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *FacilityMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case facility.EdgeOrganization:
-		if id := m.organization; id != nil {
-			return []ent.Value{*id}
-		}
 	case facility.EdgeCampus:
 		if id := m.campus; id != nil {
 			return []ent.Value{*id}
 		}
-	case facility.EdgeNetworkFacilities:
-		ids := make([]ent.Value, 0, len(m.network_facilities))
-		for id := range m.network_facilities {
+	case facility.EdgeCarrierFacilities:
+		ids := make([]ent.Value, 0, len(m.carrier_facilities))
+		for id := range m.carrier_facilities {
 			ids = append(ids, id)
 		}
 		return ids
@@ -7158,12 +7154,16 @@ func (m *FacilityMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case facility.EdgeCarrierFacilities:
-		ids := make([]ent.Value, 0, len(m.carrier_facilities))
-		for id := range m.carrier_facilities {
+	case facility.EdgeNetworkFacilities:
+		ids := make([]ent.Value, 0, len(m.network_facilities))
+		for id := range m.network_facilities {
 			ids = append(ids, id)
 		}
 		return ids
+	case facility.EdgeOrganization:
+		if id := m.organization; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
@@ -7171,14 +7171,14 @@ func (m *FacilityMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FacilityMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 5)
-	if m.removednetwork_facilities != nil {
-		edges = append(edges, facility.EdgeNetworkFacilities)
+	if m.removedcarrier_facilities != nil {
+		edges = append(edges, facility.EdgeCarrierFacilities)
 	}
 	if m.removedix_facilities != nil {
 		edges = append(edges, facility.EdgeIxFacilities)
 	}
-	if m.removedcarrier_facilities != nil {
-		edges = append(edges, facility.EdgeCarrierFacilities)
+	if m.removednetwork_facilities != nil {
+		edges = append(edges, facility.EdgeNetworkFacilities)
 	}
 	return edges
 }
@@ -7187,9 +7187,9 @@ func (m *FacilityMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *FacilityMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case facility.EdgeNetworkFacilities:
-		ids := make([]ent.Value, 0, len(m.removednetwork_facilities))
-		for id := range m.removednetwork_facilities {
+	case facility.EdgeCarrierFacilities:
+		ids := make([]ent.Value, 0, len(m.removedcarrier_facilities))
+		for id := range m.removedcarrier_facilities {
 			ids = append(ids, id)
 		}
 		return ids
@@ -7199,9 +7199,9 @@ func (m *FacilityMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case facility.EdgeCarrierFacilities:
-		ids := make([]ent.Value, 0, len(m.removedcarrier_facilities))
-		for id := range m.removedcarrier_facilities {
+	case facility.EdgeNetworkFacilities:
+		ids := make([]ent.Value, 0, len(m.removednetwork_facilities))
+		for id := range m.removednetwork_facilities {
 			ids = append(ids, id)
 		}
 		return ids
@@ -7212,20 +7212,20 @@ func (m *FacilityMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FacilityMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 5)
-	if m.clearedorganization {
-		edges = append(edges, facility.EdgeOrganization)
-	}
 	if m.clearedcampus {
 		edges = append(edges, facility.EdgeCampus)
 	}
-	if m.clearednetwork_facilities {
-		edges = append(edges, facility.EdgeNetworkFacilities)
+	if m.clearedcarrier_facilities {
+		edges = append(edges, facility.EdgeCarrierFacilities)
 	}
 	if m.clearedix_facilities {
 		edges = append(edges, facility.EdgeIxFacilities)
 	}
-	if m.clearedcarrier_facilities {
-		edges = append(edges, facility.EdgeCarrierFacilities)
+	if m.clearednetwork_facilities {
+		edges = append(edges, facility.EdgeNetworkFacilities)
+	}
+	if m.clearedorganization {
+		edges = append(edges, facility.EdgeOrganization)
 	}
 	return edges
 }
@@ -7234,16 +7234,16 @@ func (m *FacilityMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *FacilityMutation) EdgeCleared(name string) bool {
 	switch name {
-	case facility.EdgeOrganization:
-		return m.clearedorganization
 	case facility.EdgeCampus:
 		return m.clearedcampus
-	case facility.EdgeNetworkFacilities:
-		return m.clearednetwork_facilities
-	case facility.EdgeIxFacilities:
-		return m.clearedix_facilities
 	case facility.EdgeCarrierFacilities:
 		return m.clearedcarrier_facilities
+	case facility.EdgeIxFacilities:
+		return m.clearedix_facilities
+	case facility.EdgeNetworkFacilities:
+		return m.clearednetwork_facilities
+	case facility.EdgeOrganization:
+		return m.clearedorganization
 	}
 	return false
 }
@@ -7252,11 +7252,11 @@ func (m *FacilityMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *FacilityMutation) ClearEdge(name string) error {
 	switch name {
-	case facility.EdgeOrganization:
-		m.ClearOrganization()
-		return nil
 	case facility.EdgeCampus:
 		m.ClearCampus()
+		return nil
+	case facility.EdgeOrganization:
+		m.ClearOrganization()
 		return nil
 	}
 	return fmt.Errorf("unknown Facility unique edge %s", name)
@@ -7266,20 +7266,20 @@ func (m *FacilityMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *FacilityMutation) ResetEdge(name string) error {
 	switch name {
-	case facility.EdgeOrganization:
-		m.ResetOrganization()
-		return nil
 	case facility.EdgeCampus:
 		m.ResetCampus()
 		return nil
-	case facility.EdgeNetworkFacilities:
-		m.ResetNetworkFacilities()
+	case facility.EdgeCarrierFacilities:
+		m.ResetCarrierFacilities()
 		return nil
 	case facility.EdgeIxFacilities:
 		m.ResetIxFacilities()
 		return nil
-	case facility.EdgeCarrierFacilities:
-		m.ResetCarrierFacilities()
+	case facility.EdgeNetworkFacilities:
+		m.ResetNetworkFacilities()
+		return nil
+	case facility.EdgeOrganization:
+		m.ResetOrganization()
 		return nil
 	}
 	return fmt.Errorf("unknown Facility edge %s", name)
@@ -7291,52 +7291,52 @@ type InternetExchangeMutation struct {
 	op                        Op
 	typ                       string
 	id                        *int
-	name                      *string
 	aka                       *string
-	name_long                 *string
 	city                      *string
 	country                   *string
-	region_continent          *string
+	ixf_last_import           *time.Time
+	ixf_net_count             *int
+	addixf_net_count          *int
+	logo                      *string
 	media                     *string
+	name                      *string
+	name_long                 *string
 	notes                     *string
-	proto_unicast             *bool
-	proto_multicast           *bool
-	proto_ipv6                *bool
-	website                   *string
-	social_media              *[]schema.SocialMedia
-	appendsocial_media        []schema.SocialMedia
-	url_stats                 *string
-	tech_email                *string
-	tech_phone                *string
 	policy_email              *string
 	policy_phone              *string
+	proto_ipv6                *bool
+	proto_multicast           *bool
+	proto_unicast             *bool
+	region_continent          *string
 	sales_email               *string
 	sales_phone               *string
+	service_level             *string
+	social_media              *[]schema.SocialMedia
+	appendsocial_media        []schema.SocialMedia
+	status_dashboard          *string
+	tech_email                *string
+	tech_phone                *string
+	terms                     *string
+	url_stats                 *string
+	website                   *string
 	net_count                 *int
 	addnet_count              *int
 	fac_count                 *int
 	addfac_count              *int
-	ixf_net_count             *int
-	addixf_net_count          *int
-	ixf_last_import           *time.Time
 	ixf_import_request        *string
 	ixf_import_request_status *string
-	service_level             *string
-	terms                     *string
-	status_dashboard          *string
-	logo                      *string
 	created                   *time.Time
 	updated                   *time.Time
 	status                    *string
 	clearedFields             map[string]struct{}
-	organization              *int
-	clearedorganization       bool
-	ix_lans                   map[int]struct{}
-	removedix_lans            map[int]struct{}
-	clearedix_lans            bool
 	ix_facilities             map[int]struct{}
 	removedix_facilities      map[int]struct{}
 	clearedix_facilities      bool
+	ix_lans                   map[int]struct{}
+	removedix_lans            map[int]struct{}
+	clearedix_lans            bool
+	organization              *int
+	clearedorganization       bool
 	done                      bool
 	oldValue                  func(context.Context) (*InternetExchange, error)
 	predicates                []predicate.InternetExchange
@@ -7495,42 +7495,6 @@ func (m *InternetExchangeMutation) ResetOrgID() {
 	delete(m.clearedFields, internetexchange.FieldOrgID)
 }
 
-// SetName sets the "name" field.
-func (m *InternetExchangeMutation) SetName(s string) {
-	m.name = &s
-}
-
-// Name returns the value of the "name" field in the mutation.
-func (m *InternetExchangeMutation) Name() (r string, exists bool) {
-	v := m.name
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldName returns the old "name" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldName(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
-	}
-	return oldValue.Name, nil
-}
-
-// ResetName resets all changes to the "name" field.
-func (m *InternetExchangeMutation) ResetName() {
-	m.name = nil
-}
-
 // SetAka sets the "aka" field.
 func (m *InternetExchangeMutation) SetAka(s string) {
 	m.aka = &s
@@ -7578,6 +7542,357 @@ func (m *InternetExchangeMutation) AkaCleared() bool {
 func (m *InternetExchangeMutation) ResetAka() {
 	m.aka = nil
 	delete(m.clearedFields, internetexchange.FieldAka)
+}
+
+// SetCity sets the "city" field.
+func (m *InternetExchangeMutation) SetCity(s string) {
+	m.city = &s
+}
+
+// City returns the value of the "city" field in the mutation.
+func (m *InternetExchangeMutation) City() (r string, exists bool) {
+	v := m.city
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCity returns the old "city" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldCity(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCity: %w", err)
+	}
+	return oldValue.City, nil
+}
+
+// ClearCity clears the value of the "city" field.
+func (m *InternetExchangeMutation) ClearCity() {
+	m.city = nil
+	m.clearedFields[internetexchange.FieldCity] = struct{}{}
+}
+
+// CityCleared returns if the "city" field was cleared in this mutation.
+func (m *InternetExchangeMutation) CityCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldCity]
+	return ok
+}
+
+// ResetCity resets all changes to the "city" field.
+func (m *InternetExchangeMutation) ResetCity() {
+	m.city = nil
+	delete(m.clearedFields, internetexchange.FieldCity)
+}
+
+// SetCountry sets the "country" field.
+func (m *InternetExchangeMutation) SetCountry(s string) {
+	m.country = &s
+}
+
+// Country returns the value of the "country" field in the mutation.
+func (m *InternetExchangeMutation) Country() (r string, exists bool) {
+	v := m.country
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCountry returns the old "country" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldCountry(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCountry is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCountry requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCountry: %w", err)
+	}
+	return oldValue.Country, nil
+}
+
+// ClearCountry clears the value of the "country" field.
+func (m *InternetExchangeMutation) ClearCountry() {
+	m.country = nil
+	m.clearedFields[internetexchange.FieldCountry] = struct{}{}
+}
+
+// CountryCleared returns if the "country" field was cleared in this mutation.
+func (m *InternetExchangeMutation) CountryCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldCountry]
+	return ok
+}
+
+// ResetCountry resets all changes to the "country" field.
+func (m *InternetExchangeMutation) ResetCountry() {
+	m.country = nil
+	delete(m.clearedFields, internetexchange.FieldCountry)
+}
+
+// SetIxfLastImport sets the "ixf_last_import" field.
+func (m *InternetExchangeMutation) SetIxfLastImport(t time.Time) {
+	m.ixf_last_import = &t
+}
+
+// IxfLastImport returns the value of the "ixf_last_import" field in the mutation.
+func (m *InternetExchangeMutation) IxfLastImport() (r time.Time, exists bool) {
+	v := m.ixf_last_import
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIxfLastImport returns the old "ixf_last_import" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldIxfLastImport(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIxfLastImport is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIxfLastImport requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIxfLastImport: %w", err)
+	}
+	return oldValue.IxfLastImport, nil
+}
+
+// ClearIxfLastImport clears the value of the "ixf_last_import" field.
+func (m *InternetExchangeMutation) ClearIxfLastImport() {
+	m.ixf_last_import = nil
+	m.clearedFields[internetexchange.FieldIxfLastImport] = struct{}{}
+}
+
+// IxfLastImportCleared returns if the "ixf_last_import" field was cleared in this mutation.
+func (m *InternetExchangeMutation) IxfLastImportCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldIxfLastImport]
+	return ok
+}
+
+// ResetIxfLastImport resets all changes to the "ixf_last_import" field.
+func (m *InternetExchangeMutation) ResetIxfLastImport() {
+	m.ixf_last_import = nil
+	delete(m.clearedFields, internetexchange.FieldIxfLastImport)
+}
+
+// SetIxfNetCount sets the "ixf_net_count" field.
+func (m *InternetExchangeMutation) SetIxfNetCount(i int) {
+	m.ixf_net_count = &i
+	m.addixf_net_count = nil
+}
+
+// IxfNetCount returns the value of the "ixf_net_count" field in the mutation.
+func (m *InternetExchangeMutation) IxfNetCount() (r int, exists bool) {
+	v := m.ixf_net_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIxfNetCount returns the old "ixf_net_count" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldIxfNetCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIxfNetCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIxfNetCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIxfNetCount: %w", err)
+	}
+	return oldValue.IxfNetCount, nil
+}
+
+// AddIxfNetCount adds i to the "ixf_net_count" field.
+func (m *InternetExchangeMutation) AddIxfNetCount(i int) {
+	if m.addixf_net_count != nil {
+		*m.addixf_net_count += i
+	} else {
+		m.addixf_net_count = &i
+	}
+}
+
+// AddedIxfNetCount returns the value that was added to the "ixf_net_count" field in this mutation.
+func (m *InternetExchangeMutation) AddedIxfNetCount() (r int, exists bool) {
+	v := m.addixf_net_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearIxfNetCount clears the value of the "ixf_net_count" field.
+func (m *InternetExchangeMutation) ClearIxfNetCount() {
+	m.ixf_net_count = nil
+	m.addixf_net_count = nil
+	m.clearedFields[internetexchange.FieldIxfNetCount] = struct{}{}
+}
+
+// IxfNetCountCleared returns if the "ixf_net_count" field was cleared in this mutation.
+func (m *InternetExchangeMutation) IxfNetCountCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldIxfNetCount]
+	return ok
+}
+
+// ResetIxfNetCount resets all changes to the "ixf_net_count" field.
+func (m *InternetExchangeMutation) ResetIxfNetCount() {
+	m.ixf_net_count = nil
+	m.addixf_net_count = nil
+	delete(m.clearedFields, internetexchange.FieldIxfNetCount)
+}
+
+// SetLogo sets the "logo" field.
+func (m *InternetExchangeMutation) SetLogo(s string) {
+	m.logo = &s
+}
+
+// Logo returns the value of the "logo" field in the mutation.
+func (m *InternetExchangeMutation) Logo() (r string, exists bool) {
+	v := m.logo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLogo returns the old "logo" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldLogo(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLogo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
+	}
+	return oldValue.Logo, nil
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (m *InternetExchangeMutation) ClearLogo() {
+	m.logo = nil
+	m.clearedFields[internetexchange.FieldLogo] = struct{}{}
+}
+
+// LogoCleared returns if the "logo" field was cleared in this mutation.
+func (m *InternetExchangeMutation) LogoCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldLogo]
+	return ok
+}
+
+// ResetLogo resets all changes to the "logo" field.
+func (m *InternetExchangeMutation) ResetLogo() {
+	m.logo = nil
+	delete(m.clearedFields, internetexchange.FieldLogo)
+}
+
+// SetMedia sets the "media" field.
+func (m *InternetExchangeMutation) SetMedia(s string) {
+	m.media = &s
+}
+
+// Media returns the value of the "media" field in the mutation.
+func (m *InternetExchangeMutation) Media() (r string, exists bool) {
+	v := m.media
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMedia returns the old "media" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldMedia(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMedia is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMedia requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMedia: %w", err)
+	}
+	return oldValue.Media, nil
+}
+
+// ClearMedia clears the value of the "media" field.
+func (m *InternetExchangeMutation) ClearMedia() {
+	m.media = nil
+	m.clearedFields[internetexchange.FieldMedia] = struct{}{}
+}
+
+// MediaCleared returns if the "media" field was cleared in this mutation.
+func (m *InternetExchangeMutation) MediaCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldMedia]
+	return ok
+}
+
+// ResetMedia resets all changes to the "media" field.
+func (m *InternetExchangeMutation) ResetMedia() {
+	m.media = nil
+	delete(m.clearedFields, internetexchange.FieldMedia)
+}
+
+// SetName sets the "name" field.
+func (m *InternetExchangeMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *InternetExchangeMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *InternetExchangeMutation) ResetName() {
+	m.name = nil
 }
 
 // SetNameLong sets the "name_long" field.
@@ -7629,150 +7944,6 @@ func (m *InternetExchangeMutation) ResetNameLong() {
 	delete(m.clearedFields, internetexchange.FieldNameLong)
 }
 
-// SetCity sets the "city" field.
-func (m *InternetExchangeMutation) SetCity(s string) {
-	m.city = &s
-}
-
-// City returns the value of the "city" field in the mutation.
-func (m *InternetExchangeMutation) City() (r string, exists bool) {
-	v := m.city
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCity returns the old "city" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldCity(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCity is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCity requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCity: %w", err)
-	}
-	return oldValue.City, nil
-}
-
-// ResetCity resets all changes to the "city" field.
-func (m *InternetExchangeMutation) ResetCity() {
-	m.city = nil
-}
-
-// SetCountry sets the "country" field.
-func (m *InternetExchangeMutation) SetCountry(s string) {
-	m.country = &s
-}
-
-// Country returns the value of the "country" field in the mutation.
-func (m *InternetExchangeMutation) Country() (r string, exists bool) {
-	v := m.country
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCountry returns the old "country" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldCountry(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCountry is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCountry requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCountry: %w", err)
-	}
-	return oldValue.Country, nil
-}
-
-// ResetCountry resets all changes to the "country" field.
-func (m *InternetExchangeMutation) ResetCountry() {
-	m.country = nil
-}
-
-// SetRegionContinent sets the "region_continent" field.
-func (m *InternetExchangeMutation) SetRegionContinent(s string) {
-	m.region_continent = &s
-}
-
-// RegionContinent returns the value of the "region_continent" field in the mutation.
-func (m *InternetExchangeMutation) RegionContinent() (r string, exists bool) {
-	v := m.region_continent
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldRegionContinent returns the old "region_continent" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldRegionContinent(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldRegionContinent is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldRegionContinent requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRegionContinent: %w", err)
-	}
-	return oldValue.RegionContinent, nil
-}
-
-// ResetRegionContinent resets all changes to the "region_continent" field.
-func (m *InternetExchangeMutation) ResetRegionContinent() {
-	m.region_continent = nil
-}
-
-// SetMedia sets the "media" field.
-func (m *InternetExchangeMutation) SetMedia(s string) {
-	m.media = &s
-}
-
-// Media returns the value of the "media" field in the mutation.
-func (m *InternetExchangeMutation) Media() (r string, exists bool) {
-	v := m.media
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMedia returns the old "media" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldMedia(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMedia is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMedia requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMedia: %w", err)
-	}
-	return oldValue.Media, nil
-}
-
-// ResetMedia resets all changes to the "media" field.
-func (m *InternetExchangeMutation) ResetMedia() {
-	m.media = nil
-}
-
 // SetNotes sets the "notes" field.
 func (m *InternetExchangeMutation) SetNotes(s string) {
 	m.notes = &s
@@ -7820,375 +7991,6 @@ func (m *InternetExchangeMutation) NotesCleared() bool {
 func (m *InternetExchangeMutation) ResetNotes() {
 	m.notes = nil
 	delete(m.clearedFields, internetexchange.FieldNotes)
-}
-
-// SetProtoUnicast sets the "proto_unicast" field.
-func (m *InternetExchangeMutation) SetProtoUnicast(b bool) {
-	m.proto_unicast = &b
-}
-
-// ProtoUnicast returns the value of the "proto_unicast" field in the mutation.
-func (m *InternetExchangeMutation) ProtoUnicast() (r bool, exists bool) {
-	v := m.proto_unicast
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldProtoUnicast returns the old "proto_unicast" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldProtoUnicast(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldProtoUnicast is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldProtoUnicast requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldProtoUnicast: %w", err)
-	}
-	return oldValue.ProtoUnicast, nil
-}
-
-// ResetProtoUnicast resets all changes to the "proto_unicast" field.
-func (m *InternetExchangeMutation) ResetProtoUnicast() {
-	m.proto_unicast = nil
-}
-
-// SetProtoMulticast sets the "proto_multicast" field.
-func (m *InternetExchangeMutation) SetProtoMulticast(b bool) {
-	m.proto_multicast = &b
-}
-
-// ProtoMulticast returns the value of the "proto_multicast" field in the mutation.
-func (m *InternetExchangeMutation) ProtoMulticast() (r bool, exists bool) {
-	v := m.proto_multicast
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldProtoMulticast returns the old "proto_multicast" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldProtoMulticast(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldProtoMulticast is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldProtoMulticast requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldProtoMulticast: %w", err)
-	}
-	return oldValue.ProtoMulticast, nil
-}
-
-// ResetProtoMulticast resets all changes to the "proto_multicast" field.
-func (m *InternetExchangeMutation) ResetProtoMulticast() {
-	m.proto_multicast = nil
-}
-
-// SetProtoIpv6 sets the "proto_ipv6" field.
-func (m *InternetExchangeMutation) SetProtoIpv6(b bool) {
-	m.proto_ipv6 = &b
-}
-
-// ProtoIpv6 returns the value of the "proto_ipv6" field in the mutation.
-func (m *InternetExchangeMutation) ProtoIpv6() (r bool, exists bool) {
-	v := m.proto_ipv6
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldProtoIpv6 returns the old "proto_ipv6" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldProtoIpv6(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldProtoIpv6 is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldProtoIpv6 requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldProtoIpv6: %w", err)
-	}
-	return oldValue.ProtoIpv6, nil
-}
-
-// ResetProtoIpv6 resets all changes to the "proto_ipv6" field.
-func (m *InternetExchangeMutation) ResetProtoIpv6() {
-	m.proto_ipv6 = nil
-}
-
-// SetWebsite sets the "website" field.
-func (m *InternetExchangeMutation) SetWebsite(s string) {
-	m.website = &s
-}
-
-// Website returns the value of the "website" field in the mutation.
-func (m *InternetExchangeMutation) Website() (r string, exists bool) {
-	v := m.website
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldWebsite returns the old "website" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldWebsite(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldWebsite requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
-	}
-	return oldValue.Website, nil
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (m *InternetExchangeMutation) ClearWebsite() {
-	m.website = nil
-	m.clearedFields[internetexchange.FieldWebsite] = struct{}{}
-}
-
-// WebsiteCleared returns if the "website" field was cleared in this mutation.
-func (m *InternetExchangeMutation) WebsiteCleared() bool {
-	_, ok := m.clearedFields[internetexchange.FieldWebsite]
-	return ok
-}
-
-// ResetWebsite resets all changes to the "website" field.
-func (m *InternetExchangeMutation) ResetWebsite() {
-	m.website = nil
-	delete(m.clearedFields, internetexchange.FieldWebsite)
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (m *InternetExchangeMutation) SetSocialMedia(sm []schema.SocialMedia) {
-	m.social_media = &sm
-	m.appendsocial_media = nil
-}
-
-// SocialMedia returns the value of the "social_media" field in the mutation.
-func (m *InternetExchangeMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
-	v := m.social_media
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSocialMedia returns the old "social_media" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSocialMedia requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSocialMedia: %w", err)
-	}
-	return oldValue.SocialMedia, nil
-}
-
-// AppendSocialMedia adds sm to the "social_media" field.
-func (m *InternetExchangeMutation) AppendSocialMedia(sm []schema.SocialMedia) {
-	m.appendsocial_media = append(m.appendsocial_media, sm...)
-}
-
-// AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
-func (m *InternetExchangeMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
-	if len(m.appendsocial_media) == 0 {
-		return nil, false
-	}
-	return m.appendsocial_media, true
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (m *InternetExchangeMutation) ClearSocialMedia() {
-	m.social_media = nil
-	m.appendsocial_media = nil
-	m.clearedFields[internetexchange.FieldSocialMedia] = struct{}{}
-}
-
-// SocialMediaCleared returns if the "social_media" field was cleared in this mutation.
-func (m *InternetExchangeMutation) SocialMediaCleared() bool {
-	_, ok := m.clearedFields[internetexchange.FieldSocialMedia]
-	return ok
-}
-
-// ResetSocialMedia resets all changes to the "social_media" field.
-func (m *InternetExchangeMutation) ResetSocialMedia() {
-	m.social_media = nil
-	m.appendsocial_media = nil
-	delete(m.clearedFields, internetexchange.FieldSocialMedia)
-}
-
-// SetURLStats sets the "url_stats" field.
-func (m *InternetExchangeMutation) SetURLStats(s string) {
-	m.url_stats = &s
-}
-
-// URLStats returns the value of the "url_stats" field in the mutation.
-func (m *InternetExchangeMutation) URLStats() (r string, exists bool) {
-	v := m.url_stats
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldURLStats returns the old "url_stats" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldURLStats(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldURLStats is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldURLStats requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldURLStats: %w", err)
-	}
-	return oldValue.URLStats, nil
-}
-
-// ClearURLStats clears the value of the "url_stats" field.
-func (m *InternetExchangeMutation) ClearURLStats() {
-	m.url_stats = nil
-	m.clearedFields[internetexchange.FieldURLStats] = struct{}{}
-}
-
-// URLStatsCleared returns if the "url_stats" field was cleared in this mutation.
-func (m *InternetExchangeMutation) URLStatsCleared() bool {
-	_, ok := m.clearedFields[internetexchange.FieldURLStats]
-	return ok
-}
-
-// ResetURLStats resets all changes to the "url_stats" field.
-func (m *InternetExchangeMutation) ResetURLStats() {
-	m.url_stats = nil
-	delete(m.clearedFields, internetexchange.FieldURLStats)
-}
-
-// SetTechEmail sets the "tech_email" field.
-func (m *InternetExchangeMutation) SetTechEmail(s string) {
-	m.tech_email = &s
-}
-
-// TechEmail returns the value of the "tech_email" field in the mutation.
-func (m *InternetExchangeMutation) TechEmail() (r string, exists bool) {
-	v := m.tech_email
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTechEmail returns the old "tech_email" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldTechEmail(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTechEmail is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTechEmail requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTechEmail: %w", err)
-	}
-	return oldValue.TechEmail, nil
-}
-
-// ClearTechEmail clears the value of the "tech_email" field.
-func (m *InternetExchangeMutation) ClearTechEmail() {
-	m.tech_email = nil
-	m.clearedFields[internetexchange.FieldTechEmail] = struct{}{}
-}
-
-// TechEmailCleared returns if the "tech_email" field was cleared in this mutation.
-func (m *InternetExchangeMutation) TechEmailCleared() bool {
-	_, ok := m.clearedFields[internetexchange.FieldTechEmail]
-	return ok
-}
-
-// ResetTechEmail resets all changes to the "tech_email" field.
-func (m *InternetExchangeMutation) ResetTechEmail() {
-	m.tech_email = nil
-	delete(m.clearedFields, internetexchange.FieldTechEmail)
-}
-
-// SetTechPhone sets the "tech_phone" field.
-func (m *InternetExchangeMutation) SetTechPhone(s string) {
-	m.tech_phone = &s
-}
-
-// TechPhone returns the value of the "tech_phone" field in the mutation.
-func (m *InternetExchangeMutation) TechPhone() (r string, exists bool) {
-	v := m.tech_phone
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTechPhone returns the old "tech_phone" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldTechPhone(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTechPhone is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTechPhone requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTechPhone: %w", err)
-	}
-	return oldValue.TechPhone, nil
-}
-
-// ClearTechPhone clears the value of the "tech_phone" field.
-func (m *InternetExchangeMutation) ClearTechPhone() {
-	m.tech_phone = nil
-	m.clearedFields[internetexchange.FieldTechPhone] = struct{}{}
-}
-
-// TechPhoneCleared returns if the "tech_phone" field was cleared in this mutation.
-func (m *InternetExchangeMutation) TechPhoneCleared() bool {
-	_, ok := m.clearedFields[internetexchange.FieldTechPhone]
-	return ok
-}
-
-// ResetTechPhone resets all changes to the "tech_phone" field.
-func (m *InternetExchangeMutation) ResetTechPhone() {
-	m.tech_phone = nil
-	delete(m.clearedFields, internetexchange.FieldTechPhone)
 }
 
 // SetPolicyEmail sets the "policy_email" field.
@@ -8289,6 +8091,163 @@ func (m *InternetExchangeMutation) ResetPolicyPhone() {
 	delete(m.clearedFields, internetexchange.FieldPolicyPhone)
 }
 
+// SetProtoIpv6 sets the "proto_ipv6" field.
+func (m *InternetExchangeMutation) SetProtoIpv6(b bool) {
+	m.proto_ipv6 = &b
+}
+
+// ProtoIpv6 returns the value of the "proto_ipv6" field in the mutation.
+func (m *InternetExchangeMutation) ProtoIpv6() (r bool, exists bool) {
+	v := m.proto_ipv6
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProtoIpv6 returns the old "proto_ipv6" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldProtoIpv6(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProtoIpv6 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProtoIpv6 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProtoIpv6: %w", err)
+	}
+	return oldValue.ProtoIpv6, nil
+}
+
+// ResetProtoIpv6 resets all changes to the "proto_ipv6" field.
+func (m *InternetExchangeMutation) ResetProtoIpv6() {
+	m.proto_ipv6 = nil
+}
+
+// SetProtoMulticast sets the "proto_multicast" field.
+func (m *InternetExchangeMutation) SetProtoMulticast(b bool) {
+	m.proto_multicast = &b
+}
+
+// ProtoMulticast returns the value of the "proto_multicast" field in the mutation.
+func (m *InternetExchangeMutation) ProtoMulticast() (r bool, exists bool) {
+	v := m.proto_multicast
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProtoMulticast returns the old "proto_multicast" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldProtoMulticast(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProtoMulticast is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProtoMulticast requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProtoMulticast: %w", err)
+	}
+	return oldValue.ProtoMulticast, nil
+}
+
+// ResetProtoMulticast resets all changes to the "proto_multicast" field.
+func (m *InternetExchangeMutation) ResetProtoMulticast() {
+	m.proto_multicast = nil
+}
+
+// SetProtoUnicast sets the "proto_unicast" field.
+func (m *InternetExchangeMutation) SetProtoUnicast(b bool) {
+	m.proto_unicast = &b
+}
+
+// ProtoUnicast returns the value of the "proto_unicast" field in the mutation.
+func (m *InternetExchangeMutation) ProtoUnicast() (r bool, exists bool) {
+	v := m.proto_unicast
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProtoUnicast returns the old "proto_unicast" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldProtoUnicast(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProtoUnicast is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProtoUnicast requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProtoUnicast: %w", err)
+	}
+	return oldValue.ProtoUnicast, nil
+}
+
+// ResetProtoUnicast resets all changes to the "proto_unicast" field.
+func (m *InternetExchangeMutation) ResetProtoUnicast() {
+	m.proto_unicast = nil
+}
+
+// SetRegionContinent sets the "region_continent" field.
+func (m *InternetExchangeMutation) SetRegionContinent(s string) {
+	m.region_continent = &s
+}
+
+// RegionContinent returns the value of the "region_continent" field in the mutation.
+func (m *InternetExchangeMutation) RegionContinent() (r string, exists bool) {
+	v := m.region_continent
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRegionContinent returns the old "region_continent" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldRegionContinent(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRegionContinent is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRegionContinent requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRegionContinent: %w", err)
+	}
+	return oldValue.RegionContinent, nil
+}
+
+// ClearRegionContinent clears the value of the "region_continent" field.
+func (m *InternetExchangeMutation) ClearRegionContinent() {
+	m.region_continent = nil
+	m.clearedFields[internetexchange.FieldRegionContinent] = struct{}{}
+}
+
+// RegionContinentCleared returns if the "region_continent" field was cleared in this mutation.
+func (m *InternetExchangeMutation) RegionContinentCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldRegionContinent]
+	return ok
+}
+
+// ResetRegionContinent resets all changes to the "region_continent" field.
+func (m *InternetExchangeMutation) ResetRegionContinent() {
+	m.region_continent = nil
+	delete(m.clearedFields, internetexchange.FieldRegionContinent)
+}
+
 // SetSalesEmail sets the "sales_email" field.
 func (m *InternetExchangeMutation) SetSalesEmail(s string) {
 	m.sales_email = &s
@@ -8385,6 +8344,414 @@ func (m *InternetExchangeMutation) SalesPhoneCleared() bool {
 func (m *InternetExchangeMutation) ResetSalesPhone() {
 	m.sales_phone = nil
 	delete(m.clearedFields, internetexchange.FieldSalesPhone)
+}
+
+// SetServiceLevel sets the "service_level" field.
+func (m *InternetExchangeMutation) SetServiceLevel(s string) {
+	m.service_level = &s
+}
+
+// ServiceLevel returns the value of the "service_level" field in the mutation.
+func (m *InternetExchangeMutation) ServiceLevel() (r string, exists bool) {
+	v := m.service_level
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServiceLevel returns the old "service_level" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldServiceLevel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServiceLevel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServiceLevel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServiceLevel: %w", err)
+	}
+	return oldValue.ServiceLevel, nil
+}
+
+// ClearServiceLevel clears the value of the "service_level" field.
+func (m *InternetExchangeMutation) ClearServiceLevel() {
+	m.service_level = nil
+	m.clearedFields[internetexchange.FieldServiceLevel] = struct{}{}
+}
+
+// ServiceLevelCleared returns if the "service_level" field was cleared in this mutation.
+func (m *InternetExchangeMutation) ServiceLevelCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldServiceLevel]
+	return ok
+}
+
+// ResetServiceLevel resets all changes to the "service_level" field.
+func (m *InternetExchangeMutation) ResetServiceLevel() {
+	m.service_level = nil
+	delete(m.clearedFields, internetexchange.FieldServiceLevel)
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (m *InternetExchangeMutation) SetSocialMedia(sm []schema.SocialMedia) {
+	m.social_media = &sm
+	m.appendsocial_media = nil
+}
+
+// SocialMedia returns the value of the "social_media" field in the mutation.
+func (m *InternetExchangeMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
+	v := m.social_media
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSocialMedia returns the old "social_media" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSocialMedia requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSocialMedia: %w", err)
+	}
+	return oldValue.SocialMedia, nil
+}
+
+// AppendSocialMedia adds sm to the "social_media" field.
+func (m *InternetExchangeMutation) AppendSocialMedia(sm []schema.SocialMedia) {
+	m.appendsocial_media = append(m.appendsocial_media, sm...)
+}
+
+// AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
+func (m *InternetExchangeMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
+	if len(m.appendsocial_media) == 0 {
+		return nil, false
+	}
+	return m.appendsocial_media, true
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (m *InternetExchangeMutation) ClearSocialMedia() {
+	m.social_media = nil
+	m.appendsocial_media = nil
+	m.clearedFields[internetexchange.FieldSocialMedia] = struct{}{}
+}
+
+// SocialMediaCleared returns if the "social_media" field was cleared in this mutation.
+func (m *InternetExchangeMutation) SocialMediaCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldSocialMedia]
+	return ok
+}
+
+// ResetSocialMedia resets all changes to the "social_media" field.
+func (m *InternetExchangeMutation) ResetSocialMedia() {
+	m.social_media = nil
+	m.appendsocial_media = nil
+	delete(m.clearedFields, internetexchange.FieldSocialMedia)
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (m *InternetExchangeMutation) SetStatusDashboard(s string) {
+	m.status_dashboard = &s
+}
+
+// StatusDashboard returns the value of the "status_dashboard" field in the mutation.
+func (m *InternetExchangeMutation) StatusDashboard() (r string, exists bool) {
+	v := m.status_dashboard
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatusDashboard returns the old "status_dashboard" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldStatusDashboard(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatusDashboard is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatusDashboard requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatusDashboard: %w", err)
+	}
+	return oldValue.StatusDashboard, nil
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (m *InternetExchangeMutation) ClearStatusDashboard() {
+	m.status_dashboard = nil
+	m.clearedFields[internetexchange.FieldStatusDashboard] = struct{}{}
+}
+
+// StatusDashboardCleared returns if the "status_dashboard" field was cleared in this mutation.
+func (m *InternetExchangeMutation) StatusDashboardCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldStatusDashboard]
+	return ok
+}
+
+// ResetStatusDashboard resets all changes to the "status_dashboard" field.
+func (m *InternetExchangeMutation) ResetStatusDashboard() {
+	m.status_dashboard = nil
+	delete(m.clearedFields, internetexchange.FieldStatusDashboard)
+}
+
+// SetTechEmail sets the "tech_email" field.
+func (m *InternetExchangeMutation) SetTechEmail(s string) {
+	m.tech_email = &s
+}
+
+// TechEmail returns the value of the "tech_email" field in the mutation.
+func (m *InternetExchangeMutation) TechEmail() (r string, exists bool) {
+	v := m.tech_email
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTechEmail returns the old "tech_email" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldTechEmail(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTechEmail is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTechEmail requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTechEmail: %w", err)
+	}
+	return oldValue.TechEmail, nil
+}
+
+// ClearTechEmail clears the value of the "tech_email" field.
+func (m *InternetExchangeMutation) ClearTechEmail() {
+	m.tech_email = nil
+	m.clearedFields[internetexchange.FieldTechEmail] = struct{}{}
+}
+
+// TechEmailCleared returns if the "tech_email" field was cleared in this mutation.
+func (m *InternetExchangeMutation) TechEmailCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldTechEmail]
+	return ok
+}
+
+// ResetTechEmail resets all changes to the "tech_email" field.
+func (m *InternetExchangeMutation) ResetTechEmail() {
+	m.tech_email = nil
+	delete(m.clearedFields, internetexchange.FieldTechEmail)
+}
+
+// SetTechPhone sets the "tech_phone" field.
+func (m *InternetExchangeMutation) SetTechPhone(s string) {
+	m.tech_phone = &s
+}
+
+// TechPhone returns the value of the "tech_phone" field in the mutation.
+func (m *InternetExchangeMutation) TechPhone() (r string, exists bool) {
+	v := m.tech_phone
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTechPhone returns the old "tech_phone" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldTechPhone(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTechPhone is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTechPhone requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTechPhone: %w", err)
+	}
+	return oldValue.TechPhone, nil
+}
+
+// ClearTechPhone clears the value of the "tech_phone" field.
+func (m *InternetExchangeMutation) ClearTechPhone() {
+	m.tech_phone = nil
+	m.clearedFields[internetexchange.FieldTechPhone] = struct{}{}
+}
+
+// TechPhoneCleared returns if the "tech_phone" field was cleared in this mutation.
+func (m *InternetExchangeMutation) TechPhoneCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldTechPhone]
+	return ok
+}
+
+// ResetTechPhone resets all changes to the "tech_phone" field.
+func (m *InternetExchangeMutation) ResetTechPhone() {
+	m.tech_phone = nil
+	delete(m.clearedFields, internetexchange.FieldTechPhone)
+}
+
+// SetTerms sets the "terms" field.
+func (m *InternetExchangeMutation) SetTerms(s string) {
+	m.terms = &s
+}
+
+// Terms returns the value of the "terms" field in the mutation.
+func (m *InternetExchangeMutation) Terms() (r string, exists bool) {
+	v := m.terms
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTerms returns the old "terms" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldTerms(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTerms is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTerms requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTerms: %w", err)
+	}
+	return oldValue.Terms, nil
+}
+
+// ClearTerms clears the value of the "terms" field.
+func (m *InternetExchangeMutation) ClearTerms() {
+	m.terms = nil
+	m.clearedFields[internetexchange.FieldTerms] = struct{}{}
+}
+
+// TermsCleared returns if the "terms" field was cleared in this mutation.
+func (m *InternetExchangeMutation) TermsCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldTerms]
+	return ok
+}
+
+// ResetTerms resets all changes to the "terms" field.
+func (m *InternetExchangeMutation) ResetTerms() {
+	m.terms = nil
+	delete(m.clearedFields, internetexchange.FieldTerms)
+}
+
+// SetURLStats sets the "url_stats" field.
+func (m *InternetExchangeMutation) SetURLStats(s string) {
+	m.url_stats = &s
+}
+
+// URLStats returns the value of the "url_stats" field in the mutation.
+func (m *InternetExchangeMutation) URLStats() (r string, exists bool) {
+	v := m.url_stats
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldURLStats returns the old "url_stats" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldURLStats(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldURLStats is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldURLStats requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldURLStats: %w", err)
+	}
+	return oldValue.URLStats, nil
+}
+
+// ClearURLStats clears the value of the "url_stats" field.
+func (m *InternetExchangeMutation) ClearURLStats() {
+	m.url_stats = nil
+	m.clearedFields[internetexchange.FieldURLStats] = struct{}{}
+}
+
+// URLStatsCleared returns if the "url_stats" field was cleared in this mutation.
+func (m *InternetExchangeMutation) URLStatsCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldURLStats]
+	return ok
+}
+
+// ResetURLStats resets all changes to the "url_stats" field.
+func (m *InternetExchangeMutation) ResetURLStats() {
+	m.url_stats = nil
+	delete(m.clearedFields, internetexchange.FieldURLStats)
+}
+
+// SetWebsite sets the "website" field.
+func (m *InternetExchangeMutation) SetWebsite(s string) {
+	m.website = &s
+}
+
+// Website returns the value of the "website" field in the mutation.
+func (m *InternetExchangeMutation) Website() (r string, exists bool) {
+	v := m.website
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWebsite returns the old "website" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldWebsite(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWebsite requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
+	}
+	return oldValue.Website, nil
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (m *InternetExchangeMutation) ClearWebsite() {
+	m.website = nil
+	m.clearedFields[internetexchange.FieldWebsite] = struct{}{}
+}
+
+// WebsiteCleared returns if the "website" field was cleared in this mutation.
+func (m *InternetExchangeMutation) WebsiteCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldWebsite]
+	return ok
+}
+
+// ResetWebsite resets all changes to the "website" field.
+func (m *InternetExchangeMutation) ResetWebsite() {
+	m.website = nil
+	delete(m.clearedFields, internetexchange.FieldWebsite)
 }
 
 // SetNetCount sets the "net_count" field.
@@ -8527,111 +8894,6 @@ func (m *InternetExchangeMutation) ResetFacCount() {
 	delete(m.clearedFields, internetexchange.FieldFacCount)
 }
 
-// SetIxfNetCount sets the "ixf_net_count" field.
-func (m *InternetExchangeMutation) SetIxfNetCount(i int) {
-	m.ixf_net_count = &i
-	m.addixf_net_count = nil
-}
-
-// IxfNetCount returns the value of the "ixf_net_count" field in the mutation.
-func (m *InternetExchangeMutation) IxfNetCount() (r int, exists bool) {
-	v := m.ixf_net_count
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIxfNetCount returns the old "ixf_net_count" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldIxfNetCount(ctx context.Context) (v int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIxfNetCount is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIxfNetCount requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIxfNetCount: %w", err)
-	}
-	return oldValue.IxfNetCount, nil
-}
-
-// AddIxfNetCount adds i to the "ixf_net_count" field.
-func (m *InternetExchangeMutation) AddIxfNetCount(i int) {
-	if m.addixf_net_count != nil {
-		*m.addixf_net_count += i
-	} else {
-		m.addixf_net_count = &i
-	}
-}
-
-// AddedIxfNetCount returns the value that was added to the "ixf_net_count" field in this mutation.
-func (m *InternetExchangeMutation) AddedIxfNetCount() (r int, exists bool) {
-	v := m.addixf_net_count
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetIxfNetCount resets all changes to the "ixf_net_count" field.
-func (m *InternetExchangeMutation) ResetIxfNetCount() {
-	m.ixf_net_count = nil
-	m.addixf_net_count = nil
-}
-
-// SetIxfLastImport sets the "ixf_last_import" field.
-func (m *InternetExchangeMutation) SetIxfLastImport(t time.Time) {
-	m.ixf_last_import = &t
-}
-
-// IxfLastImport returns the value of the "ixf_last_import" field in the mutation.
-func (m *InternetExchangeMutation) IxfLastImport() (r time.Time, exists bool) {
-	v := m.ixf_last_import
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIxfLastImport returns the old "ixf_last_import" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldIxfLastImport(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIxfLastImport is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIxfLastImport requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIxfLastImport: %w", err)
-	}
-	return oldValue.IxfLastImport, nil
-}
-
-// ClearIxfLastImport clears the value of the "ixf_last_import" field.
-func (m *InternetExchangeMutation) ClearIxfLastImport() {
-	m.ixf_last_import = nil
-	m.clearedFields[internetexchange.FieldIxfLastImport] = struct{}{}
-}
-
-// IxfLastImportCleared returns if the "ixf_last_import" field was cleared in this mutation.
-func (m *InternetExchangeMutation) IxfLastImportCleared() bool {
-	_, ok := m.clearedFields[internetexchange.FieldIxfLastImport]
-	return ok
-}
-
-// ResetIxfLastImport resets all changes to the "ixf_last_import" field.
-func (m *InternetExchangeMutation) ResetIxfLastImport() {
-	m.ixf_last_import = nil
-	delete(m.clearedFields, internetexchange.FieldIxfLastImport)
-}
-
 // SetIxfImportRequest sets the "ixf_import_request" field.
 func (m *InternetExchangeMutation) SetIxfImportRequest(s string) {
 	m.ixf_import_request = &s
@@ -8728,202 +8990,6 @@ func (m *InternetExchangeMutation) IxfImportRequestStatusCleared() bool {
 func (m *InternetExchangeMutation) ResetIxfImportRequestStatus() {
 	m.ixf_import_request_status = nil
 	delete(m.clearedFields, internetexchange.FieldIxfImportRequestStatus)
-}
-
-// SetServiceLevel sets the "service_level" field.
-func (m *InternetExchangeMutation) SetServiceLevel(s string) {
-	m.service_level = &s
-}
-
-// ServiceLevel returns the value of the "service_level" field in the mutation.
-func (m *InternetExchangeMutation) ServiceLevel() (r string, exists bool) {
-	v := m.service_level
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldServiceLevel returns the old "service_level" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldServiceLevel(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldServiceLevel is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldServiceLevel requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldServiceLevel: %w", err)
-	}
-	return oldValue.ServiceLevel, nil
-}
-
-// ClearServiceLevel clears the value of the "service_level" field.
-func (m *InternetExchangeMutation) ClearServiceLevel() {
-	m.service_level = nil
-	m.clearedFields[internetexchange.FieldServiceLevel] = struct{}{}
-}
-
-// ServiceLevelCleared returns if the "service_level" field was cleared in this mutation.
-func (m *InternetExchangeMutation) ServiceLevelCleared() bool {
-	_, ok := m.clearedFields[internetexchange.FieldServiceLevel]
-	return ok
-}
-
-// ResetServiceLevel resets all changes to the "service_level" field.
-func (m *InternetExchangeMutation) ResetServiceLevel() {
-	m.service_level = nil
-	delete(m.clearedFields, internetexchange.FieldServiceLevel)
-}
-
-// SetTerms sets the "terms" field.
-func (m *InternetExchangeMutation) SetTerms(s string) {
-	m.terms = &s
-}
-
-// Terms returns the value of the "terms" field in the mutation.
-func (m *InternetExchangeMutation) Terms() (r string, exists bool) {
-	v := m.terms
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTerms returns the old "terms" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldTerms(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTerms is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTerms requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTerms: %w", err)
-	}
-	return oldValue.Terms, nil
-}
-
-// ClearTerms clears the value of the "terms" field.
-func (m *InternetExchangeMutation) ClearTerms() {
-	m.terms = nil
-	m.clearedFields[internetexchange.FieldTerms] = struct{}{}
-}
-
-// TermsCleared returns if the "terms" field was cleared in this mutation.
-func (m *InternetExchangeMutation) TermsCleared() bool {
-	_, ok := m.clearedFields[internetexchange.FieldTerms]
-	return ok
-}
-
-// ResetTerms resets all changes to the "terms" field.
-func (m *InternetExchangeMutation) ResetTerms() {
-	m.terms = nil
-	delete(m.clearedFields, internetexchange.FieldTerms)
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (m *InternetExchangeMutation) SetStatusDashboard(s string) {
-	m.status_dashboard = &s
-}
-
-// StatusDashboard returns the value of the "status_dashboard" field in the mutation.
-func (m *InternetExchangeMutation) StatusDashboard() (r string, exists bool) {
-	v := m.status_dashboard
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldStatusDashboard returns the old "status_dashboard" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldStatusDashboard(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldStatusDashboard is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldStatusDashboard requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldStatusDashboard: %w", err)
-	}
-	return oldValue.StatusDashboard, nil
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (m *InternetExchangeMutation) ClearStatusDashboard() {
-	m.status_dashboard = nil
-	m.clearedFields[internetexchange.FieldStatusDashboard] = struct{}{}
-}
-
-// StatusDashboardCleared returns if the "status_dashboard" field was cleared in this mutation.
-func (m *InternetExchangeMutation) StatusDashboardCleared() bool {
-	_, ok := m.clearedFields[internetexchange.FieldStatusDashboard]
-	return ok
-}
-
-// ResetStatusDashboard resets all changes to the "status_dashboard" field.
-func (m *InternetExchangeMutation) ResetStatusDashboard() {
-	m.status_dashboard = nil
-	delete(m.clearedFields, internetexchange.FieldStatusDashboard)
-}
-
-// SetLogo sets the "logo" field.
-func (m *InternetExchangeMutation) SetLogo(s string) {
-	m.logo = &s
-}
-
-// Logo returns the value of the "logo" field in the mutation.
-func (m *InternetExchangeMutation) Logo() (r string, exists bool) {
-	v := m.logo
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLogo returns the old "logo" field's value of the InternetExchange entity.
-// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldLogo(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLogo requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
-	}
-	return oldValue.Logo, nil
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (m *InternetExchangeMutation) ClearLogo() {
-	m.logo = nil
-	m.clearedFields[internetexchange.FieldLogo] = struct{}{}
-}
-
-// LogoCleared returns if the "logo" field was cleared in this mutation.
-func (m *InternetExchangeMutation) LogoCleared() bool {
-	_, ok := m.clearedFields[internetexchange.FieldLogo]
-	return ok
-}
-
-// ResetLogo resets all changes to the "logo" field.
-func (m *InternetExchangeMutation) ResetLogo() {
-	m.logo = nil
-	delete(m.clearedFields, internetexchange.FieldLogo)
 }
 
 // SetCreated sets the "created" field.
@@ -9034,44 +9100,58 @@ func (m *InternetExchangeMutation) ResetStatus() {
 	m.status = nil
 }
 
-// SetOrganizationID sets the "organization" edge to the Organization entity by id.
-func (m *InternetExchangeMutation) SetOrganizationID(id int) {
-	m.organization = &id
+// AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by ids.
+func (m *InternetExchangeMutation) AddIxFacilityIDs(ids ...int) {
+	if m.ix_facilities == nil {
+		m.ix_facilities = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.ix_facilities[ids[i]] = struct{}{}
+	}
 }
 
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (m *InternetExchangeMutation) ClearOrganization() {
-	m.clearedorganization = true
-	m.clearedFields[internetexchange.FieldOrgID] = struct{}{}
+// ClearIxFacilities clears the "ix_facilities" edge to the IxFacility entity.
+func (m *InternetExchangeMutation) ClearIxFacilities() {
+	m.clearedix_facilities = true
 }
 
-// OrganizationCleared reports if the "organization" edge to the Organization entity was cleared.
-func (m *InternetExchangeMutation) OrganizationCleared() bool {
-	return m.OrgIDCleared() || m.clearedorganization
+// IxFacilitiesCleared reports if the "ix_facilities" edge to the IxFacility entity was cleared.
+func (m *InternetExchangeMutation) IxFacilitiesCleared() bool {
+	return m.clearedix_facilities
 }
 
-// OrganizationID returns the "organization" edge ID in the mutation.
-func (m *InternetExchangeMutation) OrganizationID() (id int, exists bool) {
-	if m.organization != nil {
-		return *m.organization, true
+// RemoveIxFacilityIDs removes the "ix_facilities" edge to the IxFacility entity by IDs.
+func (m *InternetExchangeMutation) RemoveIxFacilityIDs(ids ...int) {
+	if m.removedix_facilities == nil {
+		m.removedix_facilities = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.ix_facilities, ids[i])
+		m.removedix_facilities[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedIxFacilities returns the removed IDs of the "ix_facilities" edge to the IxFacility entity.
+func (m *InternetExchangeMutation) RemovedIxFacilitiesIDs() (ids []int) {
+	for id := range m.removedix_facilities {
+		ids = append(ids, id)
 	}
 	return
 }
 
-// OrganizationIDs returns the "organization" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// OrganizationID instead. It exists only for internal usage by the builders.
-func (m *InternetExchangeMutation) OrganizationIDs() (ids []int) {
-	if id := m.organization; id != nil {
-		ids = append(ids, *id)
+// IxFacilitiesIDs returns the "ix_facilities" edge IDs in the mutation.
+func (m *InternetExchangeMutation) IxFacilitiesIDs() (ids []int) {
+	for id := range m.ix_facilities {
+		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetOrganization resets all changes to the "organization" edge.
-func (m *InternetExchangeMutation) ResetOrganization() {
-	m.organization = nil
-	m.clearedorganization = false
+// ResetIxFacilities resets all changes to the "ix_facilities" edge.
+func (m *InternetExchangeMutation) ResetIxFacilities() {
+	m.ix_facilities = nil
+	m.clearedix_facilities = false
+	m.removedix_facilities = nil
 }
 
 // AddIxLanIDs adds the "ix_lans" edge to the IxLan entity by ids.
@@ -9128,58 +9208,44 @@ func (m *InternetExchangeMutation) ResetIxLans() {
 	m.removedix_lans = nil
 }
 
-// AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by ids.
-func (m *InternetExchangeMutation) AddIxFacilityIDs(ids ...int) {
-	if m.ix_facilities == nil {
-		m.ix_facilities = make(map[int]struct{})
-	}
-	for i := range ids {
-		m.ix_facilities[ids[i]] = struct{}{}
-	}
+// SetOrganizationID sets the "organization" edge to the Organization entity by id.
+func (m *InternetExchangeMutation) SetOrganizationID(id int) {
+	m.organization = &id
 }
 
-// ClearIxFacilities clears the "ix_facilities" edge to the IxFacility entity.
-func (m *InternetExchangeMutation) ClearIxFacilities() {
-	m.clearedix_facilities = true
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (m *InternetExchangeMutation) ClearOrganization() {
+	m.clearedorganization = true
+	m.clearedFields[internetexchange.FieldOrgID] = struct{}{}
 }
 
-// IxFacilitiesCleared reports if the "ix_facilities" edge to the IxFacility entity was cleared.
-func (m *InternetExchangeMutation) IxFacilitiesCleared() bool {
-	return m.clearedix_facilities
+// OrganizationCleared reports if the "organization" edge to the Organization entity was cleared.
+func (m *InternetExchangeMutation) OrganizationCleared() bool {
+	return m.OrgIDCleared() || m.clearedorganization
 }
 
-// RemoveIxFacilityIDs removes the "ix_facilities" edge to the IxFacility entity by IDs.
-func (m *InternetExchangeMutation) RemoveIxFacilityIDs(ids ...int) {
-	if m.removedix_facilities == nil {
-		m.removedix_facilities = make(map[int]struct{})
-	}
-	for i := range ids {
-		delete(m.ix_facilities, ids[i])
-		m.removedix_facilities[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedIxFacilities returns the removed IDs of the "ix_facilities" edge to the IxFacility entity.
-func (m *InternetExchangeMutation) RemovedIxFacilitiesIDs() (ids []int) {
-	for id := range m.removedix_facilities {
-		ids = append(ids, id)
+// OrganizationID returns the "organization" edge ID in the mutation.
+func (m *InternetExchangeMutation) OrganizationID() (id int, exists bool) {
+	if m.organization != nil {
+		return *m.organization, true
 	}
 	return
 }
 
-// IxFacilitiesIDs returns the "ix_facilities" edge IDs in the mutation.
-func (m *InternetExchangeMutation) IxFacilitiesIDs() (ids []int) {
-	for id := range m.ix_facilities {
-		ids = append(ids, id)
+// OrganizationIDs returns the "organization" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// OrganizationID instead. It exists only for internal usage by the builders.
+func (m *InternetExchangeMutation) OrganizationIDs() (ids []int) {
+	if id := m.organization; id != nil {
+		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetIxFacilities resets all changes to the "ix_facilities" edge.
-func (m *InternetExchangeMutation) ResetIxFacilities() {
-	m.ix_facilities = nil
-	m.clearedix_facilities = false
-	m.removedix_facilities = nil
+// ResetOrganization resets all changes to the "organization" edge.
+func (m *InternetExchangeMutation) ResetOrganization() {
+	m.organization = nil
+	m.clearedorganization = false
 }
 
 // Where appends a list predicates to the InternetExchangeMutation builder.
@@ -9220,14 +9286,8 @@ func (m *InternetExchangeMutation) Fields() []string {
 	if m.organization != nil {
 		fields = append(fields, internetexchange.FieldOrgID)
 	}
-	if m.name != nil {
-		fields = append(fields, internetexchange.FieldName)
-	}
 	if m.aka != nil {
 		fields = append(fields, internetexchange.FieldAka)
-	}
-	if m.name_long != nil {
-		fields = append(fields, internetexchange.FieldNameLong)
 	}
 	if m.city != nil {
 		fields = append(fields, internetexchange.FieldCity)
@@ -9235,38 +9295,26 @@ func (m *InternetExchangeMutation) Fields() []string {
 	if m.country != nil {
 		fields = append(fields, internetexchange.FieldCountry)
 	}
-	if m.region_continent != nil {
-		fields = append(fields, internetexchange.FieldRegionContinent)
+	if m.ixf_last_import != nil {
+		fields = append(fields, internetexchange.FieldIxfLastImport)
+	}
+	if m.ixf_net_count != nil {
+		fields = append(fields, internetexchange.FieldIxfNetCount)
+	}
+	if m.logo != nil {
+		fields = append(fields, internetexchange.FieldLogo)
 	}
 	if m.media != nil {
 		fields = append(fields, internetexchange.FieldMedia)
 	}
+	if m.name != nil {
+		fields = append(fields, internetexchange.FieldName)
+	}
+	if m.name_long != nil {
+		fields = append(fields, internetexchange.FieldNameLong)
+	}
 	if m.notes != nil {
 		fields = append(fields, internetexchange.FieldNotes)
-	}
-	if m.proto_unicast != nil {
-		fields = append(fields, internetexchange.FieldProtoUnicast)
-	}
-	if m.proto_multicast != nil {
-		fields = append(fields, internetexchange.FieldProtoMulticast)
-	}
-	if m.proto_ipv6 != nil {
-		fields = append(fields, internetexchange.FieldProtoIpv6)
-	}
-	if m.website != nil {
-		fields = append(fields, internetexchange.FieldWebsite)
-	}
-	if m.social_media != nil {
-		fields = append(fields, internetexchange.FieldSocialMedia)
-	}
-	if m.url_stats != nil {
-		fields = append(fields, internetexchange.FieldURLStats)
-	}
-	if m.tech_email != nil {
-		fields = append(fields, internetexchange.FieldTechEmail)
-	}
-	if m.tech_phone != nil {
-		fields = append(fields, internetexchange.FieldTechPhone)
 	}
 	if m.policy_email != nil {
 		fields = append(fields, internetexchange.FieldPolicyEmail)
@@ -9274,11 +9322,47 @@ func (m *InternetExchangeMutation) Fields() []string {
 	if m.policy_phone != nil {
 		fields = append(fields, internetexchange.FieldPolicyPhone)
 	}
+	if m.proto_ipv6 != nil {
+		fields = append(fields, internetexchange.FieldProtoIpv6)
+	}
+	if m.proto_multicast != nil {
+		fields = append(fields, internetexchange.FieldProtoMulticast)
+	}
+	if m.proto_unicast != nil {
+		fields = append(fields, internetexchange.FieldProtoUnicast)
+	}
+	if m.region_continent != nil {
+		fields = append(fields, internetexchange.FieldRegionContinent)
+	}
 	if m.sales_email != nil {
 		fields = append(fields, internetexchange.FieldSalesEmail)
 	}
 	if m.sales_phone != nil {
 		fields = append(fields, internetexchange.FieldSalesPhone)
+	}
+	if m.service_level != nil {
+		fields = append(fields, internetexchange.FieldServiceLevel)
+	}
+	if m.social_media != nil {
+		fields = append(fields, internetexchange.FieldSocialMedia)
+	}
+	if m.status_dashboard != nil {
+		fields = append(fields, internetexchange.FieldStatusDashboard)
+	}
+	if m.tech_email != nil {
+		fields = append(fields, internetexchange.FieldTechEmail)
+	}
+	if m.tech_phone != nil {
+		fields = append(fields, internetexchange.FieldTechPhone)
+	}
+	if m.terms != nil {
+		fields = append(fields, internetexchange.FieldTerms)
+	}
+	if m.url_stats != nil {
+		fields = append(fields, internetexchange.FieldURLStats)
+	}
+	if m.website != nil {
+		fields = append(fields, internetexchange.FieldWebsite)
 	}
 	if m.net_count != nil {
 		fields = append(fields, internetexchange.FieldNetCount)
@@ -9286,29 +9370,11 @@ func (m *InternetExchangeMutation) Fields() []string {
 	if m.fac_count != nil {
 		fields = append(fields, internetexchange.FieldFacCount)
 	}
-	if m.ixf_net_count != nil {
-		fields = append(fields, internetexchange.FieldIxfNetCount)
-	}
-	if m.ixf_last_import != nil {
-		fields = append(fields, internetexchange.FieldIxfLastImport)
-	}
 	if m.ixf_import_request != nil {
 		fields = append(fields, internetexchange.FieldIxfImportRequest)
 	}
 	if m.ixf_import_request_status != nil {
 		fields = append(fields, internetexchange.FieldIxfImportRequestStatus)
-	}
-	if m.service_level != nil {
-		fields = append(fields, internetexchange.FieldServiceLevel)
-	}
-	if m.terms != nil {
-		fields = append(fields, internetexchange.FieldTerms)
-	}
-	if m.status_dashboard != nil {
-		fields = append(fields, internetexchange.FieldStatusDashboard)
-	}
-	if m.logo != nil {
-		fields = append(fields, internetexchange.FieldLogo)
 	}
 	if m.created != nil {
 		fields = append(fields, internetexchange.FieldCreated)
@@ -9329,66 +9395,66 @@ func (m *InternetExchangeMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case internetexchange.FieldOrgID:
 		return m.OrgID()
-	case internetexchange.FieldName:
-		return m.Name()
 	case internetexchange.FieldAka:
 		return m.Aka()
-	case internetexchange.FieldNameLong:
-		return m.NameLong()
 	case internetexchange.FieldCity:
 		return m.City()
 	case internetexchange.FieldCountry:
 		return m.Country()
-	case internetexchange.FieldRegionContinent:
-		return m.RegionContinent()
+	case internetexchange.FieldIxfLastImport:
+		return m.IxfLastImport()
+	case internetexchange.FieldIxfNetCount:
+		return m.IxfNetCount()
+	case internetexchange.FieldLogo:
+		return m.Logo()
 	case internetexchange.FieldMedia:
 		return m.Media()
+	case internetexchange.FieldName:
+		return m.Name()
+	case internetexchange.FieldNameLong:
+		return m.NameLong()
 	case internetexchange.FieldNotes:
 		return m.Notes()
-	case internetexchange.FieldProtoUnicast:
-		return m.ProtoUnicast()
-	case internetexchange.FieldProtoMulticast:
-		return m.ProtoMulticast()
-	case internetexchange.FieldProtoIpv6:
-		return m.ProtoIpv6()
-	case internetexchange.FieldWebsite:
-		return m.Website()
-	case internetexchange.FieldSocialMedia:
-		return m.SocialMedia()
-	case internetexchange.FieldURLStats:
-		return m.URLStats()
-	case internetexchange.FieldTechEmail:
-		return m.TechEmail()
-	case internetexchange.FieldTechPhone:
-		return m.TechPhone()
 	case internetexchange.FieldPolicyEmail:
 		return m.PolicyEmail()
 	case internetexchange.FieldPolicyPhone:
 		return m.PolicyPhone()
+	case internetexchange.FieldProtoIpv6:
+		return m.ProtoIpv6()
+	case internetexchange.FieldProtoMulticast:
+		return m.ProtoMulticast()
+	case internetexchange.FieldProtoUnicast:
+		return m.ProtoUnicast()
+	case internetexchange.FieldRegionContinent:
+		return m.RegionContinent()
 	case internetexchange.FieldSalesEmail:
 		return m.SalesEmail()
 	case internetexchange.FieldSalesPhone:
 		return m.SalesPhone()
+	case internetexchange.FieldServiceLevel:
+		return m.ServiceLevel()
+	case internetexchange.FieldSocialMedia:
+		return m.SocialMedia()
+	case internetexchange.FieldStatusDashboard:
+		return m.StatusDashboard()
+	case internetexchange.FieldTechEmail:
+		return m.TechEmail()
+	case internetexchange.FieldTechPhone:
+		return m.TechPhone()
+	case internetexchange.FieldTerms:
+		return m.Terms()
+	case internetexchange.FieldURLStats:
+		return m.URLStats()
+	case internetexchange.FieldWebsite:
+		return m.Website()
 	case internetexchange.FieldNetCount:
 		return m.NetCount()
 	case internetexchange.FieldFacCount:
 		return m.FacCount()
-	case internetexchange.FieldIxfNetCount:
-		return m.IxfNetCount()
-	case internetexchange.FieldIxfLastImport:
-		return m.IxfLastImport()
 	case internetexchange.FieldIxfImportRequest:
 		return m.IxfImportRequest()
 	case internetexchange.FieldIxfImportRequestStatus:
 		return m.IxfImportRequestStatus()
-	case internetexchange.FieldServiceLevel:
-		return m.ServiceLevel()
-	case internetexchange.FieldTerms:
-		return m.Terms()
-	case internetexchange.FieldStatusDashboard:
-		return m.StatusDashboard()
-	case internetexchange.FieldLogo:
-		return m.Logo()
 	case internetexchange.FieldCreated:
 		return m.Created()
 	case internetexchange.FieldUpdated:
@@ -9406,66 +9472,66 @@ func (m *InternetExchangeMutation) OldField(ctx context.Context, name string) (e
 	switch name {
 	case internetexchange.FieldOrgID:
 		return m.OldOrgID(ctx)
-	case internetexchange.FieldName:
-		return m.OldName(ctx)
 	case internetexchange.FieldAka:
 		return m.OldAka(ctx)
-	case internetexchange.FieldNameLong:
-		return m.OldNameLong(ctx)
 	case internetexchange.FieldCity:
 		return m.OldCity(ctx)
 	case internetexchange.FieldCountry:
 		return m.OldCountry(ctx)
-	case internetexchange.FieldRegionContinent:
-		return m.OldRegionContinent(ctx)
+	case internetexchange.FieldIxfLastImport:
+		return m.OldIxfLastImport(ctx)
+	case internetexchange.FieldIxfNetCount:
+		return m.OldIxfNetCount(ctx)
+	case internetexchange.FieldLogo:
+		return m.OldLogo(ctx)
 	case internetexchange.FieldMedia:
 		return m.OldMedia(ctx)
+	case internetexchange.FieldName:
+		return m.OldName(ctx)
+	case internetexchange.FieldNameLong:
+		return m.OldNameLong(ctx)
 	case internetexchange.FieldNotes:
 		return m.OldNotes(ctx)
-	case internetexchange.FieldProtoUnicast:
-		return m.OldProtoUnicast(ctx)
-	case internetexchange.FieldProtoMulticast:
-		return m.OldProtoMulticast(ctx)
-	case internetexchange.FieldProtoIpv6:
-		return m.OldProtoIpv6(ctx)
-	case internetexchange.FieldWebsite:
-		return m.OldWebsite(ctx)
-	case internetexchange.FieldSocialMedia:
-		return m.OldSocialMedia(ctx)
-	case internetexchange.FieldURLStats:
-		return m.OldURLStats(ctx)
-	case internetexchange.FieldTechEmail:
-		return m.OldTechEmail(ctx)
-	case internetexchange.FieldTechPhone:
-		return m.OldTechPhone(ctx)
 	case internetexchange.FieldPolicyEmail:
 		return m.OldPolicyEmail(ctx)
 	case internetexchange.FieldPolicyPhone:
 		return m.OldPolicyPhone(ctx)
+	case internetexchange.FieldProtoIpv6:
+		return m.OldProtoIpv6(ctx)
+	case internetexchange.FieldProtoMulticast:
+		return m.OldProtoMulticast(ctx)
+	case internetexchange.FieldProtoUnicast:
+		return m.OldProtoUnicast(ctx)
+	case internetexchange.FieldRegionContinent:
+		return m.OldRegionContinent(ctx)
 	case internetexchange.FieldSalesEmail:
 		return m.OldSalesEmail(ctx)
 	case internetexchange.FieldSalesPhone:
 		return m.OldSalesPhone(ctx)
+	case internetexchange.FieldServiceLevel:
+		return m.OldServiceLevel(ctx)
+	case internetexchange.FieldSocialMedia:
+		return m.OldSocialMedia(ctx)
+	case internetexchange.FieldStatusDashboard:
+		return m.OldStatusDashboard(ctx)
+	case internetexchange.FieldTechEmail:
+		return m.OldTechEmail(ctx)
+	case internetexchange.FieldTechPhone:
+		return m.OldTechPhone(ctx)
+	case internetexchange.FieldTerms:
+		return m.OldTerms(ctx)
+	case internetexchange.FieldURLStats:
+		return m.OldURLStats(ctx)
+	case internetexchange.FieldWebsite:
+		return m.OldWebsite(ctx)
 	case internetexchange.FieldNetCount:
 		return m.OldNetCount(ctx)
 	case internetexchange.FieldFacCount:
 		return m.OldFacCount(ctx)
-	case internetexchange.FieldIxfNetCount:
-		return m.OldIxfNetCount(ctx)
-	case internetexchange.FieldIxfLastImport:
-		return m.OldIxfLastImport(ctx)
 	case internetexchange.FieldIxfImportRequest:
 		return m.OldIxfImportRequest(ctx)
 	case internetexchange.FieldIxfImportRequestStatus:
 		return m.OldIxfImportRequestStatus(ctx)
-	case internetexchange.FieldServiceLevel:
-		return m.OldServiceLevel(ctx)
-	case internetexchange.FieldTerms:
-		return m.OldTerms(ctx)
-	case internetexchange.FieldStatusDashboard:
-		return m.OldStatusDashboard(ctx)
-	case internetexchange.FieldLogo:
-		return m.OldLogo(ctx)
 	case internetexchange.FieldCreated:
 		return m.OldCreated(ctx)
 	case internetexchange.FieldUpdated:
@@ -9488,26 +9554,12 @@ func (m *InternetExchangeMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetOrgID(v)
 		return nil
-	case internetexchange.FieldName:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetName(v)
-		return nil
 	case internetexchange.FieldAka:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAka(v)
-		return nil
-	case internetexchange.FieldNameLong:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetNameLong(v)
 		return nil
 	case internetexchange.FieldCity:
 		v, ok := value.(string)
@@ -9523,12 +9575,26 @@ func (m *InternetExchangeMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetCountry(v)
 		return nil
-	case internetexchange.FieldRegionContinent:
+	case internetexchange.FieldIxfLastImport:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIxfLastImport(v)
+		return nil
+	case internetexchange.FieldIxfNetCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIxfNetCount(v)
+		return nil
+	case internetexchange.FieldLogo:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetRegionContinent(v)
+		m.SetLogo(v)
 		return nil
 	case internetexchange.FieldMedia:
 		v, ok := value.(string)
@@ -9537,68 +9603,26 @@ func (m *InternetExchangeMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetMedia(v)
 		return nil
+	case internetexchange.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case internetexchange.FieldNameLong:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameLong(v)
+		return nil
 	case internetexchange.FieldNotes:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNotes(v)
-		return nil
-	case internetexchange.FieldProtoUnicast:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetProtoUnicast(v)
-		return nil
-	case internetexchange.FieldProtoMulticast:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetProtoMulticast(v)
-		return nil
-	case internetexchange.FieldProtoIpv6:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetProtoIpv6(v)
-		return nil
-	case internetexchange.FieldWebsite:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetWebsite(v)
-		return nil
-	case internetexchange.FieldSocialMedia:
-		v, ok := value.([]schema.SocialMedia)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSocialMedia(v)
-		return nil
-	case internetexchange.FieldURLStats:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetURLStats(v)
-		return nil
-	case internetexchange.FieldTechEmail:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTechEmail(v)
-		return nil
-	case internetexchange.FieldTechPhone:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTechPhone(v)
 		return nil
 	case internetexchange.FieldPolicyEmail:
 		v, ok := value.(string)
@@ -9614,6 +9638,34 @@ func (m *InternetExchangeMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetPolicyPhone(v)
 		return nil
+	case internetexchange.FieldProtoIpv6:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProtoIpv6(v)
+		return nil
+	case internetexchange.FieldProtoMulticast:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProtoMulticast(v)
+		return nil
+	case internetexchange.FieldProtoUnicast:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProtoUnicast(v)
+		return nil
+	case internetexchange.FieldRegionContinent:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRegionContinent(v)
+		return nil
 	case internetexchange.FieldSalesEmail:
 		v, ok := value.(string)
 		if !ok {
@@ -9627,6 +9679,62 @@ func (m *InternetExchangeMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSalesPhone(v)
+		return nil
+	case internetexchange.FieldServiceLevel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServiceLevel(v)
+		return nil
+	case internetexchange.FieldSocialMedia:
+		v, ok := value.([]schema.SocialMedia)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSocialMedia(v)
+		return nil
+	case internetexchange.FieldStatusDashboard:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatusDashboard(v)
+		return nil
+	case internetexchange.FieldTechEmail:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTechEmail(v)
+		return nil
+	case internetexchange.FieldTechPhone:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTechPhone(v)
+		return nil
+	case internetexchange.FieldTerms:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTerms(v)
+		return nil
+	case internetexchange.FieldURLStats:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetURLStats(v)
+		return nil
+	case internetexchange.FieldWebsite:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWebsite(v)
 		return nil
 	case internetexchange.FieldNetCount:
 		v, ok := value.(int)
@@ -9642,20 +9750,6 @@ func (m *InternetExchangeMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetFacCount(v)
 		return nil
-	case internetexchange.FieldIxfNetCount:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIxfNetCount(v)
-		return nil
-	case internetexchange.FieldIxfLastImport:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIxfLastImport(v)
-		return nil
 	case internetexchange.FieldIxfImportRequest:
 		v, ok := value.(string)
 		if !ok {
@@ -9669,34 +9763,6 @@ func (m *InternetExchangeMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIxfImportRequestStatus(v)
-		return nil
-	case internetexchange.FieldServiceLevel:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetServiceLevel(v)
-		return nil
-	case internetexchange.FieldTerms:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTerms(v)
-		return nil
-	case internetexchange.FieldStatusDashboard:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetStatusDashboard(v)
-		return nil
-	case internetexchange.FieldLogo:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLogo(v)
 		return nil
 	case internetexchange.FieldCreated:
 		v, ok := value.(time.Time)
@@ -9727,14 +9793,14 @@ func (m *InternetExchangeMutation) SetField(name string, value ent.Value) error 
 // this mutation.
 func (m *InternetExchangeMutation) AddedFields() []string {
 	var fields []string
+	if m.addixf_net_count != nil {
+		fields = append(fields, internetexchange.FieldIxfNetCount)
+	}
 	if m.addnet_count != nil {
 		fields = append(fields, internetexchange.FieldNetCount)
 	}
 	if m.addfac_count != nil {
 		fields = append(fields, internetexchange.FieldFacCount)
-	}
-	if m.addixf_net_count != nil {
-		fields = append(fields, internetexchange.FieldIxfNetCount)
 	}
 	return fields
 }
@@ -9744,12 +9810,12 @@ func (m *InternetExchangeMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *InternetExchangeMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case internetexchange.FieldIxfNetCount:
+		return m.AddedIxfNetCount()
 	case internetexchange.FieldNetCount:
 		return m.AddedNetCount()
 	case internetexchange.FieldFacCount:
 		return m.AddedFacCount()
-	case internetexchange.FieldIxfNetCount:
-		return m.AddedIxfNetCount()
 	}
 	return nil, false
 }
@@ -9759,6 +9825,13 @@ func (m *InternetExchangeMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *InternetExchangeMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case internetexchange.FieldIxfNetCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddIxfNetCount(v)
+		return nil
 	case internetexchange.FieldNetCount:
 		v, ok := value.(int)
 		if !ok {
@@ -9772,13 +9845,6 @@ func (m *InternetExchangeMutation) AddField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddFacCount(v)
-		return nil
-	case internetexchange.FieldIxfNetCount:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddIxfNetCount(v)
 		return nil
 	}
 	return fmt.Errorf("unknown InternetExchange numeric field %s", name)
@@ -9794,26 +9860,29 @@ func (m *InternetExchangeMutation) ClearedFields() []string {
 	if m.FieldCleared(internetexchange.FieldAka) {
 		fields = append(fields, internetexchange.FieldAka)
 	}
+	if m.FieldCleared(internetexchange.FieldCity) {
+		fields = append(fields, internetexchange.FieldCity)
+	}
+	if m.FieldCleared(internetexchange.FieldCountry) {
+		fields = append(fields, internetexchange.FieldCountry)
+	}
+	if m.FieldCleared(internetexchange.FieldIxfLastImport) {
+		fields = append(fields, internetexchange.FieldIxfLastImport)
+	}
+	if m.FieldCleared(internetexchange.FieldIxfNetCount) {
+		fields = append(fields, internetexchange.FieldIxfNetCount)
+	}
+	if m.FieldCleared(internetexchange.FieldLogo) {
+		fields = append(fields, internetexchange.FieldLogo)
+	}
+	if m.FieldCleared(internetexchange.FieldMedia) {
+		fields = append(fields, internetexchange.FieldMedia)
+	}
 	if m.FieldCleared(internetexchange.FieldNameLong) {
 		fields = append(fields, internetexchange.FieldNameLong)
 	}
 	if m.FieldCleared(internetexchange.FieldNotes) {
 		fields = append(fields, internetexchange.FieldNotes)
-	}
-	if m.FieldCleared(internetexchange.FieldWebsite) {
-		fields = append(fields, internetexchange.FieldWebsite)
-	}
-	if m.FieldCleared(internetexchange.FieldSocialMedia) {
-		fields = append(fields, internetexchange.FieldSocialMedia)
-	}
-	if m.FieldCleared(internetexchange.FieldURLStats) {
-		fields = append(fields, internetexchange.FieldURLStats)
-	}
-	if m.FieldCleared(internetexchange.FieldTechEmail) {
-		fields = append(fields, internetexchange.FieldTechEmail)
-	}
-	if m.FieldCleared(internetexchange.FieldTechPhone) {
-		fields = append(fields, internetexchange.FieldTechPhone)
 	}
 	if m.FieldCleared(internetexchange.FieldPolicyEmail) {
 		fields = append(fields, internetexchange.FieldPolicyEmail)
@@ -9821,11 +9890,38 @@ func (m *InternetExchangeMutation) ClearedFields() []string {
 	if m.FieldCleared(internetexchange.FieldPolicyPhone) {
 		fields = append(fields, internetexchange.FieldPolicyPhone)
 	}
+	if m.FieldCleared(internetexchange.FieldRegionContinent) {
+		fields = append(fields, internetexchange.FieldRegionContinent)
+	}
 	if m.FieldCleared(internetexchange.FieldSalesEmail) {
 		fields = append(fields, internetexchange.FieldSalesEmail)
 	}
 	if m.FieldCleared(internetexchange.FieldSalesPhone) {
 		fields = append(fields, internetexchange.FieldSalesPhone)
+	}
+	if m.FieldCleared(internetexchange.FieldServiceLevel) {
+		fields = append(fields, internetexchange.FieldServiceLevel)
+	}
+	if m.FieldCleared(internetexchange.FieldSocialMedia) {
+		fields = append(fields, internetexchange.FieldSocialMedia)
+	}
+	if m.FieldCleared(internetexchange.FieldStatusDashboard) {
+		fields = append(fields, internetexchange.FieldStatusDashboard)
+	}
+	if m.FieldCleared(internetexchange.FieldTechEmail) {
+		fields = append(fields, internetexchange.FieldTechEmail)
+	}
+	if m.FieldCleared(internetexchange.FieldTechPhone) {
+		fields = append(fields, internetexchange.FieldTechPhone)
+	}
+	if m.FieldCleared(internetexchange.FieldTerms) {
+		fields = append(fields, internetexchange.FieldTerms)
+	}
+	if m.FieldCleared(internetexchange.FieldURLStats) {
+		fields = append(fields, internetexchange.FieldURLStats)
+	}
+	if m.FieldCleared(internetexchange.FieldWebsite) {
+		fields = append(fields, internetexchange.FieldWebsite)
 	}
 	if m.FieldCleared(internetexchange.FieldNetCount) {
 		fields = append(fields, internetexchange.FieldNetCount)
@@ -9833,26 +9929,11 @@ func (m *InternetExchangeMutation) ClearedFields() []string {
 	if m.FieldCleared(internetexchange.FieldFacCount) {
 		fields = append(fields, internetexchange.FieldFacCount)
 	}
-	if m.FieldCleared(internetexchange.FieldIxfLastImport) {
-		fields = append(fields, internetexchange.FieldIxfLastImport)
-	}
 	if m.FieldCleared(internetexchange.FieldIxfImportRequest) {
 		fields = append(fields, internetexchange.FieldIxfImportRequest)
 	}
 	if m.FieldCleared(internetexchange.FieldIxfImportRequestStatus) {
 		fields = append(fields, internetexchange.FieldIxfImportRequestStatus)
-	}
-	if m.FieldCleared(internetexchange.FieldServiceLevel) {
-		fields = append(fields, internetexchange.FieldServiceLevel)
-	}
-	if m.FieldCleared(internetexchange.FieldTerms) {
-		fields = append(fields, internetexchange.FieldTerms)
-	}
-	if m.FieldCleared(internetexchange.FieldStatusDashboard) {
-		fields = append(fields, internetexchange.FieldStatusDashboard)
-	}
-	if m.FieldCleared(internetexchange.FieldLogo) {
-		fields = append(fields, internetexchange.FieldLogo)
 	}
 	return fields
 }
@@ -9874,26 +9955,29 @@ func (m *InternetExchangeMutation) ClearField(name string) error {
 	case internetexchange.FieldAka:
 		m.ClearAka()
 		return nil
+	case internetexchange.FieldCity:
+		m.ClearCity()
+		return nil
+	case internetexchange.FieldCountry:
+		m.ClearCountry()
+		return nil
+	case internetexchange.FieldIxfLastImport:
+		m.ClearIxfLastImport()
+		return nil
+	case internetexchange.FieldIxfNetCount:
+		m.ClearIxfNetCount()
+		return nil
+	case internetexchange.FieldLogo:
+		m.ClearLogo()
+		return nil
+	case internetexchange.FieldMedia:
+		m.ClearMedia()
+		return nil
 	case internetexchange.FieldNameLong:
 		m.ClearNameLong()
 		return nil
 	case internetexchange.FieldNotes:
 		m.ClearNotes()
-		return nil
-	case internetexchange.FieldWebsite:
-		m.ClearWebsite()
-		return nil
-	case internetexchange.FieldSocialMedia:
-		m.ClearSocialMedia()
-		return nil
-	case internetexchange.FieldURLStats:
-		m.ClearURLStats()
-		return nil
-	case internetexchange.FieldTechEmail:
-		m.ClearTechEmail()
-		return nil
-	case internetexchange.FieldTechPhone:
-		m.ClearTechPhone()
 		return nil
 	case internetexchange.FieldPolicyEmail:
 		m.ClearPolicyEmail()
@@ -9901,11 +9985,38 @@ func (m *InternetExchangeMutation) ClearField(name string) error {
 	case internetexchange.FieldPolicyPhone:
 		m.ClearPolicyPhone()
 		return nil
+	case internetexchange.FieldRegionContinent:
+		m.ClearRegionContinent()
+		return nil
 	case internetexchange.FieldSalesEmail:
 		m.ClearSalesEmail()
 		return nil
 	case internetexchange.FieldSalesPhone:
 		m.ClearSalesPhone()
+		return nil
+	case internetexchange.FieldServiceLevel:
+		m.ClearServiceLevel()
+		return nil
+	case internetexchange.FieldSocialMedia:
+		m.ClearSocialMedia()
+		return nil
+	case internetexchange.FieldStatusDashboard:
+		m.ClearStatusDashboard()
+		return nil
+	case internetexchange.FieldTechEmail:
+		m.ClearTechEmail()
+		return nil
+	case internetexchange.FieldTechPhone:
+		m.ClearTechPhone()
+		return nil
+	case internetexchange.FieldTerms:
+		m.ClearTerms()
+		return nil
+	case internetexchange.FieldURLStats:
+		m.ClearURLStats()
+		return nil
+	case internetexchange.FieldWebsite:
+		m.ClearWebsite()
 		return nil
 	case internetexchange.FieldNetCount:
 		m.ClearNetCount()
@@ -9913,26 +10024,11 @@ func (m *InternetExchangeMutation) ClearField(name string) error {
 	case internetexchange.FieldFacCount:
 		m.ClearFacCount()
 		return nil
-	case internetexchange.FieldIxfLastImport:
-		m.ClearIxfLastImport()
-		return nil
 	case internetexchange.FieldIxfImportRequest:
 		m.ClearIxfImportRequest()
 		return nil
 	case internetexchange.FieldIxfImportRequestStatus:
 		m.ClearIxfImportRequestStatus()
-		return nil
-	case internetexchange.FieldServiceLevel:
-		m.ClearServiceLevel()
-		return nil
-	case internetexchange.FieldTerms:
-		m.ClearTerms()
-		return nil
-	case internetexchange.FieldStatusDashboard:
-		m.ClearStatusDashboard()
-		return nil
-	case internetexchange.FieldLogo:
-		m.ClearLogo()
 		return nil
 	}
 	return fmt.Errorf("unknown InternetExchange nullable field %s", name)
@@ -9945,14 +10041,8 @@ func (m *InternetExchangeMutation) ResetField(name string) error {
 	case internetexchange.FieldOrgID:
 		m.ResetOrgID()
 		return nil
-	case internetexchange.FieldName:
-		m.ResetName()
-		return nil
 	case internetexchange.FieldAka:
 		m.ResetAka()
-		return nil
-	case internetexchange.FieldNameLong:
-		m.ResetNameLong()
 		return nil
 	case internetexchange.FieldCity:
 		m.ResetCity()
@@ -9960,38 +10050,26 @@ func (m *InternetExchangeMutation) ResetField(name string) error {
 	case internetexchange.FieldCountry:
 		m.ResetCountry()
 		return nil
-	case internetexchange.FieldRegionContinent:
-		m.ResetRegionContinent()
+	case internetexchange.FieldIxfLastImport:
+		m.ResetIxfLastImport()
+		return nil
+	case internetexchange.FieldIxfNetCount:
+		m.ResetIxfNetCount()
+		return nil
+	case internetexchange.FieldLogo:
+		m.ResetLogo()
 		return nil
 	case internetexchange.FieldMedia:
 		m.ResetMedia()
 		return nil
+	case internetexchange.FieldName:
+		m.ResetName()
+		return nil
+	case internetexchange.FieldNameLong:
+		m.ResetNameLong()
+		return nil
 	case internetexchange.FieldNotes:
 		m.ResetNotes()
-		return nil
-	case internetexchange.FieldProtoUnicast:
-		m.ResetProtoUnicast()
-		return nil
-	case internetexchange.FieldProtoMulticast:
-		m.ResetProtoMulticast()
-		return nil
-	case internetexchange.FieldProtoIpv6:
-		m.ResetProtoIpv6()
-		return nil
-	case internetexchange.FieldWebsite:
-		m.ResetWebsite()
-		return nil
-	case internetexchange.FieldSocialMedia:
-		m.ResetSocialMedia()
-		return nil
-	case internetexchange.FieldURLStats:
-		m.ResetURLStats()
-		return nil
-	case internetexchange.FieldTechEmail:
-		m.ResetTechEmail()
-		return nil
-	case internetexchange.FieldTechPhone:
-		m.ResetTechPhone()
 		return nil
 	case internetexchange.FieldPolicyEmail:
 		m.ResetPolicyEmail()
@@ -9999,11 +10077,47 @@ func (m *InternetExchangeMutation) ResetField(name string) error {
 	case internetexchange.FieldPolicyPhone:
 		m.ResetPolicyPhone()
 		return nil
+	case internetexchange.FieldProtoIpv6:
+		m.ResetProtoIpv6()
+		return nil
+	case internetexchange.FieldProtoMulticast:
+		m.ResetProtoMulticast()
+		return nil
+	case internetexchange.FieldProtoUnicast:
+		m.ResetProtoUnicast()
+		return nil
+	case internetexchange.FieldRegionContinent:
+		m.ResetRegionContinent()
+		return nil
 	case internetexchange.FieldSalesEmail:
 		m.ResetSalesEmail()
 		return nil
 	case internetexchange.FieldSalesPhone:
 		m.ResetSalesPhone()
+		return nil
+	case internetexchange.FieldServiceLevel:
+		m.ResetServiceLevel()
+		return nil
+	case internetexchange.FieldSocialMedia:
+		m.ResetSocialMedia()
+		return nil
+	case internetexchange.FieldStatusDashboard:
+		m.ResetStatusDashboard()
+		return nil
+	case internetexchange.FieldTechEmail:
+		m.ResetTechEmail()
+		return nil
+	case internetexchange.FieldTechPhone:
+		m.ResetTechPhone()
+		return nil
+	case internetexchange.FieldTerms:
+		m.ResetTerms()
+		return nil
+	case internetexchange.FieldURLStats:
+		m.ResetURLStats()
+		return nil
+	case internetexchange.FieldWebsite:
+		m.ResetWebsite()
 		return nil
 	case internetexchange.FieldNetCount:
 		m.ResetNetCount()
@@ -10011,29 +10125,11 @@ func (m *InternetExchangeMutation) ResetField(name string) error {
 	case internetexchange.FieldFacCount:
 		m.ResetFacCount()
 		return nil
-	case internetexchange.FieldIxfNetCount:
-		m.ResetIxfNetCount()
-		return nil
-	case internetexchange.FieldIxfLastImport:
-		m.ResetIxfLastImport()
-		return nil
 	case internetexchange.FieldIxfImportRequest:
 		m.ResetIxfImportRequest()
 		return nil
 	case internetexchange.FieldIxfImportRequestStatus:
 		m.ResetIxfImportRequestStatus()
-		return nil
-	case internetexchange.FieldServiceLevel:
-		m.ResetServiceLevel()
-		return nil
-	case internetexchange.FieldTerms:
-		m.ResetTerms()
-		return nil
-	case internetexchange.FieldStatusDashboard:
-		m.ResetStatusDashboard()
-		return nil
-	case internetexchange.FieldLogo:
-		m.ResetLogo()
 		return nil
 	case internetexchange.FieldCreated:
 		m.ResetCreated()
@@ -10051,14 +10147,14 @@ func (m *InternetExchangeMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *InternetExchangeMutation) AddedEdges() []string {
 	edges := make([]string, 0, 3)
-	if m.organization != nil {
-		edges = append(edges, internetexchange.EdgeOrganization)
+	if m.ix_facilities != nil {
+		edges = append(edges, internetexchange.EdgeIxFacilities)
 	}
 	if m.ix_lans != nil {
 		edges = append(edges, internetexchange.EdgeIxLans)
 	}
-	if m.ix_facilities != nil {
-		edges = append(edges, internetexchange.EdgeIxFacilities)
+	if m.organization != nil {
+		edges = append(edges, internetexchange.EdgeOrganization)
 	}
 	return edges
 }
@@ -10067,22 +10163,22 @@ func (m *InternetExchangeMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *InternetExchangeMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case internetexchange.EdgeOrganization:
-		if id := m.organization; id != nil {
-			return []ent.Value{*id}
-		}
-	case internetexchange.EdgeIxLans:
-		ids := make([]ent.Value, 0, len(m.ix_lans))
-		for id := range m.ix_lans {
-			ids = append(ids, id)
-		}
-		return ids
 	case internetexchange.EdgeIxFacilities:
 		ids := make([]ent.Value, 0, len(m.ix_facilities))
 		for id := range m.ix_facilities {
 			ids = append(ids, id)
 		}
 		return ids
+	case internetexchange.EdgeIxLans:
+		ids := make([]ent.Value, 0, len(m.ix_lans))
+		for id := range m.ix_lans {
+			ids = append(ids, id)
+		}
+		return ids
+	case internetexchange.EdgeOrganization:
+		if id := m.organization; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
@@ -10090,11 +10186,11 @@ func (m *InternetExchangeMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *InternetExchangeMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 3)
-	if m.removedix_lans != nil {
-		edges = append(edges, internetexchange.EdgeIxLans)
-	}
 	if m.removedix_facilities != nil {
 		edges = append(edges, internetexchange.EdgeIxFacilities)
+	}
+	if m.removedix_lans != nil {
+		edges = append(edges, internetexchange.EdgeIxLans)
 	}
 	return edges
 }
@@ -10103,15 +10199,15 @@ func (m *InternetExchangeMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *InternetExchangeMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case internetexchange.EdgeIxLans:
-		ids := make([]ent.Value, 0, len(m.removedix_lans))
-		for id := range m.removedix_lans {
-			ids = append(ids, id)
-		}
-		return ids
 	case internetexchange.EdgeIxFacilities:
 		ids := make([]ent.Value, 0, len(m.removedix_facilities))
 		for id := range m.removedix_facilities {
+			ids = append(ids, id)
+		}
+		return ids
+	case internetexchange.EdgeIxLans:
+		ids := make([]ent.Value, 0, len(m.removedix_lans))
+		for id := range m.removedix_lans {
 			ids = append(ids, id)
 		}
 		return ids
@@ -10122,14 +10218,14 @@ func (m *InternetExchangeMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *InternetExchangeMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 3)
-	if m.clearedorganization {
-		edges = append(edges, internetexchange.EdgeOrganization)
+	if m.clearedix_facilities {
+		edges = append(edges, internetexchange.EdgeIxFacilities)
 	}
 	if m.clearedix_lans {
 		edges = append(edges, internetexchange.EdgeIxLans)
 	}
-	if m.clearedix_facilities {
-		edges = append(edges, internetexchange.EdgeIxFacilities)
+	if m.clearedorganization {
+		edges = append(edges, internetexchange.EdgeOrganization)
 	}
 	return edges
 }
@@ -10138,12 +10234,12 @@ func (m *InternetExchangeMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *InternetExchangeMutation) EdgeCleared(name string) bool {
 	switch name {
-	case internetexchange.EdgeOrganization:
-		return m.clearedorganization
-	case internetexchange.EdgeIxLans:
-		return m.clearedix_lans
 	case internetexchange.EdgeIxFacilities:
 		return m.clearedix_facilities
+	case internetexchange.EdgeIxLans:
+		return m.clearedix_lans
+	case internetexchange.EdgeOrganization:
+		return m.clearedorganization
 	}
 	return false
 }
@@ -10163,14 +10259,14 @@ func (m *InternetExchangeMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *InternetExchangeMutation) ResetEdge(name string) error {
 	switch name {
-	case internetexchange.EdgeOrganization:
-		m.ResetOrganization()
+	case internetexchange.EdgeIxFacilities:
+		m.ResetIxFacilities()
 		return nil
 	case internetexchange.EdgeIxLans:
 		m.ResetIxLans()
 		return nil
-	case internetexchange.EdgeIxFacilities:
-		m.ResetIxFacilities()
+	case internetexchange.EdgeOrganization:
+		m.ResetOrganization()
 		return nil
 	}
 	return fmt.Errorf("unknown InternetExchange edge %s", name)
@@ -10189,10 +10285,10 @@ type IxFacilityMutation struct {
 	updated                  *time.Time
 	status                   *string
 	clearedFields            map[string]struct{}
-	internet_exchange        *int
-	clearedinternet_exchange bool
 	facility                 *int
 	clearedfacility          bool
+	internet_exchange        *int
+	clearedinternet_exchange bool
 	done                     bool
 	oldValue                 func(context.Context) (*IxFacility, error)
 	predicates               []predicate.IxFacility
@@ -10302,55 +10398,6 @@ func (m *IxFacilityMutation) IDs(ctx context.Context) ([]int, error) {
 	}
 }
 
-// SetIxID sets the "ix_id" field.
-func (m *IxFacilityMutation) SetIxID(i int) {
-	m.internet_exchange = &i
-}
-
-// IxID returns the value of the "ix_id" field in the mutation.
-func (m *IxFacilityMutation) IxID() (r int, exists bool) {
-	v := m.internet_exchange
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIxID returns the old "ix_id" field's value of the IxFacility entity.
-// If the IxFacility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *IxFacilityMutation) OldIxID(ctx context.Context) (v *int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIxID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIxID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIxID: %w", err)
-	}
-	return oldValue.IxID, nil
-}
-
-// ClearIxID clears the value of the "ix_id" field.
-func (m *IxFacilityMutation) ClearIxID() {
-	m.internet_exchange = nil
-	m.clearedFields[ixfacility.FieldIxID] = struct{}{}
-}
-
-// IxIDCleared returns if the "ix_id" field was cleared in this mutation.
-func (m *IxFacilityMutation) IxIDCleared() bool {
-	_, ok := m.clearedFields[ixfacility.FieldIxID]
-	return ok
-}
-
-// ResetIxID resets all changes to the "ix_id" field.
-func (m *IxFacilityMutation) ResetIxID() {
-	m.internet_exchange = nil
-	delete(m.clearedFields, ixfacility.FieldIxID)
-}
-
 // SetFacID sets the "fac_id" field.
 func (m *IxFacilityMutation) SetFacID(i int) {
 	m.facility = &i
@@ -10398,6 +10445,55 @@ func (m *IxFacilityMutation) FacIDCleared() bool {
 func (m *IxFacilityMutation) ResetFacID() {
 	m.facility = nil
 	delete(m.clearedFields, ixfacility.FieldFacID)
+}
+
+// SetIxID sets the "ix_id" field.
+func (m *IxFacilityMutation) SetIxID(i int) {
+	m.internet_exchange = &i
+}
+
+// IxID returns the value of the "ix_id" field in the mutation.
+func (m *IxFacilityMutation) IxID() (r int, exists bool) {
+	v := m.internet_exchange
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIxID returns the old "ix_id" field's value of the IxFacility entity.
+// If the IxFacility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IxFacilityMutation) OldIxID(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIxID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIxID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIxID: %w", err)
+	}
+	return oldValue.IxID, nil
+}
+
+// ClearIxID clears the value of the "ix_id" field.
+func (m *IxFacilityMutation) ClearIxID() {
+	m.internet_exchange = nil
+	m.clearedFields[ixfacility.FieldIxID] = struct{}{}
+}
+
+// IxIDCleared returns if the "ix_id" field was cleared in this mutation.
+func (m *IxFacilityMutation) IxIDCleared() bool {
+	_, ok := m.clearedFields[ixfacility.FieldIxID]
+	return ok
+}
+
+// ResetIxID resets all changes to the "ix_id" field.
+func (m *IxFacilityMutation) ResetIxID() {
+	m.internet_exchange = nil
+	delete(m.clearedFields, ixfacility.FieldIxID)
 }
 
 // SetName sets the "name" field.
@@ -10655,46 +10751,6 @@ func (m *IxFacilityMutation) ResetStatus() {
 	m.status = nil
 }
 
-// SetInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by id.
-func (m *IxFacilityMutation) SetInternetExchangeID(id int) {
-	m.internet_exchange = &id
-}
-
-// ClearInternetExchange clears the "internet_exchange" edge to the InternetExchange entity.
-func (m *IxFacilityMutation) ClearInternetExchange() {
-	m.clearedinternet_exchange = true
-	m.clearedFields[ixfacility.FieldIxID] = struct{}{}
-}
-
-// InternetExchangeCleared reports if the "internet_exchange" edge to the InternetExchange entity was cleared.
-func (m *IxFacilityMutation) InternetExchangeCleared() bool {
-	return m.IxIDCleared() || m.clearedinternet_exchange
-}
-
-// InternetExchangeID returns the "internet_exchange" edge ID in the mutation.
-func (m *IxFacilityMutation) InternetExchangeID() (id int, exists bool) {
-	if m.internet_exchange != nil {
-		return *m.internet_exchange, true
-	}
-	return
-}
-
-// InternetExchangeIDs returns the "internet_exchange" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// InternetExchangeID instead. It exists only for internal usage by the builders.
-func (m *IxFacilityMutation) InternetExchangeIDs() (ids []int) {
-	if id := m.internet_exchange; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetInternetExchange resets all changes to the "internet_exchange" edge.
-func (m *IxFacilityMutation) ResetInternetExchange() {
-	m.internet_exchange = nil
-	m.clearedinternet_exchange = false
-}
-
 // SetFacilityID sets the "facility" edge to the Facility entity by id.
 func (m *IxFacilityMutation) SetFacilityID(id int) {
 	m.facility = &id
@@ -10735,6 +10791,46 @@ func (m *IxFacilityMutation) ResetFacility() {
 	m.clearedfacility = false
 }
 
+// SetInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by id.
+func (m *IxFacilityMutation) SetInternetExchangeID(id int) {
+	m.internet_exchange = &id
+}
+
+// ClearInternetExchange clears the "internet_exchange" edge to the InternetExchange entity.
+func (m *IxFacilityMutation) ClearInternetExchange() {
+	m.clearedinternet_exchange = true
+	m.clearedFields[ixfacility.FieldIxID] = struct{}{}
+}
+
+// InternetExchangeCleared reports if the "internet_exchange" edge to the InternetExchange entity was cleared.
+func (m *IxFacilityMutation) InternetExchangeCleared() bool {
+	return m.IxIDCleared() || m.clearedinternet_exchange
+}
+
+// InternetExchangeID returns the "internet_exchange" edge ID in the mutation.
+func (m *IxFacilityMutation) InternetExchangeID() (id int, exists bool) {
+	if m.internet_exchange != nil {
+		return *m.internet_exchange, true
+	}
+	return
+}
+
+// InternetExchangeIDs returns the "internet_exchange" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// InternetExchangeID instead. It exists only for internal usage by the builders.
+func (m *IxFacilityMutation) InternetExchangeIDs() (ids []int) {
+	if id := m.internet_exchange; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetInternetExchange resets all changes to the "internet_exchange" edge.
+func (m *IxFacilityMutation) ResetInternetExchange() {
+	m.internet_exchange = nil
+	m.clearedinternet_exchange = false
+}
+
 // Where appends a list predicates to the IxFacilityMutation builder.
 func (m *IxFacilityMutation) Where(ps ...predicate.IxFacility) {
 	m.predicates = append(m.predicates, ps...)
@@ -10770,11 +10866,11 @@ func (m *IxFacilityMutation) Type() string {
 // AddedFields().
 func (m *IxFacilityMutation) Fields() []string {
 	fields := make([]string, 0, 8)
-	if m.internet_exchange != nil {
-		fields = append(fields, ixfacility.FieldIxID)
-	}
 	if m.facility != nil {
 		fields = append(fields, ixfacility.FieldFacID)
+	}
+	if m.internet_exchange != nil {
+		fields = append(fields, ixfacility.FieldIxID)
 	}
 	if m.name != nil {
 		fields = append(fields, ixfacility.FieldName)
@@ -10802,10 +10898,10 @@ func (m *IxFacilityMutation) Fields() []string {
 // schema.
 func (m *IxFacilityMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case ixfacility.FieldIxID:
-		return m.IxID()
 	case ixfacility.FieldFacID:
 		return m.FacID()
+	case ixfacility.FieldIxID:
+		return m.IxID()
 	case ixfacility.FieldName:
 		return m.Name()
 	case ixfacility.FieldCity:
@@ -10827,10 +10923,10 @@ func (m *IxFacilityMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *IxFacilityMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case ixfacility.FieldIxID:
-		return m.OldIxID(ctx)
 	case ixfacility.FieldFacID:
 		return m.OldFacID(ctx)
+	case ixfacility.FieldIxID:
+		return m.OldIxID(ctx)
 	case ixfacility.FieldName:
 		return m.OldName(ctx)
 	case ixfacility.FieldCity:
@@ -10852,19 +10948,19 @@ func (m *IxFacilityMutation) OldField(ctx context.Context, name string) (ent.Val
 // type.
 func (m *IxFacilityMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case ixfacility.FieldIxID:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIxID(v)
-		return nil
 	case ixfacility.FieldFacID:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetFacID(v)
+		return nil
+	case ixfacility.FieldIxID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIxID(v)
 		return nil
 	case ixfacility.FieldName:
 		v, ok := value.(string)
@@ -10941,11 +11037,11 @@ func (m *IxFacilityMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *IxFacilityMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(ixfacility.FieldIxID) {
-		fields = append(fields, ixfacility.FieldIxID)
-	}
 	if m.FieldCleared(ixfacility.FieldFacID) {
 		fields = append(fields, ixfacility.FieldFacID)
+	}
+	if m.FieldCleared(ixfacility.FieldIxID) {
+		fields = append(fields, ixfacility.FieldIxID)
 	}
 	if m.FieldCleared(ixfacility.FieldName) {
 		fields = append(fields, ixfacility.FieldName)
@@ -10970,11 +11066,11 @@ func (m *IxFacilityMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *IxFacilityMutation) ClearField(name string) error {
 	switch name {
-	case ixfacility.FieldIxID:
-		m.ClearIxID()
-		return nil
 	case ixfacility.FieldFacID:
 		m.ClearFacID()
+		return nil
+	case ixfacility.FieldIxID:
+		m.ClearIxID()
 		return nil
 	case ixfacility.FieldName:
 		m.ClearName()
@@ -10993,11 +11089,11 @@ func (m *IxFacilityMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *IxFacilityMutation) ResetField(name string) error {
 	switch name {
-	case ixfacility.FieldIxID:
-		m.ResetIxID()
-		return nil
 	case ixfacility.FieldFacID:
 		m.ResetFacID()
+		return nil
+	case ixfacility.FieldIxID:
+		m.ResetIxID()
 		return nil
 	case ixfacility.FieldName:
 		m.ResetName()
@@ -11024,11 +11120,11 @@ func (m *IxFacilityMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *IxFacilityMutation) AddedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.internet_exchange != nil {
-		edges = append(edges, ixfacility.EdgeInternetExchange)
-	}
 	if m.facility != nil {
 		edges = append(edges, ixfacility.EdgeFacility)
+	}
+	if m.internet_exchange != nil {
+		edges = append(edges, ixfacility.EdgeInternetExchange)
 	}
 	return edges
 }
@@ -11037,12 +11133,12 @@ func (m *IxFacilityMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *IxFacilityMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case ixfacility.EdgeInternetExchange:
-		if id := m.internet_exchange; id != nil {
-			return []ent.Value{*id}
-		}
 	case ixfacility.EdgeFacility:
 		if id := m.facility; id != nil {
+			return []ent.Value{*id}
+		}
+	case ixfacility.EdgeInternetExchange:
+		if id := m.internet_exchange; id != nil {
 			return []ent.Value{*id}
 		}
 	}
@@ -11064,11 +11160,11 @@ func (m *IxFacilityMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *IxFacilityMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.clearedinternet_exchange {
-		edges = append(edges, ixfacility.EdgeInternetExchange)
-	}
 	if m.clearedfacility {
 		edges = append(edges, ixfacility.EdgeFacility)
+	}
+	if m.clearedinternet_exchange {
+		edges = append(edges, ixfacility.EdgeInternetExchange)
 	}
 	return edges
 }
@@ -11077,10 +11173,10 @@ func (m *IxFacilityMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *IxFacilityMutation) EdgeCleared(name string) bool {
 	switch name {
-	case ixfacility.EdgeInternetExchange:
-		return m.clearedinternet_exchange
 	case ixfacility.EdgeFacility:
 		return m.clearedfacility
+	case ixfacility.EdgeInternetExchange:
+		return m.clearedinternet_exchange
 	}
 	return false
 }
@@ -11089,11 +11185,11 @@ func (m *IxFacilityMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *IxFacilityMutation) ClearEdge(name string) error {
 	switch name {
-	case ixfacility.EdgeInternetExchange:
-		m.ClearInternetExchange()
-		return nil
 	case ixfacility.EdgeFacility:
 		m.ClearFacility()
+		return nil
+	case ixfacility.EdgeInternetExchange:
+		m.ClearInternetExchange()
 		return nil
 	}
 	return fmt.Errorf("unknown IxFacility unique edge %s", name)
@@ -11103,11 +11199,11 @@ func (m *IxFacilityMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *IxFacilityMutation) ResetEdge(name string) error {
 	switch name {
-	case ixfacility.EdgeInternetExchange:
-		m.ResetInternetExchange()
-		return nil
 	case ixfacility.EdgeFacility:
 		m.ResetFacility()
+		return nil
+	case ixfacility.EdgeInternetExchange:
+		m.ResetInternetExchange()
 		return nil
 	}
 	return fmt.Errorf("unknown IxFacility edge %s", name)
@@ -11119,16 +11215,16 @@ type IxLanMutation struct {
 	op                              Op
 	typ                             string
 	id                              *int
-	name                            *string
+	arp_sponge                      *string
 	descr                           *string
+	dot1q_support                   *bool
+	ixf_ixp_import_enabled          *bool
+	ixf_ixp_member_list_url_visible *string
 	mtu                             *int
 	addmtu                          *int
-	dot1q_support                   *bool
+	name                            *string
 	rs_asn                          *int
 	addrs_asn                       *int
-	arp_sponge                      *string
-	ixf_ixp_member_list_url_visible *string
-	ixf_ixp_import_enabled          *bool
 	created                         *time.Time
 	updated                         *time.Time
 	status                          *string
@@ -11299,53 +11395,53 @@ func (m *IxLanMutation) ResetIxID() {
 	delete(m.clearedFields, ixlan.FieldIxID)
 }
 
-// SetName sets the "name" field.
-func (m *IxLanMutation) SetName(s string) {
-	m.name = &s
+// SetArpSponge sets the "arp_sponge" field.
+func (m *IxLanMutation) SetArpSponge(s string) {
+	m.arp_sponge = &s
 }
 
-// Name returns the value of the "name" field in the mutation.
-func (m *IxLanMutation) Name() (r string, exists bool) {
-	v := m.name
+// ArpSponge returns the value of the "arp_sponge" field in the mutation.
+func (m *IxLanMutation) ArpSponge() (r string, exists bool) {
+	v := m.arp_sponge
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldName returns the old "name" field's value of the IxLan entity.
+// OldArpSponge returns the old "arp_sponge" field's value of the IxLan entity.
 // If the IxLan object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *IxLanMutation) OldName(ctx context.Context) (v string, err error) {
+func (m *IxLanMutation) OldArpSponge(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
+		return v, errors.New("OldArpSponge is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
+		return v, errors.New("OldArpSponge requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
+		return v, fmt.Errorf("querying old value for OldArpSponge: %w", err)
 	}
-	return oldValue.Name, nil
+	return oldValue.ArpSponge, nil
 }
 
-// ClearName clears the value of the "name" field.
-func (m *IxLanMutation) ClearName() {
-	m.name = nil
-	m.clearedFields[ixlan.FieldName] = struct{}{}
+// ClearArpSponge clears the value of the "arp_sponge" field.
+func (m *IxLanMutation) ClearArpSponge() {
+	m.arp_sponge = nil
+	m.clearedFields[ixlan.FieldArpSponge] = struct{}{}
 }
 
-// NameCleared returns if the "name" field was cleared in this mutation.
-func (m *IxLanMutation) NameCleared() bool {
-	_, ok := m.clearedFields[ixlan.FieldName]
+// ArpSpongeCleared returns if the "arp_sponge" field was cleared in this mutation.
+func (m *IxLanMutation) ArpSpongeCleared() bool {
+	_, ok := m.clearedFields[ixlan.FieldArpSponge]
 	return ok
 }
 
-// ResetName resets all changes to the "name" field.
-func (m *IxLanMutation) ResetName() {
-	m.name = nil
-	delete(m.clearedFields, ixlan.FieldName)
+// ResetArpSponge resets all changes to the "arp_sponge" field.
+func (m *IxLanMutation) ResetArpSponge() {
+	m.arp_sponge = nil
+	delete(m.clearedFields, ixlan.FieldArpSponge)
 }
 
 // SetDescr sets the "descr" field.
@@ -11395,6 +11491,127 @@ func (m *IxLanMutation) DescrCleared() bool {
 func (m *IxLanMutation) ResetDescr() {
 	m.descr = nil
 	delete(m.clearedFields, ixlan.FieldDescr)
+}
+
+// SetDot1qSupport sets the "dot1q_support" field.
+func (m *IxLanMutation) SetDot1qSupport(b bool) {
+	m.dot1q_support = &b
+}
+
+// Dot1qSupport returns the value of the "dot1q_support" field in the mutation.
+func (m *IxLanMutation) Dot1qSupport() (r bool, exists bool) {
+	v := m.dot1q_support
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDot1qSupport returns the old "dot1q_support" field's value of the IxLan entity.
+// If the IxLan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IxLanMutation) OldDot1qSupport(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDot1qSupport is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDot1qSupport requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDot1qSupport: %w", err)
+	}
+	return oldValue.Dot1qSupport, nil
+}
+
+// ResetDot1qSupport resets all changes to the "dot1q_support" field.
+func (m *IxLanMutation) ResetDot1qSupport() {
+	m.dot1q_support = nil
+}
+
+// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
+func (m *IxLanMutation) SetIxfIxpImportEnabled(b bool) {
+	m.ixf_ixp_import_enabled = &b
+}
+
+// IxfIxpImportEnabled returns the value of the "ixf_ixp_import_enabled" field in the mutation.
+func (m *IxLanMutation) IxfIxpImportEnabled() (r bool, exists bool) {
+	v := m.ixf_ixp_import_enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIxfIxpImportEnabled returns the old "ixf_ixp_import_enabled" field's value of the IxLan entity.
+// If the IxLan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IxLanMutation) OldIxfIxpImportEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIxfIxpImportEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIxfIxpImportEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIxfIxpImportEnabled: %w", err)
+	}
+	return oldValue.IxfIxpImportEnabled, nil
+}
+
+// ResetIxfIxpImportEnabled resets all changes to the "ixf_ixp_import_enabled" field.
+func (m *IxLanMutation) ResetIxfIxpImportEnabled() {
+	m.ixf_ixp_import_enabled = nil
+}
+
+// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
+func (m *IxLanMutation) SetIxfIxpMemberListURLVisible(s string) {
+	m.ixf_ixp_member_list_url_visible = &s
+}
+
+// IxfIxpMemberListURLVisible returns the value of the "ixf_ixp_member_list_url_visible" field in the mutation.
+func (m *IxLanMutation) IxfIxpMemberListURLVisible() (r string, exists bool) {
+	v := m.ixf_ixp_member_list_url_visible
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIxfIxpMemberListURLVisible returns the old "ixf_ixp_member_list_url_visible" field's value of the IxLan entity.
+// If the IxLan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IxLanMutation) OldIxfIxpMemberListURLVisible(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIxfIxpMemberListURLVisible is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIxfIxpMemberListURLVisible requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIxfIxpMemberListURLVisible: %w", err)
+	}
+	return oldValue.IxfIxpMemberListURLVisible, nil
+}
+
+// ClearIxfIxpMemberListURLVisible clears the value of the "ixf_ixp_member_list_url_visible" field.
+func (m *IxLanMutation) ClearIxfIxpMemberListURLVisible() {
+	m.ixf_ixp_member_list_url_visible = nil
+	m.clearedFields[ixlan.FieldIxfIxpMemberListURLVisible] = struct{}{}
+}
+
+// IxfIxpMemberListURLVisibleCleared returns if the "ixf_ixp_member_list_url_visible" field was cleared in this mutation.
+func (m *IxLanMutation) IxfIxpMemberListURLVisibleCleared() bool {
+	_, ok := m.clearedFields[ixlan.FieldIxfIxpMemberListURLVisible]
+	return ok
+}
+
+// ResetIxfIxpMemberListURLVisible resets all changes to the "ixf_ixp_member_list_url_visible" field.
+func (m *IxLanMutation) ResetIxfIxpMemberListURLVisible() {
+	m.ixf_ixp_member_list_url_visible = nil
+	delete(m.clearedFields, ixlan.FieldIxfIxpMemberListURLVisible)
 }
 
 // SetMtu sets the "mtu" field.
@@ -11447,46 +11664,73 @@ func (m *IxLanMutation) AddedMtu() (r int, exists bool) {
 	return *v, true
 }
 
+// ClearMtu clears the value of the "mtu" field.
+func (m *IxLanMutation) ClearMtu() {
+	m.mtu = nil
+	m.addmtu = nil
+	m.clearedFields[ixlan.FieldMtu] = struct{}{}
+}
+
+// MtuCleared returns if the "mtu" field was cleared in this mutation.
+func (m *IxLanMutation) MtuCleared() bool {
+	_, ok := m.clearedFields[ixlan.FieldMtu]
+	return ok
+}
+
 // ResetMtu resets all changes to the "mtu" field.
 func (m *IxLanMutation) ResetMtu() {
 	m.mtu = nil
 	m.addmtu = nil
+	delete(m.clearedFields, ixlan.FieldMtu)
 }
 
-// SetDot1qSupport sets the "dot1q_support" field.
-func (m *IxLanMutation) SetDot1qSupport(b bool) {
-	m.dot1q_support = &b
+// SetName sets the "name" field.
+func (m *IxLanMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Dot1qSupport returns the value of the "dot1q_support" field in the mutation.
-func (m *IxLanMutation) Dot1qSupport() (r bool, exists bool) {
-	v := m.dot1q_support
+// Name returns the value of the "name" field in the mutation.
+func (m *IxLanMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDot1qSupport returns the old "dot1q_support" field's value of the IxLan entity.
+// OldName returns the old "name" field's value of the IxLan entity.
 // If the IxLan object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *IxLanMutation) OldDot1qSupport(ctx context.Context) (v bool, err error) {
+func (m *IxLanMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDot1qSupport is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDot1qSupport requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDot1qSupport: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Dot1qSupport, nil
+	return oldValue.Name, nil
 }
 
-// ResetDot1qSupport resets all changes to the "dot1q_support" field.
-func (m *IxLanMutation) ResetDot1qSupport() {
-	m.dot1q_support = nil
+// ClearName clears the value of the "name" field.
+func (m *IxLanMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[ixlan.FieldName] = struct{}{}
+}
+
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *IxLanMutation) NameCleared() bool {
+	_, ok := m.clearedFields[ixlan.FieldName]
+	return ok
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *IxLanMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, ixlan.FieldName)
 }
 
 // SetRsAsn sets the "rs_asn" field.
@@ -11557,127 +11801,6 @@ func (m *IxLanMutation) ResetRsAsn() {
 	m.rs_asn = nil
 	m.addrs_asn = nil
 	delete(m.clearedFields, ixlan.FieldRsAsn)
-}
-
-// SetArpSponge sets the "arp_sponge" field.
-func (m *IxLanMutation) SetArpSponge(s string) {
-	m.arp_sponge = &s
-}
-
-// ArpSponge returns the value of the "arp_sponge" field in the mutation.
-func (m *IxLanMutation) ArpSponge() (r string, exists bool) {
-	v := m.arp_sponge
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldArpSponge returns the old "arp_sponge" field's value of the IxLan entity.
-// If the IxLan object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *IxLanMutation) OldArpSponge(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldArpSponge is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldArpSponge requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldArpSponge: %w", err)
-	}
-	return oldValue.ArpSponge, nil
-}
-
-// ClearArpSponge clears the value of the "arp_sponge" field.
-func (m *IxLanMutation) ClearArpSponge() {
-	m.arp_sponge = nil
-	m.clearedFields[ixlan.FieldArpSponge] = struct{}{}
-}
-
-// ArpSpongeCleared returns if the "arp_sponge" field was cleared in this mutation.
-func (m *IxLanMutation) ArpSpongeCleared() bool {
-	_, ok := m.clearedFields[ixlan.FieldArpSponge]
-	return ok
-}
-
-// ResetArpSponge resets all changes to the "arp_sponge" field.
-func (m *IxLanMutation) ResetArpSponge() {
-	m.arp_sponge = nil
-	delete(m.clearedFields, ixlan.FieldArpSponge)
-}
-
-// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
-func (m *IxLanMutation) SetIxfIxpMemberListURLVisible(s string) {
-	m.ixf_ixp_member_list_url_visible = &s
-}
-
-// IxfIxpMemberListURLVisible returns the value of the "ixf_ixp_member_list_url_visible" field in the mutation.
-func (m *IxLanMutation) IxfIxpMemberListURLVisible() (r string, exists bool) {
-	v := m.ixf_ixp_member_list_url_visible
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIxfIxpMemberListURLVisible returns the old "ixf_ixp_member_list_url_visible" field's value of the IxLan entity.
-// If the IxLan object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *IxLanMutation) OldIxfIxpMemberListURLVisible(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIxfIxpMemberListURLVisible is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIxfIxpMemberListURLVisible requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIxfIxpMemberListURLVisible: %w", err)
-	}
-	return oldValue.IxfIxpMemberListURLVisible, nil
-}
-
-// ResetIxfIxpMemberListURLVisible resets all changes to the "ixf_ixp_member_list_url_visible" field.
-func (m *IxLanMutation) ResetIxfIxpMemberListURLVisible() {
-	m.ixf_ixp_member_list_url_visible = nil
-}
-
-// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
-func (m *IxLanMutation) SetIxfIxpImportEnabled(b bool) {
-	m.ixf_ixp_import_enabled = &b
-}
-
-// IxfIxpImportEnabled returns the value of the "ixf_ixp_import_enabled" field in the mutation.
-func (m *IxLanMutation) IxfIxpImportEnabled() (r bool, exists bool) {
-	v := m.ixf_ixp_import_enabled
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIxfIxpImportEnabled returns the old "ixf_ixp_import_enabled" field's value of the IxLan entity.
-// If the IxLan object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *IxLanMutation) OldIxfIxpImportEnabled(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIxfIxpImportEnabled is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIxfIxpImportEnabled requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIxfIxpImportEnabled: %w", err)
-	}
-	return oldValue.IxfIxpImportEnabled, nil
-}
-
-// ResetIxfIxpImportEnabled resets all changes to the "ixf_ixp_import_enabled" field.
-func (m *IxLanMutation) ResetIxfIxpImportEnabled() {
-	m.ixf_ixp_import_enabled = nil
 }
 
 // SetCreated sets the "created" field.
@@ -11974,29 +12097,29 @@ func (m *IxLanMutation) Fields() []string {
 	if m.internet_exchange != nil {
 		fields = append(fields, ixlan.FieldIxID)
 	}
-	if m.name != nil {
-		fields = append(fields, ixlan.FieldName)
+	if m.arp_sponge != nil {
+		fields = append(fields, ixlan.FieldArpSponge)
 	}
 	if m.descr != nil {
 		fields = append(fields, ixlan.FieldDescr)
 	}
-	if m.mtu != nil {
-		fields = append(fields, ixlan.FieldMtu)
-	}
 	if m.dot1q_support != nil {
 		fields = append(fields, ixlan.FieldDot1qSupport)
 	}
-	if m.rs_asn != nil {
-		fields = append(fields, ixlan.FieldRsAsn)
-	}
-	if m.arp_sponge != nil {
-		fields = append(fields, ixlan.FieldArpSponge)
+	if m.ixf_ixp_import_enabled != nil {
+		fields = append(fields, ixlan.FieldIxfIxpImportEnabled)
 	}
 	if m.ixf_ixp_member_list_url_visible != nil {
 		fields = append(fields, ixlan.FieldIxfIxpMemberListURLVisible)
 	}
-	if m.ixf_ixp_import_enabled != nil {
-		fields = append(fields, ixlan.FieldIxfIxpImportEnabled)
+	if m.mtu != nil {
+		fields = append(fields, ixlan.FieldMtu)
+	}
+	if m.name != nil {
+		fields = append(fields, ixlan.FieldName)
+	}
+	if m.rs_asn != nil {
+		fields = append(fields, ixlan.FieldRsAsn)
 	}
 	if m.created != nil {
 		fields = append(fields, ixlan.FieldCreated)
@@ -12017,22 +12140,22 @@ func (m *IxLanMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case ixlan.FieldIxID:
 		return m.IxID()
-	case ixlan.FieldName:
-		return m.Name()
-	case ixlan.FieldDescr:
-		return m.Descr()
-	case ixlan.FieldMtu:
-		return m.Mtu()
-	case ixlan.FieldDot1qSupport:
-		return m.Dot1qSupport()
-	case ixlan.FieldRsAsn:
-		return m.RsAsn()
 	case ixlan.FieldArpSponge:
 		return m.ArpSponge()
-	case ixlan.FieldIxfIxpMemberListURLVisible:
-		return m.IxfIxpMemberListURLVisible()
+	case ixlan.FieldDescr:
+		return m.Descr()
+	case ixlan.FieldDot1qSupport:
+		return m.Dot1qSupport()
 	case ixlan.FieldIxfIxpImportEnabled:
 		return m.IxfIxpImportEnabled()
+	case ixlan.FieldIxfIxpMemberListURLVisible:
+		return m.IxfIxpMemberListURLVisible()
+	case ixlan.FieldMtu:
+		return m.Mtu()
+	case ixlan.FieldName:
+		return m.Name()
+	case ixlan.FieldRsAsn:
+		return m.RsAsn()
 	case ixlan.FieldCreated:
 		return m.Created()
 	case ixlan.FieldUpdated:
@@ -12050,22 +12173,22 @@ func (m *IxLanMutation) OldField(ctx context.Context, name string) (ent.Value, e
 	switch name {
 	case ixlan.FieldIxID:
 		return m.OldIxID(ctx)
-	case ixlan.FieldName:
-		return m.OldName(ctx)
-	case ixlan.FieldDescr:
-		return m.OldDescr(ctx)
-	case ixlan.FieldMtu:
-		return m.OldMtu(ctx)
-	case ixlan.FieldDot1qSupport:
-		return m.OldDot1qSupport(ctx)
-	case ixlan.FieldRsAsn:
-		return m.OldRsAsn(ctx)
 	case ixlan.FieldArpSponge:
 		return m.OldArpSponge(ctx)
-	case ixlan.FieldIxfIxpMemberListURLVisible:
-		return m.OldIxfIxpMemberListURLVisible(ctx)
+	case ixlan.FieldDescr:
+		return m.OldDescr(ctx)
+	case ixlan.FieldDot1qSupport:
+		return m.OldDot1qSupport(ctx)
 	case ixlan.FieldIxfIxpImportEnabled:
 		return m.OldIxfIxpImportEnabled(ctx)
+	case ixlan.FieldIxfIxpMemberListURLVisible:
+		return m.OldIxfIxpMemberListURLVisible(ctx)
+	case ixlan.FieldMtu:
+		return m.OldMtu(ctx)
+	case ixlan.FieldName:
+		return m.OldName(ctx)
+	case ixlan.FieldRsAsn:
+		return m.OldRsAsn(ctx)
 	case ixlan.FieldCreated:
 		return m.OldCreated(ctx)
 	case ixlan.FieldUpdated:
@@ -12088,12 +12211,12 @@ func (m *IxLanMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetIxID(v)
 		return nil
-	case ixlan.FieldName:
+	case ixlan.FieldArpSponge:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetName(v)
+		m.SetArpSponge(v)
 		return nil
 	case ixlan.FieldDescr:
 		v, ok := value.(string)
@@ -12102,13 +12225,6 @@ func (m *IxLanMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDescr(v)
 		return nil
-	case ixlan.FieldMtu:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMtu(v)
-		return nil
 	case ixlan.FieldDot1qSupport:
 		v, ok := value.(bool)
 		if !ok {
@@ -12116,19 +12232,12 @@ func (m *IxLanMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDot1qSupport(v)
 		return nil
-	case ixlan.FieldRsAsn:
-		v, ok := value.(int)
+	case ixlan.FieldIxfIxpImportEnabled:
+		v, ok := value.(bool)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetRsAsn(v)
-		return nil
-	case ixlan.FieldArpSponge:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetArpSponge(v)
+		m.SetIxfIxpImportEnabled(v)
 		return nil
 	case ixlan.FieldIxfIxpMemberListURLVisible:
 		v, ok := value.(string)
@@ -12137,12 +12246,26 @@ func (m *IxLanMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetIxfIxpMemberListURLVisible(v)
 		return nil
-	case ixlan.FieldIxfIxpImportEnabled:
-		v, ok := value.(bool)
+	case ixlan.FieldMtu:
+		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetIxfIxpImportEnabled(v)
+		m.SetMtu(v)
+		return nil
+	case ixlan.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case ixlan.FieldRsAsn:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRsAsn(v)
 		return nil
 	case ixlan.FieldCreated:
 		v, ok := value.(time.Time)
@@ -12225,17 +12348,23 @@ func (m *IxLanMutation) ClearedFields() []string {
 	if m.FieldCleared(ixlan.FieldIxID) {
 		fields = append(fields, ixlan.FieldIxID)
 	}
-	if m.FieldCleared(ixlan.FieldName) {
-		fields = append(fields, ixlan.FieldName)
+	if m.FieldCleared(ixlan.FieldArpSponge) {
+		fields = append(fields, ixlan.FieldArpSponge)
 	}
 	if m.FieldCleared(ixlan.FieldDescr) {
 		fields = append(fields, ixlan.FieldDescr)
 	}
+	if m.FieldCleared(ixlan.FieldIxfIxpMemberListURLVisible) {
+		fields = append(fields, ixlan.FieldIxfIxpMemberListURLVisible)
+	}
+	if m.FieldCleared(ixlan.FieldMtu) {
+		fields = append(fields, ixlan.FieldMtu)
+	}
+	if m.FieldCleared(ixlan.FieldName) {
+		fields = append(fields, ixlan.FieldName)
+	}
 	if m.FieldCleared(ixlan.FieldRsAsn) {
 		fields = append(fields, ixlan.FieldRsAsn)
-	}
-	if m.FieldCleared(ixlan.FieldArpSponge) {
-		fields = append(fields, ixlan.FieldArpSponge)
 	}
 	return fields
 }
@@ -12254,17 +12383,23 @@ func (m *IxLanMutation) ClearField(name string) error {
 	case ixlan.FieldIxID:
 		m.ClearIxID()
 		return nil
-	case ixlan.FieldName:
-		m.ClearName()
+	case ixlan.FieldArpSponge:
+		m.ClearArpSponge()
 		return nil
 	case ixlan.FieldDescr:
 		m.ClearDescr()
 		return nil
+	case ixlan.FieldIxfIxpMemberListURLVisible:
+		m.ClearIxfIxpMemberListURLVisible()
+		return nil
+	case ixlan.FieldMtu:
+		m.ClearMtu()
+		return nil
+	case ixlan.FieldName:
+		m.ClearName()
+		return nil
 	case ixlan.FieldRsAsn:
 		m.ClearRsAsn()
-		return nil
-	case ixlan.FieldArpSponge:
-		m.ClearArpSponge()
 		return nil
 	}
 	return fmt.Errorf("unknown IxLan nullable field %s", name)
@@ -12277,29 +12412,29 @@ func (m *IxLanMutation) ResetField(name string) error {
 	case ixlan.FieldIxID:
 		m.ResetIxID()
 		return nil
-	case ixlan.FieldName:
-		m.ResetName()
+	case ixlan.FieldArpSponge:
+		m.ResetArpSponge()
 		return nil
 	case ixlan.FieldDescr:
 		m.ResetDescr()
 		return nil
-	case ixlan.FieldMtu:
-		m.ResetMtu()
-		return nil
 	case ixlan.FieldDot1qSupport:
 		m.ResetDot1qSupport()
 		return nil
-	case ixlan.FieldRsAsn:
-		m.ResetRsAsn()
-		return nil
-	case ixlan.FieldArpSponge:
-		m.ResetArpSponge()
+	case ixlan.FieldIxfIxpImportEnabled:
+		m.ResetIxfIxpImportEnabled()
 		return nil
 	case ixlan.FieldIxfIxpMemberListURLVisible:
 		m.ResetIxfIxpMemberListURLVisible()
 		return nil
-	case ixlan.FieldIxfIxpImportEnabled:
-		m.ResetIxfIxpImportEnabled()
+	case ixlan.FieldMtu:
+		m.ResetMtu()
+		return nil
+	case ixlan.FieldName:
+		m.ResetName()
+		return nil
+	case ixlan.FieldRsAsn:
+		m.ResetRsAsn()
 		return nil
 	case ixlan.FieldCreated:
 		m.ResetCreated()
@@ -12448,10 +12583,10 @@ type IxPrefixMutation struct {
 	op            Op
 	typ           string
 	id            *int
-	protocol      *string
-	prefix        *string
 	in_dfz        *bool
 	notes         *string
+	prefix        *string
+	protocol      *string
 	created       *time.Time
 	updated       *time.Time
 	status        *string
@@ -12616,78 +12751,6 @@ func (m *IxPrefixMutation) ResetIxlanID() {
 	delete(m.clearedFields, ixprefix.FieldIxlanID)
 }
 
-// SetProtocol sets the "protocol" field.
-func (m *IxPrefixMutation) SetProtocol(s string) {
-	m.protocol = &s
-}
-
-// Protocol returns the value of the "protocol" field in the mutation.
-func (m *IxPrefixMutation) Protocol() (r string, exists bool) {
-	v := m.protocol
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldProtocol returns the old "protocol" field's value of the IxPrefix entity.
-// If the IxPrefix object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *IxPrefixMutation) OldProtocol(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldProtocol is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldProtocol requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldProtocol: %w", err)
-	}
-	return oldValue.Protocol, nil
-}
-
-// ResetProtocol resets all changes to the "protocol" field.
-func (m *IxPrefixMutation) ResetProtocol() {
-	m.protocol = nil
-}
-
-// SetPrefix sets the "prefix" field.
-func (m *IxPrefixMutation) SetPrefix(s string) {
-	m.prefix = &s
-}
-
-// Prefix returns the value of the "prefix" field in the mutation.
-func (m *IxPrefixMutation) Prefix() (r string, exists bool) {
-	v := m.prefix
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPrefix returns the old "prefix" field's value of the IxPrefix entity.
-// If the IxPrefix object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *IxPrefixMutation) OldPrefix(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPrefix is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPrefix requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPrefix: %w", err)
-	}
-	return oldValue.Prefix, nil
-}
-
-// ResetPrefix resets all changes to the "prefix" field.
-func (m *IxPrefixMutation) ResetPrefix() {
-	m.prefix = nil
-}
-
 // SetInDfz sets the "in_dfz" field.
 func (m *IxPrefixMutation) SetInDfz(b bool) {
 	m.in_dfz = &b
@@ -12771,6 +12834,91 @@ func (m *IxPrefixMutation) NotesCleared() bool {
 func (m *IxPrefixMutation) ResetNotes() {
 	m.notes = nil
 	delete(m.clearedFields, ixprefix.FieldNotes)
+}
+
+// SetPrefix sets the "prefix" field.
+func (m *IxPrefixMutation) SetPrefix(s string) {
+	m.prefix = &s
+}
+
+// Prefix returns the value of the "prefix" field in the mutation.
+func (m *IxPrefixMutation) Prefix() (r string, exists bool) {
+	v := m.prefix
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrefix returns the old "prefix" field's value of the IxPrefix entity.
+// If the IxPrefix object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IxPrefixMutation) OldPrefix(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrefix is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrefix requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrefix: %w", err)
+	}
+	return oldValue.Prefix, nil
+}
+
+// ResetPrefix resets all changes to the "prefix" field.
+func (m *IxPrefixMutation) ResetPrefix() {
+	m.prefix = nil
+}
+
+// SetProtocol sets the "protocol" field.
+func (m *IxPrefixMutation) SetProtocol(s string) {
+	m.protocol = &s
+}
+
+// Protocol returns the value of the "protocol" field in the mutation.
+func (m *IxPrefixMutation) Protocol() (r string, exists bool) {
+	v := m.protocol
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProtocol returns the old "protocol" field's value of the IxPrefix entity.
+// If the IxPrefix object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IxPrefixMutation) OldProtocol(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProtocol is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProtocol requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProtocol: %w", err)
+	}
+	return oldValue.Protocol, nil
+}
+
+// ClearProtocol clears the value of the "protocol" field.
+func (m *IxPrefixMutation) ClearProtocol() {
+	m.protocol = nil
+	m.clearedFields[ixprefix.FieldProtocol] = struct{}{}
+}
+
+// ProtocolCleared returns if the "protocol" field was cleared in this mutation.
+func (m *IxPrefixMutation) ProtocolCleared() bool {
+	_, ok := m.clearedFields[ixprefix.FieldProtocol]
+	return ok
+}
+
+// ResetProtocol resets all changes to the "protocol" field.
+func (m *IxPrefixMutation) ResetProtocol() {
+	m.protocol = nil
+	delete(m.clearedFields, ixprefix.FieldProtocol)
 }
 
 // SetCreated sets the "created" field.
@@ -12959,17 +13107,17 @@ func (m *IxPrefixMutation) Fields() []string {
 	if m.ix_lan != nil {
 		fields = append(fields, ixprefix.FieldIxlanID)
 	}
-	if m.protocol != nil {
-		fields = append(fields, ixprefix.FieldProtocol)
-	}
-	if m.prefix != nil {
-		fields = append(fields, ixprefix.FieldPrefix)
-	}
 	if m.in_dfz != nil {
 		fields = append(fields, ixprefix.FieldInDfz)
 	}
 	if m.notes != nil {
 		fields = append(fields, ixprefix.FieldNotes)
+	}
+	if m.prefix != nil {
+		fields = append(fields, ixprefix.FieldPrefix)
+	}
+	if m.protocol != nil {
+		fields = append(fields, ixprefix.FieldProtocol)
 	}
 	if m.created != nil {
 		fields = append(fields, ixprefix.FieldCreated)
@@ -12990,14 +13138,14 @@ func (m *IxPrefixMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case ixprefix.FieldIxlanID:
 		return m.IxlanID()
-	case ixprefix.FieldProtocol:
-		return m.Protocol()
-	case ixprefix.FieldPrefix:
-		return m.Prefix()
 	case ixprefix.FieldInDfz:
 		return m.InDfz()
 	case ixprefix.FieldNotes:
 		return m.Notes()
+	case ixprefix.FieldPrefix:
+		return m.Prefix()
+	case ixprefix.FieldProtocol:
+		return m.Protocol()
 	case ixprefix.FieldCreated:
 		return m.Created()
 	case ixprefix.FieldUpdated:
@@ -13015,14 +13163,14 @@ func (m *IxPrefixMutation) OldField(ctx context.Context, name string) (ent.Value
 	switch name {
 	case ixprefix.FieldIxlanID:
 		return m.OldIxlanID(ctx)
-	case ixprefix.FieldProtocol:
-		return m.OldProtocol(ctx)
-	case ixprefix.FieldPrefix:
-		return m.OldPrefix(ctx)
 	case ixprefix.FieldInDfz:
 		return m.OldInDfz(ctx)
 	case ixprefix.FieldNotes:
 		return m.OldNotes(ctx)
+	case ixprefix.FieldPrefix:
+		return m.OldPrefix(ctx)
+	case ixprefix.FieldProtocol:
+		return m.OldProtocol(ctx)
 	case ixprefix.FieldCreated:
 		return m.OldCreated(ctx)
 	case ixprefix.FieldUpdated:
@@ -13045,20 +13193,6 @@ func (m *IxPrefixMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetIxlanID(v)
 		return nil
-	case ixprefix.FieldProtocol:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetProtocol(v)
-		return nil
-	case ixprefix.FieldPrefix:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPrefix(v)
-		return nil
 	case ixprefix.FieldInDfz:
 		v, ok := value.(bool)
 		if !ok {
@@ -13072,6 +13206,20 @@ func (m *IxPrefixMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNotes(v)
+		return nil
+	case ixprefix.FieldPrefix:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrefix(v)
+		return nil
+	case ixprefix.FieldProtocol:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProtocol(v)
 		return nil
 	case ixprefix.FieldCreated:
 		v, ok := value.(time.Time)
@@ -13133,6 +13281,9 @@ func (m *IxPrefixMutation) ClearedFields() []string {
 	if m.FieldCleared(ixprefix.FieldNotes) {
 		fields = append(fields, ixprefix.FieldNotes)
 	}
+	if m.FieldCleared(ixprefix.FieldProtocol) {
+		fields = append(fields, ixprefix.FieldProtocol)
+	}
 	return fields
 }
 
@@ -13153,6 +13304,9 @@ func (m *IxPrefixMutation) ClearField(name string) error {
 	case ixprefix.FieldNotes:
 		m.ClearNotes()
 		return nil
+	case ixprefix.FieldProtocol:
+		m.ClearProtocol()
+		return nil
 	}
 	return fmt.Errorf("unknown IxPrefix nullable field %s", name)
 }
@@ -13164,17 +13318,17 @@ func (m *IxPrefixMutation) ResetField(name string) error {
 	case ixprefix.FieldIxlanID:
 		m.ResetIxlanID()
 		return nil
-	case ixprefix.FieldProtocol:
-		m.ResetProtocol()
-		return nil
-	case ixprefix.FieldPrefix:
-		m.ResetPrefix()
-		return nil
 	case ixprefix.FieldInDfz:
 		m.ResetInDfz()
 		return nil
 	case ixprefix.FieldNotes:
 		m.ResetNotes()
+		return nil
+	case ixprefix.FieldPrefix:
+		m.ResetPrefix()
+		return nil
+	case ixprefix.FieldProtocol:
+		m.ResetProtocol()
 		return nil
 	case ixprefix.FieldCreated:
 		m.ResetCreated()
@@ -13269,42 +13423,42 @@ type NetworkMutation struct {
 	op                           Op
 	typ                          string
 	id                           *int
-	name                         *string
 	aka                          *string
-	name_long                    *string
-	website                      *string
-	social_media                 *[]schema.SocialMedia
-	appendsocial_media           []schema.SocialMedia
+	allow_ixp_update             *bool
 	asn                          *int
 	addasn                       *int
-	looking_glass                *string
-	route_server                 *string
-	irr_as_set                   *string
-	info_type                    *string
-	info_types                   *[]string
-	appendinfo_types             []string
+	info_ipv6                    *bool
+	info_multicast               *bool
+	info_never_via_route_servers *bool
 	info_prefixes4               *int
 	addinfo_prefixes4            *int
 	info_prefixes6               *int
 	addinfo_prefixes6            *int
-	info_traffic                 *string
 	info_ratio                   *string
 	info_scope                   *string
+	info_traffic                 *string
+	info_type                    *string
+	info_types                   *[]string
+	appendinfo_types             []string
 	info_unicast                 *bool
-	info_multicast               *bool
-	info_ipv6                    *bool
-	info_never_via_route_servers *bool
+	irr_as_set                   *string
+	logo                         *string
+	looking_glass                *string
+	name                         *string
+	name_long                    *string
 	notes                        *string
-	policy_url                   *string
+	policy_contracts             *string
 	policy_general               *string
 	policy_locations             *string
 	policy_ratio                 *bool
-	policy_contracts             *string
-	allow_ixp_update             *bool
-	status_dashboard             *string
+	policy_url                   *string
 	rir_status                   *string
 	rir_status_updated           *time.Time
-	logo                         *string
+	route_server                 *string
+	social_media                 *[]schema.SocialMedia
+	appendsocial_media           []schema.SocialMedia
+	status_dashboard             *string
+	website                      *string
 	ix_count                     *int
 	addix_count                  *int
 	fac_count                    *int
@@ -13316,17 +13470,17 @@ type NetworkMutation struct {
 	updated                      *time.Time
 	status                       *string
 	clearedFields                map[string]struct{}
-	organization                 *int
-	clearedorganization          bool
-	pocs                         map[int]struct{}
-	removedpocs                  map[int]struct{}
-	clearedpocs                  bool
 	network_facilities           map[int]struct{}
 	removednetwork_facilities    map[int]struct{}
 	clearednetwork_facilities    bool
 	network_ix_lans              map[int]struct{}
 	removednetwork_ix_lans       map[int]struct{}
 	clearednetwork_ix_lans       bool
+	organization                 *int
+	clearedorganization          bool
+	pocs                         map[int]struct{}
+	removedpocs                  map[int]struct{}
+	clearedpocs                  bool
 	done                         bool
 	oldValue                     func(context.Context) (*Network, error)
 	predicates                   []predicate.Network
@@ -13485,42 +13639,6 @@ func (m *NetworkMutation) ResetOrgID() {
 	delete(m.clearedFields, network.FieldOrgID)
 }
 
-// SetName sets the "name" field.
-func (m *NetworkMutation) SetName(s string) {
-	m.name = &s
-}
-
-// Name returns the value of the "name" field in the mutation.
-func (m *NetworkMutation) Name() (r string, exists bool) {
-	v := m.name
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldName returns the old "name" field's value of the Network entity.
-// If the Network object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldName(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
-	}
-	return oldValue.Name, nil
-}
-
-// ResetName resets all changes to the "name" field.
-func (m *NetworkMutation) ResetName() {
-	m.name = nil
-}
-
 // SetAka sets the "aka" field.
 func (m *NetworkMutation) SetAka(s string) {
 	m.aka = &s
@@ -13570,167 +13688,40 @@ func (m *NetworkMutation) ResetAka() {
 	delete(m.clearedFields, network.FieldAka)
 }
 
-// SetNameLong sets the "name_long" field.
-func (m *NetworkMutation) SetNameLong(s string) {
-	m.name_long = &s
+// SetAllowIxpUpdate sets the "allow_ixp_update" field.
+func (m *NetworkMutation) SetAllowIxpUpdate(b bool) {
+	m.allow_ixp_update = &b
 }
 
-// NameLong returns the value of the "name_long" field in the mutation.
-func (m *NetworkMutation) NameLong() (r string, exists bool) {
-	v := m.name_long
+// AllowIxpUpdate returns the value of the "allow_ixp_update" field in the mutation.
+func (m *NetworkMutation) AllowIxpUpdate() (r bool, exists bool) {
+	v := m.allow_ixp_update
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldNameLong returns the old "name_long" field's value of the Network entity.
+// OldAllowIxpUpdate returns the old "allow_ixp_update" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldNameLong(ctx context.Context) (v string, err error) {
+func (m *NetworkMutation) OldAllowIxpUpdate(ctx context.Context) (v bool, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNameLong is only allowed on UpdateOne operations")
+		return v, errors.New("OldAllowIxpUpdate is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNameLong requires an ID field in the mutation")
+		return v, errors.New("OldAllowIxpUpdate requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNameLong: %w", err)
+		return v, fmt.Errorf("querying old value for OldAllowIxpUpdate: %w", err)
 	}
-	return oldValue.NameLong, nil
+	return oldValue.AllowIxpUpdate, nil
 }
 
-// ClearNameLong clears the value of the "name_long" field.
-func (m *NetworkMutation) ClearNameLong() {
-	m.name_long = nil
-	m.clearedFields[network.FieldNameLong] = struct{}{}
-}
-
-// NameLongCleared returns if the "name_long" field was cleared in this mutation.
-func (m *NetworkMutation) NameLongCleared() bool {
-	_, ok := m.clearedFields[network.FieldNameLong]
-	return ok
-}
-
-// ResetNameLong resets all changes to the "name_long" field.
-func (m *NetworkMutation) ResetNameLong() {
-	m.name_long = nil
-	delete(m.clearedFields, network.FieldNameLong)
-}
-
-// SetWebsite sets the "website" field.
-func (m *NetworkMutation) SetWebsite(s string) {
-	m.website = &s
-}
-
-// Website returns the value of the "website" field in the mutation.
-func (m *NetworkMutation) Website() (r string, exists bool) {
-	v := m.website
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldWebsite returns the old "website" field's value of the Network entity.
-// If the Network object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldWebsite(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldWebsite requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
-	}
-	return oldValue.Website, nil
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (m *NetworkMutation) ClearWebsite() {
-	m.website = nil
-	m.clearedFields[network.FieldWebsite] = struct{}{}
-}
-
-// WebsiteCleared returns if the "website" field was cleared in this mutation.
-func (m *NetworkMutation) WebsiteCleared() bool {
-	_, ok := m.clearedFields[network.FieldWebsite]
-	return ok
-}
-
-// ResetWebsite resets all changes to the "website" field.
-func (m *NetworkMutation) ResetWebsite() {
-	m.website = nil
-	delete(m.clearedFields, network.FieldWebsite)
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (m *NetworkMutation) SetSocialMedia(sm []schema.SocialMedia) {
-	m.social_media = &sm
-	m.appendsocial_media = nil
-}
-
-// SocialMedia returns the value of the "social_media" field in the mutation.
-func (m *NetworkMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
-	v := m.social_media
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSocialMedia returns the old "social_media" field's value of the Network entity.
-// If the Network object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSocialMedia requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSocialMedia: %w", err)
-	}
-	return oldValue.SocialMedia, nil
-}
-
-// AppendSocialMedia adds sm to the "social_media" field.
-func (m *NetworkMutation) AppendSocialMedia(sm []schema.SocialMedia) {
-	m.appendsocial_media = append(m.appendsocial_media, sm...)
-}
-
-// AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
-func (m *NetworkMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
-	if len(m.appendsocial_media) == 0 {
-		return nil, false
-	}
-	return m.appendsocial_media, true
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (m *NetworkMutation) ClearSocialMedia() {
-	m.social_media = nil
-	m.appendsocial_media = nil
-	m.clearedFields[network.FieldSocialMedia] = struct{}{}
-}
-
-// SocialMediaCleared returns if the "social_media" field was cleared in this mutation.
-func (m *NetworkMutation) SocialMediaCleared() bool {
-	_, ok := m.clearedFields[network.FieldSocialMedia]
-	return ok
-}
-
-// ResetSocialMedia resets all changes to the "social_media" field.
-func (m *NetworkMutation) ResetSocialMedia() {
-	m.social_media = nil
-	m.appendsocial_media = nil
-	delete(m.clearedFields, network.FieldSocialMedia)
+// ResetAllowIxpUpdate resets all changes to the "allow_ixp_update" field.
+func (m *NetworkMutation) ResetAllowIxpUpdate() {
+	m.allow_ixp_update = nil
 }
 
 // SetAsn sets the "asn" field.
@@ -13789,265 +13780,112 @@ func (m *NetworkMutation) ResetAsn() {
 	m.addasn = nil
 }
 
-// SetLookingGlass sets the "looking_glass" field.
-func (m *NetworkMutation) SetLookingGlass(s string) {
-	m.looking_glass = &s
+// SetInfoIpv6 sets the "info_ipv6" field.
+func (m *NetworkMutation) SetInfoIpv6(b bool) {
+	m.info_ipv6 = &b
 }
 
-// LookingGlass returns the value of the "looking_glass" field in the mutation.
-func (m *NetworkMutation) LookingGlass() (r string, exists bool) {
-	v := m.looking_glass
+// InfoIpv6 returns the value of the "info_ipv6" field in the mutation.
+func (m *NetworkMutation) InfoIpv6() (r bool, exists bool) {
+	v := m.info_ipv6
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldLookingGlass returns the old "looking_glass" field's value of the Network entity.
+// OldInfoIpv6 returns the old "info_ipv6" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldLookingGlass(ctx context.Context) (v string, err error) {
+func (m *NetworkMutation) OldInfoIpv6(ctx context.Context) (v bool, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLookingGlass is only allowed on UpdateOne operations")
+		return v, errors.New("OldInfoIpv6 is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLookingGlass requires an ID field in the mutation")
+		return v, errors.New("OldInfoIpv6 requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLookingGlass: %w", err)
+		return v, fmt.Errorf("querying old value for OldInfoIpv6: %w", err)
 	}
-	return oldValue.LookingGlass, nil
+	return oldValue.InfoIpv6, nil
 }
 
-// ClearLookingGlass clears the value of the "looking_glass" field.
-func (m *NetworkMutation) ClearLookingGlass() {
-	m.looking_glass = nil
-	m.clearedFields[network.FieldLookingGlass] = struct{}{}
+// ResetInfoIpv6 resets all changes to the "info_ipv6" field.
+func (m *NetworkMutation) ResetInfoIpv6() {
+	m.info_ipv6 = nil
 }
 
-// LookingGlassCleared returns if the "looking_glass" field was cleared in this mutation.
-func (m *NetworkMutation) LookingGlassCleared() bool {
-	_, ok := m.clearedFields[network.FieldLookingGlass]
-	return ok
+// SetInfoMulticast sets the "info_multicast" field.
+func (m *NetworkMutation) SetInfoMulticast(b bool) {
+	m.info_multicast = &b
 }
 
-// ResetLookingGlass resets all changes to the "looking_glass" field.
-func (m *NetworkMutation) ResetLookingGlass() {
-	m.looking_glass = nil
-	delete(m.clearedFields, network.FieldLookingGlass)
-}
-
-// SetRouteServer sets the "route_server" field.
-func (m *NetworkMutation) SetRouteServer(s string) {
-	m.route_server = &s
-}
-
-// RouteServer returns the value of the "route_server" field in the mutation.
-func (m *NetworkMutation) RouteServer() (r string, exists bool) {
-	v := m.route_server
+// InfoMulticast returns the value of the "info_multicast" field in the mutation.
+func (m *NetworkMutation) InfoMulticast() (r bool, exists bool) {
+	v := m.info_multicast
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldRouteServer returns the old "route_server" field's value of the Network entity.
+// OldInfoMulticast returns the old "info_multicast" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldRouteServer(ctx context.Context) (v string, err error) {
+func (m *NetworkMutation) OldInfoMulticast(ctx context.Context) (v bool, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldRouteServer is only allowed on UpdateOne operations")
+		return v, errors.New("OldInfoMulticast is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldRouteServer requires an ID field in the mutation")
+		return v, errors.New("OldInfoMulticast requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRouteServer: %w", err)
+		return v, fmt.Errorf("querying old value for OldInfoMulticast: %w", err)
 	}
-	return oldValue.RouteServer, nil
+	return oldValue.InfoMulticast, nil
 }
 
-// ClearRouteServer clears the value of the "route_server" field.
-func (m *NetworkMutation) ClearRouteServer() {
-	m.route_server = nil
-	m.clearedFields[network.FieldRouteServer] = struct{}{}
+// ResetInfoMulticast resets all changes to the "info_multicast" field.
+func (m *NetworkMutation) ResetInfoMulticast() {
+	m.info_multicast = nil
 }
 
-// RouteServerCleared returns if the "route_server" field was cleared in this mutation.
-func (m *NetworkMutation) RouteServerCleared() bool {
-	_, ok := m.clearedFields[network.FieldRouteServer]
-	return ok
+// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
+func (m *NetworkMutation) SetInfoNeverViaRouteServers(b bool) {
+	m.info_never_via_route_servers = &b
 }
 
-// ResetRouteServer resets all changes to the "route_server" field.
-func (m *NetworkMutation) ResetRouteServer() {
-	m.route_server = nil
-	delete(m.clearedFields, network.FieldRouteServer)
-}
-
-// SetIrrAsSet sets the "irr_as_set" field.
-func (m *NetworkMutation) SetIrrAsSet(s string) {
-	m.irr_as_set = &s
-}
-
-// IrrAsSet returns the value of the "irr_as_set" field in the mutation.
-func (m *NetworkMutation) IrrAsSet() (r string, exists bool) {
-	v := m.irr_as_set
+// InfoNeverViaRouteServers returns the value of the "info_never_via_route_servers" field in the mutation.
+func (m *NetworkMutation) InfoNeverViaRouteServers() (r bool, exists bool) {
+	v := m.info_never_via_route_servers
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldIrrAsSet returns the old "irr_as_set" field's value of the Network entity.
+// OldInfoNeverViaRouteServers returns the old "info_never_via_route_servers" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldIrrAsSet(ctx context.Context) (v string, err error) {
+func (m *NetworkMutation) OldInfoNeverViaRouteServers(ctx context.Context) (v bool, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIrrAsSet is only allowed on UpdateOne operations")
+		return v, errors.New("OldInfoNeverViaRouteServers is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIrrAsSet requires an ID field in the mutation")
+		return v, errors.New("OldInfoNeverViaRouteServers requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIrrAsSet: %w", err)
+		return v, fmt.Errorf("querying old value for OldInfoNeverViaRouteServers: %w", err)
 	}
-	return oldValue.IrrAsSet, nil
+	return oldValue.InfoNeverViaRouteServers, nil
 }
 
-// ClearIrrAsSet clears the value of the "irr_as_set" field.
-func (m *NetworkMutation) ClearIrrAsSet() {
-	m.irr_as_set = nil
-	m.clearedFields[network.FieldIrrAsSet] = struct{}{}
-}
-
-// IrrAsSetCleared returns if the "irr_as_set" field was cleared in this mutation.
-func (m *NetworkMutation) IrrAsSetCleared() bool {
-	_, ok := m.clearedFields[network.FieldIrrAsSet]
-	return ok
-}
-
-// ResetIrrAsSet resets all changes to the "irr_as_set" field.
-func (m *NetworkMutation) ResetIrrAsSet() {
-	m.irr_as_set = nil
-	delete(m.clearedFields, network.FieldIrrAsSet)
-}
-
-// SetInfoType sets the "info_type" field.
-func (m *NetworkMutation) SetInfoType(s string) {
-	m.info_type = &s
-}
-
-// InfoType returns the value of the "info_type" field in the mutation.
-func (m *NetworkMutation) InfoType() (r string, exists bool) {
-	v := m.info_type
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInfoType returns the old "info_type" field's value of the Network entity.
-// If the Network object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldInfoType(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInfoType is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInfoType requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInfoType: %w", err)
-	}
-	return oldValue.InfoType, nil
-}
-
-// ClearInfoType clears the value of the "info_type" field.
-func (m *NetworkMutation) ClearInfoType() {
-	m.info_type = nil
-	m.clearedFields[network.FieldInfoType] = struct{}{}
-}
-
-// InfoTypeCleared returns if the "info_type" field was cleared in this mutation.
-func (m *NetworkMutation) InfoTypeCleared() bool {
-	_, ok := m.clearedFields[network.FieldInfoType]
-	return ok
-}
-
-// ResetInfoType resets all changes to the "info_type" field.
-func (m *NetworkMutation) ResetInfoType() {
-	m.info_type = nil
-	delete(m.clearedFields, network.FieldInfoType)
-}
-
-// SetInfoTypes sets the "info_types" field.
-func (m *NetworkMutation) SetInfoTypes(s []string) {
-	m.info_types = &s
-	m.appendinfo_types = nil
-}
-
-// InfoTypes returns the value of the "info_types" field in the mutation.
-func (m *NetworkMutation) InfoTypes() (r []string, exists bool) {
-	v := m.info_types
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInfoTypes returns the old "info_types" field's value of the Network entity.
-// If the Network object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldInfoTypes(ctx context.Context) (v []string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInfoTypes is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInfoTypes requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInfoTypes: %w", err)
-	}
-	return oldValue.InfoTypes, nil
-}
-
-// AppendInfoTypes adds s to the "info_types" field.
-func (m *NetworkMutation) AppendInfoTypes(s []string) {
-	m.appendinfo_types = append(m.appendinfo_types, s...)
-}
-
-// AppendedInfoTypes returns the list of values that were appended to the "info_types" field in this mutation.
-func (m *NetworkMutation) AppendedInfoTypes() ([]string, bool) {
-	if len(m.appendinfo_types) == 0 {
-		return nil, false
-	}
-	return m.appendinfo_types, true
-}
-
-// ClearInfoTypes clears the value of the "info_types" field.
-func (m *NetworkMutation) ClearInfoTypes() {
-	m.info_types = nil
-	m.appendinfo_types = nil
-	m.clearedFields[network.FieldInfoTypes] = struct{}{}
-}
-
-// InfoTypesCleared returns if the "info_types" field was cleared in this mutation.
-func (m *NetworkMutation) InfoTypesCleared() bool {
-	_, ok := m.clearedFields[network.FieldInfoTypes]
-	return ok
-}
-
-// ResetInfoTypes resets all changes to the "info_types" field.
-func (m *NetworkMutation) ResetInfoTypes() {
-	m.info_types = nil
-	m.appendinfo_types = nil
-	delete(m.clearedFields, network.FieldInfoTypes)
+// ResetInfoNeverViaRouteServers resets all changes to the "info_never_via_route_servers" field.
+func (m *NetworkMutation) ResetInfoNeverViaRouteServers() {
+	m.info_never_via_route_servers = nil
 }
 
 // SetInfoPrefixes4 sets the "info_prefixes4" field.
@@ -14190,55 +14028,6 @@ func (m *NetworkMutation) ResetInfoPrefixes6() {
 	delete(m.clearedFields, network.FieldInfoPrefixes6)
 }
 
-// SetInfoTraffic sets the "info_traffic" field.
-func (m *NetworkMutation) SetInfoTraffic(s string) {
-	m.info_traffic = &s
-}
-
-// InfoTraffic returns the value of the "info_traffic" field in the mutation.
-func (m *NetworkMutation) InfoTraffic() (r string, exists bool) {
-	v := m.info_traffic
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInfoTraffic returns the old "info_traffic" field's value of the Network entity.
-// If the Network object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldInfoTraffic(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInfoTraffic is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInfoTraffic requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInfoTraffic: %w", err)
-	}
-	return oldValue.InfoTraffic, nil
-}
-
-// ClearInfoTraffic clears the value of the "info_traffic" field.
-func (m *NetworkMutation) ClearInfoTraffic() {
-	m.info_traffic = nil
-	m.clearedFields[network.FieldInfoTraffic] = struct{}{}
-}
-
-// InfoTrafficCleared returns if the "info_traffic" field was cleared in this mutation.
-func (m *NetworkMutation) InfoTrafficCleared() bool {
-	_, ok := m.clearedFields[network.FieldInfoTraffic]
-	return ok
-}
-
-// ResetInfoTraffic resets all changes to the "info_traffic" field.
-func (m *NetworkMutation) ResetInfoTraffic() {
-	m.info_traffic = nil
-	delete(m.clearedFields, network.FieldInfoTraffic)
-}
-
 // SetInfoRatio sets the "info_ratio" field.
 func (m *NetworkMutation) SetInfoRatio(s string) {
 	m.info_ratio = &s
@@ -14337,6 +14126,169 @@ func (m *NetworkMutation) ResetInfoScope() {
 	delete(m.clearedFields, network.FieldInfoScope)
 }
 
+// SetInfoTraffic sets the "info_traffic" field.
+func (m *NetworkMutation) SetInfoTraffic(s string) {
+	m.info_traffic = &s
+}
+
+// InfoTraffic returns the value of the "info_traffic" field in the mutation.
+func (m *NetworkMutation) InfoTraffic() (r string, exists bool) {
+	v := m.info_traffic
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInfoTraffic returns the old "info_traffic" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldInfoTraffic(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInfoTraffic is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInfoTraffic requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInfoTraffic: %w", err)
+	}
+	return oldValue.InfoTraffic, nil
+}
+
+// ClearInfoTraffic clears the value of the "info_traffic" field.
+func (m *NetworkMutation) ClearInfoTraffic() {
+	m.info_traffic = nil
+	m.clearedFields[network.FieldInfoTraffic] = struct{}{}
+}
+
+// InfoTrafficCleared returns if the "info_traffic" field was cleared in this mutation.
+func (m *NetworkMutation) InfoTrafficCleared() bool {
+	_, ok := m.clearedFields[network.FieldInfoTraffic]
+	return ok
+}
+
+// ResetInfoTraffic resets all changes to the "info_traffic" field.
+func (m *NetworkMutation) ResetInfoTraffic() {
+	m.info_traffic = nil
+	delete(m.clearedFields, network.FieldInfoTraffic)
+}
+
+// SetInfoType sets the "info_type" field.
+func (m *NetworkMutation) SetInfoType(s string) {
+	m.info_type = &s
+}
+
+// InfoType returns the value of the "info_type" field in the mutation.
+func (m *NetworkMutation) InfoType() (r string, exists bool) {
+	v := m.info_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInfoType returns the old "info_type" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldInfoType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInfoType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInfoType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInfoType: %w", err)
+	}
+	return oldValue.InfoType, nil
+}
+
+// ClearInfoType clears the value of the "info_type" field.
+func (m *NetworkMutation) ClearInfoType() {
+	m.info_type = nil
+	m.clearedFields[network.FieldInfoType] = struct{}{}
+}
+
+// InfoTypeCleared returns if the "info_type" field was cleared in this mutation.
+func (m *NetworkMutation) InfoTypeCleared() bool {
+	_, ok := m.clearedFields[network.FieldInfoType]
+	return ok
+}
+
+// ResetInfoType resets all changes to the "info_type" field.
+func (m *NetworkMutation) ResetInfoType() {
+	m.info_type = nil
+	delete(m.clearedFields, network.FieldInfoType)
+}
+
+// SetInfoTypes sets the "info_types" field.
+func (m *NetworkMutation) SetInfoTypes(s []string) {
+	m.info_types = &s
+	m.appendinfo_types = nil
+}
+
+// InfoTypes returns the value of the "info_types" field in the mutation.
+func (m *NetworkMutation) InfoTypes() (r []string, exists bool) {
+	v := m.info_types
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInfoTypes returns the old "info_types" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldInfoTypes(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInfoTypes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInfoTypes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInfoTypes: %w", err)
+	}
+	return oldValue.InfoTypes, nil
+}
+
+// AppendInfoTypes adds s to the "info_types" field.
+func (m *NetworkMutation) AppendInfoTypes(s []string) {
+	m.appendinfo_types = append(m.appendinfo_types, s...)
+}
+
+// AppendedInfoTypes returns the list of values that were appended to the "info_types" field in this mutation.
+func (m *NetworkMutation) AppendedInfoTypes() ([]string, bool) {
+	if len(m.appendinfo_types) == 0 {
+		return nil, false
+	}
+	return m.appendinfo_types, true
+}
+
+// ClearInfoTypes clears the value of the "info_types" field.
+func (m *NetworkMutation) ClearInfoTypes() {
+	m.info_types = nil
+	m.appendinfo_types = nil
+	m.clearedFields[network.FieldInfoTypes] = struct{}{}
+}
+
+// InfoTypesCleared returns if the "info_types" field was cleared in this mutation.
+func (m *NetworkMutation) InfoTypesCleared() bool {
+	_, ok := m.clearedFields[network.FieldInfoTypes]
+	return ok
+}
+
+// ResetInfoTypes resets all changes to the "info_types" field.
+func (m *NetworkMutation) ResetInfoTypes() {
+	m.info_types = nil
+	m.appendinfo_types = nil
+	delete(m.clearedFields, network.FieldInfoTypes)
+}
+
 // SetInfoUnicast sets the "info_unicast" field.
 func (m *NetworkMutation) SetInfoUnicast(b bool) {
 	m.info_unicast = &b
@@ -14373,112 +14325,236 @@ func (m *NetworkMutation) ResetInfoUnicast() {
 	m.info_unicast = nil
 }
 
-// SetInfoMulticast sets the "info_multicast" field.
-func (m *NetworkMutation) SetInfoMulticast(b bool) {
-	m.info_multicast = &b
+// SetIrrAsSet sets the "irr_as_set" field.
+func (m *NetworkMutation) SetIrrAsSet(s string) {
+	m.irr_as_set = &s
 }
 
-// InfoMulticast returns the value of the "info_multicast" field in the mutation.
-func (m *NetworkMutation) InfoMulticast() (r bool, exists bool) {
-	v := m.info_multicast
+// IrrAsSet returns the value of the "irr_as_set" field in the mutation.
+func (m *NetworkMutation) IrrAsSet() (r string, exists bool) {
+	v := m.irr_as_set
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldInfoMulticast returns the old "info_multicast" field's value of the Network entity.
+// OldIrrAsSet returns the old "irr_as_set" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldInfoMulticast(ctx context.Context) (v bool, err error) {
+func (m *NetworkMutation) OldIrrAsSet(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInfoMulticast is only allowed on UpdateOne operations")
+		return v, errors.New("OldIrrAsSet is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInfoMulticast requires an ID field in the mutation")
+		return v, errors.New("OldIrrAsSet requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInfoMulticast: %w", err)
+		return v, fmt.Errorf("querying old value for OldIrrAsSet: %w", err)
 	}
-	return oldValue.InfoMulticast, nil
+	return oldValue.IrrAsSet, nil
 }
 
-// ResetInfoMulticast resets all changes to the "info_multicast" field.
-func (m *NetworkMutation) ResetInfoMulticast() {
-	m.info_multicast = nil
+// ClearIrrAsSet clears the value of the "irr_as_set" field.
+func (m *NetworkMutation) ClearIrrAsSet() {
+	m.irr_as_set = nil
+	m.clearedFields[network.FieldIrrAsSet] = struct{}{}
 }
 
-// SetInfoIpv6 sets the "info_ipv6" field.
-func (m *NetworkMutation) SetInfoIpv6(b bool) {
-	m.info_ipv6 = &b
+// IrrAsSetCleared returns if the "irr_as_set" field was cleared in this mutation.
+func (m *NetworkMutation) IrrAsSetCleared() bool {
+	_, ok := m.clearedFields[network.FieldIrrAsSet]
+	return ok
 }
 
-// InfoIpv6 returns the value of the "info_ipv6" field in the mutation.
-func (m *NetworkMutation) InfoIpv6() (r bool, exists bool) {
-	v := m.info_ipv6
+// ResetIrrAsSet resets all changes to the "irr_as_set" field.
+func (m *NetworkMutation) ResetIrrAsSet() {
+	m.irr_as_set = nil
+	delete(m.clearedFields, network.FieldIrrAsSet)
+}
+
+// SetLogo sets the "logo" field.
+func (m *NetworkMutation) SetLogo(s string) {
+	m.logo = &s
+}
+
+// Logo returns the value of the "logo" field in the mutation.
+func (m *NetworkMutation) Logo() (r string, exists bool) {
+	v := m.logo
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldInfoIpv6 returns the old "info_ipv6" field's value of the Network entity.
+// OldLogo returns the old "logo" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldInfoIpv6(ctx context.Context) (v bool, err error) {
+func (m *NetworkMutation) OldLogo(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInfoIpv6 is only allowed on UpdateOne operations")
+		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInfoIpv6 requires an ID field in the mutation")
+		return v, errors.New("OldLogo requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInfoIpv6: %w", err)
+		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
 	}
-	return oldValue.InfoIpv6, nil
+	return oldValue.Logo, nil
 }
 
-// ResetInfoIpv6 resets all changes to the "info_ipv6" field.
-func (m *NetworkMutation) ResetInfoIpv6() {
-	m.info_ipv6 = nil
+// ClearLogo clears the value of the "logo" field.
+func (m *NetworkMutation) ClearLogo() {
+	m.logo = nil
+	m.clearedFields[network.FieldLogo] = struct{}{}
 }
 
-// SetInfoNeverViaRouteServers sets the "info_never_via_route_servers" field.
-func (m *NetworkMutation) SetInfoNeverViaRouteServers(b bool) {
-	m.info_never_via_route_servers = &b
+// LogoCleared returns if the "logo" field was cleared in this mutation.
+func (m *NetworkMutation) LogoCleared() bool {
+	_, ok := m.clearedFields[network.FieldLogo]
+	return ok
 }
 
-// InfoNeverViaRouteServers returns the value of the "info_never_via_route_servers" field in the mutation.
-func (m *NetworkMutation) InfoNeverViaRouteServers() (r bool, exists bool) {
-	v := m.info_never_via_route_servers
+// ResetLogo resets all changes to the "logo" field.
+func (m *NetworkMutation) ResetLogo() {
+	m.logo = nil
+	delete(m.clearedFields, network.FieldLogo)
+}
+
+// SetLookingGlass sets the "looking_glass" field.
+func (m *NetworkMutation) SetLookingGlass(s string) {
+	m.looking_glass = &s
+}
+
+// LookingGlass returns the value of the "looking_glass" field in the mutation.
+func (m *NetworkMutation) LookingGlass() (r string, exists bool) {
+	v := m.looking_glass
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldInfoNeverViaRouteServers returns the old "info_never_via_route_servers" field's value of the Network entity.
+// OldLookingGlass returns the old "looking_glass" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldInfoNeverViaRouteServers(ctx context.Context) (v bool, err error) {
+func (m *NetworkMutation) OldLookingGlass(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInfoNeverViaRouteServers is only allowed on UpdateOne operations")
+		return v, errors.New("OldLookingGlass is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInfoNeverViaRouteServers requires an ID field in the mutation")
+		return v, errors.New("OldLookingGlass requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInfoNeverViaRouteServers: %w", err)
+		return v, fmt.Errorf("querying old value for OldLookingGlass: %w", err)
 	}
-	return oldValue.InfoNeverViaRouteServers, nil
+	return oldValue.LookingGlass, nil
 }
 
-// ResetInfoNeverViaRouteServers resets all changes to the "info_never_via_route_servers" field.
-func (m *NetworkMutation) ResetInfoNeverViaRouteServers() {
-	m.info_never_via_route_servers = nil
+// ClearLookingGlass clears the value of the "looking_glass" field.
+func (m *NetworkMutation) ClearLookingGlass() {
+	m.looking_glass = nil
+	m.clearedFields[network.FieldLookingGlass] = struct{}{}
+}
+
+// LookingGlassCleared returns if the "looking_glass" field was cleared in this mutation.
+func (m *NetworkMutation) LookingGlassCleared() bool {
+	_, ok := m.clearedFields[network.FieldLookingGlass]
+	return ok
+}
+
+// ResetLookingGlass resets all changes to the "looking_glass" field.
+func (m *NetworkMutation) ResetLookingGlass() {
+	m.looking_glass = nil
+	delete(m.clearedFields, network.FieldLookingGlass)
+}
+
+// SetName sets the "name" field.
+func (m *NetworkMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *NetworkMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *NetworkMutation) ResetName() {
+	m.name = nil
+}
+
+// SetNameLong sets the "name_long" field.
+func (m *NetworkMutation) SetNameLong(s string) {
+	m.name_long = &s
+}
+
+// NameLong returns the value of the "name_long" field in the mutation.
+func (m *NetworkMutation) NameLong() (r string, exists bool) {
+	v := m.name_long
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameLong returns the old "name_long" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldNameLong(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameLong is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameLong requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameLong: %w", err)
+	}
+	return oldValue.NameLong, nil
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (m *NetworkMutation) ClearNameLong() {
+	m.name_long = nil
+	m.clearedFields[network.FieldNameLong] = struct{}{}
+}
+
+// NameLongCleared returns if the "name_long" field was cleared in this mutation.
+func (m *NetworkMutation) NameLongCleared() bool {
+	_, ok := m.clearedFields[network.FieldNameLong]
+	return ok
+}
+
+// ResetNameLong resets all changes to the "name_long" field.
+func (m *NetworkMutation) ResetNameLong() {
+	m.name_long = nil
+	delete(m.clearedFields, network.FieldNameLong)
 }
 
 // SetNotes sets the "notes" field.
@@ -14530,53 +14606,53 @@ func (m *NetworkMutation) ResetNotes() {
 	delete(m.clearedFields, network.FieldNotes)
 }
 
-// SetPolicyURL sets the "policy_url" field.
-func (m *NetworkMutation) SetPolicyURL(s string) {
-	m.policy_url = &s
+// SetPolicyContracts sets the "policy_contracts" field.
+func (m *NetworkMutation) SetPolicyContracts(s string) {
+	m.policy_contracts = &s
 }
 
-// PolicyURL returns the value of the "policy_url" field in the mutation.
-func (m *NetworkMutation) PolicyURL() (r string, exists bool) {
-	v := m.policy_url
+// PolicyContracts returns the value of the "policy_contracts" field in the mutation.
+func (m *NetworkMutation) PolicyContracts() (r string, exists bool) {
+	v := m.policy_contracts
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldPolicyURL returns the old "policy_url" field's value of the Network entity.
+// OldPolicyContracts returns the old "policy_contracts" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldPolicyURL(ctx context.Context) (v string, err error) {
+func (m *NetworkMutation) OldPolicyContracts(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPolicyURL is only allowed on UpdateOne operations")
+		return v, errors.New("OldPolicyContracts is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPolicyURL requires an ID field in the mutation")
+		return v, errors.New("OldPolicyContracts requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPolicyURL: %w", err)
+		return v, fmt.Errorf("querying old value for OldPolicyContracts: %w", err)
 	}
-	return oldValue.PolicyURL, nil
+	return oldValue.PolicyContracts, nil
 }
 
-// ClearPolicyURL clears the value of the "policy_url" field.
-func (m *NetworkMutation) ClearPolicyURL() {
-	m.policy_url = nil
-	m.clearedFields[network.FieldPolicyURL] = struct{}{}
+// ClearPolicyContracts clears the value of the "policy_contracts" field.
+func (m *NetworkMutation) ClearPolicyContracts() {
+	m.policy_contracts = nil
+	m.clearedFields[network.FieldPolicyContracts] = struct{}{}
 }
 
-// PolicyURLCleared returns if the "policy_url" field was cleared in this mutation.
-func (m *NetworkMutation) PolicyURLCleared() bool {
-	_, ok := m.clearedFields[network.FieldPolicyURL]
+// PolicyContractsCleared returns if the "policy_contracts" field was cleared in this mutation.
+func (m *NetworkMutation) PolicyContractsCleared() bool {
+	_, ok := m.clearedFields[network.FieldPolicyContracts]
 	return ok
 }
 
-// ResetPolicyURL resets all changes to the "policy_url" field.
-func (m *NetworkMutation) ResetPolicyURL() {
-	m.policy_url = nil
-	delete(m.clearedFields, network.FieldPolicyURL)
+// ResetPolicyContracts resets all changes to the "policy_contracts" field.
+func (m *NetworkMutation) ResetPolicyContracts() {
+	m.policy_contracts = nil
+	delete(m.clearedFields, network.FieldPolicyContracts)
 }
 
 // SetPolicyGeneral sets the "policy_general" field.
@@ -14713,138 +14789,53 @@ func (m *NetworkMutation) ResetPolicyRatio() {
 	m.policy_ratio = nil
 }
 
-// SetPolicyContracts sets the "policy_contracts" field.
-func (m *NetworkMutation) SetPolicyContracts(s string) {
-	m.policy_contracts = &s
+// SetPolicyURL sets the "policy_url" field.
+func (m *NetworkMutation) SetPolicyURL(s string) {
+	m.policy_url = &s
 }
 
-// PolicyContracts returns the value of the "policy_contracts" field in the mutation.
-func (m *NetworkMutation) PolicyContracts() (r string, exists bool) {
-	v := m.policy_contracts
+// PolicyURL returns the value of the "policy_url" field in the mutation.
+func (m *NetworkMutation) PolicyURL() (r string, exists bool) {
+	v := m.policy_url
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldPolicyContracts returns the old "policy_contracts" field's value of the Network entity.
+// OldPolicyURL returns the old "policy_url" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldPolicyContracts(ctx context.Context) (v string, err error) {
+func (m *NetworkMutation) OldPolicyURL(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPolicyContracts is only allowed on UpdateOne operations")
+		return v, errors.New("OldPolicyURL is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPolicyContracts requires an ID field in the mutation")
+		return v, errors.New("OldPolicyURL requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPolicyContracts: %w", err)
+		return v, fmt.Errorf("querying old value for OldPolicyURL: %w", err)
 	}
-	return oldValue.PolicyContracts, nil
+	return oldValue.PolicyURL, nil
 }
 
-// ClearPolicyContracts clears the value of the "policy_contracts" field.
-func (m *NetworkMutation) ClearPolicyContracts() {
-	m.policy_contracts = nil
-	m.clearedFields[network.FieldPolicyContracts] = struct{}{}
+// ClearPolicyURL clears the value of the "policy_url" field.
+func (m *NetworkMutation) ClearPolicyURL() {
+	m.policy_url = nil
+	m.clearedFields[network.FieldPolicyURL] = struct{}{}
 }
 
-// PolicyContractsCleared returns if the "policy_contracts" field was cleared in this mutation.
-func (m *NetworkMutation) PolicyContractsCleared() bool {
-	_, ok := m.clearedFields[network.FieldPolicyContracts]
+// PolicyURLCleared returns if the "policy_url" field was cleared in this mutation.
+func (m *NetworkMutation) PolicyURLCleared() bool {
+	_, ok := m.clearedFields[network.FieldPolicyURL]
 	return ok
 }
 
-// ResetPolicyContracts resets all changes to the "policy_contracts" field.
-func (m *NetworkMutation) ResetPolicyContracts() {
-	m.policy_contracts = nil
-	delete(m.clearedFields, network.FieldPolicyContracts)
-}
-
-// SetAllowIxpUpdate sets the "allow_ixp_update" field.
-func (m *NetworkMutation) SetAllowIxpUpdate(b bool) {
-	m.allow_ixp_update = &b
-}
-
-// AllowIxpUpdate returns the value of the "allow_ixp_update" field in the mutation.
-func (m *NetworkMutation) AllowIxpUpdate() (r bool, exists bool) {
-	v := m.allow_ixp_update
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAllowIxpUpdate returns the old "allow_ixp_update" field's value of the Network entity.
-// If the Network object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldAllowIxpUpdate(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAllowIxpUpdate is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAllowIxpUpdate requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAllowIxpUpdate: %w", err)
-	}
-	return oldValue.AllowIxpUpdate, nil
-}
-
-// ResetAllowIxpUpdate resets all changes to the "allow_ixp_update" field.
-func (m *NetworkMutation) ResetAllowIxpUpdate() {
-	m.allow_ixp_update = nil
-}
-
-// SetStatusDashboard sets the "status_dashboard" field.
-func (m *NetworkMutation) SetStatusDashboard(s string) {
-	m.status_dashboard = &s
-}
-
-// StatusDashboard returns the value of the "status_dashboard" field in the mutation.
-func (m *NetworkMutation) StatusDashboard() (r string, exists bool) {
-	v := m.status_dashboard
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldStatusDashboard returns the old "status_dashboard" field's value of the Network entity.
-// If the Network object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldStatusDashboard(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldStatusDashboard is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldStatusDashboard requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldStatusDashboard: %w", err)
-	}
-	return oldValue.StatusDashboard, nil
-}
-
-// ClearStatusDashboard clears the value of the "status_dashboard" field.
-func (m *NetworkMutation) ClearStatusDashboard() {
-	m.status_dashboard = nil
-	m.clearedFields[network.FieldStatusDashboard] = struct{}{}
-}
-
-// StatusDashboardCleared returns if the "status_dashboard" field was cleared in this mutation.
-func (m *NetworkMutation) StatusDashboardCleared() bool {
-	_, ok := m.clearedFields[network.FieldStatusDashboard]
-	return ok
-}
-
-// ResetStatusDashboard resets all changes to the "status_dashboard" field.
-func (m *NetworkMutation) ResetStatusDashboard() {
-	m.status_dashboard = nil
-	delete(m.clearedFields, network.FieldStatusDashboard)
+// ResetPolicyURL resets all changes to the "policy_url" field.
+func (m *NetworkMutation) ResetPolicyURL() {
+	m.policy_url = nil
+	delete(m.clearedFields, network.FieldPolicyURL)
 }
 
 // SetRirStatus sets the "rir_status" field.
@@ -14945,53 +14936,216 @@ func (m *NetworkMutation) ResetRirStatusUpdated() {
 	delete(m.clearedFields, network.FieldRirStatusUpdated)
 }
 
-// SetLogo sets the "logo" field.
-func (m *NetworkMutation) SetLogo(s string) {
-	m.logo = &s
+// SetRouteServer sets the "route_server" field.
+func (m *NetworkMutation) SetRouteServer(s string) {
+	m.route_server = &s
 }
 
-// Logo returns the value of the "logo" field in the mutation.
-func (m *NetworkMutation) Logo() (r string, exists bool) {
-	v := m.logo
+// RouteServer returns the value of the "route_server" field in the mutation.
+func (m *NetworkMutation) RouteServer() (r string, exists bool) {
+	v := m.route_server
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldLogo returns the old "logo" field's value of the Network entity.
+// OldRouteServer returns the old "route_server" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldLogo(ctx context.Context) (v *string, err error) {
+func (m *NetworkMutation) OldRouteServer(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
+		return v, errors.New("OldRouteServer is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLogo requires an ID field in the mutation")
+		return v, errors.New("OldRouteServer requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
+		return v, fmt.Errorf("querying old value for OldRouteServer: %w", err)
 	}
-	return oldValue.Logo, nil
+	return oldValue.RouteServer, nil
 }
 
-// ClearLogo clears the value of the "logo" field.
-func (m *NetworkMutation) ClearLogo() {
-	m.logo = nil
-	m.clearedFields[network.FieldLogo] = struct{}{}
+// ClearRouteServer clears the value of the "route_server" field.
+func (m *NetworkMutation) ClearRouteServer() {
+	m.route_server = nil
+	m.clearedFields[network.FieldRouteServer] = struct{}{}
 }
 
-// LogoCleared returns if the "logo" field was cleared in this mutation.
-func (m *NetworkMutation) LogoCleared() bool {
-	_, ok := m.clearedFields[network.FieldLogo]
+// RouteServerCleared returns if the "route_server" field was cleared in this mutation.
+func (m *NetworkMutation) RouteServerCleared() bool {
+	_, ok := m.clearedFields[network.FieldRouteServer]
 	return ok
 }
 
-// ResetLogo resets all changes to the "logo" field.
-func (m *NetworkMutation) ResetLogo() {
-	m.logo = nil
-	delete(m.clearedFields, network.FieldLogo)
+// ResetRouteServer resets all changes to the "route_server" field.
+func (m *NetworkMutation) ResetRouteServer() {
+	m.route_server = nil
+	delete(m.clearedFields, network.FieldRouteServer)
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (m *NetworkMutation) SetSocialMedia(sm []schema.SocialMedia) {
+	m.social_media = &sm
+	m.appendsocial_media = nil
+}
+
+// SocialMedia returns the value of the "social_media" field in the mutation.
+func (m *NetworkMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
+	v := m.social_media
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSocialMedia returns the old "social_media" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSocialMedia requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSocialMedia: %w", err)
+	}
+	return oldValue.SocialMedia, nil
+}
+
+// AppendSocialMedia adds sm to the "social_media" field.
+func (m *NetworkMutation) AppendSocialMedia(sm []schema.SocialMedia) {
+	m.appendsocial_media = append(m.appendsocial_media, sm...)
+}
+
+// AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
+func (m *NetworkMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
+	if len(m.appendsocial_media) == 0 {
+		return nil, false
+	}
+	return m.appendsocial_media, true
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (m *NetworkMutation) ClearSocialMedia() {
+	m.social_media = nil
+	m.appendsocial_media = nil
+	m.clearedFields[network.FieldSocialMedia] = struct{}{}
+}
+
+// SocialMediaCleared returns if the "social_media" field was cleared in this mutation.
+func (m *NetworkMutation) SocialMediaCleared() bool {
+	_, ok := m.clearedFields[network.FieldSocialMedia]
+	return ok
+}
+
+// ResetSocialMedia resets all changes to the "social_media" field.
+func (m *NetworkMutation) ResetSocialMedia() {
+	m.social_media = nil
+	m.appendsocial_media = nil
+	delete(m.clearedFields, network.FieldSocialMedia)
+}
+
+// SetStatusDashboard sets the "status_dashboard" field.
+func (m *NetworkMutation) SetStatusDashboard(s string) {
+	m.status_dashboard = &s
+}
+
+// StatusDashboard returns the value of the "status_dashboard" field in the mutation.
+func (m *NetworkMutation) StatusDashboard() (r string, exists bool) {
+	v := m.status_dashboard
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatusDashboard returns the old "status_dashboard" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldStatusDashboard(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatusDashboard is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatusDashboard requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatusDashboard: %w", err)
+	}
+	return oldValue.StatusDashboard, nil
+}
+
+// ClearStatusDashboard clears the value of the "status_dashboard" field.
+func (m *NetworkMutation) ClearStatusDashboard() {
+	m.status_dashboard = nil
+	m.clearedFields[network.FieldStatusDashboard] = struct{}{}
+}
+
+// StatusDashboardCleared returns if the "status_dashboard" field was cleared in this mutation.
+func (m *NetworkMutation) StatusDashboardCleared() bool {
+	_, ok := m.clearedFields[network.FieldStatusDashboard]
+	return ok
+}
+
+// ResetStatusDashboard resets all changes to the "status_dashboard" field.
+func (m *NetworkMutation) ResetStatusDashboard() {
+	m.status_dashboard = nil
+	delete(m.clearedFields, network.FieldStatusDashboard)
+}
+
+// SetWebsite sets the "website" field.
+func (m *NetworkMutation) SetWebsite(s string) {
+	m.website = &s
+}
+
+// Website returns the value of the "website" field in the mutation.
+func (m *NetworkMutation) Website() (r string, exists bool) {
+	v := m.website
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWebsite returns the old "website" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldWebsite(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWebsite requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
+	}
+	return oldValue.Website, nil
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (m *NetworkMutation) ClearWebsite() {
+	m.website = nil
+	m.clearedFields[network.FieldWebsite] = struct{}{}
+}
+
+// WebsiteCleared returns if the "website" field was cleared in this mutation.
+func (m *NetworkMutation) WebsiteCleared() bool {
+	_, ok := m.clearedFields[network.FieldWebsite]
+	return ok
+}
+
+// ResetWebsite resets all changes to the "website" field.
+func (m *NetworkMutation) ResetWebsite() {
+	m.website = nil
+	delete(m.clearedFields, network.FieldWebsite)
 }
 
 // SetIxCount sets the "ix_count" field.
@@ -15389,100 +15543,6 @@ func (m *NetworkMutation) ResetStatus() {
 	m.status = nil
 }
 
-// SetOrganizationID sets the "organization" edge to the Organization entity by id.
-func (m *NetworkMutation) SetOrganizationID(id int) {
-	m.organization = &id
-}
-
-// ClearOrganization clears the "organization" edge to the Organization entity.
-func (m *NetworkMutation) ClearOrganization() {
-	m.clearedorganization = true
-	m.clearedFields[network.FieldOrgID] = struct{}{}
-}
-
-// OrganizationCleared reports if the "organization" edge to the Organization entity was cleared.
-func (m *NetworkMutation) OrganizationCleared() bool {
-	return m.OrgIDCleared() || m.clearedorganization
-}
-
-// OrganizationID returns the "organization" edge ID in the mutation.
-func (m *NetworkMutation) OrganizationID() (id int, exists bool) {
-	if m.organization != nil {
-		return *m.organization, true
-	}
-	return
-}
-
-// OrganizationIDs returns the "organization" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// OrganizationID instead. It exists only for internal usage by the builders.
-func (m *NetworkMutation) OrganizationIDs() (ids []int) {
-	if id := m.organization; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetOrganization resets all changes to the "organization" edge.
-func (m *NetworkMutation) ResetOrganization() {
-	m.organization = nil
-	m.clearedorganization = false
-}
-
-// AddPocIDs adds the "pocs" edge to the Poc entity by ids.
-func (m *NetworkMutation) AddPocIDs(ids ...int) {
-	if m.pocs == nil {
-		m.pocs = make(map[int]struct{})
-	}
-	for i := range ids {
-		m.pocs[ids[i]] = struct{}{}
-	}
-}
-
-// ClearPocs clears the "pocs" edge to the Poc entity.
-func (m *NetworkMutation) ClearPocs() {
-	m.clearedpocs = true
-}
-
-// PocsCleared reports if the "pocs" edge to the Poc entity was cleared.
-func (m *NetworkMutation) PocsCleared() bool {
-	return m.clearedpocs
-}
-
-// RemovePocIDs removes the "pocs" edge to the Poc entity by IDs.
-func (m *NetworkMutation) RemovePocIDs(ids ...int) {
-	if m.removedpocs == nil {
-		m.removedpocs = make(map[int]struct{})
-	}
-	for i := range ids {
-		delete(m.pocs, ids[i])
-		m.removedpocs[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedPocs returns the removed IDs of the "pocs" edge to the Poc entity.
-func (m *NetworkMutation) RemovedPocsIDs() (ids []int) {
-	for id := range m.removedpocs {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// PocsIDs returns the "pocs" edge IDs in the mutation.
-func (m *NetworkMutation) PocsIDs() (ids []int) {
-	for id := range m.pocs {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetPocs resets all changes to the "pocs" edge.
-func (m *NetworkMutation) ResetPocs() {
-	m.pocs = nil
-	m.clearedpocs = false
-	m.removedpocs = nil
-}
-
 // AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by ids.
 func (m *NetworkMutation) AddNetworkFacilityIDs(ids ...int) {
 	if m.network_facilities == nil {
@@ -15591,6 +15651,100 @@ func (m *NetworkMutation) ResetNetworkIxLans() {
 	m.removednetwork_ix_lans = nil
 }
 
+// SetOrganizationID sets the "organization" edge to the Organization entity by id.
+func (m *NetworkMutation) SetOrganizationID(id int) {
+	m.organization = &id
+}
+
+// ClearOrganization clears the "organization" edge to the Organization entity.
+func (m *NetworkMutation) ClearOrganization() {
+	m.clearedorganization = true
+	m.clearedFields[network.FieldOrgID] = struct{}{}
+}
+
+// OrganizationCleared reports if the "organization" edge to the Organization entity was cleared.
+func (m *NetworkMutation) OrganizationCleared() bool {
+	return m.OrgIDCleared() || m.clearedorganization
+}
+
+// OrganizationID returns the "organization" edge ID in the mutation.
+func (m *NetworkMutation) OrganizationID() (id int, exists bool) {
+	if m.organization != nil {
+		return *m.organization, true
+	}
+	return
+}
+
+// OrganizationIDs returns the "organization" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// OrganizationID instead. It exists only for internal usage by the builders.
+func (m *NetworkMutation) OrganizationIDs() (ids []int) {
+	if id := m.organization; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetOrganization resets all changes to the "organization" edge.
+func (m *NetworkMutation) ResetOrganization() {
+	m.organization = nil
+	m.clearedorganization = false
+}
+
+// AddPocIDs adds the "pocs" edge to the Poc entity by ids.
+func (m *NetworkMutation) AddPocIDs(ids ...int) {
+	if m.pocs == nil {
+		m.pocs = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.pocs[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPocs clears the "pocs" edge to the Poc entity.
+func (m *NetworkMutation) ClearPocs() {
+	m.clearedpocs = true
+}
+
+// PocsCleared reports if the "pocs" edge to the Poc entity was cleared.
+func (m *NetworkMutation) PocsCleared() bool {
+	return m.clearedpocs
+}
+
+// RemovePocIDs removes the "pocs" edge to the Poc entity by IDs.
+func (m *NetworkMutation) RemovePocIDs(ids ...int) {
+	if m.removedpocs == nil {
+		m.removedpocs = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.pocs, ids[i])
+		m.removedpocs[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPocs returns the removed IDs of the "pocs" edge to the Poc entity.
+func (m *NetworkMutation) RemovedPocsIDs() (ids []int) {
+	for id := range m.removedpocs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PocsIDs returns the "pocs" edge IDs in the mutation.
+func (m *NetworkMutation) PocsIDs() (ids []int) {
+	for id := range m.pocs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPocs resets all changes to the "pocs" edge.
+func (m *NetworkMutation) ResetPocs() {
+	m.pocs = nil
+	m.clearedpocs = false
+	m.removedpocs = nil
+}
+
 // Where appends a list predicates to the NetworkMutation builder.
 func (m *NetworkMutation) Where(ps ...predicate.Network) {
 	m.predicates = append(m.predicates, ps...)
@@ -15629,38 +15783,23 @@ func (m *NetworkMutation) Fields() []string {
 	if m.organization != nil {
 		fields = append(fields, network.FieldOrgID)
 	}
-	if m.name != nil {
-		fields = append(fields, network.FieldName)
-	}
 	if m.aka != nil {
 		fields = append(fields, network.FieldAka)
 	}
-	if m.name_long != nil {
-		fields = append(fields, network.FieldNameLong)
-	}
-	if m.website != nil {
-		fields = append(fields, network.FieldWebsite)
-	}
-	if m.social_media != nil {
-		fields = append(fields, network.FieldSocialMedia)
+	if m.allow_ixp_update != nil {
+		fields = append(fields, network.FieldAllowIxpUpdate)
 	}
 	if m.asn != nil {
 		fields = append(fields, network.FieldAsn)
 	}
-	if m.looking_glass != nil {
-		fields = append(fields, network.FieldLookingGlass)
+	if m.info_ipv6 != nil {
+		fields = append(fields, network.FieldInfoIpv6)
 	}
-	if m.route_server != nil {
-		fields = append(fields, network.FieldRouteServer)
+	if m.info_multicast != nil {
+		fields = append(fields, network.FieldInfoMulticast)
 	}
-	if m.irr_as_set != nil {
-		fields = append(fields, network.FieldIrrAsSet)
-	}
-	if m.info_type != nil {
-		fields = append(fields, network.FieldInfoType)
-	}
-	if m.info_types != nil {
-		fields = append(fields, network.FieldInfoTypes)
+	if m.info_never_via_route_servers != nil {
+		fields = append(fields, network.FieldInfoNeverViaRouteServers)
 	}
 	if m.info_prefixes4 != nil {
 		fields = append(fields, network.FieldInfoPrefixes4)
@@ -15668,32 +15807,44 @@ func (m *NetworkMutation) Fields() []string {
 	if m.info_prefixes6 != nil {
 		fields = append(fields, network.FieldInfoPrefixes6)
 	}
-	if m.info_traffic != nil {
-		fields = append(fields, network.FieldInfoTraffic)
-	}
 	if m.info_ratio != nil {
 		fields = append(fields, network.FieldInfoRatio)
 	}
 	if m.info_scope != nil {
 		fields = append(fields, network.FieldInfoScope)
 	}
+	if m.info_traffic != nil {
+		fields = append(fields, network.FieldInfoTraffic)
+	}
+	if m.info_type != nil {
+		fields = append(fields, network.FieldInfoType)
+	}
+	if m.info_types != nil {
+		fields = append(fields, network.FieldInfoTypes)
+	}
 	if m.info_unicast != nil {
 		fields = append(fields, network.FieldInfoUnicast)
 	}
-	if m.info_multicast != nil {
-		fields = append(fields, network.FieldInfoMulticast)
+	if m.irr_as_set != nil {
+		fields = append(fields, network.FieldIrrAsSet)
 	}
-	if m.info_ipv6 != nil {
-		fields = append(fields, network.FieldInfoIpv6)
+	if m.logo != nil {
+		fields = append(fields, network.FieldLogo)
 	}
-	if m.info_never_via_route_servers != nil {
-		fields = append(fields, network.FieldInfoNeverViaRouteServers)
+	if m.looking_glass != nil {
+		fields = append(fields, network.FieldLookingGlass)
+	}
+	if m.name != nil {
+		fields = append(fields, network.FieldName)
+	}
+	if m.name_long != nil {
+		fields = append(fields, network.FieldNameLong)
 	}
 	if m.notes != nil {
 		fields = append(fields, network.FieldNotes)
 	}
-	if m.policy_url != nil {
-		fields = append(fields, network.FieldPolicyURL)
+	if m.policy_contracts != nil {
+		fields = append(fields, network.FieldPolicyContracts)
 	}
 	if m.policy_general != nil {
 		fields = append(fields, network.FieldPolicyGeneral)
@@ -15704,14 +15855,8 @@ func (m *NetworkMutation) Fields() []string {
 	if m.policy_ratio != nil {
 		fields = append(fields, network.FieldPolicyRatio)
 	}
-	if m.policy_contracts != nil {
-		fields = append(fields, network.FieldPolicyContracts)
-	}
-	if m.allow_ixp_update != nil {
-		fields = append(fields, network.FieldAllowIxpUpdate)
-	}
-	if m.status_dashboard != nil {
-		fields = append(fields, network.FieldStatusDashboard)
+	if m.policy_url != nil {
+		fields = append(fields, network.FieldPolicyURL)
 	}
 	if m.rir_status != nil {
 		fields = append(fields, network.FieldRirStatus)
@@ -15719,8 +15864,17 @@ func (m *NetworkMutation) Fields() []string {
 	if m.rir_status_updated != nil {
 		fields = append(fields, network.FieldRirStatusUpdated)
 	}
-	if m.logo != nil {
-		fields = append(fields, network.FieldLogo)
+	if m.route_server != nil {
+		fields = append(fields, network.FieldRouteServer)
+	}
+	if m.social_media != nil {
+		fields = append(fields, network.FieldSocialMedia)
+	}
+	if m.status_dashboard != nil {
+		fields = append(fields, network.FieldStatusDashboard)
+	}
+	if m.website != nil {
+		fields = append(fields, network.FieldWebsite)
 	}
 	if m.ix_count != nil {
 		fields = append(fields, network.FieldIxCount)
@@ -15756,68 +15910,68 @@ func (m *NetworkMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case network.FieldOrgID:
 		return m.OrgID()
-	case network.FieldName:
-		return m.Name()
 	case network.FieldAka:
 		return m.Aka()
-	case network.FieldNameLong:
-		return m.NameLong()
-	case network.FieldWebsite:
-		return m.Website()
-	case network.FieldSocialMedia:
-		return m.SocialMedia()
+	case network.FieldAllowIxpUpdate:
+		return m.AllowIxpUpdate()
 	case network.FieldAsn:
 		return m.Asn()
-	case network.FieldLookingGlass:
-		return m.LookingGlass()
-	case network.FieldRouteServer:
-		return m.RouteServer()
-	case network.FieldIrrAsSet:
-		return m.IrrAsSet()
-	case network.FieldInfoType:
-		return m.InfoType()
-	case network.FieldInfoTypes:
-		return m.InfoTypes()
+	case network.FieldInfoIpv6:
+		return m.InfoIpv6()
+	case network.FieldInfoMulticast:
+		return m.InfoMulticast()
+	case network.FieldInfoNeverViaRouteServers:
+		return m.InfoNeverViaRouteServers()
 	case network.FieldInfoPrefixes4:
 		return m.InfoPrefixes4()
 	case network.FieldInfoPrefixes6:
 		return m.InfoPrefixes6()
-	case network.FieldInfoTraffic:
-		return m.InfoTraffic()
 	case network.FieldInfoRatio:
 		return m.InfoRatio()
 	case network.FieldInfoScope:
 		return m.InfoScope()
+	case network.FieldInfoTraffic:
+		return m.InfoTraffic()
+	case network.FieldInfoType:
+		return m.InfoType()
+	case network.FieldInfoTypes:
+		return m.InfoTypes()
 	case network.FieldInfoUnicast:
 		return m.InfoUnicast()
-	case network.FieldInfoMulticast:
-		return m.InfoMulticast()
-	case network.FieldInfoIpv6:
-		return m.InfoIpv6()
-	case network.FieldInfoNeverViaRouteServers:
-		return m.InfoNeverViaRouteServers()
+	case network.FieldIrrAsSet:
+		return m.IrrAsSet()
+	case network.FieldLogo:
+		return m.Logo()
+	case network.FieldLookingGlass:
+		return m.LookingGlass()
+	case network.FieldName:
+		return m.Name()
+	case network.FieldNameLong:
+		return m.NameLong()
 	case network.FieldNotes:
 		return m.Notes()
-	case network.FieldPolicyURL:
-		return m.PolicyURL()
+	case network.FieldPolicyContracts:
+		return m.PolicyContracts()
 	case network.FieldPolicyGeneral:
 		return m.PolicyGeneral()
 	case network.FieldPolicyLocations:
 		return m.PolicyLocations()
 	case network.FieldPolicyRatio:
 		return m.PolicyRatio()
-	case network.FieldPolicyContracts:
-		return m.PolicyContracts()
-	case network.FieldAllowIxpUpdate:
-		return m.AllowIxpUpdate()
-	case network.FieldStatusDashboard:
-		return m.StatusDashboard()
+	case network.FieldPolicyURL:
+		return m.PolicyURL()
 	case network.FieldRirStatus:
 		return m.RirStatus()
 	case network.FieldRirStatusUpdated:
 		return m.RirStatusUpdated()
-	case network.FieldLogo:
-		return m.Logo()
+	case network.FieldRouteServer:
+		return m.RouteServer()
+	case network.FieldSocialMedia:
+		return m.SocialMedia()
+	case network.FieldStatusDashboard:
+		return m.StatusDashboard()
+	case network.FieldWebsite:
+		return m.Website()
 	case network.FieldIxCount:
 		return m.IxCount()
 	case network.FieldFacCount:
@@ -15845,68 +15999,68 @@ func (m *NetworkMutation) OldField(ctx context.Context, name string) (ent.Value,
 	switch name {
 	case network.FieldOrgID:
 		return m.OldOrgID(ctx)
-	case network.FieldName:
-		return m.OldName(ctx)
 	case network.FieldAka:
 		return m.OldAka(ctx)
-	case network.FieldNameLong:
-		return m.OldNameLong(ctx)
-	case network.FieldWebsite:
-		return m.OldWebsite(ctx)
-	case network.FieldSocialMedia:
-		return m.OldSocialMedia(ctx)
+	case network.FieldAllowIxpUpdate:
+		return m.OldAllowIxpUpdate(ctx)
 	case network.FieldAsn:
 		return m.OldAsn(ctx)
-	case network.FieldLookingGlass:
-		return m.OldLookingGlass(ctx)
-	case network.FieldRouteServer:
-		return m.OldRouteServer(ctx)
-	case network.FieldIrrAsSet:
-		return m.OldIrrAsSet(ctx)
-	case network.FieldInfoType:
-		return m.OldInfoType(ctx)
-	case network.FieldInfoTypes:
-		return m.OldInfoTypes(ctx)
+	case network.FieldInfoIpv6:
+		return m.OldInfoIpv6(ctx)
+	case network.FieldInfoMulticast:
+		return m.OldInfoMulticast(ctx)
+	case network.FieldInfoNeverViaRouteServers:
+		return m.OldInfoNeverViaRouteServers(ctx)
 	case network.FieldInfoPrefixes4:
 		return m.OldInfoPrefixes4(ctx)
 	case network.FieldInfoPrefixes6:
 		return m.OldInfoPrefixes6(ctx)
-	case network.FieldInfoTraffic:
-		return m.OldInfoTraffic(ctx)
 	case network.FieldInfoRatio:
 		return m.OldInfoRatio(ctx)
 	case network.FieldInfoScope:
 		return m.OldInfoScope(ctx)
+	case network.FieldInfoTraffic:
+		return m.OldInfoTraffic(ctx)
+	case network.FieldInfoType:
+		return m.OldInfoType(ctx)
+	case network.FieldInfoTypes:
+		return m.OldInfoTypes(ctx)
 	case network.FieldInfoUnicast:
 		return m.OldInfoUnicast(ctx)
-	case network.FieldInfoMulticast:
-		return m.OldInfoMulticast(ctx)
-	case network.FieldInfoIpv6:
-		return m.OldInfoIpv6(ctx)
-	case network.FieldInfoNeverViaRouteServers:
-		return m.OldInfoNeverViaRouteServers(ctx)
+	case network.FieldIrrAsSet:
+		return m.OldIrrAsSet(ctx)
+	case network.FieldLogo:
+		return m.OldLogo(ctx)
+	case network.FieldLookingGlass:
+		return m.OldLookingGlass(ctx)
+	case network.FieldName:
+		return m.OldName(ctx)
+	case network.FieldNameLong:
+		return m.OldNameLong(ctx)
 	case network.FieldNotes:
 		return m.OldNotes(ctx)
-	case network.FieldPolicyURL:
-		return m.OldPolicyURL(ctx)
+	case network.FieldPolicyContracts:
+		return m.OldPolicyContracts(ctx)
 	case network.FieldPolicyGeneral:
 		return m.OldPolicyGeneral(ctx)
 	case network.FieldPolicyLocations:
 		return m.OldPolicyLocations(ctx)
 	case network.FieldPolicyRatio:
 		return m.OldPolicyRatio(ctx)
-	case network.FieldPolicyContracts:
-		return m.OldPolicyContracts(ctx)
-	case network.FieldAllowIxpUpdate:
-		return m.OldAllowIxpUpdate(ctx)
-	case network.FieldStatusDashboard:
-		return m.OldStatusDashboard(ctx)
+	case network.FieldPolicyURL:
+		return m.OldPolicyURL(ctx)
 	case network.FieldRirStatus:
 		return m.OldRirStatus(ctx)
 	case network.FieldRirStatusUpdated:
 		return m.OldRirStatusUpdated(ctx)
-	case network.FieldLogo:
-		return m.OldLogo(ctx)
+	case network.FieldRouteServer:
+		return m.OldRouteServer(ctx)
+	case network.FieldSocialMedia:
+		return m.OldSocialMedia(ctx)
+	case network.FieldStatusDashboard:
+		return m.OldStatusDashboard(ctx)
+	case network.FieldWebsite:
+		return m.OldWebsite(ctx)
 	case network.FieldIxCount:
 		return m.OldIxCount(ctx)
 	case network.FieldFacCount:
@@ -15939,13 +16093,6 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetOrgID(v)
 		return nil
-	case network.FieldName:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetName(v)
-		return nil
 	case network.FieldAka:
 		v, ok := value.(string)
 		if !ok {
@@ -15953,26 +16100,12 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAka(v)
 		return nil
-	case network.FieldNameLong:
-		v, ok := value.(string)
+	case network.FieldAllowIxpUpdate:
+		v, ok := value.(bool)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetNameLong(v)
-		return nil
-	case network.FieldWebsite:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetWebsite(v)
-		return nil
-	case network.FieldSocialMedia:
-		v, ok := value.([]schema.SocialMedia)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSocialMedia(v)
+		m.SetAllowIxpUpdate(v)
 		return nil
 	case network.FieldAsn:
 		v, ok := value.(int)
@@ -15981,40 +16114,26 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAsn(v)
 		return nil
-	case network.FieldLookingGlass:
-		v, ok := value.(string)
+	case network.FieldInfoIpv6:
+		v, ok := value.(bool)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetLookingGlass(v)
+		m.SetInfoIpv6(v)
 		return nil
-	case network.FieldRouteServer:
-		v, ok := value.(string)
+	case network.FieldInfoMulticast:
+		v, ok := value.(bool)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetRouteServer(v)
+		m.SetInfoMulticast(v)
 		return nil
-	case network.FieldIrrAsSet:
-		v, ok := value.(string)
+	case network.FieldInfoNeverViaRouteServers:
+		v, ok := value.(bool)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetIrrAsSet(v)
-		return nil
-	case network.FieldInfoType:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInfoType(v)
-		return nil
-	case network.FieldInfoTypes:
-		v, ok := value.([]string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInfoTypes(v)
+		m.SetInfoNeverViaRouteServers(v)
 		return nil
 	case network.FieldInfoPrefixes4:
 		v, ok := value.(int)
@@ -16030,13 +16149,6 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetInfoPrefixes6(v)
 		return nil
-	case network.FieldInfoTraffic:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInfoTraffic(v)
-		return nil
 	case network.FieldInfoRatio:
 		v, ok := value.(string)
 		if !ok {
@@ -16051,6 +16163,27 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetInfoScope(v)
 		return nil
+	case network.FieldInfoTraffic:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInfoTraffic(v)
+		return nil
+	case network.FieldInfoType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInfoType(v)
+		return nil
+	case network.FieldInfoTypes:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInfoTypes(v)
+		return nil
 	case network.FieldInfoUnicast:
 		v, ok := value.(bool)
 		if !ok {
@@ -16058,26 +16191,40 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetInfoUnicast(v)
 		return nil
-	case network.FieldInfoMulticast:
-		v, ok := value.(bool)
+	case network.FieldIrrAsSet:
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetInfoMulticast(v)
+		m.SetIrrAsSet(v)
 		return nil
-	case network.FieldInfoIpv6:
-		v, ok := value.(bool)
+	case network.FieldLogo:
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetInfoIpv6(v)
+		m.SetLogo(v)
 		return nil
-	case network.FieldInfoNeverViaRouteServers:
-		v, ok := value.(bool)
+	case network.FieldLookingGlass:
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetInfoNeverViaRouteServers(v)
+		m.SetLookingGlass(v)
+		return nil
+	case network.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case network.FieldNameLong:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameLong(v)
 		return nil
 	case network.FieldNotes:
 		v, ok := value.(string)
@@ -16086,12 +16233,12 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetNotes(v)
 		return nil
-	case network.FieldPolicyURL:
+	case network.FieldPolicyContracts:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetPolicyURL(v)
+		m.SetPolicyContracts(v)
 		return nil
 	case network.FieldPolicyGeneral:
 		v, ok := value.(string)
@@ -16114,26 +16261,12 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPolicyRatio(v)
 		return nil
-	case network.FieldPolicyContracts:
+	case network.FieldPolicyURL:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetPolicyContracts(v)
-		return nil
-	case network.FieldAllowIxpUpdate:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAllowIxpUpdate(v)
-		return nil
-	case network.FieldStatusDashboard:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetStatusDashboard(v)
+		m.SetPolicyURL(v)
 		return nil
 	case network.FieldRirStatus:
 		v, ok := value.(string)
@@ -16149,12 +16282,33 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetRirStatusUpdated(v)
 		return nil
-	case network.FieldLogo:
+	case network.FieldRouteServer:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetLogo(v)
+		m.SetRouteServer(v)
+		return nil
+	case network.FieldSocialMedia:
+		v, ok := value.([]schema.SocialMedia)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSocialMedia(v)
+		return nil
+	case network.FieldStatusDashboard:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatusDashboard(v)
+		return nil
+	case network.FieldWebsite:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWebsite(v)
 		return nil
 	case network.FieldIxCount:
 		v, ok := value.(int)
@@ -16311,38 +16465,11 @@ func (m *NetworkMutation) ClearedFields() []string {
 	if m.FieldCleared(network.FieldAka) {
 		fields = append(fields, network.FieldAka)
 	}
-	if m.FieldCleared(network.FieldNameLong) {
-		fields = append(fields, network.FieldNameLong)
-	}
-	if m.FieldCleared(network.FieldWebsite) {
-		fields = append(fields, network.FieldWebsite)
-	}
-	if m.FieldCleared(network.FieldSocialMedia) {
-		fields = append(fields, network.FieldSocialMedia)
-	}
-	if m.FieldCleared(network.FieldLookingGlass) {
-		fields = append(fields, network.FieldLookingGlass)
-	}
-	if m.FieldCleared(network.FieldRouteServer) {
-		fields = append(fields, network.FieldRouteServer)
-	}
-	if m.FieldCleared(network.FieldIrrAsSet) {
-		fields = append(fields, network.FieldIrrAsSet)
-	}
-	if m.FieldCleared(network.FieldInfoType) {
-		fields = append(fields, network.FieldInfoType)
-	}
-	if m.FieldCleared(network.FieldInfoTypes) {
-		fields = append(fields, network.FieldInfoTypes)
-	}
 	if m.FieldCleared(network.FieldInfoPrefixes4) {
 		fields = append(fields, network.FieldInfoPrefixes4)
 	}
 	if m.FieldCleared(network.FieldInfoPrefixes6) {
 		fields = append(fields, network.FieldInfoPrefixes6)
-	}
-	if m.FieldCleared(network.FieldInfoTraffic) {
-		fields = append(fields, network.FieldInfoTraffic)
 	}
 	if m.FieldCleared(network.FieldInfoRatio) {
 		fields = append(fields, network.FieldInfoRatio)
@@ -16350,11 +16477,32 @@ func (m *NetworkMutation) ClearedFields() []string {
 	if m.FieldCleared(network.FieldInfoScope) {
 		fields = append(fields, network.FieldInfoScope)
 	}
+	if m.FieldCleared(network.FieldInfoTraffic) {
+		fields = append(fields, network.FieldInfoTraffic)
+	}
+	if m.FieldCleared(network.FieldInfoType) {
+		fields = append(fields, network.FieldInfoType)
+	}
+	if m.FieldCleared(network.FieldInfoTypes) {
+		fields = append(fields, network.FieldInfoTypes)
+	}
+	if m.FieldCleared(network.FieldIrrAsSet) {
+		fields = append(fields, network.FieldIrrAsSet)
+	}
+	if m.FieldCleared(network.FieldLogo) {
+		fields = append(fields, network.FieldLogo)
+	}
+	if m.FieldCleared(network.FieldLookingGlass) {
+		fields = append(fields, network.FieldLookingGlass)
+	}
+	if m.FieldCleared(network.FieldNameLong) {
+		fields = append(fields, network.FieldNameLong)
+	}
 	if m.FieldCleared(network.FieldNotes) {
 		fields = append(fields, network.FieldNotes)
 	}
-	if m.FieldCleared(network.FieldPolicyURL) {
-		fields = append(fields, network.FieldPolicyURL)
+	if m.FieldCleared(network.FieldPolicyContracts) {
+		fields = append(fields, network.FieldPolicyContracts)
 	}
 	if m.FieldCleared(network.FieldPolicyGeneral) {
 		fields = append(fields, network.FieldPolicyGeneral)
@@ -16362,11 +16510,8 @@ func (m *NetworkMutation) ClearedFields() []string {
 	if m.FieldCleared(network.FieldPolicyLocations) {
 		fields = append(fields, network.FieldPolicyLocations)
 	}
-	if m.FieldCleared(network.FieldPolicyContracts) {
-		fields = append(fields, network.FieldPolicyContracts)
-	}
-	if m.FieldCleared(network.FieldStatusDashboard) {
-		fields = append(fields, network.FieldStatusDashboard)
+	if m.FieldCleared(network.FieldPolicyURL) {
+		fields = append(fields, network.FieldPolicyURL)
 	}
 	if m.FieldCleared(network.FieldRirStatus) {
 		fields = append(fields, network.FieldRirStatus)
@@ -16374,8 +16519,17 @@ func (m *NetworkMutation) ClearedFields() []string {
 	if m.FieldCleared(network.FieldRirStatusUpdated) {
 		fields = append(fields, network.FieldRirStatusUpdated)
 	}
-	if m.FieldCleared(network.FieldLogo) {
-		fields = append(fields, network.FieldLogo)
+	if m.FieldCleared(network.FieldRouteServer) {
+		fields = append(fields, network.FieldRouteServer)
+	}
+	if m.FieldCleared(network.FieldSocialMedia) {
+		fields = append(fields, network.FieldSocialMedia)
+	}
+	if m.FieldCleared(network.FieldStatusDashboard) {
+		fields = append(fields, network.FieldStatusDashboard)
+	}
+	if m.FieldCleared(network.FieldWebsite) {
+		fields = append(fields, network.FieldWebsite)
 	}
 	if m.FieldCleared(network.FieldIxCount) {
 		fields = append(fields, network.FieldIxCount)
@@ -16412,38 +16566,11 @@ func (m *NetworkMutation) ClearField(name string) error {
 	case network.FieldAka:
 		m.ClearAka()
 		return nil
-	case network.FieldNameLong:
-		m.ClearNameLong()
-		return nil
-	case network.FieldWebsite:
-		m.ClearWebsite()
-		return nil
-	case network.FieldSocialMedia:
-		m.ClearSocialMedia()
-		return nil
-	case network.FieldLookingGlass:
-		m.ClearLookingGlass()
-		return nil
-	case network.FieldRouteServer:
-		m.ClearRouteServer()
-		return nil
-	case network.FieldIrrAsSet:
-		m.ClearIrrAsSet()
-		return nil
-	case network.FieldInfoType:
-		m.ClearInfoType()
-		return nil
-	case network.FieldInfoTypes:
-		m.ClearInfoTypes()
-		return nil
 	case network.FieldInfoPrefixes4:
 		m.ClearInfoPrefixes4()
 		return nil
 	case network.FieldInfoPrefixes6:
 		m.ClearInfoPrefixes6()
-		return nil
-	case network.FieldInfoTraffic:
-		m.ClearInfoTraffic()
 		return nil
 	case network.FieldInfoRatio:
 		m.ClearInfoRatio()
@@ -16451,11 +16578,32 @@ func (m *NetworkMutation) ClearField(name string) error {
 	case network.FieldInfoScope:
 		m.ClearInfoScope()
 		return nil
+	case network.FieldInfoTraffic:
+		m.ClearInfoTraffic()
+		return nil
+	case network.FieldInfoType:
+		m.ClearInfoType()
+		return nil
+	case network.FieldInfoTypes:
+		m.ClearInfoTypes()
+		return nil
+	case network.FieldIrrAsSet:
+		m.ClearIrrAsSet()
+		return nil
+	case network.FieldLogo:
+		m.ClearLogo()
+		return nil
+	case network.FieldLookingGlass:
+		m.ClearLookingGlass()
+		return nil
+	case network.FieldNameLong:
+		m.ClearNameLong()
+		return nil
 	case network.FieldNotes:
 		m.ClearNotes()
 		return nil
-	case network.FieldPolicyURL:
-		m.ClearPolicyURL()
+	case network.FieldPolicyContracts:
+		m.ClearPolicyContracts()
 		return nil
 	case network.FieldPolicyGeneral:
 		m.ClearPolicyGeneral()
@@ -16463,11 +16611,8 @@ func (m *NetworkMutation) ClearField(name string) error {
 	case network.FieldPolicyLocations:
 		m.ClearPolicyLocations()
 		return nil
-	case network.FieldPolicyContracts:
-		m.ClearPolicyContracts()
-		return nil
-	case network.FieldStatusDashboard:
-		m.ClearStatusDashboard()
+	case network.FieldPolicyURL:
+		m.ClearPolicyURL()
 		return nil
 	case network.FieldRirStatus:
 		m.ClearRirStatus()
@@ -16475,8 +16620,17 @@ func (m *NetworkMutation) ClearField(name string) error {
 	case network.FieldRirStatusUpdated:
 		m.ClearRirStatusUpdated()
 		return nil
-	case network.FieldLogo:
-		m.ClearLogo()
+	case network.FieldRouteServer:
+		m.ClearRouteServer()
+		return nil
+	case network.FieldSocialMedia:
+		m.ClearSocialMedia()
+		return nil
+	case network.FieldStatusDashboard:
+		m.ClearStatusDashboard()
+		return nil
+	case network.FieldWebsite:
+		m.ClearWebsite()
 		return nil
 	case network.FieldIxCount:
 		m.ClearIxCount()
@@ -16504,38 +16658,23 @@ func (m *NetworkMutation) ResetField(name string) error {
 	case network.FieldOrgID:
 		m.ResetOrgID()
 		return nil
-	case network.FieldName:
-		m.ResetName()
-		return nil
 	case network.FieldAka:
 		m.ResetAka()
 		return nil
-	case network.FieldNameLong:
-		m.ResetNameLong()
-		return nil
-	case network.FieldWebsite:
-		m.ResetWebsite()
-		return nil
-	case network.FieldSocialMedia:
-		m.ResetSocialMedia()
+	case network.FieldAllowIxpUpdate:
+		m.ResetAllowIxpUpdate()
 		return nil
 	case network.FieldAsn:
 		m.ResetAsn()
 		return nil
-	case network.FieldLookingGlass:
-		m.ResetLookingGlass()
+	case network.FieldInfoIpv6:
+		m.ResetInfoIpv6()
 		return nil
-	case network.FieldRouteServer:
-		m.ResetRouteServer()
+	case network.FieldInfoMulticast:
+		m.ResetInfoMulticast()
 		return nil
-	case network.FieldIrrAsSet:
-		m.ResetIrrAsSet()
-		return nil
-	case network.FieldInfoType:
-		m.ResetInfoType()
-		return nil
-	case network.FieldInfoTypes:
-		m.ResetInfoTypes()
+	case network.FieldInfoNeverViaRouteServers:
+		m.ResetInfoNeverViaRouteServers()
 		return nil
 	case network.FieldInfoPrefixes4:
 		m.ResetInfoPrefixes4()
@@ -16543,32 +16682,44 @@ func (m *NetworkMutation) ResetField(name string) error {
 	case network.FieldInfoPrefixes6:
 		m.ResetInfoPrefixes6()
 		return nil
-	case network.FieldInfoTraffic:
-		m.ResetInfoTraffic()
-		return nil
 	case network.FieldInfoRatio:
 		m.ResetInfoRatio()
 		return nil
 	case network.FieldInfoScope:
 		m.ResetInfoScope()
 		return nil
+	case network.FieldInfoTraffic:
+		m.ResetInfoTraffic()
+		return nil
+	case network.FieldInfoType:
+		m.ResetInfoType()
+		return nil
+	case network.FieldInfoTypes:
+		m.ResetInfoTypes()
+		return nil
 	case network.FieldInfoUnicast:
 		m.ResetInfoUnicast()
 		return nil
-	case network.FieldInfoMulticast:
-		m.ResetInfoMulticast()
+	case network.FieldIrrAsSet:
+		m.ResetIrrAsSet()
 		return nil
-	case network.FieldInfoIpv6:
-		m.ResetInfoIpv6()
+	case network.FieldLogo:
+		m.ResetLogo()
 		return nil
-	case network.FieldInfoNeverViaRouteServers:
-		m.ResetInfoNeverViaRouteServers()
+	case network.FieldLookingGlass:
+		m.ResetLookingGlass()
+		return nil
+	case network.FieldName:
+		m.ResetName()
+		return nil
+	case network.FieldNameLong:
+		m.ResetNameLong()
 		return nil
 	case network.FieldNotes:
 		m.ResetNotes()
 		return nil
-	case network.FieldPolicyURL:
-		m.ResetPolicyURL()
+	case network.FieldPolicyContracts:
+		m.ResetPolicyContracts()
 		return nil
 	case network.FieldPolicyGeneral:
 		m.ResetPolicyGeneral()
@@ -16579,14 +16730,8 @@ func (m *NetworkMutation) ResetField(name string) error {
 	case network.FieldPolicyRatio:
 		m.ResetPolicyRatio()
 		return nil
-	case network.FieldPolicyContracts:
-		m.ResetPolicyContracts()
-		return nil
-	case network.FieldAllowIxpUpdate:
-		m.ResetAllowIxpUpdate()
-		return nil
-	case network.FieldStatusDashboard:
-		m.ResetStatusDashboard()
+	case network.FieldPolicyURL:
+		m.ResetPolicyURL()
 		return nil
 	case network.FieldRirStatus:
 		m.ResetRirStatus()
@@ -16594,8 +16739,17 @@ func (m *NetworkMutation) ResetField(name string) error {
 	case network.FieldRirStatusUpdated:
 		m.ResetRirStatusUpdated()
 		return nil
-	case network.FieldLogo:
-		m.ResetLogo()
+	case network.FieldRouteServer:
+		m.ResetRouteServer()
+		return nil
+	case network.FieldSocialMedia:
+		m.ResetSocialMedia()
+		return nil
+	case network.FieldStatusDashboard:
+		m.ResetStatusDashboard()
+		return nil
+	case network.FieldWebsite:
+		m.ResetWebsite()
 		return nil
 	case network.FieldIxCount:
 		m.ResetIxCount()
@@ -16628,17 +16782,17 @@ func (m *NetworkMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *NetworkMutation) AddedEdges() []string {
 	edges := make([]string, 0, 4)
-	if m.organization != nil {
-		edges = append(edges, network.EdgeOrganization)
-	}
-	if m.pocs != nil {
-		edges = append(edges, network.EdgePocs)
-	}
 	if m.network_facilities != nil {
 		edges = append(edges, network.EdgeNetworkFacilities)
 	}
 	if m.network_ix_lans != nil {
 		edges = append(edges, network.EdgeNetworkIxLans)
+	}
+	if m.organization != nil {
+		edges = append(edges, network.EdgeOrganization)
+	}
+	if m.pocs != nil {
+		edges = append(edges, network.EdgePocs)
 	}
 	return edges
 }
@@ -16647,16 +16801,6 @@ func (m *NetworkMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *NetworkMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case network.EdgeOrganization:
-		if id := m.organization; id != nil {
-			return []ent.Value{*id}
-		}
-	case network.EdgePocs:
-		ids := make([]ent.Value, 0, len(m.pocs))
-		for id := range m.pocs {
-			ids = append(ids, id)
-		}
-		return ids
 	case network.EdgeNetworkFacilities:
 		ids := make([]ent.Value, 0, len(m.network_facilities))
 		for id := range m.network_facilities {
@@ -16669,6 +16813,16 @@ func (m *NetworkMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case network.EdgeOrganization:
+		if id := m.organization; id != nil {
+			return []ent.Value{*id}
+		}
+	case network.EdgePocs:
+		ids := make([]ent.Value, 0, len(m.pocs))
+		for id := range m.pocs {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
@@ -16676,14 +16830,14 @@ func (m *NetworkMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *NetworkMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 4)
-	if m.removedpocs != nil {
-		edges = append(edges, network.EdgePocs)
-	}
 	if m.removednetwork_facilities != nil {
 		edges = append(edges, network.EdgeNetworkFacilities)
 	}
 	if m.removednetwork_ix_lans != nil {
 		edges = append(edges, network.EdgeNetworkIxLans)
+	}
+	if m.removedpocs != nil {
+		edges = append(edges, network.EdgePocs)
 	}
 	return edges
 }
@@ -16692,12 +16846,6 @@ func (m *NetworkMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *NetworkMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case network.EdgePocs:
-		ids := make([]ent.Value, 0, len(m.removedpocs))
-		for id := range m.removedpocs {
-			ids = append(ids, id)
-		}
-		return ids
 	case network.EdgeNetworkFacilities:
 		ids := make([]ent.Value, 0, len(m.removednetwork_facilities))
 		for id := range m.removednetwork_facilities {
@@ -16710,6 +16858,12 @@ func (m *NetworkMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case network.EdgePocs:
+		ids := make([]ent.Value, 0, len(m.removedpocs))
+		for id := range m.removedpocs {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
@@ -16717,17 +16871,17 @@ func (m *NetworkMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *NetworkMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 4)
-	if m.clearedorganization {
-		edges = append(edges, network.EdgeOrganization)
-	}
-	if m.clearedpocs {
-		edges = append(edges, network.EdgePocs)
-	}
 	if m.clearednetwork_facilities {
 		edges = append(edges, network.EdgeNetworkFacilities)
 	}
 	if m.clearednetwork_ix_lans {
 		edges = append(edges, network.EdgeNetworkIxLans)
+	}
+	if m.clearedorganization {
+		edges = append(edges, network.EdgeOrganization)
+	}
+	if m.clearedpocs {
+		edges = append(edges, network.EdgePocs)
 	}
 	return edges
 }
@@ -16736,14 +16890,14 @@ func (m *NetworkMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *NetworkMutation) EdgeCleared(name string) bool {
 	switch name {
-	case network.EdgeOrganization:
-		return m.clearedorganization
-	case network.EdgePocs:
-		return m.clearedpocs
 	case network.EdgeNetworkFacilities:
 		return m.clearednetwork_facilities
 	case network.EdgeNetworkIxLans:
 		return m.clearednetwork_ix_lans
+	case network.EdgeOrganization:
+		return m.clearedorganization
+	case network.EdgePocs:
+		return m.clearedpocs
 	}
 	return false
 }
@@ -16763,17 +16917,17 @@ func (m *NetworkMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *NetworkMutation) ResetEdge(name string) error {
 	switch name {
-	case network.EdgeOrganization:
-		m.ResetOrganization()
-		return nil
-	case network.EdgePocs:
-		m.ResetPocs()
-		return nil
 	case network.EdgeNetworkFacilities:
 		m.ResetNetworkFacilities()
 		return nil
 	case network.EdgeNetworkIxLans:
 		m.ResetNetworkIxLans()
+		return nil
+	case network.EdgeOrganization:
+		m.ResetOrganization()
+		return nil
+	case network.EdgePocs:
+		m.ResetPocs()
 		return nil
 	}
 	return fmt.Errorf("unknown Network edge %s", name)
@@ -16785,19 +16939,19 @@ type NetworkFacilityMutation struct {
 	op              Op
 	typ             string
 	id              *int
+	local_asn       *int
+	addlocal_asn    *int
 	name            *string
 	city            *string
 	country         *string
-	local_asn       *int
-	addlocal_asn    *int
 	created         *time.Time
 	updated         *time.Time
 	status          *string
 	clearedFields   map[string]struct{}
-	network         *int
-	clearednetwork  bool
 	facility        *int
 	clearedfacility bool
+	network         *int
+	clearednetwork  bool
 	done            bool
 	oldValue        func(context.Context) (*NetworkFacility, error)
 	predicates      []predicate.NetworkFacility
@@ -16907,6 +17061,55 @@ func (m *NetworkFacilityMutation) IDs(ctx context.Context) ([]int, error) {
 	}
 }
 
+// SetFacID sets the "fac_id" field.
+func (m *NetworkFacilityMutation) SetFacID(i int) {
+	m.facility = &i
+}
+
+// FacID returns the value of the "fac_id" field in the mutation.
+func (m *NetworkFacilityMutation) FacID() (r int, exists bool) {
+	v := m.facility
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFacID returns the old "fac_id" field's value of the NetworkFacility entity.
+// If the NetworkFacility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkFacilityMutation) OldFacID(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFacID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFacID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFacID: %w", err)
+	}
+	return oldValue.FacID, nil
+}
+
+// ClearFacID clears the value of the "fac_id" field.
+func (m *NetworkFacilityMutation) ClearFacID() {
+	m.facility = nil
+	m.clearedFields[networkfacility.FieldFacID] = struct{}{}
+}
+
+// FacIDCleared returns if the "fac_id" field was cleared in this mutation.
+func (m *NetworkFacilityMutation) FacIDCleared() bool {
+	_, ok := m.clearedFields[networkfacility.FieldFacID]
+	return ok
+}
+
+// ResetFacID resets all changes to the "fac_id" field.
+func (m *NetworkFacilityMutation) ResetFacID() {
+	m.facility = nil
+	delete(m.clearedFields, networkfacility.FieldFacID)
+}
+
 // SetNetID sets the "net_id" field.
 func (m *NetworkFacilityMutation) SetNetID(i int) {
 	m.network = &i
@@ -16956,53 +17159,60 @@ func (m *NetworkFacilityMutation) ResetNetID() {
 	delete(m.clearedFields, networkfacility.FieldNetID)
 }
 
-// SetFacID sets the "fac_id" field.
-func (m *NetworkFacilityMutation) SetFacID(i int) {
-	m.facility = &i
+// SetLocalAsn sets the "local_asn" field.
+func (m *NetworkFacilityMutation) SetLocalAsn(i int) {
+	m.local_asn = &i
+	m.addlocal_asn = nil
 }
 
-// FacID returns the value of the "fac_id" field in the mutation.
-func (m *NetworkFacilityMutation) FacID() (r int, exists bool) {
-	v := m.facility
+// LocalAsn returns the value of the "local_asn" field in the mutation.
+func (m *NetworkFacilityMutation) LocalAsn() (r int, exists bool) {
+	v := m.local_asn
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldFacID returns the old "fac_id" field's value of the NetworkFacility entity.
+// OldLocalAsn returns the old "local_asn" field's value of the NetworkFacility entity.
 // If the NetworkFacility object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkFacilityMutation) OldFacID(ctx context.Context) (v *int, err error) {
+func (m *NetworkFacilityMutation) OldLocalAsn(ctx context.Context) (v int, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldFacID is only allowed on UpdateOne operations")
+		return v, errors.New("OldLocalAsn is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldFacID requires an ID field in the mutation")
+		return v, errors.New("OldLocalAsn requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldFacID: %w", err)
+		return v, fmt.Errorf("querying old value for OldLocalAsn: %w", err)
 	}
-	return oldValue.FacID, nil
+	return oldValue.LocalAsn, nil
 }
 
-// ClearFacID clears the value of the "fac_id" field.
-func (m *NetworkFacilityMutation) ClearFacID() {
-	m.facility = nil
-	m.clearedFields[networkfacility.FieldFacID] = struct{}{}
+// AddLocalAsn adds i to the "local_asn" field.
+func (m *NetworkFacilityMutation) AddLocalAsn(i int) {
+	if m.addlocal_asn != nil {
+		*m.addlocal_asn += i
+	} else {
+		m.addlocal_asn = &i
+	}
 }
 
-// FacIDCleared returns if the "fac_id" field was cleared in this mutation.
-func (m *NetworkFacilityMutation) FacIDCleared() bool {
-	_, ok := m.clearedFields[networkfacility.FieldFacID]
-	return ok
+// AddedLocalAsn returns the value that was added to the "local_asn" field in this mutation.
+func (m *NetworkFacilityMutation) AddedLocalAsn() (r int, exists bool) {
+	v := m.addlocal_asn
+	if v == nil {
+		return
+	}
+	return *v, true
 }
 
-// ResetFacID resets all changes to the "fac_id" field.
-func (m *NetworkFacilityMutation) ResetFacID() {
-	m.facility = nil
-	delete(m.clearedFields, networkfacility.FieldFacID)
+// ResetLocalAsn resets all changes to the "local_asn" field.
+func (m *NetworkFacilityMutation) ResetLocalAsn() {
+	m.local_asn = nil
+	m.addlocal_asn = nil
 }
 
 // SetName sets the "name" field.
@@ -17152,62 +17362,6 @@ func (m *NetworkFacilityMutation) ResetCountry() {
 	delete(m.clearedFields, networkfacility.FieldCountry)
 }
 
-// SetLocalAsn sets the "local_asn" field.
-func (m *NetworkFacilityMutation) SetLocalAsn(i int) {
-	m.local_asn = &i
-	m.addlocal_asn = nil
-}
-
-// LocalAsn returns the value of the "local_asn" field in the mutation.
-func (m *NetworkFacilityMutation) LocalAsn() (r int, exists bool) {
-	v := m.local_asn
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLocalAsn returns the old "local_asn" field's value of the NetworkFacility entity.
-// If the NetworkFacility object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkFacilityMutation) OldLocalAsn(ctx context.Context) (v int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLocalAsn is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLocalAsn requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLocalAsn: %w", err)
-	}
-	return oldValue.LocalAsn, nil
-}
-
-// AddLocalAsn adds i to the "local_asn" field.
-func (m *NetworkFacilityMutation) AddLocalAsn(i int) {
-	if m.addlocal_asn != nil {
-		*m.addlocal_asn += i
-	} else {
-		m.addlocal_asn = &i
-	}
-}
-
-// AddedLocalAsn returns the value that was added to the "local_asn" field in this mutation.
-func (m *NetworkFacilityMutation) AddedLocalAsn() (r int, exists bool) {
-	v := m.addlocal_asn
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetLocalAsn resets all changes to the "local_asn" field.
-func (m *NetworkFacilityMutation) ResetLocalAsn() {
-	m.local_asn = nil
-	m.addlocal_asn = nil
-}
-
 // SetCreated sets the "created" field.
 func (m *NetworkFacilityMutation) SetCreated(t time.Time) {
 	m.created = &t
@@ -17316,46 +17470,6 @@ func (m *NetworkFacilityMutation) ResetStatus() {
 	m.status = nil
 }
 
-// SetNetworkID sets the "network" edge to the Network entity by id.
-func (m *NetworkFacilityMutation) SetNetworkID(id int) {
-	m.network = &id
-}
-
-// ClearNetwork clears the "network" edge to the Network entity.
-func (m *NetworkFacilityMutation) ClearNetwork() {
-	m.clearednetwork = true
-	m.clearedFields[networkfacility.FieldNetID] = struct{}{}
-}
-
-// NetworkCleared reports if the "network" edge to the Network entity was cleared.
-func (m *NetworkFacilityMutation) NetworkCleared() bool {
-	return m.NetIDCleared() || m.clearednetwork
-}
-
-// NetworkID returns the "network" edge ID in the mutation.
-func (m *NetworkFacilityMutation) NetworkID() (id int, exists bool) {
-	if m.network != nil {
-		return *m.network, true
-	}
-	return
-}
-
-// NetworkIDs returns the "network" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// NetworkID instead. It exists only for internal usage by the builders.
-func (m *NetworkFacilityMutation) NetworkIDs() (ids []int) {
-	if id := m.network; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetNetwork resets all changes to the "network" edge.
-func (m *NetworkFacilityMutation) ResetNetwork() {
-	m.network = nil
-	m.clearednetwork = false
-}
-
 // SetFacilityID sets the "facility" edge to the Facility entity by id.
 func (m *NetworkFacilityMutation) SetFacilityID(id int) {
 	m.facility = &id
@@ -17396,6 +17510,46 @@ func (m *NetworkFacilityMutation) ResetFacility() {
 	m.clearedfacility = false
 }
 
+// SetNetworkID sets the "network" edge to the Network entity by id.
+func (m *NetworkFacilityMutation) SetNetworkID(id int) {
+	m.network = &id
+}
+
+// ClearNetwork clears the "network" edge to the Network entity.
+func (m *NetworkFacilityMutation) ClearNetwork() {
+	m.clearednetwork = true
+	m.clearedFields[networkfacility.FieldNetID] = struct{}{}
+}
+
+// NetworkCleared reports if the "network" edge to the Network entity was cleared.
+func (m *NetworkFacilityMutation) NetworkCleared() bool {
+	return m.NetIDCleared() || m.clearednetwork
+}
+
+// NetworkID returns the "network" edge ID in the mutation.
+func (m *NetworkFacilityMutation) NetworkID() (id int, exists bool) {
+	if m.network != nil {
+		return *m.network, true
+	}
+	return
+}
+
+// NetworkIDs returns the "network" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// NetworkID instead. It exists only for internal usage by the builders.
+func (m *NetworkFacilityMutation) NetworkIDs() (ids []int) {
+	if id := m.network; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetNetwork resets all changes to the "network" edge.
+func (m *NetworkFacilityMutation) ResetNetwork() {
+	m.network = nil
+	m.clearednetwork = false
+}
+
 // Where appends a list predicates to the NetworkFacilityMutation builder.
 func (m *NetworkFacilityMutation) Where(ps ...predicate.NetworkFacility) {
 	m.predicates = append(m.predicates, ps...)
@@ -17431,11 +17585,14 @@ func (m *NetworkFacilityMutation) Type() string {
 // AddedFields().
 func (m *NetworkFacilityMutation) Fields() []string {
 	fields := make([]string, 0, 9)
+	if m.facility != nil {
+		fields = append(fields, networkfacility.FieldFacID)
+	}
 	if m.network != nil {
 		fields = append(fields, networkfacility.FieldNetID)
 	}
-	if m.facility != nil {
-		fields = append(fields, networkfacility.FieldFacID)
+	if m.local_asn != nil {
+		fields = append(fields, networkfacility.FieldLocalAsn)
 	}
 	if m.name != nil {
 		fields = append(fields, networkfacility.FieldName)
@@ -17445,9 +17602,6 @@ func (m *NetworkFacilityMutation) Fields() []string {
 	}
 	if m.country != nil {
 		fields = append(fields, networkfacility.FieldCountry)
-	}
-	if m.local_asn != nil {
-		fields = append(fields, networkfacility.FieldLocalAsn)
 	}
 	if m.created != nil {
 		fields = append(fields, networkfacility.FieldCreated)
@@ -17466,18 +17620,18 @@ func (m *NetworkFacilityMutation) Fields() []string {
 // schema.
 func (m *NetworkFacilityMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case networkfacility.FieldNetID:
-		return m.NetID()
 	case networkfacility.FieldFacID:
 		return m.FacID()
+	case networkfacility.FieldNetID:
+		return m.NetID()
+	case networkfacility.FieldLocalAsn:
+		return m.LocalAsn()
 	case networkfacility.FieldName:
 		return m.Name()
 	case networkfacility.FieldCity:
 		return m.City()
 	case networkfacility.FieldCountry:
 		return m.Country()
-	case networkfacility.FieldLocalAsn:
-		return m.LocalAsn()
 	case networkfacility.FieldCreated:
 		return m.Created()
 	case networkfacility.FieldUpdated:
@@ -17493,18 +17647,18 @@ func (m *NetworkFacilityMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *NetworkFacilityMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case networkfacility.FieldNetID:
-		return m.OldNetID(ctx)
 	case networkfacility.FieldFacID:
 		return m.OldFacID(ctx)
+	case networkfacility.FieldNetID:
+		return m.OldNetID(ctx)
+	case networkfacility.FieldLocalAsn:
+		return m.OldLocalAsn(ctx)
 	case networkfacility.FieldName:
 		return m.OldName(ctx)
 	case networkfacility.FieldCity:
 		return m.OldCity(ctx)
 	case networkfacility.FieldCountry:
 		return m.OldCountry(ctx)
-	case networkfacility.FieldLocalAsn:
-		return m.OldLocalAsn(ctx)
 	case networkfacility.FieldCreated:
 		return m.OldCreated(ctx)
 	case networkfacility.FieldUpdated:
@@ -17520,6 +17674,13 @@ func (m *NetworkFacilityMutation) OldField(ctx context.Context, name string) (en
 // type.
 func (m *NetworkFacilityMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case networkfacility.FieldFacID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFacID(v)
+		return nil
 	case networkfacility.FieldNetID:
 		v, ok := value.(int)
 		if !ok {
@@ -17527,12 +17688,12 @@ func (m *NetworkFacilityMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetNetID(v)
 		return nil
-	case networkfacility.FieldFacID:
+	case networkfacility.FieldLocalAsn:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetFacID(v)
+		m.SetLocalAsn(v)
 		return nil
 	case networkfacility.FieldName:
 		v, ok := value.(string)
@@ -17554,13 +17715,6 @@ func (m *NetworkFacilityMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCountry(v)
-		return nil
-	case networkfacility.FieldLocalAsn:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLocalAsn(v)
 		return nil
 	case networkfacility.FieldCreated:
 		v, ok := value.(time.Time)
@@ -17628,11 +17782,11 @@ func (m *NetworkFacilityMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *NetworkFacilityMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(networkfacility.FieldNetID) {
-		fields = append(fields, networkfacility.FieldNetID)
-	}
 	if m.FieldCleared(networkfacility.FieldFacID) {
 		fields = append(fields, networkfacility.FieldFacID)
+	}
+	if m.FieldCleared(networkfacility.FieldNetID) {
+		fields = append(fields, networkfacility.FieldNetID)
 	}
 	if m.FieldCleared(networkfacility.FieldName) {
 		fields = append(fields, networkfacility.FieldName)
@@ -17657,11 +17811,11 @@ func (m *NetworkFacilityMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *NetworkFacilityMutation) ClearField(name string) error {
 	switch name {
-	case networkfacility.FieldNetID:
-		m.ClearNetID()
-		return nil
 	case networkfacility.FieldFacID:
 		m.ClearFacID()
+		return nil
+	case networkfacility.FieldNetID:
+		m.ClearNetID()
 		return nil
 	case networkfacility.FieldName:
 		m.ClearName()
@@ -17680,11 +17834,14 @@ func (m *NetworkFacilityMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *NetworkFacilityMutation) ResetField(name string) error {
 	switch name {
+	case networkfacility.FieldFacID:
+		m.ResetFacID()
+		return nil
 	case networkfacility.FieldNetID:
 		m.ResetNetID()
 		return nil
-	case networkfacility.FieldFacID:
-		m.ResetFacID()
+	case networkfacility.FieldLocalAsn:
+		m.ResetLocalAsn()
 		return nil
 	case networkfacility.FieldName:
 		m.ResetName()
@@ -17694,9 +17851,6 @@ func (m *NetworkFacilityMutation) ResetField(name string) error {
 		return nil
 	case networkfacility.FieldCountry:
 		m.ResetCountry()
-		return nil
-	case networkfacility.FieldLocalAsn:
-		m.ResetLocalAsn()
 		return nil
 	case networkfacility.FieldCreated:
 		m.ResetCreated()
@@ -17714,11 +17868,11 @@ func (m *NetworkFacilityMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *NetworkFacilityMutation) AddedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.network != nil {
-		edges = append(edges, networkfacility.EdgeNetwork)
-	}
 	if m.facility != nil {
 		edges = append(edges, networkfacility.EdgeFacility)
+	}
+	if m.network != nil {
+		edges = append(edges, networkfacility.EdgeNetwork)
 	}
 	return edges
 }
@@ -17727,12 +17881,12 @@ func (m *NetworkFacilityMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *NetworkFacilityMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case networkfacility.EdgeNetwork:
-		if id := m.network; id != nil {
-			return []ent.Value{*id}
-		}
 	case networkfacility.EdgeFacility:
 		if id := m.facility; id != nil {
+			return []ent.Value{*id}
+		}
+	case networkfacility.EdgeNetwork:
+		if id := m.network; id != nil {
 			return []ent.Value{*id}
 		}
 	}
@@ -17754,11 +17908,11 @@ func (m *NetworkFacilityMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *NetworkFacilityMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.clearednetwork {
-		edges = append(edges, networkfacility.EdgeNetwork)
-	}
 	if m.clearedfacility {
 		edges = append(edges, networkfacility.EdgeFacility)
+	}
+	if m.clearednetwork {
+		edges = append(edges, networkfacility.EdgeNetwork)
 	}
 	return edges
 }
@@ -17767,10 +17921,10 @@ func (m *NetworkFacilityMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *NetworkFacilityMutation) EdgeCleared(name string) bool {
 	switch name {
-	case networkfacility.EdgeNetwork:
-		return m.clearednetwork
 	case networkfacility.EdgeFacility:
 		return m.clearedfacility
+	case networkfacility.EdgeNetwork:
+		return m.clearednetwork
 	}
 	return false
 }
@@ -17779,11 +17933,11 @@ func (m *NetworkFacilityMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *NetworkFacilityMutation) ClearEdge(name string) error {
 	switch name {
-	case networkfacility.EdgeNetwork:
-		m.ClearNetwork()
-		return nil
 	case networkfacility.EdgeFacility:
 		m.ClearFacility()
+		return nil
+	case networkfacility.EdgeNetwork:
+		m.ClearNetwork()
 		return nil
 	}
 	return fmt.Errorf("unknown NetworkFacility unique edge %s", name)
@@ -17793,11 +17947,11 @@ func (m *NetworkFacilityMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *NetworkFacilityMutation) ResetEdge(name string) error {
 	switch name {
-	case networkfacility.EdgeNetwork:
-		m.ResetNetwork()
-		return nil
 	case networkfacility.EdgeFacility:
 		m.ResetFacility()
+		return nil
+	case networkfacility.EdgeNetwork:
+		m.ResetNetwork()
 		return nil
 	}
 	return fmt.Errorf("unknown NetworkFacility edge %s", name)
@@ -17809,31 +17963,31 @@ type NetworkIxLanMutation struct {
 	op             Op
 	typ            string
 	id             *int
-	ix_id          *int
-	addix_id       *int
-	name           *string
-	notes          *string
-	speed          *int
-	addspeed       *int
+	ix_side_id     *int
+	addix_side_id  *int
+	net_side_id    *int
+	addnet_side_id *int
 	asn            *int
 	addasn         *int
+	bfd_support    *bool
 	ipaddr4        *string
 	ipaddr6        *string
 	is_rs_peer     *bool
-	bfd_support    *bool
+	notes          *string
 	operational    *bool
-	net_side_id    *int
-	addnet_side_id *int
-	ix_side_id     *int
-	addix_side_id  *int
+	speed          *int
+	addspeed       *int
+	ix_id          *int
+	addix_id       *int
+	name           *string
 	created        *time.Time
 	updated        *time.Time
 	status         *string
 	clearedFields  map[string]struct{}
-	network        *int
-	clearednetwork bool
 	ix_lan         *int
 	clearedix_lan  bool
+	network        *int
+	clearednetwork bool
 	done           bool
 	oldValue       func(context.Context) (*NetworkIxLan, error)
 	predicates     []predicate.NetworkIxLan
@@ -17943,123 +18097,74 @@ func (m *NetworkIxLanMutation) IDs(ctx context.Context) ([]int, error) {
 	}
 }
 
-// SetNetID sets the "net_id" field.
-func (m *NetworkIxLanMutation) SetNetID(i int) {
-	m.network = &i
+// SetIxSideID sets the "ix_side_id" field.
+func (m *NetworkIxLanMutation) SetIxSideID(i int) {
+	m.ix_side_id = &i
+	m.addix_side_id = nil
 }
 
-// NetID returns the value of the "net_id" field in the mutation.
-func (m *NetworkIxLanMutation) NetID() (r int, exists bool) {
-	v := m.network
+// IxSideID returns the value of the "ix_side_id" field in the mutation.
+func (m *NetworkIxLanMutation) IxSideID() (r int, exists bool) {
+	v := m.ix_side_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldNetID returns the old "net_id" field's value of the NetworkIxLan entity.
+// OldIxSideID returns the old "ix_side_id" field's value of the NetworkIxLan entity.
 // If the NetworkIxLan object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkIxLanMutation) OldNetID(ctx context.Context) (v *int, err error) {
+func (m *NetworkIxLanMutation) OldIxSideID(ctx context.Context) (v *int, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNetID is only allowed on UpdateOne operations")
+		return v, errors.New("OldIxSideID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNetID requires an ID field in the mutation")
+		return v, errors.New("OldIxSideID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNetID: %w", err)
+		return v, fmt.Errorf("querying old value for OldIxSideID: %w", err)
 	}
-	return oldValue.NetID, nil
+	return oldValue.IxSideID, nil
 }
 
-// ClearNetID clears the value of the "net_id" field.
-func (m *NetworkIxLanMutation) ClearNetID() {
-	m.network = nil
-	m.clearedFields[networkixlan.FieldNetID] = struct{}{}
-}
-
-// NetIDCleared returns if the "net_id" field was cleared in this mutation.
-func (m *NetworkIxLanMutation) NetIDCleared() bool {
-	_, ok := m.clearedFields[networkixlan.FieldNetID]
-	return ok
-}
-
-// ResetNetID resets all changes to the "net_id" field.
-func (m *NetworkIxLanMutation) ResetNetID() {
-	m.network = nil
-	delete(m.clearedFields, networkixlan.FieldNetID)
-}
-
-// SetIxID sets the "ix_id" field.
-func (m *NetworkIxLanMutation) SetIxID(i int) {
-	m.ix_id = &i
-	m.addix_id = nil
-}
-
-// IxID returns the value of the "ix_id" field in the mutation.
-func (m *NetworkIxLanMutation) IxID() (r int, exists bool) {
-	v := m.ix_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIxID returns the old "ix_id" field's value of the NetworkIxLan entity.
-// If the NetworkIxLan object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkIxLanMutation) OldIxID(ctx context.Context) (v int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIxID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIxID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIxID: %w", err)
-	}
-	return oldValue.IxID, nil
-}
-
-// AddIxID adds i to the "ix_id" field.
-func (m *NetworkIxLanMutation) AddIxID(i int) {
-	if m.addix_id != nil {
-		*m.addix_id += i
+// AddIxSideID adds i to the "ix_side_id" field.
+func (m *NetworkIxLanMutation) AddIxSideID(i int) {
+	if m.addix_side_id != nil {
+		*m.addix_side_id += i
 	} else {
-		m.addix_id = &i
+		m.addix_side_id = &i
 	}
 }
 
-// AddedIxID returns the value that was added to the "ix_id" field in this mutation.
-func (m *NetworkIxLanMutation) AddedIxID() (r int, exists bool) {
-	v := m.addix_id
+// AddedIxSideID returns the value that was added to the "ix_side_id" field in this mutation.
+func (m *NetworkIxLanMutation) AddedIxSideID() (r int, exists bool) {
+	v := m.addix_side_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ClearIxID clears the value of the "ix_id" field.
-func (m *NetworkIxLanMutation) ClearIxID() {
-	m.ix_id = nil
-	m.addix_id = nil
-	m.clearedFields[networkixlan.FieldIxID] = struct{}{}
+// ClearIxSideID clears the value of the "ix_side_id" field.
+func (m *NetworkIxLanMutation) ClearIxSideID() {
+	m.ix_side_id = nil
+	m.addix_side_id = nil
+	m.clearedFields[networkixlan.FieldIxSideID] = struct{}{}
 }
 
-// IxIDCleared returns if the "ix_id" field was cleared in this mutation.
-func (m *NetworkIxLanMutation) IxIDCleared() bool {
-	_, ok := m.clearedFields[networkixlan.FieldIxID]
+// IxSideIDCleared returns if the "ix_side_id" field was cleared in this mutation.
+func (m *NetworkIxLanMutation) IxSideIDCleared() bool {
+	_, ok := m.clearedFields[networkixlan.FieldIxSideID]
 	return ok
 }
 
-// ResetIxID resets all changes to the "ix_id" field.
-func (m *NetworkIxLanMutation) ResetIxID() {
-	m.ix_id = nil
-	m.addix_id = nil
-	delete(m.clearedFields, networkixlan.FieldIxID)
+// ResetIxSideID resets all changes to the "ix_side_id" field.
+func (m *NetworkIxLanMutation) ResetIxSideID() {
+	m.ix_side_id = nil
+	m.addix_side_id = nil
+	delete(m.clearedFields, networkixlan.FieldIxSideID)
 }
 
 // SetIxlanID sets the "ixlan_id" field.
@@ -18111,158 +18216,123 @@ func (m *NetworkIxLanMutation) ResetIxlanID() {
 	delete(m.clearedFields, networkixlan.FieldIxlanID)
 }
 
-// SetName sets the "name" field.
-func (m *NetworkIxLanMutation) SetName(s string) {
-	m.name = &s
+// SetNetID sets the "net_id" field.
+func (m *NetworkIxLanMutation) SetNetID(i int) {
+	m.network = &i
 }
 
-// Name returns the value of the "name" field in the mutation.
-func (m *NetworkIxLanMutation) Name() (r string, exists bool) {
-	v := m.name
+// NetID returns the value of the "net_id" field in the mutation.
+func (m *NetworkIxLanMutation) NetID() (r int, exists bool) {
+	v := m.network
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldName returns the old "name" field's value of the NetworkIxLan entity.
+// OldNetID returns the old "net_id" field's value of the NetworkIxLan entity.
 // If the NetworkIxLan object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkIxLanMutation) OldName(ctx context.Context) (v string, err error) {
+func (m *NetworkIxLanMutation) OldNetID(ctx context.Context) (v *int, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
+		return v, errors.New("OldNetID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
+		return v, errors.New("OldNetID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
+		return v, fmt.Errorf("querying old value for OldNetID: %w", err)
 	}
-	return oldValue.Name, nil
+	return oldValue.NetID, nil
 }
 
-// ClearName clears the value of the "name" field.
-func (m *NetworkIxLanMutation) ClearName() {
-	m.name = nil
-	m.clearedFields[networkixlan.FieldName] = struct{}{}
+// ClearNetID clears the value of the "net_id" field.
+func (m *NetworkIxLanMutation) ClearNetID() {
+	m.network = nil
+	m.clearedFields[networkixlan.FieldNetID] = struct{}{}
 }
 
-// NameCleared returns if the "name" field was cleared in this mutation.
-func (m *NetworkIxLanMutation) NameCleared() bool {
-	_, ok := m.clearedFields[networkixlan.FieldName]
+// NetIDCleared returns if the "net_id" field was cleared in this mutation.
+func (m *NetworkIxLanMutation) NetIDCleared() bool {
+	_, ok := m.clearedFields[networkixlan.FieldNetID]
 	return ok
 }
 
-// ResetName resets all changes to the "name" field.
-func (m *NetworkIxLanMutation) ResetName() {
-	m.name = nil
-	delete(m.clearedFields, networkixlan.FieldName)
+// ResetNetID resets all changes to the "net_id" field.
+func (m *NetworkIxLanMutation) ResetNetID() {
+	m.network = nil
+	delete(m.clearedFields, networkixlan.FieldNetID)
 }
 
-// SetNotes sets the "notes" field.
-func (m *NetworkIxLanMutation) SetNotes(s string) {
-	m.notes = &s
+// SetNetSideID sets the "net_side_id" field.
+func (m *NetworkIxLanMutation) SetNetSideID(i int) {
+	m.net_side_id = &i
+	m.addnet_side_id = nil
 }
 
-// Notes returns the value of the "notes" field in the mutation.
-func (m *NetworkIxLanMutation) Notes() (r string, exists bool) {
-	v := m.notes
+// NetSideID returns the value of the "net_side_id" field in the mutation.
+func (m *NetworkIxLanMutation) NetSideID() (r int, exists bool) {
+	v := m.net_side_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldNotes returns the old "notes" field's value of the NetworkIxLan entity.
+// OldNetSideID returns the old "net_side_id" field's value of the NetworkIxLan entity.
 // If the NetworkIxLan object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkIxLanMutation) OldNotes(ctx context.Context) (v string, err error) {
+func (m *NetworkIxLanMutation) OldNetSideID(ctx context.Context) (v *int, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+		return v, errors.New("OldNetSideID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNotes requires an ID field in the mutation")
+		return v, errors.New("OldNetSideID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+		return v, fmt.Errorf("querying old value for OldNetSideID: %w", err)
 	}
-	return oldValue.Notes, nil
+	return oldValue.NetSideID, nil
 }
 
-// ClearNotes clears the value of the "notes" field.
-func (m *NetworkIxLanMutation) ClearNotes() {
-	m.notes = nil
-	m.clearedFields[networkixlan.FieldNotes] = struct{}{}
-}
-
-// NotesCleared returns if the "notes" field was cleared in this mutation.
-func (m *NetworkIxLanMutation) NotesCleared() bool {
-	_, ok := m.clearedFields[networkixlan.FieldNotes]
-	return ok
-}
-
-// ResetNotes resets all changes to the "notes" field.
-func (m *NetworkIxLanMutation) ResetNotes() {
-	m.notes = nil
-	delete(m.clearedFields, networkixlan.FieldNotes)
-}
-
-// SetSpeed sets the "speed" field.
-func (m *NetworkIxLanMutation) SetSpeed(i int) {
-	m.speed = &i
-	m.addspeed = nil
-}
-
-// Speed returns the value of the "speed" field in the mutation.
-func (m *NetworkIxLanMutation) Speed() (r int, exists bool) {
-	v := m.speed
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSpeed returns the old "speed" field's value of the NetworkIxLan entity.
-// If the NetworkIxLan object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkIxLanMutation) OldSpeed(ctx context.Context) (v int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSpeed is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSpeed requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSpeed: %w", err)
-	}
-	return oldValue.Speed, nil
-}
-
-// AddSpeed adds i to the "speed" field.
-func (m *NetworkIxLanMutation) AddSpeed(i int) {
-	if m.addspeed != nil {
-		*m.addspeed += i
+// AddNetSideID adds i to the "net_side_id" field.
+func (m *NetworkIxLanMutation) AddNetSideID(i int) {
+	if m.addnet_side_id != nil {
+		*m.addnet_side_id += i
 	} else {
-		m.addspeed = &i
+		m.addnet_side_id = &i
 	}
 }
 
-// AddedSpeed returns the value that was added to the "speed" field in this mutation.
-func (m *NetworkIxLanMutation) AddedSpeed() (r int, exists bool) {
-	v := m.addspeed
+// AddedNetSideID returns the value that was added to the "net_side_id" field in this mutation.
+func (m *NetworkIxLanMutation) AddedNetSideID() (r int, exists bool) {
+	v := m.addnet_side_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ResetSpeed resets all changes to the "speed" field.
-func (m *NetworkIxLanMutation) ResetSpeed() {
-	m.speed = nil
-	m.addspeed = nil
+// ClearNetSideID clears the value of the "net_side_id" field.
+func (m *NetworkIxLanMutation) ClearNetSideID() {
+	m.net_side_id = nil
+	m.addnet_side_id = nil
+	m.clearedFields[networkixlan.FieldNetSideID] = struct{}{}
+}
+
+// NetSideIDCleared returns if the "net_side_id" field was cleared in this mutation.
+func (m *NetworkIxLanMutation) NetSideIDCleared() bool {
+	_, ok := m.clearedFields[networkixlan.FieldNetSideID]
+	return ok
+}
+
+// ResetNetSideID resets all changes to the "net_side_id" field.
+func (m *NetworkIxLanMutation) ResetNetSideID() {
+	m.net_side_id = nil
+	m.addnet_side_id = nil
+	delete(m.clearedFields, networkixlan.FieldNetSideID)
 }
 
 // SetAsn sets the "asn" field.
@@ -18319,6 +18389,42 @@ func (m *NetworkIxLanMutation) AddedAsn() (r int, exists bool) {
 func (m *NetworkIxLanMutation) ResetAsn() {
 	m.asn = nil
 	m.addasn = nil
+}
+
+// SetBfdSupport sets the "bfd_support" field.
+func (m *NetworkIxLanMutation) SetBfdSupport(b bool) {
+	m.bfd_support = &b
+}
+
+// BfdSupport returns the value of the "bfd_support" field in the mutation.
+func (m *NetworkIxLanMutation) BfdSupport() (r bool, exists bool) {
+	v := m.bfd_support
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBfdSupport returns the old "bfd_support" field's value of the NetworkIxLan entity.
+// If the NetworkIxLan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkIxLanMutation) OldBfdSupport(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBfdSupport is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBfdSupport requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBfdSupport: %w", err)
+	}
+	return oldValue.BfdSupport, nil
+}
+
+// ResetBfdSupport resets all changes to the "bfd_support" field.
+func (m *NetworkIxLanMutation) ResetBfdSupport() {
+	m.bfd_support = nil
 }
 
 // SetIpaddr4 sets the "ipaddr4" field.
@@ -18455,40 +18561,53 @@ func (m *NetworkIxLanMutation) ResetIsRsPeer() {
 	m.is_rs_peer = nil
 }
 
-// SetBfdSupport sets the "bfd_support" field.
-func (m *NetworkIxLanMutation) SetBfdSupport(b bool) {
-	m.bfd_support = &b
+// SetNotes sets the "notes" field.
+func (m *NetworkIxLanMutation) SetNotes(s string) {
+	m.notes = &s
 }
 
-// BfdSupport returns the value of the "bfd_support" field in the mutation.
-func (m *NetworkIxLanMutation) BfdSupport() (r bool, exists bool) {
-	v := m.bfd_support
+// Notes returns the value of the "notes" field in the mutation.
+func (m *NetworkIxLanMutation) Notes() (r string, exists bool) {
+	v := m.notes
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldBfdSupport returns the old "bfd_support" field's value of the NetworkIxLan entity.
+// OldNotes returns the old "notes" field's value of the NetworkIxLan entity.
 // If the NetworkIxLan object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkIxLanMutation) OldBfdSupport(ctx context.Context) (v bool, err error) {
+func (m *NetworkIxLanMutation) OldNotes(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldBfdSupport is only allowed on UpdateOne operations")
+		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldBfdSupport requires an ID field in the mutation")
+		return v, errors.New("OldNotes requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldBfdSupport: %w", err)
+		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
 	}
-	return oldValue.BfdSupport, nil
+	return oldValue.Notes, nil
 }
 
-// ResetBfdSupport resets all changes to the "bfd_support" field.
-func (m *NetworkIxLanMutation) ResetBfdSupport() {
-	m.bfd_support = nil
+// ClearNotes clears the value of the "notes" field.
+func (m *NetworkIxLanMutation) ClearNotes() {
+	m.notes = nil
+	m.clearedFields[networkixlan.FieldNotes] = struct{}{}
+}
+
+// NotesCleared returns if the "notes" field was cleared in this mutation.
+func (m *NetworkIxLanMutation) NotesCleared() bool {
+	_, ok := m.clearedFields[networkixlan.FieldNotes]
+	return ok
+}
+
+// ResetNotes resets all changes to the "notes" field.
+func (m *NetworkIxLanMutation) ResetNotes() {
+	m.notes = nil
+	delete(m.clearedFields, networkixlan.FieldNotes)
 }
 
 // SetOperational sets the "operational" field.
@@ -18527,144 +18646,179 @@ func (m *NetworkIxLanMutation) ResetOperational() {
 	m.operational = nil
 }
 
-// SetNetSideID sets the "net_side_id" field.
-func (m *NetworkIxLanMutation) SetNetSideID(i int) {
-	m.net_side_id = &i
-	m.addnet_side_id = nil
+// SetSpeed sets the "speed" field.
+func (m *NetworkIxLanMutation) SetSpeed(i int) {
+	m.speed = &i
+	m.addspeed = nil
 }
 
-// NetSideID returns the value of the "net_side_id" field in the mutation.
-func (m *NetworkIxLanMutation) NetSideID() (r int, exists bool) {
-	v := m.net_side_id
+// Speed returns the value of the "speed" field in the mutation.
+func (m *NetworkIxLanMutation) Speed() (r int, exists bool) {
+	v := m.speed
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldNetSideID returns the old "net_side_id" field's value of the NetworkIxLan entity.
+// OldSpeed returns the old "speed" field's value of the NetworkIxLan entity.
 // If the NetworkIxLan object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkIxLanMutation) OldNetSideID(ctx context.Context) (v *int, err error) {
+func (m *NetworkIxLanMutation) OldSpeed(ctx context.Context) (v int, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNetSideID is only allowed on UpdateOne operations")
+		return v, errors.New("OldSpeed is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNetSideID requires an ID field in the mutation")
+		return v, errors.New("OldSpeed requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNetSideID: %w", err)
+		return v, fmt.Errorf("querying old value for OldSpeed: %w", err)
 	}
-	return oldValue.NetSideID, nil
+	return oldValue.Speed, nil
 }
 
-// AddNetSideID adds i to the "net_side_id" field.
-func (m *NetworkIxLanMutation) AddNetSideID(i int) {
-	if m.addnet_side_id != nil {
-		*m.addnet_side_id += i
+// AddSpeed adds i to the "speed" field.
+func (m *NetworkIxLanMutation) AddSpeed(i int) {
+	if m.addspeed != nil {
+		*m.addspeed += i
 	} else {
-		m.addnet_side_id = &i
+		m.addspeed = &i
 	}
 }
 
-// AddedNetSideID returns the value that was added to the "net_side_id" field in this mutation.
-func (m *NetworkIxLanMutation) AddedNetSideID() (r int, exists bool) {
-	v := m.addnet_side_id
+// AddedSpeed returns the value that was added to the "speed" field in this mutation.
+func (m *NetworkIxLanMutation) AddedSpeed() (r int, exists bool) {
+	v := m.addspeed
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ClearNetSideID clears the value of the "net_side_id" field.
-func (m *NetworkIxLanMutation) ClearNetSideID() {
-	m.net_side_id = nil
-	m.addnet_side_id = nil
-	m.clearedFields[networkixlan.FieldNetSideID] = struct{}{}
+// ResetSpeed resets all changes to the "speed" field.
+func (m *NetworkIxLanMutation) ResetSpeed() {
+	m.speed = nil
+	m.addspeed = nil
 }
 
-// NetSideIDCleared returns if the "net_side_id" field was cleared in this mutation.
-func (m *NetworkIxLanMutation) NetSideIDCleared() bool {
-	_, ok := m.clearedFields[networkixlan.FieldNetSideID]
-	return ok
+// SetIxID sets the "ix_id" field.
+func (m *NetworkIxLanMutation) SetIxID(i int) {
+	m.ix_id = &i
+	m.addix_id = nil
 }
 
-// ResetNetSideID resets all changes to the "net_side_id" field.
-func (m *NetworkIxLanMutation) ResetNetSideID() {
-	m.net_side_id = nil
-	m.addnet_side_id = nil
-	delete(m.clearedFields, networkixlan.FieldNetSideID)
-}
-
-// SetIxSideID sets the "ix_side_id" field.
-func (m *NetworkIxLanMutation) SetIxSideID(i int) {
-	m.ix_side_id = &i
-	m.addix_side_id = nil
-}
-
-// IxSideID returns the value of the "ix_side_id" field in the mutation.
-func (m *NetworkIxLanMutation) IxSideID() (r int, exists bool) {
-	v := m.ix_side_id
+// IxID returns the value of the "ix_id" field in the mutation.
+func (m *NetworkIxLanMutation) IxID() (r int, exists bool) {
+	v := m.ix_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldIxSideID returns the old "ix_side_id" field's value of the NetworkIxLan entity.
+// OldIxID returns the old "ix_id" field's value of the NetworkIxLan entity.
 // If the NetworkIxLan object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkIxLanMutation) OldIxSideID(ctx context.Context) (v *int, err error) {
+func (m *NetworkIxLanMutation) OldIxID(ctx context.Context) (v int, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIxSideID is only allowed on UpdateOne operations")
+		return v, errors.New("OldIxID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIxSideID requires an ID field in the mutation")
+		return v, errors.New("OldIxID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIxSideID: %w", err)
+		return v, fmt.Errorf("querying old value for OldIxID: %w", err)
 	}
-	return oldValue.IxSideID, nil
+	return oldValue.IxID, nil
 }
 
-// AddIxSideID adds i to the "ix_side_id" field.
-func (m *NetworkIxLanMutation) AddIxSideID(i int) {
-	if m.addix_side_id != nil {
-		*m.addix_side_id += i
+// AddIxID adds i to the "ix_id" field.
+func (m *NetworkIxLanMutation) AddIxID(i int) {
+	if m.addix_id != nil {
+		*m.addix_id += i
 	} else {
-		m.addix_side_id = &i
+		m.addix_id = &i
 	}
 }
 
-// AddedIxSideID returns the value that was added to the "ix_side_id" field in this mutation.
-func (m *NetworkIxLanMutation) AddedIxSideID() (r int, exists bool) {
-	v := m.addix_side_id
+// AddedIxID returns the value that was added to the "ix_id" field in this mutation.
+func (m *NetworkIxLanMutation) AddedIxID() (r int, exists bool) {
+	v := m.addix_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ClearIxSideID clears the value of the "ix_side_id" field.
-func (m *NetworkIxLanMutation) ClearIxSideID() {
-	m.ix_side_id = nil
-	m.addix_side_id = nil
-	m.clearedFields[networkixlan.FieldIxSideID] = struct{}{}
+// ClearIxID clears the value of the "ix_id" field.
+func (m *NetworkIxLanMutation) ClearIxID() {
+	m.ix_id = nil
+	m.addix_id = nil
+	m.clearedFields[networkixlan.FieldIxID] = struct{}{}
 }
 
-// IxSideIDCleared returns if the "ix_side_id" field was cleared in this mutation.
-func (m *NetworkIxLanMutation) IxSideIDCleared() bool {
-	_, ok := m.clearedFields[networkixlan.FieldIxSideID]
+// IxIDCleared returns if the "ix_id" field was cleared in this mutation.
+func (m *NetworkIxLanMutation) IxIDCleared() bool {
+	_, ok := m.clearedFields[networkixlan.FieldIxID]
 	return ok
 }
 
-// ResetIxSideID resets all changes to the "ix_side_id" field.
-func (m *NetworkIxLanMutation) ResetIxSideID() {
-	m.ix_side_id = nil
-	m.addix_side_id = nil
-	delete(m.clearedFields, networkixlan.FieldIxSideID)
+// ResetIxID resets all changes to the "ix_id" field.
+func (m *NetworkIxLanMutation) ResetIxID() {
+	m.ix_id = nil
+	m.addix_id = nil
+	delete(m.clearedFields, networkixlan.FieldIxID)
+}
+
+// SetName sets the "name" field.
+func (m *NetworkIxLanMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *NetworkIxLanMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the NetworkIxLan entity.
+// If the NetworkIxLan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkIxLanMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ClearName clears the value of the "name" field.
+func (m *NetworkIxLanMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[networkixlan.FieldName] = struct{}{}
+}
+
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *NetworkIxLanMutation) NameCleared() bool {
+	_, ok := m.clearedFields[networkixlan.FieldName]
+	return ok
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *NetworkIxLanMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, networkixlan.FieldName)
 }
 
 // SetCreated sets the "created" field.
@@ -18775,46 +18929,6 @@ func (m *NetworkIxLanMutation) ResetStatus() {
 	m.status = nil
 }
 
-// SetNetworkID sets the "network" edge to the Network entity by id.
-func (m *NetworkIxLanMutation) SetNetworkID(id int) {
-	m.network = &id
-}
-
-// ClearNetwork clears the "network" edge to the Network entity.
-func (m *NetworkIxLanMutation) ClearNetwork() {
-	m.clearednetwork = true
-	m.clearedFields[networkixlan.FieldNetID] = struct{}{}
-}
-
-// NetworkCleared reports if the "network" edge to the Network entity was cleared.
-func (m *NetworkIxLanMutation) NetworkCleared() bool {
-	return m.NetIDCleared() || m.clearednetwork
-}
-
-// NetworkID returns the "network" edge ID in the mutation.
-func (m *NetworkIxLanMutation) NetworkID() (id int, exists bool) {
-	if m.network != nil {
-		return *m.network, true
-	}
-	return
-}
-
-// NetworkIDs returns the "network" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// NetworkID instead. It exists only for internal usage by the builders.
-func (m *NetworkIxLanMutation) NetworkIDs() (ids []int) {
-	if id := m.network; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetNetwork resets all changes to the "network" edge.
-func (m *NetworkIxLanMutation) ResetNetwork() {
-	m.network = nil
-	m.clearednetwork = false
-}
-
 // SetIxLanID sets the "ix_lan" edge to the IxLan entity by id.
 func (m *NetworkIxLanMutation) SetIxLanID(id int) {
 	m.ix_lan = &id
@@ -18855,6 +18969,46 @@ func (m *NetworkIxLanMutation) ResetIxLan() {
 	m.clearedix_lan = false
 }
 
+// SetNetworkID sets the "network" edge to the Network entity by id.
+func (m *NetworkIxLanMutation) SetNetworkID(id int) {
+	m.network = &id
+}
+
+// ClearNetwork clears the "network" edge to the Network entity.
+func (m *NetworkIxLanMutation) ClearNetwork() {
+	m.clearednetwork = true
+	m.clearedFields[networkixlan.FieldNetID] = struct{}{}
+}
+
+// NetworkCleared reports if the "network" edge to the Network entity was cleared.
+func (m *NetworkIxLanMutation) NetworkCleared() bool {
+	return m.NetIDCleared() || m.clearednetwork
+}
+
+// NetworkID returns the "network" edge ID in the mutation.
+func (m *NetworkIxLanMutation) NetworkID() (id int, exists bool) {
+	if m.network != nil {
+		return *m.network, true
+	}
+	return
+}
+
+// NetworkIDs returns the "network" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// NetworkID instead. It exists only for internal usage by the builders.
+func (m *NetworkIxLanMutation) NetworkIDs() (ids []int) {
+	if id := m.network; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetNetwork resets all changes to the "network" edge.
+func (m *NetworkIxLanMutation) ResetNetwork() {
+	m.network = nil
+	m.clearednetwork = false
+}
+
 // Where appends a list predicates to the NetworkIxLanMutation builder.
 func (m *NetworkIxLanMutation) Where(ps ...predicate.NetworkIxLan) {
 	m.predicates = append(m.predicates, ps...)
@@ -18890,26 +19044,23 @@ func (m *NetworkIxLanMutation) Type() string {
 // AddedFields().
 func (m *NetworkIxLanMutation) Fields() []string {
 	fields := make([]string, 0, 17)
-	if m.network != nil {
-		fields = append(fields, networkixlan.FieldNetID)
-	}
-	if m.ix_id != nil {
-		fields = append(fields, networkixlan.FieldIxID)
+	if m.ix_side_id != nil {
+		fields = append(fields, networkixlan.FieldIxSideID)
 	}
 	if m.ix_lan != nil {
 		fields = append(fields, networkixlan.FieldIxlanID)
 	}
-	if m.name != nil {
-		fields = append(fields, networkixlan.FieldName)
+	if m.network != nil {
+		fields = append(fields, networkixlan.FieldNetID)
 	}
-	if m.notes != nil {
-		fields = append(fields, networkixlan.FieldNotes)
-	}
-	if m.speed != nil {
-		fields = append(fields, networkixlan.FieldSpeed)
+	if m.net_side_id != nil {
+		fields = append(fields, networkixlan.FieldNetSideID)
 	}
 	if m.asn != nil {
 		fields = append(fields, networkixlan.FieldAsn)
+	}
+	if m.bfd_support != nil {
+		fields = append(fields, networkixlan.FieldBfdSupport)
 	}
 	if m.ipaddr4 != nil {
 		fields = append(fields, networkixlan.FieldIpaddr4)
@@ -18920,17 +19071,20 @@ func (m *NetworkIxLanMutation) Fields() []string {
 	if m.is_rs_peer != nil {
 		fields = append(fields, networkixlan.FieldIsRsPeer)
 	}
-	if m.bfd_support != nil {
-		fields = append(fields, networkixlan.FieldBfdSupport)
+	if m.notes != nil {
+		fields = append(fields, networkixlan.FieldNotes)
 	}
 	if m.operational != nil {
 		fields = append(fields, networkixlan.FieldOperational)
 	}
-	if m.net_side_id != nil {
-		fields = append(fields, networkixlan.FieldNetSideID)
+	if m.speed != nil {
+		fields = append(fields, networkixlan.FieldSpeed)
 	}
-	if m.ix_side_id != nil {
-		fields = append(fields, networkixlan.FieldIxSideID)
+	if m.ix_id != nil {
+		fields = append(fields, networkixlan.FieldIxID)
+	}
+	if m.name != nil {
+		fields = append(fields, networkixlan.FieldName)
 	}
 	if m.created != nil {
 		fields = append(fields, networkixlan.FieldCreated)
@@ -18949,34 +19103,34 @@ func (m *NetworkIxLanMutation) Fields() []string {
 // schema.
 func (m *NetworkIxLanMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case networkixlan.FieldNetID:
-		return m.NetID()
-	case networkixlan.FieldIxID:
-		return m.IxID()
+	case networkixlan.FieldIxSideID:
+		return m.IxSideID()
 	case networkixlan.FieldIxlanID:
 		return m.IxlanID()
-	case networkixlan.FieldName:
-		return m.Name()
-	case networkixlan.FieldNotes:
-		return m.Notes()
-	case networkixlan.FieldSpeed:
-		return m.Speed()
+	case networkixlan.FieldNetID:
+		return m.NetID()
+	case networkixlan.FieldNetSideID:
+		return m.NetSideID()
 	case networkixlan.FieldAsn:
 		return m.Asn()
+	case networkixlan.FieldBfdSupport:
+		return m.BfdSupport()
 	case networkixlan.FieldIpaddr4:
 		return m.Ipaddr4()
 	case networkixlan.FieldIpaddr6:
 		return m.Ipaddr6()
 	case networkixlan.FieldIsRsPeer:
 		return m.IsRsPeer()
-	case networkixlan.FieldBfdSupport:
-		return m.BfdSupport()
+	case networkixlan.FieldNotes:
+		return m.Notes()
 	case networkixlan.FieldOperational:
 		return m.Operational()
-	case networkixlan.FieldNetSideID:
-		return m.NetSideID()
-	case networkixlan.FieldIxSideID:
-		return m.IxSideID()
+	case networkixlan.FieldSpeed:
+		return m.Speed()
+	case networkixlan.FieldIxID:
+		return m.IxID()
+	case networkixlan.FieldName:
+		return m.Name()
 	case networkixlan.FieldCreated:
 		return m.Created()
 	case networkixlan.FieldUpdated:
@@ -18992,34 +19146,34 @@ func (m *NetworkIxLanMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *NetworkIxLanMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case networkixlan.FieldNetID:
-		return m.OldNetID(ctx)
-	case networkixlan.FieldIxID:
-		return m.OldIxID(ctx)
+	case networkixlan.FieldIxSideID:
+		return m.OldIxSideID(ctx)
 	case networkixlan.FieldIxlanID:
 		return m.OldIxlanID(ctx)
-	case networkixlan.FieldName:
-		return m.OldName(ctx)
-	case networkixlan.FieldNotes:
-		return m.OldNotes(ctx)
-	case networkixlan.FieldSpeed:
-		return m.OldSpeed(ctx)
+	case networkixlan.FieldNetID:
+		return m.OldNetID(ctx)
+	case networkixlan.FieldNetSideID:
+		return m.OldNetSideID(ctx)
 	case networkixlan.FieldAsn:
 		return m.OldAsn(ctx)
+	case networkixlan.FieldBfdSupport:
+		return m.OldBfdSupport(ctx)
 	case networkixlan.FieldIpaddr4:
 		return m.OldIpaddr4(ctx)
 	case networkixlan.FieldIpaddr6:
 		return m.OldIpaddr6(ctx)
 	case networkixlan.FieldIsRsPeer:
 		return m.OldIsRsPeer(ctx)
-	case networkixlan.FieldBfdSupport:
-		return m.OldBfdSupport(ctx)
+	case networkixlan.FieldNotes:
+		return m.OldNotes(ctx)
 	case networkixlan.FieldOperational:
 		return m.OldOperational(ctx)
-	case networkixlan.FieldNetSideID:
-		return m.OldNetSideID(ctx)
-	case networkixlan.FieldIxSideID:
-		return m.OldIxSideID(ctx)
+	case networkixlan.FieldSpeed:
+		return m.OldSpeed(ctx)
+	case networkixlan.FieldIxID:
+		return m.OldIxID(ctx)
+	case networkixlan.FieldName:
+		return m.OldName(ctx)
 	case networkixlan.FieldCreated:
 		return m.OldCreated(ctx)
 	case networkixlan.FieldUpdated:
@@ -19035,19 +19189,12 @@ func (m *NetworkIxLanMutation) OldField(ctx context.Context, name string) (ent.V
 // type.
 func (m *NetworkIxLanMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case networkixlan.FieldNetID:
+	case networkixlan.FieldIxSideID:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetNetID(v)
-		return nil
-	case networkixlan.FieldIxID:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIxID(v)
+		m.SetIxSideID(v)
 		return nil
 	case networkixlan.FieldIxlanID:
 		v, ok := value.(int)
@@ -19056,26 +19203,19 @@ func (m *NetworkIxLanMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetIxlanID(v)
 		return nil
-	case networkixlan.FieldName:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetName(v)
-		return nil
-	case networkixlan.FieldNotes:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetNotes(v)
-		return nil
-	case networkixlan.FieldSpeed:
+	case networkixlan.FieldNetID:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetSpeed(v)
+		m.SetNetID(v)
+		return nil
+	case networkixlan.FieldNetSideID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNetSideID(v)
 		return nil
 	case networkixlan.FieldAsn:
 		v, ok := value.(int)
@@ -19083,6 +19223,13 @@ func (m *NetworkIxLanMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAsn(v)
+		return nil
+	case networkixlan.FieldBfdSupport:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBfdSupport(v)
 		return nil
 	case networkixlan.FieldIpaddr4:
 		v, ok := value.(string)
@@ -19105,12 +19252,12 @@ func (m *NetworkIxLanMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetIsRsPeer(v)
 		return nil
-	case networkixlan.FieldBfdSupport:
-		v, ok := value.(bool)
+	case networkixlan.FieldNotes:
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetBfdSupport(v)
+		m.SetNotes(v)
 		return nil
 	case networkixlan.FieldOperational:
 		v, ok := value.(bool)
@@ -19119,19 +19266,26 @@ func (m *NetworkIxLanMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetOperational(v)
 		return nil
-	case networkixlan.FieldNetSideID:
+	case networkixlan.FieldSpeed:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetNetSideID(v)
+		m.SetSpeed(v)
 		return nil
-	case networkixlan.FieldIxSideID:
+	case networkixlan.FieldIxID:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetIxSideID(v)
+		m.SetIxID(v)
+		return nil
+	case networkixlan.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
 		return nil
 	case networkixlan.FieldCreated:
 		v, ok := value.(time.Time)
@@ -19162,20 +19316,20 @@ func (m *NetworkIxLanMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *NetworkIxLanMutation) AddedFields() []string {
 	var fields []string
-	if m.addix_id != nil {
-		fields = append(fields, networkixlan.FieldIxID)
-	}
-	if m.addspeed != nil {
-		fields = append(fields, networkixlan.FieldSpeed)
-	}
-	if m.addasn != nil {
-		fields = append(fields, networkixlan.FieldAsn)
+	if m.addix_side_id != nil {
+		fields = append(fields, networkixlan.FieldIxSideID)
 	}
 	if m.addnet_side_id != nil {
 		fields = append(fields, networkixlan.FieldNetSideID)
 	}
-	if m.addix_side_id != nil {
-		fields = append(fields, networkixlan.FieldIxSideID)
+	if m.addasn != nil {
+		fields = append(fields, networkixlan.FieldAsn)
+	}
+	if m.addspeed != nil {
+		fields = append(fields, networkixlan.FieldSpeed)
+	}
+	if m.addix_id != nil {
+		fields = append(fields, networkixlan.FieldIxID)
 	}
 	return fields
 }
@@ -19185,16 +19339,16 @@ func (m *NetworkIxLanMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *NetworkIxLanMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
-	case networkixlan.FieldIxID:
-		return m.AddedIxID()
-	case networkixlan.FieldSpeed:
-		return m.AddedSpeed()
-	case networkixlan.FieldAsn:
-		return m.AddedAsn()
-	case networkixlan.FieldNetSideID:
-		return m.AddedNetSideID()
 	case networkixlan.FieldIxSideID:
 		return m.AddedIxSideID()
+	case networkixlan.FieldNetSideID:
+		return m.AddedNetSideID()
+	case networkixlan.FieldAsn:
+		return m.AddedAsn()
+	case networkixlan.FieldSpeed:
+		return m.AddedSpeed()
+	case networkixlan.FieldIxID:
+		return m.AddedIxID()
 	}
 	return nil, false
 }
@@ -19204,26 +19358,12 @@ func (m *NetworkIxLanMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *NetworkIxLanMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case networkixlan.FieldIxID:
+	case networkixlan.FieldIxSideID:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.AddIxID(v)
-		return nil
-	case networkixlan.FieldSpeed:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddSpeed(v)
-		return nil
-	case networkixlan.FieldAsn:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddAsn(v)
+		m.AddIxSideID(v)
 		return nil
 	case networkixlan.FieldNetSideID:
 		v, ok := value.(int)
@@ -19232,12 +19372,26 @@ func (m *NetworkIxLanMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddNetSideID(v)
 		return nil
-	case networkixlan.FieldIxSideID:
+	case networkixlan.FieldAsn:
 		v, ok := value.(int)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.AddIxSideID(v)
+		m.AddAsn(v)
+		return nil
+	case networkixlan.FieldSpeed:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSpeed(v)
+		return nil
+	case networkixlan.FieldIxID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddIxID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown NetworkIxLan numeric field %s", name)
@@ -19247,20 +19401,17 @@ func (m *NetworkIxLanMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *NetworkIxLanMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(networkixlan.FieldNetID) {
-		fields = append(fields, networkixlan.FieldNetID)
-	}
-	if m.FieldCleared(networkixlan.FieldIxID) {
-		fields = append(fields, networkixlan.FieldIxID)
+	if m.FieldCleared(networkixlan.FieldIxSideID) {
+		fields = append(fields, networkixlan.FieldIxSideID)
 	}
 	if m.FieldCleared(networkixlan.FieldIxlanID) {
 		fields = append(fields, networkixlan.FieldIxlanID)
 	}
-	if m.FieldCleared(networkixlan.FieldName) {
-		fields = append(fields, networkixlan.FieldName)
+	if m.FieldCleared(networkixlan.FieldNetID) {
+		fields = append(fields, networkixlan.FieldNetID)
 	}
-	if m.FieldCleared(networkixlan.FieldNotes) {
-		fields = append(fields, networkixlan.FieldNotes)
+	if m.FieldCleared(networkixlan.FieldNetSideID) {
+		fields = append(fields, networkixlan.FieldNetSideID)
 	}
 	if m.FieldCleared(networkixlan.FieldIpaddr4) {
 		fields = append(fields, networkixlan.FieldIpaddr4)
@@ -19268,11 +19419,14 @@ func (m *NetworkIxLanMutation) ClearedFields() []string {
 	if m.FieldCleared(networkixlan.FieldIpaddr6) {
 		fields = append(fields, networkixlan.FieldIpaddr6)
 	}
-	if m.FieldCleared(networkixlan.FieldNetSideID) {
-		fields = append(fields, networkixlan.FieldNetSideID)
+	if m.FieldCleared(networkixlan.FieldNotes) {
+		fields = append(fields, networkixlan.FieldNotes)
 	}
-	if m.FieldCleared(networkixlan.FieldIxSideID) {
-		fields = append(fields, networkixlan.FieldIxSideID)
+	if m.FieldCleared(networkixlan.FieldIxID) {
+		fields = append(fields, networkixlan.FieldIxID)
+	}
+	if m.FieldCleared(networkixlan.FieldName) {
+		fields = append(fields, networkixlan.FieldName)
 	}
 	return fields
 }
@@ -19288,20 +19442,17 @@ func (m *NetworkIxLanMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *NetworkIxLanMutation) ClearField(name string) error {
 	switch name {
-	case networkixlan.FieldNetID:
-		m.ClearNetID()
-		return nil
-	case networkixlan.FieldIxID:
-		m.ClearIxID()
+	case networkixlan.FieldIxSideID:
+		m.ClearIxSideID()
 		return nil
 	case networkixlan.FieldIxlanID:
 		m.ClearIxlanID()
 		return nil
-	case networkixlan.FieldName:
-		m.ClearName()
+	case networkixlan.FieldNetID:
+		m.ClearNetID()
 		return nil
-	case networkixlan.FieldNotes:
-		m.ClearNotes()
+	case networkixlan.FieldNetSideID:
+		m.ClearNetSideID()
 		return nil
 	case networkixlan.FieldIpaddr4:
 		m.ClearIpaddr4()
@@ -19309,11 +19460,14 @@ func (m *NetworkIxLanMutation) ClearField(name string) error {
 	case networkixlan.FieldIpaddr6:
 		m.ClearIpaddr6()
 		return nil
-	case networkixlan.FieldNetSideID:
-		m.ClearNetSideID()
+	case networkixlan.FieldNotes:
+		m.ClearNotes()
 		return nil
-	case networkixlan.FieldIxSideID:
-		m.ClearIxSideID()
+	case networkixlan.FieldIxID:
+		m.ClearIxID()
+		return nil
+	case networkixlan.FieldName:
+		m.ClearName()
 		return nil
 	}
 	return fmt.Errorf("unknown NetworkIxLan nullable field %s", name)
@@ -19323,26 +19477,23 @@ func (m *NetworkIxLanMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *NetworkIxLanMutation) ResetField(name string) error {
 	switch name {
-	case networkixlan.FieldNetID:
-		m.ResetNetID()
-		return nil
-	case networkixlan.FieldIxID:
-		m.ResetIxID()
+	case networkixlan.FieldIxSideID:
+		m.ResetIxSideID()
 		return nil
 	case networkixlan.FieldIxlanID:
 		m.ResetIxlanID()
 		return nil
-	case networkixlan.FieldName:
-		m.ResetName()
+	case networkixlan.FieldNetID:
+		m.ResetNetID()
 		return nil
-	case networkixlan.FieldNotes:
-		m.ResetNotes()
-		return nil
-	case networkixlan.FieldSpeed:
-		m.ResetSpeed()
+	case networkixlan.FieldNetSideID:
+		m.ResetNetSideID()
 		return nil
 	case networkixlan.FieldAsn:
 		m.ResetAsn()
+		return nil
+	case networkixlan.FieldBfdSupport:
+		m.ResetBfdSupport()
 		return nil
 	case networkixlan.FieldIpaddr4:
 		m.ResetIpaddr4()
@@ -19353,17 +19504,20 @@ func (m *NetworkIxLanMutation) ResetField(name string) error {
 	case networkixlan.FieldIsRsPeer:
 		m.ResetIsRsPeer()
 		return nil
-	case networkixlan.FieldBfdSupport:
-		m.ResetBfdSupport()
+	case networkixlan.FieldNotes:
+		m.ResetNotes()
 		return nil
 	case networkixlan.FieldOperational:
 		m.ResetOperational()
 		return nil
-	case networkixlan.FieldNetSideID:
-		m.ResetNetSideID()
+	case networkixlan.FieldSpeed:
+		m.ResetSpeed()
 		return nil
-	case networkixlan.FieldIxSideID:
-		m.ResetIxSideID()
+	case networkixlan.FieldIxID:
+		m.ResetIxID()
+		return nil
+	case networkixlan.FieldName:
+		m.ResetName()
 		return nil
 	case networkixlan.FieldCreated:
 		m.ResetCreated()
@@ -19381,11 +19535,11 @@ func (m *NetworkIxLanMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *NetworkIxLanMutation) AddedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.network != nil {
-		edges = append(edges, networkixlan.EdgeNetwork)
-	}
 	if m.ix_lan != nil {
 		edges = append(edges, networkixlan.EdgeIxLan)
+	}
+	if m.network != nil {
+		edges = append(edges, networkixlan.EdgeNetwork)
 	}
 	return edges
 }
@@ -19394,12 +19548,12 @@ func (m *NetworkIxLanMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *NetworkIxLanMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case networkixlan.EdgeNetwork:
-		if id := m.network; id != nil {
-			return []ent.Value{*id}
-		}
 	case networkixlan.EdgeIxLan:
 		if id := m.ix_lan; id != nil {
+			return []ent.Value{*id}
+		}
+	case networkixlan.EdgeNetwork:
+		if id := m.network; id != nil {
 			return []ent.Value{*id}
 		}
 	}
@@ -19421,11 +19575,11 @@ func (m *NetworkIxLanMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *NetworkIxLanMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.clearednetwork {
-		edges = append(edges, networkixlan.EdgeNetwork)
-	}
 	if m.clearedix_lan {
 		edges = append(edges, networkixlan.EdgeIxLan)
+	}
+	if m.clearednetwork {
+		edges = append(edges, networkixlan.EdgeNetwork)
 	}
 	return edges
 }
@@ -19434,10 +19588,10 @@ func (m *NetworkIxLanMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *NetworkIxLanMutation) EdgeCleared(name string) bool {
 	switch name {
-	case networkixlan.EdgeNetwork:
-		return m.clearednetwork
 	case networkixlan.EdgeIxLan:
 		return m.clearedix_lan
+	case networkixlan.EdgeNetwork:
+		return m.clearednetwork
 	}
 	return false
 }
@@ -19446,11 +19600,11 @@ func (m *NetworkIxLanMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *NetworkIxLanMutation) ClearEdge(name string) error {
 	switch name {
-	case networkixlan.EdgeNetwork:
-		m.ClearNetwork()
-		return nil
 	case networkixlan.EdgeIxLan:
 		m.ClearIxLan()
+		return nil
+	case networkixlan.EdgeNetwork:
+		m.ClearNetwork()
 		return nil
 	}
 	return fmt.Errorf("unknown NetworkIxLan unique edge %s", name)
@@ -19460,11 +19614,11 @@ func (m *NetworkIxLanMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *NetworkIxLanMutation) ResetEdge(name string) error {
 	switch name {
-	case networkixlan.EdgeNetwork:
-		m.ResetNetwork()
-		return nil
 	case networkixlan.EdgeIxLan:
 		m.ResetIxLan()
+		return nil
+	case networkixlan.EdgeNetwork:
+		m.ResetNetwork()
 		return nil
 	}
 	return fmt.Errorf("unknown NetworkIxLan edge %s", name)
@@ -19476,45 +19630,49 @@ type OrganizationMutation struct {
 	op                        Op
 	typ                       string
 	id                        *int
-	name                      *string
-	aka                       *string
-	name_long                 *string
-	website                   *string
-	social_media              *[]schema.SocialMedia
-	appendsocial_media        []schema.SocialMedia
-	notes                     *string
-	logo                      *string
 	address1                  *string
 	address2                  *string
+	aka                       *string
 	city                      *string
-	state                     *string
 	country                   *string
-	zipcode                   *string
-	suite                     *string
 	floor                     *string
 	latitude                  *float64
 	addlatitude               *float64
+	logo                      *string
 	longitude                 *float64
 	addlongitude              *float64
+	name                      *string
+	name_long                 *string
+	notes                     *string
+	social_media              *[]schema.SocialMedia
+	appendsocial_media        []schema.SocialMedia
+	state                     *string
+	suite                     *string
+	website                   *string
+	zipcode                   *string
+	net_count                 *int
+	addnet_count              *int
+	fac_count                 *int
+	addfac_count              *int
 	created                   *time.Time
 	updated                   *time.Time
 	status                    *string
 	clearedFields             map[string]struct{}
-	networks                  map[int]struct{}
-	removednetworks           map[int]struct{}
-	clearednetworks           bool
+	campuses                  map[int]struct{}
+	removedcampuses           map[int]struct{}
+	clearedcampuses           bool
+	carriers                  map[int]struct{}
+	removedcarriers           map[int]struct{}
+	clearedcarriers           bool
 	facilities                map[int]struct{}
 	removedfacilities         map[int]struct{}
 	clearedfacilities         bool
 	internet_exchanges        map[int]struct{}
 	removedinternet_exchanges map[int]struct{}
 	clearedinternet_exchanges bool
-	carriers                  map[int]struct{}
-	removedcarriers           map[int]struct{}
-	clearedcarriers           bool
-	campuses                  map[int]struct{}
-	removedcampuses           map[int]struct{}
-	clearedcampuses           bool
+	networks                  map[int]struct{}
+	removednetworks           map[int]struct{}
+	clearednetworks           bool
 	done                      bool
 	oldValue                  func(context.Context) (*Organization, error)
 	predicates                []predicate.Organization
@@ -19624,352 +19782,6 @@ func (m *OrganizationMutation) IDs(ctx context.Context) ([]int, error) {
 	}
 }
 
-// SetName sets the "name" field.
-func (m *OrganizationMutation) SetName(s string) {
-	m.name = &s
-}
-
-// Name returns the value of the "name" field in the mutation.
-func (m *OrganizationMutation) Name() (r string, exists bool) {
-	v := m.name
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldName returns the old "name" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldName(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
-	}
-	return oldValue.Name, nil
-}
-
-// ResetName resets all changes to the "name" field.
-func (m *OrganizationMutation) ResetName() {
-	m.name = nil
-}
-
-// SetAka sets the "aka" field.
-func (m *OrganizationMutation) SetAka(s string) {
-	m.aka = &s
-}
-
-// Aka returns the value of the "aka" field in the mutation.
-func (m *OrganizationMutation) Aka() (r string, exists bool) {
-	v := m.aka
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAka returns the old "aka" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldAka(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAka is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAka requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAka: %w", err)
-	}
-	return oldValue.Aka, nil
-}
-
-// ClearAka clears the value of the "aka" field.
-func (m *OrganizationMutation) ClearAka() {
-	m.aka = nil
-	m.clearedFields[organization.FieldAka] = struct{}{}
-}
-
-// AkaCleared returns if the "aka" field was cleared in this mutation.
-func (m *OrganizationMutation) AkaCleared() bool {
-	_, ok := m.clearedFields[organization.FieldAka]
-	return ok
-}
-
-// ResetAka resets all changes to the "aka" field.
-func (m *OrganizationMutation) ResetAka() {
-	m.aka = nil
-	delete(m.clearedFields, organization.FieldAka)
-}
-
-// SetNameLong sets the "name_long" field.
-func (m *OrganizationMutation) SetNameLong(s string) {
-	m.name_long = &s
-}
-
-// NameLong returns the value of the "name_long" field in the mutation.
-func (m *OrganizationMutation) NameLong() (r string, exists bool) {
-	v := m.name_long
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldNameLong returns the old "name_long" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldNameLong(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNameLong is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNameLong requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNameLong: %w", err)
-	}
-	return oldValue.NameLong, nil
-}
-
-// ClearNameLong clears the value of the "name_long" field.
-func (m *OrganizationMutation) ClearNameLong() {
-	m.name_long = nil
-	m.clearedFields[organization.FieldNameLong] = struct{}{}
-}
-
-// NameLongCleared returns if the "name_long" field was cleared in this mutation.
-func (m *OrganizationMutation) NameLongCleared() bool {
-	_, ok := m.clearedFields[organization.FieldNameLong]
-	return ok
-}
-
-// ResetNameLong resets all changes to the "name_long" field.
-func (m *OrganizationMutation) ResetNameLong() {
-	m.name_long = nil
-	delete(m.clearedFields, organization.FieldNameLong)
-}
-
-// SetWebsite sets the "website" field.
-func (m *OrganizationMutation) SetWebsite(s string) {
-	m.website = &s
-}
-
-// Website returns the value of the "website" field in the mutation.
-func (m *OrganizationMutation) Website() (r string, exists bool) {
-	v := m.website
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldWebsite returns the old "website" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldWebsite(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldWebsite requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
-	}
-	return oldValue.Website, nil
-}
-
-// ClearWebsite clears the value of the "website" field.
-func (m *OrganizationMutation) ClearWebsite() {
-	m.website = nil
-	m.clearedFields[organization.FieldWebsite] = struct{}{}
-}
-
-// WebsiteCleared returns if the "website" field was cleared in this mutation.
-func (m *OrganizationMutation) WebsiteCleared() bool {
-	_, ok := m.clearedFields[organization.FieldWebsite]
-	return ok
-}
-
-// ResetWebsite resets all changes to the "website" field.
-func (m *OrganizationMutation) ResetWebsite() {
-	m.website = nil
-	delete(m.clearedFields, organization.FieldWebsite)
-}
-
-// SetSocialMedia sets the "social_media" field.
-func (m *OrganizationMutation) SetSocialMedia(sm []schema.SocialMedia) {
-	m.social_media = &sm
-	m.appendsocial_media = nil
-}
-
-// SocialMedia returns the value of the "social_media" field in the mutation.
-func (m *OrganizationMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
-	v := m.social_media
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSocialMedia returns the old "social_media" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSocialMedia requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSocialMedia: %w", err)
-	}
-	return oldValue.SocialMedia, nil
-}
-
-// AppendSocialMedia adds sm to the "social_media" field.
-func (m *OrganizationMutation) AppendSocialMedia(sm []schema.SocialMedia) {
-	m.appendsocial_media = append(m.appendsocial_media, sm...)
-}
-
-// AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
-func (m *OrganizationMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
-	if len(m.appendsocial_media) == 0 {
-		return nil, false
-	}
-	return m.appendsocial_media, true
-}
-
-// ClearSocialMedia clears the value of the "social_media" field.
-func (m *OrganizationMutation) ClearSocialMedia() {
-	m.social_media = nil
-	m.appendsocial_media = nil
-	m.clearedFields[organization.FieldSocialMedia] = struct{}{}
-}
-
-// SocialMediaCleared returns if the "social_media" field was cleared in this mutation.
-func (m *OrganizationMutation) SocialMediaCleared() bool {
-	_, ok := m.clearedFields[organization.FieldSocialMedia]
-	return ok
-}
-
-// ResetSocialMedia resets all changes to the "social_media" field.
-func (m *OrganizationMutation) ResetSocialMedia() {
-	m.social_media = nil
-	m.appendsocial_media = nil
-	delete(m.clearedFields, organization.FieldSocialMedia)
-}
-
-// SetNotes sets the "notes" field.
-func (m *OrganizationMutation) SetNotes(s string) {
-	m.notes = &s
-}
-
-// Notes returns the value of the "notes" field in the mutation.
-func (m *OrganizationMutation) Notes() (r string, exists bool) {
-	v := m.notes
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldNotes returns the old "notes" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldNotes(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNotes requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
-	}
-	return oldValue.Notes, nil
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (m *OrganizationMutation) ClearNotes() {
-	m.notes = nil
-	m.clearedFields[organization.FieldNotes] = struct{}{}
-}
-
-// NotesCleared returns if the "notes" field was cleared in this mutation.
-func (m *OrganizationMutation) NotesCleared() bool {
-	_, ok := m.clearedFields[organization.FieldNotes]
-	return ok
-}
-
-// ResetNotes resets all changes to the "notes" field.
-func (m *OrganizationMutation) ResetNotes() {
-	m.notes = nil
-	delete(m.clearedFields, organization.FieldNotes)
-}
-
-// SetLogo sets the "logo" field.
-func (m *OrganizationMutation) SetLogo(s string) {
-	m.logo = &s
-}
-
-// Logo returns the value of the "logo" field in the mutation.
-func (m *OrganizationMutation) Logo() (r string, exists bool) {
-	v := m.logo
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLogo returns the old "logo" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldLogo(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLogo requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
-	}
-	return oldValue.Logo, nil
-}
-
-// ClearLogo clears the value of the "logo" field.
-func (m *OrganizationMutation) ClearLogo() {
-	m.logo = nil
-	m.clearedFields[organization.FieldLogo] = struct{}{}
-}
-
-// LogoCleared returns if the "logo" field was cleared in this mutation.
-func (m *OrganizationMutation) LogoCleared() bool {
-	_, ok := m.clearedFields[organization.FieldLogo]
-	return ok
-}
-
-// ResetLogo resets all changes to the "logo" field.
-func (m *OrganizationMutation) ResetLogo() {
-	m.logo = nil
-	delete(m.clearedFields, organization.FieldLogo)
-}
-
 // SetAddress1 sets the "address1" field.
 func (m *OrganizationMutation) SetAddress1(s string) {
 	m.address1 = &s
@@ -20068,6 +19880,55 @@ func (m *OrganizationMutation) ResetAddress2() {
 	delete(m.clearedFields, organization.FieldAddress2)
 }
 
+// SetAka sets the "aka" field.
+func (m *OrganizationMutation) SetAka(s string) {
+	m.aka = &s
+}
+
+// Aka returns the value of the "aka" field in the mutation.
+func (m *OrganizationMutation) Aka() (r string, exists bool) {
+	v := m.aka
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAka returns the old "aka" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldAka(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAka is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAka requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAka: %w", err)
+	}
+	return oldValue.Aka, nil
+}
+
+// ClearAka clears the value of the "aka" field.
+func (m *OrganizationMutation) ClearAka() {
+	m.aka = nil
+	m.clearedFields[organization.FieldAka] = struct{}{}
+}
+
+// AkaCleared returns if the "aka" field was cleared in this mutation.
+func (m *OrganizationMutation) AkaCleared() bool {
+	_, ok := m.clearedFields[organization.FieldAka]
+	return ok
+}
+
+// ResetAka resets all changes to the "aka" field.
+func (m *OrganizationMutation) ResetAka() {
+	m.aka = nil
+	delete(m.clearedFields, organization.FieldAka)
+}
+
 // SetCity sets the "city" field.
 func (m *OrganizationMutation) SetCity(s string) {
 	m.city = &s
@@ -20117,55 +19978,6 @@ func (m *OrganizationMutation) ResetCity() {
 	delete(m.clearedFields, organization.FieldCity)
 }
 
-// SetState sets the "state" field.
-func (m *OrganizationMutation) SetState(s string) {
-	m.state = &s
-}
-
-// State returns the value of the "state" field in the mutation.
-func (m *OrganizationMutation) State() (r string, exists bool) {
-	v := m.state
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldState returns the old "state" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldState(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldState is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldState requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldState: %w", err)
-	}
-	return oldValue.State, nil
-}
-
-// ClearState clears the value of the "state" field.
-func (m *OrganizationMutation) ClearState() {
-	m.state = nil
-	m.clearedFields[organization.FieldState] = struct{}{}
-}
-
-// StateCleared returns if the "state" field was cleared in this mutation.
-func (m *OrganizationMutation) StateCleared() bool {
-	_, ok := m.clearedFields[organization.FieldState]
-	return ok
-}
-
-// ResetState resets all changes to the "state" field.
-func (m *OrganizationMutation) ResetState() {
-	m.state = nil
-	delete(m.clearedFields, organization.FieldState)
-}
-
 // SetCountry sets the "country" field.
 func (m *OrganizationMutation) SetCountry(s string) {
 	m.country = &s
@@ -20213,104 +20025,6 @@ func (m *OrganizationMutation) CountryCleared() bool {
 func (m *OrganizationMutation) ResetCountry() {
 	m.country = nil
 	delete(m.clearedFields, organization.FieldCountry)
-}
-
-// SetZipcode sets the "zipcode" field.
-func (m *OrganizationMutation) SetZipcode(s string) {
-	m.zipcode = &s
-}
-
-// Zipcode returns the value of the "zipcode" field in the mutation.
-func (m *OrganizationMutation) Zipcode() (r string, exists bool) {
-	v := m.zipcode
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldZipcode returns the old "zipcode" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldZipcode(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldZipcode is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldZipcode requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldZipcode: %w", err)
-	}
-	return oldValue.Zipcode, nil
-}
-
-// ClearZipcode clears the value of the "zipcode" field.
-func (m *OrganizationMutation) ClearZipcode() {
-	m.zipcode = nil
-	m.clearedFields[organization.FieldZipcode] = struct{}{}
-}
-
-// ZipcodeCleared returns if the "zipcode" field was cleared in this mutation.
-func (m *OrganizationMutation) ZipcodeCleared() bool {
-	_, ok := m.clearedFields[organization.FieldZipcode]
-	return ok
-}
-
-// ResetZipcode resets all changes to the "zipcode" field.
-func (m *OrganizationMutation) ResetZipcode() {
-	m.zipcode = nil
-	delete(m.clearedFields, organization.FieldZipcode)
-}
-
-// SetSuite sets the "suite" field.
-func (m *OrganizationMutation) SetSuite(s string) {
-	m.suite = &s
-}
-
-// Suite returns the value of the "suite" field in the mutation.
-func (m *OrganizationMutation) Suite() (r string, exists bool) {
-	v := m.suite
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSuite returns the old "suite" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldSuite(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSuite is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSuite requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSuite: %w", err)
-	}
-	return oldValue.Suite, nil
-}
-
-// ClearSuite clears the value of the "suite" field.
-func (m *OrganizationMutation) ClearSuite() {
-	m.suite = nil
-	m.clearedFields[organization.FieldSuite] = struct{}{}
-}
-
-// SuiteCleared returns if the "suite" field was cleared in this mutation.
-func (m *OrganizationMutation) SuiteCleared() bool {
-	_, ok := m.clearedFields[organization.FieldSuite]
-	return ok
-}
-
-// ResetSuite resets all changes to the "suite" field.
-func (m *OrganizationMutation) ResetSuite() {
-	m.suite = nil
-	delete(m.clearedFields, organization.FieldSuite)
 }
 
 // SetFloor sets the "floor" field.
@@ -20432,6 +20146,55 @@ func (m *OrganizationMutation) ResetLatitude() {
 	delete(m.clearedFields, organization.FieldLatitude)
 }
 
+// SetLogo sets the "logo" field.
+func (m *OrganizationMutation) SetLogo(s string) {
+	m.logo = &s
+}
+
+// Logo returns the value of the "logo" field in the mutation.
+func (m *OrganizationMutation) Logo() (r string, exists bool) {
+	v := m.logo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLogo returns the old "logo" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldLogo(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLogo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLogo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLogo: %w", err)
+	}
+	return oldValue.Logo, nil
+}
+
+// ClearLogo clears the value of the "logo" field.
+func (m *OrganizationMutation) ClearLogo() {
+	m.logo = nil
+	m.clearedFields[organization.FieldLogo] = struct{}{}
+}
+
+// LogoCleared returns if the "logo" field was cleared in this mutation.
+func (m *OrganizationMutation) LogoCleared() bool {
+	_, ok := m.clearedFields[organization.FieldLogo]
+	return ok
+}
+
+// ResetLogo resets all changes to the "logo" field.
+func (m *OrganizationMutation) ResetLogo() {
+	m.logo = nil
+	delete(m.clearedFields, organization.FieldLogo)
+}
+
 // SetLongitude sets the "longitude" field.
 func (m *OrganizationMutation) SetLongitude(f float64) {
 	m.longitude = &f
@@ -20500,6 +20263,541 @@ func (m *OrganizationMutation) ResetLongitude() {
 	m.longitude = nil
 	m.addlongitude = nil
 	delete(m.clearedFields, organization.FieldLongitude)
+}
+
+// SetName sets the "name" field.
+func (m *OrganizationMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *OrganizationMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *OrganizationMutation) ResetName() {
+	m.name = nil
+}
+
+// SetNameLong sets the "name_long" field.
+func (m *OrganizationMutation) SetNameLong(s string) {
+	m.name_long = &s
+}
+
+// NameLong returns the value of the "name_long" field in the mutation.
+func (m *OrganizationMutation) NameLong() (r string, exists bool) {
+	v := m.name_long
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameLong returns the old "name_long" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldNameLong(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameLong is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameLong requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameLong: %w", err)
+	}
+	return oldValue.NameLong, nil
+}
+
+// ClearNameLong clears the value of the "name_long" field.
+func (m *OrganizationMutation) ClearNameLong() {
+	m.name_long = nil
+	m.clearedFields[organization.FieldNameLong] = struct{}{}
+}
+
+// NameLongCleared returns if the "name_long" field was cleared in this mutation.
+func (m *OrganizationMutation) NameLongCleared() bool {
+	_, ok := m.clearedFields[organization.FieldNameLong]
+	return ok
+}
+
+// ResetNameLong resets all changes to the "name_long" field.
+func (m *OrganizationMutation) ResetNameLong() {
+	m.name_long = nil
+	delete(m.clearedFields, organization.FieldNameLong)
+}
+
+// SetNotes sets the "notes" field.
+func (m *OrganizationMutation) SetNotes(s string) {
+	m.notes = &s
+}
+
+// Notes returns the value of the "notes" field in the mutation.
+func (m *OrganizationMutation) Notes() (r string, exists bool) {
+	v := m.notes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNotes returns the old "notes" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldNotes(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNotes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+	}
+	return oldValue.Notes, nil
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (m *OrganizationMutation) ClearNotes() {
+	m.notes = nil
+	m.clearedFields[organization.FieldNotes] = struct{}{}
+}
+
+// NotesCleared returns if the "notes" field was cleared in this mutation.
+func (m *OrganizationMutation) NotesCleared() bool {
+	_, ok := m.clearedFields[organization.FieldNotes]
+	return ok
+}
+
+// ResetNotes resets all changes to the "notes" field.
+func (m *OrganizationMutation) ResetNotes() {
+	m.notes = nil
+	delete(m.clearedFields, organization.FieldNotes)
+}
+
+// SetSocialMedia sets the "social_media" field.
+func (m *OrganizationMutation) SetSocialMedia(sm []schema.SocialMedia) {
+	m.social_media = &sm
+	m.appendsocial_media = nil
+}
+
+// SocialMedia returns the value of the "social_media" field in the mutation.
+func (m *OrganizationMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
+	v := m.social_media
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSocialMedia returns the old "social_media" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSocialMedia requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSocialMedia: %w", err)
+	}
+	return oldValue.SocialMedia, nil
+}
+
+// AppendSocialMedia adds sm to the "social_media" field.
+func (m *OrganizationMutation) AppendSocialMedia(sm []schema.SocialMedia) {
+	m.appendsocial_media = append(m.appendsocial_media, sm...)
+}
+
+// AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
+func (m *OrganizationMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
+	if len(m.appendsocial_media) == 0 {
+		return nil, false
+	}
+	return m.appendsocial_media, true
+}
+
+// ClearSocialMedia clears the value of the "social_media" field.
+func (m *OrganizationMutation) ClearSocialMedia() {
+	m.social_media = nil
+	m.appendsocial_media = nil
+	m.clearedFields[organization.FieldSocialMedia] = struct{}{}
+}
+
+// SocialMediaCleared returns if the "social_media" field was cleared in this mutation.
+func (m *OrganizationMutation) SocialMediaCleared() bool {
+	_, ok := m.clearedFields[organization.FieldSocialMedia]
+	return ok
+}
+
+// ResetSocialMedia resets all changes to the "social_media" field.
+func (m *OrganizationMutation) ResetSocialMedia() {
+	m.social_media = nil
+	m.appendsocial_media = nil
+	delete(m.clearedFields, organization.FieldSocialMedia)
+}
+
+// SetState sets the "state" field.
+func (m *OrganizationMutation) SetState(s string) {
+	m.state = &s
+}
+
+// State returns the value of the "state" field in the mutation.
+func (m *OrganizationMutation) State() (r string, exists bool) {
+	v := m.state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldState returns the old "state" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldState(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
+	}
+	return oldValue.State, nil
+}
+
+// ClearState clears the value of the "state" field.
+func (m *OrganizationMutation) ClearState() {
+	m.state = nil
+	m.clearedFields[organization.FieldState] = struct{}{}
+}
+
+// StateCleared returns if the "state" field was cleared in this mutation.
+func (m *OrganizationMutation) StateCleared() bool {
+	_, ok := m.clearedFields[organization.FieldState]
+	return ok
+}
+
+// ResetState resets all changes to the "state" field.
+func (m *OrganizationMutation) ResetState() {
+	m.state = nil
+	delete(m.clearedFields, organization.FieldState)
+}
+
+// SetSuite sets the "suite" field.
+func (m *OrganizationMutation) SetSuite(s string) {
+	m.suite = &s
+}
+
+// Suite returns the value of the "suite" field in the mutation.
+func (m *OrganizationMutation) Suite() (r string, exists bool) {
+	v := m.suite
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSuite returns the old "suite" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldSuite(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSuite is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSuite requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSuite: %w", err)
+	}
+	return oldValue.Suite, nil
+}
+
+// ClearSuite clears the value of the "suite" field.
+func (m *OrganizationMutation) ClearSuite() {
+	m.suite = nil
+	m.clearedFields[organization.FieldSuite] = struct{}{}
+}
+
+// SuiteCleared returns if the "suite" field was cleared in this mutation.
+func (m *OrganizationMutation) SuiteCleared() bool {
+	_, ok := m.clearedFields[organization.FieldSuite]
+	return ok
+}
+
+// ResetSuite resets all changes to the "suite" field.
+func (m *OrganizationMutation) ResetSuite() {
+	m.suite = nil
+	delete(m.clearedFields, organization.FieldSuite)
+}
+
+// SetWebsite sets the "website" field.
+func (m *OrganizationMutation) SetWebsite(s string) {
+	m.website = &s
+}
+
+// Website returns the value of the "website" field in the mutation.
+func (m *OrganizationMutation) Website() (r string, exists bool) {
+	v := m.website
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWebsite returns the old "website" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldWebsite(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWebsite is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWebsite requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWebsite: %w", err)
+	}
+	return oldValue.Website, nil
+}
+
+// ClearWebsite clears the value of the "website" field.
+func (m *OrganizationMutation) ClearWebsite() {
+	m.website = nil
+	m.clearedFields[organization.FieldWebsite] = struct{}{}
+}
+
+// WebsiteCleared returns if the "website" field was cleared in this mutation.
+func (m *OrganizationMutation) WebsiteCleared() bool {
+	_, ok := m.clearedFields[organization.FieldWebsite]
+	return ok
+}
+
+// ResetWebsite resets all changes to the "website" field.
+func (m *OrganizationMutation) ResetWebsite() {
+	m.website = nil
+	delete(m.clearedFields, organization.FieldWebsite)
+}
+
+// SetZipcode sets the "zipcode" field.
+func (m *OrganizationMutation) SetZipcode(s string) {
+	m.zipcode = &s
+}
+
+// Zipcode returns the value of the "zipcode" field in the mutation.
+func (m *OrganizationMutation) Zipcode() (r string, exists bool) {
+	v := m.zipcode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldZipcode returns the old "zipcode" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldZipcode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldZipcode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldZipcode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldZipcode: %w", err)
+	}
+	return oldValue.Zipcode, nil
+}
+
+// ClearZipcode clears the value of the "zipcode" field.
+func (m *OrganizationMutation) ClearZipcode() {
+	m.zipcode = nil
+	m.clearedFields[organization.FieldZipcode] = struct{}{}
+}
+
+// ZipcodeCleared returns if the "zipcode" field was cleared in this mutation.
+func (m *OrganizationMutation) ZipcodeCleared() bool {
+	_, ok := m.clearedFields[organization.FieldZipcode]
+	return ok
+}
+
+// ResetZipcode resets all changes to the "zipcode" field.
+func (m *OrganizationMutation) ResetZipcode() {
+	m.zipcode = nil
+	delete(m.clearedFields, organization.FieldZipcode)
+}
+
+// SetNetCount sets the "net_count" field.
+func (m *OrganizationMutation) SetNetCount(i int) {
+	m.net_count = &i
+	m.addnet_count = nil
+}
+
+// NetCount returns the value of the "net_count" field in the mutation.
+func (m *OrganizationMutation) NetCount() (r int, exists bool) {
+	v := m.net_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNetCount returns the old "net_count" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldNetCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNetCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNetCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNetCount: %w", err)
+	}
+	return oldValue.NetCount, nil
+}
+
+// AddNetCount adds i to the "net_count" field.
+func (m *OrganizationMutation) AddNetCount(i int) {
+	if m.addnet_count != nil {
+		*m.addnet_count += i
+	} else {
+		m.addnet_count = &i
+	}
+}
+
+// AddedNetCount returns the value that was added to the "net_count" field in this mutation.
+func (m *OrganizationMutation) AddedNetCount() (r int, exists bool) {
+	v := m.addnet_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearNetCount clears the value of the "net_count" field.
+func (m *OrganizationMutation) ClearNetCount() {
+	m.net_count = nil
+	m.addnet_count = nil
+	m.clearedFields[organization.FieldNetCount] = struct{}{}
+}
+
+// NetCountCleared returns if the "net_count" field was cleared in this mutation.
+func (m *OrganizationMutation) NetCountCleared() bool {
+	_, ok := m.clearedFields[organization.FieldNetCount]
+	return ok
+}
+
+// ResetNetCount resets all changes to the "net_count" field.
+func (m *OrganizationMutation) ResetNetCount() {
+	m.net_count = nil
+	m.addnet_count = nil
+	delete(m.clearedFields, organization.FieldNetCount)
+}
+
+// SetFacCount sets the "fac_count" field.
+func (m *OrganizationMutation) SetFacCount(i int) {
+	m.fac_count = &i
+	m.addfac_count = nil
+}
+
+// FacCount returns the value of the "fac_count" field in the mutation.
+func (m *OrganizationMutation) FacCount() (r int, exists bool) {
+	v := m.fac_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFacCount returns the old "fac_count" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldFacCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFacCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFacCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFacCount: %w", err)
+	}
+	return oldValue.FacCount, nil
+}
+
+// AddFacCount adds i to the "fac_count" field.
+func (m *OrganizationMutation) AddFacCount(i int) {
+	if m.addfac_count != nil {
+		*m.addfac_count += i
+	} else {
+		m.addfac_count = &i
+	}
+}
+
+// AddedFacCount returns the value that was added to the "fac_count" field in this mutation.
+func (m *OrganizationMutation) AddedFacCount() (r int, exists bool) {
+	v := m.addfac_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearFacCount clears the value of the "fac_count" field.
+func (m *OrganizationMutation) ClearFacCount() {
+	m.fac_count = nil
+	m.addfac_count = nil
+	m.clearedFields[organization.FieldFacCount] = struct{}{}
+}
+
+// FacCountCleared returns if the "fac_count" field was cleared in this mutation.
+func (m *OrganizationMutation) FacCountCleared() bool {
+	_, ok := m.clearedFields[organization.FieldFacCount]
+	return ok
+}
+
+// ResetFacCount resets all changes to the "fac_count" field.
+func (m *OrganizationMutation) ResetFacCount() {
+	m.fac_count = nil
+	m.addfac_count = nil
+	delete(m.clearedFields, organization.FieldFacCount)
 }
 
 // SetCreated sets the "created" field.
@@ -20610,58 +20908,112 @@ func (m *OrganizationMutation) ResetStatus() {
 	m.status = nil
 }
 
-// AddNetworkIDs adds the "networks" edge to the Network entity by ids.
-func (m *OrganizationMutation) AddNetworkIDs(ids ...int) {
-	if m.networks == nil {
-		m.networks = make(map[int]struct{})
+// AddCampuseIDs adds the "campuses" edge to the Campus entity by ids.
+func (m *OrganizationMutation) AddCampuseIDs(ids ...int) {
+	if m.campuses == nil {
+		m.campuses = make(map[int]struct{})
 	}
 	for i := range ids {
-		m.networks[ids[i]] = struct{}{}
+		m.campuses[ids[i]] = struct{}{}
 	}
 }
 
-// ClearNetworks clears the "networks" edge to the Network entity.
-func (m *OrganizationMutation) ClearNetworks() {
-	m.clearednetworks = true
+// ClearCampuses clears the "campuses" edge to the Campus entity.
+func (m *OrganizationMutation) ClearCampuses() {
+	m.clearedcampuses = true
 }
 
-// NetworksCleared reports if the "networks" edge to the Network entity was cleared.
-func (m *OrganizationMutation) NetworksCleared() bool {
-	return m.clearednetworks
+// CampusesCleared reports if the "campuses" edge to the Campus entity was cleared.
+func (m *OrganizationMutation) CampusesCleared() bool {
+	return m.clearedcampuses
 }
 
-// RemoveNetworkIDs removes the "networks" edge to the Network entity by IDs.
-func (m *OrganizationMutation) RemoveNetworkIDs(ids ...int) {
-	if m.removednetworks == nil {
-		m.removednetworks = make(map[int]struct{})
+// RemoveCampuseIDs removes the "campuses" edge to the Campus entity by IDs.
+func (m *OrganizationMutation) RemoveCampuseIDs(ids ...int) {
+	if m.removedcampuses == nil {
+		m.removedcampuses = make(map[int]struct{})
 	}
 	for i := range ids {
-		delete(m.networks, ids[i])
-		m.removednetworks[ids[i]] = struct{}{}
+		delete(m.campuses, ids[i])
+		m.removedcampuses[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedNetworks returns the removed IDs of the "networks" edge to the Network entity.
-func (m *OrganizationMutation) RemovedNetworksIDs() (ids []int) {
-	for id := range m.removednetworks {
+// RemovedCampuses returns the removed IDs of the "campuses" edge to the Campus entity.
+func (m *OrganizationMutation) RemovedCampusesIDs() (ids []int) {
+	for id := range m.removedcampuses {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// NetworksIDs returns the "networks" edge IDs in the mutation.
-func (m *OrganizationMutation) NetworksIDs() (ids []int) {
-	for id := range m.networks {
+// CampusesIDs returns the "campuses" edge IDs in the mutation.
+func (m *OrganizationMutation) CampusesIDs() (ids []int) {
+	for id := range m.campuses {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetNetworks resets all changes to the "networks" edge.
-func (m *OrganizationMutation) ResetNetworks() {
-	m.networks = nil
-	m.clearednetworks = false
-	m.removednetworks = nil
+// ResetCampuses resets all changes to the "campuses" edge.
+func (m *OrganizationMutation) ResetCampuses() {
+	m.campuses = nil
+	m.clearedcampuses = false
+	m.removedcampuses = nil
+}
+
+// AddCarrierIDs adds the "carriers" edge to the Carrier entity by ids.
+func (m *OrganizationMutation) AddCarrierIDs(ids ...int) {
+	if m.carriers == nil {
+		m.carriers = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.carriers[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCarriers clears the "carriers" edge to the Carrier entity.
+func (m *OrganizationMutation) ClearCarriers() {
+	m.clearedcarriers = true
+}
+
+// CarriersCleared reports if the "carriers" edge to the Carrier entity was cleared.
+func (m *OrganizationMutation) CarriersCleared() bool {
+	return m.clearedcarriers
+}
+
+// RemoveCarrierIDs removes the "carriers" edge to the Carrier entity by IDs.
+func (m *OrganizationMutation) RemoveCarrierIDs(ids ...int) {
+	if m.removedcarriers == nil {
+		m.removedcarriers = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.carriers, ids[i])
+		m.removedcarriers[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCarriers returns the removed IDs of the "carriers" edge to the Carrier entity.
+func (m *OrganizationMutation) RemovedCarriersIDs() (ids []int) {
+	for id := range m.removedcarriers {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CarriersIDs returns the "carriers" edge IDs in the mutation.
+func (m *OrganizationMutation) CarriersIDs() (ids []int) {
+	for id := range m.carriers {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCarriers resets all changes to the "carriers" edge.
+func (m *OrganizationMutation) ResetCarriers() {
+	m.carriers = nil
+	m.clearedcarriers = false
+	m.removedcarriers = nil
 }
 
 // AddFacilityIDs adds the "facilities" edge to the Facility entity by ids.
@@ -20772,112 +21124,58 @@ func (m *OrganizationMutation) ResetInternetExchanges() {
 	m.removedinternet_exchanges = nil
 }
 
-// AddCarrierIDs adds the "carriers" edge to the Carrier entity by ids.
-func (m *OrganizationMutation) AddCarrierIDs(ids ...int) {
-	if m.carriers == nil {
-		m.carriers = make(map[int]struct{})
+// AddNetworkIDs adds the "networks" edge to the Network entity by ids.
+func (m *OrganizationMutation) AddNetworkIDs(ids ...int) {
+	if m.networks == nil {
+		m.networks = make(map[int]struct{})
 	}
 	for i := range ids {
-		m.carriers[ids[i]] = struct{}{}
+		m.networks[ids[i]] = struct{}{}
 	}
 }
 
-// ClearCarriers clears the "carriers" edge to the Carrier entity.
-func (m *OrganizationMutation) ClearCarriers() {
-	m.clearedcarriers = true
+// ClearNetworks clears the "networks" edge to the Network entity.
+func (m *OrganizationMutation) ClearNetworks() {
+	m.clearednetworks = true
 }
 
-// CarriersCleared reports if the "carriers" edge to the Carrier entity was cleared.
-func (m *OrganizationMutation) CarriersCleared() bool {
-	return m.clearedcarriers
+// NetworksCleared reports if the "networks" edge to the Network entity was cleared.
+func (m *OrganizationMutation) NetworksCleared() bool {
+	return m.clearednetworks
 }
 
-// RemoveCarrierIDs removes the "carriers" edge to the Carrier entity by IDs.
-func (m *OrganizationMutation) RemoveCarrierIDs(ids ...int) {
-	if m.removedcarriers == nil {
-		m.removedcarriers = make(map[int]struct{})
+// RemoveNetworkIDs removes the "networks" edge to the Network entity by IDs.
+func (m *OrganizationMutation) RemoveNetworkIDs(ids ...int) {
+	if m.removednetworks == nil {
+		m.removednetworks = make(map[int]struct{})
 	}
 	for i := range ids {
-		delete(m.carriers, ids[i])
-		m.removedcarriers[ids[i]] = struct{}{}
+		delete(m.networks, ids[i])
+		m.removednetworks[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedCarriers returns the removed IDs of the "carriers" edge to the Carrier entity.
-func (m *OrganizationMutation) RemovedCarriersIDs() (ids []int) {
-	for id := range m.removedcarriers {
+// RemovedNetworks returns the removed IDs of the "networks" edge to the Network entity.
+func (m *OrganizationMutation) RemovedNetworksIDs() (ids []int) {
+	for id := range m.removednetworks {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// CarriersIDs returns the "carriers" edge IDs in the mutation.
-func (m *OrganizationMutation) CarriersIDs() (ids []int) {
-	for id := range m.carriers {
+// NetworksIDs returns the "networks" edge IDs in the mutation.
+func (m *OrganizationMutation) NetworksIDs() (ids []int) {
+	for id := range m.networks {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetCarriers resets all changes to the "carriers" edge.
-func (m *OrganizationMutation) ResetCarriers() {
-	m.carriers = nil
-	m.clearedcarriers = false
-	m.removedcarriers = nil
-}
-
-// AddCampuseIDs adds the "campuses" edge to the Campus entity by ids.
-func (m *OrganizationMutation) AddCampuseIDs(ids ...int) {
-	if m.campuses == nil {
-		m.campuses = make(map[int]struct{})
-	}
-	for i := range ids {
-		m.campuses[ids[i]] = struct{}{}
-	}
-}
-
-// ClearCampuses clears the "campuses" edge to the Campus entity.
-func (m *OrganizationMutation) ClearCampuses() {
-	m.clearedcampuses = true
-}
-
-// CampusesCleared reports if the "campuses" edge to the Campus entity was cleared.
-func (m *OrganizationMutation) CampusesCleared() bool {
-	return m.clearedcampuses
-}
-
-// RemoveCampuseIDs removes the "campuses" edge to the Campus entity by IDs.
-func (m *OrganizationMutation) RemoveCampuseIDs(ids ...int) {
-	if m.removedcampuses == nil {
-		m.removedcampuses = make(map[int]struct{})
-	}
-	for i := range ids {
-		delete(m.campuses, ids[i])
-		m.removedcampuses[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedCampuses returns the removed IDs of the "campuses" edge to the Campus entity.
-func (m *OrganizationMutation) RemovedCampusesIDs() (ids []int) {
-	for id := range m.removedcampuses {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// CampusesIDs returns the "campuses" edge IDs in the mutation.
-func (m *OrganizationMutation) CampusesIDs() (ids []int) {
-	for id := range m.campuses {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetCampuses resets all changes to the "campuses" edge.
-func (m *OrganizationMutation) ResetCampuses() {
-	m.campuses = nil
-	m.clearedcampuses = false
-	m.removedcampuses = nil
+// ResetNetworks resets all changes to the "networks" edge.
+func (m *OrganizationMutation) ResetNetworks() {
+	m.networks = nil
+	m.clearednetworks = false
+	m.removednetworks = nil
 }
 
 // Where appends a list predicates to the OrganizationMutation builder.
@@ -20914,48 +21212,21 @@ func (m *OrganizationMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OrganizationMutation) Fields() []string {
-	fields := make([]string, 0, 20)
-	if m.name != nil {
-		fields = append(fields, organization.FieldName)
-	}
-	if m.aka != nil {
-		fields = append(fields, organization.FieldAka)
-	}
-	if m.name_long != nil {
-		fields = append(fields, organization.FieldNameLong)
-	}
-	if m.website != nil {
-		fields = append(fields, organization.FieldWebsite)
-	}
-	if m.social_media != nil {
-		fields = append(fields, organization.FieldSocialMedia)
-	}
-	if m.notes != nil {
-		fields = append(fields, organization.FieldNotes)
-	}
-	if m.logo != nil {
-		fields = append(fields, organization.FieldLogo)
-	}
+	fields := make([]string, 0, 22)
 	if m.address1 != nil {
 		fields = append(fields, organization.FieldAddress1)
 	}
 	if m.address2 != nil {
 		fields = append(fields, organization.FieldAddress2)
 	}
+	if m.aka != nil {
+		fields = append(fields, organization.FieldAka)
+	}
 	if m.city != nil {
 		fields = append(fields, organization.FieldCity)
 	}
-	if m.state != nil {
-		fields = append(fields, organization.FieldState)
-	}
 	if m.country != nil {
 		fields = append(fields, organization.FieldCountry)
-	}
-	if m.zipcode != nil {
-		fields = append(fields, organization.FieldZipcode)
-	}
-	if m.suite != nil {
-		fields = append(fields, organization.FieldSuite)
 	}
 	if m.floor != nil {
 		fields = append(fields, organization.FieldFloor)
@@ -20963,8 +21234,41 @@ func (m *OrganizationMutation) Fields() []string {
 	if m.latitude != nil {
 		fields = append(fields, organization.FieldLatitude)
 	}
+	if m.logo != nil {
+		fields = append(fields, organization.FieldLogo)
+	}
 	if m.longitude != nil {
 		fields = append(fields, organization.FieldLongitude)
+	}
+	if m.name != nil {
+		fields = append(fields, organization.FieldName)
+	}
+	if m.name_long != nil {
+		fields = append(fields, organization.FieldNameLong)
+	}
+	if m.notes != nil {
+		fields = append(fields, organization.FieldNotes)
+	}
+	if m.social_media != nil {
+		fields = append(fields, organization.FieldSocialMedia)
+	}
+	if m.state != nil {
+		fields = append(fields, organization.FieldState)
+	}
+	if m.suite != nil {
+		fields = append(fields, organization.FieldSuite)
+	}
+	if m.website != nil {
+		fields = append(fields, organization.FieldWebsite)
+	}
+	if m.zipcode != nil {
+		fields = append(fields, organization.FieldZipcode)
+	}
+	if m.net_count != nil {
+		fields = append(fields, organization.FieldNetCount)
+	}
+	if m.fac_count != nil {
+		fields = append(fields, organization.FieldFacCount)
 	}
 	if m.created != nil {
 		fields = append(fields, organization.FieldCreated)
@@ -20983,40 +21287,44 @@ func (m *OrganizationMutation) Fields() []string {
 // schema.
 func (m *OrganizationMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case organization.FieldName:
-		return m.Name()
-	case organization.FieldAka:
-		return m.Aka()
-	case organization.FieldNameLong:
-		return m.NameLong()
-	case organization.FieldWebsite:
-		return m.Website()
-	case organization.FieldSocialMedia:
-		return m.SocialMedia()
-	case organization.FieldNotes:
-		return m.Notes()
-	case organization.FieldLogo:
-		return m.Logo()
 	case organization.FieldAddress1:
 		return m.Address1()
 	case organization.FieldAddress2:
 		return m.Address2()
+	case organization.FieldAka:
+		return m.Aka()
 	case organization.FieldCity:
 		return m.City()
-	case organization.FieldState:
-		return m.State()
 	case organization.FieldCountry:
 		return m.Country()
-	case organization.FieldZipcode:
-		return m.Zipcode()
-	case organization.FieldSuite:
-		return m.Suite()
 	case organization.FieldFloor:
 		return m.Floor()
 	case organization.FieldLatitude:
 		return m.Latitude()
+	case organization.FieldLogo:
+		return m.Logo()
 	case organization.FieldLongitude:
 		return m.Longitude()
+	case organization.FieldName:
+		return m.Name()
+	case organization.FieldNameLong:
+		return m.NameLong()
+	case organization.FieldNotes:
+		return m.Notes()
+	case organization.FieldSocialMedia:
+		return m.SocialMedia()
+	case organization.FieldState:
+		return m.State()
+	case organization.FieldSuite:
+		return m.Suite()
+	case organization.FieldWebsite:
+		return m.Website()
+	case organization.FieldZipcode:
+		return m.Zipcode()
+	case organization.FieldNetCount:
+		return m.NetCount()
+	case organization.FieldFacCount:
+		return m.FacCount()
 	case organization.FieldCreated:
 		return m.Created()
 	case organization.FieldUpdated:
@@ -21032,40 +21340,44 @@ func (m *OrganizationMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *OrganizationMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case organization.FieldName:
-		return m.OldName(ctx)
-	case organization.FieldAka:
-		return m.OldAka(ctx)
-	case organization.FieldNameLong:
-		return m.OldNameLong(ctx)
-	case organization.FieldWebsite:
-		return m.OldWebsite(ctx)
-	case organization.FieldSocialMedia:
-		return m.OldSocialMedia(ctx)
-	case organization.FieldNotes:
-		return m.OldNotes(ctx)
-	case organization.FieldLogo:
-		return m.OldLogo(ctx)
 	case organization.FieldAddress1:
 		return m.OldAddress1(ctx)
 	case organization.FieldAddress2:
 		return m.OldAddress2(ctx)
+	case organization.FieldAka:
+		return m.OldAka(ctx)
 	case organization.FieldCity:
 		return m.OldCity(ctx)
-	case organization.FieldState:
-		return m.OldState(ctx)
 	case organization.FieldCountry:
 		return m.OldCountry(ctx)
-	case organization.FieldZipcode:
-		return m.OldZipcode(ctx)
-	case organization.FieldSuite:
-		return m.OldSuite(ctx)
 	case organization.FieldFloor:
 		return m.OldFloor(ctx)
 	case organization.FieldLatitude:
 		return m.OldLatitude(ctx)
+	case organization.FieldLogo:
+		return m.OldLogo(ctx)
 	case organization.FieldLongitude:
 		return m.OldLongitude(ctx)
+	case organization.FieldName:
+		return m.OldName(ctx)
+	case organization.FieldNameLong:
+		return m.OldNameLong(ctx)
+	case organization.FieldNotes:
+		return m.OldNotes(ctx)
+	case organization.FieldSocialMedia:
+		return m.OldSocialMedia(ctx)
+	case organization.FieldState:
+		return m.OldState(ctx)
+	case organization.FieldSuite:
+		return m.OldSuite(ctx)
+	case organization.FieldWebsite:
+		return m.OldWebsite(ctx)
+	case organization.FieldZipcode:
+		return m.OldZipcode(ctx)
+	case organization.FieldNetCount:
+		return m.OldNetCount(ctx)
+	case organization.FieldFacCount:
+		return m.OldFacCount(ctx)
 	case organization.FieldCreated:
 		return m.OldCreated(ctx)
 	case organization.FieldUpdated:
@@ -21081,55 +21393,6 @@ func (m *OrganizationMutation) OldField(ctx context.Context, name string) (ent.V
 // type.
 func (m *OrganizationMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case organization.FieldName:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetName(v)
-		return nil
-	case organization.FieldAka:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAka(v)
-		return nil
-	case organization.FieldNameLong:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetNameLong(v)
-		return nil
-	case organization.FieldWebsite:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetWebsite(v)
-		return nil
-	case organization.FieldSocialMedia:
-		v, ok := value.([]schema.SocialMedia)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSocialMedia(v)
-		return nil
-	case organization.FieldNotes:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetNotes(v)
-		return nil
-	case organization.FieldLogo:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLogo(v)
-		return nil
 	case organization.FieldAddress1:
 		v, ok := value.(string)
 		if !ok {
@@ -21144,6 +21407,13 @@ func (m *OrganizationMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAddress2(v)
 		return nil
+	case organization.FieldAka:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAka(v)
+		return nil
 	case organization.FieldCity:
 		v, ok := value.(string)
 		if !ok {
@@ -21151,33 +21421,12 @@ func (m *OrganizationMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCity(v)
 		return nil
-	case organization.FieldState:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetState(v)
-		return nil
 	case organization.FieldCountry:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCountry(v)
-		return nil
-	case organization.FieldZipcode:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetZipcode(v)
-		return nil
-	case organization.FieldSuite:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSuite(v)
 		return nil
 	case organization.FieldFloor:
 		v, ok := value.(string)
@@ -21193,12 +21442,89 @@ func (m *OrganizationMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetLatitude(v)
 		return nil
+	case organization.FieldLogo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLogo(v)
+		return nil
 	case organization.FieldLongitude:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetLongitude(v)
+		return nil
+	case organization.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case organization.FieldNameLong:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameLong(v)
+		return nil
+	case organization.FieldNotes:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNotes(v)
+		return nil
+	case organization.FieldSocialMedia:
+		v, ok := value.([]schema.SocialMedia)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSocialMedia(v)
+		return nil
+	case organization.FieldState:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetState(v)
+		return nil
+	case organization.FieldSuite:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSuite(v)
+		return nil
+	case organization.FieldWebsite:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWebsite(v)
+		return nil
+	case organization.FieldZipcode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetZipcode(v)
+		return nil
+	case organization.FieldNetCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNetCount(v)
+		return nil
+	case organization.FieldFacCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFacCount(v)
 		return nil
 	case organization.FieldCreated:
 		v, ok := value.(time.Time)
@@ -21235,6 +21561,12 @@ func (m *OrganizationMutation) AddedFields() []string {
 	if m.addlongitude != nil {
 		fields = append(fields, organization.FieldLongitude)
 	}
+	if m.addnet_count != nil {
+		fields = append(fields, organization.FieldNetCount)
+	}
+	if m.addfac_count != nil {
+		fields = append(fields, organization.FieldFacCount)
+	}
 	return fields
 }
 
@@ -21247,6 +21579,10 @@ func (m *OrganizationMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedLatitude()
 	case organization.FieldLongitude:
 		return m.AddedLongitude()
+	case organization.FieldNetCount:
+		return m.AddedNetCount()
+	case organization.FieldFacCount:
+		return m.AddedFacCount()
 	}
 	return nil, false
 }
@@ -21270,6 +21606,20 @@ func (m *OrganizationMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddLongitude(v)
 		return nil
+	case organization.FieldNetCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddNetCount(v)
+		return nil
+	case organization.FieldFacCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFacCount(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Organization numeric field %s", name)
 }
@@ -21278,44 +21628,20 @@ func (m *OrganizationMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *OrganizationMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(organization.FieldAka) {
-		fields = append(fields, organization.FieldAka)
-	}
-	if m.FieldCleared(organization.FieldNameLong) {
-		fields = append(fields, organization.FieldNameLong)
-	}
-	if m.FieldCleared(organization.FieldWebsite) {
-		fields = append(fields, organization.FieldWebsite)
-	}
-	if m.FieldCleared(organization.FieldSocialMedia) {
-		fields = append(fields, organization.FieldSocialMedia)
-	}
-	if m.FieldCleared(organization.FieldNotes) {
-		fields = append(fields, organization.FieldNotes)
-	}
-	if m.FieldCleared(organization.FieldLogo) {
-		fields = append(fields, organization.FieldLogo)
-	}
 	if m.FieldCleared(organization.FieldAddress1) {
 		fields = append(fields, organization.FieldAddress1)
 	}
 	if m.FieldCleared(organization.FieldAddress2) {
 		fields = append(fields, organization.FieldAddress2)
 	}
+	if m.FieldCleared(organization.FieldAka) {
+		fields = append(fields, organization.FieldAka)
+	}
 	if m.FieldCleared(organization.FieldCity) {
 		fields = append(fields, organization.FieldCity)
 	}
-	if m.FieldCleared(organization.FieldState) {
-		fields = append(fields, organization.FieldState)
-	}
 	if m.FieldCleared(organization.FieldCountry) {
 		fields = append(fields, organization.FieldCountry)
-	}
-	if m.FieldCleared(organization.FieldZipcode) {
-		fields = append(fields, organization.FieldZipcode)
-	}
-	if m.FieldCleared(organization.FieldSuite) {
-		fields = append(fields, organization.FieldSuite)
 	}
 	if m.FieldCleared(organization.FieldFloor) {
 		fields = append(fields, organization.FieldFloor)
@@ -21323,8 +21649,38 @@ func (m *OrganizationMutation) ClearedFields() []string {
 	if m.FieldCleared(organization.FieldLatitude) {
 		fields = append(fields, organization.FieldLatitude)
 	}
+	if m.FieldCleared(organization.FieldLogo) {
+		fields = append(fields, organization.FieldLogo)
+	}
 	if m.FieldCleared(organization.FieldLongitude) {
 		fields = append(fields, organization.FieldLongitude)
+	}
+	if m.FieldCleared(organization.FieldNameLong) {
+		fields = append(fields, organization.FieldNameLong)
+	}
+	if m.FieldCleared(organization.FieldNotes) {
+		fields = append(fields, organization.FieldNotes)
+	}
+	if m.FieldCleared(organization.FieldSocialMedia) {
+		fields = append(fields, organization.FieldSocialMedia)
+	}
+	if m.FieldCleared(organization.FieldState) {
+		fields = append(fields, organization.FieldState)
+	}
+	if m.FieldCleared(organization.FieldSuite) {
+		fields = append(fields, organization.FieldSuite)
+	}
+	if m.FieldCleared(organization.FieldWebsite) {
+		fields = append(fields, organization.FieldWebsite)
+	}
+	if m.FieldCleared(organization.FieldZipcode) {
+		fields = append(fields, organization.FieldZipcode)
+	}
+	if m.FieldCleared(organization.FieldNetCount) {
+		fields = append(fields, organization.FieldNetCount)
+	}
+	if m.FieldCleared(organization.FieldFacCount) {
+		fields = append(fields, organization.FieldFacCount)
 	}
 	return fields
 }
@@ -21340,44 +21696,20 @@ func (m *OrganizationMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *OrganizationMutation) ClearField(name string) error {
 	switch name {
-	case organization.FieldAka:
-		m.ClearAka()
-		return nil
-	case organization.FieldNameLong:
-		m.ClearNameLong()
-		return nil
-	case organization.FieldWebsite:
-		m.ClearWebsite()
-		return nil
-	case organization.FieldSocialMedia:
-		m.ClearSocialMedia()
-		return nil
-	case organization.FieldNotes:
-		m.ClearNotes()
-		return nil
-	case organization.FieldLogo:
-		m.ClearLogo()
-		return nil
 	case organization.FieldAddress1:
 		m.ClearAddress1()
 		return nil
 	case organization.FieldAddress2:
 		m.ClearAddress2()
 		return nil
+	case organization.FieldAka:
+		m.ClearAka()
+		return nil
 	case organization.FieldCity:
 		m.ClearCity()
 		return nil
-	case organization.FieldState:
-		m.ClearState()
-		return nil
 	case organization.FieldCountry:
 		m.ClearCountry()
-		return nil
-	case organization.FieldZipcode:
-		m.ClearZipcode()
-		return nil
-	case organization.FieldSuite:
-		m.ClearSuite()
 		return nil
 	case organization.FieldFloor:
 		m.ClearFloor()
@@ -21385,8 +21717,38 @@ func (m *OrganizationMutation) ClearField(name string) error {
 	case organization.FieldLatitude:
 		m.ClearLatitude()
 		return nil
+	case organization.FieldLogo:
+		m.ClearLogo()
+		return nil
 	case organization.FieldLongitude:
 		m.ClearLongitude()
+		return nil
+	case organization.FieldNameLong:
+		m.ClearNameLong()
+		return nil
+	case organization.FieldNotes:
+		m.ClearNotes()
+		return nil
+	case organization.FieldSocialMedia:
+		m.ClearSocialMedia()
+		return nil
+	case organization.FieldState:
+		m.ClearState()
+		return nil
+	case organization.FieldSuite:
+		m.ClearSuite()
+		return nil
+	case organization.FieldWebsite:
+		m.ClearWebsite()
+		return nil
+	case organization.FieldZipcode:
+		m.ClearZipcode()
+		return nil
+	case organization.FieldNetCount:
+		m.ClearNetCount()
+		return nil
+	case organization.FieldFacCount:
+		m.ClearFacCount()
 		return nil
 	}
 	return fmt.Errorf("unknown Organization nullable field %s", name)
@@ -21396,47 +21758,20 @@ func (m *OrganizationMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *OrganizationMutation) ResetField(name string) error {
 	switch name {
-	case organization.FieldName:
-		m.ResetName()
-		return nil
-	case organization.FieldAka:
-		m.ResetAka()
-		return nil
-	case organization.FieldNameLong:
-		m.ResetNameLong()
-		return nil
-	case organization.FieldWebsite:
-		m.ResetWebsite()
-		return nil
-	case organization.FieldSocialMedia:
-		m.ResetSocialMedia()
-		return nil
-	case organization.FieldNotes:
-		m.ResetNotes()
-		return nil
-	case organization.FieldLogo:
-		m.ResetLogo()
-		return nil
 	case organization.FieldAddress1:
 		m.ResetAddress1()
 		return nil
 	case organization.FieldAddress2:
 		m.ResetAddress2()
 		return nil
+	case organization.FieldAka:
+		m.ResetAka()
+		return nil
 	case organization.FieldCity:
 		m.ResetCity()
 		return nil
-	case organization.FieldState:
-		m.ResetState()
-		return nil
 	case organization.FieldCountry:
 		m.ResetCountry()
-		return nil
-	case organization.FieldZipcode:
-		m.ResetZipcode()
-		return nil
-	case organization.FieldSuite:
-		m.ResetSuite()
 		return nil
 	case organization.FieldFloor:
 		m.ResetFloor()
@@ -21444,8 +21779,41 @@ func (m *OrganizationMutation) ResetField(name string) error {
 	case organization.FieldLatitude:
 		m.ResetLatitude()
 		return nil
+	case organization.FieldLogo:
+		m.ResetLogo()
+		return nil
 	case organization.FieldLongitude:
 		m.ResetLongitude()
+		return nil
+	case organization.FieldName:
+		m.ResetName()
+		return nil
+	case organization.FieldNameLong:
+		m.ResetNameLong()
+		return nil
+	case organization.FieldNotes:
+		m.ResetNotes()
+		return nil
+	case organization.FieldSocialMedia:
+		m.ResetSocialMedia()
+		return nil
+	case organization.FieldState:
+		m.ResetState()
+		return nil
+	case organization.FieldSuite:
+		m.ResetSuite()
+		return nil
+	case organization.FieldWebsite:
+		m.ResetWebsite()
+		return nil
+	case organization.FieldZipcode:
+		m.ResetZipcode()
+		return nil
+	case organization.FieldNetCount:
+		m.ResetNetCount()
+		return nil
+	case organization.FieldFacCount:
+		m.ResetFacCount()
 		return nil
 	case organization.FieldCreated:
 		m.ResetCreated()
@@ -21463,8 +21831,11 @@ func (m *OrganizationMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *OrganizationMutation) AddedEdges() []string {
 	edges := make([]string, 0, 5)
-	if m.networks != nil {
-		edges = append(edges, organization.EdgeNetworks)
+	if m.campuses != nil {
+		edges = append(edges, organization.EdgeCampuses)
+	}
+	if m.carriers != nil {
+		edges = append(edges, organization.EdgeCarriers)
 	}
 	if m.facilities != nil {
 		edges = append(edges, organization.EdgeFacilities)
@@ -21472,11 +21843,8 @@ func (m *OrganizationMutation) AddedEdges() []string {
 	if m.internet_exchanges != nil {
 		edges = append(edges, organization.EdgeInternetExchanges)
 	}
-	if m.carriers != nil {
-		edges = append(edges, organization.EdgeCarriers)
-	}
-	if m.campuses != nil {
-		edges = append(edges, organization.EdgeCampuses)
+	if m.networks != nil {
+		edges = append(edges, organization.EdgeNetworks)
 	}
 	return edges
 }
@@ -21485,9 +21853,15 @@ func (m *OrganizationMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *OrganizationMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case organization.EdgeNetworks:
-		ids := make([]ent.Value, 0, len(m.networks))
-		for id := range m.networks {
+	case organization.EdgeCampuses:
+		ids := make([]ent.Value, 0, len(m.campuses))
+		for id := range m.campuses {
+			ids = append(ids, id)
+		}
+		return ids
+	case organization.EdgeCarriers:
+		ids := make([]ent.Value, 0, len(m.carriers))
+		for id := range m.carriers {
 			ids = append(ids, id)
 		}
 		return ids
@@ -21503,15 +21877,9 @@ func (m *OrganizationMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case organization.EdgeCarriers:
-		ids := make([]ent.Value, 0, len(m.carriers))
-		for id := range m.carriers {
-			ids = append(ids, id)
-		}
-		return ids
-	case organization.EdgeCampuses:
-		ids := make([]ent.Value, 0, len(m.campuses))
-		for id := range m.campuses {
+	case organization.EdgeNetworks:
+		ids := make([]ent.Value, 0, len(m.networks))
+		for id := range m.networks {
 			ids = append(ids, id)
 		}
 		return ids
@@ -21522,8 +21890,11 @@ func (m *OrganizationMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *OrganizationMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 5)
-	if m.removednetworks != nil {
-		edges = append(edges, organization.EdgeNetworks)
+	if m.removedcampuses != nil {
+		edges = append(edges, organization.EdgeCampuses)
+	}
+	if m.removedcarriers != nil {
+		edges = append(edges, organization.EdgeCarriers)
 	}
 	if m.removedfacilities != nil {
 		edges = append(edges, organization.EdgeFacilities)
@@ -21531,11 +21902,8 @@ func (m *OrganizationMutation) RemovedEdges() []string {
 	if m.removedinternet_exchanges != nil {
 		edges = append(edges, organization.EdgeInternetExchanges)
 	}
-	if m.removedcarriers != nil {
-		edges = append(edges, organization.EdgeCarriers)
-	}
-	if m.removedcampuses != nil {
-		edges = append(edges, organization.EdgeCampuses)
+	if m.removednetworks != nil {
+		edges = append(edges, organization.EdgeNetworks)
 	}
 	return edges
 }
@@ -21544,9 +21912,15 @@ func (m *OrganizationMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *OrganizationMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case organization.EdgeNetworks:
-		ids := make([]ent.Value, 0, len(m.removednetworks))
-		for id := range m.removednetworks {
+	case organization.EdgeCampuses:
+		ids := make([]ent.Value, 0, len(m.removedcampuses))
+		for id := range m.removedcampuses {
+			ids = append(ids, id)
+		}
+		return ids
+	case organization.EdgeCarriers:
+		ids := make([]ent.Value, 0, len(m.removedcarriers))
+		for id := range m.removedcarriers {
 			ids = append(ids, id)
 		}
 		return ids
@@ -21562,15 +21936,9 @@ func (m *OrganizationMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case organization.EdgeCarriers:
-		ids := make([]ent.Value, 0, len(m.removedcarriers))
-		for id := range m.removedcarriers {
-			ids = append(ids, id)
-		}
-		return ids
-	case organization.EdgeCampuses:
-		ids := make([]ent.Value, 0, len(m.removedcampuses))
-		for id := range m.removedcampuses {
+	case organization.EdgeNetworks:
+		ids := make([]ent.Value, 0, len(m.removednetworks))
+		for id := range m.removednetworks {
 			ids = append(ids, id)
 		}
 		return ids
@@ -21581,8 +21949,11 @@ func (m *OrganizationMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *OrganizationMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 5)
-	if m.clearednetworks {
-		edges = append(edges, organization.EdgeNetworks)
+	if m.clearedcampuses {
+		edges = append(edges, organization.EdgeCampuses)
+	}
+	if m.clearedcarriers {
+		edges = append(edges, organization.EdgeCarriers)
 	}
 	if m.clearedfacilities {
 		edges = append(edges, organization.EdgeFacilities)
@@ -21590,11 +21961,8 @@ func (m *OrganizationMutation) ClearedEdges() []string {
 	if m.clearedinternet_exchanges {
 		edges = append(edges, organization.EdgeInternetExchanges)
 	}
-	if m.clearedcarriers {
-		edges = append(edges, organization.EdgeCarriers)
-	}
-	if m.clearedcampuses {
-		edges = append(edges, organization.EdgeCampuses)
+	if m.clearednetworks {
+		edges = append(edges, organization.EdgeNetworks)
 	}
 	return edges
 }
@@ -21603,16 +21971,16 @@ func (m *OrganizationMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *OrganizationMutation) EdgeCleared(name string) bool {
 	switch name {
-	case organization.EdgeNetworks:
-		return m.clearednetworks
+	case organization.EdgeCampuses:
+		return m.clearedcampuses
+	case organization.EdgeCarriers:
+		return m.clearedcarriers
 	case organization.EdgeFacilities:
 		return m.clearedfacilities
 	case organization.EdgeInternetExchanges:
 		return m.clearedinternet_exchanges
-	case organization.EdgeCarriers:
-		return m.clearedcarriers
-	case organization.EdgeCampuses:
-		return m.clearedcampuses
+	case organization.EdgeNetworks:
+		return m.clearednetworks
 	}
 	return false
 }
@@ -21629,8 +21997,11 @@ func (m *OrganizationMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *OrganizationMutation) ResetEdge(name string) error {
 	switch name {
-	case organization.EdgeNetworks:
-		m.ResetNetworks()
+	case organization.EdgeCampuses:
+		m.ResetCampuses()
+		return nil
+	case organization.EdgeCarriers:
+		m.ResetCarriers()
 		return nil
 	case organization.EdgeFacilities:
 		m.ResetFacilities()
@@ -21638,11 +22009,8 @@ func (m *OrganizationMutation) ResetEdge(name string) error {
 	case organization.EdgeInternetExchanges:
 		m.ResetInternetExchanges()
 		return nil
-	case organization.EdgeCarriers:
-		m.ResetCarriers()
-		return nil
-	case organization.EdgeCampuses:
-		m.ResetCampuses()
+	case organization.EdgeNetworks:
+		m.ResetNetworks()
 		return nil
 	}
 	return fmt.Errorf("unknown Organization edge %s", name)
@@ -21654,12 +22022,12 @@ type PocMutation struct {
 	op             Op
 	typ            string
 	id             *int
-	role           *string
-	visible        *string
+	email          *string
 	name           *string
 	phone          *string
-	email          *string
+	role           *string
 	url            *string
+	visible        *string
 	created        *time.Time
 	updated        *time.Time
 	status         *string
@@ -21824,76 +22192,53 @@ func (m *PocMutation) ResetNetID() {
 	delete(m.clearedFields, poc.FieldNetID)
 }
 
-// SetRole sets the "role" field.
-func (m *PocMutation) SetRole(s string) {
-	m.role = &s
+// SetEmail sets the "email" field.
+func (m *PocMutation) SetEmail(s string) {
+	m.email = &s
 }
 
-// Role returns the value of the "role" field in the mutation.
-func (m *PocMutation) Role() (r string, exists bool) {
-	v := m.role
+// Email returns the value of the "email" field in the mutation.
+func (m *PocMutation) Email() (r string, exists bool) {
+	v := m.email
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldRole returns the old "role" field's value of the Poc entity.
+// OldEmail returns the old "email" field's value of the Poc entity.
 // If the Poc object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PocMutation) OldRole(ctx context.Context) (v string, err error) {
+func (m *PocMutation) OldEmail(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldRole is only allowed on UpdateOne operations")
+		return v, errors.New("OldEmail is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldRole requires an ID field in the mutation")
+		return v, errors.New("OldEmail requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRole: %w", err)
+		return v, fmt.Errorf("querying old value for OldEmail: %w", err)
 	}
-	return oldValue.Role, nil
+	return oldValue.Email, nil
 }
 
-// ResetRole resets all changes to the "role" field.
-func (m *PocMutation) ResetRole() {
-	m.role = nil
+// ClearEmail clears the value of the "email" field.
+func (m *PocMutation) ClearEmail() {
+	m.email = nil
+	m.clearedFields[poc.FieldEmail] = struct{}{}
 }
 
-// SetVisible sets the "visible" field.
-func (m *PocMutation) SetVisible(s string) {
-	m.visible = &s
+// EmailCleared returns if the "email" field was cleared in this mutation.
+func (m *PocMutation) EmailCleared() bool {
+	_, ok := m.clearedFields[poc.FieldEmail]
+	return ok
 }
 
-// Visible returns the value of the "visible" field in the mutation.
-func (m *PocMutation) Visible() (r string, exists bool) {
-	v := m.visible
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldVisible returns the old "visible" field's value of the Poc entity.
-// If the Poc object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PocMutation) OldVisible(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldVisible is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldVisible requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldVisible: %w", err)
-	}
-	return oldValue.Visible, nil
-}
-
-// ResetVisible resets all changes to the "visible" field.
-func (m *PocMutation) ResetVisible() {
-	m.visible = nil
+// ResetEmail resets all changes to the "email" field.
+func (m *PocMutation) ResetEmail() {
+	m.email = nil
+	delete(m.clearedFields, poc.FieldEmail)
 }
 
 // SetName sets the "name" field.
@@ -21994,53 +22339,40 @@ func (m *PocMutation) ResetPhone() {
 	delete(m.clearedFields, poc.FieldPhone)
 }
 
-// SetEmail sets the "email" field.
-func (m *PocMutation) SetEmail(s string) {
-	m.email = &s
+// SetRole sets the "role" field.
+func (m *PocMutation) SetRole(s string) {
+	m.role = &s
 }
 
-// Email returns the value of the "email" field in the mutation.
-func (m *PocMutation) Email() (r string, exists bool) {
-	v := m.email
+// Role returns the value of the "role" field in the mutation.
+func (m *PocMutation) Role() (r string, exists bool) {
+	v := m.role
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldEmail returns the old "email" field's value of the Poc entity.
+// OldRole returns the old "role" field's value of the Poc entity.
 // If the Poc object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PocMutation) OldEmail(ctx context.Context) (v string, err error) {
+func (m *PocMutation) OldRole(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldEmail is only allowed on UpdateOne operations")
+		return v, errors.New("OldRole is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldEmail requires an ID field in the mutation")
+		return v, errors.New("OldRole requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldEmail: %w", err)
+		return v, fmt.Errorf("querying old value for OldRole: %w", err)
 	}
-	return oldValue.Email, nil
+	return oldValue.Role, nil
 }
 
-// ClearEmail clears the value of the "email" field.
-func (m *PocMutation) ClearEmail() {
-	m.email = nil
-	m.clearedFields[poc.FieldEmail] = struct{}{}
-}
-
-// EmailCleared returns if the "email" field was cleared in this mutation.
-func (m *PocMutation) EmailCleared() bool {
-	_, ok := m.clearedFields[poc.FieldEmail]
-	return ok
-}
-
-// ResetEmail resets all changes to the "email" field.
-func (m *PocMutation) ResetEmail() {
-	m.email = nil
-	delete(m.clearedFields, poc.FieldEmail)
+// ResetRole resets all changes to the "role" field.
+func (m *PocMutation) ResetRole() {
+	m.role = nil
 }
 
 // SetURL sets the "url" field.
@@ -22090,6 +22422,55 @@ func (m *PocMutation) URLCleared() bool {
 func (m *PocMutation) ResetURL() {
 	m.url = nil
 	delete(m.clearedFields, poc.FieldURL)
+}
+
+// SetVisible sets the "visible" field.
+func (m *PocMutation) SetVisible(s string) {
+	m.visible = &s
+}
+
+// Visible returns the value of the "visible" field in the mutation.
+func (m *PocMutation) Visible() (r string, exists bool) {
+	v := m.visible
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVisible returns the old "visible" field's value of the Poc entity.
+// If the Poc object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PocMutation) OldVisible(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVisible is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVisible requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVisible: %w", err)
+	}
+	return oldValue.Visible, nil
+}
+
+// ClearVisible clears the value of the "visible" field.
+func (m *PocMutation) ClearVisible() {
+	m.visible = nil
+	m.clearedFields[poc.FieldVisible] = struct{}{}
+}
+
+// VisibleCleared returns if the "visible" field was cleared in this mutation.
+func (m *PocMutation) VisibleCleared() bool {
+	_, ok := m.clearedFields[poc.FieldVisible]
+	return ok
+}
+
+// ResetVisible resets all changes to the "visible" field.
+func (m *PocMutation) ResetVisible() {
+	m.visible = nil
+	delete(m.clearedFields, poc.FieldVisible)
 }
 
 // SetCreated sets the "created" field.
@@ -22278,11 +22659,8 @@ func (m *PocMutation) Fields() []string {
 	if m.network != nil {
 		fields = append(fields, poc.FieldNetID)
 	}
-	if m.role != nil {
-		fields = append(fields, poc.FieldRole)
-	}
-	if m.visible != nil {
-		fields = append(fields, poc.FieldVisible)
+	if m.email != nil {
+		fields = append(fields, poc.FieldEmail)
 	}
 	if m.name != nil {
 		fields = append(fields, poc.FieldName)
@@ -22290,11 +22668,14 @@ func (m *PocMutation) Fields() []string {
 	if m.phone != nil {
 		fields = append(fields, poc.FieldPhone)
 	}
-	if m.email != nil {
-		fields = append(fields, poc.FieldEmail)
+	if m.role != nil {
+		fields = append(fields, poc.FieldRole)
 	}
 	if m.url != nil {
 		fields = append(fields, poc.FieldURL)
+	}
+	if m.visible != nil {
+		fields = append(fields, poc.FieldVisible)
 	}
 	if m.created != nil {
 		fields = append(fields, poc.FieldCreated)
@@ -22315,18 +22696,18 @@ func (m *PocMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case poc.FieldNetID:
 		return m.NetID()
-	case poc.FieldRole:
-		return m.Role()
-	case poc.FieldVisible:
-		return m.Visible()
+	case poc.FieldEmail:
+		return m.Email()
 	case poc.FieldName:
 		return m.Name()
 	case poc.FieldPhone:
 		return m.Phone()
-	case poc.FieldEmail:
-		return m.Email()
+	case poc.FieldRole:
+		return m.Role()
 	case poc.FieldURL:
 		return m.URL()
+	case poc.FieldVisible:
+		return m.Visible()
 	case poc.FieldCreated:
 		return m.Created()
 	case poc.FieldUpdated:
@@ -22344,18 +22725,18 @@ func (m *PocMutation) OldField(ctx context.Context, name string) (ent.Value, err
 	switch name {
 	case poc.FieldNetID:
 		return m.OldNetID(ctx)
-	case poc.FieldRole:
-		return m.OldRole(ctx)
-	case poc.FieldVisible:
-		return m.OldVisible(ctx)
+	case poc.FieldEmail:
+		return m.OldEmail(ctx)
 	case poc.FieldName:
 		return m.OldName(ctx)
 	case poc.FieldPhone:
 		return m.OldPhone(ctx)
-	case poc.FieldEmail:
-		return m.OldEmail(ctx)
+	case poc.FieldRole:
+		return m.OldRole(ctx)
 	case poc.FieldURL:
 		return m.OldURL(ctx)
+	case poc.FieldVisible:
+		return m.OldVisible(ctx)
 	case poc.FieldCreated:
 		return m.OldCreated(ctx)
 	case poc.FieldUpdated:
@@ -22378,19 +22759,12 @@ func (m *PocMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetNetID(v)
 		return nil
-	case poc.FieldRole:
+	case poc.FieldEmail:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetRole(v)
-		return nil
-	case poc.FieldVisible:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetVisible(v)
+		m.SetEmail(v)
 		return nil
 	case poc.FieldName:
 		v, ok := value.(string)
@@ -22406,12 +22780,12 @@ func (m *PocMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPhone(v)
 		return nil
-	case poc.FieldEmail:
+	case poc.FieldRole:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetEmail(v)
+		m.SetRole(v)
 		return nil
 	case poc.FieldURL:
 		v, ok := value.(string)
@@ -22419,6 +22793,13 @@ func (m *PocMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetURL(v)
+		return nil
+	case poc.FieldVisible:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVisible(v)
 		return nil
 	case poc.FieldCreated:
 		v, ok := value.(time.Time)
@@ -22477,17 +22858,20 @@ func (m *PocMutation) ClearedFields() []string {
 	if m.FieldCleared(poc.FieldNetID) {
 		fields = append(fields, poc.FieldNetID)
 	}
+	if m.FieldCleared(poc.FieldEmail) {
+		fields = append(fields, poc.FieldEmail)
+	}
 	if m.FieldCleared(poc.FieldName) {
 		fields = append(fields, poc.FieldName)
 	}
 	if m.FieldCleared(poc.FieldPhone) {
 		fields = append(fields, poc.FieldPhone)
 	}
-	if m.FieldCleared(poc.FieldEmail) {
-		fields = append(fields, poc.FieldEmail)
-	}
 	if m.FieldCleared(poc.FieldURL) {
 		fields = append(fields, poc.FieldURL)
+	}
+	if m.FieldCleared(poc.FieldVisible) {
+		fields = append(fields, poc.FieldVisible)
 	}
 	return fields
 }
@@ -22506,17 +22890,20 @@ func (m *PocMutation) ClearField(name string) error {
 	case poc.FieldNetID:
 		m.ClearNetID()
 		return nil
+	case poc.FieldEmail:
+		m.ClearEmail()
+		return nil
 	case poc.FieldName:
 		m.ClearName()
 		return nil
 	case poc.FieldPhone:
 		m.ClearPhone()
 		return nil
-	case poc.FieldEmail:
-		m.ClearEmail()
-		return nil
 	case poc.FieldURL:
 		m.ClearURL()
+		return nil
+	case poc.FieldVisible:
+		m.ClearVisible()
 		return nil
 	}
 	return fmt.Errorf("unknown Poc nullable field %s", name)
@@ -22529,11 +22916,8 @@ func (m *PocMutation) ResetField(name string) error {
 	case poc.FieldNetID:
 		m.ResetNetID()
 		return nil
-	case poc.FieldRole:
-		m.ResetRole()
-		return nil
-	case poc.FieldVisible:
-		m.ResetVisible()
+	case poc.FieldEmail:
+		m.ResetEmail()
 		return nil
 	case poc.FieldName:
 		m.ResetName()
@@ -22541,11 +22925,14 @@ func (m *PocMutation) ResetField(name string) error {
 	case poc.FieldPhone:
 		m.ResetPhone()
 		return nil
-	case poc.FieldEmail:
-		m.ResetEmail()
+	case poc.FieldRole:
+		m.ResetRole()
 		return nil
 	case poc.FieldURL:
 		m.ResetURL()
+		return nil
+	case poc.FieldVisible:
+		m.ResetVisible()
 		return nil
 	case poc.FieldCreated:
 		m.ResetCreated()

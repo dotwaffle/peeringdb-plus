@@ -51,23 +51,23 @@ func (_u *IxLanUpdate) ClearIxID() *IxLanUpdate {
 	return _u
 }
 
-// SetName sets the "name" field.
-func (_u *IxLanUpdate) SetName(v string) *IxLanUpdate {
-	_u.mutation.SetName(v)
+// SetArpSponge sets the "arp_sponge" field.
+func (_u *IxLanUpdate) SetArpSponge(v string) *IxLanUpdate {
+	_u.mutation.SetArpSponge(v)
 	return _u
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *IxLanUpdate) SetNillableName(v *string) *IxLanUpdate {
+// SetNillableArpSponge sets the "arp_sponge" field if the given value is not nil.
+func (_u *IxLanUpdate) SetNillableArpSponge(v *string) *IxLanUpdate {
 	if v != nil {
-		_u.SetName(*v)
+		_u.SetArpSponge(*v)
 	}
 	return _u
 }
 
-// ClearName clears the value of the "name" field.
-func (_u *IxLanUpdate) ClearName() *IxLanUpdate {
-	_u.mutation.ClearName()
+// ClearArpSponge clears the value of the "arp_sponge" field.
+func (_u *IxLanUpdate) ClearArpSponge() *IxLanUpdate {
+	_u.mutation.ClearArpSponge()
 	return _u
 }
 
@@ -88,6 +88,54 @@ func (_u *IxLanUpdate) SetNillableDescr(v *string) *IxLanUpdate {
 // ClearDescr clears the value of the "descr" field.
 func (_u *IxLanUpdate) ClearDescr() *IxLanUpdate {
 	_u.mutation.ClearDescr()
+	return _u
+}
+
+// SetDot1qSupport sets the "dot1q_support" field.
+func (_u *IxLanUpdate) SetDot1qSupport(v bool) *IxLanUpdate {
+	_u.mutation.SetDot1qSupport(v)
+	return _u
+}
+
+// SetNillableDot1qSupport sets the "dot1q_support" field if the given value is not nil.
+func (_u *IxLanUpdate) SetNillableDot1qSupport(v *bool) *IxLanUpdate {
+	if v != nil {
+		_u.SetDot1qSupport(*v)
+	}
+	return _u
+}
+
+// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
+func (_u *IxLanUpdate) SetIxfIxpImportEnabled(v bool) *IxLanUpdate {
+	_u.mutation.SetIxfIxpImportEnabled(v)
+	return _u
+}
+
+// SetNillableIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field if the given value is not nil.
+func (_u *IxLanUpdate) SetNillableIxfIxpImportEnabled(v *bool) *IxLanUpdate {
+	if v != nil {
+		_u.SetIxfIxpImportEnabled(*v)
+	}
+	return _u
+}
+
+// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
+func (_u *IxLanUpdate) SetIxfIxpMemberListURLVisible(v string) *IxLanUpdate {
+	_u.mutation.SetIxfIxpMemberListURLVisible(v)
+	return _u
+}
+
+// SetNillableIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field if the given value is not nil.
+func (_u *IxLanUpdate) SetNillableIxfIxpMemberListURLVisible(v *string) *IxLanUpdate {
+	if v != nil {
+		_u.SetIxfIxpMemberListURLVisible(*v)
+	}
+	return _u
+}
+
+// ClearIxfIxpMemberListURLVisible clears the value of the "ixf_ixp_member_list_url_visible" field.
+func (_u *IxLanUpdate) ClearIxfIxpMemberListURLVisible() *IxLanUpdate {
+	_u.mutation.ClearIxfIxpMemberListURLVisible()
 	return _u
 }
 
@@ -112,17 +160,29 @@ func (_u *IxLanUpdate) AddMtu(v int) *IxLanUpdate {
 	return _u
 }
 
-// SetDot1qSupport sets the "dot1q_support" field.
-func (_u *IxLanUpdate) SetDot1qSupport(v bool) *IxLanUpdate {
-	_u.mutation.SetDot1qSupport(v)
+// ClearMtu clears the value of the "mtu" field.
+func (_u *IxLanUpdate) ClearMtu() *IxLanUpdate {
+	_u.mutation.ClearMtu()
 	return _u
 }
 
-// SetNillableDot1qSupport sets the "dot1q_support" field if the given value is not nil.
-func (_u *IxLanUpdate) SetNillableDot1qSupport(v *bool) *IxLanUpdate {
+// SetName sets the "name" field.
+func (_u *IxLanUpdate) SetName(v string) *IxLanUpdate {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *IxLanUpdate) SetNillableName(v *string) *IxLanUpdate {
 	if v != nil {
-		_u.SetDot1qSupport(*v)
+		_u.SetName(*v)
 	}
+	return _u
+}
+
+// ClearName clears the value of the "name" field.
+func (_u *IxLanUpdate) ClearName() *IxLanUpdate {
+	_u.mutation.ClearName()
 	return _u
 }
 
@@ -150,54 +210,6 @@ func (_u *IxLanUpdate) AddRsAsn(v int) *IxLanUpdate {
 // ClearRsAsn clears the value of the "rs_asn" field.
 func (_u *IxLanUpdate) ClearRsAsn() *IxLanUpdate {
 	_u.mutation.ClearRsAsn()
-	return _u
-}
-
-// SetArpSponge sets the "arp_sponge" field.
-func (_u *IxLanUpdate) SetArpSponge(v string) *IxLanUpdate {
-	_u.mutation.SetArpSponge(v)
-	return _u
-}
-
-// SetNillableArpSponge sets the "arp_sponge" field if the given value is not nil.
-func (_u *IxLanUpdate) SetNillableArpSponge(v *string) *IxLanUpdate {
-	if v != nil {
-		_u.SetArpSponge(*v)
-	}
-	return _u
-}
-
-// ClearArpSponge clears the value of the "arp_sponge" field.
-func (_u *IxLanUpdate) ClearArpSponge() *IxLanUpdate {
-	_u.mutation.ClearArpSponge()
-	return _u
-}
-
-// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
-func (_u *IxLanUpdate) SetIxfIxpMemberListURLVisible(v string) *IxLanUpdate {
-	_u.mutation.SetIxfIxpMemberListURLVisible(v)
-	return _u
-}
-
-// SetNillableIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field if the given value is not nil.
-func (_u *IxLanUpdate) SetNillableIxfIxpMemberListURLVisible(v *string) *IxLanUpdate {
-	if v != nil {
-		_u.SetIxfIxpMemberListURLVisible(*v)
-	}
-	return _u
-}
-
-// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
-func (_u *IxLanUpdate) SetIxfIxpImportEnabled(v bool) *IxLanUpdate {
-	_u.mutation.SetIxfIxpImportEnabled(v)
-	return _u
-}
-
-// SetNillableIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field if the given value is not nil.
-func (_u *IxLanUpdate) SetNillableIxfIxpImportEnabled(v *bool) *IxLanUpdate {
-	if v != nil {
-		_u.SetIxfIxpImportEnabled(*v)
-	}
 	return _u
 }
 
@@ -360,14 +372,14 @@ func (_u *IxLanUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *IxLanUpdate) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := ixlan.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "IxLan.name": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.IxfIxpMemberListURLVisible(); ok {
 		if err := ixlan.IxfIxpMemberListURLVisibleValidator(v); err != nil {
 			return &ValidationError{Name: "ixf_ixp_member_list_url_visible", err: fmt.Errorf(`ent: validator failed for field "IxLan.ixf_ixp_member_list_url_visible": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Name(); ok {
+		if err := ixlan.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "IxLan.name": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Status(); ok {
@@ -390,11 +402,11 @@ func (_u *IxLanUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(ixlan.FieldName, field.TypeString, value)
+	if value, ok := _u.mutation.ArpSponge(); ok {
+		_spec.SetField(ixlan.FieldArpSponge, field.TypeString, value)
 	}
-	if _u.mutation.NameCleared() {
-		_spec.ClearField(ixlan.FieldName, field.TypeString)
+	if _u.mutation.ArpSpongeCleared() {
+		_spec.ClearField(ixlan.FieldArpSponge, field.TypeString)
 	}
 	if value, ok := _u.mutation.Descr(); ok {
 		_spec.SetField(ixlan.FieldDescr, field.TypeString, value)
@@ -402,14 +414,32 @@ func (_u *IxLanUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.DescrCleared() {
 		_spec.ClearField(ixlan.FieldDescr, field.TypeString)
 	}
+	if value, ok := _u.mutation.Dot1qSupport(); ok {
+		_spec.SetField(ixlan.FieldDot1qSupport, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IxfIxpImportEnabled(); ok {
+		_spec.SetField(ixlan.FieldIxfIxpImportEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IxfIxpMemberListURLVisible(); ok {
+		_spec.SetField(ixlan.FieldIxfIxpMemberListURLVisible, field.TypeString, value)
+	}
+	if _u.mutation.IxfIxpMemberListURLVisibleCleared() {
+		_spec.ClearField(ixlan.FieldIxfIxpMemberListURLVisible, field.TypeString)
+	}
 	if value, ok := _u.mutation.Mtu(); ok {
 		_spec.SetField(ixlan.FieldMtu, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.AddedMtu(); ok {
 		_spec.AddField(ixlan.FieldMtu, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.Dot1qSupport(); ok {
-		_spec.SetField(ixlan.FieldDot1qSupport, field.TypeBool, value)
+	if _u.mutation.MtuCleared() {
+		_spec.ClearField(ixlan.FieldMtu, field.TypeInt)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(ixlan.FieldName, field.TypeString, value)
+	}
+	if _u.mutation.NameCleared() {
+		_spec.ClearField(ixlan.FieldName, field.TypeString)
 	}
 	if value, ok := _u.mutation.RsAsn(); ok {
 		_spec.SetField(ixlan.FieldRsAsn, field.TypeInt, value)
@@ -419,18 +449,6 @@ func (_u *IxLanUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.RsAsnCleared() {
 		_spec.ClearField(ixlan.FieldRsAsn, field.TypeInt)
-	}
-	if value, ok := _u.mutation.ArpSponge(); ok {
-		_spec.SetField(ixlan.FieldArpSponge, field.TypeString, value)
-	}
-	if _u.mutation.ArpSpongeCleared() {
-		_spec.ClearField(ixlan.FieldArpSponge, field.TypeString)
-	}
-	if value, ok := _u.mutation.IxfIxpMemberListURLVisible(); ok {
-		_spec.SetField(ixlan.FieldIxfIxpMemberListURLVisible, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.IxfIxpImportEnabled(); ok {
-		_spec.SetField(ixlan.FieldIxfIxpImportEnabled, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(ixlan.FieldUpdated, field.TypeTime, value)
@@ -597,23 +615,23 @@ func (_u *IxLanUpdateOne) ClearIxID() *IxLanUpdateOne {
 	return _u
 }
 
-// SetName sets the "name" field.
-func (_u *IxLanUpdateOne) SetName(v string) *IxLanUpdateOne {
-	_u.mutation.SetName(v)
+// SetArpSponge sets the "arp_sponge" field.
+func (_u *IxLanUpdateOne) SetArpSponge(v string) *IxLanUpdateOne {
+	_u.mutation.SetArpSponge(v)
 	return _u
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *IxLanUpdateOne) SetNillableName(v *string) *IxLanUpdateOne {
+// SetNillableArpSponge sets the "arp_sponge" field if the given value is not nil.
+func (_u *IxLanUpdateOne) SetNillableArpSponge(v *string) *IxLanUpdateOne {
 	if v != nil {
-		_u.SetName(*v)
+		_u.SetArpSponge(*v)
 	}
 	return _u
 }
 
-// ClearName clears the value of the "name" field.
-func (_u *IxLanUpdateOne) ClearName() *IxLanUpdateOne {
-	_u.mutation.ClearName()
+// ClearArpSponge clears the value of the "arp_sponge" field.
+func (_u *IxLanUpdateOne) ClearArpSponge() *IxLanUpdateOne {
+	_u.mutation.ClearArpSponge()
 	return _u
 }
 
@@ -634,6 +652,54 @@ func (_u *IxLanUpdateOne) SetNillableDescr(v *string) *IxLanUpdateOne {
 // ClearDescr clears the value of the "descr" field.
 func (_u *IxLanUpdateOne) ClearDescr() *IxLanUpdateOne {
 	_u.mutation.ClearDescr()
+	return _u
+}
+
+// SetDot1qSupport sets the "dot1q_support" field.
+func (_u *IxLanUpdateOne) SetDot1qSupport(v bool) *IxLanUpdateOne {
+	_u.mutation.SetDot1qSupport(v)
+	return _u
+}
+
+// SetNillableDot1qSupport sets the "dot1q_support" field if the given value is not nil.
+func (_u *IxLanUpdateOne) SetNillableDot1qSupport(v *bool) *IxLanUpdateOne {
+	if v != nil {
+		_u.SetDot1qSupport(*v)
+	}
+	return _u
+}
+
+// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
+func (_u *IxLanUpdateOne) SetIxfIxpImportEnabled(v bool) *IxLanUpdateOne {
+	_u.mutation.SetIxfIxpImportEnabled(v)
+	return _u
+}
+
+// SetNillableIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field if the given value is not nil.
+func (_u *IxLanUpdateOne) SetNillableIxfIxpImportEnabled(v *bool) *IxLanUpdateOne {
+	if v != nil {
+		_u.SetIxfIxpImportEnabled(*v)
+	}
+	return _u
+}
+
+// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
+func (_u *IxLanUpdateOne) SetIxfIxpMemberListURLVisible(v string) *IxLanUpdateOne {
+	_u.mutation.SetIxfIxpMemberListURLVisible(v)
+	return _u
+}
+
+// SetNillableIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field if the given value is not nil.
+func (_u *IxLanUpdateOne) SetNillableIxfIxpMemberListURLVisible(v *string) *IxLanUpdateOne {
+	if v != nil {
+		_u.SetIxfIxpMemberListURLVisible(*v)
+	}
+	return _u
+}
+
+// ClearIxfIxpMemberListURLVisible clears the value of the "ixf_ixp_member_list_url_visible" field.
+func (_u *IxLanUpdateOne) ClearIxfIxpMemberListURLVisible() *IxLanUpdateOne {
+	_u.mutation.ClearIxfIxpMemberListURLVisible()
 	return _u
 }
 
@@ -658,17 +724,29 @@ func (_u *IxLanUpdateOne) AddMtu(v int) *IxLanUpdateOne {
 	return _u
 }
 
-// SetDot1qSupport sets the "dot1q_support" field.
-func (_u *IxLanUpdateOne) SetDot1qSupport(v bool) *IxLanUpdateOne {
-	_u.mutation.SetDot1qSupport(v)
+// ClearMtu clears the value of the "mtu" field.
+func (_u *IxLanUpdateOne) ClearMtu() *IxLanUpdateOne {
+	_u.mutation.ClearMtu()
 	return _u
 }
 
-// SetNillableDot1qSupport sets the "dot1q_support" field if the given value is not nil.
-func (_u *IxLanUpdateOne) SetNillableDot1qSupport(v *bool) *IxLanUpdateOne {
+// SetName sets the "name" field.
+func (_u *IxLanUpdateOne) SetName(v string) *IxLanUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *IxLanUpdateOne) SetNillableName(v *string) *IxLanUpdateOne {
 	if v != nil {
-		_u.SetDot1qSupport(*v)
+		_u.SetName(*v)
 	}
+	return _u
+}
+
+// ClearName clears the value of the "name" field.
+func (_u *IxLanUpdateOne) ClearName() *IxLanUpdateOne {
+	_u.mutation.ClearName()
 	return _u
 }
 
@@ -696,54 +774,6 @@ func (_u *IxLanUpdateOne) AddRsAsn(v int) *IxLanUpdateOne {
 // ClearRsAsn clears the value of the "rs_asn" field.
 func (_u *IxLanUpdateOne) ClearRsAsn() *IxLanUpdateOne {
 	_u.mutation.ClearRsAsn()
-	return _u
-}
-
-// SetArpSponge sets the "arp_sponge" field.
-func (_u *IxLanUpdateOne) SetArpSponge(v string) *IxLanUpdateOne {
-	_u.mutation.SetArpSponge(v)
-	return _u
-}
-
-// SetNillableArpSponge sets the "arp_sponge" field if the given value is not nil.
-func (_u *IxLanUpdateOne) SetNillableArpSponge(v *string) *IxLanUpdateOne {
-	if v != nil {
-		_u.SetArpSponge(*v)
-	}
-	return _u
-}
-
-// ClearArpSponge clears the value of the "arp_sponge" field.
-func (_u *IxLanUpdateOne) ClearArpSponge() *IxLanUpdateOne {
-	_u.mutation.ClearArpSponge()
-	return _u
-}
-
-// SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
-func (_u *IxLanUpdateOne) SetIxfIxpMemberListURLVisible(v string) *IxLanUpdateOne {
-	_u.mutation.SetIxfIxpMemberListURLVisible(v)
-	return _u
-}
-
-// SetNillableIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field if the given value is not nil.
-func (_u *IxLanUpdateOne) SetNillableIxfIxpMemberListURLVisible(v *string) *IxLanUpdateOne {
-	if v != nil {
-		_u.SetIxfIxpMemberListURLVisible(*v)
-	}
-	return _u
-}
-
-// SetIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field.
-func (_u *IxLanUpdateOne) SetIxfIxpImportEnabled(v bool) *IxLanUpdateOne {
-	_u.mutation.SetIxfIxpImportEnabled(v)
-	return _u
-}
-
-// SetNillableIxfIxpImportEnabled sets the "ixf_ixp_import_enabled" field if the given value is not nil.
-func (_u *IxLanUpdateOne) SetNillableIxfIxpImportEnabled(v *bool) *IxLanUpdateOne {
-	if v != nil {
-		_u.SetIxfIxpImportEnabled(*v)
-	}
 	return _u
 }
 
@@ -919,14 +949,14 @@ func (_u *IxLanUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *IxLanUpdateOne) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := ixlan.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "IxLan.name": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.IxfIxpMemberListURLVisible(); ok {
 		if err := ixlan.IxfIxpMemberListURLVisibleValidator(v); err != nil {
 			return &ValidationError{Name: "ixf_ixp_member_list_url_visible", err: fmt.Errorf(`ent: validator failed for field "IxLan.ixf_ixp_member_list_url_visible": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Name(); ok {
+		if err := ixlan.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "IxLan.name": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Status(); ok {
@@ -966,11 +996,11 @@ func (_u *IxLanUpdateOne) sqlSave(ctx context.Context) (_node *IxLan, err error)
 			}
 		}
 	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(ixlan.FieldName, field.TypeString, value)
+	if value, ok := _u.mutation.ArpSponge(); ok {
+		_spec.SetField(ixlan.FieldArpSponge, field.TypeString, value)
 	}
-	if _u.mutation.NameCleared() {
-		_spec.ClearField(ixlan.FieldName, field.TypeString)
+	if _u.mutation.ArpSpongeCleared() {
+		_spec.ClearField(ixlan.FieldArpSponge, field.TypeString)
 	}
 	if value, ok := _u.mutation.Descr(); ok {
 		_spec.SetField(ixlan.FieldDescr, field.TypeString, value)
@@ -978,14 +1008,32 @@ func (_u *IxLanUpdateOne) sqlSave(ctx context.Context) (_node *IxLan, err error)
 	if _u.mutation.DescrCleared() {
 		_spec.ClearField(ixlan.FieldDescr, field.TypeString)
 	}
+	if value, ok := _u.mutation.Dot1qSupport(); ok {
+		_spec.SetField(ixlan.FieldDot1qSupport, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IxfIxpImportEnabled(); ok {
+		_spec.SetField(ixlan.FieldIxfIxpImportEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IxfIxpMemberListURLVisible(); ok {
+		_spec.SetField(ixlan.FieldIxfIxpMemberListURLVisible, field.TypeString, value)
+	}
+	if _u.mutation.IxfIxpMemberListURLVisibleCleared() {
+		_spec.ClearField(ixlan.FieldIxfIxpMemberListURLVisible, field.TypeString)
+	}
 	if value, ok := _u.mutation.Mtu(); ok {
 		_spec.SetField(ixlan.FieldMtu, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.AddedMtu(); ok {
 		_spec.AddField(ixlan.FieldMtu, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.Dot1qSupport(); ok {
-		_spec.SetField(ixlan.FieldDot1qSupport, field.TypeBool, value)
+	if _u.mutation.MtuCleared() {
+		_spec.ClearField(ixlan.FieldMtu, field.TypeInt)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(ixlan.FieldName, field.TypeString, value)
+	}
+	if _u.mutation.NameCleared() {
+		_spec.ClearField(ixlan.FieldName, field.TypeString)
 	}
 	if value, ok := _u.mutation.RsAsn(); ok {
 		_spec.SetField(ixlan.FieldRsAsn, field.TypeInt, value)
@@ -995,18 +1043,6 @@ func (_u *IxLanUpdateOne) sqlSave(ctx context.Context) (_node *IxLan, err error)
 	}
 	if _u.mutation.RsAsnCleared() {
 		_spec.ClearField(ixlan.FieldRsAsn, field.TypeInt)
-	}
-	if value, ok := _u.mutation.ArpSponge(); ok {
-		_spec.SetField(ixlan.FieldArpSponge, field.TypeString, value)
-	}
-	if _u.mutation.ArpSpongeCleared() {
-		_spec.ClearField(ixlan.FieldArpSponge, field.TypeString)
-	}
-	if value, ok := _u.mutation.IxfIxpMemberListURLVisible(); ok {
-		_spec.SetField(ixlan.FieldIxfIxpMemberListURLVisible, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.IxfIxpImportEnabled(); ok {
-		_spec.SetField(ixlan.FieldIxfIxpImportEnabled, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(ixlan.FieldUpdated, field.TypeTime, value)

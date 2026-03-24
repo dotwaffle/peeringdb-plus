@@ -301,6 +301,66 @@ type ListCampuParams struct {
 	CampusOrgIDIn []int `form:"orgID.in,omitempty" json:"campus_org_id_in,omitempty"`
 	// Filters field "org_id" to be not within the provided values.
 	CampusOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"campus_org_id_not_in,omitempty"`
+	// Filters field "aka" to be equal to the provided value.
+	CampusAkaEQ *string `form:"aka.eq,omitempty" json:"campus_aka_eq,omitempty"`
+	// Filters field "aka" to be not equal to the provided value.
+	CampusAkaNEQ *string `form:"aka.neq,omitempty" json:"campus_aka_neq,omitempty"`
+	// Filters field "aka" to be null/nil.
+	CampusAkaIsNil *bool `form:"aka.null,omitempty" json:"campus_aka_is_nil,omitempty"`
+	// Filters field "aka" to be within the provided values.
+	CampusAkaIn []string `form:"aka.in,omitempty" json:"campus_aka_in,omitempty"`
+	// Filters field "aka" to be not within the provided values.
+	CampusAkaNotIn []string `form:"aka.notIn,omitempty" json:"campus_aka_not_in,omitempty"`
+	// Filters field "aka" to be equal to the provided value, case-insensitive.
+	CampusAkaEqualFold *string `form:"aka.ieq,omitempty" json:"campus_aka_equal_fold,omitempty"`
+	// Filters field "aka" to contain the provided value.
+	CampusAkaContains *string `form:"aka.has,omitempty" json:"campus_aka_contains,omitempty"`
+	// Filters field "aka" to contain the provided value, case-insensitive.
+	CampusAkaContainsFold *string `form:"aka.ihas,omitempty" json:"campus_aka_contains_fold,omitempty"`
+	// Filters field "aka" to start with the provided value.
+	CampusAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"campus_aka_has_prefix,omitempty"`
+	// Filters field "aka" to end with the provided value.
+	CampusAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"campus_aka_has_suffix,omitempty"`
+	// Filters field "city" to be equal to the provided value.
+	CampusCityEQ *string `form:"city.eq,omitempty" json:"campus_city_eq,omitempty"`
+	// Filters field "city" to be not equal to the provided value.
+	CampusCityNEQ *string `form:"city.neq,omitempty" json:"campus_city_neq,omitempty"`
+	// Filters field "city" to be null/nil.
+	CampusCityIsNil *bool `form:"city.null,omitempty" json:"campus_city_is_nil,omitempty"`
+	// Filters field "city" to be within the provided values.
+	CampusCityIn []string `form:"city.in,omitempty" json:"campus_city_in,omitempty"`
+	// Filters field "city" to be not within the provided values.
+	CampusCityNotIn []string `form:"city.notIn,omitempty" json:"campus_city_not_in,omitempty"`
+	// Filters field "city" to be equal to the provided value, case-insensitive.
+	CampusCityEqualFold *string `form:"city.ieq,omitempty" json:"campus_city_equal_fold,omitempty"`
+	// Filters field "city" to contain the provided value.
+	CampusCityContains *string `form:"city.has,omitempty" json:"campus_city_contains,omitempty"`
+	// Filters field "city" to contain the provided value, case-insensitive.
+	CampusCityContainsFold *string `form:"city.ihas,omitempty" json:"campus_city_contains_fold,omitempty"`
+	// Filters field "city" to start with the provided value.
+	CampusCityHasPrefix *string `form:"city.prefix,omitempty" json:"campus_city_has_prefix,omitempty"`
+	// Filters field "city" to end with the provided value.
+	CampusCityHasSuffix *string `form:"city.suffix,omitempty" json:"campus_city_has_suffix,omitempty"`
+	// Filters field "country" to be equal to the provided value.
+	CampusCountryEQ *string `form:"country.eq,omitempty" json:"campus_country_eq,omitempty"`
+	// Filters field "country" to be not equal to the provided value.
+	CampusCountryNEQ *string `form:"country.neq,omitempty" json:"campus_country_neq,omitempty"`
+	// Filters field "country" to be null/nil.
+	CampusCountryIsNil *bool `form:"country.null,omitempty" json:"campus_country_is_nil,omitempty"`
+	// Filters field "country" to be within the provided values.
+	CampusCountryIn []string `form:"country.in,omitempty" json:"campus_country_in,omitempty"`
+	// Filters field "country" to be not within the provided values.
+	CampusCountryNotIn []string `form:"country.notIn,omitempty" json:"campus_country_not_in,omitempty"`
+	// Filters field "country" to be equal to the provided value, case-insensitive.
+	CampusCountryEqualFold *string `form:"country.ieq,omitempty" json:"campus_country_equal_fold,omitempty"`
+	// Filters field "country" to contain the provided value.
+	CampusCountryContains *string `form:"country.has,omitempty" json:"campus_country_contains,omitempty"`
+	// Filters field "country" to contain the provided value, case-insensitive.
+	CampusCountryContainsFold *string `form:"country.ihas,omitempty" json:"campus_country_contains_fold,omitempty"`
+	// Filters field "country" to start with the provided value.
+	CampusCountryHasPrefix *string `form:"country.prefix,omitempty" json:"campus_country_has_prefix,omitempty"`
+	// Filters field "country" to end with the provided value.
+	CampusCountryHasSuffix *string `form:"country.suffix,omitempty" json:"campus_country_has_suffix,omitempty"`
 	// Filters field "name" to be equal to the provided value.
 	CampusNameEQ *string `form:"name.eq,omitempty" json:"campus_name_eq,omitempty"`
 	// Filters field "name" to be not equal to the provided value.
@@ -339,66 +399,6 @@ type ListCampuParams struct {
 	CampusNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"campus_name_long_has_prefix,omitempty"`
 	// Filters field "name_long" to end with the provided value.
 	CampusNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"campus_name_long_has_suffix,omitempty"`
-	// Filters field "aka" to be equal to the provided value.
-	CampusAkaEQ *string `form:"aka.eq,omitempty" json:"campus_aka_eq,omitempty"`
-	// Filters field "aka" to be not equal to the provided value.
-	CampusAkaNEQ *string `form:"aka.neq,omitempty" json:"campus_aka_neq,omitempty"`
-	// Filters field "aka" to be null/nil.
-	CampusAkaIsNil *bool `form:"aka.null,omitempty" json:"campus_aka_is_nil,omitempty"`
-	// Filters field "aka" to be within the provided values.
-	CampusAkaIn []string `form:"aka.in,omitempty" json:"campus_aka_in,omitempty"`
-	// Filters field "aka" to be not within the provided values.
-	CampusAkaNotIn []string `form:"aka.notIn,omitempty" json:"campus_aka_not_in,omitempty"`
-	// Filters field "aka" to be equal to the provided value, case-insensitive.
-	CampusAkaEqualFold *string `form:"aka.ieq,omitempty" json:"campus_aka_equal_fold,omitempty"`
-	// Filters field "aka" to contain the provided value.
-	CampusAkaContains *string `form:"aka.has,omitempty" json:"campus_aka_contains,omitempty"`
-	// Filters field "aka" to contain the provided value, case-insensitive.
-	CampusAkaContainsFold *string `form:"aka.ihas,omitempty" json:"campus_aka_contains_fold,omitempty"`
-	// Filters field "aka" to start with the provided value.
-	CampusAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"campus_aka_has_prefix,omitempty"`
-	// Filters field "aka" to end with the provided value.
-	CampusAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"campus_aka_has_suffix,omitempty"`
-	// Filters field "country" to be equal to the provided value.
-	CampusCountryEQ *string `form:"country.eq,omitempty" json:"campus_country_eq,omitempty"`
-	// Filters field "country" to be not equal to the provided value.
-	CampusCountryNEQ *string `form:"country.neq,omitempty" json:"campus_country_neq,omitempty"`
-	// Filters field "country" to be null/nil.
-	CampusCountryIsNil *bool `form:"country.null,omitempty" json:"campus_country_is_nil,omitempty"`
-	// Filters field "country" to be within the provided values.
-	CampusCountryIn []string `form:"country.in,omitempty" json:"campus_country_in,omitempty"`
-	// Filters field "country" to be not within the provided values.
-	CampusCountryNotIn []string `form:"country.notIn,omitempty" json:"campus_country_not_in,omitempty"`
-	// Filters field "country" to be equal to the provided value, case-insensitive.
-	CampusCountryEqualFold *string `form:"country.ieq,omitempty" json:"campus_country_equal_fold,omitempty"`
-	// Filters field "country" to contain the provided value.
-	CampusCountryContains *string `form:"country.has,omitempty" json:"campus_country_contains,omitempty"`
-	// Filters field "country" to contain the provided value, case-insensitive.
-	CampusCountryContainsFold *string `form:"country.ihas,omitempty" json:"campus_country_contains_fold,omitempty"`
-	// Filters field "country" to start with the provided value.
-	CampusCountryHasPrefix *string `form:"country.prefix,omitempty" json:"campus_country_has_prefix,omitempty"`
-	// Filters field "country" to end with the provided value.
-	CampusCountryHasSuffix *string `form:"country.suffix,omitempty" json:"campus_country_has_suffix,omitempty"`
-	// Filters field "city" to be equal to the provided value.
-	CampusCityEQ *string `form:"city.eq,omitempty" json:"campus_city_eq,omitempty"`
-	// Filters field "city" to be not equal to the provided value.
-	CampusCityNEQ *string `form:"city.neq,omitempty" json:"campus_city_neq,omitempty"`
-	// Filters field "city" to be null/nil.
-	CampusCityIsNil *bool `form:"city.null,omitempty" json:"campus_city_is_nil,omitempty"`
-	// Filters field "city" to be within the provided values.
-	CampusCityIn []string `form:"city.in,omitempty" json:"campus_city_in,omitempty"`
-	// Filters field "city" to be not within the provided values.
-	CampusCityNotIn []string `form:"city.notIn,omitempty" json:"campus_city_not_in,omitempty"`
-	// Filters field "city" to be equal to the provided value, case-insensitive.
-	CampusCityEqualFold *string `form:"city.ieq,omitempty" json:"campus_city_equal_fold,omitempty"`
-	// Filters field "city" to contain the provided value.
-	CampusCityContains *string `form:"city.has,omitempty" json:"campus_city_contains,omitempty"`
-	// Filters field "city" to contain the provided value, case-insensitive.
-	CampusCityContainsFold *string `form:"city.ihas,omitempty" json:"campus_city_contains_fold,omitempty"`
-	// Filters field "city" to start with the provided value.
-	CampusCityHasPrefix *string `form:"city.prefix,omitempty" json:"campus_city_has_prefix,omitempty"`
-	// Filters field "city" to end with the provided value.
-	CampusCityHasSuffix *string `form:"city.suffix,omitempty" json:"campus_city_has_suffix,omitempty"`
 	// Filters field "state" to be equal to the provided value.
 	CampusStateEQ *string `form:"state.eq,omitempty" json:"campus_state_eq,omitempty"`
 	// Filters field "state" to be not equal to the provided value.
@@ -471,6 +471,108 @@ func (l *ListCampuParams) FilterPredicates() (predicate.Campus, error) {
 	if l.CampusOrgIDNotIn != nil {
 		predicates = append(predicates, campus.OrgIDNotIn(l.CampusOrgIDNotIn...))
 	}
+	if l.CampusAkaEQ != nil {
+		predicates = append(predicates, campus.AkaEQ(*l.CampusAkaEQ))
+	}
+	if l.CampusAkaNEQ != nil {
+		predicates = append(predicates, campus.AkaNEQ(*l.CampusAkaNEQ))
+	}
+	if l.CampusAkaIsNil != nil {
+		if *l.CampusAkaIsNil {
+			predicates = append(predicates, campus.AkaIsNil())
+		} else {
+			predicates = append(predicates, campus.Not(campus.AkaIsNil()))
+		}
+	}
+	if l.CampusAkaIn != nil {
+		predicates = append(predicates, campus.AkaIn(l.CampusAkaIn...))
+	}
+	if l.CampusAkaNotIn != nil {
+		predicates = append(predicates, campus.AkaNotIn(l.CampusAkaNotIn...))
+	}
+	if l.CampusAkaEqualFold != nil {
+		predicates = append(predicates, campus.AkaEqualFold(*l.CampusAkaEqualFold))
+	}
+	if l.CampusAkaContains != nil {
+		predicates = append(predicates, campus.AkaContains(*l.CampusAkaContains))
+	}
+	if l.CampusAkaContainsFold != nil {
+		predicates = append(predicates, campus.AkaContainsFold(*l.CampusAkaContainsFold))
+	}
+	if l.CampusAkaHasPrefix != nil {
+		predicates = append(predicates, campus.AkaHasPrefix(*l.CampusAkaHasPrefix))
+	}
+	if l.CampusAkaHasSuffix != nil {
+		predicates = append(predicates, campus.AkaHasSuffix(*l.CampusAkaHasSuffix))
+	}
+	if l.CampusCityEQ != nil {
+		predicates = append(predicates, campus.CityEQ(*l.CampusCityEQ))
+	}
+	if l.CampusCityNEQ != nil {
+		predicates = append(predicates, campus.CityNEQ(*l.CampusCityNEQ))
+	}
+	if l.CampusCityIsNil != nil {
+		if *l.CampusCityIsNil {
+			predicates = append(predicates, campus.CityIsNil())
+		} else {
+			predicates = append(predicates, campus.Not(campus.CityIsNil()))
+		}
+	}
+	if l.CampusCityIn != nil {
+		predicates = append(predicates, campus.CityIn(l.CampusCityIn...))
+	}
+	if l.CampusCityNotIn != nil {
+		predicates = append(predicates, campus.CityNotIn(l.CampusCityNotIn...))
+	}
+	if l.CampusCityEqualFold != nil {
+		predicates = append(predicates, campus.CityEqualFold(*l.CampusCityEqualFold))
+	}
+	if l.CampusCityContains != nil {
+		predicates = append(predicates, campus.CityContains(*l.CampusCityContains))
+	}
+	if l.CampusCityContainsFold != nil {
+		predicates = append(predicates, campus.CityContainsFold(*l.CampusCityContainsFold))
+	}
+	if l.CampusCityHasPrefix != nil {
+		predicates = append(predicates, campus.CityHasPrefix(*l.CampusCityHasPrefix))
+	}
+	if l.CampusCityHasSuffix != nil {
+		predicates = append(predicates, campus.CityHasSuffix(*l.CampusCityHasSuffix))
+	}
+	if l.CampusCountryEQ != nil {
+		predicates = append(predicates, campus.CountryEQ(*l.CampusCountryEQ))
+	}
+	if l.CampusCountryNEQ != nil {
+		predicates = append(predicates, campus.CountryNEQ(*l.CampusCountryNEQ))
+	}
+	if l.CampusCountryIsNil != nil {
+		if *l.CampusCountryIsNil {
+			predicates = append(predicates, campus.CountryIsNil())
+		} else {
+			predicates = append(predicates, campus.Not(campus.CountryIsNil()))
+		}
+	}
+	if l.CampusCountryIn != nil {
+		predicates = append(predicates, campus.CountryIn(l.CampusCountryIn...))
+	}
+	if l.CampusCountryNotIn != nil {
+		predicates = append(predicates, campus.CountryNotIn(l.CampusCountryNotIn...))
+	}
+	if l.CampusCountryEqualFold != nil {
+		predicates = append(predicates, campus.CountryEqualFold(*l.CampusCountryEqualFold))
+	}
+	if l.CampusCountryContains != nil {
+		predicates = append(predicates, campus.CountryContains(*l.CampusCountryContains))
+	}
+	if l.CampusCountryContainsFold != nil {
+		predicates = append(predicates, campus.CountryContainsFold(*l.CampusCountryContainsFold))
+	}
+	if l.CampusCountryHasPrefix != nil {
+		predicates = append(predicates, campus.CountryHasPrefix(*l.CampusCountryHasPrefix))
+	}
+	if l.CampusCountryHasSuffix != nil {
+		predicates = append(predicates, campus.CountryHasSuffix(*l.CampusCountryHasSuffix))
+	}
 	if l.CampusNameEQ != nil {
 		predicates = append(predicates, campus.NameEQ(*l.CampusNameEQ))
 	}
@@ -531,108 +633,6 @@ func (l *ListCampuParams) FilterPredicates() (predicate.Campus, error) {
 	}
 	if l.CampusNameLongHasSuffix != nil {
 		predicates = append(predicates, campus.NameLongHasSuffix(*l.CampusNameLongHasSuffix))
-	}
-	if l.CampusAkaEQ != nil {
-		predicates = append(predicates, campus.AkaEQ(*l.CampusAkaEQ))
-	}
-	if l.CampusAkaNEQ != nil {
-		predicates = append(predicates, campus.AkaNEQ(*l.CampusAkaNEQ))
-	}
-	if l.CampusAkaIsNil != nil {
-		if *l.CampusAkaIsNil {
-			predicates = append(predicates, campus.AkaIsNil())
-		} else {
-			predicates = append(predicates, campus.Not(campus.AkaIsNil()))
-		}
-	}
-	if l.CampusAkaIn != nil {
-		predicates = append(predicates, campus.AkaIn(l.CampusAkaIn...))
-	}
-	if l.CampusAkaNotIn != nil {
-		predicates = append(predicates, campus.AkaNotIn(l.CampusAkaNotIn...))
-	}
-	if l.CampusAkaEqualFold != nil {
-		predicates = append(predicates, campus.AkaEqualFold(*l.CampusAkaEqualFold))
-	}
-	if l.CampusAkaContains != nil {
-		predicates = append(predicates, campus.AkaContains(*l.CampusAkaContains))
-	}
-	if l.CampusAkaContainsFold != nil {
-		predicates = append(predicates, campus.AkaContainsFold(*l.CampusAkaContainsFold))
-	}
-	if l.CampusAkaHasPrefix != nil {
-		predicates = append(predicates, campus.AkaHasPrefix(*l.CampusAkaHasPrefix))
-	}
-	if l.CampusAkaHasSuffix != nil {
-		predicates = append(predicates, campus.AkaHasSuffix(*l.CampusAkaHasSuffix))
-	}
-	if l.CampusCountryEQ != nil {
-		predicates = append(predicates, campus.CountryEQ(*l.CampusCountryEQ))
-	}
-	if l.CampusCountryNEQ != nil {
-		predicates = append(predicates, campus.CountryNEQ(*l.CampusCountryNEQ))
-	}
-	if l.CampusCountryIsNil != nil {
-		if *l.CampusCountryIsNil {
-			predicates = append(predicates, campus.CountryIsNil())
-		} else {
-			predicates = append(predicates, campus.Not(campus.CountryIsNil()))
-		}
-	}
-	if l.CampusCountryIn != nil {
-		predicates = append(predicates, campus.CountryIn(l.CampusCountryIn...))
-	}
-	if l.CampusCountryNotIn != nil {
-		predicates = append(predicates, campus.CountryNotIn(l.CampusCountryNotIn...))
-	}
-	if l.CampusCountryEqualFold != nil {
-		predicates = append(predicates, campus.CountryEqualFold(*l.CampusCountryEqualFold))
-	}
-	if l.CampusCountryContains != nil {
-		predicates = append(predicates, campus.CountryContains(*l.CampusCountryContains))
-	}
-	if l.CampusCountryContainsFold != nil {
-		predicates = append(predicates, campus.CountryContainsFold(*l.CampusCountryContainsFold))
-	}
-	if l.CampusCountryHasPrefix != nil {
-		predicates = append(predicates, campus.CountryHasPrefix(*l.CampusCountryHasPrefix))
-	}
-	if l.CampusCountryHasSuffix != nil {
-		predicates = append(predicates, campus.CountryHasSuffix(*l.CampusCountryHasSuffix))
-	}
-	if l.CampusCityEQ != nil {
-		predicates = append(predicates, campus.CityEQ(*l.CampusCityEQ))
-	}
-	if l.CampusCityNEQ != nil {
-		predicates = append(predicates, campus.CityNEQ(*l.CampusCityNEQ))
-	}
-	if l.CampusCityIsNil != nil {
-		if *l.CampusCityIsNil {
-			predicates = append(predicates, campus.CityIsNil())
-		} else {
-			predicates = append(predicates, campus.Not(campus.CityIsNil()))
-		}
-	}
-	if l.CampusCityIn != nil {
-		predicates = append(predicates, campus.CityIn(l.CampusCityIn...))
-	}
-	if l.CampusCityNotIn != nil {
-		predicates = append(predicates, campus.CityNotIn(l.CampusCityNotIn...))
-	}
-	if l.CampusCityEqualFold != nil {
-		predicates = append(predicates, campus.CityEqualFold(*l.CampusCityEqualFold))
-	}
-	if l.CampusCityContains != nil {
-		predicates = append(predicates, campus.CityContains(*l.CampusCityContains))
-	}
-	if l.CampusCityContainsFold != nil {
-		predicates = append(predicates, campus.CityContainsFold(*l.CampusCityContainsFold))
-	}
-	if l.CampusCityHasPrefix != nil {
-		predicates = append(predicates, campus.CityHasPrefix(*l.CampusCityHasPrefix))
-	}
-	if l.CampusCityHasSuffix != nil {
-		predicates = append(predicates, campus.CityHasSuffix(*l.CampusCityHasSuffix))
 	}
 	if l.CampusStateEQ != nil {
 		predicates = append(predicates, campus.StateEQ(*l.CampusStateEQ))
@@ -764,24 +764,6 @@ type ListCarrierParams struct {
 	CarrierOrgIDIn []int `form:"orgID.in,omitempty" json:"carrier_org_id_in,omitempty"`
 	// Filters field "org_id" to be not within the provided values.
 	CarrierOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"carrier_org_id_not_in,omitempty"`
-	// Filters field "name" to be equal to the provided value.
-	CarrierNameEQ *string `form:"name.eq,omitempty" json:"carrier_name_eq,omitempty"`
-	// Filters field "name" to be not equal to the provided value.
-	CarrierNameNEQ *string `form:"name.neq,omitempty" json:"carrier_name_neq,omitempty"`
-	// Filters field "name" to be within the provided values.
-	CarrierNameIn []string `form:"name.in,omitempty" json:"carrier_name_in,omitempty"`
-	// Filters field "name" to be not within the provided values.
-	CarrierNameNotIn []string `form:"name.notIn,omitempty" json:"carrier_name_not_in,omitempty"`
-	// Filters field "name" to be equal to the provided value, case-insensitive.
-	CarrierNameEqualFold *string `form:"name.ieq,omitempty" json:"carrier_name_equal_fold,omitempty"`
-	// Filters field "name" to contain the provided value.
-	CarrierNameContains *string `form:"name.has,omitempty" json:"carrier_name_contains,omitempty"`
-	// Filters field "name" to contain the provided value, case-insensitive.
-	CarrierNameContainsFold *string `form:"name.ihas,omitempty" json:"carrier_name_contains_fold,omitempty"`
-	// Filters field "name" to start with the provided value.
-	CarrierNameHasPrefix *string `form:"name.prefix,omitempty" json:"carrier_name_has_prefix,omitempty"`
-	// Filters field "name" to end with the provided value.
-	CarrierNameHasSuffix *string `form:"name.suffix,omitempty" json:"carrier_name_has_suffix,omitempty"`
 	// Filters field "aka" to be equal to the provided value.
 	CarrierAkaEQ *string `form:"aka.eq,omitempty" json:"carrier_aka_eq,omitempty"`
 	// Filters field "aka" to be not equal to the provided value.
@@ -802,6 +784,24 @@ type ListCarrierParams struct {
 	CarrierAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"carrier_aka_has_prefix,omitempty"`
 	// Filters field "aka" to end with the provided value.
 	CarrierAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"carrier_aka_has_suffix,omitempty"`
+	// Filters field "name" to be equal to the provided value.
+	CarrierNameEQ *string `form:"name.eq,omitempty" json:"carrier_name_eq,omitempty"`
+	// Filters field "name" to be not equal to the provided value.
+	CarrierNameNEQ *string `form:"name.neq,omitempty" json:"carrier_name_neq,omitempty"`
+	// Filters field "name" to be within the provided values.
+	CarrierNameIn []string `form:"name.in,omitempty" json:"carrier_name_in,omitempty"`
+	// Filters field "name" to be not within the provided values.
+	CarrierNameNotIn []string `form:"name.notIn,omitempty" json:"carrier_name_not_in,omitempty"`
+	// Filters field "name" to be equal to the provided value, case-insensitive.
+	CarrierNameEqualFold *string `form:"name.ieq,omitempty" json:"carrier_name_equal_fold,omitempty"`
+	// Filters field "name" to contain the provided value.
+	CarrierNameContains *string `form:"name.has,omitempty" json:"carrier_name_contains,omitempty"`
+	// Filters field "name" to contain the provided value, case-insensitive.
+	CarrierNameContainsFold *string `form:"name.ihas,omitempty" json:"carrier_name_contains_fold,omitempty"`
+	// Filters field "name" to start with the provided value.
+	CarrierNameHasPrefix *string `form:"name.prefix,omitempty" json:"carrier_name_has_prefix,omitempty"`
+	// Filters field "name" to end with the provided value.
+	CarrierNameHasSuffix *string `form:"name.suffix,omitempty" json:"carrier_name_has_suffix,omitempty"`
 	// Filters field "name_long" to be equal to the provided value.
 	CarrierNameLongEQ *string `form:"nameLong.eq,omitempty" json:"carrier_name_long_eq,omitempty"`
 	// Filters field "name_long" to be not equal to the provided value.
@@ -874,33 +874,6 @@ func (l *ListCarrierParams) FilterPredicates() (predicate.Carrier, error) {
 	if l.CarrierOrgIDNotIn != nil {
 		predicates = append(predicates, carrier.OrgIDNotIn(l.CarrierOrgIDNotIn...))
 	}
-	if l.CarrierNameEQ != nil {
-		predicates = append(predicates, carrier.NameEQ(*l.CarrierNameEQ))
-	}
-	if l.CarrierNameNEQ != nil {
-		predicates = append(predicates, carrier.NameNEQ(*l.CarrierNameNEQ))
-	}
-	if l.CarrierNameIn != nil {
-		predicates = append(predicates, carrier.NameIn(l.CarrierNameIn...))
-	}
-	if l.CarrierNameNotIn != nil {
-		predicates = append(predicates, carrier.NameNotIn(l.CarrierNameNotIn...))
-	}
-	if l.CarrierNameEqualFold != nil {
-		predicates = append(predicates, carrier.NameEqualFold(*l.CarrierNameEqualFold))
-	}
-	if l.CarrierNameContains != nil {
-		predicates = append(predicates, carrier.NameContains(*l.CarrierNameContains))
-	}
-	if l.CarrierNameContainsFold != nil {
-		predicates = append(predicates, carrier.NameContainsFold(*l.CarrierNameContainsFold))
-	}
-	if l.CarrierNameHasPrefix != nil {
-		predicates = append(predicates, carrier.NameHasPrefix(*l.CarrierNameHasPrefix))
-	}
-	if l.CarrierNameHasSuffix != nil {
-		predicates = append(predicates, carrier.NameHasSuffix(*l.CarrierNameHasSuffix))
-	}
 	if l.CarrierAkaEQ != nil {
 		predicates = append(predicates, carrier.AkaEQ(*l.CarrierAkaEQ))
 	}
@@ -934,6 +907,33 @@ func (l *ListCarrierParams) FilterPredicates() (predicate.Carrier, error) {
 	}
 	if l.CarrierAkaHasSuffix != nil {
 		predicates = append(predicates, carrier.AkaHasSuffix(*l.CarrierAkaHasSuffix))
+	}
+	if l.CarrierNameEQ != nil {
+		predicates = append(predicates, carrier.NameEQ(*l.CarrierNameEQ))
+	}
+	if l.CarrierNameNEQ != nil {
+		predicates = append(predicates, carrier.NameNEQ(*l.CarrierNameNEQ))
+	}
+	if l.CarrierNameIn != nil {
+		predicates = append(predicates, carrier.NameIn(l.CarrierNameIn...))
+	}
+	if l.CarrierNameNotIn != nil {
+		predicates = append(predicates, carrier.NameNotIn(l.CarrierNameNotIn...))
+	}
+	if l.CarrierNameEqualFold != nil {
+		predicates = append(predicates, carrier.NameEqualFold(*l.CarrierNameEqualFold))
+	}
+	if l.CarrierNameContains != nil {
+		predicates = append(predicates, carrier.NameContains(*l.CarrierNameContains))
+	}
+	if l.CarrierNameContainsFold != nil {
+		predicates = append(predicates, carrier.NameContainsFold(*l.CarrierNameContainsFold))
+	}
+	if l.CarrierNameHasPrefix != nil {
+		predicates = append(predicates, carrier.NameHasPrefix(*l.CarrierNameHasPrefix))
+	}
+	if l.CarrierNameHasSuffix != nil {
+		predicates = append(predicates, carrier.NameHasSuffix(*l.CarrierNameHasSuffix))
 	}
 	if l.CarrierNameLongEQ != nil {
 		predicates = append(predicates, carrier.NameLongEQ(*l.CarrierNameLongEQ))
@@ -1279,14 +1279,6 @@ type ListFacilityParams struct {
 	Paginated[*ent.FacilityQuery, ent.Facility]
 	Filtered[predicate.Facility]
 
-	// Filters field "org_id" to be equal to the provided value.
-	FacilityOrgIDEQ *int `form:"orgID.eq,omitempty" json:"facility_org_ideq,omitempty"`
-	// Filters field "org_id" to be not equal to the provided value.
-	FacilityOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"facility_org_idneq,omitempty"`
-	// Filters field "org_id" to be within the provided values.
-	FacilityOrgIDIn []int `form:"orgID.in,omitempty" json:"facility_org_id_in,omitempty"`
-	// Filters field "org_id" to be not within the provided values.
-	FacilityOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"facility_org_id_not_in,omitempty"`
 	// Filters field "campus_id" to be equal to the provided value.
 	FacilityCampusIDEQ *int `form:"campusID.eq,omitempty" json:"facility_campus_ideq,omitempty"`
 	// Filters field "campus_id" to be not equal to the provided value.
@@ -1295,24 +1287,14 @@ type ListFacilityParams struct {
 	FacilityCampusIDIn []int `form:"campusID.in,omitempty" json:"facility_campus_id_in,omitempty"`
 	// Filters field "campus_id" to be not within the provided values.
 	FacilityCampusIDNotIn []int `form:"campusID.notIn,omitempty" json:"facility_campus_id_not_in,omitempty"`
-	// Filters field "name" to be equal to the provided value.
-	FacilityNameEQ *string `form:"name.eq,omitempty" json:"facility_name_eq,omitempty"`
-	// Filters field "name" to be not equal to the provided value.
-	FacilityNameNEQ *string `form:"name.neq,omitempty" json:"facility_name_neq,omitempty"`
-	// Filters field "name" to be within the provided values.
-	FacilityNameIn []string `form:"name.in,omitempty" json:"facility_name_in,omitempty"`
-	// Filters field "name" to be not within the provided values.
-	FacilityNameNotIn []string `form:"name.notIn,omitempty" json:"facility_name_not_in,omitempty"`
-	// Filters field "name" to be equal to the provided value, case-insensitive.
-	FacilityNameEqualFold *string `form:"name.ieq,omitempty" json:"facility_name_equal_fold,omitempty"`
-	// Filters field "name" to contain the provided value.
-	FacilityNameContains *string `form:"name.has,omitempty" json:"facility_name_contains,omitempty"`
-	// Filters field "name" to contain the provided value, case-insensitive.
-	FacilityNameContainsFold *string `form:"name.ihas,omitempty" json:"facility_name_contains_fold,omitempty"`
-	// Filters field "name" to start with the provided value.
-	FacilityNameHasPrefix *string `form:"name.prefix,omitempty" json:"facility_name_has_prefix,omitempty"`
-	// Filters field "name" to end with the provided value.
-	FacilityNameHasSuffix *string `form:"name.suffix,omitempty" json:"facility_name_has_suffix,omitempty"`
+	// Filters field "org_id" to be equal to the provided value.
+	FacilityOrgIDEQ *int `form:"orgID.eq,omitempty" json:"facility_org_ideq,omitempty"`
+	// Filters field "org_id" to be not equal to the provided value.
+	FacilityOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"facility_org_idneq,omitempty"`
+	// Filters field "org_id" to be within the provided values.
+	FacilityOrgIDIn []int `form:"orgID.in,omitempty" json:"facility_org_id_in,omitempty"`
+	// Filters field "org_id" to be not within the provided values.
+	FacilityOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"facility_org_id_not_in,omitempty"`
 	// Filters field "aka" to be equal to the provided value.
 	FacilityAkaEQ *string `form:"aka.eq,omitempty" json:"facility_aka_eq,omitempty"`
 	// Filters field "aka" to be not equal to the provided value.
@@ -1333,26 +1315,6 @@ type ListFacilityParams struct {
 	FacilityAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"facility_aka_has_prefix,omitempty"`
 	// Filters field "aka" to end with the provided value.
 	FacilityAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"facility_aka_has_suffix,omitempty"`
-	// Filters field "name_long" to be equal to the provided value.
-	FacilityNameLongEQ *string `form:"nameLong.eq,omitempty" json:"facility_name_long_eq,omitempty"`
-	// Filters field "name_long" to be not equal to the provided value.
-	FacilityNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"facility_name_long_neq,omitempty"`
-	// Filters field "name_long" to be null/nil.
-	FacilityNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"facility_name_long_is_nil,omitempty"`
-	// Filters field "name_long" to be within the provided values.
-	FacilityNameLongIn []string `form:"nameLong.in,omitempty" json:"facility_name_long_in,omitempty"`
-	// Filters field "name_long" to be not within the provided values.
-	FacilityNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"facility_name_long_not_in,omitempty"`
-	// Filters field "name_long" to be equal to the provided value, case-insensitive.
-	FacilityNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"facility_name_long_equal_fold,omitempty"`
-	// Filters field "name_long" to contain the provided value.
-	FacilityNameLongContains *string `form:"nameLong.has,omitempty" json:"facility_name_long_contains,omitempty"`
-	// Filters field "name_long" to contain the provided value, case-insensitive.
-	FacilityNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"facility_name_long_contains_fold,omitempty"`
-	// Filters field "name_long" to start with the provided value.
-	FacilityNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"facility_name_long_has_prefix,omitempty"`
-	// Filters field "name_long" to end with the provided value.
-	FacilityNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"facility_name_long_has_suffix,omitempty"`
 	// Filters field "city" to be equal to the provided value.
 	FacilityCityEQ *string `form:"city.eq,omitempty" json:"facility_city_eq,omitempty"`
 	// Filters field "city" to be not equal to the provided value.
@@ -1373,26 +1335,6 @@ type ListFacilityParams struct {
 	FacilityCityHasPrefix *string `form:"city.prefix,omitempty" json:"facility_city_has_prefix,omitempty"`
 	// Filters field "city" to end with the provided value.
 	FacilityCityHasSuffix *string `form:"city.suffix,omitempty" json:"facility_city_has_suffix,omitempty"`
-	// Filters field "state" to be equal to the provided value.
-	FacilityStateEQ *string `form:"state.eq,omitempty" json:"facility_state_eq,omitempty"`
-	// Filters field "state" to be not equal to the provided value.
-	FacilityStateNEQ *string `form:"state.neq,omitempty" json:"facility_state_neq,omitempty"`
-	// Filters field "state" to be null/nil.
-	FacilityStateIsNil *bool `form:"state.null,omitempty" json:"facility_state_is_nil,omitempty"`
-	// Filters field "state" to be within the provided values.
-	FacilityStateIn []string `form:"state.in,omitempty" json:"facility_state_in,omitempty"`
-	// Filters field "state" to be not within the provided values.
-	FacilityStateNotIn []string `form:"state.notIn,omitempty" json:"facility_state_not_in,omitempty"`
-	// Filters field "state" to be equal to the provided value, case-insensitive.
-	FacilityStateEqualFold *string `form:"state.ieq,omitempty" json:"facility_state_equal_fold,omitempty"`
-	// Filters field "state" to contain the provided value.
-	FacilityStateContains *string `form:"state.has,omitempty" json:"facility_state_contains,omitempty"`
-	// Filters field "state" to contain the provided value, case-insensitive.
-	FacilityStateContainsFold *string `form:"state.ihas,omitempty" json:"facility_state_contains_fold,omitempty"`
-	// Filters field "state" to start with the provided value.
-	FacilityStateHasPrefix *string `form:"state.prefix,omitempty" json:"facility_state_has_prefix,omitempty"`
-	// Filters field "state" to end with the provided value.
-	FacilityStateHasSuffix *string `form:"state.suffix,omitempty" json:"facility_state_has_suffix,omitempty"`
 	// Filters field "country" to be equal to the provided value.
 	FacilityCountryEQ *string `form:"country.eq,omitempty" json:"facility_country_eq,omitempty"`
 	// Filters field "country" to be not equal to the provided value.
@@ -1413,6 +1355,64 @@ type ListFacilityParams struct {
 	FacilityCountryHasPrefix *string `form:"country.prefix,omitempty" json:"facility_country_has_prefix,omitempty"`
 	// Filters field "country" to end with the provided value.
 	FacilityCountryHasSuffix *string `form:"country.suffix,omitempty" json:"facility_country_has_suffix,omitempty"`
+	// Filters field "name" to be equal to the provided value.
+	FacilityNameEQ *string `form:"name.eq,omitempty" json:"facility_name_eq,omitempty"`
+	// Filters field "name" to be not equal to the provided value.
+	FacilityNameNEQ *string `form:"name.neq,omitempty" json:"facility_name_neq,omitempty"`
+	// Filters field "name" to be within the provided values.
+	FacilityNameIn []string `form:"name.in,omitempty" json:"facility_name_in,omitempty"`
+	// Filters field "name" to be not within the provided values.
+	FacilityNameNotIn []string `form:"name.notIn,omitempty" json:"facility_name_not_in,omitempty"`
+	// Filters field "name" to be equal to the provided value, case-insensitive.
+	FacilityNameEqualFold *string `form:"name.ieq,omitempty" json:"facility_name_equal_fold,omitempty"`
+	// Filters field "name" to contain the provided value.
+	FacilityNameContains *string `form:"name.has,omitempty" json:"facility_name_contains,omitempty"`
+	// Filters field "name" to contain the provided value, case-insensitive.
+	FacilityNameContainsFold *string `form:"name.ihas,omitempty" json:"facility_name_contains_fold,omitempty"`
+	// Filters field "name" to start with the provided value.
+	FacilityNameHasPrefix *string `form:"name.prefix,omitempty" json:"facility_name_has_prefix,omitempty"`
+	// Filters field "name" to end with the provided value.
+	FacilityNameHasSuffix *string `form:"name.suffix,omitempty" json:"facility_name_has_suffix,omitempty"`
+	// Filters field "name_long" to be equal to the provided value.
+	FacilityNameLongEQ *string `form:"nameLong.eq,omitempty" json:"facility_name_long_eq,omitempty"`
+	// Filters field "name_long" to be not equal to the provided value.
+	FacilityNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"facility_name_long_neq,omitempty"`
+	// Filters field "name_long" to be null/nil.
+	FacilityNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"facility_name_long_is_nil,omitempty"`
+	// Filters field "name_long" to be within the provided values.
+	FacilityNameLongIn []string `form:"nameLong.in,omitempty" json:"facility_name_long_in,omitempty"`
+	// Filters field "name_long" to be not within the provided values.
+	FacilityNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"facility_name_long_not_in,omitempty"`
+	// Filters field "name_long" to be equal to the provided value, case-insensitive.
+	FacilityNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"facility_name_long_equal_fold,omitempty"`
+	// Filters field "name_long" to contain the provided value.
+	FacilityNameLongContains *string `form:"nameLong.has,omitempty" json:"facility_name_long_contains,omitempty"`
+	// Filters field "name_long" to contain the provided value, case-insensitive.
+	FacilityNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"facility_name_long_contains_fold,omitempty"`
+	// Filters field "name_long" to start with the provided value.
+	FacilityNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"facility_name_long_has_prefix,omitempty"`
+	// Filters field "name_long" to end with the provided value.
+	FacilityNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"facility_name_long_has_suffix,omitempty"`
+	// Filters field "state" to be equal to the provided value.
+	FacilityStateEQ *string `form:"state.eq,omitempty" json:"facility_state_eq,omitempty"`
+	// Filters field "state" to be not equal to the provided value.
+	FacilityStateNEQ *string `form:"state.neq,omitempty" json:"facility_state_neq,omitempty"`
+	// Filters field "state" to be null/nil.
+	FacilityStateIsNil *bool `form:"state.null,omitempty" json:"facility_state_is_nil,omitempty"`
+	// Filters field "state" to be within the provided values.
+	FacilityStateIn []string `form:"state.in,omitempty" json:"facility_state_in,omitempty"`
+	// Filters field "state" to be not within the provided values.
+	FacilityStateNotIn []string `form:"state.notIn,omitempty" json:"facility_state_not_in,omitempty"`
+	// Filters field "state" to be equal to the provided value, case-insensitive.
+	FacilityStateEqualFold *string `form:"state.ieq,omitempty" json:"facility_state_equal_fold,omitempty"`
+	// Filters field "state" to contain the provided value.
+	FacilityStateContains *string `form:"state.has,omitempty" json:"facility_state_contains,omitempty"`
+	// Filters field "state" to contain the provided value, case-insensitive.
+	FacilityStateContainsFold *string `form:"state.ihas,omitempty" json:"facility_state_contains_fold,omitempty"`
+	// Filters field "state" to start with the provided value.
+	FacilityStateHasPrefix *string `form:"state.prefix,omitempty" json:"facility_state_has_prefix,omitempty"`
+	// Filters field "state" to end with the provided value.
+	FacilityStateHasSuffix *string `form:"state.suffix,omitempty" json:"facility_state_has_suffix,omitempty"`
 	// Filters field "created" to be greater than the provided value.
 	FacilityCreatedGT *time.Time `form:"created.gt,omitempty" json:"facility_created_gt,omitempty"`
 	// Filters field "created" to be greater than or equal to the provided value.
@@ -1453,18 +1453,6 @@ type ListFacilityParams struct {
 func (l *ListFacilityParams) FilterPredicates() (predicate.Facility, error) {
 	var predicates []predicate.Facility
 
-	if l.FacilityOrgIDEQ != nil {
-		predicates = append(predicates, facility.OrgIDEQ(*l.FacilityOrgIDEQ))
-	}
-	if l.FacilityOrgIDNEQ != nil {
-		predicates = append(predicates, facility.OrgIDNEQ(*l.FacilityOrgIDNEQ))
-	}
-	if l.FacilityOrgIDIn != nil {
-		predicates = append(predicates, facility.OrgIDIn(l.FacilityOrgIDIn...))
-	}
-	if l.FacilityOrgIDNotIn != nil {
-		predicates = append(predicates, facility.OrgIDNotIn(l.FacilityOrgIDNotIn...))
-	}
 	if l.FacilityCampusIDEQ != nil {
 		predicates = append(predicates, facility.CampusIDEQ(*l.FacilityCampusIDEQ))
 	}
@@ -1477,32 +1465,17 @@ func (l *ListFacilityParams) FilterPredicates() (predicate.Facility, error) {
 	if l.FacilityCampusIDNotIn != nil {
 		predicates = append(predicates, facility.CampusIDNotIn(l.FacilityCampusIDNotIn...))
 	}
-	if l.FacilityNameEQ != nil {
-		predicates = append(predicates, facility.NameEQ(*l.FacilityNameEQ))
+	if l.FacilityOrgIDEQ != nil {
+		predicates = append(predicates, facility.OrgIDEQ(*l.FacilityOrgIDEQ))
 	}
-	if l.FacilityNameNEQ != nil {
-		predicates = append(predicates, facility.NameNEQ(*l.FacilityNameNEQ))
+	if l.FacilityOrgIDNEQ != nil {
+		predicates = append(predicates, facility.OrgIDNEQ(*l.FacilityOrgIDNEQ))
 	}
-	if l.FacilityNameIn != nil {
-		predicates = append(predicates, facility.NameIn(l.FacilityNameIn...))
+	if l.FacilityOrgIDIn != nil {
+		predicates = append(predicates, facility.OrgIDIn(l.FacilityOrgIDIn...))
 	}
-	if l.FacilityNameNotIn != nil {
-		predicates = append(predicates, facility.NameNotIn(l.FacilityNameNotIn...))
-	}
-	if l.FacilityNameEqualFold != nil {
-		predicates = append(predicates, facility.NameEqualFold(*l.FacilityNameEqualFold))
-	}
-	if l.FacilityNameContains != nil {
-		predicates = append(predicates, facility.NameContains(*l.FacilityNameContains))
-	}
-	if l.FacilityNameContainsFold != nil {
-		predicates = append(predicates, facility.NameContainsFold(*l.FacilityNameContainsFold))
-	}
-	if l.FacilityNameHasPrefix != nil {
-		predicates = append(predicates, facility.NameHasPrefix(*l.FacilityNameHasPrefix))
-	}
-	if l.FacilityNameHasSuffix != nil {
-		predicates = append(predicates, facility.NameHasSuffix(*l.FacilityNameHasSuffix))
+	if l.FacilityOrgIDNotIn != nil {
+		predicates = append(predicates, facility.OrgIDNotIn(l.FacilityOrgIDNotIn...))
 	}
 	if l.FacilityAkaEQ != nil {
 		predicates = append(predicates, facility.AkaEQ(*l.FacilityAkaEQ))
@@ -1538,40 +1511,6 @@ func (l *ListFacilityParams) FilterPredicates() (predicate.Facility, error) {
 	if l.FacilityAkaHasSuffix != nil {
 		predicates = append(predicates, facility.AkaHasSuffix(*l.FacilityAkaHasSuffix))
 	}
-	if l.FacilityNameLongEQ != nil {
-		predicates = append(predicates, facility.NameLongEQ(*l.FacilityNameLongEQ))
-	}
-	if l.FacilityNameLongNEQ != nil {
-		predicates = append(predicates, facility.NameLongNEQ(*l.FacilityNameLongNEQ))
-	}
-	if l.FacilityNameLongIsNil != nil {
-		if *l.FacilityNameLongIsNil {
-			predicates = append(predicates, facility.NameLongIsNil())
-		} else {
-			predicates = append(predicates, facility.Not(facility.NameLongIsNil()))
-		}
-	}
-	if l.FacilityNameLongIn != nil {
-		predicates = append(predicates, facility.NameLongIn(l.FacilityNameLongIn...))
-	}
-	if l.FacilityNameLongNotIn != nil {
-		predicates = append(predicates, facility.NameLongNotIn(l.FacilityNameLongNotIn...))
-	}
-	if l.FacilityNameLongEqualFold != nil {
-		predicates = append(predicates, facility.NameLongEqualFold(*l.FacilityNameLongEqualFold))
-	}
-	if l.FacilityNameLongContains != nil {
-		predicates = append(predicates, facility.NameLongContains(*l.FacilityNameLongContains))
-	}
-	if l.FacilityNameLongContainsFold != nil {
-		predicates = append(predicates, facility.NameLongContainsFold(*l.FacilityNameLongContainsFold))
-	}
-	if l.FacilityNameLongHasPrefix != nil {
-		predicates = append(predicates, facility.NameLongHasPrefix(*l.FacilityNameLongHasPrefix))
-	}
-	if l.FacilityNameLongHasSuffix != nil {
-		predicates = append(predicates, facility.NameLongHasSuffix(*l.FacilityNameLongHasSuffix))
-	}
 	if l.FacilityCityEQ != nil {
 		predicates = append(predicates, facility.CityEQ(*l.FacilityCityEQ))
 	}
@@ -1606,40 +1545,6 @@ func (l *ListFacilityParams) FilterPredicates() (predicate.Facility, error) {
 	if l.FacilityCityHasSuffix != nil {
 		predicates = append(predicates, facility.CityHasSuffix(*l.FacilityCityHasSuffix))
 	}
-	if l.FacilityStateEQ != nil {
-		predicates = append(predicates, facility.StateEQ(*l.FacilityStateEQ))
-	}
-	if l.FacilityStateNEQ != nil {
-		predicates = append(predicates, facility.StateNEQ(*l.FacilityStateNEQ))
-	}
-	if l.FacilityStateIsNil != nil {
-		if *l.FacilityStateIsNil {
-			predicates = append(predicates, facility.StateIsNil())
-		} else {
-			predicates = append(predicates, facility.Not(facility.StateIsNil()))
-		}
-	}
-	if l.FacilityStateIn != nil {
-		predicates = append(predicates, facility.StateIn(l.FacilityStateIn...))
-	}
-	if l.FacilityStateNotIn != nil {
-		predicates = append(predicates, facility.StateNotIn(l.FacilityStateNotIn...))
-	}
-	if l.FacilityStateEqualFold != nil {
-		predicates = append(predicates, facility.StateEqualFold(*l.FacilityStateEqualFold))
-	}
-	if l.FacilityStateContains != nil {
-		predicates = append(predicates, facility.StateContains(*l.FacilityStateContains))
-	}
-	if l.FacilityStateContainsFold != nil {
-		predicates = append(predicates, facility.StateContainsFold(*l.FacilityStateContainsFold))
-	}
-	if l.FacilityStateHasPrefix != nil {
-		predicates = append(predicates, facility.StateHasPrefix(*l.FacilityStateHasPrefix))
-	}
-	if l.FacilityStateHasSuffix != nil {
-		predicates = append(predicates, facility.StateHasSuffix(*l.FacilityStateHasSuffix))
-	}
 	if l.FacilityCountryEQ != nil {
 		predicates = append(predicates, facility.CountryEQ(*l.FacilityCountryEQ))
 	}
@@ -1673,6 +1578,101 @@ func (l *ListFacilityParams) FilterPredicates() (predicate.Facility, error) {
 	}
 	if l.FacilityCountryHasSuffix != nil {
 		predicates = append(predicates, facility.CountryHasSuffix(*l.FacilityCountryHasSuffix))
+	}
+	if l.FacilityNameEQ != nil {
+		predicates = append(predicates, facility.NameEQ(*l.FacilityNameEQ))
+	}
+	if l.FacilityNameNEQ != nil {
+		predicates = append(predicates, facility.NameNEQ(*l.FacilityNameNEQ))
+	}
+	if l.FacilityNameIn != nil {
+		predicates = append(predicates, facility.NameIn(l.FacilityNameIn...))
+	}
+	if l.FacilityNameNotIn != nil {
+		predicates = append(predicates, facility.NameNotIn(l.FacilityNameNotIn...))
+	}
+	if l.FacilityNameEqualFold != nil {
+		predicates = append(predicates, facility.NameEqualFold(*l.FacilityNameEqualFold))
+	}
+	if l.FacilityNameContains != nil {
+		predicates = append(predicates, facility.NameContains(*l.FacilityNameContains))
+	}
+	if l.FacilityNameContainsFold != nil {
+		predicates = append(predicates, facility.NameContainsFold(*l.FacilityNameContainsFold))
+	}
+	if l.FacilityNameHasPrefix != nil {
+		predicates = append(predicates, facility.NameHasPrefix(*l.FacilityNameHasPrefix))
+	}
+	if l.FacilityNameHasSuffix != nil {
+		predicates = append(predicates, facility.NameHasSuffix(*l.FacilityNameHasSuffix))
+	}
+	if l.FacilityNameLongEQ != nil {
+		predicates = append(predicates, facility.NameLongEQ(*l.FacilityNameLongEQ))
+	}
+	if l.FacilityNameLongNEQ != nil {
+		predicates = append(predicates, facility.NameLongNEQ(*l.FacilityNameLongNEQ))
+	}
+	if l.FacilityNameLongIsNil != nil {
+		if *l.FacilityNameLongIsNil {
+			predicates = append(predicates, facility.NameLongIsNil())
+		} else {
+			predicates = append(predicates, facility.Not(facility.NameLongIsNil()))
+		}
+	}
+	if l.FacilityNameLongIn != nil {
+		predicates = append(predicates, facility.NameLongIn(l.FacilityNameLongIn...))
+	}
+	if l.FacilityNameLongNotIn != nil {
+		predicates = append(predicates, facility.NameLongNotIn(l.FacilityNameLongNotIn...))
+	}
+	if l.FacilityNameLongEqualFold != nil {
+		predicates = append(predicates, facility.NameLongEqualFold(*l.FacilityNameLongEqualFold))
+	}
+	if l.FacilityNameLongContains != nil {
+		predicates = append(predicates, facility.NameLongContains(*l.FacilityNameLongContains))
+	}
+	if l.FacilityNameLongContainsFold != nil {
+		predicates = append(predicates, facility.NameLongContainsFold(*l.FacilityNameLongContainsFold))
+	}
+	if l.FacilityNameLongHasPrefix != nil {
+		predicates = append(predicates, facility.NameLongHasPrefix(*l.FacilityNameLongHasPrefix))
+	}
+	if l.FacilityNameLongHasSuffix != nil {
+		predicates = append(predicates, facility.NameLongHasSuffix(*l.FacilityNameLongHasSuffix))
+	}
+	if l.FacilityStateEQ != nil {
+		predicates = append(predicates, facility.StateEQ(*l.FacilityStateEQ))
+	}
+	if l.FacilityStateNEQ != nil {
+		predicates = append(predicates, facility.StateNEQ(*l.FacilityStateNEQ))
+	}
+	if l.FacilityStateIsNil != nil {
+		if *l.FacilityStateIsNil {
+			predicates = append(predicates, facility.StateIsNil())
+		} else {
+			predicates = append(predicates, facility.Not(facility.StateIsNil()))
+		}
+	}
+	if l.FacilityStateIn != nil {
+		predicates = append(predicates, facility.StateIn(l.FacilityStateIn...))
+	}
+	if l.FacilityStateNotIn != nil {
+		predicates = append(predicates, facility.StateNotIn(l.FacilityStateNotIn...))
+	}
+	if l.FacilityStateEqualFold != nil {
+		predicates = append(predicates, facility.StateEqualFold(*l.FacilityStateEqualFold))
+	}
+	if l.FacilityStateContains != nil {
+		predicates = append(predicates, facility.StateContains(*l.FacilityStateContains))
+	}
+	if l.FacilityStateContainsFold != nil {
+		predicates = append(predicates, facility.StateContainsFold(*l.FacilityStateContainsFold))
+	}
+	if l.FacilityStateHasPrefix != nil {
+		predicates = append(predicates, facility.StateHasPrefix(*l.FacilityStateHasPrefix))
+	}
+	if l.FacilityStateHasSuffix != nil {
+		predicates = append(predicates, facility.StateHasSuffix(*l.FacilityStateHasSuffix))
 	}
 	if l.FacilityCreatedGT != nil {
 		predicates = append(predicates, facility.CreatedGT(*l.FacilityCreatedGT))
@@ -1770,24 +1770,6 @@ type ListInternetExchangeParams struct {
 	InternetExchangeOrgIDIn []int `form:"orgID.in,omitempty" json:"internet_exchange_org_id_in,omitempty"`
 	// Filters field "org_id" to be not within the provided values.
 	InternetExchangeOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"internet_exchange_org_id_not_in,omitempty"`
-	// Filters field "name" to be equal to the provided value.
-	InternetExchangeNameEQ *string `form:"name.eq,omitempty" json:"internet_exchange_name_eq,omitempty"`
-	// Filters field "name" to be not equal to the provided value.
-	InternetExchangeNameNEQ *string `form:"name.neq,omitempty" json:"internet_exchange_name_neq,omitempty"`
-	// Filters field "name" to be within the provided values.
-	InternetExchangeNameIn []string `form:"name.in,omitempty" json:"internet_exchange_name_in,omitempty"`
-	// Filters field "name" to be not within the provided values.
-	InternetExchangeNameNotIn []string `form:"name.notIn,omitempty" json:"internet_exchange_name_not_in,omitempty"`
-	// Filters field "name" to be equal to the provided value, case-insensitive.
-	InternetExchangeNameEqualFold *string `form:"name.ieq,omitempty" json:"internet_exchange_name_equal_fold,omitempty"`
-	// Filters field "name" to contain the provided value.
-	InternetExchangeNameContains *string `form:"name.has,omitempty" json:"internet_exchange_name_contains,omitempty"`
-	// Filters field "name" to contain the provided value, case-insensitive.
-	InternetExchangeNameContainsFold *string `form:"name.ihas,omitempty" json:"internet_exchange_name_contains_fold,omitempty"`
-	// Filters field "name" to start with the provided value.
-	InternetExchangeNameHasPrefix *string `form:"name.prefix,omitempty" json:"internet_exchange_name_has_prefix,omitempty"`
-	// Filters field "name" to end with the provided value.
-	InternetExchangeNameHasSuffix *string `form:"name.suffix,omitempty" json:"internet_exchange_name_has_suffix,omitempty"`
 	// Filters field "aka" to be equal to the provided value.
 	InternetExchangeAkaEQ *string `form:"aka.eq,omitempty" json:"internet_exchange_aka_eq,omitempty"`
 	// Filters field "aka" to be not equal to the provided value.
@@ -1808,6 +1790,64 @@ type ListInternetExchangeParams struct {
 	InternetExchangeAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"internet_exchange_aka_has_prefix,omitempty"`
 	// Filters field "aka" to end with the provided value.
 	InternetExchangeAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"internet_exchange_aka_has_suffix,omitempty"`
+	// Filters field "city" to be equal to the provided value.
+	InternetExchangeCityEQ *string `form:"city.eq,omitempty" json:"internet_exchange_city_eq,omitempty"`
+	// Filters field "city" to be not equal to the provided value.
+	InternetExchangeCityNEQ *string `form:"city.neq,omitempty" json:"internet_exchange_city_neq,omitempty"`
+	// Filters field "city" to be null/nil.
+	InternetExchangeCityIsNil *bool `form:"city.null,omitempty" json:"internet_exchange_city_is_nil,omitempty"`
+	// Filters field "city" to be within the provided values.
+	InternetExchangeCityIn []string `form:"city.in,omitempty" json:"internet_exchange_city_in,omitempty"`
+	// Filters field "city" to be not within the provided values.
+	InternetExchangeCityNotIn []string `form:"city.notIn,omitempty" json:"internet_exchange_city_not_in,omitempty"`
+	// Filters field "city" to be equal to the provided value, case-insensitive.
+	InternetExchangeCityEqualFold *string `form:"city.ieq,omitempty" json:"internet_exchange_city_equal_fold,omitempty"`
+	// Filters field "city" to contain the provided value.
+	InternetExchangeCityContains *string `form:"city.has,omitempty" json:"internet_exchange_city_contains,omitempty"`
+	// Filters field "city" to contain the provided value, case-insensitive.
+	InternetExchangeCityContainsFold *string `form:"city.ihas,omitempty" json:"internet_exchange_city_contains_fold,omitempty"`
+	// Filters field "city" to start with the provided value.
+	InternetExchangeCityHasPrefix *string `form:"city.prefix,omitempty" json:"internet_exchange_city_has_prefix,omitempty"`
+	// Filters field "city" to end with the provided value.
+	InternetExchangeCityHasSuffix *string `form:"city.suffix,omitempty" json:"internet_exchange_city_has_suffix,omitempty"`
+	// Filters field "country" to be equal to the provided value.
+	InternetExchangeCountryEQ *string `form:"country.eq,omitempty" json:"internet_exchange_country_eq,omitempty"`
+	// Filters field "country" to be not equal to the provided value.
+	InternetExchangeCountryNEQ *string `form:"country.neq,omitempty" json:"internet_exchange_country_neq,omitempty"`
+	// Filters field "country" to be null/nil.
+	InternetExchangeCountryIsNil *bool `form:"country.null,omitempty" json:"internet_exchange_country_is_nil,omitempty"`
+	// Filters field "country" to be within the provided values.
+	InternetExchangeCountryIn []string `form:"country.in,omitempty" json:"internet_exchange_country_in,omitempty"`
+	// Filters field "country" to be not within the provided values.
+	InternetExchangeCountryNotIn []string `form:"country.notIn,omitempty" json:"internet_exchange_country_not_in,omitempty"`
+	// Filters field "country" to be equal to the provided value, case-insensitive.
+	InternetExchangeCountryEqualFold *string `form:"country.ieq,omitempty" json:"internet_exchange_country_equal_fold,omitempty"`
+	// Filters field "country" to contain the provided value.
+	InternetExchangeCountryContains *string `form:"country.has,omitempty" json:"internet_exchange_country_contains,omitempty"`
+	// Filters field "country" to contain the provided value, case-insensitive.
+	InternetExchangeCountryContainsFold *string `form:"country.ihas,omitempty" json:"internet_exchange_country_contains_fold,omitempty"`
+	// Filters field "country" to start with the provided value.
+	InternetExchangeCountryHasPrefix *string `form:"country.prefix,omitempty" json:"internet_exchange_country_has_prefix,omitempty"`
+	// Filters field "country" to end with the provided value.
+	InternetExchangeCountryHasSuffix *string `form:"country.suffix,omitempty" json:"internet_exchange_country_has_suffix,omitempty"`
+	// Filters field "name" to be equal to the provided value.
+	InternetExchangeNameEQ *string `form:"name.eq,omitempty" json:"internet_exchange_name_eq,omitempty"`
+	// Filters field "name" to be not equal to the provided value.
+	InternetExchangeNameNEQ *string `form:"name.neq,omitempty" json:"internet_exchange_name_neq,omitempty"`
+	// Filters field "name" to be within the provided values.
+	InternetExchangeNameIn []string `form:"name.in,omitempty" json:"internet_exchange_name_in,omitempty"`
+	// Filters field "name" to be not within the provided values.
+	InternetExchangeNameNotIn []string `form:"name.notIn,omitempty" json:"internet_exchange_name_not_in,omitempty"`
+	// Filters field "name" to be equal to the provided value, case-insensitive.
+	InternetExchangeNameEqualFold *string `form:"name.ieq,omitempty" json:"internet_exchange_name_equal_fold,omitempty"`
+	// Filters field "name" to contain the provided value.
+	InternetExchangeNameContains *string `form:"name.has,omitempty" json:"internet_exchange_name_contains,omitempty"`
+	// Filters field "name" to contain the provided value, case-insensitive.
+	InternetExchangeNameContainsFold *string `form:"name.ihas,omitempty" json:"internet_exchange_name_contains_fold,omitempty"`
+	// Filters field "name" to start with the provided value.
+	InternetExchangeNameHasPrefix *string `form:"name.prefix,omitempty" json:"internet_exchange_name_has_prefix,omitempty"`
+	// Filters field "name" to end with the provided value.
+	InternetExchangeNameHasSuffix *string `form:"name.suffix,omitempty" json:"internet_exchange_name_has_suffix,omitempty"`
 	// Filters field "name_long" to be equal to the provided value.
 	InternetExchangeNameLongEQ *string `form:"nameLong.eq,omitempty" json:"internet_exchange_name_long_eq,omitempty"`
 	// Filters field "name_long" to be not equal to the provided value.
@@ -1828,82 +1868,6 @@ type ListInternetExchangeParams struct {
 	InternetExchangeNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"internet_exchange_name_long_has_prefix,omitempty"`
 	// Filters field "name_long" to end with the provided value.
 	InternetExchangeNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"internet_exchange_name_long_has_suffix,omitempty"`
-	// Filters field "city" to be equal to the provided value.
-	InternetExchangeCityEQ *string `form:"city.eq,omitempty" json:"internet_exchange_city_eq,omitempty"`
-	// Filters field "city" to be not equal to the provided value.
-	InternetExchangeCityNEQ *string `form:"city.neq,omitempty" json:"internet_exchange_city_neq,omitempty"`
-	// Filters field "city" to be within the provided values.
-	InternetExchangeCityIn []string `form:"city.in,omitempty" json:"internet_exchange_city_in,omitempty"`
-	// Filters field "city" to be not within the provided values.
-	InternetExchangeCityNotIn []string `form:"city.notIn,omitempty" json:"internet_exchange_city_not_in,omitempty"`
-	// Filters field "city" to be equal to the provided value, case-insensitive.
-	InternetExchangeCityEqualFold *string `form:"city.ieq,omitempty" json:"internet_exchange_city_equal_fold,omitempty"`
-	// Filters field "city" to contain the provided value.
-	InternetExchangeCityContains *string `form:"city.has,omitempty" json:"internet_exchange_city_contains,omitempty"`
-	// Filters field "city" to contain the provided value, case-insensitive.
-	InternetExchangeCityContainsFold *string `form:"city.ihas,omitempty" json:"internet_exchange_city_contains_fold,omitempty"`
-	// Filters field "city" to start with the provided value.
-	InternetExchangeCityHasPrefix *string `form:"city.prefix,omitempty" json:"internet_exchange_city_has_prefix,omitempty"`
-	// Filters field "city" to end with the provided value.
-	InternetExchangeCityHasSuffix *string `form:"city.suffix,omitempty" json:"internet_exchange_city_has_suffix,omitempty"`
-	// Filters field "country" to be equal to the provided value.
-	InternetExchangeCountryEQ *string `form:"country.eq,omitempty" json:"internet_exchange_country_eq,omitempty"`
-	// Filters field "country" to be not equal to the provided value.
-	InternetExchangeCountryNEQ *string `form:"country.neq,omitempty" json:"internet_exchange_country_neq,omitempty"`
-	// Filters field "country" to be within the provided values.
-	InternetExchangeCountryIn []string `form:"country.in,omitempty" json:"internet_exchange_country_in,omitempty"`
-	// Filters field "country" to be not within the provided values.
-	InternetExchangeCountryNotIn []string `form:"country.notIn,omitempty" json:"internet_exchange_country_not_in,omitempty"`
-	// Filters field "country" to be equal to the provided value, case-insensitive.
-	InternetExchangeCountryEqualFold *string `form:"country.ieq,omitempty" json:"internet_exchange_country_equal_fold,omitempty"`
-	// Filters field "country" to contain the provided value.
-	InternetExchangeCountryContains *string `form:"country.has,omitempty" json:"internet_exchange_country_contains,omitempty"`
-	// Filters field "country" to contain the provided value, case-insensitive.
-	InternetExchangeCountryContainsFold *string `form:"country.ihas,omitempty" json:"internet_exchange_country_contains_fold,omitempty"`
-	// Filters field "country" to start with the provided value.
-	InternetExchangeCountryHasPrefix *string `form:"country.prefix,omitempty" json:"internet_exchange_country_has_prefix,omitempty"`
-	// Filters field "country" to end with the provided value.
-	InternetExchangeCountryHasSuffix *string `form:"country.suffix,omitempty" json:"internet_exchange_country_has_suffix,omitempty"`
-	// Filters field "region_continent" to be equal to the provided value.
-	InternetExchangeRegionContinentEQ *string `form:"regionContinent.eq,omitempty" json:"internet_exchange_region_continent_eq,omitempty"`
-	// Filters field "region_continent" to be not equal to the provided value.
-	InternetExchangeRegionContinentNEQ *string `form:"regionContinent.neq,omitempty" json:"internet_exchange_region_continent_neq,omitempty"`
-	// Filters field "region_continent" to be within the provided values.
-	InternetExchangeRegionContinentIn []string `form:"regionContinent.in,omitempty" json:"internet_exchange_region_continent_in,omitempty"`
-	// Filters field "region_continent" to be not within the provided values.
-	InternetExchangeRegionContinentNotIn []string `form:"regionContinent.notIn,omitempty" json:"internet_exchange_region_continent_not_in,omitempty"`
-	// Filters field "region_continent" to be equal to the provided value, case-insensitive.
-	InternetExchangeRegionContinentEqualFold *string `form:"regionContinent.ieq,omitempty" json:"internet_exchange_region_continent_equal_fold,omitempty"`
-	// Filters field "region_continent" to contain the provided value.
-	InternetExchangeRegionContinentContains *string `form:"regionContinent.has,omitempty" json:"internet_exchange_region_continent_contains,omitempty"`
-	// Filters field "region_continent" to contain the provided value, case-insensitive.
-	InternetExchangeRegionContinentContainsFold *string `form:"regionContinent.ihas,omitempty" json:"internet_exchange_region_continent_contains_fold,omitempty"`
-	// Filters field "region_continent" to start with the provided value.
-	InternetExchangeRegionContinentHasPrefix *string `form:"regionContinent.prefix,omitempty" json:"internet_exchange_region_continent_has_prefix,omitempty"`
-	// Filters field "region_continent" to end with the provided value.
-	InternetExchangeRegionContinentHasSuffix *string `form:"regionContinent.suffix,omitempty" json:"internet_exchange_region_continent_has_suffix,omitempty"`
-	// Filters field "media" to be equal to the provided value.
-	InternetExchangeMediaEQ *string `form:"media.eq,omitempty" json:"internet_exchange_media_eq,omitempty"`
-	// Filters field "media" to be not equal to the provided value.
-	InternetExchangeMediaNEQ *string `form:"media.neq,omitempty" json:"internet_exchange_media_neq,omitempty"`
-	// Filters field "media" to be within the provided values.
-	InternetExchangeMediaIn []string `form:"media.in,omitempty" json:"internet_exchange_media_in,omitempty"`
-	// Filters field "media" to be not within the provided values.
-	InternetExchangeMediaNotIn []string `form:"media.notIn,omitempty" json:"internet_exchange_media_not_in,omitempty"`
-	// Filters field "media" to be equal to the provided value, case-insensitive.
-	InternetExchangeMediaEqualFold *string `form:"media.ieq,omitempty" json:"internet_exchange_media_equal_fold,omitempty"`
-	// Filters field "media" to contain the provided value.
-	InternetExchangeMediaContains *string `form:"media.has,omitempty" json:"internet_exchange_media_contains,omitempty"`
-	// Filters field "media" to contain the provided value, case-insensitive.
-	InternetExchangeMediaContainsFold *string `form:"media.ihas,omitempty" json:"internet_exchange_media_contains_fold,omitempty"`
-	// Filters field "media" to start with the provided value.
-	InternetExchangeMediaHasPrefix *string `form:"media.prefix,omitempty" json:"internet_exchange_media_has_prefix,omitempty"`
-	// Filters field "media" to end with the provided value.
-	InternetExchangeMediaHasSuffix *string `form:"media.suffix,omitempty" json:"internet_exchange_media_has_suffix,omitempty"`
-	// Filters field "proto_unicast" to be equal to the provided value.
-	InternetExchangeProtoUnicastEQ *bool `form:"protoUnicast.eq,omitempty" json:"internet_exchange_proto_unicast_eq,omitempty"`
-	// Filters field "proto_ipv6" to be equal to the provided value.
-	InternetExchangeProtoIpv6EQ *bool `form:"protoIpv6.eq,omitempty" json:"internet_exchange_proto_ipv6eq,omitempty"`
 	// Filters field "created" to be greater than the provided value.
 	InternetExchangeCreatedGT *time.Time `form:"created.gt,omitempty" json:"internet_exchange_created_gt,omitempty"`
 	// Filters field "created" to be greater than or equal to the provided value.
@@ -1956,33 +1920,6 @@ func (l *ListInternetExchangeParams) FilterPredicates() (predicate.InternetExcha
 	if l.InternetExchangeOrgIDNotIn != nil {
 		predicates = append(predicates, internetexchange.OrgIDNotIn(l.InternetExchangeOrgIDNotIn...))
 	}
-	if l.InternetExchangeNameEQ != nil {
-		predicates = append(predicates, internetexchange.NameEQ(*l.InternetExchangeNameEQ))
-	}
-	if l.InternetExchangeNameNEQ != nil {
-		predicates = append(predicates, internetexchange.NameNEQ(*l.InternetExchangeNameNEQ))
-	}
-	if l.InternetExchangeNameIn != nil {
-		predicates = append(predicates, internetexchange.NameIn(l.InternetExchangeNameIn...))
-	}
-	if l.InternetExchangeNameNotIn != nil {
-		predicates = append(predicates, internetexchange.NameNotIn(l.InternetExchangeNameNotIn...))
-	}
-	if l.InternetExchangeNameEqualFold != nil {
-		predicates = append(predicates, internetexchange.NameEqualFold(*l.InternetExchangeNameEqualFold))
-	}
-	if l.InternetExchangeNameContains != nil {
-		predicates = append(predicates, internetexchange.NameContains(*l.InternetExchangeNameContains))
-	}
-	if l.InternetExchangeNameContainsFold != nil {
-		predicates = append(predicates, internetexchange.NameContainsFold(*l.InternetExchangeNameContainsFold))
-	}
-	if l.InternetExchangeNameHasPrefix != nil {
-		predicates = append(predicates, internetexchange.NameHasPrefix(*l.InternetExchangeNameHasPrefix))
-	}
-	if l.InternetExchangeNameHasSuffix != nil {
-		predicates = append(predicates, internetexchange.NameHasSuffix(*l.InternetExchangeNameHasSuffix))
-	}
 	if l.InternetExchangeAkaEQ != nil {
 		predicates = append(predicates, internetexchange.AkaEQ(*l.InternetExchangeAkaEQ))
 	}
@@ -2017,6 +1954,101 @@ func (l *ListInternetExchangeParams) FilterPredicates() (predicate.InternetExcha
 	if l.InternetExchangeAkaHasSuffix != nil {
 		predicates = append(predicates, internetexchange.AkaHasSuffix(*l.InternetExchangeAkaHasSuffix))
 	}
+	if l.InternetExchangeCityEQ != nil {
+		predicates = append(predicates, internetexchange.CityEQ(*l.InternetExchangeCityEQ))
+	}
+	if l.InternetExchangeCityNEQ != nil {
+		predicates = append(predicates, internetexchange.CityNEQ(*l.InternetExchangeCityNEQ))
+	}
+	if l.InternetExchangeCityIsNil != nil {
+		if *l.InternetExchangeCityIsNil {
+			predicates = append(predicates, internetexchange.CityIsNil())
+		} else {
+			predicates = append(predicates, internetexchange.Not(internetexchange.CityIsNil()))
+		}
+	}
+	if l.InternetExchangeCityIn != nil {
+		predicates = append(predicates, internetexchange.CityIn(l.InternetExchangeCityIn...))
+	}
+	if l.InternetExchangeCityNotIn != nil {
+		predicates = append(predicates, internetexchange.CityNotIn(l.InternetExchangeCityNotIn...))
+	}
+	if l.InternetExchangeCityEqualFold != nil {
+		predicates = append(predicates, internetexchange.CityEqualFold(*l.InternetExchangeCityEqualFold))
+	}
+	if l.InternetExchangeCityContains != nil {
+		predicates = append(predicates, internetexchange.CityContains(*l.InternetExchangeCityContains))
+	}
+	if l.InternetExchangeCityContainsFold != nil {
+		predicates = append(predicates, internetexchange.CityContainsFold(*l.InternetExchangeCityContainsFold))
+	}
+	if l.InternetExchangeCityHasPrefix != nil {
+		predicates = append(predicates, internetexchange.CityHasPrefix(*l.InternetExchangeCityHasPrefix))
+	}
+	if l.InternetExchangeCityHasSuffix != nil {
+		predicates = append(predicates, internetexchange.CityHasSuffix(*l.InternetExchangeCityHasSuffix))
+	}
+	if l.InternetExchangeCountryEQ != nil {
+		predicates = append(predicates, internetexchange.CountryEQ(*l.InternetExchangeCountryEQ))
+	}
+	if l.InternetExchangeCountryNEQ != nil {
+		predicates = append(predicates, internetexchange.CountryNEQ(*l.InternetExchangeCountryNEQ))
+	}
+	if l.InternetExchangeCountryIsNil != nil {
+		if *l.InternetExchangeCountryIsNil {
+			predicates = append(predicates, internetexchange.CountryIsNil())
+		} else {
+			predicates = append(predicates, internetexchange.Not(internetexchange.CountryIsNil()))
+		}
+	}
+	if l.InternetExchangeCountryIn != nil {
+		predicates = append(predicates, internetexchange.CountryIn(l.InternetExchangeCountryIn...))
+	}
+	if l.InternetExchangeCountryNotIn != nil {
+		predicates = append(predicates, internetexchange.CountryNotIn(l.InternetExchangeCountryNotIn...))
+	}
+	if l.InternetExchangeCountryEqualFold != nil {
+		predicates = append(predicates, internetexchange.CountryEqualFold(*l.InternetExchangeCountryEqualFold))
+	}
+	if l.InternetExchangeCountryContains != nil {
+		predicates = append(predicates, internetexchange.CountryContains(*l.InternetExchangeCountryContains))
+	}
+	if l.InternetExchangeCountryContainsFold != nil {
+		predicates = append(predicates, internetexchange.CountryContainsFold(*l.InternetExchangeCountryContainsFold))
+	}
+	if l.InternetExchangeCountryHasPrefix != nil {
+		predicates = append(predicates, internetexchange.CountryHasPrefix(*l.InternetExchangeCountryHasPrefix))
+	}
+	if l.InternetExchangeCountryHasSuffix != nil {
+		predicates = append(predicates, internetexchange.CountryHasSuffix(*l.InternetExchangeCountryHasSuffix))
+	}
+	if l.InternetExchangeNameEQ != nil {
+		predicates = append(predicates, internetexchange.NameEQ(*l.InternetExchangeNameEQ))
+	}
+	if l.InternetExchangeNameNEQ != nil {
+		predicates = append(predicates, internetexchange.NameNEQ(*l.InternetExchangeNameNEQ))
+	}
+	if l.InternetExchangeNameIn != nil {
+		predicates = append(predicates, internetexchange.NameIn(l.InternetExchangeNameIn...))
+	}
+	if l.InternetExchangeNameNotIn != nil {
+		predicates = append(predicates, internetexchange.NameNotIn(l.InternetExchangeNameNotIn...))
+	}
+	if l.InternetExchangeNameEqualFold != nil {
+		predicates = append(predicates, internetexchange.NameEqualFold(*l.InternetExchangeNameEqualFold))
+	}
+	if l.InternetExchangeNameContains != nil {
+		predicates = append(predicates, internetexchange.NameContains(*l.InternetExchangeNameContains))
+	}
+	if l.InternetExchangeNameContainsFold != nil {
+		predicates = append(predicates, internetexchange.NameContainsFold(*l.InternetExchangeNameContainsFold))
+	}
+	if l.InternetExchangeNameHasPrefix != nil {
+		predicates = append(predicates, internetexchange.NameHasPrefix(*l.InternetExchangeNameHasPrefix))
+	}
+	if l.InternetExchangeNameHasSuffix != nil {
+		predicates = append(predicates, internetexchange.NameHasSuffix(*l.InternetExchangeNameHasSuffix))
+	}
 	if l.InternetExchangeNameLongEQ != nil {
 		predicates = append(predicates, internetexchange.NameLongEQ(*l.InternetExchangeNameLongEQ))
 	}
@@ -2050,120 +2082,6 @@ func (l *ListInternetExchangeParams) FilterPredicates() (predicate.InternetExcha
 	}
 	if l.InternetExchangeNameLongHasSuffix != nil {
 		predicates = append(predicates, internetexchange.NameLongHasSuffix(*l.InternetExchangeNameLongHasSuffix))
-	}
-	if l.InternetExchangeCityEQ != nil {
-		predicates = append(predicates, internetexchange.CityEQ(*l.InternetExchangeCityEQ))
-	}
-	if l.InternetExchangeCityNEQ != nil {
-		predicates = append(predicates, internetexchange.CityNEQ(*l.InternetExchangeCityNEQ))
-	}
-	if l.InternetExchangeCityIn != nil {
-		predicates = append(predicates, internetexchange.CityIn(l.InternetExchangeCityIn...))
-	}
-	if l.InternetExchangeCityNotIn != nil {
-		predicates = append(predicates, internetexchange.CityNotIn(l.InternetExchangeCityNotIn...))
-	}
-	if l.InternetExchangeCityEqualFold != nil {
-		predicates = append(predicates, internetexchange.CityEqualFold(*l.InternetExchangeCityEqualFold))
-	}
-	if l.InternetExchangeCityContains != nil {
-		predicates = append(predicates, internetexchange.CityContains(*l.InternetExchangeCityContains))
-	}
-	if l.InternetExchangeCityContainsFold != nil {
-		predicates = append(predicates, internetexchange.CityContainsFold(*l.InternetExchangeCityContainsFold))
-	}
-	if l.InternetExchangeCityHasPrefix != nil {
-		predicates = append(predicates, internetexchange.CityHasPrefix(*l.InternetExchangeCityHasPrefix))
-	}
-	if l.InternetExchangeCityHasSuffix != nil {
-		predicates = append(predicates, internetexchange.CityHasSuffix(*l.InternetExchangeCityHasSuffix))
-	}
-	if l.InternetExchangeCountryEQ != nil {
-		predicates = append(predicates, internetexchange.CountryEQ(*l.InternetExchangeCountryEQ))
-	}
-	if l.InternetExchangeCountryNEQ != nil {
-		predicates = append(predicates, internetexchange.CountryNEQ(*l.InternetExchangeCountryNEQ))
-	}
-	if l.InternetExchangeCountryIn != nil {
-		predicates = append(predicates, internetexchange.CountryIn(l.InternetExchangeCountryIn...))
-	}
-	if l.InternetExchangeCountryNotIn != nil {
-		predicates = append(predicates, internetexchange.CountryNotIn(l.InternetExchangeCountryNotIn...))
-	}
-	if l.InternetExchangeCountryEqualFold != nil {
-		predicates = append(predicates, internetexchange.CountryEqualFold(*l.InternetExchangeCountryEqualFold))
-	}
-	if l.InternetExchangeCountryContains != nil {
-		predicates = append(predicates, internetexchange.CountryContains(*l.InternetExchangeCountryContains))
-	}
-	if l.InternetExchangeCountryContainsFold != nil {
-		predicates = append(predicates, internetexchange.CountryContainsFold(*l.InternetExchangeCountryContainsFold))
-	}
-	if l.InternetExchangeCountryHasPrefix != nil {
-		predicates = append(predicates, internetexchange.CountryHasPrefix(*l.InternetExchangeCountryHasPrefix))
-	}
-	if l.InternetExchangeCountryHasSuffix != nil {
-		predicates = append(predicates, internetexchange.CountryHasSuffix(*l.InternetExchangeCountryHasSuffix))
-	}
-	if l.InternetExchangeRegionContinentEQ != nil {
-		predicates = append(predicates, internetexchange.RegionContinentEQ(*l.InternetExchangeRegionContinentEQ))
-	}
-	if l.InternetExchangeRegionContinentNEQ != nil {
-		predicates = append(predicates, internetexchange.RegionContinentNEQ(*l.InternetExchangeRegionContinentNEQ))
-	}
-	if l.InternetExchangeRegionContinentIn != nil {
-		predicates = append(predicates, internetexchange.RegionContinentIn(l.InternetExchangeRegionContinentIn...))
-	}
-	if l.InternetExchangeRegionContinentNotIn != nil {
-		predicates = append(predicates, internetexchange.RegionContinentNotIn(l.InternetExchangeRegionContinentNotIn...))
-	}
-	if l.InternetExchangeRegionContinentEqualFold != nil {
-		predicates = append(predicates, internetexchange.RegionContinentEqualFold(*l.InternetExchangeRegionContinentEqualFold))
-	}
-	if l.InternetExchangeRegionContinentContains != nil {
-		predicates = append(predicates, internetexchange.RegionContinentContains(*l.InternetExchangeRegionContinentContains))
-	}
-	if l.InternetExchangeRegionContinentContainsFold != nil {
-		predicates = append(predicates, internetexchange.RegionContinentContainsFold(*l.InternetExchangeRegionContinentContainsFold))
-	}
-	if l.InternetExchangeRegionContinentHasPrefix != nil {
-		predicates = append(predicates, internetexchange.RegionContinentHasPrefix(*l.InternetExchangeRegionContinentHasPrefix))
-	}
-	if l.InternetExchangeRegionContinentHasSuffix != nil {
-		predicates = append(predicates, internetexchange.RegionContinentHasSuffix(*l.InternetExchangeRegionContinentHasSuffix))
-	}
-	if l.InternetExchangeMediaEQ != nil {
-		predicates = append(predicates, internetexchange.MediaEQ(*l.InternetExchangeMediaEQ))
-	}
-	if l.InternetExchangeMediaNEQ != nil {
-		predicates = append(predicates, internetexchange.MediaNEQ(*l.InternetExchangeMediaNEQ))
-	}
-	if l.InternetExchangeMediaIn != nil {
-		predicates = append(predicates, internetexchange.MediaIn(l.InternetExchangeMediaIn...))
-	}
-	if l.InternetExchangeMediaNotIn != nil {
-		predicates = append(predicates, internetexchange.MediaNotIn(l.InternetExchangeMediaNotIn...))
-	}
-	if l.InternetExchangeMediaEqualFold != nil {
-		predicates = append(predicates, internetexchange.MediaEqualFold(*l.InternetExchangeMediaEqualFold))
-	}
-	if l.InternetExchangeMediaContains != nil {
-		predicates = append(predicates, internetexchange.MediaContains(*l.InternetExchangeMediaContains))
-	}
-	if l.InternetExchangeMediaContainsFold != nil {
-		predicates = append(predicates, internetexchange.MediaContainsFold(*l.InternetExchangeMediaContainsFold))
-	}
-	if l.InternetExchangeMediaHasPrefix != nil {
-		predicates = append(predicates, internetexchange.MediaHasPrefix(*l.InternetExchangeMediaHasPrefix))
-	}
-	if l.InternetExchangeMediaHasSuffix != nil {
-		predicates = append(predicates, internetexchange.MediaHasSuffix(*l.InternetExchangeMediaHasSuffix))
-	}
-	if l.InternetExchangeProtoUnicastEQ != nil {
-		predicates = append(predicates, internetexchange.ProtoUnicastEQ(*l.InternetExchangeProtoUnicastEQ))
-	}
-	if l.InternetExchangeProtoIpv6EQ != nil {
-		predicates = append(predicates, internetexchange.ProtoIpv6EQ(*l.InternetExchangeProtoIpv6EQ))
 	}
 	if l.InternetExchangeCreatedGT != nil {
 		predicates = append(predicates, internetexchange.CreatedGT(*l.InternetExchangeCreatedGT))
@@ -2253,14 +2171,6 @@ type ListIxFacilityParams struct {
 	Paginated[*ent.IxFacilityQuery, ent.IxFacility]
 	Filtered[predicate.IxFacility]
 
-	// Filters field "ix_id" to be equal to the provided value.
-	IxFacilityIxIDEQ *int `form:"ixID.eq,omitempty" json:"ix_facility_ix_ideq,omitempty"`
-	// Filters field "ix_id" to be not equal to the provided value.
-	IxFacilityIxIDNEQ *int `form:"ixID.neq,omitempty" json:"ix_facility_ix_idneq,omitempty"`
-	// Filters field "ix_id" to be within the provided values.
-	IxFacilityIxIDIn []int `form:"ixID.in,omitempty" json:"ix_facility_ix_id_in,omitempty"`
-	// Filters field "ix_id" to be not within the provided values.
-	IxFacilityIxIDNotIn []int `form:"ixID.notIn,omitempty" json:"ix_facility_ix_id_not_in,omitempty"`
 	// Filters field "fac_id" to be equal to the provided value.
 	IxFacilityFacIDEQ *int `form:"facID.eq,omitempty" json:"ix_facility_fac_ideq,omitempty"`
 	// Filters field "fac_id" to be not equal to the provided value.
@@ -2269,6 +2179,14 @@ type ListIxFacilityParams struct {
 	IxFacilityFacIDIn []int `form:"facID.in,omitempty" json:"ix_facility_fac_id_in,omitempty"`
 	// Filters field "fac_id" to be not within the provided values.
 	IxFacilityFacIDNotIn []int `form:"facID.notIn,omitempty" json:"ix_facility_fac_id_not_in,omitempty"`
+	// Filters field "ix_id" to be equal to the provided value.
+	IxFacilityIxIDEQ *int `form:"ixID.eq,omitempty" json:"ix_facility_ix_ideq,omitempty"`
+	// Filters field "ix_id" to be not equal to the provided value.
+	IxFacilityIxIDNEQ *int `form:"ixID.neq,omitempty" json:"ix_facility_ix_idneq,omitempty"`
+	// Filters field "ix_id" to be within the provided values.
+	IxFacilityIxIDIn []int `form:"ixID.in,omitempty" json:"ix_facility_ix_id_in,omitempty"`
+	// Filters field "ix_id" to be not within the provided values.
+	IxFacilityIxIDNotIn []int `form:"ixID.notIn,omitempty" json:"ix_facility_ix_id_not_in,omitempty"`
 	// Filters field "name" to be equal to the provided value.
 	IxFacilityNameEQ *string `form:"name.eq,omitempty" json:"ix_facility_name_eq,omitempty"`
 	// Filters field "name" to be not equal to the provided value.
@@ -2369,18 +2287,6 @@ type ListIxFacilityParams struct {
 func (l *ListIxFacilityParams) FilterPredicates() (predicate.IxFacility, error) {
 	var predicates []predicate.IxFacility
 
-	if l.IxFacilityIxIDEQ != nil {
-		predicates = append(predicates, ixfacility.IxIDEQ(*l.IxFacilityIxIDEQ))
-	}
-	if l.IxFacilityIxIDNEQ != nil {
-		predicates = append(predicates, ixfacility.IxIDNEQ(*l.IxFacilityIxIDNEQ))
-	}
-	if l.IxFacilityIxIDIn != nil {
-		predicates = append(predicates, ixfacility.IxIDIn(l.IxFacilityIxIDIn...))
-	}
-	if l.IxFacilityIxIDNotIn != nil {
-		predicates = append(predicates, ixfacility.IxIDNotIn(l.IxFacilityIxIDNotIn...))
-	}
 	if l.IxFacilityFacIDEQ != nil {
 		predicates = append(predicates, ixfacility.FacIDEQ(*l.IxFacilityFacIDEQ))
 	}
@@ -2392,6 +2298,18 @@ func (l *ListIxFacilityParams) FilterPredicates() (predicate.IxFacility, error) 
 	}
 	if l.IxFacilityFacIDNotIn != nil {
 		predicates = append(predicates, ixfacility.FacIDNotIn(l.IxFacilityFacIDNotIn...))
+	}
+	if l.IxFacilityIxIDEQ != nil {
+		predicates = append(predicates, ixfacility.IxIDEQ(*l.IxFacilityIxIDEQ))
+	}
+	if l.IxFacilityIxIDNEQ != nil {
+		predicates = append(predicates, ixfacility.IxIDNEQ(*l.IxFacilityIxIDNEQ))
+	}
+	if l.IxFacilityIxIDIn != nil {
+		predicates = append(predicates, ixfacility.IxIDIn(l.IxFacilityIxIDIn...))
+	}
+	if l.IxFacilityIxIDNotIn != nil {
+		predicates = append(predicates, ixfacility.IxIDNotIn(l.IxFacilityIxIDNotIn...))
 	}
 	if l.IxFacilityNameEQ != nil {
 		predicates = append(predicates, ixfacility.NameEQ(*l.IxFacilityNameEQ))
@@ -2611,22 +2529,6 @@ type ListIxLanParams struct {
 	IxLanNameHasPrefix *string `form:"name.prefix,omitempty" json:"ix_lan_name_has_prefix,omitempty"`
 	// Filters field "name" to end with the provided value.
 	IxLanNameHasSuffix *string `form:"name.suffix,omitempty" json:"ix_lan_name_has_suffix,omitempty"`
-	// Filters field "mtu" to be equal to the provided value.
-	IxLanMtuEQ *int `form:"mtu.eq,omitempty" json:"ix_lan_mtu_eq,omitempty"`
-	// Filters field "mtu" to be not equal to the provided value.
-	IxLanMtuNEQ *int `form:"mtu.neq,omitempty" json:"ix_lan_mtu_neq,omitempty"`
-	// Filters field "mtu" to be greater than the provided value.
-	IxLanMtuGT *int `form:"mtu.gt,omitempty" json:"ix_lan_mtu_gt,omitempty"`
-	// Filters field "mtu" to be greater than or equal to the provided value.
-	IxLanMtuGTE *int `form:"mtu.gte,omitempty" json:"ix_lan_mtu_gte,omitempty"`
-	// Filters field "mtu" to be less than the provided value.
-	IxLanMtuLT *int `form:"mtu.lt,omitempty" json:"ix_lan_mtu_lt,omitempty"`
-	// Filters field "mtu" to be less than or equal to the provided value.
-	IxLanMtuLTE *int `form:"mtu.lte,omitempty" json:"ix_lan_mtu_lte,omitempty"`
-	// Filters field "mtu" to be within the provided values.
-	IxLanMtuIn []int `form:"mtu.in,omitempty" json:"ix_lan_mtu_in,omitempty"`
-	// Filters field "mtu" to be not within the provided values.
-	IxLanMtuNotIn []int `form:"mtu.notIn,omitempty" json:"ix_lan_mtu_not_in,omitempty"`
 	// Filters field "created" to be greater than the provided value.
 	IxLanCreatedGT *time.Time `form:"created.gt,omitempty" json:"ix_lan_created_gt,omitempty"`
 	// Filters field "created" to be greater than or equal to the provided value.
@@ -2712,30 +2614,6 @@ func (l *ListIxLanParams) FilterPredicates() (predicate.IxLan, error) {
 	}
 	if l.IxLanNameHasSuffix != nil {
 		predicates = append(predicates, ixlan.NameHasSuffix(*l.IxLanNameHasSuffix))
-	}
-	if l.IxLanMtuEQ != nil {
-		predicates = append(predicates, ixlan.MtuEQ(*l.IxLanMtuEQ))
-	}
-	if l.IxLanMtuNEQ != nil {
-		predicates = append(predicates, ixlan.MtuNEQ(*l.IxLanMtuNEQ))
-	}
-	if l.IxLanMtuGT != nil {
-		predicates = append(predicates, ixlan.MtuGT(*l.IxLanMtuGT))
-	}
-	if l.IxLanMtuGTE != nil {
-		predicates = append(predicates, ixlan.MtuGTE(*l.IxLanMtuGTE))
-	}
-	if l.IxLanMtuLT != nil {
-		predicates = append(predicates, ixlan.MtuLT(*l.IxLanMtuLT))
-	}
-	if l.IxLanMtuLTE != nil {
-		predicates = append(predicates, ixlan.MtuLTE(*l.IxLanMtuLTE))
-	}
-	if l.IxLanMtuIn != nil {
-		predicates = append(predicates, ixlan.MtuIn(l.IxLanMtuIn...))
-	}
-	if l.IxLanMtuNotIn != nil {
-		predicates = append(predicates, ixlan.MtuNotIn(l.IxLanMtuNotIn...))
 	}
 	if l.IxLanCreatedGT != nil {
 		predicates = append(predicates, ixlan.CreatedGT(*l.IxLanCreatedGT))
@@ -2833,44 +2711,6 @@ type ListIxPrefixParams struct {
 	IxPrefixIxlanIDIn []int `form:"ixlanID.in,omitempty" json:"ix_prefix_ixlan_id_in,omitempty"`
 	// Filters field "ixlan_id" to be not within the provided values.
 	IxPrefixIxlanIDNotIn []int `form:"ixlanID.notIn,omitempty" json:"ix_prefix_ixlan_id_not_in,omitempty"`
-	// Filters field "protocol" to be equal to the provided value.
-	IxPrefixProtocolEQ *string `form:"protocol.eq,omitempty" json:"ix_prefix_protocol_eq,omitempty"`
-	// Filters field "protocol" to be not equal to the provided value.
-	IxPrefixProtocolNEQ *string `form:"protocol.neq,omitempty" json:"ix_prefix_protocol_neq,omitempty"`
-	// Filters field "protocol" to be within the provided values.
-	IxPrefixProtocolIn []string `form:"protocol.in,omitempty" json:"ix_prefix_protocol_in,omitempty"`
-	// Filters field "protocol" to be not within the provided values.
-	IxPrefixProtocolNotIn []string `form:"protocol.notIn,omitempty" json:"ix_prefix_protocol_not_in,omitempty"`
-	// Filters field "protocol" to be equal to the provided value, case-insensitive.
-	IxPrefixProtocolEqualFold *string `form:"protocol.ieq,omitempty" json:"ix_prefix_protocol_equal_fold,omitempty"`
-	// Filters field "protocol" to contain the provided value.
-	IxPrefixProtocolContains *string `form:"protocol.has,omitempty" json:"ix_prefix_protocol_contains,omitempty"`
-	// Filters field "protocol" to contain the provided value, case-insensitive.
-	IxPrefixProtocolContainsFold *string `form:"protocol.ihas,omitempty" json:"ix_prefix_protocol_contains_fold,omitempty"`
-	// Filters field "protocol" to start with the provided value.
-	IxPrefixProtocolHasPrefix *string `form:"protocol.prefix,omitempty" json:"ix_prefix_protocol_has_prefix,omitempty"`
-	// Filters field "protocol" to end with the provided value.
-	IxPrefixProtocolHasSuffix *string `form:"protocol.suffix,omitempty" json:"ix_prefix_protocol_has_suffix,omitempty"`
-	// Filters field "prefix" to be equal to the provided value.
-	IxPrefixPrefixEQ *string `form:"prefix.eq,omitempty" json:"ix_prefix_prefix_eq,omitempty"`
-	// Filters field "prefix" to be not equal to the provided value.
-	IxPrefixPrefixNEQ *string `form:"prefix.neq,omitempty" json:"ix_prefix_prefix_neq,omitempty"`
-	// Filters field "prefix" to be within the provided values.
-	IxPrefixPrefixIn []string `form:"prefix.in,omitempty" json:"ix_prefix_prefix_in,omitempty"`
-	// Filters field "prefix" to be not within the provided values.
-	IxPrefixPrefixNotIn []string `form:"prefix.notIn,omitempty" json:"ix_prefix_prefix_not_in,omitempty"`
-	// Filters field "prefix" to be equal to the provided value, case-insensitive.
-	IxPrefixPrefixEqualFold *string `form:"prefix.ieq,omitempty" json:"ix_prefix_prefix_equal_fold,omitempty"`
-	// Filters field "prefix" to contain the provided value.
-	IxPrefixPrefixContains *string `form:"prefix.has,omitempty" json:"ix_prefix_prefix_contains,omitempty"`
-	// Filters field "prefix" to contain the provided value, case-insensitive.
-	IxPrefixPrefixContainsFold *string `form:"prefix.ihas,omitempty" json:"ix_prefix_prefix_contains_fold,omitempty"`
-	// Filters field "prefix" to start with the provided value.
-	IxPrefixPrefixHasPrefix *string `form:"prefix.prefix,omitempty" json:"ix_prefix_prefix_has_prefix,omitempty"`
-	// Filters field "prefix" to end with the provided value.
-	IxPrefixPrefixHasSuffix *string `form:"prefix.suffix,omitempty" json:"ix_prefix_prefix_has_suffix,omitempty"`
-	// Filters field "in_dfz" to be equal to the provided value.
-	IxPrefixInDfzEQ *bool `form:"inDfz.eq,omitempty" json:"ix_prefix_in_dfz_eq,omitempty"`
 	// Filters field "created" to be greater than the provided value.
 	IxPrefixCreatedGT *time.Time `form:"created.gt,omitempty" json:"ix_prefix_created_gt,omitempty"`
 	// Filters field "created" to be greater than or equal to the provided value.
@@ -2922,63 +2762,6 @@ func (l *ListIxPrefixParams) FilterPredicates() (predicate.IxPrefix, error) {
 	}
 	if l.IxPrefixIxlanIDNotIn != nil {
 		predicates = append(predicates, ixprefix.IxlanIDNotIn(l.IxPrefixIxlanIDNotIn...))
-	}
-	if l.IxPrefixProtocolEQ != nil {
-		predicates = append(predicates, ixprefix.ProtocolEQ(*l.IxPrefixProtocolEQ))
-	}
-	if l.IxPrefixProtocolNEQ != nil {
-		predicates = append(predicates, ixprefix.ProtocolNEQ(*l.IxPrefixProtocolNEQ))
-	}
-	if l.IxPrefixProtocolIn != nil {
-		predicates = append(predicates, ixprefix.ProtocolIn(l.IxPrefixProtocolIn...))
-	}
-	if l.IxPrefixProtocolNotIn != nil {
-		predicates = append(predicates, ixprefix.ProtocolNotIn(l.IxPrefixProtocolNotIn...))
-	}
-	if l.IxPrefixProtocolEqualFold != nil {
-		predicates = append(predicates, ixprefix.ProtocolEqualFold(*l.IxPrefixProtocolEqualFold))
-	}
-	if l.IxPrefixProtocolContains != nil {
-		predicates = append(predicates, ixprefix.ProtocolContains(*l.IxPrefixProtocolContains))
-	}
-	if l.IxPrefixProtocolContainsFold != nil {
-		predicates = append(predicates, ixprefix.ProtocolContainsFold(*l.IxPrefixProtocolContainsFold))
-	}
-	if l.IxPrefixProtocolHasPrefix != nil {
-		predicates = append(predicates, ixprefix.ProtocolHasPrefix(*l.IxPrefixProtocolHasPrefix))
-	}
-	if l.IxPrefixProtocolHasSuffix != nil {
-		predicates = append(predicates, ixprefix.ProtocolHasSuffix(*l.IxPrefixProtocolHasSuffix))
-	}
-	if l.IxPrefixPrefixEQ != nil {
-		predicates = append(predicates, ixprefix.PrefixEQ(*l.IxPrefixPrefixEQ))
-	}
-	if l.IxPrefixPrefixNEQ != nil {
-		predicates = append(predicates, ixprefix.PrefixNEQ(*l.IxPrefixPrefixNEQ))
-	}
-	if l.IxPrefixPrefixIn != nil {
-		predicates = append(predicates, ixprefix.PrefixIn(l.IxPrefixPrefixIn...))
-	}
-	if l.IxPrefixPrefixNotIn != nil {
-		predicates = append(predicates, ixprefix.PrefixNotIn(l.IxPrefixPrefixNotIn...))
-	}
-	if l.IxPrefixPrefixEqualFold != nil {
-		predicates = append(predicates, ixprefix.PrefixEqualFold(*l.IxPrefixPrefixEqualFold))
-	}
-	if l.IxPrefixPrefixContains != nil {
-		predicates = append(predicates, ixprefix.PrefixContains(*l.IxPrefixPrefixContains))
-	}
-	if l.IxPrefixPrefixContainsFold != nil {
-		predicates = append(predicates, ixprefix.PrefixContainsFold(*l.IxPrefixPrefixContainsFold))
-	}
-	if l.IxPrefixPrefixHasPrefix != nil {
-		predicates = append(predicates, ixprefix.PrefixHasPrefix(*l.IxPrefixPrefixHasPrefix))
-	}
-	if l.IxPrefixPrefixHasSuffix != nil {
-		predicates = append(predicates, ixprefix.PrefixHasSuffix(*l.IxPrefixPrefixHasSuffix))
-	}
-	if l.IxPrefixInDfzEQ != nil {
-		predicates = append(predicates, ixprefix.InDfzEQ(*l.IxPrefixInDfzEQ))
 	}
 	if l.IxPrefixCreatedGT != nil {
 		predicates = append(predicates, ixprefix.CreatedGT(*l.IxPrefixCreatedGT))
@@ -3076,24 +2859,6 @@ type ListNetworkParams struct {
 	NetworkOrgIDIn []int `form:"orgID.in,omitempty" json:"network_org_id_in,omitempty"`
 	// Filters field "org_id" to be not within the provided values.
 	NetworkOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"network_org_id_not_in,omitempty"`
-	// Filters field "name" to be equal to the provided value.
-	NetworkNameEQ *string `form:"name.eq,omitempty" json:"network_name_eq,omitempty"`
-	// Filters field "name" to be not equal to the provided value.
-	NetworkNameNEQ *string `form:"name.neq,omitempty" json:"network_name_neq,omitempty"`
-	// Filters field "name" to be within the provided values.
-	NetworkNameIn []string `form:"name.in,omitempty" json:"network_name_in,omitempty"`
-	// Filters field "name" to be not within the provided values.
-	NetworkNameNotIn []string `form:"name.notIn,omitempty" json:"network_name_not_in,omitempty"`
-	// Filters field "name" to be equal to the provided value, case-insensitive.
-	NetworkNameEqualFold *string `form:"name.ieq,omitempty" json:"network_name_equal_fold,omitempty"`
-	// Filters field "name" to contain the provided value.
-	NetworkNameContains *string `form:"name.has,omitempty" json:"network_name_contains,omitempty"`
-	// Filters field "name" to contain the provided value, case-insensitive.
-	NetworkNameContainsFold *string `form:"name.ihas,omitempty" json:"network_name_contains_fold,omitempty"`
-	// Filters field "name" to start with the provided value.
-	NetworkNameHasPrefix *string `form:"name.prefix,omitempty" json:"network_name_has_prefix,omitempty"`
-	// Filters field "name" to end with the provided value.
-	NetworkNameHasSuffix *string `form:"name.suffix,omitempty" json:"network_name_has_suffix,omitempty"`
 	// Filters field "aka" to be equal to the provided value.
 	NetworkAkaEQ *string `form:"aka.eq,omitempty" json:"network_aka_eq,omitempty"`
 	// Filters field "aka" to be not equal to the provided value.
@@ -3114,6 +2879,40 @@ type ListNetworkParams struct {
 	NetworkAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"network_aka_has_prefix,omitempty"`
 	// Filters field "aka" to end with the provided value.
 	NetworkAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"network_aka_has_suffix,omitempty"`
+	// Filters field "asn" to be equal to the provided value.
+	NetworkAsnEQ *int `form:"asn.eq,omitempty" json:"network_asn_eq,omitempty"`
+	// Filters field "asn" to be not equal to the provided value.
+	NetworkAsnNEQ *int `form:"asn.neq,omitempty" json:"network_asn_neq,omitempty"`
+	// Filters field "asn" to be greater than the provided value.
+	NetworkAsnGT *int `form:"asn.gt,omitempty" json:"network_asn_gt,omitempty"`
+	// Filters field "asn" to be greater than or equal to the provided value.
+	NetworkAsnGTE *int `form:"asn.gte,omitempty" json:"network_asn_gte,omitempty"`
+	// Filters field "asn" to be less than the provided value.
+	NetworkAsnLT *int `form:"asn.lt,omitempty" json:"network_asn_lt,omitempty"`
+	// Filters field "asn" to be less than or equal to the provided value.
+	NetworkAsnLTE *int `form:"asn.lte,omitempty" json:"network_asn_lte,omitempty"`
+	// Filters field "asn" to be within the provided values.
+	NetworkAsnIn []int `form:"asn.in,omitempty" json:"network_asn_in,omitempty"`
+	// Filters field "asn" to be not within the provided values.
+	NetworkAsnNotIn []int `form:"asn.notIn,omitempty" json:"network_asn_not_in,omitempty"`
+	// Filters field "name" to be equal to the provided value.
+	NetworkNameEQ *string `form:"name.eq,omitempty" json:"network_name_eq,omitempty"`
+	// Filters field "name" to be not equal to the provided value.
+	NetworkNameNEQ *string `form:"name.neq,omitempty" json:"network_name_neq,omitempty"`
+	// Filters field "name" to be within the provided values.
+	NetworkNameIn []string `form:"name.in,omitempty" json:"network_name_in,omitempty"`
+	// Filters field "name" to be not within the provided values.
+	NetworkNameNotIn []string `form:"name.notIn,omitempty" json:"network_name_not_in,omitempty"`
+	// Filters field "name" to be equal to the provided value, case-insensitive.
+	NetworkNameEqualFold *string `form:"name.ieq,omitempty" json:"network_name_equal_fold,omitempty"`
+	// Filters field "name" to contain the provided value.
+	NetworkNameContains *string `form:"name.has,omitempty" json:"network_name_contains,omitempty"`
+	// Filters field "name" to contain the provided value, case-insensitive.
+	NetworkNameContainsFold *string `form:"name.ihas,omitempty" json:"network_name_contains_fold,omitempty"`
+	// Filters field "name" to start with the provided value.
+	NetworkNameHasPrefix *string `form:"name.prefix,omitempty" json:"network_name_has_prefix,omitempty"`
+	// Filters field "name" to end with the provided value.
+	NetworkNameHasSuffix *string `form:"name.suffix,omitempty" json:"network_name_has_suffix,omitempty"`
 	// Filters field "name_long" to be equal to the provided value.
 	NetworkNameLongEQ *string `form:"nameLong.eq,omitempty" json:"network_name_long_eq,omitempty"`
 	// Filters field "name_long" to be not equal to the provided value.
@@ -3134,126 +2933,6 @@ type ListNetworkParams struct {
 	NetworkNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"network_name_long_has_prefix,omitempty"`
 	// Filters field "name_long" to end with the provided value.
 	NetworkNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"network_name_long_has_suffix,omitempty"`
-	// Filters field "asn" to be equal to the provided value.
-	NetworkAsnEQ *int `form:"asn.eq,omitempty" json:"network_asn_eq,omitempty"`
-	// Filters field "asn" to be not equal to the provided value.
-	NetworkAsnNEQ *int `form:"asn.neq,omitempty" json:"network_asn_neq,omitempty"`
-	// Filters field "asn" to be greater than the provided value.
-	NetworkAsnGT *int `form:"asn.gt,omitempty" json:"network_asn_gt,omitempty"`
-	// Filters field "asn" to be greater than or equal to the provided value.
-	NetworkAsnGTE *int `form:"asn.gte,omitempty" json:"network_asn_gte,omitempty"`
-	// Filters field "asn" to be less than the provided value.
-	NetworkAsnLT *int `form:"asn.lt,omitempty" json:"network_asn_lt,omitempty"`
-	// Filters field "asn" to be less than or equal to the provided value.
-	NetworkAsnLTE *int `form:"asn.lte,omitempty" json:"network_asn_lte,omitempty"`
-	// Filters field "asn" to be within the provided values.
-	NetworkAsnIn []int `form:"asn.in,omitempty" json:"network_asn_in,omitempty"`
-	// Filters field "asn" to be not within the provided values.
-	NetworkAsnNotIn []int `form:"asn.notIn,omitempty" json:"network_asn_not_in,omitempty"`
-	// Filters field "info_type" to be equal to the provided value.
-	NetworkInfoTypeEQ *string `form:"infoType.eq,omitempty" json:"network_info_type_eq,omitempty"`
-	// Filters field "info_type" to be not equal to the provided value.
-	NetworkInfoTypeNEQ *string `form:"infoType.neq,omitempty" json:"network_info_type_neq,omitempty"`
-	// Filters field "info_type" to be null/nil.
-	NetworkInfoTypeIsNil *bool `form:"infoType.null,omitempty" json:"network_info_type_is_nil,omitempty"`
-	// Filters field "info_type" to be within the provided values.
-	NetworkInfoTypeIn []string `form:"infoType.in,omitempty" json:"network_info_type_in,omitempty"`
-	// Filters field "info_type" to be not within the provided values.
-	NetworkInfoTypeNotIn []string `form:"infoType.notIn,omitempty" json:"network_info_type_not_in,omitempty"`
-	// Filters field "info_type" to be equal to the provided value, case-insensitive.
-	NetworkInfoTypeEqualFold *string `form:"infoType.ieq,omitempty" json:"network_info_type_equal_fold,omitempty"`
-	// Filters field "info_type" to contain the provided value.
-	NetworkInfoTypeContains *string `form:"infoType.has,omitempty" json:"network_info_type_contains,omitempty"`
-	// Filters field "info_type" to contain the provided value, case-insensitive.
-	NetworkInfoTypeContainsFold *string `form:"infoType.ihas,omitempty" json:"network_info_type_contains_fold,omitempty"`
-	// Filters field "info_type" to start with the provided value.
-	NetworkInfoTypeHasPrefix *string `form:"infoType.prefix,omitempty" json:"network_info_type_has_prefix,omitempty"`
-	// Filters field "info_type" to end with the provided value.
-	NetworkInfoTypeHasSuffix *string `form:"infoType.suffix,omitempty" json:"network_info_type_has_suffix,omitempty"`
-	// Filters field "info_traffic" to be equal to the provided value.
-	NetworkInfoTrafficEQ *string `form:"infoTraffic.eq,omitempty" json:"network_info_traffic_eq,omitempty"`
-	// Filters field "info_traffic" to be not equal to the provided value.
-	NetworkInfoTrafficNEQ *string `form:"infoTraffic.neq,omitempty" json:"network_info_traffic_neq,omitempty"`
-	// Filters field "info_traffic" to be null/nil.
-	NetworkInfoTrafficIsNil *bool `form:"infoTraffic.null,omitempty" json:"network_info_traffic_is_nil,omitempty"`
-	// Filters field "info_traffic" to be within the provided values.
-	NetworkInfoTrafficIn []string `form:"infoTraffic.in,omitempty" json:"network_info_traffic_in,omitempty"`
-	// Filters field "info_traffic" to be not within the provided values.
-	NetworkInfoTrafficNotIn []string `form:"infoTraffic.notIn,omitempty" json:"network_info_traffic_not_in,omitempty"`
-	// Filters field "info_traffic" to be equal to the provided value, case-insensitive.
-	NetworkInfoTrafficEqualFold *string `form:"infoTraffic.ieq,omitempty" json:"network_info_traffic_equal_fold,omitempty"`
-	// Filters field "info_traffic" to contain the provided value.
-	NetworkInfoTrafficContains *string `form:"infoTraffic.has,omitempty" json:"network_info_traffic_contains,omitempty"`
-	// Filters field "info_traffic" to contain the provided value, case-insensitive.
-	NetworkInfoTrafficContainsFold *string `form:"infoTraffic.ihas,omitempty" json:"network_info_traffic_contains_fold,omitempty"`
-	// Filters field "info_traffic" to start with the provided value.
-	NetworkInfoTrafficHasPrefix *string `form:"infoTraffic.prefix,omitempty" json:"network_info_traffic_has_prefix,omitempty"`
-	// Filters field "info_traffic" to end with the provided value.
-	NetworkInfoTrafficHasSuffix *string `form:"infoTraffic.suffix,omitempty" json:"network_info_traffic_has_suffix,omitempty"`
-	// Filters field "info_ratio" to be equal to the provided value.
-	NetworkInfoRatioEQ *string `form:"infoRatio.eq,omitempty" json:"network_info_ratio_eq,omitempty"`
-	// Filters field "info_ratio" to be not equal to the provided value.
-	NetworkInfoRatioNEQ *string `form:"infoRatio.neq,omitempty" json:"network_info_ratio_neq,omitempty"`
-	// Filters field "info_ratio" to be null/nil.
-	NetworkInfoRatioIsNil *bool `form:"infoRatio.null,omitempty" json:"network_info_ratio_is_nil,omitempty"`
-	// Filters field "info_ratio" to be within the provided values.
-	NetworkInfoRatioIn []string `form:"infoRatio.in,omitempty" json:"network_info_ratio_in,omitempty"`
-	// Filters field "info_ratio" to be not within the provided values.
-	NetworkInfoRatioNotIn []string `form:"infoRatio.notIn,omitempty" json:"network_info_ratio_not_in,omitempty"`
-	// Filters field "info_ratio" to be equal to the provided value, case-insensitive.
-	NetworkInfoRatioEqualFold *string `form:"infoRatio.ieq,omitempty" json:"network_info_ratio_equal_fold,omitempty"`
-	// Filters field "info_ratio" to contain the provided value.
-	NetworkInfoRatioContains *string `form:"infoRatio.has,omitempty" json:"network_info_ratio_contains,omitempty"`
-	// Filters field "info_ratio" to contain the provided value, case-insensitive.
-	NetworkInfoRatioContainsFold *string `form:"infoRatio.ihas,omitempty" json:"network_info_ratio_contains_fold,omitempty"`
-	// Filters field "info_ratio" to start with the provided value.
-	NetworkInfoRatioHasPrefix *string `form:"infoRatio.prefix,omitempty" json:"network_info_ratio_has_prefix,omitempty"`
-	// Filters field "info_ratio" to end with the provided value.
-	NetworkInfoRatioHasSuffix *string `form:"infoRatio.suffix,omitempty" json:"network_info_ratio_has_suffix,omitempty"`
-	// Filters field "info_scope" to be equal to the provided value.
-	NetworkInfoScopeEQ *string `form:"infoScope.eq,omitempty" json:"network_info_scope_eq,omitempty"`
-	// Filters field "info_scope" to be not equal to the provided value.
-	NetworkInfoScopeNEQ *string `form:"infoScope.neq,omitempty" json:"network_info_scope_neq,omitempty"`
-	// Filters field "info_scope" to be null/nil.
-	NetworkInfoScopeIsNil *bool `form:"infoScope.null,omitempty" json:"network_info_scope_is_nil,omitempty"`
-	// Filters field "info_scope" to be within the provided values.
-	NetworkInfoScopeIn []string `form:"infoScope.in,omitempty" json:"network_info_scope_in,omitempty"`
-	// Filters field "info_scope" to be not within the provided values.
-	NetworkInfoScopeNotIn []string `form:"infoScope.notIn,omitempty" json:"network_info_scope_not_in,omitempty"`
-	// Filters field "info_scope" to be equal to the provided value, case-insensitive.
-	NetworkInfoScopeEqualFold *string `form:"infoScope.ieq,omitempty" json:"network_info_scope_equal_fold,omitempty"`
-	// Filters field "info_scope" to contain the provided value.
-	NetworkInfoScopeContains *string `form:"infoScope.has,omitempty" json:"network_info_scope_contains,omitempty"`
-	// Filters field "info_scope" to contain the provided value, case-insensitive.
-	NetworkInfoScopeContainsFold *string `form:"infoScope.ihas,omitempty" json:"network_info_scope_contains_fold,omitempty"`
-	// Filters field "info_scope" to start with the provided value.
-	NetworkInfoScopeHasPrefix *string `form:"infoScope.prefix,omitempty" json:"network_info_scope_has_prefix,omitempty"`
-	// Filters field "info_scope" to end with the provided value.
-	NetworkInfoScopeHasSuffix *string `form:"infoScope.suffix,omitempty" json:"network_info_scope_has_suffix,omitempty"`
-	// Filters field "info_unicast" to be equal to the provided value.
-	NetworkInfoUnicastEQ *bool `form:"infoUnicast.eq,omitempty" json:"network_info_unicast_eq,omitempty"`
-	// Filters field "info_ipv6" to be equal to the provided value.
-	NetworkInfoIpv6EQ *bool `form:"infoIpv6.eq,omitempty" json:"network_info_ipv6eq,omitempty"`
-	// Filters field "policy_general" to be equal to the provided value.
-	NetworkPolicyGeneralEQ *string `form:"policyGeneral.eq,omitempty" json:"network_policy_general_eq,omitempty"`
-	// Filters field "policy_general" to be not equal to the provided value.
-	NetworkPolicyGeneralNEQ *string `form:"policyGeneral.neq,omitempty" json:"network_policy_general_neq,omitempty"`
-	// Filters field "policy_general" to be null/nil.
-	NetworkPolicyGeneralIsNil *bool `form:"policyGeneral.null,omitempty" json:"network_policy_general_is_nil,omitempty"`
-	// Filters field "policy_general" to be within the provided values.
-	NetworkPolicyGeneralIn []string `form:"policyGeneral.in,omitempty" json:"network_policy_general_in,omitempty"`
-	// Filters field "policy_general" to be not within the provided values.
-	NetworkPolicyGeneralNotIn []string `form:"policyGeneral.notIn,omitempty" json:"network_policy_general_not_in,omitempty"`
-	// Filters field "policy_general" to be equal to the provided value, case-insensitive.
-	NetworkPolicyGeneralEqualFold *string `form:"policyGeneral.ieq,omitempty" json:"network_policy_general_equal_fold,omitempty"`
-	// Filters field "policy_general" to contain the provided value.
-	NetworkPolicyGeneralContains *string `form:"policyGeneral.has,omitempty" json:"network_policy_general_contains,omitempty"`
-	// Filters field "policy_general" to contain the provided value, case-insensitive.
-	NetworkPolicyGeneralContainsFold *string `form:"policyGeneral.ihas,omitempty" json:"network_policy_general_contains_fold,omitempty"`
-	// Filters field "policy_general" to start with the provided value.
-	NetworkPolicyGeneralHasPrefix *string `form:"policyGeneral.prefix,omitempty" json:"network_policy_general_has_prefix,omitempty"`
-	// Filters field "policy_general" to end with the provided value.
-	NetworkPolicyGeneralHasSuffix *string `form:"policyGeneral.suffix,omitempty" json:"network_policy_general_has_suffix,omitempty"`
 	// Filters field "created" to be greater than the provided value.
 	NetworkCreatedGT *time.Time `form:"created.gt,omitempty" json:"network_created_gt,omitempty"`
 	// Filters field "created" to be greater than or equal to the provided value.
@@ -3306,33 +2985,6 @@ func (l *ListNetworkParams) FilterPredicates() (predicate.Network, error) {
 	if l.NetworkOrgIDNotIn != nil {
 		predicates = append(predicates, network.OrgIDNotIn(l.NetworkOrgIDNotIn...))
 	}
-	if l.NetworkNameEQ != nil {
-		predicates = append(predicates, network.NameEQ(*l.NetworkNameEQ))
-	}
-	if l.NetworkNameNEQ != nil {
-		predicates = append(predicates, network.NameNEQ(*l.NetworkNameNEQ))
-	}
-	if l.NetworkNameIn != nil {
-		predicates = append(predicates, network.NameIn(l.NetworkNameIn...))
-	}
-	if l.NetworkNameNotIn != nil {
-		predicates = append(predicates, network.NameNotIn(l.NetworkNameNotIn...))
-	}
-	if l.NetworkNameEqualFold != nil {
-		predicates = append(predicates, network.NameEqualFold(*l.NetworkNameEqualFold))
-	}
-	if l.NetworkNameContains != nil {
-		predicates = append(predicates, network.NameContains(*l.NetworkNameContains))
-	}
-	if l.NetworkNameContainsFold != nil {
-		predicates = append(predicates, network.NameContainsFold(*l.NetworkNameContainsFold))
-	}
-	if l.NetworkNameHasPrefix != nil {
-		predicates = append(predicates, network.NameHasPrefix(*l.NetworkNameHasPrefix))
-	}
-	if l.NetworkNameHasSuffix != nil {
-		predicates = append(predicates, network.NameHasSuffix(*l.NetworkNameHasSuffix))
-	}
 	if l.NetworkAkaEQ != nil {
 		predicates = append(predicates, network.AkaEQ(*l.NetworkAkaEQ))
 	}
@@ -3367,6 +3019,57 @@ func (l *ListNetworkParams) FilterPredicates() (predicate.Network, error) {
 	if l.NetworkAkaHasSuffix != nil {
 		predicates = append(predicates, network.AkaHasSuffix(*l.NetworkAkaHasSuffix))
 	}
+	if l.NetworkAsnEQ != nil {
+		predicates = append(predicates, network.AsnEQ(*l.NetworkAsnEQ))
+	}
+	if l.NetworkAsnNEQ != nil {
+		predicates = append(predicates, network.AsnNEQ(*l.NetworkAsnNEQ))
+	}
+	if l.NetworkAsnGT != nil {
+		predicates = append(predicates, network.AsnGT(*l.NetworkAsnGT))
+	}
+	if l.NetworkAsnGTE != nil {
+		predicates = append(predicates, network.AsnGTE(*l.NetworkAsnGTE))
+	}
+	if l.NetworkAsnLT != nil {
+		predicates = append(predicates, network.AsnLT(*l.NetworkAsnLT))
+	}
+	if l.NetworkAsnLTE != nil {
+		predicates = append(predicates, network.AsnLTE(*l.NetworkAsnLTE))
+	}
+	if l.NetworkAsnIn != nil {
+		predicates = append(predicates, network.AsnIn(l.NetworkAsnIn...))
+	}
+	if l.NetworkAsnNotIn != nil {
+		predicates = append(predicates, network.AsnNotIn(l.NetworkAsnNotIn...))
+	}
+	if l.NetworkNameEQ != nil {
+		predicates = append(predicates, network.NameEQ(*l.NetworkNameEQ))
+	}
+	if l.NetworkNameNEQ != nil {
+		predicates = append(predicates, network.NameNEQ(*l.NetworkNameNEQ))
+	}
+	if l.NetworkNameIn != nil {
+		predicates = append(predicates, network.NameIn(l.NetworkNameIn...))
+	}
+	if l.NetworkNameNotIn != nil {
+		predicates = append(predicates, network.NameNotIn(l.NetworkNameNotIn...))
+	}
+	if l.NetworkNameEqualFold != nil {
+		predicates = append(predicates, network.NameEqualFold(*l.NetworkNameEqualFold))
+	}
+	if l.NetworkNameContains != nil {
+		predicates = append(predicates, network.NameContains(*l.NetworkNameContains))
+	}
+	if l.NetworkNameContainsFold != nil {
+		predicates = append(predicates, network.NameContainsFold(*l.NetworkNameContainsFold))
+	}
+	if l.NetworkNameHasPrefix != nil {
+		predicates = append(predicates, network.NameHasPrefix(*l.NetworkNameHasPrefix))
+	}
+	if l.NetworkNameHasSuffix != nil {
+		predicates = append(predicates, network.NameHasSuffix(*l.NetworkNameHasSuffix))
+	}
 	if l.NetworkNameLongEQ != nil {
 		predicates = append(predicates, network.NameLongEQ(*l.NetworkNameLongEQ))
 	}
@@ -3400,206 +3103,6 @@ func (l *ListNetworkParams) FilterPredicates() (predicate.Network, error) {
 	}
 	if l.NetworkNameLongHasSuffix != nil {
 		predicates = append(predicates, network.NameLongHasSuffix(*l.NetworkNameLongHasSuffix))
-	}
-	if l.NetworkAsnEQ != nil {
-		predicates = append(predicates, network.AsnEQ(*l.NetworkAsnEQ))
-	}
-	if l.NetworkAsnNEQ != nil {
-		predicates = append(predicates, network.AsnNEQ(*l.NetworkAsnNEQ))
-	}
-	if l.NetworkAsnGT != nil {
-		predicates = append(predicates, network.AsnGT(*l.NetworkAsnGT))
-	}
-	if l.NetworkAsnGTE != nil {
-		predicates = append(predicates, network.AsnGTE(*l.NetworkAsnGTE))
-	}
-	if l.NetworkAsnLT != nil {
-		predicates = append(predicates, network.AsnLT(*l.NetworkAsnLT))
-	}
-	if l.NetworkAsnLTE != nil {
-		predicates = append(predicates, network.AsnLTE(*l.NetworkAsnLTE))
-	}
-	if l.NetworkAsnIn != nil {
-		predicates = append(predicates, network.AsnIn(l.NetworkAsnIn...))
-	}
-	if l.NetworkAsnNotIn != nil {
-		predicates = append(predicates, network.AsnNotIn(l.NetworkAsnNotIn...))
-	}
-	if l.NetworkInfoTypeEQ != nil {
-		predicates = append(predicates, network.InfoTypeEQ(*l.NetworkInfoTypeEQ))
-	}
-	if l.NetworkInfoTypeNEQ != nil {
-		predicates = append(predicates, network.InfoTypeNEQ(*l.NetworkInfoTypeNEQ))
-	}
-	if l.NetworkInfoTypeIsNil != nil {
-		if *l.NetworkInfoTypeIsNil {
-			predicates = append(predicates, network.InfoTypeIsNil())
-		} else {
-			predicates = append(predicates, network.Not(network.InfoTypeIsNil()))
-		}
-	}
-	if l.NetworkInfoTypeIn != nil {
-		predicates = append(predicates, network.InfoTypeIn(l.NetworkInfoTypeIn...))
-	}
-	if l.NetworkInfoTypeNotIn != nil {
-		predicates = append(predicates, network.InfoTypeNotIn(l.NetworkInfoTypeNotIn...))
-	}
-	if l.NetworkInfoTypeEqualFold != nil {
-		predicates = append(predicates, network.InfoTypeEqualFold(*l.NetworkInfoTypeEqualFold))
-	}
-	if l.NetworkInfoTypeContains != nil {
-		predicates = append(predicates, network.InfoTypeContains(*l.NetworkInfoTypeContains))
-	}
-	if l.NetworkInfoTypeContainsFold != nil {
-		predicates = append(predicates, network.InfoTypeContainsFold(*l.NetworkInfoTypeContainsFold))
-	}
-	if l.NetworkInfoTypeHasPrefix != nil {
-		predicates = append(predicates, network.InfoTypeHasPrefix(*l.NetworkInfoTypeHasPrefix))
-	}
-	if l.NetworkInfoTypeHasSuffix != nil {
-		predicates = append(predicates, network.InfoTypeHasSuffix(*l.NetworkInfoTypeHasSuffix))
-	}
-	if l.NetworkInfoTrafficEQ != nil {
-		predicates = append(predicates, network.InfoTrafficEQ(*l.NetworkInfoTrafficEQ))
-	}
-	if l.NetworkInfoTrafficNEQ != nil {
-		predicates = append(predicates, network.InfoTrafficNEQ(*l.NetworkInfoTrafficNEQ))
-	}
-	if l.NetworkInfoTrafficIsNil != nil {
-		if *l.NetworkInfoTrafficIsNil {
-			predicates = append(predicates, network.InfoTrafficIsNil())
-		} else {
-			predicates = append(predicates, network.Not(network.InfoTrafficIsNil()))
-		}
-	}
-	if l.NetworkInfoTrafficIn != nil {
-		predicates = append(predicates, network.InfoTrafficIn(l.NetworkInfoTrafficIn...))
-	}
-	if l.NetworkInfoTrafficNotIn != nil {
-		predicates = append(predicates, network.InfoTrafficNotIn(l.NetworkInfoTrafficNotIn...))
-	}
-	if l.NetworkInfoTrafficEqualFold != nil {
-		predicates = append(predicates, network.InfoTrafficEqualFold(*l.NetworkInfoTrafficEqualFold))
-	}
-	if l.NetworkInfoTrafficContains != nil {
-		predicates = append(predicates, network.InfoTrafficContains(*l.NetworkInfoTrafficContains))
-	}
-	if l.NetworkInfoTrafficContainsFold != nil {
-		predicates = append(predicates, network.InfoTrafficContainsFold(*l.NetworkInfoTrafficContainsFold))
-	}
-	if l.NetworkInfoTrafficHasPrefix != nil {
-		predicates = append(predicates, network.InfoTrafficHasPrefix(*l.NetworkInfoTrafficHasPrefix))
-	}
-	if l.NetworkInfoTrafficHasSuffix != nil {
-		predicates = append(predicates, network.InfoTrafficHasSuffix(*l.NetworkInfoTrafficHasSuffix))
-	}
-	if l.NetworkInfoRatioEQ != nil {
-		predicates = append(predicates, network.InfoRatioEQ(*l.NetworkInfoRatioEQ))
-	}
-	if l.NetworkInfoRatioNEQ != nil {
-		predicates = append(predicates, network.InfoRatioNEQ(*l.NetworkInfoRatioNEQ))
-	}
-	if l.NetworkInfoRatioIsNil != nil {
-		if *l.NetworkInfoRatioIsNil {
-			predicates = append(predicates, network.InfoRatioIsNil())
-		} else {
-			predicates = append(predicates, network.Not(network.InfoRatioIsNil()))
-		}
-	}
-	if l.NetworkInfoRatioIn != nil {
-		predicates = append(predicates, network.InfoRatioIn(l.NetworkInfoRatioIn...))
-	}
-	if l.NetworkInfoRatioNotIn != nil {
-		predicates = append(predicates, network.InfoRatioNotIn(l.NetworkInfoRatioNotIn...))
-	}
-	if l.NetworkInfoRatioEqualFold != nil {
-		predicates = append(predicates, network.InfoRatioEqualFold(*l.NetworkInfoRatioEqualFold))
-	}
-	if l.NetworkInfoRatioContains != nil {
-		predicates = append(predicates, network.InfoRatioContains(*l.NetworkInfoRatioContains))
-	}
-	if l.NetworkInfoRatioContainsFold != nil {
-		predicates = append(predicates, network.InfoRatioContainsFold(*l.NetworkInfoRatioContainsFold))
-	}
-	if l.NetworkInfoRatioHasPrefix != nil {
-		predicates = append(predicates, network.InfoRatioHasPrefix(*l.NetworkInfoRatioHasPrefix))
-	}
-	if l.NetworkInfoRatioHasSuffix != nil {
-		predicates = append(predicates, network.InfoRatioHasSuffix(*l.NetworkInfoRatioHasSuffix))
-	}
-	if l.NetworkInfoScopeEQ != nil {
-		predicates = append(predicates, network.InfoScopeEQ(*l.NetworkInfoScopeEQ))
-	}
-	if l.NetworkInfoScopeNEQ != nil {
-		predicates = append(predicates, network.InfoScopeNEQ(*l.NetworkInfoScopeNEQ))
-	}
-	if l.NetworkInfoScopeIsNil != nil {
-		if *l.NetworkInfoScopeIsNil {
-			predicates = append(predicates, network.InfoScopeIsNil())
-		} else {
-			predicates = append(predicates, network.Not(network.InfoScopeIsNil()))
-		}
-	}
-	if l.NetworkInfoScopeIn != nil {
-		predicates = append(predicates, network.InfoScopeIn(l.NetworkInfoScopeIn...))
-	}
-	if l.NetworkInfoScopeNotIn != nil {
-		predicates = append(predicates, network.InfoScopeNotIn(l.NetworkInfoScopeNotIn...))
-	}
-	if l.NetworkInfoScopeEqualFold != nil {
-		predicates = append(predicates, network.InfoScopeEqualFold(*l.NetworkInfoScopeEqualFold))
-	}
-	if l.NetworkInfoScopeContains != nil {
-		predicates = append(predicates, network.InfoScopeContains(*l.NetworkInfoScopeContains))
-	}
-	if l.NetworkInfoScopeContainsFold != nil {
-		predicates = append(predicates, network.InfoScopeContainsFold(*l.NetworkInfoScopeContainsFold))
-	}
-	if l.NetworkInfoScopeHasPrefix != nil {
-		predicates = append(predicates, network.InfoScopeHasPrefix(*l.NetworkInfoScopeHasPrefix))
-	}
-	if l.NetworkInfoScopeHasSuffix != nil {
-		predicates = append(predicates, network.InfoScopeHasSuffix(*l.NetworkInfoScopeHasSuffix))
-	}
-	if l.NetworkInfoUnicastEQ != nil {
-		predicates = append(predicates, network.InfoUnicastEQ(*l.NetworkInfoUnicastEQ))
-	}
-	if l.NetworkInfoIpv6EQ != nil {
-		predicates = append(predicates, network.InfoIpv6EQ(*l.NetworkInfoIpv6EQ))
-	}
-	if l.NetworkPolicyGeneralEQ != nil {
-		predicates = append(predicates, network.PolicyGeneralEQ(*l.NetworkPolicyGeneralEQ))
-	}
-	if l.NetworkPolicyGeneralNEQ != nil {
-		predicates = append(predicates, network.PolicyGeneralNEQ(*l.NetworkPolicyGeneralNEQ))
-	}
-	if l.NetworkPolicyGeneralIsNil != nil {
-		if *l.NetworkPolicyGeneralIsNil {
-			predicates = append(predicates, network.PolicyGeneralIsNil())
-		} else {
-			predicates = append(predicates, network.Not(network.PolicyGeneralIsNil()))
-		}
-	}
-	if l.NetworkPolicyGeneralIn != nil {
-		predicates = append(predicates, network.PolicyGeneralIn(l.NetworkPolicyGeneralIn...))
-	}
-	if l.NetworkPolicyGeneralNotIn != nil {
-		predicates = append(predicates, network.PolicyGeneralNotIn(l.NetworkPolicyGeneralNotIn...))
-	}
-	if l.NetworkPolicyGeneralEqualFold != nil {
-		predicates = append(predicates, network.PolicyGeneralEqualFold(*l.NetworkPolicyGeneralEqualFold))
-	}
-	if l.NetworkPolicyGeneralContains != nil {
-		predicates = append(predicates, network.PolicyGeneralContains(*l.NetworkPolicyGeneralContains))
-	}
-	if l.NetworkPolicyGeneralContainsFold != nil {
-		predicates = append(predicates, network.PolicyGeneralContainsFold(*l.NetworkPolicyGeneralContainsFold))
-	}
-	if l.NetworkPolicyGeneralHasPrefix != nil {
-		predicates = append(predicates, network.PolicyGeneralHasPrefix(*l.NetworkPolicyGeneralHasPrefix))
-	}
-	if l.NetworkPolicyGeneralHasSuffix != nil {
-		predicates = append(predicates, network.PolicyGeneralHasSuffix(*l.NetworkPolicyGeneralHasSuffix))
 	}
 	if l.NetworkCreatedGT != nil {
 		predicates = append(predicates, network.CreatedGT(*l.NetworkCreatedGT))
@@ -3689,14 +3192,6 @@ type ListNetworkFacilityParams struct {
 	Paginated[*ent.NetworkFacilityQuery, ent.NetworkFacility]
 	Filtered[predicate.NetworkFacility]
 
-	// Filters field "net_id" to be equal to the provided value.
-	NetworkFacilityNetIDEQ *int `form:"netID.eq,omitempty" json:"network_facility_net_ideq,omitempty"`
-	// Filters field "net_id" to be not equal to the provided value.
-	NetworkFacilityNetIDNEQ *int `form:"netID.neq,omitempty" json:"network_facility_net_idneq,omitempty"`
-	// Filters field "net_id" to be within the provided values.
-	NetworkFacilityNetIDIn []int `form:"netID.in,omitempty" json:"network_facility_net_id_in,omitempty"`
-	// Filters field "net_id" to be not within the provided values.
-	NetworkFacilityNetIDNotIn []int `form:"netID.notIn,omitempty" json:"network_facility_net_id_not_in,omitempty"`
 	// Filters field "fac_id" to be equal to the provided value.
 	NetworkFacilityFacIDEQ *int `form:"facID.eq,omitempty" json:"network_facility_fac_ideq,omitempty"`
 	// Filters field "fac_id" to be not equal to the provided value.
@@ -3705,6 +3200,14 @@ type ListNetworkFacilityParams struct {
 	NetworkFacilityFacIDIn []int `form:"facID.in,omitempty" json:"network_facility_fac_id_in,omitempty"`
 	// Filters field "fac_id" to be not within the provided values.
 	NetworkFacilityFacIDNotIn []int `form:"facID.notIn,omitempty" json:"network_facility_fac_id_not_in,omitempty"`
+	// Filters field "net_id" to be equal to the provided value.
+	NetworkFacilityNetIDEQ *int `form:"netID.eq,omitempty" json:"network_facility_net_ideq,omitempty"`
+	// Filters field "net_id" to be not equal to the provided value.
+	NetworkFacilityNetIDNEQ *int `form:"netID.neq,omitempty" json:"network_facility_net_idneq,omitempty"`
+	// Filters field "net_id" to be within the provided values.
+	NetworkFacilityNetIDIn []int `form:"netID.in,omitempty" json:"network_facility_net_id_in,omitempty"`
+	// Filters field "net_id" to be not within the provided values.
+	NetworkFacilityNetIDNotIn []int `form:"netID.notIn,omitempty" json:"network_facility_net_id_not_in,omitempty"`
 	// Filters field "name" to be equal to the provided value.
 	NetworkFacilityNameEQ *string `form:"name.eq,omitempty" json:"network_facility_name_eq,omitempty"`
 	// Filters field "name" to be not equal to the provided value.
@@ -3765,22 +3268,6 @@ type ListNetworkFacilityParams struct {
 	NetworkFacilityCountryHasPrefix *string `form:"country.prefix,omitempty" json:"network_facility_country_has_prefix,omitempty"`
 	// Filters field "country" to end with the provided value.
 	NetworkFacilityCountryHasSuffix *string `form:"country.suffix,omitempty" json:"network_facility_country_has_suffix,omitempty"`
-	// Filters field "local_asn" to be equal to the provided value.
-	NetworkFacilityLocalAsnEQ *int `form:"localAsn.eq,omitempty" json:"network_facility_local_asn_eq,omitempty"`
-	// Filters field "local_asn" to be not equal to the provided value.
-	NetworkFacilityLocalAsnNEQ *int `form:"localAsn.neq,omitempty" json:"network_facility_local_asn_neq,omitempty"`
-	// Filters field "local_asn" to be greater than the provided value.
-	NetworkFacilityLocalAsnGT *int `form:"localAsn.gt,omitempty" json:"network_facility_local_asn_gt,omitempty"`
-	// Filters field "local_asn" to be greater than or equal to the provided value.
-	NetworkFacilityLocalAsnGTE *int `form:"localAsn.gte,omitempty" json:"network_facility_local_asn_gte,omitempty"`
-	// Filters field "local_asn" to be less than the provided value.
-	NetworkFacilityLocalAsnLT *int `form:"localAsn.lt,omitempty" json:"network_facility_local_asn_lt,omitempty"`
-	// Filters field "local_asn" to be less than or equal to the provided value.
-	NetworkFacilityLocalAsnLTE *int `form:"localAsn.lte,omitempty" json:"network_facility_local_asn_lte,omitempty"`
-	// Filters field "local_asn" to be within the provided values.
-	NetworkFacilityLocalAsnIn []int `form:"localAsn.in,omitempty" json:"network_facility_local_asn_in,omitempty"`
-	// Filters field "local_asn" to be not within the provided values.
-	NetworkFacilityLocalAsnNotIn []int `form:"localAsn.notIn,omitempty" json:"network_facility_local_asn_not_in,omitempty"`
 	// Filters field "created" to be greater than the provided value.
 	NetworkFacilityCreatedGT *time.Time `form:"created.gt,omitempty" json:"network_facility_created_gt,omitempty"`
 	// Filters field "created" to be greater than or equal to the provided value.
@@ -3821,18 +3308,6 @@ type ListNetworkFacilityParams struct {
 func (l *ListNetworkFacilityParams) FilterPredicates() (predicate.NetworkFacility, error) {
 	var predicates []predicate.NetworkFacility
 
-	if l.NetworkFacilityNetIDEQ != nil {
-		predicates = append(predicates, networkfacility.NetIDEQ(*l.NetworkFacilityNetIDEQ))
-	}
-	if l.NetworkFacilityNetIDNEQ != nil {
-		predicates = append(predicates, networkfacility.NetIDNEQ(*l.NetworkFacilityNetIDNEQ))
-	}
-	if l.NetworkFacilityNetIDIn != nil {
-		predicates = append(predicates, networkfacility.NetIDIn(l.NetworkFacilityNetIDIn...))
-	}
-	if l.NetworkFacilityNetIDNotIn != nil {
-		predicates = append(predicates, networkfacility.NetIDNotIn(l.NetworkFacilityNetIDNotIn...))
-	}
 	if l.NetworkFacilityFacIDEQ != nil {
 		predicates = append(predicates, networkfacility.FacIDEQ(*l.NetworkFacilityFacIDEQ))
 	}
@@ -3844,6 +3319,18 @@ func (l *ListNetworkFacilityParams) FilterPredicates() (predicate.NetworkFacilit
 	}
 	if l.NetworkFacilityFacIDNotIn != nil {
 		predicates = append(predicates, networkfacility.FacIDNotIn(l.NetworkFacilityFacIDNotIn...))
+	}
+	if l.NetworkFacilityNetIDEQ != nil {
+		predicates = append(predicates, networkfacility.NetIDEQ(*l.NetworkFacilityNetIDEQ))
+	}
+	if l.NetworkFacilityNetIDNEQ != nil {
+		predicates = append(predicates, networkfacility.NetIDNEQ(*l.NetworkFacilityNetIDNEQ))
+	}
+	if l.NetworkFacilityNetIDIn != nil {
+		predicates = append(predicates, networkfacility.NetIDIn(l.NetworkFacilityNetIDIn...))
+	}
+	if l.NetworkFacilityNetIDNotIn != nil {
+		predicates = append(predicates, networkfacility.NetIDNotIn(l.NetworkFacilityNetIDNotIn...))
 	}
 	if l.NetworkFacilityNameEQ != nil {
 		predicates = append(predicates, networkfacility.NameEQ(*l.NetworkFacilityNameEQ))
@@ -3947,30 +3434,6 @@ func (l *ListNetworkFacilityParams) FilterPredicates() (predicate.NetworkFacilit
 	if l.NetworkFacilityCountryHasSuffix != nil {
 		predicates = append(predicates, networkfacility.CountryHasSuffix(*l.NetworkFacilityCountryHasSuffix))
 	}
-	if l.NetworkFacilityLocalAsnEQ != nil {
-		predicates = append(predicates, networkfacility.LocalAsnEQ(*l.NetworkFacilityLocalAsnEQ))
-	}
-	if l.NetworkFacilityLocalAsnNEQ != nil {
-		predicates = append(predicates, networkfacility.LocalAsnNEQ(*l.NetworkFacilityLocalAsnNEQ))
-	}
-	if l.NetworkFacilityLocalAsnGT != nil {
-		predicates = append(predicates, networkfacility.LocalAsnGT(*l.NetworkFacilityLocalAsnGT))
-	}
-	if l.NetworkFacilityLocalAsnGTE != nil {
-		predicates = append(predicates, networkfacility.LocalAsnGTE(*l.NetworkFacilityLocalAsnGTE))
-	}
-	if l.NetworkFacilityLocalAsnLT != nil {
-		predicates = append(predicates, networkfacility.LocalAsnLT(*l.NetworkFacilityLocalAsnLT))
-	}
-	if l.NetworkFacilityLocalAsnLTE != nil {
-		predicates = append(predicates, networkfacility.LocalAsnLTE(*l.NetworkFacilityLocalAsnLTE))
-	}
-	if l.NetworkFacilityLocalAsnIn != nil {
-		predicates = append(predicates, networkfacility.LocalAsnIn(l.NetworkFacilityLocalAsnIn...))
-	}
-	if l.NetworkFacilityLocalAsnNotIn != nil {
-		predicates = append(predicates, networkfacility.LocalAsnNotIn(l.NetworkFacilityLocalAsnNotIn...))
-	}
 	if l.NetworkFacilityCreatedGT != nil {
 		predicates = append(predicates, networkfacility.CreatedGT(*l.NetworkFacilityCreatedGT))
 	}
@@ -4059,30 +3522,22 @@ type ListNetworkIxLanParams struct {
 	Paginated[*ent.NetworkIxLanQuery, ent.NetworkIxLan]
 	Filtered[predicate.NetworkIxLan]
 
-	// Filters field "net_id" to be equal to the provided value.
-	NetworkIxLanNetIDEQ *int `form:"netID.eq,omitempty" json:"network_ix_lan_net_ideq,omitempty"`
-	// Filters field "net_id" to be not equal to the provided value.
-	NetworkIxLanNetIDNEQ *int `form:"netID.neq,omitempty" json:"network_ix_lan_net_idneq,omitempty"`
-	// Filters field "net_id" to be within the provided values.
-	NetworkIxLanNetIDIn []int `form:"netID.in,omitempty" json:"network_ix_lan_net_id_in,omitempty"`
-	// Filters field "net_id" to be not within the provided values.
-	NetworkIxLanNetIDNotIn []int `form:"netID.notIn,omitempty" json:"network_ix_lan_net_id_not_in,omitempty"`
-	// Filters field "ix_id" to be equal to the provided value.
-	NetworkIxLanIxIDEQ *int `form:"ixID.eq,omitempty" json:"network_ix_lan_ix_ideq,omitempty"`
-	// Filters field "ix_id" to be not equal to the provided value.
-	NetworkIxLanIxIDNEQ *int `form:"ixID.neq,omitempty" json:"network_ix_lan_ix_idneq,omitempty"`
-	// Filters field "ix_id" to be greater than the provided value.
-	NetworkIxLanIxIDGT *int `form:"ixID.gt,omitempty" json:"network_ix_lan_ix_idgt,omitempty"`
-	// Filters field "ix_id" to be greater than or equal to the provided value.
-	NetworkIxLanIxIDGTE *int `form:"ixID.gte,omitempty" json:"network_ix_lan_ix_idgte,omitempty"`
-	// Filters field "ix_id" to be less than the provided value.
-	NetworkIxLanIxIDLT *int `form:"ixID.lt,omitempty" json:"network_ix_lan_ix_idlt,omitempty"`
-	// Filters field "ix_id" to be less than or equal to the provided value.
-	NetworkIxLanIxIDLTE *int `form:"ixID.lte,omitempty" json:"network_ix_lan_ix_idlte,omitempty"`
-	// Filters field "ix_id" to be within the provided values.
-	NetworkIxLanIxIDIn []int `form:"ixID.in,omitempty" json:"network_ix_lan_ix_id_in,omitempty"`
-	// Filters field "ix_id" to be not within the provided values.
-	NetworkIxLanIxIDNotIn []int `form:"ixID.notIn,omitempty" json:"network_ix_lan_ix_id_not_in,omitempty"`
+	// Filters field "ix_side_id" to be equal to the provided value.
+	NetworkIxLanIxSideIDEQ *int `form:"ixSideID.eq,omitempty" json:"network_ix_lan_ix_side_ideq,omitempty"`
+	// Filters field "ix_side_id" to be not equal to the provided value.
+	NetworkIxLanIxSideIDNEQ *int `form:"ixSideID.neq,omitempty" json:"network_ix_lan_ix_side_idneq,omitempty"`
+	// Filters field "ix_side_id" to be greater than the provided value.
+	NetworkIxLanIxSideIDGT *int `form:"ixSideID.gt,omitempty" json:"network_ix_lan_ix_side_idgt,omitempty"`
+	// Filters field "ix_side_id" to be greater than or equal to the provided value.
+	NetworkIxLanIxSideIDGTE *int `form:"ixSideID.gte,omitempty" json:"network_ix_lan_ix_side_idgte,omitempty"`
+	// Filters field "ix_side_id" to be less than the provided value.
+	NetworkIxLanIxSideIDLT *int `form:"ixSideID.lt,omitempty" json:"network_ix_lan_ix_side_idlt,omitempty"`
+	// Filters field "ix_side_id" to be less than or equal to the provided value.
+	NetworkIxLanIxSideIDLTE *int `form:"ixSideID.lte,omitempty" json:"network_ix_lan_ix_side_idlte,omitempty"`
+	// Filters field "ix_side_id" to be within the provided values.
+	NetworkIxLanIxSideIDIn []int `form:"ixSideID.in,omitempty" json:"network_ix_lan_ix_side_id_in,omitempty"`
+	// Filters field "ix_side_id" to be not within the provided values.
+	NetworkIxLanIxSideIDNotIn []int `form:"ixSideID.notIn,omitempty" json:"network_ix_lan_ix_side_id_not_in,omitempty"`
 	// Filters field "ixlan_id" to be equal to the provided value.
 	NetworkIxLanIxlanIDEQ *int `form:"ixlanID.eq,omitempty" json:"network_ix_lan_ixlan_ideq,omitempty"`
 	// Filters field "ixlan_id" to be not equal to the provided value.
@@ -4091,6 +3546,46 @@ type ListNetworkIxLanParams struct {
 	NetworkIxLanIxlanIDIn []int `form:"ixlanID.in,omitempty" json:"network_ix_lan_ixlan_id_in,omitempty"`
 	// Filters field "ixlan_id" to be not within the provided values.
 	NetworkIxLanIxlanIDNotIn []int `form:"ixlanID.notIn,omitempty" json:"network_ix_lan_ixlan_id_not_in,omitempty"`
+	// Filters field "net_id" to be equal to the provided value.
+	NetworkIxLanNetIDEQ *int `form:"netID.eq,omitempty" json:"network_ix_lan_net_ideq,omitempty"`
+	// Filters field "net_id" to be not equal to the provided value.
+	NetworkIxLanNetIDNEQ *int `form:"netID.neq,omitempty" json:"network_ix_lan_net_idneq,omitempty"`
+	// Filters field "net_id" to be within the provided values.
+	NetworkIxLanNetIDIn []int `form:"netID.in,omitempty" json:"network_ix_lan_net_id_in,omitempty"`
+	// Filters field "net_id" to be not within the provided values.
+	NetworkIxLanNetIDNotIn []int `form:"netID.notIn,omitempty" json:"network_ix_lan_net_id_not_in,omitempty"`
+	// Filters field "net_side_id" to be equal to the provided value.
+	NetworkIxLanNetSideIDEQ *int `form:"netSideID.eq,omitempty" json:"network_ix_lan_net_side_ideq,omitempty"`
+	// Filters field "net_side_id" to be not equal to the provided value.
+	NetworkIxLanNetSideIDNEQ *int `form:"netSideID.neq,omitempty" json:"network_ix_lan_net_side_idneq,omitempty"`
+	// Filters field "net_side_id" to be greater than the provided value.
+	NetworkIxLanNetSideIDGT *int `form:"netSideID.gt,omitempty" json:"network_ix_lan_net_side_idgt,omitempty"`
+	// Filters field "net_side_id" to be greater than or equal to the provided value.
+	NetworkIxLanNetSideIDGTE *int `form:"netSideID.gte,omitempty" json:"network_ix_lan_net_side_idgte,omitempty"`
+	// Filters field "net_side_id" to be less than the provided value.
+	NetworkIxLanNetSideIDLT *int `form:"netSideID.lt,omitempty" json:"network_ix_lan_net_side_idlt,omitempty"`
+	// Filters field "net_side_id" to be less than or equal to the provided value.
+	NetworkIxLanNetSideIDLTE *int `form:"netSideID.lte,omitempty" json:"network_ix_lan_net_side_idlte,omitempty"`
+	// Filters field "net_side_id" to be within the provided values.
+	NetworkIxLanNetSideIDIn []int `form:"netSideID.in,omitempty" json:"network_ix_lan_net_side_id_in,omitempty"`
+	// Filters field "net_side_id" to be not within the provided values.
+	NetworkIxLanNetSideIDNotIn []int `form:"netSideID.notIn,omitempty" json:"network_ix_lan_net_side_id_not_in,omitempty"`
+	// Filters field "asn" to be equal to the provided value.
+	NetworkIxLanAsnEQ *int `form:"asn.eq,omitempty" json:"network_ix_lan_asn_eq,omitempty"`
+	// Filters field "asn" to be not equal to the provided value.
+	NetworkIxLanAsnNEQ *int `form:"asn.neq,omitempty" json:"network_ix_lan_asn_neq,omitempty"`
+	// Filters field "asn" to be greater than the provided value.
+	NetworkIxLanAsnGT *int `form:"asn.gt,omitempty" json:"network_ix_lan_asn_gt,omitempty"`
+	// Filters field "asn" to be greater than or equal to the provided value.
+	NetworkIxLanAsnGTE *int `form:"asn.gte,omitempty" json:"network_ix_lan_asn_gte,omitempty"`
+	// Filters field "asn" to be less than the provided value.
+	NetworkIxLanAsnLT *int `form:"asn.lt,omitempty" json:"network_ix_lan_asn_lt,omitempty"`
+	// Filters field "asn" to be less than or equal to the provided value.
+	NetworkIxLanAsnLTE *int `form:"asn.lte,omitempty" json:"network_ix_lan_asn_lte,omitempty"`
+	// Filters field "asn" to be within the provided values.
+	NetworkIxLanAsnIn []int `form:"asn.in,omitempty" json:"network_ix_lan_asn_in,omitempty"`
+	// Filters field "asn" to be not within the provided values.
+	NetworkIxLanAsnNotIn []int `form:"asn.notIn,omitempty" json:"network_ix_lan_asn_not_in,omitempty"`
 	// Filters field "name" to be equal to the provided value.
 	NetworkIxLanNameEQ *string `form:"name.eq,omitempty" json:"network_ix_lan_name_eq,omitempty"`
 	// Filters field "name" to be not equal to the provided value.
@@ -4111,82 +3606,6 @@ type ListNetworkIxLanParams struct {
 	NetworkIxLanNameHasPrefix *string `form:"name.prefix,omitempty" json:"network_ix_lan_name_has_prefix,omitempty"`
 	// Filters field "name" to end with the provided value.
 	NetworkIxLanNameHasSuffix *string `form:"name.suffix,omitempty" json:"network_ix_lan_name_has_suffix,omitempty"`
-	// Filters field "speed" to be equal to the provided value.
-	NetworkIxLanSpeedEQ *int `form:"speed.eq,omitempty" json:"network_ix_lan_speed_eq,omitempty"`
-	// Filters field "speed" to be not equal to the provided value.
-	NetworkIxLanSpeedNEQ *int `form:"speed.neq,omitempty" json:"network_ix_lan_speed_neq,omitempty"`
-	// Filters field "speed" to be greater than the provided value.
-	NetworkIxLanSpeedGT *int `form:"speed.gt,omitempty" json:"network_ix_lan_speed_gt,omitempty"`
-	// Filters field "speed" to be greater than or equal to the provided value.
-	NetworkIxLanSpeedGTE *int `form:"speed.gte,omitempty" json:"network_ix_lan_speed_gte,omitempty"`
-	// Filters field "speed" to be less than the provided value.
-	NetworkIxLanSpeedLT *int `form:"speed.lt,omitempty" json:"network_ix_lan_speed_lt,omitempty"`
-	// Filters field "speed" to be less than or equal to the provided value.
-	NetworkIxLanSpeedLTE *int `form:"speed.lte,omitempty" json:"network_ix_lan_speed_lte,omitempty"`
-	// Filters field "speed" to be within the provided values.
-	NetworkIxLanSpeedIn []int `form:"speed.in,omitempty" json:"network_ix_lan_speed_in,omitempty"`
-	// Filters field "speed" to be not within the provided values.
-	NetworkIxLanSpeedNotIn []int `form:"speed.notIn,omitempty" json:"network_ix_lan_speed_not_in,omitempty"`
-	// Filters field "asn" to be equal to the provided value.
-	NetworkIxLanAsnEQ *int `form:"asn.eq,omitempty" json:"network_ix_lan_asn_eq,omitempty"`
-	// Filters field "asn" to be not equal to the provided value.
-	NetworkIxLanAsnNEQ *int `form:"asn.neq,omitempty" json:"network_ix_lan_asn_neq,omitempty"`
-	// Filters field "asn" to be greater than the provided value.
-	NetworkIxLanAsnGT *int `form:"asn.gt,omitempty" json:"network_ix_lan_asn_gt,omitempty"`
-	// Filters field "asn" to be greater than or equal to the provided value.
-	NetworkIxLanAsnGTE *int `form:"asn.gte,omitempty" json:"network_ix_lan_asn_gte,omitempty"`
-	// Filters field "asn" to be less than the provided value.
-	NetworkIxLanAsnLT *int `form:"asn.lt,omitempty" json:"network_ix_lan_asn_lt,omitempty"`
-	// Filters field "asn" to be less than or equal to the provided value.
-	NetworkIxLanAsnLTE *int `form:"asn.lte,omitempty" json:"network_ix_lan_asn_lte,omitempty"`
-	// Filters field "asn" to be within the provided values.
-	NetworkIxLanAsnIn []int `form:"asn.in,omitempty" json:"network_ix_lan_asn_in,omitempty"`
-	// Filters field "asn" to be not within the provided values.
-	NetworkIxLanAsnNotIn []int `form:"asn.notIn,omitempty" json:"network_ix_lan_asn_not_in,omitempty"`
-	// Filters field "ipaddr4" to be equal to the provided value.
-	NetworkIxLanIpaddr4EQ *string `form:"ipaddr4.eq,omitempty" json:"network_ix_lan_ipaddr4eq,omitempty"`
-	// Filters field "ipaddr4" to be not equal to the provided value.
-	NetworkIxLanIpaddr4NEQ *string `form:"ipaddr4.neq,omitempty" json:"network_ix_lan_ipaddr4neq,omitempty"`
-	// Filters field "ipaddr4" to be null/nil.
-	NetworkIxLanIpaddr4IsNil *bool `form:"ipaddr4.null,omitempty" json:"network_ix_lan_ipaddr4is_nil,omitempty"`
-	// Filters field "ipaddr4" to be within the provided values.
-	NetworkIxLanIpaddr4In []string `form:"ipaddr4.in,omitempty" json:"network_ix_lan_ipaddr4in,omitempty"`
-	// Filters field "ipaddr4" to be not within the provided values.
-	NetworkIxLanIpaddr4NotIn []string `form:"ipaddr4.notIn,omitempty" json:"network_ix_lan_ipaddr4not_in,omitempty"`
-	// Filters field "ipaddr4" to be equal to the provided value, case-insensitive.
-	NetworkIxLanIpaddr4EqualFold *string `form:"ipaddr4.ieq,omitempty" json:"network_ix_lan_ipaddr4equal_fold,omitempty"`
-	// Filters field "ipaddr4" to contain the provided value.
-	NetworkIxLanIpaddr4Contains *string `form:"ipaddr4.has,omitempty" json:"network_ix_lan_ipaddr4contains,omitempty"`
-	// Filters field "ipaddr4" to contain the provided value, case-insensitive.
-	NetworkIxLanIpaddr4ContainsFold *string `form:"ipaddr4.ihas,omitempty" json:"network_ix_lan_ipaddr4contains_fold,omitempty"`
-	// Filters field "ipaddr4" to start with the provided value.
-	NetworkIxLanIpaddr4HasPrefix *string `form:"ipaddr4.prefix,omitempty" json:"network_ix_lan_ipaddr4has_prefix,omitempty"`
-	// Filters field "ipaddr4" to end with the provided value.
-	NetworkIxLanIpaddr4HasSuffix *string `form:"ipaddr4.suffix,omitempty" json:"network_ix_lan_ipaddr4has_suffix,omitempty"`
-	// Filters field "ipaddr6" to be equal to the provided value.
-	NetworkIxLanIpaddr6EQ *string `form:"ipaddr6.eq,omitempty" json:"network_ix_lan_ipaddr6eq,omitempty"`
-	// Filters field "ipaddr6" to be not equal to the provided value.
-	NetworkIxLanIpaddr6NEQ *string `form:"ipaddr6.neq,omitempty" json:"network_ix_lan_ipaddr6neq,omitempty"`
-	// Filters field "ipaddr6" to be null/nil.
-	NetworkIxLanIpaddr6IsNil *bool `form:"ipaddr6.null,omitempty" json:"network_ix_lan_ipaddr6is_nil,omitempty"`
-	// Filters field "ipaddr6" to be within the provided values.
-	NetworkIxLanIpaddr6In []string `form:"ipaddr6.in,omitempty" json:"network_ix_lan_ipaddr6in,omitempty"`
-	// Filters field "ipaddr6" to be not within the provided values.
-	NetworkIxLanIpaddr6NotIn []string `form:"ipaddr6.notIn,omitempty" json:"network_ix_lan_ipaddr6not_in,omitempty"`
-	// Filters field "ipaddr6" to be equal to the provided value, case-insensitive.
-	NetworkIxLanIpaddr6EqualFold *string `form:"ipaddr6.ieq,omitempty" json:"network_ix_lan_ipaddr6equal_fold,omitempty"`
-	// Filters field "ipaddr6" to contain the provided value.
-	NetworkIxLanIpaddr6Contains *string `form:"ipaddr6.has,omitempty" json:"network_ix_lan_ipaddr6contains,omitempty"`
-	// Filters field "ipaddr6" to contain the provided value, case-insensitive.
-	NetworkIxLanIpaddr6ContainsFold *string `form:"ipaddr6.ihas,omitempty" json:"network_ix_lan_ipaddr6contains_fold,omitempty"`
-	// Filters field "ipaddr6" to start with the provided value.
-	NetworkIxLanIpaddr6HasPrefix *string `form:"ipaddr6.prefix,omitempty" json:"network_ix_lan_ipaddr6has_prefix,omitempty"`
-	// Filters field "ipaddr6" to end with the provided value.
-	NetworkIxLanIpaddr6HasSuffix *string `form:"ipaddr6.suffix,omitempty" json:"network_ix_lan_ipaddr6has_suffix,omitempty"`
-	// Filters field "is_rs_peer" to be equal to the provided value.
-	NetworkIxLanIsRsPeerEQ *bool `form:"isRsPeer.eq,omitempty" json:"network_ix_lan_is_rs_peer_eq,omitempty"`
-	// Filters field "operational" to be equal to the provided value.
-	NetworkIxLanOperationalEQ *bool `form:"operational.eq,omitempty" json:"network_ix_lan_operational_eq,omitempty"`
 	// Filters field "created" to be greater than the provided value.
 	NetworkIxLanCreatedGT *time.Time `form:"created.gt,omitempty" json:"network_ix_lan_created_gt,omitempty"`
 	// Filters field "created" to be greater than or equal to the provided value.
@@ -4227,41 +3646,29 @@ type ListNetworkIxLanParams struct {
 func (l *ListNetworkIxLanParams) FilterPredicates() (predicate.NetworkIxLan, error) {
 	var predicates []predicate.NetworkIxLan
 
-	if l.NetworkIxLanNetIDEQ != nil {
-		predicates = append(predicates, networkixlan.NetIDEQ(*l.NetworkIxLanNetIDEQ))
+	if l.NetworkIxLanIxSideIDEQ != nil {
+		predicates = append(predicates, networkixlan.IxSideIDEQ(*l.NetworkIxLanIxSideIDEQ))
 	}
-	if l.NetworkIxLanNetIDNEQ != nil {
-		predicates = append(predicates, networkixlan.NetIDNEQ(*l.NetworkIxLanNetIDNEQ))
+	if l.NetworkIxLanIxSideIDNEQ != nil {
+		predicates = append(predicates, networkixlan.IxSideIDNEQ(*l.NetworkIxLanIxSideIDNEQ))
 	}
-	if l.NetworkIxLanNetIDIn != nil {
-		predicates = append(predicates, networkixlan.NetIDIn(l.NetworkIxLanNetIDIn...))
+	if l.NetworkIxLanIxSideIDGT != nil {
+		predicates = append(predicates, networkixlan.IxSideIDGT(*l.NetworkIxLanIxSideIDGT))
 	}
-	if l.NetworkIxLanNetIDNotIn != nil {
-		predicates = append(predicates, networkixlan.NetIDNotIn(l.NetworkIxLanNetIDNotIn...))
+	if l.NetworkIxLanIxSideIDGTE != nil {
+		predicates = append(predicates, networkixlan.IxSideIDGTE(*l.NetworkIxLanIxSideIDGTE))
 	}
-	if l.NetworkIxLanIxIDEQ != nil {
-		predicates = append(predicates, networkixlan.IxIDEQ(*l.NetworkIxLanIxIDEQ))
+	if l.NetworkIxLanIxSideIDLT != nil {
+		predicates = append(predicates, networkixlan.IxSideIDLT(*l.NetworkIxLanIxSideIDLT))
 	}
-	if l.NetworkIxLanIxIDNEQ != nil {
-		predicates = append(predicates, networkixlan.IxIDNEQ(*l.NetworkIxLanIxIDNEQ))
+	if l.NetworkIxLanIxSideIDLTE != nil {
+		predicates = append(predicates, networkixlan.IxSideIDLTE(*l.NetworkIxLanIxSideIDLTE))
 	}
-	if l.NetworkIxLanIxIDGT != nil {
-		predicates = append(predicates, networkixlan.IxIDGT(*l.NetworkIxLanIxIDGT))
+	if l.NetworkIxLanIxSideIDIn != nil {
+		predicates = append(predicates, networkixlan.IxSideIDIn(l.NetworkIxLanIxSideIDIn...))
 	}
-	if l.NetworkIxLanIxIDGTE != nil {
-		predicates = append(predicates, networkixlan.IxIDGTE(*l.NetworkIxLanIxIDGTE))
-	}
-	if l.NetworkIxLanIxIDLT != nil {
-		predicates = append(predicates, networkixlan.IxIDLT(*l.NetworkIxLanIxIDLT))
-	}
-	if l.NetworkIxLanIxIDLTE != nil {
-		predicates = append(predicates, networkixlan.IxIDLTE(*l.NetworkIxLanIxIDLTE))
-	}
-	if l.NetworkIxLanIxIDIn != nil {
-		predicates = append(predicates, networkixlan.IxIDIn(l.NetworkIxLanIxIDIn...))
-	}
-	if l.NetworkIxLanIxIDNotIn != nil {
-		predicates = append(predicates, networkixlan.IxIDNotIn(l.NetworkIxLanIxIDNotIn...))
+	if l.NetworkIxLanIxSideIDNotIn != nil {
+		predicates = append(predicates, networkixlan.IxSideIDNotIn(l.NetworkIxLanIxSideIDNotIn...))
 	}
 	if l.NetworkIxLanIxlanIDEQ != nil {
 		predicates = append(predicates, networkixlan.IxlanIDEQ(*l.NetworkIxLanIxlanIDEQ))
@@ -4274,6 +3681,66 @@ func (l *ListNetworkIxLanParams) FilterPredicates() (predicate.NetworkIxLan, err
 	}
 	if l.NetworkIxLanIxlanIDNotIn != nil {
 		predicates = append(predicates, networkixlan.IxlanIDNotIn(l.NetworkIxLanIxlanIDNotIn...))
+	}
+	if l.NetworkIxLanNetIDEQ != nil {
+		predicates = append(predicates, networkixlan.NetIDEQ(*l.NetworkIxLanNetIDEQ))
+	}
+	if l.NetworkIxLanNetIDNEQ != nil {
+		predicates = append(predicates, networkixlan.NetIDNEQ(*l.NetworkIxLanNetIDNEQ))
+	}
+	if l.NetworkIxLanNetIDIn != nil {
+		predicates = append(predicates, networkixlan.NetIDIn(l.NetworkIxLanNetIDIn...))
+	}
+	if l.NetworkIxLanNetIDNotIn != nil {
+		predicates = append(predicates, networkixlan.NetIDNotIn(l.NetworkIxLanNetIDNotIn...))
+	}
+	if l.NetworkIxLanNetSideIDEQ != nil {
+		predicates = append(predicates, networkixlan.NetSideIDEQ(*l.NetworkIxLanNetSideIDEQ))
+	}
+	if l.NetworkIxLanNetSideIDNEQ != nil {
+		predicates = append(predicates, networkixlan.NetSideIDNEQ(*l.NetworkIxLanNetSideIDNEQ))
+	}
+	if l.NetworkIxLanNetSideIDGT != nil {
+		predicates = append(predicates, networkixlan.NetSideIDGT(*l.NetworkIxLanNetSideIDGT))
+	}
+	if l.NetworkIxLanNetSideIDGTE != nil {
+		predicates = append(predicates, networkixlan.NetSideIDGTE(*l.NetworkIxLanNetSideIDGTE))
+	}
+	if l.NetworkIxLanNetSideIDLT != nil {
+		predicates = append(predicates, networkixlan.NetSideIDLT(*l.NetworkIxLanNetSideIDLT))
+	}
+	if l.NetworkIxLanNetSideIDLTE != nil {
+		predicates = append(predicates, networkixlan.NetSideIDLTE(*l.NetworkIxLanNetSideIDLTE))
+	}
+	if l.NetworkIxLanNetSideIDIn != nil {
+		predicates = append(predicates, networkixlan.NetSideIDIn(l.NetworkIxLanNetSideIDIn...))
+	}
+	if l.NetworkIxLanNetSideIDNotIn != nil {
+		predicates = append(predicates, networkixlan.NetSideIDNotIn(l.NetworkIxLanNetSideIDNotIn...))
+	}
+	if l.NetworkIxLanAsnEQ != nil {
+		predicates = append(predicates, networkixlan.AsnEQ(*l.NetworkIxLanAsnEQ))
+	}
+	if l.NetworkIxLanAsnNEQ != nil {
+		predicates = append(predicates, networkixlan.AsnNEQ(*l.NetworkIxLanAsnNEQ))
+	}
+	if l.NetworkIxLanAsnGT != nil {
+		predicates = append(predicates, networkixlan.AsnGT(*l.NetworkIxLanAsnGT))
+	}
+	if l.NetworkIxLanAsnGTE != nil {
+		predicates = append(predicates, networkixlan.AsnGTE(*l.NetworkIxLanAsnGTE))
+	}
+	if l.NetworkIxLanAsnLT != nil {
+		predicates = append(predicates, networkixlan.AsnLT(*l.NetworkIxLanAsnLT))
+	}
+	if l.NetworkIxLanAsnLTE != nil {
+		predicates = append(predicates, networkixlan.AsnLTE(*l.NetworkIxLanAsnLTE))
+	}
+	if l.NetworkIxLanAsnIn != nil {
+		predicates = append(predicates, networkixlan.AsnIn(l.NetworkIxLanAsnIn...))
+	}
+	if l.NetworkIxLanAsnNotIn != nil {
+		predicates = append(predicates, networkixlan.AsnNotIn(l.NetworkIxLanAsnNotIn...))
 	}
 	if l.NetworkIxLanNameEQ != nil {
 		predicates = append(predicates, networkixlan.NameEQ(*l.NetworkIxLanNameEQ))
@@ -4308,128 +3775,6 @@ func (l *ListNetworkIxLanParams) FilterPredicates() (predicate.NetworkIxLan, err
 	}
 	if l.NetworkIxLanNameHasSuffix != nil {
 		predicates = append(predicates, networkixlan.NameHasSuffix(*l.NetworkIxLanNameHasSuffix))
-	}
-	if l.NetworkIxLanSpeedEQ != nil {
-		predicates = append(predicates, networkixlan.SpeedEQ(*l.NetworkIxLanSpeedEQ))
-	}
-	if l.NetworkIxLanSpeedNEQ != nil {
-		predicates = append(predicates, networkixlan.SpeedNEQ(*l.NetworkIxLanSpeedNEQ))
-	}
-	if l.NetworkIxLanSpeedGT != nil {
-		predicates = append(predicates, networkixlan.SpeedGT(*l.NetworkIxLanSpeedGT))
-	}
-	if l.NetworkIxLanSpeedGTE != nil {
-		predicates = append(predicates, networkixlan.SpeedGTE(*l.NetworkIxLanSpeedGTE))
-	}
-	if l.NetworkIxLanSpeedLT != nil {
-		predicates = append(predicates, networkixlan.SpeedLT(*l.NetworkIxLanSpeedLT))
-	}
-	if l.NetworkIxLanSpeedLTE != nil {
-		predicates = append(predicates, networkixlan.SpeedLTE(*l.NetworkIxLanSpeedLTE))
-	}
-	if l.NetworkIxLanSpeedIn != nil {
-		predicates = append(predicates, networkixlan.SpeedIn(l.NetworkIxLanSpeedIn...))
-	}
-	if l.NetworkIxLanSpeedNotIn != nil {
-		predicates = append(predicates, networkixlan.SpeedNotIn(l.NetworkIxLanSpeedNotIn...))
-	}
-	if l.NetworkIxLanAsnEQ != nil {
-		predicates = append(predicates, networkixlan.AsnEQ(*l.NetworkIxLanAsnEQ))
-	}
-	if l.NetworkIxLanAsnNEQ != nil {
-		predicates = append(predicates, networkixlan.AsnNEQ(*l.NetworkIxLanAsnNEQ))
-	}
-	if l.NetworkIxLanAsnGT != nil {
-		predicates = append(predicates, networkixlan.AsnGT(*l.NetworkIxLanAsnGT))
-	}
-	if l.NetworkIxLanAsnGTE != nil {
-		predicates = append(predicates, networkixlan.AsnGTE(*l.NetworkIxLanAsnGTE))
-	}
-	if l.NetworkIxLanAsnLT != nil {
-		predicates = append(predicates, networkixlan.AsnLT(*l.NetworkIxLanAsnLT))
-	}
-	if l.NetworkIxLanAsnLTE != nil {
-		predicates = append(predicates, networkixlan.AsnLTE(*l.NetworkIxLanAsnLTE))
-	}
-	if l.NetworkIxLanAsnIn != nil {
-		predicates = append(predicates, networkixlan.AsnIn(l.NetworkIxLanAsnIn...))
-	}
-	if l.NetworkIxLanAsnNotIn != nil {
-		predicates = append(predicates, networkixlan.AsnNotIn(l.NetworkIxLanAsnNotIn...))
-	}
-	if l.NetworkIxLanIpaddr4EQ != nil {
-		predicates = append(predicates, networkixlan.Ipaddr4EQ(*l.NetworkIxLanIpaddr4EQ))
-	}
-	if l.NetworkIxLanIpaddr4NEQ != nil {
-		predicates = append(predicates, networkixlan.Ipaddr4NEQ(*l.NetworkIxLanIpaddr4NEQ))
-	}
-	if l.NetworkIxLanIpaddr4IsNil != nil {
-		if *l.NetworkIxLanIpaddr4IsNil {
-			predicates = append(predicates, networkixlan.Ipaddr4IsNil())
-		} else {
-			predicates = append(predicates, networkixlan.Not(networkixlan.Ipaddr4IsNil()))
-		}
-	}
-	if l.NetworkIxLanIpaddr4In != nil {
-		predicates = append(predicates, networkixlan.Ipaddr4In(l.NetworkIxLanIpaddr4In...))
-	}
-	if l.NetworkIxLanIpaddr4NotIn != nil {
-		predicates = append(predicates, networkixlan.Ipaddr4NotIn(l.NetworkIxLanIpaddr4NotIn...))
-	}
-	if l.NetworkIxLanIpaddr4EqualFold != nil {
-		predicates = append(predicates, networkixlan.Ipaddr4EqualFold(*l.NetworkIxLanIpaddr4EqualFold))
-	}
-	if l.NetworkIxLanIpaddr4Contains != nil {
-		predicates = append(predicates, networkixlan.Ipaddr4Contains(*l.NetworkIxLanIpaddr4Contains))
-	}
-	if l.NetworkIxLanIpaddr4ContainsFold != nil {
-		predicates = append(predicates, networkixlan.Ipaddr4ContainsFold(*l.NetworkIxLanIpaddr4ContainsFold))
-	}
-	if l.NetworkIxLanIpaddr4HasPrefix != nil {
-		predicates = append(predicates, networkixlan.Ipaddr4HasPrefix(*l.NetworkIxLanIpaddr4HasPrefix))
-	}
-	if l.NetworkIxLanIpaddr4HasSuffix != nil {
-		predicates = append(predicates, networkixlan.Ipaddr4HasSuffix(*l.NetworkIxLanIpaddr4HasSuffix))
-	}
-	if l.NetworkIxLanIpaddr6EQ != nil {
-		predicates = append(predicates, networkixlan.Ipaddr6EQ(*l.NetworkIxLanIpaddr6EQ))
-	}
-	if l.NetworkIxLanIpaddr6NEQ != nil {
-		predicates = append(predicates, networkixlan.Ipaddr6NEQ(*l.NetworkIxLanIpaddr6NEQ))
-	}
-	if l.NetworkIxLanIpaddr6IsNil != nil {
-		if *l.NetworkIxLanIpaddr6IsNil {
-			predicates = append(predicates, networkixlan.Ipaddr6IsNil())
-		} else {
-			predicates = append(predicates, networkixlan.Not(networkixlan.Ipaddr6IsNil()))
-		}
-	}
-	if l.NetworkIxLanIpaddr6In != nil {
-		predicates = append(predicates, networkixlan.Ipaddr6In(l.NetworkIxLanIpaddr6In...))
-	}
-	if l.NetworkIxLanIpaddr6NotIn != nil {
-		predicates = append(predicates, networkixlan.Ipaddr6NotIn(l.NetworkIxLanIpaddr6NotIn...))
-	}
-	if l.NetworkIxLanIpaddr6EqualFold != nil {
-		predicates = append(predicates, networkixlan.Ipaddr6EqualFold(*l.NetworkIxLanIpaddr6EqualFold))
-	}
-	if l.NetworkIxLanIpaddr6Contains != nil {
-		predicates = append(predicates, networkixlan.Ipaddr6Contains(*l.NetworkIxLanIpaddr6Contains))
-	}
-	if l.NetworkIxLanIpaddr6ContainsFold != nil {
-		predicates = append(predicates, networkixlan.Ipaddr6ContainsFold(*l.NetworkIxLanIpaddr6ContainsFold))
-	}
-	if l.NetworkIxLanIpaddr6HasPrefix != nil {
-		predicates = append(predicates, networkixlan.Ipaddr6HasPrefix(*l.NetworkIxLanIpaddr6HasPrefix))
-	}
-	if l.NetworkIxLanIpaddr6HasSuffix != nil {
-		predicates = append(predicates, networkixlan.Ipaddr6HasSuffix(*l.NetworkIxLanIpaddr6HasSuffix))
-	}
-	if l.NetworkIxLanIsRsPeerEQ != nil {
-		predicates = append(predicates, networkixlan.IsRsPeerEQ(*l.NetworkIxLanIsRsPeerEQ))
-	}
-	if l.NetworkIxLanOperationalEQ != nil {
-		predicates = append(predicates, networkixlan.OperationalEQ(*l.NetworkIxLanOperationalEQ))
 	}
 	if l.NetworkIxLanCreatedGT != nil {
 		predicates = append(predicates, networkixlan.CreatedGT(*l.NetworkIxLanCreatedGT))
@@ -4519,24 +3864,6 @@ type ListOrganizationParams struct {
 	Paginated[*ent.OrganizationQuery, ent.Organization]
 	Filtered[predicate.Organization]
 
-	// Filters field "name" to be equal to the provided value.
-	OrganizationNameEQ *string `form:"name.eq,omitempty" json:"organization_name_eq,omitempty"`
-	// Filters field "name" to be not equal to the provided value.
-	OrganizationNameNEQ *string `form:"name.neq,omitempty" json:"organization_name_neq,omitempty"`
-	// Filters field "name" to be within the provided values.
-	OrganizationNameIn []string `form:"name.in,omitempty" json:"organization_name_in,omitempty"`
-	// Filters field "name" to be not within the provided values.
-	OrganizationNameNotIn []string `form:"name.notIn,omitempty" json:"organization_name_not_in,omitempty"`
-	// Filters field "name" to be equal to the provided value, case-insensitive.
-	OrganizationNameEqualFold *string `form:"name.ieq,omitempty" json:"organization_name_equal_fold,omitempty"`
-	// Filters field "name" to contain the provided value.
-	OrganizationNameContains *string `form:"name.has,omitempty" json:"organization_name_contains,omitempty"`
-	// Filters field "name" to contain the provided value, case-insensitive.
-	OrganizationNameContainsFold *string `form:"name.ihas,omitempty" json:"organization_name_contains_fold,omitempty"`
-	// Filters field "name" to start with the provided value.
-	OrganizationNameHasPrefix *string `form:"name.prefix,omitempty" json:"organization_name_has_prefix,omitempty"`
-	// Filters field "name" to end with the provided value.
-	OrganizationNameHasSuffix *string `form:"name.suffix,omitempty" json:"organization_name_has_suffix,omitempty"`
 	// Filters field "aka" to be equal to the provided value.
 	OrganizationAkaEQ *string `form:"aka.eq,omitempty" json:"organization_aka_eq,omitempty"`
 	// Filters field "aka" to be not equal to the provided value.
@@ -4557,26 +3884,6 @@ type ListOrganizationParams struct {
 	OrganizationAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"organization_aka_has_prefix,omitempty"`
 	// Filters field "aka" to end with the provided value.
 	OrganizationAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"organization_aka_has_suffix,omitempty"`
-	// Filters field "name_long" to be equal to the provided value.
-	OrganizationNameLongEQ *string `form:"nameLong.eq,omitempty" json:"organization_name_long_eq,omitempty"`
-	// Filters field "name_long" to be not equal to the provided value.
-	OrganizationNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"organization_name_long_neq,omitempty"`
-	// Filters field "name_long" to be null/nil.
-	OrganizationNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"organization_name_long_is_nil,omitempty"`
-	// Filters field "name_long" to be within the provided values.
-	OrganizationNameLongIn []string `form:"nameLong.in,omitempty" json:"organization_name_long_in,omitempty"`
-	// Filters field "name_long" to be not within the provided values.
-	OrganizationNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"organization_name_long_not_in,omitempty"`
-	// Filters field "name_long" to be equal to the provided value, case-insensitive.
-	OrganizationNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"organization_name_long_equal_fold,omitempty"`
-	// Filters field "name_long" to contain the provided value.
-	OrganizationNameLongContains *string `form:"nameLong.has,omitempty" json:"organization_name_long_contains,omitempty"`
-	// Filters field "name_long" to contain the provided value, case-insensitive.
-	OrganizationNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"organization_name_long_contains_fold,omitempty"`
-	// Filters field "name_long" to start with the provided value.
-	OrganizationNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"organization_name_long_has_prefix,omitempty"`
-	// Filters field "name_long" to end with the provided value.
-	OrganizationNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"organization_name_long_has_suffix,omitempty"`
 	// Filters field "city" to be equal to the provided value.
 	OrganizationCityEQ *string `form:"city.eq,omitempty" json:"organization_city_eq,omitempty"`
 	// Filters field "city" to be not equal to the provided value.
@@ -4597,26 +3904,6 @@ type ListOrganizationParams struct {
 	OrganizationCityHasPrefix *string `form:"city.prefix,omitempty" json:"organization_city_has_prefix,omitempty"`
 	// Filters field "city" to end with the provided value.
 	OrganizationCityHasSuffix *string `form:"city.suffix,omitempty" json:"organization_city_has_suffix,omitempty"`
-	// Filters field "state" to be equal to the provided value.
-	OrganizationStateEQ *string `form:"state.eq,omitempty" json:"organization_state_eq,omitempty"`
-	// Filters field "state" to be not equal to the provided value.
-	OrganizationStateNEQ *string `form:"state.neq,omitempty" json:"organization_state_neq,omitempty"`
-	// Filters field "state" to be null/nil.
-	OrganizationStateIsNil *bool `form:"state.null,omitempty" json:"organization_state_is_nil,omitempty"`
-	// Filters field "state" to be within the provided values.
-	OrganizationStateIn []string `form:"state.in,omitempty" json:"organization_state_in,omitempty"`
-	// Filters field "state" to be not within the provided values.
-	OrganizationStateNotIn []string `form:"state.notIn,omitempty" json:"organization_state_not_in,omitempty"`
-	// Filters field "state" to be equal to the provided value, case-insensitive.
-	OrganizationStateEqualFold *string `form:"state.ieq,omitempty" json:"organization_state_equal_fold,omitempty"`
-	// Filters field "state" to contain the provided value.
-	OrganizationStateContains *string `form:"state.has,omitempty" json:"organization_state_contains,omitempty"`
-	// Filters field "state" to contain the provided value, case-insensitive.
-	OrganizationStateContainsFold *string `form:"state.ihas,omitempty" json:"organization_state_contains_fold,omitempty"`
-	// Filters field "state" to start with the provided value.
-	OrganizationStateHasPrefix *string `form:"state.prefix,omitempty" json:"organization_state_has_prefix,omitempty"`
-	// Filters field "state" to end with the provided value.
-	OrganizationStateHasSuffix *string `form:"state.suffix,omitempty" json:"organization_state_has_suffix,omitempty"`
 	// Filters field "country" to be equal to the provided value.
 	OrganizationCountryEQ *string `form:"country.eq,omitempty" json:"organization_country_eq,omitempty"`
 	// Filters field "country" to be not equal to the provided value.
@@ -4637,6 +3924,64 @@ type ListOrganizationParams struct {
 	OrganizationCountryHasPrefix *string `form:"country.prefix,omitempty" json:"organization_country_has_prefix,omitempty"`
 	// Filters field "country" to end with the provided value.
 	OrganizationCountryHasSuffix *string `form:"country.suffix,omitempty" json:"organization_country_has_suffix,omitempty"`
+	// Filters field "name" to be equal to the provided value.
+	OrganizationNameEQ *string `form:"name.eq,omitempty" json:"organization_name_eq,omitempty"`
+	// Filters field "name" to be not equal to the provided value.
+	OrganizationNameNEQ *string `form:"name.neq,omitempty" json:"organization_name_neq,omitempty"`
+	// Filters field "name" to be within the provided values.
+	OrganizationNameIn []string `form:"name.in,omitempty" json:"organization_name_in,omitempty"`
+	// Filters field "name" to be not within the provided values.
+	OrganizationNameNotIn []string `form:"name.notIn,omitempty" json:"organization_name_not_in,omitempty"`
+	// Filters field "name" to be equal to the provided value, case-insensitive.
+	OrganizationNameEqualFold *string `form:"name.ieq,omitempty" json:"organization_name_equal_fold,omitempty"`
+	// Filters field "name" to contain the provided value.
+	OrganizationNameContains *string `form:"name.has,omitempty" json:"organization_name_contains,omitempty"`
+	// Filters field "name" to contain the provided value, case-insensitive.
+	OrganizationNameContainsFold *string `form:"name.ihas,omitempty" json:"organization_name_contains_fold,omitempty"`
+	// Filters field "name" to start with the provided value.
+	OrganizationNameHasPrefix *string `form:"name.prefix,omitempty" json:"organization_name_has_prefix,omitempty"`
+	// Filters field "name" to end with the provided value.
+	OrganizationNameHasSuffix *string `form:"name.suffix,omitempty" json:"organization_name_has_suffix,omitempty"`
+	// Filters field "name_long" to be equal to the provided value.
+	OrganizationNameLongEQ *string `form:"nameLong.eq,omitempty" json:"organization_name_long_eq,omitempty"`
+	// Filters field "name_long" to be not equal to the provided value.
+	OrganizationNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"organization_name_long_neq,omitempty"`
+	// Filters field "name_long" to be null/nil.
+	OrganizationNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"organization_name_long_is_nil,omitempty"`
+	// Filters field "name_long" to be within the provided values.
+	OrganizationNameLongIn []string `form:"nameLong.in,omitempty" json:"organization_name_long_in,omitempty"`
+	// Filters field "name_long" to be not within the provided values.
+	OrganizationNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"organization_name_long_not_in,omitempty"`
+	// Filters field "name_long" to be equal to the provided value, case-insensitive.
+	OrganizationNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"organization_name_long_equal_fold,omitempty"`
+	// Filters field "name_long" to contain the provided value.
+	OrganizationNameLongContains *string `form:"nameLong.has,omitempty" json:"organization_name_long_contains,omitempty"`
+	// Filters field "name_long" to contain the provided value, case-insensitive.
+	OrganizationNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"organization_name_long_contains_fold,omitempty"`
+	// Filters field "name_long" to start with the provided value.
+	OrganizationNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"organization_name_long_has_prefix,omitempty"`
+	// Filters field "name_long" to end with the provided value.
+	OrganizationNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"organization_name_long_has_suffix,omitempty"`
+	// Filters field "state" to be equal to the provided value.
+	OrganizationStateEQ *string `form:"state.eq,omitempty" json:"organization_state_eq,omitempty"`
+	// Filters field "state" to be not equal to the provided value.
+	OrganizationStateNEQ *string `form:"state.neq,omitempty" json:"organization_state_neq,omitempty"`
+	// Filters field "state" to be null/nil.
+	OrganizationStateIsNil *bool `form:"state.null,omitempty" json:"organization_state_is_nil,omitempty"`
+	// Filters field "state" to be within the provided values.
+	OrganizationStateIn []string `form:"state.in,omitempty" json:"organization_state_in,omitempty"`
+	// Filters field "state" to be not within the provided values.
+	OrganizationStateNotIn []string `form:"state.notIn,omitempty" json:"organization_state_not_in,omitempty"`
+	// Filters field "state" to be equal to the provided value, case-insensitive.
+	OrganizationStateEqualFold *string `form:"state.ieq,omitempty" json:"organization_state_equal_fold,omitempty"`
+	// Filters field "state" to contain the provided value.
+	OrganizationStateContains *string `form:"state.has,omitempty" json:"organization_state_contains,omitempty"`
+	// Filters field "state" to contain the provided value, case-insensitive.
+	OrganizationStateContainsFold *string `form:"state.ihas,omitempty" json:"organization_state_contains_fold,omitempty"`
+	// Filters field "state" to start with the provided value.
+	OrganizationStateHasPrefix *string `form:"state.prefix,omitempty" json:"organization_state_has_prefix,omitempty"`
+	// Filters field "state" to end with the provided value.
+	OrganizationStateHasSuffix *string `form:"state.suffix,omitempty" json:"organization_state_has_suffix,omitempty"`
 	// Filters field "created" to be greater than the provided value.
 	OrganizationCreatedGT *time.Time `form:"created.gt,omitempty" json:"organization_created_gt,omitempty"`
 	// Filters field "created" to be greater than or equal to the provided value.
@@ -4677,33 +4022,6 @@ type ListOrganizationParams struct {
 func (l *ListOrganizationParams) FilterPredicates() (predicate.Organization, error) {
 	var predicates []predicate.Organization
 
-	if l.OrganizationNameEQ != nil {
-		predicates = append(predicates, organization.NameEQ(*l.OrganizationNameEQ))
-	}
-	if l.OrganizationNameNEQ != nil {
-		predicates = append(predicates, organization.NameNEQ(*l.OrganizationNameNEQ))
-	}
-	if l.OrganizationNameIn != nil {
-		predicates = append(predicates, organization.NameIn(l.OrganizationNameIn...))
-	}
-	if l.OrganizationNameNotIn != nil {
-		predicates = append(predicates, organization.NameNotIn(l.OrganizationNameNotIn...))
-	}
-	if l.OrganizationNameEqualFold != nil {
-		predicates = append(predicates, organization.NameEqualFold(*l.OrganizationNameEqualFold))
-	}
-	if l.OrganizationNameContains != nil {
-		predicates = append(predicates, organization.NameContains(*l.OrganizationNameContains))
-	}
-	if l.OrganizationNameContainsFold != nil {
-		predicates = append(predicates, organization.NameContainsFold(*l.OrganizationNameContainsFold))
-	}
-	if l.OrganizationNameHasPrefix != nil {
-		predicates = append(predicates, organization.NameHasPrefix(*l.OrganizationNameHasPrefix))
-	}
-	if l.OrganizationNameHasSuffix != nil {
-		predicates = append(predicates, organization.NameHasSuffix(*l.OrganizationNameHasSuffix))
-	}
 	if l.OrganizationAkaEQ != nil {
 		predicates = append(predicates, organization.AkaEQ(*l.OrganizationAkaEQ))
 	}
@@ -4737,40 +4055,6 @@ func (l *ListOrganizationParams) FilterPredicates() (predicate.Organization, err
 	}
 	if l.OrganizationAkaHasSuffix != nil {
 		predicates = append(predicates, organization.AkaHasSuffix(*l.OrganizationAkaHasSuffix))
-	}
-	if l.OrganizationNameLongEQ != nil {
-		predicates = append(predicates, organization.NameLongEQ(*l.OrganizationNameLongEQ))
-	}
-	if l.OrganizationNameLongNEQ != nil {
-		predicates = append(predicates, organization.NameLongNEQ(*l.OrganizationNameLongNEQ))
-	}
-	if l.OrganizationNameLongIsNil != nil {
-		if *l.OrganizationNameLongIsNil {
-			predicates = append(predicates, organization.NameLongIsNil())
-		} else {
-			predicates = append(predicates, organization.Not(organization.NameLongIsNil()))
-		}
-	}
-	if l.OrganizationNameLongIn != nil {
-		predicates = append(predicates, organization.NameLongIn(l.OrganizationNameLongIn...))
-	}
-	if l.OrganizationNameLongNotIn != nil {
-		predicates = append(predicates, organization.NameLongNotIn(l.OrganizationNameLongNotIn...))
-	}
-	if l.OrganizationNameLongEqualFold != nil {
-		predicates = append(predicates, organization.NameLongEqualFold(*l.OrganizationNameLongEqualFold))
-	}
-	if l.OrganizationNameLongContains != nil {
-		predicates = append(predicates, organization.NameLongContains(*l.OrganizationNameLongContains))
-	}
-	if l.OrganizationNameLongContainsFold != nil {
-		predicates = append(predicates, organization.NameLongContainsFold(*l.OrganizationNameLongContainsFold))
-	}
-	if l.OrganizationNameLongHasPrefix != nil {
-		predicates = append(predicates, organization.NameLongHasPrefix(*l.OrganizationNameLongHasPrefix))
-	}
-	if l.OrganizationNameLongHasSuffix != nil {
-		predicates = append(predicates, organization.NameLongHasSuffix(*l.OrganizationNameLongHasSuffix))
 	}
 	if l.OrganizationCityEQ != nil {
 		predicates = append(predicates, organization.CityEQ(*l.OrganizationCityEQ))
@@ -4806,40 +4090,6 @@ func (l *ListOrganizationParams) FilterPredicates() (predicate.Organization, err
 	if l.OrganizationCityHasSuffix != nil {
 		predicates = append(predicates, organization.CityHasSuffix(*l.OrganizationCityHasSuffix))
 	}
-	if l.OrganizationStateEQ != nil {
-		predicates = append(predicates, organization.StateEQ(*l.OrganizationStateEQ))
-	}
-	if l.OrganizationStateNEQ != nil {
-		predicates = append(predicates, organization.StateNEQ(*l.OrganizationStateNEQ))
-	}
-	if l.OrganizationStateIsNil != nil {
-		if *l.OrganizationStateIsNil {
-			predicates = append(predicates, organization.StateIsNil())
-		} else {
-			predicates = append(predicates, organization.Not(organization.StateIsNil()))
-		}
-	}
-	if l.OrganizationStateIn != nil {
-		predicates = append(predicates, organization.StateIn(l.OrganizationStateIn...))
-	}
-	if l.OrganizationStateNotIn != nil {
-		predicates = append(predicates, organization.StateNotIn(l.OrganizationStateNotIn...))
-	}
-	if l.OrganizationStateEqualFold != nil {
-		predicates = append(predicates, organization.StateEqualFold(*l.OrganizationStateEqualFold))
-	}
-	if l.OrganizationStateContains != nil {
-		predicates = append(predicates, organization.StateContains(*l.OrganizationStateContains))
-	}
-	if l.OrganizationStateContainsFold != nil {
-		predicates = append(predicates, organization.StateContainsFold(*l.OrganizationStateContainsFold))
-	}
-	if l.OrganizationStateHasPrefix != nil {
-		predicates = append(predicates, organization.StateHasPrefix(*l.OrganizationStateHasPrefix))
-	}
-	if l.OrganizationStateHasSuffix != nil {
-		predicates = append(predicates, organization.StateHasSuffix(*l.OrganizationStateHasSuffix))
-	}
 	if l.OrganizationCountryEQ != nil {
 		predicates = append(predicates, organization.CountryEQ(*l.OrganizationCountryEQ))
 	}
@@ -4873,6 +4123,101 @@ func (l *ListOrganizationParams) FilterPredicates() (predicate.Organization, err
 	}
 	if l.OrganizationCountryHasSuffix != nil {
 		predicates = append(predicates, organization.CountryHasSuffix(*l.OrganizationCountryHasSuffix))
+	}
+	if l.OrganizationNameEQ != nil {
+		predicates = append(predicates, organization.NameEQ(*l.OrganizationNameEQ))
+	}
+	if l.OrganizationNameNEQ != nil {
+		predicates = append(predicates, organization.NameNEQ(*l.OrganizationNameNEQ))
+	}
+	if l.OrganizationNameIn != nil {
+		predicates = append(predicates, organization.NameIn(l.OrganizationNameIn...))
+	}
+	if l.OrganizationNameNotIn != nil {
+		predicates = append(predicates, organization.NameNotIn(l.OrganizationNameNotIn...))
+	}
+	if l.OrganizationNameEqualFold != nil {
+		predicates = append(predicates, organization.NameEqualFold(*l.OrganizationNameEqualFold))
+	}
+	if l.OrganizationNameContains != nil {
+		predicates = append(predicates, organization.NameContains(*l.OrganizationNameContains))
+	}
+	if l.OrganizationNameContainsFold != nil {
+		predicates = append(predicates, organization.NameContainsFold(*l.OrganizationNameContainsFold))
+	}
+	if l.OrganizationNameHasPrefix != nil {
+		predicates = append(predicates, organization.NameHasPrefix(*l.OrganizationNameHasPrefix))
+	}
+	if l.OrganizationNameHasSuffix != nil {
+		predicates = append(predicates, organization.NameHasSuffix(*l.OrganizationNameHasSuffix))
+	}
+	if l.OrganizationNameLongEQ != nil {
+		predicates = append(predicates, organization.NameLongEQ(*l.OrganizationNameLongEQ))
+	}
+	if l.OrganizationNameLongNEQ != nil {
+		predicates = append(predicates, organization.NameLongNEQ(*l.OrganizationNameLongNEQ))
+	}
+	if l.OrganizationNameLongIsNil != nil {
+		if *l.OrganizationNameLongIsNil {
+			predicates = append(predicates, organization.NameLongIsNil())
+		} else {
+			predicates = append(predicates, organization.Not(organization.NameLongIsNil()))
+		}
+	}
+	if l.OrganizationNameLongIn != nil {
+		predicates = append(predicates, organization.NameLongIn(l.OrganizationNameLongIn...))
+	}
+	if l.OrganizationNameLongNotIn != nil {
+		predicates = append(predicates, organization.NameLongNotIn(l.OrganizationNameLongNotIn...))
+	}
+	if l.OrganizationNameLongEqualFold != nil {
+		predicates = append(predicates, organization.NameLongEqualFold(*l.OrganizationNameLongEqualFold))
+	}
+	if l.OrganizationNameLongContains != nil {
+		predicates = append(predicates, organization.NameLongContains(*l.OrganizationNameLongContains))
+	}
+	if l.OrganizationNameLongContainsFold != nil {
+		predicates = append(predicates, organization.NameLongContainsFold(*l.OrganizationNameLongContainsFold))
+	}
+	if l.OrganizationNameLongHasPrefix != nil {
+		predicates = append(predicates, organization.NameLongHasPrefix(*l.OrganizationNameLongHasPrefix))
+	}
+	if l.OrganizationNameLongHasSuffix != nil {
+		predicates = append(predicates, organization.NameLongHasSuffix(*l.OrganizationNameLongHasSuffix))
+	}
+	if l.OrganizationStateEQ != nil {
+		predicates = append(predicates, organization.StateEQ(*l.OrganizationStateEQ))
+	}
+	if l.OrganizationStateNEQ != nil {
+		predicates = append(predicates, organization.StateNEQ(*l.OrganizationStateNEQ))
+	}
+	if l.OrganizationStateIsNil != nil {
+		if *l.OrganizationStateIsNil {
+			predicates = append(predicates, organization.StateIsNil())
+		} else {
+			predicates = append(predicates, organization.Not(organization.StateIsNil()))
+		}
+	}
+	if l.OrganizationStateIn != nil {
+		predicates = append(predicates, organization.StateIn(l.OrganizationStateIn...))
+	}
+	if l.OrganizationStateNotIn != nil {
+		predicates = append(predicates, organization.StateNotIn(l.OrganizationStateNotIn...))
+	}
+	if l.OrganizationStateEqualFold != nil {
+		predicates = append(predicates, organization.StateEqualFold(*l.OrganizationStateEqualFold))
+	}
+	if l.OrganizationStateContains != nil {
+		predicates = append(predicates, organization.StateContains(*l.OrganizationStateContains))
+	}
+	if l.OrganizationStateContainsFold != nil {
+		predicates = append(predicates, organization.StateContainsFold(*l.OrganizationStateContainsFold))
+	}
+	if l.OrganizationStateHasPrefix != nil {
+		predicates = append(predicates, organization.StateHasPrefix(*l.OrganizationStateHasPrefix))
+	}
+	if l.OrganizationStateHasSuffix != nil {
+		predicates = append(predicates, organization.StateHasSuffix(*l.OrganizationStateHasSuffix))
 	}
 	if l.OrganizationCreatedGT != nil {
 		predicates = append(predicates, organization.CreatedGT(*l.OrganizationCreatedGT))
@@ -4970,6 +4315,46 @@ type ListPocParams struct {
 	PocNetIDIn []int `form:"netID.in,omitempty" json:"poc_net_id_in,omitempty"`
 	// Filters field "net_id" to be not within the provided values.
 	PocNetIDNotIn []int `form:"netID.notIn,omitempty" json:"poc_net_id_not_in,omitempty"`
+	// Filters field "email" to be equal to the provided value.
+	PocEmailEQ *string `form:"email.eq,omitempty" json:"poc_email_eq,omitempty"`
+	// Filters field "email" to be not equal to the provided value.
+	PocEmailNEQ *string `form:"email.neq,omitempty" json:"poc_email_neq,omitempty"`
+	// Filters field "email" to be null/nil.
+	PocEmailIsNil *bool `form:"email.null,omitempty" json:"poc_email_is_nil,omitempty"`
+	// Filters field "email" to be within the provided values.
+	PocEmailIn []string `form:"email.in,omitempty" json:"poc_email_in,omitempty"`
+	// Filters field "email" to be not within the provided values.
+	PocEmailNotIn []string `form:"email.notIn,omitempty" json:"poc_email_not_in,omitempty"`
+	// Filters field "email" to be equal to the provided value, case-insensitive.
+	PocEmailEqualFold *string `form:"email.ieq,omitempty" json:"poc_email_equal_fold,omitempty"`
+	// Filters field "email" to contain the provided value.
+	PocEmailContains *string `form:"email.has,omitempty" json:"poc_email_contains,omitempty"`
+	// Filters field "email" to contain the provided value, case-insensitive.
+	PocEmailContainsFold *string `form:"email.ihas,omitempty" json:"poc_email_contains_fold,omitempty"`
+	// Filters field "email" to start with the provided value.
+	PocEmailHasPrefix *string `form:"email.prefix,omitempty" json:"poc_email_has_prefix,omitempty"`
+	// Filters field "email" to end with the provided value.
+	PocEmailHasSuffix *string `form:"email.suffix,omitempty" json:"poc_email_has_suffix,omitempty"`
+	// Filters field "name" to be equal to the provided value.
+	PocNameEQ *string `form:"name.eq,omitempty" json:"poc_name_eq,omitempty"`
+	// Filters field "name" to be not equal to the provided value.
+	PocNameNEQ *string `form:"name.neq,omitempty" json:"poc_name_neq,omitempty"`
+	// Filters field "name" to be null/nil.
+	PocNameIsNil *bool `form:"name.null,omitempty" json:"poc_name_is_nil,omitempty"`
+	// Filters field "name" to be within the provided values.
+	PocNameIn []string `form:"name.in,omitempty" json:"poc_name_in,omitempty"`
+	// Filters field "name" to be not within the provided values.
+	PocNameNotIn []string `form:"name.notIn,omitempty" json:"poc_name_not_in,omitempty"`
+	// Filters field "name" to be equal to the provided value, case-insensitive.
+	PocNameEqualFold *string `form:"name.ieq,omitempty" json:"poc_name_equal_fold,omitempty"`
+	// Filters field "name" to contain the provided value.
+	PocNameContains *string `form:"name.has,omitempty" json:"poc_name_contains,omitempty"`
+	// Filters field "name" to contain the provided value, case-insensitive.
+	PocNameContainsFold *string `form:"name.ihas,omitempty" json:"poc_name_contains_fold,omitempty"`
+	// Filters field "name" to start with the provided value.
+	PocNameHasPrefix *string `form:"name.prefix,omitempty" json:"poc_name_has_prefix,omitempty"`
+	// Filters field "name" to end with the provided value.
+	PocNameHasSuffix *string `form:"name.suffix,omitempty" json:"poc_name_has_suffix,omitempty"`
 	// Filters field "role" to be equal to the provided value.
 	PocRoleEQ *string `form:"role.eq,omitempty" json:"poc_role_eq,omitempty"`
 	// Filters field "role" to be not equal to the provided value.
@@ -4992,6 +4377,8 @@ type ListPocParams struct {
 	PocVisibleEQ *string `form:"visible.eq,omitempty" json:"poc_visible_eq,omitempty"`
 	// Filters field "visible" to be not equal to the provided value.
 	PocVisibleNEQ *string `form:"visible.neq,omitempty" json:"poc_visible_neq,omitempty"`
+	// Filters field "visible" to be null/nil.
+	PocVisibleIsNil *bool `form:"visible.null,omitempty" json:"poc_visible_is_nil,omitempty"`
 	// Filters field "visible" to be within the provided values.
 	PocVisibleIn []string `form:"visible.in,omitempty" json:"poc_visible_in,omitempty"`
 	// Filters field "visible" to be not within the provided values.
@@ -5006,46 +4393,6 @@ type ListPocParams struct {
 	PocVisibleHasPrefix *string `form:"visible.prefix,omitempty" json:"poc_visible_has_prefix,omitempty"`
 	// Filters field "visible" to end with the provided value.
 	PocVisibleHasSuffix *string `form:"visible.suffix,omitempty" json:"poc_visible_has_suffix,omitempty"`
-	// Filters field "name" to be equal to the provided value.
-	PocNameEQ *string `form:"name.eq,omitempty" json:"poc_name_eq,omitempty"`
-	// Filters field "name" to be not equal to the provided value.
-	PocNameNEQ *string `form:"name.neq,omitempty" json:"poc_name_neq,omitempty"`
-	// Filters field "name" to be null/nil.
-	PocNameIsNil *bool `form:"name.null,omitempty" json:"poc_name_is_nil,omitempty"`
-	// Filters field "name" to be within the provided values.
-	PocNameIn []string `form:"name.in,omitempty" json:"poc_name_in,omitempty"`
-	// Filters field "name" to be not within the provided values.
-	PocNameNotIn []string `form:"name.notIn,omitempty" json:"poc_name_not_in,omitempty"`
-	// Filters field "name" to be equal to the provided value, case-insensitive.
-	PocNameEqualFold *string `form:"name.ieq,omitempty" json:"poc_name_equal_fold,omitempty"`
-	// Filters field "name" to contain the provided value.
-	PocNameContains *string `form:"name.has,omitempty" json:"poc_name_contains,omitempty"`
-	// Filters field "name" to contain the provided value, case-insensitive.
-	PocNameContainsFold *string `form:"name.ihas,omitempty" json:"poc_name_contains_fold,omitempty"`
-	// Filters field "name" to start with the provided value.
-	PocNameHasPrefix *string `form:"name.prefix,omitempty" json:"poc_name_has_prefix,omitempty"`
-	// Filters field "name" to end with the provided value.
-	PocNameHasSuffix *string `form:"name.suffix,omitempty" json:"poc_name_has_suffix,omitempty"`
-	// Filters field "email" to be equal to the provided value.
-	PocEmailEQ *string `form:"email.eq,omitempty" json:"poc_email_eq,omitempty"`
-	// Filters field "email" to be not equal to the provided value.
-	PocEmailNEQ *string `form:"email.neq,omitempty" json:"poc_email_neq,omitempty"`
-	// Filters field "email" to be null/nil.
-	PocEmailIsNil *bool `form:"email.null,omitempty" json:"poc_email_is_nil,omitempty"`
-	// Filters field "email" to be within the provided values.
-	PocEmailIn []string `form:"email.in,omitempty" json:"poc_email_in,omitempty"`
-	// Filters field "email" to be not within the provided values.
-	PocEmailNotIn []string `form:"email.notIn,omitempty" json:"poc_email_not_in,omitempty"`
-	// Filters field "email" to be equal to the provided value, case-insensitive.
-	PocEmailEqualFold *string `form:"email.ieq,omitempty" json:"poc_email_equal_fold,omitempty"`
-	// Filters field "email" to contain the provided value.
-	PocEmailContains *string `form:"email.has,omitempty" json:"poc_email_contains,omitempty"`
-	// Filters field "email" to contain the provided value, case-insensitive.
-	PocEmailContainsFold *string `form:"email.ihas,omitempty" json:"poc_email_contains_fold,omitempty"`
-	// Filters field "email" to start with the provided value.
-	PocEmailHasPrefix *string `form:"email.prefix,omitempty" json:"poc_email_has_prefix,omitempty"`
-	// Filters field "email" to end with the provided value.
-	PocEmailHasSuffix *string `form:"email.suffix,omitempty" json:"poc_email_has_suffix,omitempty"`
 	// Filters field "created" to be greater than the provided value.
 	PocCreatedGT *time.Time `form:"created.gt,omitempty" json:"poc_created_gt,omitempty"`
 	// Filters field "created" to be greater than or equal to the provided value.
@@ -5098,59 +4445,39 @@ func (l *ListPocParams) FilterPredicates() (predicate.Poc, error) {
 	if l.PocNetIDNotIn != nil {
 		predicates = append(predicates, poc.NetIDNotIn(l.PocNetIDNotIn...))
 	}
-	if l.PocRoleEQ != nil {
-		predicates = append(predicates, poc.RoleEQ(*l.PocRoleEQ))
+	if l.PocEmailEQ != nil {
+		predicates = append(predicates, poc.EmailEQ(*l.PocEmailEQ))
 	}
-	if l.PocRoleNEQ != nil {
-		predicates = append(predicates, poc.RoleNEQ(*l.PocRoleNEQ))
+	if l.PocEmailNEQ != nil {
+		predicates = append(predicates, poc.EmailNEQ(*l.PocEmailNEQ))
 	}
-	if l.PocRoleIn != nil {
-		predicates = append(predicates, poc.RoleIn(l.PocRoleIn...))
+	if l.PocEmailIsNil != nil {
+		if *l.PocEmailIsNil {
+			predicates = append(predicates, poc.EmailIsNil())
+		} else {
+			predicates = append(predicates, poc.Not(poc.EmailIsNil()))
+		}
 	}
-	if l.PocRoleNotIn != nil {
-		predicates = append(predicates, poc.RoleNotIn(l.PocRoleNotIn...))
+	if l.PocEmailIn != nil {
+		predicates = append(predicates, poc.EmailIn(l.PocEmailIn...))
 	}
-	if l.PocRoleEqualFold != nil {
-		predicates = append(predicates, poc.RoleEqualFold(*l.PocRoleEqualFold))
+	if l.PocEmailNotIn != nil {
+		predicates = append(predicates, poc.EmailNotIn(l.PocEmailNotIn...))
 	}
-	if l.PocRoleContains != nil {
-		predicates = append(predicates, poc.RoleContains(*l.PocRoleContains))
+	if l.PocEmailEqualFold != nil {
+		predicates = append(predicates, poc.EmailEqualFold(*l.PocEmailEqualFold))
 	}
-	if l.PocRoleContainsFold != nil {
-		predicates = append(predicates, poc.RoleContainsFold(*l.PocRoleContainsFold))
+	if l.PocEmailContains != nil {
+		predicates = append(predicates, poc.EmailContains(*l.PocEmailContains))
 	}
-	if l.PocRoleHasPrefix != nil {
-		predicates = append(predicates, poc.RoleHasPrefix(*l.PocRoleHasPrefix))
+	if l.PocEmailContainsFold != nil {
+		predicates = append(predicates, poc.EmailContainsFold(*l.PocEmailContainsFold))
 	}
-	if l.PocRoleHasSuffix != nil {
-		predicates = append(predicates, poc.RoleHasSuffix(*l.PocRoleHasSuffix))
+	if l.PocEmailHasPrefix != nil {
+		predicates = append(predicates, poc.EmailHasPrefix(*l.PocEmailHasPrefix))
 	}
-	if l.PocVisibleEQ != nil {
-		predicates = append(predicates, poc.VisibleEQ(*l.PocVisibleEQ))
-	}
-	if l.PocVisibleNEQ != nil {
-		predicates = append(predicates, poc.VisibleNEQ(*l.PocVisibleNEQ))
-	}
-	if l.PocVisibleIn != nil {
-		predicates = append(predicates, poc.VisibleIn(l.PocVisibleIn...))
-	}
-	if l.PocVisibleNotIn != nil {
-		predicates = append(predicates, poc.VisibleNotIn(l.PocVisibleNotIn...))
-	}
-	if l.PocVisibleEqualFold != nil {
-		predicates = append(predicates, poc.VisibleEqualFold(*l.PocVisibleEqualFold))
-	}
-	if l.PocVisibleContains != nil {
-		predicates = append(predicates, poc.VisibleContains(*l.PocVisibleContains))
-	}
-	if l.PocVisibleContainsFold != nil {
-		predicates = append(predicates, poc.VisibleContainsFold(*l.PocVisibleContainsFold))
-	}
-	if l.PocVisibleHasPrefix != nil {
-		predicates = append(predicates, poc.VisibleHasPrefix(*l.PocVisibleHasPrefix))
-	}
-	if l.PocVisibleHasSuffix != nil {
-		predicates = append(predicates, poc.VisibleHasSuffix(*l.PocVisibleHasSuffix))
+	if l.PocEmailHasSuffix != nil {
+		predicates = append(predicates, poc.EmailHasSuffix(*l.PocEmailHasSuffix))
 	}
 	if l.PocNameEQ != nil {
 		predicates = append(predicates, poc.NameEQ(*l.PocNameEQ))
@@ -5186,39 +4513,66 @@ func (l *ListPocParams) FilterPredicates() (predicate.Poc, error) {
 	if l.PocNameHasSuffix != nil {
 		predicates = append(predicates, poc.NameHasSuffix(*l.PocNameHasSuffix))
 	}
-	if l.PocEmailEQ != nil {
-		predicates = append(predicates, poc.EmailEQ(*l.PocEmailEQ))
+	if l.PocRoleEQ != nil {
+		predicates = append(predicates, poc.RoleEQ(*l.PocRoleEQ))
 	}
-	if l.PocEmailNEQ != nil {
-		predicates = append(predicates, poc.EmailNEQ(*l.PocEmailNEQ))
+	if l.PocRoleNEQ != nil {
+		predicates = append(predicates, poc.RoleNEQ(*l.PocRoleNEQ))
 	}
-	if l.PocEmailIsNil != nil {
-		if *l.PocEmailIsNil {
-			predicates = append(predicates, poc.EmailIsNil())
+	if l.PocRoleIn != nil {
+		predicates = append(predicates, poc.RoleIn(l.PocRoleIn...))
+	}
+	if l.PocRoleNotIn != nil {
+		predicates = append(predicates, poc.RoleNotIn(l.PocRoleNotIn...))
+	}
+	if l.PocRoleEqualFold != nil {
+		predicates = append(predicates, poc.RoleEqualFold(*l.PocRoleEqualFold))
+	}
+	if l.PocRoleContains != nil {
+		predicates = append(predicates, poc.RoleContains(*l.PocRoleContains))
+	}
+	if l.PocRoleContainsFold != nil {
+		predicates = append(predicates, poc.RoleContainsFold(*l.PocRoleContainsFold))
+	}
+	if l.PocRoleHasPrefix != nil {
+		predicates = append(predicates, poc.RoleHasPrefix(*l.PocRoleHasPrefix))
+	}
+	if l.PocRoleHasSuffix != nil {
+		predicates = append(predicates, poc.RoleHasSuffix(*l.PocRoleHasSuffix))
+	}
+	if l.PocVisibleEQ != nil {
+		predicates = append(predicates, poc.VisibleEQ(*l.PocVisibleEQ))
+	}
+	if l.PocVisibleNEQ != nil {
+		predicates = append(predicates, poc.VisibleNEQ(*l.PocVisibleNEQ))
+	}
+	if l.PocVisibleIsNil != nil {
+		if *l.PocVisibleIsNil {
+			predicates = append(predicates, poc.VisibleIsNil())
 		} else {
-			predicates = append(predicates, poc.Not(poc.EmailIsNil()))
+			predicates = append(predicates, poc.Not(poc.VisibleIsNil()))
 		}
 	}
-	if l.PocEmailIn != nil {
-		predicates = append(predicates, poc.EmailIn(l.PocEmailIn...))
+	if l.PocVisibleIn != nil {
+		predicates = append(predicates, poc.VisibleIn(l.PocVisibleIn...))
 	}
-	if l.PocEmailNotIn != nil {
-		predicates = append(predicates, poc.EmailNotIn(l.PocEmailNotIn...))
+	if l.PocVisibleNotIn != nil {
+		predicates = append(predicates, poc.VisibleNotIn(l.PocVisibleNotIn...))
 	}
-	if l.PocEmailEqualFold != nil {
-		predicates = append(predicates, poc.EmailEqualFold(*l.PocEmailEqualFold))
+	if l.PocVisibleEqualFold != nil {
+		predicates = append(predicates, poc.VisibleEqualFold(*l.PocVisibleEqualFold))
 	}
-	if l.PocEmailContains != nil {
-		predicates = append(predicates, poc.EmailContains(*l.PocEmailContains))
+	if l.PocVisibleContains != nil {
+		predicates = append(predicates, poc.VisibleContains(*l.PocVisibleContains))
 	}
-	if l.PocEmailContainsFold != nil {
-		predicates = append(predicates, poc.EmailContainsFold(*l.PocEmailContainsFold))
+	if l.PocVisibleContainsFold != nil {
+		predicates = append(predicates, poc.VisibleContainsFold(*l.PocVisibleContainsFold))
 	}
-	if l.PocEmailHasPrefix != nil {
-		predicates = append(predicates, poc.EmailHasPrefix(*l.PocEmailHasPrefix))
+	if l.PocVisibleHasPrefix != nil {
+		predicates = append(predicates, poc.VisibleHasPrefix(*l.PocVisibleHasPrefix))
 	}
-	if l.PocEmailHasSuffix != nil {
-		predicates = append(predicates, poc.EmailHasSuffix(*l.PocEmailHasSuffix))
+	if l.PocVisibleHasSuffix != nil {
+		predicates = append(predicates, poc.VisibleHasSuffix(*l.PocVisibleHasSuffix))
 	}
 	if l.PocCreatedGT != nil {
 		predicates = append(predicates, poc.CreatedGT(*l.PocCreatedGT))

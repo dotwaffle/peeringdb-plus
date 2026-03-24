@@ -28,65 +28,68 @@ func (Campus) Fields() []ent.Field {
 			Nillable().
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to organization"),
-		field.String("org_name").
+		field.String("aka").
+			MaxLen(255).
 			Optional().
-			Comment("Organization name (computed)"),
+			Nillable().
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("Also known as"),
+		field.String("city").
+			Optional().
+			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("City"),
+		field.String("country").
+			Optional().
+			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("Country code"),
+		field.String("logo").
+			Optional().
+			Nillable().
+			Comment("Logo URL"),
 		field.String("name").
 			MaxLen(255).
 			NotEmpty().
 			Unique().
 			Annotations(
 				entgql.OrderField("NAME"),
-				entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray),
+				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
 			).
 			Comment("Campus name"),
 		field.String("name_long").
+			MaxLen(255).
 			Optional().
 			Nillable().
-			MaxLen(255).
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Long name"),
-		field.String("aka").
-			Optional().
-			Nillable().
-			MaxLen(255).
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Also known as"),
-		field.String("website").
-			Optional().
-			Default("").
-			Comment("Campus website URL"),
-		field.JSON("social_media", []SocialMedia{}).
-			Optional().
-			Annotations(entrest.WithSchema(socialMediaSchema())).
-			Comment("Social media links"),
 		field.String("notes").
 			Optional().
 			Default("").
 			Comment("Notes"),
-		field.String("country").
+		field.JSON("social_media", []SocialMedia{}).
 			Optional().
-			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Country code"),
-		field.String("city").
-			Optional().
-			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("City"),
-		field.String("zipcode").
-			Optional().
-			Default("").
-			Comment("Postal / ZIP code"),
+			Annotations(entrest.WithSchema(socialMediaSchema())).
+			Comment("Social media links"),
 		field.String("state").
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("State or province"),
-		field.String("logo").
+		field.String("website").
 			Optional().
-			Nillable().
-			Comment("Logo URL"),
+			Default("").
+			Comment("Campus website URL"),
+		field.String("zipcode").
+			Optional().
+			Default("").
+			Comment("Postal / ZIP code"),
+
+		// Computed fields (from serializer, stored per D-40)
+		field.String("org_name").
+			Optional().
+			Default("").
+			Comment("Org Name (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").
@@ -107,12 +110,12 @@ func (Campus) Fields() []ent.Field {
 // Edges of the Campus.
 func (Campus) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("facilities", Facility.Type).
+			Annotations(entrest.WithEagerLoad(true)),
 		edge.From("organization", Organization.Type).
 			Ref("campuses").
 			Field("org_id").
 			Unique().
-			Annotations(entrest.WithEagerLoad(true)),
-		edge.To("facilities", Facility.Type).
 			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
@@ -121,8 +124,8 @@ func (Campus) Edges() []ent.Edge {
 func (Campus) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("name"),
-		index.Fields("status"),
 		index.Fields("org_id"),
+		index.Fields("status"),
 	}
 }
 

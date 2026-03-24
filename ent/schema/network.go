@@ -28,62 +28,29 @@ func (Network) Fields() []ent.Field {
 			Nillable().
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to organization"),
-		field.String("name").
-			MaxLen(255).
-			NotEmpty().
-			Unique().
-			Annotations(
-				entgql.OrderField("NAME"),
-				entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray),
-			).
-			Comment("Network name"),
 		field.String("aka").
-			Optional().
 			MaxLen(255).
+			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Also known as"),
-		field.String("name_long").
-			Optional().
-			MaxLen(255).
-			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Long name"),
-		field.String("website").
-			Optional().
-			Default("").
-			Comment("Network website URL"),
-		field.JSON("social_media", []SocialMedia{}).
-			Optional().
-			Annotations(entrest.WithSchema(socialMediaSchema())).
-			Comment("Social media links"),
+		field.Bool("allow_ixp_update").
+			Default(false).
+			Comment("Allow IXP update"),
 		field.Int("asn").
 			Unique().
 			Positive().
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("Autonomous System Number"),
-		field.String("looking_glass").
-			Optional().
-			Default("").
-			Comment("Looking glass URL"),
-		field.String("route_server").
-			Optional().
-			Default("").
-			Comment("Route server URL"),
-		field.String("irr_as_set").
-			Optional().
-			MaxLen(255).
-			Default("").
-			Comment("IRR AS-SET"),
-		field.String("info_type").
-			Optional().
-			MaxLen(60).
-			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Network type"),
-		field.JSON("info_types", []string{}).
-			Optional().
-			Comment("Network types (multi-choice)"),
+		field.Bool("info_ipv6").
+			Default(false).
+			Comment("Supports IPv6"),
+		field.Bool("info_multicast").
+			Default(false).
+			Comment("Supports multicast"),
+		field.Bool("info_never_via_route_servers").
+			Default(false).
+			Comment("Never via route servers"),
 		field.Int("info_prefixes4").
 			Optional().
 			Nillable().
@@ -92,107 +59,133 @@ func (Network) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("IPv6 prefix count"),
-		field.String("info_traffic").
-			Optional().
-			MaxLen(39).
-			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Traffic level"),
 		field.String("info_ratio").
-			Optional().
 			MaxLen(45).
+			Optional().
 			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Traffic ratio"),
 		field.String("info_scope").
-			Optional().
 			MaxLen(39).
+			Optional().
 			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Geographic scope"),
+		field.String("info_traffic").
+			MaxLen(39).
+			Optional().
+			Default("").
+			Comment("Traffic level"),
+		field.String("info_type").
+			MaxLen(60).
+			Optional().
+			Default("").
+			Comment("Network type"),
+		field.JSON("info_types", []string{}).
+			Optional().
+			Comment("Network types (multi-choice)"),
 		field.Bool("info_unicast").
 			Default(false).
-			Annotations(entrest.WithFilter(entrest.FilterEQ)).
 			Comment("Supports unicast"),
-		field.Bool("info_multicast").
-			Default(false).
-			Comment("Supports multicast"),
-		field.Bool("info_ipv6").
-			Default(false).
-			Annotations(entrest.WithFilter(entrest.FilterEQ)).
-			Comment("Supports IPv6"),
-		field.Bool("info_never_via_route_servers").
-			Default(false).
-			Comment("Never via route servers"),
+		field.String("irr_as_set").
+			MaxLen(255).
+			Optional().
+			Default("").
+			Comment("IRR AS-SET"),
+		field.String("logo").
+			Optional().
+			Nillable().
+			Comment("Logo URL"),
+		field.String("looking_glass").
+			Optional().
+			Default("").
+			Comment("Looking glass URL"),
+		field.String("name").
+			MaxLen(255).
+			NotEmpty().
+			Unique().
+			Annotations(
+				entgql.OrderField("NAME"),
+				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
+			).
+			Comment("Network name"),
+		field.String("name_long").
+			MaxLen(255).
+			Optional().
+			Default("").
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
+			Comment("Long name"),
 		field.String("notes").
 			Optional().
 			Default("").
 			Comment("Notes"),
-		field.String("policy_url").
+		field.String("policy_contracts").
+			MaxLen(36).
 			Optional().
 			Default("").
-			Comment("Peering policy URL"),
+			Comment("Peering policy contracts"),
 		field.String("policy_general").
-			Optional().
 			MaxLen(72).
+			Optional().
 			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("General peering policy"),
 		field.String("policy_locations").
-			Optional().
 			MaxLen(72).
+			Optional().
 			Default("").
 			Comment("Peering policy locations"),
 		field.Bool("policy_ratio").
 			Default(false).
 			Comment("Peering policy ratio requirement"),
-		field.String("policy_contracts").
+		field.String("policy_url").
 			Optional().
-			MaxLen(36).
 			Default("").
-			Comment("Peering policy contracts"),
-		field.Bool("allow_ixp_update").
-			Default(false).
-			Comment("Allow IXP update"),
-		field.String("status_dashboard").
-			Optional().
-			Nillable().
-			Comment("Status dashboard URL"),
+			Comment("Peering policy URL"),
 		field.String("rir_status").
+			MaxLen(255).
 			Optional().
 			Nillable().
-			MaxLen(255).
 			Comment("RIR status"),
 		field.Time("rir_status_updated").
 			Optional().
 			Nillable().
 			Comment("RIR status last updated"),
-		field.String("logo").
+		field.String("route_server").
+			Optional().
+			Default("").
+			Comment("Route server URL"),
+		field.JSON("social_media", []SocialMedia{}).
+			Optional().
+			Annotations(entrest.WithSchema(socialMediaSchema())).
+			Comment("Social media links"),
+		field.String("status_dashboard").
 			Optional().
 			Nillable().
-			Comment("Logo URL"),
+			Comment("Status dashboard URL"),
+		field.String("website").
+			Optional().
+			Default("").
+			Comment("Network website URL"),
 
 		// Computed fields (from serializer, stored per D-40)
 		field.Int("ix_count").
 			Optional().
 			Default(0).
-			Comment("Internet exchange count (computed)"),
+			Comment("Ix Count (computed)"),
 		field.Int("fac_count").
 			Optional().
 			Default(0).
-			Comment("Facility count (computed)"),
+			Comment("Fac Count (computed)"),
 		field.Time("netixlan_updated").
 			Optional().
 			Nillable().
-			Comment("Last netixlan update (computed)"),
+			Comment("Netixlan Updated (computed)"),
 		field.Time("netfac_updated").
 			Optional().
 			Nillable().
-			Comment("Last netfac update (computed)"),
+			Comment("Netfac Updated (computed)"),
 		field.Time("poc_updated").
 			Optional().
 			Nillable().
-			Comment("Last POC update (computed)"),
+			Comment("Poc Updated (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").
@@ -213,6 +206,10 @@ func (Network) Fields() []ent.Field {
 // Edges of the Network.
 func (Network) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("network_facilities", NetworkFacility.Type).
+			Annotations(entrest.WithEagerLoad(true)),
+		edge.To("network_ix_lans", NetworkIxLan.Type).
+			Annotations(entrest.WithEagerLoad(true)),
 		edge.From("organization", Organization.Type).
 			Ref("networks").
 			Field("org_id").
@@ -220,20 +217,16 @@ func (Network) Edges() []ent.Edge {
 			Annotations(entrest.WithEagerLoad(true)),
 		edge.To("pocs", Poc.Type).
 			Annotations(entrest.WithEagerLoad(true)),
-		edge.To("network_facilities", NetworkFacility.Type).
-			Annotations(entrest.WithEagerLoad(true)),
-		edge.To("network_ix_lans", NetworkIxLan.Type).
-			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
 
 // Indexes of the Network.
 func (Network) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("name"),
-		index.Fields("status"),
 		index.Fields("asn"),
+		index.Fields("name"),
 		index.Fields("org_id"),
+		index.Fields("status"),
 	}
 }
 

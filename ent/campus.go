@@ -23,30 +23,30 @@ type Campus struct {
 	ID int `json:"id,omitempty"`
 	// FK to organization
 	OrgID *int `json:"org_id"`
-	// Organization name (computed)
-	OrgName string `json:"org_name"`
+	// Also known as
+	Aka *string `json:"aka"`
+	// City
+	City string `json:"city"`
+	// Country code
+	Country string `json:"country"`
+	// Logo URL
+	Logo *string `json:"logo"`
 	// Campus name
 	Name string `json:"name"`
 	// Long name
 	NameLong *string `json:"name_long"`
-	// Also known as
-	Aka *string `json:"aka"`
-	// Campus website URL
-	Website string `json:"website"`
-	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media"`
 	// Notes
 	Notes string `json:"notes"`
-	// Country code
-	Country string `json:"country"`
-	// City
-	City string `json:"city"`
-	// Postal / ZIP code
-	Zipcode string `json:"zipcode"`
+	// Social media links
+	SocialMedia []schema.SocialMedia `json:"social_media"`
 	// State or province
 	State string `json:"state"`
-	// Logo URL
-	Logo *string `json:"logo"`
+	// Campus website URL
+	Website string `json:"website"`
+	// Postal / ZIP code
+	Zipcode string `json:"zipcode"`
+	// Org Name (computed)
+	OrgName string `json:"org_name"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -61,10 +61,10 @@ type Campus struct {
 
 // CampusEdges holds the relations/edges for other nodes in the graph.
 type CampusEdges struct {
-	// Organization holds the value of the organization edge.
-	Organization *Organization `json:"organization,omitempty"`
 	// Facilities holds the value of the facilities edge.
 	Facilities []*Facility `json:"facilities,omitempty"`
+	// Organization holds the value of the organization edge.
+	Organization *Organization `json:"organization,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -74,24 +74,24 @@ type CampusEdges struct {
 	namedFacilities map[string][]*Facility
 }
 
+// FacilitiesOrErr returns the Facilities value or an error if the edge
+// was not loaded in eager-loading.
+func (e CampusEdges) FacilitiesOrErr() ([]*Facility, error) {
+	if e.loadedTypes[0] {
+		return e.Facilities, nil
+	}
+	return nil, &NotLoadedError{edge: "facilities"}
+}
+
 // OrganizationOrErr returns the Organization value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e CampusEdges) OrganizationOrErr() (*Organization, error) {
 	if e.Organization != nil {
 		return e.Organization, nil
-	} else if e.loadedTypes[0] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: organization.Label}
 	}
 	return nil, &NotLoadedError{edge: "organization"}
-}
-
-// FacilitiesOrErr returns the Facilities value or an error if the edge
-// was not loaded in eager-loading.
-func (e CampusEdges) FacilitiesOrErr() ([]*Facility, error) {
-	if e.loadedTypes[1] {
-		return e.Facilities, nil
-	}
-	return nil, &NotLoadedError{edge: "facilities"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -103,7 +103,7 @@ func (*Campus) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case campus.FieldID, campus.FieldOrgID:
 			values[i] = new(sql.NullInt64)
-		case campus.FieldOrgName, campus.FieldName, campus.FieldNameLong, campus.FieldAka, campus.FieldWebsite, campus.FieldNotes, campus.FieldCountry, campus.FieldCity, campus.FieldZipcode, campus.FieldState, campus.FieldLogo, campus.FieldStatus:
+		case campus.FieldAka, campus.FieldCity, campus.FieldCountry, campus.FieldLogo, campus.FieldName, campus.FieldNameLong, campus.FieldNotes, campus.FieldState, campus.FieldWebsite, campus.FieldZipcode, campus.FieldOrgName, campus.FieldStatus:
 			values[i] = new(sql.NullString)
 		case campus.FieldCreated, campus.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -135,11 +135,31 @@ func (_m *Campus) assignValues(columns []string, values []any) error {
 				_m.OrgID = new(int)
 				*_m.OrgID = int(value.Int64)
 			}
-		case campus.FieldOrgName:
+		case campus.FieldAka:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field org_name", values[i])
+				return fmt.Errorf("unexpected type %T for field aka", values[i])
 			} else if value.Valid {
-				_m.OrgName = value.String
+				_m.Aka = new(string)
+				*_m.Aka = value.String
+			}
+		case campus.FieldCity:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field city", values[i])
+			} else if value.Valid {
+				_m.City = value.String
+			}
+		case campus.FieldCountry:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field country", values[i])
+			} else if value.Valid {
+				_m.Country = value.String
+			}
+		case campus.FieldLogo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field logo", values[i])
+			} else if value.Valid {
+				_m.Logo = new(string)
+				*_m.Logo = value.String
 			}
 		case campus.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -154,18 +174,11 @@ func (_m *Campus) assignValues(columns []string, values []any) error {
 				_m.NameLong = new(string)
 				*_m.NameLong = value.String
 			}
-		case campus.FieldAka:
+		case campus.FieldNotes:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field aka", values[i])
+				return fmt.Errorf("unexpected type %T for field notes", values[i])
 			} else if value.Valid {
-				_m.Aka = new(string)
-				*_m.Aka = value.String
-			}
-		case campus.FieldWebsite:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field website", values[i])
-			} else if value.Valid {
-				_m.Website = value.String
+				_m.Notes = value.String
 			}
 		case campus.FieldSocialMedia:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -175,23 +188,17 @@ func (_m *Campus) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field social_media: %w", err)
 				}
 			}
-		case campus.FieldNotes:
+		case campus.FieldState:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field notes", values[i])
+				return fmt.Errorf("unexpected type %T for field state", values[i])
 			} else if value.Valid {
-				_m.Notes = value.String
+				_m.State = value.String
 			}
-		case campus.FieldCountry:
+		case campus.FieldWebsite:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field country", values[i])
+				return fmt.Errorf("unexpected type %T for field website", values[i])
 			} else if value.Valid {
-				_m.Country = value.String
-			}
-		case campus.FieldCity:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field city", values[i])
-			} else if value.Valid {
-				_m.City = value.String
+				_m.Website = value.String
 			}
 		case campus.FieldZipcode:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -199,18 +206,11 @@ func (_m *Campus) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Zipcode = value.String
 			}
-		case campus.FieldState:
+		case campus.FieldOrgName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field state", values[i])
+				return fmt.Errorf("unexpected type %T for field org_name", values[i])
 			} else if value.Valid {
-				_m.State = value.String
-			}
-		case campus.FieldLogo:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field logo", values[i])
-			} else if value.Valid {
-				_m.Logo = new(string)
-				*_m.Logo = value.String
+				_m.OrgName = value.String
 			}
 		case campus.FieldCreated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -243,14 +243,14 @@ func (_m *Campus) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryOrganization queries the "organization" edge of the Campus entity.
-func (_m *Campus) QueryOrganization() *OrganizationQuery {
-	return NewCampusClient(_m.config).QueryOrganization(_m)
-}
-
 // QueryFacilities queries the "facilities" edge of the Campus entity.
 func (_m *Campus) QueryFacilities() *FacilityQuery {
 	return NewCampusClient(_m.config).QueryFacilities(_m)
+}
+
+// QueryOrganization queries the "organization" edge of the Campus entity.
+func (_m *Campus) QueryOrganization() *OrganizationQuery {
+	return NewCampusClient(_m.config).QueryOrganization(_m)
 }
 
 // Update returns a builder for updating this Campus.
@@ -281,8 +281,21 @@ func (_m *Campus) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("org_name=")
-	builder.WriteString(_m.OrgName)
+	if v := _m.Aka; v != nil {
+		builder.WriteString("aka=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("city=")
+	builder.WriteString(_m.City)
+	builder.WriteString(", ")
+	builder.WriteString("country=")
+	builder.WriteString(_m.Country)
+	builder.WriteString(", ")
+	if v := _m.Logo; v != nil {
+		builder.WriteString("logo=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
@@ -292,36 +305,23 @@ func (_m *Campus) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := _m.Aka; v != nil {
-		builder.WriteString("aka=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	builder.WriteString("website=")
-	builder.WriteString(_m.Website)
+	builder.WriteString("notes=")
+	builder.WriteString(_m.Notes)
 	builder.WriteString(", ")
 	builder.WriteString("social_media=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SocialMedia))
 	builder.WriteString(", ")
-	builder.WriteString("notes=")
-	builder.WriteString(_m.Notes)
+	builder.WriteString("state=")
+	builder.WriteString(_m.State)
 	builder.WriteString(", ")
-	builder.WriteString("country=")
-	builder.WriteString(_m.Country)
-	builder.WriteString(", ")
-	builder.WriteString("city=")
-	builder.WriteString(_m.City)
+	builder.WriteString("website=")
+	builder.WriteString(_m.Website)
 	builder.WriteString(", ")
 	builder.WriteString("zipcode=")
 	builder.WriteString(_m.Zipcode)
 	builder.WriteString(", ")
-	builder.WriteString("state=")
-	builder.WriteString(_m.State)
-	builder.WriteString(", ")
-	if v := _m.Logo; v != nil {
-		builder.WriteString("logo=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("org_name=")
+	builder.WriteString(_m.OrgName)
 	builder.WriteString(", ")
 	builder.WriteString("created=")
 	builder.WriteString(_m.Created.Format(time.ANSIC))

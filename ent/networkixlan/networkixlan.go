@@ -13,53 +13,46 @@ const (
 	Label = "network_ix_lan"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldNetID holds the string denoting the net_id field in the database.
-	FieldNetID = "net_id"
-	// FieldIxID holds the string denoting the ix_id field in the database.
-	FieldIxID = "ix_id"
+	// FieldIxSideID holds the string denoting the ix_side_id field in the database.
+	FieldIxSideID = "ix_side_id"
 	// FieldIxlanID holds the string denoting the ixlan_id field in the database.
 	FieldIxlanID = "ixlan_id"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
-	// FieldNotes holds the string denoting the notes field in the database.
-	FieldNotes = "notes"
-	// FieldSpeed holds the string denoting the speed field in the database.
-	FieldSpeed = "speed"
+	// FieldNetID holds the string denoting the net_id field in the database.
+	FieldNetID = "net_id"
+	// FieldNetSideID holds the string denoting the net_side_id field in the database.
+	FieldNetSideID = "net_side_id"
 	// FieldAsn holds the string denoting the asn field in the database.
 	FieldAsn = "asn"
+	// FieldBfdSupport holds the string denoting the bfd_support field in the database.
+	FieldBfdSupport = "bfd_support"
 	// FieldIpaddr4 holds the string denoting the ipaddr4 field in the database.
 	FieldIpaddr4 = "ipaddr4"
 	// FieldIpaddr6 holds the string denoting the ipaddr6 field in the database.
 	FieldIpaddr6 = "ipaddr6"
 	// FieldIsRsPeer holds the string denoting the is_rs_peer field in the database.
 	FieldIsRsPeer = "is_rs_peer"
-	// FieldBfdSupport holds the string denoting the bfd_support field in the database.
-	FieldBfdSupport = "bfd_support"
+	// FieldNotes holds the string denoting the notes field in the database.
+	FieldNotes = "notes"
 	// FieldOperational holds the string denoting the operational field in the database.
 	FieldOperational = "operational"
-	// FieldNetSideID holds the string denoting the net_side_id field in the database.
-	FieldNetSideID = "net_side_id"
-	// FieldIxSideID holds the string denoting the ix_side_id field in the database.
-	FieldIxSideID = "ix_side_id"
+	// FieldSpeed holds the string denoting the speed field in the database.
+	FieldSpeed = "speed"
+	// FieldIxID holds the string denoting the ix_id field in the database.
+	FieldIxID = "ix_id"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// FieldCreated holds the string denoting the created field in the database.
 	FieldCreated = "created"
 	// FieldUpdated holds the string denoting the updated field in the database.
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// EdgeNetwork holds the string denoting the network edge name in mutations.
-	EdgeNetwork = "network"
 	// EdgeIxLan holds the string denoting the ix_lan edge name in mutations.
 	EdgeIxLan = "ix_lan"
+	// EdgeNetwork holds the string denoting the network edge name in mutations.
+	EdgeNetwork = "network"
 	// Table holds the table name of the networkixlan in the database.
 	Table = "network_ix_lans"
-	// NetworkTable is the table that holds the network relation/edge.
-	NetworkTable = "network_ix_lans"
-	// NetworkInverseTable is the table name for the Network entity.
-	// It exists in this package in order to avoid circular dependency with the "network" package.
-	NetworkInverseTable = "networks"
-	// NetworkColumn is the table column denoting the network relation/edge.
-	NetworkColumn = "net_id"
 	// IxLanTable is the table that holds the ix_lan relation/edge.
 	IxLanTable = "network_ix_lans"
 	// IxLanInverseTable is the table name for the IxLan entity.
@@ -67,25 +60,32 @@ const (
 	IxLanInverseTable = "ix_lans"
 	// IxLanColumn is the table column denoting the ix_lan relation/edge.
 	IxLanColumn = "ixlan_id"
+	// NetworkTable is the table that holds the network relation/edge.
+	NetworkTable = "network_ix_lans"
+	// NetworkInverseTable is the table name for the Network entity.
+	// It exists in this package in order to avoid circular dependency with the "network" package.
+	NetworkInverseTable = "networks"
+	// NetworkColumn is the table column denoting the network relation/edge.
+	NetworkColumn = "net_id"
 )
 
 // Columns holds all SQL columns for networkixlan fields.
 var Columns = []string{
 	FieldID,
-	FieldNetID,
-	FieldIxID,
+	FieldIxSideID,
 	FieldIxlanID,
-	FieldName,
-	FieldNotes,
-	FieldSpeed,
+	FieldNetID,
+	FieldNetSideID,
 	FieldAsn,
+	FieldBfdSupport,
 	FieldIpaddr4,
 	FieldIpaddr6,
 	FieldIsRsPeer,
-	FieldBfdSupport,
+	FieldNotes,
 	FieldOperational,
-	FieldNetSideID,
-	FieldIxSideID,
+	FieldSpeed,
+	FieldIxID,
+	FieldName,
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
@@ -108,20 +108,20 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
-	// DefaultIxID holds the default value on creation for the "ix_id" field.
-	DefaultIxID int
-	// DefaultName holds the default value on creation for the "name" field.
-	DefaultName string
+	// AsnValidator is a validator for the "asn" field. It is called by the builders before save.
+	AsnValidator func(int) error
+	// DefaultBfdSupport holds the default value on creation for the "bfd_support" field.
+	DefaultBfdSupport bool
+	// DefaultIsRsPeer holds the default value on creation for the "is_rs_peer" field.
+	DefaultIsRsPeer bool
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
 	// NotesValidator is a validator for the "notes" field. It is called by the builders before save.
 	NotesValidator func(string) error
-	// DefaultIsRsPeer holds the default value on creation for the "is_rs_peer" field.
-	DefaultIsRsPeer bool
-	// DefaultBfdSupport holds the default value on creation for the "bfd_support" field.
-	DefaultBfdSupport bool
 	// DefaultOperational holds the default value on creation for the "operational" field.
 	DefaultOperational bool
+	// DefaultName holds the default value on creation for the "name" field.
+	DefaultName string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
@@ -138,14 +138,9 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// ByNetID orders the results by the net_id field.
-func ByNetID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNetID, opts...).ToFunc()
-}
-
-// ByIxID orders the results by the ix_id field.
-func ByIxID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIxID, opts...).ToFunc()
+// ByIxSideID orders the results by the ix_side_id field.
+func ByIxSideID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIxSideID, opts...).ToFunc()
 }
 
 // ByIxlanID orders the results by the ixlan_id field.
@@ -153,24 +148,24 @@ func ByIxlanID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIxlanID, opts...).ToFunc()
 }
 
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
+// ByNetID orders the results by the net_id field.
+func ByNetID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNetID, opts...).ToFunc()
 }
 
-// ByNotes orders the results by the notes field.
-func ByNotes(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNotes, opts...).ToFunc()
-}
-
-// BySpeed orders the results by the speed field.
-func BySpeed(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSpeed, opts...).ToFunc()
+// ByNetSideID orders the results by the net_side_id field.
+func ByNetSideID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNetSideID, opts...).ToFunc()
 }
 
 // ByAsn orders the results by the asn field.
 func ByAsn(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAsn, opts...).ToFunc()
+}
+
+// ByBfdSupport orders the results by the bfd_support field.
+func ByBfdSupport(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBfdSupport, opts...).ToFunc()
 }
 
 // ByIpaddr4 orders the results by the ipaddr4 field.
@@ -188,9 +183,9 @@ func ByIsRsPeer(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsRsPeer, opts...).ToFunc()
 }
 
-// ByBfdSupport orders the results by the bfd_support field.
-func ByBfdSupport(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldBfdSupport, opts...).ToFunc()
+// ByNotes orders the results by the notes field.
+func ByNotes(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNotes, opts...).ToFunc()
 }
 
 // ByOperational orders the results by the operational field.
@@ -198,14 +193,19 @@ func ByOperational(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOperational, opts...).ToFunc()
 }
 
-// ByNetSideID orders the results by the net_side_id field.
-func ByNetSideID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNetSideID, opts...).ToFunc()
+// BySpeed orders the results by the speed field.
+func BySpeed(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSpeed, opts...).ToFunc()
 }
 
-// ByIxSideID orders the results by the ix_side_id field.
-func ByIxSideID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIxSideID, opts...).ToFunc()
+// ByIxID orders the results by the ix_id field.
+func ByIxID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIxID, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByCreated orders the results by the created field.
@@ -223,30 +223,30 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
-// ByNetworkField orders the results by network field.
-func ByNetworkField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newNetworkStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByIxLanField orders the results by ix_lan field.
 func ByIxLanField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newIxLanStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newNetworkStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(NetworkInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, NetworkTable, NetworkColumn),
-	)
+
+// ByNetworkField orders the results by network field.
+func ByNetworkField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNetworkStep(), sql.OrderByField(field, opts...))
+	}
 }
 func newIxLanStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(IxLanInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, IxLanTable, IxLanColumn),
+	)
+}
+func newNetworkStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(NetworkInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, NetworkTable, NetworkColumn),
 	)
 }
