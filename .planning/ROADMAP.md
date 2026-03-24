@@ -59,7 +59,7 @@ See: `.planning/milestones/v1.3-ROADMAP.md` for full details.
 **Milestone Goal:** A polished, interactive web interface for exploring PeeringDB data with live search, detailed record views, and network comparison.
 
 - [x] **Phase 13: Foundation** — templ + Tailwind + htmx scaffolding, base layout, route integration (completed 2026-03-24)
-- [ ] **Phase 14: Live Search** — Homepage search with instant results grouped by type
+- [x] **Phase 14: Live Search** — Homepage search with instant results grouped by type (completed 2026-03-24)
 - [ ] **Phase 15: Record Detail Pages** — Full detail views for all 5 entity types with lazy-loaded related records
 - [ ] **Phase 16: ASN Comparison** — Compare two networks showing shared IXPs, facilities, and campuses
 - [ ] **Phase 17: Polish & Accessibility** — Dark mode, transitions, keyboard navigation, error pages
@@ -93,8 +93,8 @@ Plans:
   5. Clicking a search result navigates to that record's detail page
 **Plans**: 2 plans
 Plans:
-- [ ] 14-01-PLAN.md -- SearchService with fan-out queries across 6 entity types and unit tests
-- [ ] 14-02-PLAN.md -- Search templates, homepage update, handler wiring, and integration tests
+- [x] 14-01-PLAN.md -- SearchService with fan-out queries across 6 entity types and unit tests
+- [x] 14-02-PLAN.md -- Search templates, homepage update, handler wiring, and integration tests
 **UI hint**: yes
 
 ### Phase 15: Record Detail Pages
@@ -155,7 +155,7 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17
 | 11. API Key & Rate Limiting | v1.3 | 2/2 | Complete | 2026-03-24 |
 | 12. Conformance Tooling Integration | v1.3 | 1/1 | Complete | 2026-03-24 |
 | 13. Foundation | v1.4 | 1/2 | Complete    | 2026-03-24 |
-| 14. Live Search | v1.4 | 0/2 | Not started | - |
+| 14. Live Search | v1.4 | 2/2 | Complete   | 2026-03-24 |
 | 15. Record Detail Pages | v1.4 | 0/? | Not started | - |
 | 16. ASN Comparison | v1.4 | 0/? | Not started | - |
 | 17. Polish & Accessibility | v1.4 | 0/? | Not started | - |

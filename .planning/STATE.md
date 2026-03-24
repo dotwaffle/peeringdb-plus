@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Web UI
-status: Ready to plan
-stopped_at: Completed 13-02-PLAN.md
-last_updated: "2026-03-24T05:24:10.626Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 14-02-PLAN.md
+last_updated: "2026-03-24T05:55:29.825Z"
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 13 — foundation
+**Current focus:** Phase 14 — live-search
 
 ## Current Position
 
-Phase: 14
-Plan: Not started
+Phase: 14 (live-search) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -63,6 +63,10 @@ All decisions archived in PROJECT.md Key Decisions table.
 - [Phase 13]: Single wildcard dispatch for /ui/ routes avoids Go 1.22+ route conflict
 - [Phase 13]: Content negotiation on GET / uses Accept header: text/html triggers redirect to /ui/, otherwise JSON discovery
 - [Phase 13]: Static assets bypass readiness middleware so syncing page CSS/JS loads correctly
+- [Phase 14]: Duplicated buildSearchPredicate locally to avoid cross-package coupling between web and pdbcompat
+- [Phase 14]: Pre-allocated results slice with distinct indices for lock-free concurrent errgroup writes
+- [Phase 14]: Defined SearchGroup/SearchResult in templates package to avoid circular imports between web and templates
+- [Phase 14]: Used HX-Replace-Url response header for URL state sync instead of hx-replace-url attribute
 
 ### Pending Todos
 
@@ -76,6 +80,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T05:17:11.568Z
-Stopped at: Completed 13-02-PLAN.md
+Last session: 2026-03-24T05:55:29.821Z
+Stopped at: Completed 14-02-PLAN.md
 Resume file: None
