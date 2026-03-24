@@ -44,7 +44,7 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] Verify meta.generated field behavior for depth=0 paginated PeeringDB responses; graceful fallback if missing — Validated in Phase 18: Tech Debt & Data Integrity
 - [x] Remove unused DataLoader middleware (removed v1.2 Phase 7) and convert WorkerConfig.IsPrimary to dynamic LiteFS detection (quick task 260324-lc5) — Validated in Phase 18: Tech Debt & Data Integrity
 - [ ] Verify all 26 deferred human verification items against live Fly.io deployment
-- [ ] Grafana dashboard (JSON provisioning) covering sync health, API traffic, infrastructure, and business metrics
+- [x] Grafana dashboard (JSON provisioning) covering sync health, API traffic, infrastructure, and business metrics — Validated in Phase 19: Prometheus Metrics & Grafana Dashboard
 
 ### Deferred
 
