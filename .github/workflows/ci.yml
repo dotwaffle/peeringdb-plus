@@ -68,6 +68,7 @@ jobs:
       - name: Post coverage comment
         if: github.event_name == 'pull_request'
         env:
+          GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: .github/scripts/coverage-comment.sh
