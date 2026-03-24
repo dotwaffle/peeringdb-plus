@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -28,6 +29,8 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
+	"github.com/dotwaffle/peeringdb-plus/internal/web"
+	webtemplates "github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
 func init() {
@@ -212,14 +215,26 @@ func main() {
 	compatHandler.Register(mux)
 	logger.Info("PeeringDB compat API mounted", slog.String("prefix", "/api/"))
 
-	// GET /: root discovery endpoint per D-28.
+	// Mount web UI at /ui/ and /static/ prefixes.
+	webHandler := web.NewHandler(entClient)
+	webHandler.Register(mux)
+	logger.Info("Web UI mounted", slog.String("prefix", "/ui/"))
+
+	// GET /: content negotiation per user decision.
+	// Browsers (Accept: text/html) redirect to /ui/.
+	// API clients (Accept: application/json) get JSON discovery.
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
 			return
 		}
+		accept := r.Header.Get("Accept")
+		if strings.Contains(accept, "text/html") {
+			http.Redirect(w, r, "/ui/", http.StatusFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"name":"peeringdb-plus","version":"0.1.0","graphql":"/graphql","rest":"/rest/v1/","api":"/api/","healthz":"/healthz","readyz":"/readyz"}`)
+		fmt.Fprint(w, `{"name":"peeringdb-plus","version":"0.1.0","graphql":"/graphql","rest":"/rest/v1/","api":"/api/","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`)
 	})
 
 	// Build middleware stack (outermost first):
@@ -268,14 +283,25 @@ type syncReadiness interface {
 
 // readinessMiddleware returns 503 for all routes except infrastructure paths
 // until the first sync has completed per D-30.
+// Browser requests receive a styled HTML syncing page instead of JSON.
 func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Infrastructure paths are not gated by readiness.
-		if r.URL.Path == "/sync" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/" {
+		// Infrastructure and static paths bypass readiness.
+		// Static assets must be served for the syncing page to render correctly.
+		if r.URL.Path == "/sync" || r.URL.Path == "/healthz" ||
+			r.URL.Path == "/readyz" || r.URL.Path == "/" ||
+			strings.HasPrefix(r.URL.Path, "/static/") {
 			next.ServeHTTP(w, r)
 			return
 		}
 		if !sr.HasCompletedSync() {
+			accept := r.Header.Get("Accept")
+			if strings.Contains(accept, "text/html") {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				w.WriteHeader(http.StatusServiceUnavailable)
+				webtemplates.SyncingPage().Render(r.Context(), w) //nolint:errcheck // best-effort render
+				return
+			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
 			fmt.Fprint(w, `{"error":"sync not yet completed"}`)
