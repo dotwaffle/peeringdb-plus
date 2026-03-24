@@ -1,0 +1,305 @@
+package templates
+
+import "fmt"
+
+// CompareFormPage renders the comparison form with optional pre-filled ASN values.
+// asn1 and asn2 are pre-filled when navigating from a network detail page.
+templ CompareFormPage(asn1 string, asn2 string) {
+	<div class="max-w-3xl mx-auto py-12">
+		<div class="text-center mb-8">
+			<h1 class="text-2xl font-bold text-neutral-100 mb-2">Compare Networks</h1>
+			<p class="text-neutral-400">Find shared IXPs, facilities, and campuses between two networks</p>
+		</div>
+		<form id="compare-form" method="GET" action="/ui/compare" class="space-y-6">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div>
+					<label for="compare-asn1" class="block text-sm text-neutral-400 mb-1">First ASN</label>
+					<input
+						type="number"
+						id="compare-asn1"
+						name="asn1"
+						value={ asn1 }
+						placeholder="e.g. 13335"
+						class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
+					/>
+				</div>
+				<div>
+					<label for="compare-asn2" class="block text-sm text-neutral-400 mb-1">Second ASN</label>
+					<input
+						type="number"
+						id="compare-asn2"
+						name="asn2"
+						value={ asn2 }
+						placeholder="e.g. 15169"
+						class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
+					/>
+				</div>
+			</div>
+			<div class="text-center">
+				<button
+					type="submit"
+					class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+				>
+					Compare
+				</button>
+			</div>
+		</form>
+		<script>
+		document.getElementById('compare-form').addEventListener('submit', function(e) {
+			e.preventDefault();
+			var a1 = document.getElementById('compare-asn1').value;
+			var a2 = document.getElementById('compare-asn2').value;
+			if (a1 && a2) { window.location.href = '/ui/compare/' + a1 + '/' + a2; }
+		});
+		</script>
+	</div>
+}
+
+// CompareResultsPage renders the full comparison results between two networks.
+templ CompareResultsPage(data CompareData) {
+	<div class="space-y-6">
+		<div class="mb-6">
+			<h1 class="text-2xl font-bold text-neutral-100">
+				{ data.NetA.Name } <span class="text-neutral-500">vs</span> { data.NetB.Name }
+			</h1>
+			<div class="flex gap-3 mt-1 text-sm text-neutral-400 font-mono">
+				<span>{ fmt.Sprintf("AS%d", data.NetA.ASN) }</span>
+				<span class="text-neutral-600">|</span>
+				<span>{ fmt.Sprintf("AS%d", data.NetB.ASN) }</span>
+			</div>
+		</div>
+		<div class="flex gap-2 mb-4">
+			if data.ViewMode != "full" {
+				<a
+					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d", data.NetA.ASN, data.NetB.ASN)) }
+					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
+				>
+					Shared Only
+				</a>
+				<a
+					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d?view=full", data.NetA.ASN, data.NetB.ASN)) }
+					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-neutral-800 text-neutral-400 border-neutral-700 hover:bg-neutral-700 transition-colors"
+				>
+					Full View
+				</a>
+			} else {
+				<a
+					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d", data.NetA.ASN, data.NetB.ASN)) }
+					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-neutral-800 text-neutral-400 border-neutral-700 hover:bg-neutral-700 transition-colors"
+				>
+					Shared Only
+				</a>
+				<a
+					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d?view=full", data.NetA.ASN, data.NetB.ASN)) }
+					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
+				>
+					Full View
+				</a>
+			}
+		</div>
+		<div class="flex flex-wrap gap-2 mb-4">
+			@StatBadge("Shared IXPs", len(data.SharedIXPs))
+			@StatBadge("Shared Facilities", len(data.SharedFacilities))
+			@StatBadge("Shared Campuses", len(data.SharedCampuses))
+		</div>
+		@compareIXPsSection(data)
+		@compareFacilitiesSection(data)
+		@compareCampusesSection(data)
+		<div class="pt-4">
+			<a
+				href="/ui/compare"
+				class="text-emerald-400 hover:text-emerald-300 text-sm transition-colors"
+			>
+				New Comparison
+			</a>
+		</div>
+	</div>
+}
+
+// compareIXPsSection renders the IXP comparison table.
+templ compareIXPsSection(data CompareData) {
+	<div class="bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden">
+		<div class="px-4 py-3 border-b border-neutral-700 flex items-center justify-between">
+			<span class="font-medium text-neutral-100">Internet Exchanges</span>
+			<span class="text-neutral-500 text-sm font-mono">
+				if data.ViewMode == "full" {
+					{ fmt.Sprintf("(%d)", len(data.AllIXPs)) }
+				} else {
+					{ fmt.Sprintf("(%d)", len(data.SharedIXPs)) }
+				}
+			</span>
+		</div>
+		<div class="divide-y divide-neutral-700/50">
+			if data.ViewMode == "full" {
+				for _, ix := range data.AllIXPs {
+					@compareIXPRow(ix, data.NetA.Name, data.NetB.Name)
+				}
+				if len(data.AllIXPs) == 0 {
+					<div class="px-4 py-3 text-neutral-500 text-sm">No IX presences found.</div>
+				}
+			} else {
+				for _, ix := range data.SharedIXPs {
+					@compareIXPRow(ix, data.NetA.Name, data.NetB.Name)
+				}
+				if len(data.SharedIXPs) == 0 {
+					<div class="px-4 py-3 text-neutral-500 text-sm">No shared IX presences found.</div>
+				}
+			}
+		</div>
+	</div>
+}
+
+// compareIXPRow renders a single IXP comparison row.
+templ compareIXPRow(ix CompareIXP, netAName string, netBName string) {
+	<div class={ compareRowClasses(ix.Shared) }>
+		<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 px-4 py-3">
+			<div class="flex flex-col min-w-0">
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", ix.IXID)) }
+					class="text-emerald-400 hover:text-emerald-300 font-medium truncate transition-colors">
+					{ ix.IXName }
+				</a>
+			</div>
+			<div class="flex flex-col min-w-0">
+				<span class="text-neutral-500 text-xs mb-1 lg:hidden">{ netAName }</span>
+				if ix.NetA != nil {
+					@compareIXPresenceDetail(*ix.NetA)
+				} else {
+					<span class="text-neutral-600 text-sm">---</span>
+				}
+			</div>
+			<div class="flex flex-col min-w-0">
+				<span class="text-neutral-500 text-xs mb-1 lg:hidden">{ netBName }</span>
+				if ix.NetB != nil {
+					@compareIXPresenceDetail(*ix.NetB)
+				} else {
+					<span class="text-neutral-600 text-sm">---</span>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+// compareIXPresenceDetail renders one network's IX presence details.
+templ compareIXPresenceDetail(p CompareIXPresence) {
+	<div class="flex flex-wrap gap-3 text-sm text-neutral-400 font-mono">
+		if p.Speed > 0 {
+			<span>{ formatSpeed(p.Speed) }</span>
+		}
+		if p.IPAddr4 != "" {
+			<span>{ p.IPAddr4 }</span>
+		}
+		if p.IPAddr6 != "" {
+			<span>{ p.IPAddr6 }</span>
+		}
+		if p.IsRSPeer {
+			<span class="text-emerald-400/70">RS</span>
+		}
+	</div>
+}
+
+// compareFacilitiesSection renders the facility comparison list.
+templ compareFacilitiesSection(data CompareData) {
+	<div class="bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden">
+		<div class="px-4 py-3 border-b border-neutral-700 flex items-center justify-between">
+			<span class="font-medium text-neutral-100">Facilities</span>
+			<span class="text-neutral-500 text-sm font-mono">
+				if data.ViewMode == "full" {
+					{ fmt.Sprintf("(%d)", len(data.AllFacilities)) }
+				} else {
+					{ fmt.Sprintf("(%d)", len(data.SharedFacilities)) }
+				}
+			</span>
+		</div>
+		<div class="divide-y divide-neutral-700/50">
+			if data.ViewMode == "full" {
+				for _, fac := range data.AllFacilities {
+					@compareFacilityRow(fac)
+				}
+				if len(data.AllFacilities) == 0 {
+					<div class="px-4 py-3 text-neutral-500 text-sm">No facility presences found.</div>
+				}
+			} else {
+				for _, fac := range data.SharedFacilities {
+					@compareFacilityRow(fac)
+				}
+				if len(data.SharedFacilities) == 0 {
+					<div class="px-4 py-3 text-neutral-500 text-sm">No shared facility presences found.</div>
+				}
+			}
+		</div>
+	</div>
+}
+
+// compareFacilityRow renders a single facility comparison row.
+templ compareFacilityRow(fac CompareFacility) {
+	<div class={ compareRowClasses(fac.Shared) }>
+		<div class="flex items-center justify-between px-4 py-3">
+			<div class="flex flex-col min-w-0">
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", fac.FacID)) }
+					class="text-emerald-400 hover:text-emerald-300 font-medium truncate transition-colors">
+					{ fac.FacName }
+				</a>
+				if fac.City != "" || fac.Country != "" {
+					<span class="text-sm text-neutral-400 font-mono">
+						{ formatFacLocation(fac.City, fac.Country) }
+					</span>
+				}
+			</div>
+			<div class="flex gap-4 text-sm text-neutral-500 font-mono shrink-0 ml-3">
+				if fac.NetA != nil {
+					<span>{ fmt.Sprintf("AS%d", fac.NetA.LocalASN) }</span>
+				} else {
+					<span class="text-neutral-600">---</span>
+				}
+				if fac.NetB != nil {
+					<span>{ fmt.Sprintf("AS%d", fac.NetB.LocalASN) }</span>
+				} else {
+					<span class="text-neutral-600">---</span>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+// compareCampusesSection renders the shared campuses list.
+templ compareCampusesSection(data CompareData) {
+	<div class="bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden">
+		<div class="px-4 py-3 border-b border-neutral-700 flex items-center justify-between">
+			<span class="font-medium text-neutral-100">Campuses</span>
+			<span class="text-neutral-500 text-sm font-mono">{ fmt.Sprintf("(%d)", len(data.SharedCampuses)) }</span>
+		</div>
+		<div class="divide-y divide-neutral-700/50">
+			if len(data.SharedCampuses) == 0 {
+				<div class="px-4 py-3 text-neutral-500 text-sm">No shared campuses found.</div>
+			} else {
+				for _, campus := range data.SharedCampuses {
+					<div class="px-4 py-3">
+						<a href={ templ.SafeURL(fmt.Sprintf("/ui/campus/%d", campus.CampusID)) }
+							class="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
+							{ campus.CampusName }
+						</a>
+						if len(campus.SharedFacilities) > 0 {
+							<div class="mt-2 space-y-1 pl-4">
+								for _, f := range campus.SharedFacilities {
+									<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", f.FacID)) }
+										class="block text-sm text-neutral-400 hover:text-neutral-300 transition-colors">
+										{ f.FacName }
+									</a>
+								}
+							</div>
+						}
+					</div>
+				}
+			}
+		</div>
+	</div>
+}
+
+// compareRowClasses returns CSS classes for a comparison row.
+// Non-shared rows in full view are dimmed with reduced opacity.
+func compareRowClasses(shared bool) string {
+	if shared {
+		return ""
+	}
+	return "opacity-40"
+}
