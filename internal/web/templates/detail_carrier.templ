@@ -1,0 +1,51 @@
+package templates
+
+import "fmt"
+
+// CarrierDetailPage renders the full carrier detail page with header, stats,
+// detail fields, and a collapsible lazy-loaded section for facilities.
+templ CarrierDetailPage(data CarrierDetail) {
+	<div class="space-y-6">
+		@DetailHeader("carrier", "cyan", data.Name, "")
+		<div class="flex flex-wrap gap-2 mb-4">
+			@StatBadge("Facilities", data.FacCount)
+		</div>
+		if data.OrgID > 0 {
+			<div class="py-1">
+				<span class="text-neutral-500 text-sm">Organization</span>
+				<div>
+					<a href={ templ.SafeURL(fmt.Sprintf("/ui/org/%d", data.OrgID)) }
+						class="text-cyan-400 hover:text-cyan-300 transition-colors">
+						{ data.OrgName }
+					</a>
+				</div>
+			</div>
+		}
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+			@DetailField("Long Name", data.NameLong)
+			@DetailField("Also Known As", data.AKA)
+		</div>
+		@DetailLink("Website", data.Website)
+		@DetailField("Notes", data.Notes)
+		<div class="space-y-3 pt-4">
+			@CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/carrier/%d/facilities", data.ID))
+		</div>
+	</div>
+}
+
+// CarrierFacilitiesList renders the list of carrier facilities as clickable rows
+// linking to the respective facility detail page.
+templ CarrierFacilitiesList(rows []CarrierFacilityRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No facilities found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<span class="text-neutral-100 font-medium truncate">{ row.FacName }</span>
+				</a>
+			}
+		</div>
+	}
+}

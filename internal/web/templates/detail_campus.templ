@@ -1,0 +1,62 @@
+package templates
+
+import "fmt"
+
+// CampusDetailPage renders the full campus detail page with header, stats,
+// detail fields, and a collapsible lazy-loaded section for facilities.
+templ CampusDetailPage(data CampusDetail) {
+	<div class="space-y-6">
+		@DetailHeader("campus", "rose", data.Name, formatFacLocation(data.City, data.Country))
+		<div class="flex flex-wrap gap-2 mb-4">
+			@StatBadge("Facilities", data.FacCount)
+		</div>
+		if data.OrgID > 0 {
+			<div class="py-1">
+				<span class="text-neutral-500 text-sm">Organization</span>
+				<div>
+					<a href={ templ.SafeURL(fmt.Sprintf("/ui/org/%d", data.OrgID)) }
+						class="text-rose-400 hover:text-rose-300 transition-colors">
+						{ data.OrgName }
+					</a>
+				</div>
+			</div>
+		}
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+			@DetailField("Long Name", data.NameLong)
+			@DetailField("Also Known As", data.AKA)
+			@DetailField("City", data.City)
+			@DetailField("State", data.State)
+			@DetailField("Country", data.Country)
+			@DetailField("Zipcode", data.Zipcode)
+		</div>
+		@DetailLink("Website", data.Website)
+		@DetailField("Notes", data.Notes)
+		<div class="space-y-3 pt-4">
+			@CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/campus/%d/facilities", data.ID))
+		</div>
+	</div>
+}
+
+// CampusFacilitiesList renders the list of campus facilities as clickable rows
+// linking to the respective facility detail page.
+templ CampusFacilitiesList(rows []CampusFacilityRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No facilities found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<div class="flex flex-col min-w-0">
+						<span class="text-neutral-100 font-medium truncate">{ row.FacName }</span>
+						if row.City != "" || row.Country != "" {
+							<span class="text-sm text-neutral-400 font-mono">
+								{ formatFacLocation(row.City, row.Country) }
+							</span>
+						}
+					</div>
+				</a>
+			}
+		</div>
+	}
+}

@@ -1,0 +1,111 @@
+package templates
+
+import "fmt"
+
+// FacilityDetailPage renders the full facility detail page with header, stats,
+// detail fields, and collapsible lazy-loaded sections for related records.
+templ FacilityDetailPage(data FacilityDetail) {
+	<div class="space-y-6">
+		@DetailHeader("fac", "violet", data.Name, formatFacLocation(data.City, data.Country))
+		<div class="flex flex-wrap gap-2 mb-4">
+			@StatBadge("Networks", data.NetCount)
+			@StatBadge("IXPs", data.IXCount)
+			@StatBadge("Carriers", data.CarrierCount)
+		</div>
+		if data.OrgID > 0 {
+			<div class="py-1">
+				<span class="text-neutral-500 text-sm">Organization</span>
+				<div>
+					<a href={ templ.SafeURL(fmt.Sprintf("/ui/org/%d", data.OrgID)) }
+						class="text-violet-400 hover:text-violet-300 transition-colors">
+						{ data.OrgName }
+					</a>
+				</div>
+			</div>
+		}
+		if data.CampusID > 0 {
+			<div class="py-1">
+				<span class="text-neutral-500 text-sm">Campus</span>
+				<div>
+					<a href={ templ.SafeURL(fmt.Sprintf("/ui/campus/%d", data.CampusID)) }
+						class="text-violet-400 hover:text-violet-300 transition-colors">
+						{ data.CampusName }
+					</a>
+				</div>
+			</div>
+		}
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+			@DetailField("Long Name", data.NameLong)
+			@DetailField("Also Known As", data.AKA)
+			@DetailField("Address", data.Address1)
+			@DetailField("Address 2", data.Address2)
+			@DetailField("City", data.City)
+			@DetailField("State", data.State)
+			@DetailField("Country", data.Country)
+			@DetailField("Zipcode", data.Zipcode)
+			@DetailField("Region", data.RegionContinent)
+			@DetailField("CLLI", data.CLLI)
+		</div>
+		@DetailLink("Website", data.Website)
+		@DetailField("Notes", data.Notes)
+		<div class="space-y-3 pt-4">
+			@CollapsibleSection("Networks", data.NetCount, fmt.Sprintf("/ui/fragment/fac/%d/networks", data.ID))
+			@CollapsibleSection("IXPs", data.IXCount, fmt.Sprintf("/ui/fragment/fac/%d/ixps", data.ID))
+			@CollapsibleSection("Carriers", data.CarrierCount, fmt.Sprintf("/ui/fragment/fac/%d/carriers", data.ID))
+		</div>
+	</div>
+}
+
+// FacNetworksList renders the list of networks present at a facility as
+// clickable rows linking to the respective network detail page by ASN.
+templ FacNetworksList(rows []FacNetworkRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No networks found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<div class="flex flex-col min-w-0">
+						<span class="text-neutral-100 font-medium truncate">{ row.NetName }</span>
+						<span class="text-sm text-neutral-400 font-mono">{ fmt.Sprintf("AS%d", row.ASN) }</span>
+					</div>
+				</a>
+			}
+		</div>
+	}
+}
+
+// FacIXPsList renders the list of IXPs present at a facility as
+// clickable rows linking to the respective IX detail page.
+templ FacIXPsList(rows []FacIXRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No IXPs found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", row.IXID)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<span class="text-neutral-100 font-medium truncate">{ row.IXName }</span>
+				</a>
+			}
+		</div>
+	}
+}
+
+// FacCarriersList renders the list of carriers at a facility as
+// clickable rows linking to the respective carrier detail page.
+templ FacCarriersList(rows []FacCarrierRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No carriers found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/carrier/%d", row.CarrierID)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<span class="text-neutral-100 font-medium truncate">{ row.CarrierName }</span>
+				</a>
+			}
+		</div>
+	}
+}

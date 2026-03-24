@@ -1,0 +1,132 @@
+package templates
+
+import "fmt"
+
+// OrgDetailPage renders the full organization detail page with header, stats,
+// detail fields, and collapsible lazy-loaded sections for related records.
+templ OrgDetailPage(data OrgDetail) {
+	<div class="space-y-6">
+		@DetailHeader("org", "amber", data.Name, "")
+		<div class="flex flex-wrap gap-2 mb-4">
+			@StatBadge("Networks", data.NetCount)
+			@StatBadge("IXPs", data.IXCount)
+			@StatBadge("Facilities", data.FacCount)
+			@StatBadge("Campuses", data.CampusCount)
+			@StatBadge("Carriers", data.CarrierCount)
+		</div>
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+			@DetailField("Long Name", data.NameLong)
+			@DetailField("Also Known As", data.AKA)
+			@DetailField("Address", data.Address1)
+			@DetailField("Address 2", data.Address2)
+			@DetailField("City", data.City)
+			@DetailField("State", data.State)
+			@DetailField("Country", data.Country)
+			@DetailField("Zipcode", data.Zipcode)
+		</div>
+		@DetailLink("Website", data.Website)
+		@DetailField("Notes", data.Notes)
+		<div class="space-y-3 pt-4">
+			@CollapsibleSection("Networks", data.NetCount, fmt.Sprintf("/ui/fragment/org/%d/networks", data.ID))
+			@CollapsibleSection("IXPs", data.IXCount, fmt.Sprintf("/ui/fragment/org/%d/ixps", data.ID))
+			@CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/org/%d/facilities", data.ID))
+			@CollapsibleSection("Campuses", data.CampusCount, fmt.Sprintf("/ui/fragment/org/%d/campuses", data.ID))
+			@CollapsibleSection("Carriers", data.CarrierCount, fmt.Sprintf("/ui/fragment/org/%d/carriers", data.ID))
+		</div>
+	</div>
+}
+
+// OrgNetworksList renders the list of org networks as clickable rows
+// linking to the respective network detail page by ASN.
+templ OrgNetworksList(rows []OrgNetworkRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No networks found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<div class="flex flex-col min-w-0">
+						<span class="text-neutral-100 font-medium truncate">{ row.NetName }</span>
+						<span class="text-sm text-neutral-400 font-mono">{ fmt.Sprintf("AS%d", row.ASN) }</span>
+					</div>
+				</a>
+			}
+		</div>
+	}
+}
+
+// OrgIXPsList renders the list of org IXPs as clickable rows
+// linking to the respective IX detail page.
+templ OrgIXPsList(rows []OrgIXRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No IXPs found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", row.IXID)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<span class="text-neutral-100 font-medium truncate">{ row.IXName }</span>
+				</a>
+			}
+		</div>
+	}
+}
+
+// OrgFacilitiesList renders the list of org facilities as clickable rows
+// linking to the respective facility detail page.
+templ OrgFacilitiesList(rows []OrgFacilityRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No facilities found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<div class="flex flex-col min-w-0">
+						<span class="text-neutral-100 font-medium truncate">{ row.FacName }</span>
+						if row.City != "" || row.Country != "" {
+							<span class="text-sm text-neutral-400 font-mono">
+								{ formatFacLocation(row.City, row.Country) }
+							</span>
+						}
+					</div>
+				</a>
+			}
+		</div>
+	}
+}
+
+// OrgCampusesList renders the list of org campuses as clickable rows
+// linking to the respective campus detail page.
+templ OrgCampusesList(rows []OrgCampusRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No campuses found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/campus/%d", row.CampusID)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<span class="text-neutral-100 font-medium truncate">{ row.CampusName }</span>
+				</a>
+			}
+		</div>
+	}
+}
+
+// OrgCarriersList renders the list of org carriers as clickable rows
+// linking to the respective carrier detail page.
+templ OrgCarriersList(rows []OrgCarrierRow) {
+	if len(rows) == 0 {
+		<div class="px-4 py-3 text-neutral-500 text-sm">No carriers found.</div>
+	} else {
+		<div class="divide-y divide-neutral-700/50">
+			for _, row := range rows {
+				<a href={ templ.SafeURL(fmt.Sprintf("/ui/carrier/%d", row.CarrierID)) }
+					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<span class="text-neutral-100 font-medium truncate">{ row.CarrierName }</span>
+				</a>
+			}
+		</div>
+	}
+}
