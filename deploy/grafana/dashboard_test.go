@@ -20,6 +20,7 @@ type panel struct {
 	Title   string   `json:"title"`
 	Targets []target `json:"targets"`
 	Options *options `json:"options,omitempty"`
+	Panels  []panel  `json:"panels,omitempty"`
 }
 
 type target struct {
@@ -43,12 +44,24 @@ type templating struct {
 }
 
 type templateVar struct {
-	Name  string `json:"name"`
-	Type  string `json:"type"`
-	Query string `json:"query"`
+	Name  string          `json:"name"`
+	Type  string          `json:"type"`
+	Query json.RawMessage `json:"query"`
 }
 
-const dashboardPath = "dashboards/peeringdb-plus.json"
+const dashboardPath = "dashboards/pdbplus-overview.json"
+
+// allPanels returns all panels including those nested inside collapsed row panels.
+func allPanels(d dashboard) []panel {
+	var out []panel
+	for _, p := range d.Panels {
+		out = append(out, p)
+		for _, nested := range p.Panels {
+			out = append(out, nested)
+		}
+	}
+	return out
+}
 
 func loadDashboard(t *testing.T) dashboard {
 	t.Helper()
@@ -109,13 +122,13 @@ func TestDashboard_DatasourceTemplateVariable(t *testing.T) {
 
 	found := false
 	for _, v := range d.Templating.List {
-		if v.Name == "DS_PROMETHEUS" && v.Type == "datasource" && v.Query == "prometheus" {
+		if v.Name == "datasource" && v.Type == "datasource" && string(v.Query) == `"prometheus"` {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("dashboard missing DS_PROMETHEUS datasource template variable")
+		t.Error("dashboard missing datasource template variable")
 	}
 }
 
@@ -123,10 +136,10 @@ func TestDashboard_NoHardcodedDatasourceUIDs(t *testing.T) {
 	t.Parallel()
 	d := loadDashboard(t)
 
-	for _, p := range d.Panels {
+	for _, p := range allPanels(d) {
 		for _, tgt := range p.Targets {
-			if tgt.Datasource.UID != "" && tgt.Datasource.UID != "${DS_PROMETHEUS}" {
-				t.Errorf("panel %q target has hardcoded datasource UID %q (want ${DS_PROMETHEUS})",
+			if tgt.Datasource.UID != "" && tgt.Datasource.UID != "${datasource}" {
+				t.Errorf("panel %q target has hardcoded datasource UID %q (want ${datasource})",
 					p.Title, tgt.Datasource.UID)
 			}
 		}
@@ -137,10 +150,26 @@ func TestDashboard_EachRowHasTextPanel(t *testing.T) {
 	t.Parallel()
 	d := loadDashboard(t)
 
-	// Track which rows have doc panels by checking text panels following rows.
-	var currentRow string
+	// Track which rows have doc panels. For collapsed rows, text panels are
+	// nested inside the row's panels array. For non-collapsed rows, text
+	// panels follow the row panel at the top level.
 	rowHasDoc := make(map[string]bool)
 
+	for _, p := range d.Panels {
+		if p.Type != "row" {
+			continue
+		}
+		// Check nested panels (collapsed rows).
+		for _, nested := range p.Panels {
+			if nested.Type == "text" {
+				rowHasDoc[p.Title] = true
+				break
+			}
+		}
+	}
+
+	// Also check non-collapsed rows where text panels follow at top level.
+	var currentRow string
 	for _, p := range d.Panels {
 		if p.Type == "row" {
 			currentRow = p.Title
@@ -170,9 +199,9 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 	t.Parallel()
 	d := loadDashboard(t)
 
-	// Collect all PromQL expressions from the dashboard.
+	// Collect all PromQL expressions from the dashboard, including nested panels.
 	var exprs []string
-	for _, p := range d.Panels {
+	for _, p := range allPanels(d) {
 		for _, tgt := range p.Targets {
 			if tgt.Expr != "" {
 				exprs = append(exprs, tgt.Expr)
@@ -183,7 +212,8 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 	allExprs := strings.Join(exprs, " ")
 
 	// OTel metrics are exported to Prometheus with dots converted to underscores
-	// and appropriate suffixes added.
+	// and appropriate suffixes added. Go runtime metrics use the new OTel naming
+	// convention (go_* instead of process_runtime_go_*).
 	requiredMetrics := []struct {
 		prometheusName string
 		description    string
@@ -197,12 +227,13 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 		{"pdbplus_sync_type_fetch_errors_total", "per-type fetch errors"},
 		{"pdbplus_sync_type_upsert_errors_total", "per-type upsert errors"},
 		{"pdbplus_sync_type_fallback_total", "per-type fallback events"},
-		{"pdbplus_role_transitions_total", "role transitions"},
 		{"http_server_request_duration_seconds", "HTTP request duration"},
 		{"http_server_active_requests", "HTTP active requests"},
-		{"process_runtime_go_goroutines", "Go goroutines"},
-		{"process_runtime_go_mem_heap_alloc_bytes", "Go heap memory"},
-		{"process_runtime_go_gc_heap_goal_bytes", "Go GC goal"},
+		{"go_goroutine_count", "Go goroutines"},
+		{"go_memory_used_bytes", "Go heap memory"},
+		{"go_memory_gc_goal_bytes", "Go GC goal"},
+		{"go_memory_allocated_bytes_total", "Go allocation rate"},
+		{"pdbplus_data_type_count", "business metrics object count"},
 	}
 
 	for _, m := range requiredMetrics {
@@ -220,7 +251,7 @@ func TestDashboard_FreshnessGaugeThresholds(t *testing.T) {
 		t.Fatalf("reading dashboard JSON: %v", err)
 	}
 
-	// Verify the freshness gauge has green/yellow/red thresholds at 0/3600/7200.
+	// Verify the freshness stat panel has green/yellow/red thresholds at 0/3600/7200.
 	type thresholdStep struct {
 		Color string   `json:"color"`
 		Value *float64 `json:"value"`
@@ -238,6 +269,7 @@ func TestDashboard_FreshnessGaugeThresholds(t *testing.T) {
 		Title       string      `json:"title"`
 		Type        string      `json:"type"`
 		FieldConfig fieldConfig `json:"fieldConfig"`
+		Panels      []fullPanel `json:"panels,omitempty"`
 	}
 	type fullDashboard struct {
 		Panels []fullPanel `json:"panels"`
@@ -248,14 +280,21 @@ func TestDashboard_FreshnessGaugeThresholds(t *testing.T) {
 		t.Fatalf("parsing dashboard JSON: %v", err)
 	}
 
+	// Collect all panels including nested ones from collapsed rows.
+	var all []fullPanel
 	for _, p := range fd.Panels {
-		if p.Title != "Data Freshness" || p.Type != "gauge" {
+		all = append(all, p)
+		all = append(all, p.Panels...)
+	}
+
+	for _, p := range all {
+		if p.Title != "Data Freshness" || p.Type != "stat" {
 			continue
 		}
 
 		steps := p.FieldConfig.Defaults.Thresholds.Steps
 		if len(steps) < 3 {
-			t.Fatalf("Data Freshness gauge has %d threshold steps, want at least 3", len(steps))
+			t.Fatalf("Data Freshness stat panel has %d threshold steps, want at least 3", len(steps))
 		}
 
 		// Step 0: green (null value = base)
@@ -264,17 +303,6 @@ func TestDashboard_FreshnessGaugeThresholds(t *testing.T) {
 		}
 		// Step 1: yellow at 3600 (1 hour)
 		if steps[1].Color != "yellow" || steps[1].Value == nil || *steps[1].Value != 3600 {
-			val := "nil"
-			if steps[1].Value != nil {
-				val = strings.TrimRight(strings.TrimRight(
-					strings.Replace(
-						strings.Replace(
-							strings.Replace("%f", "%f", "", 1),
-							"%f", "", 1),
-						"%f", "", 1),
-					"0"), ".")
-			}
-			_ = val
 			t.Errorf("step 1: color=%q value=%v, want yellow/3600", steps[1].Color, steps[1].Value)
 		}
 		// Step 2: red at 7200 (2 hours)
@@ -283,12 +311,12 @@ func TestDashboard_FreshnessGaugeThresholds(t *testing.T) {
 		}
 		return
 	}
-	t.Error("Data Freshness gauge panel not found")
+	t.Error("Data Freshness stat panel not found")
 }
 
 func TestDashboard_ProvisioningYAMLExists(t *testing.T) {
 	t.Parallel()
-	_, err := os.ReadFile("provisioning/dashboards/default.yaml")
+	_, err := os.ReadFile("provisioning/dashboards.yaml")
 	if err != nil {
 		t.Fatalf("provisioning YAML not found: %v", err)
 	}
