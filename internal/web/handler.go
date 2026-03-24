@@ -20,12 +20,23 @@ func NewHandler(client *ent.Client) *Handler {
 // Register mounts web UI routes on the given mux.
 // Static assets are served from embedded files at /static/.
 // UI pages are served under the /ui/ prefix.
+// A single wildcard pattern dispatches all /ui/ paths internally,
+// following the pdbcompat handler pattern.
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.Handle("GET /static/", http.StripPrefix("/static/",
 		http.FileServerFS(StaticFS)))
 
-	mux.HandleFunc("GET /ui/", h.handleHome)
-	mux.HandleFunc("GET /ui/{rest...}", h.handleNotFound)
+	mux.HandleFunc("GET /ui/{rest...}", h.dispatch)
+}
+
+func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
+	rest := r.PathValue("rest")
+	switch rest {
+	case "", "/":
+		h.handleHome(w, r)
+	default:
+		h.handleNotFound(w, r)
+	}
 }
 
 func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
