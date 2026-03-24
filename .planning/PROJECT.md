@@ -41,7 +41,10 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-(None — define requirements for next milestone with `/gsd:new-milestone`)
+- [ ] Verify meta.generated field behavior for depth=0 paginated PeeringDB responses; graceful fallback if missing
+- [ ] Remove unused DataLoader middleware and WorkerConfig.IsPrimary dead field
+- [ ] Verify all 26 deferred human verification items against live Fly.io deployment
+- [ ] Grafana dashboard (JSON provisioning) covering sync health, API traffic, infrastructure, and business metrics
 
 ### Deferred
 
@@ -121,11 +124,21 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
+## Current Milestone: v1.5 Tech Debt & Observability
+
+**Goal:** Clean up accumulated tech debt, verify all deferred items against live Fly.io deployment, and build comprehensive Grafana dashboards for production monitoring.
+
+**Target features:**
+- Verify meta.generated field behavior for depth=0 paginated responses; graceful fallback if missing
+- Remove unused DataLoader middleware and WorkerConfig.IsPrimary dead field
+- Verify all 26 deferred human verification items against live deployment
+- Grafana dashboard (JSON provisioning) with sync health, API traffic, infrastructure, and business metrics
+
 ## Current State
 
-Shipped v1.4 with 17 phases across 4 milestones (v1.0-v1.4), 45 plans, 87 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, web UI (templ + htmx + Tailwind CSS), OpenTelemetry. Four user-facing surfaces: Web UI at /ui/ (search, detail pages, ASN comparison), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. 94 files changed, 21,000+ lines added in v1.4 alone.
+Shipped v1.4 with 17 phases across 4 milestones (v1.0-v1.4), 45 plans, 87 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, web UI (templ + htmx + Tailwind CSS), OpenTelemetry. Four user-facing surfaces: Web UI at /ui/ (search, detail pages, ASN comparison), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. Live deployment running on Fly.io.
 
-**Known tech debt:**
+**Known tech debt (being addressed in v1.5):**
 - DataLoader middleware wired but unused (entgql handles N+1 natively)
 - WorkerConfig.IsPrimary dead field (replaced by LiteFS detection, explicitly deferred)
 - 6 human verification items deferred from v1.2/v1.3 (CI execution, coverage comments, API key live testing)
@@ -134,4 +147,4 @@ Shipped v1.4 with 17 phases across 4 milestones (v1.0-v1.4), 45 plans, 87 tasks.
 - Nyquist validation incomplete for Phases 16-17 (research skipped)
 
 ---
-*Last updated: 2026-03-24 after v1.4 Web UI milestone*
+*Last updated: 2026-03-24 after v1.5 milestone started*

@@ -1,15 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Web UI
-status: v1.4 shipped, no active milestone
-stopped_at: Milestone v1.4 finalized
-last_updated: "2026-03-24T08:28:59.817Z"
+milestone: v1.5
+milestone_name: Tech Debt & Observability
+status: Defining requirements
+last_updated: "2026-03-24T12:00:00.000Z"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 11
-  completed_plans: 11
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,12 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Planning next milestone
+**Current focus:** Defining requirements for v1.5 Tech Debt & Observability
 
 ## Current Position
 
-Phase: None — v1.4 shipped
-Plan: None
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-24 — Milestone v1.5 started
 
 ## Performance Metrics
 
