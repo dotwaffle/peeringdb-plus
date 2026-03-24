@@ -155,7 +155,7 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17
 | 11. API Key & Rate Limiting | v1.3 | 2/2 | Complete | 2026-03-24 |
 | 12. Conformance Tooling Integration | v1.3 | 1/1 | Complete | 2026-03-24 |
 | 13. Foundation | v1.4 | 1/2 | Complete    | 2026-03-24 |
-| 14. Live Search | v1.4 | 2/2 | Complete   | 2026-03-24 |
+| 14. Live Search | v1.4 | 2/2 | Complete    | 2026-03-24 |
 | 15. Record Detail Pages | v1.4 | 0/? | Not started | - |
 | 16. ASN Comparison | v1.4 | 0/? | Not started | - |
 | 17. Polish & Accessibility | v1.4 | 0/? | Not started | - |
