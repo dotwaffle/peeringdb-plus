@@ -82,34 +82,34 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SRCH-01 | — | Pending |
-| SRCH-02 | — | Pending |
-| SRCH-03 | — | Pending |
-| SRCH-04 | — | Pending |
-| SRCH-05 | — | Pending |
-| DETL-01 | — | Pending |
-| DETL-02 | — | Pending |
-| DETL-03 | — | Pending |
-| DETL-04 | — | Pending |
-| DETL-05 | — | Pending |
-| COMP-01 | — | Pending |
-| COMP-02 | — | Pending |
-| COMP-03 | — | Pending |
-| COMP-04 | — | Pending |
-| COMP-05 | — | Pending |
-| DSGN-01 | — | Pending |
-| DSGN-02 | — | Pending |
-| DSGN-03 | — | Pending |
-| DSGN-04 | — | Pending |
-| DSGN-05 | — | Pending |
-| DSGN-06 | — | Pending |
-| DSGN-07 | — | Pending |
+| SRCH-01 | Phase 14 | Pending |
+| SRCH-02 | Phase 14 | Pending |
+| SRCH-03 | Phase 14 | Pending |
+| SRCH-04 | Phase 14 | Pending |
+| SRCH-05 | Phase 17 | Pending |
+| DETL-01 | Phase 15 | Pending |
+| DETL-02 | Phase 15 | Pending |
+| DETL-03 | Phase 15 | Pending |
+| DETL-04 | Phase 15 | Pending |
+| DETL-05 | Phase 15 | Pending |
+| COMP-01 | Phase 16 | Pending |
+| COMP-02 | Phase 16 | Pending |
+| COMP-03 | Phase 16 | Pending |
+| COMP-04 | Phase 16 | Pending |
+| COMP-05 | Phase 16 | Pending |
+| DSGN-01 | Phase 13 | Pending |
+| DSGN-02 | Phase 13 | Pending |
+| DSGN-03 | Phase 13 | Pending |
+| DSGN-04 | Phase 17 | Pending |
+| DSGN-05 | Phase 17 | Pending |
+| DSGN-06 | Phase 17 | Pending |
+| DSGN-07 | Phase 17 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 22 total
-- Mapped to phases: 0
-- Unmapped: 22
+- Mapped to phases: 22
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-03-24 after initial definition*
+*Last updated: 2026-03-24 after roadmap creation*
