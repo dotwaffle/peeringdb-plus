@@ -91,7 +91,10 @@ Plans:
   3. Entering a numeric value shows the matching network by ASN at the top of results
   4. Each type group displays a count badge showing how many records matched
   5. Clicking a search result navigates to that record's detail page
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 14-01-PLAN.md -- SearchService with fan-out queries across 6 entity types and unit tests
+- [ ] 14-02-PLAN.md -- Search templates, homepage update, handler wiring, and integration tests
 **UI hint**: yes
 
 ### Phase 15: Record Detail Pages
@@ -152,7 +155,7 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17
 | 11. API Key & Rate Limiting | v1.3 | 2/2 | Complete | 2026-03-24 |
 | 12. Conformance Tooling Integration | v1.3 | 1/1 | Complete | 2026-03-24 |
 | 13. Foundation | v1.4 | 1/2 | Complete    | 2026-03-24 |
-| 14. Live Search | v1.4 | 0/? | Not started | - |
+| 14. Live Search | v1.4 | 0/2 | Not started | - |
 | 15. Record Detail Pages | v1.4 | 0/? | Not started | - |
 | 16. ASN Comparison | v1.4 | 0/? | Not started | - |
 | 17. Polish & Accessibility | v1.4 | 0/? | Not started | - |
