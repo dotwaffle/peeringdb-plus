@@ -122,7 +122,10 @@ Plans:
   3. User can toggle between a shared-only view (default) and a full side-by-side view of all presences
   4. User can initiate a comparison from any network detail page via a "Compare with..." button that pre-fills one ASN
   5. The comparison URL captures both ASNs, making results shareable via link
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 16-01-PLAN.md -- CompareService with set intersection logic, data types, and unit tests
+- [ ] 16-02-PLAN.md -- Comparison page templates, handler wiring, "Compare with..." button, and integration tests
 **UI hint**: yes
 
 ### Phase 17: Polish & Accessibility
@@ -160,5 +163,5 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17
 | 13. Foundation | v1.4 | 1/2 | Complete    | 2026-03-24 |
 | 14. Live Search | v1.4 | 2/2 | Complete    | 2026-03-24 |
 | 15. Record Detail Pages | v1.4 | 2/2 | Complete    | 2026-03-24 |
-| 16. ASN Comparison | v1.4 | 0/? | Not started | - |
+| 16. ASN Comparison | v1.4 | 0/2 | Not started | - |
 | 17. Polish & Accessibility | v1.4 | 0/? | Not started | - |
