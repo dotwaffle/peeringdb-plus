@@ -63,13 +63,17 @@ post_or_update_comment() {
     gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${EXISTING_COMMENT_ID}" \
       --method PATCH \
       -f body="$COMMENT_BODY" \
-      >/dev/null 2>&1 && echo "Updated existing coverage comment." || echo "Failed to update coverage comment (non-fatal)."
+      >/dev/null && echo "Updated existing coverage comment." || echo "Failed to update coverage comment (non-fatal)."
   else
     # Create a new comment.
-    gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+    if ! gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
       --method POST \
       -f body="$COMMENT_BODY" \
-      >/dev/null 2>&1 && echo "Posted new coverage comment." || echo "Failed to post coverage comment (non-fatal)."
+      >/dev/null; then
+      echo "Failed to post coverage comment (non-fatal)."
+    else
+      echo "Posted new coverage comment."
+    fi
   fi
 }
 
