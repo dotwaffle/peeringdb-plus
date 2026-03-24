@@ -1,5 +1,23 @@
 # Milestones
 
+## v1.2 Quality, Incremental Sync & CI (Shipped: 2026-03-24)
+
+**Phases completed:** 4 phases, 9 plans, 18 tasks
+
+**Key accomplishments:**
+
+- golangci-lint v2 configured with generated:strict exclusion, dead code removed (globalid.go, dataloader package, config.IsPrimary), ~40 violations baselined for Plan 02
+- All 40 golangci-lint violations fixed across 22 hand-written files: 21 errcheck, 8 revive, 6 staticcheck, 3 unused, 1 gocritic, 1 nolintlint
+- SyncMode config field with env var parsing plus FetchAll functional options returning FetchResult with meta.generated tracking
+- Per-type sync cursor persistence via sync_cursors table with success-filtered reads, plus SyncTypeFallback OTel counter for incremental-to-full fallback tracking
+- Mode-aware sync worker with per-type incremental fetch via WithSince, automatic fallback to full on failure, and cursor persistence only after successful commit
+- Golden file test infrastructure with 39 committed reference files locking down PeeringDB compat JSON output for all 13 types across list, detail, and depth-expanded scenarios
+- Structural JSON comparison library with CLI tool and flag-gated live integration test against beta.peeringdb.com
+- GitHub Actions CI with parallel lint (golangci-lint + generate drift), test (race + coverage comment), build, and govulncheck jobs
+- Verified all read API endpoints are publicly accessible without authentication; root endpoint JSON self-documents the API surface
+
+---
+
 ## v1.1 REST API & Observability (Shipped: 2026-03-23)
 
 **Phases completed:** 3 phases, 8 plans, 16 tasks

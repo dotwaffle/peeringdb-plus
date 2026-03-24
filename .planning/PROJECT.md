@@ -112,14 +112,13 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.1 with 6 phases (3 from v1.0 + 3 from v1.1), 22 plans, 43 tasks. Go codebase (~57K LOC) using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/.
+Shipped v1.2 with 10 phases (3 from v1.0 + 3 from v1.1 + 4 from v1.2), 31 plans, 61 tasks. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, OpenTelemetry with per-type sync metrics. Three API surfaces: GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. Sync supports full re-fetch and incremental delta fetch with per-type cursor tracking. 39 golden files lock down PeeringDB compat layer responses. GitHub Actions CI enforces lint, test (-race), build, and govulncheck on every PR.
 
 **Known tech debt:**
 - DataLoader middleware wired but unused (entgql handles N+1 natively)
-- Vestigial config.IsPrimary field (replaced by LiteFS detection)
-- graph/globalid.go exported functions unused (ent Noder handles it)
-- Golden file tests not implemented for REST API (fixture-based tests sufficient)
-- 3 human verification items deferred (response fidelity vs live PeeringDB, readiness gating under real conditions, CORS headers — require real deployment)
+- WorkerConfig.IsPrimary dead field (replaced by LiteFS detection, explicitly deferred)
+- 3 human verification items deferred (CI execution on GitHub, coverage comment posting, comment deduplication — require actual GitHub push)
+- meta.generated field behavior unverified for depth=0 paginated PeeringDB responses (fallback covers this)
 
 ---
-*Last updated: 2026-03-23 after Phase 7 (Lint & Code Quality) complete*
+*Last updated: 2026-03-24 after v1.2 (Quality, Incremental Sync & CI) milestone complete*
