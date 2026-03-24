@@ -132,15 +132,55 @@ func (c *Client) FetchAll(ctx context.Context, objectType string, opts ...FetchO
 	ctx, span := tracer.Start(ctx, "peeringdb.fetch/"+objectType)
 	defer span.End()
 
+	// Full sync (no since): fetch entire dataset in one request without
+	// limit/skip. PeeringDB returns the full cached dataset, avoiding
+	// dozens of paginated requests and rate-limit pressure.
+	if cfg.since.IsZero() {
+		url := fmt.Sprintf("%s/api/%s?depth=0", c.baseURL, objectType)
+
+		resp, err := c.doWithRetry(ctx, url)
+		if err != nil {
+			span.RecordError(err)
+			return FetchResult{}, fmt.Errorf("fetch %s: %w", objectType, err)
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			span.RecordError(err)
+			return FetchResult{}, fmt.Errorf("read %s body: %w", objectType, err)
+		}
+
+		var apiResp Response[json.RawMessage]
+		if err := json.Unmarshal(body, &apiResp); err != nil {
+			span.RecordError(err)
+			return FetchResult{}, fmt.Errorf("decode %s response: %w", objectType, err)
+		}
+
+		generated := parseMeta(apiResp.Meta)
+
+		span.AddEvent("fetched",
+			trace.WithAttributes(
+				attribute.Int("count", len(apiResp.Data)),
+			),
+		)
+
+		c.logger.LogAttrs(ctx, slog.LevelDebug, "fetched all",
+			slog.String("type", objectType),
+			slog.Int("count", len(apiResp.Data)),
+		)
+
+		return FetchResult{Data: apiResp.Data, Meta: FetchMeta{Generated: generated}}, nil
+	}
+
+	// Incremental sync (with since): paginate through delta results.
 	var all []json.RawMessage
 	var earliestGenerated time.Time
 
 	for skip := 0; ; skip += pageSize {
 		page := skip / pageSize
-		url := fmt.Sprintf("%s/api/%s?limit=%d&skip=%d&depth=0", c.baseURL, objectType, pageSize, skip)
-		if !cfg.since.IsZero() {
-			url += fmt.Sprintf("&since=%d", cfg.since.Unix())
-		}
+		url := fmt.Sprintf("%s/api/%s?limit=%d&skip=%d&depth=0&since=%d",
+			c.baseURL, objectType, pageSize, skip, cfg.since.Unix())
 
 		resp, err := c.doWithRetry(ctx, url)
 		if err != nil {

@@ -48,7 +48,7 @@ func emptyResponse() []byte {
 func TestFetchAllPagination(t *testing.T) {
 	t.Parallel()
 
-	// Server returns 250 items on page 0, 100 on page 1, empty on page 2.
+	// Incremental sync (WithSince) paginates: 250 items on page 0, 100 on page 1, empty on page 2.
 	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		page := requestCount.Add(1)
@@ -68,7 +68,7 @@ func TestFetchAllPagination(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(context.Background(), TypeOrg, WithSince(time.Unix(1000, 0)))
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -251,11 +251,12 @@ func TestFetchAllDepthZero(t *testing.T) {
 	if !strings.Contains(capturedURL, "depth=0") {
 		t.Errorf("URL should contain depth=0, got: %s", capturedURL)
 	}
-	if !strings.Contains(capturedURL, "limit=250") {
-		t.Errorf("URL should contain limit=250, got: %s", capturedURL)
-	}
 	if !strings.Contains(capturedURL, "/api/net") {
 		t.Errorf("URL should contain /api/net, got: %s", capturedURL)
+	}
+	// Full sync (no WithSince) should NOT include limit/skip params.
+	if strings.Contains(capturedURL, "limit=") {
+		t.Errorf("full sync URL should not contain limit=, got: %s", capturedURL)
 	}
 }
 
@@ -290,6 +291,7 @@ func TestFetchAllEmptyFirstPage(t *testing.T) {
 func TestFetchAllAccumulatesAllPages(t *testing.T) {
 	t.Parallel()
 
+	// Incremental sync (WithSince) accumulates across pages.
 	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		page := requestCount.Add(1)
@@ -310,7 +312,7 @@ func TestFetchAllAccumulatesAllPages(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(context.Background(), TypeOrg, WithSince(time.Unix(1000, 0)))
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -323,6 +325,7 @@ func TestFetchAllAccumulatesAllPages(t *testing.T) {
 func TestFetchAllRateLimiter(t *testing.T) {
 	t.Parallel()
 
+	// Incremental sync (WithSince) paginates and is rate-limited.
 	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
@@ -340,7 +343,7 @@ func TestFetchAllRateLimiter(t *testing.T) {
 	client.limiter.SetBurst(1)
 
 	start := time.Now()
-	result, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(context.Background(), TypeOrg, WithSince(time.Unix(1000, 0)))
 	elapsed := time.Since(start)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
@@ -578,6 +581,7 @@ func TestFetchAllRecordsPageEvents(t *testing.T) {
 	// Not parallel: mutates global TracerProvider.
 	exporter := setupTraceTest(t)
 
+	// Incremental sync (WithSince) paginates and records page events.
 	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
@@ -596,7 +600,7 @@ func TestFetchAllRecordsPageEvents(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), "org")
+	result, err := client.FetchAll(context.Background(), "org", WithSince(time.Unix(1000, 0)))
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -679,7 +683,7 @@ func TestDoWithRetryCreatesPerAttemptSpans(t *testing.T) {
 	client.limiter.SetBurst(1000)
 	client.retryBaseDelay = 1 * time.Millisecond
 
-	result, err := client.FetchAll(context.Background(), "org")
+	result, err := client.FetchAll(context.Background(), "org", WithSince(time.Unix(1000, 0)))
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -972,6 +976,7 @@ func TestFetchMetaMissing(t *testing.T) {
 func TestFetchMetaEarliestAcrossPages(t *testing.T) {
 	t.Parallel()
 
+	// Incremental sync (WithSince) tracks earliest meta.generated across pages.
 	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
@@ -992,7 +997,7 @@ func TestFetchMetaEarliestAcrossPages(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(context.Background(), TypeOrg, WithSince(time.Unix(1000, 0)))
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
