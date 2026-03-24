@@ -60,7 +60,7 @@ See: `.planning/milestones/v1.3-ROADMAP.md` for full details.
 
 - [x] **Phase 13: Foundation** — templ + Tailwind + htmx scaffolding, base layout, route integration (completed 2026-03-24)
 - [x] **Phase 14: Live Search** — Homepage search with instant results grouped by type (completed 2026-03-24)
-- [ ] **Phase 15: Record Detail Pages** — Full detail views for all 6 entity types with lazy-loaded related records
+- [x] **Phase 15: Record Detail Pages** — Full detail views for all 6 entity types with lazy-loaded related records (completed 2026-03-24)
 - [ ] **Phase 16: ASN Comparison** — Compare two networks showing shared IXPs, facilities, and campuses
 - [ ] **Phase 17: Polish & Accessibility** — Dark mode, transitions, keyboard navigation, error pages
 
@@ -109,7 +109,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 15-01-PLAN.md -- Data types, dispatch routing, shared templates, Network detail page with lazy-loaded fragments and tests
-- [ ] 15-02-PLAN.md -- IXP, Facility, Organization, Campus, Carrier detail pages with all fragments and tests
+- [x] 15-02-PLAN.md -- IXP, Facility, Organization, Campus, Carrier detail pages with all fragments and tests
 **UI hint**: yes
 
 ### Phase 16: ASN Comparison
@@ -159,6 +159,6 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17
 | 12. Conformance Tooling Integration | v1.3 | 1/1 | Complete | 2026-03-24 |
 | 13. Foundation | v1.4 | 1/2 | Complete    | 2026-03-24 |
 | 14. Live Search | v1.4 | 2/2 | Complete    | 2026-03-24 |
-| 15. Record Detail Pages | v1.4 | 1/2 | In Progress|  |
+| 15. Record Detail Pages | v1.4 | 2/2 | Complete   | 2026-03-24 |
 | 16. ASN Comparison | v1.4 | 0/? | Not started | - |
 | 17. Polish & Accessibility | v1.4 | 0/? | Not started | - |

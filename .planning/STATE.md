@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Web UI
-status: Ready to execute
-stopped_at: Completed 15-01-PLAN.md
-last_updated: "2026-03-24T06:28:40.357Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-03-24T06:45:07.000Z"
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -54,6 +54,7 @@ Plan: 2 of 2
 | Phase 11 P02 | 3min | 1 tasks | 1 files |
 | Phase 12 P01 | 4min | 2 tasks | 3 files |
 | Phase 15 P01 | 6min | 2 tasks | 8 files |
+| Phase 15 P02 | 13min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,8 @@ All decisions archived in PROJECT.md Key Decisions table.
 - [Phase 15]: Used First() instead of Only() for ASN lookup to handle non-singular edge cases
 - [Phase 15]: Fragment endpoints bypass renderPage, write directly to ResponseWriter for bare HTML
 - [Phase 15]: Prefix-based dispatch routing via switch{} with strings.HasPrefix for detail URLs
+- [Phase 15]: Junction record name field used directly from PeeringDB computed serializer output
+- [Phase 15]: IxFacility/CarrierFacility rows silently skipped when FK is nil for defensive handling
 
 ### Pending Todos
 
@@ -84,6 +87,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T06:28:40.353Z
-Stopped at: Completed 15-01-PLAN.md
+Last session: 2026-03-24T06:45:06.996Z
+Stopped at: Completed 15-02-PLAN.md
 Resume file: None
