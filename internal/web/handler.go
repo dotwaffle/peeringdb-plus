@@ -1,8 +1,11 @@
 package web
 
 import (
+	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
@@ -13,13 +16,15 @@ import (
 type Handler struct {
 	client   *ent.Client
 	searcher *SearchService
+	comparer *CompareService
 }
 
-// NewHandler creates a web UI handler with an integrated search service.
+// NewHandler creates a web UI handler with integrated search and compare services.
 func NewHandler(client *ent.Client) *Handler {
 	return &Handler{
 		client:   client,
 		searcher: NewSearchService(client),
+		comparer: NewCompareService(client),
 	}
 }
 
@@ -56,6 +61,10 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 		h.handleCarrierDetail(w, r, strings.TrimPrefix(rest, "carrier/"))
 	case strings.HasPrefix(rest, "fragment/"):
 		h.handleFragment(w, r, strings.TrimPrefix(rest, "fragment/"))
+	case rest == "compare":
+		h.handleCompareForm(w, r)
+	case strings.HasPrefix(rest, "compare/"):
+		h.handleCompare(w, r, strings.TrimPrefix(rest, "compare/"))
 	default:
 		h.handleNotFound(w, r)
 	}
@@ -138,4 +147,73 @@ func convertToSearchGroups(results []TypeResult) []templates.SearchGroup {
 		}
 	}
 	return groups
+}
+
+// handleCompareForm renders the empty comparison form, optionally pre-filling
+// ASN values from query parameters.
+func (h *Handler) handleCompareForm(w http.ResponseWriter, r *http.Request) {
+	asn1 := r.URL.Query().Get("asn1")
+	asn2 := r.URL.Query().Get("asn2")
+	page := PageContent{Title: "Compare Networks", Content: templates.CompareFormPage(asn1, asn2)}
+	if err := renderPage(r.Context(), w, r, page); err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+	}
+}
+
+// handleCompare handles both /ui/compare/{asn1} (pre-fill form) and
+// /ui/compare/{asn1}/{asn2} (show comparison results).
+func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path string) {
+	parts := strings.SplitN(path, "/", 2)
+
+	asn1, err := strconv.Atoi(parts[0])
+	if err != nil {
+		h.handleNotFound(w, r)
+		return
+	}
+
+	// /ui/compare/{asn1} -- show form with first ASN pre-filled.
+	if len(parts) == 1 || parts[1] == "" {
+		page := PageContent{
+			Title:   "Compare Networks",
+			Content: templates.CompareFormPage(parts[0], ""),
+		}
+		if err := renderPage(r.Context(), w, r, page); err != nil {
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// /ui/compare/{asn1}/{asn2} -- show results.
+	asn2, err := strconv.Atoi(parts[1])
+	if err != nil {
+		h.handleNotFound(w, r)
+		return
+	}
+
+	viewMode := r.URL.Query().Get("view")
+	if viewMode == "" {
+		viewMode = "shared"
+	}
+
+	data, err := h.comparer.Compare(r.Context(), CompareInput{
+		ASN1:     asn1,
+		ASN2:     asn2,
+		ViewMode: viewMode,
+	})
+	if err != nil {
+		if ent.IsNotFound(err) {
+			h.handleNotFound(w, r)
+			return
+		}
+		slog.Error("compare networks", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.String("error", err.Error()))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	title := fmt.Sprintf("%s vs %s", data.NetA.Name, data.NetB.Name)
+	page := PageContent{Title: title, Content: templates.CompareResultsPage(*data)}
+	if err := renderPage(r.Context(), w, r, page); err != nil {
+		slog.Error("render compare", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.String("error", err.Error()))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+	}
 }

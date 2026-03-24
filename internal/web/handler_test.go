@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
+	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
@@ -459,5 +460,162 @@ func TestSearchEndpoint_VaryHeader(t *testing.T) {
 
 	if got := rec.Header().Get("Vary"); got != "HX-Request" {
 		t.Errorf("Vary header = %q, want %q", got, "HX-Request")
+	}
+}
+
+// --- Compare endpoint integration tests ---
+
+// seedCompareHandlerTestData creates two networks with shared presences
+// for handler-level compare tests. Reuses seedCompareTestData from compare_test.go.
+func seedCompareHandlerTestData(t *testing.T, client *ent.Client) {
+	t.Helper()
+	seedCompareTestData(t, client)
+}
+
+// setupCompareMux creates a mux with compare test data seeded.
+func setupCompareMux(t *testing.T) *http.ServeMux {
+	t.Helper()
+	client := testutil.SetupClient(t)
+	seedCompareHandlerTestData(t, client)
+	h := NewHandler(client)
+	mux := http.NewServeMux()
+	h.Register(mux)
+	return mux
+}
+
+func TestCompareFormPage(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/compare", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	checks := []string{"compare-asn1", "compare-asn2", "Compare Networks"}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("compare form page missing %q", want)
+		}
+	}
+}
+
+func TestCompareFormPagePreFilled(t *testing.T) {
+	t.Parallel()
+	mux := setupCompareMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/compare/13335", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "13335") {
+		t.Error("pre-filled form should contain ASN 13335")
+	}
+	if !strings.Contains(body, "Compare Networks") {
+		t.Error("pre-filled form should contain title")
+	}
+}
+
+func TestCompareResultsPage(t *testing.T) {
+	t.Parallel()
+	mux := setupCompareMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/compare/13335/15169", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	checks := []string{"Cloudflare", "Google", "DE-CIX Frankfurt", "Equinix FR5"}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("compare results missing %q", want)
+		}
+	}
+}
+
+func TestCompareResultsPage_FullView(t *testing.T) {
+	t.Parallel()
+	mux := setupCompareMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/compare/13335/15169?view=full", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	// Full view should show the Full View button as active (emerald style).
+	if !strings.Contains(body, "Full View") {
+		t.Error("full view page should contain Full View toggle")
+	}
+	// Full view should show non-shared IXPs like AMS-IX.
+	if !strings.Contains(body, "AMS-IX") {
+		t.Error("full view should include non-shared IXPs like AMS-IX")
+	}
+	// Full view should show non-shared facilities like Equinix AM5.
+	if !strings.Contains(body, "Equinix AM5") {
+		t.Error("full view should include non-shared facilities like Equinix AM5")
+	}
+}
+
+func TestCompareResultsPage_InvalidASN(t *testing.T) {
+	t.Parallel()
+	mux := setupCompareMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/compare/13335/99999", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", rec.Code)
+	}
+}
+
+func TestCompareResultsPage_NonNumericASN(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/compare/abc/def", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", rec.Code)
+	}
+}
+
+func TestNetworkDetailPage_CompareButton(t *testing.T) {
+	t.Parallel()
+	mux := setupCompareMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/asn/13335", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "/ui/compare/13335") {
+		t.Error("network detail page should contain compare link /ui/compare/13335")
+	}
+	if !strings.Contains(body, "Compare with") {
+		t.Error("network detail page should contain 'Compare with' button text")
 	}
 }
