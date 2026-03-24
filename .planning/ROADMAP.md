@@ -101,11 +101,13 @@ Plans:
   3. Grafana dashboard displays HTTP RED metrics (request rate by route, error rate, latency percentiles) and per-type sync detail (duration, object counts, errors by PeeringDB type)
   4. Dashboard JSON is committed to deploy/grafana/ with datasource template variables (no hardcoded UIDs) and imports cleanly into a fresh Grafana instance
   5. Each dashboard row contains documentation text panels explaining the metrics and troubleshooting guidance
-**Plans**: 2 plans
+**Plans**: 4 plans
 
 Plans:
 - [ ] 19-01-PLAN.md -- Register per-type object count gauges and wire into application startup
 - [ ] 19-02-PLAN.md -- Author Grafana dashboard JSON and provisioning YAML
+- [ ] 19-03-PLAN.md -- (gap closure) Implement InitObjectCountGauges, tests, and main.go wiring
+- [ ] 19-04-PLAN.md -- (gap closure) Remove duplicate artifacts, fix dashboard tests to validate canonical file
 
 ### Phase 20: Deferred Human Verification
 **Goal**: All 26 deferred human verification items from v1.2, v1.3, and v1.4 are verified as working correctly against the live Fly.io deployment
@@ -143,5 +145,5 @@ Phases execute in numeric order: 18 → 19 → 20
 | 16. ASN Comparison | v1.4 | 2/2 | Complete | 2026-03-24 |
 | 17. Polish & Accessibility | v1.4 | 3/3 | Complete | 2026-03-24 |
 | 18. Tech Debt & Data Integrity | v1.5 | 0/2 | Complete    | 2026-03-24 |
-| 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 0/2 | Planned    |  |
+| 19. Prometheus Metrics & Grafana Dashboard | v1.5 | 0/4 | Gaps found |  |
 | 20. Deferred Human Verification | v1.5 | 0/? | Not started | - |
