@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/a-h/templ"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
@@ -40,7 +41,19 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		renderer := termrender.NewRenderer(mode, noColor)
-		return renderer.RenderPage(w, page.Title, page.Data)
+		switch page.Title {
+		case "Not Found":
+			return renderer.RenderError(w, http.StatusNotFound, "Not Found",
+				"The page you're looking for doesn't exist. Try searching instead.")
+		case "Server Error":
+			return renderer.RenderError(w, http.StatusInternalServerError, "Internal Server Error",
+				"An unexpected error occurred. Please try again later.")
+		case "Home":
+			// Freshness not available without db access; zero time omits the line.
+			return renderer.RenderHelp(w, time.Time{})
+		default:
+			return renderer.RenderPage(w, page.Title, page.Data)
+		}
 
 	case termrender.ModeJSON:
 		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
@@ -48,8 +61,14 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		if page.Data != nil {
 			return termrender.RenderJSON(w, page.Data)
 		}
-		// For pages without entity data (home, errors), return minimal JSON.
-		return termrender.RenderJSON(w, map[string]string{"title": page.Title})
+		switch page.Title {
+		case "Not Found":
+			return termrender.RenderJSON(w, map[string]any{"error": "not found", "status": 404})
+		case "Server Error":
+			return termrender.RenderJSON(w, map[string]any{"error": "internal server error", "status": 500})
+		default:
+			return termrender.RenderJSON(w, map[string]string{"title": page.Title})
+		}
 
 	case termrender.ModeHTMX:
 		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")

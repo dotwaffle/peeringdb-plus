@@ -38,6 +38,7 @@ import (
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/web"
 	webtemplates "github.com/dotwaffle/peeringdb-plus/internal/web/templates"
+	"github.com/dotwaffle/peeringdb-plus/internal/web/termrender"
 )
 
 func init() {
@@ -306,17 +307,48 @@ func main() {
 		}()
 	}
 
-	// GET /: content negotiation per user decision.
+	// GET /: content negotiation for terminal, browser, and API clients (NAV-04).
+	// Terminal clients (curl, wget, HTTPie) receive help text.
 	// Browsers (Accept: text/html) redirect to /ui/.
 	// API clients (Accept: application/json) get JSON discovery.
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		accept := r.Header.Get("Accept")
-		if strings.Contains(accept, "text/html") {
-			http.Redirect(w, r, "/ui/", http.StatusFound)
+		mode := termrender.Detect(termrender.DetectInput{
+			Query:     r.URL.Query(),
+			Accept:    r.Header.Get("Accept"),
+			UserAgent: r.Header.Get("User-Agent"),
+		})
+		noColor := termrender.HasNoColor(termrender.DetectInput{Query: r.URL.Query()})
+
+		switch mode {
+		case termrender.ModeRich, termrender.ModePlain:
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.Header().Set("Vary", "User-Agent, Accept")
+			renderer := termrender.NewRenderer(mode, noColor)
+			var freshness time.Time
+			status, err := pdbsync.GetLastStatus(r.Context(), db)
+			if err == nil && status != nil && status.Status == "success" {
+				freshness = status.LastSyncAt
+			}
+			if err := renderer.RenderHelp(w, freshness); err != nil {
+				slog.Error("render terminal help", slog.String("error", err.Error()))
+			}
 			return
+
+		case termrender.ModeJSON:
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Header().Set("Vary", "User-Agent, Accept")
+			fmt.Fprint(w, `{"name":"peeringdb-plus","version":"0.1.0","graphql":"/graphql","rest":"/rest/v1/","api":"/api/","connectrpc":"/peeringdb.v1.","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`)
+			return
+
+		default:
+			accept := r.Header.Get("Accept")
+			if strings.Contains(accept, "text/html") {
+				http.Redirect(w, r, "/ui/", http.StatusFound)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"name":"peeringdb-plus","version":"0.1.0","graphql":"/graphql","rest":"/rest/v1/","api":"/api/","connectrpc":"/peeringdb.v1.","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"name":"peeringdb-plus","version":"0.1.0","graphql":"/graphql","rest":"/rest/v1/","api":"/api/","connectrpc":"/peeringdb.v1.","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`)
 	})
 
 	// Build middleware stack (outermost first):
