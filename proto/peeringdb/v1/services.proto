@@ -4,12 +4,18 @@ package peeringdb.v1;
 
 option go_package = "github.com/dotwaffle/peeringdb-plus/ent/proto/peeringdb/v1";
 
+import "google/protobuf/timestamp.proto";
 import "peeringdb/v1/v1.proto";
 
 // CampusService provides read access to Campus records.
 service CampusService {
   rpc GetCampus(GetCampusRequest) returns (GetCampusResponse);
   rpc ListCampuses(ListCampusesRequest) returns (ListCampusesResponse);
+
+  // StreamCampuses streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamCampuses(StreamCampusesRequest) returns (stream Campus);
 }
 
 message GetCampusRequest {
@@ -37,10 +43,28 @@ message ListCampusesResponse {
   string next_page_token = 2;
 }
 
+message StreamCampusesRequest {
+  optional string name = 1;
+  optional string country = 2;
+  optional string city = 3;
+  optional string status = 4;
+  optional int64 org_id = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
+}
+
 // CarrierService provides read access to Carrier records.
 service CarrierService {
   rpc GetCarrier(GetCarrierRequest) returns (GetCarrierResponse);
   rpc ListCarriers(ListCarriersRequest) returns (ListCarriersResponse);
+
+  // StreamCarriers streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamCarriers(StreamCarriersRequest) returns (stream Carrier);
 }
 
 message GetCarrierRequest {
@@ -66,10 +90,26 @@ message ListCarriersResponse {
   string next_page_token = 2;
 }
 
+message StreamCarriersRequest {
+  optional string name = 1;
+  optional string status = 2;
+  optional int64 org_id = 3;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 4;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 5;
+}
+
 // CarrierFacilityService provides read access to CarrierFacility records.
 service CarrierFacilityService {
   rpc GetCarrierFacility(GetCarrierFacilityRequest) returns (GetCarrierFacilityResponse);
   rpc ListCarrierFacilities(ListCarrierFacilitiesRequest) returns (ListCarrierFacilitiesResponse);
+
+  // StreamCarrierFacilities streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamCarrierFacilities(StreamCarrierFacilitiesRequest) returns (stream CarrierFacility);
 }
 
 message GetCarrierFacilityRequest {
@@ -95,10 +135,26 @@ message ListCarrierFacilitiesResponse {
   string next_page_token = 2;
 }
 
+message StreamCarrierFacilitiesRequest {
+  optional int64 carrier_id = 1;
+  optional int64 fac_id = 2;
+  optional string status = 3;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 4;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 5;
+}
+
 // FacilityService provides read access to Facility records.
 service FacilityService {
   rpc GetFacility(GetFacilityRequest) returns (GetFacilityResponse);
   rpc ListFacilities(ListFacilitiesRequest) returns (ListFacilitiesResponse);
+
+  // StreamFacilities streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamFacilities(StreamFacilitiesRequest) returns (stream Facility);
 }
 
 message GetFacilityRequest {
@@ -126,10 +182,28 @@ message ListFacilitiesResponse {
   string next_page_token = 2;
 }
 
+message StreamFacilitiesRequest {
+  optional string name = 1;
+  optional string country = 2;
+  optional string city = 3;
+  optional string status = 4;
+  optional int64 org_id = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
+}
+
 // InternetExchangeService provides read access to InternetExchange records.
 service InternetExchangeService {
   rpc GetInternetExchange(GetInternetExchangeRequest) returns (GetInternetExchangeResponse);
   rpc ListInternetExchanges(ListInternetExchangesRequest) returns (ListInternetExchangesResponse);
+
+  // StreamInternetExchanges streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamInternetExchanges(StreamInternetExchangesRequest) returns (stream InternetExchange);
 }
 
 message GetInternetExchangeRequest {
@@ -157,10 +231,28 @@ message ListInternetExchangesResponse {
   string next_page_token = 2;
 }
 
+message StreamInternetExchangesRequest {
+  optional string name = 1;
+  optional string country = 2;
+  optional string city = 3;
+  optional string status = 4;
+  optional int64 org_id = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
+}
+
 // IxFacilityService provides read access to IxFacility records.
 service IxFacilityService {
   rpc GetIxFacility(GetIxFacilityRequest) returns (GetIxFacilityResponse);
   rpc ListIxFacilities(ListIxFacilitiesRequest) returns (ListIxFacilitiesResponse);
+
+  // StreamIxFacilities streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamIxFacilities(StreamIxFacilitiesRequest) returns (stream IxFacility);
 }
 
 message GetIxFacilityRequest {
@@ -188,10 +280,28 @@ message ListIxFacilitiesResponse {
   string next_page_token = 2;
 }
 
+message StreamIxFacilitiesRequest {
+  optional int64 ix_id = 1;
+  optional int64 fac_id = 2;
+  optional string country = 3;
+  optional string city = 4;
+  optional string status = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
+}
+
 // IxLanService provides read access to IxLan records.
 service IxLanService {
   rpc GetIxLan(GetIxLanRequest) returns (GetIxLanResponse);
   rpc ListIxLans(ListIxLansRequest) returns (ListIxLansResponse);
+
+  // StreamIxLans streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamIxLans(StreamIxLansRequest) returns (stream IxLan);
 }
 
 message GetIxLanRequest {
@@ -217,10 +327,26 @@ message ListIxLansResponse {
   string next_page_token = 2;
 }
 
+message StreamIxLansRequest {
+  optional int64 ix_id = 1;
+  optional string name = 2;
+  optional string status = 3;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 4;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 5;
+}
+
 // IxPrefixService provides read access to IxPrefix records.
 service IxPrefixService {
   rpc GetIxPrefix(GetIxPrefixRequest) returns (GetIxPrefixResponse);
   rpc ListIxPrefixes(ListIxPrefixesRequest) returns (ListIxPrefixesResponse);
+
+  // StreamIxPrefixes streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamIxPrefixes(StreamIxPrefixesRequest) returns (stream IxPrefix);
 }
 
 message GetIxPrefixRequest {
@@ -246,10 +372,26 @@ message ListIxPrefixesResponse {
   string next_page_token = 2;
 }
 
+message StreamIxPrefixesRequest {
+  optional int64 ixlan_id = 1;
+  optional string protocol = 2;
+  optional string status = 3;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 4;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 5;
+}
+
 // NetworkService provides read access to Network records.
 service NetworkService {
   rpc GetNetwork(GetNetworkRequest) returns (GetNetworkResponse);
   rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
+
+  // StreamNetworks streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamNetworks(StreamNetworksRequest) returns (stream Network);
 }
 
 message GetNetworkRequest {
@@ -276,10 +418,27 @@ message ListNetworksResponse {
   string next_page_token = 2;
 }
 
+message StreamNetworksRequest {
+  optional int64 asn = 1;
+  optional string name = 2;
+  optional string status = 3;
+  optional int64 org_id = 4;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 5;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 6;
+}
+
 // NetworkFacilityService provides read access to NetworkFacility records.
 service NetworkFacilityService {
   rpc GetNetworkFacility(GetNetworkFacilityRequest) returns (GetNetworkFacilityResponse);
   rpc ListNetworkFacilities(ListNetworkFacilitiesRequest) returns (ListNetworkFacilitiesResponse);
+
+  // StreamNetworkFacilities streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamNetworkFacilities(StreamNetworkFacilitiesRequest) returns (stream NetworkFacility);
 }
 
 message GetNetworkFacilityRequest {
@@ -307,10 +466,28 @@ message ListNetworkFacilitiesResponse {
   string next_page_token = 2;
 }
 
+message StreamNetworkFacilitiesRequest {
+  optional int64 net_id = 1;
+  optional int64 fac_id = 2;
+  optional string country = 3;
+  optional string city = 4;
+  optional string status = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
+}
+
 // NetworkIxLanService provides read access to NetworkIxLan records.
 service NetworkIxLanService {
   rpc GetNetworkIxLan(GetNetworkIxLanRequest) returns (GetNetworkIxLanResponse);
   rpc ListNetworkIxLans(ListNetworkIxLansRequest) returns (ListNetworkIxLansResponse);
+
+  // StreamNetworkIxLans streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamNetworkIxLans(StreamNetworkIxLansRequest) returns (stream NetworkIxLan);
 }
 
 message GetNetworkIxLanRequest {
@@ -338,10 +515,28 @@ message ListNetworkIxLansResponse {
   string next_page_token = 2;
 }
 
+message StreamNetworkIxLansRequest {
+  optional int64 net_id = 1;
+  optional int64 ixlan_id = 2;
+  optional int64 asn = 3;
+  optional string name = 4;
+  optional string status = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
+}
+
 // OrganizationService provides read access to Organization records.
 service OrganizationService {
   rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse);
   rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse);
+
+  // StreamOrganizations streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamOrganizations(StreamOrganizationsRequest) returns (stream Organization);
 }
 
 message GetOrganizationRequest {
@@ -368,10 +563,27 @@ message ListOrganizationsResponse {
   string next_page_token = 2;
 }
 
+message StreamOrganizationsRequest {
+  optional string name = 1;
+  optional string country = 2;
+  optional string city = 3;
+  optional string status = 4;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 5;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 6;
+}
+
 // PocService provides read access to Poc (point of contact) records.
 service PocService {
   rpc GetPoc(GetPocRequest) returns (GetPocResponse);
   rpc ListPocs(ListPocsRequest) returns (ListPocsResponse);
+
+  // StreamPocs streams all matching rows one message at a time.
+  // Supports proto (application/proto) and JSON (application/json) via
+  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  rpc StreamPocs(StreamPocsRequest) returns (stream Poc);
 }
 
 message GetPocRequest {
@@ -396,4 +608,16 @@ message ListPocsRequest {
 message ListPocsResponse {
   repeated Poc pocs = 1;
   string next_page_token = 2;
+}
+
+message StreamPocsRequest {
+  optional int64 net_id = 1;
+  optional string role = 2;
+  optional string name = 3;
+  optional string status = 4;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 5;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 6;
 }

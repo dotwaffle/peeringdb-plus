@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: Streaming RPCs & UI Polish
-status: Ready to plan
-stopped_at: Roadmap created with 3 phases (25-27)
-last_updated: "2026-03-25T12:00:00.000Z"
+milestone: v1.0
+milestone_name: milestone
+status: v1.7 milestone complete
+stopped_at: Completed 27-02-PLAN.md IX detail page participants redesign
+last_updated: "2026-03-25T07:51:13.332Z"
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -19,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 25 - Streaming RPCs
+**Current focus:** Phase 27 — ix-presence-ui-polish
 
 ## Current Position
 
-Phase: 25 of 27 (Streaming RPCs)
-Plan: Ready to plan
-Status: Ready to plan
-Last activity: 2026-03-25 — Roadmap created for v1.7 (3 phases, 16 requirements)
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 27
+Plan: Not started
 
 ## Performance Metrics
 
@@ -60,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 15 P01 | 6min | 2 tasks | 8 files |
 | Phase 15 P02 | 13min | 2 tasks | 12 files |
 | Phase 22 P01 | 3min | 2 tasks | 6 files |
+| Phase 26 P01 | 8min | 2 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -74,6 +71,11 @@ Recent decisions affecting current work:
 - [Phase 22]: ConnectRPC simple option for cleaner handler signatures
 - [Phase 23]: connectcors helpers for CORS header merging with existing app config
 - [Phase 24]: Predicate accumulation pattern: []predicate.T with entity.And() for filter composition
+- [Phase 25]: OTel WithoutTraceEvents applied globally to interceptor -- all RPCs benefit from reduced trace overhead
+- [Phase 26]: since_id as IDGT predicate + lastID cursor: grpc-total-count reflects remaining records for resume consumers
+- [Phase 27]: templ script component for clipboard: type-safe JS interop pattern
+- [Phase 27]: Speed color tiers: sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber
+- [Phase 27]: IX participant link uses sky accent (hover:text-sky-400) matching IX page color scheme
 
 ### Pending Todos
 
@@ -88,6 +90,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25
-Stopped at: Roadmap created for v1.7
+Last session: 2026-03-25T07:39:03.692Z
+Stopped at: Completed 27-02-PLAN.md IX detail page participants redesign
 Resume file: None

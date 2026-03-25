@@ -13,6 +13,9 @@ const (
 	// maxPageSize is the upper bound on results per page, preventing
 	// accidental full-table dumps.
 	maxPageSize = 1000
+	// streamBatchSize is the number of rows fetched per database round-trip
+	// during streaming RPCs. Hardcoded at 500 per user decision.
+	streamBatchSize = 500
 )
 
 // normalizePageSize clamps the requested page size to the allowed range.
