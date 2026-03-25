@@ -56,12 +56,12 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-- [ ] Terminal client detection (User-Agent sniffing for curl, wget, HTTPie, etc.)
+- [x] Terminal client detection (User-Agent sniffing for curl, wget, HTTPie, etc.) — v1.8 Phase 28
+- [x] Content negotiation under existing /ui/ URLs — browsers unchanged, terminals get text — v1.8 Phase 28
+- [x] CLI help text at /ui/ for terminal clients listing available endpoints — v1.8 Phase 28
+- [x] Text-formatted error responses (404, 500) for terminal clients — v1.8 Phase 28
 - [ ] Rich 256-color ANSI output with Unicode box drawing for all 6 entity types
 - [ ] Plain text mode (?T) and JSON mode (?format=json) as alternative output formats
-- [ ] Content negotiation under existing /ui/ URLs — browsers unchanged, terminals get text
-- [ ] CLI help text at /ui/ for terminal clients listing available endpoints
-- [ ] Text-formatted error responses (404, 500) for terminal clients
 
 ## Current Milestone: v1.8 Terminal CLI Interface
 
@@ -175,7 +175,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.7 with 27 phases across 8 milestones (v1.0-v1.7). All streaming RPCs with batched keyset pagination, since_id/updated_since filters. IX presence UI polished with labeled fields, color-coded port speeds, emerald RS pill badges, grid-aligned copyable IP addresses, and aggregate bandwidth headers. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Five user-facing surfaces: Web UI at /ui/, GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. Codebase passes golangci-lint v2 clean. Live deployment on Fly.io with comprehensive observability.
+Shipped v1.7 with 27 phases across 8 milestones (v1.0-v1.7). Phase 28 complete — terminal client detection and content negotiation infrastructure. curl/wget/HTTPie clients now receive text output instead of HTML on all /ui/ URLs, with explicit format overrides (?T, ?format=json, ?nocolor). Help text at /ui/, text-formatted 404/500 errors. Built with lipgloss v2 for ANSI rendering, colorprofile for forced color profiles over HTTP. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Six user-facing surfaces: Web UI at /ui/, Terminal CLI at /ui/ (curl), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. Codebase passes golangci-lint v2 clean. Live deployment on Fly.io with comprehensive observability.
 
 **Known tech debt:**
 - Nyquist validation incomplete for Phases 16-17, 21-24 (validation created but not formally signed off)
@@ -187,4 +187,4 @@ Shipped v1.7 with 27 phases across 8 milestones (v1.0-v1.7). All streaming RPCs 
 - 9 human verification items from v1.6 deferred to runtime testing
 
 ---
-*Last updated: 2026-03-25 after v1.8 milestone started*
+*Last updated: 2026-03-25 after Phase 28 completion*
