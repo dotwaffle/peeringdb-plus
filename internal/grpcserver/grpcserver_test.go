@@ -11,6 +11,7 @@ import (
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
@@ -991,5 +992,163 @@ func TestStreamNetworksCancellation(t *testing.T) {
 		// It is acceptable for small data sets where all records were already
 		// sent before the cancel propagated. Log but do not fail.
 		t.Log("stream completed without error after cancel -- data was small enough to send before cancellation propagated")
+	}
+}
+
+func TestStreamNetworksSinceId(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		req       *pb.StreamNetworksRequest
+		wantLen   int
+		wantCount string
+	}{
+		{
+			name:      "since_id returns records after given ID",
+			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(1)},
+			wantLen:   2,
+			wantCount: "2",
+		},
+		{
+			name:      "since_id beyond max returns empty",
+			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(9999)},
+			wantLen:   0,
+			wantCount: "0",
+		},
+		{
+			name:      "since_id with status filter composes via AND",
+			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(1), Status: proto.String("ok")},
+			wantLen:   1,
+			wantCount: "1",
+		},
+		{
+			name:      "since_id zero returns all (same as omitted)",
+			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(0)},
+			wantLen:   3,
+			wantCount: "3",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			entClient := testutil.SetupClient(t)
+			seedStreamNetworks(t, entClient)
+			rpcClient := setupStreamTestServer(t, entClient)
+			ctx := context.Background()
+
+			stream, err := rpcClient.StreamNetworks(ctx, tt.req)
+			if err != nil {
+				t.Fatalf("StreamNetworks returned error: %v", err)
+			}
+
+			var count int
+			for stream.Receive() {
+				if stream.Msg() == nil {
+					t.Fatal("received nil message from stream")
+				}
+				count++
+			}
+			if streamErr := stream.Err(); streamErr != nil {
+				t.Fatalf("stream error: %v", streamErr)
+			}
+			if count != tt.wantLen {
+				t.Errorf("got %d messages, want %d", count, tt.wantLen)
+			}
+
+			// Check response header for total count.
+			got := stream.ResponseHeader().Get("Grpc-Total-Count")
+			if got == "" {
+				got = stream.ResponseHeader().Get("grpc-total-count")
+			}
+			if got != tt.wantCount {
+				t.Errorf("grpc-total-count = %q, want %q", got, tt.wantCount)
+			}
+		})
+	}
+}
+
+func TestStreamNetworksUpdatedSince(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		req       *pb.StreamNetworksRequest
+		wantLen   int
+		wantCount string
+	}{
+		{
+			name: "updated_since before seed time returns all",
+			req: &pb.StreamNetworksRequest{
+				UpdatedSince: timestamppb.New(time.Date(2026, 1, 14, 0, 0, 0, 0, time.UTC)),
+			},
+			wantLen:   3,
+			wantCount: "3",
+		},
+		{
+			name: "updated_since after seed time returns none",
+			req: &pb.StreamNetworksRequest{
+				UpdatedSince: timestamppb.New(time.Date(2026, 1, 16, 0, 0, 0, 0, time.UTC)),
+			},
+			wantLen:   0,
+			wantCount: "0",
+		},
+		{
+			name: "updated_since with status filter composes via AND",
+			req: &pb.StreamNetworksRequest{
+				UpdatedSince: timestamppb.New(time.Date(2026, 1, 14, 0, 0, 0, 0, time.UTC)),
+				Status:       proto.String("ok"),
+			},
+			wantLen:   2,
+			wantCount: "2",
+		},
+		{
+			name: "since_id and updated_since compose together",
+			req: &pb.StreamNetworksRequest{
+				SinceId:      proto.Int64(1),
+				UpdatedSince: timestamppb.New(time.Date(2026, 1, 14, 0, 0, 0, 0, time.UTC)),
+			},
+			wantLen:   2,
+			wantCount: "2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			entClient := testutil.SetupClient(t)
+			seedStreamNetworks(t, entClient)
+			rpcClient := setupStreamTestServer(t, entClient)
+			ctx := context.Background()
+
+			stream, err := rpcClient.StreamNetworks(ctx, tt.req)
+			if err != nil {
+				t.Fatalf("StreamNetworks returned error: %v", err)
+			}
+
+			var count int
+			for stream.Receive() {
+				if stream.Msg() == nil {
+					t.Fatal("received nil message from stream")
+				}
+				count++
+			}
+			if streamErr := stream.Err(); streamErr != nil {
+				t.Fatalf("stream error: %v", streamErr)
+			}
+			if count != tt.wantLen {
+				t.Errorf("got %d messages, want %d", count, tt.wantLen)
+			}
+
+			// Check response header for total count.
+			got := stream.ResponseHeader().Get("Grpc-Total-Count")
+			if got == "" {
+				got = stream.ResponseHeader().Get("grpc-total-count")
+			}
+			if got != tt.wantCount {
+				t.Errorf("grpc-total-count = %q, want %q", got, tt.wantCount)
+			}
+		})
 	}
 }
