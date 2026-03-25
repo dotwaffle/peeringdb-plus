@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 26-01-PLAN.md stream resume and incremental filters
-last_updated: "2026-03-25T07:17:36.464Z"
+status: Ready to execute
+stopped_at: Completed 27-01-PLAN.md IX presence helpers and network detail redesign
+last_updated: "2026-03-25T07:32:11.435Z"
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 26 — stream-resume-incremental-filters
+**Current focus:** Phase 27 — ix-presence-ui-polish
 
 ## Current Position
 
-Phase: 27
-Plan: Not started
+Phase: 27 (ix-presence-ui-polish) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -73,6 +73,8 @@ Recent decisions affecting current work:
 - [Phase 24]: Predicate accumulation pattern: []predicate.T with entity.And() for filter composition
 - [Phase 25]: OTel WithoutTraceEvents applied globally to interceptor -- all RPCs benefit from reduced trace overhead
 - [Phase 26]: since_id as IDGT predicate + lastID cursor: grpc-total-count reflects remaining records for resume consumers
+- [Phase 27]: templ script component for clipboard: type-safe JS interop pattern
+- [Phase 27]: Speed color tiers: sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber
 
 ### Pending Todos
 
@@ -87,6 +89,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T07:11:06.389Z
-Stopped at: Completed 26-01-PLAN.md stream resume and incremental filters
+Last session: 2026-03-25T07:32:11.432Z
+Stopped at: Completed 27-01-PLAN.md IX presence helpers and network detail redesign
 Resume file: None

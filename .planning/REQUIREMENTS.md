@@ -21,13 +21,13 @@ Requirements for milestone v1.7: Streaming RPCs & UI Polish.
 
 ### IX Presence UI
 
-- [ ] **IXUI-01**: Field labels for speed, IPv4, IPv6 in IX presence rows
-- [ ] **IXUI-02**: RS badge repositioned inline after IX name
-- [ ] **IXUI-03**: Port speed color coding by tier (sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber)
-- [ ] **IXUI-04**: Consistent IP address alignment via grid layout across rows
-- [ ] **IXUI-05**: Selectable/copyable text — IX name is the only link, data fields are plain text
-- [ ] **IXUI-06**: Copy-to-clipboard button on IPv4/IPv6 addresses
-- [ ] **IXUI-07**: Aggregate bandwidth display in IX presence section header
+- [x] **IXUI-01**: Field labels for speed, IPv4, IPv6 in IX presence rows
+- [x] **IXUI-02**: RS badge repositioned inline after IX name
+- [x] **IXUI-03**: Port speed color coding by tier (sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber)
+- [x] **IXUI-04**: Consistent IP address alignment via grid layout across rows
+- [x] **IXUI-05**: Selectable/copyable text — IX name is the only link, data fields are plain text
+- [x] **IXUI-06**: Copy-to-clipboard button on IPv4/IPv6 addresses
+- [x] **IXUI-07**: Aggregate bandwidth display in IX presence section header
 
 ## Future Requirements
 
@@ -69,13 +69,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STRM-07 | Phase 25 | Complete |
 | STRM-08 | Phase 26 | Complete |
 | STRM-09 | Phase 26 | Complete |
-| IXUI-01 | Phase 27 | Pending |
-| IXUI-02 | Phase 27 | Pending |
-| IXUI-03 | Phase 27 | Pending |
-| IXUI-04 | Phase 27 | Pending |
-| IXUI-05 | Phase 27 | Pending |
-| IXUI-06 | Phase 27 | Pending |
-| IXUI-07 | Phase 27 | Pending |
+| IXUI-01 | Phase 27 | Complete |
+| IXUI-02 | Phase 27 | Complete |
+| IXUI-03 | Phase 27 | Complete |
+| IXUI-04 | Phase 27 | Complete |
+| IXUI-05 | Phase 27 | Complete |
+| IXUI-06 | Phase 27 | Complete |
+| IXUI-07 | Phase 27 | Complete |
 
 **Coverage:**
 - v1.7 requirements: 16 total
