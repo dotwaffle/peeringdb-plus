@@ -33,7 +33,12 @@
   3. Cancelling a stream mid-flight (client disconnect) terminates the server-side query loop promptly
   4. Total record count is available in the response header metadata before the first message arrives
   5. Applying filter fields on a streaming RPC returns only matching records, consistent with the corresponding List RPC
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 25-01-PLAN.md -- Proto schema + codegen + config + stubs + OTel update
+- [ ] 25-02-PLAN.md -- StreamNetworks reference implementation + integration tests
+- [ ] 25-03-PLAN.md -- Remaining 12 streaming handlers + consumer documentation
 
 ### Phase 26: Stream Resume & Incremental Filters
 **Goal**: Automation consumers can resume interrupted streams and fetch only recently-changed records
@@ -65,6 +70,6 @@ Phases execute in numeric order: 25 -> 26 -> 27
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 25. Streaming RPCs | 0/TBD | Not started | - |
+| 25. Streaming RPCs | 0/3 | Planning complete | - |
 | 26. Stream Resume & Incremental Filters | 0/TBD | Not started | - |
 | 27. IX Presence UI Polish | 0/TBD | Not started | - |
