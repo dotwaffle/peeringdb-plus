@@ -48,7 +48,10 @@ Plans:
   1. Passing `since_id` to a streaming RPC returns only records with ID greater than the given value
   2. Passing `updated_since` to a streaming RPC returns only records modified after the given timestamp
   3. Combining `since_id` or `updated_since` with other filters works correctly (filters compose via AND)
-**Plans**: TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 26-01-PLAN.md -- Proto fields + codegen + all 13 handler updates + integration tests
 
 ### Phase 27: IX Presence UI Polish
 **Goal**: IX presence sections display connection details clearly with labeled fields, visual speed indicators, and copyable addresses
@@ -70,6 +73,6 @@ Phases execute in numeric order: 25 -> 26 -> 27
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 25. Streaming RPCs | 1/3 | Complete    | 2026-03-25 |
-| 26. Stream Resume & Incremental Filters | 0/TBD | Not started | - |
+| 25. Streaming RPCs | 3/3 | Complete    | 2026-03-25 |
+| 26. Stream Resume & Incremental Filters | 0/1 | Not started | - |
 | 27. IX Presence UI Polish | 0/TBD | Not started | - |
