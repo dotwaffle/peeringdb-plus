@@ -18,7 +18,7 @@
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 25: Streaming RPCs** - Proto definitions, code generation, and 13 streaming handlers with batched keyset pagination (completed 2026-03-25)
-- [ ] **Phase 26: Stream Resume & Incremental Filters** - `since_id` resume and `updated_since` timestamp filtering on streaming RPCs
+- [x] **Phase 26: Stream Resume & Incremental Filters** - `since_id` resume and `updated_since` timestamp filtering on streaming RPCs (completed 2026-03-25)
 - [ ] **Phase 27: IX Presence UI Polish** - Field labels, speed colors, RS badge, IP alignment, copyable text, and aggregate bandwidth
 
 ## Phase Details
