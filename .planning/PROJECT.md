@@ -53,7 +53,7 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 ### Active
 
 - [x] Server-streaming RPCs for bulk data export (stream rows from DB, no full buffering) — v1.7
-- [ ] IX presence UI improvements (field labels, RS badge, port speed colors, copyable text)
+- [x] IX presence UI improvements (field labels, RS badge, port speed colors, copyable text) — v1.7
 
 ### Deferred
 
@@ -152,7 +152,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Phase 25 complete — 13 server-streaming RPCs with batched keyset pagination for bulk data export. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Five user-facing surfaces: Web UI at /ui/, GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. Codebase passes golangci-lint v2 clean. Live deployment on Fly.io with comprehensive observability.
+v1.7 complete — 13 server-streaming RPCs with batched keyset pagination, since_id/updated_since filters, and IX presence UI polish. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Five user-facing surfaces: Web UI at /ui/, GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. Codebase passes golangci-lint v2 clean. Live deployment on Fly.io with comprehensive observability.
 
 **Known tech debt:**
 - Nyquist validation incomplete for Phases 16-17, 21-24 (validation created but not formally signed off)
@@ -164,4 +164,4 @@ Phase 25 complete — 13 server-streaming RPCs with batched keyset pagination fo
 - 9 human verification items from v1.6 deferred to runtime testing
 
 ---
-*Last updated: 2026-03-25 after Phase 25 complete*
+*Last updated: 2026-03-25 after Phase 27 complete (v1.7 milestone)*
