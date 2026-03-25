@@ -142,7 +142,7 @@ Phases execute in numeric order: 28 -> 29 -> 30 -> 31
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 28. Terminal Detection & Infrastructure | 3/3 | Complete   | 2026-03-25 |
+| 28. Terminal Detection & Infrastructure | 3/3 | Complete    | 2026-03-25 |
 | 29. Network Detail (Reference Implementation) | 0/? | Not started | - |
 | 30. Entity Types, Search & Formats | 0/? | Not started | - |
 | 31. Differentiators & Shell Integration | 0/? | Not started | - |
