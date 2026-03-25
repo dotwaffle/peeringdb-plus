@@ -254,6 +254,82 @@ func (x *ListCampusesResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamCampusesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Country       *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City          *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status        *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId         *int64                 `protobuf:"varint,5,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamCampusesRequest) Reset() {
+	*x = StreamCampusesRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamCampusesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamCampusesRequest) ProtoMessage() {}
+
+func (x *StreamCampusesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamCampusesRequest.ProtoReflect.Descriptor instead.
+func (*StreamCampusesRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *StreamCampusesRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *StreamCampusesRequest) GetCountry() string {
+	if x != nil && x.Country != nil {
+		return *x.Country
+	}
+	return ""
+}
+
+func (x *StreamCampusesRequest) GetCity() string {
+	if x != nil && x.City != nil {
+		return *x.City
+	}
+	return ""
+}
+
+func (x *StreamCampusesRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
+func (x *StreamCampusesRequest) GetOrgId() int64 {
+	if x != nil && x.OrgId != nil {
+		return *x.OrgId
+	}
+	return 0
+}
+
 type GetCarrierRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -263,7 +339,7 @@ type GetCarrierRequest struct {
 
 func (x *GetCarrierRequest) Reset() {
 	*x = GetCarrierRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[4]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -275,7 +351,7 @@ func (x *GetCarrierRequest) String() string {
 func (*GetCarrierRequest) ProtoMessage() {}
 
 func (x *GetCarrierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[4]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -288,7 +364,7 @@ func (x *GetCarrierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCarrierRequest.ProtoReflect.Descriptor instead.
 func (*GetCarrierRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{4}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetCarrierRequest) GetId() int64 {
@@ -307,7 +383,7 @@ type GetCarrierResponse struct {
 
 func (x *GetCarrierResponse) Reset() {
 	*x = GetCarrierResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[5]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -319,7 +395,7 @@ func (x *GetCarrierResponse) String() string {
 func (*GetCarrierResponse) ProtoMessage() {}
 
 func (x *GetCarrierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[5]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -332,7 +408,7 @@ func (x *GetCarrierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCarrierResponse.ProtoReflect.Descriptor instead.
 func (*GetCarrierResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{5}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetCarrierResponse) GetCarrier() *Carrier {
@@ -356,7 +432,7 @@ type ListCarriersRequest struct {
 
 func (x *ListCarriersRequest) Reset() {
 	*x = ListCarriersRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[6]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -368,7 +444,7 @@ func (x *ListCarriersRequest) String() string {
 func (*ListCarriersRequest) ProtoMessage() {}
 
 func (x *ListCarriersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[6]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -381,7 +457,7 @@ func (x *ListCarriersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCarriersRequest.ProtoReflect.Descriptor instead.
 func (*ListCarriersRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{6}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListCarriersRequest) GetPageSize() int32 {
@@ -429,7 +505,7 @@ type ListCarriersResponse struct {
 
 func (x *ListCarriersResponse) Reset() {
 	*x = ListCarriersResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[7]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -441,7 +517,7 @@ func (x *ListCarriersResponse) String() string {
 func (*ListCarriersResponse) ProtoMessage() {}
 
 func (x *ListCarriersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[7]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -454,7 +530,7 @@ func (x *ListCarriersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCarriersResponse.ProtoReflect.Descriptor instead.
 func (*ListCarriersResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{7}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListCarriersResponse) GetCarriers() []*Carrier {
@@ -471,6 +547,66 @@ func (x *ListCarriersResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamCarriersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status        *string                `protobuf:"bytes,2,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId         *int64                 `protobuf:"varint,3,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamCarriersRequest) Reset() {
+	*x = StreamCarriersRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamCarriersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamCarriersRequest) ProtoMessage() {}
+
+func (x *StreamCarriersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamCarriersRequest.ProtoReflect.Descriptor instead.
+func (*StreamCarriersRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *StreamCarriersRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *StreamCarriersRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
+func (x *StreamCarriersRequest) GetOrgId() int64 {
+	if x != nil && x.OrgId != nil {
+		return *x.OrgId
+	}
+	return 0
+}
+
 type GetCarrierFacilityRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -480,7 +616,7 @@ type GetCarrierFacilityRequest struct {
 
 func (x *GetCarrierFacilityRequest) Reset() {
 	*x = GetCarrierFacilityRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[8]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -492,7 +628,7 @@ func (x *GetCarrierFacilityRequest) String() string {
 func (*GetCarrierFacilityRequest) ProtoMessage() {}
 
 func (x *GetCarrierFacilityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[8]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -505,7 +641,7 @@ func (x *GetCarrierFacilityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCarrierFacilityRequest.ProtoReflect.Descriptor instead.
 func (*GetCarrierFacilityRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{8}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetCarrierFacilityRequest) GetId() int64 {
@@ -524,7 +660,7 @@ type GetCarrierFacilityResponse struct {
 
 func (x *GetCarrierFacilityResponse) Reset() {
 	*x = GetCarrierFacilityResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[9]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -536,7 +672,7 @@ func (x *GetCarrierFacilityResponse) String() string {
 func (*GetCarrierFacilityResponse) ProtoMessage() {}
 
 func (x *GetCarrierFacilityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[9]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -549,7 +685,7 @@ func (x *GetCarrierFacilityResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCarrierFacilityResponse.ProtoReflect.Descriptor instead.
 func (*GetCarrierFacilityResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{9}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetCarrierFacilityResponse) GetCarrierFacility() *CarrierFacility {
@@ -573,7 +709,7 @@ type ListCarrierFacilitiesRequest struct {
 
 func (x *ListCarrierFacilitiesRequest) Reset() {
 	*x = ListCarrierFacilitiesRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[10]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -585,7 +721,7 @@ func (x *ListCarrierFacilitiesRequest) String() string {
 func (*ListCarrierFacilitiesRequest) ProtoMessage() {}
 
 func (x *ListCarrierFacilitiesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[10]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -598,7 +734,7 @@ func (x *ListCarrierFacilitiesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCarrierFacilitiesRequest.ProtoReflect.Descriptor instead.
 func (*ListCarrierFacilitiesRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{10}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListCarrierFacilitiesRequest) GetPageSize() int32 {
@@ -646,7 +782,7 @@ type ListCarrierFacilitiesResponse struct {
 
 func (x *ListCarrierFacilitiesResponse) Reset() {
 	*x = ListCarrierFacilitiesResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[11]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -658,7 +794,7 @@ func (x *ListCarrierFacilitiesResponse) String() string {
 func (*ListCarrierFacilitiesResponse) ProtoMessage() {}
 
 func (x *ListCarrierFacilitiesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[11]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -671,7 +807,7 @@ func (x *ListCarrierFacilitiesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCarrierFacilitiesResponse.ProtoReflect.Descriptor instead.
 func (*ListCarrierFacilitiesResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{11}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListCarrierFacilitiesResponse) GetCarrierFacilities() []*CarrierFacility {
@@ -688,6 +824,66 @@ func (x *ListCarrierFacilitiesResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamCarrierFacilitiesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CarrierId     *int64                 `protobuf:"varint,1,opt,name=carrier_id,json=carrierId,proto3,oneof" json:"carrier_id,omitempty"`
+	FacId         *int64                 `protobuf:"varint,2,opt,name=fac_id,json=facId,proto3,oneof" json:"fac_id,omitempty"`
+	Status        *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamCarrierFacilitiesRequest) Reset() {
+	*x = StreamCarrierFacilitiesRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamCarrierFacilitiesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamCarrierFacilitiesRequest) ProtoMessage() {}
+
+func (x *StreamCarrierFacilitiesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamCarrierFacilitiesRequest.ProtoReflect.Descriptor instead.
+func (*StreamCarrierFacilitiesRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *StreamCarrierFacilitiesRequest) GetCarrierId() int64 {
+	if x != nil && x.CarrierId != nil {
+		return *x.CarrierId
+	}
+	return 0
+}
+
+func (x *StreamCarrierFacilitiesRequest) GetFacId() int64 {
+	if x != nil && x.FacId != nil {
+		return *x.FacId
+	}
+	return 0
+}
+
+func (x *StreamCarrierFacilitiesRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
 type GetFacilityRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -697,7 +893,7 @@ type GetFacilityRequest struct {
 
 func (x *GetFacilityRequest) Reset() {
 	*x = GetFacilityRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[12]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -709,7 +905,7 @@ func (x *GetFacilityRequest) String() string {
 func (*GetFacilityRequest) ProtoMessage() {}
 
 func (x *GetFacilityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[12]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -722,7 +918,7 @@ func (x *GetFacilityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFacilityRequest.ProtoReflect.Descriptor instead.
 func (*GetFacilityRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{12}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetFacilityRequest) GetId() int64 {
@@ -741,7 +937,7 @@ type GetFacilityResponse struct {
 
 func (x *GetFacilityResponse) Reset() {
 	*x = GetFacilityResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[13]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -753,7 +949,7 @@ func (x *GetFacilityResponse) String() string {
 func (*GetFacilityResponse) ProtoMessage() {}
 
 func (x *GetFacilityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[13]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -766,7 +962,7 @@ func (x *GetFacilityResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFacilityResponse.ProtoReflect.Descriptor instead.
 func (*GetFacilityResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{13}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetFacilityResponse) GetFacility() *Facility {
@@ -792,7 +988,7 @@ type ListFacilitiesRequest struct {
 
 func (x *ListFacilitiesRequest) Reset() {
 	*x = ListFacilitiesRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[14]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -804,7 +1000,7 @@ func (x *ListFacilitiesRequest) String() string {
 func (*ListFacilitiesRequest) ProtoMessage() {}
 
 func (x *ListFacilitiesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[14]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -817,7 +1013,7 @@ func (x *ListFacilitiesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFacilitiesRequest.ProtoReflect.Descriptor instead.
 func (*ListFacilitiesRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{14}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListFacilitiesRequest) GetPageSize() int32 {
@@ -879,7 +1075,7 @@ type ListFacilitiesResponse struct {
 
 func (x *ListFacilitiesResponse) Reset() {
 	*x = ListFacilitiesResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[15]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -891,7 +1087,7 @@ func (x *ListFacilitiesResponse) String() string {
 func (*ListFacilitiesResponse) ProtoMessage() {}
 
 func (x *ListFacilitiesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[15]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -904,7 +1100,7 @@ func (x *ListFacilitiesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFacilitiesResponse.ProtoReflect.Descriptor instead.
 func (*ListFacilitiesResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{15}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListFacilitiesResponse) GetFacilities() []*Facility {
@@ -921,6 +1117,82 @@ func (x *ListFacilitiesResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamFacilitiesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Country       *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City          *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status        *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId         *int64                 `protobuf:"varint,5,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamFacilitiesRequest) Reset() {
+	*x = StreamFacilitiesRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamFacilitiesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamFacilitiesRequest) ProtoMessage() {}
+
+func (x *StreamFacilitiesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamFacilitiesRequest.ProtoReflect.Descriptor instead.
+func (*StreamFacilitiesRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *StreamFacilitiesRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetCountry() string {
+	if x != nil && x.Country != nil {
+		return *x.Country
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetCity() string {
+	if x != nil && x.City != nil {
+		return *x.City
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetOrgId() int64 {
+	if x != nil && x.OrgId != nil {
+		return *x.OrgId
+	}
+	return 0
+}
+
 type GetInternetExchangeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -930,7 +1202,7 @@ type GetInternetExchangeRequest struct {
 
 func (x *GetInternetExchangeRequest) Reset() {
 	*x = GetInternetExchangeRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[16]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -942,7 +1214,7 @@ func (x *GetInternetExchangeRequest) String() string {
 func (*GetInternetExchangeRequest) ProtoMessage() {}
 
 func (x *GetInternetExchangeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[16]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -955,7 +1227,7 @@ func (x *GetInternetExchangeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInternetExchangeRequest.ProtoReflect.Descriptor instead.
 func (*GetInternetExchangeRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{16}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetInternetExchangeRequest) GetId() int64 {
@@ -974,7 +1246,7 @@ type GetInternetExchangeResponse struct {
 
 func (x *GetInternetExchangeResponse) Reset() {
 	*x = GetInternetExchangeResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[17]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -986,7 +1258,7 @@ func (x *GetInternetExchangeResponse) String() string {
 func (*GetInternetExchangeResponse) ProtoMessage() {}
 
 func (x *GetInternetExchangeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[17]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -999,7 +1271,7 @@ func (x *GetInternetExchangeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInternetExchangeResponse.ProtoReflect.Descriptor instead.
 func (*GetInternetExchangeResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{17}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetInternetExchangeResponse) GetInternetExchange() *InternetExchange {
@@ -1025,7 +1297,7 @@ type ListInternetExchangesRequest struct {
 
 func (x *ListInternetExchangesRequest) Reset() {
 	*x = ListInternetExchangesRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[18]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1037,7 +1309,7 @@ func (x *ListInternetExchangesRequest) String() string {
 func (*ListInternetExchangesRequest) ProtoMessage() {}
 
 func (x *ListInternetExchangesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[18]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1050,7 +1322,7 @@ func (x *ListInternetExchangesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInternetExchangesRequest.ProtoReflect.Descriptor instead.
 func (*ListInternetExchangesRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{18}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListInternetExchangesRequest) GetPageSize() int32 {
@@ -1112,7 +1384,7 @@ type ListInternetExchangesResponse struct {
 
 func (x *ListInternetExchangesResponse) Reset() {
 	*x = ListInternetExchangesResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[19]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1124,7 +1396,7 @@ func (x *ListInternetExchangesResponse) String() string {
 func (*ListInternetExchangesResponse) ProtoMessage() {}
 
 func (x *ListInternetExchangesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[19]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1137,7 +1409,7 @@ func (x *ListInternetExchangesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInternetExchangesResponse.ProtoReflect.Descriptor instead.
 func (*ListInternetExchangesResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{19}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListInternetExchangesResponse) GetInternetExchanges() []*InternetExchange {
@@ -1154,6 +1426,82 @@ func (x *ListInternetExchangesResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamInternetExchangesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Country       *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City          *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status        *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId         *int64                 `protobuf:"varint,5,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamInternetExchangesRequest) Reset() {
+	*x = StreamInternetExchangesRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamInternetExchangesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamInternetExchangesRequest) ProtoMessage() {}
+
+func (x *StreamInternetExchangesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamInternetExchangesRequest.ProtoReflect.Descriptor instead.
+func (*StreamInternetExchangesRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *StreamInternetExchangesRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetCountry() string {
+	if x != nil && x.Country != nil {
+		return *x.Country
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetCity() string {
+	if x != nil && x.City != nil {
+		return *x.City
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetOrgId() int64 {
+	if x != nil && x.OrgId != nil {
+		return *x.OrgId
+	}
+	return 0
+}
+
 type GetIxFacilityRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1163,7 +1511,7 @@ type GetIxFacilityRequest struct {
 
 func (x *GetIxFacilityRequest) Reset() {
 	*x = GetIxFacilityRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[20]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1175,7 +1523,7 @@ func (x *GetIxFacilityRequest) String() string {
 func (*GetIxFacilityRequest) ProtoMessage() {}
 
 func (x *GetIxFacilityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[20]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1188,7 +1536,7 @@ func (x *GetIxFacilityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIxFacilityRequest.ProtoReflect.Descriptor instead.
 func (*GetIxFacilityRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{20}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetIxFacilityRequest) GetId() int64 {
@@ -1207,7 +1555,7 @@ type GetIxFacilityResponse struct {
 
 func (x *GetIxFacilityResponse) Reset() {
 	*x = GetIxFacilityResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[21]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1219,7 +1567,7 @@ func (x *GetIxFacilityResponse) String() string {
 func (*GetIxFacilityResponse) ProtoMessage() {}
 
 func (x *GetIxFacilityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[21]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1232,7 +1580,7 @@ func (x *GetIxFacilityResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIxFacilityResponse.ProtoReflect.Descriptor instead.
 func (*GetIxFacilityResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{21}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetIxFacilityResponse) GetIxFacility() *IxFacility {
@@ -1258,7 +1606,7 @@ type ListIxFacilitiesRequest struct {
 
 func (x *ListIxFacilitiesRequest) Reset() {
 	*x = ListIxFacilitiesRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[22]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1270,7 +1618,7 @@ func (x *ListIxFacilitiesRequest) String() string {
 func (*ListIxFacilitiesRequest) ProtoMessage() {}
 
 func (x *ListIxFacilitiesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[22]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1283,7 +1631,7 @@ func (x *ListIxFacilitiesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIxFacilitiesRequest.ProtoReflect.Descriptor instead.
 func (*ListIxFacilitiesRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{22}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListIxFacilitiesRequest) GetPageSize() int32 {
@@ -1345,7 +1693,7 @@ type ListIxFacilitiesResponse struct {
 
 func (x *ListIxFacilitiesResponse) Reset() {
 	*x = ListIxFacilitiesResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[23]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1357,7 +1705,7 @@ func (x *ListIxFacilitiesResponse) String() string {
 func (*ListIxFacilitiesResponse) ProtoMessage() {}
 
 func (x *ListIxFacilitiesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[23]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1370,7 +1718,7 @@ func (x *ListIxFacilitiesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIxFacilitiesResponse.ProtoReflect.Descriptor instead.
 func (*ListIxFacilitiesResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{23}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ListIxFacilitiesResponse) GetIxFacilities() []*IxFacility {
@@ -1387,6 +1735,82 @@ func (x *ListIxFacilitiesResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamIxFacilitiesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IxId          *int64                 `protobuf:"varint,1,opt,name=ix_id,json=ixId,proto3,oneof" json:"ix_id,omitempty"`
+	FacId         *int64                 `protobuf:"varint,2,opt,name=fac_id,json=facId,proto3,oneof" json:"fac_id,omitempty"`
+	Country       *string                `protobuf:"bytes,3,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City          *string                `protobuf:"bytes,4,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status        *string                `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamIxFacilitiesRequest) Reset() {
+	*x = StreamIxFacilitiesRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamIxFacilitiesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamIxFacilitiesRequest) ProtoMessage() {}
+
+func (x *StreamIxFacilitiesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamIxFacilitiesRequest.ProtoReflect.Descriptor instead.
+func (*StreamIxFacilitiesRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *StreamIxFacilitiesRequest) GetIxId() int64 {
+	if x != nil && x.IxId != nil {
+		return *x.IxId
+	}
+	return 0
+}
+
+func (x *StreamIxFacilitiesRequest) GetFacId() int64 {
+	if x != nil && x.FacId != nil {
+		return *x.FacId
+	}
+	return 0
+}
+
+func (x *StreamIxFacilitiesRequest) GetCountry() string {
+	if x != nil && x.Country != nil {
+		return *x.Country
+	}
+	return ""
+}
+
+func (x *StreamIxFacilitiesRequest) GetCity() string {
+	if x != nil && x.City != nil {
+		return *x.City
+	}
+	return ""
+}
+
+func (x *StreamIxFacilitiesRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
 type GetIxLanRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1396,7 +1820,7 @@ type GetIxLanRequest struct {
 
 func (x *GetIxLanRequest) Reset() {
 	*x = GetIxLanRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[24]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1408,7 +1832,7 @@ func (x *GetIxLanRequest) String() string {
 func (*GetIxLanRequest) ProtoMessage() {}
 
 func (x *GetIxLanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[24]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1421,7 +1845,7 @@ func (x *GetIxLanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIxLanRequest.ProtoReflect.Descriptor instead.
 func (*GetIxLanRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{24}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetIxLanRequest) GetId() int64 {
@@ -1440,7 +1864,7 @@ type GetIxLanResponse struct {
 
 func (x *GetIxLanResponse) Reset() {
 	*x = GetIxLanResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[25]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1452,7 +1876,7 @@ func (x *GetIxLanResponse) String() string {
 func (*GetIxLanResponse) ProtoMessage() {}
 
 func (x *GetIxLanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[25]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1465,7 +1889,7 @@ func (x *GetIxLanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIxLanResponse.ProtoReflect.Descriptor instead.
 func (*GetIxLanResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{25}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GetIxLanResponse) GetIxLan() *IxLan {
@@ -1489,7 +1913,7 @@ type ListIxLansRequest struct {
 
 func (x *ListIxLansRequest) Reset() {
 	*x = ListIxLansRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[26]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1501,7 +1925,7 @@ func (x *ListIxLansRequest) String() string {
 func (*ListIxLansRequest) ProtoMessage() {}
 
 func (x *ListIxLansRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[26]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1514,7 +1938,7 @@ func (x *ListIxLansRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIxLansRequest.ProtoReflect.Descriptor instead.
 func (*ListIxLansRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{26}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ListIxLansRequest) GetPageSize() int32 {
@@ -1562,7 +1986,7 @@ type ListIxLansResponse struct {
 
 func (x *ListIxLansResponse) Reset() {
 	*x = ListIxLansResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[27]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1574,7 +1998,7 @@ func (x *ListIxLansResponse) String() string {
 func (*ListIxLansResponse) ProtoMessage() {}
 
 func (x *ListIxLansResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[27]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1587,7 +2011,7 @@ func (x *ListIxLansResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIxLansResponse.ProtoReflect.Descriptor instead.
 func (*ListIxLansResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{27}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListIxLansResponse) GetIxLans() []*IxLan {
@@ -1604,6 +2028,66 @@ func (x *ListIxLansResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamIxLansRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IxId          *int64                 `protobuf:"varint,1,opt,name=ix_id,json=ixId,proto3,oneof" json:"ix_id,omitempty"`
+	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status        *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamIxLansRequest) Reset() {
+	*x = StreamIxLansRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamIxLansRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamIxLansRequest) ProtoMessage() {}
+
+func (x *StreamIxLansRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamIxLansRequest.ProtoReflect.Descriptor instead.
+func (*StreamIxLansRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *StreamIxLansRequest) GetIxId() int64 {
+	if x != nil && x.IxId != nil {
+		return *x.IxId
+	}
+	return 0
+}
+
+func (x *StreamIxLansRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *StreamIxLansRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
 type GetIxPrefixRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1613,7 +2097,7 @@ type GetIxPrefixRequest struct {
 
 func (x *GetIxPrefixRequest) Reset() {
 	*x = GetIxPrefixRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[28]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1625,7 +2109,7 @@ func (x *GetIxPrefixRequest) String() string {
 func (*GetIxPrefixRequest) ProtoMessage() {}
 
 func (x *GetIxPrefixRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[28]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1638,7 +2122,7 @@ func (x *GetIxPrefixRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIxPrefixRequest.ProtoReflect.Descriptor instead.
 func (*GetIxPrefixRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{28}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *GetIxPrefixRequest) GetId() int64 {
@@ -1657,7 +2141,7 @@ type GetIxPrefixResponse struct {
 
 func (x *GetIxPrefixResponse) Reset() {
 	*x = GetIxPrefixResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[29]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1669,7 +2153,7 @@ func (x *GetIxPrefixResponse) String() string {
 func (*GetIxPrefixResponse) ProtoMessage() {}
 
 func (x *GetIxPrefixResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[29]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1682,7 +2166,7 @@ func (x *GetIxPrefixResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIxPrefixResponse.ProtoReflect.Descriptor instead.
 func (*GetIxPrefixResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{29}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *GetIxPrefixResponse) GetIxPrefix() *IxPrefix {
@@ -1706,7 +2190,7 @@ type ListIxPrefixesRequest struct {
 
 func (x *ListIxPrefixesRequest) Reset() {
 	*x = ListIxPrefixesRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[30]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1718,7 +2202,7 @@ func (x *ListIxPrefixesRequest) String() string {
 func (*ListIxPrefixesRequest) ProtoMessage() {}
 
 func (x *ListIxPrefixesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[30]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1731,7 +2215,7 @@ func (x *ListIxPrefixesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIxPrefixesRequest.ProtoReflect.Descriptor instead.
 func (*ListIxPrefixesRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{30}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ListIxPrefixesRequest) GetPageSize() int32 {
@@ -1779,7 +2263,7 @@ type ListIxPrefixesResponse struct {
 
 func (x *ListIxPrefixesResponse) Reset() {
 	*x = ListIxPrefixesResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[31]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1791,7 +2275,7 @@ func (x *ListIxPrefixesResponse) String() string {
 func (*ListIxPrefixesResponse) ProtoMessage() {}
 
 func (x *ListIxPrefixesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[31]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1804,7 +2288,7 @@ func (x *ListIxPrefixesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIxPrefixesResponse.ProtoReflect.Descriptor instead.
 func (*ListIxPrefixesResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{31}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ListIxPrefixesResponse) GetIxPrefixes() []*IxPrefix {
@@ -1821,6 +2305,66 @@ func (x *ListIxPrefixesResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamIxPrefixesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IxlanId       *int64                 `protobuf:"varint,1,opt,name=ixlan_id,json=ixlanId,proto3,oneof" json:"ixlan_id,omitempty"`
+	Protocol      *string                `protobuf:"bytes,2,opt,name=protocol,proto3,oneof" json:"protocol,omitempty"`
+	Status        *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamIxPrefixesRequest) Reset() {
+	*x = StreamIxPrefixesRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamIxPrefixesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamIxPrefixesRequest) ProtoMessage() {}
+
+func (x *StreamIxPrefixesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamIxPrefixesRequest.ProtoReflect.Descriptor instead.
+func (*StreamIxPrefixesRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *StreamIxPrefixesRequest) GetIxlanId() int64 {
+	if x != nil && x.IxlanId != nil {
+		return *x.IxlanId
+	}
+	return 0
+}
+
+func (x *StreamIxPrefixesRequest) GetProtocol() string {
+	if x != nil && x.Protocol != nil {
+		return *x.Protocol
+	}
+	return ""
+}
+
+func (x *StreamIxPrefixesRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
 type GetNetworkRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1830,7 +2374,7 @@ type GetNetworkRequest struct {
 
 func (x *GetNetworkRequest) Reset() {
 	*x = GetNetworkRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[32]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1842,7 +2386,7 @@ func (x *GetNetworkRequest) String() string {
 func (*GetNetworkRequest) ProtoMessage() {}
 
 func (x *GetNetworkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[32]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1855,7 +2399,7 @@ func (x *GetNetworkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNetworkRequest.ProtoReflect.Descriptor instead.
 func (*GetNetworkRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{32}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *GetNetworkRequest) GetId() int64 {
@@ -1874,7 +2418,7 @@ type GetNetworkResponse struct {
 
 func (x *GetNetworkResponse) Reset() {
 	*x = GetNetworkResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[33]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1886,7 +2430,7 @@ func (x *GetNetworkResponse) String() string {
 func (*GetNetworkResponse) ProtoMessage() {}
 
 func (x *GetNetworkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[33]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1899,7 +2443,7 @@ func (x *GetNetworkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNetworkResponse.ProtoReflect.Descriptor instead.
 func (*GetNetworkResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{33}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *GetNetworkResponse) GetNetwork() *Network {
@@ -1924,7 +2468,7 @@ type ListNetworksRequest struct {
 
 func (x *ListNetworksRequest) Reset() {
 	*x = ListNetworksRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[34]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1936,7 +2480,7 @@ func (x *ListNetworksRequest) String() string {
 func (*ListNetworksRequest) ProtoMessage() {}
 
 func (x *ListNetworksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[34]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1949,7 +2493,7 @@ func (x *ListNetworksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNetworksRequest.ProtoReflect.Descriptor instead.
 func (*ListNetworksRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{34}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *ListNetworksRequest) GetPageSize() int32 {
@@ -2004,7 +2548,7 @@ type ListNetworksResponse struct {
 
 func (x *ListNetworksResponse) Reset() {
 	*x = ListNetworksResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[35]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2016,7 +2560,7 @@ func (x *ListNetworksResponse) String() string {
 func (*ListNetworksResponse) ProtoMessage() {}
 
 func (x *ListNetworksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[35]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2029,7 +2573,7 @@ func (x *ListNetworksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNetworksResponse.ProtoReflect.Descriptor instead.
 func (*ListNetworksResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{35}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *ListNetworksResponse) GetNetworks() []*Network {
@@ -2046,6 +2590,74 @@ func (x *ListNetworksResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamNetworksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Asn           *int64                 `protobuf:"varint,1,opt,name=asn,proto3,oneof" json:"asn,omitempty"`
+	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status        *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId         *int64                 `protobuf:"varint,4,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamNetworksRequest) Reset() {
+	*x = StreamNetworksRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamNetworksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamNetworksRequest) ProtoMessage() {}
+
+func (x *StreamNetworksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamNetworksRequest.ProtoReflect.Descriptor instead.
+func (*StreamNetworksRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *StreamNetworksRequest) GetAsn() int64 {
+	if x != nil && x.Asn != nil {
+		return *x.Asn
+	}
+	return 0
+}
+
+func (x *StreamNetworksRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetOrgId() int64 {
+	if x != nil && x.OrgId != nil {
+		return *x.OrgId
+	}
+	return 0
+}
+
 type GetNetworkFacilityRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -2055,7 +2667,7 @@ type GetNetworkFacilityRequest struct {
 
 func (x *GetNetworkFacilityRequest) Reset() {
 	*x = GetNetworkFacilityRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[36]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2067,7 +2679,7 @@ func (x *GetNetworkFacilityRequest) String() string {
 func (*GetNetworkFacilityRequest) ProtoMessage() {}
 
 func (x *GetNetworkFacilityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[36]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2080,7 +2692,7 @@ func (x *GetNetworkFacilityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNetworkFacilityRequest.ProtoReflect.Descriptor instead.
 func (*GetNetworkFacilityRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{36}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *GetNetworkFacilityRequest) GetId() int64 {
@@ -2099,7 +2711,7 @@ type GetNetworkFacilityResponse struct {
 
 func (x *GetNetworkFacilityResponse) Reset() {
 	*x = GetNetworkFacilityResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[37]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2111,7 +2723,7 @@ func (x *GetNetworkFacilityResponse) String() string {
 func (*GetNetworkFacilityResponse) ProtoMessage() {}
 
 func (x *GetNetworkFacilityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[37]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2124,7 +2736,7 @@ func (x *GetNetworkFacilityResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNetworkFacilityResponse.ProtoReflect.Descriptor instead.
 func (*GetNetworkFacilityResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{37}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *GetNetworkFacilityResponse) GetNetworkFacility() *NetworkFacility {
@@ -2150,7 +2762,7 @@ type ListNetworkFacilitiesRequest struct {
 
 func (x *ListNetworkFacilitiesRequest) Reset() {
 	*x = ListNetworkFacilitiesRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[38]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2162,7 +2774,7 @@ func (x *ListNetworkFacilitiesRequest) String() string {
 func (*ListNetworkFacilitiesRequest) ProtoMessage() {}
 
 func (x *ListNetworkFacilitiesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[38]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2175,7 +2787,7 @@ func (x *ListNetworkFacilitiesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNetworkFacilitiesRequest.ProtoReflect.Descriptor instead.
 func (*ListNetworkFacilitiesRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{38}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *ListNetworkFacilitiesRequest) GetPageSize() int32 {
@@ -2237,7 +2849,7 @@ type ListNetworkFacilitiesResponse struct {
 
 func (x *ListNetworkFacilitiesResponse) Reset() {
 	*x = ListNetworkFacilitiesResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[39]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2249,7 +2861,7 @@ func (x *ListNetworkFacilitiesResponse) String() string {
 func (*ListNetworkFacilitiesResponse) ProtoMessage() {}
 
 func (x *ListNetworkFacilitiesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[39]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2262,7 +2874,7 @@ func (x *ListNetworkFacilitiesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNetworkFacilitiesResponse.ProtoReflect.Descriptor instead.
 func (*ListNetworkFacilitiesResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{39}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *ListNetworkFacilitiesResponse) GetNetworkFacilities() []*NetworkFacility {
@@ -2279,6 +2891,82 @@ func (x *ListNetworkFacilitiesResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamNetworkFacilitiesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NetId         *int64                 `protobuf:"varint,1,opt,name=net_id,json=netId,proto3,oneof" json:"net_id,omitempty"`
+	FacId         *int64                 `protobuf:"varint,2,opt,name=fac_id,json=facId,proto3,oneof" json:"fac_id,omitempty"`
+	Country       *string                `protobuf:"bytes,3,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City          *string                `protobuf:"bytes,4,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status        *string                `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamNetworkFacilitiesRequest) Reset() {
+	*x = StreamNetworkFacilitiesRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamNetworkFacilitiesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamNetworkFacilitiesRequest) ProtoMessage() {}
+
+func (x *StreamNetworkFacilitiesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamNetworkFacilitiesRequest.ProtoReflect.Descriptor instead.
+func (*StreamNetworkFacilitiesRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *StreamNetworkFacilitiesRequest) GetNetId() int64 {
+	if x != nil && x.NetId != nil {
+		return *x.NetId
+	}
+	return 0
+}
+
+func (x *StreamNetworkFacilitiesRequest) GetFacId() int64 {
+	if x != nil && x.FacId != nil {
+		return *x.FacId
+	}
+	return 0
+}
+
+func (x *StreamNetworkFacilitiesRequest) GetCountry() string {
+	if x != nil && x.Country != nil {
+		return *x.Country
+	}
+	return ""
+}
+
+func (x *StreamNetworkFacilitiesRequest) GetCity() string {
+	if x != nil && x.City != nil {
+		return *x.City
+	}
+	return ""
+}
+
+func (x *StreamNetworkFacilitiesRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
 type GetNetworkIxLanRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -2288,7 +2976,7 @@ type GetNetworkIxLanRequest struct {
 
 func (x *GetNetworkIxLanRequest) Reset() {
 	*x = GetNetworkIxLanRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[40]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2300,7 +2988,7 @@ func (x *GetNetworkIxLanRequest) String() string {
 func (*GetNetworkIxLanRequest) ProtoMessage() {}
 
 func (x *GetNetworkIxLanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[40]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2313,7 +3001,7 @@ func (x *GetNetworkIxLanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNetworkIxLanRequest.ProtoReflect.Descriptor instead.
 func (*GetNetworkIxLanRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{40}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *GetNetworkIxLanRequest) GetId() int64 {
@@ -2332,7 +3020,7 @@ type GetNetworkIxLanResponse struct {
 
 func (x *GetNetworkIxLanResponse) Reset() {
 	*x = GetNetworkIxLanResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[41]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2344,7 +3032,7 @@ func (x *GetNetworkIxLanResponse) String() string {
 func (*GetNetworkIxLanResponse) ProtoMessage() {}
 
 func (x *GetNetworkIxLanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[41]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2357,7 +3045,7 @@ func (x *GetNetworkIxLanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNetworkIxLanResponse.ProtoReflect.Descriptor instead.
 func (*GetNetworkIxLanResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{41}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *GetNetworkIxLanResponse) GetNetworkIxLan() *NetworkIxLan {
@@ -2383,7 +3071,7 @@ type ListNetworkIxLansRequest struct {
 
 func (x *ListNetworkIxLansRequest) Reset() {
 	*x = ListNetworkIxLansRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[42]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2395,7 +3083,7 @@ func (x *ListNetworkIxLansRequest) String() string {
 func (*ListNetworkIxLansRequest) ProtoMessage() {}
 
 func (x *ListNetworkIxLansRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[42]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2408,7 +3096,7 @@ func (x *ListNetworkIxLansRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNetworkIxLansRequest.ProtoReflect.Descriptor instead.
 func (*ListNetworkIxLansRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{42}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ListNetworkIxLansRequest) GetPageSize() int32 {
@@ -2470,7 +3158,7 @@ type ListNetworkIxLansResponse struct {
 
 func (x *ListNetworkIxLansResponse) Reset() {
 	*x = ListNetworkIxLansResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[43]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2482,7 +3170,7 @@ func (x *ListNetworkIxLansResponse) String() string {
 func (*ListNetworkIxLansResponse) ProtoMessage() {}
 
 func (x *ListNetworkIxLansResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[43]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2495,7 +3183,7 @@ func (x *ListNetworkIxLansResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNetworkIxLansResponse.ProtoReflect.Descriptor instead.
 func (*ListNetworkIxLansResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{43}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *ListNetworkIxLansResponse) GetNetworkIxLans() []*NetworkIxLan {
@@ -2512,6 +3200,82 @@ func (x *ListNetworkIxLansResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamNetworkIxLansRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NetId         *int64                 `protobuf:"varint,1,opt,name=net_id,json=netId,proto3,oneof" json:"net_id,omitempty"`
+	IxlanId       *int64                 `protobuf:"varint,2,opt,name=ixlan_id,json=ixlanId,proto3,oneof" json:"ixlan_id,omitempty"`
+	Asn           *int64                 `protobuf:"varint,3,opt,name=asn,proto3,oneof" json:"asn,omitempty"`
+	Name          *string                `protobuf:"bytes,4,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status        *string                `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamNetworkIxLansRequest) Reset() {
+	*x = StreamNetworkIxLansRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamNetworkIxLansRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamNetworkIxLansRequest) ProtoMessage() {}
+
+func (x *StreamNetworkIxLansRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamNetworkIxLansRequest.ProtoReflect.Descriptor instead.
+func (*StreamNetworkIxLansRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *StreamNetworkIxLansRequest) GetNetId() int64 {
+	if x != nil && x.NetId != nil {
+		return *x.NetId
+	}
+	return 0
+}
+
+func (x *StreamNetworkIxLansRequest) GetIxlanId() int64 {
+	if x != nil && x.IxlanId != nil {
+		return *x.IxlanId
+	}
+	return 0
+}
+
+func (x *StreamNetworkIxLansRequest) GetAsn() int64 {
+	if x != nil && x.Asn != nil {
+		return *x.Asn
+	}
+	return 0
+}
+
+func (x *StreamNetworkIxLansRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *StreamNetworkIxLansRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
 type GetOrganizationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -2521,7 +3285,7 @@ type GetOrganizationRequest struct {
 
 func (x *GetOrganizationRequest) Reset() {
 	*x = GetOrganizationRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[44]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2533,7 +3297,7 @@ func (x *GetOrganizationRequest) String() string {
 func (*GetOrganizationRequest) ProtoMessage() {}
 
 func (x *GetOrganizationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[44]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2546,7 +3310,7 @@ func (x *GetOrganizationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrganizationRequest.ProtoReflect.Descriptor instead.
 func (*GetOrganizationRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{44}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *GetOrganizationRequest) GetId() int64 {
@@ -2565,7 +3329,7 @@ type GetOrganizationResponse struct {
 
 func (x *GetOrganizationResponse) Reset() {
 	*x = GetOrganizationResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[45]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2577,7 +3341,7 @@ func (x *GetOrganizationResponse) String() string {
 func (*GetOrganizationResponse) ProtoMessage() {}
 
 func (x *GetOrganizationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[45]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2590,7 +3354,7 @@ func (x *GetOrganizationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrganizationResponse.ProtoReflect.Descriptor instead.
 func (*GetOrganizationResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{45}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *GetOrganizationResponse) GetOrganization() *Organization {
@@ -2615,7 +3379,7 @@ type ListOrganizationsRequest struct {
 
 func (x *ListOrganizationsRequest) Reset() {
 	*x = ListOrganizationsRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[46]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2627,7 +3391,7 @@ func (x *ListOrganizationsRequest) String() string {
 func (*ListOrganizationsRequest) ProtoMessage() {}
 
 func (x *ListOrganizationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[46]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2640,7 +3404,7 @@ func (x *ListOrganizationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOrganizationsRequest.ProtoReflect.Descriptor instead.
 func (*ListOrganizationsRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{46}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *ListOrganizationsRequest) GetPageSize() int32 {
@@ -2695,7 +3459,7 @@ type ListOrganizationsResponse struct {
 
 func (x *ListOrganizationsResponse) Reset() {
 	*x = ListOrganizationsResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[47]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2707,7 +3471,7 @@ func (x *ListOrganizationsResponse) String() string {
 func (*ListOrganizationsResponse) ProtoMessage() {}
 
 func (x *ListOrganizationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[47]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2720,7 +3484,7 @@ func (x *ListOrganizationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOrganizationsResponse.ProtoReflect.Descriptor instead.
 func (*ListOrganizationsResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{47}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *ListOrganizationsResponse) GetOrganizations() []*Organization {
@@ -2737,6 +3501,74 @@ func (x *ListOrganizationsResponse) GetNextPageToken() string {
 	return ""
 }
 
+type StreamOrganizationsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Country       *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City          *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status        *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamOrganizationsRequest) Reset() {
+	*x = StreamOrganizationsRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamOrganizationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamOrganizationsRequest) ProtoMessage() {}
+
+func (x *StreamOrganizationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamOrganizationsRequest.ProtoReflect.Descriptor instead.
+func (*StreamOrganizationsRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *StreamOrganizationsRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetCountry() string {
+	if x != nil && x.Country != nil {
+		return *x.Country
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetCity() string {
+	if x != nil && x.City != nil {
+		return *x.City
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
 type GetPocRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -2746,7 +3578,7 @@ type GetPocRequest struct {
 
 func (x *GetPocRequest) Reset() {
 	*x = GetPocRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[48]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2758,7 +3590,7 @@ func (x *GetPocRequest) String() string {
 func (*GetPocRequest) ProtoMessage() {}
 
 func (x *GetPocRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[48]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2771,7 +3603,7 @@ func (x *GetPocRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPocRequest.ProtoReflect.Descriptor instead.
 func (*GetPocRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{48}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *GetPocRequest) GetId() int64 {
@@ -2790,7 +3622,7 @@ type GetPocResponse struct {
 
 func (x *GetPocResponse) Reset() {
 	*x = GetPocResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[49]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2802,7 +3634,7 @@ func (x *GetPocResponse) String() string {
 func (*GetPocResponse) ProtoMessage() {}
 
 func (x *GetPocResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[49]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2815,7 +3647,7 @@ func (x *GetPocResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPocResponse.ProtoReflect.Descriptor instead.
 func (*GetPocResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{49}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *GetPocResponse) GetPoc() *Poc {
@@ -2840,7 +3672,7 @@ type ListPocsRequest struct {
 
 func (x *ListPocsRequest) Reset() {
 	*x = ListPocsRequest{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[50]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2852,7 +3684,7 @@ func (x *ListPocsRequest) String() string {
 func (*ListPocsRequest) ProtoMessage() {}
 
 func (x *ListPocsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[50]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2865,7 +3697,7 @@ func (x *ListPocsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPocsRequest.ProtoReflect.Descriptor instead.
 func (*ListPocsRequest) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{50}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *ListPocsRequest) GetPageSize() int32 {
@@ -2920,7 +3752,7 @@ type ListPocsResponse struct {
 
 func (x *ListPocsResponse) Reset() {
 	*x = ListPocsResponse{}
-	mi := &file_peeringdb_v1_services_proto_msgTypes[51]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2932,7 +3764,7 @@ func (x *ListPocsResponse) String() string {
 func (*ListPocsResponse) ProtoMessage() {}
 
 func (x *ListPocsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_peeringdb_v1_services_proto_msgTypes[51]
+	mi := &file_peeringdb_v1_services_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2945,7 +3777,7 @@ func (x *ListPocsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPocsResponse.ProtoReflect.Descriptor instead.
 func (*ListPocsResponse) Descriptor() ([]byte, []int) {
-	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{51}
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *ListPocsResponse) GetPocs() []*Poc {
@@ -2958,6 +3790,74 @@ func (x *ListPocsResponse) GetPocs() []*Poc {
 func (x *ListPocsResponse) GetNextPageToken() string {
 	if x != nil {
 		return x.NextPageToken
+	}
+	return ""
+}
+
+type StreamPocsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NetId         *int64                 `protobuf:"varint,1,opt,name=net_id,json=netId,proto3,oneof" json:"net_id,omitempty"`
+	Role          *string                `protobuf:"bytes,2,opt,name=role,proto3,oneof" json:"role,omitempty"`
+	Name          *string                `protobuf:"bytes,3,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status        *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamPocsRequest) Reset() {
+	*x = StreamPocsRequest{}
+	mi := &file_peeringdb_v1_services_proto_msgTypes[64]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamPocsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamPocsRequest) ProtoMessage() {}
+
+func (x *StreamPocsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peeringdb_v1_services_proto_msgTypes[64]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamPocsRequest.ProtoReflect.Descriptor instead.
+func (*StreamPocsRequest) Descriptor() ([]byte, []int) {
+	return file_peeringdb_v1_services_proto_rawDescGZIP(), []int{64}
+}
+
+func (x *StreamPocsRequest) GetNetId() int64 {
+	if x != nil && x.NetId != nil {
+		return *x.NetId
+	}
+	return 0
+}
+
+func (x *StreamPocsRequest) GetRole() string {
+	if x != nil && x.Role != nil {
+		return *x.Role
+	}
+	return ""
+}
+
+func (x *StreamPocsRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *StreamPocsRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
 	}
 	return ""
 }
@@ -2988,7 +3888,19 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_org_id\"p\n" +
 	"\x14ListCampusesResponse\x120\n" +
 	"\bcampuses\x18\x01 \x03(\v2\x14.peeringdb.v1.CampusR\bcampuses\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"#\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xd5\x01\n" +
+	"\x15StreamCampusesRequest\x12\x17\n" +
+	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
+	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
+	"\x04city\x18\x03 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
+	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01B\a\n" +
+	"\x05_nameB\n" +
+	"\n" +
+	"\b_countryB\a\n" +
+	"\x05_cityB\t\n" +
+	"\a_statusB\t\n" +
+	"\a_org_id\"#\n" +
 	"\x11GetCarrierRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"E\n" +
 	"\x12GetCarrierResponse\x12/\n" +
@@ -3005,7 +3917,14 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_org_id\"q\n" +
 	"\x14ListCarriersResponse\x121\n" +
 	"\bcarriers\x18\x01 \x03(\v2\x15.peeringdb.v1.CarrierR\bcarriers\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"+\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x88\x01\n" +
+	"\x15StreamCarriersRequest\x12\x17\n" +
+	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x02 \x01(\tH\x01R\x06status\x88\x01\x01\x12\x1a\n" +
+	"\x06org_id\x18\x03 \x01(\x03H\x02R\x05orgId\x88\x01\x01B\a\n" +
+	"\x05_nameB\t\n" +
+	"\a_statusB\t\n" +
+	"\a_org_id\"+\n" +
 	"\x19GetCarrierFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"f\n" +
 	"\x1aGetCarrierFacilityResponse\x12H\n" +
@@ -3023,7 +3942,15 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"\x95\x01\n" +
 	"\x1dListCarrierFacilitiesResponse\x12L\n" +
 	"\x12carrier_facilities\x18\x01 \x03(\v2\x1d.peeringdb.v1.CarrierFacilityR\x11carrierFacilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"$\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa2\x01\n" +
+	"\x1eStreamCarrierFacilitiesRequest\x12\"\n" +
+	"\n" +
+	"carrier_id\x18\x01 \x01(\x03H\x00R\tcarrierId\x88\x01\x01\x12\x1a\n" +
+	"\x06fac_id\x18\x02 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01B\r\n" +
+	"\v_carrier_idB\t\n" +
+	"\a_fac_idB\t\n" +
+	"\a_status\"$\n" +
 	"\x12GetFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"I\n" +
 	"\x13GetFacilityResponse\x122\n" +
@@ -3047,7 +3974,19 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\n" +
 	"facilities\x18\x01 \x03(\v2\x16.peeringdb.v1.FacilityR\n" +
 	"facilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\",\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xd7\x01\n" +
+	"\x17StreamFacilitiesRequest\x12\x17\n" +
+	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
+	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
+	"\x04city\x18\x03 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
+	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01B\a\n" +
+	"\x05_nameB\n" +
+	"\n" +
+	"\b_countryB\a\n" +
+	"\x05_cityB\t\n" +
+	"\a_statusB\t\n" +
+	"\a_org_id\",\n" +
 	"\x1aGetInternetExchangeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"j\n" +
 	"\x1bGetInternetExchangeResponse\x12K\n" +
@@ -3069,7 +4008,19 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_org_id\"\x96\x01\n" +
 	"\x1dListInternetExchangesResponse\x12M\n" +
 	"\x12internet_exchanges\x18\x01 \x03(\v2\x1e.peeringdb.v1.InternetExchangeR\x11internetExchanges\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xde\x01\n" +
+	"\x1eStreamInternetExchangesRequest\x12\x17\n" +
+	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
+	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
+	"\x04city\x18\x03 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
+	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01B\a\n" +
+	"\x05_nameB\n" +
+	"\n" +
+	"\b_countryB\a\n" +
+	"\x05_cityB\t\n" +
+	"\a_statusB\t\n" +
+	"\a_org_id\"&\n" +
 	"\x14GetIxFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"R\n" +
 	"\x15GetIxFacilityResponse\x129\n" +
@@ -3092,7 +4043,19 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"\x81\x01\n" +
 	"\x18ListIxFacilitiesResponse\x12=\n" +
 	"\rix_facilities\x18\x01 \x03(\v2\x18.peeringdb.v1.IxFacilityR\fixFacilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"!\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xdb\x01\n" +
+	"\x19StreamIxFacilitiesRequest\x12\x18\n" +
+	"\x05ix_id\x18\x01 \x01(\x03H\x00R\x04ixId\x88\x01\x01\x12\x1a\n" +
+	"\x06fac_id\x18\x02 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1d\n" +
+	"\acountry\x18\x03 \x01(\tH\x02R\acountry\x88\x01\x01\x12\x17\n" +
+	"\x04city\x18\x04 \x01(\tH\x03R\x04city\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01B\b\n" +
+	"\x06_ix_idB\t\n" +
+	"\a_fac_idB\n" +
+	"\n" +
+	"\b_countryB\a\n" +
+	"\x05_cityB\t\n" +
+	"\a_status\"!\n" +
 	"\x0fGetIxLanRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\">\n" +
 	"\x10GetIxLanResponse\x12*\n" +
@@ -3109,7 +4072,14 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"j\n" +
 	"\x12ListIxLansResponse\x12,\n" +
 	"\aix_lans\x18\x01 \x03(\v2\x13.peeringdb.v1.IxLanR\x06ixLans\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"$\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x83\x01\n" +
+	"\x13StreamIxLansRequest\x12\x18\n" +
+	"\x05ix_id\x18\x01 \x01(\x03H\x00R\x04ixId\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\x02 \x01(\tH\x01R\x04name\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01B\b\n" +
+	"\x06_ix_idB\a\n" +
+	"\x05_nameB\t\n" +
+	"\a_status\"$\n" +
 	"\x12GetIxPrefixRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"J\n" +
 	"\x13GetIxPrefixResponse\x123\n" +
@@ -3127,7 +4097,14 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x16ListIxPrefixesResponse\x127\n" +
 	"\vix_prefixes\x18\x01 \x03(\v2\x16.peeringdb.v1.IxPrefixR\n" +
 	"ixPrefixes\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"#\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x9c\x01\n" +
+	"\x17StreamIxPrefixesRequest\x12\x1e\n" +
+	"\bixlan_id\x18\x01 \x01(\x03H\x00R\aixlanId\x88\x01\x01\x12\x1f\n" +
+	"\bprotocol\x18\x02 \x01(\tH\x01R\bprotocol\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01B\v\n" +
+	"\t_ixlan_idB\v\n" +
+	"\t_protocolB\t\n" +
+	"\a_status\"#\n" +
 	"\x11GetNetworkRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"E\n" +
 	"\x12GetNetworkResponse\x12/\n" +
@@ -3146,7 +4123,16 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_org_id\"q\n" +
 	"\x14ListNetworksResponse\x121\n" +
 	"\bnetworks\x18\x01 \x03(\v2\x15.peeringdb.v1.NetworkR\bnetworks\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"+\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa7\x01\n" +
+	"\x15StreamNetworksRequest\x12\x15\n" +
+	"\x03asn\x18\x01 \x01(\x03H\x00R\x03asn\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\x02 \x01(\tH\x01R\x04name\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x1a\n" +
+	"\x06org_id\x18\x04 \x01(\x03H\x03R\x05orgId\x88\x01\x01B\x06\n" +
+	"\x04_asnB\a\n" +
+	"\x05_nameB\t\n" +
+	"\a_statusB\t\n" +
+	"\a_org_id\"+\n" +
 	"\x19GetNetworkFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"f\n" +
 	"\x1aGetNetworkFacilityResponse\x12H\n" +
@@ -3168,7 +4154,19 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"\x95\x01\n" +
 	"\x1dListNetworkFacilitiesResponse\x12L\n" +
 	"\x12network_facilities\x18\x01 \x03(\v2\x1d.peeringdb.v1.NetworkFacilityR\x11networkFacilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"(\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe3\x01\n" +
+	"\x1eStreamNetworkFacilitiesRequest\x12\x1a\n" +
+	"\x06net_id\x18\x01 \x01(\x03H\x00R\x05netId\x88\x01\x01\x12\x1a\n" +
+	"\x06fac_id\x18\x02 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1d\n" +
+	"\acountry\x18\x03 \x01(\tH\x02R\acountry\x88\x01\x01\x12\x17\n" +
+	"\x04city\x18\x04 \x01(\tH\x03R\x04city\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01B\t\n" +
+	"\a_net_idB\t\n" +
+	"\a_fac_idB\n" +
+	"\n" +
+	"\b_countryB\a\n" +
+	"\x05_cityB\t\n" +
+	"\a_status\"(\n" +
 	"\x16GetNetworkIxLanRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"[\n" +
 	"\x17GetNetworkIxLanResponse\x12@\n" +
@@ -3189,7 +4187,18 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"\x87\x01\n" +
 	"\x19ListNetworkIxLansResponse\x12B\n" +
 	"\x0fnetwork_ix_lans\x18\x01 \x03(\v2\x1a.peeringdb.v1.NetworkIxLanR\rnetworkIxLans\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"(\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xd9\x01\n" +
+	"\x1aStreamNetworkIxLansRequest\x12\x1a\n" +
+	"\x06net_id\x18\x01 \x01(\x03H\x00R\x05netId\x88\x01\x01\x12\x1e\n" +
+	"\bixlan_id\x18\x02 \x01(\x03H\x01R\aixlanId\x88\x01\x01\x12\x15\n" +
+	"\x03asn\x18\x03 \x01(\x03H\x02R\x03asn\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\x04 \x01(\tH\x03R\x04name\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01B\t\n" +
+	"\a_net_idB\v\n" +
+	"\t_ixlan_idB\x06\n" +
+	"\x04_asnB\a\n" +
+	"\x05_nameB\t\n" +
+	"\a_status\"(\n" +
 	"\x16GetOrganizationRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"Y\n" +
 	"\x17GetOrganizationResponse\x12>\n" +
@@ -3209,7 +4218,17 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"\x85\x01\n" +
 	"\x19ListOrganizationsResponse\x12@\n" +
 	"\rorganizations\x18\x01 \x03(\v2\x1a.peeringdb.v1.OrganizationR\rorganizations\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x1f\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb3\x01\n" +
+	"\x1aStreamOrganizationsRequest\x12\x17\n" +
+	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
+	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
+	"\x04city\x18\x03 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01B\a\n" +
+	"\x05_nameB\n" +
+	"\n" +
+	"\b_countryB\a\n" +
+	"\x05_cityB\t\n" +
+	"\a_status\"\x1f\n" +
 	"\rGetPocRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"5\n" +
 	"\x0eGetPocResponse\x12#\n" +
@@ -3228,50 +4247,73 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"a\n" +
 	"\x10ListPocsResponse\x12%\n" +
 	"\x04pocs\x18\x01 \x03(\v2\x11.peeringdb.v1.PocR\x04pocs\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\xb4\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa6\x01\n" +
+	"\x11StreamPocsRequest\x12\x1a\n" +
+	"\x06net_id\x18\x01 \x01(\x03H\x00R\x05netId\x88\x01\x01\x12\x17\n" +
+	"\x04role\x18\x02 \x01(\tH\x01R\x04role\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\x03 \x01(\tH\x02R\x04name\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01B\t\n" +
+	"\a_net_idB\a\n" +
+	"\x05_roleB\a\n" +
+	"\x05_nameB\t\n" +
+	"\a_status2\x83\x02\n" +
 	"\rCampusService\x12L\n" +
 	"\tGetCampus\x12\x1e.peeringdb.v1.GetCampusRequest\x1a\x1f.peeringdb.v1.GetCampusResponse\x12U\n" +
-	"\fListCampuses\x12!.peeringdb.v1.ListCampusesRequest\x1a\".peeringdb.v1.ListCampusesResponse2\xb8\x01\n" +
+	"\fListCampuses\x12!.peeringdb.v1.ListCampusesRequest\x1a\".peeringdb.v1.ListCampusesResponse\x12M\n" +
+	"\x0eStreamCampuses\x12#.peeringdb.v1.StreamCampusesRequest\x1a\x14.peeringdb.v1.Campus0\x012\x88\x02\n" +
 	"\x0eCarrierService\x12O\n" +
 	"\n" +
 	"GetCarrier\x12\x1f.peeringdb.v1.GetCarrierRequest\x1a .peeringdb.v1.GetCarrierResponse\x12U\n" +
-	"\fListCarriers\x12!.peeringdb.v1.ListCarriersRequest\x1a\".peeringdb.v1.ListCarriersResponse2\xf3\x01\n" +
+	"\fListCarriers\x12!.peeringdb.v1.ListCarriersRequest\x1a\".peeringdb.v1.ListCarriersResponse\x12N\n" +
+	"\x0eStreamCarriers\x12#.peeringdb.v1.StreamCarriersRequest\x1a\x15.peeringdb.v1.Carrier0\x012\xdd\x02\n" +
 	"\x16CarrierFacilityService\x12g\n" +
 	"\x12GetCarrierFacility\x12'.peeringdb.v1.GetCarrierFacilityRequest\x1a(.peeringdb.v1.GetCarrierFacilityResponse\x12p\n" +
-	"\x15ListCarrierFacilities\x12*.peeringdb.v1.ListCarrierFacilitiesRequest\x1a+.peeringdb.v1.ListCarrierFacilitiesResponse2\xc2\x01\n" +
+	"\x15ListCarrierFacilities\x12*.peeringdb.v1.ListCarrierFacilitiesRequest\x1a+.peeringdb.v1.ListCarrierFacilitiesResponse\x12h\n" +
+	"\x17StreamCarrierFacilities\x12,.peeringdb.v1.StreamCarrierFacilitiesRequest\x1a\x1d.peeringdb.v1.CarrierFacility0\x012\x97\x02\n" +
 	"\x0fFacilityService\x12R\n" +
 	"\vGetFacility\x12 .peeringdb.v1.GetFacilityRequest\x1a!.peeringdb.v1.GetFacilityResponse\x12[\n" +
-	"\x0eListFacilities\x12#.peeringdb.v1.ListFacilitiesRequest\x1a$.peeringdb.v1.ListFacilitiesResponse2\xf7\x01\n" +
+	"\x0eListFacilities\x12#.peeringdb.v1.ListFacilitiesRequest\x1a$.peeringdb.v1.ListFacilitiesResponse\x12S\n" +
+	"\x10StreamFacilities\x12%.peeringdb.v1.StreamFacilitiesRequest\x1a\x16.peeringdb.v1.Facility0\x012\xe2\x02\n" +
 	"\x17InternetExchangeService\x12j\n" +
 	"\x13GetInternetExchange\x12(.peeringdb.v1.GetInternetExchangeRequest\x1a).peeringdb.v1.GetInternetExchangeResponse\x12p\n" +
-	"\x15ListInternetExchanges\x12*.peeringdb.v1.ListInternetExchangesRequest\x1a+.peeringdb.v1.ListInternetExchangesResponse2\xd0\x01\n" +
+	"\x15ListInternetExchanges\x12*.peeringdb.v1.ListInternetExchangesRequest\x1a+.peeringdb.v1.ListInternetExchangesResponse\x12i\n" +
+	"\x17StreamInternetExchanges\x12,.peeringdb.v1.StreamInternetExchangesRequest\x1a\x1e.peeringdb.v1.InternetExchange0\x012\xab\x02\n" +
 	"\x11IxFacilityService\x12X\n" +
 	"\rGetIxFacility\x12\".peeringdb.v1.GetIxFacilityRequest\x1a#.peeringdb.v1.GetIxFacilityResponse\x12a\n" +
-	"\x10ListIxFacilities\x12%.peeringdb.v1.ListIxFacilitiesRequest\x1a&.peeringdb.v1.ListIxFacilitiesResponse2\xaa\x01\n" +
+	"\x10ListIxFacilities\x12%.peeringdb.v1.ListIxFacilitiesRequest\x1a&.peeringdb.v1.ListIxFacilitiesResponse\x12Y\n" +
+	"\x12StreamIxFacilities\x12'.peeringdb.v1.StreamIxFacilitiesRequest\x1a\x18.peeringdb.v1.IxFacility0\x012\xf4\x01\n" +
 	"\fIxLanService\x12I\n" +
 	"\bGetIxLan\x12\x1d.peeringdb.v1.GetIxLanRequest\x1a\x1e.peeringdb.v1.GetIxLanResponse\x12O\n" +
 	"\n" +
-	"ListIxLans\x12\x1f.peeringdb.v1.ListIxLansRequest\x1a .peeringdb.v1.ListIxLansResponse2\xc2\x01\n" +
+	"ListIxLans\x12\x1f.peeringdb.v1.ListIxLansRequest\x1a .peeringdb.v1.ListIxLansResponse\x12H\n" +
+	"\fStreamIxLans\x12!.peeringdb.v1.StreamIxLansRequest\x1a\x13.peeringdb.v1.IxLan0\x012\x97\x02\n" +
 	"\x0fIxPrefixService\x12R\n" +
 	"\vGetIxPrefix\x12 .peeringdb.v1.GetIxPrefixRequest\x1a!.peeringdb.v1.GetIxPrefixResponse\x12[\n" +
-	"\x0eListIxPrefixes\x12#.peeringdb.v1.ListIxPrefixesRequest\x1a$.peeringdb.v1.ListIxPrefixesResponse2\xb8\x01\n" +
+	"\x0eListIxPrefixes\x12#.peeringdb.v1.ListIxPrefixesRequest\x1a$.peeringdb.v1.ListIxPrefixesResponse\x12S\n" +
+	"\x10StreamIxPrefixes\x12%.peeringdb.v1.StreamIxPrefixesRequest\x1a\x16.peeringdb.v1.IxPrefix0\x012\x88\x02\n" +
 	"\x0eNetworkService\x12O\n" +
 	"\n" +
 	"GetNetwork\x12\x1f.peeringdb.v1.GetNetworkRequest\x1a .peeringdb.v1.GetNetworkResponse\x12U\n" +
-	"\fListNetworks\x12!.peeringdb.v1.ListNetworksRequest\x1a\".peeringdb.v1.ListNetworksResponse2\xf3\x01\n" +
+	"\fListNetworks\x12!.peeringdb.v1.ListNetworksRequest\x1a\".peeringdb.v1.ListNetworksResponse\x12N\n" +
+	"\x0eStreamNetworks\x12#.peeringdb.v1.StreamNetworksRequest\x1a\x15.peeringdb.v1.Network0\x012\xdd\x02\n" +
 	"\x16NetworkFacilityService\x12g\n" +
 	"\x12GetNetworkFacility\x12'.peeringdb.v1.GetNetworkFacilityRequest\x1a(.peeringdb.v1.GetNetworkFacilityResponse\x12p\n" +
-	"\x15ListNetworkFacilities\x12*.peeringdb.v1.ListNetworkFacilitiesRequest\x1a+.peeringdb.v1.ListNetworkFacilitiesResponse2\xdb\x01\n" +
+	"\x15ListNetworkFacilities\x12*.peeringdb.v1.ListNetworkFacilitiesRequest\x1a+.peeringdb.v1.ListNetworkFacilitiesResponse\x12h\n" +
+	"\x17StreamNetworkFacilities\x12,.peeringdb.v1.StreamNetworkFacilitiesRequest\x1a\x1d.peeringdb.v1.NetworkFacility0\x012\xba\x02\n" +
 	"\x13NetworkIxLanService\x12^\n" +
 	"\x0fGetNetworkIxLan\x12$.peeringdb.v1.GetNetworkIxLanRequest\x1a%.peeringdb.v1.GetNetworkIxLanResponse\x12d\n" +
-	"\x11ListNetworkIxLans\x12&.peeringdb.v1.ListNetworkIxLansRequest\x1a'.peeringdb.v1.ListNetworkIxLansResponse2\xdb\x01\n" +
+	"\x11ListNetworkIxLans\x12&.peeringdb.v1.ListNetworkIxLansRequest\x1a'.peeringdb.v1.ListNetworkIxLansResponse\x12]\n" +
+	"\x13StreamNetworkIxLans\x12(.peeringdb.v1.StreamNetworkIxLansRequest\x1a\x1a.peeringdb.v1.NetworkIxLan0\x012\xba\x02\n" +
 	"\x13OrganizationService\x12^\n" +
 	"\x0fGetOrganization\x12$.peeringdb.v1.GetOrganizationRequest\x1a%.peeringdb.v1.GetOrganizationResponse\x12d\n" +
-	"\x11ListOrganizations\x12&.peeringdb.v1.ListOrganizationsRequest\x1a'.peeringdb.v1.ListOrganizationsResponse2\x9c\x01\n" +
+	"\x11ListOrganizations\x12&.peeringdb.v1.ListOrganizationsRequest\x1a'.peeringdb.v1.ListOrganizationsResponse\x12]\n" +
+	"\x13StreamOrganizations\x12(.peeringdb.v1.StreamOrganizationsRequest\x1a\x1a.peeringdb.v1.Organization0\x012\xe0\x01\n" +
 	"\n" +
 	"PocService\x12C\n" +
 	"\x06GetPoc\x12\x1b.peeringdb.v1.GetPocRequest\x1a\x1c.peeringdb.v1.GetPocResponse\x12I\n" +
-	"\bListPocs\x12\x1d.peeringdb.v1.ListPocsRequest\x1a\x1e.peeringdb.v1.ListPocsResponseB\xb4\x01\n" +
+	"\bListPocs\x12\x1d.peeringdb.v1.ListPocsRequest\x1a\x1e.peeringdb.v1.ListPocsResponse\x12B\n" +
+	"\n" +
+	"StreamPocs\x12\x1f.peeringdb.v1.StreamPocsRequest\x1a\x11.peeringdb.v1.Poc0\x01B\xb4\x01\n" +
 	"\x10com.peeringdb.v1B\rServicesProtoP\x01Z@github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1;peeringdbv1\xa2\x02\x03PXX\xaa\x02\fPeeringdb.V1\xca\x02\fPeeringdb\\V1\xe2\x02\x18Peeringdb\\V1\\GPBMetadata\xea\x02\rPeeringdb::V1b\x06proto3"
 
 var (
@@ -3286,155 +4328,194 @@ func file_peeringdb_v1_services_proto_rawDescGZIP() []byte {
 	return file_peeringdb_v1_services_proto_rawDescData
 }
 
-var file_peeringdb_v1_services_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
+var file_peeringdb_v1_services_proto_msgTypes = make([]protoimpl.MessageInfo, 65)
 var file_peeringdb_v1_services_proto_goTypes = []any{
-	(*GetCampusRequest)(nil),              // 0: peeringdb.v1.GetCampusRequest
-	(*GetCampusResponse)(nil),             // 1: peeringdb.v1.GetCampusResponse
-	(*ListCampusesRequest)(nil),           // 2: peeringdb.v1.ListCampusesRequest
-	(*ListCampusesResponse)(nil),          // 3: peeringdb.v1.ListCampusesResponse
-	(*GetCarrierRequest)(nil),             // 4: peeringdb.v1.GetCarrierRequest
-	(*GetCarrierResponse)(nil),            // 5: peeringdb.v1.GetCarrierResponse
-	(*ListCarriersRequest)(nil),           // 6: peeringdb.v1.ListCarriersRequest
-	(*ListCarriersResponse)(nil),          // 7: peeringdb.v1.ListCarriersResponse
-	(*GetCarrierFacilityRequest)(nil),     // 8: peeringdb.v1.GetCarrierFacilityRequest
-	(*GetCarrierFacilityResponse)(nil),    // 9: peeringdb.v1.GetCarrierFacilityResponse
-	(*ListCarrierFacilitiesRequest)(nil),  // 10: peeringdb.v1.ListCarrierFacilitiesRequest
-	(*ListCarrierFacilitiesResponse)(nil), // 11: peeringdb.v1.ListCarrierFacilitiesResponse
-	(*GetFacilityRequest)(nil),            // 12: peeringdb.v1.GetFacilityRequest
-	(*GetFacilityResponse)(nil),           // 13: peeringdb.v1.GetFacilityResponse
-	(*ListFacilitiesRequest)(nil),         // 14: peeringdb.v1.ListFacilitiesRequest
-	(*ListFacilitiesResponse)(nil),        // 15: peeringdb.v1.ListFacilitiesResponse
-	(*GetInternetExchangeRequest)(nil),    // 16: peeringdb.v1.GetInternetExchangeRequest
-	(*GetInternetExchangeResponse)(nil),   // 17: peeringdb.v1.GetInternetExchangeResponse
-	(*ListInternetExchangesRequest)(nil),  // 18: peeringdb.v1.ListInternetExchangesRequest
-	(*ListInternetExchangesResponse)(nil), // 19: peeringdb.v1.ListInternetExchangesResponse
-	(*GetIxFacilityRequest)(nil),          // 20: peeringdb.v1.GetIxFacilityRequest
-	(*GetIxFacilityResponse)(nil),         // 21: peeringdb.v1.GetIxFacilityResponse
-	(*ListIxFacilitiesRequest)(nil),       // 22: peeringdb.v1.ListIxFacilitiesRequest
-	(*ListIxFacilitiesResponse)(nil),      // 23: peeringdb.v1.ListIxFacilitiesResponse
-	(*GetIxLanRequest)(nil),               // 24: peeringdb.v1.GetIxLanRequest
-	(*GetIxLanResponse)(nil),              // 25: peeringdb.v1.GetIxLanResponse
-	(*ListIxLansRequest)(nil),             // 26: peeringdb.v1.ListIxLansRequest
-	(*ListIxLansResponse)(nil),            // 27: peeringdb.v1.ListIxLansResponse
-	(*GetIxPrefixRequest)(nil),            // 28: peeringdb.v1.GetIxPrefixRequest
-	(*GetIxPrefixResponse)(nil),           // 29: peeringdb.v1.GetIxPrefixResponse
-	(*ListIxPrefixesRequest)(nil),         // 30: peeringdb.v1.ListIxPrefixesRequest
-	(*ListIxPrefixesResponse)(nil),        // 31: peeringdb.v1.ListIxPrefixesResponse
-	(*GetNetworkRequest)(nil),             // 32: peeringdb.v1.GetNetworkRequest
-	(*GetNetworkResponse)(nil),            // 33: peeringdb.v1.GetNetworkResponse
-	(*ListNetworksRequest)(nil),           // 34: peeringdb.v1.ListNetworksRequest
-	(*ListNetworksResponse)(nil),          // 35: peeringdb.v1.ListNetworksResponse
-	(*GetNetworkFacilityRequest)(nil),     // 36: peeringdb.v1.GetNetworkFacilityRequest
-	(*GetNetworkFacilityResponse)(nil),    // 37: peeringdb.v1.GetNetworkFacilityResponse
-	(*ListNetworkFacilitiesRequest)(nil),  // 38: peeringdb.v1.ListNetworkFacilitiesRequest
-	(*ListNetworkFacilitiesResponse)(nil), // 39: peeringdb.v1.ListNetworkFacilitiesResponse
-	(*GetNetworkIxLanRequest)(nil),        // 40: peeringdb.v1.GetNetworkIxLanRequest
-	(*GetNetworkIxLanResponse)(nil),       // 41: peeringdb.v1.GetNetworkIxLanResponse
-	(*ListNetworkIxLansRequest)(nil),      // 42: peeringdb.v1.ListNetworkIxLansRequest
-	(*ListNetworkIxLansResponse)(nil),     // 43: peeringdb.v1.ListNetworkIxLansResponse
-	(*GetOrganizationRequest)(nil),        // 44: peeringdb.v1.GetOrganizationRequest
-	(*GetOrganizationResponse)(nil),       // 45: peeringdb.v1.GetOrganizationResponse
-	(*ListOrganizationsRequest)(nil),      // 46: peeringdb.v1.ListOrganizationsRequest
-	(*ListOrganizationsResponse)(nil),     // 47: peeringdb.v1.ListOrganizationsResponse
-	(*GetPocRequest)(nil),                 // 48: peeringdb.v1.GetPocRequest
-	(*GetPocResponse)(nil),                // 49: peeringdb.v1.GetPocResponse
-	(*ListPocsRequest)(nil),               // 50: peeringdb.v1.ListPocsRequest
-	(*ListPocsResponse)(nil),              // 51: peeringdb.v1.ListPocsResponse
-	(*Campus)(nil),                        // 52: peeringdb.v1.Campus
-	(*Carrier)(nil),                       // 53: peeringdb.v1.Carrier
-	(*CarrierFacility)(nil),               // 54: peeringdb.v1.CarrierFacility
-	(*Facility)(nil),                      // 55: peeringdb.v1.Facility
-	(*InternetExchange)(nil),              // 56: peeringdb.v1.InternetExchange
-	(*IxFacility)(nil),                    // 57: peeringdb.v1.IxFacility
-	(*IxLan)(nil),                         // 58: peeringdb.v1.IxLan
-	(*IxPrefix)(nil),                      // 59: peeringdb.v1.IxPrefix
-	(*Network)(nil),                       // 60: peeringdb.v1.Network
-	(*NetworkFacility)(nil),               // 61: peeringdb.v1.NetworkFacility
-	(*NetworkIxLan)(nil),                  // 62: peeringdb.v1.NetworkIxLan
-	(*Organization)(nil),                  // 63: peeringdb.v1.Organization
-	(*Poc)(nil),                           // 64: peeringdb.v1.Poc
+	(*GetCampusRequest)(nil),               // 0: peeringdb.v1.GetCampusRequest
+	(*GetCampusResponse)(nil),              // 1: peeringdb.v1.GetCampusResponse
+	(*ListCampusesRequest)(nil),            // 2: peeringdb.v1.ListCampusesRequest
+	(*ListCampusesResponse)(nil),           // 3: peeringdb.v1.ListCampusesResponse
+	(*StreamCampusesRequest)(nil),          // 4: peeringdb.v1.StreamCampusesRequest
+	(*GetCarrierRequest)(nil),              // 5: peeringdb.v1.GetCarrierRequest
+	(*GetCarrierResponse)(nil),             // 6: peeringdb.v1.GetCarrierResponse
+	(*ListCarriersRequest)(nil),            // 7: peeringdb.v1.ListCarriersRequest
+	(*ListCarriersResponse)(nil),           // 8: peeringdb.v1.ListCarriersResponse
+	(*StreamCarriersRequest)(nil),          // 9: peeringdb.v1.StreamCarriersRequest
+	(*GetCarrierFacilityRequest)(nil),      // 10: peeringdb.v1.GetCarrierFacilityRequest
+	(*GetCarrierFacilityResponse)(nil),     // 11: peeringdb.v1.GetCarrierFacilityResponse
+	(*ListCarrierFacilitiesRequest)(nil),   // 12: peeringdb.v1.ListCarrierFacilitiesRequest
+	(*ListCarrierFacilitiesResponse)(nil),  // 13: peeringdb.v1.ListCarrierFacilitiesResponse
+	(*StreamCarrierFacilitiesRequest)(nil), // 14: peeringdb.v1.StreamCarrierFacilitiesRequest
+	(*GetFacilityRequest)(nil),             // 15: peeringdb.v1.GetFacilityRequest
+	(*GetFacilityResponse)(nil),            // 16: peeringdb.v1.GetFacilityResponse
+	(*ListFacilitiesRequest)(nil),          // 17: peeringdb.v1.ListFacilitiesRequest
+	(*ListFacilitiesResponse)(nil),         // 18: peeringdb.v1.ListFacilitiesResponse
+	(*StreamFacilitiesRequest)(nil),        // 19: peeringdb.v1.StreamFacilitiesRequest
+	(*GetInternetExchangeRequest)(nil),     // 20: peeringdb.v1.GetInternetExchangeRequest
+	(*GetInternetExchangeResponse)(nil),    // 21: peeringdb.v1.GetInternetExchangeResponse
+	(*ListInternetExchangesRequest)(nil),   // 22: peeringdb.v1.ListInternetExchangesRequest
+	(*ListInternetExchangesResponse)(nil),  // 23: peeringdb.v1.ListInternetExchangesResponse
+	(*StreamInternetExchangesRequest)(nil), // 24: peeringdb.v1.StreamInternetExchangesRequest
+	(*GetIxFacilityRequest)(nil),           // 25: peeringdb.v1.GetIxFacilityRequest
+	(*GetIxFacilityResponse)(nil),          // 26: peeringdb.v1.GetIxFacilityResponse
+	(*ListIxFacilitiesRequest)(nil),        // 27: peeringdb.v1.ListIxFacilitiesRequest
+	(*ListIxFacilitiesResponse)(nil),       // 28: peeringdb.v1.ListIxFacilitiesResponse
+	(*StreamIxFacilitiesRequest)(nil),      // 29: peeringdb.v1.StreamIxFacilitiesRequest
+	(*GetIxLanRequest)(nil),                // 30: peeringdb.v1.GetIxLanRequest
+	(*GetIxLanResponse)(nil),               // 31: peeringdb.v1.GetIxLanResponse
+	(*ListIxLansRequest)(nil),              // 32: peeringdb.v1.ListIxLansRequest
+	(*ListIxLansResponse)(nil),             // 33: peeringdb.v1.ListIxLansResponse
+	(*StreamIxLansRequest)(nil),            // 34: peeringdb.v1.StreamIxLansRequest
+	(*GetIxPrefixRequest)(nil),             // 35: peeringdb.v1.GetIxPrefixRequest
+	(*GetIxPrefixResponse)(nil),            // 36: peeringdb.v1.GetIxPrefixResponse
+	(*ListIxPrefixesRequest)(nil),          // 37: peeringdb.v1.ListIxPrefixesRequest
+	(*ListIxPrefixesResponse)(nil),         // 38: peeringdb.v1.ListIxPrefixesResponse
+	(*StreamIxPrefixesRequest)(nil),        // 39: peeringdb.v1.StreamIxPrefixesRequest
+	(*GetNetworkRequest)(nil),              // 40: peeringdb.v1.GetNetworkRequest
+	(*GetNetworkResponse)(nil),             // 41: peeringdb.v1.GetNetworkResponse
+	(*ListNetworksRequest)(nil),            // 42: peeringdb.v1.ListNetworksRequest
+	(*ListNetworksResponse)(nil),           // 43: peeringdb.v1.ListNetworksResponse
+	(*StreamNetworksRequest)(nil),          // 44: peeringdb.v1.StreamNetworksRequest
+	(*GetNetworkFacilityRequest)(nil),      // 45: peeringdb.v1.GetNetworkFacilityRequest
+	(*GetNetworkFacilityResponse)(nil),     // 46: peeringdb.v1.GetNetworkFacilityResponse
+	(*ListNetworkFacilitiesRequest)(nil),   // 47: peeringdb.v1.ListNetworkFacilitiesRequest
+	(*ListNetworkFacilitiesResponse)(nil),  // 48: peeringdb.v1.ListNetworkFacilitiesResponse
+	(*StreamNetworkFacilitiesRequest)(nil), // 49: peeringdb.v1.StreamNetworkFacilitiesRequest
+	(*GetNetworkIxLanRequest)(nil),         // 50: peeringdb.v1.GetNetworkIxLanRequest
+	(*GetNetworkIxLanResponse)(nil),        // 51: peeringdb.v1.GetNetworkIxLanResponse
+	(*ListNetworkIxLansRequest)(nil),       // 52: peeringdb.v1.ListNetworkIxLansRequest
+	(*ListNetworkIxLansResponse)(nil),      // 53: peeringdb.v1.ListNetworkIxLansResponse
+	(*StreamNetworkIxLansRequest)(nil),     // 54: peeringdb.v1.StreamNetworkIxLansRequest
+	(*GetOrganizationRequest)(nil),         // 55: peeringdb.v1.GetOrganizationRequest
+	(*GetOrganizationResponse)(nil),        // 56: peeringdb.v1.GetOrganizationResponse
+	(*ListOrganizationsRequest)(nil),       // 57: peeringdb.v1.ListOrganizationsRequest
+	(*ListOrganizationsResponse)(nil),      // 58: peeringdb.v1.ListOrganizationsResponse
+	(*StreamOrganizationsRequest)(nil),     // 59: peeringdb.v1.StreamOrganizationsRequest
+	(*GetPocRequest)(nil),                  // 60: peeringdb.v1.GetPocRequest
+	(*GetPocResponse)(nil),                 // 61: peeringdb.v1.GetPocResponse
+	(*ListPocsRequest)(nil),                // 62: peeringdb.v1.ListPocsRequest
+	(*ListPocsResponse)(nil),               // 63: peeringdb.v1.ListPocsResponse
+	(*StreamPocsRequest)(nil),              // 64: peeringdb.v1.StreamPocsRequest
+	(*Campus)(nil),                         // 65: peeringdb.v1.Campus
+	(*Carrier)(nil),                        // 66: peeringdb.v1.Carrier
+	(*CarrierFacility)(nil),                // 67: peeringdb.v1.CarrierFacility
+	(*Facility)(nil),                       // 68: peeringdb.v1.Facility
+	(*InternetExchange)(nil),               // 69: peeringdb.v1.InternetExchange
+	(*IxFacility)(nil),                     // 70: peeringdb.v1.IxFacility
+	(*IxLan)(nil),                          // 71: peeringdb.v1.IxLan
+	(*IxPrefix)(nil),                       // 72: peeringdb.v1.IxPrefix
+	(*Network)(nil),                        // 73: peeringdb.v1.Network
+	(*NetworkFacility)(nil),                // 74: peeringdb.v1.NetworkFacility
+	(*NetworkIxLan)(nil),                   // 75: peeringdb.v1.NetworkIxLan
+	(*Organization)(nil),                   // 76: peeringdb.v1.Organization
+	(*Poc)(nil),                            // 77: peeringdb.v1.Poc
 }
 var file_peeringdb_v1_services_proto_depIdxs = []int32{
-	52, // 0: peeringdb.v1.GetCampusResponse.campus:type_name -> peeringdb.v1.Campus
-	52, // 1: peeringdb.v1.ListCampusesResponse.campuses:type_name -> peeringdb.v1.Campus
-	53, // 2: peeringdb.v1.GetCarrierResponse.carrier:type_name -> peeringdb.v1.Carrier
-	53, // 3: peeringdb.v1.ListCarriersResponse.carriers:type_name -> peeringdb.v1.Carrier
-	54, // 4: peeringdb.v1.GetCarrierFacilityResponse.carrier_facility:type_name -> peeringdb.v1.CarrierFacility
-	54, // 5: peeringdb.v1.ListCarrierFacilitiesResponse.carrier_facilities:type_name -> peeringdb.v1.CarrierFacility
-	55, // 6: peeringdb.v1.GetFacilityResponse.facility:type_name -> peeringdb.v1.Facility
-	55, // 7: peeringdb.v1.ListFacilitiesResponse.facilities:type_name -> peeringdb.v1.Facility
-	56, // 8: peeringdb.v1.GetInternetExchangeResponse.internet_exchange:type_name -> peeringdb.v1.InternetExchange
-	56, // 9: peeringdb.v1.ListInternetExchangesResponse.internet_exchanges:type_name -> peeringdb.v1.InternetExchange
-	57, // 10: peeringdb.v1.GetIxFacilityResponse.ix_facility:type_name -> peeringdb.v1.IxFacility
-	57, // 11: peeringdb.v1.ListIxFacilitiesResponse.ix_facilities:type_name -> peeringdb.v1.IxFacility
-	58, // 12: peeringdb.v1.GetIxLanResponse.ix_lan:type_name -> peeringdb.v1.IxLan
-	58, // 13: peeringdb.v1.ListIxLansResponse.ix_lans:type_name -> peeringdb.v1.IxLan
-	59, // 14: peeringdb.v1.GetIxPrefixResponse.ix_prefix:type_name -> peeringdb.v1.IxPrefix
-	59, // 15: peeringdb.v1.ListIxPrefixesResponse.ix_prefixes:type_name -> peeringdb.v1.IxPrefix
-	60, // 16: peeringdb.v1.GetNetworkResponse.network:type_name -> peeringdb.v1.Network
-	60, // 17: peeringdb.v1.ListNetworksResponse.networks:type_name -> peeringdb.v1.Network
-	61, // 18: peeringdb.v1.GetNetworkFacilityResponse.network_facility:type_name -> peeringdb.v1.NetworkFacility
-	61, // 19: peeringdb.v1.ListNetworkFacilitiesResponse.network_facilities:type_name -> peeringdb.v1.NetworkFacility
-	62, // 20: peeringdb.v1.GetNetworkIxLanResponse.network_ix_lan:type_name -> peeringdb.v1.NetworkIxLan
-	62, // 21: peeringdb.v1.ListNetworkIxLansResponse.network_ix_lans:type_name -> peeringdb.v1.NetworkIxLan
-	63, // 22: peeringdb.v1.GetOrganizationResponse.organization:type_name -> peeringdb.v1.Organization
-	63, // 23: peeringdb.v1.ListOrganizationsResponse.organizations:type_name -> peeringdb.v1.Organization
-	64, // 24: peeringdb.v1.GetPocResponse.poc:type_name -> peeringdb.v1.Poc
-	64, // 25: peeringdb.v1.ListPocsResponse.pocs:type_name -> peeringdb.v1.Poc
+	65, // 0: peeringdb.v1.GetCampusResponse.campus:type_name -> peeringdb.v1.Campus
+	65, // 1: peeringdb.v1.ListCampusesResponse.campuses:type_name -> peeringdb.v1.Campus
+	66, // 2: peeringdb.v1.GetCarrierResponse.carrier:type_name -> peeringdb.v1.Carrier
+	66, // 3: peeringdb.v1.ListCarriersResponse.carriers:type_name -> peeringdb.v1.Carrier
+	67, // 4: peeringdb.v1.GetCarrierFacilityResponse.carrier_facility:type_name -> peeringdb.v1.CarrierFacility
+	67, // 5: peeringdb.v1.ListCarrierFacilitiesResponse.carrier_facilities:type_name -> peeringdb.v1.CarrierFacility
+	68, // 6: peeringdb.v1.GetFacilityResponse.facility:type_name -> peeringdb.v1.Facility
+	68, // 7: peeringdb.v1.ListFacilitiesResponse.facilities:type_name -> peeringdb.v1.Facility
+	69, // 8: peeringdb.v1.GetInternetExchangeResponse.internet_exchange:type_name -> peeringdb.v1.InternetExchange
+	69, // 9: peeringdb.v1.ListInternetExchangesResponse.internet_exchanges:type_name -> peeringdb.v1.InternetExchange
+	70, // 10: peeringdb.v1.GetIxFacilityResponse.ix_facility:type_name -> peeringdb.v1.IxFacility
+	70, // 11: peeringdb.v1.ListIxFacilitiesResponse.ix_facilities:type_name -> peeringdb.v1.IxFacility
+	71, // 12: peeringdb.v1.GetIxLanResponse.ix_lan:type_name -> peeringdb.v1.IxLan
+	71, // 13: peeringdb.v1.ListIxLansResponse.ix_lans:type_name -> peeringdb.v1.IxLan
+	72, // 14: peeringdb.v1.GetIxPrefixResponse.ix_prefix:type_name -> peeringdb.v1.IxPrefix
+	72, // 15: peeringdb.v1.ListIxPrefixesResponse.ix_prefixes:type_name -> peeringdb.v1.IxPrefix
+	73, // 16: peeringdb.v1.GetNetworkResponse.network:type_name -> peeringdb.v1.Network
+	73, // 17: peeringdb.v1.ListNetworksResponse.networks:type_name -> peeringdb.v1.Network
+	74, // 18: peeringdb.v1.GetNetworkFacilityResponse.network_facility:type_name -> peeringdb.v1.NetworkFacility
+	74, // 19: peeringdb.v1.ListNetworkFacilitiesResponse.network_facilities:type_name -> peeringdb.v1.NetworkFacility
+	75, // 20: peeringdb.v1.GetNetworkIxLanResponse.network_ix_lan:type_name -> peeringdb.v1.NetworkIxLan
+	75, // 21: peeringdb.v1.ListNetworkIxLansResponse.network_ix_lans:type_name -> peeringdb.v1.NetworkIxLan
+	76, // 22: peeringdb.v1.GetOrganizationResponse.organization:type_name -> peeringdb.v1.Organization
+	76, // 23: peeringdb.v1.ListOrganizationsResponse.organizations:type_name -> peeringdb.v1.Organization
+	77, // 24: peeringdb.v1.GetPocResponse.poc:type_name -> peeringdb.v1.Poc
+	77, // 25: peeringdb.v1.ListPocsResponse.pocs:type_name -> peeringdb.v1.Poc
 	0,  // 26: peeringdb.v1.CampusService.GetCampus:input_type -> peeringdb.v1.GetCampusRequest
 	2,  // 27: peeringdb.v1.CampusService.ListCampuses:input_type -> peeringdb.v1.ListCampusesRequest
-	4,  // 28: peeringdb.v1.CarrierService.GetCarrier:input_type -> peeringdb.v1.GetCarrierRequest
-	6,  // 29: peeringdb.v1.CarrierService.ListCarriers:input_type -> peeringdb.v1.ListCarriersRequest
-	8,  // 30: peeringdb.v1.CarrierFacilityService.GetCarrierFacility:input_type -> peeringdb.v1.GetCarrierFacilityRequest
-	10, // 31: peeringdb.v1.CarrierFacilityService.ListCarrierFacilities:input_type -> peeringdb.v1.ListCarrierFacilitiesRequest
-	12, // 32: peeringdb.v1.FacilityService.GetFacility:input_type -> peeringdb.v1.GetFacilityRequest
-	14, // 33: peeringdb.v1.FacilityService.ListFacilities:input_type -> peeringdb.v1.ListFacilitiesRequest
-	16, // 34: peeringdb.v1.InternetExchangeService.GetInternetExchange:input_type -> peeringdb.v1.GetInternetExchangeRequest
-	18, // 35: peeringdb.v1.InternetExchangeService.ListInternetExchanges:input_type -> peeringdb.v1.ListInternetExchangesRequest
-	20, // 36: peeringdb.v1.IxFacilityService.GetIxFacility:input_type -> peeringdb.v1.GetIxFacilityRequest
-	22, // 37: peeringdb.v1.IxFacilityService.ListIxFacilities:input_type -> peeringdb.v1.ListIxFacilitiesRequest
-	24, // 38: peeringdb.v1.IxLanService.GetIxLan:input_type -> peeringdb.v1.GetIxLanRequest
-	26, // 39: peeringdb.v1.IxLanService.ListIxLans:input_type -> peeringdb.v1.ListIxLansRequest
-	28, // 40: peeringdb.v1.IxPrefixService.GetIxPrefix:input_type -> peeringdb.v1.GetIxPrefixRequest
-	30, // 41: peeringdb.v1.IxPrefixService.ListIxPrefixes:input_type -> peeringdb.v1.ListIxPrefixesRequest
-	32, // 42: peeringdb.v1.NetworkService.GetNetwork:input_type -> peeringdb.v1.GetNetworkRequest
-	34, // 43: peeringdb.v1.NetworkService.ListNetworks:input_type -> peeringdb.v1.ListNetworksRequest
-	36, // 44: peeringdb.v1.NetworkFacilityService.GetNetworkFacility:input_type -> peeringdb.v1.GetNetworkFacilityRequest
-	38, // 45: peeringdb.v1.NetworkFacilityService.ListNetworkFacilities:input_type -> peeringdb.v1.ListNetworkFacilitiesRequest
-	40, // 46: peeringdb.v1.NetworkIxLanService.GetNetworkIxLan:input_type -> peeringdb.v1.GetNetworkIxLanRequest
-	42, // 47: peeringdb.v1.NetworkIxLanService.ListNetworkIxLans:input_type -> peeringdb.v1.ListNetworkIxLansRequest
-	44, // 48: peeringdb.v1.OrganizationService.GetOrganization:input_type -> peeringdb.v1.GetOrganizationRequest
-	46, // 49: peeringdb.v1.OrganizationService.ListOrganizations:input_type -> peeringdb.v1.ListOrganizationsRequest
-	48, // 50: peeringdb.v1.PocService.GetPoc:input_type -> peeringdb.v1.GetPocRequest
-	50, // 51: peeringdb.v1.PocService.ListPocs:input_type -> peeringdb.v1.ListPocsRequest
-	1,  // 52: peeringdb.v1.CampusService.GetCampus:output_type -> peeringdb.v1.GetCampusResponse
-	3,  // 53: peeringdb.v1.CampusService.ListCampuses:output_type -> peeringdb.v1.ListCampusesResponse
-	5,  // 54: peeringdb.v1.CarrierService.GetCarrier:output_type -> peeringdb.v1.GetCarrierResponse
-	7,  // 55: peeringdb.v1.CarrierService.ListCarriers:output_type -> peeringdb.v1.ListCarriersResponse
-	9,  // 56: peeringdb.v1.CarrierFacilityService.GetCarrierFacility:output_type -> peeringdb.v1.GetCarrierFacilityResponse
-	11, // 57: peeringdb.v1.CarrierFacilityService.ListCarrierFacilities:output_type -> peeringdb.v1.ListCarrierFacilitiesResponse
-	13, // 58: peeringdb.v1.FacilityService.GetFacility:output_type -> peeringdb.v1.GetFacilityResponse
-	15, // 59: peeringdb.v1.FacilityService.ListFacilities:output_type -> peeringdb.v1.ListFacilitiesResponse
-	17, // 60: peeringdb.v1.InternetExchangeService.GetInternetExchange:output_type -> peeringdb.v1.GetInternetExchangeResponse
-	19, // 61: peeringdb.v1.InternetExchangeService.ListInternetExchanges:output_type -> peeringdb.v1.ListInternetExchangesResponse
-	21, // 62: peeringdb.v1.IxFacilityService.GetIxFacility:output_type -> peeringdb.v1.GetIxFacilityResponse
-	23, // 63: peeringdb.v1.IxFacilityService.ListIxFacilities:output_type -> peeringdb.v1.ListIxFacilitiesResponse
-	25, // 64: peeringdb.v1.IxLanService.GetIxLan:output_type -> peeringdb.v1.GetIxLanResponse
-	27, // 65: peeringdb.v1.IxLanService.ListIxLans:output_type -> peeringdb.v1.ListIxLansResponse
-	29, // 66: peeringdb.v1.IxPrefixService.GetIxPrefix:output_type -> peeringdb.v1.GetIxPrefixResponse
-	31, // 67: peeringdb.v1.IxPrefixService.ListIxPrefixes:output_type -> peeringdb.v1.ListIxPrefixesResponse
-	33, // 68: peeringdb.v1.NetworkService.GetNetwork:output_type -> peeringdb.v1.GetNetworkResponse
-	35, // 69: peeringdb.v1.NetworkService.ListNetworks:output_type -> peeringdb.v1.ListNetworksResponse
-	37, // 70: peeringdb.v1.NetworkFacilityService.GetNetworkFacility:output_type -> peeringdb.v1.GetNetworkFacilityResponse
-	39, // 71: peeringdb.v1.NetworkFacilityService.ListNetworkFacilities:output_type -> peeringdb.v1.ListNetworkFacilitiesResponse
-	41, // 72: peeringdb.v1.NetworkIxLanService.GetNetworkIxLan:output_type -> peeringdb.v1.GetNetworkIxLanResponse
-	43, // 73: peeringdb.v1.NetworkIxLanService.ListNetworkIxLans:output_type -> peeringdb.v1.ListNetworkIxLansResponse
-	45, // 74: peeringdb.v1.OrganizationService.GetOrganization:output_type -> peeringdb.v1.GetOrganizationResponse
-	47, // 75: peeringdb.v1.OrganizationService.ListOrganizations:output_type -> peeringdb.v1.ListOrganizationsResponse
-	49, // 76: peeringdb.v1.PocService.GetPoc:output_type -> peeringdb.v1.GetPocResponse
-	51, // 77: peeringdb.v1.PocService.ListPocs:output_type -> peeringdb.v1.ListPocsResponse
-	52, // [52:78] is the sub-list for method output_type
-	26, // [26:52] is the sub-list for method input_type
+	4,  // 28: peeringdb.v1.CampusService.StreamCampuses:input_type -> peeringdb.v1.StreamCampusesRequest
+	5,  // 29: peeringdb.v1.CarrierService.GetCarrier:input_type -> peeringdb.v1.GetCarrierRequest
+	7,  // 30: peeringdb.v1.CarrierService.ListCarriers:input_type -> peeringdb.v1.ListCarriersRequest
+	9,  // 31: peeringdb.v1.CarrierService.StreamCarriers:input_type -> peeringdb.v1.StreamCarriersRequest
+	10, // 32: peeringdb.v1.CarrierFacilityService.GetCarrierFacility:input_type -> peeringdb.v1.GetCarrierFacilityRequest
+	12, // 33: peeringdb.v1.CarrierFacilityService.ListCarrierFacilities:input_type -> peeringdb.v1.ListCarrierFacilitiesRequest
+	14, // 34: peeringdb.v1.CarrierFacilityService.StreamCarrierFacilities:input_type -> peeringdb.v1.StreamCarrierFacilitiesRequest
+	15, // 35: peeringdb.v1.FacilityService.GetFacility:input_type -> peeringdb.v1.GetFacilityRequest
+	17, // 36: peeringdb.v1.FacilityService.ListFacilities:input_type -> peeringdb.v1.ListFacilitiesRequest
+	19, // 37: peeringdb.v1.FacilityService.StreamFacilities:input_type -> peeringdb.v1.StreamFacilitiesRequest
+	20, // 38: peeringdb.v1.InternetExchangeService.GetInternetExchange:input_type -> peeringdb.v1.GetInternetExchangeRequest
+	22, // 39: peeringdb.v1.InternetExchangeService.ListInternetExchanges:input_type -> peeringdb.v1.ListInternetExchangesRequest
+	24, // 40: peeringdb.v1.InternetExchangeService.StreamInternetExchanges:input_type -> peeringdb.v1.StreamInternetExchangesRequest
+	25, // 41: peeringdb.v1.IxFacilityService.GetIxFacility:input_type -> peeringdb.v1.GetIxFacilityRequest
+	27, // 42: peeringdb.v1.IxFacilityService.ListIxFacilities:input_type -> peeringdb.v1.ListIxFacilitiesRequest
+	29, // 43: peeringdb.v1.IxFacilityService.StreamIxFacilities:input_type -> peeringdb.v1.StreamIxFacilitiesRequest
+	30, // 44: peeringdb.v1.IxLanService.GetIxLan:input_type -> peeringdb.v1.GetIxLanRequest
+	32, // 45: peeringdb.v1.IxLanService.ListIxLans:input_type -> peeringdb.v1.ListIxLansRequest
+	34, // 46: peeringdb.v1.IxLanService.StreamIxLans:input_type -> peeringdb.v1.StreamIxLansRequest
+	35, // 47: peeringdb.v1.IxPrefixService.GetIxPrefix:input_type -> peeringdb.v1.GetIxPrefixRequest
+	37, // 48: peeringdb.v1.IxPrefixService.ListIxPrefixes:input_type -> peeringdb.v1.ListIxPrefixesRequest
+	39, // 49: peeringdb.v1.IxPrefixService.StreamIxPrefixes:input_type -> peeringdb.v1.StreamIxPrefixesRequest
+	40, // 50: peeringdb.v1.NetworkService.GetNetwork:input_type -> peeringdb.v1.GetNetworkRequest
+	42, // 51: peeringdb.v1.NetworkService.ListNetworks:input_type -> peeringdb.v1.ListNetworksRequest
+	44, // 52: peeringdb.v1.NetworkService.StreamNetworks:input_type -> peeringdb.v1.StreamNetworksRequest
+	45, // 53: peeringdb.v1.NetworkFacilityService.GetNetworkFacility:input_type -> peeringdb.v1.GetNetworkFacilityRequest
+	47, // 54: peeringdb.v1.NetworkFacilityService.ListNetworkFacilities:input_type -> peeringdb.v1.ListNetworkFacilitiesRequest
+	49, // 55: peeringdb.v1.NetworkFacilityService.StreamNetworkFacilities:input_type -> peeringdb.v1.StreamNetworkFacilitiesRequest
+	50, // 56: peeringdb.v1.NetworkIxLanService.GetNetworkIxLan:input_type -> peeringdb.v1.GetNetworkIxLanRequest
+	52, // 57: peeringdb.v1.NetworkIxLanService.ListNetworkIxLans:input_type -> peeringdb.v1.ListNetworkIxLansRequest
+	54, // 58: peeringdb.v1.NetworkIxLanService.StreamNetworkIxLans:input_type -> peeringdb.v1.StreamNetworkIxLansRequest
+	55, // 59: peeringdb.v1.OrganizationService.GetOrganization:input_type -> peeringdb.v1.GetOrganizationRequest
+	57, // 60: peeringdb.v1.OrganizationService.ListOrganizations:input_type -> peeringdb.v1.ListOrganizationsRequest
+	59, // 61: peeringdb.v1.OrganizationService.StreamOrganizations:input_type -> peeringdb.v1.StreamOrganizationsRequest
+	60, // 62: peeringdb.v1.PocService.GetPoc:input_type -> peeringdb.v1.GetPocRequest
+	62, // 63: peeringdb.v1.PocService.ListPocs:input_type -> peeringdb.v1.ListPocsRequest
+	64, // 64: peeringdb.v1.PocService.StreamPocs:input_type -> peeringdb.v1.StreamPocsRequest
+	1,  // 65: peeringdb.v1.CampusService.GetCampus:output_type -> peeringdb.v1.GetCampusResponse
+	3,  // 66: peeringdb.v1.CampusService.ListCampuses:output_type -> peeringdb.v1.ListCampusesResponse
+	65, // 67: peeringdb.v1.CampusService.StreamCampuses:output_type -> peeringdb.v1.Campus
+	6,  // 68: peeringdb.v1.CarrierService.GetCarrier:output_type -> peeringdb.v1.GetCarrierResponse
+	8,  // 69: peeringdb.v1.CarrierService.ListCarriers:output_type -> peeringdb.v1.ListCarriersResponse
+	66, // 70: peeringdb.v1.CarrierService.StreamCarriers:output_type -> peeringdb.v1.Carrier
+	11, // 71: peeringdb.v1.CarrierFacilityService.GetCarrierFacility:output_type -> peeringdb.v1.GetCarrierFacilityResponse
+	13, // 72: peeringdb.v1.CarrierFacilityService.ListCarrierFacilities:output_type -> peeringdb.v1.ListCarrierFacilitiesResponse
+	67, // 73: peeringdb.v1.CarrierFacilityService.StreamCarrierFacilities:output_type -> peeringdb.v1.CarrierFacility
+	16, // 74: peeringdb.v1.FacilityService.GetFacility:output_type -> peeringdb.v1.GetFacilityResponse
+	18, // 75: peeringdb.v1.FacilityService.ListFacilities:output_type -> peeringdb.v1.ListFacilitiesResponse
+	68, // 76: peeringdb.v1.FacilityService.StreamFacilities:output_type -> peeringdb.v1.Facility
+	21, // 77: peeringdb.v1.InternetExchangeService.GetInternetExchange:output_type -> peeringdb.v1.GetInternetExchangeResponse
+	23, // 78: peeringdb.v1.InternetExchangeService.ListInternetExchanges:output_type -> peeringdb.v1.ListInternetExchangesResponse
+	69, // 79: peeringdb.v1.InternetExchangeService.StreamInternetExchanges:output_type -> peeringdb.v1.InternetExchange
+	26, // 80: peeringdb.v1.IxFacilityService.GetIxFacility:output_type -> peeringdb.v1.GetIxFacilityResponse
+	28, // 81: peeringdb.v1.IxFacilityService.ListIxFacilities:output_type -> peeringdb.v1.ListIxFacilitiesResponse
+	70, // 82: peeringdb.v1.IxFacilityService.StreamIxFacilities:output_type -> peeringdb.v1.IxFacility
+	31, // 83: peeringdb.v1.IxLanService.GetIxLan:output_type -> peeringdb.v1.GetIxLanResponse
+	33, // 84: peeringdb.v1.IxLanService.ListIxLans:output_type -> peeringdb.v1.ListIxLansResponse
+	71, // 85: peeringdb.v1.IxLanService.StreamIxLans:output_type -> peeringdb.v1.IxLan
+	36, // 86: peeringdb.v1.IxPrefixService.GetIxPrefix:output_type -> peeringdb.v1.GetIxPrefixResponse
+	38, // 87: peeringdb.v1.IxPrefixService.ListIxPrefixes:output_type -> peeringdb.v1.ListIxPrefixesResponse
+	72, // 88: peeringdb.v1.IxPrefixService.StreamIxPrefixes:output_type -> peeringdb.v1.IxPrefix
+	41, // 89: peeringdb.v1.NetworkService.GetNetwork:output_type -> peeringdb.v1.GetNetworkResponse
+	43, // 90: peeringdb.v1.NetworkService.ListNetworks:output_type -> peeringdb.v1.ListNetworksResponse
+	73, // 91: peeringdb.v1.NetworkService.StreamNetworks:output_type -> peeringdb.v1.Network
+	46, // 92: peeringdb.v1.NetworkFacilityService.GetNetworkFacility:output_type -> peeringdb.v1.GetNetworkFacilityResponse
+	48, // 93: peeringdb.v1.NetworkFacilityService.ListNetworkFacilities:output_type -> peeringdb.v1.ListNetworkFacilitiesResponse
+	74, // 94: peeringdb.v1.NetworkFacilityService.StreamNetworkFacilities:output_type -> peeringdb.v1.NetworkFacility
+	51, // 95: peeringdb.v1.NetworkIxLanService.GetNetworkIxLan:output_type -> peeringdb.v1.GetNetworkIxLanResponse
+	53, // 96: peeringdb.v1.NetworkIxLanService.ListNetworkIxLans:output_type -> peeringdb.v1.ListNetworkIxLansResponse
+	75, // 97: peeringdb.v1.NetworkIxLanService.StreamNetworkIxLans:output_type -> peeringdb.v1.NetworkIxLan
+	56, // 98: peeringdb.v1.OrganizationService.GetOrganization:output_type -> peeringdb.v1.GetOrganizationResponse
+	58, // 99: peeringdb.v1.OrganizationService.ListOrganizations:output_type -> peeringdb.v1.ListOrganizationsResponse
+	76, // 100: peeringdb.v1.OrganizationService.StreamOrganizations:output_type -> peeringdb.v1.Organization
+	61, // 101: peeringdb.v1.PocService.GetPoc:output_type -> peeringdb.v1.GetPocResponse
+	63, // 102: peeringdb.v1.PocService.ListPocs:output_type -> peeringdb.v1.ListPocsResponse
+	77, // 103: peeringdb.v1.PocService.StreamPocs:output_type -> peeringdb.v1.Poc
+	65, // [65:104] is the sub-list for method output_type
+	26, // [26:65] is the sub-list for method input_type
 	26, // [26:26] is the sub-list for extension type_name
 	26, // [26:26] is the sub-list for extension extendee
 	0,  // [0:26] is the sub-list for field type_name
@@ -3447,25 +4528,38 @@ func file_peeringdb_v1_services_proto_init() {
 	}
 	file_peeringdb_v1_v1_proto_init()
 	file_peeringdb_v1_services_proto_msgTypes[2].OneofWrappers = []any{}
-	file_peeringdb_v1_services_proto_msgTypes[6].OneofWrappers = []any{}
-	file_peeringdb_v1_services_proto_msgTypes[10].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[4].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[7].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[9].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[12].OneofWrappers = []any{}
 	file_peeringdb_v1_services_proto_msgTypes[14].OneofWrappers = []any{}
-	file_peeringdb_v1_services_proto_msgTypes[18].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[17].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[19].OneofWrappers = []any{}
 	file_peeringdb_v1_services_proto_msgTypes[22].OneofWrappers = []any{}
-	file_peeringdb_v1_services_proto_msgTypes[26].OneofWrappers = []any{}
-	file_peeringdb_v1_services_proto_msgTypes[30].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[24].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[27].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[29].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[32].OneofWrappers = []any{}
 	file_peeringdb_v1_services_proto_msgTypes[34].OneofWrappers = []any{}
-	file_peeringdb_v1_services_proto_msgTypes[38].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[37].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[39].OneofWrappers = []any{}
 	file_peeringdb_v1_services_proto_msgTypes[42].OneofWrappers = []any{}
-	file_peeringdb_v1_services_proto_msgTypes[46].OneofWrappers = []any{}
-	file_peeringdb_v1_services_proto_msgTypes[50].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[44].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[47].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[49].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[52].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[54].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[57].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[59].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[62].OneofWrappers = []any{}
+	file_peeringdb_v1_services_proto_msgTypes[64].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_peeringdb_v1_services_proto_rawDesc), len(file_peeringdb_v1_services_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   52,
+			NumMessages:   65,
 			NumExtensions: 0,
 			NumServices:   13,
 		},

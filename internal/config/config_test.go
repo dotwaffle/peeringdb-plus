@@ -124,6 +124,43 @@ func TestLoad_SyncMode(t *testing.T) {
 	}
 }
 
+func TestLoad_StreamTimeout(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    time.Duration
+		wantErr bool
+	}{
+		{name: "default is 60s", envVal: "", want: 60 * time.Second},
+		{name: "explicit 30s", envVal: "30s", want: 30 * time.Second},
+		{name: "explicit 2m", envVal: "2m", want: 2 * time.Minute},
+		{name: "invalid duration", envVal: "not-a-duration", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_STREAM_TIMEOUT", tt.envVal)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_STREAM_TIMEOUT=%q, got nil", tt.envVal)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.StreamTimeout != tt.want {
+				t.Errorf("StreamTimeout = %v, want %v", cfg.StreamTimeout, tt.want)
+			}
+		})
+	}
+}
+
 func TestLoad_PeeringDBAPIKey(t *testing.T) {
 	tests := []struct {
 		name   string
