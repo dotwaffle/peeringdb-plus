@@ -123,7 +123,7 @@ func (h *Handler) handleSearch(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("HX-Replace-Url", "/ui/")
 	}
 
-	page := PageContent{Title: "Search", Content: templates.SearchResults(groups)}
+	page := PageContent{Title: "Search", Content: templates.SearchResults(groups), Data: groups}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		h.handleServerError(w, r)
 	}
@@ -231,7 +231,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 	}
 
 	title := fmt.Sprintf("%s vs %s", data.NetA.Name, data.NetB.Name)
-	page := PageContent{Title: title, Content: templates.CompareResultsPage(*data)}
+	page := PageContent{Title: title, Content: templates.CompareResultsPage(*data), Data: data}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render compare", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.String("error", err.Error()))
 		h.handleServerError(w, r)

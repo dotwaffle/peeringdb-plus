@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/charmbracelet/colorprofile"
 )
@@ -57,6 +58,21 @@ func (r *Renderer) Write(w io.Writer, content string) error {
 // as Write.
 func (r *Renderer) Writef(w io.Writer, format string, args ...any) error {
 	return r.Write(w, fmt.Sprintf(format, args...))
+}
+
+// RenderPage renders a generic terminal page. Entity-specific renderers (Phase 29+)
+// will replace this with rich formatting. For now, outputs title and suggests JSON.
+func (r *Renderer) RenderPage(w io.Writer, title string, data any) error {
+	var buf strings.Builder
+	buf.WriteString(StyleHeading.Render(title))
+	buf.WriteString("\n\n")
+	if data != nil {
+		buf.WriteString(StyleMuted.Render("Detailed terminal view coming in a future update."))
+		buf.WriteString("\n")
+		buf.WriteString(StyleMuted.Render("Use ?format=json for structured data."))
+		buf.WriteString("\n")
+	}
+	return r.Write(w, buf.String())
 }
 
 // RenderJSON writes data as indented JSON to w.

@@ -105,6 +105,7 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 	page := PageContent{
 		Title:   net.Name,
 		Content: templates.NetworkDetailPage(data),
+		Data:    data,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render network detail", slog.Int("asn", asn), slog.String("error", err.Error()))
@@ -179,6 +180,7 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 	page := PageContent{
 		Title:   ix.Name,
 		Content: templates.IXDetailPage(data),
+		Data:    data,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render ix detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -243,6 +245,7 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 	page := PageContent{
 		Title:   fac.Name,
 		Content: templates.FacilityDetailPage(data),
+		Data:    data,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render facility detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -317,6 +320,7 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 	page := PageContent{
 		Title:   org.Name,
 		Content: templates.OrgDetailPage(data),
+		Data:    data,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render org detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -379,6 +383,7 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 	page := PageContent{
 		Title:   c.Name,
 		Content: templates.CampusDetailPage(data),
+		Data:    data,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render campus detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -426,6 +431,7 @@ func (h *Handler) handleCarrierDetail(w http.ResponseWriter, r *http.Request, id
 	page := PageContent{
 		Title:   cr.Name,
 		Content: templates.CarrierDetailPage(data),
+		Data:    data,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render carrier detail", slog.Int("id", id), slog.String("error", err.Error()))

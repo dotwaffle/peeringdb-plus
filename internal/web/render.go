@@ -6,6 +6,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
+	"github.com/dotwaffle/peeringdb-plus/internal/web/termrender"
 )
 
 // PageContent holds the title and body component for a page render.
@@ -13,23 +14,51 @@ import (
 type PageContent struct {
 	Title   string
 	Content templ.Component
+	Data    any // Raw data struct for terminal/JSON rendering. Nil for pages without entity data.
 }
 
-// renderPage renders a templ component as either a full page (with layout)
-// or an htmx fragment, based on the HX-Request header.
-// Full page renders include the HTML document shell (DOCTYPE, head, nav, footer).
-// Fragment renders return only the content for htmx partial updates.
-// Every response sets Vary: HX-Request to prevent caching conflicts.
+// renderPage renders a response in the appropriate format based on terminal detection.
+// Priority: query params > Accept header > User-Agent > HX-Request > default (HTML).
+// Terminal clients (curl, wget, HTTPie) receive text/plain or application/json.
+// Browser and htmx requests receive text/html as before.
+// Every response sets Vary: HX-Request, User-Agent, Accept to prevent caching conflicts.
 //
 // Note on signature: ctx is excluded from arg count per CS-5. w and r are the
 // standard http.Handler pair. title and content are grouped into PageContent
 // per CS-5 MUST rule (>2 args require input struct).
 func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, page PageContent) error {
-	w.Header().Set("Vary", "HX-Request")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	mode := termrender.Detect(termrender.DetectInput{
+		Query:     r.URL.Query(),
+		Accept:    r.Header.Get("Accept"),
+		UserAgent: r.Header.Get("User-Agent"),
+		HXRequest: r.Header.Get("HX-Request") == "true",
+	})
+	noColor := termrender.HasNoColor(termrender.DetectInput{Query: r.URL.Query()})
 
-	if r.Header.Get("HX-Request") == "true" {
+	switch mode {
+	case termrender.ModeRich, termrender.ModePlain:
+		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		renderer := termrender.NewRenderer(mode, noColor)
+		return renderer.RenderPage(w, page.Title, page.Data)
+
+	case termrender.ModeJSON:
+		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		if page.Data != nil {
+			return termrender.RenderJSON(w, page.Data)
+		}
+		// For pages without entity data (home, errors), return minimal JSON.
+		return termrender.RenderJSON(w, map[string]string{"title": page.Title})
+
+	case termrender.ModeHTMX:
+		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		return page.Content.Render(ctx, w)
+
+	default: // ModeHTML
+		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		return templates.Layout(page.Title, page.Content).Render(ctx, w)
 	}
-	return templates.Layout(page.Title, page.Content).Render(ctx, w)
 }
