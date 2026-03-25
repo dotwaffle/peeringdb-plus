@@ -2,6 +2,88 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.7 — Streaming RPCs & UI Polish
+
+**Shipped:** 2026-03-25
+**Phases:** 3 | **Plans:** 6 | **Tasks:** 11
+
+### What Was Built
+- 13 server-streaming RPCs with batched keyset pagination, grpc-total-count header, configurable timeout, and graceful cancellation
+- since_id stream resume and updated_since incremental filter on all 13 streaming RPCs
+- IX presence UI redesign with labeled fields, 5-tier speed colors, RS pill badge, grid-aligned copyable IPs, aggregate bandwidth headers
+- Consistent layout across network detail and IX detail pages via shared templ components
+
+### What Worked
+- Batched keyset pagination pattern (timeout -> predicates -> count header -> keyset batch loop) templated cleanly across all 13 entity types
+- Parallel worktree execution: Plans 02 and 03 ran in parallel worktrees, each self-contained with prerequisite code
+- templ script components for clipboard handled JS interop type-safely without raw inline JS
+- Shared helpers (speedColorClass, CopyableIP, CollapsibleSectionWithBandwidth) reduced Plan 02 to a 2-minute execution
+- UAT combined automated integration tests (8) with visual verification (5) for efficient validation
+
+### What Was Inefficient
+- STRM-02 through STRM-05 traceability status showed "Pending" in REQUIREMENTS.md despite being satisfied — requirements tracking lagged execution
+- Phase directories were already archived to milestones/ before milestone completion workflow ran, causing CLI to report 0 phases/plans
+- MILESTONES.md got a duplicate entry (0-stat + real-stat) from the CLI running against already-archived phases
+
+### Patterns Established
+- Streaming handler template: timeout -> predicates -> count -> header -> keyset batch loop with ctx.Err() check
+- httptest HTTP/2 TLS server pattern for ConnectRPC integration tests (EnableHTTP2=true + StartTLS)
+- setupStreamTestServer helper for reusable streaming test infrastructure
+- templ script component for clipboard: type-safe JS interop with auto-deduplicated script injection
+- 5-tier speed color coding: sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber
+
+### Key Lessons
+1. Run milestone completion before archiving phase directories — the CLI needs phases in .planning/phases/ to count stats
+2. Streaming handlers are highly templatable — once one reference implementation exists, the remaining 12 are mechanical
+3. templ script components are the correct pattern for any JS interop (not inline onclick strings)
+4. Combined automated + visual UAT is the right approach for milestones with both backend and frontend work
+
+### Cost Observations
+- Model mix: ~85% opus, ~15% sonnet (subagents)
+- Sessions: 1 session
+- Notable: Entire milestone (3 phases, 6 plans) completed in a single session — fastest multi-phase milestone
+
+---
+
+## Milestone: v1.6 — ConnectRPC / gRPC API
+
+**Shipped:** 2026-03-25
+**Phases:** 4 | **Plans:** 9 | **Tasks:** 18
+
+### What Was Built
+- LiteFS proxy removal with fly-replay and h2c for gRPC wire protocol
+- Protobuf toolchain (buf v2, entproto extension, manual SocialMedia proto)
+- All 13 ent schemas annotated with entproto, compiled to Go protobuf types
+- 13 ConnectRPC service handlers with Get/List RPCs, typed filtering, pagination
+- gRPC reflection, health checking, otelconnect observability, Connect-aware CORS
+
+### What Worked
+- ConnectRPC over google.golang.org/grpc was the right call — http.Handler compatibility meant same mux as REST/GraphQL
+- Hand-written services.proto (entproto generates messages only) gave full control over RPC signatures
+- Predicate accumulation pattern for List filtering proved clean and consistent across all 13 types
+- Parallel worktree execution for Plan 01 infrastructure and Plan 02 reference implementation
+
+### What Was Inefficient
+- Response writer wrappers missing http.Flusher broke gRPC streaming — caught in post-merge testing
+- 9 human verification items deferred to runtime testing (grpcurl, buf curl, reflection discovery)
+
+### Patterns Established
+- Predicate accumulation: []predicate.T with entity.And() for composable filter logic
+- ConnectRPC simple codegen for cleaner handler signatures (direct params, not connect.Request wrappers)
+- connectcors helpers for merging Connect/gRPC/gRPC-Web content types with existing CORS config
+
+### Key Lessons
+1. Response writer wrappers MUST implement http.Flusher — gRPC streaming requires it
+2. entproto generates message types only; service definitions need manual authoring
+3. ConnectRPC's http.Handler compatibility eliminates the need for a separate gRPC port
+
+### Cost Observations
+- Model mix: ~85% opus, ~15% sonnet (subagents)
+- Sessions: ~2 sessions
+- Notable: 4 phases shipped in one day including post-merge fixes
+
+---
+
 ## Milestone: v1.5 — Tech Debt & Observability
 
 **Shipped:** 2026-03-24
@@ -226,6 +308,8 @@
 | v1.3 | 1 | 2 | Smallest milestone — focused scope, fastest execution |
 | v1.4 | ~3 | 5 | Largest milestone — full web UI, 11 plans in one day |
 | v1.5 | ~2 | 3 | Final cleanup — tech debt, observability, human verification |
+| v1.6 | ~2 | 4 | ConnectRPC/gRPC API — 13 services with typed filtering |
+| v1.7 | 1 | 3 | Streaming RPCs + UI polish — fastest multi-phase milestone |
 
 ### Cumulative Quality
 
@@ -237,6 +321,8 @@
 | v1.3 | 3 | 4 | 7 client auth + 4 CLI auth |
 | v1.4 | 11 | 22 | 80+ detail page tests, search + compare integration |
 | v1.5 | 9 | 12 | 8 dashboard tests, flag-gated live API test, 26 human verification items |
+| v1.6 | 9 | 18 | 13 ConnectRPC Get/List + filter tests |
+| v1.7 | 6 | 11 | 20 streaming tests (filters, count, cancel, resume, incremental) |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -246,3 +332,5 @@
 4. Functional options pattern enables backward-compatible extension of constructors
 5. SEC-2 compliance as a pattern (never log secrets) prevents security issues at every integration point
 6. Human verification items accumulate across milestones — plan dedicated verification phases early rather than deferring to the end
+7. Streaming handlers are highly templatable — one reference implementation enables mechanical replication across N entity types
+8. Run milestone completion before archiving phase directories — CLI needs phases in place to count stats

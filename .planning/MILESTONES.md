@@ -3,14 +3,17 @@
 ## v1.7 Streaming RPCs & UI Polish (Shipped: 2026-03-25)
 
 **Phases completed:** 3 phases, 6 plans, 11 tasks
+**Timeline:** 2026-03-25 (single day)
+**Git range:** v1.6..HEAD (38 commits, 73 files changed, +10,708/-1,938 lines)
+**UAT:** 13/13 passed (8 automated, 5 visual)
 
 **Key accomplishments:**
 
-- 13 streaming RPC definitions in proto schema with stub handlers, StreamTimeout config, OTel trace event suppression, and streamBatchSize constant
-- StreamNetworks handler with batched keyset pagination (WHERE id > lastID LIMIT 500), grpc-total-count header, stream timeout, context cancellation, and 12 integration tests via httptest
-- 1. [Rule 3 - Blocking] Created README.md from scratch since no README existed
-- Shared speed/IP/bandwidth helpers plus redesigned NetworkIXLansList with labeled fields, color-coded speeds, inline RS pill, copyable IPs, and aggregate bandwidth header
-- Redesigned IXParticipantsList with identical grid layout to NetworkIXLansList: labeled Speed/IPv4/IPv6 fields, speed color tiers, emerald RS pill, copyable IPs, and aggregate bandwidth in section header
+- 13 server-streaming RPCs with batched keyset pagination (500-row chunks), grpc-total-count header, configurable stream timeout, and graceful cancellation
+- since_id stream resume and updated_since incremental filter on all 13 streaming RPCs with filter composition via AND
+- IX presence UI redesign: labeled Speed/IPv4/IPv6 fields, 5-tier port speed colors, inline RS pill badge, grid-aligned copyable IPs, aggregate bandwidth headers
+- Consistent layout across network detail and IX detail pages with shared templ components
+- 20 integration tests for streaming RPCs covering filters, total count, cancellation, resume, and incremental fetch
 
 ---
 
