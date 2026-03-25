@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +17,8 @@ import (
 // interface. It queries the ent database layer and converts results to protobuf
 // messages.
 type NetworkService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetNetwork returns a single network by ID. Returns NOT_FOUND if the network
@@ -95,6 +97,12 @@ func (s *NetworkService) ListNetworks(ctx context.Context, req *pb.ListNetworksR
 		Networks:      networks,
 		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// StreamNetworks streams all matching networks one message at a time using
+// batched keyset pagination. Returns Unimplemented until handler logic is added.
+func (s *NetworkService) StreamNetworks(_ context.Context, _ *pb.StreamNetworksRequest, _ *connect.ServerStream[pb.Network]) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamNetworks not yet implemented"))
 }
 
 // networkToProto converts an ent Network entity to a protobuf Network message.

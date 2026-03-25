@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +17,8 @@ import (
 // handler interface. It queries the ent database layer and converts results to
 // protobuf messages.
 type IxPrefixService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetIxPrefix returns a single IX prefix by ID. Returns NOT_FOUND if the IX
@@ -87,6 +89,12 @@ func (s *IxPrefixService) ListIxPrefixes(ctx context.Context, req *pb.ListIxPref
 		IxPrefixes:    items,
 		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// StreamIxPrefixes streams all matching IX prefixes one message at a time using
+// batched keyset pagination. Returns Unimplemented until handler logic is added.
+func (s *IxPrefixService) StreamIxPrefixes(_ context.Context, _ *pb.StreamIxPrefixesRequest, _ *connect.ServerStream[pb.IxPrefix]) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamIxPrefixes not yet implemented"))
 }
 
 // ixPrefixToProto converts an ent IxPrefix entity to a protobuf IxPrefix

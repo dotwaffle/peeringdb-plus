@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +17,8 @@ import (
 // handler interface. It queries the ent database layer and converts results to
 // protobuf messages.
 type IxFacilityService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetIxFacility returns a single IX facility by ID. Returns NOT_FOUND if the
@@ -98,6 +100,13 @@ func (s *IxFacilityService) ListIxFacilities(ctx context.Context, req *pb.ListIx
 		IxFacilities:  items,
 		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// StreamIxFacilities streams all matching IX facilities one message at a time
+// using batched keyset pagination. Returns Unimplemented until handler logic is
+// added.
+func (s *IxFacilityService) StreamIxFacilities(_ context.Context, _ *pb.StreamIxFacilitiesRequest, _ *connect.ServerStream[pb.IxFacility]) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamIxFacilities not yet implemented"))
 }
 
 // ixFacilityToProto converts an ent IxFacility entity to a protobuf IxFacility

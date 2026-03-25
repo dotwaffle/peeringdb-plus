@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +17,8 @@ import (
 // ConnectRPC handler interface. It queries the ent database layer and converts
 // results to protobuf messages.
 type NetworkIxLanService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetNetworkIxLan returns a single network IX LAN by ID. Returns NOT_FOUND if
@@ -102,6 +104,13 @@ func (s *NetworkIxLanService) ListNetworkIxLans(ctx context.Context, req *pb.Lis
 		NetworkIxLans: items,
 		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// StreamNetworkIxLans streams all matching network IX LANs one message at a
+// time using batched keyset pagination. Returns Unimplemented until handler
+// logic is added.
+func (s *NetworkIxLanService) StreamNetworkIxLans(_ context.Context, _ *pb.StreamNetworkIxLansRequest, _ *connect.ServerStream[pb.NetworkIxLan]) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamNetworkIxLans not yet implemented"))
 }
 
 // networkIxLanToProto converts an ent NetworkIxLan entity to a protobuf

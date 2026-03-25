@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +17,8 @@ import (
 // handler interface. It queries the ent database layer and converts results to
 // protobuf messages.
 type FacilityService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetFacility returns a single facility by ID. Returns NOT_FOUND if the
@@ -93,6 +95,12 @@ func (s *FacilityService) ListFacilities(ctx context.Context, req *pb.ListFacili
 		Facilities:    facilities,
 		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// StreamFacilities streams all matching facilities one message at a time using
+// batched keyset pagination. Returns Unimplemented until handler logic is added.
+func (s *FacilityService) StreamFacilities(_ context.Context, _ *pb.StreamFacilitiesRequest, _ *connect.ServerStream[pb.Facility]) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamFacilities not yet implemented"))
 }
 
 // facilityToProto converts an ent Facility entity to a protobuf Facility

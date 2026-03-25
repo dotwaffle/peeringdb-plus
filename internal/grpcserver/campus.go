@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +17,8 @@ import (
 // interface. It queries the ent database layer and converts results to protobuf
 // messages.
 type CampusService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetCampus returns a single campus by ID. Returns NOT_FOUND if the campus
@@ -93,6 +95,12 @@ func (s *CampusService) ListCampuses(ctx context.Context, req *pb.ListCampusesRe
 		Campuses:      campuses,
 		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// StreamCampuses streams all matching campuses one message at a time using
+// batched keyset pagination. Returns Unimplemented until handler logic is added.
+func (s *CampusService) StreamCampuses(_ context.Context, _ *pb.StreamCampusesRequest, _ *connect.ServerStream[pb.Campus]) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamCampuses not yet implemented"))
 }
 
 // campusToProto converts an ent Campus entity to a protobuf Campus message.

@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +17,8 @@ import (
 // interface. It queries the ent database layer and converts results to protobuf
 // messages.
 type PocService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetPoc returns a single point of contact by ID. Returns NOT_FOUND if the POC
@@ -90,6 +92,12 @@ func (s *PocService) ListPocs(ctx context.Context, req *pb.ListPocsRequest) (*pb
 		Pocs:          pocs,
 		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// StreamPocs streams all matching points of contact one message at a time using
+// batched keyset pagination. Returns Unimplemented until handler logic is added.
+func (s *PocService) StreamPocs(_ context.Context, _ *pb.StreamPocsRequest, _ *connect.ServerStream[pb.Poc]) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamPocs not yet implemented"))
 }
 
 // pocToProto converts an ent Poc entity to a protobuf Poc message.

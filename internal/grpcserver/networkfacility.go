@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +17,8 @@ import (
 // ConnectRPC handler interface. It queries the ent database layer and converts
 // results to protobuf messages.
 type NetworkFacilityService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetNetworkFacility returns a single network facility by ID. Returns
@@ -98,6 +100,13 @@ func (s *NetworkFacilityService) ListNetworkFacilities(ctx context.Context, req 
 		NetworkFacilities: items,
 		NextPageToken:     nextPageToken,
 	}, nil
+}
+
+// StreamNetworkFacilities streams all matching network facilities one message at
+// a time using batched keyset pagination. Returns Unimplemented until handler
+// logic is added.
+func (s *NetworkFacilityService) StreamNetworkFacilities(_ context.Context, _ *pb.StreamNetworkFacilitiesRequest, _ *connect.ServerStream[pb.NetworkFacility]) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamNetworkFacilities not yet implemented"))
 }
 
 // networkFacilityToProto converts an ent NetworkFacility entity to a protobuf

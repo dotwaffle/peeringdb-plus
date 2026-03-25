@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +17,8 @@ import (
 // interface. It queries the ent database layer and converts results to protobuf
 // messages.
 type CarrierService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetCarrier returns a single carrier by ID. Returns NOT_FOUND if the carrier
@@ -87,6 +89,12 @@ func (s *CarrierService) ListCarriers(ctx context.Context, req *pb.ListCarriersR
 		Carriers:      carriers,
 		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// StreamCarriers streams all matching carriers one message at a time using
+// batched keyset pagination. Returns Unimplemented until handler logic is added.
+func (s *CarrierService) StreamCarriers(_ context.Context, _ *pb.StreamCarriersRequest, _ *connect.ServerStream[pb.Carrier]) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamCarriers not yet implemented"))
 }
 
 // carrierToProto converts an ent Carrier entity to a protobuf Carrier message.

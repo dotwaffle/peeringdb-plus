@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +17,8 @@ import (
 // ConnectRPC handler interface. It queries the ent database layer and converts
 // results to protobuf messages.
 type OrganizationService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetOrganization returns a single organization by ID. Returns NOT_FOUND if
@@ -86,6 +88,13 @@ func (s *OrganizationService) ListOrganizations(ctx context.Context, req *pb.Lis
 		Organizations: orgs,
 		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// StreamOrganizations streams all matching organizations one message at a time
+// using batched keyset pagination. Returns Unimplemented until handler logic is
+// added.
+func (s *OrganizationService) StreamOrganizations(_ context.Context, _ *pb.StreamOrganizationsRequest, _ *connect.ServerStream[pb.Organization]) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamOrganizations not yet implemented"))
 }
 
 // organizationToProto converts an ent Organization entity to a protobuf

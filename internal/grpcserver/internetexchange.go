@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +17,8 @@ import (
 // ConnectRPC handler interface. It queries the ent database layer and converts
 // results to protobuf messages.
 type InternetExchangeService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetInternetExchange returns a single internet exchange by ID. Returns
@@ -94,6 +96,13 @@ func (s *InternetExchangeService) ListInternetExchanges(ctx context.Context, req
 		InternetExchanges: exchanges,
 		NextPageToken:     nextPageToken,
 	}, nil
+}
+
+// StreamInternetExchanges streams all matching internet exchanges one message
+// at a time using batched keyset pagination. Returns Unimplemented until handler
+// logic is added.
+func (s *InternetExchangeService) StreamInternetExchanges(_ context.Context, _ *pb.StreamInternetExchangesRequest, _ *connect.ServerStream[pb.InternetExchange]) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamInternetExchanges not yet implemented"))
 }
 
 // internetExchangeToProto converts an ent InternetExchange entity to a
