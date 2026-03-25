@@ -163,6 +163,18 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 		data.OrgName = ix.Edges.Organization.Name
 		data.OrgID = ix.Edges.Organization.ID
 	}
+	// Compute aggregate bandwidth across all IX participants.
+	participants, err := h.client.IxLan.Query().
+		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id))).
+		QueryNetworkIxLans().
+		All(r.Context())
+	if err == nil {
+		var totalBW int
+		for _, nix := range participants {
+			totalBW += nix.Speed
+		}
+		data.AggregateBW = totalBW
+	}
 
 	page := PageContent{
 		Title:   ix.Name,
