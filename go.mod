@@ -3,6 +3,7 @@ module github.com/dotwaffle/peeringdb-plus
 go 1.26.1
 
 require (
+	charm.land/lipgloss/v2 v2.0.2
 	connectrpc.com/connect v1.19.1
 	connectrpc.com/cors v0.1.0
 	connectrpc.com/grpchealth v1.4.0
@@ -13,6 +14,7 @@ require (
 	github.com/99designs/gqlgen v0.17.68
 	github.com/KimMachineGun/automemlimit v0.7.5
 	github.com/a-h/templ v0.3.1001
+	github.com/charmbracelet/colorprofile v0.4.2
 	github.com/go-playground/form/v4 v4.3.0
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/go-multierror v1.1.1
@@ -40,7 +42,6 @@ require (
 
 require (
 	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1 // indirect
-	charm.land/lipgloss/v2 v2.0.2 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
@@ -48,7 +49,6 @@ require (
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/charmbracelet/colorprofile v0.4.2 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20251205161215-1948445e3318 // indirect
 	github.com/charmbracelet/x/ansi v0.11.6 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
