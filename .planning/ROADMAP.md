@@ -98,7 +98,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 28-01-PLAN.md -- termrender package foundation: detection logic, renderer engine, style definitions
+- [x] 28-01-PLAN.md -- termrender package foundation: detection logic, renderer engine, style definitions
 - [ ] 28-02-PLAN.md -- renderPage integration, PageContent.Data wiring, help text and error renderers
 - [ ] 28-03-PLAN.md -- Root handler terminal detection, error handler wiring, integration tests
 
@@ -142,7 +142,7 @@ Phases execute in numeric order: 28 -> 29 -> 30 -> 31
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 28. Terminal Detection & Infrastructure | 0/3 | Planning complete | - |
+| 28. Terminal Detection & Infrastructure | 1/3 | In Progress | - |
 | 29. Network Detail (Reference Implementation) | 0/? | Not started | - |
 | 30. Entity Types, Search & Formats | 0/? | Not started | - |
 | 31. Differentiators & Shell Integration | 0/? | Not started | - |
