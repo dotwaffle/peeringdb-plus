@@ -741,6 +741,7 @@ func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Reque
 func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, facID int) {
 	items, err := h.client.IxFacility.Query().
 		Where(ixfacility.HasFacilityWith(facility.ID(facID))).
+		WithInternetExchange().
 		Order(ixfacility.ByName()).
 		All(r.Context())
 	if err != nil {
@@ -751,11 +752,11 @@ func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, 
 
 	var rows []templates.FacIXRow
 	for _, ixf := range items {
-		if ixf.IxID == nil {
+		if ixf.IxID == nil || ixf.Edges.InternetExchange == nil {
 			continue
 		}
 		rows = append(rows, templates.FacIXRow{
-			IXName: ixf.Name,
+			IXName: ixf.Edges.InternetExchange.Name,
 			IXID:   *ixf.IxID,
 		})
 	}
