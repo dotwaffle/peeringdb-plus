@@ -63,6 +63,10 @@ type Config struct {
 	// PeeringDBAPIKey is the optional PeeringDB API key for authenticated access.
 	// Configured via PDBPLUS_PEERINGDB_API_KEY. Empty string means unauthenticated.
 	PeeringDBAPIKey string
+
+	// StreamTimeout is the maximum duration for a single streaming RPC.
+	// Configured via PDBPLUS_STREAM_TIMEOUT. Default is 60 seconds.
+	StreamTimeout time.Duration
 }
 
 // Load reads configuration from environment variables, applies defaults,
@@ -119,6 +123,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing PDBPLUS_SYNC_MODE: %w", err)
 	}
 	cfg.SyncMode = syncMode
+
+	streamTimeout, err := parseDuration("PDBPLUS_STREAM_TIMEOUT", 60*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_STREAM_TIMEOUT: %w", err)
+	}
+	cfg.StreamTimeout = streamTimeout
 
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)

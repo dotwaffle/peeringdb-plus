@@ -1,545 +1,487 @@
 # Architecture Patterns
 
-**Domain:** ConnectRPC / gRPC API surface integration into existing PeeringDB Plus
-**Researched:** 2026-03-24
-**Focus:** How ConnectRPC handlers, proto generation, h2c, observability, and gRPC ecosystem services integrate with the existing single-binary HTTP architecture
-
-## Existing Architecture (Context)
-
-The current architecture is a single Go binary (`cmd/peeringdb-plus/main.go`) with this request flow:
-
-```
-Fly.io Edge (TLS termination, HTTP/2 -> HTTP/1.1)
-  |
-  v
-LiteFS Proxy (:8080, HTTP/1.1)
-  - Write forwarding via Fly-Replay header
-  - TXID cookie for read-your-writes consistency
-  - Passthrough: /healthz, /readyz
-  |
-  v
-Go http.Server (:8081, HTTP/1.1)
-  |
-  Middleware stack (outermost first):
-  |  Recovery -> otelhttp -> Logging -> CORS -> Readiness
-  |
-  http.NewServeMux()
-    POST /sync         (on-demand sync trigger)
-    GET  /healthz      (liveness)
-    GET  /readyz       (readiness + sync freshness)
-    GET  /graphql      (GraphiQL playground)
-    POST /graphql      (GraphQL API via gqlgen)
-    /rest/v1/          (entrest-generated OpenAPI REST)
-    /api/              (PeeringDB-compatible REST)
-    /ui/               (templ + htmx web UI)
-    /static/           (embedded static assets)
-    GET  /              (content negotiation: HTML -> /ui/, JSON -> discovery)
-```
-
-**Key constraints for ConnectRPC integration:**
-- LiteFS proxy is HTTP/1.1 only (uses `http.Transport` internally, no h2c)
-- All traffic between Fly edge and app traverses LiteFS proxy
-- Existing middleware stack wraps the entire mux
-- 13 ent schemas (Organization, Network, Facility, InternetExchange, etc.)
-- Read-only mirror -- all RPCs will be unary Get/List operations
+**Domain:** Server-streaming RPCs + UI polish for PeeringDB Plus v1.7
+**Researched:** 2026-03-25
 
 ## Recommended Architecture
 
-### The LiteFS Proxy Constraint (Critical)
+### Overview
 
-The LiteFS proxy at `:8080` uses Go's `http.Transport` to forward requests to the app at `localhost:8081`. This transport does **not** support h2c (unencrypted HTTP/2). The `ForceAttemptHTTP2: true` setting only enables HTTP/2 over TLS connections, which is not applicable for localhost forwarding.
+Two independent feature tracks that share no code dependencies between them:
 
-**This means the gRPC wire protocol (which requires HTTP/2) cannot traverse the LiteFS proxy.**
+1. **Server-streaming RPCs**: New `StreamAll` methods added to each of the 13 existing ConnectRPC services, using the same handler struct pattern but with streaming return semantics.
+2. **IX presence UI polish**: Template-only changes to `detail_net.templ` and `detail_shared.templ` (and the IX detail equivalents), plus CSS adjustments. No new routes, no new Go handler code.
 
-However, ConnectRPC handlers support three wire protocols simultaneously via Content-Type detection:
-1. **Connect protocol** -- Works over HTTP/1.1 for unary RPCs. No HTTP trailers needed.
-2. **gRPC protocol** -- Requires HTTP/2. Will NOT work through LiteFS proxy.
-3. **gRPC-Web protocol** -- Works over HTTP/1.1 (no trailers). Will work through LiteFS proxy.
-
-Since PeeringDB Plus is a read-only mirror, all RPCs are unary (Get, List). This means:
-- **Connect protocol**: Fully functional through LiteFS proxy (HTTP/1.1 unary)
-- **gRPC-Web protocol**: Fully functional through LiteFS proxy (HTTP/1.1 unary)
-- **gRPC protocol**: Only functional if the app enables h2c on its listener AND Fly's `h2_backend = true` is set AND LiteFS proxy is bypassed for these paths
-
-**Recommendation:** Accept that the gRPC wire protocol will not work through LiteFS proxy. The Connect protocol and gRPC-Web protocol cover all practical use cases for a read-only API:
-- Browser clients use Connect (JSON) or gRPC-Web
-- CLI tools (grpcurl, buf curl) can use Connect protocol
-- Go/Python/TypeScript clients use Connect protocol
-- Only native `grpc-go` clients using `grpc.Dial()` require HTTP/2, and those clients can be configured to use Connect protocol instead
-
-If native gRPC wire protocol support is later required, the options are:
-1. Run a separate listener that bypasses LiteFS proxy (dual-port architecture)
-2. Replace LiteFS proxy with application-level write forwarding (already partially implemented via Fly-Replay header)
-
-### Architecture After Integration
-
-```
-Fly.io Edge (TLS termination)
-  |
-  v
-LiteFS Proxy (:8080, HTTP/1.1)
-  |
-  v
-Go http.Server (:8081)
-  |
-  Middleware stack:
-  |  Recovery -> otelhttp -> Logging -> CORS -> Readiness
-  |
-  http.NewServeMux()
-    [existing routes unchanged]
-    POST /sync, GET /healthz, GET /readyz
-    /graphql, /rest/v1/, /api/, /ui/, /static/, GET /
-    |
-    [new ConnectRPC routes]
-    /peeringdb.v1.NetworkService/       (Connect handler)
-    /peeringdb.v1.OrganizationService/  (Connect handler)
-    /peeringdb.v1.FacilityService/      (Connect handler)
-    /peeringdb.v1.InternetExchangeService/  (Connect handler)
-    ... (one per ent entity with Service annotation)
-    |
-    [new gRPC ecosystem routes]
-    /grpc.reflection.v1.ServerReflection/        (grpcreflect V1)
-    /grpc.reflection.v1alpha.ServerReflection/   (grpcreflect V1Alpha)
-    /grpc.health.v1.Health/                      (grpchealth)
-```
+The streaming feature integrates surgically: add RPCs to `services.proto`, regenerate, implement handler methods, register (already handled by existing service registration). The UI changes are purely visual refinements to existing components.
 
 ### Component Boundaries
 
-| Component | Responsibility | New/Modified | Communicates With |
-|-----------|---------------|--------------|-------------------|
-| `ent/schema/*.go` | Add `entproto.Message()`, `entproto.Field(N)` annotations | Modified | entproto code generator |
-| `ent/entc.go` | Add entproto extension with `SkipGenFile()` | Modified | ent code generation |
-| `ent/generate.go` | Add entproto generate directive | Modified | go generate toolchain |
-| `proto/peeringdb/v1/*.proto` | Generated .proto files from entproto | New (generated) | buf generate |
-| `buf.yaml` | Buf module configuration | New | buf CLI |
-| `buf.gen.yaml` | Code generation config: protoc-gen-go + protoc-gen-connect-go | New | buf generate |
-| `gen/peeringdb/v1/*.pb.go` | Generated protobuf Go types | New (generated) | service handlers |
-| `gen/peeringdb/v1/peeringdbv1connect/*.go` | Generated ConnectRPC handler interfaces | New (generated) | service handlers |
-| `internal/connectrpc/` | Hand-written service implementations | New | ent client, gen types |
-| `internal/connectrpc/network.go` | NetworkService: Get, List | New | ent.Client |
-| `internal/connectrpc/organization.go` | OrganizationService: Get, List | New | ent.Client |
-| `internal/connectrpc/facility.go` | FacilityService: Get, List | New | ent.Client |
-| `internal/connectrpc/interceptors.go` | Shared interceptors (logging, readonly enforcement) | New | connect.Interceptor |
-| `cmd/peeringdb-plus/main.go` | Mount ConnectRPC handlers on mux | Modified | all components |
+| Component | Responsibility | What Changes | Confidence |
+|-----------|---------------|--------------|------------|
+| `proto/peeringdb/v1/services.proto` | Service + message definitions | ADD: 13 `StreamAll*` RPCs + 13 request messages | HIGH |
+| `gen/peeringdb/v1/peeringdbv1connect/` | Generated handler interfaces + clients | REGENERATED: interfaces gain streaming method signatures | HIGH |
+| `internal/grpcserver/*.go` (13 files) | Handler implementations | MODIFIED: each gains a `StreamAll*` method | HIGH |
+| `internal/grpcserver/pagination.go` | Pagination helpers | ADD: streaming batch size constant | HIGH |
+| `cmd/peeringdb-plus/main.go` | Service registration | NO CHANGE: streaming methods are on the same service interfaces, same registration code | HIGH |
+| `connectrpc.com/grpcreflect` | gRPC reflection | NO CHANGE: same service names, reflection auto-discovers new methods | HIGH |
+| `internal/web/templates/detail_net.templ` | Network IX presence rendering | MODIFIED: layout, labels, badges, CSS classes | HIGH |
+| `internal/web/templates/detail_shared.templ` | Shared helpers (formatSpeed) | MODIFIED: add speed color helper, possibly new components | HIGH |
+| `internal/web/templates/detail_ix.templ` | IX participant rendering | MODIFIED: same layout changes for consistency | HIGH |
+| `internal/web/templates/detailtypes.go` | Template data types | NO CHANGE: existing `NetworkIXLanRow` and `IXParticipantRow` structs already carry all needed data | HIGH |
+| `internal/web/detail.go` | Fragment handlers | NO CHANGE: data loading is unchanged, only presentation changes | HIGH |
 
-### Data Flow
-
-**Proto generation flow (build time):**
+### Data Flow: Server-Streaming RPCs
 
 ```
-ent/schema/*.go (entproto annotations)
+Client sends StreamAllNetworksRequest (no page_token, just optional filters)
     |
     v
-go generate ./ent/...
-    |  entproto cmd generates .proto files
-    v
-proto/peeringdb/v1/*.proto
+Handler receives request + *connect.ServerStream[StreamAllNetworksResponse]
     |
     v
-buf generate
-    |  protoc-gen-go -> gen/peeringdb/v1/*.pb.go
-    |  protoc-gen-connect-go -> gen/peeringdb/v1/peeringdbv1connect/*.go
+Handler builds ent query with predicates (reuse existing filter logic)
+    |
     v
-Generated Go types + ConnectRPC handler interfaces
+Loop: query batch of 500 entities via .Limit(batchSize).Offset(cursor)
+    |
+    +-> For each entity in batch:
+    |       Convert to proto (reuse existing entityToProto function)
+    |       stream.Send(&StreamAllNetworksResponse{Network: proto})
+    |       If Send returns error -> return error (client disconnected)
+    |
+    +-> If len(batch) < batchSize -> break (no more data)
+    |   Else cursor += batchSize, loop again
+    |
+    v
+Return nil (stream ends, ConnectRPC sends trailers)
 ```
 
-**Request flow (runtime, Connect protocol over HTTP/1.1):**
+**Key architectural decision:** Each `Send()` emits exactly one entity. This is deliberate -- streaming one entity per message gives the client maximum flexibility for processing (they can count, filter client-side, or write to storage as they go). The alternative of batching multiple entities per message adds complexity for marginal wire efficiency gains that protobuf framing already handles well.
+
+### Data Flow: UI Template Changes
+
+No data flow changes. The existing `handleNetIXLansFragment` handler loads `NetworkIxLan` entities and maps them to `NetworkIXLanRow` structs. The template receives the same data; only the HTML rendering changes:
 
 ```
-Client: POST /peeringdb.v1.NetworkService/GetNetwork
-Content-Type: application/proto (or application/json)
-    |
-    v
-LiteFS Proxy (HTTP/1.1, passthrough -- not a write)
-    |
-    v
-otelhttp middleware (creates HTTP span)
-    |
-    v
-ConnectRPC handler (otelconnect interceptor creates RPC child span)
-    |
-    v
-internal/connectrpc/network.go GetNetwork()
-    |  Queries ent.Client
-    v
-ent -> SQLite (read from LiteFS FUSE mount)
-    |
-    v
-Protobuf/JSON response back through middleware stack
+Existing: row -> [IXName] [speed ipv4 ipv6] [RS]
+New:      row -> [IXName] [Speed: 10G] [IPv4: x.x.x.x] [IPv6: x::x] [RS badge near data] [color-coded speed]
 ```
+
+The `NetworkIXLanRow` struct already contains `Speed`, `IPAddr4`, `IPAddr6`, and `IsRSPeer` -- all fields needed for the UI improvements. No new data fetching required.
+
+## Integration Points
+
+### 1. Proto File Changes (services.proto)
+
+**What:** Add a `StreamAll*` server-streaming RPC to each of the 13 services, plus corresponding request/response messages.
+
+**Pattern for each service** (using NetworkService as example):
+
+```protobuf
+service NetworkService {
+  rpc GetNetwork(GetNetworkRequest) returns (GetNetworkResponse);
+  rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
+  rpc StreamAllNetworks(StreamAllNetworksRequest) returns (stream Network);  // NEW
+}
+
+// NEW: No pagination fields -- streaming replaces pagination.
+message StreamAllNetworksRequest {
+  // Filter fields -- same as ListNetworksRequest minus page_size/page_token.
+  optional int64 asn = 1;
+  optional string name = 2;
+  optional string status = 3;
+  optional int64 org_id = 4;
+}
+```
+
+**Critical design decision:** The streaming response is `stream Network` (the raw entity message), NOT `stream StreamAllNetworksResponse` wrapping it. Rationale:
+
+- The entity proto messages (`Network`, `Facility`, etc.) already exist in `v1.proto`
+- No need for a wrapper when streaming one entity per message
+- Reduces proto file verbosity (13 fewer wrapper message types)
+- Client code is simpler: `for msg := stream.Receive(); ...` gives them the entity directly
+
+**Generated handler interface change:**
+
+```go
+// Current (v1.6):
+type NetworkServiceHandler interface {
+    GetNetwork(context.Context, *v1.GetNetworkRequest) (*v1.GetNetworkResponse, error)
+    ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
+}
+
+// After adding streaming (v1.7) -- simple mode:
+type NetworkServiceHandler interface {
+    GetNetwork(context.Context, *v1.GetNetworkRequest) (*v1.GetNetworkResponse, error)
+    ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
+    StreamAllNetworks(context.Context, *v1.StreamAllNetworksRequest, *connect.ServerStream[v1.Network]) error
+}
+```
+
+The `simple` codegen option (configured in `buf.gen.yaml`) produces the handler signature `func(context.Context, *Req, *connect.ServerStream[Res]) error` rather than `func(context.Context, *connect.Request[Req], *connect.ServerStream[Res]) error`. This is consistent with the existing unary signatures which use `*Req` directly.
+
+**Generated handler constructor change:** `NewNetworkServiceHandler` will internally create the streaming handler via `connect.NewServerStreamHandlerSimple` and add a case to the path switch:
+
+```go
+// Generated code will include:
+networkServiceStreamAllNetworksHandler := connect.NewServerStreamHandlerSimple(
+    NetworkServiceStreamAllNetworksProcedure,
+    svc.StreamAllNetworks,
+    connect.WithSchema(...),
+    connect.WithHandlerOptions(opts...),
+)
+// ... in the switch:
+case NetworkServiceStreamAllNetworksProcedure:
+    networkServiceStreamAllNetworksHandler.ServeHTTP(w, r)
+```
+
+**Confidence:** HIGH -- verified against ConnectRPC v1.19.1 pkg.go.dev docs and the connectrpc/examples-go Eliza service which uses identical patterns.
+
+### 2. Handler Implementation Pattern
+
+**What:** Each of the 13 handler structs (e.g., `NetworkService`) gains a `StreamAllNetworks` method.
+
+**Pattern:**
+
+```go
+const streamBatchSize = 500
+
+func (s *NetworkService) StreamAllNetworks(
+    ctx context.Context,
+    req *pb.StreamAllNetworksRequest,
+    stream *connect.ServerStream[pb.Network],
+) error {
+    // Build filter predicates -- reuse same pattern as ListNetworks.
+    var predicates []predicate.Network
+    if req.Asn != nil {
+        if *req.Asn <= 0 {
+            return connect.NewError(connect.CodeInvalidArgument,
+                fmt.Errorf("invalid filter: asn must be positive"))
+        }
+        predicates = append(predicates, network.AsnEQ(int(*req.Asn)))
+    }
+    // ... other filters identical to ListNetworks ...
+
+    // Stream all matching entities in batches.
+    offset := 0
+    for {
+        query := s.Client.Network.Query().
+            Order(ent.Asc(network.FieldID)).
+            Limit(streamBatchSize).
+            Offset(offset)
+        if len(predicates) > 0 {
+            query = query.Where(network.And(predicates...))
+        }
+
+        results, err := query.All(ctx)
+        if err != nil {
+            return connect.NewError(connect.CodeInternal,
+                fmt.Errorf("stream networks at offset %d: %w", offset, err))
+        }
+
+        for _, n := range results {
+            if err := stream.Send(networkToProto(n)); err != nil {
+                return err // Client disconnected or context cancelled.
+            }
+        }
+
+        if len(results) < streamBatchSize {
+            break // No more data.
+        }
+        offset += streamBatchSize
+    }
+    return nil
+}
+```
+
+**Key reuse points:**
+- Filter predicate building is identical to `ListNetworks` -- extract into a shared helper
+- `networkToProto` conversion function is reused as-is
+- `streamBatchSize` is a package-level constant in `pagination.go`
+
+**Confidence:** HIGH -- the `ServerStream.Send()` API is well-documented, and the ent `All()` with `Limit`/`Offset` is the existing proven pattern.
+
+### 3. Main.go Registration (NO CHANGE)
+
+**What:** No changes needed to `cmd/peeringdb-plus/main.go`.
+
+The existing registration code:
+```go
+registerService(peeringdbv1connect.NewNetworkServiceHandler(
+    &grpcserver.NetworkService{Client: entClient}, handlerOpts))
+```
+
+This already passes the full `*grpcserver.NetworkService` struct. Since the struct gains the new `StreamAllNetworks` method, it automatically satisfies the expanded `NetworkServiceHandler` interface. The generated `NewNetworkServiceHandler` constructor handles routing to the new method internally.
+
+**Confidence:** HIGH -- this is the standard ConnectRPC service extension pattern.
+
+### 4. gRPC Reflection + Health (NO CHANGE)
+
+The static reflector uses service names (e.g., `peeringdb.v1.NetworkService`), not method names. Adding methods to existing services does not change the service name, so reflection automatically discovers the new streaming RPCs. Health check status is per-service, not per-method.
+
+**Confidence:** HIGH -- verified by examining the `grpcreflect.NewStaticReflector` call.
+
+### 5. Middleware Compatibility
+
+The existing `responseWriter` in `internal/middleware/logging.go` already implements `http.Flusher` (added in v1.6 specifically for gRPC streaming):
+
+```go
+func (rw *responseWriter) Flush() {
+    if f, ok := rw.ResponseWriter.(http.Flusher); ok {
+        f.Flush()
+    }
+}
+```
+
+The `Unwrap()` method is also present. Server-streaming works over the existing middleware stack without changes.
+
+**Confidence:** HIGH -- verified in existing codebase, explicitly documented as "Required for gRPC streaming".
+
+### 6. h2c / HTTP/2 Support (NO CHANGE)
+
+Server-streaming requires HTTP/2 (or HTTP/1.1 with chunked transfer for Connect protocol). The server already configures h2c:
+
+```go
+var protocols http.Protocols
+protocols.SetHTTP1(true)
+protocols.SetUnencryptedHTTP2(true)
+```
+
+ConnectRPC server-streaming works over both HTTP/2 (for gRPC/gRPC-Web clients) and HTTP/1.1 (for Connect protocol clients using chunked encoding). No protocol changes needed.
+
+**Confidence:** HIGH -- h2c was specifically added in v1.6 for gRPC support.
+
+### 7. UI Template Changes (Isolated)
+
+**Files modified:**
+- `internal/web/templates/detail_net.templ` -- `NetworkIXLansList` component
+- `internal/web/templates/detail_shared.templ` -- `formatSpeed` helper, possibly new speed-color helper
+- `internal/web/templates/detail_ix.templ` -- `IXParticipantsList` component (same changes for consistency)
+
+**No files created.** All changes are within existing components.
+
+**Changes within `NetworkIXLansList`:**
+1. Add field labels: `Speed:`, `IPv4:`, `IPv6:` before the respective values
+2. Reposition RS badge: currently far-right of row, move to inline near the data fields
+3. Color-coded port speeds: map speed ranges to Tailwind color classes (e.g., 100G+ = emerald, 10G = sky, 1G = amber, < 1G = neutral)
+4. Consistent IP address indentation: use grid or flex layout with fixed-width columns for IP addresses
+5. Selectable/copyable text: ensure `select-text` CSS class and remove click-target overlap for IP text (currently the entire row is a link anchor)
+
+**Template structure change for copyable text:**
+
+The current design wraps each entire row in an `<a>` tag, making all text part of the link. For copyable IP addresses, the row needs restructuring: the IX name remains a link, but IP addresses and speed should be outside the `<a>` tag or use a separate click handler.
+
+```
+Current:  <a href="..."> [IXName] [speed ipv4 ipv6] [RS] </a>
+Proposed: <div class="flex ...">
+            <a href="..."> [IXName] </a>
+            <div class="select-all font-mono"> [Speed: 10G] [IPv4: ...] [IPv6: ...] [RS] </div>
+          </div>
+```
+
+This is the most structurally significant UI change -- breaking the `<a>` wrapper.
+
+**Speed color helper (new function in `detail_shared.templ`):**
+
+```go
+func speedColorClass(mbps int) string {
+    switch {
+    case mbps >= 100_000:  // 100G+
+        return "text-emerald-400"
+    case mbps >= 10_000:   // 10G+
+        return "text-sky-400"
+    case mbps >= 1_000:    // 1G+
+        return "text-amber-400"
+    default:               // < 1G
+        return "text-neutral-400"
+    }
+}
+```
+
+**Confidence:** HIGH -- all template changes are within existing components, no new routes or handlers needed.
 
 ## Patterns to Follow
 
-### Pattern 1: Handler Mounting (ConnectRPC on stdlib mux)
+### Pattern 1: Predicate Builder Extraction
 
-ConnectRPC handler constructors return `(path string, handler http.Handler)`, which mount directly on `http.NewServeMux()`:
+**What:** Extract the filter predicate building from `ListNetworks` into a shared function so both `ListNetworks` and `StreamAllNetworks` use the same validation + predicate logic.
 
-```go
-// In cmd/peeringdb-plus/main.go
+**When:** When implementing the streaming handler for each entity type.
 
-// Create otelconnect interceptor (RPC-level tracing)
-otelInterceptor, err := otelconnect.NewInterceptor(
-    otelconnect.WithoutServerPeerAttributes(), // reduce cardinality
-)
-if err != nil {
-    logger.Error("failed to create otelconnect interceptor", slog.String("error", err.Error()))
-    os.Exit(1)
-}
-
-// Mount ConnectRPC service handlers
-networkSvc := connectrpc.NewNetworkService(entClient)
-path, handler := peeringdbv1connect.NewNetworkServiceHandler(
-    networkSvc,
-    connect.WithInterceptors(otelInterceptor),
-)
-mux.Handle(path, handler)
-
-// Mount gRPC reflection (both V1 and V1Alpha for tool compatibility)
-reflector := grpcreflect.NewStaticReflector(
-    "peeringdb.v1.NetworkService",
-    "peeringdb.v1.OrganizationService",
-    // ... all service names
-)
-mux.Handle(grpcreflect.NewHandlerV1(reflector))
-mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
-
-// Mount gRPC health check
-checker := grpchealth.NewStaticChecker(
-    "peeringdb.v1.NetworkService",
-    "peeringdb.v1.OrganizationService",
-    // ... all service names
-)
-mux.Handle(grpchealth.NewHandler(checker))
-```
-
-**Why this works:** ConnectRPC handlers are plain `http.Handler` implementations. They share the same mux as GraphQL, REST, and web UI handlers. No separate server or port needed. The existing middleware stack (otelhttp, CORS, recovery, logging) wraps everything uniformly.
-
-### Pattern 2: Service Implementation (Hand-Written, Querying Ent)
-
-Do NOT use entproto's `protoc-gen-entgrpc` plugin. It generates gRPC service implementations targeting `google.golang.org/grpc`, not ConnectRPC. Instead, write service handlers that implement the ConnectRPC-generated interface and query ent directly:
+**Example:**
 
 ```go
-// internal/connectrpc/network.go
-package connectrpc
-
-import (
-    "context"
-
-    "connectrpc.com/connect"
-    "github.com/dotwaffle/peeringdb-plus/ent"
-    peeringdbv1 "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
-    "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
-)
-
-// NetworkService implements the peeringdb.v1.NetworkService ConnectRPC interface.
-type NetworkService struct {
-    peeringdbv1connect.UnimplementedNetworkServiceHandler
-    client *ent.Client
-}
-
-// NewNetworkService creates a new NetworkService handler.
-func NewNetworkService(client *ent.Client) *NetworkService {
-    return &NetworkService{client: client}
-}
-
-// GetNetwork retrieves a single network by ID.
-func (s *NetworkService) GetNetwork(
-    ctx context.Context,
-    req *connect.Request[peeringdbv1.GetNetworkRequest],
-) (*connect.Response[peeringdbv1.Network], error) {
-    net, err := s.client.Network.Get(ctx, int(req.Msg.Id))
-    if err != nil {
-        if ent.IsNotFound(err) {
-            return nil, connect.NewError(connect.CodeNotFound, err)
-        }
-        return nil, connect.NewError(connect.CodeInternal, err)
-    }
-    return connect.NewResponse(networkToProto(net)), nil
+// buildNetworkPredicates validates filter fields and returns ent predicates.
+// Returns a connect error for invalid input.
+func buildNetworkPredicates(req interface{ ... }) ([]predicate.Network, error) {
+    // Shared validation + predicate accumulation
 }
 ```
 
-**Why hand-written:** entproto's `protoc-gen-entgrpc` generates implementations for `google.golang.org/grpc`, not ConnectRPC. The conversion layer (ent model -> protobuf message) must be written regardless. Hand-written handlers give full control over query behavior (eager loading, filtering, pagination) and error mapping.
+However, since the `ListNetworksRequest` and `StreamAllNetworksRequest` are different proto types, a Go interface or separate function per type is needed. The pragmatic approach: duplicate the 5-10 lines of predicate building in the streaming method. The filter logic is simple enough that DRY extraction adds more complexity (interface definitions, type assertions) than it saves.
 
-### Pattern 3: OTel Instrumentation (otelconnect + otelhttp Coexistence)
+**Recommendation:** Accept the small duplication. Each streaming method copies its filter predicates from the corresponding List method. The `entityToProto` conversion functions are already shared and remain so.
 
-Use **both** `otelhttp` (outer middleware) and `otelconnect` (interceptor) together. They instrument at different semantic levels:
+### Pattern 2: Batch-Then-Stream
 
-- `otelhttp`: Creates HTTP-level spans (`HTTP GET /peeringdb.v1.NetworkService/GetNetwork`) with HTTP attributes (method, status code, content length). Applied uniformly to ALL routes.
-- `otelconnect`: Creates RPC-level child spans (`peeringdb.v1.NetworkService/GetNetwork`) with RPC attributes (rpc.system, rpc.service, rpc.method, error code). Applied only to ConnectRPC handlers.
+**What:** Load entities in fixed-size batches via ent's `Limit`/`Offset`, convert and send each one individually.
 
-This produces a trace hierarchy: `HTTP span -> RPC span -> ent query spans`. This is the recommended approach per ConnectRPC documentation -- they "integrate seamlessly."
+**When:** All 13 streaming handlers.
 
-```go
-// otelconnect interceptor configuration
-otelInterceptor, err := otelconnect.NewInterceptor(
-    otelconnect.WithoutServerPeerAttributes(), // drop IP/port for cardinality
-    // Do NOT use WithTrustRemote() -- this is internet-facing
-)
-```
+**Why not load all at once:** Some entity types (e.g., NetworkIxLan) have 100K+ rows. Loading all into memory defeats the purpose of streaming. Batching with offset pagination keeps memory bounded.
 
-**Do NOT remove otelhttp from the middleware stack.** It instruments non-ConnectRPC routes (GraphQL, REST, UI) and provides the parent span for ConnectRPC requests.
+**Why not use database/sql cursor:** ent's generated code doesn't expose cursor iteration. Using raw SQL would bypass ent's type-safe converters and require maintaining parallel conversion logic. The Limit/Offset approach is idiomatic ent.
 
-### Pattern 4: buf.gen.yaml Configuration
+**Batch size:** 500 entities per batch. This balances:
+- Memory: ~500 ent structs in memory at a time (few KB each)
+- Round trips: NetworkIxLan (~100K rows) = ~200 DB queries
+- SQLite performance: SQLite handles `LIMIT 500 OFFSET N` efficiently with ID-ordered queries
 
-```yaml
-# buf.gen.yaml
-version: v2
-plugins:
-  - local: protoc-gen-go
-    out: gen
-    opt:
-      - paths=source_relative
-  - local: protoc-gen-connect-go
-    out: gen
-    opt:
-      - paths=source_relative
-```
+### Pattern 3: Error Semantics for Streaming
 
-```yaml
-# buf.yaml
-version: v2
-modules:
-  - path: proto
-deps:
-  - buf.build/googleapis/googleapis
-lint:
-  use:
-    - STANDARD
-breaking:
-  use:
-    - WIRE_JSON
-```
+**What:** Errors during streaming are sent as gRPC status in trailers, not HTTP status.
 
-**Why NOT protoc-gen-go-grpc:** The project uses ConnectRPC, not google.golang.org/grpc for the server. `protoc-gen-connect-go` generates handler interfaces and client constructors that return `http.Handler`, which is what we need. `protoc-gen-go-grpc` generates interfaces for `grpc.Server` which would require a separate gRPC server and port.
+**When:** A query fails mid-stream or the client disconnects.
 
-### Pattern 5: entproto Schema Annotations
+**Key difference from unary:** In unary RPCs, errors map to HTTP status codes. In streaming, the HTTP status is always 200 (sent with first message). Errors are encoded in trailers. ConnectRPC handles this transparently -- `return connect.NewError(...)` from a streaming handler does the right thing.
 
-Add `entproto.Message()` and `entproto.Field(N)` annotations to ent schemas. Use `entproto.Service()` with `Methods(entproto.MethodGet | entproto.MethodList)` to generate service definitions in the .proto files:
-
-```go
-// ent/schema/network.go -- additions to existing Annotations()
-func (Network) Annotations() []schema.Annotation {
-    return []schema.Annotation{
-        entgql.RelayConnection(),
-        entgql.QueryField(),
-        entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
-        // New: proto generation
-        entproto.Message(),
-        entproto.Service(entproto.Methods(entproto.MethodGet | entproto.MethodList)),
-    }
-}
-```
-
-Each field needs `entproto.Field(N)` with a unique field number (starting from 2, since 1 is reserved for ID):
-
-```go
-field.String("name").
-    NotEmpty().
-    Unique().
-    Annotations(
-        entgql.OrderField("NAME"),
-        entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
-        entproto.Field(2), // New
-    ).
-    Comment("Network name"),
-```
-
-**SkipGenFile is essential:** By default, entproto generates a `generate.go` file next to each `.proto` that invokes `protoc` with `protoc-gen-go-grpc`. We explicitly skip this because we use `buf generate` with `protoc-gen-connect-go` instead:
-
-```go
-// ent/entc.go -- add entproto extension
-protoExt, err := entproto.NewExtension(entproto.SkipGenFile())
-if err != nil {
-    log.Fatalf("creating entproto extension: %v", err)
-}
-
-opts := []entc.Option{
-    entc.Extensions(gqlExt, restExt, protoExt),
-    entc.FeatureNames("sql/upsert"),
-}
-```
-
-### Pattern 6: Proto-to-Ent Conversion
-
-Create bidirectional conversion functions in each service file. Since we only need ent-to-proto (read-only), keep it simple:
-
-```go
-// internal/connectrpc/convert.go
-
-func networkToProto(n *ent.Network) *peeringdbv1.Network {
-    return &peeringdbv1.Network{
-        Id:    int32(n.ID),
-        Name:  n.Name,
-        Asn:   int32(n.Asn),
-        // ... map all fields
-    }
-}
-```
-
-**Nullable fields:** ent uses pointer types for Optional+Nillable fields. Proto uses wrapper types or optional keyword. Map nil ent fields to zero-value proto fields or use `google.protobuf.StringValue` wrappers. Decide per field based on whether nil vs empty has semantic meaning.
-
-### Pattern 7: Readiness Gating
-
-The existing readiness middleware gates all non-infrastructure routes until the first sync completes. ConnectRPC paths (`/peeringdb.v1.*`) should be gated by this middleware. No changes needed -- the readiness middleware already applies to all routes not in the bypass list (`/sync`, `/healthz`, `/readyz`, `/`, `/static/`).
-
-gRPC health checks (`/grpc.health.v1.Health/Check`) should **also** be gated. The `grpchealth.NewStaticChecker()` always returns SERVING status. For dynamic health that reflects sync readiness, implement a custom checker:
-
-```go
-type grpcHealthChecker struct {
-    syncReady func() bool
-}
-
-func (c *grpcHealthChecker) Check(ctx context.Context, req *connect.Request[healthv1.HealthCheckRequest]) (*connect.Response[healthv1.HealthCheckResponse], error) {
-    status := healthv1.HealthCheckResponse_SERVING
-    if !c.syncReady() {
-        status = healthv1.HealthCheckResponse_NOT_SERVING
-    }
-    return connect.NewResponse(&healthv1.HealthCheckResponse{
-        Status: status,
-    }), nil
-}
-```
+**Client disconnect detection:** `stream.Send()` returns an error when the client has disconnected. Always check the error return from Send and return it immediately rather than continuing to query.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Using protoc-gen-entgrpc
+### Anti-Pattern 1: Wrapping Stream Responses
 
-**What:** Using entproto's `protoc-gen-entgrpc` to auto-generate service implementations.
+**What:** Creating `StreamAllNetworksResponse { Network network = 1; }` wrapper messages.
 
-**Why bad:** It generates implementations targeting `google.golang.org/grpc` server interfaces, not ConnectRPC. The generated code expects to be registered with `grpc.NewServer()`, which requires a separate gRPC server on a different port. It would bypass the existing HTTP middleware stack (otelhttp, CORS, recovery, logging, readiness).
+**Why bad:** Adds 13 unnecessary message types to the proto file. The streaming response IS the entity -- there's no pagination token or metadata to include alongside it.
 
-**Instead:** Use entproto only for `.proto` file generation (messages + service definitions). Use `buf generate` with `protoc-gen-connect-go` for Go code. Write service implementations by hand.
+**Instead:** Use `stream Network` directly as the return type. The entity messages already exist.
 
-### Anti-Pattern 2: Running a Separate gRPC Server
+### Anti-Pattern 2: Loading All Then Streaming
 
-**What:** Starting `grpc.NewServer()` on a separate port alongside the HTTP server.
+**What:** Calling `query.All(ctx)` for the entire table, then iterating over the slice to Send.
 
-**Why bad:** Doubles operational complexity (two ports, two health checks, two middleware stacks). Cannot share the existing otelhttp instrumentation. Requires separate Fly.io service configuration. Bypasses LiteFS proxy write forwarding.
+**Why bad:** Defeats the purpose of streaming. A full table load of NetworkIxLan (~100K rows) would consume significant memory before sending any data. The client receives nothing until the entire query completes.
 
-**Instead:** Mount ConnectRPC handlers on the same `http.NewServeMux()` as all other routes. Single port, single middleware stack, single health check surface.
+**Instead:** Use the batch-then-stream pattern with `Limit`/`Offset`.
 
-### Anti-Pattern 3: Enabling h2c Without Understanding the LiteFS Constraint
+### Anti-Pattern 3: Sharing Service Structs for Streaming
 
-**What:** Setting `http.Protocols{}.SetUnencryptedHTTP2(true)` on the Go server and `h2_backend = true` in fly.toml, expecting gRPC wire protocol to work.
+**What:** Creating a separate `NetworkStreamingService` struct and registering it as a different service.
 
-**Why bad:** The LiteFS proxy between Fly edge and the app is HTTP/1.1 only. Even if the Go server supports h2c, the LiteFS proxy downgrades the connection. Clients using the gRPC wire protocol will get protocol errors. The error messages will be confusing ("unexpected HTTP/1.1 response").
+**Why bad:** Adds a new service name to reflection, health checking, and the service name list. Violates the principle that streaming is a different access pattern for the same data, not a different service.
 
-**Instead:** Rely on the Connect protocol (HTTP/1.1 compatible) for all clients. Document that the gRPC wire protocol is not supported. Do NOT set `h2_backend = true` in fly.toml -- it will break LiteFS proxy's ability to parse and forward requests.
+**Instead:** Add the streaming method to the existing `NetworkService` struct. The generated interface naturally extends.
 
-### Anti-Pattern 4: Duplicating CORS Configuration
+### Anti-Pattern 4: Making IP Addresses Non-Selectable
 
-**What:** Adding CORS handling inside ConnectRPC interceptors in addition to the existing CORS middleware.
+**What:** Keeping the entire IX presence row as a single `<a>` tag while trying to make text copyable.
 
-**Why bad:** The existing `middleware.CORS()` already wraps the entire mux, including ConnectRPC handlers. Adding CORS in interceptors creates conflicting headers. The Connect protocol uses standard HTTP Content-Types (`application/json`, `application/proto`) that work with standard CORS.
+**Why bad:** Text inside link elements cannot be easily selected without triggering navigation. Users trying to copy an IP address will accidentally navigate to the IX detail page.
 
-**Instead:** Rely on the existing CORS middleware. If Connect-specific headers need allowlisting (e.g., `Connect-Protocol-Version`, `Connect-Timeout-Ms`), add them to the existing CORS configuration's `AllowedHeaders`.
+**Instead:** Break the row into a clickable IX name (link) and a non-link data area (speeds, IPs, RS badge).
 
-### Anti-Pattern 5: Generating Proto Files Manually Instead of From Ent Schemas
+## New vs Modified Files
 
-**What:** Writing `.proto` files by hand instead of generating them from ent schemas via entproto.
+### New Files
 
-**Why bad:** Creates a maintenance burden -- every schema change requires updating both ent schemas and proto files. Field names, types, and relationships will drift. The ent schema is the single source of truth.
+None. All changes are additions to existing files.
 
-**Instead:** Use entproto to generate `.proto` files from ent schemas. Treat proto files as generated artifacts. If entproto's output needs adjustment, use proto file post-processing or accept entproto's conventions.
+### Modified Files
 
-## Scalability Considerations
+| File | Change Type | Scope |
+|------|-------------|-------|
+| `proto/peeringdb/v1/services.proto` | ADD | 13 streaming RPCs + 13 request messages (~200 lines) |
+| `gen/peeringdb/v1/peeringdbv1connect/services.connect.go` | REGENERATED | Interfaces gain streaming methods, constructors gain streaming handlers |
+| `gen/peeringdb/v1/*.pb.go` | REGENERATED | New request message types |
+| `internal/grpcserver/campus.go` | ADD method | `StreamAllCampuses` (~40 lines) |
+| `internal/grpcserver/carrier.go` | ADD method | `StreamAllCarriers` (~35 lines) |
+| `internal/grpcserver/carrierfacility.go` | ADD method | `StreamAllCarrierFacilities` (~35 lines) |
+| `internal/grpcserver/facility.go` | ADD method | `StreamAllFacilities` (~45 lines) |
+| `internal/grpcserver/internetexchange.go` | ADD method | `StreamAllInternetExchanges` (~45 lines) |
+| `internal/grpcserver/ixfacility.go` | ADD method | `StreamAllIxFacilities` (~35 lines) |
+| `internal/grpcserver/ixlan.go` | ADD method | `StreamAllIxLans` (~35 lines) |
+| `internal/grpcserver/ixprefix.go` | ADD method | `StreamAllIxPrefixes` (~35 lines) |
+| `internal/grpcserver/network.go` | ADD method | `StreamAllNetworks` (~45 lines) |
+| `internal/grpcserver/networkfacility.go` | ADD method | `StreamAllNetworkFacilities` (~40 lines) |
+| `internal/grpcserver/networkixlan.go` | ADD method | `StreamAllNetworkIxLans` (~40 lines) |
+| `internal/grpcserver/organization.go` | ADD method | `StreamAllOrganizations` (~35 lines) |
+| `internal/grpcserver/poc.go` | ADD method | `StreamAllPocs` (~35 lines) |
+| `internal/grpcserver/pagination.go` | ADD constant | `streamBatchSize = 500` (1 line) |
+| `internal/grpcserver/grpcserver_test.go` | ADD tests | Streaming tests for representative types (~100 lines) |
+| `internal/web/templates/detail_net.templ` | MODIFY | `NetworkIXLansList` component layout |
+| `internal/web/templates/detail_shared.templ` | ADD function | `speedColorClass` helper |
+| `internal/web/templates/detail_ix.templ` | MODIFY | `IXParticipantsList` component layout (consistency) |
 
-| Concern | Current (HTTP/1.1 only) | With ConnectRPC | Notes |
-|---------|-------------------------|-----------------|-------|
-| Protocol support | REST, GraphQL | REST, GraphQL, Connect, gRPC-Web | gRPC wire protocol blocked by LiteFS proxy |
-| Serialization overhead | JSON only | JSON + Protobuf binary | Protobuf is 3-10x smaller for typed data |
-| Client ecosystem | curl, browsers, GraphQL clients | + grpcurl, buf curl, connect-go clients, gRPC-Web clients | Significantly broader client support |
-| Handler count | ~20 mux routes | ~40 mux routes (2 per service + reflection + health) | No performance concern -- mux lookup is O(1) per pattern |
-| Build complexity | go generate (ent + gqlgen) | + entproto + buf generate | Two additional code generation steps |
-| Binary size | ~30MB | +2-5MB (protobuf runtime) | Marginal increase |
+### Unchanged Files (notable)
 
-## New Dependencies
-
-| Package | Purpose | Size Impact |
-|---------|---------|-------------|
-| `connectrpc.com/connect` | ConnectRPC runtime | Small (~5k LOC) |
-| `connectrpc.com/otelconnect` | OTel interceptor | Small |
-| `connectrpc.com/grpcreflect` | gRPC server reflection | Small |
-| `connectrpc.com/grpchealth` | gRPC health checking | Small |
-| `google.golang.org/protobuf` | Already in go.mod (indirect) | No change |
-| `entgo.io/contrib/entproto` | Already in go.mod (via entgql) | No change |
-
-**Not needed:**
-- `google.golang.org/grpc` -- NOT needed as a direct dependency. ConnectRPC does not depend on it.
-- `connectrpc.com/validate` -- Premature for read-only service. Add later if needed.
-- `connectrpc.com/authn` -- No auth on public read-only API.
-
-## Fly.io Configuration
-
-**No changes to fly.toml are required.** The existing configuration works:
-
-```toml
-[http_service]
-  internal_port = 8080  # LiteFS proxy
-  force_https = true
-```
-
-Do NOT add `h2_backend = true` -- this would tell Fly's edge proxy to use HTTP/2 to connect to LiteFS proxy, which does not support h2c and would break.
-
-Do NOT add `alpn = ["h2"]` -- this is for gRPC-only services that bypass LiteFS.
-
-The Connect protocol works over HTTP/1.1 through the existing infrastructure unchanged.
+| File | Why Unchanged |
+|------|--------------|
+| `cmd/peeringdb-plus/main.go` | Service registration is interface-based; new methods satisfy expanded interface |
+| `proto/peeringdb/v1/v1.proto` | Entity messages are unchanged |
+| `proto/peeringdb/v1/common.proto` | No new shared types needed |
+| `buf.gen.yaml` / `buf.yaml` | Codegen config unchanged |
+| `internal/grpcserver/convert.go` | Conversion helpers reused as-is |
+| `internal/middleware/*.go` | Already supports streaming (Flusher, Unwrap) |
+| `internal/web/detail.go` | Fragment handlers unchanged -- same data, different presentation |
+| `internal/web/templates/detailtypes.go` | Data types unchanged |
 
 ## Suggested Build Order
 
-The build order is driven by code generation dependencies:
+The two feature tracks are independent and can be built in parallel. Within each track:
 
-1. **Schema annotations** -- Add `entproto.Message()`, `entproto.Field(N)`, `entproto.Service()` to all 13 ent schemas. Add `entproto.NewExtension(entproto.SkipGenFile())` to `ent/entc.go`. This is the foundation.
+### Track A: Server-Streaming RPCs
 
-2. **Proto generation pipeline** -- Create `buf.yaml`, `buf.gen.yaml`. Run `go generate ./ent/...` to produce `.proto` files. Run `buf generate` to produce Go types and ConnectRPC interfaces. Verify generated code compiles.
+1. **Proto definitions** -- Add all 13 `StreamAll*` RPCs and request messages to `services.proto`. Run `buf lint` to validate. This must come first as everything else depends on generated code.
 
-3. **First service implementation** -- Pick one simple entity (e.g., Organization -- fewest fields/edges). Write `internal/connectrpc/organization.go` with Get and List. Write conversion functions. Write tests using `enttest` + `connect.NewClient`.
+2. **Code generation** -- Run `buf generate` to regenerate `gen/peeringdb/v1/`. This produces the expanded handler interfaces and new request message types. Compilation will fail until handlers implement the new methods.
 
-4. **Handler mounting** -- Wire the first service into `main.go`. Add `otelconnect.NewInterceptor()`. Verify end-to-end with `buf curl` or `grpcurl` (via Connect protocol). Verify existing routes still work.
+3. **Batch constant + first handler** -- Add `streamBatchSize` to `pagination.go`. Implement `StreamAllNetworks` on `NetworkService` as the reference implementation. Verify it compiles and works with `grpcurl`.
 
-5. **Remaining services** -- Implement remaining 12 entity services following the pattern from step 3. Each service is independent and can be done in parallel.
+4. **Remaining 12 handlers** -- Implement all other `StreamAll*` methods following the Network pattern. Each is a copy-adapt of the reference implementation with entity-specific predicates and conversion functions.
 
-6. **gRPC ecosystem** -- Add `grpcreflect` handlers (V1 + V1Alpha) and `grpchealth` handler. Test with `grpcurl --plaintext` to verify reflection works.
+5. **Tests** -- Add streaming tests for at least Network, NetworkIxLan (high row count), and one simple type. Test: empty stream, filtered stream, cancellation behavior.
 
-7. **CORS update** -- Add Connect-specific headers (`Connect-Protocol-Version`, `Connect-Timeout-Ms`, `Grpc-Timeout`) to the CORS middleware's `AllowedHeaders` list.
+### Track B: IX Presence UI Polish
 
-8. **Documentation** -- Update the root discovery endpoint (`GET /`) to include the ConnectRPC service paths. Update API docs.
+1. **Speed color helper** -- Add `speedColorClass()` to `detail_shared.templ`. Run `templ generate`.
 
-**Rationale for this order:**
-- Steps 1-2 are prerequisites (no code runs without generated types)
-- Step 3 proves the pattern works before committing to all 13 entities
-- Step 4 validates integration with existing middleware
-- Steps 5-8 are additive and low-risk
+2. **NetworkIXLansList redesign** -- Modify `detail_net.templ` to add field labels, color-coded speeds, RS badge repositioning, and selectable text layout. Run `templ generate`.
+
+3. **IXParticipantsList consistency** -- Apply the same layout changes to `detail_ix.templ`. Run `templ generate`.
+
+4. **Visual verification** -- Check in browser: dark mode, responsive layout, text selection, link behavior.
+
+### Dependency Graph
+
+```
+Track A:
+  services.proto -> buf generate -> pagination.go + network.go -> other 12 handlers -> tests
+
+Track B:
+  detail_shared.templ -> detail_net.templ -> detail_ix.templ -> visual QA
+
+Tracks A and B have zero code dependencies.
+```
+
+## Scalability Considerations
+
+| Concern | At current scale (~100K NetworkIxLans) | At 10x scale | Notes |
+|---------|---------------------------------------|-------------|-------|
+| Streaming memory | ~500 entities in flight per batch | Same | Batch size is constant |
+| Streaming duration | ~3-5 seconds for full NetworkIxLan stream | ~30-50 seconds | Consider context timeout |
+| SQLite OFFSET performance | Good with ID-ordered index | Degrades at high offsets | Could switch to keyset pagination (`WHERE id > last_seen_id`) if needed |
+| Concurrent streams | SQLite WAL handles concurrent reads | Same | Read-only workload, no contention |
+| Client backpressure | HTTP/2 flow control handles naturally | Same | ConnectRPC respects flow control |
 
 ## Sources
 
-- [ConnectRPC Getting Started](https://connectrpc.com/docs/go/getting-started/) -- Handler mounting, h2c configuration
-- [ConnectRPC Deployment & h2c](https://connectrpc.com/docs/go/deployment/) -- HTTP/2 configuration guidance
-- [ConnectRPC Observability](https://connectrpc.com/docs/go/observability/) -- otelconnect interceptor usage
-- [ConnectRPC gRPC Compatibility](https://connectrpc.com/docs/go/grpc-compatibility/) -- grpcreflect, grpchealth, protocol detection
-- [ConnectRPC Protocol Reference](https://connectrpc.com/docs/protocol/) -- HTTP/1.1 support, wire format
-- [ConnectRPC Multi-Protocol Support](https://connectrpc.com/docs/multi-protocol/) -- Connect vs gRPC vs gRPC-Web detection
-- [otelconnect-go](https://github.com/connectrpc/otelconnect-go) -- OTel interceptor, cardinality options
-- [otelconnect Issue #164](https://github.com/connectrpc/otelconnect-go/issues/164) -- otelhttp + otelconnect coexistence
-- [grpcreflect-go](https://github.com/connectrpc/grpcreflect-go) -- Server reflection handler
-- [grpchealth-go](https://github.com/connectrpc/grpchealth-go) -- Health check handler
-- [entproto docs](https://entgo.io/docs/grpc-generating-proto/) -- Proto generation from ent schemas
-- [entproto API](https://pkg.go.dev/entgo.io/contrib/entproto) -- SkipGenFile, Message, Service, Field annotations
-- [Fly.io gRPC Services](https://fly.io/docs/app-guides/grpc-and-grpc-web-services/) -- h2_backend, TLS ALPN configuration
-- [Fly.io LiteFS Proxy](https://fly.io/docs/litefs/proxy/) -- HTTP proxy limitations, write forwarding
-- [Go 1.26 http.Protocols](https://pkg.go.dev/net/http#Protocols) -- h2c support in stdlib
-- [buf.gen.yaml](https://buf.build/docs/configuration/v1/buf-gen-yaml/) -- Code generation configuration
-- [protoc-gen-connect-go](https://pkg.go.dev/connectrpc.com/connect/cmd/protoc-gen-connect-go) -- ConnectRPC code generator
-
-## Confidence Assessment
-
-| Component | Confidence | Notes |
-|-----------|------------|-------|
-| ConnectRPC handler mounting on stdlib mux | HIGH | Documented pattern, handlers are http.Handler |
-| LiteFS proxy HTTP/1.1 constraint | HIGH | Verified in LiteFS source -- uses http.Transport without h2c |
-| Connect protocol over HTTP/1.1 | HIGH | Core design principle of ConnectRPC, documented extensively |
-| otelconnect + otelhttp coexistence | HIGH | Different instrumentation layers, confirmed in docs and issues |
-| entproto SkipGenFile + buf generate flow | MEDIUM | Each component documented independently; combined flow not documented as a pattern but mechanically sound |
-| grpcreflect/grpchealth on same mux | HIGH | Documented, returns (path, handler) like all ConnectRPC handlers |
-| No fly.toml changes needed | HIGH | Connect protocol is HTTP/1.1, no h2c needed |
-| Hand-written service handlers over entgrpc | HIGH | entgrpc targets grpc.Server, not ConnectRPC -- verified in entproto docs |
+- [ConnectRPC Streaming Documentation](https://connectrpc.com/docs/go/streaming/) - Server-streaming handler patterns
+- [ConnectRPC ServerStream API](https://pkg.go.dev/connectrpc.com/connect#ServerStream) - Send(), ResponseHeader(), ResponseTrailer() methods
+- [ConnectRPC NewServerStreamHandlerSimple](https://pkg.go.dev/connectrpc.com/connect#NewServerStreamHandlerSimple) - Simple mode handler constructor
+- [ConnectRPC examples-go Eliza Service](https://github.com/connectrpc/examples-go/blob/main/internal/gen/connectrpc/eliza/v1/elizav1connect/eliza.connect.go) - Generated code for mixed unary + streaming service
+- [ConnectRPC connect-go handler.go](https://github.com/connectrpc/connect-go/blob/main/handler.go) - Handler construction internals
+- [Ent ORM Query API](https://entgo.io/docs/crud) - All(), Limit(), Offset() query methods
+- Existing codebase: `gen/peeringdb/v1/peeringdbv1connect/services.connect.go` -- confirmed `simple` mode handler signatures
+- Existing codebase: `internal/middleware/logging.go` -- confirmed Flusher + Unwrap support for streaming
+- Existing codebase: `cmd/peeringdb-plus/main.go` -- confirmed interface-based service registration

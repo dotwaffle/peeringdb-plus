@@ -1,5 +1,19 @@
 # Milestones
 
+## v1.7 Streaming RPCs & UI Polish (Shipped: 2026-03-25)
+
+**Phases completed:** 3 phases, 6 plans, 11 tasks
+
+**Key accomplishments:**
+
+- 13 streaming RPC definitions in proto schema with stub handlers, StreamTimeout config, OTel trace event suppression, and streamBatchSize constant
+- StreamNetworks handler with batched keyset pagination (WHERE id > lastID LIMIT 500), grpc-total-count header, stream timeout, context cancellation, and 12 integration tests via httptest
+- 1. [Rule 3 - Blocking] Created README.md from scratch since no README existed
+- Shared speed/IP/bandwidth helpers plus redesigned NetworkIXLansList with labeled fields, color-coded speeds, inline RS pill, copyable IPs, and aggregate bandwidth header
+- Redesigned IXParticipantsList with identical grid layout to NetworkIXLansList: labeled Speed/IPv4/IPv6 fields, speed color tiers, emerald RS pill, copyable IPs, and aggregate bandwidth in section header
+
+---
+
 ## v1.6 ConnectRPC / gRPC API (Shipped: 2026-03-25)
 
 **Phases completed:** 4 phases, 9 plans, 18 tasks

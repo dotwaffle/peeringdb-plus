@@ -1,477 +1,259 @@
 # Domain Pitfalls
 
-**Domain:** Adding ConnectRPC/gRPC API Surface to Existing Go HTTP Server
-**Researched:** 2026-03-24
-**Milestone:** ConnectRPC/gRPC API Surface (subsequent milestone)
+**Domain:** Server-streaming RPCs (ConnectRPC) and IX presence UI polish for PeeringDB Plus
+**Researched:** 2026-03-25
+**Milestone:** v1.7 Streaming RPCs & UI Polish
 
 ## Critical Pitfalls
 
-Mistakes that cause production breakage, require architectural rework, or silently corrupt data/observability.
+Mistakes that cause production breakage, require architectural rework, or silently corrupt data.
 
-### Pitfall 1: LiteFS Proxy Is HTTP/1.1-Only -- h2c Traffic Will Not Pass Through
+### Pitfall 1: Recovery Middleware Cannot Return Error Responses After Streaming Begins
 
-**What goes wrong:** The application enables h2c (HTTP/2 cleartext) on its HTTP server to support gRPC/ConnectRPC. The Go server listens on port 8081 (behind LiteFS proxy on 8080). Fly.io's edge proxy sends h2c traffic to port 8080 (LiteFS proxy). The LiteFS proxy is a plain `http.Server` with no h2c support -- it creates `&http.Server{Handler: http.HandlerFunc(s.serveHTTP)}` with no `http.Protocols` configuration and no `h2c.NewHandler` wrapper. The LiteFS proxy only speaks HTTP/1.1. All HTTP/2 frames sent by Fly.io's edge are rejected or misinterpreted. gRPC calls fail with connection errors. REST/GraphQL requests that were working on HTTP/1.1 continue to work, but only because Fly.io's default behavior downgrades to HTTP/1.1 when `h2_backend` is not set.
+**What goes wrong:** The existing `middleware.Recovery` wraps the handler and attempts to write a 500 JSON error on panic. Once a streaming RPC has sent its first message, HTTP headers (including status 200) are already committed to the wire. A panic mid-stream means the recovery middleware's `http.Error()` call is silently dropped -- the client sees a truncated stream with no error indication instead of a clean error.
 
-**Why it happens:** The current architecture places LiteFS proxy between Fly.io's edge and the application:
+**Why it happens:** gRPC/ConnectRPC streaming always returns HTTP 200 with errors encoded in trailers. The recovery middleware was designed for unary request/response, where headers haven't been sent when the handler panics. Streaming breaks this assumption because the handler calls `stream.Send()` multiple times, each of which writes to the response body.
 
-```
-Client -> Fly.io Edge (TLS termination) -> LiteFS Proxy (:8080) -> App (:8081)
-```
-
-The LiteFS proxy (litefs.yml line 17-24) intercepts traffic on port 8080 and forwards to the app on port 8081. It provides write-forwarding to the primary node and TXID consistency headers for replicas. This proxy was designed for simple HTTP/1.1 REST APIs, not for h2c passthrough. Verified by reading `superfly/litefs` source: `proxy_server.go` creates a bare `http.Server` without any HTTP/2 configuration.
-
-**Consequences:**
-- Setting `h2_backend = true` in fly.toml causes ALL traffic (not just gRPC) to fail, because Fly.io sends h2c to the LiteFS proxy which cannot handle it.
-- Without `h2_backend = true`, gRPC-native clients cannot connect because Fly.io downgrades to HTTP/1.1 and gRPC requires HTTP/2.
-- ConnectRPC can work over HTTP/1.1 (it supports the Connect protocol and gRPC-Web over HTTP/1.1), but native gRPC clients will not work.
+**Consequences:** Silent data corruption from the client's perspective -- they receive a partial result set with no error status. Difficult to debug because the server logs the panic but the client has no indication of failure beyond a broken stream.
 
 **Prevention:**
-- **Option A (recommended): Use ConnectRPC over HTTP/1.1 only.** ConnectRPC's Connect protocol works fully over HTTP/1.1. gRPC-Web also works over HTTP/1.1. Only the native gRPC protocol requires HTTP/2. Since the primary consumers are likely API clients and browsers (not gRPC-native microservices), this covers the majority of use cases. Do NOT set `h2_backend = true` in fly.toml. Accept that `grpc-go` clients using the native gRPC protocol cannot connect directly.
-- **Option B: Bypass LiteFS proxy for gRPC.** Run the gRPC/ConnectRPC server on a separate port (e.g., 8082) that is not behind LiteFS proxy. Add a second `[[services]]` block in fly.toml with `h2_backend = true` pointing to port 8082. The LiteFS proxy continues to handle REST/GraphQL on port 8080. Downside: adds deployment complexity and the gRPC port does not get LiteFS TXID consistency headers.
-- **Option C: Remove LiteFS proxy entirely.** Handle write-forwarding in the application layer (already partially done with `Fly-Replay: leader` header in the sync endpoint). Move TXID consistency tracking into application middleware. This is the cleanest long-term solution but is a significant refactor.
+- ConnectRPC handles panic recovery internally via `net/http`'s built-in panic recovery (which sends RST_STREAM on HTTP/2 or closes the connection on HTTP/1.1). The client will see a connection error.
+- Do NOT attempt to add custom panic recovery logic inside streaming handlers. Instead, ensure streaming handler code cannot panic: validate all inputs before entering the streaming loop, and use explicit error returns within the loop.
+- The existing recovery middleware is fine for the outer HTTP layer -- it catches panics before ConnectRPC processes the request. But panics inside `stream.Send()` loops are caught by `net/http`, not by the middleware.
+- Verify with a test: inject a panic mid-stream and confirm the client receives a transport error (connection reset or EOF), not a partial success.
 
-**Detection:** gRPC clients receive connection refused or protocol errors. `curl --http2-prior-knowledge` to port 8080 fails. Application logs show no incoming requests despite Fly.io edge receiving them.
+**Detection:** Test by injecting a panic mid-stream and verifying the client receives an error (not a truncated success). Monitor for `panic recovered` log entries during streaming operations.
 
-**Confidence:** HIGH -- verified by reading LiteFS proxy source code (`superfly/litefs` main branch, `http/proxy_server.go`). The proxy creates a plain `http.Server` with no h2c support.
+**Confidence:** HIGH -- verified from net/http source, ConnectRPC streaming docs, and go-grpc-middleware recovery patterns.
 
 ---
 
-### Pitfall 2: Protobuf Field Numbers Are Permanent -- Changing Them After Deployment Breaks All Clients
+### Pitfall 2: Loading All Rows Into Memory Before Streaming Defeats the Purpose
 
-**What goes wrong:** The developer assigns `entproto.Field(n)` annotations to ent schema fields. Later, they reorder fields, add new fields between existing ones, or "clean up" the numbering. Any deployed client that serialized messages using the old field numbers now parses data into wrong fields. A field that was `name` (field 3) silently becomes `notes` (field 3 in the new numbering). No error is raised -- protobuf just puts data in whatever field matches the number.
+**What goes wrong:** Using `entClient.Network.Query().All(ctx)` to fetch all rows, then iterating through the slice to call `stream.Send()` for each one. This loads the entire table (potentially 100K+ rows for NetworkIxLan) into memory before sending anything, negating the streaming benefit entirely.
 
-**Why it happens:** Protobuf uses field numbers (not names) as identifiers in the binary wire format. Field names are cosmetic. Renaming a field is safe; renumbering it is a breaking change. Developers coming from JSON APIs (where field names are the identifiers) do not intuitively understand this. entproto's `entproto.Field(n)` annotation makes it easy to assign numbers, but provides no guardrail against reassignment.
+**Why it happens:** Ent's `.All()` is the natural query method and what the existing `List` RPCs use. Developers copy the pattern without considering that streaming's purpose is to avoid buffering the full result set. The existing `ListNetworks` handler uses `query.All(ctx)` with a limit of 1001 (page size + 1), which works fine for pagination but would be catastrophic for a full-table stream.
 
-**Consequences:**
-- Silent data corruption: clients decode fields into wrong struct members.
-- No error at deserialization time -- protobuf is designed for forward/backward compatibility and silently ignores unknown field numbers while mapping known ones.
-- Debugging is extremely difficult because the data "looks right" on the server but "looks wrong" on the client, and the binary wire format is not human-readable.
-- Real-world example: [Teleport issue #24817](https://github.com/gravitational/teleport/issues/24817) -- a field number change between versions caused a production-breaking backward compatibility issue.
+**Consequences:** OOM on Fly.io machines (256MB-512MB RAM). Even if it fits, GC pressure from allocating and discarding 100K+ ent entity structs causes latency spikes affecting concurrent requests. Defeats the stated goal of "stream rows one at a time from DB query results via protobuf."
 
 **Prevention:**
-- Treat field number assignment as a one-time, permanent decision. Document this in a comment above each schema's `Annotations()` method: "Field numbers are permanent. Never change or reuse a number."
-- Use `buf breaking` to detect field number changes between commits. Add to CI. Configure `buf.yaml` with `WIRE` or `WIRE_JSON` breaking change detection level.
-- When removing a field, use protobuf `reserved` declarations in the generated `.proto` file to prevent the number from being reused. entproto does not generate `reserved` automatically -- add it manually to the generated proto file and add a CI check that it is not removed.
-- Assign field numbers with gaps (2, 3, 4, 10, 11, 12, 20, 21...) to leave room for related fields to be added later without awkward numbering.
-- Start field numbering at 2 (entproto reserves 1 for the ID field) and increment sequentially per logical group.
+- Implement internal batched pagination: query in batches of 500-1000 rows using keyset pagination (`WHERE id > lastID ORDER BY id LIMIT batchSize`) in a loop. For each batch, convert to proto and `stream.Send()` each row individually.
+- Ent supports keyset pagination via `Where(entity.IDGT(lastID)).Order(ent.Asc(entity.FieldID)).Limit(batchSize)`.
+- Close each batch's result slice reference before fetching the next to allow GC to reclaim memory.
+- Do NOT use OFFSET-based pagination for streaming -- OFFSET performance degrades linearly with depth in SQLite as it must scan and discard rows.
 
-**Detection:** Client-side data appears scrambled or has unexpected values. `buf breaking` fails in CI. Wireshark/protobuf decode shows field numbers that do not match the schema.
+**Detection:** Monitor `go_memstats_alloc_bytes` during a full-table stream. If it spikes proportionally to table size, the batching is wrong. A correct implementation should have roughly constant memory usage regardless of total row count.
 
-**Confidence:** HIGH -- this is fundamental to protobuf wire format and is [extensively documented](https://protobuf.dev/programming-guides/proto3/#assigning) and the [#1 protobuf backward compatibility pitfall](https://earthly.dev/blog/backward-and-forward-compatibility/).
+**Confidence:** HIGH -- ent's `.All()` is documented to load all results into memory. Keyset pagination is the standard SQLite approach for large tables.
 
 ---
 
-### Pitfall 3: otelhttp + otelconnect Double Instrumentation -- Duplicate Spans and Inflated Metrics
+### Pitfall 3: Long-Running Streams Block LiteFS WAL Checkpointing
 
-**What goes wrong:** The existing middleware stack (main.go line 254) wraps the entire mux with `otelhttp.NewMiddleware("peeringdb-plus")`. When ConnectRPC handlers are mounted on the same mux, each gRPC/Connect request gets instrumented twice: once by otelhttp (which sees the raw HTTP request) and once by otelconnect (which sees the RPC-level request). This produces two spans per RPC call (one named `HTTP POST /grpc.package.Service/Method`, one named `package.Service/Method`), and two sets of metrics (http.server.request.duration AND rpc.server.duration). Dashboards show inflated request counts. Latency percentiles become meaningless because half the data points are parent spans and half are child spans at different granularity.
+**What goes wrong:** SQLite WAL mode allows concurrent reads and writes, but WAL checkpointing (flushing WAL back to the main database file) requires that no readers hold snapshots from before the checkpoint. A streaming query that holds a single read transaction open for the duration of the stream (potentially minutes) prevents WAL checkpointing, causing the WAL file to grow unbounded.
 
-**Why it happens:** otelhttp and otelconnect instrument at different abstraction layers. otelhttp sees HTTP requests (method, path, status code). otelconnect sees RPC calls (service, method, status, protocol). Both create root server spans. When both are active on the same request path, each creates its own span. The otelconnect documentation acknowledges that "any logging, tracing, or metrics that work with an `http.Handler` or `http.Client` will also work with Connect" but does NOT explicitly warn about double instrumentation or recommend against using both.
+**Why it happens:** If the entire streaming operation is wrapped in a single `entClient.Tx()` for read consistency, SQLite keeps the WAL snapshot open for the full stream duration. Each batch query within the transaction reads from the same snapshot, which is correct for consistency but prevents checkpoint.
 
-**Consequences:**
-- Trace views show confusing nested spans: otelhttp span -> otelconnect span -> actual handler.
-- Metrics double-count: `http_server_request_duration_seconds` and `rpc_server_duration_seconds` both increment for every RPC call.
-- Alerting on request rate fires at 2x the actual rate for gRPC traffic.
-- Cardinality explosion: otelhttp attributes (http.route, http.method) plus otelconnect attributes (rpc.service, rpc.method, rpc.system) create a cross-product of label combinations.
+**Consequences:** WAL file grows to hundreds of MB during long streams. On LiteFS replicas, replication lag increases because the primary's WAL checkpoint is blocked. Disk usage grows on Fly.io machine's ephemeral storage (typically limited).
 
 **Prevention:**
-- **Use route-based filtering on otelhttp.** Configure otelhttp to skip ConnectRPC paths. Since ConnectRPC handlers are mounted at specific path prefixes (e.g., `/grpc.peeringdb.v1.NetworkService/`), use `otelhttp.WithFilter()` to exclude these paths from HTTP-level instrumentation:
+- Do NOT wrap the entire streaming operation in a single database transaction. Accept that rows may reflect minor changes between batches -- the data is a read-only mirror that syncs hourly, so inter-batch consistency is acceptable for bulk export use cases.
+- Each batch query should be a separate short-lived read transaction. Ent's default query behavior (no explicit `Tx`) already does this -- each `.All(ctx)` call opens and closes its own transaction.
+- Add a timeout to the overall stream operation (e.g., 5 minutes) to prevent indefinite reads.
+- Monitor WAL file size during streaming operations.
 
-```go
-otelhttp.NewMiddleware("peeringdb-plus",
-    otelhttp.WithFilter(func(r *http.Request) bool {
-        // Skip gRPC/ConnectRPC paths -- otelconnect handles these
-        return !strings.HasPrefix(r.URL.Path, "/grpc.") &&
-               !strings.HasPrefix(r.URL.Path, "/connectrpc.")
-    }),
-)
-```
+**Detection:** Check WAL file size on disk during active streams. Alert if WAL exceeds normal checkpoint size (typically a few MB) for extended periods.
 
-- **Alternatively, mount ConnectRPC on a separate sub-mux** that is NOT wrapped by otelhttp. Only the REST/GraphQL/web mux gets otelhttp middleware. The ConnectRPC mux gets otelconnect interceptors only.
-- Do NOT use both otelhttp and otelconnect on the same request path. Choose one per route group.
-- Verify in staging by checking trace output: each RPC call should produce exactly one server span, not two.
-
-**Detection:** Trace viewer shows two root-level server spans per gRPC request. Prometheus metrics show both `http_server_request_duration_seconds` and `rpc_server_duration_seconds` incrementing for the same calls. Request rate dashboards show 2x actual traffic for ConnectRPC endpoints.
-
-**Confidence:** MEDIUM -- the otelconnect documentation does not explicitly warn about this, but the architecture makes double instrumentation inevitable when both middlewares are active on the same handler chain. Verified by reading the middleware application order in main.go (otelhttp wraps the entire mux at line 254) and otelconnect's architecture (interceptor per-handler).
-
----
-
-### Pitfall 4: CORS Configuration Incomplete for gRPC-Web and Connect Protocols
-
-**What goes wrong:** The existing CORS middleware (internal/middleware/cors.go) allows headers `Content-Type` and `Authorization` with methods `GET`, `POST`, `OPTIONS`. gRPC-Web and Connect protocol require additional headers that are not in the allow list. Browser-based gRPC-Web clients send preflight OPTIONS requests with `Access-Control-Request-Headers` containing `X-Grpc-Web`, `Grpc-Timeout`, `X-User-Agent`, or `Connect-Protocol-Version`. The CORS middleware rejects these preflights. The browser blocks the actual request. The error message is cryptic: "missing trailer" or "fetch failed" in the browser console, not "CORS blocked."
-
-**Why it happens:** The existing CORS config was designed for REST and GraphQL (which only need `Content-Type` and `Authorization`). The gRPC-Web and Connect protocols use custom headers that are not CORS-safelisted. The [ConnectRPC CORS documentation](https://connectrpc.com/docs/cors/) specifies exact header requirements:
-
-- **gRPC-Web requires:** Allow headers: `Content-Type, Grpc-Timeout, X-Grpc-Web, X-User-Agent`. Expose headers: `Grpc-Status, Grpc-Message, Grpc-Status-Details-Bin`.
-- **Connect protocol requires:** Allow headers: `Content-Type, Connect-Protocol-Version, Connect-Timeout-Ms, X-User-Agent`. Expose headers: `Grpc-Status, Grpc-Message, Grpc-Status-Details-Bin`.
-- **Both require:** POST method allowed. Connect GET requests (cacheable unary RPCs) need GET allowed too.
-
-**Consequences:**
-- All browser-based gRPC-Web and Connect clients fail silently.
-- Error manifests as "missing trailer" or generic network error, not as a CORS error, because the browser blocks the response before the application can read it.
-- Server-side logs show no errors because the OPTIONS preflight never reaches the handler.
-- Developers test with curl or grpcurl (which do not enforce CORS) and everything works. Deploy to production, browsers break.
-
-**Prevention:**
-- Update the CORS middleware to include all required headers. The ConnectRPC docs provide a canonical list. For this project, update `internal/middleware/cors.go`:
-
-```go
-AllowedMethods: []string{"GET", "POST", "OPTIONS"},
-AllowedHeaders: []string{
-    "Content-Type",
-    "Authorization",
-    // gRPC-Web headers
-    "X-Grpc-Web",
-    "Grpc-Timeout",
-    "X-User-Agent",
-    // Connect protocol headers
-    "Connect-Protocol-Version",
-    "Connect-Timeout-Ms",
-},
-ExposedHeaders: []string{
-    // gRPC-Web / Connect response headers
-    "Grpc-Status",
-    "Grpc-Message",
-    "Grpc-Status-Details-Bin",
-},
-```
-
-- Test CORS with a browser-based client, NOT just curl/grpcurl. Use the ConnectRPC TypeScript client (`@connectrpc/connect-web`) for verification.
-- If the application uses custom response trailers (unlikely for read-only mirror), expose them with `Trailer-` prefix per ConnectRPC CORS docs.
-- Do NOT use wildcard (`*`) for AllowedHeaders in production -- it does not work with credentials and some browsers handle it inconsistently.
-
-**Detection:** Browser console shows CORS errors on gRPC-Web or Connect requests. Network tab shows OPTIONS preflight returning 200 but without the required `Access-Control-Allow-Headers`. gRPC-Web client reports "missing trailer."
-
-**Confidence:** HIGH -- the required headers are [documented by ConnectRPC](https://connectrpc.com/docs/cors/) and the existing CORS config (verified in `internal/middleware/cors.go` line 26-27) does not include them.
-
----
+**Confidence:** HIGH -- SQLite WAL behavior is well-documented. LiteFS WAL mode blog post confirms the checkpointing semantics.
 
 ## Moderate Pitfalls
 
-### Pitfall 5: entproto Enum Naming Does Not Follow buf Conventions -- buf lint Fails
+### Pitfall 4: Streaming RPC Timeouts Differ From Unary RPC Timeouts
 
-**What goes wrong:** entproto generates enum values without the enum type name as a prefix. For example, a `View` enum generates values `BASIC` and `WITH_EDGE_IDS` instead of `VIEW_BASIC` and `VIEW_WITH_EDGE_IDS`. Running `buf lint` fails with `ENUM_VALUE_PREFIX` violations. This blocks the `buf generate` workflow and prevents using buf's breaking change detection.
+**What goes wrong:** ConnectRPC documentation states: "Timeouts for streaming RPCs apply to the whole message exchange." The server's existing `http.Server` has no explicit read/write timeouts set in `main.go`. For unary RPCs this is tolerable because requests complete quickly. For streaming RPCs, a slow or malicious client can keep a connection open indefinitely, tying up a goroutine and database resources.
 
-**Why it happens:** entproto was designed before buf conventions became widely adopted. [Issue #3063](https://github.com/ent/ent/issues/3063) documents this explicitly: "buf recommends prefixing enum values with their enum name for clarity." The issue also lists other buf incompatibilities: wrong default package name (`entpb` instead of versioned like `peeringdb.v1`), unused imports in generated protos, and generating `generate.go` instead of `buf.yaml`.
-
-**Consequences:**
-- `buf lint` fails, preventing integration with buf toolchain.
-- Without buf, no automated breaking change detection (critical given Pitfall 2).
-- Workaround options all involve post-processing generated files, which is fragile.
-- If future entproto versions fix this, existing clients may break because enum wire values change.
+**Why it happens:** Unary RPCs are naturally short-lived. When streaming is added, the same server config that was fine for unary becomes a resource leak vector. ConnectRPC's deployment docs warn specifically: "Keep timeouts short and avoid streaming for untrusted client scenarios" because `net/http` uses `SetDeadline` on connections, meaning any read/write blocks until the complete stream timeout expires.
 
 **Prevention:**
-- Accept buf lint warnings for now. Configure `buf.yaml` to disable `ENUM_VALUE_PREFIX` and `ENUM_ZERO_VALUE_SUFFIX` linting rules for entproto-generated files. These are style rules, not correctness rules -- the wire format uses integers, not names.
-- Keep `buf breaking` enabled even with lint warnings disabled. Breaking change detection works on field numbers, not enum value names.
-- Set the protobuf package name explicitly using `entproto.Message(entproto.PackageName("peeringdb.v1"))` if supported by entproto, or post-process the generated `.proto` files to set `option go_package` and `package` correctly.
-- Monitor [ent/ent #3063](https://github.com/ent/ent/issues/3063) for resolution. If fixed, adopting the new naming requires coordinated client updates.
+- Set a per-RPC deadline using `context.WithTimeout` inside each streaming handler (e.g., 5 minutes for a full table dump).
+- Check `ctx.Done()` inside the streaming loop between batches.
+- Consider adding `ReadHeaderTimeout` to the `http.Server` config, but keep it generous enough for legitimate streams.
+- The streaming endpoint is public and unauthenticated -- resource exhaustion is a real concern.
 
-**Detection:** `buf lint` output shows `ENUM_VALUE_PREFIX` violations. `buf generate` may still succeed (lint is separate from generation).
-
-**Confidence:** HIGH -- verified via [GitHub issue #3063](https://github.com/ent/ent/issues/3063) and [entproto documentation](https://entgo.io/docs/grpc-generating-proto/).
+**Confidence:** HIGH -- ConnectRPC deployment docs explicitly warn about this.
 
 ---
 
-### Pitfall 6: entproto Optional/Nillable Fields Generate Wrapper Types -- Increased Message Size and Client Complexity
+### Pitfall 5: Adding Streaming RPCs to Existing Services Changes Generated Handler Interfaces
 
-**What goes wrong:** The ent schema uses `Optional()` and `Nillable()` extensively (the Network schema alone has ~15 optional/nillable fields). entproto maps these to Google well-known wrapper types (`google.protobuf.StringValue`, `google.protobuf.BoolValue`, `google.protobuf.Int32Value`). Each wrapper is a nested message, adding 2-4 bytes of framing overhead per field. For a Network message with 15 wrapper fields, this adds ~30-60 bytes per message. When listing all ~50,000 networks, this is ~1.5-3MB of overhead. More importantly, client-side code becomes verbose: instead of `network.Name`, clients must use `network.GetInfoScope().GetValue()` with nil checks.
+**What goes wrong:** Adding a `stream` server-streaming RPC to an existing service (e.g., adding `StreamAllNetworks` to `NetworkService`) changes the generated `NetworkServiceHandler` interface. The existing `NetworkService` struct no longer satisfies the interface because it doesn't implement the new method. This is a compile-breaking change.
 
-**Why it happens:** Protobuf3 has no native concept of "optional" for scalar types (proto3 made all fields optional by default, meaning you cannot distinguish "not set" from "zero value"). entproto uses wrapper types to preserve ent's Optional/Nillable semantics. This is semantically correct but creates ergonomic friction.
+**Why it happens:** `protoc-gen-connect-go` generates a single handler interface per service. Any new RPC method changes the interface contract. All 13 services break simultaneously when the proto is regenerated.
 
-**Consequences:**
-- Client code is verbose with nil-check boilerplate for every optional field.
-- Message size increases for list responses (though the overhead is small compared to the actual data).
-- TypeScript/JavaScript clients using `@connectrpc/connect-web` must handle wrapper types differently than plain scalars.
-- If proto3 `optional` keyword (available since protobuf 3.15) is used instead, entproto-generated code may not match.
+**Consequences:** Compilation failure across all 13 service handler files immediately after proto regeneration. If not anticipated, this creates a large diff that must be addressed all at once.
 
 **Prevention:**
-- Accept wrapper types for now -- they are semantically correct and the overhead is manageable for a read-only mirror.
-- Generate client helper functions or extension methods that unwrap values: `func NetworkName(n *pb.Network) string { return n.GetName().GetValue() }`.
-- Consider using proto3 `optional` keyword instead of wrapper types for new fields if entproto adds support. The `optional` keyword was stabilized in protobuf 3.15 and generates `has_*` methods without the wrapper overhead.
-- Do NOT manually edit generated `.proto` files to replace wrappers with `optional` -- entproto will overwrite on the next `go generate`.
-- Document the wrapper type pattern in API documentation so clients know to expect `StringValue` instead of plain `string` for nullable fields.
+- Plan the proto change: add all 13 streaming RPC definitions to `services.proto` in one commit, regenerate, then implement stub handlers for all 13 before any of them will compile.
+- ConnectRPC generates `Unimplemented*Handler` structs. Check if the existing service structs embed these -- if not, adding them now would allow incremental implementation (unimplemented methods return `connect.CodeUnimplemented`).
+- Alternatively, create a separate proto service for streaming (e.g., `NetworkExportService` with just the streaming RPCs), avoiding breaking the existing handler interfaces. This creates more services but decouples streaming from the existing unary API.
 
-**Detection:** Generated `.proto` files contain `import "google/protobuf/wrappers.proto"` and use `google.protobuf.StringValue` instead of `string` for optional fields. Client code requires nested `.GetValue()` calls.
-
-**Confidence:** HIGH -- verified via [entproto optional fields documentation](https://entgo.io/docs/grpc-optional-fields/) and the ent schema in `ent/schema/network.go`.
+**Confidence:** HIGH -- this is how protoc-gen-connect-go works. Verified from existing generated code in `services.connect.go`.
 
 ---
 
-### Pitfall 7: Readiness Middleware Blocks gRPC Health Checks Before First Sync
+### Pitfall 6: HTTP/1.1 Clients Receive Streaming Differently Than HTTP/2 Clients
 
-**What goes wrong:** The readiness middleware (main.go lines 296-321) returns 503 for all paths except `/sync`, `/healthz`, `/readyz`, `/`, and `/static/` until the first sync completes. gRPC health check endpoints (served by ConnectRPC at `/grpc.health.v1.Health/Check`) are not in the bypass list. Kubernetes/Fly.io gRPC health probes fail during initial startup. Load balancers mark the instance as unhealthy. If using Fly.io's machine auto-stop/start, the machine may be stopped before it can sync.
+**What goes wrong:** ConnectRPC supports server streaming over both HTTP/1.1 (chunked transfer encoding) and HTTP/2 (native frame-level multiplexing with flow control). The Connect protocol works over HTTP/1.1 for server streaming. The gRPC protocol requires HTTP/2. Through Fly.io's proxy, the protocol may be negotiated differently depending on client capability and `fly.toml` configuration.
 
-**Why it happens:** The readiness middleware was written before gRPC was added. It uses a hardcoded path allowlist for infrastructure endpoints. gRPC health checks use a different path pattern (`/grpc.health.v1.Health/Check`) that was not anticipated.
-
-**Consequences:**
-- gRPC health probes return 503 during startup (before first sync).
-- If Fly.io health checks are configured to use gRPC health protocol, the machine is marked unhealthy.
-- The HTTP `/healthz` endpoint continues to work (it is in the bypass list), so HTTP health checks are unaffected.
-- This only matters if gRPC-specific health checking is configured in the deployment.
+**Why it happens:** The app supports both HTTP/1.1 and h2c via `http.Protocols`. ConnectRPC abstracts the protocol difference at the API level, but the transport behavior matters: HTTP/2 has native backpressure via flow control windows; HTTP/1.1 relies on TCP-level backpressure and chunked transfer encoding. Intermediate proxies may buffer chunked responses, defeating the streaming benefit on HTTP/1.1.
 
 **Prevention:**
-- Add the gRPC health check path to the readiness bypass list:
+- Verify streaming works through Fly.io's proxy with both `grpcurl` (h2c/gRPC), `buf curl` (Connect protocol), and a plain HTTP/1.1 client.
+- The v1.6 milestone already removed the LiteFS proxy and enabled h2c directly. Confirm Fly.io's internal routing does not re-introduce buffering.
+- For the Connect protocol over HTTP/1.1, the stream uses `Content-Type: application/connect+proto` with chunked encoding. Ensure no intermediate proxy buffers the full response before forwarding.
+- Server streaming is fully supported on HTTP/1.1 in ConnectRPC (confirmed via GitHub issue #639). Bidirectional streaming requires HTTP/2, but this milestone only adds server streaming.
 
-```go
-if r.URL.Path == "/sync" || r.URL.Path == "/healthz" ||
-    r.URL.Path == "/readyz" || r.URL.Path == "/" ||
-    strings.HasPrefix(r.URL.Path, "/static/") ||
-    strings.HasPrefix(r.URL.Path, "/grpc.health.v1.Health/") {
-    next.ServeHTTP(w, r)
-    return
-}
-```
-
-- Use `connectrpc.com/grpchealth` package to serve gRPC health checks over HTTP. It implements the `grpc.health.v1.Health` service and works with `grpc-health-probe` and Kubernetes gRPC liveness probes.
-- Keep the existing HTTP `/healthz` and `/readyz` endpoints. They serve different purposes (process liveness vs. data readiness). The gRPC health check can delegate to the same readiness logic.
-- Consider a more generic bypass pattern: allow any path starting with `/grpc.health.` rather than hardcoding the exact path, in case additional health service versions are added.
-
-**Detection:** gRPC health probe returns `SERVING: false` or connection refused during startup. Fly.io logs show health check failures before first sync. The standard HTTP `/healthz` returns 200 at the same time.
-
-**Confidence:** HIGH -- verified by reading the readiness middleware implementation in `cmd/peeringdb-plus/main.go` lines 296-321.
+**Confidence:** HIGH -- verified from ConnectRPC issue #639 and deployment docs.
 
 ---
 
-### Pitfall 8: Fly.io ALPN Misconfiguration -- h2 + http/1.1 Coexistence Issues
+### Pitfall 7: Logging Middleware Logs Only After Handler Returns -- Streams Appear as Single Long Request
 
-**What goes wrong:** When configuring `[http_service.tls_options]` with `alpn = ["h2"]` to support gRPC, Fly.io's edge has been observed to advertise both `h2` and `http/1.1` regardless of configuration. Conversely, setting `alpn = ["h2"]` without `h2_backend = true` causes Fly.io to negotiate HTTP/2 with clients but then downgrade to HTTP/1.1 when forwarding to the backend, breaking gRPC's HTTP/2 requirement. Setting both `alpn = ["h2", "http/1.1"]` and `h2_backend = true` causes ALL traffic (including REST/GraphQL) to be sent as h2c to the backend, which breaks if the backend cannot handle h2c (see Pitfall 1 re: LiteFS proxy).
+**What goes wrong:** The existing `middleware.Logging` captures the status code and logs the request after `next.ServeHTTP(wrapped, r)` returns. For a streaming RPC that takes 30+ seconds, the log entry appears only after the stream completes. There is no visibility into in-progress streams, and the logged duration is the total stream time.
 
-**Why it happens:** Fly.io's edge proxy handles TLS termination and protocol negotiation independently from backend forwarding. The ALPN setting controls what the edge advertises to clients. The `h2_backend` setting controls how the edge communicates with your backend. These two settings interact in non-obvious ways:
-
-| Client ALPN | h2_backend | Edge -> Backend | Result |
-|---|---|---|---|
-| h2 | false | HTTP/1.1 | gRPC fails (needs HTTP/2) |
-| h2 | true | h2c | gRPC works, but LiteFS proxy breaks |
-| h2, http/1.1 | false | HTTP/1.1 | REST works, gRPC fails |
-| h2, http/1.1 | true | h2c | Everything uses h2c, LiteFS proxy breaks |
-
-There is also a [known Fly.io bug](https://community.fly.io/t/alpn-offers-h2-http-1-1-even-though-only-h2-is-configured/13434) where ALPN configuration is not correctly honored.
-
-Additionally, when `h2_backend = true` is enabled, a [known issue](https://community.fly.io/t/h2-backend-no-host-header/27100) exists where the `:authority` pseudo-header may not be set correctly, causing framework-specific routing failures.
-
-**Consequences:**
-- gRPC clients cannot connect unless h2_backend is true.
-- h2_backend = true breaks LiteFS proxy (Pitfall 1).
-- Catch-22: cannot serve both gRPC (needs HTTP/2) and REST-behind-LiteFS (needs HTTP/1.1) on the same port/service.
+**Why it happens:** The middleware was designed for unary request/response where duration is a meaningful metric. For streams, operators want to know about in-progress streams, message rates, and completion status.
 
 **Prevention:**
-- **Accept ConnectRPC over HTTP/1.1** as the primary strategy (Option A from Pitfall 1). ConnectRPC's Connect protocol and gRPC-Web both work over HTTP/1.1. Do not set `h2_backend = true`. Do not change ALPN configuration. Leave `fly.toml` as-is.
-- If native gRPC is required, use a **separate Fly.io service** (separate `[[services]]` block) on a different port with `h2_backend = true`, bypassing LiteFS proxy entirely.
-- Do NOT attempt to use `alpn = ["h2"]` without `h2_backend = true` -- it will negotiate HTTP/2 with clients but fail on the backend.
-- Monitor Fly.io community forum for ALPN bug fixes.
+- Accept this limitation for the HTTP-level logging middleware. The otelconnect interceptor already creates a span covering the full stream lifecycle with per-message events (trace events are enabled by default unless `WithoutTraceEvents` is used).
+- Add explicit logging inside each streaming handler: a log at stream start ("starting stream for Network, N total rows") and at completion ("stream completed, sent N messages in D duration").
+- Do NOT add per-message logging -- at 100K+ messages, this creates millions of log lines that overwhelm log ingestion.
 
-**Detection:** gRPC clients receive protocol errors or timeouts. `fly logs` show connection resets. REST/GraphQL endpoints suddenly break when `h2_backend` is enabled.
-
-**Confidence:** HIGH -- verified via [Fly.io networking docs](https://fly.io/docs/networking/services/), [Fly.io gRPC guide](https://fly.io/docs/app-guides/grpc-and-grpc-web-services/), and community-reported issues.
+**Confidence:** HIGH -- verified from existing `middleware.Logging` source code and otelconnect documentation.
 
 ---
 
-### Pitfall 9: entproto Edge Field Numbers Collide with Schema Field Numbers
+### Pitfall 8: Graceful Shutdown Waits for All Active Streams to Complete
 
-**What goes wrong:** entproto requires explicit `entproto.Field(n)` annotations on both schema fields AND edges. Field number 1 is reserved for the ID field. If a developer assigns field numbers 2-40 to the schema's ~39 fields and then assigns edge field numbers starting at 2, the numbers collide. Protobuf requires all field numbers within a message to be unique. The collision causes `entproto` code generation to fail with a cryptic error or, worse, silently generates invalid proto definitions that `protoc` rejects.
+**What goes wrong:** `server.Shutdown(ctx)` waits for all in-flight requests to complete. A streaming RPC sending 100K rows could take minutes. During rolling deploys on Fly.io, the old machine waits for streams to finish before stopping, delaying the deploy.
 
-**Why it happens:** The Network schema has ~39 fields (counting all optional, computed, and common fields). Edges need their own field numbers in the same protobuf message. Developers naturally start edge numbering at "the next number" but may miscalculate, or may not realize edges share the same number space as fields.
+**Why it happens:** HTTP/2 connections with active streams are not immediately closed by `Shutdown()`. The shutdown context has a timeout (`cfg.DrainTimeout`), but if it's too short, active streams are forcefully terminated mid-transfer.
 
-For the Network schema specifically:
-- Fields: `id` (1), then 38 more fields (2-39)
-- Edges: `network_facilities`, `network_ix_lans`, `organization`, `pocs` (4 edges needing numbers 40-43)
-- If a developer assigns edges starting at 30 (thinking there are only 29 fields), numbers 30-33 collide.
-
-**Consequences:**
-- `go generate` fails with confusing protobuf compilation errors.
-- If the collision is between fields of different types, protoc may produce corrupt Go code that compiles but deserializes incorrectly.
-- Time wasted debugging field number collisions across 15+ schema files.
+**Consequences:** Either deploys take too long (waiting for streams) or streams are cut off mid-transfer during deploys.
 
 **Prevention:**
-- Use a systematic numbering convention. Recommended approach:
-  - Fields: 2 through N (where N is the number of fields + 1)
-  - Edges: start at 100 (or the next hundred after the field count)
-  - This leaves a gap for adding fields without renumbering edges.
-- Count fields carefully for each schema before assigning edge numbers. The Network schema has 39 fields (2-40), so edges should start at 50 or 100.
-- Add a CI check that parses generated `.proto` files and verifies all field numbers within each message are unique.
-- Consider writing a helper function or linter that reads ent schema annotations and validates field number uniqueness across fields and edges.
+- Set `DrainTimeout` to a reasonable value (30-60 seconds) and accept that long-running streams may be interrupted during deploys.
+- Document that streaming clients should handle reconnection and resume from the last received ID (the messages include the entity ID, so clients know where they stopped).
+- Check `ctx.Done()` in the streaming loop -- the shutdown context cancellation propagates through the request context.
+- This is manageable because streaming is for bulk export (not real-time feeds). Clients can retry.
 
-**Detection:** `go generate` fails with protobuf compilation errors mentioning duplicate field numbers. `buf lint` reports `FIELD_NUMBER_*` violations.
-
-**Confidence:** HIGH -- this is a structural requirement of protobuf, and the ent schema files show 30-40+ fields per entity. The risk of miscounting is high.
+**Confidence:** MEDIUM -- standard HTTP/2 server shutdown behavior, but exact Fly.io rolling deploy timing needs runtime verification.
 
 ---
 
-### Pitfall 10: entproto Does Not Handle JSON Fields ([]string, []SocialMedia) -- Code Generation Fails or Produces Unusable Types
+### Pitfall 9: gRPC Reflection Shows Stale Method Lists If Codegen Not Re-Run
 
-**What goes wrong:** Several ent schema fields use `field.JSON("info_types", []string{})` and `field.JSON("social_media", []SocialMedia{})`. entproto has limited support for JSON fields. A `[]string` field may be mapped to `repeated string` (which is correct), but a custom struct type like `[]SocialMedia` has no automatic protobuf mapping. entproto may fail to generate the proto definition, generate an opaque `bytes` field (losing type information), or require manual `entproto.OverrideType()` annotations to specify the mapping.
+**What goes wrong:** The existing `grpcreflect.NewStaticReflector(serviceNames...)` uses compiled-in file descriptors from the generated Go code. Service names don't change when streaming RPCs are added, so the registration code looks correct. But if `buf generate` is not re-run after updating `services.proto`, the reflection descriptors still show only `Get` and `List` methods -- the new streaming RPCs are invisible to discovery tools.
 
-**Why it happens:** JSON fields in ent are stored as JSON text in SQLite and deserialized into Go types. Protobuf has no equivalent of "arbitrary JSON" -- every field must have a defined type. For `[]string`, the mapping to `repeated string` is straightforward. For custom struct types, entproto must generate a nested message type or the developer must define one manually.
-
-**Consequences:**
-- `go generate` fails for schemas with complex JSON fields.
-- If `bytes` is used as a fallback, clients receive raw JSON bytes instead of typed protobuf messages and must deserialize manually, defeating the purpose of protobuf.
-- The `SocialMedia` type is used by 6 schemas (Organization, Network, Facility, InternetExchange, Carrier, Campus), so the fix must be applied consistently.
+**Why it happens:** The static reflector reads from the proto file descriptor registry, which is populated at init time from the generated `.pb.go` files. If the `.proto` is updated but codegen is not re-run, there's a mismatch.
 
 **Prevention:**
-- Define a `SocialMedia` protobuf message manually in a shared `.proto` file:
+- Always re-run the full codegen pipeline (`buf generate` + `go generate ./ent`) after proto changes.
+- Verify with `grpcurl -plaintext localhost:8080 list peeringdb.v1.NetworkService` that new streaming RPCs appear.
+- Add a CI check that regenerated code matches committed code (this already exists as "go generate drift" check in the GitHub Actions pipeline).
 
-```protobuf
-message SocialMedia {
-  string service = 1;
-  string identifier = 2;
-}
-```
-
-- Use `entproto.OverrideType()` on the `social_media` field to reference this message type, or exclude the field from protobuf generation and handle it separately.
-- For `[]string` fields like `info_types`, verify that entproto maps them to `repeated string`. If not, use `entproto.OverrideType()`.
-- Test code generation early in the phase -- do not wait until all field numbers are assigned. Run `go generate` after annotating the first schema to verify the pipeline works.
-- Consider skipping complex JSON fields from the protobuf API entirely if they are not needed by gRPC clients. Use `entproto.SkipGen()` annotation if available.
-
-**Detection:** `go generate` fails with "unsupported type" or "cannot map type" errors from entproto. Generated `.proto` files contain `bytes` instead of typed fields for JSON columns.
-
-**Confidence:** MEDIUM -- entproto documentation does not explicitly cover JSON field handling. The behavior depends on the specific entproto version. Needs validation during implementation.
-
----
+**Confidence:** HIGH -- verified from existing reflection setup in `main.go`.
 
 ## Minor Pitfalls
 
-### Pitfall 11: buf generate and go generate Pipeline Ordering -- Stale Protobuf Files
+### Pitfall 10: Anchor Tag Wrapping Entire Row Prevents Text Selection of Data Fields
 
-**What goes wrong:** The project has two code generation steps: `go generate ./ent/...` (runs entc, which generates ent code AND entproto `.proto` files) and `buf generate` (compiles `.proto` files into Go code). If `buf generate` runs before or concurrently with `go generate`, it uses stale `.proto` files from a previous run. The generated Go code does not match the current ent schema. Compilation fails with type mismatches or missing methods.
+**What goes wrong:** In the current IX participants list (`IXParticipantsList`) and network IX presences list (`NetworkIXLansList`), the entire row is wrapped in an `<a>` tag. Users cannot select and copy individual IP addresses, ASN numbers, or speed values without triggering navigation. Clicking anywhere in the row navigates away.
 
-**Why it happens:** The project already has `//go:generate` directives in `ent/generate.go`. Adding protobuf generation creates a two-stage pipeline where stage 2 (buf) depends on stage 1 (entproto) output. `go generate ./...` runs all generate directives but does not guarantee ordering across packages. If `buf generate` is also triggered by a `//go:generate` directive, its execution order relative to entproto is undefined.
-
-**Consequences:**
-- Build fails intermittently depending on execution order.
-- Developer runs `go generate` twice to "fix" it, masking the ordering issue.
-- CI builds fail on clean checkouts because generated files are not committed or are stale.
+**Why it happens:** The `<a>` wrapping pattern creates clean clickable rows for navigation, but IP addresses and ASNs are data that network engineers frequently need to copy for configuration, whois lookups, or traceroutes.
 
 **Prevention:**
-- Use a Taskfile (or Makefile) that explicitly sequences the steps:
+- Restructure the row: keep the `<a>` link on the entity name only, move data fields (speed, IPv4, IPv6) outside the anchor tag into a parent `<div>`.
+- Add `select-text` Tailwind class to data spans to explicitly enable text selection where needed.
+- Use a click handler on the parent `<div>` for row-level navigation if desired, with `e.target` checks to avoid navigating when clicking on data text. Or accept that only the name is clickable.
+- Fix both `NetworkIXLansList` and `IXParticipantsList` simultaneously -- they share the same pattern.
 
-```yaml
-tasks:
-  generate:
-    cmds:
-      - go generate ./ent/...    # Stage 1: ent schemas + entproto .proto files
-      - buf generate              # Stage 2: .proto -> .pb.go + connect handlers
-      - go generate ./graph/...   # Stage 3: gqlgen (if needed after proto changes)
-    desc: "Run all code generation in correct order"
-```
-
-- Do NOT put `buf generate` in a `//go:generate` directive. Keep it in the Taskfile only.
-- Commit generated `.proto` files and `.pb.go` files to version control. This ensures `go build` works without running the full generation pipeline, and `buf breaking` can compare against the committed protos.
-- Add a CI step that runs the full generation pipeline and verifies no diff: `task generate && git diff --exit-code`.
-
-**Detection:** Build fails with "undefined: pb.NetworkServiceHandler" or similar missing type errors. Running `go generate` twice fixes the issue.
-
-**Confidence:** HIGH -- this is a standard multi-stage code generation issue. The existing `ent/generate.go` and `ent/entc.go` confirm the project already uses `go generate` for ent.
+**Confidence:** HIGH -- verified from current templ source code.
 
 ---
 
-### Pitfall 12: ConnectRPC Handlers Use Different Path Patterns Than REST/GraphQL -- Route Conflicts
+### Pitfall 11: Color-Coded Port Speeds May Fail WCAG Contrast Requirements
 
-**What goes wrong:** ConnectRPC handlers are mounted at paths like `/grpc.peeringdb.v1.NetworkService/GetNetwork`. The existing REST API is at `/rest/v1/networks/{id}`. The existing GraphQL is at `/graphql`. The PeeringDB compat API is at `/api/net/{id}`. No conflicts exist between these prefixes. However, if the protobuf package name is not namespaced (e.g., `package entpb` instead of `package peeringdb.v1`), the handler paths become `/entpb.NetworkService/GetNetwork`, which is ugly but functional. The real issue is that Go 1.22+ ServeMux pattern matching treats gRPC paths as literal path matches, not pattern matches. Registering `/grpc.peeringdb.v1.NetworkService/` as a prefix catches all methods for that service, which is correct. But if a path like `/grpc.peeringdb.v1.NetworkService/GetNetwork` is registered AND a catch-all `/grpc.peeringdb.v1.NetworkService/` is also registered, Go's ServeMux uses longest-match, which may not be the intended behavior for gRPC routing.
+**What goes wrong:** Adding color-coding to port speeds (e.g., different colors for 100G, 10G, 1G) can fail WCAG 2.1 AA contrast requirements (4.5:1 for normal text) against the dark background (`bg-neutral-900`, which is `#171717`). Opacity modifiers like `/70` reduce contrast below the threshold.
 
-**Why it happens:** ConnectRPC's `NewHandler` returns a path prefix and an http.Handler. The standard pattern is `mux.Handle(path, handler)` where `path` is the service path prefix. This works correctly with `http.ServeMux`. The pitfall is when developers register handlers incorrectly or when other middleware intercepts the gRPC paths.
-
-**Consequences:**
-- Minor: path aesthetics if package name is not properly namespaced.
-- Moderate: routing conflicts if gRPC paths overlap with existing route patterns (unlikely given the distinct prefixes, but possible with catch-all routes).
-- The readiness middleware (Pitfall 7) intercepts gRPC paths because it checks all non-infrastructure paths.
+**Why it happens:** Tailwind color classes at full opacity often meet contrast requirements, but adding `/70` or `/50` opacity modifiers (as seen in the existing RS badge: `text-sky-400/70`) reduces the effective contrast ratio. Dark mode requires separate contrast verification -- WCAG applies to both light and dark modes independently.
 
 **Prevention:**
-- Use a properly namespaced protobuf package: `package peeringdb.v1` not `package entpb`.
-- Register ConnectRPC handlers exactly as the library returns them: `path, handler := svcConnect.NewNetworkServiceHandler(svc); mux.Handle(path, handler)`.
-- Do not add trailing slash or modify the path returned by ConnectRPC.
-- Verify all registered routes do not conflict by printing the mux routes at startup (Go 1.22+ ServeMux does not have a route listing method, so log each registration).
+- Use only Tailwind colors at full opacity that meet 4.5:1 contrast against `#171717` (neutral-900): `text-emerald-400`, `text-sky-400`, `text-amber-400`, `text-red-400` all pass at full opacity.
+- Do NOT rely on color alone to convey meaning (WCAG SC 1.4.1). The existing `formatSpeed()` function produces text labels ("100G", "10G", "1G") -- the color supplements but does not replace the text.
+- Avoid opacity modifiers on colored text. The existing RS badge uses `/70` which should be reviewed.
+- Test both light and dark mode contrast ratios.
 
-**Detection:** gRPC calls return 404 Not Found. Route registration logs show unexpected path patterns.
-
-**Confidence:** MEDIUM -- ConnectRPC's route registration is straightforward and well-documented. The risk is low but worth noting for completeness.
+**Confidence:** HIGH -- WCAG requirements are well-defined. Tailwind color contrast values are calculable.
 
 ---
 
-### Pitfall 13: entproto Requires Explicit Annotations on Every Field and Edge -- Missing Annotations Cause Silent Omission
+### Pitfall 12: RS Badge Repositioning May Break Flex Layout on Narrow Screens
 
-**What goes wrong:** entproto only generates protobuf definitions for fields and edges that have `entproto.Field(n)` annotations. Fields without annotations are silently omitted from the generated `.proto` file. The developer adds `entproto.Message()` to the schema's `Annotations()` and runs `go generate`. The proto file is generated but is missing half the fields. The developer does not notice because `go generate` succeeds without warnings.
-
-**Why it happens:** entproto's design requires opt-in at the field level, not just the schema level. This is documented but easy to miss. With 30-40 fields per schema and 15+ schemas, annotating every field is tedious and error-prone.
-
-**Consequences:**
-- Generated protobuf messages are incomplete.
-- gRPC clients receive messages with missing data.
-- The omission is silent -- no error, no warning. Only careful comparison of the `.proto` file against the ent schema reveals the gap.
-- Adding annotations later changes field numbers if not done carefully, potentially breaking clients (see Pitfall 2).
+**What goes wrong:** Moving the "RS" (route server) badge from its current `justify-between` right-aligned position to inline with data fields changes the flex layout. The current layout uses `flex items-center justify-between` with the RS badge as a `shrink-0` element. Moving it inline with speed/IP data may cause wrapping or overflow on mobile viewports.
 
 **Prevention:**
-- Write a CI check that compares the number of fields in each ent schema against the number of fields in the generated `.proto` message. Flag schemas where the counts diverge by more than expected (some fields like computed/internal fields may be intentionally excluded).
-- When annotating schemas, work through them systematically: open the schema file and the generated `.proto` file side-by-side. Verify each field appears.
-- Consider writing a linter or generator helper that auto-assigns field numbers to unannotated fields (starting from the maximum existing number + 1). This reduces manual annotation burden but must be used carefully to avoid number instability.
-- Document which fields are intentionally excluded from protobuf generation and why.
+- Test on mobile viewports (320px-480px) after repositioning.
+- Keep the badge as an inline element near the data it describes. Use `inline-flex` for the badge to keep it in text flow.
+- If placing the badge near the speed value, put it in the same `flex gap-4` container as the other data fields.
 
-**Detection:** Generated `.proto` file has fewer fields than expected. gRPC client receives messages with zero-valued or missing fields that have data in the REST/GraphQL APIs.
-
-**Confidence:** HIGH -- this is fundamental to entproto's design. Verified via [entproto documentation](https://entgo.io/docs/grpc-generating-proto/): "annotations must be supplied on the schema to help entproto determine how to generate Protobuf definitions."
+**Confidence:** MEDIUM -- depends on exact placement chosen.
 
 ---
+
+### Pitfall 13: Field Labels Create Inconsistent Row Width When IP Fields Are Optional
+
+**What goes wrong:** Adding field labels ("Speed:", "IPv4:", "IPv6:") to IX presence rows creates inconsistent alignment when some rows have IPv6 and others don't. The conditional rendering (`if row.IPAddr6 != ""`) means some rows have two data items and others have three, causing visual jaggedness in the list.
+
+**Prevention:**
+- Use a consistent grid or fixed-width layout for data fields, regardless of whether IPv6 is present.
+- Consider a CSS Grid layout with defined columns instead of inline flex with gaps.
+- Show placeholder text (e.g., "--") for missing fields to maintain alignment, or use a tabular layout where columns are always present.
+
+**Confidence:** MEDIUM -- depends on how labels are implemented.
 
 ## Phase-Specific Warnings
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |-------------|---------------|------------|
-| LiteFS + h2c architecture decision | LiteFS proxy is HTTP/1.1 only (#1, #8) | Use ConnectRPC over HTTP/1.1 (Connect protocol + gRPC-Web). Do NOT set h2_backend = true. Accept that native gRPC protocol is not supported through LiteFS proxy. |
-| entproto schema annotation | Missing annotations (#13), field number collisions (#9), JSON field types (#10) | Annotate all fields systematically. Use numbering gaps between fields and edges (fields 2-N, edges 100+). Test code generation early. |
-| Protobuf field number assignment | Permanent field numbers (#2) | Treat as one-time decision. Use `buf breaking` in CI. Reserve removed field numbers. |
-| entproto + buf integration | Enum naming (#5), pipeline ordering (#11) | Disable buf lint for enum prefix rules. Use Taskfile for ordered generation. Commit generated files. |
-| Optional field handling | Wrapper types (#6) | Accept wrapper types. Generate client helpers. Document in API docs. |
-| CORS for gRPC-Web/Connect | Missing headers (#4) | Update CORS config with gRPC-Web and Connect protocol headers. Test with browser client. |
-| Observability instrumentation | Double spans/metrics (#3) | Filter ConnectRPC paths from otelhttp. Use otelconnect interceptors for gRPC routes only. |
-| Health checking | Readiness middleware blocks gRPC health (#7) | Add gRPC health path to readiness bypass list. Use connectrpc.com/grpchealth. |
-| Route registration | Path conflicts (#12) | Use namespaced package name. Register handlers as ConnectRPC returns them. |
+| Proto definition for streaming RPCs | Pitfall 5: Handler interface change breaks compilation of all 13 services | Add all 13 streaming RPC definitions in one proto change, regenerate, then implement stubs. Consider separate export service. |
+| Streaming handler implementation | Pitfall 2: All rows loaded into memory | Use batched keyset pagination inside handler. Query 500-1000 rows per batch, send individually, advance cursor by last ID. |
+| Streaming handler implementation | Pitfall 3: WAL growth during long streams | Do NOT wrap entire stream in a transaction. Each batch is a separate read. |
+| Streaming handler implementation | Pitfall 1: Panic recovery broken mid-stream | Validate all inputs before entering stream loop. Use explicit error returns, never panic. |
+| Streaming handler implementation | Pitfall 4: No timeout on stream | Add `context.WithTimeout` in handler (5 min ceiling). Check `ctx.Done()` between batches. |
+| Server configuration | Pitfall 8: Graceful shutdown delayed by streams | Set reasonable `DrainTimeout`. Document client reconnection from last received ID. |
+| Middleware integration | Pitfall 7: Logging shows only final status for streams | Add explicit start/complete logs in streaming handlers. Rely on otelconnect for per-message events. |
+| Fly.io deployment | Pitfall 6: HTTP/1.1 vs HTTP/2 streaming differences | Test with grpcurl (gRPC), buf curl (Connect), and curl (HTTP/1.1). Verify Fly.io proxy doesn't buffer. |
+| Codegen pipeline | Pitfall 9: Stale reflection descriptors | Re-run full codegen pipeline after proto changes. CI drift check catches this. |
+| IX presence UI restructure | Pitfall 10: Text not selectable in anchor-wrapped rows | Link on name only, data fields outside `<a>` tag. |
+| Port speed colors | Pitfall 11: Color contrast failures | Full-opacity Tailwind colors only. Pair color with text label. Never color alone. |
+| RS badge repositioning | Pitfall 12: Flex layout break on mobile | Test on narrow viewports. Use inline-flex. |
+| Field labels and alignment | Pitfall 13: Inconsistent row widths | Fixed-width columns or placeholder values for missing fields. |
 
 ## Sources
 
-### ConnectRPC / gRPC
-- [ConnectRPC Deployment & h2c](https://connectrpc.com/docs/go/deployment/) -- h2c configuration, HTTP/1.1 coexistence
-- [ConnectRPC CORS Documentation](https://connectrpc.com/docs/cors/) -- required CORS headers for gRPC-Web and Connect
-- [ConnectRPC Observability](https://connectrpc.com/docs/go/observability/) -- otelconnect instrumentation
-- [ConnectRPC gRPC Compatibility](https://connectrpc.com/docs/go/grpc-compatibility/) -- wire compatibility with grpc-go
-- [ConnectRPC gRPC Health](https://github.com/connectrpc/grpchealth-go) -- gRPC-compatible health checks for net/http
-- [gRPC Health Checking Protocol](https://grpc.io/docs/guides/health-checking/) -- standard health check service
-
-### Protobuf
-- [Protobuf Field Number Assignment](https://protobuf.dev/programming-guides/proto3/#assigning) -- permanent field numbers
-- [Protobuf Backward Compatibility Best Practices](https://earthly.dev/blog/backward-and-forward-compatibility/) -- field number stability, reserved keyword
-- [Teleport Issue #24817](https://github.com/gravitational/teleport/issues/24817) -- real-world field number breakage
-
-### entproto
-- [entproto Code Generation Guide](https://entgo.io/docs/grpc-generating-proto/) -- field numbering, annotation requirements
-- [entproto Optional Fields](https://entgo.io/docs/grpc-optional-fields/) -- wrapper type handling
-- [entproto Edge Handling](https://entgo.io/docs/grpc-edges/) -- edge field numbers, unique vs repeated
-- [ent/ent Issue #3063](https://github.com/ent/ent/issues/3063) -- buf compatibility issues (enum naming, package versioning)
-
-### Fly.io
-- [Fly.io gRPC and gRPC-Web Guide](https://fly.io/docs/app-guides/grpc-and-grpc-web-services/) -- h2_backend configuration
-- [Fly.io Public Network Services](https://fly.io/docs/networking/services/) -- h2_backend option, HTTP/2 backend
-- [Fly.io ALPN Bug Report](https://community.fly.io/t/alpn-offers-h2-http-1-1-even-though-only-h2-is-configured/13434) -- ALPN configuration not honored
-- [Fly.io h2_backend Host Header Issue](https://community.fly.io/t/h2-backend-no-host-header/27100) -- missing :authority pseudo-header
-
-### LiteFS
-- [LiteFS Source: proxy_server.go](https://github.com/superfly/litefs/blob/main/http/proxy_server.go) -- HTTP/1.1-only proxy server implementation
-- [LiteFS Architecture](https://github.com/superfly/litefs/blob/main/docs/ARCHITECTURE.md) -- proxy design
-
-### Go HTTP/2
-- [Go 1.24 h2c Support](https://github.com/golang/go/issues/67816) -- stdlib h2c via http.Protocols
-- [x/net/http2/h2c Deprecation](https://github.com/golang/go/issues/72039) -- h2c package deprecated in favor of stdlib
-- [VictoriaMetrics: How HTTP/2 Works in Go](https://victoriametrics.com/blog/go-http2/) -- http.Protocols.SetUnencryptedHTTP2
-
-### OpenTelemetry
-- [otelconnect Package](https://pkg.go.dev/connectrpc.com/otelconnect) -- RPC-level OTel instrumentation
-- [otelhttp Package](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp) -- HTTP-level OTel instrumentation
-
-### Codebase (verified against source)
-- `cmd/peeringdb-plus/main.go` -- middleware stack (lines 249-256), readiness middleware (lines 296-321), route registration
-- `internal/middleware/cors.go` -- CORS allowed headers (line 26-27): only Content-Type and Authorization
-- `ent/schema/network.go` -- 39 fields, 4 edges, JSON fields (info_types, social_media)
-- `ent/schema/types.go` -- SocialMedia struct definition
-- `ent/entc.go` -- code generation setup with entgql and entrest extensions (no entproto yet)
-- `fly.toml` -- LiteFS proxy on port 8080, app on port 8081, no h2_backend setting
-- `litefs.yml` -- proxy configuration (port 8080 -> 8081), passthrough paths
-- `internal/otel/provider.go` -- otelhttp middleware setup
+- [ConnectRPC Streaming Documentation](https://connectrpc.com/docs/go/streaming/) -- Server streaming protocol details, HTTP 200 status for all streaming responses
+- [ConnectRPC Deployment & h2c](https://connectrpc.com/docs/go/deployment/) -- Timeout considerations: "timeouts for streaming RPCs apply to the whole message exchange"
+- [ConnectRPC HTTP/1.1 Streaming Issue #639](https://github.com/connectrpc/connect-go/issues/639) -- Confirms server streaming works over HTTP/1.1, bidirectional requires HTTP/2
+- [connect package API](https://pkg.go.dev/connectrpc.com/connect) -- ServerStream type, Send method, WithReadMaxBytes/WithSendMaxBytes options
+- [otelconnect-go](https://github.com/connectrpc/otelconnect-go) -- Streaming span covers full lifecycle, per-message trace events enabled by default
+- [Go HTTP Handlers, Panic, and Deadlocks](https://iximiuz.com/en/posts/go-http-handlers-panic-and-deadlocks/) -- net/http built-in panic recovery sends RST_STREAM or closes connection
+- [go-grpc-middleware Recovery](https://pkg.go.dev/github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery) -- StreamServerInterceptor for streaming panic recovery
+- [gRPC Graceful Server Stop](https://grpc.io/docs/guides/server-graceful-stop/) -- GracefulStop waits for all requests including streaming
+- [SQLite WAL Mode](https://www.sqlite.org/wal.html) -- Readers do not block writers, but open read transactions prevent WAL checkpoint
+- [WAL Mode in LiteFS](https://fly.io/blog/wal-mode-in-litefs/) -- LiteFS WAL support, checkpoint behavior
+- [Ent CRUD API](https://entgo.io/docs/crud/) -- All() loads entire result set into memory
+- [Why Does gRPC Insist on Trailers?](https://carlmastrangelo.com/blog/why-does-grpc-insist-on-trailers) -- Error encoding in trailers, server can stream N records then report failure
+- [WCAG Color Contrast Guidelines](https://webaim.org/articles/contrast/) -- 4.5:1 minimum for normal text
+- [Dark Mode Accessibility](https://www.boia.org/blog/offering-a-dark-mode-doesnt-satisfy-wcag-color-contrast-requirements) -- Dark mode does not exempt WCAG compliance
+- [Tailwind CSS User Select](https://tailwindcss.com/docs/user-select) -- select-text and select-none utilities
+- [gRPC-Go Performance Improvements](https://grpc.io/blog/grpc-go-perf-improvements/) -- Memory allocation per frame, GC pressure in streaming

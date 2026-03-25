@@ -56,6 +56,8 @@ type NetworkDetail struct {
 	FacCount int
 	// PocCount is the count of contacts (requires query).
 	PocCount int
+	// AggregateBW is the total bandwidth in Mbps across all IX presences (for header display).
+	AggregateBW int
 }
 
 // IXDetail holds display data for an IXP detail page.
@@ -98,6 +100,8 @@ type IXDetail struct {
 	FacCount int
 	// PrefixCount is the count of peering LAN prefixes (requires IxLan traversal).
 	PrefixCount int
+	// AggregateBW is the total bandwidth in Mbps across all participants (for header display).
+	AggregateBW int
 }
 
 // FacilityDetail holds display data for a facility detail page.

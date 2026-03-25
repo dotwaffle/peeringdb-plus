@@ -3,6 +3,8 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +18,8 @@ import (
 // ConnectRPC handler interface. It queries the ent database layer and converts
 // results to protobuf messages.
 type NetworkIxLanService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetNetworkIxLan returns a single network IX LAN by ID. Returns NOT_FOUND if
@@ -102,6 +105,106 @@ func (s *NetworkIxLanService) ListNetworkIxLans(ctx context.Context, req *pb.Lis
 		NetworkIxLans: items,
 		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// StreamNetworkIxLans streams all matching network IX LANs one message at a
+// time using batched keyset pagination. Filters match the ListNetworkIxLans
+// behavior.
+func (s *NetworkIxLanService) StreamNetworkIxLans(ctx context.Context, req *pb.StreamNetworkIxLansRequest, stream *connect.ServerStream[pb.NetworkIxLan]) error {
+	// Apply stream timeout.
+	if s.StreamTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
+		defer cancel()
+	}
+
+	// Build filter predicates (identical to ListNetworkIxLans).
+	var predicates []predicate.NetworkIxLan
+	if req.NetId != nil {
+		if *req.NetId <= 0 {
+			return connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("invalid filter: net_id must be positive"))
+		}
+		predicates = append(predicates, networkixlan.NetIDEQ(int(*req.NetId)))
+	}
+	if req.IxlanId != nil {
+		if *req.IxlanId <= 0 {
+			return connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("invalid filter: ixlan_id must be positive"))
+		}
+		predicates = append(predicates, networkixlan.IxlanIDEQ(int(*req.IxlanId)))
+	}
+	if req.Asn != nil {
+		if *req.Asn <= 0 {
+			return connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("invalid filter: asn must be positive"))
+		}
+		predicates = append(predicates, networkixlan.AsnEQ(int(*req.Asn)))
+	}
+	if req.Name != nil {
+		predicates = append(predicates, networkixlan.NameContainsFold(*req.Name))
+	}
+	if req.Status != nil {
+		predicates = append(predicates, networkixlan.StatusEQ(*req.Status))
+	}
+
+	// Resume and incremental filter support.
+	if req.SinceId != nil {
+		predicates = append(predicates, networkixlan.IDGT(int(*req.SinceId)))
+	}
+	if req.UpdatedSince != nil {
+		predicates = append(predicates, networkixlan.UpdatedGT(req.UpdatedSince.AsTime()))
+	}
+
+	// Count total matching records for header metadata.
+	countQuery := s.Client.NetworkIxLan.Query()
+	if len(predicates) > 0 {
+		countQuery = countQuery.Where(networkixlan.And(predicates...))
+	}
+	total, err := countQuery.Count(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("count networkixlans: %w", err))
+	}
+	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
+
+	// Stream records in batches using keyset pagination.
+	lastID := 0
+	if req.SinceId != nil {
+		lastID = int(*req.SinceId)
+	}
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		query := s.Client.NetworkIxLan.Query().
+			Where(networkixlan.IDGT(lastID)).
+			Order(ent.Asc(networkixlan.FieldID)).
+			Limit(streamBatchSize)
+		if len(predicates) > 0 {
+			query = query.Where(networkixlan.And(predicates...))
+		}
+
+		batch, err := query.All(ctx)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal,
+				fmt.Errorf("stream networkixlans batch after id %d: %w", lastID, err))
+		}
+		if len(batch) == 0 {
+			return nil
+		}
+
+		for _, nixl := range batch {
+			if err := stream.Send(networkIxLanToProto(nixl)); err != nil {
+				return err
+			}
+		}
+
+		lastID = batch[len(batch)-1].ID
+		if len(batch) < streamBatchSize {
+			return nil
+		}
+	}
 }
 
 // networkIxLanToProto converts an ent NetworkIxLan entity to a protobuf

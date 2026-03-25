@@ -3,6 +3,8 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -16,7 +18,8 @@ import (
 // interface. It queries the ent database layer and converts results to protobuf
 // messages.
 type IxLanService struct {
-	Client *ent.Client
+	Client        *ent.Client
+	StreamTimeout time.Duration
 }
 
 // GetIxLan returns a single IX LAN by ID. Returns NOT_FOUND if the IX LAN
@@ -87,6 +90,91 @@ func (s *IxLanService) ListIxLans(ctx context.Context, req *pb.ListIxLansRequest
 		IxLans:        items,
 		NextPageToken: nextPageToken,
 	}, nil
+}
+
+// StreamIxLans streams all matching IX LANs one message at a time using batched
+// keyset pagination. Filters match the ListIxLans behavior.
+func (s *IxLanService) StreamIxLans(ctx context.Context, req *pb.StreamIxLansRequest, stream *connect.ServerStream[pb.IxLan]) error {
+	// Apply stream timeout.
+	if s.StreamTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
+		defer cancel()
+	}
+
+	// Build filter predicates (identical to ListIxLans).
+	var predicates []predicate.IxLan
+	if req.IxId != nil {
+		if *req.IxId <= 0 {
+			return connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("invalid filter: ix_id must be positive"))
+		}
+		predicates = append(predicates, ixlan.IxIDEQ(int(*req.IxId)))
+	}
+	if req.Name != nil {
+		predicates = append(predicates, ixlan.NameContainsFold(*req.Name))
+	}
+	if req.Status != nil {
+		predicates = append(predicates, ixlan.StatusEQ(*req.Status))
+	}
+
+	// Resume and incremental filter support.
+	if req.SinceId != nil {
+		predicates = append(predicates, ixlan.IDGT(int(*req.SinceId)))
+	}
+	if req.UpdatedSince != nil {
+		predicates = append(predicates, ixlan.UpdatedGT(req.UpdatedSince.AsTime()))
+	}
+
+	// Count total matching records for header metadata.
+	countQuery := s.Client.IxLan.Query()
+	if len(predicates) > 0 {
+		countQuery = countQuery.Where(ixlan.And(predicates...))
+	}
+	total, err := countQuery.Count(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("count ixlans: %w", err))
+	}
+	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
+
+	// Stream records in batches using keyset pagination.
+	lastID := 0
+	if req.SinceId != nil {
+		lastID = int(*req.SinceId)
+	}
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		query := s.Client.IxLan.Query().
+			Where(ixlan.IDGT(lastID)).
+			Order(ent.Asc(ixlan.FieldID)).
+			Limit(streamBatchSize)
+		if len(predicates) > 0 {
+			query = query.Where(ixlan.And(predicates...))
+		}
+
+		batch, err := query.All(ctx)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal,
+				fmt.Errorf("stream ixlans batch after id %d: %w", lastID, err))
+		}
+		if len(batch) == 0 {
+			return nil
+		}
+
+		for _, il := range batch {
+			if err := stream.Send(ixLanToProto(il)); err != nil {
+				return err
+			}
+		}
+
+		lastID = batch[len(batch)-1].ID
+		if len(batch) < streamBatchSize {
+			return nil
+		}
+	}
 }
 
 // ixLanToProto converts an ent IxLan entity to a protobuf IxLan message.

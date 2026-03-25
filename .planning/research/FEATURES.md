@@ -1,252 +1,279 @@
-# Feature Landscape: ConnectRPC / gRPC API Surface
+# Feature Landscape
 
-**Domain:** gRPC/ConnectRPC API layer for a read-only PeeringDB data mirror
-**Researched:** 2026-03-24
-**Milestone context:** Adding gRPC API surface to existing PeeringDB Plus app (already has GraphQL, REST, PeeringDB-compat REST, and web UI)
+**Domain:** Server-streaming RPCs for bulk data export + IX presence UI polish
+**Researched:** 2026-03-25
+**Milestone:** v1.7
 
 ## Table Stakes
 
-Features that gRPC API consumers expect. Missing = API feels incomplete or unusable for production integrations.
+Features users expect from a streaming bulk export API and a polished IX presence display. Missing = product feels incomplete or unprofessional.
 
-### Get by ID (per entity type)
-
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| `Get{Type}(id)` for all 13 types | The fundamental read operation. Every gRPC data service must support retrieving a single entity by its primary key. Google AIP-131 defines this as a standard method. entproto generates this via `MethodGet`. | Low | entproto `MethodGet` flag on each schema. Requires `entproto.Message()` and `entproto.Service()` annotations on all 13 ent schemas. | entproto generates the full implementation including ent-to-proto conversion. The `id` field must have an `entproto.Field()` annotation with field number 1. Returns `NOT_FOUND` (gRPC code 5) if entity does not exist. |
-
-### List with Pagination (per entity type)
+### Streaming RPCs
 
 | Feature | Why Expected | Complexity | Dependencies | Notes |
 |---------|--------------|------------|--------------|-------|
-| `List{Type}s(page_size, page_token)` for all 13 types | Retrieving collections is the second fundamental operation. Google AIP-132/AIP-158 define the standard: `page_size` (int32) + `page_token` (string) request fields, `next_page_token` response field. entproto generates this with keyset pagination. | Med | entproto `MethodList` flag. Keyset pagination requires int/uuid/string ID fields (all 13 types use int IDs -- compatible). | entproto's keyset pagination is descending-order only (newest first by ID). The `page_token` is a base64-encoded cursor. Max page size should be enforced server-side (default 100, max 1000 matches PeeringDB's own limits). Empty `next_page_token` signals end of collection. |
+| Server-streaming RPC per entity type | Users performing full database dumps expect a single call that returns all rows without manual pagination. PeeringDB's primary consumers (automation scripts, RPKI validators, looking glass aggregators) do hourly/daily full exports. Without streaming, they must loop through offset-based pages. | Med | Existing `services.proto`, ConnectRPC handler pattern in `internal/grpcserver/` | 13 new RPCs, one per entity type. Proto definition uses `stream` keyword on response. ConnectRPC handler signature: `func(ctx, *connect.Request[Req], *connect.ServerStream[Res]) error`. |
+| Row-at-a-time marshaling from DB cursor | The entire point of streaming over paginated List is to avoid buffering N*pageSize rows in memory. Each row must be queried, converted to proto, and sent before the next row is fetched. | Med | Ent `.Query().All()` returns full slice -- need to switch to cursor iteration or chunked queries | Ent does not expose a native row-cursor API. Must use chunked fetches (e.g., batches of 500 by ID ascending) with a moving cursor, not `.All()`. |
+| Graceful stream termination | Client may cancel mid-stream (e.g., they only needed networks, not all 200K networkixlan rows). Handler must honor `ctx.Done()` and stop querying. | Low | Go context cancellation, ConnectRPC handles this automatically | Check `ctx.Err()` between batch fetches. ConnectRPC propagates client cancellation to the handler context. |
+| ConnectRPC + gRPC + gRPC-Web protocol support | Streaming must work over all three wire protocols that ConnectRPC supports. Browser consumers use Connect protocol or gRPC-Web; CLI consumers use gRPC. | Low | ConnectRPC handles this transparently for server streams | No extra work needed. ConnectRPC server streaming works identically across all three protocols. The existing CORS configuration already allows streaming content types. |
+| Total record count in response headers | Consumers need to know how many records to expect for progress bars, allocation, and validation. PeeringDB's `meta.generated` field serves this purpose in the REST API. | Low | `stream.ResponseHeader()` on ConnectRPC's `*connect.ServerStream` | Set `x-total-count` (or equivalent) header before first `Send()`. Requires a `COUNT(*)` query upfront. |
+| Filtering on streaming RPCs | Same filters available on List should be available on streaming RPCs. Users export "all networks for org X" or "all networkixlans for ASN Y". | Med | Existing predicate accumulation pattern from List handlers | Reuse the same optional filter fields and predicate-building logic. Request message can share the filter fields with the List request (or embed them). |
+| OTel instrumentation on streams | otelconnect interceptor must produce meaningful spans for streaming RPCs -- one span per stream lifecycle, not per message. | Low | Existing `otelconnect.NewInterceptor` already in the handler chain | otelconnect handles streaming RPCs automatically. Span covers the full stream duration. |
 
-### Proto Message Definitions for All 13 Types
-
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| Protobuf message types for: Organization, Network, Facility, Campus, Carrier, InternetExchange, IxFacility, IxLan, IxPrefix, NetworkFacility, NetworkIxLan, Poc, CarrierFacility | gRPC APIs are typed. Every entity needs a proto message definition with all fields mapped to appropriate proto types. | Med | entproto `entproto.Message()` annotation on all schemas. Every field needs `entproto.Field(N)` with unique field numbers. | **Critical blocker**: `field.JSON` types (e.g., `social_media []SocialMedia`, `info_types []string`) are NOT supported by entproto (GitHub issue #2929, confirmed by maintainer). These fields must be handled with workarounds: either (a) skip them from proto generation and handle manually, (b) use `google.protobuf.Struct` for arbitrary JSON, or (c) define separate proto message types for the nested structs. Option (c) is best for `SocialMedia`; option (b) or `repeated string` for `info_types`. |
-
-### Error Handling with Standard gRPC/Connect Codes
-
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| Proper gRPC status codes on errors | Clients expect standard error codes for programmatic handling. ConnectRPC maps these to HTTP status codes automatically. | Low | ConnectRPC or google.golang.org/grpc/status package | Key mappings for this read-only service: `NOT_FOUND` (5/404) when entity ID does not exist, `INVALID_ARGUMENT` (3/400) for bad page_size/page_token/filter values, `INTERNAL` (13/500) for database errors, `UNAVAILABLE` (14/503) if database is not ready (pre-first-sync). Error messages should include the entity type and ID for debuggability. |
-
-### Server Reflection
+### IX Presence UI
 
 | Feature | Why Expected | Complexity | Dependencies | Notes |
 |---------|--------------|------------|--------------|-------|
-| gRPC server reflection enabled | Enables grpcurl, grpcui, Postman, and other tooling to discover services without .proto files. Standard for any gRPC service that is not purely internal. Google and most cloud providers enable it on all services. | Low | `google.golang.org/grpc/reflection` for standard gRPC, `connectrpc.com/grpcreflect` for ConnectRPC (supports both V1 and V1Alpha) | Two lines of code to enable. No security concern for a public read-only API. Enables `grpcurl list`, `grpcurl describe`, and grpcui web interface for exploration. ConnectRPC's grpcreflect supports both reflection protocol versions for maximum tool compatibility. |
-
-### Health Check Service
-
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| `grpc.health.v1.Health/Check` and `/Watch` | Standard gRPC health checking protocol. Required for load balancers, Kubernetes probes, and monitoring tools. The existing HTTP health endpoint at `/healthz` does not serve gRPC clients. | Low | `google.golang.org/grpc/health` for standard gRPC, `connectrpc.com/grpchealth` for ConnectRPC | Map existing health check logic (database reachable, sync has completed at least once) to gRPC health status. SERVING = healthy, NOT_SERVING = database unreachable or no sync completed. Service-specific health checks can report per-service status. |
-
-### OpenTelemetry Instrumentation
-
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| Automatic tracing and metrics on all RPCs | Project constraint: OTel is mandatory. Every API surface must have consistent observability. The existing GraphQL and REST surfaces both have otelhttp instrumentation. | Low | For standard gRPC: `go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc` (stats handler, not interceptors -- interceptors are deprecated). For ConnectRPC: `connectrpc.com/otelconnect` (interceptor). | otelgrpc stats handler creates spans per RPC with method name, status code, and duration. otelconnect interceptor does the same and additionally tags `rpc.system` (grpc/grpc-web/connect). Both propagate trace context via gRPC metadata. Existing OTel provider setup (provider.go) provides TracerProvider and MeterProvider. |
-
-### Protobuf/buf Toolchain Integration
-
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| buf.yaml, buf.gen.yaml for proto management | buf is the standard protobuf toolchain (per project CLAUDE.md TL-4). Provides linting, breaking change detection, and code generation in one tool. | Low | `buf.build/buf/cli` (already in STACK.md) | buf lint enforces style guide on proto files. buf breaking detects backwards-incompatible changes between commits. buf generate replaces raw `protoc` invocations. Place proto files in `proto/` directory with `buf.yaml` at root. |
-
-### Read-Only Service (No Mutations)
-
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| Only Get + List methods, no Create/Update/Delete | This is a read-only mirror. Exposing mutation RPCs would be confusing at best and dangerous at worst (they would fail against LiteFS replicas). entproto allows selecting which methods to generate. | Low | `entproto.Methods(entproto.MethodGet \| entproto.MethodList)` on each schema's `entproto.Service()` annotation. | Do NOT use `entproto.MethodAll`. Explicitly select only `MethodGet` and `MethodList`. This prevents accidental mutation endpoints and makes the API contract clear. |
+| Field labels for speed, IPv4, IPv6 | Current display shows raw values (`100G`, `192.0.2.1`, `2001:db8::1`) in a flex row without labels. Users cannot tell which field is which at a glance, especially when some fields are absent. PeeringDB's own UI shows labeled columns. | Low | `NetworkIXLansList` in `detail_net.templ` | Add small `text-neutral-500` label spans before each value: "Speed:", "IPv4:", "IPv6:". |
+| RS badge repositioned near peering data | RS badge is currently right-aligned with `shrink-0 ml-3`, separated from the data it describes. On wide screens it floats far from the IX name and IPs, easy to miss. | Low | `NetworkIXLansList` template | Move RS badge inline with the data row (after IX name) rather than in a separate `justify-between` right column. |
+| Port speed color coding | Networking professionals expect visual differentiation of port speeds at a glance. 1G, 10G, 100G, 400G are fundamentally different scale tiers. Without color coding, scanning a list of 50+ IX presences is tedious. | Low | `formatSpeed()` in `detail_shared.templ`, Tailwind CSS color classes | Use color tiers: <=1G neutral/gray, 10G blue, 100G emerald, 400G+ amber. Colors are semantic -- faster = warmer/brighter. |
+| Consistent IP address indentation | IPv4 and IPv6 addresses currently flow together in a `flex gap-4` row. When IPv4 is missing, IPv6 shifts left. When both are present, the varying widths cause visual jaggedness across rows. | Low | `NetworkIXLansList` template | Use a grid or fixed-width layout for the address columns so they align vertically across rows. `font-mono` is already applied. |
+| Selectable/copyable text without selecting the IX link | The entire row is an `<a>` tag, so selecting text to copy an IP address also selects the IX name link. Users frequently need to copy IP addresses for router configuration. | Low | `NetworkIXLansList` template structure | Restructure: make only the IX name the clickable link, with the data row outside the `<a>` tag. Or use `user-select: text` on data elements with click event isolation. |
 
 ## Differentiators
 
-Features that set this gRPC API apart from a minimal implementation. Not expected by all clients, but valued by power users and automation tooling.
+Features that set the streaming API and UI apart from PeeringDB and other mirrors. Not expected, but create significant value.
 
-### Filtering on List RPCs
-
-| Feature | Value Proposition | Complexity | Dependencies | Notes |
-|---------|-------------------|------------|--------------|-------|
-| Filter by common fields (ASN, country, name, org_id, status) | The existing REST and GraphQL APIs support filtering. A gRPC API without filtering forces clients to fetch all records and filter client-side, which is wasteful for a 85K+ record dataset. Google AIP-160 defines a `string filter` field with expression syntax. | High | **Not generated by entproto.** The entproto roadmap (GitHub #2446) lists "Query Predicates" as unimplemented. Must be implemented manually: parse filter string, translate to ent predicates, apply to query. | Two approaches: (a) AIP-160 filter string (`filter: "asn > 13000 AND country = 'US'"`) -- powerful but complex parser needed. (b) Dedicated filter fields on the request message (`int32 asn`, `string country`, etc.) -- simpler, mirrors PeeringDB's own query params. Recommend option (b) for initial implementation because it matches the existing REST API filter patterns and avoids building an expression parser. Add typed filter fields to ListRequest messages manually (not generated by entproto). |
-
-### Edge/Relationship Traversal
+### Streaming RPCs
 
 | Feature | Value Proposition | Complexity | Dependencies | Notes |
 |---------|-------------------|------------|--------------|-------|
-| Nested messages for related entities (e.g., Organization with Networks) | The GraphQL API's killer feature is relationship traversal. A gRPC API that only returns flat entities with foreign key IDs forces clients to make N+1 calls. entproto can include edge fields in proto messages. | Med | entproto edge annotations. Edges must have `entproto.Field(N)` annotations. Cyclic dependencies are NOT supported in protobuf -- back-references require same proto package. | entproto can generate nested messages for edges. For this project, the key traversals are: Organization -> Networks/Facilities/IXs, Network -> NetworkFacilities/NetworkIxLans/Pocs, InternetExchange -> IxFacilities/IxLans. Cyclic deps (Network -> Org -> Network) must be in the same proto package, which is fine for a single-service API. Eager-loading edges avoids N+1 at the database level (ent handles this). |
+| Streaming with format negotiation (proto vs JSON) | ConnectRPC supports both protobuf and JSON wire formats. Streaming protobuf is ~3-5x more compact than JSON for PeeringDB data. Offering both lets CLI users pick efficiency while browser/curl users pick readability. | Low | ConnectRPC handles this via `Content-Type` header automatically | No code needed. ConnectRPC's `ServerStream.Send()` marshals to whatever format the client negotiated. Differentiation is just documenting it. |
+| SHA256 checksum in response trailers | After streaming all rows, send a SHA256 of the concatenated row data as a trailer. Consumers can verify data integrity without re-downloading. Particularly valuable for hourly automated dumps. | Med | `stream.ResponseTrailer()`, incremental hash computation during Send loop | Hash each proto message bytes as sent. Write `x-content-sha256` trailer after final Send. Trailer support varies by client -- gRPC clients handle it natively; HTTP/1.1 clients may not receive trailers. |
+| Stream resume via `since_id` filter | Allow consumers to resume an interrupted stream by passing `since_id` (the last ID they received). Avoids re-downloading from the beginning after a network interruption. | Low | ID-ordered queries with `WHERE id > since_id` predicate | Add optional `since_id` field to the streaming request messages. This is idempotent because data is immutable between syncs. |
+| Timestamp-based "modified since" filter | Filter stream output to records updated after a given timestamp. Enables efficient incremental sync without downloading unchanged records. | Low | Ent `Updated` field exists on all entities, add `updated_since` filter | Complements `since_id` for a different use case: catching modifications to existing records. |
 
-### ConnectRPC Protocol Support (Triple-Protocol)
-
-| Feature | Value Proposition | Complexity | Dependencies | Notes |
-|---------|-------------------|------------|--------------|-------|
-| Serve gRPC, gRPC-Web, and Connect protocols simultaneously | ConnectRPC handlers serve all three protocols on the same port without proxies. gRPC clients use standard grpc-go, browser clients use gRPC-Web or Connect (no Envoy proxy needed), and developers debug with curl using the Connect protocol's JSON format. | Med | `connectrpc.com/connect`, `protoc-gen-connect-go`. Requires generating Connect handlers instead of (or alongside) standard gRPC handlers. **Key tension**: entproto generates standard gRPC service implementations (protoc-gen-go-grpc), not ConnectRPC handlers (protoc-gen-connect-go). | Two paths: (a) Use entproto-generated standard gRPC service, serve with grpc-go on a separate port. Simple but loses ConnectRPC benefits (curl-ability, shared mux, browser compat). (b) Generate proto files with entproto, then generate ConnectRPC handlers with protoc-gen-connect-go, and write thin adapter implementations that call ent client methods. More work upfront but integrates cleanly with existing net/http server. **Recommend (b)** -- the Connect handler pattern (`func(ctx, *Request) (*Response, error)`) is simpler than gRPC's and shares the HTTP mux with GraphQL/REST. |
-
-### Server Streaming for Bulk Export
+### IX Presence UI
 
 | Feature | Value Proposition | Complexity | Dependencies | Notes |
 |---------|-------------------|------------|--------------|-------|
-| `StreamList{Type}s` server-streaming RPC for full dataset export | For automation clients that need the entire dataset (e.g., building local caches, feeding into IRR tools), a server-streaming RPC sends all records without pagination overhead. Single TCP connection, backpressure via flow control, no token management. | Med | Server-streaming RPC definition in proto. ConnectRPC supports streaming. Standard gRPC supports streaming. | Useful for bulk consumers who would otherwise paginate through 85K+ records. Implementation streams ent query results row-by-row, converting each to proto message and sending. Natural fit for go channels. **Defer to post-MVP** -- pagination covers the use case adequately, and streaming adds complexity to error handling (partial failures). |
-
-### Field Masks for Partial Responses
-
-| Feature | Value Proposition | Complexity | Dependencies | Notes |
-|---------|-------------------|------------|--------------|-------|
-| `google.protobuf.FieldMask read_mask` on Get/List requests | Clients request only the fields they need, reducing response size and (potentially) database load. Netflix, Google, and most large gRPC API providers support this. Per AIP-157. | High | `google.protobuf.FieldMask` well-known type. Must implement field filtering in the service layer. | For a read-only mirror where most queries hit local SQLite, the performance benefit is marginal. The main benefit is bandwidth reduction for mobile/constrained clients. **Defer** -- adds significant implementation complexity (must filter proto message fields before serialization) for minimal gain in this use case. Ent queries already select all columns; partial selection would require custom query building. |
-
-### Sync Status RPC
-
-| Feature | Value Proposition | Complexity | Dependencies | Notes |
-|---------|-------------------|------------|--------------|-------|
-| `GetSyncStatus()` returning last sync time, data freshness, record counts | The GraphQL API already exposes `syncStatus`. gRPC clients need equivalent visibility into data freshness. Critical for automation that needs to know if data is stale. | Low | No entproto generation needed -- this is a custom RPC on a custom service definition. Read existing sync metrics/health state. | Define a `SyncService` with `GetSyncStatus` RPC. Return: `last_sync_at` (timestamp), `data_freshness_seconds` (float), `status` (enum: SYNCING/HEALTHY/STALE/ERROR), `type_counts` (map of type name to record count). Mirrors the GraphQL `syncStatus` query. |
-
-### buf-Powered Breaking Change Detection in CI
-
-| Feature | Value Proposition | Complexity | Dependencies | Notes |
-|---------|-------------------|------------|--------------|-------|
-| `buf breaking` in CI pipeline | Prevents accidental backwards-incompatible proto changes (renamed fields, changed field numbers, removed RPCs). Critical for any API with external consumers. | Low | buf CLI, `buf.yaml` config with `WIRE_JSON` or `WIRE` breaking rules | Add `buf breaking --against .git#branch=main` to CI. Catches: field number reuse, field type changes, RPC removal, service removal. Essential because proto field numbers are forever -- reusing one silently corrupts data on the wire. |
+| Sortable IX presence table | Let users sort IX presences by speed, name, or RS status. Networks with 50+ IX presences need to quickly find their 100G ports. | Med | JavaScript sort (htmx compatible) or server-side sort with htmx swap | Could use htmx `hx-trigger="click"` on column headers to re-fetch with sort parameter. Or client-side with a small JS sort function. |
+| Copy-to-clipboard button on IP addresses | One-click copy of IPv4/IPv6 addresses. Networking professionals constantly paste IPs into router configs, looking glasses, and traceroute tools. | Low | Browser Clipboard API, small inline button | `navigator.clipboard.writeText()` with a clipboard icon button. Requires HTTPS (already on Fly.io with TLS). |
+| Aggregate bandwidth display | Show total aggregate bandwidth across all IX presences in the section header. "IX Presences (47) -- 1.2 Tbps total" gives immediate network scale context. | Low | Sum of speed values computed during data loading | Compute in the handler, pass to the template. Display next to the count badge. |
+| Speed distribution mini-chart | Tiny inline bar chart showing distribution of port speeds (e.g., 3x1G, 12x10G, 30x100G, 2x400G). Visual fingerprint of a network's peering investment. | Med | Either SVG generation in templ or a small client-side chart | Interesting differentiator but may be overdesign for v1.7. Consider for later. |
 
 ## Anti-Features
 
-Features to explicitly NOT build for this milestone.
+Features to explicitly NOT build in this milestone.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| Mutation RPCs (Create, Update, Delete) | This is a read-only mirror. Data comes from PeeringDB sync only. Mutation endpoints would either fail (on replicas) or corrupt data (on primary). Confuses API contract. | Generate only `MethodGet` and `MethodList`. Document read-only nature in proto comments and API docs. |
-| Bidirectional streaming | No use case for client-to-server streaming on a read-only data query service. Adds complexity without value. The data does not change in real-time (hourly sync). | Use unary Get/List for queries. If real-time notifications are ever needed, server streaming is sufficient. |
-| AIP-160 filter expression parser | Full AIP-160 filter syntax (`"field > value AND other_field = 'x'"`) is powerful but requires building a parser, type checker, and ent predicate translator. Massive effort for marginal gain over typed filter fields. | Use typed filter fields on List request messages (`int32 asn_filter`, `string country_filter`, etc.). Matches PeeringDB's own REST query parameter style. Simpler to implement, simpler to use, strongly typed. |
-| Custom proto options/extensions | Proto custom options (e.g., field validation rules, custom annotations) add complexity to the proto toolchain and are rarely used by clients. | Use server-side validation. Return `INVALID_ARGUMENT` with descriptive messages. |
-| gRPC-Web proxy (Envoy) | ConnectRPC eliminates the need for an Envoy proxy to serve gRPC-Web. Do not add infrastructure complexity. | If using ConnectRPC: native gRPC-Web support built in. If using standard gRPC: browser clients should use the existing REST or GraphQL APIs instead. |
-| Proto-to-OpenAPI generation (grpc-gateway) | The project already has a full OpenAPI REST API via entrest. Generating another REST surface from proto definitions creates confusion and maintenance burden. | Direct gRPC/Connect API consumers to the gRPC endpoint. REST consumers to the existing REST API. No translation layer. |
-| Automatic client SDK generation/publishing | Generating and publishing client libraries in multiple languages (Go, Python, TypeScript) is a maintenance commitment. Premature before the API stabilizes. | Publish `.proto` files. Consumers generate their own clients with `buf generate` or `protoc`. Provide a `buf.gen.yaml` example in docs. |
+| Bidirectional streaming RPCs | Read-only mirror has no write path. Client has no data to stream to server. Adds API complexity for zero value. | Server-streaming only. Client sends request, server streams response. |
+| Client-streaming RPCs | Same as above. No write path, no use case for client sending multiple messages. | Unary request, streaming response. |
+| Streaming with cursor-based page tokens | Mixing pagination concepts with streaming creates confusion. A stream IS the full result set; pagination is for bounded windows. | Streaming replaces pagination for full exports. Keep existing List RPCs for paginated access. |
+| Streaming via WebSocket fallback | ConnectRPC's Connect protocol handles streaming over HTTP/2 natively. Adding WebSocket as an alternative transport adds complexity with no benefit. | Rely on ConnectRPC's built-in protocol handling. |
+| Real-time change streaming / subscriptions | This is a periodic sync mirror, not a live database. Real-time streaming implies event sourcing, change data capture, or long-lived connections -- none of which match the hourly-sync architecture. | Consumers poll or re-stream periodically. |
+| Custom download formats (CSV, NDJSON) | Scope creep. Protobuf and JSON via ConnectRPC are sufficient for programmatic consumers. CSV is a different export surface entirely. | Stick to ConnectRPC's native wire formats (protobuf, JSON). |
+| IX presence interactive map | Geographic visualization of IX presences on a world map. Looks impressive but requires a mapping library, geodata enrichment, and significant frontend complexity. | Text-based list with city/country is sufficient. Map is a separate future feature. |
+| Drag-and-drop column reordering | Over-engineering the IX presence table. Fixed column order is fine for data display. | Static column layout matching PeeringDB conventions. |
+| Inline editing of IX presence data | This is a read-only mirror. No editing. | Link to PeeringDB for data corrections. |
 
 ## Feature Dependencies
 
 ```
-Existing ent schemas (13 types, all fields defined)
-    |
-    v
-Add entproto.Message() + entproto.Field(N) annotations to all schemas
-    |
-    +--[BLOCKER] Handle field.JSON types (social_media, info_types)
-    |     |
-    |     +--> Option A: Skip from entproto, add manually to .proto files
-    |     +--> Option B: Define SocialMedia as separate proto message
-    |     +--> Option C: Use google.protobuf.Struct (loses type safety)
-    |
-    v
-Add entproto.Service(entproto.Methods(MethodGet | MethodList)) annotations
-    |
-    v
-Run entproto code generation --> .proto files + gRPC service stubs
-    |
-    +--> buf.yaml + buf.gen.yaml configuration
-    +--> buf lint validation
-    |
-    v
-[DECISION POINT] Standard gRPC vs ConnectRPC handlers
-    |
-    +--> Path A: Standard gRPC (entproto generates everything)
-    |     |
-    |     +--> Separate gRPC port (e.g., :8082)
-    |     +--> otelgrpc stats handler for OTel
-    |     +--> grpc reflection registration
-    |     +--> grpc health service
-    |
-    +--> Path B: ConnectRPC (generate protos with entproto, handlers with connect-go)
-          |
-          +--> Shared HTTP mux with REST/GraphQL (port :8081)
-          +--> otelconnect interceptor for OTel
-          +--> grpcreflect for reflection
-          +--> grpchealth for health checks
-          +--> curl-able with JSON (Connect protocol)
-    |
-    v
-Custom service: SyncStatus RPC (not generated, hand-written)
-    |
-    v
-[OPTIONAL] Add typed filter fields to ListRequest messages
-    |
-    v
-[OPTIONAL] Server streaming for bulk export
-    |
-    v
-Integration tests (using generated client stubs)
-    |
-    v
-buf breaking in CI
+Proto definition (stream RPCs) --> buf generate --> ConnectRPC handler codegen
+                                                        |
+                                                        v
+Chunked DB query helper --> Streaming handler implementation --> OTel (automatic)
+                                                        |
+                                                        v
+                                              Total count header
+                                              SHA256 trailer (optional)
+                                              since_id filter (optional)
+                                              updated_since filter (optional)
+
+IX presence field labels --> Port speed color coding (uses same label structure)
+                        --> RS badge repositioning (same template refactor)
+
+Selectable text fix --> Copy-to-clipboard button (depends on text being selectable)
+
+Aggregate bandwidth --> Speed distribution chart (depends on same computed data)
 ```
 
-## entproto JSON Field Workaround Strategy
-
-This is the most significant technical blocker. All 6 primary entity types (Organization, Network, Facility, InternetExchange, Carrier, Campus) have `social_media` as `field.JSON([]SocialMedia{})`. Network also has `info_types` as `field.JSON([]string{})`.
-
-**Recommended approach: Hybrid generation**
-
-1. Let entproto generate proto messages for all scalar fields (it handles string, int, bool, float, time.Time natively).
-2. For `social_media`: Define `SocialMedia` as a separate proto message type (`string service = 1; string identifier = 2;`) and add `repeated SocialMedia social_media = N;` to entity messages manually.
-3. For `info_types`: Add `repeated string info_types = N;` to the Network message manually.
-4. For the conversion layer: Write custom `toProto{Type}()` functions that handle the JSON fields alongside entproto's generated conversion code.
-
-This means proto files will be partially generated (entproto) and partially hand-maintained. Use `// DO NOT EDIT` markers on generated sections and clear comments on manual sections. Alternatively, fully hand-write proto files using entproto output as a starting point, then maintain them manually going forward.
-
-## Standard vs ConnectRPC Decision Matrix
-
-| Criterion | Standard gRPC (grpc-go) | ConnectRPC (connect-go) |
-|-----------|------------------------|------------------------|
-| entproto compatibility | Direct -- entproto generates service implementations | Indirect -- entproto generates .proto files, need separate handler impl |
-| HTTP mux sharing | No -- grpc-go uses its own HTTP/2 implementation | Yes -- standard net/http, shares mux with REST/GraphQL |
-| Browser compatibility | No (needs Envoy proxy for gRPC-Web) | Yes (native gRPC-Web + Connect protocol) |
-| curl debugging | No (binary protocol) | Yes (Connect protocol uses JSON over HTTP) |
-| Performance | Higher (~20K rps) | Slightly lower (~16K rps) |
-| OTel integration | otelgrpc stats handler | otelconnect interceptor |
-| Implementation effort | Lower (entproto generates service impl) | Higher (must write service implementations manually) |
-| Operational simplicity | Extra port to manage | Same port as everything else |
-| gRPC client compatibility | Full | Full (serves gRPC protocol by default) |
-
-**Recommendation: ConnectRPC** because:
-1. This is a read-only data API -- the ~20% performance difference is irrelevant for SQLite reads.
-2. Sharing the HTTP mux eliminates port management complexity on Fly.io.
-3. curl-ability with JSON dramatically improves developer experience.
-4. Browser compatibility opens future possibilities without infrastructure changes.
-5. The service implementations are thin (Get calls `client.{Type}.Get()`, List calls `client.{Type}.Query()`) -- writing them manually is not a large burden for 13 types.
+Key dependency: Streaming handler implementation requires a chunked query helper because Ent's `.All()` loads everything into memory. This helper is the critical new infrastructure needed.
 
 ## MVP Recommendation
 
+### Phase 1: Streaming RPCs (Core)
+
 Prioritize:
-1. **Proto message definitions + buf toolchain** -- Define all 13 entity messages with field mappings. Set up buf.yaml, buf.gen.yaml. Validate with buf lint. This is the foundation everything else depends on.
-2. **Get + List for all 13 types with ConnectRPC** -- Core read operations with keyset pagination. Register handlers on existing HTTP mux. Add otelconnect interceptor.
-3. **Server reflection + health check** -- Two lines each. Enables tooling (grpcurl/grpcui) and monitoring.
-4. **SyncStatus custom RPC** -- Small custom service, high value for automation clients.
-5. **buf breaking in CI** -- Protect proto contract from accidental breakage.
+1. **Proto definitions** for 13 streaming RPCs (table stakes, low complexity, unlocks codegen)
+2. **Chunked DB query helper** (table stakes, medium complexity, critical infrastructure)
+3. **Streaming handler implementation** for all 13 types (table stakes, medium complexity due to repetition)
+4. **Total count header** (table stakes, low complexity, high value for consumers)
+5. **Filtering on streaming RPCs** (table stakes, medium complexity, reuses existing predicate logic)
+
+Defer to later in phase or separate phase:
+- SHA256 trailer (differentiator, medium complexity)
+- `since_id` and `updated_since` filters (differentiator, low complexity but adds request message fields)
+
+### Phase 2: IX Presence UI Polish
+
+Prioritize:
+1. **Field labels** for speed/IPv4/IPv6 (table stakes, low complexity)
+2. **RS badge repositioning** (table stakes, low complexity)
+3. **Port speed color coding** (table stakes, low complexity)
+4. **Consistent IP address indentation** (table stakes, low complexity)
+5. **Selectable/copyable text** (table stakes, low complexity)
 
 Defer:
-- **Filtering on List RPCs**: Adds significant complexity. Clients can paginate + filter client-side initially. Add in a follow-up phase based on demand.
-- **Server streaming bulk export**: Pagination covers the use case. Streaming is a nice-to-have for automation clients.
-- **Field masks**: Marginal benefit for local SQLite reads. Defer indefinitely.
-- **Edge/relationship traversal in proto messages**: Start with flat entities (foreign key IDs only). Add nested messages after the basic API works.
+- Sortable table (differentiator, medium complexity)
+- Copy-to-clipboard button (differentiator, low complexity, depends on text fix)
+- Aggregate bandwidth (differentiator, low complexity)
+
+### Phase Ordering Rationale
+
+Streaming RPCs first because:
+- Proto changes require `buf generate` and affect the codegen pipeline
+- The chunked query helper is new infrastructure that needs testing
+- Streaming RPCs are the primary deliverable of v1.7
+
+UI polish second because:
+- Pure template changes, no infrastructure impact
+- All changes are independent of each other (can be done in any order)
+- Lower risk -- worst case is a visual regression, easily reverted
+
+## Detailed Feature Specifications
+
+### Streaming RPC Proto Pattern
+
+Each of the 13 services gets a new `Stream` RPC. Example for NetworkService:
+
+```protobuf
+service NetworkService {
+  rpc GetNetwork(GetNetworkRequest) returns (GetNetworkResponse);
+  rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
+  rpc StreamNetworks(StreamNetworksRequest) returns (stream Network);
+}
+
+message StreamNetworksRequest {
+  // Filter fields -- same as ListNetworksRequest minus pagination.
+  optional int64 asn = 1;
+  optional string name = 2;
+  optional string status = 3;
+  optional int64 org_id = 4;
+}
+```
+
+Key design decisions:
+- RPC name: `StreamX` (not `ListAllX` or `ExportX`) -- clear, consistent, matches the `stream` keyword
+- Response type: bare entity message (e.g., `Network`), not wrapped in a response envelope -- each streamed message IS one entity
+- Request message: separate from `ListNetworksRequest` -- no `page_size`/`page_token` fields since streaming replaces pagination
+- Filter fields: same optional fields as List, reusing the predicate accumulation pattern
+
+### ConnectRPC Handler Signature
+
+```go
+func (s *NetworkService) StreamNetworks(
+    ctx context.Context,
+    req *connect.Request[pb.StreamNetworksRequest],
+    stream *connect.ServerStream[pb.Network],
+) error {
+    // 1. Count total records (for header)
+    // 2. Set x-total-count header via stream.ResponseHeader()
+    // 3. Build query with filters
+    // 4. Iterate in chunks by ID, Send() each row
+    // 5. Return nil on success
+}
+```
+
+### Chunked Query Pattern
+
+Since Ent does not expose a cursor-based row iterator for SQLite, implement chunked fetches:
+
+```go
+const defaultChunkSize = 500
+
+// Iterate in chunks ordered by ID ascending:
+lastID := 0
+for {
+    if err := ctx.Err(); err != nil {
+        return err
+    }
+    results, err := query.Where(entity.IDGT(lastID)).
+        Order(ent.Asc(entity.FieldID)).
+        Limit(chunkSize).
+        All(ctx)
+    if err != nil {
+        return err
+    }
+    if len(results) == 0 {
+        return nil // done
+    }
+    for _, r := range results {
+        if err := stream.Send(toProto(r)); err != nil {
+            return err
+        }
+    }
+    lastID = results[len(results)-1].ID
+}
+```
+
+Chunk size of 500 balances memory usage against query overhead. With ~200K networkixlan records (the largest table), this means ~400 queries -- each taking <1ms on SQLite, totaling <1s of query time.
+
+### Port Speed Color Tiers
+
+| Speed Range | Color | Tailwind Class | Rationale |
+|-------------|-------|---------------|-----------|
+| < 1G (100M, 200M etc.) | Gray | `text-neutral-500` | Legacy speeds, de-emphasized |
+| 1G | Neutral | `text-neutral-400` | Baseline, current default |
+| 10G | Blue | `text-blue-400` | Standard modern peering |
+| 100G | Emerald | `text-emerald-400` | High-capacity, matches project accent |
+| 400G+ | Amber | `text-amber-400` | Top-tier, attention-drawing |
+
+This follows the networking industry's intuitive gradient from "basic" to "premium" without using red/yellow (which imply errors/warnings in UI contexts).
+
+### IX Presence Row Restructure
+
+Current structure (problematic):
+```
+<a href="/ui/ix/123" class="flex items-center justify-between ...">
+  <div class="flex flex-col">
+    <span>IX Name</span>           <!-- clickable, selectable -->
+    <div class="flex gap-4">
+      <span>100G</span>            <!-- clickable, not separately selectable -->
+      <span>192.0.2.1</span>       <!-- clickable, not separately selectable -->
+      <span>2001:db8::1</span>     <!-- clickable, not separately selectable -->
+    </div>
+  </div>
+  <span>RS</span>                  <!-- far right, disconnected -->
+</a>
+```
+
+Proposed structure:
+```
+<div class="... px-4 py-3">
+  <div class="flex items-center gap-2">
+    <a href="/ui/ix/123" class="... hover:text-emerald-400">
+      IX Name
+    </a>
+    <span class="... border border-emerald-400/30 rounded">RS</span>
+  </div>
+  <div class="grid grid-cols-[auto_1fr_1fr] gap-x-4 text-sm font-mono mt-1">
+    <span class={speedColor}>Speed: 100G</span>
+    <span class="text-neutral-400">IPv4: 192.0.2.1</span>
+    <span class="text-neutral-400">IPv6: 2001:db8::1</span>
+  </div>
+</div>
+```
+
+Key changes:
+- IX name is the only `<a>` tag -- data fields are plain text, freely selectable
+- RS badge is inline after the IX name, not right-aligned
+- Grid layout ensures IP addresses align vertically across rows
+- Speed gets color-coded via `speedColorClass()` helper function
+- Labels ("Speed:", "IPv4:", "IPv6:") provide context
+- Same restructure applies to `IXParticipantsList` in `detail_ix.templ` for consistency
 
 ## Sources
 
-- [AIP-131: Standard methods: Get](https://google.aip.dev/131) -- Get method pattern
-- [AIP-132: Standard methods: List](https://google.aip.dev/132) -- List method pattern with pagination, filtering, ordering
-- [AIP-157: Partial responses](https://google.aip.dev/157) -- Field masks for read operations
-- [AIP-158: Pagination](https://google.aip.dev/158) -- page_size, page_token, next_page_token specification
-- [AIP-160: Filtering](https://google.aip.dev/160) -- Filter expression syntax specification
-- [ConnectRPC Errors](https://connectrpc.com/docs/go/errors/) -- Error codes, HTTP status mapping, error details
-- [ConnectRPC gRPC Compatibility](https://connectrpc.com/docs/go/grpc-compatibility/) -- Triple-protocol support, reflection, health
-- [ConnectRPC Observability](https://connectrpc.com/docs/go/observability/) -- otelconnect interceptor
-- [ConnectRPC Getting Started](https://connectrpc.com/docs/go/getting-started/) -- Handler registration on http.ServeMux
-- [entproto Service Generation](https://entgo.io/docs/grpc-service-generation-options/) -- Method flags, available methods
-- [entproto gRPC Extension Roadmap](https://github.com/ent/ent/issues/2446) -- Missing features: query predicates, JSON support
-- [entproto JSON Field Issue](https://github.com/ent/ent/issues/2929) -- Confirmed: field.JSON not supported
-- [gRPC Health Checking Protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md) -- grpc.health.v1 spec
-- [gRPC Server Reflection](https://grpc.io/docs/guides/reflection/) -- Reflection protocol for tooling
-- [otelgrpc Package](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc) -- Stats handler instrumentation
-- [otelconnect Package](https://pkg.go.dev/connectrpc.com/otelconnect) -- ConnectRPC OTel interceptor
-- [buf Breaking Change Detection](https://buf.build/docs/breaking/) -- CI integration for proto contract safety
-- [buf Style Guide](https://buf.build/docs/best-practices/style-guide/) -- Proto file organization best practices
-- [gRPC Streaming Best Practices](https://dev.to/ramonberrutti/grpc-streaming-best-practices-and-performance-insights-219g) -- When to use streaming
-- [Netflix FieldMask Blog](https://netflixtechblog.com/practical-api-design-at-netflix-part-1-using-protobuf-fieldmask-35cfdc606518) -- Practical FieldMask usage patterns
+- [ConnectRPC Streaming Documentation](https://connectrpc.com/docs/go/streaming/) -- Server streaming handler patterns and protocol support
+- [ConnectRPC Go Package Documentation](https://pkg.go.dev/connectrpc.com/connect) -- ServerStream type API: Send, ResponseHeader, ResponseTrailer methods
+- [gRPC Flow Control](https://grpc.io/docs/guides/flow-control/) -- Backpressure and HTTP/2 flow control mechanics
+- [gRPC Streaming Best Practices](https://dev.to/ramonberrutti/grpc-streaming-best-practices-and-performance-insights-219g) -- When to use streaming, message size considerations
+- [gRPC Core Concepts](https://grpc.io/docs/what-is-grpc/core-concepts/) -- Server streaming lifecycle (headers, messages, trailers)
+- [gRPC Metadata Documentation](https://grpc.io/docs/guides/metadata/) -- Headers vs trailers, when to use each
+- [PeeringDB Network Detail (AS8075)](https://www.peeringdb.com/net/694) -- Reference IX presence table layout with labeled columns (Exchange, IPv4, ASN, IPv6, Speed, RS Peer)
+- [gRPC Performance Best Practices](https://grpc.io/docs/guides/performance/) -- Streaming lifecycle management, graceful completion
+- [Microsoft gRPC Performance](https://learn.microsoft.com/en-us/aspnet/core/grpc/performance) -- Message size limits, flow control activation
+- Existing codebase: `internal/grpcserver/network.go`, `internal/grpcserver/pagination.go`, `proto/peeringdb/v1/services.proto`, `internal/web/templates/detail_net.templ`, `internal/web/templates/detail_ix.templ`, `internal/web/templates/detail_shared.templ`

@@ -36,48 +36,55 @@ templ IXDetailPage(data IXDetail) {
 		@DetailLink("Website", data.Website)
 		@DetailField("Notes", data.Notes)
 		<div class="space-y-3 pt-4">
-			@CollapsibleSection("Participants", data.NetCount, fmt.Sprintf("/ui/fragment/ix/%d/participants", data.ID))
+			@CollapsibleSectionWithBandwidth("Participants", data.NetCount, formatAggregateBW(data.AggregateBW), fmt.Sprintf("/ui/fragment/ix/%d/participants", data.ID))
 			@CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/ix/%d/facilities", data.ID))
 			@CollapsibleSection("Prefixes", data.PrefixCount, fmt.Sprintf("/ui/fragment/ix/%d/prefixes", data.ID))
 		</div>
 	</div>
 }
 
-// IXParticipantsList renders the list of IX participants as clickable rows
-// linking to the respective network detail page by ASN.
+// IXParticipantsList renders the list of IX participants with labeled fields,
+// speed color tiers, inline RS badge, and copyable IP addresses.
 templ IXParticipantsList(rows []IXParticipantRow) {
 	if len(rows) == 0 {
 		<div class="px-4 py-3 text-neutral-500 text-sm">No participants found.</div>
 	} else {
 		<div class="divide-y divide-neutral-700/50">
 			for _, row := range rows {
-				<a href={ templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)) }
-					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
-					<div class="flex flex-col min-w-0">
-						<span class="text-neutral-100 font-medium truncate">
+				<div class="px-4 py-3 hover:bg-neutral-800/50 transition-colors">
+					<div class="flex items-center gap-2 mb-1.5">
+						<a href={ templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)) }
+							class="text-neutral-100 font-medium hover:text-sky-400 transition-colors truncate">
 							if row.NetName != "" {
 								{ row.NetName }
 							} else {
 								{ fmt.Sprintf("AS%d", row.ASN) }
 							}
-						</span>
-						<div class="flex gap-4 text-sm text-neutral-400 font-mono">
-							<span>{ fmt.Sprintf("AS%d", row.ASN) }</span>
-							if row.Speed > 0 {
-								<span>{ formatSpeed(row.Speed) }</span>
-							}
-							if row.IPAddr4 != "" {
-								<span>{ row.IPAddr4 }</span>
-							}
-							if row.IPAddr6 != "" {
-								<span>{ row.IPAddr6 }</span>
-							}
-						</div>
+						</a>
+						<span class="text-neutral-500 text-xs font-mono">{ fmt.Sprintf("AS%d", row.ASN) }</span>
+						if row.IsRSPeer {
+							<span class="text-xs text-emerald-400 border border-emerald-400/30 rounded px-1.5 py-0.5 font-mono">RS</span>
+						}
 					</div>
-					if row.IsRSPeer {
-						<span class="text-xs text-sky-400/70 font-mono shrink-0 ml-3">RS</span>
-					}
-				</a>
+					<div class="grid grid-cols-[auto_1fr_1fr] gap-x-4 gap-y-0.5 text-sm">
+						if row.Speed > 0 {
+							<div class="col-span-3 flex items-center gap-1.5">
+								<span class="text-neutral-500 text-xs">Speed</span>
+								<span class={ speedColorClass(row.Speed) + " font-mono font-medium" }>{ formatSpeed(row.Speed) }</span>
+							</div>
+						}
+						if row.IPAddr4 != "" {
+							<div class="col-span-3">
+								@CopyableIP("IPv4", row.IPAddr4)
+							</div>
+						}
+						if row.IPAddr6 != "" {
+							<div class="col-span-3">
+								@CopyableIP("IPv6", row.IPAddr6)
+							</div>
+						}
+					</div>
+				</div>
 			}
 		</div>
 	}
