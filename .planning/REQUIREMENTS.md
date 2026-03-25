@@ -1,0 +1,87 @@
+# Requirements: PeeringDB Plus
+
+**Defined:** 2026-03-25
+**Core Value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
+
+## v1.7 Requirements
+
+Requirements for milestone v1.7: Streaming RPCs & UI Polish.
+
+### Streaming RPCs
+
+- [ ] **STRM-01**: Server-streaming RPC per entity type — 13 `Stream*` RPCs returning one proto message per row
+- [ ] **STRM-02**: Batched keyset pagination in streaming handlers — chunk queries by ID to avoid loading full result sets
+- [ ] **STRM-03**: Graceful stream cancellation — honor `ctx.Done()` between batch fetches
+- [ ] **STRM-04**: Total record count in response header — `COUNT(*)` query, set via `stream.ResponseHeader()` before first `Send()`
+- [ ] **STRM-05**: Filter support on streaming RPCs — same optional filter fields as List, reusing predicate accumulation
+- [ ] **STRM-06**: OTel instrumentation on streaming RPCs — otelconnect interceptor produces per-stream spans
+- [ ] **STRM-07**: Proto/JSON format negotiation — ConnectRPC handles automatically, document for consumers
+- [ ] **STRM-08**: `since_id` stream resume — optional field to resume from last received ID
+- [ ] **STRM-09**: `updated_since` filter — stream only records modified after a timestamp
+
+### IX Presence UI
+
+- [ ] **IXUI-01**: Field labels for speed, IPv4, IPv6 in IX presence rows
+- [ ] **IXUI-02**: RS badge repositioned inline after IX name
+- [ ] **IXUI-03**: Port speed color coding by tier (sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber)
+- [ ] **IXUI-04**: Consistent IP address alignment via grid layout across rows
+- [ ] **IXUI-05**: Selectable/copyable text — IX name is the only link, data fields are plain text
+- [ ] **IXUI-06**: Copy-to-clipboard button on IPv4/IPv6 addresses
+- [ ] **IXUI-07**: Aggregate bandwidth display in IX presence section header
+
+## Future Requirements
+
+### Data Enrichment (deferred — needs more design)
+
+- **ENRCH-01**: Per-ASN BGP summary from bgp.tools daily table dump (prefix counts v4/v6, RPKI coverage %)
+- **ENRCH-02**: IRR/AS-SET membership from WHOIS source (rr.ntt.net or whois.radb.net TBD)
+- **ENRCH-03**: IP prefix lookup showing origin ASN, RPKI status, AS-SET membership
+
+### Streaming Extensions (deferred)
+
+- **STRM-10**: SHA256 checksum in response trailers for data integrity verification
+- **STRM-11**: SyncStatus custom RPC — deferred, available via existing REST/GraphQL
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Bidirectional/client-streaming RPCs | Read-only mirror has no write path |
+| WebSocket streaming fallback | ConnectRPC handles streaming over HTTP/2 natively |
+| Real-time change streaming / subscriptions | Periodic sync mirror, not a live database |
+| Custom download formats (CSV, NDJSON) | Protobuf and JSON via ConnectRPC are sufficient |
+| IX presence interactive map | High complexity, separate future feature |
+| Sortable IX presence table | Defer to future milestone |
+| Inline editing of IX presence data | Read-only mirror |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| STRM-01 | — | Pending |
+| STRM-02 | — | Pending |
+| STRM-03 | — | Pending |
+| STRM-04 | — | Pending |
+| STRM-05 | — | Pending |
+| STRM-06 | — | Pending |
+| STRM-07 | — | Pending |
+| STRM-08 | — | Pending |
+| STRM-09 | — | Pending |
+| IXUI-01 | — | Pending |
+| IXUI-02 | — | Pending |
+| IXUI-03 | — | Pending |
+| IXUI-04 | — | Pending |
+| IXUI-05 | — | Pending |
+| IXUI-06 | — | Pending |
+| IXUI-07 | — | Pending |
+
+**Coverage:**
+- v1.7 requirements: 16 total
+- Mapped to phases: 0
+- Unmapped: 16
+
+---
+*Requirements defined: 2026-03-25*
+*Last updated: 2026-03-25 after initial definition*
