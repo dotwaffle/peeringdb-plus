@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -98,9 +99,83 @@ func (s *CampusService) ListCampuses(ctx context.Context, req *pb.ListCampusesRe
 }
 
 // StreamCampuses streams all matching campuses one message at a time using
-// batched keyset pagination. Returns Unimplemented until handler logic is added.
-func (s *CampusService) StreamCampuses(_ context.Context, _ *pb.StreamCampusesRequest, _ *connect.ServerStream[pb.Campus]) error {
-	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamCampuses not yet implemented"))
+// batched keyset pagination. Filters match the ListCampuses behavior.
+func (s *CampusService) StreamCampuses(ctx context.Context, req *pb.StreamCampusesRequest, stream *connect.ServerStream[pb.Campus]) error {
+	// Apply stream timeout.
+	if s.StreamTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
+		defer cancel()
+	}
+
+	// Build filter predicates (identical to ListCampuses).
+	var predicates []predicate.Campus
+	if req.Name != nil {
+		predicates = append(predicates, campus.NameContainsFold(*req.Name))
+	}
+	if req.Country != nil {
+		predicates = append(predicates, campus.CountryEQ(*req.Country))
+	}
+	if req.City != nil {
+		predicates = append(predicates, campus.CityContainsFold(*req.City))
+	}
+	if req.Status != nil {
+		predicates = append(predicates, campus.StatusEQ(*req.Status))
+	}
+	if req.OrgId != nil {
+		if *req.OrgId <= 0 {
+			return connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("invalid filter: org_id must be positive"))
+		}
+		predicates = append(predicates, campus.OrgIDEQ(int(*req.OrgId)))
+	}
+
+	// Count total matching records for header metadata.
+	countQuery := s.Client.Campus.Query()
+	if len(predicates) > 0 {
+		countQuery = countQuery.Where(campus.And(predicates...))
+	}
+	total, err := countQuery.Count(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("count campuses: %w", err))
+	}
+	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
+
+	// Stream records in batches using keyset pagination.
+	lastID := 0
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		query := s.Client.Campus.Query().
+			Where(campus.IDGT(lastID)).
+			Order(ent.Asc(campus.FieldID)).
+			Limit(streamBatchSize)
+		if len(predicates) > 0 {
+			query = query.Where(campus.And(predicates...))
+		}
+
+		batch, err := query.All(ctx)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal,
+				fmt.Errorf("stream campuses batch after id %d: %w", lastID, err))
+		}
+		if len(batch) == 0 {
+			return nil
+		}
+
+		for _, c := range batch {
+			if err := stream.Send(campusToProto(c)); err != nil {
+				return err
+			}
+		}
+
+		lastID = batch[len(batch)-1].ID
+		if len(batch) < streamBatchSize {
+			return nil
+		}
+	}
 }
 
 // campusToProto converts an ent Campus entity to a protobuf Campus message.

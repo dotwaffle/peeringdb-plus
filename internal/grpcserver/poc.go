@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -95,9 +96,80 @@ func (s *PocService) ListPocs(ctx context.Context, req *pb.ListPocsRequest) (*pb
 }
 
 // StreamPocs streams all matching points of contact one message at a time using
-// batched keyset pagination. Returns Unimplemented until handler logic is added.
-func (s *PocService) StreamPocs(_ context.Context, _ *pb.StreamPocsRequest, _ *connect.ServerStream[pb.Poc]) error {
-	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamPocs not yet implemented"))
+// batched keyset pagination. Filters match the ListPocs behavior.
+func (s *PocService) StreamPocs(ctx context.Context, req *pb.StreamPocsRequest, stream *connect.ServerStream[pb.Poc]) error {
+	// Apply stream timeout.
+	if s.StreamTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
+		defer cancel()
+	}
+
+	// Build filter predicates (identical to ListPocs).
+	var predicates []predicate.Poc
+	if req.NetId != nil {
+		if *req.NetId <= 0 {
+			return connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("invalid filter: net_id must be positive"))
+		}
+		predicates = append(predicates, poc.NetIDEQ(int(*req.NetId)))
+	}
+	if req.Role != nil {
+		predicates = append(predicates, poc.RoleEQ(*req.Role))
+	}
+	if req.Name != nil {
+		predicates = append(predicates, poc.NameContainsFold(*req.Name))
+	}
+	if req.Status != nil {
+		predicates = append(predicates, poc.StatusEQ(*req.Status))
+	}
+
+	// Count total matching records for header metadata.
+	countQuery := s.Client.Poc.Query()
+	if len(predicates) > 0 {
+		countQuery = countQuery.Where(poc.And(predicates...))
+	}
+	total, err := countQuery.Count(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("count pocs: %w", err))
+	}
+	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
+
+	// Stream records in batches using keyset pagination.
+	lastID := 0
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		query := s.Client.Poc.Query().
+			Where(poc.IDGT(lastID)).
+			Order(ent.Asc(poc.FieldID)).
+			Limit(streamBatchSize)
+		if len(predicates) > 0 {
+			query = query.Where(poc.And(predicates...))
+		}
+
+		batch, err := query.All(ctx)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal,
+				fmt.Errorf("stream pocs batch after id %d: %w", lastID, err))
+		}
+		if len(batch) == 0 {
+			return nil
+		}
+
+		for _, p := range batch {
+			if err := stream.Send(pocToProto(p)); err != nil {
+				return err
+			}
+		}
+
+		lastID = batch[len(batch)-1].ID
+		if len(batch) < streamBatchSize {
+			return nil
+		}
+	}
 }
 
 // pocToProto converts an ent Poc entity to a protobuf Poc message.

@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -92,9 +93,77 @@ func (s *CarrierService) ListCarriers(ctx context.Context, req *pb.ListCarriersR
 }
 
 // StreamCarriers streams all matching carriers one message at a time using
-// batched keyset pagination. Returns Unimplemented until handler logic is added.
-func (s *CarrierService) StreamCarriers(_ context.Context, _ *pb.StreamCarriersRequest, _ *connect.ServerStream[pb.Carrier]) error {
-	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamCarriers not yet implemented"))
+// batched keyset pagination. Filters match the ListCarriers behavior.
+func (s *CarrierService) StreamCarriers(ctx context.Context, req *pb.StreamCarriersRequest, stream *connect.ServerStream[pb.Carrier]) error {
+	// Apply stream timeout.
+	if s.StreamTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
+		defer cancel()
+	}
+
+	// Build filter predicates (identical to ListCarriers).
+	var predicates []predicate.Carrier
+	if req.Name != nil {
+		predicates = append(predicates, carrier.NameContainsFold(*req.Name))
+	}
+	if req.Status != nil {
+		predicates = append(predicates, carrier.StatusEQ(*req.Status))
+	}
+	if req.OrgId != nil {
+		if *req.OrgId <= 0 {
+			return connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("invalid filter: org_id must be positive"))
+		}
+		predicates = append(predicates, carrier.OrgIDEQ(int(*req.OrgId)))
+	}
+
+	// Count total matching records for header metadata.
+	countQuery := s.Client.Carrier.Query()
+	if len(predicates) > 0 {
+		countQuery = countQuery.Where(carrier.And(predicates...))
+	}
+	total, err := countQuery.Count(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("count carriers: %w", err))
+	}
+	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
+
+	// Stream records in batches using keyset pagination.
+	lastID := 0
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		query := s.Client.Carrier.Query().
+			Where(carrier.IDGT(lastID)).
+			Order(ent.Asc(carrier.FieldID)).
+			Limit(streamBatchSize)
+		if len(predicates) > 0 {
+			query = query.Where(carrier.And(predicates...))
+		}
+
+		batch, err := query.All(ctx)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal,
+				fmt.Errorf("stream carriers batch after id %d: %w", lastID, err))
+		}
+		if len(batch) == 0 {
+			return nil
+		}
+
+		for _, c := range batch {
+			if err := stream.Send(carrierToProto(c)); err != nil {
+				return err
+			}
+		}
+
+		lastID = batch[len(batch)-1].ID
+		if len(batch) < streamBatchSize {
+			return nil
+		}
+	}
 }
 
 // carrierToProto converts an ent Carrier entity to a protobuf Carrier message.

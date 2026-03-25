@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -92,9 +93,77 @@ func (s *IxPrefixService) ListIxPrefixes(ctx context.Context, req *pb.ListIxPref
 }
 
 // StreamIxPrefixes streams all matching IX prefixes one message at a time using
-// batched keyset pagination. Returns Unimplemented until handler logic is added.
-func (s *IxPrefixService) StreamIxPrefixes(_ context.Context, _ *pb.StreamIxPrefixesRequest, _ *connect.ServerStream[pb.IxPrefix]) error {
-	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamIxPrefixes not yet implemented"))
+// batched keyset pagination. Filters match the ListIxPrefixes behavior.
+func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIxPrefixesRequest, stream *connect.ServerStream[pb.IxPrefix]) error {
+	// Apply stream timeout.
+	if s.StreamTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
+		defer cancel()
+	}
+
+	// Build filter predicates (identical to ListIxPrefixes).
+	var predicates []predicate.IxPrefix
+	if req.IxlanId != nil {
+		if *req.IxlanId <= 0 {
+			return connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("invalid filter: ixlan_id must be positive"))
+		}
+		predicates = append(predicates, ixprefix.IxlanIDEQ(int(*req.IxlanId)))
+	}
+	if req.Protocol != nil {
+		predicates = append(predicates, ixprefix.ProtocolEQ(*req.Protocol))
+	}
+	if req.Status != nil {
+		predicates = append(predicates, ixprefix.StatusEQ(*req.Status))
+	}
+
+	// Count total matching records for header metadata.
+	countQuery := s.Client.IxPrefix.Query()
+	if len(predicates) > 0 {
+		countQuery = countQuery.Where(ixprefix.And(predicates...))
+	}
+	total, err := countQuery.Count(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("count ix prefixes: %w", err))
+	}
+	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
+
+	// Stream records in batches using keyset pagination.
+	lastID := 0
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		query := s.Client.IxPrefix.Query().
+			Where(ixprefix.IDGT(lastID)).
+			Order(ent.Asc(ixprefix.FieldID)).
+			Limit(streamBatchSize)
+		if len(predicates) > 0 {
+			query = query.Where(ixprefix.And(predicates...))
+		}
+
+		batch, err := query.All(ctx)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal,
+				fmt.Errorf("stream ix prefixes batch after id %d: %w", lastID, err))
+		}
+		if len(batch) == 0 {
+			return nil
+		}
+
+		for _, ixp := range batch {
+			if err := stream.Send(ixPrefixToProto(ixp)); err != nil {
+				return err
+			}
+		}
+
+		lastID = batch[len(batch)-1].ID
+		if len(batch) < streamBatchSize {
+			return nil
+		}
+	}
 }
 
 // ixPrefixToProto converts an ent IxPrefix entity to a protobuf IxPrefix

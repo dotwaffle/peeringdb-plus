@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -100,9 +101,84 @@ func (s *NetworkService) ListNetworks(ctx context.Context, req *pb.ListNetworksR
 }
 
 // StreamNetworks streams all matching networks one message at a time using
-// batched keyset pagination. Returns Unimplemented until handler logic is added.
-func (s *NetworkService) StreamNetworks(_ context.Context, _ *pb.StreamNetworksRequest, _ *connect.ServerStream[pb.Network]) error {
-	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamNetworks not yet implemented"))
+// batched keyset pagination. Filters match the ListNetworks behavior.
+func (s *NetworkService) StreamNetworks(ctx context.Context, req *pb.StreamNetworksRequest, stream *connect.ServerStream[pb.Network]) error {
+	// Apply stream timeout.
+	if s.StreamTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
+		defer cancel()
+	}
+
+	// Build filter predicates (identical to ListNetworks).
+	var predicates []predicate.Network
+	if req.Asn != nil {
+		if *req.Asn <= 0 {
+			return connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("invalid filter: asn must be positive"))
+		}
+		predicates = append(predicates, network.AsnEQ(int(*req.Asn)))
+	}
+	if req.Name != nil {
+		predicates = append(predicates, network.NameContainsFold(*req.Name))
+	}
+	if req.Status != nil {
+		predicates = append(predicates, network.StatusEQ(*req.Status))
+	}
+	if req.OrgId != nil {
+		if *req.OrgId <= 0 {
+			return connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("invalid filter: org_id must be positive"))
+		}
+		predicates = append(predicates, network.OrgIDEQ(int(*req.OrgId)))
+	}
+
+	// Count total matching records for header metadata.
+	countQuery := s.Client.Network.Query()
+	if len(predicates) > 0 {
+		countQuery = countQuery.Where(network.And(predicates...))
+	}
+	total, err := countQuery.Count(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("count networks: %w", err))
+	}
+	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
+
+	// Stream records in batches using keyset pagination.
+	lastID := 0
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		query := s.Client.Network.Query().
+			Where(network.IDGT(lastID)).
+			Order(ent.Asc(network.FieldID)).
+			Limit(streamBatchSize)
+		if len(predicates) > 0 {
+			query = query.Where(network.And(predicates...))
+		}
+
+		batch, err := query.All(ctx)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal,
+				fmt.Errorf("stream networks batch after id %d: %w", lastID, err))
+		}
+		if len(batch) == 0 {
+			return nil
+		}
+
+		for _, n := range batch {
+			if err := stream.Send(networkToProto(n)); err != nil {
+				return err
+			}
+		}
+
+		lastID = batch[len(batch)-1].ID
+		if len(batch) < streamBatchSize {
+			return nil
+		}
+	}
 }
 
 // networkToProto converts an ent Network entity to a protobuf Network message.

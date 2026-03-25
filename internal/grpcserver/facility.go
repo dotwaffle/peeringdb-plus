@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -98,9 +99,83 @@ func (s *FacilityService) ListFacilities(ctx context.Context, req *pb.ListFacili
 }
 
 // StreamFacilities streams all matching facilities one message at a time using
-// batched keyset pagination. Returns Unimplemented until handler logic is added.
-func (s *FacilityService) StreamFacilities(_ context.Context, _ *pb.StreamFacilitiesRequest, _ *connect.ServerStream[pb.Facility]) error {
-	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf("StreamFacilities not yet implemented"))
+// batched keyset pagination. Filters match the ListFacilities behavior.
+func (s *FacilityService) StreamFacilities(ctx context.Context, req *pb.StreamFacilitiesRequest, stream *connect.ServerStream[pb.Facility]) error {
+	// Apply stream timeout.
+	if s.StreamTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
+		defer cancel()
+	}
+
+	// Build filter predicates (identical to ListFacilities).
+	var predicates []predicate.Facility
+	if req.Name != nil {
+		predicates = append(predicates, facility.NameContainsFold(*req.Name))
+	}
+	if req.Country != nil {
+		predicates = append(predicates, facility.CountryEQ(*req.Country))
+	}
+	if req.City != nil {
+		predicates = append(predicates, facility.CityContainsFold(*req.City))
+	}
+	if req.Status != nil {
+		predicates = append(predicates, facility.StatusEQ(*req.Status))
+	}
+	if req.OrgId != nil {
+		if *req.OrgId <= 0 {
+			return connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("invalid filter: org_id must be positive"))
+		}
+		predicates = append(predicates, facility.OrgIDEQ(int(*req.OrgId)))
+	}
+
+	// Count total matching records for header metadata.
+	countQuery := s.Client.Facility.Query()
+	if len(predicates) > 0 {
+		countQuery = countQuery.Where(facility.And(predicates...))
+	}
+	total, err := countQuery.Count(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("count facilities: %w", err))
+	}
+	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
+
+	// Stream records in batches using keyset pagination.
+	lastID := 0
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		query := s.Client.Facility.Query().
+			Where(facility.IDGT(lastID)).
+			Order(ent.Asc(facility.FieldID)).
+			Limit(streamBatchSize)
+		if len(predicates) > 0 {
+			query = query.Where(facility.And(predicates...))
+		}
+
+		batch, err := query.All(ctx)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal,
+				fmt.Errorf("stream facilities batch after id %d: %w", lastID, err))
+		}
+		if len(batch) == 0 {
+			return nil
+		}
+
+		for _, f := range batch {
+			if err := stream.Send(facilityToProto(f)); err != nil {
+				return err
+			}
+		}
+
+		lastID = batch[len(batch)-1].ID
+		if len(batch) < streamBatchSize {
+			return nil
+		}
+	}
 }
 
 // facilityToProto converts an ent Facility entity to a protobuf Facility
