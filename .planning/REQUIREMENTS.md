@@ -9,15 +9,15 @@ Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 
 ### Detection
 
-- [ ] **DET-01**: Terminal clients (curl, wget, HTTPie, xh, PowerShell, fetch) auto-detected via User-Agent prefix matching
-- [ ] **DET-02**: User can force plain text via ?T or ?format=plain query parameter
-- [ ] **DET-03**: User can force JSON via ?format=json query parameter
-- [ ] **DET-04**: Accept header (text/plain, application/json) serves as secondary format signal
+- [x] **DET-01**: Terminal clients (curl, wget, HTTPie, xh, PowerShell, fetch) auto-detected via User-Agent prefix matching
+- [x] **DET-02**: User can force plain text via ?T or ?format=plain query parameter
+- [x] **DET-03**: User can force JSON via ?format=json query parameter
+- [x] **DET-04**: Accept header (text/plain, application/json) serves as secondary format signal
 - [ ] **DET-05**: Content negotiation applies to all /ui/ paths — browsers get HTML unchanged
 
 ### Rendering
 
-- [ ] **RND-01**: Rich 256-color ANSI output with Unicode box-drawing for terminal clients
+- [x] **RND-01**: Rich 256-color ANSI output with Unicode box-drawing for terminal clients
 - [ ] **RND-02**: Network detail (/ui/asn/{asn}) renders with whois-style key-value header + IX/facility tables
 - [ ] **RND-03**: IX detail (/ui/ix/{id}) renders with participant table, facility list, prefix list
 - [ ] **RND-04**: Facility detail (/ui/fac/{id}) renders with address, network/IX/carrier lists
@@ -34,7 +34,7 @@ Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 - [ ] **RND-15**: Aggregate bandwidth displayed in network and IX detail headers
 - [ ] **RND-16**: Entity IDs and cross-reference paths shown in output for easy follow-up curls
 - [ ] **RND-17**: WHOIS-style output mode (?format=whois) using RPSL-like key-value format
-- [ ] **RND-18**: NO_COLOR convention respected — suppress ANSI codes when ?nocolor param present
+- [x] **RND-18**: NO_COLOR convention respected — suppress ANSI codes when ?nocolor param present
 
 ### Navigation
 
@@ -88,12 +88,12 @@ Deferred to future release.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DET-01 | Phase 28 | Pending |
-| DET-02 | Phase 28 | Pending |
-| DET-03 | Phase 28 | Pending |
-| DET-04 | Phase 28 | Pending |
+| DET-01 | Phase 28 | Complete |
+| DET-02 | Phase 28 | Complete |
+| DET-03 | Phase 28 | Complete |
+| DET-04 | Phase 28 | Complete |
 | DET-05 | Phase 28 | Pending |
-| RND-01 | Phase 28 | Pending |
+| RND-01 | Phase 28 | Complete |
 | RND-02 | Phase 29 | Pending |
 | RND-03 | Phase 30 | Pending |
 | RND-04 | Phase 30 | Pending |
@@ -110,7 +110,7 @@ Deferred to future release.
 | RND-15 | Phase 29 | Pending |
 | RND-16 | Phase 29 | Pending |
 | RND-17 | Phase 30 | Pending |
-| RND-18 | Phase 28 | Pending |
+| RND-18 | Phase 28 | Complete |
 | NAV-01 | Phase 28 | Pending |
 | NAV-02 | Phase 28 | Pending |
 | NAV-03 | Phase 28 | Pending |
