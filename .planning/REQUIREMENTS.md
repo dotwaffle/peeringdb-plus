@@ -60,28 +60,28 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| STRM-01 | — | Pending |
-| STRM-02 | — | Pending |
-| STRM-03 | — | Pending |
-| STRM-04 | — | Pending |
-| STRM-05 | — | Pending |
-| STRM-06 | — | Pending |
-| STRM-07 | — | Pending |
-| STRM-08 | — | Pending |
-| STRM-09 | — | Pending |
-| IXUI-01 | — | Pending |
-| IXUI-02 | — | Pending |
-| IXUI-03 | — | Pending |
-| IXUI-04 | — | Pending |
-| IXUI-05 | — | Pending |
-| IXUI-06 | — | Pending |
-| IXUI-07 | — | Pending |
+| STRM-01 | Phase 25 | Pending |
+| STRM-02 | Phase 25 | Pending |
+| STRM-03 | Phase 25 | Pending |
+| STRM-04 | Phase 25 | Pending |
+| STRM-05 | Phase 25 | Pending |
+| STRM-06 | Phase 25 | Pending |
+| STRM-07 | Phase 25 | Pending |
+| STRM-08 | Phase 26 | Pending |
+| STRM-09 | Phase 26 | Pending |
+| IXUI-01 | Phase 27 | Pending |
+| IXUI-02 | Phase 27 | Pending |
+| IXUI-03 | Phase 27 | Pending |
+| IXUI-04 | Phase 27 | Pending |
+| IXUI-05 | Phase 27 | Pending |
+| IXUI-06 | Phase 27 | Pending |
+| IXUI-07 | Phase 27 | Pending |
 
 **Coverage:**
 - v1.7 requirements: 16 total
-- Mapped to phases: 0
-- Unmapped: 16
+- Mapped to phases: 16
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after initial definition*
+*Last updated: 2026-03-25 after roadmap creation*
