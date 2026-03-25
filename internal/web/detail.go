@@ -616,6 +616,7 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 	items, err := h.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID))).
 		QueryNetworkIxLans().
+		WithNetwork().
 		All(r.Context())
 	if err != nil {
 		slog.Error("query ix participants", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
@@ -625,8 +626,12 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 
 	rows := make([]templates.IXParticipantRow, len(items))
 	for i, nix := range items {
+		netName := ""
+		if net := nix.Edges.Network; net != nil {
+			netName = net.Name
+		}
 		row := templates.IXParticipantRow{
-			NetName:  nix.Name,
+			NetName:  netName,
 			ASN:      nix.Asn,
 			Speed:    nix.Speed,
 			IsRSPeer: nix.IsRsPeer,
