@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 28-01-PLAN.md
-last_updated: "2026-03-25T23:36:09.449Z"
+stopped_at: Completed 28-02-PLAN.md
+last_updated: "2026-03-25T23:44:32.738Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 2
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 28 (terminal-detection-infrastructure) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -74,6 +74,8 @@ Recent decisions affecting current work:
 - [v1.7]: 5-tier port speed color coding (reuse in terminal renderer)
 - [v1.4]: Dual render mode (full page vs htmx fragment) -- terminal adds third branch
 - [Phase 28]: Used colorprofile.NoTTY (not ASCII) for plain/noColor to strip ALL ANSI codes including bold/underline
+- [Phase 28]: Vary header expanded to HX-Request, User-Agent, Accept on all renderPage branches
+- [Phase 28]: PageContent.Data field carries raw structs for terminal/JSON rendering alongside templ.Component
 
 ### Pending Todos
 
@@ -89,6 +91,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T23:36:09.445Z
-Stopped at: Completed 28-01-PLAN.md
+Last session: 2026-03-25T23:44:32.735Z
+Stopped at: Completed 28-02-PLAN.md
 Resume file: None

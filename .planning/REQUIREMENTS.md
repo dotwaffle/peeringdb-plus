@@ -13,7 +13,7 @@ Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 - [x] **DET-02**: User can force plain text via ?T or ?format=plain query parameter
 - [x] **DET-03**: User can force JSON via ?format=json query parameter
 - [x] **DET-04**: Accept header (text/plain, application/json) serves as secondary format signal
-- [ ] **DET-05**: Content negotiation applies to all /ui/ paths — browsers get HTML unchanged
+- [x] **DET-05**: Content negotiation applies to all /ui/ paths — browsers get HTML unchanged
 
 ### Rendering
 
@@ -38,9 +38,9 @@ Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 
 ### Navigation
 
-- [ ] **NAV-01**: Help text at /ui/ for terminal clients listing endpoints, params, and examples
-- [ ] **NAV-02**: Text-formatted 404 error for terminal clients (not HTML)
-- [ ] **NAV-03**: Text-formatted 500 error for terminal clients (not HTML)
+- [x] **NAV-01**: Help text at /ui/ for terminal clients listing endpoints, params, and examples
+- [x] **NAV-02**: Text-formatted 404 error for terminal clients (not HTML)
+- [x] **NAV-03**: Text-formatted 500 error for terminal clients (not HTML)
 - [ ] **NAV-04**: Root handler (/) returns help text for terminal clients (not redirect)
 
 ### Differentiators
@@ -92,7 +92,7 @@ Deferred to future release.
 | DET-02 | Phase 28 | Complete |
 | DET-03 | Phase 28 | Complete |
 | DET-04 | Phase 28 | Complete |
-| DET-05 | Phase 28 | Pending |
+| DET-05 | Phase 28 | Complete |
 | RND-01 | Phase 28 | Complete |
 | RND-02 | Phase 29 | Pending |
 | RND-03 | Phase 30 | Pending |
@@ -111,9 +111,9 @@ Deferred to future release.
 | RND-16 | Phase 29 | Pending |
 | RND-17 | Phase 30 | Pending |
 | RND-18 | Phase 28 | Complete |
-| NAV-01 | Phase 28 | Pending |
-| NAV-02 | Phase 28 | Pending |
-| NAV-03 | Phase 28 | Pending |
+| NAV-01 | Phase 28 | Complete |
+| NAV-02 | Phase 28 | Complete |
+| NAV-03 | Phase 28 | Complete |
 | NAV-04 | Phase 28 | Pending |
 | DIF-01 | Phase 31 | Pending |
 | DIF-02 | Phase 31 | Pending |

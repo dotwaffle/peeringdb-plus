@@ -95,11 +95,11 @@ Plans:
   3. Appending `?T` or `?format=plain` to any /ui/ URL returns plain ASCII output with no ANSI escape codes, and `?format=json` returns JSON
   4. Requesting a nonexistent path like `curl /ui/asn/99999999` returns a text-formatted 404 error (not HTML), and server errors return text-formatted 500 errors
   5. Setting `?nocolor` suppresses all ANSI escape codes in terminal output while preserving layout
-**Plans:** 0/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
-- [ ] 28-01-PLAN.md -- termrender package foundation: detection logic, renderer engine, style definitions
-- [ ] 28-02-PLAN.md -- renderPage integration, PageContent.Data wiring, help text and error renderers
+- [x] 28-01-PLAN.md -- termrender package foundation: detection logic, renderer engine, style definitions
+- [x] 28-02-PLAN.md -- renderPage integration, PageContent.Data wiring, help text and error renderers
 - [ ] 28-03-PLAN.md -- Root handler terminal detection, error handler wiring, integration tests
 
 ### Phase 29: Network Detail (Reference Implementation)
@@ -142,7 +142,7 @@ Phases execute in numeric order: 28 -> 29 -> 30 -> 31
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 28. Terminal Detection & Infrastructure | 0/3 | Planned    |  |
+| 28. Terminal Detection & Infrastructure | 2/3 | In Progress|  |
 | 29. Network Detail (Reference Implementation) | 0/? | Not started | - |
 | 30. Entity Types, Search & Formats | 0/? | Not started | - |
 | 31. Differentiators & Shell Integration | 0/? | Not started | - |
