@@ -885,6 +885,210 @@ func TestLayout_KeyboardNavScript(t *testing.T) {
 	}
 }
 
+// --- Terminal detection integration tests ---
+
+// truncateBody returns the first n characters of s for error message context.
+func truncateBody(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
+}
+
+func TestTerminalDetection(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	tests := []struct {
+		name        string
+		path        string
+		userAgent   string
+		accept      string
+		wantStatus  int
+		wantCT      string   // Content-Type prefix
+		wantContain []string // strings body must contain
+		wantAbsent  []string // strings body must NOT contain
+		wantVary    string   // Vary header must contain
+	}{
+		{
+			name:        "curl /ui/ gets help text",
+			path:        "/ui/",
+			userAgent:   "curl/8.5.0",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"PeeringDB Plus", "Usage:", "curl peeringdb-plus.fly.dev/ui/asn/"},
+			wantVary:    "User-Agent",
+		},
+		{
+			name:        "wget /ui/ gets text",
+			path:        "/ui/",
+			userAgent:   "Wget/1.21",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"PeeringDB Plus"},
+			wantVary:    "User-Agent",
+		},
+		{
+			name:        "httpie /ui/ gets text",
+			path:        "/ui/",
+			userAgent:   "HTTPie/3.2.4",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantVary:    "User-Agent",
+		},
+		{
+			name:        "browser /ui/ gets HTML",
+			path:        "/ui/",
+			userAgent:   "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+			wantStatus:  200,
+			wantCT:      "text/html",
+			wantContain: []string{"<!doctype html>"},
+			wantVary:    "User-Agent",
+		},
+		{
+			name:        "?format=json returns JSON",
+			path:        "/ui/?format=json",
+			userAgent:   "curl/8.5.0",
+			wantStatus:  200,
+			wantCT:      "application/json",
+			wantVary:    "User-Agent",
+		},
+		{
+			name:        "?T returns plain text without ANSI",
+			path:        "/ui/?T",
+			userAgent:   "curl/8.5.0",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"PeeringDB Plus"},
+			wantAbsent:  []string{"\x1b["},
+			wantVary:    "User-Agent",
+		},
+		{
+			name:        "?nocolor strips ANSI from rich output",
+			path:        "/ui/?nocolor",
+			userAgent:   "curl/8.5.0",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"PeeringDB Plus"},
+			wantAbsent:  []string{"\x1b["},
+			wantVary:    "User-Agent",
+		},
+		{
+			name:        "curl rich mode has ANSI codes",
+			path:        "/ui/",
+			userAgent:   "curl/8.5.0",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"\x1b["},
+		},
+		{
+			name:        "curl 404 returns text error",
+			path:        "/ui/asn/99999999",
+			userAgent:   "curl/8.5.0",
+			wantStatus:  404,
+			wantCT:      "text/plain",
+			wantContain: []string{"404", "Not Found"},
+			wantAbsent:  []string{"<!doctype html>"},
+		},
+		{
+			name:        "browser 404 returns HTML error",
+			path:        "/ui/asn/99999999",
+			userAgent:   "Mozilla/5.0",
+			wantStatus:  404,
+			wantCT:      "text/html",
+			wantContain: []string{"Page not found"},
+		},
+		{
+			name:       "Accept application/json overrides browser UA",
+			path:       "/ui/",
+			userAgent:  "Mozilla/5.0",
+			accept:     "application/json",
+			wantStatus: 200,
+			wantCT:     "application/json",
+		},
+		{
+			name:        "Accept text/plain triggers rich mode for browser",
+			path:        "/ui/",
+			userAgent:   "Mozilla/5.0",
+			accept:      "text/plain",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"PeeringDB Plus"},
+		},
+		{
+			name:        "?format=plain overrides Accept JSON",
+			path:        "/ui/?format=plain",
+			userAgent:   "curl/8.5.0",
+			accept:      "application/json",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"PeeringDB Plus"},
+			wantAbsent:  []string{"\x1b["},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			if tt.userAgent != "" {
+				req.Header.Set("User-Agent", tt.userAgent)
+			}
+			if tt.accept != "" {
+				req.Header.Set("Accept", tt.accept)
+			}
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+			ct := rec.Header().Get("Content-Type")
+			if !strings.HasPrefix(ct, tt.wantCT) {
+				t.Errorf("Content-Type = %q, want prefix %q", ct, tt.wantCT)
+			}
+			body := rec.Body.String()
+			for _, s := range tt.wantContain {
+				if !strings.Contains(body, s) {
+					t.Errorf("body missing %q (first 500 chars: %s)", s, truncateBody(body, 500))
+				}
+			}
+			for _, s := range tt.wantAbsent {
+				if strings.Contains(body, s) {
+					t.Errorf("body unexpectedly contains %q", s)
+				}
+			}
+			if tt.wantVary != "" {
+				vary := rec.Header().Get("Vary")
+				if !strings.Contains(vary, tt.wantVary) {
+					t.Errorf("Vary = %q, want it to contain %q", vary, tt.wantVary)
+				}
+			}
+		})
+	}
+}
+
+func TestTerminal404JSON(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+	req := httptest.NewRequest(http.MethodGet, "/ui/asn/99999999?format=json", nil)
+	req.Header.Set("User-Agent", "curl/8.5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != 404 {
+		t.Fatalf("status = %d, want 404", rec.Code)
+	}
+	ct := rec.Header().Get("Content-Type")
+	if !strings.HasPrefix(ct, "application/json") {
+		t.Errorf("Content-Type = %q, want application/json prefix", ct)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `"error"`) {
+		t.Errorf("JSON 404 body missing error field: %s", body)
+	}
+}
+
 func TestKeyboardNav_Integration(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
