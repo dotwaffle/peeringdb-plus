@@ -41,7 +41,7 @@ Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 - [x] **NAV-01**: Help text at /ui/ for terminal clients listing endpoints, params, and examples
 - [x] **NAV-02**: Text-formatted 404 error for terminal clients (not HTML)
 - [x] **NAV-03**: Text-formatted 500 error for terminal clients (not HTML)
-- [ ] **NAV-04**: Root handler (/) returns help text for terminal clients (not redirect)
+- [x] **NAV-04**: Root handler (/) returns help text for terminal clients (not redirect)
 
 ### Differentiators
 
@@ -114,7 +114,7 @@ Deferred to future release.
 | NAV-01 | Phase 28 | Complete |
 | NAV-02 | Phase 28 | Complete |
 | NAV-03 | Phase 28 | Complete |
-| NAV-04 | Phase 28 | Pending |
+| NAV-04 | Phase 28 | Complete |
 | DIF-01 | Phase 31 | Pending |
 | DIF-02 | Phase 31 | Pending |
 | DIF-03 | Phase 31 | Pending |
