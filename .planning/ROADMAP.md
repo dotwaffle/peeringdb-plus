@@ -19,7 +19,7 @@
 
 - [x] **Phase 25: Streaming RPCs** - Proto definitions, code generation, and 13 streaming handlers with batched keyset pagination (completed 2026-03-25)
 - [x] **Phase 26: Stream Resume & Incremental Filters** - `since_id` resume and `updated_since` timestamp filtering on streaming RPCs (completed 2026-03-25)
-- [ ] **Phase 27: IX Presence UI Polish** - Field labels, speed colors, RS badge, IP alignment, copyable text, and aggregate bandwidth
+- [x] **Phase 27: IX Presence UI Polish** - Field labels, speed colors, RS badge, IP alignment, copyable text, and aggregate bandwidth (completed 2026-03-25)
 
 ## Phase Details
 
@@ -63,11 +63,11 @@ Plans:
   3. IP addresses align consistently across rows via grid layout, are selectable as plain text, and have a copy-to-clipboard button
   4. The IX presence section header shows aggregate bandwidth across all listed connections
   5. The same layout improvements apply to both the network detail page (`detail_net.templ`) and the IX detail page (`detail_ix.templ`)
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 27-01-PLAN.md -- Shared helpers (speed colors, copyable IPs, bandwidth section) + NetworkIXLansList redesign
-- [ ] 27-02-PLAN.md -- IXParticipantsList redesign + visual verification checkpoint
+- [x] 27-02-PLAN.md -- IXParticipantsList redesign + visual verification checkpoint
 
 ## Progress
 
@@ -78,4 +78,4 @@ Phases execute in numeric order: 25 -> 26 -> 27
 |-------|----------------|--------|-----------|
 | 25. Streaming RPCs | 3/3 | Complete    | 2026-03-25 |
 | 26. Stream Resume & Incremental Filters | 1/1 | Complete    | 2026-03-25 |
-| 27. IX Presence UI Polish | 1/2 | In Progress|  |
+| 27. IX Presence UI Polish | 1/2 | Complete    | 2026-03-25 |

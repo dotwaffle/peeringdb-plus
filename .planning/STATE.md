@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to execute
-stopped_at: Completed 27-01-PLAN.md IX presence helpers and network detail redesign
-last_updated: "2026-03-25T07:32:11.435Z"
+status: Milestone complete
+stopped_at: Completed 27-02-PLAN.md IX detail page participants redesign
+last_updated: "2026-03-25T07:44:19.227Z"
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 
 ## Current Position
 
-Phase: 27 (ix-presence-ui-polish) — EXECUTING
-Plan: 2 of 2
+Phase: 27
+Plan: Not started
 
 ## Performance Metrics
 
@@ -75,6 +75,7 @@ Recent decisions affecting current work:
 - [Phase 26]: since_id as IDGT predicate + lastID cursor: grpc-total-count reflects remaining records for resume consumers
 - [Phase 27]: templ script component for clipboard: type-safe JS interop pattern
 - [Phase 27]: Speed color tiers: sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber
+- [Phase 27]: IX participant link uses sky accent (hover:text-sky-400) matching IX page color scheme
 
 ### Pending Todos
 
@@ -89,6 +90,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T07:32:11.432Z
-Stopped at: Completed 27-01-PLAN.md IX presence helpers and network detail redesign
+Last session: 2026-03-25T07:39:03.692Z
+Stopped at: Completed 27-02-PLAN.md IX detail page participants redesign
 Resume file: None
