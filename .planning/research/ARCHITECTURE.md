@@ -1,487 +1,413 @@
 # Architecture Patterns
 
-**Domain:** Server-streaming RPCs + UI polish for PeeringDB Plus v1.7
+**Domain:** Terminal CLI rendering integration for PeeringDB Plus v1.8
 **Researched:** 2026-03-25
 
 ## Recommended Architecture
 
 ### Overview
 
-Two independent feature tracks that share no code dependencies between them:
+Content negotiation within the existing `/ui/` handler dispatch, using a rendering branch that shares data types between HTML (templ) and terminal (lipgloss) renderers. No new routes. No middleware-based approach. The terminal rendering is a peer of the htmx fragment rendering already in `renderPage()`.
 
-1. **Server-streaming RPCs**: New `StreamAll` methods added to each of the 13 existing ConnectRPC services, using the same handler struct pattern but with streaming return semantics.
-2. **IX presence UI polish**: Template-only changes to `detail_net.templ` and `detail_shared.templ` (and the IX detail equivalents), plus CSS adjustments. No new routes, no new Go handler code.
+### Why Handler-Level, Not Middleware
 
-The streaming feature integrates surgically: add RPCs to `services.proto`, regenerate, implement handler methods, register (already handled by existing service registration). The UI changes are purely visual refinements to existing components.
+1. **The existing pattern already does this.** `renderPage()` in `internal/web/render.go` already branches on `HX-Request` header. Adding a third branch for terminal output follows the identical pattern.
+2. **Middleware cannot access typed data.** The terminal renderer needs `NetworkDetail`, `IXDetail`, etc. Middleware only sees `http.ResponseWriter` and `*http.Request`.
+3. **Handler dispatch already exists.** Each handler constructs the typed detail struct. The renderer choice must happen after data construction.
 
-### Component Boundaries
-
-| Component | Responsibility | What Changes | Confidence |
-|-----------|---------------|--------------|------------|
-| `proto/peeringdb/v1/services.proto` | Service + message definitions | ADD: 13 `StreamAll*` RPCs + 13 request messages | HIGH |
-| `gen/peeringdb/v1/peeringdbv1connect/` | Generated handler interfaces + clients | REGENERATED: interfaces gain streaming method signatures | HIGH |
-| `internal/grpcserver/*.go` (13 files) | Handler implementations | MODIFIED: each gains a `StreamAll*` method | HIGH |
-| `internal/grpcserver/pagination.go` | Pagination helpers | ADD: streaming batch size constant | HIGH |
-| `cmd/peeringdb-plus/main.go` | Service registration | NO CHANGE: streaming methods are on the same service interfaces, same registration code | HIGH |
-| `connectrpc.com/grpcreflect` | gRPC reflection | NO CHANGE: same service names, reflection auto-discovers new methods | HIGH |
-| `internal/web/templates/detail_net.templ` | Network IX presence rendering | MODIFIED: layout, labels, badges, CSS classes | HIGH |
-| `internal/web/templates/detail_shared.templ` | Shared helpers (formatSpeed) | MODIFIED: add speed color helper, possibly new components | HIGH |
-| `internal/web/templates/detail_ix.templ` | IX participant rendering | MODIFIED: same layout changes for consistency | HIGH |
-| `internal/web/templates/detailtypes.go` | Template data types | NO CHANGE: existing `NetworkIXLanRow` and `IXParticipantRow` structs already carry all needed data | HIGH |
-| `internal/web/detail.go` | Fragment handlers | NO CHANGE: data loading is unchanged, only presentation changes | HIGH |
-
-### Data Flow: Server-Streaming RPCs
+### Architecture Diagram
 
 ```
-Client sends StreamAllNetworksRequest (no page_token, just optional filters)
-    |
-    v
-Handler receives request + *connect.ServerStream[StreamAllNetworksResponse]
-    |
-    v
-Handler builds ent query with predicates (reuse existing filter logic)
-    |
-    v
-Loop: query batch of 500 entities via .Limit(batchSize).Offset(cursor)
-    |
-    +-> For each entity in batch:
-    |       Convert to proto (reuse existing entityToProto function)
-    |       stream.Send(&StreamAllNetworksResponse{Network: proto})
-    |       If Send returns error -> return error (client disconnected)
-    |
-    +-> If len(batch) < batchSize -> break (no more data)
-    |   Else cursor += batchSize, loop again
-    |
-    v
-Return nil (stream ends, ConnectRPC sends trailers)
+Request flow (existing + new):
+
+  GET /ui/asn/13335
+       |
+  [dispatch()] -- routes to handleNetworkDetail
+       |
+  [query ent, build NetworkDetail struct]  <-- no change
+       |
+  [detect output mode] -- User-Agent + Accept + ?format= + ?T
+       |
+       +-- OutputJSON         --> json.Encode(data)         (NEW)
+       +-- OutputPlain        --> terminal.RenderNetwork    (NEW, colorprofile.ASCII)
+       +-- OutputANSI         --> terminal.RenderNetwork    (NEW, colorprofile.ANSI256)
+       +-- OutputHTML + htmx  --> templ fragment             (existing)
+       +-- OutputHTML         --> templ full page             (existing)
 ```
 
-**Key architectural decision:** Each `Send()` emits exactly one entity. This is deliberate -- streaming one entity per message gives the client maximum flexibility for processing (they can count, filter client-side, or write to storage as they go). The alternative of batching multiple entities per message adds complexity for marginal wire efficiency gains that protobuf framing already handles well.
+## Component Boundaries
 
-### Data Flow: UI Template Changes
+| Component | Responsibility | Communicates With | New/Modified |
+|-----------|---------------|-------------------|--------------|
+| `internal/web/handler.go` | Route dispatch, data assembly, output mode branch | ent client, detect.go, terminal pkg | **Modified** |
+| `internal/web/render.go` | HTML rendering (templ), Vary header | templ templates | **Modified** (Vary header update) |
+| `internal/web/detect.go` | User-Agent detection, format resolution | handler.go | **New** |
+| `internal/web/templates/detailtypes.go` | Shared data types (NetworkDetail, etc.) | All renderers | **No change** |
+| `internal/terminal/` | ANSI/plain rendering for all entity types | detailtypes, lipgloss | **New package** |
+| `internal/terminal/style.go` | Color palette, lipgloss style definitions | lipgloss v2 | **New** |
+| `internal/terminal/table.go` | Shared table rendering helpers | lipgloss/table | **New** |
+| `internal/terminal/render.go` | Core rendering functions, writer setup | colorprofile | **New** |
+| `internal/terminal/network.go` | NetworkDetail -> ANSI string | detailtypes, style, table | **New** |
+| `internal/terminal/ix.go` | IXDetail -> ANSI string | detailtypes, style, table | **New** |
+| `internal/terminal/facility.go` | FacilityDetail -> ANSI string | detailtypes, style, table | **New** |
+| `internal/terminal/org.go` | OrgDetail -> ANSI string | detailtypes, style, table | **New** |
+| `internal/terminal/campus.go` | CampusDetail -> ANSI string | detailtypes, style, table | **New** |
+| `internal/terminal/carrier.go` | CarrierDetail -> ANSI string | detailtypes, style, table | **New** |
+| `internal/terminal/search.go` | Search results -> ANSI string | searchtypes, style | **New** |
+| `internal/terminal/compare.go` | Compare results -> ANSI string | comparetypes, style, table | **New** |
+| `internal/terminal/help.go` | CLI help text for `/ui/` root | style | **New** |
+| `internal/terminal/error.go` | Error pages -> plain text | None | **New** |
 
-No data flow changes. The existing `handleNetIXLansFragment` handler loads `NetworkIxLan` entities and maps them to `NetworkIXLanRow` structs. The template receives the same data; only the HTML rendering changes:
+## Data Flow
+
+### Current Flow (HTML)
 
 ```
-Existing: row -> [IXName] [speed ipv4 ipv6] [RS]
-New:      row -> [IXName] [Speed: 10G] [IPv4: x.x.x.x] [IPv6: x::x] [RS badge near data] [color-coded speed]
+handleNetworkDetail()
+  -> query ent -> build templates.NetworkDetail
+  -> PageContent{Title: net.Name, Content: templates.NetworkDetailPage(data)}
+  -> renderPage(ctx, w, r, page)
+     -> if HX-Request: page.Content.Render(ctx, w)
+     -> else: templates.Layout(page.Title, page.Content).Render(ctx, w)
 ```
 
-The `NetworkIXLanRow` struct already contains `Speed`, `IPAddr4`, `IPAddr6`, and `IsRSPeer` -- all fields needed for the UI improvements. No new data fetching required.
+### New Flow (Terminal Detection Added)
 
-## Integration Points
-
-### 1. Proto File Changes (services.proto)
-
-**What:** Add a `StreamAll*` server-streaming RPC to each of the 13 services, plus corresponding request/response messages.
-
-**Pattern for each service** (using NetworkService as example):
-
-```protobuf
-service NetworkService {
-  rpc GetNetwork(GetNetworkRequest) returns (GetNetworkResponse);
-  rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
-  rpc StreamAllNetworks(StreamAllNetworksRequest) returns (stream Network);  // NEW
-}
-
-// NEW: No pagination fields -- streaming replaces pagination.
-message StreamAllNetworksRequest {
-  // Filter fields -- same as ListNetworksRequest minus page_size/page_token.
-  optional int64 asn = 1;
-  optional string name = 2;
-  optional string status = 3;
-  optional int64 org_id = 4;
-}
+```
+handleNetworkDetail()
+  -> query ent -> build templates.NetworkDetail  [UNCHANGED]
+  -> mode := DetectOutput(r)
+  -> switch mode:
+     -> OutputJSON:  writeJSON(w, data)
+     -> OutputANSI:  terminal.RenderNetwork(w, data, terminal.ModeANSI)
+     -> OutputPlain: terminal.RenderNetwork(w, data, terminal.ModePlain)
+     -> OutputHTML:  renderPage(ctx, w, r, page)  [existing path, unchanged]
 ```
 
-**Critical design decision:** The streaming response is `stream Network` (the raw entity message), NOT `stream StreamAllNetworksResponse` wrapping it. Rationale:
+The key insight: **the detail data types are already decoupled from HTML rendering.** `templates.NetworkDetail` is a pure Go struct with zero dependencies on templ. Both the HTML renderer and the new terminal renderer consume the same struct.
 
-- The entity proto messages (`Network`, `Facility`, etc.) already exist in `v1.proto`
-- No need for a wrapper when streaming one entity per message
-- Reduces proto file verbosity (13 fewer wrapper message types)
-- Client code is simpler: `for msg := stream.Receive(); ...` gives them the entity directly
+### Shared Data Types -- No Changes Needed
 
-**Generated handler interface change:**
+The types in `detailtypes.go` are already pure data:
 
 ```go
-// Current (v1.6):
-type NetworkServiceHandler interface {
-    GetNetwork(context.Context, *v1.GetNetworkRequest) (*v1.GetNetworkResponse, error)
-    ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
-}
-
-// After adding streaming (v1.7) -- simple mode:
-type NetworkServiceHandler interface {
-    GetNetwork(context.Context, *v1.GetNetworkRequest) (*v1.GetNetworkResponse, error)
-    ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
-    StreamAllNetworks(context.Context, *v1.StreamAllNetworksRequest, *connect.ServerStream[v1.Network]) error
+type NetworkDetail struct {
+    ID       int
+    ASN      int
+    Name     string
+    // ... 25+ fields, all plain Go types
 }
 ```
 
-The `simple` codegen option (configured in `buf.gen.yaml`) produces the handler signature `func(context.Context, *Req, *connect.ServerStream[Res]) error` rather than `func(context.Context, *connect.Request[Req], *connect.ServerStream[Res]) error`. This is consistent with the existing unary signatures which use `*Req` directly.
-
-**Generated handler constructor change:** `NewNetworkServiceHandler` will internally create the streaming handler via `connect.NewServerStreamHandlerSimple` and add a case to the path switch:
-
-```go
-// Generated code will include:
-networkServiceStreamAllNetworksHandler := connect.NewServerStreamHandlerSimple(
-    NetworkServiceStreamAllNetworksProcedure,
-    svc.StreamAllNetworks,
-    connect.WithSchema(...),
-    connect.WithHandlerOptions(opts...),
-)
-// ... in the switch:
-case NetworkServiceStreamAllNetworksProcedure:
-    networkServiceStreamAllNetworksHandler.ServeHTTP(w, r)
-```
-
-**Confidence:** HIGH -- verified against ConnectRPC v1.19.1 pkg.go.dev docs and the connectrpc/examples-go Eliza service which uses identical patterns.
-
-### 2. Handler Implementation Pattern
-
-**What:** Each of the 13 handler structs (e.g., `NetworkService`) gains a `StreamAllNetworks` method.
-
-**Pattern:**
-
-```go
-const streamBatchSize = 500
-
-func (s *NetworkService) StreamAllNetworks(
-    ctx context.Context,
-    req *pb.StreamAllNetworksRequest,
-    stream *connect.ServerStream[pb.Network],
-) error {
-    // Build filter predicates -- reuse same pattern as ListNetworks.
-    var predicates []predicate.Network
-    if req.Asn != nil {
-        if *req.Asn <= 0 {
-            return connect.NewError(connect.CodeInvalidArgument,
-                fmt.Errorf("invalid filter: asn must be positive"))
-        }
-        predicates = append(predicates, network.AsnEQ(int(*req.Asn)))
-    }
-    // ... other filters identical to ListNetworks ...
-
-    // Stream all matching entities in batches.
-    offset := 0
-    for {
-        query := s.Client.Network.Query().
-            Order(ent.Asc(network.FieldID)).
-            Limit(streamBatchSize).
-            Offset(offset)
-        if len(predicates) > 0 {
-            query = query.Where(network.And(predicates...))
-        }
-
-        results, err := query.All(ctx)
-        if err != nil {
-            return connect.NewError(connect.CodeInternal,
-                fmt.Errorf("stream networks at offset %d: %w", offset, err))
-        }
-
-        for _, n := range results {
-            if err := stream.Send(networkToProto(n)); err != nil {
-                return err // Client disconnected or context cancelled.
-            }
-        }
-
-        if len(results) < streamBatchSize {
-            break // No more data.
-        }
-        offset += streamBatchSize
-    }
-    return nil
-}
-```
-
-**Key reuse points:**
-- Filter predicate building is identical to `ListNetworks` -- extract into a shared helper
-- `networkToProto` conversion function is reused as-is
-- `streamBatchSize` is a package-level constant in `pagination.go`
-
-**Confidence:** HIGH -- the `ServerStream.Send()` API is well-documented, and the ent `All()` with `Limit`/`Offset` is the existing proven pattern.
-
-### 3. Main.go Registration (NO CHANGE)
-
-**What:** No changes needed to `cmd/peeringdb-plus/main.go`.
-
-The existing registration code:
-```go
-registerService(peeringdbv1connect.NewNetworkServiceHandler(
-    &grpcserver.NetworkService{Client: entClient}, handlerOpts))
-```
-
-This already passes the full `*grpcserver.NetworkService` struct. Since the struct gains the new `StreamAllNetworks` method, it automatically satisfies the expanded `NetworkServiceHandler` interface. The generated `NewNetworkServiceHandler` constructor handles routing to the new method internally.
-
-**Confidence:** HIGH -- this is the standard ConnectRPC service extension pattern.
-
-### 4. gRPC Reflection + Health (NO CHANGE)
-
-The static reflector uses service names (e.g., `peeringdb.v1.NetworkService`), not method names. Adding methods to existing services does not change the service name, so reflection automatically discovers the new streaming RPCs. Health check status is per-service, not per-method.
-
-**Confidence:** HIGH -- verified by examining the `grpcreflect.NewStaticReflector` call.
-
-### 5. Middleware Compatibility
-
-The existing `responseWriter` in `internal/middleware/logging.go` already implements `http.Flusher` (added in v1.6 specifically for gRPC streaming):
-
-```go
-func (rw *responseWriter) Flush() {
-    if f, ok := rw.ResponseWriter.(http.Flusher); ok {
-        f.Flush()
-    }
-}
-```
-
-The `Unwrap()` method is also present. Server-streaming works over the existing middleware stack without changes.
-
-**Confidence:** HIGH -- verified in existing codebase, explicitly documented as "Required for gRPC streaming".
-
-### 6. h2c / HTTP/2 Support (NO CHANGE)
-
-Server-streaming requires HTTP/2 (or HTTP/1.1 with chunked transfer for Connect protocol). The server already configures h2c:
-
-```go
-var protocols http.Protocols
-protocols.SetHTTP1(true)
-protocols.SetUnencryptedHTTP2(true)
-```
-
-ConnectRPC server-streaming works over both HTTP/2 (for gRPC/gRPC-Web clients) and HTTP/1.1 (for Connect protocol clients using chunked encoding). No protocol changes needed.
-
-**Confidence:** HIGH -- h2c was specifically added in v1.6 for gRPC support.
-
-### 7. UI Template Changes (Isolated)
-
-**Files modified:**
-- `internal/web/templates/detail_net.templ` -- `NetworkIXLansList` component
-- `internal/web/templates/detail_shared.templ` -- `formatSpeed` helper, possibly new speed-color helper
-- `internal/web/templates/detail_ix.templ` -- `IXParticipantsList` component (same changes for consistency)
-
-**No files created.** All changes are within existing components.
-
-**Changes within `NetworkIXLansList`:**
-1. Add field labels: `Speed:`, `IPv4:`, `IPv6:` before the respective values
-2. Reposition RS badge: currently far-right of row, move to inline near the data fields
-3. Color-coded port speeds: map speed ranges to Tailwind color classes (e.g., 100G+ = emerald, 10G = sky, 1G = amber, < 1G = neutral)
-4. Consistent IP address indentation: use grid or flex layout with fixed-width columns for IP addresses
-5. Selectable/copyable text: ensure `select-text` CSS class and remove click-target overlap for IP text (currently the entire row is a link anchor)
-
-**Template structure change for copyable text:**
-
-The current design wraps each entire row in an `<a>` tag, making all text part of the link. For copyable IP addresses, the row needs restructuring: the IX name remains a link, but IP addresses and speed should be outside the `<a>` tag or use a separate click handler.
-
-```
-Current:  <a href="..."> [IXName] [speed ipv4 ipv6] [RS] </a>
-Proposed: <div class="flex ...">
-            <a href="..."> [IXName] </a>
-            <div class="select-all font-mono"> [Speed: 10G] [IPv4: ...] [IPv6: ...] [RS] </div>
-          </div>
-```
-
-This is the most structurally significant UI change -- breaking the `<a>` wrapper.
-
-**Speed color helper (new function in `detail_shared.templ`):**
-
-```go
-func speedColorClass(mbps int) string {
-    switch {
-    case mbps >= 100_000:  // 100G+
-        return "text-emerald-400"
-    case mbps >= 10_000:   // 10G+
-        return "text-sky-400"
-    case mbps >= 1_000:    // 1G+
-        return "text-amber-400"
-    default:               // < 1G
-        return "text-neutral-400"
-    }
-}
-```
-
-**Confidence:** HIGH -- all template changes are within existing components, no new routes or handlers needed.
+Same applies to `IXDetail`, `FacilityDetail`, `OrgDetail`, `CampusDetail`, `CarrierDetail`, and all row types.
 
 ## Patterns to Follow
 
-### Pattern 1: Predicate Builder Extraction
+### Pattern 1: Output Mode Detection
 
-**What:** Extract the filter predicate building from `ListNetworks` into a shared function so both `ListNetworks` and `StreamAllNetworks` use the same validation + predicate logic.
+**What:** Determine output format from User-Agent, Accept header, and query parameters. Resolve once per request.
 
-**When:** When implementing the streaming handler for each entity type.
-
-**Example:**
+**Implementation:**
 
 ```go
-// buildNetworkPredicates validates filter fields and returns ent predicates.
-// Returns a connect error for invalid input.
-func buildNetworkPredicates(req interface{ ... }) ([]predicate.Network, error) {
-    // Shared validation + predicate accumulation
+// internal/web/detect.go
+
+type OutputMode int
+
+const (
+    OutputHTML  OutputMode = iota // Browser: full HTML or htmx fragment
+    OutputANSI                   // Terminal: 256-color ANSI with box drawing
+    OutputPlain                  // Terminal: no color, plain text (?T)
+    OutputJSON                   // Any client: JSON (?format=json)
+)
+
+// DetectOutput determines output format from the request.
+// Priority: query params > Accept header > User-Agent.
+func DetectOutput(r *http.Request) OutputMode {
+    q := r.URL.Query()
+    if q.Get("format") == "json" {
+        return OutputJSON
+    }
+    if q.Has("T") || q.Get("format") == "text" {
+        return OutputPlain
+    }
+    if isTerminalClient(r) {
+        return OutputANSI
+    }
+    return OutputHTML
 }
 ```
 
-However, since the `ListNetworksRequest` and `StreamAllNetworksRequest` are different proto types, a Go interface or separate function per type is needed. The pragmatic approach: duplicate the 5-10 lines of predicate building in the streaming method. The filter logic is simple enough that DRY extraction adds more complexity (interface definitions, type assertions) than it saves.
+### Pattern 2: User-Agent Detection (wttr.in Pattern)
 
-**Recommendation:** Accept the small duplication. Each streaming method copies its filter predicates from the corresponding List method. The `entityToProto` conversion functions are already shared and remain so.
+**What:** Case-insensitive substring match against known terminal HTTP clients.
 
-### Pattern 2: Batch-Then-Stream
+```go
+var terminalAgents = []string{
+    "curl", "httpie", "wget", "lwp-request",
+    "python-requests", "python-httpx", "openbsd ftp",
+    "powershell", "fetch", "aiohttp", "http_get",
+    "xh", "nushell", "go-http-client", "libfetch",
+}
 
-**What:** Load entities in fixed-size batches via ent's `Limit`/`Offset`, convert and send each one individually.
+func isTerminalClient(r *http.Request) bool {
+    ua := strings.ToLower(r.Header.Get("User-Agent"))
+    if ua == "" {
+        return true // No UA = likely bare TCP tool
+    }
+    for _, agent := range terminalAgents {
+        if strings.Contains(ua, agent) {
+            return true
+        }
+    }
+    return false
+}
+```
 
-**When:** All 13 streaming handlers.
+**Rationale for empty User-Agent = terminal:** Tools like `nc` send no UA. Returning terminal output is more useful than HTML. Browsers always send a UA.
 
-**Why not load all at once:** Some entity types (e.g., NetworkIxLan) have 100K+ rows. Loading all into memory defeats the purpose of streaming. Batching with offset pagination keeps memory bounded.
+### Pattern 3: Handler-Level Mode Branching
 
-**Why not use database/sql cursor:** ent's generated code doesn't expose cursor iteration. Using raw SQL would bypass ent's type-safe converters and require maintaining parallel conversion logic. The Limit/Offset approach is idiomatic ent.
+**What:** Each handler detects mode and branches. The existing `renderPage()` stays untouched for the HTML path.
 
-**Batch size:** 500 entities per batch. This balances:
-- Memory: ~500 ent structs in memory at a time (few KB each)
-- Round trips: NetworkIxLan (~100K rows) = ~200 DB queries
-- SQLite performance: SQLite handles `LIMIT 500 OFFSET N` efficiently with ID-ordered queries
+```go
+func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, asnStr string) {
+    // ... existing ent query and data construction, unchanged ...
 
-### Pattern 3: Error Semantics for Streaming
+    mode := DetectOutput(r)
+    switch {
+    case mode == OutputJSON:
+        w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.Header().Set("Vary", "User-Agent, Accept, HX-Request")
+        json.NewEncoder(w).Encode(data)
+    case mode == OutputANSI || mode == OutputPlain:
+        w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+        w.Header().Set("Vary", "User-Agent, Accept, HX-Request")
+        w.Header().Set("Cache-Control", "private")
+        terminal.RenderNetwork(w, data, terminalMode(mode))
+    default:
+        page := PageContent{Title: net.Name, Content: templates.NetworkDetailPage(data)}
+        renderPage(r.Context(), w, r, page)
+    }
+}
+```
 
-**What:** Errors during streaming are sent as gRPC status in trailers, not HTTP status.
+**Why detect-in-handler instead of modifying renderPage:**
+- No changes to `PageContent` struct or existing `renderPage` function.
+- Terminal rendering added incrementally, one entity at a time.
+- Each path is isolated and testable.
 
-**When:** A query fails mid-stream or the client disconnects.
+### Pattern 4: Server-Side ANSI Rendering with lipgloss v2
 
-**Key difference from unary:** In unary RPCs, errors map to HTTP status codes. In streaming, the HTTP status is always 200 (sent with first message). Errors are encoded in trailers. ConnectRPC handles this transparently -- `return connect.NewError(...)` from a streaming handler does the right thing.
+**What:** Use lipgloss v2 for styling and lipgloss/table for tables. Explicitly set color profile since there is no terminal to detect.
 
-**Client disconnect detection:** `stream.Send()` returns an error when the client has disconnected. Always check the error return from Send and return it immediately rather than continuing to query.
+```go
+// internal/terminal/render.go
+
+import (
+    "github.com/charmbracelet/colorprofile"
+    lipgloss "charm.land/lipgloss/v2"
+    "charm.land/lipgloss/v2/table"
+)
+
+// Mode determines the terminal output format.
+type Mode int
+
+const (
+    ModeANSI  Mode = iota // 256-color with Unicode box drawing
+    ModePlain             // ASCII only, no escape codes
+)
+
+// writeOutput writes styled content to w with appropriate color profile.
+func writeOutput(w io.Writer, content string, mode Mode) error {
+    switch mode {
+    case ModePlain:
+        // colorprofile.Writer with ASCII profile strips all ANSI codes
+        pw := &colorprofile.Writer{Forward: w, Profile: colorprofile.ASCII}
+        _, err := pw.Write([]byte(content))
+        return err
+    default:
+        // ANSI256 profile -- write escape codes as-is
+        _, err := io.WriteString(w, content)
+        return err
+    }
+}
+```
+
+### Pattern 5: Whois-Style Key-Value Rendering
+
+**What:** Network engineers expect RPSL/WHOIS-style layout for entity details.
+
+```go
+// internal/terminal/render.go
+
+// renderKeyValue formats a label:value pair with aligned colons.
+func renderKeyValue(label, value string, labelWidth int, styles Styles) string {
+    styledLabel := styles.Label.Render(fmt.Sprintf("%-*s", labelWidth, label))
+    return fmt.Sprintf("%s  %s", styledLabel, value)
+}
+
+// Example output:
+// ASN:            13335
+// Name:           Cloudflare, Inc.
+// Organization:   Cloudflare, Inc.
+// Policy:         Open
+// Traffic:        20000+ Gbps
+```
+
+### Pattern 6: lipgloss/table for List Sections
+
+**What:** Tables for IX presences, facility lists, participants. Per-cell styling via StyleFunc.
+
+```go
+t := table.New().
+    Headers("IX", "Speed", "IPv4", "IPv6", "RS").
+    Border(lipgloss.RoundedBorder()).
+    BorderHeader(true).
+    BorderColumn(true).
+    Width(80).
+    StyleFunc(func(row, col int) lipgloss.Style {
+        if row == table.HeaderRow {
+            return styles.TableHeader
+        }
+        if row%2 == 0 {
+            return styles.TableEvenRow
+        }
+        return styles.TableOddRow
+    })
+
+for _, ix := range data.IXPresences {
+    t.Row(ix.IXName, formatSpeed(ix.Speed), ix.IPv4, ix.IPv6, rsIndicator(ix.IsRouteServer))
+}
+
+output := t.Render()
+```
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Wrapping Stream Responses
+### Anti-Pattern 1: Separate Route Tree for Terminal
 
-**What:** Creating `StreamAllNetworksResponse { Network network = 1; }` wrapper messages.
+**What:** Creating `/cli/asn/13335` alongside `/ui/asn/13335`.
+**Why bad:** Duplicates route registration and data assembly. Breaks "same URL, different representation" model.
+**Instead:** Content negotiation under existing `/ui/` URLs.
 
-**Why bad:** Adds 13 unnecessary message types to the proto file. The streaming response IS the entity -- there's no pagination token or metadata to include alongside it.
+### Anti-Pattern 2: Middleware-Based Content Negotiation
 
-**Instead:** Use `stream Network` directly as the return type. The entity messages already exist.
+**What:** Middleware that intercepts responses and transforms HTML to text.
+**Why bad:** Cannot produce rich ANSI tables from HTML. Middleware lacks access to typed data. Adds latency.
+**Instead:** Branch at the render point where typed data is available.
 
-### Anti-Pattern 2: Loading All Then Streaming
+### Anti-Pattern 3: Accept Header as Primary Detection
 
-**What:** Calling `query.All(ctx)` for the entire table, then iterating over the slice to Send.
+**What:** Using `Accept: text/plain` vs `Accept: text/html` as the primary mechanism.
+**Why bad:** curl sends `Accept: */*` by default. So does wget. Users would need `curl -H 'Accept: text/plain'` which defeats zero-setup.
+**Instead:** User-Agent detection as primary (wttr.in's proven approach). Accept header as secondary.
 
-**Why bad:** Defeats the purpose of streaming. A full table load of NetworkIxLan (~100K rows) would consume significant memory before sending any data. The client receives nothing until the entire query completes.
+### Anti-Pattern 4: Global Color Profile State
 
-**Instead:** Use the batch-then-stream pattern with `Limit`/`Offset`.
+**What:** Using `lipgloss.SetColorProfile()` globally.
+**Why bad:** In lipgloss v2, the rendering is deterministic -- styles produce ANSI strings based on their definition. The colorprofile.Writer handles downsampling when writing. Using a global profile is the v1 approach.
+**Instead:** Use lipgloss v2 styles directly (they produce full ANSI strings), then pass output through colorprofile.Writer with the appropriate profile for the output mode. For ANSI mode, write directly. For plain mode, use colorprofile.ASCII writer to strip codes.
 
-### Anti-Pattern 3: Sharing Service Structs for Streaming
+### Anti-Pattern 5: Buffering Both HTML and Terminal Output
 
-**What:** Creating a separate `NetworkStreamingService` struct and registering it as a different service.
-
-**Why bad:** Adds a new service name to reflection, health checking, and the service name list. Violates the principle that streaming is a different access pattern for the same data, not a different service.
-
-**Instead:** Add the streaming method to the existing `NetworkService` struct. The generated interface naturally extends.
-
-### Anti-Pattern 4: Making IP Addresses Non-Selectable
-
-**What:** Keeping the entire IX presence row as a single `<a>` tag while trying to make text copyable.
-
-**Why bad:** Text inside link elements cannot be easily selected without triggering navigation. Users trying to copy an IP address will accidentally navigate to the IX detail page.
-
-**Instead:** Break the row into a clickable IX name (link) and a non-link data area (speeds, IPs, RS badge).
-
-## New vs Modified Files
-
-### New Files
-
-None. All changes are additions to existing files.
-
-### Modified Files
-
-| File | Change Type | Scope |
-|------|-------------|-------|
-| `proto/peeringdb/v1/services.proto` | ADD | 13 streaming RPCs + 13 request messages (~200 lines) |
-| `gen/peeringdb/v1/peeringdbv1connect/services.connect.go` | REGENERATED | Interfaces gain streaming methods, constructors gain streaming handlers |
-| `gen/peeringdb/v1/*.pb.go` | REGENERATED | New request message types |
-| `internal/grpcserver/campus.go` | ADD method | `StreamAllCampuses` (~40 lines) |
-| `internal/grpcserver/carrier.go` | ADD method | `StreamAllCarriers` (~35 lines) |
-| `internal/grpcserver/carrierfacility.go` | ADD method | `StreamAllCarrierFacilities` (~35 lines) |
-| `internal/grpcserver/facility.go` | ADD method | `StreamAllFacilities` (~45 lines) |
-| `internal/grpcserver/internetexchange.go` | ADD method | `StreamAllInternetExchanges` (~45 lines) |
-| `internal/grpcserver/ixfacility.go` | ADD method | `StreamAllIxFacilities` (~35 lines) |
-| `internal/grpcserver/ixlan.go` | ADD method | `StreamAllIxLans` (~35 lines) |
-| `internal/grpcserver/ixprefix.go` | ADD method | `StreamAllIxPrefixes` (~35 lines) |
-| `internal/grpcserver/network.go` | ADD method | `StreamAllNetworks` (~45 lines) |
-| `internal/grpcserver/networkfacility.go` | ADD method | `StreamAllNetworkFacilities` (~40 lines) |
-| `internal/grpcserver/networkixlan.go` | ADD method | `StreamAllNetworkIxLans` (~40 lines) |
-| `internal/grpcserver/organization.go` | ADD method | `StreamAllOrganizations` (~35 lines) |
-| `internal/grpcserver/poc.go` | ADD method | `StreamAllPocs` (~35 lines) |
-| `internal/grpcserver/pagination.go` | ADD constant | `streamBatchSize = 500` (1 line) |
-| `internal/grpcserver/grpcserver_test.go` | ADD tests | Streaming tests for representative types (~100 lines) |
-| `internal/web/templates/detail_net.templ` | MODIFY | `NetworkIXLansList` component layout |
-| `internal/web/templates/detail_shared.templ` | ADD function | `speedColorClass` helper |
-| `internal/web/templates/detail_ix.templ` | MODIFY | `IXParticipantsList` component layout (consistency) |
-
-### Unchanged Files (notable)
-
-| File | Why Unchanged |
-|------|--------------|
-| `cmd/peeringdb-plus/main.go` | Service registration is interface-based; new methods satisfy expanded interface |
-| `proto/peeringdb/v1/v1.proto` | Entity messages are unchanged |
-| `proto/peeringdb/v1/common.proto` | No new shared types needed |
-| `buf.gen.yaml` / `buf.yaml` | Codegen config unchanged |
-| `internal/grpcserver/convert.go` | Conversion helpers reused as-is |
-| `internal/middleware/*.go` | Already supports streaming (Flusher, Unwrap) |
-| `internal/web/detail.go` | Fragment handlers unchanged -- same data, different presentation |
-| `internal/web/templates/detailtypes.go` | Data types unchanged |
-
-## Suggested Build Order
-
-The two feature tracks are independent and can be built in parallel. Within each track:
-
-### Track A: Server-Streaming RPCs
-
-1. **Proto definitions** -- Add all 13 `StreamAll*` RPCs and request messages to `services.proto`. Run `buf lint` to validate. This must come first as everything else depends on generated code.
-
-2. **Code generation** -- Run `buf generate` to regenerate `gen/peeringdb/v1/`. This produces the expanded handler interfaces and new request message types. Compilation will fail until handlers implement the new methods.
-
-3. **Batch constant + first handler** -- Add `streamBatchSize` to `pagination.go`. Implement `StreamAllNetworks` on `NetworkService` as the reference implementation. Verify it compiles and works with `grpcurl`.
-
-4. **Remaining 12 handlers** -- Implement all other `StreamAll*` methods following the Network pattern. Each is a copy-adapt of the reference implementation with entity-specific predicates and conversion functions.
-
-5. **Tests** -- Add streaming tests for at least Network, NetworkIxLan (high row count), and one simple type. Test: empty stream, filtered stream, cancellation behavior.
-
-### Track B: IX Presence UI Polish
-
-1. **Speed color helper** -- Add `speedColorClass()` to `detail_shared.templ`. Run `templ generate`.
-
-2. **NetworkIXLansList redesign** -- Modify `detail_net.templ` to add field labels, color-coded speeds, RS badge repositioning, and selectable text layout. Run `templ generate`.
-
-3. **IXParticipantsList consistency** -- Apply the same layout changes to `detail_ix.templ`. Run `templ generate`.
-
-4. **Visual verification** -- Check in browser: dark mode, responsive layout, text selection, link behavior.
-
-### Dependency Graph
-
-```
-Track A:
-  services.proto -> buf generate -> pagination.go + network.go -> other 12 handlers -> tests
-
-Track B:
-  detail_shared.templ -> detail_net.templ -> detail_ix.templ -> visual QA
-
-Tracks A and B have zero code dependencies.
-```
+**What:** Rendering both formats, then choosing which to send.
+**Why bad:** Doubles the work.
+**Instead:** Detect output mode first, render only the selected format.
 
 ## Scalability Considerations
 
-| Concern | At current scale (~100K NetworkIxLans) | At 10x scale | Notes |
-|---------|---------------------------------------|-------------|-------|
-| Streaming memory | ~500 entities in flight per batch | Same | Batch size is constant |
-| Streaming duration | ~3-5 seconds for full NetworkIxLan stream | ~30-50 seconds | Consider context timeout |
-| SQLite OFFSET performance | Good with ID-ordered index | Degrades at high offsets | Could switch to keyset pagination (`WHERE id > last_seen_id`) if needed |
-| Concurrent streams | SQLite WAL handles concurrent reads | Same | Read-only workload, no contention |
-| Client backpressure | HTTP/2 flow control handles naturally | Same | ConnectRPC respects flow control |
+Not applicable for scalability concerns -- this is a rendering layer change. Terminal rendering is pure string formatting with no I/O beyond writing to the HTTP response. Performance is bounded by the ent query (unchanged), not string formatting.
+
+One consideration: ANSI output for large IX participant lists (DE-CIX: 1000+ participants) could produce large responses (~50-100KB of ANSI text). This is fine -- the existing HTML path produces larger responses for the same data. Terminal users expect full output and can pipe to `less -R`.
+
+## Caching Impact
+
+The `Vary` header must be updated from `Vary: HX-Request` to `Vary: HX-Request, User-Agent, Accept` to prevent CDN/proxy caches from serving HTML to curl or ANSI to browsers. Additionally, terminal responses should set `Cache-Control: private` to prevent shared caches from storing ANSI output.
+
+## Build Order (Dependency-Ordered)
+
+1. **`internal/web/detect.go`** -- User-Agent detection + output mode resolution. No dependencies on terminal package. Build and test independently.
+
+2. **`internal/terminal/style.go`** -- Color palette and shared style definitions. Depends only on lipgloss v2.
+
+3. **`internal/terminal/table.go`** -- Shared table rendering helpers (border config, default widths). Depends on lipgloss/table.
+
+4. **`internal/terminal/render.go`** -- Core rendering functions, colorprofile writer setup, key-value formatter. Depends on colorprofile.
+
+5. **`internal/terminal/help.go`** -- CLI help text for `/ui/` root. No entity dependencies. Good first integration test.
+
+6. **`internal/terminal/error.go`** -- Error pages (404, 500) for terminal clients.
+
+7. **`internal/terminal/network.go`** -- Network detail ANSI renderer. First entity type. Validates the pattern.
+
+8. **`internal/terminal/ix.go`** -- IX detail. Includes participant table (largest tables in dataset).
+
+9. **`internal/terminal/facility.go`**, **`org.go`**, **`campus.go`**, **`carrier.go`** -- Remaining entity types.
+
+10. **`internal/terminal/search.go`** -- Search results in terminal format.
+
+11. **`internal/terminal/compare.go`** -- ASN comparison in terminal format.
+
+12. **Modify `internal/web/handler.go`** -- Wire up detection and terminal rendering in each handler.
+
+13. **Modify `internal/web/render.go`** -- Update Vary header.
+
+14. **Modify `cmd/peeringdb-plus/main.go`** -- readinessMiddleware terminal-aware syncing message.
+
+Items 1-6 can be built without touching any existing code. Items 7-11 are independent of each other (parallelizable). Items 12-14 are integration points.
+
+## Package Structure
+
+```
+internal/
+  web/
+    detect.go          (NEW) -- OutputMode detection, isTerminalClient
+    detect_test.go     (NEW) -- User-Agent detection tests (table-driven)
+    handler.go         (MODIFIED) -- mode branching in each handler
+    render.go          (MODIFIED) -- Vary header update
+    templates/
+      detailtypes.go   (UNCHANGED) -- shared data types
+      comparetypes.go  (UNCHANGED) -- shared data types
+      searchtypes.go   (UNCHANGED) -- shared data types
+      *.templ          (UNCHANGED) -- HTML templates
+  terminal/
+    doc.go             (NEW) -- package documentation
+    style.go           (NEW) -- color palette, shared lipgloss styles
+    table.go           (NEW) -- table rendering helpers
+    render.go          (NEW) -- core rendering, colorprofile writer, key-value
+    help.go            (NEW) -- /ui/ root help text
+    error.go           (NEW) -- 404/500 for terminal
+    network.go         (NEW) -- NetworkDetail renderer
+    ix.go              (NEW) -- IXDetail renderer
+    facility.go        (NEW) -- FacilityDetail renderer
+    org.go             (NEW) -- OrgDetail renderer
+    campus.go          (NEW) -- CampusDetail renderer
+    carrier.go         (NEW) -- CarrierDetail renderer
+    search.go          (NEW) -- search results renderer
+    compare.go         (NEW) -- comparison renderer
+    render_test.go     (NEW) -- table-driven tests for all renderers
+```
+
+## Integration Points Summary
+
+| Integration Point | What Changes | Risk |
+|-------------------|-------------|------|
+| `internal/web/detect.go` | New file. User-Agent detection. | LOW -- purely additive |
+| `internal/web/render.go` | `Vary` header adds `User-Agent, Accept` | LOW -- one-line change |
+| `internal/web/handler.go` | Each handle* function gains mode check + terminal branch | LOW -- pattern is mechanical |
+| `internal/web/handler.go` handleHome | Terminal root shows help text | LOW |
+| `internal/web/handler.go` handleSearch | Terminal search returns text results | LOW |
+| `internal/web/handler.go` handleNotFound / handleServerError | Terminal-aware error messages | LOW |
+| `cmd/peeringdb-plus/main.go` readinessMiddleware | Terminal clients during sync get text message | LOW |
+| `go.mod` | Add `charm.land/lipgloss/v2`, `github.com/charmbracelet/colorprofile` | LOW |
+
+No existing tests should break. Default output mode is `OutputHTML` (current behavior). All terminal paths are additive.
 
 ## Sources
 
-- [ConnectRPC Streaming Documentation](https://connectrpc.com/docs/go/streaming/) - Server-streaming handler patterns
-- [ConnectRPC ServerStream API](https://pkg.go.dev/connectrpc.com/connect#ServerStream) - Send(), ResponseHeader(), ResponseTrailer() methods
-- [ConnectRPC NewServerStreamHandlerSimple](https://pkg.go.dev/connectrpc.com/connect#NewServerStreamHandlerSimple) - Simple mode handler constructor
-- [ConnectRPC examples-go Eliza Service](https://github.com/connectrpc/examples-go/blob/main/internal/gen/connectrpc/eliza/v1/elizav1connect/eliza.connect.go) - Generated code for mixed unary + streaming service
-- [ConnectRPC connect-go handler.go](https://github.com/connectrpc/connect-go/blob/main/handler.go) - Handler construction internals
-- [Ent ORM Query API](https://entgo.io/docs/crud) - All(), Limit(), Offset() query methods
-- Existing codebase: `gen/peeringdb/v1/peeringdbv1connect/services.connect.go` -- confirmed `simple` mode handler signatures
-- Existing codebase: `internal/middleware/logging.go` -- confirmed Flusher + Unwrap support for streaming
-- Existing codebase: `cmd/peeringdb-plus/main.go` -- confirmed interface-based service registration
+- [wttr.in](https://github.com/chubin/wttr.in) -- Content negotiation via User-Agent, `?T` for plain text
+- [charm.land/lipgloss/v2](https://pkg.go.dev/charm.land/lipgloss/v2) -- v2.0.2, deterministic styles, border types
+- [charm.land/lipgloss/v2/table](https://pkg.go.dev/charm.land/lipgloss/v2/table) -- Table rendering with StyleFunc
+- [charmbracelet/colorprofile](https://pkg.go.dev/github.com/charmbracelet/colorprofile) -- v0.4.3, Profile constants, Writer type
+- Existing codebase: `internal/web/handler.go`, `internal/web/render.go`, `internal/web/templates/detailtypes.go`
