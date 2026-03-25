@@ -16,8 +16,8 @@ Requirements for milestone v1.7: Streaming RPCs & UI Polish.
 - [ ] **STRM-05**: Filter support on streaming RPCs — same optional filter fields as List, reusing predicate accumulation
 - [x] **STRM-06**: OTel instrumentation on streaming RPCs — otelconnect interceptor produces per-stream spans
 - [x] **STRM-07**: Proto/JSON format negotiation — ConnectRPC handles automatically, document for consumers
-- [ ] **STRM-08**: `since_id` stream resume — optional field to resume from last received ID
-- [ ] **STRM-09**: `updated_since` filter — stream only records modified after a timestamp
+- [x] **STRM-08**: `since_id` stream resume — optional field to resume from last received ID
+- [x] **STRM-09**: `updated_since` filter — stream only records modified after a timestamp
 
 ### IX Presence UI
 
@@ -67,8 +67,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STRM-05 | Phase 25 | Pending |
 | STRM-06 | Phase 25 | Complete |
 | STRM-07 | Phase 25 | Complete |
-| STRM-08 | Phase 26 | Pending |
-| STRM-09 | Phase 26 | Pending |
+| STRM-08 | Phase 26 | Complete |
+| STRM-09 | Phase 26 | Complete |
 | IXUI-01 | Phase 27 | Pending |
 | IXUI-02 | Phase 27 | Pending |
 | IXUI-03 | Phase 27 | Pending |
