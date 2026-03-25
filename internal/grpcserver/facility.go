@@ -130,6 +130,14 @@ func (s *FacilityService) StreamFacilities(ctx context.Context, req *pb.StreamFa
 		predicates = append(predicates, facility.OrgIDEQ(int(*req.OrgId)))
 	}
 
+	// Resume and incremental filter support.
+	if req.SinceId != nil {
+		predicates = append(predicates, facility.IDGT(int(*req.SinceId)))
+	}
+	if req.UpdatedSince != nil {
+		predicates = append(predicates, facility.UpdatedGT(req.UpdatedSince.AsTime()))
+	}
+
 	// Count total matching records for header metadata.
 	countQuery := s.Client.Facility.Query()
 	if len(predicates) > 0 {
@@ -143,6 +151,9 @@ func (s *FacilityService) StreamFacilities(ctx context.Context, req *pb.StreamFa
 
 	// Stream records in batches using keyset pagination.
 	lastID := 0
+	if req.SinceId != nil {
+		lastID = int(*req.SinceId)
+	}
 	for {
 		if err := ctx.Err(); err != nil {
 			return err

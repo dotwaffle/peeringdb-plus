@@ -9,6 +9,7 @@ package peeringdbv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -255,12 +256,16 @@ func (x *ListCampusesResponse) GetNextPageToken() string {
 }
 
 type StreamCampusesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Country       *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
-	City          *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
-	Status        *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	OrgId         *int64                 `protobuf:"varint,5,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Name    *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Country *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City    *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status  *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId   *int64                 `protobuf:"varint,5,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -328,6 +333,20 @@ func (x *StreamCampusesRequest) GetOrgId() int64 {
 		return *x.OrgId
 	}
 	return 0
+}
+
+func (x *StreamCampusesRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamCampusesRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetCarrierRequest struct {
@@ -548,10 +567,14 @@ func (x *ListCarriersResponse) GetNextPageToken() string {
 }
 
 type StreamCarriersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Status        *string                `protobuf:"bytes,2,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	OrgId         *int64                 `protobuf:"varint,3,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Name   *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status *string                `protobuf:"bytes,2,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId  *int64                 `protobuf:"varint,3,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,4,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -605,6 +628,20 @@ func (x *StreamCarriersRequest) GetOrgId() int64 {
 		return *x.OrgId
 	}
 	return 0
+}
+
+func (x *StreamCarriersRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamCarriersRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetCarrierFacilityRequest struct {
@@ -825,10 +862,14 @@ func (x *ListCarrierFacilitiesResponse) GetNextPageToken() string {
 }
 
 type StreamCarrierFacilitiesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CarrierId     *int64                 `protobuf:"varint,1,opt,name=carrier_id,json=carrierId,proto3,oneof" json:"carrier_id,omitempty"`
-	FacId         *int64                 `protobuf:"varint,2,opt,name=fac_id,json=facId,proto3,oneof" json:"fac_id,omitempty"`
-	Status        *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	CarrierId *int64                 `protobuf:"varint,1,opt,name=carrier_id,json=carrierId,proto3,oneof" json:"carrier_id,omitempty"`
+	FacId     *int64                 `protobuf:"varint,2,opt,name=fac_id,json=facId,proto3,oneof" json:"fac_id,omitempty"`
+	Status    *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,4,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -882,6 +923,20 @@ func (x *StreamCarrierFacilitiesRequest) GetStatus() string {
 		return *x.Status
 	}
 	return ""
+}
+
+func (x *StreamCarrierFacilitiesRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamCarrierFacilitiesRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetFacilityRequest struct {
@@ -1118,12 +1173,16 @@ func (x *ListFacilitiesResponse) GetNextPageToken() string {
 }
 
 type StreamFacilitiesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Country       *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
-	City          *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
-	Status        *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	OrgId         *int64                 `protobuf:"varint,5,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Name    *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Country *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City    *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status  *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId   *int64                 `protobuf:"varint,5,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1191,6 +1250,20 @@ func (x *StreamFacilitiesRequest) GetOrgId() int64 {
 		return *x.OrgId
 	}
 	return 0
+}
+
+func (x *StreamFacilitiesRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamFacilitiesRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetInternetExchangeRequest struct {
@@ -1427,12 +1500,16 @@ func (x *ListInternetExchangesResponse) GetNextPageToken() string {
 }
 
 type StreamInternetExchangesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Country       *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
-	City          *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
-	Status        *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	OrgId         *int64                 `protobuf:"varint,5,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Name    *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Country *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City    *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status  *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId   *int64                 `protobuf:"varint,5,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1500,6 +1577,20 @@ func (x *StreamInternetExchangesRequest) GetOrgId() int64 {
 		return *x.OrgId
 	}
 	return 0
+}
+
+func (x *StreamInternetExchangesRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamInternetExchangesRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetIxFacilityRequest struct {
@@ -1736,12 +1827,16 @@ func (x *ListIxFacilitiesResponse) GetNextPageToken() string {
 }
 
 type StreamIxFacilitiesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	IxId          *int64                 `protobuf:"varint,1,opt,name=ix_id,json=ixId,proto3,oneof" json:"ix_id,omitempty"`
-	FacId         *int64                 `protobuf:"varint,2,opt,name=fac_id,json=facId,proto3,oneof" json:"fac_id,omitempty"`
-	Country       *string                `protobuf:"bytes,3,opt,name=country,proto3,oneof" json:"country,omitempty"`
-	City          *string                `protobuf:"bytes,4,opt,name=city,proto3,oneof" json:"city,omitempty"`
-	Status        *string                `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	IxId    *int64                 `protobuf:"varint,1,opt,name=ix_id,json=ixId,proto3,oneof" json:"ix_id,omitempty"`
+	FacId   *int64                 `protobuf:"varint,2,opt,name=fac_id,json=facId,proto3,oneof" json:"fac_id,omitempty"`
+	Country *string                `protobuf:"bytes,3,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City    *string                `protobuf:"bytes,4,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status  *string                `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1809,6 +1904,20 @@ func (x *StreamIxFacilitiesRequest) GetStatus() string {
 		return *x.Status
 	}
 	return ""
+}
+
+func (x *StreamIxFacilitiesRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamIxFacilitiesRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetIxLanRequest struct {
@@ -2029,10 +2138,14 @@ func (x *ListIxLansResponse) GetNextPageToken() string {
 }
 
 type StreamIxLansRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	IxId          *int64                 `protobuf:"varint,1,opt,name=ix_id,json=ixId,proto3,oneof" json:"ix_id,omitempty"`
-	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Status        *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	IxId   *int64                 `protobuf:"varint,1,opt,name=ix_id,json=ixId,proto3,oneof" json:"ix_id,omitempty"`
+	Name   *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,4,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2086,6 +2199,20 @@ func (x *StreamIxLansRequest) GetStatus() string {
 		return *x.Status
 	}
 	return ""
+}
+
+func (x *StreamIxLansRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamIxLansRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetIxPrefixRequest struct {
@@ -2306,10 +2433,14 @@ func (x *ListIxPrefixesResponse) GetNextPageToken() string {
 }
 
 type StreamIxPrefixesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	IxlanId       *int64                 `protobuf:"varint,1,opt,name=ixlan_id,json=ixlanId,proto3,oneof" json:"ixlan_id,omitempty"`
-	Protocol      *string                `protobuf:"bytes,2,opt,name=protocol,proto3,oneof" json:"protocol,omitempty"`
-	Status        *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	IxlanId  *int64                 `protobuf:"varint,1,opt,name=ixlan_id,json=ixlanId,proto3,oneof" json:"ixlan_id,omitempty"`
+	Protocol *string                `protobuf:"bytes,2,opt,name=protocol,proto3,oneof" json:"protocol,omitempty"`
+	Status   *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,4,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2363,6 +2494,20 @@ func (x *StreamIxPrefixesRequest) GetStatus() string {
 		return *x.Status
 	}
 	return ""
+}
+
+func (x *StreamIxPrefixesRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamIxPrefixesRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetNetworkRequest struct {
@@ -2591,11 +2736,15 @@ func (x *ListNetworksResponse) GetNextPageToken() string {
 }
 
 type StreamNetworksRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Asn           *int64                 `protobuf:"varint,1,opt,name=asn,proto3,oneof" json:"asn,omitempty"`
-	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Status        *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	OrgId         *int64                 `protobuf:"varint,4,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Asn    *int64                 `protobuf:"varint,1,opt,name=asn,proto3,oneof" json:"asn,omitempty"`
+	Name   *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId  *int64                 `protobuf:"varint,4,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,5,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2656,6 +2805,20 @@ func (x *StreamNetworksRequest) GetOrgId() int64 {
 		return *x.OrgId
 	}
 	return 0
+}
+
+func (x *StreamNetworksRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamNetworksRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetNetworkFacilityRequest struct {
@@ -2892,12 +3055,16 @@ func (x *ListNetworkFacilitiesResponse) GetNextPageToken() string {
 }
 
 type StreamNetworkFacilitiesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NetId         *int64                 `protobuf:"varint,1,opt,name=net_id,json=netId,proto3,oneof" json:"net_id,omitempty"`
-	FacId         *int64                 `protobuf:"varint,2,opt,name=fac_id,json=facId,proto3,oneof" json:"fac_id,omitempty"`
-	Country       *string                `protobuf:"bytes,3,opt,name=country,proto3,oneof" json:"country,omitempty"`
-	City          *string                `protobuf:"bytes,4,opt,name=city,proto3,oneof" json:"city,omitempty"`
-	Status        *string                `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	NetId   *int64                 `protobuf:"varint,1,opt,name=net_id,json=netId,proto3,oneof" json:"net_id,omitempty"`
+	FacId   *int64                 `protobuf:"varint,2,opt,name=fac_id,json=facId,proto3,oneof" json:"fac_id,omitempty"`
+	Country *string                `protobuf:"bytes,3,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City    *string                `protobuf:"bytes,4,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status  *string                `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2965,6 +3132,20 @@ func (x *StreamNetworkFacilitiesRequest) GetStatus() string {
 		return *x.Status
 	}
 	return ""
+}
+
+func (x *StreamNetworkFacilitiesRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamNetworkFacilitiesRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetNetworkIxLanRequest struct {
@@ -3201,12 +3382,16 @@ func (x *ListNetworkIxLansResponse) GetNextPageToken() string {
 }
 
 type StreamNetworkIxLansRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NetId         *int64                 `protobuf:"varint,1,opt,name=net_id,json=netId,proto3,oneof" json:"net_id,omitempty"`
-	IxlanId       *int64                 `protobuf:"varint,2,opt,name=ixlan_id,json=ixlanId,proto3,oneof" json:"ixlan_id,omitempty"`
-	Asn           *int64                 `protobuf:"varint,3,opt,name=asn,proto3,oneof" json:"asn,omitempty"`
-	Name          *string                `protobuf:"bytes,4,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Status        *string                `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	NetId   *int64                 `protobuf:"varint,1,opt,name=net_id,json=netId,proto3,oneof" json:"net_id,omitempty"`
+	IxlanId *int64                 `protobuf:"varint,2,opt,name=ixlan_id,json=ixlanId,proto3,oneof" json:"ixlan_id,omitempty"`
+	Asn     *int64                 `protobuf:"varint,3,opt,name=asn,proto3,oneof" json:"asn,omitempty"`
+	Name    *string                `protobuf:"bytes,4,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status  *string                `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3274,6 +3459,20 @@ func (x *StreamNetworkIxLansRequest) GetStatus() string {
 		return *x.Status
 	}
 	return ""
+}
+
+func (x *StreamNetworkIxLansRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamNetworkIxLansRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetOrganizationRequest struct {
@@ -3502,11 +3701,15 @@ func (x *ListOrganizationsResponse) GetNextPageToken() string {
 }
 
 type StreamOrganizationsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Country       *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
-	City          *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
-	Status        *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Name    *string                `protobuf:"bytes,1,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Country *string                `protobuf:"bytes,2,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City    *string                `protobuf:"bytes,3,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status  *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,5,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3567,6 +3770,20 @@ func (x *StreamOrganizationsRequest) GetStatus() string {
 		return *x.Status
 	}
 	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamOrganizationsRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
 }
 
 type GetPocRequest struct {
@@ -3795,11 +4012,15 @@ func (x *ListPocsResponse) GetNextPageToken() string {
 }
 
 type StreamPocsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NetId         *int64                 `protobuf:"varint,1,opt,name=net_id,json=netId,proto3,oneof" json:"net_id,omitempty"`
-	Role          *string                `protobuf:"bytes,2,opt,name=role,proto3,oneof" json:"role,omitempty"`
-	Name          *string                `protobuf:"bytes,3,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Status        *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	NetId  *int64                 `protobuf:"varint,1,opt,name=net_id,json=netId,proto3,oneof" json:"net_id,omitempty"`
+	Role   *string                `protobuf:"bytes,2,opt,name=role,proto3,oneof" json:"role,omitempty"`
+	Name   *string                `protobuf:"bytes,3,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
+	SinceId *int64 `protobuf:"varint,5,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
+	// Only records updated after this timestamp are returned.
+	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3862,11 +4083,25 @@ func (x *StreamPocsRequest) GetStatus() string {
 	return ""
 }
 
+func (x *StreamPocsRequest) GetSinceId() int64 {
+	if x != nil && x.SinceId != nil {
+		return *x.SinceId
+	}
+	return 0
+}
+
+func (x *StreamPocsRequest) GetUpdatedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedSince
+	}
+	return nil
+}
+
 var File_peeringdb_v1_services_proto protoreflect.FileDescriptor
 
 const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\n" +
-	"\x1bpeeringdb/v1/services.proto\x12\fpeeringdb.v1\x1a\x15peeringdb/v1/v1.proto\"\"\n" +
+	"\x1bpeeringdb/v1/services.proto\x12\fpeeringdb.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15peeringdb/v1/v1.proto\"\"\n" +
 	"\x10GetCampusRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"A\n" +
 	"\x11GetCampusResponse\x12,\n" +
@@ -3888,19 +4123,23 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_org_id\"p\n" +
 	"\x14ListCampusesResponse\x120\n" +
 	"\bcampuses\x18\x01 \x03(\v2\x14.peeringdb.v1.CampusR\bcampuses\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xd5\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xda\x02\n" +
 	"\x15StreamCampusesRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x03 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
-	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01B\a\n" +
+	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
 	"\a_statusB\t\n" +
-	"\a_org_id\"#\n" +
+	"\a_org_idB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\"#\n" +
 	"\x11GetCarrierRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"E\n" +
 	"\x12GetCarrierResponse\x12/\n" +
@@ -3917,14 +4156,18 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_org_id\"q\n" +
 	"\x14ListCarriersResponse\x121\n" +
 	"\bcarriers\x18\x01 \x03(\v2\x15.peeringdb.v1.CarrierR\bcarriers\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x88\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x8d\x02\n" +
 	"\x15StreamCarriersRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x02 \x01(\tH\x01R\x06status\x88\x01\x01\x12\x1a\n" +
-	"\x06org_id\x18\x03 \x01(\x03H\x02R\x05orgId\x88\x01\x01B\a\n" +
+	"\x06org_id\x18\x03 \x01(\x03H\x02R\x05orgId\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x04 \x01(\x03H\x03R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01B\a\n" +
 	"\x05_nameB\t\n" +
 	"\a_statusB\t\n" +
-	"\a_org_id\"+\n" +
+	"\a_org_idB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\"+\n" +
 	"\x19GetCarrierFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"f\n" +
 	"\x1aGetCarrierFacilityResponse\x12H\n" +
@@ -3942,15 +4185,19 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"\x95\x01\n" +
 	"\x1dListCarrierFacilitiesResponse\x12L\n" +
 	"\x12carrier_facilities\x18\x01 \x03(\v2\x1d.peeringdb.v1.CarrierFacilityR\x11carrierFacilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa2\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa7\x02\n" +
 	"\x1eStreamCarrierFacilitiesRequest\x12\"\n" +
 	"\n" +
 	"carrier_id\x18\x01 \x01(\x03H\x00R\tcarrierId\x88\x01\x01\x12\x1a\n" +
 	"\x06fac_id\x18\x02 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01B\r\n" +
+	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x04 \x01(\x03H\x03R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01B\r\n" +
 	"\v_carrier_idB\t\n" +
 	"\a_fac_idB\t\n" +
-	"\a_status\"$\n" +
+	"\a_statusB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\"$\n" +
 	"\x12GetFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"I\n" +
 	"\x13GetFacilityResponse\x122\n" +
@@ -3974,19 +4221,23 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\n" +
 	"facilities\x18\x01 \x03(\v2\x16.peeringdb.v1.FacilityR\n" +
 	"facilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xd7\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xdc\x02\n" +
 	"\x17StreamFacilitiesRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x03 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
-	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01B\a\n" +
+	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
 	"\a_statusB\t\n" +
-	"\a_org_id\",\n" +
+	"\a_org_idB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\",\n" +
 	"\x1aGetInternetExchangeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"j\n" +
 	"\x1bGetInternetExchangeResponse\x12K\n" +
@@ -4008,19 +4259,23 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_org_id\"\x96\x01\n" +
 	"\x1dListInternetExchangesResponse\x12M\n" +
 	"\x12internet_exchanges\x18\x01 \x03(\v2\x1e.peeringdb.v1.InternetExchangeR\x11internetExchanges\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xde\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe3\x02\n" +
 	"\x1eStreamInternetExchangesRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x03 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
-	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01B\a\n" +
+	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
 	"\a_statusB\t\n" +
-	"\a_org_id\"&\n" +
+	"\a_org_idB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\"&\n" +
 	"\x14GetIxFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"R\n" +
 	"\x15GetIxFacilityResponse\x129\n" +
@@ -4043,19 +4298,23 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"\x81\x01\n" +
 	"\x18ListIxFacilitiesResponse\x12=\n" +
 	"\rix_facilities\x18\x01 \x03(\v2\x18.peeringdb.v1.IxFacilityR\fixFacilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xdb\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe0\x02\n" +
 	"\x19StreamIxFacilitiesRequest\x12\x18\n" +
 	"\x05ix_id\x18\x01 \x01(\x03H\x00R\x04ixId\x88\x01\x01\x12\x1a\n" +
 	"\x06fac_id\x18\x02 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x03 \x01(\tH\x02R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x04 \x01(\tH\x03R\x04city\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01B\b\n" +
+	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\b\n" +
 	"\x06_ix_idB\t\n" +
 	"\a_fac_idB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
-	"\a_status\"!\n" +
+	"\a_statusB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\"!\n" +
 	"\x0fGetIxLanRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\">\n" +
 	"\x10GetIxLanResponse\x12*\n" +
@@ -4072,14 +4331,18 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"j\n" +
 	"\x12ListIxLansResponse\x12,\n" +
 	"\aix_lans\x18\x01 \x03(\v2\x13.peeringdb.v1.IxLanR\x06ixLans\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x83\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x88\x02\n" +
 	"\x13StreamIxLansRequest\x12\x18\n" +
 	"\x05ix_id\x18\x01 \x01(\x03H\x00R\x04ixId\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x02 \x01(\tH\x01R\x04name\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01B\b\n" +
+	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x04 \x01(\x03H\x03R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01B\b\n" +
 	"\x06_ix_idB\a\n" +
 	"\x05_nameB\t\n" +
-	"\a_status\"$\n" +
+	"\a_statusB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\"$\n" +
 	"\x12GetIxPrefixRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"J\n" +
 	"\x13GetIxPrefixResponse\x123\n" +
@@ -4097,14 +4360,18 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x16ListIxPrefixesResponse\x127\n" +
 	"\vix_prefixes\x18\x01 \x03(\v2\x16.peeringdb.v1.IxPrefixR\n" +
 	"ixPrefixes\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x9c\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa1\x02\n" +
 	"\x17StreamIxPrefixesRequest\x12\x1e\n" +
 	"\bixlan_id\x18\x01 \x01(\x03H\x00R\aixlanId\x88\x01\x01\x12\x1f\n" +
 	"\bprotocol\x18\x02 \x01(\tH\x01R\bprotocol\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01B\v\n" +
+	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x04 \x01(\x03H\x03R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01B\v\n" +
 	"\t_ixlan_idB\v\n" +
 	"\t_protocolB\t\n" +
-	"\a_status\"#\n" +
+	"\a_statusB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\"#\n" +
 	"\x11GetNetworkRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"E\n" +
 	"\x12GetNetworkResponse\x12/\n" +
@@ -4123,16 +4390,20 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_org_id\"q\n" +
 	"\x14ListNetworksResponse\x121\n" +
 	"\bnetworks\x18\x01 \x03(\v2\x15.peeringdb.v1.NetworkR\bnetworks\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa7\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xac\x02\n" +
 	"\x15StreamNetworksRequest\x12\x15\n" +
 	"\x03asn\x18\x01 \x01(\x03H\x00R\x03asn\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x02 \x01(\tH\x01R\x04name\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x1a\n" +
-	"\x06org_id\x18\x04 \x01(\x03H\x03R\x05orgId\x88\x01\x01B\x06\n" +
+	"\x06org_id\x18\x04 \x01(\x03H\x03R\x05orgId\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x05 \x01(\x03H\x04R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x05R\fupdatedSince\x88\x01\x01B\x06\n" +
 	"\x04_asnB\a\n" +
 	"\x05_nameB\t\n" +
 	"\a_statusB\t\n" +
-	"\a_org_id\"+\n" +
+	"\a_org_idB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\"+\n" +
 	"\x19GetNetworkFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"f\n" +
 	"\x1aGetNetworkFacilityResponse\x12H\n" +
@@ -4154,19 +4425,23 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"\x95\x01\n" +
 	"\x1dListNetworkFacilitiesResponse\x12L\n" +
 	"\x12network_facilities\x18\x01 \x03(\v2\x1d.peeringdb.v1.NetworkFacilityR\x11networkFacilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe3\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe8\x02\n" +
 	"\x1eStreamNetworkFacilitiesRequest\x12\x1a\n" +
 	"\x06net_id\x18\x01 \x01(\x03H\x00R\x05netId\x88\x01\x01\x12\x1a\n" +
 	"\x06fac_id\x18\x02 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x03 \x01(\tH\x02R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x04 \x01(\tH\x03R\x04city\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01B\t\n" +
+	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\t\n" +
 	"\a_net_idB\t\n" +
 	"\a_fac_idB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
-	"\a_status\"(\n" +
+	"\a_statusB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\"(\n" +
 	"\x16GetNetworkIxLanRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"[\n" +
 	"\x17GetNetworkIxLanResponse\x12@\n" +
@@ -4187,18 +4462,22 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"\x87\x01\n" +
 	"\x19ListNetworkIxLansResponse\x12B\n" +
 	"\x0fnetwork_ix_lans\x18\x01 \x03(\v2\x1a.peeringdb.v1.NetworkIxLanR\rnetworkIxLans\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xd9\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xde\x02\n" +
 	"\x1aStreamNetworkIxLansRequest\x12\x1a\n" +
 	"\x06net_id\x18\x01 \x01(\x03H\x00R\x05netId\x88\x01\x01\x12\x1e\n" +
 	"\bixlan_id\x18\x02 \x01(\x03H\x01R\aixlanId\x88\x01\x01\x12\x15\n" +
 	"\x03asn\x18\x03 \x01(\x03H\x02R\x03asn\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x04 \x01(\tH\x03R\x04name\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01B\t\n" +
+	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\t\n" +
 	"\a_net_idB\v\n" +
 	"\t_ixlan_idB\x06\n" +
 	"\x04_asnB\a\n" +
 	"\x05_nameB\t\n" +
-	"\a_status\"(\n" +
+	"\a_statusB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\"(\n" +
 	"\x16GetOrganizationRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"Y\n" +
 	"\x17GetOrganizationResponse\x12>\n" +
@@ -4218,17 +4497,21 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"\x85\x01\n" +
 	"\x19ListOrganizationsResponse\x12@\n" +
 	"\rorganizations\x18\x01 \x03(\v2\x1a.peeringdb.v1.OrganizationR\rorganizations\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb3\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb8\x02\n" +
 	"\x1aStreamOrganizationsRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x03 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01B\a\n" +
+	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x05 \x01(\x03H\x04R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x05R\fupdatedSince\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
-	"\a_status\"\x1f\n" +
+	"\a_statusB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since\"\x1f\n" +
 	"\rGetPocRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"5\n" +
 	"\x0eGetPocResponse\x12#\n" +
@@ -4247,16 +4530,20 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_status\"a\n" +
 	"\x10ListPocsResponse\x12%\n" +
 	"\x04pocs\x18\x01 \x03(\v2\x11.peeringdb.v1.PocR\x04pocs\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa6\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xab\x02\n" +
 	"\x11StreamPocsRequest\x12\x1a\n" +
 	"\x06net_id\x18\x01 \x01(\x03H\x00R\x05netId\x88\x01\x01\x12\x17\n" +
 	"\x04role\x18\x02 \x01(\tH\x01R\x04role\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x03 \x01(\tH\x02R\x04name\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01B\t\n" +
+	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1e\n" +
+	"\bsince_id\x18\x05 \x01(\x03H\x04R\asinceId\x88\x01\x01\x12D\n" +
+	"\rupdated_since\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x05R\fupdatedSince\x88\x01\x01B\t\n" +
 	"\a_net_idB\a\n" +
 	"\x05_roleB\a\n" +
 	"\x05_nameB\t\n" +
-	"\a_status2\x83\x02\n" +
+	"\a_statusB\v\n" +
+	"\t_since_idB\x10\n" +
+	"\x0e_updated_since2\x83\x02\n" +
 	"\rCampusService\x12L\n" +
 	"\tGetCampus\x12\x1e.peeringdb.v1.GetCampusRequest\x1a\x1f.peeringdb.v1.GetCampusResponse\x12U\n" +
 	"\fListCampuses\x12!.peeringdb.v1.ListCampusesRequest\x1a\".peeringdb.v1.ListCampusesResponse\x12M\n" +
@@ -4396,129 +4683,143 @@ var file_peeringdb_v1_services_proto_goTypes = []any{
 	(*ListPocsResponse)(nil),               // 63: peeringdb.v1.ListPocsResponse
 	(*StreamPocsRequest)(nil),              // 64: peeringdb.v1.StreamPocsRequest
 	(*Campus)(nil),                         // 65: peeringdb.v1.Campus
-	(*Carrier)(nil),                        // 66: peeringdb.v1.Carrier
-	(*CarrierFacility)(nil),                // 67: peeringdb.v1.CarrierFacility
-	(*Facility)(nil),                       // 68: peeringdb.v1.Facility
-	(*InternetExchange)(nil),               // 69: peeringdb.v1.InternetExchange
-	(*IxFacility)(nil),                     // 70: peeringdb.v1.IxFacility
-	(*IxLan)(nil),                          // 71: peeringdb.v1.IxLan
-	(*IxPrefix)(nil),                       // 72: peeringdb.v1.IxPrefix
-	(*Network)(nil),                        // 73: peeringdb.v1.Network
-	(*NetworkFacility)(nil),                // 74: peeringdb.v1.NetworkFacility
-	(*NetworkIxLan)(nil),                   // 75: peeringdb.v1.NetworkIxLan
-	(*Organization)(nil),                   // 76: peeringdb.v1.Organization
-	(*Poc)(nil),                            // 77: peeringdb.v1.Poc
+	(*timestamppb.Timestamp)(nil),          // 66: google.protobuf.Timestamp
+	(*Carrier)(nil),                        // 67: peeringdb.v1.Carrier
+	(*CarrierFacility)(nil),                // 68: peeringdb.v1.CarrierFacility
+	(*Facility)(nil),                       // 69: peeringdb.v1.Facility
+	(*InternetExchange)(nil),               // 70: peeringdb.v1.InternetExchange
+	(*IxFacility)(nil),                     // 71: peeringdb.v1.IxFacility
+	(*IxLan)(nil),                          // 72: peeringdb.v1.IxLan
+	(*IxPrefix)(nil),                       // 73: peeringdb.v1.IxPrefix
+	(*Network)(nil),                        // 74: peeringdb.v1.Network
+	(*NetworkFacility)(nil),                // 75: peeringdb.v1.NetworkFacility
+	(*NetworkIxLan)(nil),                   // 76: peeringdb.v1.NetworkIxLan
+	(*Organization)(nil),                   // 77: peeringdb.v1.Organization
+	(*Poc)(nil),                            // 78: peeringdb.v1.Poc
 }
 var file_peeringdb_v1_services_proto_depIdxs = []int32{
 	65, // 0: peeringdb.v1.GetCampusResponse.campus:type_name -> peeringdb.v1.Campus
 	65, // 1: peeringdb.v1.ListCampusesResponse.campuses:type_name -> peeringdb.v1.Campus
-	66, // 2: peeringdb.v1.GetCarrierResponse.carrier:type_name -> peeringdb.v1.Carrier
-	66, // 3: peeringdb.v1.ListCarriersResponse.carriers:type_name -> peeringdb.v1.Carrier
-	67, // 4: peeringdb.v1.GetCarrierFacilityResponse.carrier_facility:type_name -> peeringdb.v1.CarrierFacility
-	67, // 5: peeringdb.v1.ListCarrierFacilitiesResponse.carrier_facilities:type_name -> peeringdb.v1.CarrierFacility
-	68, // 6: peeringdb.v1.GetFacilityResponse.facility:type_name -> peeringdb.v1.Facility
-	68, // 7: peeringdb.v1.ListFacilitiesResponse.facilities:type_name -> peeringdb.v1.Facility
-	69, // 8: peeringdb.v1.GetInternetExchangeResponse.internet_exchange:type_name -> peeringdb.v1.InternetExchange
-	69, // 9: peeringdb.v1.ListInternetExchangesResponse.internet_exchanges:type_name -> peeringdb.v1.InternetExchange
-	70, // 10: peeringdb.v1.GetIxFacilityResponse.ix_facility:type_name -> peeringdb.v1.IxFacility
-	70, // 11: peeringdb.v1.ListIxFacilitiesResponse.ix_facilities:type_name -> peeringdb.v1.IxFacility
-	71, // 12: peeringdb.v1.GetIxLanResponse.ix_lan:type_name -> peeringdb.v1.IxLan
-	71, // 13: peeringdb.v1.ListIxLansResponse.ix_lans:type_name -> peeringdb.v1.IxLan
-	72, // 14: peeringdb.v1.GetIxPrefixResponse.ix_prefix:type_name -> peeringdb.v1.IxPrefix
-	72, // 15: peeringdb.v1.ListIxPrefixesResponse.ix_prefixes:type_name -> peeringdb.v1.IxPrefix
-	73, // 16: peeringdb.v1.GetNetworkResponse.network:type_name -> peeringdb.v1.Network
-	73, // 17: peeringdb.v1.ListNetworksResponse.networks:type_name -> peeringdb.v1.Network
-	74, // 18: peeringdb.v1.GetNetworkFacilityResponse.network_facility:type_name -> peeringdb.v1.NetworkFacility
-	74, // 19: peeringdb.v1.ListNetworkFacilitiesResponse.network_facilities:type_name -> peeringdb.v1.NetworkFacility
-	75, // 20: peeringdb.v1.GetNetworkIxLanResponse.network_ix_lan:type_name -> peeringdb.v1.NetworkIxLan
-	75, // 21: peeringdb.v1.ListNetworkIxLansResponse.network_ix_lans:type_name -> peeringdb.v1.NetworkIxLan
-	76, // 22: peeringdb.v1.GetOrganizationResponse.organization:type_name -> peeringdb.v1.Organization
-	76, // 23: peeringdb.v1.ListOrganizationsResponse.organizations:type_name -> peeringdb.v1.Organization
-	77, // 24: peeringdb.v1.GetPocResponse.poc:type_name -> peeringdb.v1.Poc
-	77, // 25: peeringdb.v1.ListPocsResponse.pocs:type_name -> peeringdb.v1.Poc
-	0,  // 26: peeringdb.v1.CampusService.GetCampus:input_type -> peeringdb.v1.GetCampusRequest
-	2,  // 27: peeringdb.v1.CampusService.ListCampuses:input_type -> peeringdb.v1.ListCampusesRequest
-	4,  // 28: peeringdb.v1.CampusService.StreamCampuses:input_type -> peeringdb.v1.StreamCampusesRequest
-	5,  // 29: peeringdb.v1.CarrierService.GetCarrier:input_type -> peeringdb.v1.GetCarrierRequest
-	7,  // 30: peeringdb.v1.CarrierService.ListCarriers:input_type -> peeringdb.v1.ListCarriersRequest
-	9,  // 31: peeringdb.v1.CarrierService.StreamCarriers:input_type -> peeringdb.v1.StreamCarriersRequest
-	10, // 32: peeringdb.v1.CarrierFacilityService.GetCarrierFacility:input_type -> peeringdb.v1.GetCarrierFacilityRequest
-	12, // 33: peeringdb.v1.CarrierFacilityService.ListCarrierFacilities:input_type -> peeringdb.v1.ListCarrierFacilitiesRequest
-	14, // 34: peeringdb.v1.CarrierFacilityService.StreamCarrierFacilities:input_type -> peeringdb.v1.StreamCarrierFacilitiesRequest
-	15, // 35: peeringdb.v1.FacilityService.GetFacility:input_type -> peeringdb.v1.GetFacilityRequest
-	17, // 36: peeringdb.v1.FacilityService.ListFacilities:input_type -> peeringdb.v1.ListFacilitiesRequest
-	19, // 37: peeringdb.v1.FacilityService.StreamFacilities:input_type -> peeringdb.v1.StreamFacilitiesRequest
-	20, // 38: peeringdb.v1.InternetExchangeService.GetInternetExchange:input_type -> peeringdb.v1.GetInternetExchangeRequest
-	22, // 39: peeringdb.v1.InternetExchangeService.ListInternetExchanges:input_type -> peeringdb.v1.ListInternetExchangesRequest
-	24, // 40: peeringdb.v1.InternetExchangeService.StreamInternetExchanges:input_type -> peeringdb.v1.StreamInternetExchangesRequest
-	25, // 41: peeringdb.v1.IxFacilityService.GetIxFacility:input_type -> peeringdb.v1.GetIxFacilityRequest
-	27, // 42: peeringdb.v1.IxFacilityService.ListIxFacilities:input_type -> peeringdb.v1.ListIxFacilitiesRequest
-	29, // 43: peeringdb.v1.IxFacilityService.StreamIxFacilities:input_type -> peeringdb.v1.StreamIxFacilitiesRequest
-	30, // 44: peeringdb.v1.IxLanService.GetIxLan:input_type -> peeringdb.v1.GetIxLanRequest
-	32, // 45: peeringdb.v1.IxLanService.ListIxLans:input_type -> peeringdb.v1.ListIxLansRequest
-	34, // 46: peeringdb.v1.IxLanService.StreamIxLans:input_type -> peeringdb.v1.StreamIxLansRequest
-	35, // 47: peeringdb.v1.IxPrefixService.GetIxPrefix:input_type -> peeringdb.v1.GetIxPrefixRequest
-	37, // 48: peeringdb.v1.IxPrefixService.ListIxPrefixes:input_type -> peeringdb.v1.ListIxPrefixesRequest
-	39, // 49: peeringdb.v1.IxPrefixService.StreamIxPrefixes:input_type -> peeringdb.v1.StreamIxPrefixesRequest
-	40, // 50: peeringdb.v1.NetworkService.GetNetwork:input_type -> peeringdb.v1.GetNetworkRequest
-	42, // 51: peeringdb.v1.NetworkService.ListNetworks:input_type -> peeringdb.v1.ListNetworksRequest
-	44, // 52: peeringdb.v1.NetworkService.StreamNetworks:input_type -> peeringdb.v1.StreamNetworksRequest
-	45, // 53: peeringdb.v1.NetworkFacilityService.GetNetworkFacility:input_type -> peeringdb.v1.GetNetworkFacilityRequest
-	47, // 54: peeringdb.v1.NetworkFacilityService.ListNetworkFacilities:input_type -> peeringdb.v1.ListNetworkFacilitiesRequest
-	49, // 55: peeringdb.v1.NetworkFacilityService.StreamNetworkFacilities:input_type -> peeringdb.v1.StreamNetworkFacilitiesRequest
-	50, // 56: peeringdb.v1.NetworkIxLanService.GetNetworkIxLan:input_type -> peeringdb.v1.GetNetworkIxLanRequest
-	52, // 57: peeringdb.v1.NetworkIxLanService.ListNetworkIxLans:input_type -> peeringdb.v1.ListNetworkIxLansRequest
-	54, // 58: peeringdb.v1.NetworkIxLanService.StreamNetworkIxLans:input_type -> peeringdb.v1.StreamNetworkIxLansRequest
-	55, // 59: peeringdb.v1.OrganizationService.GetOrganization:input_type -> peeringdb.v1.GetOrganizationRequest
-	57, // 60: peeringdb.v1.OrganizationService.ListOrganizations:input_type -> peeringdb.v1.ListOrganizationsRequest
-	59, // 61: peeringdb.v1.OrganizationService.StreamOrganizations:input_type -> peeringdb.v1.StreamOrganizationsRequest
-	60, // 62: peeringdb.v1.PocService.GetPoc:input_type -> peeringdb.v1.GetPocRequest
-	62, // 63: peeringdb.v1.PocService.ListPocs:input_type -> peeringdb.v1.ListPocsRequest
-	64, // 64: peeringdb.v1.PocService.StreamPocs:input_type -> peeringdb.v1.StreamPocsRequest
-	1,  // 65: peeringdb.v1.CampusService.GetCampus:output_type -> peeringdb.v1.GetCampusResponse
-	3,  // 66: peeringdb.v1.CampusService.ListCampuses:output_type -> peeringdb.v1.ListCampusesResponse
-	65, // 67: peeringdb.v1.CampusService.StreamCampuses:output_type -> peeringdb.v1.Campus
-	6,  // 68: peeringdb.v1.CarrierService.GetCarrier:output_type -> peeringdb.v1.GetCarrierResponse
-	8,  // 69: peeringdb.v1.CarrierService.ListCarriers:output_type -> peeringdb.v1.ListCarriersResponse
-	66, // 70: peeringdb.v1.CarrierService.StreamCarriers:output_type -> peeringdb.v1.Carrier
-	11, // 71: peeringdb.v1.CarrierFacilityService.GetCarrierFacility:output_type -> peeringdb.v1.GetCarrierFacilityResponse
-	13, // 72: peeringdb.v1.CarrierFacilityService.ListCarrierFacilities:output_type -> peeringdb.v1.ListCarrierFacilitiesResponse
-	67, // 73: peeringdb.v1.CarrierFacilityService.StreamCarrierFacilities:output_type -> peeringdb.v1.CarrierFacility
-	16, // 74: peeringdb.v1.FacilityService.GetFacility:output_type -> peeringdb.v1.GetFacilityResponse
-	18, // 75: peeringdb.v1.FacilityService.ListFacilities:output_type -> peeringdb.v1.ListFacilitiesResponse
-	68, // 76: peeringdb.v1.FacilityService.StreamFacilities:output_type -> peeringdb.v1.Facility
-	21, // 77: peeringdb.v1.InternetExchangeService.GetInternetExchange:output_type -> peeringdb.v1.GetInternetExchangeResponse
-	23, // 78: peeringdb.v1.InternetExchangeService.ListInternetExchanges:output_type -> peeringdb.v1.ListInternetExchangesResponse
-	69, // 79: peeringdb.v1.InternetExchangeService.StreamInternetExchanges:output_type -> peeringdb.v1.InternetExchange
-	26, // 80: peeringdb.v1.IxFacilityService.GetIxFacility:output_type -> peeringdb.v1.GetIxFacilityResponse
-	28, // 81: peeringdb.v1.IxFacilityService.ListIxFacilities:output_type -> peeringdb.v1.ListIxFacilitiesResponse
-	70, // 82: peeringdb.v1.IxFacilityService.StreamIxFacilities:output_type -> peeringdb.v1.IxFacility
-	31, // 83: peeringdb.v1.IxLanService.GetIxLan:output_type -> peeringdb.v1.GetIxLanResponse
-	33, // 84: peeringdb.v1.IxLanService.ListIxLans:output_type -> peeringdb.v1.ListIxLansResponse
-	71, // 85: peeringdb.v1.IxLanService.StreamIxLans:output_type -> peeringdb.v1.IxLan
-	36, // 86: peeringdb.v1.IxPrefixService.GetIxPrefix:output_type -> peeringdb.v1.GetIxPrefixResponse
-	38, // 87: peeringdb.v1.IxPrefixService.ListIxPrefixes:output_type -> peeringdb.v1.ListIxPrefixesResponse
-	72, // 88: peeringdb.v1.IxPrefixService.StreamIxPrefixes:output_type -> peeringdb.v1.IxPrefix
-	41, // 89: peeringdb.v1.NetworkService.GetNetwork:output_type -> peeringdb.v1.GetNetworkResponse
-	43, // 90: peeringdb.v1.NetworkService.ListNetworks:output_type -> peeringdb.v1.ListNetworksResponse
-	73, // 91: peeringdb.v1.NetworkService.StreamNetworks:output_type -> peeringdb.v1.Network
-	46, // 92: peeringdb.v1.NetworkFacilityService.GetNetworkFacility:output_type -> peeringdb.v1.GetNetworkFacilityResponse
-	48, // 93: peeringdb.v1.NetworkFacilityService.ListNetworkFacilities:output_type -> peeringdb.v1.ListNetworkFacilitiesResponse
-	74, // 94: peeringdb.v1.NetworkFacilityService.StreamNetworkFacilities:output_type -> peeringdb.v1.NetworkFacility
-	51, // 95: peeringdb.v1.NetworkIxLanService.GetNetworkIxLan:output_type -> peeringdb.v1.GetNetworkIxLanResponse
-	53, // 96: peeringdb.v1.NetworkIxLanService.ListNetworkIxLans:output_type -> peeringdb.v1.ListNetworkIxLansResponse
-	75, // 97: peeringdb.v1.NetworkIxLanService.StreamNetworkIxLans:output_type -> peeringdb.v1.NetworkIxLan
-	56, // 98: peeringdb.v1.OrganizationService.GetOrganization:output_type -> peeringdb.v1.GetOrganizationResponse
-	58, // 99: peeringdb.v1.OrganizationService.ListOrganizations:output_type -> peeringdb.v1.ListOrganizationsResponse
-	76, // 100: peeringdb.v1.OrganizationService.StreamOrganizations:output_type -> peeringdb.v1.Organization
-	61, // 101: peeringdb.v1.PocService.GetPoc:output_type -> peeringdb.v1.GetPocResponse
-	63, // 102: peeringdb.v1.PocService.ListPocs:output_type -> peeringdb.v1.ListPocsResponse
-	77, // 103: peeringdb.v1.PocService.StreamPocs:output_type -> peeringdb.v1.Poc
-	65, // [65:104] is the sub-list for method output_type
-	26, // [26:65] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	66, // 2: peeringdb.v1.StreamCampusesRequest.updated_since:type_name -> google.protobuf.Timestamp
+	67, // 3: peeringdb.v1.GetCarrierResponse.carrier:type_name -> peeringdb.v1.Carrier
+	67, // 4: peeringdb.v1.ListCarriersResponse.carriers:type_name -> peeringdb.v1.Carrier
+	66, // 5: peeringdb.v1.StreamCarriersRequest.updated_since:type_name -> google.protobuf.Timestamp
+	68, // 6: peeringdb.v1.GetCarrierFacilityResponse.carrier_facility:type_name -> peeringdb.v1.CarrierFacility
+	68, // 7: peeringdb.v1.ListCarrierFacilitiesResponse.carrier_facilities:type_name -> peeringdb.v1.CarrierFacility
+	66, // 8: peeringdb.v1.StreamCarrierFacilitiesRequest.updated_since:type_name -> google.protobuf.Timestamp
+	69, // 9: peeringdb.v1.GetFacilityResponse.facility:type_name -> peeringdb.v1.Facility
+	69, // 10: peeringdb.v1.ListFacilitiesResponse.facilities:type_name -> peeringdb.v1.Facility
+	66, // 11: peeringdb.v1.StreamFacilitiesRequest.updated_since:type_name -> google.protobuf.Timestamp
+	70, // 12: peeringdb.v1.GetInternetExchangeResponse.internet_exchange:type_name -> peeringdb.v1.InternetExchange
+	70, // 13: peeringdb.v1.ListInternetExchangesResponse.internet_exchanges:type_name -> peeringdb.v1.InternetExchange
+	66, // 14: peeringdb.v1.StreamInternetExchangesRequest.updated_since:type_name -> google.protobuf.Timestamp
+	71, // 15: peeringdb.v1.GetIxFacilityResponse.ix_facility:type_name -> peeringdb.v1.IxFacility
+	71, // 16: peeringdb.v1.ListIxFacilitiesResponse.ix_facilities:type_name -> peeringdb.v1.IxFacility
+	66, // 17: peeringdb.v1.StreamIxFacilitiesRequest.updated_since:type_name -> google.protobuf.Timestamp
+	72, // 18: peeringdb.v1.GetIxLanResponse.ix_lan:type_name -> peeringdb.v1.IxLan
+	72, // 19: peeringdb.v1.ListIxLansResponse.ix_lans:type_name -> peeringdb.v1.IxLan
+	66, // 20: peeringdb.v1.StreamIxLansRequest.updated_since:type_name -> google.protobuf.Timestamp
+	73, // 21: peeringdb.v1.GetIxPrefixResponse.ix_prefix:type_name -> peeringdb.v1.IxPrefix
+	73, // 22: peeringdb.v1.ListIxPrefixesResponse.ix_prefixes:type_name -> peeringdb.v1.IxPrefix
+	66, // 23: peeringdb.v1.StreamIxPrefixesRequest.updated_since:type_name -> google.protobuf.Timestamp
+	74, // 24: peeringdb.v1.GetNetworkResponse.network:type_name -> peeringdb.v1.Network
+	74, // 25: peeringdb.v1.ListNetworksResponse.networks:type_name -> peeringdb.v1.Network
+	66, // 26: peeringdb.v1.StreamNetworksRequest.updated_since:type_name -> google.protobuf.Timestamp
+	75, // 27: peeringdb.v1.GetNetworkFacilityResponse.network_facility:type_name -> peeringdb.v1.NetworkFacility
+	75, // 28: peeringdb.v1.ListNetworkFacilitiesResponse.network_facilities:type_name -> peeringdb.v1.NetworkFacility
+	66, // 29: peeringdb.v1.StreamNetworkFacilitiesRequest.updated_since:type_name -> google.protobuf.Timestamp
+	76, // 30: peeringdb.v1.GetNetworkIxLanResponse.network_ix_lan:type_name -> peeringdb.v1.NetworkIxLan
+	76, // 31: peeringdb.v1.ListNetworkIxLansResponse.network_ix_lans:type_name -> peeringdb.v1.NetworkIxLan
+	66, // 32: peeringdb.v1.StreamNetworkIxLansRequest.updated_since:type_name -> google.protobuf.Timestamp
+	77, // 33: peeringdb.v1.GetOrganizationResponse.organization:type_name -> peeringdb.v1.Organization
+	77, // 34: peeringdb.v1.ListOrganizationsResponse.organizations:type_name -> peeringdb.v1.Organization
+	66, // 35: peeringdb.v1.StreamOrganizationsRequest.updated_since:type_name -> google.protobuf.Timestamp
+	78, // 36: peeringdb.v1.GetPocResponse.poc:type_name -> peeringdb.v1.Poc
+	78, // 37: peeringdb.v1.ListPocsResponse.pocs:type_name -> peeringdb.v1.Poc
+	66, // 38: peeringdb.v1.StreamPocsRequest.updated_since:type_name -> google.protobuf.Timestamp
+	0,  // 39: peeringdb.v1.CampusService.GetCampus:input_type -> peeringdb.v1.GetCampusRequest
+	2,  // 40: peeringdb.v1.CampusService.ListCampuses:input_type -> peeringdb.v1.ListCampusesRequest
+	4,  // 41: peeringdb.v1.CampusService.StreamCampuses:input_type -> peeringdb.v1.StreamCampusesRequest
+	5,  // 42: peeringdb.v1.CarrierService.GetCarrier:input_type -> peeringdb.v1.GetCarrierRequest
+	7,  // 43: peeringdb.v1.CarrierService.ListCarriers:input_type -> peeringdb.v1.ListCarriersRequest
+	9,  // 44: peeringdb.v1.CarrierService.StreamCarriers:input_type -> peeringdb.v1.StreamCarriersRequest
+	10, // 45: peeringdb.v1.CarrierFacilityService.GetCarrierFacility:input_type -> peeringdb.v1.GetCarrierFacilityRequest
+	12, // 46: peeringdb.v1.CarrierFacilityService.ListCarrierFacilities:input_type -> peeringdb.v1.ListCarrierFacilitiesRequest
+	14, // 47: peeringdb.v1.CarrierFacilityService.StreamCarrierFacilities:input_type -> peeringdb.v1.StreamCarrierFacilitiesRequest
+	15, // 48: peeringdb.v1.FacilityService.GetFacility:input_type -> peeringdb.v1.GetFacilityRequest
+	17, // 49: peeringdb.v1.FacilityService.ListFacilities:input_type -> peeringdb.v1.ListFacilitiesRequest
+	19, // 50: peeringdb.v1.FacilityService.StreamFacilities:input_type -> peeringdb.v1.StreamFacilitiesRequest
+	20, // 51: peeringdb.v1.InternetExchangeService.GetInternetExchange:input_type -> peeringdb.v1.GetInternetExchangeRequest
+	22, // 52: peeringdb.v1.InternetExchangeService.ListInternetExchanges:input_type -> peeringdb.v1.ListInternetExchangesRequest
+	24, // 53: peeringdb.v1.InternetExchangeService.StreamInternetExchanges:input_type -> peeringdb.v1.StreamInternetExchangesRequest
+	25, // 54: peeringdb.v1.IxFacilityService.GetIxFacility:input_type -> peeringdb.v1.GetIxFacilityRequest
+	27, // 55: peeringdb.v1.IxFacilityService.ListIxFacilities:input_type -> peeringdb.v1.ListIxFacilitiesRequest
+	29, // 56: peeringdb.v1.IxFacilityService.StreamIxFacilities:input_type -> peeringdb.v1.StreamIxFacilitiesRequest
+	30, // 57: peeringdb.v1.IxLanService.GetIxLan:input_type -> peeringdb.v1.GetIxLanRequest
+	32, // 58: peeringdb.v1.IxLanService.ListIxLans:input_type -> peeringdb.v1.ListIxLansRequest
+	34, // 59: peeringdb.v1.IxLanService.StreamIxLans:input_type -> peeringdb.v1.StreamIxLansRequest
+	35, // 60: peeringdb.v1.IxPrefixService.GetIxPrefix:input_type -> peeringdb.v1.GetIxPrefixRequest
+	37, // 61: peeringdb.v1.IxPrefixService.ListIxPrefixes:input_type -> peeringdb.v1.ListIxPrefixesRequest
+	39, // 62: peeringdb.v1.IxPrefixService.StreamIxPrefixes:input_type -> peeringdb.v1.StreamIxPrefixesRequest
+	40, // 63: peeringdb.v1.NetworkService.GetNetwork:input_type -> peeringdb.v1.GetNetworkRequest
+	42, // 64: peeringdb.v1.NetworkService.ListNetworks:input_type -> peeringdb.v1.ListNetworksRequest
+	44, // 65: peeringdb.v1.NetworkService.StreamNetworks:input_type -> peeringdb.v1.StreamNetworksRequest
+	45, // 66: peeringdb.v1.NetworkFacilityService.GetNetworkFacility:input_type -> peeringdb.v1.GetNetworkFacilityRequest
+	47, // 67: peeringdb.v1.NetworkFacilityService.ListNetworkFacilities:input_type -> peeringdb.v1.ListNetworkFacilitiesRequest
+	49, // 68: peeringdb.v1.NetworkFacilityService.StreamNetworkFacilities:input_type -> peeringdb.v1.StreamNetworkFacilitiesRequest
+	50, // 69: peeringdb.v1.NetworkIxLanService.GetNetworkIxLan:input_type -> peeringdb.v1.GetNetworkIxLanRequest
+	52, // 70: peeringdb.v1.NetworkIxLanService.ListNetworkIxLans:input_type -> peeringdb.v1.ListNetworkIxLansRequest
+	54, // 71: peeringdb.v1.NetworkIxLanService.StreamNetworkIxLans:input_type -> peeringdb.v1.StreamNetworkIxLansRequest
+	55, // 72: peeringdb.v1.OrganizationService.GetOrganization:input_type -> peeringdb.v1.GetOrganizationRequest
+	57, // 73: peeringdb.v1.OrganizationService.ListOrganizations:input_type -> peeringdb.v1.ListOrganizationsRequest
+	59, // 74: peeringdb.v1.OrganizationService.StreamOrganizations:input_type -> peeringdb.v1.StreamOrganizationsRequest
+	60, // 75: peeringdb.v1.PocService.GetPoc:input_type -> peeringdb.v1.GetPocRequest
+	62, // 76: peeringdb.v1.PocService.ListPocs:input_type -> peeringdb.v1.ListPocsRequest
+	64, // 77: peeringdb.v1.PocService.StreamPocs:input_type -> peeringdb.v1.StreamPocsRequest
+	1,  // 78: peeringdb.v1.CampusService.GetCampus:output_type -> peeringdb.v1.GetCampusResponse
+	3,  // 79: peeringdb.v1.CampusService.ListCampuses:output_type -> peeringdb.v1.ListCampusesResponse
+	65, // 80: peeringdb.v1.CampusService.StreamCampuses:output_type -> peeringdb.v1.Campus
+	6,  // 81: peeringdb.v1.CarrierService.GetCarrier:output_type -> peeringdb.v1.GetCarrierResponse
+	8,  // 82: peeringdb.v1.CarrierService.ListCarriers:output_type -> peeringdb.v1.ListCarriersResponse
+	67, // 83: peeringdb.v1.CarrierService.StreamCarriers:output_type -> peeringdb.v1.Carrier
+	11, // 84: peeringdb.v1.CarrierFacilityService.GetCarrierFacility:output_type -> peeringdb.v1.GetCarrierFacilityResponse
+	13, // 85: peeringdb.v1.CarrierFacilityService.ListCarrierFacilities:output_type -> peeringdb.v1.ListCarrierFacilitiesResponse
+	68, // 86: peeringdb.v1.CarrierFacilityService.StreamCarrierFacilities:output_type -> peeringdb.v1.CarrierFacility
+	16, // 87: peeringdb.v1.FacilityService.GetFacility:output_type -> peeringdb.v1.GetFacilityResponse
+	18, // 88: peeringdb.v1.FacilityService.ListFacilities:output_type -> peeringdb.v1.ListFacilitiesResponse
+	69, // 89: peeringdb.v1.FacilityService.StreamFacilities:output_type -> peeringdb.v1.Facility
+	21, // 90: peeringdb.v1.InternetExchangeService.GetInternetExchange:output_type -> peeringdb.v1.GetInternetExchangeResponse
+	23, // 91: peeringdb.v1.InternetExchangeService.ListInternetExchanges:output_type -> peeringdb.v1.ListInternetExchangesResponse
+	70, // 92: peeringdb.v1.InternetExchangeService.StreamInternetExchanges:output_type -> peeringdb.v1.InternetExchange
+	26, // 93: peeringdb.v1.IxFacilityService.GetIxFacility:output_type -> peeringdb.v1.GetIxFacilityResponse
+	28, // 94: peeringdb.v1.IxFacilityService.ListIxFacilities:output_type -> peeringdb.v1.ListIxFacilitiesResponse
+	71, // 95: peeringdb.v1.IxFacilityService.StreamIxFacilities:output_type -> peeringdb.v1.IxFacility
+	31, // 96: peeringdb.v1.IxLanService.GetIxLan:output_type -> peeringdb.v1.GetIxLanResponse
+	33, // 97: peeringdb.v1.IxLanService.ListIxLans:output_type -> peeringdb.v1.ListIxLansResponse
+	72, // 98: peeringdb.v1.IxLanService.StreamIxLans:output_type -> peeringdb.v1.IxLan
+	36, // 99: peeringdb.v1.IxPrefixService.GetIxPrefix:output_type -> peeringdb.v1.GetIxPrefixResponse
+	38, // 100: peeringdb.v1.IxPrefixService.ListIxPrefixes:output_type -> peeringdb.v1.ListIxPrefixesResponse
+	73, // 101: peeringdb.v1.IxPrefixService.StreamIxPrefixes:output_type -> peeringdb.v1.IxPrefix
+	41, // 102: peeringdb.v1.NetworkService.GetNetwork:output_type -> peeringdb.v1.GetNetworkResponse
+	43, // 103: peeringdb.v1.NetworkService.ListNetworks:output_type -> peeringdb.v1.ListNetworksResponse
+	74, // 104: peeringdb.v1.NetworkService.StreamNetworks:output_type -> peeringdb.v1.Network
+	46, // 105: peeringdb.v1.NetworkFacilityService.GetNetworkFacility:output_type -> peeringdb.v1.GetNetworkFacilityResponse
+	48, // 106: peeringdb.v1.NetworkFacilityService.ListNetworkFacilities:output_type -> peeringdb.v1.ListNetworkFacilitiesResponse
+	75, // 107: peeringdb.v1.NetworkFacilityService.StreamNetworkFacilities:output_type -> peeringdb.v1.NetworkFacility
+	51, // 108: peeringdb.v1.NetworkIxLanService.GetNetworkIxLan:output_type -> peeringdb.v1.GetNetworkIxLanResponse
+	53, // 109: peeringdb.v1.NetworkIxLanService.ListNetworkIxLans:output_type -> peeringdb.v1.ListNetworkIxLansResponse
+	76, // 110: peeringdb.v1.NetworkIxLanService.StreamNetworkIxLans:output_type -> peeringdb.v1.NetworkIxLan
+	56, // 111: peeringdb.v1.OrganizationService.GetOrganization:output_type -> peeringdb.v1.GetOrganizationResponse
+	58, // 112: peeringdb.v1.OrganizationService.ListOrganizations:output_type -> peeringdb.v1.ListOrganizationsResponse
+	77, // 113: peeringdb.v1.OrganizationService.StreamOrganizations:output_type -> peeringdb.v1.Organization
+	61, // 114: peeringdb.v1.PocService.GetPoc:output_type -> peeringdb.v1.GetPocResponse
+	63, // 115: peeringdb.v1.PocService.ListPocs:output_type -> peeringdb.v1.ListPocsResponse
+	78, // 116: peeringdb.v1.PocService.StreamPocs:output_type -> peeringdb.v1.Poc
+	78, // [78:117] is the sub-list for method output_type
+	39, // [39:78] is the sub-list for method input_type
+	39, // [39:39] is the sub-list for extension type_name
+	39, // [39:39] is the sub-list for extension extendee
+	0,  // [0:39] is the sub-list for field type_name
 }
 
 func init() { file_peeringdb_v1_services_proto_init() }

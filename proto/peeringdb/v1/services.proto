@@ -4,6 +4,7 @@ package peeringdb.v1;
 
 option go_package = "github.com/dotwaffle/peeringdb-plus/ent/proto/peeringdb/v1";
 
+import "google/protobuf/timestamp.proto";
 import "peeringdb/v1/v1.proto";
 
 // CampusService provides read access to Campus records.
@@ -48,6 +49,11 @@ message StreamCampusesRequest {
   optional string city = 3;
   optional string status = 4;
   optional int64 org_id = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
 }
 
 // CarrierService provides read access to Carrier records.
@@ -88,6 +94,11 @@ message StreamCarriersRequest {
   optional string name = 1;
   optional string status = 2;
   optional int64 org_id = 3;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 4;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 5;
 }
 
 // CarrierFacilityService provides read access to CarrierFacility records.
@@ -128,6 +139,11 @@ message StreamCarrierFacilitiesRequest {
   optional int64 carrier_id = 1;
   optional int64 fac_id = 2;
   optional string status = 3;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 4;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 5;
 }
 
 // FacilityService provides read access to Facility records.
@@ -172,6 +188,11 @@ message StreamFacilitiesRequest {
   optional string city = 3;
   optional string status = 4;
   optional int64 org_id = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
 }
 
 // InternetExchangeService provides read access to InternetExchange records.
@@ -216,6 +237,11 @@ message StreamInternetExchangesRequest {
   optional string city = 3;
   optional string status = 4;
   optional int64 org_id = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
 }
 
 // IxFacilityService provides read access to IxFacility records.
@@ -260,6 +286,11 @@ message StreamIxFacilitiesRequest {
   optional string country = 3;
   optional string city = 4;
   optional string status = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
 }
 
 // IxLanService provides read access to IxLan records.
@@ -300,6 +331,11 @@ message StreamIxLansRequest {
   optional int64 ix_id = 1;
   optional string name = 2;
   optional string status = 3;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 4;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 5;
 }
 
 // IxPrefixService provides read access to IxPrefix records.
@@ -340,6 +376,11 @@ message StreamIxPrefixesRequest {
   optional int64 ixlan_id = 1;
   optional string protocol = 2;
   optional string status = 3;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 4;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 5;
 }
 
 // NetworkService provides read access to Network records.
@@ -382,6 +423,11 @@ message StreamNetworksRequest {
   optional string name = 2;
   optional string status = 3;
   optional int64 org_id = 4;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 5;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 6;
 }
 
 // NetworkFacilityService provides read access to NetworkFacility records.
@@ -426,6 +472,11 @@ message StreamNetworkFacilitiesRequest {
   optional string country = 3;
   optional string city = 4;
   optional string status = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
 }
 
 // NetworkIxLanService provides read access to NetworkIxLan records.
@@ -470,6 +521,11 @@ message StreamNetworkIxLansRequest {
   optional int64 asn = 3;
   optional string name = 4;
   optional string status = 5;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 6;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 7;
 }
 
 // OrganizationService provides read access to Organization records.
@@ -512,6 +568,11 @@ message StreamOrganizationsRequest {
   optional string country = 2;
   optional string city = 3;
   optional string status = 4;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 5;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 6;
 }
 
 // PocService provides read access to Poc (point of contact) records.
@@ -554,4 +615,9 @@ message StreamPocsRequest {
   optional string role = 2;
   optional string name = 3;
   optional string status = 4;
+
+  // Resume from this ID (exclusive). Only records with ID > since_id are returned.
+  optional int64 since_id = 5;
+  // Only records updated after this timestamp are returned.
+  optional google.protobuf.Timestamp updated_since = 6;
 }

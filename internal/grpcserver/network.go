@@ -133,6 +133,14 @@ func (s *NetworkService) StreamNetworks(ctx context.Context, req *pb.StreamNetwo
 		predicates = append(predicates, network.OrgIDEQ(int(*req.OrgId)))
 	}
 
+	// Resume and incremental filter support.
+	if req.SinceId != nil {
+		predicates = append(predicates, network.IDGT(int(*req.SinceId)))
+	}
+	if req.UpdatedSince != nil {
+		predicates = append(predicates, network.UpdatedGT(req.UpdatedSince.AsTime()))
+	}
+
 	// Count total matching records for header metadata.
 	countQuery := s.Client.Network.Query()
 	if len(predicates) > 0 {
@@ -146,6 +154,9 @@ func (s *NetworkService) StreamNetworks(ctx context.Context, req *pb.StreamNetwo
 
 	// Stream records in batches using keyset pagination.
 	lastID := 0
+	if req.SinceId != nil {
+		lastID = int(*req.SinceId)
+	}
 	for {
 		if err := ctx.Err(); err != nil {
 			return err

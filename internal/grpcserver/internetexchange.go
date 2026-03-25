@@ -132,6 +132,14 @@ func (s *InternetExchangeService) StreamInternetExchanges(ctx context.Context, r
 		predicates = append(predicates, internetexchange.OrgIDEQ(int(*req.OrgId)))
 	}
 
+	// Resume and incremental filter support.
+	if req.SinceId != nil {
+		predicates = append(predicates, internetexchange.IDGT(int(*req.SinceId)))
+	}
+	if req.UpdatedSince != nil {
+		predicates = append(predicates, internetexchange.UpdatedGT(req.UpdatedSince.AsTime()))
+	}
+
 	// Count total matching records for header metadata.
 	countQuery := s.Client.InternetExchange.Query()
 	if len(predicates) > 0 {
@@ -145,6 +153,9 @@ func (s *InternetExchangeService) StreamInternetExchanges(ctx context.Context, r
 
 	// Stream records in batches using keyset pagination.
 	lastID := 0
+	if req.SinceId != nil {
+		lastID = int(*req.SinceId)
+	}
 	for {
 		if err := ctx.Err(); err != nil {
 			return err

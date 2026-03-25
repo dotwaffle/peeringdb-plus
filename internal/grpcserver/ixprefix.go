@@ -118,6 +118,14 @@ func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIx
 		predicates = append(predicates, ixprefix.StatusEQ(*req.Status))
 	}
 
+	// Resume and incremental filter support.
+	if req.SinceId != nil {
+		predicates = append(predicates, ixprefix.IDGT(int(*req.SinceId)))
+	}
+	if req.UpdatedSince != nil {
+		predicates = append(predicates, ixprefix.UpdatedGT(req.UpdatedSince.AsTime()))
+	}
+
 	// Count total matching records for header metadata.
 	countQuery := s.Client.IxPrefix.Query()
 	if len(predicates) > 0 {
@@ -131,6 +139,9 @@ func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIx
 
 	// Stream records in batches using keyset pagination.
 	lastID := 0
+	if req.SinceId != nil {
+		lastID = int(*req.SinceId)
+	}
 	for {
 		if err := ctx.Err(); err != nil {
 			return err

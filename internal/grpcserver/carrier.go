@@ -118,6 +118,14 @@ func (s *CarrierService) StreamCarriers(ctx context.Context, req *pb.StreamCarri
 		predicates = append(predicates, carrier.OrgIDEQ(int(*req.OrgId)))
 	}
 
+	// Resume and incremental filter support.
+	if req.SinceId != nil {
+		predicates = append(predicates, carrier.IDGT(int(*req.SinceId)))
+	}
+	if req.UpdatedSince != nil {
+		predicates = append(predicates, carrier.UpdatedGT(req.UpdatedSince.AsTime()))
+	}
+
 	// Count total matching records for header metadata.
 	countQuery := s.Client.Carrier.Query()
 	if len(predicates) > 0 {
@@ -131,6 +139,9 @@ func (s *CarrierService) StreamCarriers(ctx context.Context, req *pb.StreamCarri
 
 	// Stream records in batches using keyset pagination.
 	lastID := 0
+	if req.SinceId != nil {
+		lastID = int(*req.SinceId)
+	}
 	for {
 		if err := ctx.Err(); err != nil {
 			return err

@@ -116,6 +116,14 @@ func (s *OrganizationService) StreamOrganizations(ctx context.Context, req *pb.S
 		predicates = append(predicates, organization.StatusEQ(*req.Status))
 	}
 
+	// Resume and incremental filter support.
+	if req.SinceId != nil {
+		predicates = append(predicates, organization.IDGT(int(*req.SinceId)))
+	}
+	if req.UpdatedSince != nil {
+		predicates = append(predicates, organization.UpdatedGT(req.UpdatedSince.AsTime()))
+	}
+
 	// Count total matching records for header metadata.
 	countQuery := s.Client.Organization.Query()
 	if len(predicates) > 0 {
@@ -129,6 +137,9 @@ func (s *OrganizationService) StreamOrganizations(ctx context.Context, req *pb.S
 
 	// Stream records in batches using keyset pagination.
 	lastID := 0
+	if req.SinceId != nil {
+		lastID = int(*req.SinceId)
+	}
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
