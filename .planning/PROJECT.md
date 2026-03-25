@@ -52,7 +52,7 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-- [ ] Server-streaming RPCs for bulk data export (stream rows from DB, no full buffering)
+- [x] Server-streaming RPCs for bulk data export (stream rows from DB, no full buffering) — v1.7
 - [ ] IX presence UI improvements (field labels, RS badge, port speed colors, copyable text)
 
 ### Deferred
@@ -152,7 +152,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.6 with 24 phases across 7 milestones (v1.0-v1.6), 63 plans. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Five user-facing surfaces: Web UI at /ui/, GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. Codebase passes golangci-lint v2 clean. Live deployment on Fly.io with comprehensive observability.
+Phase 25 complete — 13 server-streaming RPCs with batched keyset pagination for bulk data export. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Five user-facing surfaces: Web UI at /ui/, GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. Codebase passes golangci-lint v2 clean. Live deployment on Fly.io with comprehensive observability.
 
 **Known tech debt:**
 - Nyquist validation incomplete for Phases 16-17, 21-24 (validation created but not formally signed off)
@@ -164,4 +164,4 @@ Shipped v1.6 with 24 phases across 7 milestones (v1.0-v1.6), 63 plans. Go codeba
 - 9 human verification items from v1.6 deferred to runtime testing
 
 ---
-*Last updated: 2026-03-25 after v1.7 milestone started*
+*Last updated: 2026-03-25 after Phase 25 complete*
