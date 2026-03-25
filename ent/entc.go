@@ -7,6 +7,7 @@ import (
 	_ "unsafe" // Required for go:linkname.
 
 	"entgo.io/contrib/entgql"
+	"entgo.io/contrib/entproto"
 	"entgo.io/ent/entc"
 	"entgo.io/ent/entc/gen"
 	"github.com/go-openapi/inflect"
@@ -75,8 +76,16 @@ func main() {
 		log.Fatalf("creating entrest extension: %v", err)
 	}
 
+	protoExt, err := entproto.NewExtension(
+		entproto.SkipGenFile(),
+		entproto.WithProtoDir("../proto"),
+	)
+	if err != nil {
+		log.Fatalf("creating entproto extension: %v", err)
+	}
+
 	opts := []entc.Option{
-		entc.Extensions(gqlExt, restExt),
+		entc.Extensions(gqlExt, restExt, protoExt),
 		entc.FeatureNames("sql/upsert"),
 	}
 

@@ -1,0 +1,10 @@
+syntax = "proto3";
+package peeringdb.v1;
+option go_package = "github.com/dotwaffle/peeringdb-plus/ent/proto/peeringdb/v1";
+
+// SocialMedia represents a social media link from PeeringDB.
+// Used by Organization, Network, Facility, InternetExchange, Carrier, and Campus.
+message SocialMedia {
+  string service = 1;
+  string identifier = 2;
+}

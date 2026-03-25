@@ -1,0 +1,17 @@
+version: v2
+clean: true
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/dotwaffle/peeringdb-plus/gen
+plugins:
+  - local: [go, tool, protoc-gen-go]
+    out: gen
+    opt:
+      - paths=source_relative
+  - local: [go, tool, protoc-gen-connect-go]
+    out: gen
+    opt:
+      - paths=source_relative
+      - simple

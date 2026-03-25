@@ -1,4 +1,5 @@
 # LiteFS configuration for PeeringDB Plus
+# Proxy section removed -- app serves traffic directly on :8080 for h2c/gRPC support
 # See: https://fly.io/docs/litefs/config/
 
 exit-on-error: false
@@ -13,15 +14,6 @@ data:
 
 exec:
   - cmd: "/usr/local/bin/peeringdb-plus"
-
-proxy:
-  addr: ":8080"
-  target: "localhost:8081"
-  db: "peeringdb-plus.db"
-  passthrough:
-    - "/healthz"
-    - "/readyz"
-  primary-redirect-timeout: "5s"
 
 lease:
   type: "consul"

@@ -1,0 +1,399 @@
+syntax = "proto3";
+
+package peeringdb.v1;
+
+option go_package = "github.com/dotwaffle/peeringdb-plus/ent/proto/peeringdb/v1";
+
+import "peeringdb/v1/v1.proto";
+
+// CampusService provides read access to Campus records.
+service CampusService {
+  rpc GetCampus(GetCampusRequest) returns (GetCampusResponse);
+  rpc ListCampuses(ListCampusesRequest) returns (ListCampusesResponse);
+}
+
+message GetCampusRequest {
+  int64 id = 1;
+}
+
+message GetCampusResponse {
+  Campus campus = 1;
+}
+
+message ListCampusesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional string name = 3;
+  optional string country = 4;
+  optional string city = 5;
+  optional string status = 6;
+  optional int64 org_id = 7;
+}
+
+message ListCampusesResponse {
+  repeated Campus campuses = 1;
+  string next_page_token = 2;
+}
+
+// CarrierService provides read access to Carrier records.
+service CarrierService {
+  rpc GetCarrier(GetCarrierRequest) returns (GetCarrierResponse);
+  rpc ListCarriers(ListCarriersRequest) returns (ListCarriersResponse);
+}
+
+message GetCarrierRequest {
+  int64 id = 1;
+}
+
+message GetCarrierResponse {
+  Carrier carrier = 1;
+}
+
+message ListCarriersRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional string name = 3;
+  optional string status = 4;
+  optional int64 org_id = 5;
+}
+
+message ListCarriersResponse {
+  repeated Carrier carriers = 1;
+  string next_page_token = 2;
+}
+
+// CarrierFacilityService provides read access to CarrierFacility records.
+service CarrierFacilityService {
+  rpc GetCarrierFacility(GetCarrierFacilityRequest) returns (GetCarrierFacilityResponse);
+  rpc ListCarrierFacilities(ListCarrierFacilitiesRequest) returns (ListCarrierFacilitiesResponse);
+}
+
+message GetCarrierFacilityRequest {
+  int64 id = 1;
+}
+
+message GetCarrierFacilityResponse {
+  CarrierFacility carrier_facility = 1;
+}
+
+message ListCarrierFacilitiesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional int64 carrier_id = 3;
+  optional int64 fac_id = 4;
+  optional string status = 5;
+}
+
+message ListCarrierFacilitiesResponse {
+  repeated CarrierFacility carrier_facilities = 1;
+  string next_page_token = 2;
+}
+
+// FacilityService provides read access to Facility records.
+service FacilityService {
+  rpc GetFacility(GetFacilityRequest) returns (GetFacilityResponse);
+  rpc ListFacilities(ListFacilitiesRequest) returns (ListFacilitiesResponse);
+}
+
+message GetFacilityRequest {
+  int64 id = 1;
+}
+
+message GetFacilityResponse {
+  Facility facility = 1;
+}
+
+message ListFacilitiesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional string name = 3;
+  optional string country = 4;
+  optional string city = 5;
+  optional string status = 6;
+  optional int64 org_id = 7;
+}
+
+message ListFacilitiesResponse {
+  repeated Facility facilities = 1;
+  string next_page_token = 2;
+}
+
+// InternetExchangeService provides read access to InternetExchange records.
+service InternetExchangeService {
+  rpc GetInternetExchange(GetInternetExchangeRequest) returns (GetInternetExchangeResponse);
+  rpc ListInternetExchanges(ListInternetExchangesRequest) returns (ListInternetExchangesResponse);
+}
+
+message GetInternetExchangeRequest {
+  int64 id = 1;
+}
+
+message GetInternetExchangeResponse {
+  InternetExchange internet_exchange = 1;
+}
+
+message ListInternetExchangesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional string name = 3;
+  optional string country = 4;
+  optional string city = 5;
+  optional string status = 6;
+  optional int64 org_id = 7;
+}
+
+message ListInternetExchangesResponse {
+  repeated InternetExchange internet_exchanges = 1;
+  string next_page_token = 2;
+}
+
+// IxFacilityService provides read access to IxFacility records.
+service IxFacilityService {
+  rpc GetIxFacility(GetIxFacilityRequest) returns (GetIxFacilityResponse);
+  rpc ListIxFacilities(ListIxFacilitiesRequest) returns (ListIxFacilitiesResponse);
+}
+
+message GetIxFacilityRequest {
+  int64 id = 1;
+}
+
+message GetIxFacilityResponse {
+  IxFacility ix_facility = 1;
+}
+
+message ListIxFacilitiesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional int64 ix_id = 3;
+  optional int64 fac_id = 4;
+  optional string country = 5;
+  optional string city = 6;
+  optional string status = 7;
+}
+
+message ListIxFacilitiesResponse {
+  repeated IxFacility ix_facilities = 1;
+  string next_page_token = 2;
+}
+
+// IxLanService provides read access to IxLan records.
+service IxLanService {
+  rpc GetIxLan(GetIxLanRequest) returns (GetIxLanResponse);
+  rpc ListIxLans(ListIxLansRequest) returns (ListIxLansResponse);
+}
+
+message GetIxLanRequest {
+  int64 id = 1;
+}
+
+message GetIxLanResponse {
+  IxLan ix_lan = 1;
+}
+
+message ListIxLansRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional int64 ix_id = 3;
+  optional string name = 4;
+  optional string status = 5;
+}
+
+message ListIxLansResponse {
+  repeated IxLan ix_lans = 1;
+  string next_page_token = 2;
+}
+
+// IxPrefixService provides read access to IxPrefix records.
+service IxPrefixService {
+  rpc GetIxPrefix(GetIxPrefixRequest) returns (GetIxPrefixResponse);
+  rpc ListIxPrefixes(ListIxPrefixesRequest) returns (ListIxPrefixesResponse);
+}
+
+message GetIxPrefixRequest {
+  int64 id = 1;
+}
+
+message GetIxPrefixResponse {
+  IxPrefix ix_prefix = 1;
+}
+
+message ListIxPrefixesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional int64 ixlan_id = 3;
+  optional string protocol = 4;
+  optional string status = 5;
+}
+
+message ListIxPrefixesResponse {
+  repeated IxPrefix ix_prefixes = 1;
+  string next_page_token = 2;
+}
+
+// NetworkService provides read access to Network records.
+service NetworkService {
+  rpc GetNetwork(GetNetworkRequest) returns (GetNetworkResponse);
+  rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
+}
+
+message GetNetworkRequest {
+  int64 id = 1;
+}
+
+message GetNetworkResponse {
+  Network network = 1;
+}
+
+message ListNetworksRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional int64 asn = 3;
+  optional string name = 4;
+  optional string status = 5;
+  optional int64 org_id = 6;
+}
+
+message ListNetworksResponse {
+  repeated Network networks = 1;
+  string next_page_token = 2;
+}
+
+// NetworkFacilityService provides read access to NetworkFacility records.
+service NetworkFacilityService {
+  rpc GetNetworkFacility(GetNetworkFacilityRequest) returns (GetNetworkFacilityResponse);
+  rpc ListNetworkFacilities(ListNetworkFacilitiesRequest) returns (ListNetworkFacilitiesResponse);
+}
+
+message GetNetworkFacilityRequest {
+  int64 id = 1;
+}
+
+message GetNetworkFacilityResponse {
+  NetworkFacility network_facility = 1;
+}
+
+message ListNetworkFacilitiesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional int64 net_id = 3;
+  optional int64 fac_id = 4;
+  optional string country = 5;
+  optional string city = 6;
+  optional string status = 7;
+}
+
+message ListNetworkFacilitiesResponse {
+  repeated NetworkFacility network_facilities = 1;
+  string next_page_token = 2;
+}
+
+// NetworkIxLanService provides read access to NetworkIxLan records.
+service NetworkIxLanService {
+  rpc GetNetworkIxLan(GetNetworkIxLanRequest) returns (GetNetworkIxLanResponse);
+  rpc ListNetworkIxLans(ListNetworkIxLansRequest) returns (ListNetworkIxLansResponse);
+}
+
+message GetNetworkIxLanRequest {
+  int64 id = 1;
+}
+
+message GetNetworkIxLanResponse {
+  NetworkIxLan network_ix_lan = 1;
+}
+
+message ListNetworkIxLansRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional int64 net_id = 3;
+  optional int64 ixlan_id = 4;
+  optional int64 asn = 5;
+  optional string name = 6;
+  optional string status = 7;
+}
+
+message ListNetworkIxLansResponse {
+  repeated NetworkIxLan network_ix_lans = 1;
+  string next_page_token = 2;
+}
+
+// OrganizationService provides read access to Organization records.
+service OrganizationService {
+  rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse);
+  rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse);
+}
+
+message GetOrganizationRequest {
+  int64 id = 1;
+}
+
+message GetOrganizationResponse {
+  Organization organization = 1;
+}
+
+message ListOrganizationsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional string name = 3;
+  optional string country = 4;
+  optional string city = 5;
+  optional string status = 6;
+}
+
+message ListOrganizationsResponse {
+  repeated Organization organizations = 1;
+  string next_page_token = 2;
+}
+
+// PocService provides read access to Poc (point of contact) records.
+service PocService {
+  rpc GetPoc(GetPocRequest) returns (GetPocResponse);
+  rpc ListPocs(ListPocsRequest) returns (ListPocsResponse);
+}
+
+message GetPocRequest {
+  int64 id = 1;
+}
+
+message GetPocResponse {
+  Poc poc = 1;
+}
+
+message ListPocsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // Filter fields -- all optional for presence detection.
+  optional int64 net_id = 3;
+  optional string role = 4;
+  optional string name = 5;
+  optional string status = 6;
+}
+
+message ListPocsResponse {
+  repeated Poc pocs = 1;
+  string next_page_token = 2;
+}

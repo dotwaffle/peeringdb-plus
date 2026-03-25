@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A high-performance, globally distributed, read-only mirror of PeeringDB data with a modern web interface. Syncs all 13 PeeringDB object types via full or incremental re-fetch (hourly or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and exposes the data through four surfaces: a web UI (templ + htmx + Tailwind CSS) with live search, detail pages, and ASN comparison; GraphQL (with playground); OpenAPI REST (with auto-generated spec); and a PeeringDB-compatible drop-in replacement API. Supports optional PeeringDB API key authentication for higher sync rate limits. Built in Go using entgo as the ORM, with full OpenTelemetry observability.
+A high-performance, globally distributed, read-only mirror of PeeringDB data with a modern web interface. Syncs all 13 PeeringDB object types via full or incremental re-fetch (hourly or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and exposes the data through five surfaces: a web UI (templ + htmx + Tailwind CSS) with live search, detail pages, and ASN comparison; GraphQL (with playground); OpenAPI REST (with auto-generated spec); a PeeringDB-compatible drop-in replacement API; and ConnectRPC/gRPC with all 13 types queryable via Get/List RPCs with typed filtering, reflection, and health checking. Supports optional PeeringDB API key authentication for higher sync rate limits. Built in Go using entgo as the ORM, with full OpenTelemetry observability.
 
 ## Core Value
 
@@ -42,24 +42,22 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] Remove unused DataLoader middleware and convert WorkerConfig.IsPrimary to dynamic LiteFS detection — v1.5
 - [x] Verify all 26 deferred human verification items against live Fly.io deployment — v1.5
 - [x] Grafana dashboard (JSON provisioning) covering sync health, API traffic, infrastructure, and business metrics — v1.5
+- [x] App serves traffic directly without LiteFS HTTP proxy, h2c for gRPC wire protocol — v1.6
+- [x] Proto definitions for all 13 PeeringDB types via entproto + buf + ConnectRPC codegen — v1.6
+- [x] Get + List RPCs for all 13 types via ConnectRPC with typed filtering and pagination — v1.6
+- [x] gRPC server reflection (v1 + v1alpha) for grpcurl/grpcui discovery — v1.6
+- [x] gRPC health checking with sync-readiness-driven status — v1.6
+- [x] otelconnect observability interceptor on all ConnectRPC handlers — v1.6
+- [x] CORS updated for Connect, gRPC, and gRPC-Web content types — v1.6
 
 ### Active
 
-#### Current Milestone: v1.6 ConnectRPC / gRPC API
-
-**Goal:** Expose all PeeringDB data via ConnectRPC, providing gRPC, gRPC-Web, and Connect protocol access with reflection and health checking.
-
-**Target features:**
-- Proto definitions for all 13 PeeringDB types via entproto + ConnectRPC codegen
-- Get + List RPCs for all 13 types with filtering and pagination
-- gRPC server reflection (v1 + v1alpha)
-- gRPC health checking
-- otelconnect observability interceptor
-- h2c server support and Fly.io h2_backend deployment config
+(No active requirements — planning next milestone)
 
 ### Deferred
 
-- [ ] Expose data via gRPC (entproto) — deferred to future milestone
+- [ ] Expose data via gRPC streaming RPCs — deferred pending demand signal
+- [ ] SyncStatus custom RPC — deferred, available via existing REST/GraphQL
 
 ### Out of Scope
 
@@ -121,6 +119,11 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 | OTLP autoexport for Prometheus metrics | No /metrics endpoint needed — OTEL_METRICS_EXPORTER=prometheus with autoexport | ✓ Validated Phase 19 |
 | Hand-authored Grafana dashboard JSON | Simpler than Grafonnet/Jsonnet for single dashboard; DS_PROMETHEUS template variable for portability | ✓ Validated Phase 19 |
 | Single pdbplus.data.type.count gauge with type attribute | One instrument for all 13 PeeringDB types, filter by type label | ✓ Validated Phase 19 |
+| ConnectRPC over google.golang.org/grpc | Standard net/http handlers, same mux as REST/GraphQL, supports Connect+gRPC+gRPC-Web on one port | ✓ Validated Phase 23 |
+| Remove LiteFS proxy, app-level fly-replay | LiteFS proxy is HTTP/1.1 only, blocks h2c/gRPC; app already handles POST /sync replay | ✓ Validated Phase 21 |
+| entproto for .proto generation, skip protoc-gen-entgrpc | entproto generates standard .proto files; entgrpc is hardcoded to google.golang.org/grpc interfaces | ✓ Validated Phase 22 |
+| Manual services.proto over entproto service generation | entproto only generates message types, not service definitions; manual services.proto with Get/List RPCs for all 13 types | ✓ Validated Phase 22 |
+| Predicate accumulation for List filtering | Nil-check optional proto fields, validate, accumulate ent predicates, apply via entity.And() | ✓ Validated Phase 24 |
 
 ## Evolution
 
@@ -141,14 +144,16 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.5 with 20 phases across 6 milestones (v1.0-v1.5), 54 plans. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Four user-facing surfaces: Web UI at /ui/ (search, detail pages, ASN comparison), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/. Codebase passes golangci-lint v2 clean. Live deployment running on Fly.io with comprehensive observability via Grafana.
+Shipped v1.6 with 24 phases across 7 milestones (v1.0-v1.6), 63 plans. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Five user-facing surfaces: Web UI at /ui/, GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. Codebase passes golangci-lint v2 clean. Live deployment on Fly.io with comprehensive observability.
 
 **Known tech debt:**
-- Nyquist validation incomplete for Phases 16-17 (research skipped)
+- Nyquist validation incomplete for Phases 16-17, 21-24 (validation created but not formally signed off)
 - fly_region Grafana template variable needs verification after multi-region deployment
 - Go runtime metric names need verification against live Grafana Cloud
 - VFY-02 (coverage comment dedup) deferred to next PR creation
 - Syncing page animation and 500 error page untestable non-destructively in production
+- 2 unused conversion helpers (boolPtrVal, float64PtrVal) in grpcserver/convert.go
+- 9 human verification items from v1.6 deferred to runtime testing
 
 ---
-*Last updated: 2026-03-24 after v1.6 milestone started*
+*Last updated: 2026-03-25 after v1.6 milestone complete*

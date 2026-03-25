@@ -1,0 +1,13 @@
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX
+  enum_zero_value_suffix: _UNSPECIFIED
+breaking:
+  use:
+    - FILE
+  ignore_unstable_packages: true
