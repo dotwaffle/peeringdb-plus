@@ -138,7 +138,7 @@
       "targets": [
         {
           "datasource": { "uid": "${datasource}" },
-          "expr": "pdbplus_sync_freshness_seconds",
+          "expr": "max(pdbplus_sync_freshness_seconds{fly_region=~\"$region\"})",
           "legendFormat": "Freshness",
           "refId": "A"
         }
@@ -182,7 +182,7 @@
       "targets": [
         {
           "datasource": { "uid": "${datasource}" },
-          "expr": "sum(rate(pdbplus_sync_operations_total{status=\"success\"}[$__rate_interval])) / sum(rate(pdbplus_sync_operations_total[$__rate_interval]))",
+          "expr": "sum(rate(pdbplus_sync_operations_total{status=\"success\", fly_region=~\"$region\"}[$__rate_interval])) / sum(rate(pdbplus_sync_operations_total{fly_region=~\"$region\"}[$__rate_interval]))",
           "legendFormat": "Success Rate",
           "refId": "A"
         }
@@ -228,7 +228,7 @@
       "targets": [
         {
           "datasource": { "uid": "${datasource}" },
-          "expr": "histogram_quantile(0.95, rate(pdbplus_sync_duration_seconds_bucket[$__rate_interval]))",
+          "expr": "histogram_quantile(0.95, rate(pdbplus_sync_duration_seconds_bucket{fly_region=~\"$region\"}[$__rate_interval]))",
           "legendFormat": "p95",
           "refId": "A"
         }
@@ -276,7 +276,7 @@
       "targets": [
         {
           "datasource": { "uid": "${datasource}" },
-          "expr": "sum(increase(pdbplus_sync_type_fallback_total[$__rate_interval]))",
+          "expr": "sum(increase(pdbplus_sync_type_fallback_total{fly_region=~\"$region\"}[$__rate_interval]))",
           "legendFormat": "Fallbacks",
           "refId": "A"
         }
@@ -319,7 +319,7 @@
       "targets": [
         {
           "datasource": { "uid": "${datasource}" },
-          "expr": "sum by(status)(rate(pdbplus_sync_operations_total[$__rate_interval]))",
+          "expr": "sum by(status)(rate(pdbplus_sync_operations_total{fly_region=~\"$region\"}[$__rate_interval]))",
           "legendFormat": "{{status}}",
           "refId": "A"
         }
@@ -371,11 +371,72 @@
       }
     },
     {
+      "id": 31,
+      "type": "timeseries",
+      "title": "Role Transitions",
+      "description": "LiteFS primary/replica role transition events",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 14 },
+      "datasource": { "uid": "${datasource}" },
+      "targets": [
+        {
+          "datasource": { "uid": "${datasource}" },
+          "expr": "sum by(direction)(rate(pdbplus_role_transitions_total{fly_region=~\"$region\"}[$__rate_interval]))",
+          "legendFormat": "{{direction}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 20,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "gradientMode": "none",
+            "barAlignment": 0,
+            "lineInterpolation": "linear",
+            "stacking": { "mode": "none", "group": "A" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "promoted" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "demoted" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      }
+    },
+    {
       "id": 8,
       "type": "row",
       "title": "HTTP RED Metrics",
       "collapsed": true,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 },
       "panels": [
         {
           "id": 9,
@@ -399,7 +460,7 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "sum by(http_route)(rate(http_server_request_duration_seconds_count[$__rate_interval]))",
+              "expr": "sum by(http_route)(rate(http_server_request_duration_seconds_count{fly_region=~\"$region\"}[$__rate_interval]))",
               "legendFormat": "{{http_route}}",
               "refId": "A"
             }
@@ -447,7 +508,7 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[$__rate_interval])) / sum(rate(http_server_request_duration_seconds_count[$__rate_interval]))",
+              "expr": "sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~\"5..\", fly_region=~\"$region\"}[$__rate_interval])) / sum(rate(http_server_request_duration_seconds_count{fly_region=~\"$region\"}[$__rate_interval]))",
               "legendFormat": "Error Rate",
               "refId": "A"
             }
@@ -493,7 +554,7 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "http_server_active_requests",
+              "expr": "sum(http_server_active_requests{fly_region=~\"$region\"})",
               "legendFormat": "Active",
               "refId": "A"
             }
@@ -537,13 +598,13 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "histogram_quantile(0.95, sum by(le)(rate(http_server_request_duration_seconds_bucket[$__rate_interval])))",
+              "expr": "histogram_quantile(0.95, sum by(le)(rate(http_server_request_duration_seconds_bucket{fly_region=~\"$region\"}[$__rate_interval])))",
               "legendFormat": "p95",
               "refId": "A"
             },
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "histogram_quantile(0.99, sum by(le)(rate(http_server_request_duration_seconds_bucket[$__rate_interval])))",
+              "expr": "histogram_quantile(0.99, sum by(le)(rate(http_server_request_duration_seconds_bucket{fly_region=~\"$region\"}[$__rate_interval])))",
               "legendFormat": "p99",
               "refId": "B"
             }
@@ -588,7 +649,7 @@
       "type": "row",
       "title": "Per-Type Sync Detail",
       "collapsed": true,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
       "panels": [
         {
           "id": 15,
@@ -612,7 +673,7 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "histogram_quantile(0.95, sum by(type, le)(rate(pdbplus_sync_type_duration_seconds_bucket{type=~\"$type\"}[$__rate_interval])))",
+              "expr": "histogram_quantile(0.95, sum by(type, le)(rate(pdbplus_sync_type_duration_seconds_bucket{type=~\"$type\", fly_region=~\"$region\"}[$__rate_interval])))",
               "legendFormat": "{{type}}",
               "refId": "A"
             }
@@ -660,7 +721,7 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "sum by(type)(increase(pdbplus_sync_type_objects_total{type=~\"$type\"}[$__rate_interval]))",
+              "expr": "sum by(type)(increase(pdbplus_sync_type_objects_total{type=~\"$type\", fly_region=~\"$region\"}[$__rate_interval]))",
               "legendFormat": "{{type}}",
               "refId": "A"
             }
@@ -702,7 +763,7 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "sum by(type)(increase(pdbplus_sync_type_deleted_total{type=~\"$type\"}[$__rate_interval]))",
+              "expr": "sum by(type)(increase(pdbplus_sync_type_deleted_total{type=~\"$type\", fly_region=~\"$region\"}[$__rate_interval]))",
               "legendFormat": "{{type}}",
               "refId": "A"
             }
@@ -750,13 +811,13 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "sum by(type)(rate(pdbplus_sync_type_fetch_errors_total{type=~\"$type\"}[$__rate_interval]))",
+              "expr": "sum by(type)(rate(pdbplus_sync_type_fetch_errors_total{type=~\"$type\", fly_region=~\"$region\"}[$__rate_interval]))",
               "legendFormat": "fetch: {{type}}",
               "refId": "A"
             },
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "sum by(type)(rate(pdbplus_sync_type_upsert_errors_total{type=~\"$type\"}[$__rate_interval]))",
+              "expr": "sum by(type)(rate(pdbplus_sync_type_upsert_errors_total{type=~\"$type\", fly_region=~\"$region\"}[$__rate_interval]))",
               "legendFormat": "upsert: {{type}}",
               "refId": "B"
             }
@@ -801,7 +862,7 @@
       "type": "row",
       "title": "Go Runtime",
       "collapsed": true,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
       "panels": [
         {
           "id": 21,
@@ -825,8 +886,8 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "go_goroutine_count",
-              "legendFormat": "Goroutines",
+              "expr": "sum by(instance)(go_goroutine_count{fly_region=~\"$region\"})",
+              "legendFormat": "{{instance}}",
               "refId": "A"
             }
           ],
@@ -873,8 +934,8 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "go_memory_used_bytes",
-              "legendFormat": "Heap Used",
+              "expr": "sum by(instance)(go_memory_used_bytes{fly_region=~\"$region\"})",
+              "legendFormat": "{{instance}}",
               "refId": "A"
             }
           ],
@@ -921,8 +982,8 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "rate(go_memory_allocated_bytes_total[$__rate_interval])",
-              "legendFormat": "Alloc Rate",
+              "expr": "sum by(instance)(rate(go_memory_allocated_bytes_total{fly_region=~\"$region\"}[$__rate_interval]))",
+              "legendFormat": "{{instance}}",
               "refId": "A"
             }
           ],
@@ -969,8 +1030,8 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "go_memory_gc_goal_bytes",
-              "legendFormat": "GC Goal",
+              "expr": "sum by(instance)(go_memory_gc_goal_bytes{fly_region=~\"$region\"})",
+              "legendFormat": "{{instance}}",
               "refId": "A"
             }
           ],
@@ -1014,7 +1075,7 @@
       "type": "row",
       "title": "Business Metrics",
       "collapsed": true,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
       "panels": [
         {
           "id": 27,
@@ -1038,7 +1099,7 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "sum(pdbplus_data_type_count)",
+              "expr": "sum(max by(type)(pdbplus_data_type_count{fly_region=~\"$region\"}))",
               "legendFormat": "Total",
               "refId": "A"
             }
@@ -1080,7 +1141,7 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "pdbplus_data_type_count{type=~\"$type\"}",
+              "expr": "max by(type)(pdbplus_data_type_count{type=~\"$type\", fly_region=~\"$region\"})",
               "legendFormat": "{{type}}",
               "refId": "A"
             }
@@ -1122,7 +1183,7 @@
           "targets": [
             {
               "datasource": { "uid": "${datasource}" },
-              "expr": "pdbplus_data_type_count{type=~\"$type\"}",
+              "expr": "max by(type)(pdbplus_data_type_count{type=~\"$type\", fly_region=~\"$region\"})",
               "legendFormat": "{{type}}",
               "refId": "A"
             }

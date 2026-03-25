@@ -380,6 +380,7 @@ func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 		// gRPC health check manages its own NOT_SERVING/SERVING state.
 		if r.URL.Path == "/sync" || r.URL.Path == "/healthz" ||
 			r.URL.Path == "/readyz" || r.URL.Path == "/" ||
+			r.URL.Path == "/favicon.ico" ||
 			strings.HasPrefix(r.URL.Path, "/static/") ||
 			strings.HasPrefix(r.URL.Path, "/grpc.health.v1.Health/") {
 			next.ServeHTTP(w, r)

@@ -232,6 +232,7 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 		{"go_memory_gc_goal_bytes", "Go GC goal"},
 		{"go_memory_allocated_bytes_total", "Go allocation rate"},
 		{"pdbplus_data_type_count", "business metrics object count"},
+		{"pdbplus_role_transitions_total", "role transition events"},
 	}
 
 	for _, m := range requiredMetrics {
@@ -310,6 +311,69 @@ func TestDashboard_FreshnessGaugeThresholds(t *testing.T) {
 		return
 	}
 	t.Error("Data Freshness stat panel not found")
+}
+
+func TestDashboard_RegionVariableUsed(t *testing.T) {
+	t.Parallel()
+	d := loadDashboard(t)
+
+	var exprs []string
+	for _, p := range allPanels(d) {
+		for _, tgt := range p.Targets {
+			if tgt.Expr != "" {
+				exprs = append(exprs, tgt.Expr)
+			}
+		}
+	}
+
+	found := false
+	for _, expr := range exprs {
+		if strings.Contains(expr, "fly_region") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("no PromQL expression references the fly_region label; $region variable is unused")
+	}
+}
+
+func TestDashboard_GaugesUseAggregation(t *testing.T) {
+	t.Parallel()
+	d := loadDashboard(t)
+
+	panels := allPanels(d)
+
+	cases := []struct {
+		title    string
+		contains string
+		desc     string
+	}{
+		{"Data Freshness", "max(", "should use max() for worst-case freshness"},
+		{"Total Objects", "max by", "should use max by(type) to deduplicate replicas"},
+		{"Goroutines", "sum by(instance)", "should show per-instance lines"},
+		{"Heap Memory", "sum by(instance)", "should show per-instance lines"},
+		{"Allocation Rate", "sum by(instance)", "should show per-instance lines"},
+		{"GC Goal", "sum by(instance)", "should show per-instance lines"},
+	}
+
+	for _, tc := range cases {
+		for _, p := range panels {
+			if p.Title != tc.title {
+				continue
+			}
+			found := false
+			for _, tgt := range p.Targets {
+				if strings.Contains(tgt.Expr, tc.contains) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("panel %q: %s (expected %q in PromQL)", tc.title, tc.desc, tc.contains)
+			}
+		}
+	}
 }
 
 func TestDashboard_ProvisioningYAMLExists(t *testing.T) {

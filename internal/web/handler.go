@@ -40,6 +40,12 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.Handle("GET /static/", http.StripPrefix("/static/",
 		http.FileServerFS(StaticFS)))
 
+	// Serve favicon.ico at root for browsers that request it directly.
+	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = "/favicon.ico"
+		http.FileServerFS(StaticFS).ServeHTTP(w, r)
+	})
+
 	mux.HandleFunc("GET /ui/{rest...}", h.dispatch)
 }
 
