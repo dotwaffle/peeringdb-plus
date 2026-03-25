@@ -1,30 +1,32 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: ConnectRPC / gRPC API
-status: v1.6 milestone complete
-stopped_at: Completed 24-02-PLAN.md remaining list filters
-last_updated: "2026-03-25T04:00:28.357Z"
+milestone: v1.7
+milestone_name: Streaming RPCs & UI Polish
+status: Defining requirements
+stopped_at: null
+last_updated: "2026-03-25T12:00:00.000Z"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-24)
+See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 24 — list-filtering
+**Current focus:** Defining requirements for v1.7
 
 ## Current Position
 
-Phase: 24
-Plan: Not started
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-25 — Milestone v1.7 started
 
 ## Performance Metrics
 

@@ -52,12 +52,20 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-(No active requirements — planning next milestone)
+- [ ] Server-streaming RPCs for bulk data export (stream rows from DB, no full buffering)
+- [ ] IX presence UI improvements (field labels, RS badge, port speed colors, copyable text)
 
 ### Deferred
 
-- [ ] Expose data via gRPC streaming RPCs — deferred pending demand signal
 - [ ] SyncStatus custom RPC — deferred, available via existing REST/GraphQL
+
+## Current Milestone: v1.7 Streaming RPCs & UI Polish
+
+**Goal:** Add gRPC/ConnectRPC server-streaming RPCs for efficient bulk data export and improve IX presence display in the web UI.
+
+**Target features:**
+- Server-streaming RPCs (ListAll/Stream) for bulk data dumps — stream rows one at a time from DB query results via protobuf, replacing cursor-based pagination for full table exports
+- IX presence UI: field labels for speed/IPv4/IPv6, RS badge repositioned near data, color-coded port speeds, consistent IP address indentation, selectable/copyable text
 
 ### Out of Scope
 
@@ -156,4 +164,4 @@ Shipped v1.6 with 24 phases across 7 milestones (v1.0-v1.6), 63 plans. Go codeba
 - 9 human verification items from v1.6 deferred to runtime testing
 
 ---
-*Last updated: 2026-03-25 after v1.6 milestone complete*
+*Last updated: 2026-03-25 after v1.7 milestone started*
