@@ -109,3 +109,96 @@ func formatSpeed(mbps int) string {
 		return fmt.Sprintf("%dM", mbps)
 	}
 }
+
+// speedColorClass returns a Tailwind text color class based on port speed tier.
+// Sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber.
+func speedColorClass(mbps int) string {
+	switch {
+	case mbps >= 400_000:
+		return "text-amber-400"
+	case mbps >= 100_000:
+		return "text-emerald-400"
+	case mbps > 1000:
+		return "text-blue-400"
+	case mbps == 1000:
+		return "text-neutral-400"
+	default:
+		return "text-neutral-500"
+	}
+}
+
+// formatAggregateBW formats total bandwidth in Mbps as a short human-readable string.
+// Returns "1.2 Tbps" for >= 1M, "480 Gbps" for >= 1000, "900 Mbps" otherwise.
+func formatAggregateBW(mbps int) string {
+	switch {
+	case mbps >= 1_000_000:
+		return fmt.Sprintf("%.1f Tbps", float64(mbps)/1_000_000)
+	case mbps >= 1000:
+		return fmt.Sprintf("%d Gbps", mbps/1000)
+	default:
+		return fmt.Sprintf("%d Mbps", mbps)
+	}
+}
+
+// copyToClipboard copies text to clipboard and briefly shows a "Copied!" message.
+script copyToClipboard(addr string) {
+	navigator.clipboard.writeText(addr).then(function() {
+		var el = event.target.closest('.group');
+		if (el) {
+			var msg = el.querySelector('.copied-msg');
+			if (msg) {
+				msg.classList.remove('hidden');
+				setTimeout(function() { msg.classList.add('hidden'); }, 1000);
+			}
+		}
+	});
+}
+
+// CopyableIP renders an IP address with click-to-copy and a hover clipboard icon.
+templ CopyableIP(label string, addr string) {
+	<div class="group flex items-center gap-1.5">
+		<span class="text-neutral-500 text-xs">{ label }</span>
+		<span
+			class="font-mono text-neutral-100 cursor-pointer"
+			onclick={ copyToClipboard(addr) }
+			title="Click to copy"
+		>{ addr }</span>
+		<svg
+			class="w-3.5 h-3.5 text-neutral-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+			onclick={ copyToClipboard(addr) }
+			xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+		>
+			<path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"></path>
+		</svg>
+		<span class="copied-msg hidden text-xs text-emerald-400 ml-1">Copied!</span>
+	</div>
+}
+
+// CollapsibleSectionWithBandwidth renders a collapsible details/summary element
+// with htmx lazy loading and aggregate bandwidth display in the header.
+// If bandwidth is empty, it behaves like CollapsibleSection.
+templ CollapsibleSectionWithBandwidth(title string, count int, bandwidth string, loadURL string) {
+	<details class="border border-neutral-200 dark:border-neutral-700 rounded-lg overflow-hidden">
+		<summary class="px-4 py-3 cursor-pointer flex items-center justify-between bg-neutral-50/50 dark:bg-neutral-800/50 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors select-none">
+			<span class="font-medium text-neutral-900 dark:text-neutral-100">{ title }</span>
+			if bandwidth != "" {
+				<span class="text-neutral-400 dark:text-neutral-500 text-sm font-mono">{ fmt.Sprintf("(%d)", count) } &mdash; { bandwidth }</span>
+			} else {
+				<span class="text-neutral-400 dark:text-neutral-500 text-sm font-mono">{ fmt.Sprintf("(%d)", count) }</span>
+			}
+		</summary>
+		if count > 0 {
+			<div
+				hx-get={ loadURL }
+				hx-trigger="toggle once from:closest details"
+				hx-swap="innerHTML"
+			>
+				<div class="px-4 py-6 text-center text-neutral-400 dark:text-neutral-500">
+					<span class="animate-pulse">Loading...</span>
+				</div>
+			</div>
+		} else {
+			<div class="px-4 py-3 text-neutral-400 dark:text-neutral-500 text-sm">None</div>
+		}
+	</details>
+}
