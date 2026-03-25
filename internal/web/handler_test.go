@@ -84,8 +84,8 @@ func TestHomeHandler_HtmxFragment(t *testing.T) {
 		t.Error("htmx fragment should not contain DOCTYPE")
 	}
 
-	if rec.Header().Get("Vary") != "HX-Request" {
-		t.Errorf("expected Vary: HX-Request, got %q", rec.Header().Get("Vary"))
+	if rec.Header().Get("Vary") != "HX-Request, User-Agent, Accept" {
+		t.Errorf("expected Vary: HX-Request, User-Agent, Accept, got %q", rec.Header().Get("Vary"))
 	}
 }
 
@@ -111,7 +111,7 @@ func TestHomeHandler_VaryHeader(t *testing.T) {
 			rec := httptest.NewRecorder()
 			mux.ServeHTTP(rec, req)
 
-			if got := rec.Header().Get("Vary"); got != "HX-Request" {
+			if got := rec.Header().Get("Vary"); got != "HX-Request, User-Agent, Accept" {
 				t.Errorf("Vary header = %q, want %q", got, "HX-Request")
 			}
 		})
@@ -555,7 +555,7 @@ func TestSearchEndpoint_VaryHeader(t *testing.T) {
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	if got := rec.Header().Get("Vary"); got != "HX-Request" {
+	if got := rec.Header().Get("Vary"); got != "HX-Request, User-Agent, Accept" {
 		t.Errorf("Vary header = %q, want %q", got, "HX-Request")
 	}
 }
