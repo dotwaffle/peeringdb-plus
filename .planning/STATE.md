@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Terminal CLI Interface
-status: defining requirements
-stopped_at: Milestone v1.8 started — defining requirements
-last_updated: "2026-03-25T20:00:00.000Z"
+status: ready to plan
+stopped_at: Roadmap created for v1.8 — 4 phases, 34 requirements mapped
+last_updated: "2026-03-25T21:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,14 +19,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** v1.8 Terminal CLI Interface — defining requirements
+**Current focus:** Phase 28 - Terminal Detection & Infrastructure
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-25 — Milestone v1.8 started
+Phase: 28 (1 of 4 in v1.8)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-03-25 — Roadmap created for v1.8 Terminal CLI Interface milestone
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -70,6 +72,10 @@ Last activity: 2026-03-25 — Milestone v1.8 started
 ### Decisions
 
 All decisions archived in PROJECT.md Key Decisions table (42 decisions across 8 milestones).
+Recent decisions affecting current work:
+
+- [v1.7]: 5-tier port speed color coding (reuse in terminal renderer)
+- [v1.4]: Dual render mode (full page vs htmx fragment) -- terminal adds third branch
 
 ### Pending Todos
 
@@ -78,9 +84,13 @@ None.
 ### Blockers/Concerns
 
 - LiteFS in maintenance mode -- monitor for issues
+- lipgloss v2 import path uses vanity domain `charm.land/lipgloss/v2` (not github.com) -- document clearly
+- colorprofile is pre-1.0 (v0.4.3) -- pin version, minimal API surface
+- Large IX tables (1000+ rows, e.g., DE-CIX) need benchmarking with lipgloss during Phase 29
+- `Vary: User-Agent` effectively disables shared caching -- acceptable (no CDN layer)
 
 ## Session Continuity
 
 Last session: 2026-03-25
-Stopped at: Milestone v1.8 started — defining requirements
+Stopped at: Roadmap created for v1.8 milestone
 Resume file: None

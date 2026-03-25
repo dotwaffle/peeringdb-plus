@@ -88,46 +88,46 @@ Deferred to future release.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DET-01 | — | Pending |
-| DET-02 | — | Pending |
-| DET-03 | — | Pending |
-| DET-04 | — | Pending |
-| DET-05 | — | Pending |
-| RND-01 | — | Pending |
-| RND-02 | — | Pending |
-| RND-03 | — | Pending |
-| RND-04 | — | Pending |
-| RND-05 | — | Pending |
-| RND-06 | — | Pending |
-| RND-07 | — | Pending |
-| RND-08 | — | Pending |
-| RND-09 | — | Pending |
-| RND-10 | — | Pending |
-| RND-11 | — | Pending |
-| RND-12 | — | Pending |
-| RND-13 | — | Pending |
-| RND-14 | — | Pending |
-| RND-15 | — | Pending |
-| RND-16 | — | Pending |
-| RND-17 | — | Pending |
-| RND-18 | — | Pending |
-| NAV-01 | — | Pending |
-| NAV-02 | — | Pending |
-| NAV-03 | — | Pending |
-| NAV-04 | — | Pending |
-| DIF-01 | — | Pending |
-| DIF-02 | — | Pending |
-| DIF-03 | — | Pending |
-| DIF-04 | — | Pending |
-| SHL-01 | — | Pending |
-| SHL-02 | — | Pending |
-| SHL-03 | — | Pending |
+| DET-01 | Phase 28 | Pending |
+| DET-02 | Phase 28 | Pending |
+| DET-03 | Phase 28 | Pending |
+| DET-04 | Phase 28 | Pending |
+| DET-05 | Phase 28 | Pending |
+| RND-01 | Phase 28 | Pending |
+| RND-02 | Phase 29 | Pending |
+| RND-03 | Phase 30 | Pending |
+| RND-04 | Phase 30 | Pending |
+| RND-05 | Phase 30 | Pending |
+| RND-06 | Phase 30 | Pending |
+| RND-07 | Phase 30 | Pending |
+| RND-08 | Phase 30 | Pending |
+| RND-09 | Phase 30 | Pending |
+| RND-10 | Phase 30 | Pending |
+| RND-11 | Phase 30 | Pending |
+| RND-12 | Phase 29 | Pending |
+| RND-13 | Phase 29 | Pending |
+| RND-14 | Phase 29 | Pending |
+| RND-15 | Phase 29 | Pending |
+| RND-16 | Phase 29 | Pending |
+| RND-17 | Phase 30 | Pending |
+| RND-18 | Phase 28 | Pending |
+| NAV-01 | Phase 28 | Pending |
+| NAV-02 | Phase 28 | Pending |
+| NAV-03 | Phase 28 | Pending |
+| NAV-04 | Phase 28 | Pending |
+| DIF-01 | Phase 31 | Pending |
+| DIF-02 | Phase 31 | Pending |
+| DIF-03 | Phase 31 | Pending |
+| DIF-04 | Phase 31 | Pending |
+| SHL-01 | Phase 31 | Pending |
+| SHL-02 | Phase 31 | Pending |
+| SHL-03 | Phase 31 | Pending |
 
 **Coverage:**
 - v1.8 requirements: 34 total
-- Mapped to phases: 0
-- Unmapped: 34
+- Mapped to phases: 34
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after initial definition*
+*Last updated: 2026-03-25 after roadmap creation*
