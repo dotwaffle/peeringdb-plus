@@ -15,14 +15,20 @@ import (
 	"time"
 
 	"github.com/KimMachineGun/automemlimit/memlimit"
+	"connectrpc.com/connect"
+	"connectrpc.com/grpchealth"
+	"connectrpc.com/grpcreflect"
+	"connectrpc.com/otelconnect"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	_ "github.com/dotwaffle/peeringdb-plus/ent/runtime" // register schema hooks (OTel mutation tracing)
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 	"github.com/dotwaffle/peeringdb-plus/graph"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	"github.com/dotwaffle/peeringdb-plus/internal/database"
 	pdbgql "github.com/dotwaffle/peeringdb-plus/internal/graphql"
+	"github.com/dotwaffle/peeringdb-plus/internal/grpcserver"
 	"github.com/dotwaffle/peeringdb-plus/internal/health"
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
@@ -160,34 +166,15 @@ func main() {
 	mux := http.NewServeMux()
 
 	// POST /sync: on-demand sync trigger per D-23.
-	// Write forwarding: replicas redirect to primary via Fly-Replay per D-26.
-	mux.HandleFunc("POST /sync", func(w http.ResponseWriter, r *http.Request) {
-		if !isPrimaryFn() {
-			w.Header().Set("Fly-Replay", "leader")
-			w.WriteHeader(http.StatusTemporaryRedirect)
-			return
-		}
-		if cfg.SyncToken == "" || r.Header.Get("X-Sync-Token") != cfg.SyncToken {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-		// Determine sync mode: query param override or config default.
-		mode := cfg.SyncMode
-		if qm := r.URL.Query().Get("mode"); qm != "" {
-			switch config.SyncMode(qm) {
-			case config.SyncModeFull, config.SyncModeIncremental:
-				mode = config.SyncMode(qm)
-			default:
-				http.Error(w, fmt.Sprintf("invalid mode %q: must be full or incremental", qm), http.StatusBadRequest)
-				return
-			}
-		}
-		// Use application root ctx, NOT r.Context() -- request context
-		// is cancelled when the response is sent, which would kill the sync.
-		go syncWorker.SyncWithRetry(ctx, mode) //nolint:errcheck // fire-and-forget
-		w.WriteHeader(http.StatusAccepted)
-		fmt.Fprint(w, `{"status":"accepted"}`)
-	})
+	// Write forwarding: replicas replay to primary via fly-replay header on Fly.io.
+	mux.HandleFunc("POST /sync", newSyncHandler(ctx, SyncHandlerInput{
+		IsPrimaryFn: isPrimaryFn,
+		SyncToken:   cfg.SyncToken,
+		DefaultMode: cfg.SyncMode,
+		SyncFn: func(syncCtx context.Context, mode config.SyncMode) {
+			syncWorker.SyncWithRetry(syncCtx, mode) //nolint:errcheck // fire-and-forget
+		},
+	}))
 
 	// GET /healthz: liveness probe (always 200, not gated by readiness).
 	mux.HandleFunc("GET /healthz", health.LivenessHandler())
@@ -233,6 +220,91 @@ func main() {
 	webHandler.Register(mux)
 	logger.Info("Web UI mounted", slog.String("prefix", "/ui/"))
 
+	// Create OTel interceptor for ConnectRPC services per OBS-01.
+	otelInterceptor, err := otelconnect.NewInterceptor(
+		otelconnect.WithoutServerPeerAttributes(),
+	)
+	if err != nil {
+		logger.Error("failed to create otel interceptor", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	handlerOpts := connect.WithInterceptors(otelInterceptor)
+
+	// Service names for reflection and health checking.
+	serviceNames := []string{
+		peeringdbv1connect.CampusServiceName,
+		peeringdbv1connect.CarrierServiceName,
+		peeringdbv1connect.CarrierFacilityServiceName,
+		peeringdbv1connect.FacilityServiceName,
+		peeringdbv1connect.InternetExchangeServiceName,
+		peeringdbv1connect.IxFacilityServiceName,
+		peeringdbv1connect.IxLanServiceName,
+		peeringdbv1connect.IxPrefixServiceName,
+		peeringdbv1connect.NetworkServiceName,
+		peeringdbv1connect.NetworkFacilityServiceName,
+		peeringdbv1connect.NetworkIxLanServiceName,
+		peeringdbv1connect.OrganizationServiceName,
+		peeringdbv1connect.PocServiceName,
+	}
+
+	// Register all 13 ConnectRPC services on the mux per API-04.
+	registerService := func(path string, handler http.Handler) {
+		mux.Handle(path, handler)
+	}
+	registerService(peeringdbv1connect.NewCampusServiceHandler(&grpcserver.CampusService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewCarrierServiceHandler(&grpcserver.CarrierService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewCarrierFacilityServiceHandler(&grpcserver.CarrierFacilityService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewFacilityServiceHandler(&grpcserver.FacilityService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewInternetExchangeServiceHandler(&grpcserver.InternetExchangeService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewIxFacilityServiceHandler(&grpcserver.IxFacilityService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewIxLanServiceHandler(&grpcserver.IxLanService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewIxPrefixServiceHandler(&grpcserver.IxPrefixService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewNetworkServiceHandler(&grpcserver.NetworkService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewNetworkFacilityServiceHandler(&grpcserver.NetworkFacilityService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewNetworkIxLanServiceHandler(&grpcserver.NetworkIxLanService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewOrganizationServiceHandler(&grpcserver.OrganizationService{Client: entClient}, handlerOpts))
+	registerService(peeringdbv1connect.NewPocServiceHandler(&grpcserver.PocService{Client: entClient}, handlerOpts))
+	logger.Info("ConnectRPC services mounted", slog.Int("count", len(serviceNames)))
+
+	// gRPC server reflection for grpcurl/grpcui discovery per OBS-03.
+	reflector := grpcreflect.NewStaticReflector(serviceNames...)
+	mux.Handle(grpcreflect.NewHandlerV1(reflector, handlerOpts))
+	mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector, handlerOpts))
+	logger.Info("gRPC reflection enabled")
+
+	// gRPC health check tied to sync readiness per OBS-04.
+	healthChecker := grpchealth.NewStaticChecker(serviceNames...)
+	mux.Handle(grpchealth.NewHandler(healthChecker, handlerOpts))
+	logger.Info("gRPC health check enabled")
+
+	// Update gRPC health status when first sync completes.
+	// StaticChecker defaults to SERVING; set to NOT_SERVING until sync done.
+	if !syncWorker.HasCompletedSync() {
+		healthChecker.SetStatus("", grpchealth.StatusNotServing)
+		for _, name := range serviceNames {
+			healthChecker.SetStatus(name, grpchealth.StatusNotServing)
+		}
+		go func() {
+			ticker := time.NewTicker(1 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					if syncWorker.HasCompletedSync() {
+						healthChecker.SetStatus("", grpchealth.StatusServing)
+						for _, name := range serviceNames {
+							healthChecker.SetStatus(name, grpchealth.StatusServing)
+						}
+						logger.Info("gRPC health status set to SERVING")
+						return
+					}
+				}
+			}
+		}()
+	}
+
 	// GET /: content negotiation per user decision.
 	// Browsers (Accept: text/html) redirect to /ui/.
 	// API clients (Accept: application/json) get JSON discovery.
@@ -243,7 +315,7 @@ func main() {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"name":"peeringdb-plus","version":"0.1.0","graphql":"/graphql","rest":"/rest/v1/","api":"/api/","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`)
+		fmt.Fprint(w, `{"name":"peeringdb-plus","version":"0.1.0","graphql":"/graphql","rest":"/rest/v1/","api":"/api/","connectrpc":"/peeringdb.v1.","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`)
 	})
 
 	// Build middleware stack (outermost first):
@@ -254,9 +326,15 @@ func main() {
 	handler = otelhttp.NewMiddleware("peeringdb-plus")(handler)
 	handler = middleware.Recovery(logger)(handler)
 
+	// Enable HTTP/1.1 + h2c (HTTP/2 cleartext) for gRPC support.
+	var protocols http.Protocols
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
+
 	server := &http.Server{
-		Addr:    cfg.ListenAddr,
-		Handler: handler,
+		Addr:      cfg.ListenAddr,
+		Handler:   handler,
+		Protocols: &protocols,
 	}
 
 	// Graceful shutdown on SIGINT/SIGTERM.
@@ -267,6 +345,7 @@ func main() {
 		logger.Info("starting server",
 			slog.String("addr", cfg.ListenAddr),
 			slog.Bool("is_primary", isPrimary),
+			slog.Bool("h2c", true),
 		)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("server error", slog.String("error", err.Error()))
@@ -295,11 +374,13 @@ type syncReadiness interface {
 // Browser requests receive a styled HTML syncing page instead of JSON.
 func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Infrastructure and static paths bypass readiness.
+		// Infrastructure, static, and gRPC health paths bypass readiness.
 		// Static assets must be served for the syncing page to render correctly.
+		// gRPC health check manages its own NOT_SERVING/SERVING state.
 		if r.URL.Path == "/sync" || r.URL.Path == "/healthz" ||
 			r.URL.Path == "/readyz" || r.URL.Path == "/" ||
-			strings.HasPrefix(r.URL.Path, "/static/") {
+			strings.HasPrefix(r.URL.Path, "/static/") ||
+			strings.HasPrefix(r.URL.Path, "/grpc.health.v1.Health/") {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -318,4 +399,52 @@ func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// SyncHandlerInput holds dependencies for the sync handler.
+type SyncHandlerInput struct {
+	IsPrimaryFn func() bool
+	SyncToken   string
+	DefaultMode config.SyncMode
+	SyncFn      func(ctx context.Context, mode config.SyncMode)
+}
+
+// newSyncHandler creates the POST /sync handler with fly-replay write forwarding.
+// On Fly.io replicas (FLY_REGION set, not primary), it returns a fly-replay header
+// routing to PRIMARY_REGION. In local dev (FLY_REGION empty, not primary), it
+// returns 503 since there is no Fly proxy to replay the request.
+func newSyncHandler(appCtx context.Context, in SyncHandlerInput) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !in.IsPrimaryFn() {
+			// On Fly.io, replay to primary region.
+			if flyRegion := os.Getenv("FLY_REGION"); flyRegion != "" {
+				primaryRegion := os.Getenv("PRIMARY_REGION")
+				w.Header().Set("fly-replay", "region="+primaryRegion)
+				w.WriteHeader(http.StatusTemporaryRedirect)
+				return
+			}
+			// Not on Fly.io (local dev) -- non-primary cannot handle sync.
+			http.Error(w, "not primary", http.StatusServiceUnavailable)
+			return
+		}
+		if in.SyncToken == "" || r.Header.Get("X-Sync-Token") != in.SyncToken {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		mode := in.DefaultMode
+		if qm := r.URL.Query().Get("mode"); qm != "" {
+			switch config.SyncMode(qm) {
+			case config.SyncModeFull, config.SyncModeIncremental:
+				mode = config.SyncMode(qm)
+			default:
+				http.Error(w, fmt.Sprintf("invalid mode %q: must be full or incremental", qm), http.StatusBadRequest)
+				return
+			}
+		}
+		// Use application root ctx, NOT r.Context() -- request context
+		// is cancelled when the response is sent, which would kill the sync.
+		go in.SyncFn(appCtx, mode)
+		w.WriteHeader(http.StatusAccepted)
+		fmt.Fprint(w, `{"status":"accepted"}`)
+	}
 }

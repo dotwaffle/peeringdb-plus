@@ -20,6 +20,20 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+// Flush delegates to the underlying writer if it implements http.Flusher.
+// Required for gRPC streaming (server reflection, health watch).
+func (rw *responseWriter) Flush() {
+	if f, ok := rw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Unwrap returns the underlying ResponseWriter, enabling middleware-aware
+// interface checks via httputil.ResponseControllerFor.
+func (rw *responseWriter) Unwrap() http.ResponseWriter {
+	return rw.ResponseWriter
+}
+
 // Logging returns middleware that logs each HTTP request with method, path, status,
 // duration, and trace context (trace_id, span_id) when available.
 // Uses structured slog per OBS-1, OBS-5 with LogAttrs for attribute-based API.

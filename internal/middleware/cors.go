@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	connectcors "connectrpc.com/cors"
 	"github.com/rs/cors"
 )
 
@@ -21,10 +22,16 @@ func CORS(in CORSInput) func(http.Handler) http.Handler {
 	for i := range origins {
 		origins[i] = strings.TrimSpace(origins[i])
 	}
+	// Merge application headers with Connect/gRPC/gRPC-Web protocol headers.
+	allowedHeaders := append([]string{"Content-Type", "Authorization"}, connectcors.AllowedHeaders()...)
+	allowedMethods := append([]string{"GET", "OPTIONS"}, connectcors.AllowedMethods()...)
+	exposedHeaders := connectcors.ExposedHeaders()
+
 	c := cors.New(cors.Options{
 		AllowedOrigins:   origins,
-		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowedMethods:   allowedMethods,
+		AllowedHeaders:   allowedHeaders,
+		ExposedHeaders:   exposedHeaders,
 		AllowCredentials: false,
 		MaxAge:           86400,
 	})

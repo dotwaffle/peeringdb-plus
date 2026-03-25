@@ -2,6 +2,50 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.5 — Tech Debt & Observability
+
+**Shipped:** 2026-03-24
+**Phases:** 3 | **Plans:** 9 | **Tasks:** 12
+
+### What Was Built
+- Corrected stale planning docs (PROJECT.md, Phase 7 summary) to accurately reflect DataLoader removal and IsPrimary conversion
+- Flag-gated live test verifying meta.generated field behavior across three PeeringDB request patterns
+- Per-type object count gauges (Int64ObservableGauge) for all 13 PeeringDB types wired into main.go
+- 5-row Grafana dashboard (30 panels) with sync health, HTTP RED, per-type sync, Go runtime, and business metrics
+- Verified all 26 deferred human verification items from v1.2-v1.4 against live Fly.io deployment
+
+### What Worked
+- OTLP autoexport eliminated need for dedicated Prometheus endpoint — simpler config via env vars
+- Hand-authored Grafana dashboard JSON was faster than Grafonnet/Jsonnet for a single dashboard
+- DS_PROMETHEUS template variable kept dashboard portable across Grafana instances
+- Human verification phase (Phase 20) caught real issues and confirmed all major features work in production
+- Milestone audit before completion caught stale roadmap criterion text (OBS-01 Prometheus vs OTLP)
+
+### What Was Inefficient
+- Phase directories were archived before milestone completion workflow ran, causing plan/summary counts to show 0/N
+- VFY requirements (VFY-01 through VFY-09) were unchecked in REQUIREMENTS.md despite being satisfied per the audit
+- Some verification items (syncing page animation, 500 error page) are inherently untestable non-destructively
+- Gap closure plans (19-03, 19-04) were needed because initial execution missed InitObjectCountGauges wiring
+
+### Patterns Established
+- Observable gauge pattern: `meter.Int64ObservableGauge` with callback querying ent count
+- Grafana dashboard portability: `__inputs` + `${datasource}` variable + null id/version
+- Flag-gated live API tests: `-live` build tag for tests hitting external APIs
+- Strikethrough in PROJECT.md for resolved tech debt items to preserve history
+
+### Key Lessons
+1. Gap closure plans are a sign of incomplete verification during initial execution — invest more in plan-check
+2. OTLP autoexport is the right default for new Go services — no manual endpoint configuration
+3. Human verification phases should be planned early, not deferred to final milestone
+4. Milestone audit is worth running even for small milestones — it caught stale criterion text
+
+### Cost Observations
+- Model mix: ~85% opus, ~15% sonnet (subagents)
+- Sessions: ~2 sessions
+- Notable: Smallest milestone by plan count (9 plans), but included human verification across all prior milestones
+
+---
+
 ## Milestone: v1.4 — Web UI
 
 **Shipped:** 2026-03-24
@@ -181,6 +225,7 @@
 | v1.2 | ~3 | 4 | golangci-lint enforcement, golden file tests, CI pipeline |
 | v1.3 | 1 | 2 | Smallest milestone — focused scope, fastest execution |
 | v1.4 | ~3 | 5 | Largest milestone — full web UI, 11 plans in one day |
+| v1.5 | ~2 | 3 | Final cleanup — tech debt, observability, human verification |
 
 ### Cumulative Quality
 
@@ -191,6 +236,7 @@
 | v1.2 | 9 | 18 | 39 golden file + conformance CLI |
 | v1.3 | 3 | 4 | 7 client auth + 4 CLI auth |
 | v1.4 | 11 | 22 | 80+ detail page tests, search + compare integration |
+| v1.5 | 9 | 12 | 8 dashboard tests, flag-gated live API test, 26 human verification items |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -199,3 +245,4 @@
 3. Small, focused milestones (v1.3) execute fastest and with fewest issues
 4. Functional options pattern enables backward-compatible extension of constructors
 5. SEC-2 compliance as a pattern (never log secrets) prevents security issues at every integration point
+6. Human verification items accumulate across milestones — plan dedicated verification phases early rather than deferring to the end

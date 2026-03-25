@@ -1,37 +1,112 @@
-# Feature Landscape
+# Feature Landscape: ConnectRPC / gRPC API Surface
 
-**Domain:** Production observability dashboards and tech debt cleanup for a Go/OTel edge-deployed service
+**Domain:** gRPC/ConnectRPC API layer for a read-only PeeringDB data mirror
 **Researched:** 2026-03-24
-**Milestone context:** v1.5 Tech Debt & Observability -- adding Grafana dashboard provisioning, verifying meta.generated field behavior, removing dead code, and verifying 26 deferred human-verification items against live Fly.io deployment
-**Existing:** Full OTel pipeline (traces + metrics + logs) with autoexport, 9 custom sync metrics, Go runtime metrics via `go.opentelemetry.io/contrib/instrumentation/runtime`, otelhttp middleware on all HTTP requests, Fly.io deployment with LiteFS replication
+**Milestone context:** Adding gRPC API surface to existing PeeringDB Plus app (already has GraphQL, REST, PeeringDB-compat REST, and web UI)
 
 ## Table Stakes
 
-Features that production Go/OTel services must have for effective monitoring. Missing = operating blind in production.
+Features that gRPC API consumers expect. Missing = API feels incomplete or unusable for production integrations.
+
+### Get by ID (per entity type)
 
 | Feature | Why Expected | Complexity | Dependencies | Notes |
 |---------|--------------|------------|--------------|-------|
-| Sync health dashboard row | The sync pipeline is the core data path. Without visibility into sync duration, success/failure rate, and freshness, operators cannot tell if the service is delivering current data. Every production data pipeline has a sync/ETL health dashboard. | Low | Existing metrics: `pdbplus.sync.duration`, `pdbplus.sync.operations`, `pdbplus.sync.freshness` | Three panels minimum: sync duration over time (histogram), sync success/failure rate (counter), data freshness gauge (seconds since last sync with threshold alert). All metrics already recorded. |
-| HTTP RED metrics row (Rate, Errors, Duration) | The RED method is the standard for request-driven services. otelhttp middleware already emits `http.server.request.duration`, `http.server.active_requests`, and status codes. Not visualizing these means no awareness of API health. | Low | Existing otelhttp middleware metrics, no new instrumentation needed | Rate: `rate(http.server.request.duration_count)`. Errors: filter by `http.response.status_code >= 400`. Duration: p50/p95/p99 from histogram. Break down by route pattern (`http.route`). |
-| Go runtime metrics row | Go runtime metrics (goroutines, memory, GC) are already collected via `runtime.Start()` in provider.go. Not visualizing them means no visibility into memory leaks, goroutine leaks, or GC pressure. Standard for any production Go service. | Low | Existing `go.opentelemetry.io/contrib/instrumentation/runtime` already initialized in provider.go | Key panels: goroutine count (`go.goroutine.count`), heap memory used (`go.memory.used`), allocation rate (`go.memory.allocated`), GC goal (`go.memory.gc.goal`). All automatically emitted. |
-| Per-type sync metrics row | 13 PeeringDB types are synced independently. Knowing which type is slow, failing, or producing errors is essential for debugging sync issues. Per-type metrics already exist. | Low | Existing metrics: `pdbplus.sync.type.duration`, `pdbplus.sync.type.objects`, `pdbplus.sync.type.deleted`, `pdbplus.sync.type.fetch_errors`, `pdbplus.sync.type.upsert_errors`, `pdbplus.sync.type.fallback` | Filter/group by `type` attribute. Show as stacked bar or heatmap for duration, table for counts. All metrics already recorded with `type` attribute (net, ix, fac, etc.). |
-| Dashboard JSON provisioning | Dashboards stored as JSON files in the repository enable version control, code review, and reproducible deployments. Grafana file provisioning is the standard approach for infrastructure-as-code. Not provisioning means dashboards are ephemeral and lost on Grafana restart. | Low | Grafana provisioning YAML config file + dashboard JSON file(s) | Single `dashboards.yaml` provider config pointing to a directory of JSON files. Each dashboard is a self-contained JSON file exportable from Grafana UI. |
-| meta.generated field graceful handling | The sync pipeline uses `meta.generated` for incremental sync cursor timestamps. If this field is absent for depth=0 full-sync responses, the fallback to `started_at - 5min` must work correctly. Without verification, incremental sync could silently use wrong cursors. | Low | Existing `parseMeta()` in client.go already returns zero time if field is absent | Verify empirically against beta.peeringdb.com whether depth=0 no-pagination responses include `meta.generated`. Current code already handles absence gracefully (falls back to zero time, worker uses `started_at - 5min`). |
-| Dead code removal (DataLoader, IsPrimary) | Dead code creates confusion for future maintainers and triggers linter warnings. DataLoader middleware is wired but unused (entgql handles N+1 natively). WorkerConfig.IsPrimary is a vestigial field replaced by LiteFS detection. Both were explicitly deferred from earlier milestones. | Low | No dependencies -- pure deletion | DataLoader: remove middleware registration. IsPrimary: remove field from WorkerConfig struct, update constructor callers. Both changes are additive (deleting unused code). |
-| Deferred human verification pass | 26 items were deferred from v1.2-v1.4 because they require a running browser/deployment to verify. These cover CI pipeline behavior, API key integration, and UI/UX quality. Without verification, we are shipping untested user-facing behavior. | Med | Live Fly.io deployment, browser access, PeeringDB API key for 3 items | 6 items from v1.2/v1.3 (CI, API key). 20 items from v1.4 (visual/browser UX). Must be verified against live deployment, not in CI. |
+| `Get{Type}(id)` for all 13 types | The fundamental read operation. Every gRPC data service must support retrieving a single entity by its primary key. Google AIP-131 defines this as a standard method. entproto generates this via `MethodGet`. | Low | entproto `MethodGet` flag on each schema. Requires `entproto.Message()` and `entproto.Service()` annotations on all 13 ent schemas. | entproto generates the full implementation including ent-to-proto conversion. The `id` field must have an `entproto.Field()` annotation with field number 1. Returns `NOT_FOUND` (gRPC code 5) if entity does not exist. |
+
+### List with Pagination (per entity type)
+
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|--------------|-------|
+| `List{Type}s(page_size, page_token)` for all 13 types | Retrieving collections is the second fundamental operation. Google AIP-132/AIP-158 define the standard: `page_size` (int32) + `page_token` (string) request fields, `next_page_token` response field. entproto generates this with keyset pagination. | Med | entproto `MethodList` flag. Keyset pagination requires int/uuid/string ID fields (all 13 types use int IDs -- compatible). | entproto's keyset pagination is descending-order only (newest first by ID). The `page_token` is a base64-encoded cursor. Max page size should be enforced server-side (default 100, max 1000 matches PeeringDB's own limits). Empty `next_page_token` signals end of collection. |
+
+### Proto Message Definitions for All 13 Types
+
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|--------------|-------|
+| Protobuf message types for: Organization, Network, Facility, Campus, Carrier, InternetExchange, IxFacility, IxLan, IxPrefix, NetworkFacility, NetworkIxLan, Poc, CarrierFacility | gRPC APIs are typed. Every entity needs a proto message definition with all fields mapped to appropriate proto types. | Med | entproto `entproto.Message()` annotation on all schemas. Every field needs `entproto.Field(N)` with unique field numbers. | **Critical blocker**: `field.JSON` types (e.g., `social_media []SocialMedia`, `info_types []string`) are NOT supported by entproto (GitHub issue #2929, confirmed by maintainer). These fields must be handled with workarounds: either (a) skip them from proto generation and handle manually, (b) use `google.protobuf.Struct` for arbitrary JSON, or (c) define separate proto message types for the nested structs. Option (c) is best for `SocialMedia`; option (b) or `repeated string` for `info_types`. |
+
+### Error Handling with Standard gRPC/Connect Codes
+
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|--------------|-------|
+| Proper gRPC status codes on errors | Clients expect standard error codes for programmatic handling. ConnectRPC maps these to HTTP status codes automatically. | Low | ConnectRPC or google.golang.org/grpc/status package | Key mappings for this read-only service: `NOT_FOUND` (5/404) when entity ID does not exist, `INVALID_ARGUMENT` (3/400) for bad page_size/page_token/filter values, `INTERNAL` (13/500) for database errors, `UNAVAILABLE` (14/503) if database is not ready (pre-first-sync). Error messages should include the entity type and ID for debuggability. |
+
+### Server Reflection
+
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|--------------|-------|
+| gRPC server reflection enabled | Enables grpcurl, grpcui, Postman, and other tooling to discover services without .proto files. Standard for any gRPC service that is not purely internal. Google and most cloud providers enable it on all services. | Low | `google.golang.org/grpc/reflection` for standard gRPC, `connectrpc.com/grpcreflect` for ConnectRPC (supports both V1 and V1Alpha) | Two lines of code to enable. No security concern for a public read-only API. Enables `grpcurl list`, `grpcurl describe`, and grpcui web interface for exploration. ConnectRPC's grpcreflect supports both reflection protocol versions for maximum tool compatibility. |
+
+### Health Check Service
+
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|--------------|-------|
+| `grpc.health.v1.Health/Check` and `/Watch` | Standard gRPC health checking protocol. Required for load balancers, Kubernetes probes, and monitoring tools. The existing HTTP health endpoint at `/healthz` does not serve gRPC clients. | Low | `google.golang.org/grpc/health` for standard gRPC, `connectrpc.com/grpchealth` for ConnectRPC | Map existing health check logic (database reachable, sync has completed at least once) to gRPC health status. SERVING = healthy, NOT_SERVING = database unreachable or no sync completed. Service-specific health checks can report per-service status. |
+
+### OpenTelemetry Instrumentation
+
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|--------------|-------|
+| Automatic tracing and metrics on all RPCs | Project constraint: OTel is mandatory. Every API surface must have consistent observability. The existing GraphQL and REST surfaces both have otelhttp instrumentation. | Low | For standard gRPC: `go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc` (stats handler, not interceptors -- interceptors are deprecated). For ConnectRPC: `connectrpc.com/otelconnect` (interceptor). | otelgrpc stats handler creates spans per RPC with method name, status code, and duration. otelconnect interceptor does the same and additionally tags `rpc.system` (grpc/grpc-web/connect). Both propagate trace context via gRPC metadata. Existing OTel provider setup (provider.go) provides TracerProvider and MeterProvider. |
+
+### Protobuf/buf Toolchain Integration
+
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|--------------|-------|
+| buf.yaml, buf.gen.yaml for proto management | buf is the standard protobuf toolchain (per project CLAUDE.md TL-4). Provides linting, breaking change detection, and code generation in one tool. | Low | `buf.build/buf/cli` (already in STACK.md) | buf lint enforces style guide on proto files. buf breaking detects backwards-incompatible changes between commits. buf generate replaces raw `protoc` invocations. Place proto files in `proto/` directory with `buf.yaml` at root. |
+
+### Read-Only Service (No Mutations)
+
+| Feature | Why Expected | Complexity | Dependencies | Notes |
+|---------|--------------|------------|--------------|-------|
+| Only Get + List methods, no Create/Update/Delete | This is a read-only mirror. Exposing mutation RPCs would be confusing at best and dangerous at worst (they would fail against LiteFS replicas). entproto allows selecting which methods to generate. | Low | `entproto.Methods(entproto.MethodGet \| entproto.MethodList)` on each schema's `entproto.Service()` annotation. | Do NOT use `entproto.MethodAll`. Explicitly select only `MethodGet` and `MethodList`. This prevents accidental mutation endpoints and makes the API contract clear. |
 
 ## Differentiators
 
-Features that elevate monitoring beyond basics. Not strictly required for production, but make the service significantly more operable.
+Features that set this gRPC API apart from a minimal implementation. Not expected by all clients, but valued by power users and automation tooling.
+
+### Filtering on List RPCs
 
 | Feature | Value Proposition | Complexity | Dependencies | Notes |
 |---------|-------------------|------------|--------------|-------|
-| Business metrics row (object counts per type) | Showing total object counts per PeeringDB type over time reveals data completeness and growth trends. "We have 85,000 networks and growing" is a business KPI, not just a technical metric. No competing PeeringDB mirror exposes this visibility. | Low-Med | New gauge metric or compute from sync type objects counter. Could also query SQLite count directly via observable gauge. | Sum of `pdbplus.sync.type.objects` per type gives the count synced per cycle. Alternatively, register new observable gauges that count rows per type in SQLite. The observable gauge pattern (already used for freshness) is clean. |
-| Fly.io region breakdown | The service runs on edge nodes across multiple Fly.io regions. Breaking down HTTP metrics by `fly.region` resource attribute shows which regions are serving traffic and whether any region has degraded performance. | Low | Resource attribute `fly.region` already emitted in provider.go via `FLY_REGION` env var | Group HTTP panels by `fly.region`. Useful for spotting region-specific issues. No new instrumentation needed -- just dashboard panel configuration. |
-| Sync fallback tracking panel | Incremental-to-full sync fallback events (`pdbplus.sync.type.fallback`) indicate that incremental sync failed for a type. Tracking these over time reveals whether specific types consistently cause fallback, suggesting PeeringDB API instability for those types. | Low | Existing `pdbplus.sync.type.fallback` counter | Single panel: fallback events over time grouped by type. If this is consistently non-zero, investigate that type's API behavior. |
-| Data freshness alerting threshold | A gauge panel with color thresholds (green < 1h, yellow 1-2h, red > 2h) for `pdbplus.sync.freshness` gives instant visual health status. The threshold values match the hourly sync schedule. | Low | Existing `pdbplus.sync.freshness` observable gauge | Grafana stat panel with value mappings or threshold colors. No new metrics. |
-| Dashboard documentation panels | Grafana text panels at the top of each dashboard section explaining what the metrics mean and what actions to take. Reduces the "what am I looking at?" moment for on-call operators who are not the dashboard author. | Low | No dependencies -- just text panels in JSON | Add a text panel to each row explaining the metrics, expected ranges, and troubleshooting actions. Grafana best practice per official docs. |
-| Annotation markers for sync events | Grafana annotations marking sync start/completion on timeline panels. Correlating metric changes with sync events is critical for root cause analysis ("latency spiked -- was a sync running?"). | Med | Requires publishing annotations from sync worker, either via Grafana API or by using OTel span events that map to annotations | Could implement via: (1) OTel trace spans already exist for sync -- configure Tempo-to-Grafana annotation mapping, (2) direct Grafana annotation API call from sync worker (adds HTTP dependency), or (3) log-based annotations via Loki. Option 1 is cleanest if using Tempo. |
+| Filter by common fields (ASN, country, name, org_id, status) | The existing REST and GraphQL APIs support filtering. A gRPC API without filtering forces clients to fetch all records and filter client-side, which is wasteful for a 85K+ record dataset. Google AIP-160 defines a `string filter` field with expression syntax. | High | **Not generated by entproto.** The entproto roadmap (GitHub #2446) lists "Query Predicates" as unimplemented. Must be implemented manually: parse filter string, translate to ent predicates, apply to query. | Two approaches: (a) AIP-160 filter string (`filter: "asn > 13000 AND country = 'US'"`) -- powerful but complex parser needed. (b) Dedicated filter fields on the request message (`int32 asn`, `string country`, etc.) -- simpler, mirrors PeeringDB's own query params. Recommend option (b) for initial implementation because it matches the existing REST API filter patterns and avoids building an expression parser. Add typed filter fields to ListRequest messages manually (not generated by entproto). |
+
+### Edge/Relationship Traversal
+
+| Feature | Value Proposition | Complexity | Dependencies | Notes |
+|---------|-------------------|------------|--------------|-------|
+| Nested messages for related entities (e.g., Organization with Networks) | The GraphQL API's killer feature is relationship traversal. A gRPC API that only returns flat entities with foreign key IDs forces clients to make N+1 calls. entproto can include edge fields in proto messages. | Med | entproto edge annotations. Edges must have `entproto.Field(N)` annotations. Cyclic dependencies are NOT supported in protobuf -- back-references require same proto package. | entproto can generate nested messages for edges. For this project, the key traversals are: Organization -> Networks/Facilities/IXs, Network -> NetworkFacilities/NetworkIxLans/Pocs, InternetExchange -> IxFacilities/IxLans. Cyclic deps (Network -> Org -> Network) must be in the same proto package, which is fine for a single-service API. Eager-loading edges avoids N+1 at the database level (ent handles this). |
+
+### ConnectRPC Protocol Support (Triple-Protocol)
+
+| Feature | Value Proposition | Complexity | Dependencies | Notes |
+|---------|-------------------|------------|--------------|-------|
+| Serve gRPC, gRPC-Web, and Connect protocols simultaneously | ConnectRPC handlers serve all three protocols on the same port without proxies. gRPC clients use standard grpc-go, browser clients use gRPC-Web or Connect (no Envoy proxy needed), and developers debug with curl using the Connect protocol's JSON format. | Med | `connectrpc.com/connect`, `protoc-gen-connect-go`. Requires generating Connect handlers instead of (or alongside) standard gRPC handlers. **Key tension**: entproto generates standard gRPC service implementations (protoc-gen-go-grpc), not ConnectRPC handlers (protoc-gen-connect-go). | Two paths: (a) Use entproto-generated standard gRPC service, serve with grpc-go on a separate port. Simple but loses ConnectRPC benefits (curl-ability, shared mux, browser compat). (b) Generate proto files with entproto, then generate ConnectRPC handlers with protoc-gen-connect-go, and write thin adapter implementations that call ent client methods. More work upfront but integrates cleanly with existing net/http server. **Recommend (b)** -- the Connect handler pattern (`func(ctx, *Request) (*Response, error)`) is simpler than gRPC's and shares the HTTP mux with GraphQL/REST. |
+
+### Server Streaming for Bulk Export
+
+| Feature | Value Proposition | Complexity | Dependencies | Notes |
+|---------|-------------------|------------|--------------|-------|
+| `StreamList{Type}s` server-streaming RPC for full dataset export | For automation clients that need the entire dataset (e.g., building local caches, feeding into IRR tools), a server-streaming RPC sends all records without pagination overhead. Single TCP connection, backpressure via flow control, no token management. | Med | Server-streaming RPC definition in proto. ConnectRPC supports streaming. Standard gRPC supports streaming. | Useful for bulk consumers who would otherwise paginate through 85K+ records. Implementation streams ent query results row-by-row, converting each to proto message and sending. Natural fit for go channels. **Defer to post-MVP** -- pagination covers the use case adequately, and streaming adds complexity to error handling (partial failures). |
+
+### Field Masks for Partial Responses
+
+| Feature | Value Proposition | Complexity | Dependencies | Notes |
+|---------|-------------------|------------|--------------|-------|
+| `google.protobuf.FieldMask read_mask` on Get/List requests | Clients request only the fields they need, reducing response size and (potentially) database load. Netflix, Google, and most large gRPC API providers support this. Per AIP-157. | High | `google.protobuf.FieldMask` well-known type. Must implement field filtering in the service layer. | For a read-only mirror where most queries hit local SQLite, the performance benefit is marginal. The main benefit is bandwidth reduction for mobile/constrained clients. **Defer** -- adds significant implementation complexity (must filter proto message fields before serialization) for minimal gain in this use case. Ent queries already select all columns; partial selection would require custom query building. |
+
+### Sync Status RPC
+
+| Feature | Value Proposition | Complexity | Dependencies | Notes |
+|---------|-------------------|------------|--------------|-------|
+| `GetSyncStatus()` returning last sync time, data freshness, record counts | The GraphQL API already exposes `syncStatus`. gRPC clients need equivalent visibility into data freshness. Critical for automation that needs to know if data is stale. | Low | No entproto generation needed -- this is a custom RPC on a custom service definition. Read existing sync metrics/health state. | Define a `SyncService` with `GetSyncStatus` RPC. Return: `last_sync_at` (timestamp), `data_freshness_seconds` (float), `status` (enum: SYNCING/HEALTHY/STALE/ERROR), `type_counts` (map of type name to record count). Mirrors the GraphQL `syncStatus` query. |
+
+### buf-Powered Breaking Change Detection in CI
+
+| Feature | Value Proposition | Complexity | Dependencies | Notes |
+|---------|-------------------|------------|--------------|-------|
+| `buf breaking` in CI pipeline | Prevents accidental backwards-incompatible proto changes (renamed fields, changed field numbers, removed RPCs). Critical for any API with external consumers. | Low | buf CLI, `buf.yaml` config with `WIRE_JSON` or `WIRE` breaking rules | Add `buf breaking --against .git#branch=main` to CI. Catches: field number reuse, field type changes, RPC removal, service removal. Essential because proto field numbers are forever -- reusing one silently corrupts data on the wire. |
 
 ## Anti-Features
 
@@ -39,192 +114,139 @@ Features to explicitly NOT build for this milestone.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| Grafonnet/Jsonnet dashboard generation | Grafonnet adds a Jsonnet toolchain dependency for generating dashboard JSON. The project has one dashboard with a fixed structure. Hand-authored JSON is simpler, easier to review in PRs, and eliminates the Jsonnet learning curve. Worth it for 50+ dashboards, not one. | Author dashboard JSON directly. Export from Grafana UI after visual editing, commit the JSON. |
-| Custom alerting rules in dashboard provisioning | Grafana alerting rules have their own provisioning path separate from dashboards. Mixing alerting into dashboard provisioning creates coupling. Alerts also require a notification channel which is deployment-specific. | Define threshold colors on panels for visual alerting. Defer formal alerting rules to when a notification channel is established. |
-| SLO/SLI tracking dashboard | SLO definitions require defining error budgets, burn rates, and alerting windows. Premature for a service not yet monitored in production. | Track RED metrics and sync freshness. After 2-4 weeks of production data, define SLOs based on observed patterns. |
-| Per-endpoint latency breakdown for all API surfaces | 4 API surfaces with dozens of endpoints. Per-endpoint panels produces a dashboard too large to scan. | Use `http.route` aggregation in the RED row. Add drill-down panels only for endpoints that show problems. |
-| Real-time dashboard streaming | Grafana supports streaming via live/websocket panels. Marginal value when sync runs hourly and metrics are scraped on 15-60 second intervals. | Standard 30-second refresh interval on Grafana dashboard auto-refresh. |
-| Automated visual regression testing | Building Playwright/Cypress screenshot comparison for 20 UI verification items costs more than manually checking them once. One-time verification items. | Manually verify against live deployment. Consider automation only if web UI gets frequent changes. |
+| Mutation RPCs (Create, Update, Delete) | This is a read-only mirror. Data comes from PeeringDB sync only. Mutation endpoints would either fail (on replicas) or corrupt data (on primary). Confuses API contract. | Generate only `MethodGet` and `MethodList`. Document read-only nature in proto comments and API docs. |
+| Bidirectional streaming | No use case for client-to-server streaming on a read-only data query service. Adds complexity without value. The data does not change in real-time (hourly sync). | Use unary Get/List for queries. If real-time notifications are ever needed, server streaming is sufficient. |
+| AIP-160 filter expression parser | Full AIP-160 filter syntax (`"field > value AND other_field = 'x'"`) is powerful but requires building a parser, type checker, and ent predicate translator. Massive effort for marginal gain over typed filter fields. | Use typed filter fields on List request messages (`int32 asn_filter`, `string country_filter`, etc.). Matches PeeringDB's own REST query parameter style. Simpler to implement, simpler to use, strongly typed. |
+| Custom proto options/extensions | Proto custom options (e.g., field validation rules, custom annotations) add complexity to the proto toolchain and are rarely used by clients. | Use server-side validation. Return `INVALID_ARGUMENT` with descriptive messages. |
+| gRPC-Web proxy (Envoy) | ConnectRPC eliminates the need for an Envoy proxy to serve gRPC-Web. Do not add infrastructure complexity. | If using ConnectRPC: native gRPC-Web support built in. If using standard gRPC: browser clients should use the existing REST or GraphQL APIs instead. |
+| Proto-to-OpenAPI generation (grpc-gateway) | The project already has a full OpenAPI REST API via entrest. Generating another REST surface from proto definitions creates confusion and maintenance burden. | Direct gRPC/Connect API consumers to the gRPC endpoint. REST consumers to the existing REST API. No translation layer. |
+| Automatic client SDK generation/publishing | Generating and publishing client libraries in multiple languages (Go, Python, TypeScript) is a maintenance commitment. Premature before the API stabilizes. | Publish `.proto` files. Consumers generate their own clients with `buf generate` or `protoc`. Provide a `buf.gen.yaml` example in docs. |
 
 ## Feature Dependencies
 
 ```
-OTel metrics already emitted (sync, HTTP, runtime)
+Existing ent schemas (13 types, all fields defined)
     |
     v
-Grafana dashboard JSON (single file, multiple rows)
+Add entproto.Message() + entproto.Field(N) annotations to all schemas
     |
-    +--> Row 1: Sync Health
-    |        |-- Sync duration histogram
-    |        |-- Sync success/failure rate
-    |        |-- Data freshness gauge with thresholds
-    |        |-- Sync fallback events
+    +--[BLOCKER] Handle field.JSON types (social_media, info_types)
+    |     |
+    |     +--> Option A: Skip from entproto, add manually to .proto files
+    |     +--> Option B: Define SocialMedia as separate proto message
+    |     +--> Option C: Use google.protobuf.Struct (loses type safety)
     |
-    +--> Row 2: HTTP RED Metrics
-    |        |-- Request rate by route
-    |        |-- Error rate (4xx, 5xx)
-    |        |-- Latency percentiles (p50, p95, p99)
-    |        |-- Active requests gauge
+    v
+Add entproto.Service(entproto.Methods(MethodGet | MethodList)) annotations
     |
-    +--> Row 3: Per-Type Sync Detail
-    |        |-- Duration heatmap by type
-    |        |-- Object counts per type
-    |        |-- Delete counts per type
-    |        |-- Fetch/upsert errors per type
+    v
+Run entproto code generation --> .proto files + gRPC service stubs
     |
-    +--> Row 4: Go Runtime
-    |        |-- Goroutine count
-    |        |-- Heap memory used
-    |        |-- Allocation rate
-    |        |-- GC goal
+    +--> buf.yaml + buf.gen.yaml configuration
+    +--> buf lint validation
     |
-    +--> Provisioning config (dashboards.yaml)
-
-meta.generated verification (independent of dashboard)
+    v
+[DECISION POINT] Standard gRPC vs ConnectRPC handlers
     |
-    +--> Verify against beta.peeringdb.com
-    +--> Update parseMeta/fallback logic if needed
-    +--> Document findings
-
-Dead code removal (independent)
+    +--> Path A: Standard gRPC (entproto generates everything)
+    |     |
+    |     +--> Separate gRPC port (e.g., :8082)
+    |     +--> otelgrpc stats handler for OTel
+    |     +--> grpc reflection registration
+    |     +--> grpc health service
     |
-    +--> Remove DataLoader middleware registration
-    +--> Remove WorkerConfig.IsPrimary field
-
-Human verification (depends on live deployment)
+    +--> Path B: ConnectRPC (generate protos with entproto, handlers with connect-go)
+          |
+          +--> Shared HTTP mux with REST/GraphQL (port :8081)
+          +--> otelconnect interceptor for OTel
+          +--> grpcreflect for reflection
+          +--> grpchealth for health checks
+          +--> curl-able with JSON (Connect protocol)
     |
-    +--> 6 items from v1.2/v1.3 (CI, API key)
-    +--> 20 items from v1.4 (visual/browser UX)
+    v
+Custom service: SyncStatus RPC (not generated, hand-written)
+    |
+    v
+[OPTIONAL] Add typed filter fields to ListRequest messages
+    |
+    v
+[OPTIONAL] Server streaming for bulk export
+    |
+    v
+Integration tests (using generated client stubs)
+    |
+    v
+buf breaking in CI
 ```
 
-## Metrics Inventory (Already Emitting)
+## entproto JSON Field Workaround Strategy
 
-### Custom Application Metrics (meter: "peeringdb-plus")
+This is the most significant technical blocker. All 6 primary entity types (Organization, Network, Facility, InternetExchange, Carrier, Campus) have `social_media` as `field.JSON([]SocialMedia{})`. Network also has `info_types` as `field.JSON([]string{})`.
 
-| Metric Name | Type | Unit | Attributes | Description |
-|-------------|------|------|------------|-------------|
-| `pdbplus.sync.duration` | Float64Histogram | s | `status` (success/failed) | Duration of full sync operations |
-| `pdbplus.sync.operations` | Int64Counter | {operation} | `status` (success/failed) | Count of sync operations |
-| `pdbplus.sync.freshness` | Float64ObservableGauge | s | (none) | Seconds since last successful sync |
-| `pdbplus.sync.type.duration` | Float64Histogram | s | `type` (net/ix/fac/...) | Per-type sync step duration |
-| `pdbplus.sync.type.objects` | Int64Counter | {object} | `type` | Objects synced per type |
-| `pdbplus.sync.type.deleted` | Int64Counter | {object} | `type` | Objects deleted per type |
-| `pdbplus.sync.type.fetch_errors` | Int64Counter | {error} | `type` | PeeringDB API fetch errors per type |
-| `pdbplus.sync.type.upsert_errors` | Int64Counter | {error} | `type` | Database upsert errors per type |
-| `pdbplus.sync.type.fallback` | Int64Counter | {event} | `type` | Incremental-to-full fallback events |
+**Recommended approach: Hybrid generation**
 
-### otelhttp Middleware Metrics (automatic)
+1. Let entproto generate proto messages for all scalar fields (it handles string, int, bool, float, time.Time natively).
+2. For `social_media`: Define `SocialMedia` as a separate proto message type (`string service = 1; string identifier = 2;`) and add `repeated SocialMedia social_media = N;` to entity messages manually.
+3. For `info_types`: Add `repeated string info_types = N;` to the Network message manually.
+4. For the conversion layer: Write custom `toProto{Type}()` functions that handle the JSON fields alongside entproto's generated conversion code.
 
-| Metric Name | Type | Attributes | Description |
-|-------------|------|------------|-------------|
-| `http.server.request.duration` | Float64Histogram | `http.request.method`, `http.route`, `http.response.status_code`, `server.address` | Incoming request duration |
-| `http.server.active_requests` | Int64UpDownCounter | `http.request.method`, `server.address` | Active concurrent requests |
-| `http.server.request.body.size` | Int64Histogram | (same as duration) | Request body size |
-| `http.server.response.body.size` | Int64Histogram | (same as duration) | Response body size |
+This means proto files will be partially generated (entproto) and partially hand-maintained. Use `// DO NOT EDIT` markers on generated sections and clear comments on manual sections. Alternatively, fully hand-write proto files using entproto output as a starting point, then maintain them manually going forward.
 
-### otelhttp Transport Metrics (PeeringDB client, automatic)
+## Standard vs ConnectRPC Decision Matrix
 
-| Metric Name | Type | Attributes | Description |
-|-------------|------|------------|-------------|
-| `http.client.request.duration` | Float64Histogram | `http.request.method`, `server.address`, `http.response.status_code` | Outbound PeeringDB API request duration |
+| Criterion | Standard gRPC (grpc-go) | ConnectRPC (connect-go) |
+|-----------|------------------------|------------------------|
+| entproto compatibility | Direct -- entproto generates service implementations | Indirect -- entproto generates .proto files, need separate handler impl |
+| HTTP mux sharing | No -- grpc-go uses its own HTTP/2 implementation | Yes -- standard net/http, shares mux with REST/GraphQL |
+| Browser compatibility | No (needs Envoy proxy for gRPC-Web) | Yes (native gRPC-Web + Connect protocol) |
+| curl debugging | No (binary protocol) | Yes (Connect protocol uses JSON over HTTP) |
+| Performance | Higher (~20K rps) | Slightly lower (~16K rps) |
+| OTel integration | otelgrpc stats handler | otelconnect interceptor |
+| Implementation effort | Lower (entproto generates service impl) | Higher (must write service implementations manually) |
+| Operational simplicity | Extra port to manage | Same port as everything else |
+| gRPC client compatibility | Full | Full (serves gRPC protocol by default) |
 
-### Go Runtime Metrics (automatic via `runtime.Start()`)
-
-| Metric Name | Type | Description |
-|-------------|------|-------------|
-| `go.goroutine.count` | Int64UpDownCounter | Live goroutine count |
-| `go.memory.used` | Int64UpDownCounter | Memory used by Go runtime |
-| `go.memory.allocated` | Int64Counter | Total memory allocated to heap |
-| `go.memory.allocations` | Int64Counter | Count of heap allocations |
-| `go.memory.gc.goal` | Int64UpDownCounter | Heap size target for end of GC cycle |
-| `go.processor.limit` | Int64UpDownCounter | Number of OS threads for Go code |
-| `go.config.gogc` | Int64UpDownCounter | GOGC configuration value |
-
-## meta.generated Field Analysis
-
-### What We Know (HIGH confidence)
-
-1. **Response structure**: PeeringDB API responses have `{"meta": {...}, "data": [...]}` structure. The `meta` field is a JSON object, and the `generated` field is inside it as a float64 Unix epoch timestamp (e.g., `1595250699.701`).
-
-2. **Cached responses include it**: GitHub issue #776 shows the `generated` field present in full-list responses. Two sequential requests returned different `generated` values, confirming it represents cache generation timestamp.
-
-3. **The value is a float64 epoch**: Sub-second precision. Current `parseMeta()` truncates to integer seconds via `time.Unix(int64(meta.Generated), 0)`. Acceptable for cursor purposes.
-
-4. **Current code handles absence gracefully**: `parseMeta()` returns zero time if meta is empty, meta has no `generated` field, or `generated` is zero. The sync worker falls back to `started_at - 5min` buffer when `Generated` is zero.
-
-### What Is Unverified (needs empirical testing)
-
-1. **depth=0 with no pagination (full sync path)**: Does this serve the cached response (with `meta.generated`) or a live query (without it)?
-2. **depth=0 with `?since=` (incremental path)**: Does this serve from cache or live?
-3. **Consistency across all 13 types**: Does `meta.generated` behave the same for all types?
-
-### Impact Assessment
-
-The current code is defensively written to handle all scenarios. This verification is about confirming behavior and documenting it, not about finding bugs to fix.
-
-## Deferred Human Verification Items (Complete Inventory)
-
-### From v1.2 (3 items)
-
-| Item | Source Phase | What to Verify | How |
-|------|-------------|----------------|-----|
-| CI workflow execution on GitHub Actions | Phase 10 | Workflow runs on push, all 4 jobs pass | Push a commit, check GitHub Actions tab |
-| Coverage comment posting on PRs | Phase 10 | Coverage comment appears on PR with percentage | Create a PR, check for coverage comment |
-| Comment deduplication | Phase 10 | Only one coverage comment per PR (updated, not duplicated) | Push multiple commits to same PR, check comments |
-
-### From v1.3 (3 items)
-
-| Item | Source Phase | What to Verify | How |
-|------|-------------|----------------|-----|
-| Live CLI with real API key | Phase 12 | `pdbcompat-check --api-key <key>` works | Run CLI with real PeeringDB API key |
-| Live integration test with real API key | Phase 12 | `-peeringdb-live` test passes with API key | `PDBPLUS_PEERINGDB_API_KEY=<key> go test -peeringdb-live` |
-| Invalid key rejection | Phase 12 | Invalid API key produces WARN log, not crash | Run with `--api-key invalid-key-here` |
-
-### From v1.4 (20 items)
-
-| Item | Source Phase | What to Verify | How |
-|------|-------------|----------------|-----|
-| Neon green on dark theme | Phase 13 | Visual appearance of accent color | Browser, toggle dark mode |
-| Responsive layout at breakpoints | Phase 13 | Layout adapts at mobile/tablet/desktop | Browser, resize window |
-| Syncing page animation | Phase 13 | Loading animation before first sync | Deploy fresh, visit before sync completes |
-| Content negotiation | Phase 13 | Browser gets redirect, API client gets JSON | `curl -H 'Accept: text/html'` vs `curl` at root |
-| Live search latency | Phase 14 | Results update within 300ms | Browser, type in search box, observe timing |
-| Type badge colors | Phase 14 | Colored badges distinguish entity types | Browser, search for multi-type term |
-| ASN redirect on Enter | Phase 14 | Typing "13335" + Enter goes to Cloudflare detail | Browser, search box |
-| Collapsible sections | Phase 15 | Expand/collapse smoothly | Browser, click section headers on detail pages |
-| Lazy loading triggers | Phase 15 | Content loads only on first expand | Browser, expand section, check network tab |
-| Summary stats visible | Phase 15 | IX count, fac count shown in header | Browser, visit network detail page |
-| Cross-links navigate | Phase 15 | Click IX name from network -> IX detail | Browser, navigate cross-links |
-| Comparison results layout | Phase 16 | Shared IXPs/facilities display correctly | Browser, compare two ASNs |
-| View toggle | Phase 16 | Shared-only vs full side-by-side works | Browser, toggle on comparison page |
-| Multi-step compare flow | Phase 16 | "Compare with..." button -> compare page | Browser, network detail -> compare |
-| Dark mode toggle | Phase 17 | Toggle works, system preference detected | Browser, toggle, check system preference |
-| Keyboard navigation | Phase 17 | Arrow keys navigate search results | Browser, search, use arrow keys |
-| CSS animations | Phase 17 | FadeIn on search results, transitions smooth | Browser, search, observe animations |
-| Loading indicators | Phase 17 | htmx loading bar visible during requests | Browser, trigger htmx request, observe bar |
-| Styled error pages | Phase 17 | 404 has search box, 500 has home link | Browser, visit invalid URL |
-| About page freshness | Phase 17 | About page shows data age indicator | Browser, visit /ui/about |
+**Recommendation: ConnectRPC** because:
+1. This is a read-only data API -- the ~20% performance difference is irrelevant for SQLite reads.
+2. Sharing the HTTP mux eliminates port management complexity on Fly.io.
+3. curl-ability with JSON dramatically improves developer experience.
+4. Browser compatibility opens future possibilities without infrastructure changes.
+5. The service implementations are thin (Get calls `client.{Type}.Get()`, List calls `client.{Type}.Query()`) -- writing them manually is not a large burden for 13 types.
 
 ## MVP Recommendation
 
-**Phase ordering rationale:** Dashboard provisioning and meta.generated verification are independent of each other and of the deferred verification items. Dead code removal is trivial and can be grouped with either.
-
 Prioritize:
-1. **meta.generated verification + dead code removal** -- Quick investigation followed by removing DataLoader middleware and WorkerConfig.IsPrimary. Low risk, clears tech debt.
-2. **Grafana dashboard JSON provisioning** -- Build the dashboard JSON with 4 rows. No new Go code needed for table-stakes panels.
-3. **Deferred human verification** -- Verify all 26 items against the live Fly.io deployment. Most time-consuming but lowest risk.
+1. **Proto message definitions + buf toolchain** -- Define all 13 entity messages with field mappings. Set up buf.yaml, buf.gen.yaml. Validate with buf lint. This is the foundation everything else depends on.
+2. **Get + List for all 13 types with ConnectRPC** -- Core read operations with keyset pagination. Register handlers on existing HTTP mux. Add otelconnect interceptor.
+3. **Server reflection + health check** -- Two lines each. Enables tooling (grpcurl/grpcui) and monitoring.
+4. **SyncStatus custom RPC** -- Small custom service, high value for automation clients.
+5. **buf breaking in CI** -- Protect proto contract from accidental breakage.
 
 Defer:
-- **Business metrics (object count gauges)**: Requires new observable gauge instruments.
-- **Annotation markers**: Requires OTel Collector or Tempo annotation mapping.
-- **SLO definitions**: Premature without production baseline data.
+- **Filtering on List RPCs**: Adds significant complexity. Clients can paginate + filter client-side initially. Add in a follow-up phase based on demand.
+- **Server streaming bulk export**: Pagination covers the use case. Streaming is a nice-to-have for automation clients.
+- **Field masks**: Marginal benefit for local SQLite reads. Defer indefinitely.
+- **Edge/relationship traversal in proto messages**: Start with flat entities (foreign key IDs only). Add nested messages after the basic API works.
 
 ## Sources
 
-- [Grafana Dashboard Best Practices](https://grafana.com/docs/grafana/latest/visualizations/dashboards/build-dashboards/best-practices/)
-- [Grafana Provisioning Documentation](https://grafana.com/docs/grafana/latest/administration/provisioning/)
-- [OpenTelemetry for HTTP Services Dashboard](https://grafana.com/grafana/dashboards/21587-opentelemetry-for-http-services/)
-- [Go Runtime Metrics OTel Dashboard](https://grafana.com/grafana/dashboards/22035-go-runtime/)
-- [OTel Go Runtime Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/runtime/go-metrics/)
-- [PeeringDB Issue #776](https://github.com/peeringdb/peeringdb/issues/776) -- Evidence of `meta.generated` field
-- Codebase: `internal/otel/metrics.go`, `internal/otel/provider.go`, `internal/peeringdb/client.go`
+- [AIP-131: Standard methods: Get](https://google.aip.dev/131) -- Get method pattern
+- [AIP-132: Standard methods: List](https://google.aip.dev/132) -- List method pattern with pagination, filtering, ordering
+- [AIP-157: Partial responses](https://google.aip.dev/157) -- Field masks for read operations
+- [AIP-158: Pagination](https://google.aip.dev/158) -- page_size, page_token, next_page_token specification
+- [AIP-160: Filtering](https://google.aip.dev/160) -- Filter expression syntax specification
+- [ConnectRPC Errors](https://connectrpc.com/docs/go/errors/) -- Error codes, HTTP status mapping, error details
+- [ConnectRPC gRPC Compatibility](https://connectrpc.com/docs/go/grpc-compatibility/) -- Triple-protocol support, reflection, health
+- [ConnectRPC Observability](https://connectrpc.com/docs/go/observability/) -- otelconnect interceptor
+- [ConnectRPC Getting Started](https://connectrpc.com/docs/go/getting-started/) -- Handler registration on http.ServeMux
+- [entproto Service Generation](https://entgo.io/docs/grpc-service-generation-options/) -- Method flags, available methods
+- [entproto gRPC Extension Roadmap](https://github.com/ent/ent/issues/2446) -- Missing features: query predicates, JSON support
+- [entproto JSON Field Issue](https://github.com/ent/ent/issues/2929) -- Confirmed: field.JSON not supported
+- [gRPC Health Checking Protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md) -- grpc.health.v1 spec
+- [gRPC Server Reflection](https://grpc.io/docs/guides/reflection/) -- Reflection protocol for tooling
+- [otelgrpc Package](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc) -- Stats handler instrumentation
+- [otelconnect Package](https://pkg.go.dev/connectrpc.com/otelconnect) -- ConnectRPC OTel interceptor
+- [buf Breaking Change Detection](https://buf.build/docs/breaking/) -- CI integration for proto contract safety
+- [buf Style Guide](https://buf.build/docs/best-practices/style-guide/) -- Proto file organization best practices
+- [gRPC Streaming Best Practices](https://dev.to/ramonberrutti/grpc-streaming-best-practices-and-performance-insights-219g) -- When to use streaming
+- [Netflix FieldMask Blog](https://netflixtechblog.com/practical-api-design-at-netflix-part-1-using-protobuf-fieldmask-35cfdc606518) -- Practical FieldMask usage patterns

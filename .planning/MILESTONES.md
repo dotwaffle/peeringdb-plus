@@ -1,5 +1,23 @@
 # Milestones
 
+## v1.6 ConnectRPC / gRPC API (Shipped: 2026-03-25)
+
+**Phases completed:** 4 phases, 9 plans, 18 tasks
+
+**Key accomplishments:**
+
+- LiteFS proxy removed, fly-replay fixed to region=PRIMARY_REGION with Fly.io detection, h2c enabled via stdlib http.Protocols
+- Protobuf toolchain with buf v2 config, protoc-gen-go + protoc-gen-connect-go tool deps, entproto extension in entc.go, and manual SocialMedia proto message
+- All 13 ent schemas annotated with entproto producing v1.proto with 227 typed fields, compiled to Go protobuf types via buf generate
+- 13 proto service definitions with Get/List RPCs producing ConnectRPC handler interfaces via buf generate for Phase 23 implementation
+- Ent-to-proto conversion helpers, offset pagination with base64 cursors, and NetworkService Get/List RPCs as template for all 13 entity types
+- 12 ConnectRPC service handlers implementing Get/List RPCs for all PeeringDB types with correct ent-to-proto wrapper type mappings
+- All 13 ConnectRPC services wired into HTTP mux with otelconnect interceptor, gRPC reflection, health checking, and Connect-aware CORS
+- Optional filter fields on all 13 List RPC request messages with predicate accumulation pattern proven on NetworkService
+- Predicate accumulation filter logic applied to all 12 remaining ConnectRPC List handlers with tests covering geographic, FK, name, role, protocol, and ASN filter categories
+
+---
+
 ## v1.5 Tech Debt & Observability (Shipped: 2026-03-24)
 
 **Phases completed:** 3 phases, 9 plans, 12 tasks

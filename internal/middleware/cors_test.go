@@ -3,6 +3,7 @@ package middleware_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
@@ -119,5 +120,44 @@ func TestCORSMultipleOrigins(t *testing.T) {
 				t.Errorf("Access-Control-Allow-Origin = %q, want %q", acao, tc.wantACAO)
 			}
 		})
+	}
+}
+
+// TestCORSConnectProtocolHeaders verifies that the CORS middleware includes
+// Connect/gRPC/gRPC-Web headers needed for browser-based RPC clients.
+func TestCORSConnectProtocolHeaders(t *testing.T) {
+	t.Parallel()
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := middleware.CORS(middleware.CORSInput{AllowedOrigins: "http://app.example.com"})(inner)
+
+	// Preflight: verify connect-protocol-version is allowed.
+	// Per the Fetch standard, browsers send CORS-unsafe header names in lowercase.
+	req := httptest.NewRequest("OPTIONS", "/peeringdb.v1.NetworkService/GetNetwork", nil)
+	req.Header.Set("Origin", "http://app.example.com")
+	req.Header.Set("Access-Control-Request-Method", "POST")
+	req.Header.Set("Access-Control-Request-Headers", "connect-protocol-version, content-type")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	allowHeaders := rec.Header().Get("Access-Control-Allow-Headers")
+	if !strings.Contains(strings.ToLower(allowHeaders), "connect-protocol-version") {
+		t.Errorf("Access-Control-Allow-Headers = %q, want it to include connect-protocol-version", allowHeaders)
+	}
+
+	// Actual POST: verify Grpc-Status is in the exposed headers.
+	req2 := httptest.NewRequest("POST", "/peeringdb.v1.NetworkService/GetNetwork", nil)
+	req2.Header.Set("Origin", "http://app.example.com")
+	req2.Header.Set("Content-Type", "application/connect+proto")
+	rec2 := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec2, req2)
+
+	exposeHeaders := rec2.Header().Get("Access-Control-Expose-Headers")
+	if !strings.Contains(strings.ToLower(exposeHeaders), "grpc-status") {
+		t.Errorf("Access-Control-Expose-Headers = %q, want it to include Grpc-Status", exposeHeaders)
 	}
 }

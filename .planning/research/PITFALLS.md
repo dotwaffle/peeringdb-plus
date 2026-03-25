@@ -1,301 +1,414 @@
 # Domain Pitfalls
 
-**Domain:** Tech Debt Cleanup, Observability Dashboards, and Deferred Verification for Existing Go Service
+**Domain:** Adding ConnectRPC/gRPC API Surface to Existing Go HTTP Server
 **Researched:** 2026-03-24
-**Milestone:** v1.5 Tech Debt & Observability
+**Milestone:** ConnectRPC/gRPC API Surface (subsequent milestone)
 
 ## Critical Pitfalls
 
-Mistakes that cause data loss, production incidents, or require significant rework.
+Mistakes that cause production breakage, require architectural rework, or silently corrupt data/observability.
 
-### Pitfall 1: Grafana Dashboard JSON Becomes Unmaintainable -- Datasource UID Coupling
+### Pitfall 1: LiteFS Proxy Is HTTP/1.1-Only -- h2c Traffic Will Not Pass Through
 
-**What goes wrong:** The dashboard JSON is exported from a Grafana instance and committed to version control. The JSON contains hardcoded datasource UIDs that are specific to the Grafana instance where the dashboard was created. When the dashboard is provisioned into a different Grafana instance (or re-provisioned after a Grafana reinstall), the datasource UIDs do not match, causing every panel to show "No data" or "Datasource not found" errors. The dashboard appears broken despite the data being available.
+**What goes wrong:** The application enables h2c (HTTP/2 cleartext) on its HTTP server to support gRPC/ConnectRPC. The Go server listens on port 8081 (behind LiteFS proxy on 8080). Fly.io's edge proxy sends h2c traffic to port 8080 (LiteFS proxy). The LiteFS proxy is a plain `http.Server` with no h2c support -- it creates `&http.Server{Handler: http.HandlerFunc(s.serveHTTP)}` with no `http.Protocols` configuration and no `h2c.NewHandler` wrapper. The LiteFS proxy only speaks HTTP/1.1. All HTTP/2 frames sent by Fly.io's edge are rejected or misinterpreted. gRPC calls fail with connection errors. REST/GraphQL requests that were working on HTTP/1.1 continue to work, but only because Fly.io's default behavior downgrades to HTTP/1.1 when `h2_backend` is not set.
 
-**Why it happens:** Grafana assigns unique UIDs to datasources per instance. Since version 8.3.0, exported dashboard JSON contains these UIDs embedded in every panel's `datasource` field. Developers export the dashboard from their local Grafana, commit it, and assume it will work everywhere. It works on their instance and breaks on everyone else's.
+**Why it happens:** The current architecture places LiteFS proxy between Fly.io's edge and the application:
+
+```
+Client -> Fly.io Edge (TLS termination) -> LiteFS Proxy (:8080) -> App (:8081)
+```
+
+The LiteFS proxy (litefs.yml line 17-24) intercepts traffic on port 8080 and forwards to the app on port 8081. It provides write-forwarding to the primary node and TXID consistency headers for replicas. This proxy was designed for simple HTTP/1.1 REST APIs, not for h2c passthrough. Verified by reading `superfly/litefs` source: `proxy_server.go` creates a bare `http.Server` without any HTTP/2 configuration.
 
 **Consequences:**
-- Dashboard provisioning fails silently -- panels render but show no data, which looks like a metrics issue rather than a configuration issue.
-- Debugging takes hours because the error is not "datasource missing" but "no data returned" (the datasource reference is resolved but points to a UID that does not exist or resolves to the wrong datasource).
-- Every environment (dev, staging, production) needs manual datasource UID patching, defeating the purpose of dashboards-as-code.
+- Setting `h2_backend = true` in fly.toml causes ALL traffic (not just gRPC) to fail, because Fly.io sends h2c to the LiteFS proxy which cannot handle it.
+- Without `h2_backend = true`, gRPC-native clients cannot connect because Fly.io downgrades to HTTP/1.1 and gRPC requires HTTP/2.
+- ConnectRPC can work over HTTP/1.1 (it supports the Connect protocol and gRPC-Web over HTTP/1.1), but native gRPC clients will not work.
 
 **Prevention:**
-- Use datasource template variables instead of hardcoded UIDs. Define a Grafana variable `$datasource` of type "Datasource" and reference it in all panels as `"datasource": {"uid": "${datasource}"}`. This lets the user select the appropriate datasource per environment.
-- Alternatively, provision the datasource with a deterministic UID (e.g., `"uid": "prometheus"`) in the datasource provisioning YAML, and reference that exact UID in the dashboard JSON. This couples the dashboard to the datasource provisioning config (which is fine if both are version-controlled together).
-- Never export a dashboard from the Grafana UI and commit the raw JSON without stripping or parameterizing datasource UIDs. Use `jq` or a script to replace UIDs with template variables before committing.
-- Validate that the dashboard JSON loads cleanly in a fresh Grafana instance as part of a CI check or manual verification step.
+- **Option A (recommended): Use ConnectRPC over HTTP/1.1 only.** ConnectRPC's Connect protocol works fully over HTTP/1.1. gRPC-Web also works over HTTP/1.1. Only the native gRPC protocol requires HTTP/2. Since the primary consumers are likely API clients and browsers (not gRPC-native microservices), this covers the majority of use cases. Do NOT set `h2_backend = true` in fly.toml. Accept that `grpc-go` clients using the native gRPC protocol cannot connect directly.
+- **Option B: Bypass LiteFS proxy for gRPC.** Run the gRPC/ConnectRPC server on a separate port (e.g., 8082) that is not behind LiteFS proxy. Add a second `[[services]]` block in fly.toml with `h2_backend = true` pointing to port 8082. The LiteFS proxy continues to handle REST/GraphQL on port 8080. Downside: adds deployment complexity and the gRPC port does not get LiteFS TXID consistency headers.
+- **Option C: Remove LiteFS proxy entirely.** Handle write-forwarding in the application layer (already partially done with `Fly-Replay: leader` header in the sync endpoint). Move TXID consistency tracking into application middleware. This is the cleanest long-term solution but is a significant refactor.
 
-**Detection:** Dashboard panels show "No data" or "Panel plugin not found" errors. The Grafana provisioning log shows warnings about datasource resolution.
+**Detection:** gRPC clients receive connection refused or protocol errors. `curl --http2-prior-knowledge` to port 8080 fails. Application logs show no incoming requests despite Fly.io edge receiving them.
 
-**Confidence:** HIGH -- multiple Grafana community threads confirm this as the most common provisioning mistake. ([Grafana Community](https://community.grafana.com/t/should-provisioned-dashboards-have-datasource-uids/65463), [Grafana Docs](https://grafana.com/docs/grafana/latest/administration/provisioning/))
+**Confidence:** HIGH -- verified by reading LiteFS proxy source code (`superfly/litefs` main branch, `http/proxy_server.go`). The proxy creates a plain `http.Server` with no h2c support.
 
 ---
 
-### Pitfall 2: OTel Metric Names Silently Change When Exported to Prometheus -- Dashboard Queries Break
+### Pitfall 2: Protobuf Field Numbers Are Permanent -- Changing Them After Deployment Breaks All Clients
 
-**What goes wrong:** The application defines OTel metrics with names like `pdbplus.sync.duration` and `pdbplus.sync.type.objects`. When these metrics are exported via the OTLP-to-Prometheus pipeline (which is how most Grafana dashboards consume them), the metric names are transformed: dots become underscores, unit suffixes are appended, and counter types get a `_total` suffix. So `pdbplus.sync.duration` (histogram with unit "s") becomes `pdbplus_sync_duration_seconds_bucket` in Prometheus. The dashboard author writes PromQL queries against the OTel names and gets no results.
+**What goes wrong:** The developer assigns `entproto.Field(n)` annotations to ent schema fields. Later, they reorder fields, add new fields between existing ones, or "clean up" the numbering. Any deployed client that serialized messages using the old field numbers now parses data into wrong fields. A field that was `name` (field 3) silently becomes `notes` (field 3 in the new numbering). No error is raised -- protobuf just puts data in whatever field matches the number.
 
-**Why it happens:** The OpenTelemetry Prometheus compatibility specification defines a naming translation: dots to underscores, unit suffix appended (e.g., `_seconds` for `"s"`), counter suffix `_total` appended, histogram suffixes `_bucket`/`_count`/`_sum` appended. The developer writes the dashboard queries using the OTel SDK metric names (which appear in the code) rather than the Prometheus-exported names.
+**Why it happens:** Protobuf uses field numbers (not names) as identifiers in the binary wire format. Field names are cosmetic. Renaming a field is safe; renumbering it is a breaking change. Developers coming from JSON APIs (where field names are the identifiers) do not intuitively understand this. entproto's `entproto.Field(n)` annotation makes it easy to assign numbers, but provides no guardrail against reassignment.
 
 **Consequences:**
-- Every PromQL query in the dashboard returns empty results.
-- Developer assumes metrics are not being emitted and starts debugging the application telemetry pipeline.
-- If the developer discovers the naming translation and manually translates names, the dashboard works but the mapping is fragile -- any change to the OTel metric definition (name, unit, type) requires updating the dashboard queries.
+- Silent data corruption: clients decode fields into wrong struct members.
+- No error at deserialization time -- protobuf is designed for forward/backward compatibility and silently ignores unknown field numbers while mapping known ones.
+- Debugging is extremely difficult because the data "looks right" on the server but "looks wrong" on the client, and the binary wire format is not human-readable.
+- Real-world example: [Teleport issue #24817](https://github.com/gravitational/teleport/issues/24817) -- a field number change between versions caused a production-breaking backward compatibility issue.
 
 **Prevention:**
-- Document the exact Prometheus metric names alongside the OTel metric definitions. For this project, the mapping is:
+- Treat field number assignment as a one-time, permanent decision. Document this in a comment above each schema's `Annotations()` method: "Field numbers are permanent. Never change or reuse a number."
+- Use `buf breaking` to detect field number changes between commits. Add to CI. Configure `buf.yaml` with `WIRE` or `WIRE_JSON` breaking change detection level.
+- When removing a field, use protobuf `reserved` declarations in the generated `.proto` file to prevent the number from being reused. entproto does not generate `reserved` automatically -- add it manually to the generated proto file and add a CI check that it is not removed.
+- Assign field numbers with gaps (2, 3, 4, 10, 11, 12, 20, 21...) to leave room for related fields to be added later without awkward numbering.
+- Start field numbering at 2 (entproto reserves 1 for the ID field) and increment sequentially per logical group.
 
-| OTel Name | OTel Type | OTel Unit | Prometheus Name |
-|-----------|-----------|-----------|-----------------|
-| `pdbplus.sync.duration` | Histogram | `s` | `pdbplus_sync_duration_seconds` (with `_bucket`, `_count`, `_sum`) |
-| `pdbplus.sync.operations` | Counter | `{operation}` | `pdbplus_sync_operations_total` |
-| `pdbplus.sync.type.duration` | Histogram | `s` | `pdbplus_sync_type_duration_seconds` |
-| `pdbplus.sync.type.objects` | Counter | `{object}` | `pdbplus_sync_type_objects_total` |
-| `pdbplus.sync.type.deleted` | Counter | `{object}` | `pdbplus_sync_type_deleted_total` |
-| `pdbplus.sync.type.fetch_errors` | Counter | `{error}` | `pdbplus_sync_type_fetch_errors_total` |
-| `pdbplus.sync.type.upsert_errors` | Counter | `{error}` | `pdbplus_sync_type_upsert_errors_total` |
-| `pdbplus.sync.type.fallback` | Counter | `{event}` | `pdbplus_sync_type_fallback_total` |
-| `pdbplus.sync.freshness` | Gauge | `s` | `pdbplus_sync_freshness_seconds` |
+**Detection:** Client-side data appears scrambled or has unexpected values. `buf breaking` fails in CI. Wireshark/protobuf decode shows field numbers that do not match the schema.
 
-- Note: custom units like `{operation}`, `{object}`, `{error}`, `{event}` do NOT add a suffix per the OTel spec (only standard units like `s`, `ms`, `By` add suffixes). So `pdbplus.sync.operations` with unit `{operation}` becomes `pdbplus_sync_operations_total`, not `pdbplus_sync_operations_operation_total`.
-- Write all dashboard PromQL queries against the Prometheus-exported names, not the OTel names.
-- Test queries against the actual Prometheus endpoint before finalizing the dashboard JSON.
-- Add a comment block at the top of the dashboard JSON (or in a README alongside it) that documents this mapping.
-
-**Detection:** PromQL queries return empty results despite the application emitting metrics. Prometheus targets page shows the application as "UP" but metric explorer shows no `pdbplus_*` metrics (or shows them with unexpected names).
-
-**Confidence:** HIGH -- the naming translation is specified in the [OTel Prometheus compatibility spec](https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/) and is a documented behavior.
+**Confidence:** HIGH -- this is fundamental to protobuf wire format and is [extensively documented](https://protobuf.dev/programming-guides/proto3/#assigning) and the [#1 protobuf backward compatibility pitfall](https://earthly.dev/blog/backward-and-forward-compatibility/).
 
 ---
 
-### Pitfall 3: meta.generated Field Is Undocumented and May Be Absent -- Sync Freshness Tracking Breaks
+### Pitfall 3: otelhttp + otelconnect Double Instrumentation -- Duplicate Spans and Inflated Metrics
 
-**What goes wrong:** The incremental sync system uses `meta.generated` from PeeringDB API responses to track data freshness. The code in `parseMeta()` extracts a `generated` epoch from the response meta field. If PeeringDB changes their API response structure, removes the field, or the field is absent for certain request patterns (e.g., `depth=0` without pagination, or specific object types), the sync worker records a zero timestamp. This causes the incremental sync cursor to reset, triggering unnecessary full re-fetches, or worse -- the sync considers data "stale" and constantly re-syncs.
+**What goes wrong:** The existing middleware stack (main.go line 254) wraps the entire mux with `otelhttp.NewMiddleware("peeringdb-plus")`. When ConnectRPC handlers are mounted on the same mux, each gRPC/Connect request gets instrumented twice: once by otelhttp (which sees the raw HTTP request) and once by otelconnect (which sees the RPC-level request). This produces two spans per RPC call (one named `HTTP POST /grpc.package.Service/Method`, one named `package.Service/Method`), and two sets of metrics (http.server.request.duration AND rpc.server.duration). Dashboards show inflated request counts. Latency percentiles become meaningless because half the data points are parent spans and half are child spans at different granularity.
 
-**Why it happens:** The `meta.generated` field is **not documented** in the PeeringDB API specification. The official docs describe `meta` as containing `status` and `message` fields only. The `generated` epoch is an implementation detail of PeeringDB's Django REST Framework backend that may change without notice. The current code already has a graceful fallback (`parseMeta` returns zero time on absence), but the sync worker's behavior when `Generated` is zero has not been verified against the live API.
+**Why it happens:** otelhttp and otelconnect instrument at different abstraction layers. otelhttp sees HTTP requests (method, path, status code). otelconnect sees RPC calls (service, method, status, protocol). Both create root server spans. When both are active on the same request path, each creates its own span. The otelconnect documentation acknowledges that "any logging, tracing, or metrics that work with an `http.Handler` or `http.Client` will also work with Connect" but does NOT explicitly warn about double instrumentation or recommend against using both.
 
 **Consequences:**
-- If `generated` disappears: full sync always uses `started_at - 5min` as the cursor (the existing fallback), which is safe but means the incremental sync optimization provides less value.
-- If `generated` format changes (e.g., string ISO timestamp instead of float epoch): `json.Unmarshal` into `float64` fails silently, `parseMeta` returns zero, same fallback behavior.
-- If `generated` is present for paginated responses but absent for full fetches (depth=0 without limit/skip): the code path for full sync already handles this correctly (line 160 in client.go), but the incremental path tracks "earliest generated across pages" which may yield unexpected timestamps.
+- Trace views show confusing nested spans: otelhttp span -> otelconnect span -> actual handler.
+- Metrics double-count: `http_server_request_duration_seconds` and `rpc_server_duration_seconds` both increment for every RPC call.
+- Alerting on request rate fires at 2x the actual rate for gRPC traffic.
+- Cardinality explosion: otelhttp attributes (http.route, http.method) plus otelconnect attributes (rpc.service, rpc.method, rpc.system) create a cross-product of label combinations.
 
 **Prevention:**
-- Test `parseMeta()` against actual live PeeringDB API responses for each request pattern:
-  1. Full fetch: `GET /api/net?depth=0` (no limit/skip)
-  2. Paginated incremental: `GET /api/net?depth=0&limit=250&skip=0&since=...`
-  3. Empty result set (all up to date): `GET /api/net?depth=0&since=<recent_timestamp>`
-- Document the actual response structure observed, including whether `meta` is `{}`, `null`, absent entirely, or contains `generated`.
-- Ensure the sync worker logs the meta.generated value (or its absence) at DEBUG level so behavior can be audited in production.
-- The existing `parseMeta()` fallback behavior (return zero time on any parse failure) is defensive and correct. The risk is not a crash but a loss of incremental sync precision.
-- Add a test that explicitly verifies the full sync path works correctly when `Meta.Generated.IsZero()` returns true.
+- **Use route-based filtering on otelhttp.** Configure otelhttp to skip ConnectRPC paths. Since ConnectRPC handlers are mounted at specific path prefixes (e.g., `/grpc.peeringdb.v1.NetworkService/`), use `otelhttp.WithFilter()` to exclude these paths from HTTP-level instrumentation:
 
-**Detection:** Sync logs show `generated=0` or missing generated timestamp. Incremental sync falls back to full sync more often than expected. The `pdbplus.sync.type.fallback` counter increments unexpectedly.
+```go
+otelhttp.NewMiddleware("peeringdb-plus",
+    otelhttp.WithFilter(func(r *http.Request) bool {
+        // Skip gRPC/ConnectRPC paths -- otelconnect handles these
+        return !strings.HasPrefix(r.URL.Path, "/grpc.") &&
+               !strings.HasPrefix(r.URL.Path, "/connectrpc.")
+    }),
+)
+```
 
-**Confidence:** MEDIUM -- the field is real and observed in practice, but its contract is undocumented. Behavior may vary by object type or API version.
+- **Alternatively, mount ConnectRPC on a separate sub-mux** that is NOT wrapped by otelhttp. Only the REST/GraphQL/web mux gets otelhttp middleware. The ConnectRPC mux gets otelconnect interceptors only.
+- Do NOT use both otelhttp and otelconnect on the same request path. Choose one per route group.
+- Verify in staging by checking trace output: each RPC call should produce exactly one server span, not two.
+
+**Detection:** Trace viewer shows two root-level server spans per gRPC request. Prometheus metrics show both `http_server_request_duration_seconds` and `rpc_server_duration_seconds` incrementing for the same calls. Request rate dashboards show 2x actual traffic for ConnectRPC endpoints.
+
+**Confidence:** MEDIUM -- the otelconnect documentation does not explicitly warn about this, but the architecture makes double instrumentation inevitable when both middlewares are active on the same handler chain. Verified by reading the middleware application order in main.go (otelhttp wraps the entire mux at line 254) and otelconnect's architecture (interceptor per-handler).
+
+---
+
+### Pitfall 4: CORS Configuration Incomplete for gRPC-Web and Connect Protocols
+
+**What goes wrong:** The existing CORS middleware (internal/middleware/cors.go) allows headers `Content-Type` and `Authorization` with methods `GET`, `POST`, `OPTIONS`. gRPC-Web and Connect protocol require additional headers that are not in the allow list. Browser-based gRPC-Web clients send preflight OPTIONS requests with `Access-Control-Request-Headers` containing `X-Grpc-Web`, `Grpc-Timeout`, `X-User-Agent`, or `Connect-Protocol-Version`. The CORS middleware rejects these preflights. The browser blocks the actual request. The error message is cryptic: "missing trailer" or "fetch failed" in the browser console, not "CORS blocked."
+
+**Why it happens:** The existing CORS config was designed for REST and GraphQL (which only need `Content-Type` and `Authorization`). The gRPC-Web and Connect protocols use custom headers that are not CORS-safelisted. The [ConnectRPC CORS documentation](https://connectrpc.com/docs/cors/) specifies exact header requirements:
+
+- **gRPC-Web requires:** Allow headers: `Content-Type, Grpc-Timeout, X-Grpc-Web, X-User-Agent`. Expose headers: `Grpc-Status, Grpc-Message, Grpc-Status-Details-Bin`.
+- **Connect protocol requires:** Allow headers: `Content-Type, Connect-Protocol-Version, Connect-Timeout-Ms, X-User-Agent`. Expose headers: `Grpc-Status, Grpc-Message, Grpc-Status-Details-Bin`.
+- **Both require:** POST method allowed. Connect GET requests (cacheable unary RPCs) need GET allowed too.
+
+**Consequences:**
+- All browser-based gRPC-Web and Connect clients fail silently.
+- Error manifests as "missing trailer" or generic network error, not as a CORS error, because the browser blocks the response before the application can read it.
+- Server-side logs show no errors because the OPTIONS preflight never reaches the handler.
+- Developers test with curl or grpcurl (which do not enforce CORS) and everything works. Deploy to production, browsers break.
+
+**Prevention:**
+- Update the CORS middleware to include all required headers. The ConnectRPC docs provide a canonical list. For this project, update `internal/middleware/cors.go`:
+
+```go
+AllowedMethods: []string{"GET", "POST", "OPTIONS"},
+AllowedHeaders: []string{
+    "Content-Type",
+    "Authorization",
+    // gRPC-Web headers
+    "X-Grpc-Web",
+    "Grpc-Timeout",
+    "X-User-Agent",
+    // Connect protocol headers
+    "Connect-Protocol-Version",
+    "Connect-Timeout-Ms",
+},
+ExposedHeaders: []string{
+    // gRPC-Web / Connect response headers
+    "Grpc-Status",
+    "Grpc-Message",
+    "Grpc-Status-Details-Bin",
+},
+```
+
+- Test CORS with a browser-based client, NOT just curl/grpcurl. Use the ConnectRPC TypeScript client (`@connectrpc/connect-web`) for verification.
+- If the application uses custom response trailers (unlikely for read-only mirror), expose them with `Trailer-` prefix per ConnectRPC CORS docs.
+- Do NOT use wildcard (`*`) for AllowedHeaders in production -- it does not work with credentials and some browsers handle it inconsistently.
+
+**Detection:** Browser console shows CORS errors on gRPC-Web or Connect requests. Network tab shows OPTIONS preflight returning 200 but without the required `Access-Control-Allow-Headers`. gRPC-Web client reports "missing trailer."
+
+**Confidence:** HIGH -- the required headers are [documented by ConnectRPC](https://connectrpc.com/docs/cors/) and the existing CORS config (verified in `internal/middleware/cors.go` line 26-27) does not include them.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 4: Removing WorkerConfig.IsPrimary -- Stale Planning Docs Cause Confusion
+### Pitfall 5: entproto Enum Naming Does Not Follow buf Conventions -- buf lint Fails
 
-**What goes wrong:** The PROJECT.md and planning documents reference "Remove unused DataLoader middleware and WorkerConfig.IsPrimary dead field" as active tech debt. However, investigation of the actual codebase reveals a mismatch: the DataLoader package was already removed in v1.2 Phase 7 (commit `ec182e1`), the `config.IsPrimary` field was removed from `config.go`, but **WorkerConfig.IsPrimary still exists** in `internal/sync/worker.go` at line 30. Meanwhile, the Phase 7 SUMMARY.md claims it was removed. A developer trusting the summary would skip the removal. A developer reading PROJECT.md would try to remove both DataLoader and IsPrimary, wasting time discovering DataLoader is already gone.
+**What goes wrong:** entproto generates enum values without the enum type name as a prefix. For example, a `View` enum generates values `BASIC` and `WITH_EDGE_IDS` instead of `VIEW_BASIC` and `VIEW_WITH_EDGE_IDS`. Running `buf lint` fails with `ENUM_VALUE_PREFIX` violations. This blocks the `buf generate` workflow and prevents using buf's breaking change detection.
 
-**Why it happens:** Documentation and code drifted apart. The Phase 7 plan called for removing `IsPrimary` from both `Config` and `WorkerConfig`, and the summary incorrectly reports both as removed, but the actual commit only removed it from `Config`. The field in `WorkerConfig` is truly dead -- `main.go` no longer sets it (line 132 creates `WorkerConfig{IncludeDeleted: cfg.IncludeDeleted, SyncMode: cfg.SyncMode}` without `IsPrimary`), and no code reads `w.config.IsPrimary`.
+**Why it happens:** entproto was designed before buf conventions became widely adopted. [Issue #3063](https://github.com/ent/ent/issues/3063) documents this explicitly: "buf recommends prefixing enum values with their enum name for clarity." The issue also lists other buf incompatibilities: wrong default package name (`entpb` instead of versioned like `peeringdb.v1`), unused imports in generated protos, and generating `generate.go` instead of `buf.yaml`.
 
 **Consequences:**
-- Wasted time trying to remove code that is already gone (DataLoader).
-- Wasted time not removing code that still exists (WorkerConfig.IsPrimary).
-- If a future developer sees the field and assumes it should be used, they might wire it up incorrectly.
-- The lint pass with `unused` linter should catch this, but struct fields are not flagged by the `unused` linter (only local variables and function parameters are).
+- `buf lint` fails, preventing integration with buf toolchain.
+- Without buf, no automated breaking change detection (critical given Pitfall 2).
+- Workaround options all involve post-processing generated files, which is fragile.
+- If future entproto versions fix this, existing clients may break because enum wire values change.
 
 **Prevention:**
-- Verify the actual codebase state before planning tasks. Run `grep -rn "IsPrimary" --include="*.go"` and `grep -rn "dataloader\|DataLoader" --include="*.go"` to determine what actually needs removal.
-- The task for v1.5 is: remove `IsPrimary bool` from `WorkerConfig` in `internal/sync/worker.go`. That is the entire change. The DataLoader task is already done.
-- Update PROJECT.md to reflect that the DataLoader was removed in v1.2 Phase 7 and only WorkerConfig.IsPrimary remains.
-- Use `staticcheck` or `fieldalignment` to detect truly unused struct fields in the future.
+- Accept buf lint warnings for now. Configure `buf.yaml` to disable `ENUM_VALUE_PREFIX` and `ENUM_ZERO_VALUE_SUFFIX` linting rules for entproto-generated files. These are style rules, not correctness rules -- the wire format uses integers, not names.
+- Keep `buf breaking` enabled even with lint warnings disabled. Breaking change detection works on field numbers, not enum value names.
+- Set the protobuf package name explicitly using `entproto.Message(entproto.PackageName("peeringdb.v1"))` if supported by entproto, or post-process the generated `.proto` files to set `option go_package` and `package` correctly.
+- Monitor [ent/ent #3063](https://github.com/ent/ent/issues/3063) for resolution. If fixed, adopting the new naming requires coordinated client updates.
 
-**Detection:** `grep -rn "IsPrimary" --include="*.go"` returns only the struct definition (line 30 of worker.go), no usages.
+**Detection:** `buf lint` output shows `ENUM_VALUE_PREFIX` violations. `buf generate` may still succeed (lint is separate from generation).
 
-**Confidence:** HIGH -- verified directly against the codebase.
+**Confidence:** HIGH -- verified via [GitHub issue #3063](https://github.com/ent/ent/issues/3063) and [entproto documentation](https://entgo.io/docs/grpc-generating-proto/).
 
 ---
 
-### Pitfall 5: Grafana Dashboard Panel Sprawl -- Too Many Panels Kill Load Time and Readability
+### Pitfall 6: entproto Optional/Nillable Fields Generate Wrapper Types -- Increased Message Size and Client Complexity
 
-**What goes wrong:** The dashboard author creates a separate panel for every metric and every dimension. With 9 custom sync metrics plus otelhttp metrics plus Go runtime metrics, each potentially sliced by `type` (13 PeeringDB types), `status`, `fly.region`, and `fly.machine_id`, the dashboard balloons to 50+ panels. Grafana renders all visible panels simultaneously, each firing its own PromQL query. On a free or shared Grafana instance, this causes timeout errors and 10+ second load times.
+**What goes wrong:** The ent schema uses `Optional()` and `Nillable()` extensively (the Network schema alone has ~15 optional/nillable fields). entproto maps these to Google well-known wrapper types (`google.protobuf.StringValue`, `google.protobuf.BoolValue`, `google.protobuf.Int32Value`). Each wrapper is a nested message, adding 2-4 bytes of framing overhead per field. For a Network message with 15 wrapper fields, this adds ~30-60 bytes per message. When listing all ~50,000 networks, this is ~1.5-3MB of overhead. More importantly, client-side code becomes verbose: instead of `network.Name`, clients must use `network.GetInfoScope().GetValue()` with nil checks.
 
-**Why it happens:** The temptation is to build "the one dashboard that shows everything." Every metric that exists gets a panel. Every label dimension gets a separate graph. The dashboard becomes a data dump rather than an operational tool.
+**Why it happens:** Protobuf3 has no native concept of "optional" for scalar types (proto3 made all fields optional by default, meaning you cannot distinguish "not set" from "zero value"). entproto uses wrapper types to preserve ent's Optional/Nillable semantics. This is semantically correct but creates ergonomic friction.
 
 **Consequences:**
-- Dashboard takes 10+ seconds to load, users stop using it.
-- Alert fatigue: too many panels means no panel is important.
-- Maintenance burden: changing a metric name requires updating dozens of panels.
-- Grafana performance degrades, especially on lower-tier instances.
+- Client code is verbose with nil-check boilerplate for every optional field.
+- Message size increases for list responses (though the overhead is small compared to the actual data).
+- TypeScript/JavaScript clients using `@connectrpc/connect-web` must handle wrapper types differently than plain scalars.
+- If proto3 `optional` keyword (available since protobuf 3.15) is used instead, entproto-generated code may not match.
 
 **Prevention:**
-- Limit to 4 focused rows, each with 3-5 panels, for a total of 15-20 panels maximum. Grafana official best practices recommend fewer than 20 panels per dashboard.
-- Organize panels by operational concern, not by metric:
-  1. **Sync Health row:** Last sync status, sync duration over time, freshness gauge, error rate
-  2. **API Traffic row:** Request rate, error rate (4xx/5xx), latency p95/p99 (from otelhttp), requests by endpoint
-  3. **Infrastructure row:** Go runtime goroutines, memory, GC pause (from runtime instrumentation), CPU
-  4. **Business Metrics row:** Objects synced per type (stacked bar), objects deleted, type distribution
-- Use template variables (`$type`, `$region`) to let users drill down rather than showing all dimensions at once. One graph with a type selector replaces 13 duplicate graphs.
-- Use a separate "deep dive" dashboard linked from the overview dashboard for per-type or per-region analysis, rather than cramming everything into one.
-- Review which metrics actually drive operational decisions. If nobody will page on it, it does not need a panel.
+- Accept wrapper types for now -- they are semantically correct and the overhead is manageable for a read-only mirror.
+- Generate client helper functions or extension methods that unwrap values: `func NetworkName(n *pb.Network) string { return n.GetName().GetValue() }`.
+- Consider using proto3 `optional` keyword instead of wrapper types for new fields if entproto adds support. The `optional` keyword was stabilized in protobuf 3.15 and generates `has_*` methods without the wrapper overhead.
+- Do NOT manually edit generated `.proto` files to replace wrappers with `optional` -- entproto will overwrite on the next `go generate`.
+- Document the wrapper type pattern in API documentation so clients know to expect `StringValue` instead of plain `string` for nullable fields.
 
-**Detection:** Dashboard load time exceeds 5 seconds. Users say "I never look at the dashboard." More than 25 panels exist.
+**Detection:** Generated `.proto` files contain `import "google/protobuf/wrappers.proto"` and use `google.protobuf.StringValue` instead of `string` for optional fields. Client code requires nested `.GetValue()` calls.
 
-**Confidence:** HIGH -- [Grafana best practices docs](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/best-practices/) explicitly recommend this.
+**Confidence:** HIGH -- verified via [entproto optional fields documentation](https://entgo.io/docs/grpc-optional-fields/) and the ent schema in `ent/schema/network.go`.
 
 ---
 
-### Pitfall 6: Removing "Unused" Middleware Without Checking All Request Paths
+### Pitfall 7: Readiness Middleware Blocks gRPC Health Checks Before First Sync
 
-**What goes wrong:** The v1.5 milestone notes that "DataLoader middleware" is unused and should be removed. While the DataLoader is indeed already gone from the code, this pattern generalizes: when removing any middleware from the HTTP handler chain, developers check the direct import graph but miss indirect consumers. Middleware may be injected at a different layer (e.g., per-route vs. global), invoked conditionally (e.g., only on primary nodes), or relied upon by generated code that is not part of the main source tree.
+**What goes wrong:** The readiness middleware (main.go lines 296-321) returns 503 for all paths except `/sync`, `/healthz`, `/readyz`, `/`, and `/static/` until the first sync completes. gRPC health check endpoints (served by ConnectRPC at `/grpc.health.v1.Health/Check`) are not in the bypass list. Kubernetes/Fly.io gRPC health probes fail during initial startup. Load balancers mark the instance as unhealthy. If using Fly.io's machine auto-stop/start, the machine may be stopped before it can sync.
 
-**Why it happens:** Go's middleware pattern uses `http.Handler` wrapping, which makes the dependency chain invisible to static analysis tools. `grep` for direct function calls works, but middleware that injects values into `context.Context` has consumers that read from context -- the producer and consumer are decoupled.
+**Why it happens:** The readiness middleware was written before gRPC was added. It uses a hardcoded path allowlist for infrastructure endpoints. gRPC health checks use a different path pattern (`/grpc.health.v1.Health/Check`) that was not anticipated.
 
 **Consequences:**
-- Removing middleware that injected context values causes nil pointer panics in handlers that read those values.
-- Removing middleware that set response headers breaks CORS, caching, or security behavior.
-- The failure may not appear in unit tests because tests often construct their own contexts.
+- gRPC health probes return 503 during startup (before first sync).
+- If Fly.io health checks are configured to use gRPC health protocol, the machine is marked unhealthy.
+- The HTTP `/healthz` endpoint continues to work (it is in the bypass list), so HTTP health checks are unaffected.
+- This only matters if gRPC-specific health checking is configured in the deployment.
 
 **Prevention:**
-- Before removing any middleware, trace its effects:
-  1. Does it set any response headers? Search for `w.Header().Set` in the middleware source.
-  2. Does it inject values into `context.Context`? Search for `context.WithValue` or typed context accessors.
-  3. Does it modify the request? Search for `r.WithContext` or `r.Clone`.
-  4. Is it referenced in generated code? Check `ent/rest/`, `graph/generated.go`, etc.
-- For the specific v1.5 case, the DataLoader was already removed and the only remaining dead code is `WorkerConfig.IsPrimary` -- a struct field, not middleware. But the principle applies if any additional middleware cleanup is discovered.
-- Run the full test suite with `-race` after removing any middleware. Specifically test the routes that were served through the removed middleware chain.
-- Verify in production (or staging) by watching error rates after deployment.
+- Add the gRPC health check path to the readiness bypass list:
 
-**Detection:** Handlers panic with nil context value access. CORS requests fail. Response headers change unexpectedly.
+```go
+if r.URL.Path == "/sync" || r.URL.Path == "/healthz" ||
+    r.URL.Path == "/readyz" || r.URL.Path == "/" ||
+    strings.HasPrefix(r.URL.Path, "/static/") ||
+    strings.HasPrefix(r.URL.Path, "/grpc.health.v1.Health/") {
+    next.ServeHTTP(w, r)
+    return
+}
+```
 
-**Confidence:** HIGH -- this is a general Go web development pattern risk, verified against the codebase middleware chain in `main.go` lines 240-244.
+- Use `connectrpc.com/grpchealth` package to serve gRPC health checks over HTTP. It implements the `grpc.health.v1.Health` service and works with `grpc-health-probe` and Kubernetes gRPC liveness probes.
+- Keep the existing HTTP `/healthz` and `/readyz` endpoints. They serve different purposes (process liveness vs. data readiness). The gRPC health check can delegate to the same readiness logic.
+- Consider a more generic bypass pattern: allow any path starting with `/grpc.health.` rather than hardcoding the exact path, in case additional health service versions are added.
+
+**Detection:** gRPC health probe returns `SERVING: false` or connection refused during startup. Fly.io logs show health check failures before first sync. The standard HTTP `/healthz` returns 200 at the same time.
+
+**Confidence:** HIGH -- verified by reading the readiness middleware implementation in `cmd/peeringdb-plus/main.go` lines 296-321.
 
 ---
 
-### Pitfall 7: Browser UX Verification Across Environments -- Flaky Results from System Differences
+### Pitfall 8: Fly.io ALPN Misconfiguration -- h2 + http/1.1 Coexistence Issues
 
-**What goes wrong:** The 20 deferred v1.4 human verification items cover visual/browser behaviors: dark mode, keyboard navigation, CSS transitions, responsive layout, loading indicators. A developer verifies these on their local browser and marks them as "passed." In production on Fly.io, the behavior differs: Tailwind CDN load timing affects initial render, htmx timing differs under network latency, system font rendering changes dark mode contrast, and mobile Safari handles keyboard navigation differently than desktop Chrome.
+**What goes wrong:** When configuring `[http_service.tls_options]` with `alpn = ["h2"]` to support gRPC, Fly.io's edge has been observed to advertise both `h2` and `http/1.1` regardless of configuration. Conversely, setting `alpn = ["h2"]` without `h2_backend = true` causes Fly.io to negotiate HTTP/2 with clients but then downgrade to HTTP/1.1 when forwarding to the backend, breaking gRPC's HTTP/2 requirement. Setting both `alpn = ["h2", "http/1.1"]` and `h2_backend = true` causes ALL traffic (including REST/GraphQL) to be sent as h2c to the backend, which breaks if the backend cannot handle h2c (see Pitfall 1 re: LiteFS proxy).
 
-**Why it happens:** Browser behavior is inherently environment-dependent. The deferred items specifically call out behaviors that are hard to verify outside a real browser: "CSS animations smoothness," "dark mode toggle and system preference detection," "keyboard navigation of search results." These depend on the browser engine, OS dark mode setting, font availability, network conditions, and viewport size. A local verification on a developer's machine with fast network and a specific browser/OS combination does not guarantee production behavior.
+**Why it happens:** Fly.io's edge proxy handles TLS termination and protocol negotiation independently from backend forwarding. The ALPN setting controls what the edge advertises to clients. The `h2_backend` setting controls how the edge communicates with your backend. These two settings interact in non-obvious ways:
+
+| Client ALPN | h2_backend | Edge -> Backend | Result |
+|---|---|---|---|
+| h2 | false | HTTP/1.1 | gRPC fails (needs HTTP/2) |
+| h2 | true | h2c | gRPC works, but LiteFS proxy breaks |
+| h2, http/1.1 | false | HTTP/1.1 | REST works, gRPC fails |
+| h2, http/1.1 | true | h2c | Everything uses h2c, LiteFS proxy breaks |
+
+There is also a [known Fly.io bug](https://community.fly.io/t/alpn-offers-h2-http-1-1-even-though-only-h2-is-configured/13434) where ALPN configuration is not correctly honored.
+
+Additionally, when `h2_backend = true` is enabled, a [known issue](https://community.fly.io/t/h2-backend-no-host-header/27100) exists where the `:authority` pseudo-header may not be set correctly, causing framework-specific routing failures.
 
 **Consequences:**
-- Items are marked "verified" but users on different browsers or devices experience broken behavior.
-- Dark mode detection relies on `prefers-color-scheme` media query, which behaves differently across browsers and is not testable in headless mode.
-- Keyboard navigation with ARIA roles may work in Chrome but fail in Safari or Firefox due to different focus management.
-- CSS transitions may stutter on mobile devices or low-powered machines.
-- The htmx CDN (or Tailwind CDN) may be blocked by corporate firewalls, breaking the entire UI for some users.
+- gRPC clients cannot connect unless h2_backend is true.
+- h2_backend = true breaks LiteFS proxy (Pitfall 1).
+- Catch-22: cannot serve both gRPC (needs HTTP/2) and REST-behind-LiteFS (needs HTTP/1.1) on the same port/service.
 
 **Prevention:**
-- Create a checklist document for each verification item with specific steps, expected behavior, and the browser/OS combinations to test.
-- Test on at minimum: Chrome (latest), Firefox (latest), Safari (latest, if available), and one mobile browser.
-- For dark mode: test both system-level dark mode preference AND the manual toggle. Test the persistence across page reloads (localStorage).
-- For keyboard navigation: test with Tab, Enter, Escape, and arrow keys. Verify `aria-activedescendant` updates correctly.
-- For responsive layout: use Chrome DevTools device emulation at 375px (mobile), 768px (tablet), and 1024px+ (desktop).
-- For CSS transitions: record a short screen capture if transition smoothness is subjective. If a transition is jerky, the CSS `will-change` property or reducing DOM complexity may help.
-- For loading indicators: artificially throttle network in DevTools to "Slow 3G" to make loading states visible.
-- Accept that some items are inherently subjective ("CSS animations smoothness") and document what "good enough" means.
-- Do NOT attempt to automate these with Playwright or similar -- the cost of setting up visual regression testing for 20 one-time verification items exceeds the value. Manual verification is appropriate here.
+- **Accept ConnectRPC over HTTP/1.1** as the primary strategy (Option A from Pitfall 1). ConnectRPC's Connect protocol and gRPC-Web both work over HTTP/1.1. Do not set `h2_backend = true`. Do not change ALPN configuration. Leave `fly.toml` as-is.
+- If native gRPC is required, use a **separate Fly.io service** (separate `[[services]]` block) on a different port with `h2_backend = true`, bypassing LiteFS proxy entirely.
+- Do NOT attempt to use `alpn = ["h2"]` without `h2_backend = true` -- it will negotiate HTTP/2 with clients but fail on the backend.
+- Monitor Fly.io community forum for ALPN bug fixes.
 
-**Detection:** User reports of broken UI behavior on specific browsers. Dark mode flicker on page load. Keyboard navigation does not cycle through results. Layout breaks on mobile viewports.
+**Detection:** gRPC clients receive protocol errors or timeouts. `fly logs` show connection resets. REST/GraphQL endpoints suddenly break when `h2_backend` is enabled.
 
-**Confidence:** MEDIUM -- the specific browser behaviors vary, but the general principle of cross-environment testing is well-established. ([BrowserStack dark mode testing guide](https://www.browserstack.com/guide/how-to-test-apps-in-dark-mode))
+**Confidence:** HIGH -- verified via [Fly.io networking docs](https://fly.io/docs/networking/services/), [Fly.io gRPC guide](https://fly.io/docs/app-guides/grpc-and-grpc-web-services/), and community-reported issues.
 
 ---
 
-### Pitfall 8: Grafana Dashboard JSON Version Schema Mismatch
+### Pitfall 9: entproto Edge Field Numbers Collide with Schema Field Numbers
 
-**What goes wrong:** The dashboard JSON is created with one Grafana version (e.g., 10.x) but the production Grafana instance runs a different version (9.x or 11.x). Grafana's dashboard JSON schema has changed significantly between major versions. The `schemaVersion` field in the JSON must match what the target Grafana instance expects. Panels, variables, and datasource references may use syntax not supported by the target version.
+**What goes wrong:** entproto requires explicit `entproto.Field(n)` annotations on both schema fields AND edges. Field number 1 is reserved for the ID field. If a developer assigns field numbers 2-40 to the schema's ~39 fields and then assigns edge field numbers starting at 2, the numbers collide. Protobuf requires all field numbers within a message to be unique. The collision causes `entproto` code generation to fail with a cryptic error or, worse, silently generates invalid proto definitions that `protoc` rejects.
 
-**Why it happens:** The developer creates the dashboard in their local Grafana (latest version) and exports it. The production Grafana may be a managed instance (Grafana Cloud, managed hosting) running a different version, or a self-hosted instance that has not been upgraded.
+**Why it happens:** The Network schema has ~39 fields (counting all optional, computed, and common fields). Edges need their own field numbers in the same protobuf message. Developers naturally start edge numbering at "the next number" but may miscalculate, or may not realize edges share the same number space as fields.
+
+For the Network schema specifically:
+- Fields: `id` (1), then 38 more fields (2-39)
+- Edges: `network_facilities`, `network_ix_lans`, `organization`, `pocs` (4 edges needing numbers 40-43)
+- If a developer assigns edges starting at 30 (thinking there are only 29 fields), numbers 30-33 collide.
 
 **Consequences:**
-- Import fails with cryptic JSON parsing errors.
-- Import succeeds but panels render incorrectly (wrong visualization type, missing options).
-- Template variables do not resolve because the variable type syntax changed.
+- `go generate` fails with confusing protobuf compilation errors.
+- If the collision is between fields of different types, protoc may produce corrupt Go code that compiles but deserializes incorrectly.
+- Time wasted debugging field number collisions across 15+ schema files.
 
 **Prevention:**
-- Document the target Grafana version and schema version in a README alongside the dashboard JSON.
-- If using Grafana Cloud or Fly.io Grafana, check the running version before exporting.
-- Use the Grafana v2 JSON schema if targeting Grafana 11+, as Grafana is moving toward a new schema format.
-- If the deployment target is not yet decided, target Grafana 10.x (widely deployed, stable schema) with `"schemaVersion": 39` (the latest v1 schema version as of Grafana 10.x).
-- Test the dashboard import on the target Grafana version before committing.
+- Use a systematic numbering convention. Recommended approach:
+  - Fields: 2 through N (where N is the number of fields + 1)
+  - Edges: start at 100 (or the next hundred after the field count)
+  - This leaves a gap for adding fields without renumbering edges.
+- Count fields carefully for each schema before assigning edge numbers. The Network schema has 39 fields (2-40), so edges should start at 50 or 100.
+- Add a CI check that parses generated `.proto` files and verifies all field numbers within each message are unique.
+- Consider writing a helper function or linter that reads ent schema annotations and validates field number uniqueness across fields and edges.
 
-**Detection:** Dashboard import shows validation errors. Panels display "Panel plugin not found" for visualization types that changed names between versions.
+**Detection:** `go generate` fails with protobuf compilation errors mentioning duplicate field numbers. `buf lint` reports `FIELD_NUMBER_*` violations.
 
-**Confidence:** MEDIUM -- depends on the specific Grafana deployment, but version mismatch is a common issue.
+**Confidence:** HIGH -- this is a structural requirement of protobuf, and the ent schema files show 30-40+ fields per entity. The risk of miscounting is high.
+
+---
+
+### Pitfall 10: entproto Does Not Handle JSON Fields ([]string, []SocialMedia) -- Code Generation Fails or Produces Unusable Types
+
+**What goes wrong:** Several ent schema fields use `field.JSON("info_types", []string{})` and `field.JSON("social_media", []SocialMedia{})`. entproto has limited support for JSON fields. A `[]string` field may be mapped to `repeated string` (which is correct), but a custom struct type like `[]SocialMedia` has no automatic protobuf mapping. entproto may fail to generate the proto definition, generate an opaque `bytes` field (losing type information), or require manual `entproto.OverrideType()` annotations to specify the mapping.
+
+**Why it happens:** JSON fields in ent are stored as JSON text in SQLite and deserialized into Go types. Protobuf has no equivalent of "arbitrary JSON" -- every field must have a defined type. For `[]string`, the mapping to `repeated string` is straightforward. For custom struct types, entproto must generate a nested message type or the developer must define one manually.
+
+**Consequences:**
+- `go generate` fails for schemas with complex JSON fields.
+- If `bytes` is used as a fallback, clients receive raw JSON bytes instead of typed protobuf messages and must deserialize manually, defeating the purpose of protobuf.
+- The `SocialMedia` type is used by 6 schemas (Organization, Network, Facility, InternetExchange, Carrier, Campus), so the fix must be applied consistently.
+
+**Prevention:**
+- Define a `SocialMedia` protobuf message manually in a shared `.proto` file:
+
+```protobuf
+message SocialMedia {
+  string service = 1;
+  string identifier = 2;
+}
+```
+
+- Use `entproto.OverrideType()` on the `social_media` field to reference this message type, or exclude the field from protobuf generation and handle it separately.
+- For `[]string` fields like `info_types`, verify that entproto maps them to `repeated string`. If not, use `entproto.OverrideType()`.
+- Test code generation early in the phase -- do not wait until all field numbers are assigned. Run `go generate` after annotating the first schema to verify the pipeline works.
+- Consider skipping complex JSON fields from the protobuf API entirely if they are not needed by gRPC clients. Use `entproto.SkipGen()` annotation if available.
+
+**Detection:** `go generate` fails with "unsupported type" or "cannot map type" errors from entproto. Generated `.proto` files contain `bytes` instead of typed fields for JSON columns.
+
+**Confidence:** MEDIUM -- entproto documentation does not explicitly cover JSON field handling. The behavior depends on the specific entproto version. Needs validation during implementation.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 9: otelhttp Metric Names Are Not Custom -- They Follow OTel Semantic Conventions
+### Pitfall 11: buf generate and go generate Pipeline Ordering -- Stale Protobuf Files
 
-**What goes wrong:** The developer assumes they can query HTTP request metrics using `pdbplus_*` names. But otelhttp middleware (line 243 of main.go) emits metrics using the OTel HTTP semantic convention names: `http.server.request.duration`, `http.server.active_requests`, `http.server.request.body.size`, `http.server.response.body.size`. In Prometheus, these become `http_server_request_duration_seconds_bucket`, `http_server_active_requests`, etc. The developer writes dashboard queries against wrong names.
+**What goes wrong:** The project has two code generation steps: `go generate ./ent/...` (runs entc, which generates ent code AND entproto `.proto` files) and `buf generate` (compiles `.proto` files into Go code). If `buf generate` runs before or concurrently with `go generate`, it uses stale `.proto` files from a previous run. The generated Go code does not match the current ent schema. Compilation fails with type mismatches or missing methods.
+
+**Why it happens:** The project already has `//go:generate` directives in `ent/generate.go`. Adding protobuf generation creates a two-stage pipeline where stage 2 (buf) depends on stage 1 (entproto) output. `go generate ./...` runs all generate directives but does not guarantee ordering across packages. If `buf generate` is also triggered by a `//go:generate` directive, its execution order relative to entproto is undefined.
+
+**Consequences:**
+- Build fails intermittently depending on execution order.
+- Developer runs `go generate` twice to "fix" it, masking the ordering issue.
+- CI builds fail on clean checkouts because generated files are not committed or are stale.
 
 **Prevention:**
-- Use the OTel HTTP semantic convention metric names in dashboard queries, not custom names.
-- The otelhttp metrics include attributes: `http.request.method`, `url.scheme`, `http.response.status_code`, `http.route` (if net/http pattern matching is used), and `server.address`.
-- Query example for request rate by route: `rate(http_server_request_duration_seconds_count{http_route=~"/graphql|/rest/v1/.*|/api/.*|/ui/.*"}[5m])`
-- Query example for p95 latency: `histogram_quantile(0.95, rate(http_server_request_duration_seconds_bucket[5m]))`
+- Use a Taskfile (or Makefile) that explicitly sequences the steps:
 
-**Confidence:** HIGH -- otelhttp metric names are defined by the [OTel HTTP semantic conventions](https://opentelemetry.io/docs/specs/semconv/http/http-metrics/).
+```yaml
+tasks:
+  generate:
+    cmds:
+      - go generate ./ent/...    # Stage 1: ent schemas + entproto .proto files
+      - buf generate              # Stage 2: .proto -> .pb.go + connect handlers
+      - go generate ./graph/...   # Stage 3: gqlgen (if needed after proto changes)
+    desc: "Run all code generation in correct order"
+```
+
+- Do NOT put `buf generate` in a `//go:generate` directive. Keep it in the Taskfile only.
+- Commit generated `.proto` files and `.pb.go` files to version control. This ensures `go build` works without running the full generation pipeline, and `buf breaking` can compare against the committed protos.
+- Add a CI step that runs the full generation pipeline and verifies no diff: `task generate && git diff --exit-code`.
+
+**Detection:** Build fails with "undefined: pb.NetworkServiceHandler" or similar missing type errors. Running `go generate` twice fixes the issue.
+
+**Confidence:** HIGH -- this is a standard multi-stage code generation issue. The existing `ent/generate.go` and `ent/entc.go` confirm the project already uses `go generate` for ent.
 
 ---
 
-### Pitfall 10: Go Runtime Metrics Use OTel Convention Names, Not Go-Native Names
+### Pitfall 12: ConnectRPC Handlers Use Different Path Patterns Than REST/GraphQL -- Route Conflicts
 
-**What goes wrong:** The developer writes dashboard queries like `go_goroutines` or `go_memstats_alloc_bytes` (Prometheus Go client convention). But the project uses `runtime.Start()` from `go.opentelemetry.io/contrib/instrumentation/runtime` (provider.go line 89), which emits metrics using OTel runtime semantic conventions: `process.runtime.go.goroutines`, `process.runtime.go.mem.heap_alloc`, etc. In Prometheus, dots become underscores.
+**What goes wrong:** ConnectRPC handlers are mounted at paths like `/grpc.peeringdb.v1.NetworkService/GetNetwork`. The existing REST API is at `/rest/v1/networks/{id}`. The existing GraphQL is at `/graphql`. The PeeringDB compat API is at `/api/net/{id}`. No conflicts exist between these prefixes. However, if the protobuf package name is not namespaced (e.g., `package entpb` instead of `package peeringdb.v1`), the handler paths become `/entpb.NetworkService/GetNetwork`, which is ugly but functional. The real issue is that Go 1.22+ ServeMux pattern matching treats gRPC paths as literal path matches, not pattern matches. Registering `/grpc.peeringdb.v1.NetworkService/` as a prefix catches all methods for that service, which is correct. But if a path like `/grpc.peeringdb.v1.NetworkService/GetNetwork` is registered AND a catch-all `/grpc.peeringdb.v1.NetworkService/` is also registered, Go's ServeMux uses longest-match, which may not be the intended behavior for gRPC routing.
+
+**Why it happens:** ConnectRPC's `NewHandler` returns a path prefix and an http.Handler. The standard pattern is `mux.Handle(path, handler)` where `path` is the service path prefix. This works correctly with `http.ServeMux`. The pitfall is when developers register handlers incorrectly or when other middleware intercepts the gRPC paths.
+
+**Consequences:**
+- Minor: path aesthetics if package name is not properly namespaced.
+- Moderate: routing conflicts if gRPC paths overlap with existing route patterns (unlikely given the distinct prefixes, but possible with catch-all routes).
+- The readiness middleware (Pitfall 7) intercepts gRPC paths because it checks all non-infrastructure paths.
 
 **Prevention:**
-- Use OTel runtime metric names in dashboard queries:
-  - `process_runtime_go_goroutines` (not `go_goroutines`)
-  - `process_runtime_go_mem_heap_alloc_bytes` (not `go_memstats_alloc_bytes`)
-  - `process_runtime_go_gc_pause_ns` or similar
-- The exact metric names depend on the OTel runtime instrumentation version. Check the actual Prometheus metrics endpoint (`/metrics` or OTLP debug output) for the exact names.
-- Consider adding a comment in the dashboard JSON or README documenting which instrumentation library produces which metrics.
+- Use a properly namespaced protobuf package: `package peeringdb.v1` not `package entpb`.
+- Register ConnectRPC handlers exactly as the library returns them: `path, handler := svcConnect.NewNetworkServiceHandler(svc); mux.Handle(path, handler)`.
+- Do not add trailing slash or modify the path returned by ConnectRPC.
+- Verify all registered routes do not conflict by printing the mux routes at startup (Go 1.22+ ServeMux does not have a route listing method, so log each registration).
 
-**Confidence:** MEDIUM -- the OTel runtime instrumentation library has changed metric names between versions. Verify against the actual exported metrics.
+**Detection:** gRPC calls return 404 Not Found. Route registration logs show unexpected path patterns.
+
+**Confidence:** MEDIUM -- ConnectRPC's route registration is straightforward and well-documented. The risk is low but worth noting for completeness.
 
 ---
 
-### Pitfall 11: Grafana Dashboard JSON Is Not Idempotent -- UID and Version Conflicts on Re-Provisioning
+### Pitfall 13: entproto Requires Explicit Annotations on Every Field and Edge -- Missing Annotations Cause Silent Omission
 
-**What goes wrong:** The dashboard JSON contains a `"uid"` field and a `"version"` field. On first provisioning, this works. On re-provisioning (e.g., after updating the JSON), Grafana may reject the update if the `"version"` field does not match the current version in the database. Or if `"uid"` is null/absent, Grafana creates a new dashboard on each provisioning cycle instead of updating the existing one.
+**What goes wrong:** entproto only generates protobuf definitions for fields and edges that have `entproto.Field(n)` annotations. Fields without annotations are silently omitted from the generated `.proto` file. The developer adds `entproto.Message()` to the schema's `Annotations()` and runs `go generate`. The proto file is generated but is missing half the fields. The developer does not notice because `go generate` succeeds without warnings.
 
-**Prevention:**
-- Always include a stable `"uid"` in the dashboard JSON (e.g., `"uid": "pdbplus-overview"`). This ensures updates replace the existing dashboard.
-- Set `"version"` to `null` or remove it entirely. Grafana auto-increments the version on save. Including a specific version number causes conflicts.
-- Set `"id"` to `null` in the JSON. The numeric `id` is instance-specific and should never be hardcoded.
-- Test re-provisioning by modifying a panel and re-applying. Verify the dashboard is updated, not duplicated.
+**Why it happens:** entproto's design requires opt-in at the field level, not just the schema level. This is documented but easy to miss. With 30-40 fields per schema and 15+ schemas, annotating every field is tedious and error-prone.
 
-**Confidence:** HIGH -- [Grafana provisioning docs](https://grafana.com/docs/grafana/latest/administration/provisioning/) explicitly document this behavior.
-
----
-
-### Pitfall 12: Verifying Deferred Items in Wrong Order -- Dependencies Between Verification Items
-
-**What goes wrong:** The 26 deferred verification items are treated as an unordered checklist. A developer verifies "ASN redirect on Enter with numeric input" (v1.4 phase 14) before verifying "live search results update within 300ms in browser" (same phase). The ASN redirect depends on the search working correctly. If the search is broken, the ASN redirect verification is meaningless -- but the developer marks it as "passed" because the redirect code path is technically correct.
-
-**Why it happens:** The verification items come from 7 different phases across 2 milestones. Their dependencies are implicit, not documented. The items are listed per-phase but the cross-phase dependencies (e.g., search depends on sync, detail pages depend on search, comparison depends on detail pages) are not visible in the flat list.
+**Consequences:**
+- Generated protobuf messages are incomplete.
+- gRPC clients receive messages with missing data.
+- The omission is silent -- no error, no warning. Only careful comparison of the `.proto` file against the ent schema reveals the gap.
+- Adding annotations later changes field numbers if not done carefully, potentially breaking clients (see Pitfall 2).
 
 **Prevention:**
-- Verify in dependency order:
-  1. **Infrastructure first:** CI pipeline runs on GitHub (v1.2), coverage comments work (v1.2)
-  2. **Data layer:** sync runs against real PeeringDB API (v1.2), API key auth works (v1.3), conformance passes live (v1.2/v1.3)
-  3. **Foundation:** content negotiation, responsive layout, syncing page animation (v1.4 phase 13)
-  4. **Search:** live search speed, type badges, ASN redirect (v1.4 phase 14)
-  5. **Detail pages:** collapsible sections, lazy loading, summary stats, cross-links (v1.4 phase 15)
-  6. **Comparison:** results layout, view toggle, multi-step flow (v1.4 phase 16)
-  7. **Polish:** dark mode, keyboard navigation, CSS animations, loading indicators, error pages, About page freshness (v1.4 phase 17)
-- If an earlier item fails, stop and fix it before proceeding to dependent items.
-- Create a structured verification report with pass/fail/blocked status for each item.
+- Write a CI check that compares the number of fields in each ent schema against the number of fields in the generated `.proto` message. Flag schemas where the counts diverge by more than expected (some fields like computed/internal fields may be intentionally excluded).
+- When annotating schemas, work through them systematically: open the schema file and the generated `.proto` file side-by-side. Verify each field appears.
+- Consider writing a linter or generator helper that auto-assigns field numbers to unannotated fields (starting from the maximum existing number + 1). This reduces manual annotation burden but must be used carefully to avoid number instability.
+- Document which fields are intentionally excluded from protobuf generation and why.
 
-**Confidence:** HIGH -- this is a general verification best practice, not technology-specific.
+**Detection:** Generated `.proto` file has fewer fields than expected. gRPC client receives messages with zero-valued or missing fields that have data in the REST/GraphQL APIs.
+
+**Confidence:** HIGH -- this is fundamental to entproto's design. Verified via [entproto documentation](https://entgo.io/docs/grpc-generating-proto/): "annotations must be supplied on the schema to help entproto determine how to generate Protobuf definitions."
 
 ---
 
@@ -303,43 +416,62 @@ Mistakes that cause data loss, production incidents, or require significant rewo
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |-------------|---------------|------------|
-| Grafana dashboard creation | Datasource UID hardcoding (#1), OTel-to-Prometheus name translation (#2), Panel sprawl (#5) | Use datasource template variables; document Prometheus metric names; limit to 15-20 panels with template variables for drill-down |
-| Grafana dashboard provisioning | JSON schema version mismatch (#8), UID/version conflicts on re-deploy (#11) | Document target Grafana version; set stable UID, null version and id |
-| meta.generated field verification | Undocumented field behavior (#3), zero-value fallback path untested | Test against live PeeringDB API for each request pattern; document observed behavior |
-| Dead code removal (DataLoader + IsPrimary) | Stale planning docs (#4), removing code that is already gone or missing code that still exists | Verify codebase state with grep before writing removal tasks |
-| Middleware removal patterns | Hidden context consumers (#6), test gap for removed middleware paths | Trace middleware effects; run full test suite with -race after removal |
-| Browser UX verification (20 items) | Cross-environment differences (#7), dependency ordering (#12) | Test on multiple browsers; verify in dependency order; document "good enough" criteria |
-| Dashboard query authoring | otelhttp uses semantic convention names (#9), runtime metrics use OTel names (#10) | Check actual Prometheus endpoint for exact metric names before writing queries |
+| LiteFS + h2c architecture decision | LiteFS proxy is HTTP/1.1 only (#1, #8) | Use ConnectRPC over HTTP/1.1 (Connect protocol + gRPC-Web). Do NOT set h2_backend = true. Accept that native gRPC protocol is not supported through LiteFS proxy. |
+| entproto schema annotation | Missing annotations (#13), field number collisions (#9), JSON field types (#10) | Annotate all fields systematically. Use numbering gaps between fields and edges (fields 2-N, edges 100+). Test code generation early. |
+| Protobuf field number assignment | Permanent field numbers (#2) | Treat as one-time decision. Use `buf breaking` in CI. Reserve removed field numbers. |
+| entproto + buf integration | Enum naming (#5), pipeline ordering (#11) | Disable buf lint for enum prefix rules. Use Taskfile for ordered generation. Commit generated files. |
+| Optional field handling | Wrapper types (#6) | Accept wrapper types. Generate client helpers. Document in API docs. |
+| CORS for gRPC-Web/Connect | Missing headers (#4) | Update CORS config with gRPC-Web and Connect protocol headers. Test with browser client. |
+| Observability instrumentation | Double spans/metrics (#3) | Filter ConnectRPC paths from otelhttp. Use otelconnect interceptors for gRPC routes only. |
+| Health checking | Readiness middleware blocks gRPC health (#7) | Add gRPC health path to readiness bypass list. Use connectrpc.com/grpchealth. |
+| Route registration | Path conflicts (#12) | Use namespaced package name. Register handlers as ConnectRPC returns them. |
 
 ## Sources
 
-### Grafana Dashboard Provisioning
-- [Grafana Provisioning Documentation](https://grafana.com/docs/grafana/latest/administration/provisioning/) -- official provisioning guide
-- [Grafana Dashboard Best Practices](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/best-practices/) -- panel count, layout, and design recommendations
-- [Grafana Community: Datasource UID Conflicts](https://community.grafana.com/t/provisioning-dashboards-data-sources-uid-conflicts/127762) -- UID provisioning issues
-- [Grafana Community: Should Provisioned Dashboards Have Datasource UIDs?](https://community.grafana.com/t/should-provisioned-dashboards-have-datasource-uids/65463) -- datasource UID patterns
-- [Grafana Dashboard JSON Model](https://grafana.com/docs/grafana/latest/visualizations/dashboards/build-dashboards/view-dashboard-json-model/) -- JSON schema reference
-- [Grafana Dashboard Automation with CI/CD](https://grafana.com/docs/grafana/latest/as-code/observability-as-code/foundation-sdk/dashboard-automation/) -- dashboards-as-code patterns
+### ConnectRPC / gRPC
+- [ConnectRPC Deployment & h2c](https://connectrpc.com/docs/go/deployment/) -- h2c configuration, HTTP/1.1 coexistence
+- [ConnectRPC CORS Documentation](https://connectrpc.com/docs/cors/) -- required CORS headers for gRPC-Web and Connect
+- [ConnectRPC Observability](https://connectrpc.com/docs/go/observability/) -- otelconnect instrumentation
+- [ConnectRPC gRPC Compatibility](https://connectrpc.com/docs/go/grpc-compatibility/) -- wire compatibility with grpc-go
+- [ConnectRPC gRPC Health](https://github.com/connectrpc/grpchealth-go) -- gRPC-compatible health checks for net/http
+- [gRPC Health Checking Protocol](https://grpc.io/docs/guides/health-checking/) -- standard health check service
 
-### OpenTelemetry Metrics and Prometheus
-- [OTel Prometheus Compatibility Spec](https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/) -- naming translation rules
-- [OTel HTTP Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/http/http-metrics/) -- otelhttp metric names
-- [OTel Metrics Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/general/metrics/) -- general metric naming guidelines
-- [OTel Go Instrumentation](https://opentelemetry.io/docs/languages/go/) -- Go SDK documentation
+### Protobuf
+- [Protobuf Field Number Assignment](https://protobuf.dev/programming-guides/proto3/#assigning) -- permanent field numbers
+- [Protobuf Backward Compatibility Best Practices](https://earthly.dev/blog/backward-and-forward-compatibility/) -- field number stability, reserved keyword
+- [Teleport Issue #24817](https://github.com/gravitational/teleport/issues/24817) -- real-world field number breakage
 
-### PeeringDB API
-- [PeeringDB API Specs](https://docs.peeringdb.com/api_specs/) -- official API documentation (meta.generated NOT documented)
-- [PeeringDB API Docs](https://www.peeringdb.com/apidocs/) -- Swagger-style API reference
+### entproto
+- [entproto Code Generation Guide](https://entgo.io/docs/grpc-generating-proto/) -- field numbering, annotation requirements
+- [entproto Optional Fields](https://entgo.io/docs/grpc-optional-fields/) -- wrapper type handling
+- [entproto Edge Handling](https://entgo.io/docs/grpc-edges/) -- edge field numbers, unique vs repeated
+- [ent/ent Issue #3063](https://github.com/ent/ent/issues/3063) -- buf compatibility issues (enum naming, package versioning)
 
-### Browser Testing
-- [BrowserStack: How to Test Dark Mode](https://www.browserstack.com/guide/how-to-test-apps-in-dark-mode) -- cross-browser dark mode verification
+### Fly.io
+- [Fly.io gRPC and gRPC-Web Guide](https://fly.io/docs/app-guides/grpc-and-grpc-web-services/) -- h2_backend configuration
+- [Fly.io Public Network Services](https://fly.io/docs/networking/services/) -- h2_backend option, HTTP/2 backend
+- [Fly.io ALPN Bug Report](https://community.fly.io/t/alpn-offers-h2-http-1-1-even-though-only-h2-is-configured/13434) -- ALPN configuration not honored
+- [Fly.io h2_backend Host Header Issue](https://community.fly.io/t/h2-backend-no-host-header/27100) -- missing :authority pseudo-header
+
+### LiteFS
+- [LiteFS Source: proxy_server.go](https://github.com/superfly/litefs/blob/main/http/proxy_server.go) -- HTTP/1.1-only proxy server implementation
+- [LiteFS Architecture](https://github.com/superfly/litefs/blob/main/docs/ARCHITECTURE.md) -- proxy design
+
+### Go HTTP/2
+- [Go 1.24 h2c Support](https://github.com/golang/go/issues/67816) -- stdlib h2c via http.Protocols
+- [x/net/http2/h2c Deprecation](https://github.com/golang/go/issues/72039) -- h2c package deprecated in favor of stdlib
+- [VictoriaMetrics: How HTTP/2 Works in Go](https://victoriametrics.com/blog/go-http2/) -- http.Protocols.SetUnencryptedHTTP2
+
+### OpenTelemetry
+- [otelconnect Package](https://pkg.go.dev/connectrpc.com/otelconnect) -- RPC-level OTel instrumentation
+- [otelhttp Package](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp) -- HTTP-level OTel instrumentation
 
 ### Codebase (verified against source)
-- `internal/otel/metrics.go` -- 9 custom sync metrics with OTel names and units
-- `internal/otel/provider.go` -- autoexport setup, runtime instrumentation, resource attributes
-- `internal/peeringdb/client.go` -- FetchAll with meta.generated parsing, FetchMeta struct
-- `internal/sync/worker.go` -- WorkerConfig.IsPrimary dead field at line 30
-- `cmd/peeringdb-plus/main.go` -- middleware chain (lines 240-244), readiness middleware, route registration
-- `.planning/milestones/v1.2-phases/07-lint-code-quality/07-01-SUMMARY.md` -- claims IsPrimary removed from WorkerConfig (incorrect)
-- `.planning/milestones/v1.4-MILESTONE-AUDIT.md` -- 20 deferred human verification items listed by phase
-
+- `cmd/peeringdb-plus/main.go` -- middleware stack (lines 249-256), readiness middleware (lines 296-321), route registration
+- `internal/middleware/cors.go` -- CORS allowed headers (line 26-27): only Content-Type and Authorization
+- `ent/schema/network.go` -- 39 fields, 4 edges, JSON fields (info_types, social_media)
+- `ent/schema/types.go` -- SocialMedia struct definition
+- `ent/entc.go` -- code generation setup with entgql and entrest extensions (no entproto yet)
+- `fly.toml` -- LiteFS proxy on port 8080, app on port 8081, no h2_backend setting
+- `litefs.yml` -- proxy configuration (port 8080 -> 8081), passthrough paths
+- `internal/otel/provider.go` -- otelhttp middleware setup
