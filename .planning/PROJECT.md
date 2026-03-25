@@ -50,22 +50,20 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] otelconnect observability interceptor on all ConnectRPC handlers — v1.6
 - [x] CORS updated for Connect, gRPC, and gRPC-Web content types — v1.6
 
+- [x] Server-streaming RPCs for bulk data export (stream rows from DB, no full buffering) — v1.7
+- [x] since_id stream resume and updated_since incremental filter on streaming RPCs — v1.7
+- [x] IX presence UI improvements (field labels, RS badge, port speed colors, copyable text) — v1.7
+
 ### Active
 
-- [x] Server-streaming RPCs for bulk data export (stream rows from DB, no full buffering) — v1.7
-- [x] IX presence UI improvements (field labels, RS badge, port speed colors, copyable text) — v1.7
+(No active requirements — planning next milestone)
 
 ### Deferred
 
 - [ ] SyncStatus custom RPC — deferred, available via existing REST/GraphQL
-
-## Current Milestone: v1.7 Streaming RPCs & UI Polish
-
-**Goal:** Add gRPC/ConnectRPC server-streaming RPCs for efficient bulk data export and improve IX presence display in the web UI.
-
-**Target features:**
-- Server-streaming RPCs (ListAll/Stream) for bulk data dumps — stream rows one at a time from DB query results via protobuf, replacing cursor-based pagination for full table exports
-- IX presence UI: field labels for speed/IPv4/IPv6, RS badge repositioned near data, color-coded port speeds, consistent IP address indentation, selectable/copyable text
+- [ ] Per-ASN BGP summary from bgp.tools (prefix counts, RPKI coverage) — needs design
+- [ ] IRR/AS-SET membership from WHOIS source — needs design
+- [ ] IP prefix lookup with origin ASN, RPKI status — needs design
 
 ### Out of Scope
 
@@ -132,6 +130,15 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 | entproto for .proto generation, skip protoc-gen-entgrpc | entproto generates standard .proto files; entgrpc is hardcoded to google.golang.org/grpc interfaces | ✓ Validated Phase 22 |
 | Manual services.proto over entproto service generation | entproto only generates message types, not service definitions; manual services.proto with Get/List RPCs for all 13 types | ✓ Validated Phase 22 |
 | Predicate accumulation for List filtering | Nil-check optional proto fields, validate, accumulate ent predicates, apply via entity.And() | ✓ Validated Phase 24 |
+| StreamNetworks naming convention (not StreamAllNetworks) | Concise, mirrors ListNetworks pattern | ✓ Validated Phase 25 |
+| Hardcoded 500-row batch size for streaming | Simple, sufficient for PeeringDB data volumes (~200K max rows) | ✓ Validated Phase 25 |
+| WithoutTraceEvents() globally on otelconnect | Per-message events at 200K rows is telemetry explosion; per-RPC interceptor not feasible | ✓ Validated Phase 25 |
+| grpc-total-count response header for streaming | gRPC metadata convention; set before first Send() via stream.ResponseHeader() | ✓ Validated Phase 25 |
+| Configurable StreamTimeout via PDBPLUS_STREAM_TIMEOUT | 60s default; prevents indefinite connection hold from slow clients | ✓ Validated Phase 25 |
+| google.protobuf.Timestamp for updated_since | Standard protobuf well-known type, nanosecond precision, widely supported | ✓ Validated Phase 26 |
+| since_id as both predicate and cursor | IDGT predicate affects count (grpc-total-count reflects remaining), sets initial lastID | ✓ Validated Phase 26 |
+| 5-tier port speed color coding | Sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber — networking industry intuitive gradient | ✓ Validated Phase 27 |
+| CopyableIP with click-to-copy + hover icon | Best discoverability — both click-on-IP and explicit clipboard icon | ✓ Validated Phase 27 |
 
 ## Evolution
 
@@ -152,7 +159,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-v1.7 complete — 13 server-streaming RPCs with batched keyset pagination, since_id/updated_since filters, and IX presence UI polish. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Five user-facing surfaces: Web UI at /ui/, GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. Codebase passes golangci-lint v2 clean. Live deployment on Fly.io with comprehensive observability.
+Shipped v1.7 with 27 phases across 8 milestones (v1.0-v1.7). All streaming RPCs with batched keyset pagination, since_id/updated_since filters. IX presence UI polished with labeled fields, color-coded port speeds, emerald RS pill badges, grid-aligned copyable IP addresses, and aggregate bandwidth headers. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Five user-facing surfaces: Web UI at /ui/, GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. Codebase passes golangci-lint v2 clean. Live deployment on Fly.io with comprehensive observability.
 
 **Known tech debt:**
 - Nyquist validation incomplete for Phases 16-17, 21-24 (validation created but not formally signed off)
@@ -164,4 +171,4 @@ v1.7 complete — 13 server-streaming RPCs with batched keyset pagination, since
 - 9 human verification items from v1.6 deferred to runtime testing
 
 ---
-*Last updated: 2026-03-25 after Phase 27 complete (v1.7 milestone)*
+*Last updated: 2026-03-25 after v1.7 milestone complete*
