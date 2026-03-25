@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: Streaming RPCs & UI Polish
-status: v1.7 milestone archived — planning next milestone
-stopped_at: v1.7 milestone completed and archived
-last_updated: "2026-03-25T19:15:00.000Z"
+milestone: v1.8
+milestone_name: Terminal CLI Interface
+status: defining requirements
+stopped_at: Milestone v1.8 started — defining requirements
+last_updated: "2026-03-25T20:00:00.000Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,11 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Planning next milestone
+**Current focus:** v1.8 Terminal CLI Interface — defining requirements
 
 ## Current Position
 
-Milestone v1.7 complete. No active milestone.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-25 — Milestone v1.8 started
 
 ## Performance Metrics
 
@@ -79,5 +82,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-25
-Stopped at: v1.7 milestone completed and archived
+Stopped at: Milestone v1.8 started — defining requirements
 Resume file: None

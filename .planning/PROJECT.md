@@ -56,7 +56,23 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-(No active requirements — planning next milestone)
+- [ ] Terminal client detection (User-Agent sniffing for curl, wget, HTTPie, etc.)
+- [ ] Rich 256-color ANSI output with Unicode box drawing for all 6 entity types
+- [ ] Plain text mode (?T) and JSON mode (?format=json) as alternative output formats
+- [ ] Content negotiation under existing /ui/ URLs — browsers unchanged, terminals get text
+- [ ] CLI help text at /ui/ for terminal clients listing available endpoints
+- [ ] Text-formatted error responses (404, 500) for terminal clients
+
+## Current Milestone: v1.8 Terminal CLI Interface
+
+**Goal:** Enable network engineers to query PeeringDB data directly from the terminal with zero setup — just curl.
+
+**Target features:**
+- Terminal client detection via User-Agent (curl, wget, HTTPie, etc.)
+- Rich 256-color ANSI output with Unicode box drawing for all 6 entity types (network, IX, facility, org, campus, carrier)
+- Plain text mode (?T) and JSON mode (?format=json) as alternatives
+- Content negotiation under existing /ui/ URLs — browsers unchanged, terminals get text
+- CLI help and text-formatted error responses for terminal clients
 
 ### Deferred
 
@@ -171,4 +187,4 @@ Shipped v1.7 with 27 phases across 8 milestones (v1.0-v1.7). All streaming RPCs 
 - 9 human verification items from v1.6 deferred to runtime testing
 
 ---
-*Last updated: 2026-03-25 after v1.7 milestone complete*
+*Last updated: 2026-03-25 after v1.8 milestone started*
