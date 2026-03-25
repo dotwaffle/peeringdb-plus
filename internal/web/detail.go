@@ -90,6 +90,18 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 		data.OrgID = net.Edges.Organization.ID
 	}
 
+	// Compute aggregate bandwidth across all IX presences for the section header.
+	ixlans, err := h.client.NetworkIxLan.Query().
+		Where(networkixlan.HasNetworkWith(network.ID(net.ID))).
+		All(r.Context())
+	if err == nil {
+		var totalBW int
+		for _, nix := range ixlans {
+			totalBW += nix.Speed
+		}
+		data.AggregateBW = totalBW
+	}
+
 	page := PageContent{
 		Title:   net.Name,
 		Content: templates.NetworkDetailPage(data),
