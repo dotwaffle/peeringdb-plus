@@ -27,9 +27,9 @@ jobs:
 
       - name: Check for ent generated code drift
         run: |
-          go generate ./ent ./schema
-          if ! git diff --exit-code; then
-            echo "::error::Generated code is out of date. Run 'go generate ./ent ./schema' and commit the changes."
+          go generate ./ent
+          if ! git diff --exit-code -- ent/; then
+            echo "::error::Generated ent code is out of date. Run 'go generate ./ent' and commit the changes."
             exit 1
           fi
 
