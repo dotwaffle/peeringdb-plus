@@ -524,6 +524,7 @@ func (h *Handler) handleFragment(w http.ResponseWriter, r *http.Request, path st
 func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request, netID int) {
 	items, err := h.client.NetworkIxLan.Query().
 		Where(networkixlan.HasNetworkWith(network.ID(netID))).
+		Order(networkixlan.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query network ixlans", slog.Int("network_id", netID), slog.String("error", err.Error()))
@@ -557,6 +558,7 @@ func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request
 func (h *Handler) handleNetFacilitiesFragment(w http.ResponseWriter, r *http.Request, netID int) {
 	items, err := h.client.NetworkFacility.Query().
 		Where(networkfacility.HasNetworkWith(network.ID(netID))).
+		Order(networkfacility.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query network facilities", slog.Int("network_id", netID), slog.String("error", err.Error()))
@@ -587,6 +589,7 @@ func (h *Handler) handleNetFacilitiesFragment(w http.ResponseWriter, r *http.Req
 func (h *Handler) handleNetContactsFragment(w http.ResponseWriter, r *http.Request, netID int) {
 	items, err := h.client.Poc.Query().
 		Where(poc.HasNetworkWith(network.ID(netID))).
+		Order(poc.ByRole(), poc.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query network contacts", slog.Int("network_id", netID), slog.String("error", err.Error()))
@@ -617,6 +620,7 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID))).
 		QueryNetworkIxLans().
 		WithNetwork().
+		Order(networkixlan.ByAsn()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query ix participants", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
@@ -654,6 +658,7 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 func (h *Handler) handleIXFacilitiesFragment(w http.ResponseWriter, r *http.Request, ixID int) {
 	items, err := h.client.IxFacility.Query().
 		Where(ixfacility.HasInternetExchangeWith(internetexchange.ID(ixID))).
+		Order(ixfacility.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query ix facilities", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
@@ -685,6 +690,7 @@ func (h *Handler) handleIXPrefixesFragment(w http.ResponseWriter, r *http.Reques
 	items, err := h.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID))).
 		QueryIxPrefixes().
+		Order(ixprefix.ByPrefix()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query ix prefixes", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
@@ -710,6 +716,7 @@ func (h *Handler) handleIXPrefixesFragment(w http.ResponseWriter, r *http.Reques
 func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Request, facID int) {
 	items, err := h.client.NetworkFacility.Query().
 		Where(networkfacility.HasFacilityWith(facility.ID(facID))).
+		Order(networkfacility.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac networks", slog.Int("fac_id", facID), slog.String("error", err.Error()))
@@ -734,6 +741,7 @@ func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Reque
 func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, facID int) {
 	items, err := h.client.IxFacility.Query().
 		Where(ixfacility.HasFacilityWith(facility.ID(facID))).
+		Order(ixfacility.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac ixps", slog.Int("fac_id", facID), slog.String("error", err.Error()))
@@ -761,6 +769,7 @@ func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, 
 func (h *Handler) handleFacCarriersFragment(w http.ResponseWriter, r *http.Request, facID int) {
 	items, err := h.client.CarrierFacility.Query().
 		Where(carrierfacility.HasFacilityWith(facility.ID(facID))).
+		Order(carrierfacility.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac carriers", slog.Int("fac_id", facID), slog.String("error", err.Error()))
@@ -788,6 +797,7 @@ func (h *Handler) handleFacCarriersFragment(w http.ResponseWriter, r *http.Reque
 func (h *Handler) handleOrgNetworksFragment(w http.ResponseWriter, r *http.Request, orgID int) {
 	items, err := h.client.Network.Query().
 		Where(network.HasOrganizationWith(organization.ID(orgID))).
+		Order(network.ByAsn()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org networks", slog.Int("org_id", orgID), slog.String("error", err.Error()))
@@ -812,6 +822,7 @@ func (h *Handler) handleOrgNetworksFragment(w http.ResponseWriter, r *http.Reque
 func (h *Handler) handleOrgIXPsFragment(w http.ResponseWriter, r *http.Request, orgID int) {
 	items, err := h.client.InternetExchange.Query().
 		Where(internetexchange.HasOrganizationWith(organization.ID(orgID))).
+		Order(internetexchange.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org ixps", slog.Int("org_id", orgID), slog.String("error", err.Error()))
@@ -836,6 +847,7 @@ func (h *Handler) handleOrgIXPsFragment(w http.ResponseWriter, r *http.Request, 
 func (h *Handler) handleOrgFacilitiesFragment(w http.ResponseWriter, r *http.Request, orgID int) {
 	items, err := h.client.Facility.Query().
 		Where(facility.HasOrganizationWith(organization.ID(orgID))).
+		Order(facility.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org facilities", slog.Int("org_id", orgID), slog.String("error", err.Error()))
@@ -862,6 +874,7 @@ func (h *Handler) handleOrgFacilitiesFragment(w http.ResponseWriter, r *http.Req
 func (h *Handler) handleOrgCampusesFragment(w http.ResponseWriter, r *http.Request, orgID int) {
 	items, err := h.client.Campus.Query().
 		Where(campus.HasOrganizationWith(organization.ID(orgID))).
+		Order(campus.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org campuses", slog.Int("org_id", orgID), slog.String("error", err.Error()))
@@ -886,6 +899,7 @@ func (h *Handler) handleOrgCampusesFragment(w http.ResponseWriter, r *http.Reque
 func (h *Handler) handleOrgCarriersFragment(w http.ResponseWriter, r *http.Request, orgID int) {
 	items, err := h.client.Carrier.Query().
 		Where(carrier.HasOrganizationWith(organization.ID(orgID))).
+		Order(carrier.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org carriers", slog.Int("org_id", orgID), slog.String("error", err.Error()))
@@ -910,6 +924,7 @@ func (h *Handler) handleOrgCarriersFragment(w http.ResponseWriter, r *http.Reque
 func (h *Handler) handleCampusFacilitiesFragment(w http.ResponseWriter, r *http.Request, campusID int) {
 	items, err := h.client.Facility.Query().
 		Where(facility.HasCampusWith(campus.ID(campusID))).
+		Order(facility.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query campus facilities", slog.Int("campus_id", campusID), slog.String("error", err.Error()))
@@ -936,6 +951,7 @@ func (h *Handler) handleCampusFacilitiesFragment(w http.ResponseWriter, r *http.
 func (h *Handler) handleCarrierFacilitiesFragment(w http.ResponseWriter, r *http.Request, carrierID int) {
 	items, err := h.client.CarrierFacility.Query().
 		Where(carrierfacility.HasCarrierWith(carrier.ID(carrierID))).
+		Order(carrierfacility.ByName()).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query carrier facilities", slog.Int("carrier_id", carrierID), slog.String("error", err.Error()))
