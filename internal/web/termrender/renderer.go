@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/colorprofile"
+	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
 // Renderer produces styled terminal text output with ANSI color control.
@@ -60,19 +61,25 @@ func (r *Renderer) Writef(w io.Writer, format string, args ...any) error {
 	return r.Write(w, fmt.Sprintf(format, args...))
 }
 
-// RenderPage renders a generic terminal page. Entity-specific renderers (Phase 29+)
-// will replace this with rich formatting. For now, outputs title and suggests JSON.
+// RenderPage renders a terminal page, dispatching to entity-specific renderers
+// based on the data type. Falls back to a generic stub for unrecognized types.
 func (r *Renderer) RenderPage(w io.Writer, title string, data any) error {
-	var buf strings.Builder
-	buf.WriteString(StyleHeading.Render(title))
-	buf.WriteString("\n\n")
-	if data != nil {
-		buf.WriteString(StyleMuted.Render("Detailed terminal view coming in a future update."))
-		buf.WriteString("\n")
-		buf.WriteString(StyleMuted.Render("Use ?format=json for structured data."))
-		buf.WriteString("\n")
+	switch d := data.(type) {
+	case templates.NetworkDetail:
+		return r.RenderNetworkDetail(w, d)
+	default:
+		// Generic stub for entity types not yet implemented (Phase 30).
+		var buf strings.Builder
+		buf.WriteString(StyleHeading.Render(title))
+		buf.WriteString("\n\n")
+		if data != nil {
+			buf.WriteString(StyleMuted.Render("Detailed terminal view coming in a future update."))
+			buf.WriteString("\n")
+			buf.WriteString(StyleMuted.Render("Use ?format=json for structured data."))
+			buf.WriteString("\n")
+		}
+		return r.Write(w, buf.String())
 	}
-	return r.Write(w, buf.String())
 }
 
 // RenderJSON writes data as indented JSON to w.

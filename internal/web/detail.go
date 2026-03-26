@@ -3,6 +3,7 @@ package web
 import (
 	"log/slog"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -100,6 +101,53 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 			totalBW += nix.Speed
 		}
 		data.AggregateBW = totalBW
+
+		// Build IX presence rows for terminal and JSON rendering.
+		// Sort by name to match web UI fragment ordering.
+		sort.Slice(ixlans, func(i, j int) bool {
+			return ixlans[i].Name < ixlans[j].Name
+		})
+		ixRows := make([]templates.NetworkIXLanRow, len(ixlans))
+		for i, nix := range ixlans {
+			row := templates.NetworkIXLanRow{
+				IXName:   nix.Name,
+				IXID:     nix.IxID,
+				Speed:    nix.Speed,
+				IsRSPeer: nix.IsRsPeer,
+			}
+			if nix.Ipaddr4 != nil {
+				row.IPAddr4 = *nix.Ipaddr4
+			}
+			if nix.Ipaddr6 != nil {
+				row.IPAddr6 = *nix.Ipaddr6
+			}
+			ixRows[i] = row
+		}
+		data.IXPresences = ixRows
+	}
+
+	// Build facility presence rows for terminal and JSON rendering.
+	facItems, facErr := h.client.NetworkFacility.Query().
+		Where(networkfacility.HasNetworkWith(network.ID(net.ID))).
+		Order(networkfacility.ByName()).
+		All(r.Context())
+	if facErr == nil {
+		facRows := make([]templates.NetworkFacRow, len(facItems))
+		for i, nf := range facItems {
+			row := templates.NetworkFacRow{
+				FacName:  nf.Name,
+				LocalASN: nf.LocalAsn,
+				City:     nf.City,
+				Country:  nf.Country,
+			}
+			if nf.FacID != nil {
+				row.FacID = *nf.FacID
+			}
+			facRows[i] = row
+		}
+		data.FacPresences = facRows
+	} else {
+		slog.Error("query network facilities for detail", slog.Int("network_id", net.ID), slog.String("error", facErr.Error()))
 	}
 
 	page := PageContent{

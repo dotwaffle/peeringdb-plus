@@ -58,6 +58,12 @@ type NetworkDetail struct {
 	PocCount int
 	// AggregateBW is the total bandwidth in Mbps across all IX presences (for header display).
 	AggregateBW int
+	// IXPresences holds eager-loaded IX presence rows for terminal/JSON rendering.
+	// Nil for web UI requests that lazy-load via htmx fragments.
+	IXPresences []NetworkIXLanRow `json:"ixPresences,omitempty"`
+	// FacPresences holds eager-loaded facility presence rows for terminal/JSON rendering.
+	// Nil for web UI requests that lazy-load via htmx fragments.
+	FacPresences []NetworkFacRow `json:"facPresences,omitempty"`
 }
 
 // IXDetail holds display data for an IXP detail page.
