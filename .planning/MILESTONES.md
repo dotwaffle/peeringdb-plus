@@ -1,5 +1,25 @@
 # Milestones
 
+## v1.10 Code Coverage & Test Quality (Shipped: 2026-03-26)
+
+**Phases completed:** 6 phases, 11 plans, 21 tasks
+
+**Key accomplishments:**
+
+- Deterministic test seed package (Full/Minimal/Networks) creating all 13 PeeringDB entity types with fixed IDs and validated FK relationships
+- 80%+ per-file coverage on all 3 hand-written resolver files via 7 new test functions exercising all 13 list resolvers, 12 cursor resolvers, error paths, and pagination validation
+- List filter tests for 6 missing types + Stream tests for 4 missing types + comprehensive filter branch coverage reaching 80% package coverage
+- Integration tests for renderPage dispatch modes, org fragment handlers, extractID edge cases, and getFreshness with real sync_status table
+- otelMutationHook error path, FK constraint violations, and all 39 Edges/Indexes/Annotations methods tested -- coverage 47.4% to 100.0%
+- Error path and edge case tests for otel (87.4%), health (98.5%), and peeringdb (90.5%) -- 14 new test functions targeting uncovered branches
+- Fuzz test for ParseFilters (275K executions, zero panics) plus CI coverage scoped to 25 hand-written packages excluding 23 generated packages
+- Exhaustive audit of 54 hand-written test files confirms all test functions assert data properties beyond err/status -- zero weak tests found
+- Cross-referenced 553 error call sites against coverage profile, then added 1050 lines of error path tests achieving measurable coverage gains across config (86->96%), grpcserver (80->83%), pdbcompat (85->88%), and peeringdb (91->97%)
+- DB error path tests for sync status.go (7 tests) and web compare/search/handler (3 tests), closing QUAL-02 verification gaps
+- Table-driven test covering all 13 list resolver where.P() error branches using empty not clause technique, closing QUAL-02 gap for graph/ package
+
+---
+
 ## v1.9 Hardening & Polish (Shipped: 2026-03-26)
 
 **Phases completed:** 5 phases, 12 plans, 24 tasks
