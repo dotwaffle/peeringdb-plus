@@ -117,7 +117,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. An OPTIONS preflight request to any endpoint returns CORS headers without creating an OTel trace span or emitting a log line
   2. Every `slog` error log call in the codebase passes the error value via `slog.Any("error", err)`, preserving error type information for structured log consumers
-**Plans**: TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 32-01-PLAN.md -- Middleware chain reorder (CORS before OTel) + slog.String->slog.Any replacement across 90 call sites
 
 ### Phase 33: gRPC Deduplication & Filter Parity
 **Goal**: gRPC service handlers use shared generic helpers instead of per-type copy-paste, and ConnectRPC exposes the same filter fields as the PeeringDB compat layer
@@ -173,7 +176,7 @@ Phases execute in numeric order: 32 -> 33 -> 34 -> 35 -> 36
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 32. Quick Wins | 0/0 | Not started | - |
+| 32. Quick Wins | 0/1 | Not started | - |
 | 33. gRPC Deduplication & Filter Parity | 0/0 | Not started | - |
 | 34. Query Optimization & Architecture | 0/0 | Not started | - |
 | 35. HTTP Caching & Benchmarks | 0/0 | Not started | - |
