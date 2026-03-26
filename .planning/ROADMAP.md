@@ -140,8 +140,13 @@ Plans:
   3. User sees parsed city and country in dedicated columns, with an SVG country flag icon (via flag-icons CSS) alongside the country code
   4. On narrow screens (< 768px), low-priority columns (city, speed, etc.) hide automatically instead of causing horizontal scroll
   5. Tables load with a sensible default sort order (IX participants by ASN, facilities by country)
-**Plans**: TBD
+**Plans**: 3 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 43-01-PLAN.md -- Flag-icons CDN, sort JS/CSS, CountryFlag component, FacNetworkRow data enrichment
+- [ ] 43-02-PLAN.md -- IX, Network, and Facility table conversions (9 templates)
+- [ ] 43-03-PLAN.md -- Org, Campus, and Carrier table conversions + test updates (7 templates + tests)
 
 ### Phase 44: Facility Map & Map Infrastructure
 **Goal**: Users see an interactive map on facility detail pages showing the facility's geographic location, establishing the map component and CDN infrastructure for all subsequent map work
@@ -186,7 +191,7 @@ Phases execute in numeric order: 43 -> 44 -> 45 -> 46
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 43. Dense Tables with Sorting and Flags | 0/? | Not started | - |
+| 43. Dense Tables with Sorting and Flags | 0/3 | Planning complete | - |
 | 44. Facility Map & Map Infrastructure | 0/? | Not started | - |
 | 45. Multi-Pin Maps | 0/? | Not started | - |
 | 46. Search & Compare Density | 0/? | Not started | - |
