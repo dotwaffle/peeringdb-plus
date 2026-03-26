@@ -69,14 +69,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DENS-01 | Phase 43 | Pending |
-| DENS-02 | Phase 43 | Pending |
+| DENS-02 | Phase 43 | In Progress (43-01) |
 | DENS-03 | Phase 43 | Pending |
 | DENS-04 | Phase 46 | Pending |
 | DENS-05 | Phase 46 | Pending |
-| SORT-01 | Phase 43 | Pending |
-| SORT-02 | Phase 43 | Pending |
+| SORT-01 | Phase 43 | In Progress (43-01) |
+| SORT-02 | Phase 43 | In Progress (43-01) |
 | SORT-03 | Phase 43 | Pending |
-| FLAG-01 | Phase 43 | Pending |
+| FLAG-01 | Phase 43 | In Progress (43-01) |
 | FLAG-02 | Phase 46 | Pending |
 | MAP-01 | Phase 44 | Pending |
 | MAP-02 | Phase 45 | Pending |

@@ -144,7 +144,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 43-01-PLAN.md -- Flag-icons CDN, sort JS/CSS, CountryFlag component, FacNetworkRow data enrichment
+- [x] 43-01-PLAN.md -- Flag-icons CDN, sort JS/CSS, CountryFlag component, FacNetworkRow data enrichment
 - [ ] 43-02-PLAN.md -- IX, Network, and Facility table conversions (9 templates)
 - [ ] 43-03-PLAN.md -- Org, Campus, and Carrier table conversions + test updates (7 templates + tests)
 
