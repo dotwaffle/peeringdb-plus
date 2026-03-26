@@ -156,7 +156,7 @@ Plans:
   1. All 13 entity types have at least one List test that sets an optional proto filter field to a non-nil value and asserts the response contains only matching entities (not just "no error")
   2. All 13 entity types have Stream tests (closing the gap for CarrierFacility, IxPrefix, NetworkIxLan, and Poc), and each stream test asserts the streamed entity count and at least one field value
   3. Running `go test -race -cover ./internal/grpcserver/...` reports 80%+ package-level coverage
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [x] 39-01-PLAN.md -- List filter tests for 6 missing types + Stream tests for 4 missing types + 80%+ coverage
