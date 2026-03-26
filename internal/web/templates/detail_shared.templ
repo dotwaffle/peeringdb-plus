@@ -1,6 +1,9 @@
 package templates
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Breadcrumb renders navigation breadcrumbs: Home > TypePlural > EntityName.
 // typePlural is the display name for the entity type (e.g., "Networks").
@@ -203,6 +206,17 @@ templ CopyableIP(label string, addr string) {
 		</svg>
 		<span class="copied-msg hidden text-xs text-emerald-400 ml-1">Copied!</span>
 	</div>
+}
+
+// CountryFlag renders a country flag icon with the country code text.
+// Uses flag-icons CSS classes. If code is empty, renders nothing (D-16).
+templ CountryFlag(code string) {
+	if code != "" {
+		<span class="inline-flex items-center gap-1.5">
+			<span class={ "fi fi-" + strings.ToLower(code) } aria-hidden="true"></span>
+			<span class="font-mono text-neutral-300 dark:text-neutral-300 text-xs">{ code }</span>
+		</span>
+	}
 }
 
 // CollapsibleSectionWithBandwidth renders a collapsible details/summary element

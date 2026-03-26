@@ -427,6 +427,8 @@ func (h *Handler) queryFacility(ctx context.Context, id int) (templates.Facility
 			netRows[i] = templates.FacNetworkRow{
 				NetName: nf.Name,
 				ASN:     nf.LocalAsn,
+				City:    nf.City,
+				Country: nf.Country,
 			}
 		}
 		data.Networks = netRows
@@ -1130,6 +1132,8 @@ func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Reque
 		rows[i] = templates.FacNetworkRow{
 			NetName: nf.Name,
 			ASN:     nf.LocalAsn,
+			City:    nf.City,
+			Country: nf.Country,
 		}
 	}
 
