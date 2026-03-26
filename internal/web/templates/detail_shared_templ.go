@@ -569,7 +569,7 @@ func CopyableIP(label string, addr string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<svg class=\"w-3.5 h-3.5 text-neutral-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer\" onclick=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<svg class=\"w-3.5 h-3.5 text-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer\" onclick=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
