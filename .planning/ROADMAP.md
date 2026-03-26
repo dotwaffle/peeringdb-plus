@@ -158,8 +158,12 @@ Plans:
   2. Clicking the map pin shows a popup with the facility name (and a link back to the detail page when navigated from another context)
   3. The map tile layer switches between CARTO light and dark basemaps matching the current app dark mode setting
   4. Facility detail pages without lat/lng data render normally with no map section (no empty container or error)
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 44-01-PLAN.md -- Leaflet CDN, data plumbing, MapContainer component, facility page integration
+- [ ] 44-02-PLAN.md -- Map rendering integration tests and popup HTML unit tests
 
 ### Phase 45: Multi-Pin Maps
 **Goal**: Users see maps with multiple facility pins on IX, network, and ASN comparison pages, with clustering for dense regions and colored pins distinguishing shared vs unique facilities
@@ -193,6 +197,6 @@ Phases execute in numeric order: 43 -> 44 -> 45 -> 46
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 43. Dense Tables with Sorting and Flags | 4/4 | Complete    | 2026-03-26 |
-| 44. Facility Map & Map Infrastructure | 0/? | Not started | - |
+| 44. Facility Map & Map Infrastructure | 0/2 | Not started | - |
 | 45. Multi-Pin Maps | 0/? | Not started | - |
 | 46. Search & Compare Density | 0/? | Not started | - |
