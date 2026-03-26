@@ -1083,9 +1083,16 @@ func TestTerminal404JSON(t *testing.T) {
 	if !strings.HasPrefix(ct, "application/json") {
 		t.Errorf("Content-Type = %q, want application/json prefix", ct)
 	}
+	// RFC 9457 Problem Detail format per ARCH-01.
 	body := rec.Body.String()
-	if !strings.Contains(body, `"error"`) {
-		t.Errorf("JSON 404 body missing error field: %s", body)
+	if !strings.Contains(body, `"type"`) || !strings.Contains(body, `about:blank`) {
+		t.Errorf("JSON 404 body missing RFC 9457 type field: %s", body)
+	}
+	if !strings.Contains(body, `"status"`) {
+		t.Errorf("JSON 404 body missing RFC 9457 status field: %s", body)
+	}
+	if !strings.Contains(body, `"title"`) {
+		t.Errorf("JSON 404 body missing RFC 9457 title field: %s", body)
 	}
 }
 

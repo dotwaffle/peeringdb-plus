@@ -30,6 +30,7 @@ import (
 	pdbgql "github.com/dotwaffle/peeringdb-plus/internal/graphql"
 	"github.com/dotwaffle/peeringdb-plus/internal/grpcserver"
 	"github.com/dotwaffle/peeringdb-plus/internal/health"
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
@@ -207,7 +208,7 @@ func main() {
 		os.Exit(1)
 	}
 	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})
-	mux.Handle("/rest/v1/", restCORS(restSrv.Handler()))
+	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restSrv.Handler())))
 	logger.Info("REST API mounted", slog.String("prefix", "/rest/v1/"))
 
 	// Mount PeeringDB compatibility API at /api/ per D-27, D-28.
@@ -395,6 +396,73 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		logger.Error("shutdown error", slog.Any("error", err))
 	}
+}
+
+// restErrorMiddleware wraps an HTTP handler to rewrite error responses (status >= 400)
+// into RFC 9457 Problem Details format. Successful responses pass through unchanged.
+// The wrapper implements http.Flusher and Unwrap per CLAUDE.md middleware conventions.
+func restErrorMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rw := &restErrorWriter{ResponseWriter: w, request: r}
+		next.ServeHTTP(rw, r)
+
+		// If the upstream wrote an error status but we buffered the body,
+		// rewrite it as RFC 9457.
+		if rw.status >= 400 && !rw.flushed {
+			httperr.WriteProblem(w, httperr.WriteProblemInput{
+				Status:   rw.status,
+				Detail:   strings.TrimSpace(rw.buf.String()),
+				Instance: r.URL.Path,
+			})
+		}
+	})
+}
+
+// restErrorWriter intercepts WriteHeader and Write to capture error responses.
+// For status < 400, it writes through immediately. For status >= 400, it buffers
+// the body so it can be replaced with RFC 9457 format.
+type restErrorWriter struct {
+	http.ResponseWriter
+	request *http.Request
+	status  int
+	buf     strings.Builder
+	flushed bool // true if we already wrote through (success path)
+}
+
+// WriteHeader captures the status code. For success, it writes through immediately.
+// For errors (>= 400), it stores the status for later rewriting.
+func (w *restErrorWriter) WriteHeader(statusCode int) {
+	w.status = statusCode
+	if statusCode < 400 {
+		w.flushed = true
+		w.ResponseWriter.WriteHeader(statusCode)
+	}
+	// For errors, don't write the header yet -- we'll rewrite in the middleware.
+}
+
+// Write passes through for success responses or buffers for error responses.
+func (w *restErrorWriter) Write(b []byte) (int, error) {
+	if w.status == 0 {
+		w.status = http.StatusOK
+		w.flushed = true
+	}
+	if w.flushed {
+		return w.ResponseWriter.Write(b)
+	}
+	// Buffer error body for rewriting.
+	return w.buf.Write(b)
+}
+
+// Flush implements http.Flusher by delegating to the underlying writer.
+func (w *restErrorWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Unwrap returns the underlying http.ResponseWriter for middleware-aware detection.
+func (w *restErrorWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
 }
 
 // syncReadiness reports whether at least one sync has completed.
