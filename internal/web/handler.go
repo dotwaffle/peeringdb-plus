@@ -174,7 +174,9 @@ func convertToSearchGroups(results []TypeResult) []templates.SearchGroup {
 		for j, h := range r.Results {
 			hits[j] = templates.SearchResult{
 				Name:      h.Name,
-				Subtitle:  h.Subtitle,
+				Country:   h.Country,
+				City:      h.City,
+				ASN:       h.ASN,
 				DetailURL: h.DetailURL,
 			}
 		}

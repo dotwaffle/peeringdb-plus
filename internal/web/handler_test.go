@@ -803,7 +803,7 @@ func TestSearchResults_ARIARoles(t *testing.T) {
 			AccentColor: "emerald",
 			HasMore:     false,
 			Results: []templates.SearchResult{
-				{Name: "Cloudflare", Subtitle: "AS13335", DetailURL: "/ui/asn/13335"},
+				{Name: "Cloudflare", ASN: 13335, DetailURL: "/ui/asn/13335"},
 			},
 		},
 	}
@@ -848,7 +848,7 @@ func TestSearchResults_FadeIn(t *testing.T) {
 			AccentColor: "emerald",
 			HasMore:     false,
 			Results: []templates.SearchResult{
-				{Name: "Cloudflare", Subtitle: "AS13335", DetailURL: "/ui/asn/13335"},
+				{Name: "Cloudflare", ASN: 13335, DetailURL: "/ui/asn/13335"},
 			},
 		},
 	}
@@ -857,11 +857,11 @@ func TestSearchResults_FadeIn(t *testing.T) {
 	if !strings.Contains(body, "animate-fade-in") {
 		t.Error("search results missing animate-fade-in class")
 	}
-	if !strings.Contains(body, "dark:border-neutral-700") {
-		t.Error("search results missing dark:border-neutral-700")
+	if !strings.Contains(body, "divide-neutral-700/50") {
+		t.Error("search results missing divide-neutral-700/50 divider class")
 	}
-	if !strings.Contains(body, "dark:bg-neutral-800") {
-		t.Error("search results missing dark:bg-neutral-800")
+	if !strings.Contains(body, "dark:hover:bg-neutral-800/50") {
+		t.Error("search results missing dark:hover:bg-neutral-800/50 hover class")
 	}
 }
 
