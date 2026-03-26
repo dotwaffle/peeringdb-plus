@@ -58,6 +58,12 @@ type NetworkDetail struct {
 	PocCount int
 	// AggregateBW is the total bandwidth in Mbps across all IX presences (for header display).
 	AggregateBW int
+	// IXPresences holds eager-loaded IX presence rows for terminal/JSON rendering.
+	// Nil for web UI requests that lazy-load via htmx fragments.
+	IXPresences []NetworkIXLanRow `json:"ixPresences,omitempty"`
+	// FacPresences holds eager-loaded facility presence rows for terminal/JSON rendering.
+	// Nil for web UI requests that lazy-load via htmx fragments.
+	FacPresences []NetworkFacRow `json:"facPresences,omitempty"`
 }
 
 // IXDetail holds display data for an IXP detail page.
@@ -102,6 +108,12 @@ type IXDetail struct {
 	PrefixCount int
 	// AggregateBW is the total bandwidth in Mbps across all participants (for header display).
 	AggregateBW int
+	// Participants holds eager-loaded participant rows for terminal/JSON rendering. Nil for web UI requests.
+	Participants []IXParticipantRow `json:"participants,omitempty"`
+	// Facilities holds eager-loaded facility rows for terminal/JSON rendering. Nil for web UI requests.
+	Facilities []IXFacilityRow `json:"facilities,omitempty"`
+	// Prefixes holds eager-loaded prefix rows for terminal/JSON rendering. Nil for web UI requests.
+	Prefixes []IXPrefixRow `json:"prefixes,omitempty"`
 }
 
 // FacilityDetail holds display data for a facility detail page.
@@ -150,6 +162,12 @@ type FacilityDetail struct {
 	IXCount int
 	// CarrierCount is the pre-computed count of carriers.
 	CarrierCount int
+	// Networks holds eager-loaded network rows for terminal/JSON rendering. Nil for web UI requests.
+	Networks []FacNetworkRow `json:"networks,omitempty"`
+	// IXPs holds eager-loaded IXP rows for terminal/JSON rendering. Nil for web UI requests.
+	IXPs []FacIXRow `json:"ixps,omitempty"`
+	// Carriers holds eager-loaded carrier rows for terminal/JSON rendering. Nil for web UI requests.
+	Carriers []FacCarrierRow `json:"carriers,omitempty"`
 }
 
 // OrgDetail holds display data for an organization detail page.
@@ -190,6 +208,16 @@ type OrgDetail struct {
 	CampusCount int
 	// CarrierCount is the count of carriers (requires query).
 	CarrierCount int
+	// Networks holds eager-loaded network rows for terminal/JSON rendering. Nil for web UI requests.
+	Networks []OrgNetworkRow `json:"networks,omitempty"`
+	// IXPs holds eager-loaded IXP rows for terminal/JSON rendering. Nil for web UI requests.
+	IXPs []OrgIXRow `json:"ixps,omitempty"`
+	// Facs holds eager-loaded facility rows for terminal/JSON rendering. Nil for web UI requests.
+	Facs []OrgFacilityRow `json:"facilities,omitempty"`
+	// Campuses holds eager-loaded campus rows for terminal/JSON rendering. Nil for web UI requests.
+	Campuses []OrgCampusRow `json:"campuses,omitempty"`
+	// Carriers holds eager-loaded carrier rows for terminal/JSON rendering. Nil for web UI requests.
+	Carriers []OrgCarrierRow `json:"carriers,omitempty"`
 }
 
 // CampusDetail holds display data for a campus detail page.
@@ -222,6 +250,8 @@ type CampusDetail struct {
 	Status string
 	// FacCount is the count of facilities (requires query).
 	FacCount int
+	// Facilities holds eager-loaded facility rows for terminal/JSON rendering. Nil for web UI requests.
+	Facilities []CampusFacilityRow `json:"facilities,omitempty"`
 }
 
 // CarrierDetail holds display data for a carrier detail page.
@@ -246,6 +276,8 @@ type CarrierDetail struct {
 	Status string
 	// FacCount is the pre-computed count of facilities.
 	FacCount int
+	// Facilities holds eager-loaded facility rows for terminal/JSON rendering. Nil for web UI requests.
+	Facilities []CarrierFacilityRow `json:"facilities,omitempty"`
 }
 
 // NetworkIXLanRow holds display data for a network's IX presence row.

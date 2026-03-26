@@ -25,7 +25,7 @@ func (h *Handler) handleAbout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	page := PageContent{Title: "About", Content: templates.AboutPage(freshness)}
+	page := PageContent{Title: "About", Content: templates.AboutPage(freshness), Data: freshness}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		h.handleServerError(w, r)
 	}

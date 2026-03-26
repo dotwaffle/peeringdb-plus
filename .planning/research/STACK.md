@@ -1,325 +1,228 @@
-# Technology Stack: Server-Streaming RPCs & IX Presence UI Polish
+# Technology Stack: Terminal CLI Interface
 
-**Project:** PeeringDB Plus - v1.7 Streaming & UI Polish Milestone
+**Project:** PeeringDB Plus - v1.8 Terminal CLI Interface
 **Researched:** 2026-03-25
-**Scope:** Stack additions/changes needed for server-streaming RPCs (bulk data export) and IX presence UI improvements.
+**Scope:** Stack additions needed for curl-friendly terminal output with rich ANSI rendering, content negotiation, and User-Agent detection.
 
 ## Context: What Already Exists (DO NOT add)
 
-The project already has all required infrastructure. The v1.7 milestone requires **zero new Go dependencies**. Everything needed for both server-streaming RPCs and UI improvements is already in `go.mod`:
+The project has 5 API surfaces served from a single HTTP mux. The web UI uses `templ` + `htmx` + Tailwind CSS with a `renderPage` function that already performs content negotiation between full-page and htmx fragment renders via `HX-Request` header. The `readinessMiddleware` in `main.go` already distinguishes browsers (Accept: text/html) from API clients for 503 responses. The root handler (`GET /{$}`) already does Accept-header content negotiation.
 
-| Dependency | Version | Role in v1.7 |
-|------------|---------|-------------|
-| `connectrpc.com/connect` | v1.19.1 | Server-streaming handler types (`connect.ServerStream[T]`) already included |
-| `connectrpc.com/connect/cmd/protoc-gen-connect-go` | v1.19.1 | Generates server-streaming handler interfaces from proto `stream` keyword |
-| `connectrpc.com/otelconnect` | v0.9.0 | Already instruments streaming RPCs (traces per-message events, `responses_per_rpc` metric) |
-| `connectrpc.com/cors` | v0.1.0 | Already handles streaming content types |
-| `connectrpc.com/grpcreflect` | v1.3.0 | Automatically discovers new streaming RPCs via existing static reflector |
-| `google.golang.org/protobuf` | v1.36.11 | Proto runtime for generated streaming messages |
-| `github.com/a-h/templ` | v0.3.1001 | Templ templates for UI changes |
-| buf v2 toolchain | latest | Proto compilation with `buf generate` |
+| Existing Dependency | Role in v1.8 |
+|---------------------|-------------|
+| `net/http` stdlib | HTTP handlers, mux routing, header inspection -- all detection and routing logic |
+| `internal/web` package | Existing dispatch pattern in `handler.go` is the integration point for terminal rendering |
+| `internal/web/render.go` | `renderPage` already switches on request headers; terminal rendering adds a third path |
+| `github.com/a-h/templ` | NOT used for terminal output -- templ generates HTML, terminal output is plain ANSI text |
+| `ent` client | Data queries remain identical; only the rendering layer changes |
 
-**Key insight:** ConnectRPC v1.19.0 introduced the `simple` flag (already enabled in `buf.gen.yaml`), and its streaming support has been stable since the initial v1.0 release. No version bump is needed.
+## New Dependencies Required
 
-## Server-Streaming RPCs: What Changes
+### Terminal Rendering
 
-### Proto Definition (No New Dependencies)
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| `charm.land/lipgloss/v2` | v2.0.2 | Terminal styling (colors, borders, padding, alignment) | The dominant Go terminal styling library. v2 (stable, published 2026-03-11) has deterministic rendering, explicit I/O control, and does NOT require a real terminal -- styles produce strings containing ANSI escape codes that can be written to any `io.Writer` including `http.ResponseWriter`. Built-in border types include `NormalBorder()` (Unicode box drawing: `─│┌┐└┘`), `RoundedBorder()` (`╭╮╰╯`), `DoubleBorder()` (`═║╔╗╚╝`), and `ASCIIBorder()` (`-|+`) for maximum compatibility. Import path changed from `github.com/charmbracelet/lipgloss` to `charm.land/lipgloss/v2` in v2. | HIGH |
+| `charm.land/lipgloss/v2/table` | v2.0.2 | Structured table rendering with per-cell styling | Sub-package of lipgloss providing table creation with `Headers()`, `Row()`, `StyleFunc()`, `Border()`, `Width()`, and `Wrap()` methods. Renders to string via `.Render()` or `.String()`. Supports `StyleFunc(func(row, col int) lipgloss.Style)` for per-cell color control (headers, alternating rows, highlighted values). No separate dependency -- same module as lipgloss/v2. | HIGH |
+| `github.com/charmbracelet/colorprofile` | v0.4.3 | Explicit color profile selection for server-side rendering | Provides `Profile` constants (`ANSI256`, `TrueColor`, `ANSI`, `ASCII`, `NoTTY`) and a `Writer` type that automatically downgrades ANSI escape sequences. Critical for server-side use: we do NOT detect terminal capabilities (no terminal exists on the server); instead we explicitly set `Profile = colorprofile.ANSI256` for rich output or `Profile = colorprofile.ASCII` for plain text mode. The `NewWriter(w, environ)` function wraps any `io.Writer`. Published 2026-03-09. | HIGH |
 
-Server-streaming RPCs use the `stream` keyword in proto return types. This is standard protobuf syntax supported by the existing `buf` toolchain and `protoc-gen-connect-go`:
+### No Additional Dependencies Needed
 
-```protobuf
-// In proto/peeringdb/v1/services.proto -- add to each existing service
-service NetworkService {
-  rpc GetNetwork(GetNetworkRequest) returns (GetNetworkResponse);
-  rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
-  // NEW: Server-streaming RPC for bulk export
-  rpc StreamNetworks(StreamNetworksRequest) returns (stream Network);
-}
+These capabilities are covered by the three packages above plus stdlib:
 
-message StreamNetworksRequest {
-  // Filter fields -- same optional filters as ListNetworksRequest
-  optional int64 asn = 1;
-  optional string name = 2;
-  optional string status = 3;
-  optional int64 org_id = 4;
-}
+| Capability | Provided By | Notes |
+|-----------|------------|-------|
+| User-Agent detection | `net/http` stdlib | Simple string prefix matching on `r.Header.Get("User-Agent")` -- no library needed |
+| Content negotiation | `net/http` stdlib | Check `Accept` header and `?format=` query parameter -- no library needed |
+| Unicode box drawing | lipgloss `NormalBorder()` / `RoundedBorder()` | Built into border definitions, no separate Unicode library |
+| 256-color ANSI codes | lipgloss `Color("123")` + colorprofile `ANSI256` | lipgloss generates ANSI escape sequences, colorprofile ensures correct profile |
+| Terminal width handling | Explicit `Width(80)` on tables | Server has no terminal to detect width from. Default to 80 columns (standard). Allow `?w=N` query parameter override. |
+| Plain text fallback | colorprofile `ASCII` profile | Strips all ANSI codes automatically when profile is `ASCII` |
+| JSON output | `encoding/json` stdlib | Already in use throughout the project |
+
+## How It Works: Server-Side ANSI Rendering
+
+The key insight: this is **server-side rendering** of ANSI escape codes, not a TUI. There is no terminal to detect capabilities from. The server generates ANSI-encoded strings and writes them to the HTTP response body. The user's terminal interprets the ANSI codes.
+
+### Rendering Pipeline
+
+```
+HTTP Request
+    |
+    v
+Content Negotiation (User-Agent + Accept + ?format= + ?T)
+    |
+    +--> Browser detected? --> Existing templ/htmx rendering (unchanged)
+    |
+    +--> Terminal detected, rich mode? --> lipgloss styles + table + colorprofile.ANSI256
+    |                                      --> Write to ResponseWriter
+    |
+    +--> Terminal detected, plain mode (?T)? --> lipgloss + colorprofile.ASCII
+    |                                            --> Strips all ANSI, Unicode borders become ASCII
+    |
+    +--> ?format=json? --> encoding/json (existing pattern)
 ```
 
-**Confidence:** HIGH -- this is standard protobuf syntax, verified against ConnectRPC docs and proto3 specification.
+### Color Profile Strategy
 
-### Generated Handler Interface (Simple Mode)
+| Mode | Profile | Border Style | When |
+|------|---------|-------------|------|
+| Rich (default for terminals) | `colorprofile.ANSI256` | `lipgloss.RoundedBorder()` | Terminal client detected, no `?T` param |
+| Plain text | `colorprofile.ASCII` | `lipgloss.ASCIIBorder()` | `?T` query param present, or `Accept: text/plain` |
+| No color | `colorprofile.NoTTY` | `lipgloss.ASCIIBorder()` | Pipe detection hint or explicit `?nocolor` |
 
-With the `simple` flag enabled in `buf.gen.yaml`, `protoc-gen-connect-go` v1.19.1 generates this handler interface for server-streaming RPCs:
+### Why ANSI 256-Color (Not TrueColor)
+
+Use 256-color as the default profile, not TrueColor (24-bit), because:
+
+1. **256-color is universally supported** by every modern terminal emulator (iTerm2, Terminal.app, GNOME Terminal, Windows Terminal, xterm-256color, tmux, screen). TrueColor support is widespread but not universal -- notably `screen` and some SSH session multiplexers strip 24-bit sequences.
+2. **The PeeringDB data domain has limited color needs.** We need ~10-15 distinct colors for headers, entity types, status indicators, and port speed categories. 256 colors is more than sufficient.
+3. **Smaller payload.** 256-color escape codes are shorter than TrueColor codes: `\x1b[38;5;123m` (13 bytes) vs `\x1b[38;2;107;80;255m` (19 bytes). Over a large table this adds up.
+4. **lipgloss auto-downgrades.** Use `lipgloss.Color("#6a00ff")` or `lipgloss.CompleteColor{TrueColor: "#6a00ff", ANSI256: "57", ANSI: "5"}` and the colorprofile writer handles downsampling automatically.
+
+### User-Agent Detection Pattern
+
+Detect terminal clients via User-Agent prefix matching. This is the same pattern used by wttr.in, cheat.sh, and similar curl-friendly services.
+
+| Client | Default User-Agent | Detection |
+|--------|-------------------|-----------|
+| curl | `curl/8.x.x` | `strings.HasPrefix(ua, "curl/")` |
+| wget | `Wget/1.x` | `strings.HasPrefix(ua, "Wget/")` |
+| HTTPie | `HTTPie/3.x` | `strings.HasPrefix(ua, "HTTPie/")` |
+| PowerShell | `Mozilla/5.0 (Windows NT; ... PowerShell/...)` | `strings.Contains(ua, "PowerShell")` |
+| fetch (Go) | `Go-http-client/1.1` | `strings.HasPrefix(ua, "Go-http-client/")` |
+| libwww-perl | `libwww-perl/6.x` | `strings.HasPrefix(ua, "libwww-perl/")` |
+| Python requests | `python-requests/2.x` | `strings.HasPrefix(ua, "python-requests/")` |
+
+**Fallback logic:**
+1. Check `?format=` query param first (explicit override: `json`, `text`, `plain`)
+2. Check `Accept` header (`text/plain` or `application/json` prefers text/JSON)
+3. Check User-Agent for known terminal clients
+4. If User-Agent contains `Mozilla/` AND does not match PowerShell/etc, assume browser
+5. Default: treat as terminal (safer -- terminals handle HTML poorly, browsers handle text fine)
+
+### Content-Type Response Headers
+
+| Output Mode | Content-Type |
+|-------------|-------------|
+| Rich ANSI | `text/plain; charset=utf-8` |
+| Plain text | `text/plain; charset=utf-8` |
+| JSON | `application/json; charset=utf-8` |
+| HTML (browser) | `text/html; charset=utf-8` (existing) |
+
+Note: There is no standard MIME type for ANSI-encoded text. `text/plain; charset=utf-8` is correct and is what wttr.in uses. Terminals interpret ANSI codes embedded in the text stream; the Content-Type does not need to signal this.
+
+## Integration Points
+
+### Where Terminal Rendering Hooks In
+
+The integration point is `internal/web/handler.go` dispatch and `internal/web/render.go`. The existing pattern:
 
 ```go
-// Generated by protoc-gen-connect-go
-type NetworkServiceHandler interface {
-    GetNetwork(context.Context, *pb.GetNetworkRequest) (*pb.GetNetworkResponse, error)
-    ListNetworks(context.Context, *pb.ListNetworksRequest) (*pb.ListNetworksResponse, error)
-    // NEW: Server-streaming method
-    StreamNetworks(context.Context, *pb.StreamNetworksRequest, *connect.ServerStream[pb.Network]) error
+// Current: 2-way negotiation (browser vs htmx fragment)
+func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, page PageContent) error {
+    if r.Header.Get("HX-Request") == "true" {
+        return page.Content.Render(ctx, w) // htmx fragment
+    }
+    return templates.Layout(page.Title, page.Content).Render(ctx, w) // full page
 }
 ```
 
-The generated `NewNetworkServiceHandler` function will create a `connect.NewServerStreamHandlerSimple` internally, routing the new RPC alongside existing unary RPCs on the same path prefix.
-
-**Confidence:** HIGH -- verified against ConnectRPC v1.19.1 pkg.go.dev documentation and the `simple` codegen behavior.
-
-### Handler Implementation Pattern
-
-Each streaming handler follows a consistent pattern -- query ent, iterate results, send one message per row:
+Becomes 3-way negotiation:
 
 ```go
-// StreamNetworks streams all matching networks one at a time.
-func (s *NetworkService) StreamNetworks(
-    ctx context.Context,
-    req *pb.StreamNetworksRequest,
-    stream *connect.ServerStream[pb.Network],
-) error {
-    // Build predicates (same pattern as ListNetworks)
-    var predicates []predicate.Network
-    // ... filter accumulation ...
-
-    query := s.Client.Network.Query().
-        Order(ent.Asc(network.FieldID))
-    if len(predicates) > 0 {
-        query = query.Where(network.And(predicates...))
-    }
-
-    // Stream rows from DB -- no full buffering
-    results, err := query.All(ctx)
-    if err != nil {
-        return connect.NewError(connect.CodeInternal, fmt.Errorf("stream networks: %w", err))
-    }
-
-    for _, n := range results {
-        if err := stream.Send(networkToProto(n)); err != nil {
-            return err // client disconnected or context canceled
-        }
-    }
-    return nil
+// v1.8: 3-way negotiation (terminal vs htmx fragment vs full page)
+// Terminal check happens FIRST -- before any templ rendering
+if isTerminalClient(r) {
+    renderTerminal(ctx, w, r, terminalData) // lipgloss rendering
+    return
 }
+// ... existing htmx/browser paths unchanged
 ```
 
-**Note:** ent's `Query().All()` loads all results into memory. For PeeringDB's dataset sizes (largest table is ~100K rows of NetworkIxLan at ~500 bytes each = ~50MB), this is acceptable. True cursor-based streaming would require raw SQL queries, which adds complexity without proportional benefit at this scale. The streaming value is on the **wire** -- the client receives rows incrementally without waiting for the full response to be assembled and serialized.
+The terminal rendering path is entirely separate from templ -- it writes plain text with ANSI codes, not HTML.
 
-**Confidence:** HIGH -- pattern matches existing codebase conventions and ConnectRPC API surface.
+### New Package Structure
 
-### `connect.ServerStream[T]` API Surface
+```
+internal/
+  terminal/           # NEW - terminal rendering package
+    detect.go         # User-Agent detection, content negotiation
+    render.go         # Core rendering functions using lipgloss
+    styles.go         # Color palette, style definitions
+    network.go        # Network entity terminal renderer
+    ix.go             # IX entity terminal renderer
+    facility.go       # Facility entity terminal renderer
+    org.go            # Organization entity terminal renderer
+    campus.go         # Campus entity terminal renderer
+    carrier.go        # Carrier entity terminal renderer
+    help.go           # CLI help text renderer
+    error.go          # Terminal-formatted error responses
+```
 
-| Method | Purpose | When to Use |
-|--------|---------|-------------|
-| `Send(msg *T) error` | Send one message to client. First call also sends response headers. | Call once per row in the iteration loop |
-| `ResponseHeader() http.Header` | Access response headers (sent with first `Send`) | Set custom headers before first `Send` if needed |
-| `ResponseTrailer() http.Header` | Access response trailers (sent when handler returns) | Set row count or checksum trailers after iteration |
-| `Conn() StreamingHandlerConn` | Access underlying connection | Advanced use only -- not needed for this use case |
+### Vary Header
 
-**Confidence:** HIGH -- verified against [pkg.go.dev/connectrpc.com/connect#ServerStream](https://pkg.go.dev/connectrpc.com/connect#ServerStream).
-
-### Wire Protocol Behavior
-
-| Protocol | HTTP Version | Streaming Support | Notes |
-|----------|-------------|-------------------|-------|
-| Connect | HTTP/1.1 | Server streaming supported | Uses chunked transfer encoding. Works with all existing clients. |
-| Connect | HTTP/2 | Server streaming supported | Full multiplexing. Already supported via h2c in current deployment. |
-| gRPC | HTTP/2 only | Server streaming supported | Standard gRPC framing. Works with grpcurl. |
-| gRPC-Web | HTTP/1.1 | Server streaming supported | Browser-compatible. Works with existing CORS config. |
-
-All three protocols are supported by `connectrpc.com/connect` v1.19.1 for server streaming without any additional configuration. The existing `h2c` setup in `cmd/peeringdb-plus/main.go` ensures HTTP/2 works for native gRPC clients.
-
-**Confidence:** HIGH -- verified against [ConnectRPC streaming docs](https://connectrpc.com/docs/go/streaming/) and [protocol reference](https://connectrpc.com/docs/protocol/).
-
-### Observability (No Changes Required)
-
-`connectrpc.com/otelconnect` v0.9.0 already instruments streaming RPCs:
-- **Traces:** Creates a span per streaming RPC. Per-message trace events are emitted by default (can be disabled with `WithoutTraceEvents`).
-- **Metrics:** `rpc.server.duration` histogram and `rpc.server.responses_per_rpc` histogram both cover streaming RPCs.
-- **Registration:** The existing `otelconnect.NewInterceptor()` in `main.go` applies to streaming handlers automatically via `connect.WithInterceptors()` in `handlerOpts`.
-
-**Confidence:** HIGH -- verified against [otelconnect docs](https://pkg.go.dev/connectrpc.com/otelconnect).
-
-### Reflection (No Changes Required)
-
-The existing `grpcreflect.NewStaticReflector(serviceNames...)` automatically discovers new RPCs added to existing services because it uses the proto file descriptor set. Adding `StreamNetworks` to the `NetworkService` in `services.proto` means reflection will report it with no code changes to `main.go`.
-
-**Confidence:** HIGH -- reflection works from proto descriptors, not individual method registration.
-
-### Health Check (No Changes Required)
-
-`connectrpc.com/grpchealth` v1.4.0 operates at the service level, not the method level. Existing services gain streaming methods without any health check configuration changes.
-
-**Confidence:** HIGH.
-
-### Service Registration (Minimal Change)
-
-No changes to `main.go` service registration. The `NewNetworkServiceHandler` call already creates the handler for all RPCs in the service. Adding `StreamNetworks` to the proto and implementing the handler interface method on `grpcserver.NetworkService` is sufficient -- the generated handler router dispatches based on URL path.
-
-**Confidence:** HIGH -- verified against generated code in `services.connect.go`.
-
-### CORS (No Changes Required)
-
-`connectrpc.com/cors` v0.1.0 already allows the content types used by streaming: `application/connect+proto`, `application/connect+json`, `application/grpc`, `application/grpc-web`. No CORS configuration changes needed.
-
-**Confidence:** HIGH.
-
-## IX Presence UI Improvements: What Changes
-
-### Template Changes (No New Dependencies)
-
-All UI improvements are CSS/HTML changes within existing templ templates. No new Go packages, JS libraries, or CSS frameworks are needed.
-
-**Affected templates:**
-- `internal/web/templates/detail_net.templ` -- `NetworkIXLansList` component (network's IX presences)
-- `internal/web/templates/detail_ix.templ` -- `IXParticipantsList` component (IX participants)
-- `internal/web/templates/detail_shared.templ` -- `formatSpeed` helper function
-- `internal/web/templates/detailtypes.go` -- No struct changes needed (all fields already present)
-
-### UI Change 1: Field Labels for Speed/IPv4/IPv6
-
-**Current:** Values displayed without labels in a flex row: `10G 192.0.2.1 2001:db8::1`
-**Target:** Explicit labels: `Speed: 10G IPv4: 192.0.2.1 IPv6: 2001:db8::1`
-
-**Implementation:** Add `<span class="text-neutral-500">` label elements before each value in both `NetworkIXLansList` and `IXParticipantsList` templates. Uses existing Tailwind classes -- no new CSS.
-
-**Confidence:** HIGH -- pure template change using existing patterns (see `DetailField` component for label styling).
-
-### UI Change 2: Color-Coded Port Speeds
-
-**Current:** Speed displayed in plain `text-neutral-400` like other metadata.
-**Target:** Speed text color varies by tier to provide visual hierarchy.
-
-**Implementation approach:** Add a `speedColorClass` helper function in `detail_shared.templ`:
+Responses from `/ui/*` endpoints MUST include `Vary: User-Agent, Accept` to prevent CDN/proxy caching conflicts between browser HTML and terminal ANSI output. The existing `Vary: HX-Request` must be extended:
 
 ```go
-func speedColorClass(mbps int) string {
-    switch {
-    case mbps >= 100_000: // 100G+
-        return "text-emerald-400"
-    case mbps >= 10_000: // 10G+
-        return "text-sky-400"
-    case mbps >= 1_000: // 1G+
-        return "text-amber-400"
-    default: // <1G
-        return "text-neutral-400"
-    }
-}
+w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
 ```
 
-**Rationale for thresholds:** These tiers match industry-standard port speed categories. 100G+ is premium infrastructure (green), 10G is standard peering (blue), 1G is smaller ports (amber), sub-1G is legacy/low-speed (neutral). The colors reuse the existing Tailwind palette already in the codebase (emerald for networks, sky for IXes, amber for orgs).
+## Alternatives Considered
 
-**Confidence:** HIGH -- pure Go function + Tailwind classes, no new dependencies.
+| Category | Recommended | Alternative | Why Not |
+|----------|-------------|-------------|---------|
+| Terminal styling | lipgloss v2 | Raw ANSI escape codes | Raw codes are error-prone, no auto-downsampling, no layout utilities. lipgloss provides borders, padding, alignment, width control, and color profile management. The styling API is CSS-like and maintainable. |
+| Terminal styling | lipgloss v2 | muesli/termenv | termenv is the low-level layer under lipgloss. It handles color profiles and ANSI output but has no layout, borders, or table support. lipgloss builds on termenv and adds everything we need. Using termenv directly would mean reimplementing lipgloss. |
+| Table rendering | lipgloss/table | jedib0t/go-pretty v6 | go-pretty (v6.7.8) is feature-rich but heavy -- includes progress bars, lists, and text utilities we do not need. Its color API uses its own `text.Color` type, not standard `color.Color` or lipgloss styles. lipgloss/table integrates natively with lipgloss styles, borders, and color profiles. One ecosystem, not two. |
+| Table rendering | lipgloss/table | olekukonko/tablewriter v1 | tablewriter (v1.1.4) is popular but has a different styling model (method chaining vs style functions) and does not integrate with lipgloss color profiles. Using two separate styling systems creates inconsistency between table headers and standalone styled text. |
+| Table rendering | lipgloss/table | rodaine/table | Minimal, no ANSI color support built-in. |
+| Color profile | charmbracelet/colorprofile | Manual ANSI code selection | colorprofile provides automatic downsampling (TrueColor to 256 to 16 to ASCII) via a Writer wrapper. Manual selection means maintaining parallel color definitions for each profile. |
+| Content negotiation | Stdlib header checks | jchannon/negotiator library | The negotiation logic is 20 lines of User-Agent prefix checks and Accept header parsing. A library adds a dependency for trivial logic. The existing codebase already does this pattern in `main.go` and `readinessMiddleware`. |
+| Unicode box drawing | lipgloss built-in borders | Manual Unicode characters | lipgloss `NormalBorder()`, `RoundedBorder()`, `DoubleBorder()` already define all needed box-drawing characters with proper corner/intersection pieces. No benefit to hand-crafting them. |
 
-### UI Change 3: RS Badge Repositioning
+## Installation
 
-**Current:** RS badge is positioned at the far right of the row via `shrink-0 ml-3`, separated from the data it relates to.
-**Target:** RS badge positioned inline near the speed/IP data, closer to the context it describes.
+```bash
+# Terminal rendering (lipgloss v2 includes table sub-package)
+go get charm.land/lipgloss/v2@v2.0.2
 
-**Implementation:** Move the RS badge `<span>` from outside the flex-col container into the metadata row (`<div class="flex gap-4 ...">`) alongside speed and IP addresses. This is a template-only change.
+# Color profile management
+go get github.com/charmbracelet/colorprofile@v0.4.3
 
-**Confidence:** HIGH -- pure HTML restructuring within existing templ components.
-
-### UI Change 4: Selectable/Copyable Text
-
-**Current:** Rows are wrapped in `<a>` tags, which means selecting text selects the entire link and copies the URL rather than the displayed text.
-**Target:** IP addresses, ASNs, and speeds should be individually selectable/copyable while rows remain clickable.
-
-**Implementation approach:** Use CSS `user-select` control:
-- Keep the outer `<a>` tag for row-level click navigation
-- Add `select-text` (Tailwind class for `user-select: text`) on the monospaced data spans
-- Add `select-none` on the row's non-data elements (name, decorative elements)
-- This allows users to click-drag to select specific IP addresses or ASNs without navigating
-
-**Tailwind classes used:** `select-text` and `select-none` are built into Tailwind CSS. Already available via the CDN include in `layout.templ`.
-
-**Confidence:** HIGH -- standard CSS, no new dependencies. Tailwind `select-text` maps to `user-select: text`.
-
-### UI Change 5: Consistent IP Address Indentation
-
-**Current:** IPv4 and IPv6 addresses sit in a flex row with `gap-4`, but addresses of varying length cause visual misalignment across rows.
-**Target:** IP addresses are consistently spaced for easy scanning.
-
-**Implementation:** Use `min-w-[...]` Tailwind classes on the IPv4 span to ensure consistent width:
-```html
-<span class="min-w-[9rem]">{ row.IPAddr4 }</span>
+# No other new dependencies needed
 ```
 
-This uses Tailwind's arbitrary value syntax, supported by the CDN. The `9rem` width accommodates the longest IPv4 address (15 characters in monospace at 0.6rem each).
+## Version Pinning Strategy
 
-**Confidence:** HIGH -- standard Tailwind arbitrary values, already used elsewhere in the codebase.
-
-## What NOT to Add
-
-| Temptation | Why Not |
-|------------|---------|
-| New Go dependencies for streaming | ConnectRPC v1.19.1 already has full server-streaming support. Zero new packages needed. |
-| `google.golang.org/grpc` server-side | ConnectRPC handles gRPC protocol natively. Do not add a second gRPC server. |
-| JavaScript for copy-to-clipboard | CSS `user-select: text` enables native browser copy. JS clipboard API is unnecessary complexity for this use case. |
-| New CSS framework or utility library | Tailwind via CDN already provides all needed classes (`select-text`, `min-w-[...]`, color utilities). |
-| Streaming middleware | `otelconnect` already handles streaming observability. No custom streaming middleware needed. |
-| Chunked/cursor ent queries | ent doesn't support server-side cursors for SQLite. `Query().All()` then `stream.Send()` per row is the correct pattern. The streaming benefit is on the wire, not in the DB query. |
-| Rate limiting on streaming RPCs | Premature optimization. Add if abuse is observed. Current deployment is public read-only. |
-| ConnectRPC version bump | v1.19.1 is the latest stable. No newer version exists that adds streaming capabilities. |
-
-## Proto Design Decision: Stream Response Type
-
-**Decision:** Stream individual entity messages, not wrapped response messages.
-
-```protobuf
-// RECOMMENDED: Stream bare entities
-rpc StreamNetworks(StreamNetworksRequest) returns (stream Network);
-
-// NOT: Stream wrapped responses (unnecessary envelope per message)
-rpc StreamNetworks(StreamNetworksRequest) returns (stream StreamNetworksResponse);
-```
-
-**Rationale:**
-1. Each streamed message is one entity -- no need for pagination tokens, repeated fields, or metadata per message.
-2. The bare entity type (`Network`) is already defined by entproto and shared with `GetNetworkResponse`.
-3. Wrapping each message in a response envelope wastes bytes on every message in the stream.
-4. Clients can count received messages themselves; no server-side count is needed in each message.
-5. If metadata is needed (total count, timing), use response trailers via `stream.ResponseTrailer()`.
-
-**Confidence:** HIGH -- this follows Google's AIP-132 (List methods) streaming guidance and ConnectRPC best practices.
-
-## Proto Design Decision: Request Message Naming
-
-**Decision:** Use `StreamNetworksRequest` (not `ListAllNetworksRequest` or reuse `ListNetworksRequest`).
-
-**Rationale:**
-1. Distinct from `ListNetworksRequest` because streaming requests have no `page_size` or `page_token` -- they return all matching rows.
-2. The `Stream` prefix clearly communicates the RPC's behavior at the proto level.
-3. Filter fields can be copied from the corresponding `List*Request` message, keeping the API surface consistent.
-
-**Confidence:** HIGH.
-
-## Build Pipeline Changes
-
-No changes to `buf.gen.yaml` or `buf.yaml`. The existing `buf generate` command processes `stream` return types automatically. The `buf lint` rule set (`STANDARD` minus `PACKAGE_VERSION_SUFFIX`) does not conflict with streaming RPC definitions.
-
-After adding streaming RPCs to `services.proto`:
-1. `buf generate` -- regenerates `services.connect.go` with streaming handler interfaces
-2. Implement new methods on existing service structs in `internal/grpcserver/`
-3. `templ generate ./internal/web/templates/` -- regenerate templ Go files after UI template changes
-4. No changes to `go generate ./ent` -- schema layer is unaffected
-
-**Confidence:** HIGH -- verified against existing `buf.gen.yaml` configuration.
+| Package | Pin Strategy | Notes |
+|---------|-------------|-------|
+| `charm.land/lipgloss/v2` | Pin to v2.0.x | Stable v2 release. Module path changed from `github.com/charmbracelet/lipgloss` to `charm.land/lipgloss/v2`. The lipgloss/table sub-package is part of the same module. |
+| `github.com/charmbracelet/colorprofile` | Pin to v0.4.x | Pre-1.0 but actively maintained by Charm. API surface we use (Profile constants, NewWriter) is stable. Published 2026-03-09. |
 
 ## Risk Register
 
 | Risk | Severity | Likelihood | Mitigation |
 |------|----------|------------|------------|
-| ent `All()` memory pressure on large tables | LOW | LOW | Largest table (NetworkIxLan) is ~100K rows at ~500B each = ~50MB. Well within server memory. Monitor with existing OTel metrics. |
-| Client disconnect mid-stream | LOW | MEDIUM | `stream.Send()` returns error on disconnect. Handler returns error, ConnectRPC handles cleanup. Context cancellation propagates correctly. |
-| Long-running stream blocks SQLite | LOW | LOW | SQLite read transactions are non-blocking (WAL mode). Streaming a full table takes <1s. No write contention because app is read-only. |
-| Tailwind CDN missing `select-text` class | NEGLIGIBLE | NEGLIGIBLE | `select-text` has been in Tailwind since v1.0. CDN serves full utility set. |
-| `buf lint` rejects streaming RPC names | LOW | LOW | `STANDARD` rules allow `stream` return types. Only `RPC_REQUEST_STANDARD_NAME` and `RPC_RESPONSE_STANDARD_NAME` apply, and `StreamNetworksRequest` follows the pattern. |
+| lipgloss v2 import path confusion (`charm.land` vs `github.com`) | LOW | MEDIUM | The v2 module uses `charm.land/lipgloss/v2`. The old `github.com/charmbracelet/lipgloss` path is v1 only. Document import path clearly. |
+| colorprofile is pre-1.0 (v0.4.x) | LOW | LOW | We use 3 things: Profile constants, NewWriter, and Profile assignment. These are stable across all 0.x releases. If API changes, the migration is trivial. |
+| User-Agent spoofing/false detection | LOW | MEDIUM | Users who override User-Agent get the wrong output format. Provide explicit `?format=text` and `?format=html` overrides that take precedence over User-Agent detection. |
+| Unicode box-drawing characters display incorrectly | LOW | LOW | Provide `?T` plain text mode that uses `ASCIIBorder()` fallback. Modern terminals (post-2010) universally support Unicode box drawing. Windows Terminal, iTerm2, GNOME Terminal, and even PuTTY handle them correctly. |
+| 256-color not supported in user's terminal | LOW | LOW | Extremely rare in 2026. colorprofile's Writer auto-downgrades to 16-color ANSI if needed. Plain text mode (`?T`) strips all color. |
+| ANSI output cached by CDN/proxy as if it were HTML | MEDIUM | MEDIUM | Set `Vary: User-Agent, Accept, HX-Request` on all `/ui/*` responses. Add `Cache-Control: private` for terminal responses to prevent shared caching. |
+| Large table output for entities with many presences | LOW | LOW | lipgloss table rendering is string-based (in-memory). For the largest PeeringDB entities (~2000 IX presences), this is <100KB of ANSI text. Not a memory concern. |
 
 ## Sources
 
-- [ConnectRPC Server Streaming Documentation](https://connectrpc.com/docs/go/streaming/) -- streaming handler patterns
-- [ConnectRPC connect.ServerStream API](https://pkg.go.dev/connectrpc.com/connect#ServerStream) -- Send, ResponseHeader, ResponseTrailer methods
-- [ConnectRPC v1.19.0 Release](https://github.com/connectrpc/connect-go/releases) -- simple flag introduction, streaming error handling fix
-- [ConnectRPC Protocol Reference](https://connectrpc.com/docs/protocol/) -- HTTP/1.1 streaming support via chunked transfer
-- [otelconnect Streaming Instrumentation](https://pkg.go.dev/connectrpc.com/otelconnect) -- WrapStreamingHandler, responses_per_rpc metric
-- [Tailwind CSS select-text](https://tailwindcss.com/docs/user-select) -- user-select utility classes
-- [ConnectRPC FAQ](https://connectrpc.com/docs/faq/) -- HTTP version requirements for streaming subtypes
+- [charm.land/lipgloss/v2 on pkg.go.dev](https://pkg.go.dev/charm.land/lipgloss/v2) - v2.0.2 published 2026-03-11, MIT license
+- [charm.land/lipgloss/v2/table on pkg.go.dev](https://pkg.go.dev/charm.land/lipgloss/v2/table) - Table sub-package API
+- [Lip Gloss v2: What's New](https://github.com/charmbracelet/lipgloss/discussions/506) - v2 migration guide, deterministic rendering, I/O changes
+- [lipgloss GitHub releases](https://github.com/charmbracelet/lipgloss/releases) - v2.0.2 changelog
+- [charmbracelet/colorprofile on pkg.go.dev](https://pkg.go.dev/github.com/charmbracelet/colorprofile) - v0.4.3 published 2026-03-09
+- [colorprofile source](https://github.com/charmbracelet/colorprofile/blob/main/profile.go) - Profile constants and Writer implementation
+- [jedib0t/go-pretty on GitHub](https://github.com/jedib0t/go-pretty) - v6.7.8 alternative considered
+- [olekukonko/tablewriter on GitHub](https://github.com/olekukonko/tablewriter) - v1.1.4 alternative considered
+- [wttr.in source on GitHub](https://github.com/chubin/wttr.in) - Reference implementation for curl-friendly HTTP service with User-Agent detection
+- [User-Agent detection gist](https://gist.github.com/nahakiole/843fb9a29292bfcf012b) - curl/wget detection pattern
+- [curl User-Agent docs](https://everything.curl.dev/http/modify/user-agent.html) - Default `curl/VERSION` format
+- [lipgloss borders.go](https://github.com/charmbracelet/lipgloss/blob/master/borders.go) - Unicode box-drawing character definitions

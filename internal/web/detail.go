@@ -1,10 +1,13 @@
 package web
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
@@ -20,8 +23,19 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
+	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
+
+// getFreshness returns the last successful sync time for freshness footer display.
+// Returns zero time if db is nil or on query error (footer will be omitted).
+func (h *Handler) getFreshness(ctx context.Context) time.Time {
+	if h.db == nil {
+		return time.Time{}
+	}
+	t, _ := sync.GetLastSuccessfulSyncTime(ctx, h.db)
+	return t
+}
 
 // handleNetworkDetail renders the network detail page for the given ASN string.
 // Looks up the network by ASN (not internal ID) per CONTEXT.md decision.
@@ -100,11 +114,60 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 			totalBW += nix.Speed
 		}
 		data.AggregateBW = totalBW
+
+		// Build IX presence rows for terminal and JSON rendering.
+		// Sort by name to match web UI fragment ordering.
+		sort.Slice(ixlans, func(i, j int) bool {
+			return ixlans[i].Name < ixlans[j].Name
+		})
+		ixRows := make([]templates.NetworkIXLanRow, len(ixlans))
+		for i, nix := range ixlans {
+			row := templates.NetworkIXLanRow{
+				IXName:   nix.Name,
+				IXID:     nix.IxID,
+				Speed:    nix.Speed,
+				IsRSPeer: nix.IsRsPeer,
+			}
+			if nix.Ipaddr4 != nil {
+				row.IPAddr4 = *nix.Ipaddr4
+			}
+			if nix.Ipaddr6 != nil {
+				row.IPAddr6 = *nix.Ipaddr6
+			}
+			ixRows[i] = row
+		}
+		data.IXPresences = ixRows
+	}
+
+	// Build facility presence rows for terminal and JSON rendering.
+	facItems, facErr := h.client.NetworkFacility.Query().
+		Where(networkfacility.HasNetworkWith(network.ID(net.ID))).
+		Order(networkfacility.ByName()).
+		All(r.Context())
+	if facErr == nil {
+		facRows := make([]templates.NetworkFacRow, len(facItems))
+		for i, nf := range facItems {
+			row := templates.NetworkFacRow{
+				FacName:  nf.Name,
+				LocalASN: nf.LocalAsn,
+				City:     nf.City,
+				Country:  nf.Country,
+			}
+			if nf.FacID != nil {
+				row.FacID = *nf.FacID
+			}
+			facRows[i] = row
+		}
+		data.FacPresences = facRows
+	} else {
+		slog.Error("query network facilities for detail", slog.Int("network_id", net.ID), slog.String("error", facErr.Error()))
 	}
 
 	page := PageContent{
-		Title:   net.Name,
-		Content: templates.NetworkDetailPage(data),
+		Title:     net.Name,
+		Content:   templates.NetworkDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render network detail", slog.Int("asn", asn), slog.String("error", err.Error()))
@@ -163,22 +226,90 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 		data.OrgName = ix.Edges.Organization.Name
 		data.OrgID = ix.Edges.Organization.ID
 	}
-	// Compute aggregate bandwidth across all IX participants.
-	participants, err := h.client.IxLan.Query().
+	// Compute aggregate bandwidth and eager-load participant rows.
+	ixParticipants, err := h.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id))).
 		QueryNetworkIxLans().
+		WithNetwork().
+		Order(networkixlan.ByAsn()).
 		All(r.Context())
 	if err == nil {
 		var totalBW int
-		for _, nix := range participants {
+		rows := make([]templates.IXParticipantRow, len(ixParticipants))
+		for i, nix := range ixParticipants {
 			totalBW += nix.Speed
+			netName := ""
+			if net := nix.Edges.Network; net != nil {
+				netName = net.Name
+			}
+			row := templates.IXParticipantRow{
+				NetName:  netName,
+				ASN:      nix.Asn,
+				Speed:    nix.Speed,
+				IsRSPeer: nix.IsRsPeer,
+			}
+			if nix.Ipaddr4 != nil {
+				row.IPAddr4 = *nix.Ipaddr4
+			}
+			if nix.Ipaddr6 != nil {
+				row.IPAddr6 = *nix.Ipaddr6
+			}
+			rows[i] = row
 		}
 		data.AggregateBW = totalBW
+		data.Participants = rows
+	} else {
+		slog.Error("eager-load ix participants", slog.Int("ix_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load IX facilities.
+	ixFacItems, err := h.client.IxFacility.Query().
+		Where(ixfacility.HasInternetExchangeWith(internetexchange.ID(id))).
+		Order(ixfacility.ByName()).
+		All(r.Context())
+	if err == nil {
+		var facRows []templates.IXFacilityRow
+		for _, ixf := range ixFacItems {
+			if ixf.FacID == nil {
+				continue
+			}
+			facRows = append(facRows, templates.IXFacilityRow{
+				FacName: ixf.Name,
+				FacID:   *ixf.FacID,
+				City:    ixf.City,
+				Country: ixf.Country,
+			})
+		}
+		data.Facilities = facRows
+	} else {
+		slog.Error("eager-load ix facilities", slog.Int("ix_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load IX prefixes.
+	ixPrefixItems, err := h.client.IxLan.Query().
+		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id))).
+		QueryIxPrefixes().
+		Order(ixprefix.ByPrefix()).
+		All(r.Context())
+	if err == nil {
+		prefixRows := make([]templates.IXPrefixRow, len(ixPrefixItems))
+		for i, p := range ixPrefixItems {
+			prefixRows[i] = templates.IXPrefixRow{
+				Prefix:   p.Prefix,
+				Protocol: p.Protocol,
+				InDFZ:    p.InDfz,
+			}
+		}
+		data.Prefixes = prefixRows
+	} else {
+		slog.Error("eager-load ix prefixes", slog.Int("ix_id", id), slog.String("error", err.Error()))
 	}
 
 	page := PageContent{
-		Title:   ix.Name,
-		Content: templates.IXDetailPage(data),
+		Title:     ix.Name,
+		Content:   templates.IXDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render ix detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -240,9 +371,71 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 		data.CampusID = fac.Edges.Campus.ID
 	}
 
+	// Eager-load facility networks.
+	facNetItems, err := h.client.NetworkFacility.Query().
+		Where(networkfacility.HasFacilityWith(facility.ID(id))).
+		Order(networkfacility.ByName()).
+		All(r.Context())
+	if err == nil {
+		netRows := make([]templates.FacNetworkRow, len(facNetItems))
+		for i, nf := range facNetItems {
+			netRows[i] = templates.FacNetworkRow{
+				NetName: nf.Name,
+				ASN:     nf.LocalAsn,
+			}
+		}
+		data.Networks = netRows
+	} else {
+		slog.Error("eager-load fac networks", slog.Int("fac_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load facility IXPs.
+	facIXItems, err := h.client.IxFacility.Query().
+		Where(ixfacility.HasFacilityWith(facility.ID(id))).
+		Order(ixfacility.ByName()).
+		All(r.Context())
+	if err == nil {
+		var ixRows []templates.FacIXRow
+		for _, ixf := range facIXItems {
+			if ixf.IxID == nil {
+				continue
+			}
+			ixRows = append(ixRows, templates.FacIXRow{
+				IXName: ixf.Name,
+				IXID:   *ixf.IxID,
+			})
+		}
+		data.IXPs = ixRows
+	} else {
+		slog.Error("eager-load fac ixps", slog.Int("fac_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load facility carriers.
+	facCarrierItems, err := h.client.CarrierFacility.Query().
+		Where(carrierfacility.HasFacilityWith(facility.ID(id))).
+		Order(carrierfacility.ByName()).
+		All(r.Context())
+	if err == nil {
+		var carrierRows []templates.FacCarrierRow
+		for _, cf := range facCarrierItems {
+			if cf.CarrierID == nil {
+				continue
+			}
+			carrierRows = append(carrierRows, templates.FacCarrierRow{
+				CarrierName: cf.Name,
+				CarrierID:   *cf.CarrierID,
+			})
+		}
+		data.Carriers = carrierRows
+	} else {
+		slog.Error("eager-load fac carriers", slog.Int("fac_id", id), slog.String("error", err.Error()))
+	}
+
 	page := PageContent{
-		Title:   fac.Name,
-		Content: templates.FacilityDetailPage(data),
+		Title:     fac.Name,
+		Content:   templates.FacilityDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render facility detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -314,9 +507,103 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 		CarrierCount: carrierCount,
 	}
 
+	// Eager-load org networks.
+	orgNetItems, err := h.client.Network.Query().
+		Where(network.HasOrganizationWith(organization.ID(id))).
+		Order(network.ByAsn()).
+		All(r.Context())
+	if err == nil {
+		netRows := make([]templates.OrgNetworkRow, len(orgNetItems))
+		for i, n := range orgNetItems {
+			netRows[i] = templates.OrgNetworkRow{
+				NetName: n.Name,
+				ASN:     n.Asn,
+			}
+		}
+		data.Networks = netRows
+	} else {
+		slog.Error("eager-load org networks", slog.Int("org_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load org IXPs.
+	orgIXItems, err := h.client.InternetExchange.Query().
+		Where(internetexchange.HasOrganizationWith(organization.ID(id))).
+		Order(internetexchange.ByName()).
+		All(r.Context())
+	if err == nil {
+		ixRows := make([]templates.OrgIXRow, len(orgIXItems))
+		for i, ix := range orgIXItems {
+			ixRows[i] = templates.OrgIXRow{
+				IXName: ix.Name,
+				IXID:   ix.ID,
+			}
+		}
+		data.IXPs = ixRows
+	} else {
+		slog.Error("eager-load org ixps", slog.Int("org_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load org facilities.
+	orgFacItems, err := h.client.Facility.Query().
+		Where(facility.HasOrganizationWith(organization.ID(id))).
+		Order(facility.ByName()).
+		All(r.Context())
+	if err == nil {
+		facRows := make([]templates.OrgFacilityRow, len(orgFacItems))
+		for i, f := range orgFacItems {
+			facRows[i] = templates.OrgFacilityRow{
+				FacName: f.Name,
+				FacID:   f.ID,
+				City:    f.City,
+				Country: f.Country,
+			}
+		}
+		data.Facs = facRows
+	} else {
+		slog.Error("eager-load org facilities", slog.Int("org_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load org campuses.
+	orgCampusItems, err := h.client.Campus.Query().
+		Where(campus.HasOrganizationWith(organization.ID(id))).
+		Order(campus.ByName()).
+		All(r.Context())
+	if err == nil {
+		campusRows := make([]templates.OrgCampusRow, len(orgCampusItems))
+		for i, c := range orgCampusItems {
+			campusRows[i] = templates.OrgCampusRow{
+				CampusName: c.Name,
+				CampusID:   c.ID,
+			}
+		}
+		data.Campuses = campusRows
+	} else {
+		slog.Error("eager-load org campuses", slog.Int("org_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load org carriers.
+	orgCarrierItems, err := h.client.Carrier.Query().
+		Where(carrier.HasOrganizationWith(organization.ID(id))).
+		Order(carrier.ByName()).
+		All(r.Context())
+	if err == nil {
+		carrierRows := make([]templates.OrgCarrierRow, len(orgCarrierItems))
+		for i, c := range orgCarrierItems {
+			carrierRows[i] = templates.OrgCarrierRow{
+				CarrierName: c.Name,
+				CarrierID:   c.ID,
+			}
+		}
+		data.Carriers = carrierRows
+	} else {
+		slog.Error("eager-load org carriers", slog.Int("org_id", id), slog.String("error", err.Error()))
+	}
+
 	page := PageContent{
-		Title:   org.Name,
-		Content: templates.OrgDetailPage(data),
+		Title:     org.Name,
+		Content:   templates.OrgDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render org detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -376,9 +663,31 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 		data.OrgID = c.Edges.Organization.ID
 	}
 
+	// Eager-load campus facilities.
+	campusFacItems, err := h.client.Facility.Query().
+		Where(facility.HasCampusWith(campus.ID(id))).
+		Order(facility.ByName()).
+		All(r.Context())
+	if err == nil {
+		facRows := make([]templates.CampusFacilityRow, len(campusFacItems))
+		for i, f := range campusFacItems {
+			facRows[i] = templates.CampusFacilityRow{
+				FacName: f.Name,
+				FacID:   f.ID,
+				City:    f.City,
+				Country: f.Country,
+			}
+		}
+		data.Facilities = facRows
+	} else {
+		slog.Error("eager-load campus facilities", slog.Int("campus_id", id), slog.String("error", err.Error()))
+	}
+
 	page := PageContent{
-		Title:   c.Name,
-		Content: templates.CampusDetailPage(data),
+		Title:     c.Name,
+		Content:   templates.CampusDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render campus detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -423,9 +732,32 @@ func (h *Handler) handleCarrierDetail(w http.ResponseWriter, r *http.Request, id
 		data.OrgID = cr.Edges.Organization.ID
 	}
 
+	// Eager-load carrier facilities.
+	carrierFacItems, err := h.client.CarrierFacility.Query().
+		Where(carrierfacility.HasCarrierWith(carrier.ID(id))).
+		Order(carrierfacility.ByName()).
+		All(r.Context())
+	if err == nil {
+		var facRows []templates.CarrierFacilityRow
+		for _, cf := range carrierFacItems {
+			if cf.FacID == nil {
+				continue
+			}
+			facRows = append(facRows, templates.CarrierFacilityRow{
+				FacName: cf.Name,
+				FacID:   *cf.FacID,
+			})
+		}
+		data.Facilities = facRows
+	} else {
+		slog.Error("eager-load carrier facilities", slog.Int("carrier_id", id), slog.String("error", err.Error()))
+	}
+
 	page := PageContent{
-		Title:   cr.Name,
-		Content: templates.CarrierDetailPage(data),
+		Title:     cr.Name,
+		Content:   templates.CarrierDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render carrier detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -741,6 +1073,7 @@ func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Reque
 func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, facID int) {
 	items, err := h.client.IxFacility.Query().
 		Where(ixfacility.HasFacilityWith(facility.ID(facID))).
+		WithInternetExchange().
 		Order(ixfacility.ByName()).
 		All(r.Context())
 	if err != nil {
@@ -751,11 +1084,11 @@ func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, 
 
 	var rows []templates.FacIXRow
 	for _, ixf := range items {
-		if ixf.IxID == nil {
+		if ixf.IxID == nil || ixf.Edges.InternetExchange == nil {
 			continue
 		}
 		rows = append(rows, templates.FacIXRow{
-			IXName: ixf.Name,
+			IXName: ixf.Edges.InternetExchange.Name,
 			IXID:   *ixf.IxID,
 		})
 	}

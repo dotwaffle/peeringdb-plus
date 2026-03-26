@@ -3,83 +3,129 @@
 **Defined:** 2026-03-25
 **Core Value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-## v1.7 Requirements
+## v1.8 Requirements
 
-Requirements for milestone v1.7: Streaming RPCs & UI Polish.
+Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 
-### Streaming RPCs
+### Detection
 
-- [x] **STRM-01**: Server-streaming RPC per entity type — 13 `Stream*` RPCs returning one proto message per row
-- [ ] **STRM-02**: Batched keyset pagination in streaming handlers — chunk queries by ID to avoid loading full result sets
-- [ ] **STRM-03**: Graceful stream cancellation — honor `ctx.Done()` between batch fetches
-- [ ] **STRM-04**: Total record count in response header — `COUNT(*)` query, set via `stream.ResponseHeader()` before first `Send()`
-- [ ] **STRM-05**: Filter support on streaming RPCs — same optional filter fields as List, reusing predicate accumulation
-- [x] **STRM-06**: OTel instrumentation on streaming RPCs — otelconnect interceptor produces per-stream spans
-- [x] **STRM-07**: Proto/JSON format negotiation — ConnectRPC handles automatically, document for consumers
-- [x] **STRM-08**: `since_id` stream resume — optional field to resume from last received ID
-- [x] **STRM-09**: `updated_since` filter — stream only records modified after a timestamp
+- [x] **DET-01**: Terminal clients (curl, wget, HTTPie, xh, PowerShell, fetch) auto-detected via User-Agent prefix matching
+- [x] **DET-02**: User can force plain text via ?T or ?format=plain query parameter
+- [x] **DET-03**: User can force JSON via ?format=json query parameter
+- [x] **DET-04**: Accept header (text/plain, application/json) serves as secondary format signal
+- [x] **DET-05**: Content negotiation applies to all /ui/ paths — browsers get HTML unchanged
 
-### IX Presence UI
+### Rendering
 
-- [x] **IXUI-01**: Field labels for speed, IPv4, IPv6 in IX presence rows
-- [x] **IXUI-02**: RS badge repositioned inline after IX name
-- [x] **IXUI-03**: Port speed color coding by tier (sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber)
-- [x] **IXUI-04**: Consistent IP address alignment via grid layout across rows
-- [x] **IXUI-05**: Selectable/copyable text — IX name is the only link, data fields are plain text
-- [x] **IXUI-06**: Copy-to-clipboard button on IPv4/IPv6 addresses
-- [x] **IXUI-07**: Aggregate bandwidth display in IX presence section header
+- [x] **RND-01**: Rich 256-color ANSI output with Unicode box-drawing for terminal clients
+- [x] **RND-02**: Network detail (/ui/asn/{asn}) renders with whois-style key-value header + IX/facility tables
+- [x] **RND-03**: IX detail (/ui/ix/{id}) renders with participant table, facility list, prefix list
+- [x] **RND-04**: Facility detail (/ui/fac/{id}) renders with address, network/IX/carrier lists
+- [ ] **RND-05**: Org detail (/ui/org/{id}) renders with child entity lists
+- [ ] **RND-06**: Campus detail (/ui/campus/{id}) renders with facility list
+- [ ] **RND-07**: Carrier detail (/ui/carrier/{id}) renders with facility list
+- [x] **RND-08**: Search results (/ui/?q=...) render as grouped text list for terminal clients
+- [x] **RND-09**: ASN comparison (/ui/compare/{asn1}/{asn2}) renders shared IXPs/facilities/campuses
+- [x] **RND-10**: Plain text mode (?T) produces identical layout with ASCII box drawing, no ANSI codes
+- [x] **RND-11**: JSON mode (?format=json) outputs the same data structures as JSON
+- [x] **RND-12**: Port speed tiers color-coded (gray/neutral/blue/emerald/amber) matching web UI
+- [x] **RND-13**: Peering policy color-coded (Open=green, Selective=yellow, Restrictive=red)
+- [x] **RND-14**: Route server peers marked with colored [RS] badge in IX presence tables
+- [x] **RND-15**: Aggregate bandwidth displayed in network and IX detail headers
+- [x] **RND-16**: Entity IDs and cross-reference paths shown in output for easy follow-up curls
+- [x] **RND-17**: WHOIS-style output mode (?format=whois) using RPSL-like key-value format
+- [x] **RND-18**: NO_COLOR convention respected — suppress ANSI codes when ?nocolor param present
+
+### Navigation
+
+- [x] **NAV-01**: Help text at /ui/ for terminal clients listing endpoints, params, and examples
+- [x] **NAV-02**: Text-formatted 404 error for terminal clients (not HTML)
+- [x] **NAV-03**: Text-formatted 500 error for terminal clients (not HTML)
+- [x] **NAV-04**: Root handler (/) returns help text for terminal clients (not redirect)
+
+### Differentiators
+
+- [x] **DIF-01**: One-line summary mode (?format=short) outputs single-line entity summary
+- [x] **DIF-02**: Data freshness timestamp footer on all terminal responses
+- [ ] **DIF-03**: Section filtering (?section=ix,fac) renders only requested sections
+- [ ] **DIF-04**: Width parameter (?w=N) adapts table rendering to specified column width
+
+### Shell Integration
+
+- [x] **SHL-01**: Bash completion script downloadable from server for entity type/ASN completion
+- [x] **SHL-02**: Zsh completion script downloadable from server for entity type/ASN completion
+- [x] **SHL-03**: Shell alias/function setup instructions in help text
 
 ## Future Requirements
 
-### Data Enrichment (deferred — needs more design)
+Deferred to future release.
 
-- **ENRCH-01**: Per-ASN BGP summary from bgp.tools daily table dump (prefix counts v4/v6, RPKI coverage %)
-- **ENRCH-02**: IRR/AS-SET membership from WHOIS source (rr.ntt.net or whois.radb.net TBD)
-- **ENRCH-03**: IP prefix lookup showing origin ASN, RPKI status, AS-SET membership
+### Extended Formats
 
-### Streaming Extensions (deferred)
+- **FMT-01**: CSV/TSV output mode for spreadsheet import
+- **FMT-02**: Custom format strings like wttr.in's ?format=%l:+%c+%t
 
-- **STRM-10**: SHA256 checksum in response trailers for data integrity verification
-- **STRM-11**: SyncStatus custom RPC — deferred, available via existing REST/GraphQL
+### Extended Shell
+
+- **SHL-04**: Fish completion script
+- **SHL-05**: Downloadable standalone CLI wrapper script (curl-based, not Go binary)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Bidirectional/client-streaming RPCs | Read-only mirror has no write path |
-| WebSocket streaming fallback | ConnectRPC handles streaming over HTTP/2 natively |
-| Real-time change streaming / subscriptions | Periodic sync mirror, not a live database |
-| Custom download formats (CSV, NDJSON) | Protobuf and JSON via ConnectRPC are sufficient |
-| IX presence interactive map | High complexity, separate future feature |
-| Sortable IX presence table | Defer to future milestone |
-| Inline editing of IX presence data | Read-only mirror |
+| Interactive TUI (Bubble Tea) | Server-side HTTP, not client-side binary. User runs curl, not a Go binary |
+| Terminal width auto-detection | Impossible over HTTP. Provide ?w=N parameter instead |
+| Client-side pager support | Cannot control pager from HTTP response. Document `\| less -R` |
+| TrueColor (24-bit) as default | Not universally supported (screen, multiplexers). 256-color sufficient |
+| Custom color themes | Complexity for minimal gain. Ship one well-designed palette |
+| Markdown output format | Format proliferation. JSON for machines, ANSI/text for humans |
+| WHOIS protocol (port 43) | Separate application. Fly.io doesn't easily expose TCP ports |
+| Real-time streaming | curl is request-response. ConnectRPC streaming exists for bulk export |
+| Mobile CLI app | Out of scope. curl is the interface |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| STRM-01 | Phase 25 | Complete |
-| STRM-02 | Phase 25 | Pending |
-| STRM-03 | Phase 25 | Pending |
-| STRM-04 | Phase 25 | Pending |
-| STRM-05 | Phase 25 | Pending |
-| STRM-06 | Phase 25 | Complete |
-| STRM-07 | Phase 25 | Complete |
-| STRM-08 | Phase 26 | Complete |
-| STRM-09 | Phase 26 | Complete |
-| IXUI-01 | Phase 27 | Complete |
-| IXUI-02 | Phase 27 | Complete |
-| IXUI-03 | Phase 27 | Complete |
-| IXUI-04 | Phase 27 | Complete |
-| IXUI-05 | Phase 27 | Complete |
-| IXUI-06 | Phase 27 | Complete |
-| IXUI-07 | Phase 27 | Complete |
+| DET-01 | Phase 28 | Complete |
+| DET-02 | Phase 28 | Complete |
+| DET-03 | Phase 28 | Complete |
+| DET-04 | Phase 28 | Complete |
+| DET-05 | Phase 28 | Complete |
+| RND-01 | Phase 28 | Complete |
+| RND-02 | Phase 29 | Complete |
+| RND-03 | Phase 30 | Complete |
+| RND-04 | Phase 30 | Complete |
+| RND-05 | Phase 30 | Pending |
+| RND-06 | Phase 30 | Pending |
+| RND-07 | Phase 30 | Pending |
+| RND-08 | Phase 30 | Complete |
+| RND-09 | Phase 30 | Complete |
+| RND-10 | Phase 30 | Complete |
+| RND-11 | Phase 30 | Complete |
+| RND-12 | Phase 29 | Complete |
+| RND-13 | Phase 29 | Complete |
+| RND-14 | Phase 29 | Complete |
+| RND-15 | Phase 29 | Complete |
+| RND-16 | Phase 29 | Complete |
+| RND-17 | Phase 30 | Complete |
+| RND-18 | Phase 28 | Complete |
+| NAV-01 | Phase 28 | Complete |
+| NAV-02 | Phase 28 | Complete |
+| NAV-03 | Phase 28 | Complete |
+| NAV-04 | Phase 28 | Complete |
+| DIF-01 | Phase 31 | Complete |
+| DIF-02 | Phase 31 | Complete |
+| DIF-03 | Phase 31 | Pending |
+| DIF-04 | Phase 31 | Pending |
+| SHL-01 | Phase 31 | Complete |
+| SHL-02 | Phase 31 | Complete |
+| SHL-03 | Phase 31 | Complete |
 
 **Coverage:**
-- v1.7 requirements: 16 total
-- Mapped to phases: 16
+- v1.8 requirements: 34 total
+- Mapped to phases: 34
 - Unmapped: 0
 
 ---

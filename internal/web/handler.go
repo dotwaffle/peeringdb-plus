@@ -76,6 +76,12 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 		h.handleCompareForm(w, r)
 	case strings.HasPrefix(rest, "compare/"):
 		h.handleCompare(w, r, strings.TrimPrefix(rest, "compare/"))
+	case rest == "completions/bash":
+		h.handleCompletionBash(w, r)
+	case rest == "completions/zsh":
+		h.handleCompletionZsh(w, r)
+	case rest == "completions/search":
+		h.handleCompletionSearch(w, r)
 	default:
 		h.handleNotFound(w, r)
 	}
@@ -94,7 +100,15 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	page := PageContent{Title: "Home", Content: templates.Home(query, groups)}
+	page := PageContent{
+		Title:     "Home",
+		Content:   templates.Home(query, groups),
+		Freshness: h.getFreshness(r.Context()),
+	}
+	if len(groups) > 0 {
+		page.Title = "Search"
+		page.Data = groups
+	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		h.handleServerError(w, r)
 	}
@@ -123,7 +137,12 @@ func (h *Handler) handleSearch(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("HX-Replace-Url", "/ui/")
 	}
 
-	page := PageContent{Title: "Search", Content: templates.SearchResults(groups)}
+	page := PageContent{
+		Title:     "Search",
+		Content:   templates.SearchResults(groups),
+		Data:      groups,
+		Freshness: h.getFreshness(r.Context()),
+	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		h.handleServerError(w, r)
 	}
@@ -231,7 +250,12 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 	}
 
 	title := fmt.Sprintf("%s vs %s", data.NetA.Name, data.NetB.Name)
-	page := PageContent{Title: title, Content: templates.CompareResultsPage(*data)}
+	page := PageContent{
+		Title:     title,
+		Content:   templates.CompareResultsPage(*data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
+	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render compare", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.String("error", err.Error()))
 		h.handleServerError(w, r)
