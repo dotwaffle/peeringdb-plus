@@ -1,9 +1,13 @@
 package termrender
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
+
+// ansiRE strips ANSI escape sequences for test assertions.
+var ansiRE = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
 func TestFormatSpeed(t *testing.T) {
 	t.Parallel()
@@ -147,8 +151,9 @@ func TestCrossRef(t *testing.T) {
 	t.Parallel()
 
 	got := CrossRef("/ui/ix/31")
-	if !strings.Contains(got, "[/ui/ix/31]") {
-		t.Errorf("CrossRef(\"/ui/ix/31\") should contain \"[/ui/ix/31]\", got: %q", got)
+	stripped := ansiRE.ReplaceAllString(got, "")
+	if !strings.Contains(stripped, "[/ui/ix/31]") {
+		t.Errorf("CrossRef(\"/ui/ix/31\") stripped text should contain \"[/ui/ix/31]\", got raw: %q stripped: %q", got, stripped)
 	}
 	if !strings.Contains(got, "\x1b[") {
 		t.Errorf("CrossRef() output should contain ANSI codes, got: %q", got)
