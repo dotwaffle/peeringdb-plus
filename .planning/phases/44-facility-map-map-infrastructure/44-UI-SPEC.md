@@ -51,10 +51,10 @@ Exceptions:
 |------|------|--------|-------------|----------------|
 | Popup facility name | 14px | 600 (semibold) | 1.4 | `text-sm font-semibold` |
 | Popup detail text (address, counts) | 12px | 400 (regular) | 1.5 | `text-xs` |
-| Popup link text | 12px | 500 (medium) | 1.5 | `text-xs font-medium` |
+| Popup link text | 12px | 400 (regular) | 1.5 | `text-xs` |
 | Map attribution text | 10px | 400 (regular) | 1.2 | Leaflet default `leaflet-control-attribution` |
 
-Font weights used: 400 (regular) and 600 (semibold). Popup text intentionally compact -- it overlays the map and should not dominate.
+Font weights used: 400 (regular) and 600 (semibold). Popup link is visually distinct via emerald accent color, not font weight. Popup text intentionally compact -- it overlays the map and should not dominate.
 
 ---
 
@@ -206,8 +206,8 @@ Popup HTML structure:
 <div class="pdb-map-popup">
   <div style="font-weight:600;font-size:14px;margin-bottom:4px;">{facility_name}</div>
   <div style="font-size:12px;color:#666;margin-bottom:4px;">{city}, {country}</div>
-  <div style="font-size:12px;color:#666;margin-bottom:6px;">{net_count} Networks &middot; {ix_count} IXPs</div>
-  <a href="/ui/fac/{id}" style="font-size:12px;font-weight:500;color:#10b981;">View facility &rarr;</a>
+  <div style="font-size:12px;color:#666;margin-bottom:8px;">{net_count} Networks &middot; {ix_count} IXPs</div>
+  <a href="/ui/fac/{id}" style="font-size:12px;color:#10b981;">View facility &rarr;</a>
 </div>
 ```
 
