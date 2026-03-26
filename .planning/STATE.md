@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 44 context gathered
-last_updated: "2026-03-26T19:52:19.402Z"
+stopped_at: Phase 45 context gathered
+last_updated: "2026-03-26T20:04:08.317Z"
 last_activity: 2026-03-26 — Roadmap created for v1.11
 progress:
   total_phases: 4
@@ -69,6 +69,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T19:52:19.399Z
-Stopped at: Phase 44 context gathered
-Resume file: .planning/phases/44-facility-map-map-infrastructure/44-CONTEXT.md
+Last session: 2026-03-26T20:04:08.313Z
+Stopped at: Phase 45 context gathered
+Resume file: .planning/phases/45-multi-pin-maps/45-CONTEXT.md
