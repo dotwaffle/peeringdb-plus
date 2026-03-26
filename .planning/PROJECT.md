@@ -189,7 +189,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.8 with 31 phases across 9 milestones (v1.0-v1.8). The terminal CLI interface is complete — all 6 PeeringDB entity types, search, and comparison are accessible via `curl` with rich ANSI output, plain text, JSON, WHOIS/RPSL, and short one-liner formats. Section filtering, width adaptation, data freshness footer, and shell completions (bash/zsh) round out the power-user experience. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Six user-facing surfaces: Web UI at /ui/, Terminal CLI at /ui/ (curl), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. 85 files, +16K lines added in v1.8.
+Shipped v1.9 with 36 phases across 10 milestones (v1.0-v1.9). v1.10 (Code Coverage & Test Quality) in progress — Phase 37 complete: shared test seed infrastructure package (`internal/testutil/seed/`) provides `Full()`, `Minimal()`, and `Networks()` functions for all 13 PeeringDB entity types, eliminating duplicated entity creation code across test packages. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Six user-facing surfaces: Web UI at /ui/, Terminal CLI at /ui/ (curl), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support.
 
 **Known tech debt:**
 - Nyquist validation frontmatter not formally signed off across v1.8 phases (VALIDATION.md exists, tests pass)
@@ -207,4 +207,4 @@ Shipped v1.8 with 31 phases across 9 milestones (v1.0-v1.8). The terminal CLI in
 - Search results not bookmarkable (no URL history push)
 
 ---
-*Last updated: 2026-03-26 after v1.10 milestone start*
+*Last updated: 2026-03-26 after Phase 37 (Test Seed Infrastructure) complete*
