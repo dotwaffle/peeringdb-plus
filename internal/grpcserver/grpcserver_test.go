@@ -682,6 +682,510 @@ func TestListCarrierFacilitiesFilters(t *testing.T) {
 	}
 }
 
+func TestListCampusesFilters(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// Seed 2 campuses with distinct field values.
+	client.Campus.Create().
+		SetID(1).SetName("Campus Alpha").SetCountry("US").SetCity("Dallas").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Campus.Create().
+		SetID(2).SetName("Campus Beta").SetCountry("GB").SetCity("London").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &CampusService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListCampusesRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "filter by name",
+			req:     &pb.ListCampusesRequest{Name: proto.String("alpha")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by country",
+			req:     &pb.ListCampusesRequest{Country: proto.String("US")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by status",
+			req:     &pb.ListCampusesRequest{Status: proto.String("ok")},
+			wantLen: 2,
+		},
+		{
+			name:    "invalid org_id zero",
+			req:     &pb.ListCampusesRequest{OrgId: proto.Int64(0)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListCampuses(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetCampuses()); got != tt.wantLen {
+				t.Errorf("got %d campuses, want %d", got, tt.wantLen)
+			}
+			if tt.wantLen > 0 {
+				first := resp.GetCampuses()[0]
+				if tt.name == "filter by name" {
+					if got := first.GetName(); got != "Campus Alpha" {
+						t.Errorf("first campus Name = %q, want %q", got, "Campus Alpha")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestListCarriersFilters(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// Seed 2 carriers with distinct names and statuses.
+	client.Carrier.Create().
+		SetID(1).SetName("Zayo").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Carrier.Create().
+		SetID(2).SetName("Lumen").
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").
+		SaveX(ctx)
+
+	svc := &CarrierService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListCarriersRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "filter by name",
+			req:     &pb.ListCarriersRequest{Name: proto.String("zayo")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by status ok",
+			req:     &pb.ListCarriersRequest{Status: proto.String("ok")},
+			wantLen: 1,
+		},
+		{
+			name:    "invalid id negative",
+			req:     &pb.ListCarriersRequest{Id: proto.Int64(-1)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+		{
+			name:    "invalid org_id zero",
+			req:     &pb.ListCarriersRequest{OrgId: proto.Int64(0)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListCarriers(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetCarriers()); got != tt.wantLen {
+				t.Errorf("got %d carriers, want %d", got, tt.wantLen)
+			}
+			if tt.wantLen > 0 {
+				first := resp.GetCarriers()[0]
+				if tt.name == "filter by name" {
+					if got := first.GetName(); got != "Zayo" {
+						t.Errorf("first carrier Name = %q, want %q", got, "Zayo")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestListInternetExchangesFilters(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// Seed 2 IXs with distinct country/media/name.
+	client.InternetExchange.Create().
+		SetID(1).SetName("AMS-IX").SetCountry("NL").SetCity("Amsterdam").SetMedia("Ethernet").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.InternetExchange.Create().
+		SetID(2).SetName("LINX").SetCountry("GB").SetCity("London").SetMedia("Ethernet").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &InternetExchangeService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListInternetExchangesRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "filter by name",
+			req:     &pb.ListInternetExchangesRequest{Name: proto.String("ams")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by country",
+			req:     &pb.ListInternetExchangesRequest{Country: proto.String("NL")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by media",
+			req:     &pb.ListInternetExchangesRequest{Media: proto.String("Ethernet")},
+			wantLen: 2,
+		},
+		{
+			name:    "invalid org_id zero",
+			req:     &pb.ListInternetExchangesRequest{OrgId: proto.Int64(0)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListInternetExchanges(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetInternetExchanges()); got != tt.wantLen {
+				t.Errorf("got %d internet exchanges, want %d", got, tt.wantLen)
+			}
+			if tt.wantLen > 0 {
+				first := resp.GetInternetExchanges()[0]
+				if tt.name == "filter by name" {
+					if got := first.GetName(); got != "AMS-IX" {
+						t.Errorf("first IX Name = %q, want %q", got, "AMS-IX")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestListIxFacilitiesFilters(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// Create FK parents.
+	client.InternetExchange.Create().
+		SetID(100).SetName("Test IX").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(200).SetName("Fac-200").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(201).SetName("Fac-201").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	// Seed 2 IX facilities.
+	client.IxFacility.Create().
+		SetID(1).SetIxID(100).SetFacID(200).SetCountry("US").SetName("IXFAC-A").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxFacility.Create().
+		SetID(2).SetIxID(100).SetFacID(201).SetCountry("GB").SetName("IXFAC-B").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &IxFacilityService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListIxFacilitiesRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "filter by country",
+			req:     &pb.ListIxFacilitiesRequest{Country: proto.String("US")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by name",
+			req:     &pb.ListIxFacilitiesRequest{Name: proto.String("ixfac-a")},
+			wantLen: 1,
+		},
+		{
+			name:    "invalid ix_id negative",
+			req:     &pb.ListIxFacilitiesRequest{IxId: proto.Int64(-1)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+		{
+			name:    "invalid fac_id zero",
+			req:     &pb.ListIxFacilitiesRequest{FacId: proto.Int64(0)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListIxFacilities(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetIxFacilities()); got != tt.wantLen {
+				t.Errorf("got %d ix facilities, want %d", got, tt.wantLen)
+			}
+			if tt.wantLen > 0 {
+				first := resp.GetIxFacilities()[0]
+				if tt.name == "filter by country" {
+					if got := first.GetCountry().GetValue(); got != "US" {
+						t.Errorf("first IxFacility Country = %q, want %q", got, "US")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestListIxLansFilters(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// Create FK parent.
+	client.InternetExchange.Create().
+		SetID(100).SetName("Test IX").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	// Seed 2 IX LANs with distinct mtu/rs_asn.
+	client.IxLan.Create().
+		SetID(1).SetIxID(100).SetName("Primary LAN").SetMtu(9000).SetRsAsn(47541).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxLan.Create().
+		SetID(2).SetIxID(100).SetName("Secondary LAN").SetMtu(1500).SetRsAsn(47542).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &IxLanService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListIxLansRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "filter by name",
+			req:     &pb.ListIxLansRequest{Name: proto.String("primary")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by status ok",
+			req:     &pb.ListIxLansRequest{Status: proto.String("ok")},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by mtu",
+			req:     &pb.ListIxLansRequest{Mtu: proto.Int64(9000)},
+			wantLen: 1,
+		},
+		{
+			name:    "invalid ix_id negative",
+			req:     &pb.ListIxLansRequest{IxId: proto.Int64(-1)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+		{
+			name:    "invalid rs_asn zero",
+			req:     &pb.ListIxLansRequest{RsAsn: proto.Int64(0)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListIxLans(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetIxLans()); got != tt.wantLen {
+				t.Errorf("got %d ix lans, want %d", got, tt.wantLen)
+			}
+			if tt.wantLen > 0 {
+				first := resp.GetIxLans()[0]
+				if tt.name == "filter by name" {
+					if got := first.GetName().GetValue(); got != "Primary LAN" {
+						t.Errorf("first IxLan Name = %q, want %q", got, "Primary LAN")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestListNetworkFacilitiesFilters(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// Create FK parents.
+	client.Network.Create().
+		SetID(100).SetName("Net-100").SetAsn(65001).SetStatus("ok").
+		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
+		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(200).SetName("Fac-200").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	// Seed 2 network facilities with distinct country/local_asn/name.
+	client.NetworkFacility.Create().
+		SetID(1).SetNetID(100).SetFacID(200).SetLocalAsn(65001).SetCountry("US").SetName("NF-A").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.NetworkFacility.Create().
+		SetID(2).SetNetID(100).SetFacID(200).SetLocalAsn(65002).SetCountry("GB").SetName("NF-B").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &NetworkFacilityService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListNetworkFacilitiesRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "filter by country",
+			req:     &pb.ListNetworkFacilitiesRequest{Country: proto.String("US")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by name",
+			req:     &pb.ListNetworkFacilitiesRequest{Name: proto.String("nf-a")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by local_asn",
+			req:     &pb.ListNetworkFacilitiesRequest{LocalAsn: proto.Int64(65001)},
+			wantLen: 1,
+		},
+		{
+			name:    "invalid net_id negative",
+			req:     &pb.ListNetworkFacilitiesRequest{NetId: proto.Int64(-1)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+		{
+			name:    "invalid fac_id zero",
+			req:     &pb.ListNetworkFacilitiesRequest{FacId: proto.Int64(0)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListNetworkFacilities(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetNetworkFacilities()); got != tt.wantLen {
+				t.Errorf("got %d network facilities, want %d", got, tt.wantLen)
+			}
+			if tt.wantLen > 0 {
+				first := resp.GetNetworkFacilities()[0]
+				if tt.name == "filter by country" {
+					if got := first.GetCountry().GetValue(); got != "US" {
+						t.Errorf("first NetworkFacility Country = %q, want %q", got, "US")
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestListNetworksFiltersPaginated(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
