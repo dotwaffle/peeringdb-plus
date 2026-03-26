@@ -1,6 +1,9 @@
 package templates
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // OrgDetailPage renders the full organization detail page with header, stats,
 // detail fields, and collapsible lazy-loaded sections for related records.
@@ -37,97 +40,149 @@ templ OrgDetailPage(data OrgDetail) {
 	</div>
 }
 
-// OrgNetworksList renders the list of org networks as clickable rows
-// linking to the respective network detail page by ASN.
+// OrgNetworksList renders the list of org networks as a 2-column sortable table
+// (Name, ASN) linking to the respective network detail page by ASN.
 templ OrgNetworksList(rows []OrgNetworkRow) {
 	if len(rows) == 0 {
 		<div class="px-4 py-3 text-neutral-500 text-sm">No networks found.</div>
 	} else {
-		<div class="divide-y divide-neutral-700/50">
-			for _, row := range rows {
-				<a href={ templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)) }
-					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
-					<div class="flex flex-col min-w-0">
-						<span class="text-neutral-100 font-medium truncate">{ row.NetName }</span>
-						<span class="text-sm text-neutral-400 font-mono">{ fmt.Sprintf("AS%d", row.ASN) }</span>
-					</div>
-				</a>
-			}
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left sortable">
+				<thead>
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">Name</th>
+						<th class="px-3 py-2" data-sortable data-sort-col="1" data-sort-type="numeric">ASN</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					for _, row := range rows {
+						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.NetName) }>
+								<a href={ templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)) }
+									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-emerald-400 transition-colors">
+									{ row.NetName }
+								</a>
+							</td>
+							<td class="px-3 py-1.5 font-mono text-neutral-500 dark:text-neutral-400" data-sort-value={ fmt.Sprintf("%d", row.ASN) }>
+								{ fmt.Sprintf("AS%d", row.ASN) }
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
 		</div>
 	}
 }
 
-// OrgIXPsList renders the list of org IXPs as clickable rows
+// OrgIXPsList renders the list of org IXPs as a single-column name-only table
 // linking to the respective IX detail page.
 templ OrgIXPsList(rows []OrgIXRow) {
 	if len(rows) == 0 {
 		<div class="px-4 py-3 text-neutral-500 text-sm">No IXPs found.</div>
 	} else {
-		<div class="divide-y divide-neutral-700/50">
-			for _, row := range rows {
-				<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", row.IXID)) }
-					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
-					<span class="text-neutral-100 font-medium truncate">{ row.IXName }</span>
-				</a>
-			}
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left">
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					for _, row := range rows {
+						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+							<td class="px-3 py-1.5">
+								<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", row.IXID)) }
+									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-400 transition-colors">
+									{ row.IXName }
+								</a>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
 		</div>
 	}
 }
 
-// OrgFacilitiesList renders the list of org facilities as clickable rows
-// linking to the respective facility detail page.
+// OrgFacilitiesList renders the list of org facilities as a 3-column sortable table
+// (Name, City, Country+flag) linking to the respective facility detail page.
 templ OrgFacilitiesList(rows []OrgFacilityRow) {
 	if len(rows) == 0 {
 		<div class="px-4 py-3 text-neutral-500 text-sm">No facilities found.</div>
 	} else {
-		<div class="divide-y divide-neutral-700/50">
-			for _, row := range rows {
-				<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
-					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
-					<div class="flex flex-col min-w-0">
-						<span class="text-neutral-100 font-medium truncate">{ row.FacName }</span>
-						if row.City != "" || row.Country != "" {
-							<span class="text-sm text-neutral-400 font-mono">
-								{ formatFacLocation(row.City, row.Country) }
-							</span>
-						}
-					</div>
-				</a>
-			}
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left sortable">
+				<thead>
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha">Name</th>
+						<th class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="1" data-sort-type="alpha">City</th>
+						<th class="px-3 py-2" data-sortable data-sort-col="2" data-sort-type="alpha" data-sort-default="asc">Country</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					for _, row := range rows {
+						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.FacName) }>
+								<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
+									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-violet-400 transition-colors">
+									{ row.FacName }
+								</a>
+							</td>
+							<td class="px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400" data-sort-value={ strings.ToLower(row.City) }>
+								{ row.City }
+							</td>
+							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.Country) }>
+								@CountryFlag(row.Country)
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
 		</div>
 	}
 }
 
-// OrgCampusesList renders the list of org campuses as clickable rows
+// OrgCampusesList renders the list of org campuses as a single-column name-only table
 // linking to the respective campus detail page.
 templ OrgCampusesList(rows []OrgCampusRow) {
 	if len(rows) == 0 {
 		<div class="px-4 py-3 text-neutral-500 text-sm">No campuses found.</div>
 	} else {
-		<div class="divide-y divide-neutral-700/50">
-			for _, row := range rows {
-				<a href={ templ.SafeURL(fmt.Sprintf("/ui/campus/%d", row.CampusID)) }
-					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
-					<span class="text-neutral-100 font-medium truncate">{ row.CampusName }</span>
-				</a>
-			}
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left">
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					for _, row := range rows {
+						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+							<td class="px-3 py-1.5">
+								<a href={ templ.SafeURL(fmt.Sprintf("/ui/campus/%d", row.CampusID)) }
+									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-rose-400 transition-colors">
+									{ row.CampusName }
+								</a>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
 		</div>
 	}
 }
 
-// OrgCarriersList renders the list of org carriers as clickable rows
+// OrgCarriersList renders the list of org carriers as a single-column name-only table
 // linking to the respective carrier detail page.
 templ OrgCarriersList(rows []OrgCarrierRow) {
 	if len(rows) == 0 {
 		<div class="px-4 py-3 text-neutral-500 text-sm">No carriers found.</div>
 	} else {
-		<div class="divide-y divide-neutral-700/50">
-			for _, row := range rows {
-				<a href={ templ.SafeURL(fmt.Sprintf("/ui/carrier/%d", row.CarrierID)) }
-					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
-					<span class="text-neutral-100 font-medium truncate">{ row.CarrierName }</span>
-				</a>
-			}
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left">
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					for _, row := range rows {
+						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+							<td class="px-3 py-1.5">
+								<a href={ templ.SafeURL(fmt.Sprintf("/ui/carrier/%d", row.CarrierID)) }
+									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-cyan-400 transition-colors">
+									{ row.CarrierName }
+								</a>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
 		</div>
 	}
 }

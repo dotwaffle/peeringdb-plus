@@ -1,6 +1,9 @@
 package templates
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // CampusDetailPage renders the full campus detail page with header, stats,
 // detail fields, and a collapsible lazy-loaded section for facilities.
@@ -38,26 +41,40 @@ templ CampusDetailPage(data CampusDetail) {
 	</div>
 }
 
-// CampusFacilitiesList renders the list of campus facilities as clickable rows
-// linking to the respective facility detail page.
+// CampusFacilitiesList renders the list of campus facilities as a 3-column sortable table
+// (Name, City, Country+flag) linking to the respective facility detail page.
 templ CampusFacilitiesList(rows []CampusFacilityRow) {
 	if len(rows) == 0 {
 		<div class="px-4 py-3 text-neutral-500 text-sm">No facilities found.</div>
 	} else {
-		<div class="divide-y divide-neutral-700/50">
-			for _, row := range rows {
-				<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
-					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
-					<div class="flex flex-col min-w-0">
-						<span class="text-neutral-100 font-medium truncate">{ row.FacName }</span>
-						if row.City != "" || row.Country != "" {
-							<span class="text-sm text-neutral-400 font-mono">
-								{ formatFacLocation(row.City, row.Country) }
-							</span>
-						}
-					</div>
-				</a>
-			}
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left sortable">
+				<thead>
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha">Name</th>
+						<th class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="1" data-sort-type="alpha">City</th>
+						<th class="px-3 py-2" data-sortable data-sort-col="2" data-sort-type="alpha" data-sort-default="asc">Country</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					for _, row := range rows {
+						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.FacName) }>
+								<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
+									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-violet-400 transition-colors">
+									{ row.FacName }
+								</a>
+							</td>
+							<td class="px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400" data-sort-value={ strings.ToLower(row.City) }>
+								{ row.City }
+							</td>
+							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.Country) }>
+								@CountryFlag(row.Country)
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
 		</div>
 	}
 }
