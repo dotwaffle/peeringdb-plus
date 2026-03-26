@@ -9,21 +9,21 @@ Requirements for the Web UI Density & Interactivity milestone. Each maps to road
 
 ### Density
 
-- [ ] **DENS-01**: User sees detail page child-entity lists (IX participants, facilities, contacts) as dense columnar tables instead of multi-line card entries
-- [ ] **DENS-02**: User sees parsed city and country in dedicated columns on entity tables
-- [ ] **DENS-03**: User sees responsive column hiding on narrow screens (low-priority columns drop instead of horizontal scroll)
+- [x] **DENS-01**: User sees detail page child-entity lists (IX participants, facilities, contacts) as dense columnar tables instead of multi-line card entries
+- [x] **DENS-02**: User sees parsed city and country in dedicated columns on entity tables
+- [x] **DENS-03**: User sees responsive column hiding on narrow screens (low-priority columns drop instead of horizontal scroll)
 - [ ] **DENS-04**: User sees search results in a denser layout with country/city information
 - [ ] **DENS-05**: User sees ASN comparison results (shared IXPs, facilities, campuses) as dense tables
 
 ### Sorting
 
-- [ ] **SORT-01**: User can sort key table columns (name, ASN, speed, country) by clicking column headers
-- [ ] **SORT-02**: User sees sort direction indicators on sortable column headers
-- [ ] **SORT-03**: User sees tables pre-sorted by a sensible default (IX participants by ASN, facilities by country)
+- [x] **SORT-01**: User can sort key table columns (name, ASN, speed, country) by clicking column headers
+- [x] **SORT-02**: User sees sort direction indicators on sortable column headers
+- [x] **SORT-03**: User sees tables pre-sorted by a sensible default (IX participants by ASN, facilities by country)
 
 ### Flags
 
-- [ ] **FLAG-01**: User sees SVG country flag icons alongside country codes in entity tables
+- [x] **FLAG-01**: User sees SVG country flag icons alongside country codes in entity tables
 - [ ] **FLAG-02**: User sees country flags in search result entries
 
 ### Maps
@@ -68,14 +68,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DENS-01 | Phase 43 | Pending |
+| DENS-01 | Phase 43 | Complete |
 | DENS-02 | Phase 43 | In Progress (43-01) |
-| DENS-03 | Phase 43 | Pending |
+| DENS-03 | Phase 43 | Complete |
 | DENS-04 | Phase 46 | Pending |
 | DENS-05 | Phase 46 | Pending |
 | SORT-01 | Phase 43 | In Progress (43-01) |
 | SORT-02 | Phase 43 | In Progress (43-01) |
-| SORT-03 | Phase 43 | Pending |
+| SORT-03 | Phase 43 | Complete |
 | FLAG-01 | Phase 43 | In Progress (43-01) |
 | FLAG-02 | Phase 46 | Pending |
 | MAP-01 | Phase 44 | Pending |

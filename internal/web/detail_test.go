@@ -409,11 +409,11 @@ func TestFragments_AllTypes(t *testing.T) {
 		{"fac networks", "/ui/fragment/fac/30/networks", http.StatusOK, []string{"Equinix"}, []string{"<!doctype"}},
 		{"fac ixps", "/ui/fragment/fac/30/ixps", http.StatusOK, []string{"DE-CIX"}, []string{"<!doctype"}},
 		{"fac carriers", "/ui/fragment/fac/30/carriers", http.StatusOK, []string{"Equinix FR5"}, []string{"<!doctype"}},
-		{"org networks", "/ui/fragment/org/1/networks", http.StatusOK, []string{"Cloudflare"}, []string{"<!doctype"}},
-		{"org ixps", "/ui/fragment/org/1/ixps", http.StatusOK, []string{"DE-CIX"}, []string{"<!doctype"}},
-		{"org facilities", "/ui/fragment/org/1/facilities", http.StatusOK, []string{"Equinix"}, []string{"<!doctype"}},
-		{"campus facilities", "/ui/fragment/campus/40/facilities", http.StatusOK, []string{"Campus Facility"}, []string{"<!doctype"}},
-		{"carrier facilities", "/ui/fragment/carrier/50/facilities", http.StatusOK, []string{"Equinix"}, []string{"<!doctype"}},
+		{"org networks", "/ui/fragment/org/1/networks", http.StatusOK, []string{"Cloudflare", "<table", "data-sortable", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"org ixps", "/ui/fragment/org/1/ixps", http.StatusOK, []string{"DE-CIX", "<table"}, []string{"<!doctype", "data-sortable", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"org facilities", "/ui/fragment/org/1/facilities", http.StatusOK, []string{"Equinix", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"campus facilities", "/ui/fragment/campus/40/facilities", http.StatusOK, []string{"Campus Facility", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"carrier facilities", "/ui/fragment/carrier/50/facilities", http.StatusOK, []string{"Equinix", "<table"}, []string{"<!doctype", "data-sortable", "px-4 py-3 hover:bg-neutral-800/50"}},
 	}
 
 	for _, tt := range tests {
@@ -525,9 +525,10 @@ func TestFragments_OrgCampusesAndCarriers(t *testing.T) {
 		url      string
 		wantCode int
 		wantBody []string
+		noBody   []string
 	}{
-		{"org campuses", "/ui/fragment/org/1/campuses", http.StatusOK, []string{"Test Campus"}},
-		{"org carriers", "/ui/fragment/org/1/carriers", http.StatusOK, []string{"Test Carrier"}},
+		{"org campuses", "/ui/fragment/org/1/campuses", http.StatusOK, []string{"Test Campus", "<table"}, []string{"data-sortable", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"org carriers", "/ui/fragment/org/1/carriers", http.StatusOK, []string{"Test Carrier", "<table"}, []string{"data-sortable", "px-4 py-3 hover:bg-neutral-800/50"}},
 	}
 
 	for _, tt := range tests {
@@ -545,6 +546,11 @@ func TestFragments_OrgCampusesAndCarriers(t *testing.T) {
 			for _, want := range tt.wantBody {
 				if !strings.Contains(body, want) {
 					t.Errorf("response missing %q", want)
+				}
+			}
+			for _, notWant := range tt.noBody {
+				if strings.Contains(body, notWant) {
+					t.Errorf("response should not contain %q", notWant)
 				}
 			}
 		})
