@@ -171,7 +171,7 @@ func seedAllTestData(t *testing.T, client *ent.Client) {
 	}
 
 	// Create a facility with coordinates for map rendering tests.
-	_, err = client.Facility.Create().
+	facWithCoords, err := client.Facility.Create().
 		SetID(32).SetName("Telehouse London").
 		SetOrgID(1).SetOrganization(org).
 		SetCity("London").SetCountry("GB").
@@ -181,6 +181,33 @@ func seedAllTestData(t *testing.T, client *ent.Client) {
 		Save(ctx)
 	if err != nil {
 		t.Fatalf("creating facility with coords: %v", err)
+	}
+
+	// Link facility-with-coords to IX for multi-pin map tests.
+	_, err = client.IxFacility.Create().
+		SetID(401).
+		SetFacID(facWithCoords.ID).SetFacility(facWithCoords).
+		SetIxID(ix.ID).SetInternetExchange(ix).
+		SetName("Telehouse London").
+		SetCity("London").SetCountry("GB").
+		SetCreated(testHandlerTimestamp).SetUpdated(testHandlerTimestamp).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("creating ixfacility with coords: %v", err)
+	}
+
+	// Link facility-with-coords to network for multi-pin map tests.
+	_, err = client.NetworkFacility.Create().
+		SetID(301).
+		SetNetID(net.ID).SetNetwork(net).
+		SetFacID(facWithCoords.ID).SetFacility(facWithCoords).
+		SetLocalAsn(13335).
+		SetName("Telehouse London").
+		SetCity("London").SetCountry("GB").
+		SetCreated(testHandlerTimestamp).SetUpdated(testHandlerTimestamp).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("creating networkfacility with coords: %v", err)
 	}
 }
 
@@ -699,5 +726,101 @@ func TestGetFreshness_EmptyTable(t *testing.T) {
 
 	if !freshness.IsZero() {
 		t.Errorf("getFreshness should return zero time with empty table, got %v", freshness)
+	}
+}
+
+func TestIXDetail_FacilityMapMarkers(t *testing.T) {
+	t.Parallel()
+	mux := setupAllTestMux(t)
+
+	tests := []struct {
+		name     string
+		url      string
+		wantBody []string
+		noBody   []string
+	}{
+		{
+			"IX with coordinate facility shows map",
+			"/ui/ix/20",
+			[]string{
+				`id="map-ix-20"`,
+				"initMultiPinMap",
+				`"Map showing facility locations for this exchange"`,
+			},
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d", rec.Code)
+			}
+
+			body := rec.Body.String()
+			for _, want := range tt.wantBody {
+				if !strings.Contains(body, want) {
+					t.Errorf("response missing %q", want)
+				}
+			}
+			for _, notWant := range tt.noBody {
+				if strings.Contains(body, notWant) {
+					t.Errorf("response should not contain %q", notWant)
+				}
+			}
+		})
+	}
+}
+
+func TestNetworkDetail_FacilityMapMarkers(t *testing.T) {
+	t.Parallel()
+	mux := setupAllTestMux(t)
+
+	tests := []struct {
+		name     string
+		url      string
+		wantBody []string
+		noBody   []string
+	}{
+		{
+			"network with coordinate facility shows map",
+			"/ui/asn/13335",
+			[]string{
+				`id="map-net-10"`,
+				"initMultiPinMap",
+				`"Map showing facility locations for this network"`,
+			},
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d", rec.Code)
+			}
+
+			body := rec.Body.String()
+			for _, want := range tt.wantBody {
+				if !strings.Contains(body, want) {
+					t.Errorf("response missing %q", want)
+				}
+			}
+			for _, notWant := range tt.noBody {
+				if strings.Contains(body, notWant) {
+					t.Errorf("response should not contain %q", notWant)
+				}
+			}
+		})
 	}
 }
