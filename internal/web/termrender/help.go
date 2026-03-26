@@ -43,9 +43,13 @@ func (r *Renderer) RenderHelp(w io.Writer, freshness time.Time) error {
 	buf.WriteString(StyleHeading.Render("Format Options:"))
 	buf.WriteString("\n")
 	buf.WriteString(fmt.Sprintf("  %s  %s\n", StyleLabel.Render("?format=json"), "JSON output"))
-	buf.WriteString(fmt.Sprintf("  %s  %s\n", StyleLabel.Render("?format=plain"), "Plain text (no ANSI colors)"))
+	buf.WriteString(fmt.Sprintf("  %s %s\n", StyleLabel.Render("?format=plain"), "Plain text (no ANSI colors)"))
+	buf.WriteString(fmt.Sprintf("  %s %s\n", StyleLabel.Render("?format=short"), "One-line summary"))
+	buf.WriteString(fmt.Sprintf("  %s %s\n", StyleLabel.Render("?format=whois"), "RPSL-style WHOIS output"))
 	buf.WriteString(fmt.Sprintf("  %s        %s\n", StyleLabel.Render("?T"), "Shorthand for ?format=plain"))
 	buf.WriteString(fmt.Sprintf("  %s   %s\n", StyleLabel.Render("?nocolor"), "Keep layout, strip colors"))
+	buf.WriteString(fmt.Sprintf("  %s  %s\n", StyleLabel.Render("?section=..."), "Filter sections (ix, fac, net, carrier, campus, prefix)"))
+	buf.WriteString(fmt.Sprintf("  %s       %s\n", StyleLabel.Render("?w=N"), "Adapt to terminal width (e.g. ?w=80)"))
 	buf.WriteString("\n")
 
 	// Examples section.
@@ -56,6 +60,24 @@ func (r *Renderer) RenderHelp(w io.Writer, freshness time.Time) error {
 	buf.WriteString("  $ curl peeringdb-plus.fly.dev/ui/ix/31               # DE-CIX Frankfurt\n")
 	buf.WriteString("  $ curl \"peeringdb-plus.fly.dev/ui/asn/13335?T\"       # Plain text\n")
 	buf.WriteString("  $ curl \"peeringdb-plus.fly.dev/ui/asn/13335?format=json\" | jq .\n")
+	buf.WriteString("\n")
+
+	// Shell integration section (D-19, SHL-03).
+	buf.WriteString(StyleHeading.Render("Shell Integration:"))
+	buf.WriteString("\n")
+	buf.WriteString("  Quick setup (bash):\n")
+	buf.WriteString("    $ eval \"$(curl -s peeringdb-plus.fly.dev/ui/completions/bash)\"\n")
+	buf.WriteString("\n")
+	buf.WriteString("  Quick setup (zsh):\n")
+	buf.WriteString("    $ eval \"$(curl -s peeringdb-plus.fly.dev/ui/completions/zsh)\"\n")
+	buf.WriteString("\n")
+	buf.WriteString("  Manual alias:\n")
+	buf.WriteString("    $ pdb() { curl -s \"peeringdb-plus.fly.dev/ui/$@\"; }\n")
+	buf.WriteString("\n")
+	buf.WriteString("  Then use:\n")
+	buf.WriteString("    $ pdb asn/13335\n")
+	buf.WriteString("    $ pdb ix/31\n")
+	buf.WriteString("    $ pdb ?q=cloudflare\n")
 	buf.WriteString("\n")
 
 	// Data freshness footer.

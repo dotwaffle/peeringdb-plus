@@ -24,8 +24,16 @@ func TestRenderHelp_RichMode(t *testing.T) {
 		"Usage:",
 		"curl peeringdb-plus.fly.dev/ui/asn/",
 		"?format=json",
+		"?format=short",
+		"?format=whois",
+		"?section=",
+		"?w=N",
 		"?T",
 		"?nocolor",
+		"Shell Integration:",
+		"completions/bash",
+		"completions/zsh",
+		"pdb()",
 		"Data last synced:",
 	}
 

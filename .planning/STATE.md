@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: Ready to execute
-stopped_at: Completed 31-02-PLAN.md
+milestone: v1.8
+milestone_name: Terminal CLI Interface
+status: Executing phase 31
+stopped_at: Completed 31-03-PLAN.md
 last_updated: "2026-03-26T03:08:43.047Z"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 31
-Plan: 2 of 3 complete
+Plan: 3 of 3 complete
 
 ## Performance Metrics
 
@@ -36,6 +36,8 @@ Plan: 2 of 3 complete
 | Phase 30 P02 | 3min | 2 tasks | 7 files |
 | Phase 30 P03 | 3min | 2 tasks | 5 files |
 | Phase 31 P01 | 6min | 2 tasks | 9 files |
+| Phase 31 P02 | 5min | 2 tasks | 12 files |
+| Phase 31 P03 | 4min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -63,6 +65,7 @@ Recent decisions affecting current work:
 - [Phase 31]: FormatFreshness uses StyleMuted with leading+trailing newlines for visual separation
 - [Phase 31]: getFreshness returns zero time when db is nil for test safety
 - [Phase 31]: Section aliases support both short and long forms; width adaptation drops entire columns not truncating values; Sections/Width as exported Renderer fields
+- [Phase 31]: Completion search returns integer IDs only to prevent shell injection from entity names
 
 ### Pending Todos
 
@@ -79,5 +82,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-26T03:08:43.044Z
-Stopped at: Completed 31-02-PLAN.md
+Stopped at: Completed 31-03-PLAN.md
 Resume file: None

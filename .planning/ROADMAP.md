@@ -150,8 +150,8 @@ Plans:
 
 Plans:
 - [x] 31-01-PLAN.md -- Short format mode (?format=short) + data freshness footer on all terminal responses
-- [x] 31-02-PLAN.md -- Section filtering (?section=) + width adaptation (?w=N) for detail views
-- [ ] 31-03-PLAN.md -- Shell completion scripts (bash, zsh) + search endpoint + help text update
+- [ ] 31-02-PLAN.md -- Section filtering (?section=) + width adaptation (?w=N) for detail views
+- [x] 31-03-PLAN.md -- Shell completion scripts (bash, zsh) + search endpoint + help text update
 
 ## Progress
 
