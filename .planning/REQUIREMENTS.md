@@ -38,9 +38,9 @@ Requirements for the Code Coverage & Test Quality milestone. Each maps to roadma
 
 ### Minor Package Gaps
 
-- [ ] **MINOR-01**: internal/otel reaches 90%+ coverage with error path tests
-- [ ] **MINOR-02**: internal/health reaches 90%+ coverage with edge case tests
-- [ ] **MINOR-03**: internal/peeringdb reaches 90%+ coverage with error path tests
+- [x] **MINOR-01**: internal/otel reaches 90%+ coverage with error path tests
+- [x] **MINOR-02**: internal/health reaches 90%+ coverage with edge case tests
+- [x] **MINOR-03**: internal/peeringdb reaches 90%+ coverage with error path tests
 
 ### Test Quality
 
@@ -91,9 +91,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCHEMA-01 | Phase 41 | Pending |
 | SCHEMA-02 | Phase 41 | Pending |
 | SCHEMA-03 | Phase 41 | Pending |
-| MINOR-01 | Phase 41 | Pending |
-| MINOR-02 | Phase 41 | Pending |
-| MINOR-03 | Phase 41 | Pending |
+| MINOR-01 | Phase 41 | Complete |
+| MINOR-02 | Phase 41 | Complete |
+| MINOR-03 | Phase 41 | Complete |
 | QUAL-01 | Phase 42 | Pending |
 | QUAL-02 | Phase 42 | Pending |
 | QUAL-03 | Phase 42 | Pending |
