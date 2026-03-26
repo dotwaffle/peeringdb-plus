@@ -112,7 +112,7 @@ Plans:
   3. Peering policy is color-coded (green for Open, yellow for Selective, red for Restrictive) in the network header
   4. Aggregate bandwidth is displayed in the network header and per-IX section headers
   5. Each entity reference (IX name, facility name) includes its ID or path (e.g., `/ui/ix/123`) so the user can follow up with another curl command
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 29-01-PLAN.md -- Data plumbing: NetworkDetail struct extension, eager IX/facility fetching, type-switch dispatch, formatting helpers
@@ -148,6 +148,6 @@ Phases execute in numeric order: 28 -> 29 -> 30 -> 31
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 28. Terminal Detection & Infrastructure | 3/3 | Complete    | 2026-03-25 |
-| 29. Network Detail (Reference Implementation) | 1/2 | In Progress|  |
+| 29. Network Detail (Reference Implementation) | 1/2 | Complete    | 2026-03-26 |
 | 30. Entity Types, Search & Formats | 0/? | Not started | - |
 | 31. Differentiators & Shell Integration | 0/? | Not started | - |
