@@ -1,5 +1,24 @@
 # Milestones
 
+## v1.11 Web UI Density & Interactivity (Shipped: 2026-03-26)
+
+**Phases completed:** 4 phases, 10 plans, 19 tasks
+
+**Key accomplishments:**
+
+- flag-icons CDN, client-side sort JS/CSS, CountryFlag templ component, and FacNetworkRow City/Country enrichment
+- Converted 9 child-entity lists across 3 detail pages from div-based cards to dense sortable HTML tables with country flags and responsive column hiding
+- All 7 remaining detail page list templates (5 org, 1 campus, 1 carrier) converted from card layouts to dense tables with sortable headers and country flags
+- Table structure assertions added to all 9 IX/net/fac fragment test cases, closing the verification gap from parallel worktree execution
+- Interactive Leaflet map on facility detail pages with CARTO tiles, dark mode tile swap, and reusable MapContainer component
+- Integration and unit tests for facility map rendering, popup HTML, Leaflet CDN, and dark mode tile swap
+- Leaflet.markercluster CDN with emerald clusters, MultiPinMapContainer templ component with circleMarkers/fitBounds/legend, coordinate fields on all facility row structs
+- WithFacility() eager-loading wired into IX/network/compare handlers with multi-pin maps rendered on all three page types using three-color comparison pins
+- Compact single-line search results with Country/City/ASN metadata badges and flag-icons CSS country flags
+- Three ASN comparison sections (IXP, Facility, Campus) converted from div-based layouts to Phase 43-style sortable tables with country flags, speed color tiers, responsive column hiding, and opacity dimming
+
+---
+
 ## v1.10 Code Coverage & Test Quality (Shipped: 2026-03-26)
 
 **Phases completed:** 6 phases, 11 plans, 21 tasks
