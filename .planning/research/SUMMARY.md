@@ -1,180 +1,166 @@
 # Project Research Summary
 
-**Project:** PeeringDB Plus -- v1.10 Code Coverage & Test Quality
-**Domain:** Test coverage improvement for a Go application with 5 API surfaces
+**Project:** PeeringDB Plus -- v1.11 Web UI Density & Interactivity
+**Domain:** Web UI enhancement for data-dense network infrastructure portal
 **Researched:** 2026-03-26
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This milestone is about raising test coverage and quality across a mature Go codebase with 5 API surfaces (GraphQL, gRPC/ConnectRPC, REST, PeeringDB compat, Web UI). The project has 60 test files but overall coverage reads 5.7% -- a misleading number caused by ~120K lines of generated code (ent, gqlgen, protobuf, templ) inflating the denominator. Hand-written code coverage is approximately 60-65%, with critical gaps in the GraphQL resolvers (2.6% package-level, ~0% on the 13 List resolvers), gRPC filter/streaming branches (61.7%), and web handler fragment/terminal-mode paths (74.8%). The remaining packages (sync, pdbcompat, middleware, config, health, otel) are all at 83-98% and need only targeted gap-filling.
+v1.11 is a UI density and interactivity milestone that transforms the existing templ + htmx detail pages from vertical card-style layouts into proper dense data tables with client-side sorting, adds interactive Leaflet maps with facility pins, and introduces emoji country flags as a visual scanning aid. The scope is well-bounded: no new Go dependencies are required, no backend architecture changes, and all additions are either pure Go utility functions or lightweight CDN-delivered client-side libraries (Leaflet 1.9.4 at 42KB, MarkerCluster at 10KB, sortable-tablesort at under 1KB).
 
-The recommended approach is infrastructure-first: build a shared test data seeding package (`internal/testutil/seed/`) to eliminate the 6+ duplicate entity creation sites across packages, then systematically expand tests per-surface in dependency order. No new external dependencies are needed -- stdlib `testing`, `httptest`, `enttest`, and `go tool cover` are sufficient. The entire effort is estimated at ~930 lines of new test code to bring all hand-written packages above 80%.
+The recommended approach follows a strict dependency chain: country flag utility first (zero risk, unblocks all flag columns), then data layer additions (lat/lng and flag fields on view model structs), then the largest change -- converting all detail page child-entity lists from `divide-y` div layouts to semantic `<table>` elements with sortable columns -- and finally Leaflet map integration starting with the simplest case (single-pin facility page) and progressing to multi-pin IX/network/comparison pages. All geographic data already exists in the ent schema (facility lat/lng is synced from PeeringDB); the work is surfacing it through queries and templates.
 
-The key risk is coverage-padding: writing tests that execute code paths but assert nothing meaningful, producing false confidence. The graph package is especially dangerous -- naive coverage targets applied to a package where generated code is 99% of the source will either produce unreachable goals or incentivize testing gqlgen's internals. All coverage targets must be stated in terms of hand-written files, not package-level percentages. The second risk is boilerplate explosion in the gRPC tests (13 near-identical entity types), mitigated by extending the existing generic test helper pattern rather than copy-pasting per-type tests.
+The primary risks are operational, not architectural: sortable.js must use the `.auto` variant (MutationObserver) or htmx-loaded fragment tables will not be sortable; Leaflet maps must render outside collapsible `<details>` elements to avoid zero-height initialization; facility lat/lng queries must be batched (not N+1) to avoid span explosion in OTel traces; and emoji flags must always display the country code alongside the emoji because Windows does not render Regional Indicator Symbols as flags. None of these are hard problems -- they are known gotchas with documented prevention strategies.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new dependencies are needed. The existing test infrastructure is sufficient for all coverage goals. See [STACK.md](STACK.md) for full details.
+No new Go dependencies. Three small client-side libraries delivered via CDN, plus a 6-line pure Go function for country flags. See [STACK.md](STACK.md) for full details.
 
-**Core technologies (all already in use):**
-- `testing` (stdlib): Table-driven tests, `-race` flag, `b.Loop()` benchmarks
-- `entgo.io/ent/enttest`: In-memory SQLite test databases with auto-migration
-- `net/http/httptest`: HTTP test server/recorder for API surface testing
-- `go tool cover` / `go tool covdata`: Coverage profiling and per-function analysis with generated code filtering
-
-**What NOT to add:** testify/assert (inconsistent with established stdlib assertion pattern), gomock (real SQLite via enttest is fast enough), mutation testing tools (expensive, run manually after coverage work completes), coverage badge services (generated code distorts numbers).
+**Core technologies:**
+- **Leaflet 1.9.4**: Interactive maps with clickable pins and popups -- the standard open-source mapping library (42KB gzipped, stable since 2023, do NOT use 2.0.0-alpha)
+- **Leaflet.markercluster 1.5.3**: Marker clustering for pages with many facility pins -- official Leaflet plugin, required for IX/network pages with 50+ facility locations
+- **sortable-tablesort 4.1.7**: Client-side column sorting -- 899 bytes gzipped, zero dependencies, MutationObserver auto-init variant works with htmx fragment loading
+- **CARTO basemaps**: Dark and light map tiles -- no API key, no registration, free with CC-BY 4.0 attribution, native dark/light variants eliminate CSS invert hack
+- **CountryFlag() Go function**: Unicode Regional Indicator Symbol math -- 6 lines of Go, no library needed, converts ISO 3166-1 alpha-2 codes to emoji flags server-side
 
 ### Expected Features
 
-See [FEATURES.md](FEATURES.md) for full analysis with effort estimates.
+See [FEATURES.md](FEATURES.md) for full feature landscape.
 
 **Must have (table stakes):**
-- GraphQL offset/limit list resolver tests -- 11 of 13 resolvers at 0%, biggest coverage gap
-- GraphQL custom resolver error paths -- NetworkByAsn, SyncStatus, ObjectCounts untested branches
-- gRPC streaming tests for 4 missing types -- CarrierFacility, IxPrefix, NetworkIxLan, Poc
-- gRPC filter branch coverage -- ~104 uncovered filter branches across 13 types
-- Web detail fragment handler tests -- 6 lazy-loaded fragments at 58-69%
-- Web `renderPage` multi-mode dispatch tests -- terminal/JSON/WHOIS paths at 0%
-- Coverage metrics hygiene -- exclude generated code from CI reporting
+- Dense columnar table layouts replacing current card/div lists (3-4x vertical space reduction)
+- Sortable table columns with numeric sort keys (data-sort attributes)
+- Country emoji flags as visual scanning aid alongside country codes
+- Responsive table behavior (hide low-priority columns on mobile)
 
 **Should have (differentiators):**
-- Test quality audit: assertion density review across existing tests
-- Error path coverage audit: map every `fmt.Errorf` and `connect.NewError` to a test
-- Cross-surface consistency tests: verify same data across all 4 API surfaces
-- Fuzz tests for untrusted inputs (filter parser, JSON deserializers)
+- Interactive Leaflet map with facility pins on detail pages (PeeringDB has no map)
+- Marker clustering for large IXes with many facility locations
+- Clickable map popups linking to facility detail pages
+- Dark mode map tiles matching app theme
+- Comparison page map with colored pins (shared vs unique facilities)
 
-**Defer:**
-- Cross-surface consistency tests (high complexity, do after individual surfaces hit 80%)
-- Golden files for gRPC responses (do after filter coverage is complete)
-- Property-based testing (low ROI for straightforward data transformations)
-- Mutation testing in CI (run manually once after coverage work completes)
+**Defer (v2+):**
+- Server-side table sorting via htmx (unnecessary at current data volumes, all datasets under 2K rows)
+- Paginated tables for child entities (bounded data, pagination adds complexity for no benefit)
+- Search results layout density redesign (current card layout works, improve later)
+- Map on search results page (scope creep)
+- Drawing tools / measurement on map (out of scope for read-only mirror)
 
 ### Architecture Approach
 
-The test architecture centers on a shared seed package that provides deterministic test data for all 13 PeeringDB entity types, eliminating the current duplication of 6+ independent entity creation implementations. Each package retains its own server/handler setup but delegates entity creation to the shared infrastructure. See [ARCHITECTURE.md](ARCHITECTURE.md) for full component boundaries and data flow.
+The features integrate into the existing architecture with no structural changes. All data transformations happen server-side in Go (flag conversion, lat/lng extraction, MapPoint generation). Client-side libraries operate independently on the rendered DOM (sortable attaches to `<table class="sortable">`, Leaflet reads embedded GeoJSON from `<script type="application/json">`). See [ARCHITECTURE.md](ARCHITECTURE.md) for component boundaries and data flow.
 
 **Major components:**
-1. `internal/testutil/seed/` (new) -- Deterministic entity factory with `Full()`, `Minimal()`, `Networks()`, `WithSyncStatus()` functions returning a `Result` struct with all entity references
-2. `internal/testutil/` (existing, unchanged) -- Client setup with in-memory SQLite, atomic counter for unique DB names
-3. Package-local test helpers (existing) -- HTTP server setup, response parsing, package-specific assertions per surface
-
-**Key architectural patterns to follow:**
-- Table-driven tests with shared setup (established in grpcserver)
-- Golden file tests for serialization-sensitive surfaces (established in pdbcompat -- do NOT proliferate)
-- HTTP-level integration for API surfaces, white-box for adapter layers
-- Direct function calls for resolver testing (avoid full HTTP stack overhead)
+1. **countryflags.go** (new) -- `CountryFlag()` function and `MapPoint` type definition
+2. **detail.go / search.go / compare.go** (modified) -- populate new fields (CountryFlag, Latitude, Longitude, MapPoints) in query functions, batch-query facility lat/lng for IX/network pages
+3. **layout.templ** (modified) -- CDN script/link tags for Leaflet, MarkerCluster, sortable; custom sort indicator CSS for dark mode
+4. **detail_*.templ** (modified, largest change) -- convert all child-entity lists from `divide-y` divs to `<table class="sortable">` with flag columns, data-sort attributes, and responsive hiding
+5. **detail_shared.templ** (modified) -- new `MapSection` shared templ component; adapt `CopyableIP` for inline table cell use
 
 ### Critical Pitfalls
 
-See [PITFALLS.md](PITFALLS.md) for all 12 pitfalls with detailed prevention strategies.
+See [PITFALLS.md](PITFALLS.md) for full analysis with 13 identified pitfalls.
 
-1. **Coverage-padding tests** -- Tests that execute paths but assert only `err == nil` or `status == 200`. Every test must assert at least one behavioral property. If removing the function under test would not cause the test to fail, the test is worthless.
-2. **Testing generated code** -- The 57K-line `generated.go` and all `ent/`/`gen/` packages are untestable noise. Exclude from targets. Focus on the ~550 lines of hand-written resolvers, ~3,344 lines of grpcserver handlers.
-3. **Boilerplate explosion for 13 entity types** -- Copy-pasting tests per entity type creates a 6,000+ line maintenance nightmare. Extend the existing `generic_test.go` pattern with type-parameterized helpers.
-4. **SQLite contention in parallel tests** -- Each `t.Parallel()` subtest that writes must use its own `testutil.SetupClient(t)`. Subtests sharing parent data must be read-only. Run `-race -count=10` to detect.
-5. **Graph package denominator distortion** -- Even 100% hand-written resolver coverage yields only ~15-20% package-level coverage. Targets must be stated per-file (`custom.resolvers.go`, `schema.resolvers.go`, `pagination.go`), not per-package.
+1. **sortable.js not auto-initializing on htmx fragments** -- Use `sortable.auto.min.js` (MutationObserver variant), not the standard `sortable.min.js`. Without this, every table inside a collapsible section is silently non-sortable.
+2. **Leaflet map zero height in collapsed sections** -- Render maps as top-level page sections, never inside `<details>` elements. Leaflet calculates viewport on init; hidden containers report 0x0 dimensions.
+3. **N+1 queries for facility lat/lng** -- Junction entities (IxFacility, NetworkFacility) lack lat/lng. Batch-query actual Facility entities with `facility.IDIn(ids...)` instead of per-facility queries. Otherwise OTel traces show span explosion.
+4. **Missing data-sort on numeric columns** -- Speed "10G" sorts lexicographically without `data-sort="10000"`. ASN "13335" sorts after "2" as strings. Every formatted numeric cell needs a data-sort attribute.
+5. **Emoji flags invisible on Windows** -- Always display country code text alongside the flag emoji. Windows renders Regional Indicator Symbols as two-letter codes, not flags.
 
 ## Implications for Roadmap
 
 Based on research, suggested phase structure:
 
-### Phase 1: Shared Test Seed Package
-**Rationale:** All subsequent phases depend on shared test data infrastructure. Building this first eliminates duplication and provides a stable foundation.
-**Delivers:** `internal/testutil/seed/` package with `Full()`, `Minimal()`, `Networks()`, `WithSyncStatus()` functions.
-**Addresses:** Data seeding duplication (6+ independent implementations -> 1 shared implementation)
-**Avoids:** Pitfall 3 (boilerplate explosion) by establishing reusable factories before test expansion begins
-**Estimated effort:** Small -- extract and generalize from existing `setupGoldenTestData()` in pdbcompat
+### Phase 1: Country Flag Utility and Data Layer Additions
 
-### Phase 2: GraphQL Resolver Coverage
-**Rationale:** Highest coverage delta per effort. 11 resolvers at 0% can be covered with ~150 lines of test code using existing `postGraphQL` helper.
-**Delivers:** Tests for all 13 `*List` offset/limit resolvers, error paths for NetworkByAsn/SyncStatus/ObjectCounts/validatePageSize
-**Addresses:** graph package from 2.6% to 60%+ (hand-written code)
-**Avoids:** Pitfall 2 (do NOT test generated.go), Pitfall 8 (measure by file, not package), Pitfall 1 (assert response data, not just status)
+**Rationale:** Zero dependencies on other features. Unblocks all subsequent phases that display flags. Type definition changes (adding fields to view model structs) must happen before any template work.
+**Delivers:** `CountryFlag()` Go function with tests, `MapPoint` type, and updated view model structs with CountryFlag/Latitude/Longitude/MapPoints fields.
+**Addresses:** Country emoji flags (table stakes), data plumbing for maps.
+**Avoids:** Pitfall 3 (flag rendering) by establishing the pattern of always showing country code alongside emoji from the start.
 
-### Phase 3: gRPC Handler Coverage
-**Rationale:** Second-highest coverage gap. Can run in parallel with Phase 2 (different packages). Extend existing generic_test.go pattern.
-**Delivers:** Missing filter tests (6 entity types), missing stream tests (4 entity types), filter branch coverage for all 13 types
-**Addresses:** grpcserver from 61.7% to 82%+
-**Avoids:** Pitfall 3 (use generic helpers, not 13 copies), Pitfall 4 (isolated DBs per write-heavy subtest), Pitfall 9 (nil-check proto wrappers)
+### Phase 2: Dense Table Layouts with Sortable Columns
 
-### Phase 4: Web Handler Coverage
-**Rationale:** Depends on Phase 1 (seed package) for data setup. Third-highest gap.
-**Delivers:** Fragment handler tests (6 fragments), renderPage terminal/JSON/WHOIS mode tests, extractID/getFreshness edge cases
-**Addresses:** web from 74.8% to 85%+
-**Avoids:** Pitfall 5 (use httptest.NewRecorder, not full server), Pitfall 6 (targeted assertions, not golden files for every mode)
+**Rationale:** Largest change by template line count and highest user-visible impact. Must happen before map integration because it restructures all detail page templates. Sortable tables require semantic `<table>` markup, so this conversion is a prerequisite.
+**Delivers:** All detail page child-entity lists converted from div-based cards to dense sortable tables. CDN integration for sortable-tablesort. Flag columns populated. Data-sort attributes on all numeric cells. Dark mode sort indicator CSS. Updated `CopyableIP` for table cell use. Responsive column hiding.
+**Uses:** sortable-tablesort 4.1.7 (CDN), CountryFlag() from Phase 1.
+**Avoids:** Pitfall 1 (use `.auto` variant), Pitfall 5 (data-sort on every numeric cell), Pitfall 8 (CopyableIP inline adaptation), Pitfall 12 (currentColor sort indicators for dark mode).
 
-### Phase 5: Schema Hook Coverage
-**Rationale:** Independent of Phases 2-4. Small, focused effort.
-**Delivers:** otelMutationHook error path test, relationship constraint tests
-**Addresses:** ent/schema from 47.4% to 65-70% (realistic ceiling given static config methods)
-**Avoids:** Pitfall 2 (do NOT test Edges/Indexes/Annotations -- they are configuration, not behavior)
+### Phase 3: Facility Detail Page Map (Single Pin)
 
-### Phase 6: Remaining Package Gaps + Coverage Hygiene
-**Rationale:** Clean-up phase. All packages at 83%+ already; this brings them to 90%+. Also implements CI coverage filtering.
-**Delivers:** Targeted error path tests for otel, health, peeringdb, sync. Coverage exclusion config for CI.
-**Addresses:** All hand-written packages at 80%+. Accurate CI coverage reporting.
-**Avoids:** Pitfall 7 (do NOT mock OTel internals -- test that functions do not error, not that spans have correct names)
+**Rationale:** Simplest map case -- single facility with its own lat/lng, no junction queries, no clustering complexity. Establishes the `MapSection` shared component and Leaflet CDN integration that all subsequent map work builds on.
+**Delivers:** Leaflet + MarkerCluster CDN in layout.templ. `MapSection` templ component. Single-pin map on facility detail page with dark/light CARTO tiles. Conditional rendering when lat/lng exists.
+**Uses:** Leaflet 1.9.4, CARTO basemaps.
+**Avoids:** Pitfall 2 (render outside collapsible sections), Pitfall 6 (CARTO attribution), Pitfall 9 (CSS load order testing), Pitfall 10 (filter nil coordinates).
+
+### Phase 4: Multi-Pin Maps (IX, Network, Comparison)
+
+**Rationale:** Builds on established MapSection component from Phase 3. Adds the junction-entity-to-facility query pattern and MarkerCluster usage. Comparison map with colored pins is the most novel feature.
+**Delivers:** Maps on IX detail pages (multi-pin from facility associations), network detail pages (multi-pin from facility presences), and comparison pages (colored pins for shared vs unique facilities). Batch facility lat/lng queries.
+**Uses:** MapSection component from Phase 3, MarkerCluster for clustering.
+**Avoids:** Pitfall 4 (batch-query with IDIn, not N+1), Pitfall 10 (filter nil coords), Pitfall 11 (both MarkerCluster CSS files).
+
+### Phase 5: Search Results and Polish
+
+**Rationale:** Low dependency, lower priority. Search results already work; this adds flag display and optional density improvements. Also addresses any dark mode map tile toggle edge cases identified during Phase 3-4 testing.
+**Delivers:** Country flags in search result subtitles. Any remaining table or map polish identified during prior phases.
+**Avoids:** Pitfall 7 (document dark mode toggle as known limitation, defer MutationObserver tile swap).
 
 ### Phase Ordering Rationale
 
-- Phase 1 first because Phases 2-4 all benefit from shared seed data. Without it, each phase recreates test data independently (the exact duplication problem being fixed).
-- Phases 2 and 3 can run in parallel -- they touch different packages (`graph/` vs `internal/grpcserver/`) with no overlap.
-- Phase 4 after Phase 1 because web tests need relationship data (NetworkIxLan, IxFacility, etc.) that `seed.Full()` provides.
-- Phase 5 is independent and small -- can slot anywhere after Phase 1 or run in parallel with 2-4.
-- Phase 6 last because it is clean-up work and depends on all other phases being complete to set accurate coverage thresholds.
+- **Dependency chain drives order:** Types and utilities first (Phase 1), then the templates that consume them (Phase 2-5). Table conversion (Phase 2) before maps (Phase 3-4) because it restructures the templates that maps will be added to.
+- **Risk gradient:** Each phase adds one category of complexity. Phase 1 is pure Go with zero risk. Phase 2 is template refactoring with a new JS library. Phase 3 introduces Leaflet with the simplest map case. Phase 4 adds query complexity and clustering. Phase 5 is polish.
+- **Biggest value first:** Dense tables (Phase 2) deliver the largest UX improvement -- 3-4x vertical space reduction on every detail page. Maps (Phase 3-4) are differentiators but less impactful than fixing the fundamental data density problem.
+- **Each phase is independently shippable:** The product improves after every phase. If the milestone needs to be cut short, Phase 1-2 alone deliver major value.
 
 ### Research Flags
 
 Phases with standard patterns (skip research-phase):
-- **Phase 1:** Well-established pattern in existing `setupGoldenTestData()`. Mechanical extraction.
-- **Phase 2:** Existing `postGraphQL` helper and `resolver_test.go` pattern. Just needs replication.
-- **Phase 3:** Existing `generic_test.go` and streaming test patterns. Mechanical extension.
-- **Phase 4:** Existing `handler_test.go` and `detail_test.go` patterns. Add test cases.
-- **Phase 5:** Existing `schema_test.go` pattern. Small scope.
-- **Phase 6:** Targeted gap-filling in well-understood packages.
+- **Phase 1:** Pure Go utility function and struct field additions. Well-documented Unicode standard. No research needed.
+- **Phase 2:** Table HTML conversion with Tailwind styling. Standard web development. sortable-tablesort behavior is well-documented. No research needed.
+- **Phase 5:** Search result template changes. Trivial. No research needed.
 
-No phases need deeper research. All patterns are established in the existing codebase and need only extension, not invention.
+Phases that may benefit from brief validation during planning:
+- **Phase 3:** Leaflet initialization in templ templates. The pattern of embedding GeoJSON in `<script type="application/json">` and initializing Leaflet from a raw `<script>` tag is well-documented, but test the Tailwind CSS interaction (Pitfall 9) early. Brief validation, not full research.
+- **Phase 4:** Multi-pin maps with batch facility queries. The ent query pattern (`IDIn`) is standard, but the junction-entity-to-facility join for IX/network geo data should be validated against the actual query structure in `detail.go`. Brief code review during planning is sufficient.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | No new dependencies needed. All tools already in use and validated. |
-| Features | HIGH | Based on direct codebase analysis with per-function coverage profiling. Exact line counts and coverage percentages from `go tool cover`. |
-| Architecture | HIGH | Derived from analysis of 60 existing test files and 15 packages. Recommended patterns are generalizations of the best existing patterns, not new inventions. |
-| Pitfalls | HIGH | Based on direct observation of current test code (6+ duplicate seed functions, 57K-line generated code denominator, 2,920-line grpcserver test file). Pitfalls are concrete, not theoretical. |
+| Stack | HIGH | All libraries are stable, widely used, and well-documented. Leaflet 1.9.4 is the current stable line. sortable-tablesort is tiny and battle-tested. No new Go dependencies. |
+| Features | HIGH | Feature set is clearly scoped against existing codebase analysis and competitor comparison (PeeringDB, Peercortex). Table stakes vs differentiators are well-defined. |
+| Architecture | HIGH | Integrates into existing templ + htmx patterns with no structural changes. Data flow is straightforward: ent queries -> Go view models -> templ templates -> client-side JS. |
+| Pitfalls | HIGH | 13 pitfalls identified with concrete prevention strategies. The critical ones (MutationObserver, zero-height map, N+1 queries) are well-known issues with documented solutions. |
 
 **Overall confidence:** HIGH
 
-All research is based on direct codebase analysis and coverage profiling, not external documentation or community patterns. The recommendations extend patterns already proven in the codebase.
-
 ### Gaps to Address
 
-- **Graph package coverage measurement:** Need to validate that `go tool cover -func` filtering by filename accurately measures hand-written resolver coverage. The 2.6% -> 60%+ target assumes generated.go exclusion works cleanly. Validate in Phase 2 execution.
-- **Generic test helper feasibility for gRPC:** The existing `generic_test.go` uses type parameters. Need to verify that the approach scales to stream tests and filter tests during Phase 3 planning. If generics prove unwieldy for the filter variations, fall back to table-driven tests per type (still better than copy-paste).
-- **SQLite parallel test performance:** Adding ~930 lines of tests with many new `testutil.SetupClient()` calls will increase test suite runtime. Monitor CI time after Phase 3. If it exceeds acceptable limits, consider reducing parallelism or sharing read-only databases across subtests.
+- **Tailwind CDN vs Leaflet CSS interaction:** Pitfall 9 flags a potential conflict between Tailwind's CSS reset and Leaflet control styling. The Tailwind browser CDN may not apply full Preflight reset, making this a non-issue -- but it should be tested in Phase 3 before committing to the CDN load order.
+- **MarkerCluster dark mode styling:** MarkerCluster.Default.css uses blue/green cluster circles that may clash with the dark theme. Custom CSS overrides for `.marker-cluster-small/medium/large` background colors may be needed. Assess during Phase 4 implementation.
+- **Actual data coverage for facility lat/lng:** The percentage of PeeringDB facilities with populated lat/lng is unknown. If coverage is low, maps will appear sparse. Check data coverage during Phase 3 to set expectations for the map feature's utility.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Direct codebase coverage analysis via `go test -coverprofile` and `go tool cover -func` (2026-03-26)
-- Existing test file examination: 60 test files, ~8,500 lines hand-written test code
-- [Go testing documentation](https://go.dev/doc/test)
-- [enttest documentation](https://entgo.io/docs/testing/)
+- [Leaflet.js](https://leafletjs.com/) -- v1.9.4 stable, CDN links with SRI hashes
+- [sortable-tablesort](https://github.com/tofsjonas/sortable) -- MutationObserver behavior, data-sort attributes, CDN
+- [CARTO Basemaps](https://carto.com/basemaps) -- free dark/light tile variants, attribution requirements
+- [Unicode Regional Indicator Symbols](https://en.wikipedia.org/wiki/Regional_indicator_symbol) -- flag emoji encoding standard
+- [Leaflet MarkerCluster](https://github.com/Leaflet/Leaflet.markercluster) -- v1.5.3 clustering plugin
 
 ### Secondary (MEDIUM confidence)
-- [Go integration test coverage](https://go.dev/blog/integration-test-coverage) -- Coverage profiling patterns
-- [Go build coverage documentation](https://go.dev/doc/build-cover) -- `-coverpkg` usage
-- [Learn Go with Tests - Anti-patterns](https://quii.gitbook.io/learn-go-with-tests/meta/anti-patterns) -- Testing anti-patterns
-- [Martin Fowler - Test Coverage](https://martinfowler.com/bliki/TestCoverage.html) -- Coverage metrics limitations
-- [Unit Testing ConnectRPC Servers](https://kmcd.dev/posts/connectrpc-unittests/) -- ConnectRPC testing patterns
-- [Parallel Table-Driven Tests in Go](https://www.glukhov.org/post/2025/12/parallel-table-driven-tests-in-go/) -- Parallel test pitfalls
+- [CARTO attribution requirements](https://carto.com/attributions) -- CC-BY 4.0 licensing terms
+- [Stadia Maps pricing](https://stadiamaps.com/pricing) -- alternative tile provider comparison (rejected)
+- [OSM Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/) -- why not to use OSM tiles directly
+- [htmx Table Sorting Pattern](https://dev.to/vladkens/table-sorting-and-pagination-with-htmx-3dh8) -- server-side sort approach (deferred)
 
 ### Tertiary (LOW confidence)
-- None -- all findings are based on direct analysis or well-established sources
+- MarkerCluster dark mode compatibility -- not explicitly documented, needs testing during implementation
 
 ---
 *Research completed: 2026-03-26*

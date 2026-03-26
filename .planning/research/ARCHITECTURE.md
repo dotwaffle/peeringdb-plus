@@ -1,383 +1,446 @@
 # Architecture Patterns
 
-**Domain:** Test infrastructure for a multi-surface Go API application
+**Domain:** Web UI density, sortable tables, Leaflet maps, emoji country flags
 **Researched:** 2026-03-26
-
-## Current Test Architecture Assessment
-
-### Inventory
-
-The codebase has 60 test files totaling ~404K lines (overwhelmingly in generated code). Meaningful hand-written test code is approximately 8,500 lines across 15 packages. Overall statement coverage is 5.7% (dragged down by untestable generated code in `ent/`, `gen/`, and `graph/generated.go`).
-
-**Hand-written package coverage:**
-
-| Package | Coverage | LOC (tests) | LOC (source) | Assessment |
-|---------|----------|-------------|--------------|------------|
-| graph (resolvers only) | 2.6% | 546 | 548 | Critical gap -- 13 List resolvers untested, offset/limit variants 0% |
-| ent/schema | 47.4% | 908 | 2,143 | Fields/Hooks covered, Edges/Indexes/Annotations at 0% |
-| internal/grpcserver | 61.7% | 3,253 | 3,344 | Good breadth but 4 entity types have only Get, no List/Stream tests |
-| internal/web | 74.8% | 3,273 | ~2,500 | Detail/search/compare covered, some terminal render paths thin |
-| internal/web/termrender | 88.2% | ~2,000 | ~1,800 | Strong coverage, minor gaps in edge cases |
-| internal/pdbcompat | 85.4% | ~1,500 | ~1,200 | Golden files excellent, filter edge cases could be deeper |
-| internal/sync | 86.9% | ~800 | ~900 | Integration + unit, good |
-| internal/middleware | 98.2% | ~300 | ~200 | Near-complete |
-| internal/config | 86.1% | ~150 | ~200 | Adequate |
-| internal/otel | 84.0% | ~300 | ~400 | Provider/metrics covered, logger thin |
-| internal/health | 84.6% | ~100 | ~100 | Adequate |
-| internal/peeringdb | 83.2% | ~400 | ~500 | Client well tested |
-| internal/httperr | 100.0% | ~100 | ~50 | Complete |
-| internal/litefs | 87.5% | ~50 | ~50 | Adequate |
-
-### Existing Shared Infrastructure
-
-**`internal/testutil` (1 file, 57 lines):**
-- `SetupClient(t) *ent.Client` -- in-memory SQLite with auto-migration
-- `SetupClientWithDB(t) (*ent.Client, *sql.DB)` -- adds raw sql.DB access
-- Atomic counter for unique DB names enabling parallel tests
-- Registers `sqlite3` driver once via `init()`
-
-This is the single shared helper. All data seeding is package-local.
-
-### Data Seeding Patterns (Current State)
-
-Every package that needs test data seeds it independently:
-
-| Package | Seeding Approach | Entities Created | Duplication |
-|---------|-----------------|------------------|-------------|
-| graph | `seedTestData()` -- Org, 3 Networks, Facility + sync_status | Local to graph | HIGH |
-| grpcserver | Per-test inline `client.Network.Create()...` chains | Per entity type | HIGH |
-| pdbcompat | `setupTestHandler()` -- 3 Networks; `setupGoldenTestData()` -- all 13 types | Two separate setups | MEDIUM |
-| web | `seedAllTestData()` -- full relationship graph; `seedSearchData()` -- 6 types | Two separate setups | HIGH |
-| ent/schema | Per-subtest inline creation | All 13 types | LOW (correct) |
-| sync | `fixture` struct with mock HTTP server; `newFixtureServer()` with JSON fixtures | Via JSON testdata | LOW (correct) |
-
-**Key observation:** There are at least 6 independent implementations of "create a test Organization with required fields." The `setupGoldenTestData()` in pdbcompat is the most comprehensive (all 13 types with relationships), but it returns a `*http.ServeMux` specific to pdbcompat handlers, making it non-reusable.
 
 ## Recommended Architecture
 
+The v1.11 features integrate into the existing templ + htmx + Tailwind architecture with minimal new dependencies. No Go libraries are added. Three small JS/CSS assets are loaded via CDN (matching the Tailwind CDN pattern already established). All data transformations happen server-side in Go.
+
 ### Component Boundaries
 
-| Component | Responsibility | Used By |
-|-----------|---------------|---------|
-| `internal/testutil` (expanded) | Ent client setup, entity factory functions, shared timestamps | All packages with DB tests |
-| `internal/testutil/seed` (new) | Comprehensive data seeding with all 13 types + relationships | graph, grpcserver, pdbcompat, web |
-| Package-local test helpers | HTTP server setup, response parsing, package-specific assertions | Each package independently |
-| `testdata/fixtures/` (existing) | JSON fixture files from real PeeringDB API responses | sync integration tests |
-| `internal/pdbcompat/testdata/golden/` (existing) | Golden file snapshots | pdbcompat only |
+| Component | Responsibility | Communicates With |
+|-----------|---------------|-------------------|
+| `internal/web/templates/*.templ` | Dense table markup, map container, flag rendering | Data types in `detailtypes.go`, `comparetypes.go`, `searchtypes.go` |
+| `internal/web/detail.go` | Query lat/lng from ent, populate new type fields (Latitude, Longitude, CountryFlag) | ent client, template data types |
+| `internal/web/templates/layout.templ` | CDN script/link tags for Leaflet, MarkerCluster, sortable.css | Browser loads at page level |
+| `internal/web/countryflags.go` (new) | Pure Go function: ISO 3166-1 alpha-2 code to emoji flag string | Called by detail.go, search.go, compare.go when populating template data |
+| Client-side JS (inline in templ) | Leaflet map initialization, GeoJSON layer from `<script type="application/json">` block | Reads data attributes / embedded JSON from server-rendered HTML |
+| `sortable` library (CDN) | Client-side table column sorting via `class="sortable"` on `<table>` | Operates on DOM, no htmx interaction needed |
 
-### Data Flow for Shared Fixtures
+### Data Flow
 
 ```
-testutil.SetupClient(t)                 -- Creates isolated in-memory SQLite
-    |
-    v
-seed.Full(t, client) -> seed.Result     -- Seeds all 13 types with relationships
-    |                                       Returns struct with IDs for assertions
-    v
-Package-local server setup               -- Wires seeded client into package handler
-    |                                       (GraphQL resolver, gRPC service, HTTP handler)
-    v
-Package-local test assertions             -- Tests exercise API surface with known IDs
+[ent DB] --> detail.go queries facility lat/lng, country code
+         --> countryflags.go converts "US" to unicode regional indicators
+         --> template data struct gets Latitude, Longitude, CountryFlag fields
+         --> templ renders:
+             - <table class="sortable"> with dense columnar rows
+             - data-sort attributes on <td> for numeric sort keys
+             - emoji flags in dedicated <td> column
+             - <div id="map"> container
+             - <script type="application/json" id="map-data"> with GeoJSON
+         --> browser loads:
+             - sortable.min.js attaches click handlers to <th> in .sortable tables
+             - inline JS reads #map-data JSON, creates Leaflet map with markers
 ```
 
-### The `seed` Package Design
+## Integration Patterns
+
+### Pattern 1: Country Code to Emoji Flag (Go Server-Side)
+
+**What:** Convert ISO 3166-1 alpha-2 country codes to Unicode regional indicator symbol pairs.
+
+**When:** Every template data struct that has a `Country` field also gets a computed `CountryFlag` field.
+
+**Why server-side:** Emoji flags are pure Unicode -- no JS needed. Computing in Go means the flag renders in the initial HTML, works in terminal mode (ANSI/WHOIS), and avoids a flash of unstyled content. The algorithm is trivial (two character shifts), no external library needed.
+
+**Implementation:**
 
 ```go
-// Package seed provides deterministic test data for all 13 PeeringDB entity types.
-package seed
-
-// Timestamp is the fixed time used for all seeded entities.
-var Timestamp = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
-
-// Result holds the IDs and references of all seeded entities.
-// Tests use these for deterministic assertions.
-type Result struct {
-    Org              *ent.Organization  // ID=100
-    Networks         []*ent.Network     // IDs 200-202, ASNs 65001-65003
-    Facility         *ent.Facility      // ID=300
-    IX               *ent.InternetExchange // ID=400
-    Campus           *ent.Campus        // ID=500
-    Carrier          *ent.Carrier       // ID=600
-    IxLan            *ent.IxLan         // ID=700
-    IxPrefix         *ent.IxPrefix      // ID=800
-    IxFacility       *ent.IxFacility    // ID=900
-    NetworkIxLan     *ent.NetworkIxLan  // ID=1000
-    NetworkFacility  *ent.NetworkFacility // ID=1100
-    CarrierFacility  *ent.CarrierFacility // ID=1200
-    Poc              *ent.Poc           // ID=1300
-}
-
-// Full seeds all 13 entity types with relationships and returns their references.
-func Full(t *testing.T, client *ent.Client) Result { ... }
-
-// Minimal seeds only Org + Network (most common test scenario).
-func Minimal(t *testing.T, client *ent.Client) Result { ... }
-
-// Networks seeds n networks with sequential IDs and ASNs.
-func Networks(t *testing.T, client *ent.Client, n int) []*ent.Network { ... }
-
-// WithSyncStatus seeds the sync_status table with a successful sync record.
-func WithSyncStatus(t *testing.T, db *sql.DB) { ... }
-```
-
-**Why a `seed` sub-package instead of expanding `testutil`:** The `testutil` package handles infrastructure (client setup). Seeding is a separate concern -- it creates domain-specific test data. Keeping them separate means packages that only need a client (like ent/schema tests) do not pull in all 13 entity creation paths.
-
-### Test Boundary Recommendations Per Package
-
-#### 1. `graph/` -- GraphQL Resolvers (2.6% -> 80%+ target)
-
-**What to test:** The hand-written resolvers in `custom.resolvers.go` (SyncStatus, NetworkByAsn, 13 offset/limit List resolvers, ObjectCounts) and `schema.resolvers.go` (validatePageSize, Node, Nodes, 13 cursor-based Paginate resolvers).
-
-**What NOT to test:** `generated.go` (57K lines of gqlgen internals -- this is the gqlgen execution engine, not business logic).
-
-**Test boundary:** Integration tests via HTTP. Tests POST GraphQL queries to an httptest.Server and verify JSON response structure. This is the existing pattern (resolver_test.go) -- it just needs to be expanded to cover all 13 List/offset-limit resolvers and error paths.
-
-**Why HTTP-level, not unit:** The resolvers are thin wrappers around ent queries. Testing them at the HTTP level validates the full stack (argument parsing, resolver dispatch, ent query, serialization) with minimal test code. Unit-testing a resolver function directly would require constructing gqlgen context objects which is fragile and undocumented.
-
-**Infrastructure needed:**
-- Reuse existing `setupTestServer()` and `postGraphQL()` helpers (already in graph)
-- Replace `seedTestData()` with `seed.Full()` from shared package
-- Add test cases for each of the 13 `*List` offset/limit resolvers
-- Add error path tests (negative offset, limit > 1000, invalid where filters)
-
-#### 2. `ent/schema/` -- Schema Validation & Hooks (47.4% -> 70%+ target)
-
-**What to test:** Hook behavior (`otelMutationHook`), field validators (if any custom ones exist), and relationship constraints via CRUD operations. The Fields() functions show 100% coverage because enttest exercises them during migration; the 0% on Edges/Indexes/Annotations is **expected and acceptable** -- these return static configuration structs consumed by ent codegen, not runtime code paths.
-
-**What NOT to test:** The static schema declarations (Edges, Indexes, Annotations). These are configuration, not behavior. Testing "does Fields() return the right fields" is testing ent's codegen, not your application.
-
-**Test boundary:** Unit tests using ent client directly. The existing `schema_test.go` pattern of CRUD-per-type is correct. Focus expansion on:
-- Hook behavior: Verify `otelMutationHook` creates spans (currently 90% -- the miss is likely the error path)
-- Relationship cascading: Creating child entities without required parents should fail
-- Social media JSON field round-tripping (already partially covered in organization_test.go)
-
-**Infrastructure needed:**
-- `testutil.SetupClient(t)` is sufficient (already used)
-- No shared seeding needed -- schema tests should create their own entities to test specific constraints
-
-**Realistic target: 65-70%.** The Edges/Indexes/Annotations functions account for ~50% of the schema source code and are not worth testing. Raising coverage to 80% would require testing static configuration returns, which is test theater.
-
-#### 3. `internal/grpcserver/` -- ConnectRPC Handlers (61.7% -> 80%+ target)
-
-**What to test:** Get/List/Stream for all 13 entity types, filter validation, pagination, proto conversion, error mapping (not-found, invalid-argument).
-
-**Current gaps:**
-- Only Network, Facility, Organization, Poc, IxPrefix, NetworkIxLan, CarrierFacility have List filter tests
-- Missing List filter tests: Campus, Carrier, InternetExchange, IxFacility, IxLan, NetworkFacility (these have Get/List tests but no filter-specific tests)
-- Stream tests exist for Network, Facility, Organization, Campus, Carrier, InternetExchange, IxLan, IxFacility, NetworkFacility -- but not IxPrefix, NetworkIxLan, CarrierFacility, Poc
-
-**Test boundary:** White-box unit tests calling service methods directly (current pattern). The grpcserver tests are `package grpcserver` (not `_test`), giving access to unexported types. This is correct because the services are thin adapters -- testing through a full ConnectRPC client would add transport serialization overhead without catching different bugs.
-
-**Infrastructure needed:**
-- Replace per-test inline seeding with `seed.Networks(t, client, 3)` or `seed.Full(t, client)` for multi-type tests
-- The existing stream test setup (`setupStreamTestServer`) should be generalized to accept any service type
-- Filter test pattern is already table-driven and consistent -- just needs replication to remaining entity types
-
-#### 4. `internal/pdbcompat/` -- PeeringDB Compatibility Layer (85.4% -> 90%+ target)
-
-**What to test:** Handler routing, filter parsing, depth parameter, serialization, field projection, search endpoint, golden file output correctness.
-
-**Already well-structured:** The golden file pattern (`compareOrUpdate`, `-update` flag, deterministic timestamps) is the strongest test pattern in the codebase. The `setupGoldenTestData()` creates all 13 types -- this should become the shared `seed.Full()`.
-
-**Test boundary:** HTTP-level integration via httptest. Tests create handlers, register routes on a ServeMux, and assert response structure. This is the right boundary for a compatibility layer where exact HTTP response format matters.
-
-**Infrastructure needed:**
-- Extract `setupGoldenTestData()` entity creation logic into `seed.Full()` -- keep the mux/handler setup local
-- Expand filter tests for remaining filter operators (currently covers basic filtering; Django-style `__contains`, `__gte` etc. may have gaps)
-
-#### 5. `internal/web/` -- Web UI Handlers (74.8% -> 85%+ target)
-
-**What to test:** Route handling, template rendering (HTML contains expected elements), content negotiation (full page vs htmx fragment vs terminal), search service, comparison logic, detail page data loading.
-
-**Test boundary:** HTTP-level integration. Tests exercise handlers via httptest, assert on HTML content (string contains checks), HTTP headers (Vary, Content-Type), and status codes. This is the right level -- the templates are compiled Go code (templ), so testing them as rendered output catches template errors.
-
-**Infrastructure needed:**
-- `seedAllTestData()` and `seedSearchData()` should use `seed.Full()` or `seed.Minimal()` for entity creation, keeping only the handler/mux wiring local
-- Terminal render tests (`internal/web/termrender/`) are self-contained and work well -- no changes needed
-
-#### 6. `internal/sync/` -- Data Sync Worker (86.9% -> stable)
-
-**What NOT to change:** The sync package has two complementary test approaches:
-1. `worker_test.go` -- mock HTTP server (`fixture` struct) with programmatic responses for unit testing sync logic
-2. `integration_test.go` -- JSON fixture files from real PeeringDB API for integration testing the full parse-and-upsert pipeline
-
-This dual approach is correct. The fixture JSON files in `testdata/fixtures/` represent real PeeringDB API responses and should not be replaced with synthetic data.
-
-**Test boundary:** Internal package tests (access to unexported types). The `TestMain` initializing OTel metrics globally is a necessary workaround for global state in the metrics package.
-
-### Patterns to Follow
-
-#### Pattern 1: Table-Driven Tests With Shared Setup
-
-**What:** Single setup function seeds data once, multiple subtests exercise different behaviors.
-**When:** Testing the same handler/service with different inputs.
-**Example:** grpcserver filter tests -- one `seedData` call, table of `{req, wantLen, wantErr}`.
-
-```go
-func TestListNetworksFilters(t *testing.T) {
-    t.Parallel()
-    client := testutil.SetupClient(t)
-    result := seed.Full(t, client)
-    svc := &NetworkService{Client: client}
-
-    tests := []struct {
-        name    string
-        req     *pb.ListNetworksRequest
-        wantLen int
-        wantErr connect.Code
-    }{
-        {name: "by ASN", req: &pb.ListNetworksRequest{Asn: proto.Int64(65001)}, wantLen: 1},
-        // ...
+// CountryFlag converts an ISO 3166-1 alpha-2 country code to its emoji flag.
+// Returns empty string for invalid or empty input.
+func CountryFlag(code string) string {
+    if len(code) != 2 {
+        return ""
     }
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            t.Parallel()
-            resp, err := svc.ListNetworks(ctx, tt.req)
-            // assertions...
-        })
-    }
+    code = strings.ToUpper(code)
+    r1 := rune(code[0]) + 0x1F1A5
+    r2 := rune(code[1]) + 0x1F1A5
+    return string([]rune{r1, r2})
 }
 ```
 
-#### Pattern 2: Golden File Tests for Serialization-Sensitive Surfaces
+**Confidence:** HIGH -- This is a well-documented Unicode standard (Regional Indicator Symbols U+1F1E6 to U+1F1FF). The algorithm is deterministic and has been validated across multiple sources. Every modern browser and terminal renders these correctly.
 
-**What:** Compare actual output against committed golden files. Update with `-update` flag.
-**When:** Testing exact output format (PeeringDB compat responses, terminal render output).
-**Example:** The pdbcompat golden test pattern is the reference implementation.
+**Integration points:**
+- Add `CountryFlag string` to: `IXDetail`, `FacilityDetail`, `CampusDetail`, `OrgDetail`, `NetworkFacRow`, `IXFacilityRow`, `OrgFacilityRow`, `CampusFacilityRow`, `CompareFacility`, `SearchResult`
+- Populate in `detail.go` query functions alongside existing `Country` field mapping
+- Populate in `search.go` when building `SearchResult` subtitle
+- Populate in `compare.go` when building facility comparison data
 
-#### Pattern 3: HTTP-Level Integration for API Surfaces
+### Pattern 2: Dense Sortable Tables (sortable.js + Tailwind)
 
-**What:** Full handler stack via httptest.Server, real HTTP requests, assert on response body/headers.
-**When:** Testing API surfaces where transport behavior matters (CORS, content negotiation, status codes).
-**Not when:** Testing pure business logic (use direct function calls instead).
+**What:** Replace the current vertical card/list layouts (`divide-y` stacked divs) with proper `<table>` elements using `<thead>`/`<tbody>`, styled with Tailwind for density, and made sortable via the `sortable` library.
 
-#### Pattern 4: White-Box for Adapters
+**When:** All child-entity lists in detail pages (participants, facilities, networks, contacts, etc.), search results, and comparison tables.
 
-**What:** Internal package tests (`package foo`, not `package foo_test`) calling unexported types directly.
-**When:** Testing thin adapter layers (gRPC services, sync workers) where the public API is defined by an external interface.
-**Why:** Avoids constructing complex external client objects when the adapter's logic is just data transformation.
+**Library choice:** `sortable` by tofsjonas (https://github.com/tofsjonas/sortable)
+- 899 bytes gzipped -- smaller than a single SVG icon
+- Zero dependencies, vanilla JS
+- Works via `class="sortable"` on `<table>` -- no initialization code needed
+- Includes CSS for sort indicators (arrows on `<th>`)
+- MutationObserver in `sortable.auto.min.js` (1.36K gzipped) auto-initializes tables added to the DOM after page load -- this is critical for htmx fragment loading
 
-### Anti-Patterns to Avoid
+**Confidence:** HIGH -- The library is well-maintained, tiny, and its MutationObserver feature specifically addresses the htmx lazy-load concern.
 
-#### Anti-Pattern 1: Testing Generated Code
+**Why not server-side sort via htmx:** The child entity lists (IX participants, facility networks, etc.) are fully loaded into the DOM when the collapsible section opens. Data volumes are small (largest IX has ~2,000 participants). Client-side sort is instant, avoids a server round-trip, and keeps the current lazy-load-once pattern intact. Server-side sort would require either: (a) refetching the fragment with sort params on every column click (latency, complexity), or (b) maintaining sort state server-side (session state on a stateless edge app). Neither makes sense for datasets that fit in the DOM.
 
-**What:** Writing tests that exercise paths through `graph/generated.go`, `ent/*.go`, or `gen/peeringdb/v1/*.go`.
-**Why bad:** These are generated by codegen tools (gqlgen, ent, buf). Testing them tests the tool, not the application. Coverage numbers for generated packages should be excluded from targets.
-**Instead:** Test the hand-written code that uses the generated code (resolvers, services, handlers).
+**Why not htmx hx-trigger on th click:** This would work but adds latency per sort action, network requests for what should be instant client-side reordering, and complicates the fragment handler with sort parameters. The sortable library is a better fit.
 
-#### Anti-Pattern 2: Duplicating Entity Creation
+**CDN integration in layout.templ:**
 
-**What:** Each test file has its own `seedData()` with slightly different field values for the same entity types.
-**Why bad:** When schemas change (new required field), every seed function breaks independently. Currently there are 6+ independent Organization creation sites.
-**Instead:** Use shared `seed` package with a single, maintained creation path per entity type.
+```html
+<!-- In <head>, after htmx -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/sortable-base.min.css"/>
+<script src="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/dist/sortable.auto.min.js"></script>
+```
 
-#### Anti-Pattern 3: Asserting Internal Structure of Generated Responses
+**Custom Tailwind overrides for sort indicators and dense table styling:**
 
-**What:** Tests that decode GraphQL/REST responses into deeply nested structs and assert on every field.
-**Why bad:** Fragile to schema changes. A renamed field breaks tests even when behavior is correct.
-**Instead:** Assert on the aspects that matter: presence of data, correct count, specific business-critical fields, error codes. Not every field in every response.
+```css
+/* In <style> block of layout.templ */
+table.sortable th { cursor: pointer; user-select: none; }
+table.sortable th::after { content: ""; display: inline-block; width: 0; height: 0; margin-left: 6px; vertical-align: middle; }
+table.sortable th[aria-sort="ascending"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 4px solid currentColor; }
+table.sortable th[aria-sort="descending"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid currentColor; }
+```
 
-#### Anti-Pattern 4: Mocking ent Client
+**Numeric sort via data-sort attribute:**
 
-**What:** Creating mock implementations of the ent client interface.
-**Why bad:** ent does not have a client interface -- it generates concrete types. Mocking would require creating an abstraction layer that does not exist. In-memory SQLite is fast enough (~5ms per test setup) and tests real SQL behavior.
-**Instead:** Use `testutil.SetupClient(t)` with real in-memory SQLite. It is fast, hermetic, and catches real query bugs.
+The sortable library uses `data-sort` attributes for custom sort values. This is essential for speed columns (display "10G" but sort by 10000) and for consistent country flag sorting (sort by country code, not emoji):
 
-## Integration Points With Existing Architecture
+```html
+<td data-sort="10000">
+  <span class="text-blue-400 font-mono">10G</span>
+</td>
+```
 
-### New Components
+**htmx compatibility:** The `sortable.auto.min.js` variant uses MutationObserver to detect new `<table class="sortable">` elements added to the DOM. When htmx swaps in a fragment containing a sortable table (e.g., opening a collapsible section), the library automatically attaches sort handlers. No custom `htmx:afterSwap` event listener needed. Verified via library documentation.
 
-| Component | Location | Dependencies | Creates |
-|-----------|----------|-------------|---------|
-| `seed` package | `internal/testutil/seed/` | `ent`, `ent/enttest`, `internal/sync` (for sync_status) | Deterministic test entities |
+### Pattern 3: Leaflet Map with Facility Pins
 
-### Modified Components
+**What:** Interactive OpenStreetMap-based map showing facility locations as clickable pins with clustering and popups linking to detail pages. Displayed on facility detail pages (single pin), IX detail pages (multiple facility pins), network detail pages (all facility locations), and comparison pages (shared/unique facilities on map).
 
-| Component | Change | Reason |
-|-----------|--------|--------|
-| `internal/testutil/testutil.go` | No changes | Client setup is correct as-is |
-| `graph/resolver_test.go` | Expand with 13 List resolver tests, use seed.Full | Currently only 5 test functions |
-| `ent/schema/schema_test.go` | Add hook error path test | Raise hooks from 90% to 100% |
-| `internal/grpcserver/grpcserver_test.go` | Add missing entity type filter/stream tests | 6 entity types lack filter tests |
-| `internal/web/handler_test.go` | Swap seedAllTestData to use seed package | Reduce duplication |
-| `internal/pdbcompat/golden_test.go` | Extract entity creation into seed.Full | setupGoldenTestData becomes thin wrapper |
+**When:** Only on pages where geographic data (lat/lng) is available. Facilities are the primary geo-located entities. IXes get their locations from their associated facilities. Networks get locations from their facility presences.
 
-### Unchanged Components
+**Leaflet CDN (in layout.templ `<head>`):**
 
-| Component | Why No Changes |
-|-----------|---------------|
-| `internal/sync/` | Test infrastructure is well-designed (mock server + JSON fixtures) |
-| `internal/web/termrender/` | Self-contained, high coverage, no shared data needs |
-| `internal/middleware/` | 98.2% coverage, tests are simple and correct |
-| `internal/conformance/` | 96.3%, comparison logic tests are adequate |
-| `internal/httperr/` | 100%, complete |
-| `testdata/fixtures/` | Real PeeringDB API snapshots, must not be replaced with synthetic data |
-| `internal/pdbcompat/testdata/golden/` | Golden file snapshots, updated by test runs |
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+```
 
-## Build Order for Test Infrastructure
+**Total CDN payload:** Leaflet JS ~42KB gzipped, CSS ~4KB. MarkerCluster JS ~10KB gzipped, CSS ~1KB. Combined ~57KB -- comparable to htmx (15KB) + Tailwind CDN (~300KB) already loaded.
 
-Phase ordering is driven by dependency: shared infrastructure must exist before per-package test expansion.
+**Confidence:** HIGH for Leaflet 1.9.4 (stable, widely deployed). MEDIUM for MarkerCluster 1.5.3 (last release 2022, but stable and compatible with Leaflet 1.9.x). Leaflet 2.0 is alpha, do not use.
 
-### Phase 1: Shared Seed Package
+**Data flow -- Go to Leaflet:**
 
-Create `internal/testutil/seed/` with `Full()`, `Minimal()`, `Networks()`, `WithSyncStatus()`. This has no test dependencies itself -- it is a helper library. Verify by running existing tests unchanged (seed package is additive, not breaking).
+The map data is serialized as GeoJSON in a `<script type="application/json">` block rendered by templ. This avoids inline JS in templ (which requires `script` blocks), avoids a separate AJAX fetch (the data is already in the handler), and is SSR-friendly.
 
-**Dependencies:** None (uses existing `ent` client)
-**Validates:** Compiles, existing tests still pass
+```go
+// MapPoint represents a single geo-located entity for the map.
+type MapPoint struct {
+    Lat     float64 `json:"lat"`
+    Lng     float64 `json:"lng"`
+    Name    string  `json:"name"`
+    URL     string  `json:"url"`
+    PopupHTML string `json:"popup"` // pre-rendered HTML for popup content
+}
+```
 
-### Phase 2: GraphQL Resolver Coverage (graph/)
+Templ renders:
 
-Expand `resolver_test.go` with tests for all 13 `*List` resolvers, error paths (negative offset, limit > MaxLimit), NetworkByAsn not-found, SyncStatus error path. Refactor `seedTestData()` to use `seed.Full()`.
+```html
+<div id="map" class="h-80 rounded-lg border border-neutral-700 overflow-hidden"></div>
+<script type="application/json" id="map-data">
+  [{"lat":51.5074,"lng":-0.1278,"name":"Equinix LD8","url":"/ui/fac/123","popup":"..."}]
+</script>
+```
 
-**Dependencies:** Phase 1 (seed package)
-**Validates:** graph coverage rises from 2.6% to target
+Client-side initialization (inline `<script>` at bottom of map-containing templates):
 
-### Phase 3: gRPC Handler Coverage (grpcserver/)
+```javascript
+(function() {
+    var dataEl = document.getElementById('map-data');
+    if (!dataEl) return;
+    var points = JSON.parse(dataEl.textContent);
+    if (points.length === 0) return;
 
-Add missing filter tests for Campus, Carrier, InternetExchange, IxFacility, IxLan, NetworkFacility. Add missing Stream tests for IxPrefix, NetworkIxLan, CarrierFacility, Poc. Refactor per-test seeding to use seed package where it simplifies code.
+    var isDark = document.documentElement.classList.contains('dark');
+    var tileURL = isDark
+        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 
-**Dependencies:** Phase 1 (seed package)
-**Validates:** grpcserver coverage rises from 61.7% to target
+    var map = L.map('map');
+    L.tileLayer(tileURL, {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 19
+    }).addTo(map);
 
-### Phase 4: Schema Hook Coverage (ent/schema/)
+    var markers = L.markerClusterGroup();
+    points.forEach(function(p) {
+        var marker = L.marker([p.lat, p.lng]);
+        if (p.popup) marker.bindPopup(p.popup);
+        markers.addLayer(marker);
+    });
+    map.addLayer(markers);
+    map.fitBounds(markers.getBounds().pad(0.1));
+})();
+```
 
-Add test for otelMutationHook error path (the missing 10%). Add relationship constraint tests (create child without parent).
+**Tile provider choice -- CARTO (CartoDB) basemaps:**
 
-**Dependencies:** None (uses testutil.SetupClient directly)
-**Validates:** ent/schema coverage rises from 47.4% toward 65-70%
+| Provider | Dark Mode | Free Tier | API Key | Attribution |
+|----------|-----------|-----------|---------|-------------|
+| CARTO (CartoDB) | `dark_all` / `light_all` native variants | Unlimited for non-commercial, reasonable use | No API key needed | Required: OSM + CARTO |
+| OpenStreetMap tile.openstreetmap.org | No dark mode | Fair use only, strict policy | None | Required: OSM |
+| Stadia Maps Alidade Smooth Dark | Purpose-built dark tiles | 2,500 credits/month (~25K tiles) | Required (free signup) | Required |
+| CSS filter invert | Any light tiles inverted | N/A | N/A | Labels become inverted and unreadable |
 
-### Phase 5: Web Handler Coverage (web/)
+**Recommendation: CARTO basemaps.** Native dark/light variants avoid the CSS invert hack (which makes labels unreadable). No API key or signup required. No usage limits for reasonable traffic. Both `dark_all` and `light_all` are available, enabling dark mode switching that matches the app's existing dark mode toggle.
 
-Expand handler tests for untested routes and error paths. Refactor seedAllTestData/seedSearchData to use seed package.
+**Confidence:** HIGH -- CARTO basemaps are widely used, free, and require no registration. The `{s}.basemaps.cartocdn.com` URLs have been stable for years.
 
-**Dependencies:** Phase 1 (seed package)
-**Validates:** web coverage rises from 74.8% to target
+**Dark mode tile switching:**
 
-### Phase 6: Remaining Packages
+The map checks `document.documentElement.classList.contains('dark')` at initialization time. This aligns with the existing class-based dark mode system (see `layout.templ` dark mode toggle). A full theme switch while a map is visible would require reinitializing the tile layer, but this is an edge case -- the dark mode toggle does not currently trigger page reloads or htmx swaps. If needed later, a `MutationObserver` on the `<html>` class list could swap tile layers. Defer this to a follow-up.
 
-Raise otel, health, peeringdb packages above 85%. These are smaller, independent efforts.
+**Map conditional rendering:**
 
-**Dependencies:** None (independent packages)
-**Validates:** Per-package coverage targets met
+The map container and script block should only render when there are geo-points. In templ:
 
-## Coverage Exclusion Strategy
+```
+if len(data.MapPoints) > 0 {
+    @MapSection(data.MapPoints)
+}
+```
 
-The 5.7% total coverage number is misleading because it includes generated code. The coverage target should be stated per-package for hand-written code only.
+This keeps pages without geographic data (e.g., carriers, networks without facility presences) clean.
 
-**Packages to exclude from coverage targets:**
-- `ent/*` (all sub-packages) -- fully generated by entgo
-- `gen/peeringdb/v1/*` -- fully generated by buf/protoc
-- `graph/generated.go` -- fully generated by gqlgen
-- `graph/model/` -- fully generated by gqlgen
-- `ent/rest/` -- fully generated by entrest
-- `internal/web/templates/` -- generated by templ (compiled from .templ files)
+### Pattern 4: Dense Table Layout (Replacing Stacked Cards)
 
-**Meaningful total coverage** should be computed across only hand-written packages. Based on current numbers, that is approximately 60-65% across hand-written code, with a target of 80%+.
+**What:** Convert the current `divide-y` stacked div layouts to proper `<table>` elements with compact row heights, monospace data columns, and multi-column density.
+
+**Current layout (IX Participants):**
+```
+[Name + ASN badge + RS badge]
+  Speed: 10G
+  IPv4: 192.0.2.1
+  IPv6: 2001:db8::1
+--- divider ---
+[Next participant...]
+```
+
+**New layout (IX Participants table):**
+```
+| Flag | Network         | ASN      | Speed | IPv4       | IPv6            | RS |
+|------|-----------------|----------|-------|------------|-----------------|----|
+| US   | Cloudflare      | AS13335  | 100G  | 192.0.2.1  | 2001:db8::1     | RS |
+| US   | Google          | AS15169  | 100G  | 192.0.2.2  | 2001:db8::2     |    |
+```
+
+**Density gains:** The current layout uses ~4-5 lines per participant. The table layout uses 1 line. For an IX with 200 participants, this reduces from ~1000 lines of vertical scroll to ~200 lines.
+
+**Template structure:**
+
+```html
+<table class="sortable w-full text-sm">
+  <thead>
+    <tr class="text-left text-neutral-500 border-b border-neutral-700">
+      <th class="px-2 py-1.5"></th>           <!-- flag, no-sort -->
+      <th class="px-2 py-1.5">Network</th>
+      <th class="px-2 py-1.5 font-mono">ASN</th>
+      <th class="px-2 py-1.5">Speed</th>
+      <th class="px-2 py-1.5 font-mono">IPv4</th>
+      <th class="px-2 py-1.5 font-mono">IPv6</th>
+      <th class="px-2 py-1.5 no-sort">RS</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- rows rendered by templ range -->
+  </tbody>
+</table>
+```
+
+**Responsive behavior:** On narrow screens (mobile), hide lower-priority columns via Tailwind responsive classes: `class="hidden md:table-cell"` on IPv6, RS columns. Keep flag, name, ASN, speed always visible. This is simpler than the current approach which shows everything stacked.
+
+### Pattern 5: Geo Data Enrichment from ent
+
+**What:** The `facility` entity has `Latitude *float64` and `Longitude *float64` fields in ent schema. These are currently not surfaced in the web UI at all. IXes and networks do NOT have lat/lng -- they derive location from their facility associations.
+
+**Facility detail page:** Single map pin from the facility's own lat/lng. Straightforward.
+
+**IX detail page:** Multiple pins from IX facilities (already eager-loaded in `queryIX`). Need to join through to the actual `Facility` entity to get lat/lng, since `IxFacility` (the junction entity) does not carry lat/lng -- only `city` and `country`.
+
+**Implementation for IX geo data:**
+
+```go
+// In queryIX, after eager-loading IX facilities, also fetch actual Facility entities for lat/lng.
+facIDs := make([]int, 0, len(ixFacItems))
+for _, ixf := range ixFacItems {
+    if ixf.FacID != nil {
+        facIDs = append(facIDs, *ixf.FacID)
+    }
+}
+if len(facIDs) > 0 {
+    facs, err := h.client.Facility.Query().
+        Where(facility.IDIn(facIDs...)).
+        All(ctx)
+    // Build MapPoints from facs with non-nil Latitude/Longitude
+}
+```
+
+**Network detail page:** Same pattern -- fetch Facility entities from NetworkFacility junction rows to get lat/lng.
+
+**Comparison page:** Merge facility locations from both networks, coloring shared vs unique pins differently (green for shared, grey for unique-to-one-network).
+
+**Data availability concern:** Not all PeeringDB facilities have lat/lng populated. The map should gracefully handle empty coordinates by simply not placing a marker for those facilities. The map section should not render at all if zero facilities have valid coordinates.
+
+**Confidence:** HIGH -- lat/lng fields exist in ent schema and are synced from PeeringDB. The join pattern through junction entities to get facility coordinates is standard ent querying.
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern 1: Inline JavaScript in templ `script` Blocks for Map Init
+
+**What:** Using templ's `script` directive to define map initialization functions.
+
+**Why bad:** templ `script` blocks generate named JavaScript functions that get called via `onclick` or similar attributes. They work well for small actions (like `copyToClipboard`) but are awkward for initialization code that should run once when the element appears. They also make it harder to access DOM elements by ID since the function runs in a different scope.
+
+**Instead:** Use a raw `<script>` tag at the end of the map-containing template. The script reads data from a `<script type="application/json">` element, keeping the data flow explicit and the initialization self-contained.
+
+### Anti-Pattern 2: Fetching Map Data via Separate AJAX Endpoint
+
+**What:** Creating a `/ui/fragment/ix/{id}/mapdata` endpoint that returns JSON, then fetching it client-side to populate the map.
+
+**Why bad:** The geographic data is already available when the page loads -- it comes from the same ent queries that populate the detail page. Adding a separate endpoint means: an extra HTTP round-trip, a flash of empty map while loading, a new handler to maintain, and duplicated query logic.
+
+**Instead:** Embed the GeoJSON data inline in the HTML response. The data is small (a few hundred bytes for typical facility counts) and is always needed when the map renders.
+
+### Anti-Pattern 3: Server-Side Table Sorting via htmx for Small Datasets
+
+**What:** Using `hx-get` with sort parameters on `<th>` clicks to reload the table from the server with different ordering.
+
+**Why bad for this project:** The collapsible sections use `hx-trigger="toggle once"` -- they load data once and keep it in the DOM. Server-side sorting would either break this "load once" pattern (requiring re-fetch on every sort) or need complex client-side state management. The datasets are small enough (largest: ~2K IX participants) that client-side sorting is instant.
+
+**When server-side sorting IS appropriate:** If a future feature adds paginated tables (e.g., browsing all 80K+ networks), server-side sorting with htmx would be the right approach. The current architecture is per-entity detail pages where child counts are in the hundreds, not tens of thousands.
+
+### Anti-Pattern 4: CSS Filter Invert for Dark Mode Maps
+
+**What:** Applying `filter: invert(1) hue-rotate(180deg)` to map tiles for dark mode.
+
+**Why bad:** Inverts all tile colors including text labels, making them unreadable. Also inverts marker icons and popup content. Requires exception rules for every interactive element.
+
+**Instead:** Use a tile provider with native dark/light variants (CARTO basemaps). Switch the tile URL based on the app's dark mode state.
+
+### Anti-Pattern 5: Computing Emoji Flags in JavaScript
+
+**What:** Sending country codes to the browser and converting to emoji flags client-side.
+
+**Why bad:** Adds unnecessary JS, creates a flash of "US" text before the flag renders, doesn't work in terminal rendering mode, and the computation is trivial to do server-side. Also, some edge cases (invalid codes, missing data) are better handled with Go string validation.
+
+**Instead:** Compute in Go when populating template data. The flag appears in the initial HTML render.
+
+## New Components vs Modified Components
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `internal/web/countryflags.go` | `CountryFlag(code string) string` function + `MapPoint` type |
+| `internal/web/countryflags_test.go` | Table-driven tests for flag conversion, edge cases |
+
+### Modified Files (Summary)
+
+| File | Changes |
+|------|---------|
+| `internal/web/templates/layout.templ` | Add Leaflet CSS/JS CDN links, MarkerCluster CSS/JS, sortable CSS/JS, custom sort indicator CSS |
+| `internal/web/templates/detailtypes.go` | Add `CountryFlag string`, `Latitude *float64`, `Longitude *float64`, `MapPoints []MapPoint` to relevant structs |
+| `internal/web/templates/searchtypes.go` | Add `CountryFlag string` to `SearchResult` |
+| `internal/web/templates/comparetypes.go` | Add `CountryFlag string` to `CompareFacility`, add `MapPoints []MapPoint` to `CompareData` |
+| `internal/web/templates/detail_ix.templ` | Convert `IXParticipantsList`, `IXFacilitiesList` from div-based to table-based. Add map section. Add flag column. |
+| `internal/web/templates/detail_net.templ` | Convert `NetworkIXLansList`, `NetworkFacilitiesList` from div-based to table-based. Add map section. Add flag column. |
+| `internal/web/templates/detail_fac.templ` | Convert `FacNetworksList`, `FacIXPsList` from div-based to table-based. Add single-pin map. Add flag to header. |
+| `internal/web/templates/detail_org.templ` | Convert child lists to table-based. Add flag columns where applicable. |
+| `internal/web/templates/detail_campus.templ` | Convert facility list to table-based. Add flag column. |
+| `internal/web/templates/detail_carrier.templ` | Convert facility list to table-based. |
+| `internal/web/templates/detail_shared.templ` | Add `MapSection` templ component. Modify `CopyableIP` to work in table cells. |
+| `internal/web/templates/compare.templ` | Convert comparison sections to table-based. Add flag columns. Add map with colored pins. |
+| `internal/web/templates/search_results.templ` | Add flag to subtitle area in search results. |
+| `internal/web/detail.go` | Populate CountryFlag, Latitude, Longitude, MapPoints in all query functions. Add facility geo lookup for IX/network. |
+| `internal/web/search.go` | Populate CountryFlag in search result building. |
+| `internal/web/compare.go` | Populate CountryFlag in comparison building. Add MapPoints for comparison map. |
+| `internal/web/handler_test.go` | Verify table structure in rendered HTML, flag presence, map container presence. |
+| `internal/web/detail_test.go` | Test geo data population, flag conversion, map point generation. |
+
+## Build Order (Dependency-Aware)
+
+The features have clear dependencies. Build in this order:
+
+### Phase 1: Country Flag Utility
+
+No other features depend on external changes. Self-contained.
+- Create `countryflags.go` with `CountryFlag()` function
+- Create `countryflags_test.go`
+- Zero impact on existing templates
+
+### Phase 2: Type Additions (Data Layer)
+
+All template changes depend on having the right fields.
+- Add `CountryFlag`, `Latitude`, `Longitude`, `MapPoints` to type definitions
+- No template changes yet -- just data plumbing
+
+### Phase 3: Dense Table Layouts
+
+This is the largest change by line count. Independent of Leaflet/map work.
+- Add sortable.js CDN and CSS to `layout.templ`
+- Convert all child-entity list templates from `divide-y` divs to `<table class="sortable">`
+- Add `data-sort` attributes for numeric columns
+- Insert flag columns
+- Update `detail.go` to populate new fields (CountryFlag, lat/lng)
+- Update handlers to call `CountryFlag()` during data population
+- Test that sortable works with htmx-loaded fragments
+
+### Phase 4: Leaflet Map Integration
+
+Depends on lat/lng being populated (Phase 2-3 data plumbing).
+- Add Leaflet + MarkerCluster CDN to `layout.templ`
+- Create `MapSection` shared templ component
+- Add map to facility detail page (simplest: single pin, own lat/lng)
+- Add map to IX detail page (multiple pins from facility associations)
+- Add map to network detail page (multiple pins from facility presences)
+- Add map to comparison page (colored pins for shared/unique)
+- Handle dark mode tile switching
+
+### Phase 5: Search Results Density
+
+Depends on flag utility (Phase 1) but independent of tables/maps.
+- Add flag display to search result rows
+- Optionally convert search results to denser layout
+
+## Scalability Considerations
+
+| Concern | Current Scale | At v1.11 | Notes |
+|---------|--------------|----------|-------|
+| JS payload size | htmx (15KB) + Tailwind CDN (~300KB) | +sortable (1.4KB) +Leaflet (42KB) +MarkerCluster (10KB) = ~368KB total | Acceptable for non-mobile-first app. All CDN-cached. |
+| Map markers per page | N/A | Largest IX has ~2,000 participants across ~50 facilities. Map shows facilities (50 pins), not participants (2,000). | MarkerCluster handles hundreds of pins efficiently. |
+| Table rows in DOM | Current: ~2,000 max (large IX participants list) | Same data, different layout. No change in DOM node count. | sortable.js handles 10K+ rows. |
+| Geo data queries | Not queried | 1 additional query per IX/network page to fetch facility lat/lng | Batch query via `IDIn()`, not N+1. Sub-millisecond on SQLite. |
+| CDN availability | Tailwind CDN, self-hosted htmx | CARTO tiles, jsDelivr for libraries | CARTO has been stable for years. jsDelivr is the recommended Leaflet CDN. Self-hosting Leaflet/sortable in `/static/` is trivial if CDN reliability is a concern (same pattern as htmx). |
 
 ## Sources
 
-- Direct codebase analysis: 60 test files examined, per-function coverage profiling
-- Pattern analysis of existing test infrastructure in testutil, sync, pdbcompat, grpcserver
-- Coverage profile from `go test -coverprofile` across all packages
-- Go testing documentation: https://go.dev/doc/test
-- enttest documentation: https://entgo.io/docs/testing/
+- [Leaflet.js download](https://leafletjs.com/download.html) -- v1.9.4 stable, v2.0.0-alpha.1 (do not use alpha)
+- [Leaflet GeoJSON tutorial](https://leafletjs.com/examples/geojson/) -- inline GeoJSON data loading
+- [Leaflet MarkerCluster](https://github.com/Leaflet/Leaflet.markercluster) -- v1.5.3 clustering plugin
+- [CARTO Basemaps](https://carto.com/basemaps) -- free dark_all/light_all tile variants, no API key
+- [sortable by tofsjonas](https://github.com/tofsjonas/sortable) -- 899B gzipped table sort with MutationObserver for dynamic content
+- [Unicode Regional Indicator Symbols](https://en.wikipedia.org/wiki/Regional_indicator_symbol) -- U+1F1E6 to U+1F1FF for country flags
+- [htmx table sorting example](https://htmx.org/examples/sortable/) -- server-side approach (not recommended for our use case)
+- [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/) -- restrictions on tile.openstreetmap.org usage
+- [Stadia Maps pricing](https://stadiamaps.com/pricing) -- free tier requires API key, limited credits
+- [Leaflet Provider Demo](https://leaflet-extras.github.io/leaflet-providers/preview/) -- tile provider comparison
