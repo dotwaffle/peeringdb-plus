@@ -6,6 +6,7 @@ import "fmt"
 // detail fields, and a collapsible lazy-loaded section for facilities.
 templ CarrierDetailPage(data CarrierDetail) {
 	<div class="space-y-6">
+		@Breadcrumb("Carriers", data.Name)
 		@DetailHeader("carrier", "cyan", data.Name, "")
 		<div class="flex flex-wrap gap-2 mb-4">
 			@StatBadge("Facilities", data.FacCount)

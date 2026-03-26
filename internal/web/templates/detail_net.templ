@@ -6,6 +6,7 @@ import "fmt"
 // detail fields, and collapsible lazy-loaded sections for related records.
 templ NetworkDetailPage(data NetworkDetail) {
 	<div class="space-y-6">
+		@Breadcrumb("Networks", fmt.Sprintf("AS%d (%s)", data.ASN, data.Name))
 		@DetailHeader("net", "emerald", data.Name, fmt.Sprintf("AS%d", data.ASN))
 		<div class="flex flex-wrap gap-2 mb-4">
 			@StatBadge("IXPs", data.IXCount)

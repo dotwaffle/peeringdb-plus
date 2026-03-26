@@ -2,6 +2,21 @@ package templates
 
 import "fmt"
 
+// Breadcrumb renders navigation breadcrumbs: Home > TypePlural > EntityName.
+// typePlural is the display name for the entity type (e.g., "Networks").
+// entityName is the specific entity being viewed.
+templ Breadcrumb(typePlural string, entityName string) {
+	<nav aria-label="Breadcrumb" class="text-sm mb-4">
+		<ol class="flex items-center gap-1.5 text-neutral-400">
+			<li><a href="/ui/" class="hover:text-emerald-400 transition-colors">Home</a></li>
+			<li class="text-neutral-500">&gt;</li>
+			<li class="text-neutral-300">{ typePlural }</li>
+			<li class="text-neutral-500">&gt;</li>
+			<li class="text-neutral-100">{ entityName }</li>
+		</ol>
+	</nav>
+}
+
 // CollapsibleSection renders a collapsible details/summary element with
 // htmx lazy loading on first expand. If count is 0, the section is not
 // expandable and shows a static "None" message.
