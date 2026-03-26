@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 44-02-PLAN.md
-last_updated: "2026-03-26T21:55:54.554Z"
+stopped_at: Completed 45-01-PLAN.md
+last_updated: "2026-03-26T22:35:13Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 4
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 44 — Facility Map & Map Infrastructure
+**Current focus:** Phase 45 — Multi-Pin Maps
 
 ## Current Position
 
 Phase: 45
-Plan: Not started
-Status: Ready to execute
+Plan: 1 of 2 complete
+Status: Executing Phase 45
 Last activity: 2026-03-26
 
 Progress: [███░░░░░░░] 33%
@@ -56,6 +56,7 @@ Progress: [███░░░░░░░] 33%
 | Phase 43 P04 | 4min | 1 tasks | 1 files |
 | Phase 44 P01 | 3min | 2 tasks | 8 files |
 | Phase 44 P02 | 3min | 2 tasks | 2 files |
+| Phase 45 P01 | 15min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,9 @@ All decisions archived in PROJECT.md Key Decisions table (42 decisions across 11
 - [Phase 44]: Inline styles in Leaflet popup HTML -- Tailwind classes do not penetrate Leaflet popup DOM
 - [Phase 44]: Treat (0,0) and nil lat/lng as missing data -- no real facility at null island
 - [Phase 44]: ID 32 for coordinated facility to avoid collision with existing test IDs (30, 31)
+- [Phase 45]: Server-side popup HTML serialized into marker JSON avoids building HTML in JavaScript
+- [Phase 45]: filterMappableMarkers keeps markers where at least one coordinate is non-zero
+- [Phase 45]: Legend uses inline styles in Leaflet Control for dark mode support
 
 ### Pending Todos
 
@@ -82,6 +86,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T21:51:55.809Z
-Stopped at: Completed 44-02-PLAN.md
+Last session: 2026-03-26T22:35:13Z
+Stopped at: Completed 45-01-PLAN.md
 Resume file: None
