@@ -25,7 +25,7 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 ### Architecture
 
 - [ ] **ARCH-01**: All 6 API surfaces return errors in a consistent format with code, message, and optional details
-- [ ] **ARCH-02**: ConnectRPC List RPCs expose the same filterable fields as the PeeringDB compat layer for each entity type
+- [x] **ARCH-02**: ConnectRPC List RPCs expose the same filterable fields as the PeeringDB compat layer for each entity type
 - [x] **ARCH-03**: CORS middleware runs before OTel tracing in the middleware chain so OPTIONS preflight requests are not traced/logged
 - [ ] **ARCH-04**: Terminal renderer dispatches to entity renderers via interface rather than type-switch on concrete template types
 
@@ -77,7 +77,7 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 | QUAL-03 | Phase 33 | Pending |
 | QUAL-04 | Phase 34 | Pending |
 | ARCH-01 | Phase 34 | Pending |
-| ARCH-02 | Phase 33 | Pending |
+| ARCH-02 | Phase 33 | Complete |
 | ARCH-03 | Phase 32 | Complete |
 | ARCH-04 | Phase 34 | Pending |
 | UI-01 | Phase 36 | Pending |
@@ -97,4 +97,4 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after roadmap creation*
+*Last updated: 2026-03-26 after 33-01 completion*

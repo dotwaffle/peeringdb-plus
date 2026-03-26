@@ -36,6 +36,15 @@ message ListCampusesRequest {
   optional string city = 5;
   optional string status = 6;
   optional int64 org_id = 7;
+  optional int64 id = 8;
+  optional string org_name = 9;
+  optional string name_long = 10;
+  optional string aka = 11;
+  optional string website = 12;
+  optional string notes = 13;
+  optional string state = 14;
+  optional string zipcode = 15;
+  optional string logo = 16;
 }
 
 message ListCampusesResponse {
@@ -54,6 +63,15 @@ message StreamCampusesRequest {
   optional int64 since_id = 6;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 7;
+
+  optional string org_name = 8;
+  optional string name_long = 9;
+  optional string aka = 10;
+  optional string website = 11;
+  optional string notes = 12;
+  optional string state = 13;
+  optional string zipcode = 14;
+  optional string logo = 15;
 }
 
 // CarrierService provides read access to Carrier records.
@@ -83,6 +101,13 @@ message ListCarriersRequest {
   optional string name = 3;
   optional string status = 4;
   optional int64 org_id = 5;
+  optional int64 id = 6;
+  optional string aka = 7;
+  optional string name_long = 8;
+  optional string website = 9;
+  optional string notes = 10;
+  optional string org_name = 11;
+  optional string logo = 12;
 }
 
 message ListCarriersResponse {
@@ -99,6 +124,13 @@ message StreamCarriersRequest {
   optional int64 since_id = 4;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 5;
+
+  optional string aka = 6;
+  optional string name_long = 7;
+  optional string website = 8;
+  optional string notes = 9;
+  optional string org_name = 10;
+  optional string logo = 11;
 }
 
 // CarrierFacilityService provides read access to CarrierFacility records.
@@ -128,6 +160,8 @@ message ListCarrierFacilitiesRequest {
   optional int64 carrier_id = 3;
   optional int64 fac_id = 4;
   optional string status = 5;
+  optional int64 id = 6;
+  optional string name = 7;
 }
 
 message ListCarrierFacilitiesResponse {
@@ -144,6 +178,8 @@ message StreamCarrierFacilitiesRequest {
   optional int64 since_id = 4;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 5;
+
+  optional string name = 6;
 }
 
 // FacilityService provides read access to Facility records.
@@ -175,6 +211,31 @@ message ListFacilitiesRequest {
   optional string city = 5;
   optional string status = 6;
   optional int64 org_id = 7;
+  optional int64 id = 8;
+  optional string aka = 9;
+  optional string name_long = 10;
+  optional string website = 11;
+  optional string clli = 12;
+  optional string rencode = 13;
+  optional string npanxx = 14;
+  optional string tech_email = 15;
+  optional string tech_phone = 16;
+  optional string sales_email = 17;
+  optional string sales_phone = 18;
+  optional string property = 19;
+  optional bool diverse_serving_substations = 20;
+  optional string notes = 21;
+  optional string region_continent = 22;
+  optional string status_dashboard = 23;
+  optional string logo = 24;
+  optional string address1 = 25;
+  optional string address2 = 26;
+  optional string state = 27;
+  optional string zipcode = 28;
+  optional string suite = 29;
+  optional string floor = 30;
+  optional int64 campus_id = 31;
+  optional string org_name = 32;
 }
 
 message ListFacilitiesResponse {
@@ -193,6 +254,31 @@ message StreamFacilitiesRequest {
   optional int64 since_id = 6;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 7;
+
+  optional string aka = 8;
+  optional string name_long = 9;
+  optional string website = 10;
+  optional string clli = 11;
+  optional string rencode = 12;
+  optional string npanxx = 13;
+  optional string tech_email = 14;
+  optional string tech_phone = 15;
+  optional string sales_email = 16;
+  optional string sales_phone = 17;
+  optional string property = 18;
+  optional bool diverse_serving_substations = 19;
+  optional string notes = 20;
+  optional string region_continent = 21;
+  optional string status_dashboard = 22;
+  optional string logo = 23;
+  optional string address1 = 24;
+  optional string address2 = 25;
+  optional string state = 26;
+  optional string zipcode = 27;
+  optional string suite = 28;
+  optional string floor = 29;
+  optional int64 campus_id = 30;
+  optional string org_name = 31;
 }
 
 // InternetExchangeService provides read access to InternetExchange records.
@@ -224,6 +310,27 @@ message ListInternetExchangesRequest {
   optional string city = 5;
   optional string status = 6;
   optional int64 org_id = 7;
+  optional int64 id = 8;
+  optional string aka = 9;
+  optional string name_long = 10;
+  optional string region_continent = 11;
+  optional string media = 12;
+  optional string notes = 13;
+  optional bool proto_unicast = 14;
+  optional bool proto_multicast = 15;
+  optional bool proto_ipv6 = 16;
+  optional string website = 17;
+  optional string url_stats = 18;
+  optional string tech_email = 19;
+  optional string tech_phone = 20;
+  optional string policy_email = 21;
+  optional string policy_phone = 22;
+  optional string sales_email = 23;
+  optional string sales_phone = 24;
+  optional string service_level = 25;
+  optional string terms = 26;
+  optional string status_dashboard = 27;
+  optional string logo = 28;
 }
 
 message ListInternetExchangesResponse {
@@ -242,6 +349,27 @@ message StreamInternetExchangesRequest {
   optional int64 since_id = 6;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 7;
+
+  optional string aka = 8;
+  optional string name_long = 9;
+  optional string region_continent = 10;
+  optional string media = 11;
+  optional string notes = 12;
+  optional bool proto_unicast = 13;
+  optional bool proto_multicast = 14;
+  optional bool proto_ipv6 = 15;
+  optional string website = 16;
+  optional string url_stats = 17;
+  optional string tech_email = 18;
+  optional string tech_phone = 19;
+  optional string policy_email = 20;
+  optional string policy_phone = 21;
+  optional string sales_email = 22;
+  optional string sales_phone = 23;
+  optional string service_level = 24;
+  optional string terms = 25;
+  optional string status_dashboard = 26;
+  optional string logo = 27;
 }
 
 // IxFacilityService provides read access to IxFacility records.
@@ -273,6 +401,8 @@ message ListIxFacilitiesRequest {
   optional string country = 5;
   optional string city = 6;
   optional string status = 7;
+  optional int64 id = 8;
+  optional string name = 9;
 }
 
 message ListIxFacilitiesResponse {
@@ -291,6 +421,8 @@ message StreamIxFacilitiesRequest {
   optional int64 since_id = 6;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 7;
+
+  optional string name = 8;
 }
 
 // IxLanService provides read access to IxLan records.
@@ -320,6 +452,14 @@ message ListIxLansRequest {
   optional int64 ix_id = 3;
   optional string name = 4;
   optional string status = 5;
+  optional int64 id = 6;
+  optional string descr = 7;
+  optional int64 mtu = 8;
+  optional bool dot1q_support = 9;
+  optional int64 rs_asn = 10;
+  optional string arp_sponge = 11;
+  optional string ixf_ixp_member_list_url_visible = 12;
+  optional bool ixf_ixp_import_enabled = 13;
 }
 
 message ListIxLansResponse {
@@ -336,6 +476,14 @@ message StreamIxLansRequest {
   optional int64 since_id = 4;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 5;
+
+  optional string descr = 6;
+  optional int64 mtu = 7;
+  optional bool dot1q_support = 8;
+  optional int64 rs_asn = 9;
+  optional string arp_sponge = 10;
+  optional string ixf_ixp_member_list_url_visible = 11;
+  optional bool ixf_ixp_import_enabled = 12;
 }
 
 // IxPrefixService provides read access to IxPrefix records.
@@ -365,6 +513,10 @@ message ListIxPrefixesRequest {
   optional int64 ixlan_id = 3;
   optional string protocol = 4;
   optional string status = 5;
+  optional int64 id = 6;
+  optional string prefix = 7;
+  optional bool in_dfz = 8;
+  optional string notes = 9;
 }
 
 message ListIxPrefixesResponse {
@@ -381,6 +533,10 @@ message StreamIxPrefixesRequest {
   optional int64 since_id = 4;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 5;
+
+  optional string prefix = 6;
+  optional bool in_dfz = 7;
+  optional string notes = 8;
 }
 
 // NetworkService provides read access to Network records.
@@ -411,6 +567,33 @@ message ListNetworksRequest {
   optional string name = 4;
   optional string status = 5;
   optional int64 org_id = 6;
+  optional int64 id = 7;
+  optional string aka = 8;
+  optional string name_long = 9;
+  optional string website = 10;
+  optional string looking_glass = 11;
+  optional string route_server = 12;
+  optional string irr_as_set = 13;
+  optional string info_type = 14;
+  optional int64 info_prefixes4 = 15;
+  optional int64 info_prefixes6 = 16;
+  optional string info_traffic = 17;
+  optional string info_ratio = 18;
+  optional string info_scope = 19;
+  optional bool info_unicast = 20;
+  optional bool info_multicast = 21;
+  optional bool info_ipv6 = 22;
+  optional bool info_never_via_route_servers = 23;
+  optional string notes = 24;
+  optional string policy_url = 25;
+  optional string policy_general = 26;
+  optional string policy_locations = 27;
+  optional bool policy_ratio = 28;
+  optional string policy_contracts = 29;
+  optional bool allow_ixp_update = 30;
+  optional string status_dashboard = 31;
+  optional string rir_status = 32;
+  optional string logo = 33;
 }
 
 message ListNetworksResponse {
@@ -428,6 +611,33 @@ message StreamNetworksRequest {
   optional int64 since_id = 5;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 6;
+
+  optional string aka = 7;
+  optional string name_long = 8;
+  optional string website = 9;
+  optional string looking_glass = 10;
+  optional string route_server = 11;
+  optional string irr_as_set = 12;
+  optional string info_type = 13;
+  optional int64 info_prefixes4 = 14;
+  optional int64 info_prefixes6 = 15;
+  optional string info_traffic = 16;
+  optional string info_ratio = 17;
+  optional string info_scope = 18;
+  optional bool info_unicast = 19;
+  optional bool info_multicast = 20;
+  optional bool info_ipv6 = 21;
+  optional bool info_never_via_route_servers = 22;
+  optional string notes = 23;
+  optional string policy_url = 24;
+  optional string policy_general = 25;
+  optional string policy_locations = 26;
+  optional bool policy_ratio = 27;
+  optional string policy_contracts = 28;
+  optional bool allow_ixp_update = 29;
+  optional string status_dashboard = 30;
+  optional string rir_status = 31;
+  optional string logo = 32;
 }
 
 // NetworkFacilityService provides read access to NetworkFacility records.
@@ -459,6 +669,9 @@ message ListNetworkFacilitiesRequest {
   optional string country = 5;
   optional string city = 6;
   optional string status = 7;
+  optional int64 id = 8;
+  optional string name = 9;
+  optional int64 local_asn = 10;
 }
 
 message ListNetworkFacilitiesResponse {
@@ -477,6 +690,9 @@ message StreamNetworkFacilitiesRequest {
   optional int64 since_id = 6;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 7;
+
+  optional string name = 8;
+  optional int64 local_asn = 9;
 }
 
 // NetworkIxLanService provides read access to NetworkIxLan records.
@@ -508,6 +724,17 @@ message ListNetworkIxLansRequest {
   optional int64 asn = 5;
   optional string name = 6;
   optional string status = 7;
+  optional int64 id = 8;
+  optional int64 ix_id = 9;
+  optional int64 speed = 10;
+  optional string ipaddr4 = 11;
+  optional string ipaddr6 = 12;
+  optional bool is_rs_peer = 13;
+  optional bool bfd_support = 14;
+  optional bool operational = 15;
+  optional string notes = 16;
+  optional int64 net_side_id = 17;
+  optional int64 ix_side_id = 18;
 }
 
 message ListNetworkIxLansResponse {
@@ -526,6 +753,17 @@ message StreamNetworkIxLansRequest {
   optional int64 since_id = 6;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 7;
+
+  optional int64 ix_id = 8;
+  optional int64 speed = 9;
+  optional string ipaddr4 = 10;
+  optional string ipaddr6 = 11;
+  optional bool is_rs_peer = 12;
+  optional bool bfd_support = 13;
+  optional bool operational = 14;
+  optional string notes = 15;
+  optional int64 net_side_id = 16;
+  optional int64 ix_side_id = 17;
 }
 
 // OrganizationService provides read access to Organization records.
@@ -556,6 +794,18 @@ message ListOrganizationsRequest {
   optional string country = 4;
   optional string city = 5;
   optional string status = 6;
+  optional int64 id = 7;
+  optional string aka = 8;
+  optional string name_long = 9;
+  optional string website = 10;
+  optional string notes = 11;
+  optional string logo = 12;
+  optional string address1 = 13;
+  optional string address2 = 14;
+  optional string state = 15;
+  optional string zipcode = 16;
+  optional string suite = 17;
+  optional string floor = 18;
 }
 
 message ListOrganizationsResponse {
@@ -573,6 +823,18 @@ message StreamOrganizationsRequest {
   optional int64 since_id = 5;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 6;
+
+  optional string aka = 7;
+  optional string name_long = 8;
+  optional string website = 9;
+  optional string notes = 10;
+  optional string logo = 11;
+  optional string address1 = 12;
+  optional string address2 = 13;
+  optional string state = 14;
+  optional string zipcode = 15;
+  optional string suite = 16;
+  optional string floor = 17;
 }
 
 // PocService provides read access to Poc (point of contact) records.
@@ -603,6 +865,11 @@ message ListPocsRequest {
   optional string role = 4;
   optional string name = 5;
   optional string status = 6;
+  optional int64 id = 7;
+  optional string visible = 8;
+  optional string phone = 9;
+  optional string email = 10;
+  optional string url = 11;
 }
 
 message ListPocsResponse {
@@ -620,4 +887,9 @@ message StreamPocsRequest {
   optional int64 since_id = 5;
   // Only records updated after this timestamp are returned.
   optional google.protobuf.Timestamp updated_since = 6;
+
+  optional string visible = 7;
+  optional string phone = 8;
+  optional string email = 9;
+  optional string url = 10;
 }
