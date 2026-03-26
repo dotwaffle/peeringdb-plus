@@ -189,8 +189,12 @@ Plans:
   1. Search results display country and city information with SVG country flag icons alongside each result entry
   2. ASN comparison results (shared IXPs, shared facilities, shared campuses) render as dense columnar tables consistent with the detail page table style from Phase 43
   3. Search result entries show key metadata (country, city, ASN where applicable) in a compact layout without expanding vertical space per result
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 46-01-PLAN.md -- Search struct enrichment, compact row template with flags and metadata badges
+- [ ] 46-02-PLAN.md -- Compare IXP/Facility/Campus table conversions with sorting and flags
 
 ## Progress
 
@@ -203,4 +207,4 @@ Phases execute in numeric order: 43 -> 44 -> 45 -> 46
 | 43. Dense Tables with Sorting and Flags | 4/4 | Complete    | 2026-03-26 |
 | 44. Facility Map & Map Infrastructure | 2/2 | Complete    | 2026-03-26 |
 | 45. Multi-Pin Maps | 2/2 | Complete    | 2026-03-26 |
-| 46. Search & Compare Density | 0/? | Not started | - |
+| 46. Search & Compare Density | 0/2 | Not started | - |
