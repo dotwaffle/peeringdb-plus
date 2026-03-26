@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 31 — differentiators-shell-integration
+**Current focus:** Phase 35 — http-caching-benchmarks
 
 ## Current Position
 
-Phase: 31
-Plan: Not started
+Phase: 35
+Plan: 02 complete
 
 ## Performance Metrics
 
@@ -38,6 +38,7 @@ Plan: Not started
 | Phase 31 P01 | 6min | 2 tasks | 9 files |
 | Phase 31 P02 | 5min | 2 tasks | 12 files |
 | Phase 31 P03 | 4min | 2 tasks | 5 files |
+| Phase 35 P02 | 4min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Recent decisions affecting current work:
 - [Phase 31]: getFreshness returns zero time when db is nil for test safety
 - [Phase 31]: Section aliases support both short and long forms; width adaptation drops entire columns not truncating values; Sections/Width as exported Renderer fields
 - [Phase 31]: Completion search returns integer IDs only to prevent shell injection from entity names
+- [Phase 35]: Benchmarked ListNetworks instead of aspirational ListEntities (generic.go does not exist)
+- [Phase 35]: Used enttest.Open with testing.B directly for benchmark database setup
 
 ### Pending Todos
 
@@ -81,6 +84,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T03:08:43.044Z
-Stopped at: Completed 31-03-PLAN.md
+Last session: 2026-03-26T07:58:23Z
+Stopped at: Completed 35-02-PLAN.md
 Resume file: None
