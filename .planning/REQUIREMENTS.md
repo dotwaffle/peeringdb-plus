@@ -13,7 +13,7 @@ Requirements for the Web UI Density & Interactivity milestone. Each maps to road
 - [x] **DENS-02**: User sees parsed city and country in dedicated columns on entity tables
 - [x] **DENS-03**: User sees responsive column hiding on narrow screens (low-priority columns drop instead of horizontal scroll)
 - [ ] **DENS-04**: User sees search results in a denser layout with country/city information
-- [ ] **DENS-05**: User sees ASN comparison results (shared IXPs, facilities, campuses) as dense tables
+- [x] **DENS-05**: User sees ASN comparison results (shared IXPs, facilities, campuses) as dense tables
 
 ### Sorting
 
@@ -72,7 +72,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DENS-02 | Phase 43 | In Progress (43-01) |
 | DENS-03 | Phase 43 | Complete |
 | DENS-04 | Phase 46 | Pending |
-| DENS-05 | Phase 46 | Pending |
+| DENS-05 | Phase 46 | Complete |
 | SORT-01 | Phase 43 | In Progress (43-01) |
 | SORT-02 | Phase 43 | In Progress (43-01) |
 | SORT-03 | Phase 43 | Complete |
