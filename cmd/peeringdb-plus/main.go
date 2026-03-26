@@ -352,8 +352,16 @@ func main() {
 	})
 
 	// Build middleware stack (outermost first):
-	// Recovery -> OTel HTTP -> Logging -> CORS -> Readiness -> mux
-	handler := readinessMiddleware(syncWorker, mux)
+	// Recovery -> OTel HTTP -> Logging -> CORS -> Readiness -> Caching -> mux
+	cachingMiddleware := middleware.Caching(middleware.CachingInput{
+		SyncTimeFn: func() time.Time {
+			t, _ := pdbsync.GetLastSuccessfulSyncTime(context.Background(), db)
+			return t
+		},
+		SyncInterval: cfg.SyncInterval,
+	})
+	handler := cachingMiddleware(mux)
+	handler = readinessMiddleware(syncWorker, handler)
 	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
 	handler = middleware.Logging(logger)(handler)
 	handler = otelhttp.NewMiddleware("peeringdb-plus")(handler)
