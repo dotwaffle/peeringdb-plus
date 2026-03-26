@@ -3,10 +3,10 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/facility"
@@ -35,158 +35,265 @@ func (s *FacilityService) GetFacility(ctx context.Context, req *pb.GetFacilityRe
 	return &pb.GetFacilityResponse{Facility: facilityToProto(f)}, nil
 }
 
-// ListFacilities returns a paginated list of facilities ordered by ID
-// ascending. Supports page_size, page_token, and optional filter fields (name,
-// country, city, status, org_id). Multiple filters combine with AND logic.
-func (s *FacilityService) ListFacilities(ctx context.Context, req *pb.ListFacilitiesRequest) (*pb.ListFacilitiesResponse, error) {
-	pageSize := normalizePageSize(req.GetPageSize())
-	offset, err := decodePageToken(req.GetPageToken())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
-	}
-
-	// Build filter predicates from optional fields.
-	var predicates []predicate.Facility
-	if req.Name != nil {
-		predicates = append(predicates, facility.NameContainsFold(*req.Name))
-	}
-	if req.Country != nil {
-		predicates = append(predicates, facility.CountryEQ(*req.Country))
-	}
-	if req.City != nil {
-		predicates = append(predicates, facility.CityContainsFold(*req.City))
-	}
-	if req.Status != nil {
-		predicates = append(predicates, facility.StatusEQ(*req.Status))
+func applyFacilityListFilters(req *pb.ListFacilitiesRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Id != nil {
+		if *req.Id <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(facility.FieldID, int(*req.Id)))
 	}
 	if req.OrgId != nil {
 		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: org_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
 		}
-		predicates = append(predicates, facility.OrgIDEQ(int(*req.OrgId)))
+		preds = append(preds, sql.FieldEQ(facility.FieldOrgID, int(*req.OrgId)))
 	}
-
-	query := s.Client.Facility.Query().
-		Order(ent.Asc(facility.FieldID)).
-		Limit(pageSize + 1).
-		Offset(offset)
-	if len(predicates) > 0 {
-		query = query.Where(facility.And(predicates...))
+	if req.CampusId != nil {
+		if *req.CampusId <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: campus_id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(facility.FieldCampusID, int(*req.CampusId)))
 	}
-
-	// Fetch one extra to detect whether there is a next page.
-	results, err := query.All(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list facilities: %w", err))
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(facility.FieldName, *req.Name))
 	}
-
-	var nextPageToken string
-	if len(results) > pageSize {
-		results = results[:pageSize]
-		nextPageToken = encodePageToken(offset + pageSize)
+	if req.Aka != nil {
+		preds = append(preds, sql.FieldContainsFold(facility.FieldAka, *req.Aka))
 	}
-
-	facilities := make([]*pb.Facility, len(results))
-	for i, f := range results {
-		facilities[i] = facilityToProto(f)
+	if req.NameLong != nil {
+		preds = append(preds, sql.FieldContainsFold(facility.FieldNameLong, *req.NameLong))
 	}
-
-	return &pb.ListFacilitiesResponse{
-		Facilities:    facilities,
-		NextPageToken: nextPageToken,
-	}, nil
+	if req.Country != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldCountry, *req.Country))
+	}
+	if req.City != nil {
+		preds = append(preds, sql.FieldContainsFold(facility.FieldCity, *req.City))
+	}
+	if req.Status != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldStatus, *req.Status))
+	}
+	if req.Website != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldWebsite, *req.Website))
+	}
+	if req.Clli != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldClli, *req.Clli))
+	}
+	if req.Rencode != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldRencode, *req.Rencode))
+	}
+	if req.Npanxx != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldNpanxx, *req.Npanxx))
+	}
+	if req.TechEmail != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldTechEmail, *req.TechEmail))
+	}
+	if req.TechPhone != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldTechPhone, *req.TechPhone))
+	}
+	if req.SalesEmail != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldSalesEmail, *req.SalesEmail))
+	}
+	if req.SalesPhone != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldSalesPhone, *req.SalesPhone))
+	}
+	if req.Property != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldProperty, *req.Property))
+	}
+	if req.DiverseServingSubstations != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldDiverseServingSubstations, *req.DiverseServingSubstations))
+	}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldNotes, *req.Notes))
+	}
+	if req.RegionContinent != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldRegionContinent, *req.RegionContinent))
+	}
+	if req.StatusDashboard != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldStatusDashboard, *req.StatusDashboard))
+	}
+	if req.Logo != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldLogo, *req.Logo))
+	}
+	if req.Address1 != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldAddress1, *req.Address1))
+	}
+	if req.Address2 != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldAddress2, *req.Address2))
+	}
+	if req.State != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldState, *req.State))
+	}
+	if req.Zipcode != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldZipcode, *req.Zipcode))
+	}
+	if req.Suite != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldSuite, *req.Suite))
+	}
+	if req.Floor != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldFloor, *req.Floor))
+	}
+	// org_name filter -- stored as denormalized field on entity.
+	if req.OrgName != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldOrgName, *req.OrgName))
+	}
+	return preds, nil
 }
 
-// StreamFacilities streams all matching facilities one message at a time using
-// batched keyset pagination. Filters match the ListFacilities behavior.
-func (s *FacilityService) StreamFacilities(ctx context.Context, req *pb.StreamFacilitiesRequest, stream *connect.ServerStream[pb.Facility]) error {
-	// Apply stream timeout.
-	if s.StreamTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
-		defer cancel()
-	}
-
-	// Build filter predicates (identical to ListFacilities).
-	var predicates []predicate.Facility
-	if req.Name != nil {
-		predicates = append(predicates, facility.NameContainsFold(*req.Name))
-	}
-	if req.Country != nil {
-		predicates = append(predicates, facility.CountryEQ(*req.Country))
-	}
-	if req.City != nil {
-		predicates = append(predicates, facility.CityContainsFold(*req.City))
-	}
-	if req.Status != nil {
-		predicates = append(predicates, facility.StatusEQ(*req.Status))
-	}
+func applyFacilityStreamFilters(req *pb.StreamFacilitiesRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
 	if req.OrgId != nil {
 		if *req.OrgId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: org_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
 		}
-		predicates = append(predicates, facility.OrgIDEQ(int(*req.OrgId)))
+		preds = append(preds, sql.FieldEQ(facility.FieldOrgID, int(*req.OrgId)))
 	}
-
-	// Resume and incremental filter support.
-	if req.SinceId != nil {
-		predicates = append(predicates, facility.IDGT(int(*req.SinceId)))
-	}
-	if req.UpdatedSince != nil {
-		predicates = append(predicates, facility.UpdatedGT(req.UpdatedSince.AsTime()))
-	}
-
-	// Count total matching records for header metadata.
-	countQuery := s.Client.Facility.Query()
-	if len(predicates) > 0 {
-		countQuery = countQuery.Where(facility.And(predicates...))
-	}
-	total, err := countQuery.Count(ctx)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("count facilities: %w", err))
-	}
-	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
-
-	// Stream records in batches using keyset pagination.
-	lastID := 0
-	if req.SinceId != nil {
-		lastID = int(*req.SinceId)
-	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
+	if req.CampusId != nil {
+		if *req.CampusId <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: campus_id must be positive"))
 		}
+		preds = append(preds, sql.FieldEQ(facility.FieldCampusID, int(*req.CampusId)))
+	}
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(facility.FieldName, *req.Name))
+	}
+	if req.Aka != nil {
+		preds = append(preds, sql.FieldContainsFold(facility.FieldAka, *req.Aka))
+	}
+	if req.NameLong != nil {
+		preds = append(preds, sql.FieldContainsFold(facility.FieldNameLong, *req.NameLong))
+	}
+	if req.Country != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldCountry, *req.Country))
+	}
+	if req.City != nil {
+		preds = append(preds, sql.FieldContainsFold(facility.FieldCity, *req.City))
+	}
+	if req.Status != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldStatus, *req.Status))
+	}
+	if req.Website != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldWebsite, *req.Website))
+	}
+	if req.Clli != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldClli, *req.Clli))
+	}
+	if req.Rencode != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldRencode, *req.Rencode))
+	}
+	if req.Npanxx != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldNpanxx, *req.Npanxx))
+	}
+	if req.TechEmail != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldTechEmail, *req.TechEmail))
+	}
+	if req.TechPhone != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldTechPhone, *req.TechPhone))
+	}
+	if req.SalesEmail != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldSalesEmail, *req.SalesEmail))
+	}
+	if req.SalesPhone != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldSalesPhone, *req.SalesPhone))
+	}
+	if req.Property != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldProperty, *req.Property))
+	}
+	if req.DiverseServingSubstations != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldDiverseServingSubstations, *req.DiverseServingSubstations))
+	}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldNotes, *req.Notes))
+	}
+	if req.RegionContinent != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldRegionContinent, *req.RegionContinent))
+	}
+	if req.StatusDashboard != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldStatusDashboard, *req.StatusDashboard))
+	}
+	if req.Logo != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldLogo, *req.Logo))
+	}
+	if req.Address1 != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldAddress1, *req.Address1))
+	}
+	if req.Address2 != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldAddress2, *req.Address2))
+	}
+	if req.State != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldState, *req.State))
+	}
+	if req.Zipcode != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldZipcode, *req.Zipcode))
+	}
+	if req.Suite != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldSuite, *req.Suite))
+	}
+	if req.Floor != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldFloor, *req.Floor))
+	}
+	if req.OrgName != nil {
+		preds = append(preds, sql.FieldEQ(facility.FieldOrgName, *req.OrgName))
+	}
+	return preds, nil
+}
 
-		query := s.Client.Facility.Query().
-			Where(facility.IDGT(lastID)).
-			Order(ent.Asc(facility.FieldID)).
-			Limit(streamBatchSize)
-		if len(predicates) > 0 {
-			query = query.Where(facility.And(predicates...))
-		}
-
-		batch, err := query.All(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream facilities batch after id %d: %w", lastID, err))
-		}
-		if len(batch) == 0 {
-			return nil
-		}
-
-		for _, f := range batch {
-			if err := stream.Send(facilityToProto(f)); err != nil {
-				return err
+// ListFacilities returns a paginated list of facilities ordered by ID ascending.
+func (s *FacilityService) ListFacilities(ctx context.Context, req *pb.ListFacilitiesRequest) (*pb.ListFacilitiesResponse, error) {
+	items, nextToken, err := ListEntities(ctx, ListParams[ent.Facility, pb.Facility]{
+		EntityName: "facilities",
+		PageSize:   req.GetPageSize(),
+		PageToken:  req.GetPageToken(),
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyFacilityListFilters(req)
+		},
+		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.Facility, error) {
+			q := s.Client.Facility.Query().
+				Order(ent.Asc(facility.FieldID)).
+				Limit(limit).Offset(offset)
+			if len(preds) > 0 {
+				q = q.Where(facility.And(castPredicates[predicate.Facility](preds)...))
 			}
-		}
-
-		lastID = batch[len(batch)-1].ID
-		if len(batch) < streamBatchSize {
-			return nil
-		}
+			return q.All(ctx)
+		},
+		Convert: facilityToProto,
+	})
+	if err != nil {
+		return nil, err
 	}
+	return &pb.ListFacilitiesResponse{Facilities: items, NextPageToken: nextToken}, nil
+}
+
+// StreamFacilities streams all matching facilities one message at a time.
+func (s *FacilityService) StreamFacilities(ctx context.Context, req *pb.StreamFacilitiesRequest, stream *connect.ServerStream[pb.Facility]) error {
+	return StreamEntities(ctx, StreamParams[ent.Facility, pb.Facility]{
+		EntityName:   "facilities",
+		Timeout:      s.StreamTimeout,
+		SinceID:      req.SinceId,
+		UpdatedSince: req.UpdatedSince,
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyFacilityStreamFilters(req)
+		},
+		Count: func(ctx context.Context, preds []func(*sql.Selector)) (int, error) {
+			q := s.Client.Facility.Query()
+			if len(preds) > 0 {
+				q = q.Where(facility.And(castPredicates[predicate.Facility](preds)...))
+			}
+			return q.Count(ctx)
+		},
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.Facility, error) {
+			q := s.Client.Facility.Query().
+				Where(facility.IDGT(afterID)).
+				Order(ent.Asc(facility.FieldID)).
+				Limit(limit)
+			if len(preds) > 0 {
+				q = q.Where(facility.And(castPredicates[predicate.Facility](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: facilityToProto,
+		GetID:   func(f *ent.Facility) int { return f.ID },
+	}, stream)
 }
 
 // facilityToProto converts an ent Facility entity to a protobuf Facility

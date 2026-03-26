@@ -3,10 +3,10 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
@@ -15,15 +15,13 @@ import (
 )
 
 // IxFacilityService implements the peeringdb.v1.IxFacilityService ConnectRPC
-// handler interface. It queries the ent database layer and converts results to
-// protobuf messages.
+// handler interface.
 type IxFacilityService struct {
 	Client        *ent.Client
 	StreamTimeout time.Duration
 }
 
-// GetIxFacility returns a single IX facility by ID. Returns NOT_FOUND if the
-// IX facility does not exist.
+// GetIxFacility returns a single IX facility by ID.
 func (s *IxFacilityService) GetIxFacility(ctx context.Context, req *pb.GetIxFacilityRequest) (*pb.GetIxFacilityResponse, error) {
 	ixf, err := s.Client.IxFacility.Get(ctx, int(req.GetId()))
 	if err != nil {
@@ -35,167 +33,126 @@ func (s *IxFacilityService) GetIxFacility(ctx context.Context, req *pb.GetIxFaci
 	return &pb.GetIxFacilityResponse{IxFacility: ixFacilityToProto(ixf)}, nil
 }
 
-// ListIxFacilities returns a paginated list of IX facilities ordered by ID
-// ascending. Supports page_size, page_token, and optional filter fields
-// (ix_id, fac_id, country, city, status). Multiple filters combine with AND
-// logic.
-func (s *IxFacilityService) ListIxFacilities(ctx context.Context, req *pb.ListIxFacilitiesRequest) (*pb.ListIxFacilitiesResponse, error) {
-	pageSize := normalizePageSize(req.GetPageSize())
-	offset, err := decodePageToken(req.GetPageToken())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
+func applyIxFacilityListFilters(req *pb.ListIxFacilitiesRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Id != nil {
+		if *req.Id <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(ixfacility.FieldID, int(*req.Id)))
 	}
-
-	// Build filter predicates from optional fields.
-	var predicates []predicate.IxFacility
 	if req.IxId != nil {
 		if *req.IxId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: ix_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_id must be positive"))
 		}
-		predicates = append(predicates, ixfacility.IxIDEQ(int(*req.IxId)))
+		preds = append(preds, sql.FieldEQ(ixfacility.FieldIxID, int(*req.IxId)))
 	}
 	if req.FacId != nil {
 		if *req.FacId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: fac_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: fac_id must be positive"))
 		}
-		predicates = append(predicates, ixfacility.FacIDEQ(int(*req.FacId)))
+		preds = append(preds, sql.FieldEQ(ixfacility.FieldFacID, int(*req.FacId)))
 	}
 	if req.Country != nil {
-		predicates = append(predicates, ixfacility.CountryEQ(*req.Country))
+		preds = append(preds, sql.FieldEQ(ixfacility.FieldCountry, *req.Country))
 	}
 	if req.City != nil {
-		predicates = append(predicates, ixfacility.CityContainsFold(*req.City))
+		preds = append(preds, sql.FieldContainsFold(ixfacility.FieldCity, *req.City))
 	}
 	if req.Status != nil {
-		predicates = append(predicates, ixfacility.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(ixfacility.FieldStatus, *req.Status))
 	}
-
-	query := s.Client.IxFacility.Query().
-		Order(ent.Asc(ixfacility.FieldID)).
-		Limit(pageSize + 1).
-		Offset(offset)
-	if len(predicates) > 0 {
-		query = query.Where(ixfacility.And(predicates...))
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(ixfacility.FieldName, *req.Name))
 	}
-
-	// Fetch one extra to detect whether there is a next page.
-	results, err := query.All(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list ixfacilities: %w", err))
-	}
-
-	var nextPageToken string
-	if len(results) > pageSize {
-		results = results[:pageSize]
-		nextPageToken = encodePageToken(offset + pageSize)
-	}
-
-	items := make([]*pb.IxFacility, len(results))
-	for i, ixf := range results {
-		items[i] = ixFacilityToProto(ixf)
-	}
-
-	return &pb.ListIxFacilitiesResponse{
-		IxFacilities:  items,
-		NextPageToken: nextPageToken,
-	}, nil
+	return preds, nil
 }
 
-// StreamIxFacilities streams all matching IX facilities one message at a time
-// using batched keyset pagination. Filters match the ListIxFacilities behavior.
-func (s *IxFacilityService) StreamIxFacilities(ctx context.Context, req *pb.StreamIxFacilitiesRequest, stream *connect.ServerStream[pb.IxFacility]) error {
-	// Apply stream timeout.
-	if s.StreamTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
-		defer cancel()
-	}
-
-	// Build filter predicates (identical to ListIxFacilities).
-	var predicates []predicate.IxFacility
+func applyIxFacilityStreamFilters(req *pb.StreamIxFacilitiesRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
 	if req.IxId != nil {
 		if *req.IxId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: ix_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_id must be positive"))
 		}
-		predicates = append(predicates, ixfacility.IxIDEQ(int(*req.IxId)))
+		preds = append(preds, sql.FieldEQ(ixfacility.FieldIxID, int(*req.IxId)))
 	}
 	if req.FacId != nil {
 		if *req.FacId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: fac_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: fac_id must be positive"))
 		}
-		predicates = append(predicates, ixfacility.FacIDEQ(int(*req.FacId)))
+		preds = append(preds, sql.FieldEQ(ixfacility.FieldFacID, int(*req.FacId)))
 	}
 	if req.Country != nil {
-		predicates = append(predicates, ixfacility.CountryEQ(*req.Country))
+		preds = append(preds, sql.FieldEQ(ixfacility.FieldCountry, *req.Country))
 	}
 	if req.City != nil {
-		predicates = append(predicates, ixfacility.CityContainsFold(*req.City))
+		preds = append(preds, sql.FieldContainsFold(ixfacility.FieldCity, *req.City))
 	}
 	if req.Status != nil {
-		predicates = append(predicates, ixfacility.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(ixfacility.FieldStatus, *req.Status))
 	}
-
-	// Resume and incremental filter support.
-	if req.SinceId != nil {
-		predicates = append(predicates, ixfacility.IDGT(int(*req.SinceId)))
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(ixfacility.FieldName, *req.Name))
 	}
-	if req.UpdatedSince != nil {
-		predicates = append(predicates, ixfacility.UpdatedGT(req.UpdatedSince.AsTime()))
-	}
+	return preds, nil
+}
 
-	// Count total matching records for header metadata.
-	countQuery := s.Client.IxFacility.Query()
-	if len(predicates) > 0 {
-		countQuery = countQuery.Where(ixfacility.And(predicates...))
-	}
-	total, err := countQuery.Count(ctx)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("count ixfacilities: %w", err))
-	}
-	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
-
-	// Stream records in batches using keyset pagination.
-	lastID := 0
-	if req.SinceId != nil {
-		lastID = int(*req.SinceId)
-	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		query := s.Client.IxFacility.Query().
-			Where(ixfacility.IDGT(lastID)).
-			Order(ent.Asc(ixfacility.FieldID)).
-			Limit(streamBatchSize)
-		if len(predicates) > 0 {
-			query = query.Where(ixfacility.And(predicates...))
-		}
-
-		batch, err := query.All(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream ixfacilities batch after id %d: %w", lastID, err))
-		}
-		if len(batch) == 0 {
-			return nil
-		}
-
-		for _, ixf := range batch {
-			if err := stream.Send(ixFacilityToProto(ixf)); err != nil {
-				return err
+// ListIxFacilities returns a paginated list of IX facilities.
+func (s *IxFacilityService) ListIxFacilities(ctx context.Context, req *pb.ListIxFacilitiesRequest) (*pb.ListIxFacilitiesResponse, error) {
+	items, nextToken, err := ListEntities(ctx, ListParams[ent.IxFacility, pb.IxFacility]{
+		EntityName: "ixfacilities",
+		PageSize:   req.GetPageSize(),
+		PageToken:  req.GetPageToken(),
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyIxFacilityListFilters(req)
+		},
+		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.IxFacility, error) {
+			q := s.Client.IxFacility.Query().
+				Order(ent.Asc(ixfacility.FieldID)).
+				Limit(limit).Offset(offset)
+			if len(preds) > 0 {
+				q = q.Where(ixfacility.And(castPredicates[predicate.IxFacility](preds)...))
 			}
-		}
-
-		lastID = batch[len(batch)-1].ID
-		if len(batch) < streamBatchSize {
-			return nil
-		}
+			return q.All(ctx)
+		},
+		Convert: ixFacilityToProto,
+	})
+	if err != nil {
+		return nil, err
 	}
+	return &pb.ListIxFacilitiesResponse{IxFacilities: items, NextPageToken: nextToken}, nil
+}
+
+// StreamIxFacilities streams all matching IX facilities.
+func (s *IxFacilityService) StreamIxFacilities(ctx context.Context, req *pb.StreamIxFacilitiesRequest, stream *connect.ServerStream[pb.IxFacility]) error {
+	return StreamEntities(ctx, StreamParams[ent.IxFacility, pb.IxFacility]{
+		EntityName:   "ixfacilities",
+		Timeout:      s.StreamTimeout,
+		SinceID:      req.SinceId,
+		UpdatedSince: req.UpdatedSince,
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyIxFacilityStreamFilters(req)
+		},
+		Count: func(ctx context.Context, preds []func(*sql.Selector)) (int, error) {
+			q := s.Client.IxFacility.Query()
+			if len(preds) > 0 {
+				q = q.Where(ixfacility.And(castPredicates[predicate.IxFacility](preds)...))
+			}
+			return q.Count(ctx)
+		},
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.IxFacility, error) {
+			q := s.Client.IxFacility.Query().
+				Where(ixfacility.IDGT(afterID)).
+				Order(ent.Asc(ixfacility.FieldID)).
+				Limit(limit)
+			if len(preds) > 0 {
+				q = q.Where(ixfacility.And(castPredicates[predicate.IxFacility](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: ixFacilityToProto,
+		GetID:   func(ixf *ent.IxFacility) int { return ixf.ID },
+	}, stream)
 }
 
 // ixFacilityToProto converts an ent IxFacility entity to a protobuf IxFacility

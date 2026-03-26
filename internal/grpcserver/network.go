@@ -3,10 +3,10 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
@@ -35,161 +35,277 @@ func (s *NetworkService) GetNetwork(ctx context.Context, req *pb.GetNetworkReque
 	return &pb.GetNetworkResponse{Network: networkToProto(n)}, nil
 }
 
-// ListNetworks returns a paginated list of networks ordered by ID ascending.
-// Supports page_size, page_token, and optional filter fields (asn, name,
-// status, org_id). Multiple filters combine with AND logic. Name uses
-// case-insensitive substring matching; other fields use exact match.
-func (s *NetworkService) ListNetworks(ctx context.Context, req *pb.ListNetworksRequest) (*pb.ListNetworksResponse, error) {
-	pageSize := normalizePageSize(req.GetPageSize())
-	offset, err := decodePageToken(req.GetPageToken())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
+// applyNetworkListFilters builds filter predicates from ListNetworksRequest
+// optional fields. Covers all pdbcompat Registry fields for networks.
+func applyNetworkListFilters(req *pb.ListNetworksRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Id != nil {
+		if *req.Id <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(network.FieldID, int(*req.Id)))
 	}
-
-	// Build filter predicates from optional fields.
-	var predicates []predicate.Network
 	if req.Asn != nil {
 		if *req.Asn <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: asn must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: asn must be positive"))
 		}
-		predicates = append(predicates, network.AsnEQ(int(*req.Asn)))
-	}
-	if req.Name != nil {
-		predicates = append(predicates, network.NameContainsFold(*req.Name))
-	}
-	if req.Status != nil {
-		predicates = append(predicates, network.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(network.FieldAsn, int(*req.Asn)))
 	}
 	if req.OrgId != nil {
 		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: org_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
 		}
-		predicates = append(predicates, network.OrgIDEQ(int(*req.OrgId)))
+		preds = append(preds, sql.FieldEQ(network.FieldOrgID, int(*req.OrgId)))
 	}
-
-	query := s.Client.Network.Query().
-		Order(ent.Asc(network.FieldID)).
-		Limit(pageSize + 1).
-		Offset(offset)
-	if len(predicates) > 0 {
-		query = query.Where(network.And(predicates...))
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(network.FieldName, *req.Name))
 	}
+	if req.Aka != nil {
+		preds = append(preds, sql.FieldContainsFold(network.FieldAka, *req.Aka))
+	}
+	if req.NameLong != nil {
+		preds = append(preds, sql.FieldContainsFold(network.FieldNameLong, *req.NameLong))
+	}
+	if req.Status != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldStatus, *req.Status))
+	}
+	if req.Website != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldWebsite, *req.Website))
+	}
+	if req.LookingGlass != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldLookingGlass, *req.LookingGlass))
+	}
+	if req.RouteServer != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldRouteServer, *req.RouteServer))
+	}
+	if req.IrrAsSet != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldIrrAsSet, *req.IrrAsSet))
+	}
+	if req.InfoType != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoType, *req.InfoType))
+	}
+	if req.InfoPrefixes4 != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoPrefixes4, int(*req.InfoPrefixes4)))
+	}
+	if req.InfoPrefixes6 != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoPrefixes6, int(*req.InfoPrefixes6)))
+	}
+	if req.InfoTraffic != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoTraffic, *req.InfoTraffic))
+	}
+	if req.InfoRatio != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoRatio, *req.InfoRatio))
+	}
+	if req.InfoScope != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoScope, *req.InfoScope))
+	}
+	if req.InfoUnicast != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoUnicast, *req.InfoUnicast))
+	}
+	if req.InfoMulticast != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoMulticast, *req.InfoMulticast))
+	}
+	if req.InfoIpv6 != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoIpv6, *req.InfoIpv6))
+	}
+	if req.InfoNeverViaRouteServers != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoNeverViaRouteServers, *req.InfoNeverViaRouteServers))
+	}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldNotes, *req.Notes))
+	}
+	if req.PolicyUrl != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldPolicyURL, *req.PolicyUrl))
+	}
+	if req.PolicyGeneral != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldPolicyGeneral, *req.PolicyGeneral))
+	}
+	if req.PolicyLocations != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldPolicyLocations, *req.PolicyLocations))
+	}
+	if req.PolicyRatio != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldPolicyRatio, *req.PolicyRatio))
+	}
+	if req.PolicyContracts != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldPolicyContracts, *req.PolicyContracts))
+	}
+	if req.AllowIxpUpdate != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldAllowIxpUpdate, *req.AllowIxpUpdate))
+	}
+	if req.StatusDashboard != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldStatusDashboard, *req.StatusDashboard))
+	}
+	if req.RirStatus != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldRirStatus, *req.RirStatus))
+	}
+	if req.Logo != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldLogo, *req.Logo))
+	}
+	return preds, nil
+}
 
-	// Fetch one extra to detect whether there is a next page.
-	results, err := query.All(ctx)
+// applyNetworkStreamFilters builds filter predicates from StreamNetworksRequest
+// optional fields. Same filters as List minus id. SinceID and UpdatedSince are
+// handled by the generic StreamEntities helper.
+func applyNetworkStreamFilters(req *pb.StreamNetworksRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Asn != nil {
+		if *req.Asn <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: asn must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(network.FieldAsn, int(*req.Asn)))
+	}
+	if req.OrgId != nil {
+		if *req.OrgId <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(network.FieldOrgID, int(*req.OrgId)))
+	}
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(network.FieldName, *req.Name))
+	}
+	if req.Aka != nil {
+		preds = append(preds, sql.FieldContainsFold(network.FieldAka, *req.Aka))
+	}
+	if req.NameLong != nil {
+		preds = append(preds, sql.FieldContainsFold(network.FieldNameLong, *req.NameLong))
+	}
+	if req.Status != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldStatus, *req.Status))
+	}
+	if req.Website != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldWebsite, *req.Website))
+	}
+	if req.LookingGlass != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldLookingGlass, *req.LookingGlass))
+	}
+	if req.RouteServer != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldRouteServer, *req.RouteServer))
+	}
+	if req.IrrAsSet != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldIrrAsSet, *req.IrrAsSet))
+	}
+	if req.InfoType != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoType, *req.InfoType))
+	}
+	if req.InfoPrefixes4 != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoPrefixes4, int(*req.InfoPrefixes4)))
+	}
+	if req.InfoPrefixes6 != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoPrefixes6, int(*req.InfoPrefixes6)))
+	}
+	if req.InfoTraffic != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoTraffic, *req.InfoTraffic))
+	}
+	if req.InfoRatio != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoRatio, *req.InfoRatio))
+	}
+	if req.InfoScope != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoScope, *req.InfoScope))
+	}
+	if req.InfoUnicast != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoUnicast, *req.InfoUnicast))
+	}
+	if req.InfoMulticast != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoMulticast, *req.InfoMulticast))
+	}
+	if req.InfoIpv6 != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoIpv6, *req.InfoIpv6))
+	}
+	if req.InfoNeverViaRouteServers != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldInfoNeverViaRouteServers, *req.InfoNeverViaRouteServers))
+	}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldNotes, *req.Notes))
+	}
+	if req.PolicyUrl != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldPolicyURL, *req.PolicyUrl))
+	}
+	if req.PolicyGeneral != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldPolicyGeneral, *req.PolicyGeneral))
+	}
+	if req.PolicyLocations != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldPolicyLocations, *req.PolicyLocations))
+	}
+	if req.PolicyRatio != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldPolicyRatio, *req.PolicyRatio))
+	}
+	if req.PolicyContracts != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldPolicyContracts, *req.PolicyContracts))
+	}
+	if req.AllowIxpUpdate != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldAllowIxpUpdate, *req.AllowIxpUpdate))
+	}
+	if req.StatusDashboard != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldStatusDashboard, *req.StatusDashboard))
+	}
+	if req.RirStatus != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldRirStatus, *req.RirStatus))
+	}
+	if req.Logo != nil {
+		preds = append(preds, sql.FieldEQ(network.FieldLogo, *req.Logo))
+	}
+	return preds, nil
+}
+
+// ListNetworks returns a paginated list of networks ordered by ID ascending.
+// Supports all pdbcompat-parity filter fields with AND logic.
+func (s *NetworkService) ListNetworks(ctx context.Context, req *pb.ListNetworksRequest) (*pb.ListNetworksResponse, error) {
+	items, nextToken, err := ListEntities(ctx, ListParams[ent.Network, pb.Network]{
+		EntityName: "networks",
+		PageSize:   req.GetPageSize(),
+		PageToken:  req.GetPageToken(),
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyNetworkListFilters(req)
+		},
+		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.Network, error) {
+			q := s.Client.Network.Query().
+				Order(ent.Asc(network.FieldID)).
+				Limit(limit).Offset(offset)
+			if len(preds) > 0 {
+				q = q.Where(network.And(castPredicates[predicate.Network](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: networkToProto,
+	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list networks: %w", err))
+		return nil, err
 	}
-
-	var nextPageToken string
-	if len(results) > pageSize {
-		results = results[:pageSize]
-		nextPageToken = encodePageToken(offset + pageSize)
-	}
-
-	networks := make([]*pb.Network, len(results))
-	for i, n := range results {
-		networks[i] = networkToProto(n)
-	}
-
-	return &pb.ListNetworksResponse{
-		Networks:      networks,
-		NextPageToken: nextPageToken,
-	}, nil
+	return &pb.ListNetworksResponse{Networks: items, NextPageToken: nextToken}, nil
 }
 
 // StreamNetworks streams all matching networks one message at a time using
-// batched keyset pagination. Filters match the ListNetworks behavior.
+// batched keyset pagination. Supports all pdbcompat-parity filter fields.
 func (s *NetworkService) StreamNetworks(ctx context.Context, req *pb.StreamNetworksRequest, stream *connect.ServerStream[pb.Network]) error {
-	// Apply stream timeout.
-	if s.StreamTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
-		defer cancel()
-	}
-
-	// Build filter predicates (identical to ListNetworks).
-	var predicates []predicate.Network
-	if req.Asn != nil {
-		if *req.Asn <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: asn must be positive"))
-		}
-		predicates = append(predicates, network.AsnEQ(int(*req.Asn)))
-	}
-	if req.Name != nil {
-		predicates = append(predicates, network.NameContainsFold(*req.Name))
-	}
-	if req.Status != nil {
-		predicates = append(predicates, network.StatusEQ(*req.Status))
-	}
-	if req.OrgId != nil {
-		if *req.OrgId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: org_id must be positive"))
-		}
-		predicates = append(predicates, network.OrgIDEQ(int(*req.OrgId)))
-	}
-
-	// Resume and incremental filter support.
-	if req.SinceId != nil {
-		predicates = append(predicates, network.IDGT(int(*req.SinceId)))
-	}
-	if req.UpdatedSince != nil {
-		predicates = append(predicates, network.UpdatedGT(req.UpdatedSince.AsTime()))
-	}
-
-	// Count total matching records for header metadata.
-	countQuery := s.Client.Network.Query()
-	if len(predicates) > 0 {
-		countQuery = countQuery.Where(network.And(predicates...))
-	}
-	total, err := countQuery.Count(ctx)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("count networks: %w", err))
-	}
-	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
-
-	// Stream records in batches using keyset pagination.
-	lastID := 0
-	if req.SinceId != nil {
-		lastID = int(*req.SinceId)
-	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		query := s.Client.Network.Query().
-			Where(network.IDGT(lastID)).
-			Order(ent.Asc(network.FieldID)).
-			Limit(streamBatchSize)
-		if len(predicates) > 0 {
-			query = query.Where(network.And(predicates...))
-		}
-
-		batch, err := query.All(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream networks batch after id %d: %w", lastID, err))
-		}
-		if len(batch) == 0 {
-			return nil
-		}
-
-		for _, n := range batch {
-			if err := stream.Send(networkToProto(n)); err != nil {
-				return err
+	return StreamEntities(ctx, StreamParams[ent.Network, pb.Network]{
+		EntityName:   "networks",
+		Timeout:      s.StreamTimeout,
+		SinceID:      req.SinceId,
+		UpdatedSince: req.UpdatedSince,
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyNetworkStreamFilters(req)
+		},
+		Count: func(ctx context.Context, preds []func(*sql.Selector)) (int, error) {
+			q := s.Client.Network.Query()
+			if len(preds) > 0 {
+				q = q.Where(network.And(castPredicates[predicate.Network](preds)...))
 			}
-		}
-
-		lastID = batch[len(batch)-1].ID
-		if len(batch) < streamBatchSize {
-			return nil
-		}
-	}
+			return q.Count(ctx)
+		},
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.Network, error) {
+			q := s.Client.Network.Query().
+				Where(network.IDGT(afterID)).
+				Order(ent.Asc(network.FieldID)).
+				Limit(limit)
+			if len(preds) > 0 {
+				q = q.Where(network.And(castPredicates[predicate.Network](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: networkToProto,
+		GetID:   func(n *ent.Network) int { return n.ID },
+	}, stream)
 }
 
 // networkToProto converts an ent Network entity to a protobuf Network message.

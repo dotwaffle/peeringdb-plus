@@ -3,10 +3,10 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
@@ -35,160 +35,234 @@ func (s *InternetExchangeService) GetInternetExchange(ctx context.Context, req *
 	return &pb.GetInternetExchangeResponse{InternetExchange: internetExchangeToProto(ix)}, nil
 }
 
-// ListInternetExchanges returns a paginated list of internet exchanges ordered
-// by ID ascending. Supports page_size, page_token, and optional filter fields
-// (name, country, city, status, org_id). Multiple filters combine with AND
-// logic.
-func (s *InternetExchangeService) ListInternetExchanges(ctx context.Context, req *pb.ListInternetExchangesRequest) (*pb.ListInternetExchangesResponse, error) {
-	pageSize := normalizePageSize(req.GetPageSize())
-	offset, err := decodePageToken(req.GetPageToken())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
-	}
-
-	// Build filter predicates from optional fields.
-	var predicates []predicate.InternetExchange
-	if req.Name != nil {
-		predicates = append(predicates, internetexchange.NameContainsFold(*req.Name))
-	}
-	if req.Country != nil {
-		predicates = append(predicates, internetexchange.CountryEQ(*req.Country))
-	}
-	if req.City != nil {
-		predicates = append(predicates, internetexchange.CityContainsFold(*req.City))
-	}
-	if req.Status != nil {
-		predicates = append(predicates, internetexchange.StatusEQ(*req.Status))
+func applyInternetExchangeListFilters(req *pb.ListInternetExchangesRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Id != nil {
+		if *req.Id <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldID, int(*req.Id)))
 	}
 	if req.OrgId != nil {
 		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: org_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
 		}
-		predicates = append(predicates, internetexchange.OrgIDEQ(int(*req.OrgId)))
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldOrgID, int(*req.OrgId)))
 	}
-
-	query := s.Client.InternetExchange.Query().
-		Order(ent.Asc(internetexchange.FieldID)).
-		Limit(pageSize + 1).
-		Offset(offset)
-	if len(predicates) > 0 {
-		query = query.Where(internetexchange.And(predicates...))
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldName, *req.Name))
 	}
-
-	// Fetch one extra to detect whether there is a next page.
-	results, err := query.All(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list internetexchanges: %w", err))
+	if req.Aka != nil {
+		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldAka, *req.Aka))
 	}
-
-	var nextPageToken string
-	if len(results) > pageSize {
-		results = results[:pageSize]
-		nextPageToken = encodePageToken(offset + pageSize)
+	if req.NameLong != nil {
+		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldNameLong, *req.NameLong))
 	}
-
-	exchanges := make([]*pb.InternetExchange, len(results))
-	for i, ix := range results {
-		exchanges[i] = internetExchangeToProto(ix)
+	if req.Country != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldCountry, *req.Country))
 	}
-
-	return &pb.ListInternetExchangesResponse{
-		InternetExchanges: exchanges,
-		NextPageToken:     nextPageToken,
-	}, nil
+	if req.City != nil {
+		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldCity, *req.City))
+	}
+	if req.Status != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldStatus, *req.Status))
+	}
+	if req.RegionContinent != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldRegionContinent, *req.RegionContinent))
+	}
+	if req.Media != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldMedia, *req.Media))
+	}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldNotes, *req.Notes))
+	}
+	if req.ProtoUnicast != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoUnicast, *req.ProtoUnicast))
+	}
+	if req.ProtoMulticast != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoMulticast, *req.ProtoMulticast))
+	}
+	if req.ProtoIpv6 != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoIpv6, *req.ProtoIpv6))
+	}
+	if req.Website != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldWebsite, *req.Website))
+	}
+	if req.UrlStats != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldURLStats, *req.UrlStats))
+	}
+	if req.TechEmail != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldTechEmail, *req.TechEmail))
+	}
+	if req.TechPhone != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldTechPhone, *req.TechPhone))
+	}
+	if req.PolicyEmail != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldPolicyEmail, *req.PolicyEmail))
+	}
+	if req.PolicyPhone != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldPolicyPhone, *req.PolicyPhone))
+	}
+	if req.SalesEmail != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldSalesEmail, *req.SalesEmail))
+	}
+	if req.SalesPhone != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldSalesPhone, *req.SalesPhone))
+	}
+	if req.ServiceLevel != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldServiceLevel, *req.ServiceLevel))
+	}
+	if req.Terms != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldTerms, *req.Terms))
+	}
+	if req.StatusDashboard != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldStatusDashboard, *req.StatusDashboard))
+	}
+	if req.Logo != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldLogo, *req.Logo))
+	}
+	return preds, nil
 }
 
-// StreamInternetExchanges streams all matching internet exchanges one message
-// at a time using batched keyset pagination. Filters match the
-// ListInternetExchanges behavior.
-func (s *InternetExchangeService) StreamInternetExchanges(ctx context.Context, req *pb.StreamInternetExchangesRequest, stream *connect.ServerStream[pb.InternetExchange]) error {
-	// Apply stream timeout.
-	if s.StreamTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
-		defer cancel()
-	}
-
-	// Build filter predicates (identical to ListInternetExchanges).
-	var predicates []predicate.InternetExchange
-	if req.Name != nil {
-		predicates = append(predicates, internetexchange.NameContainsFold(*req.Name))
-	}
-	if req.Country != nil {
-		predicates = append(predicates, internetexchange.CountryEQ(*req.Country))
-	}
-	if req.City != nil {
-		predicates = append(predicates, internetexchange.CityContainsFold(*req.City))
-	}
-	if req.Status != nil {
-		predicates = append(predicates, internetexchange.StatusEQ(*req.Status))
-	}
+func applyInternetExchangeStreamFilters(req *pb.StreamInternetExchangesRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
 	if req.OrgId != nil {
 		if *req.OrgId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: org_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
 		}
-		predicates = append(predicates, internetexchange.OrgIDEQ(int(*req.OrgId)))
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldOrgID, int(*req.OrgId)))
 	}
-
-	// Resume and incremental filter support.
-	if req.SinceId != nil {
-		predicates = append(predicates, internetexchange.IDGT(int(*req.SinceId)))
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldName, *req.Name))
 	}
-	if req.UpdatedSince != nil {
-		predicates = append(predicates, internetexchange.UpdatedGT(req.UpdatedSince.AsTime()))
+	if req.Aka != nil {
+		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldAka, *req.Aka))
 	}
-
-	// Count total matching records for header metadata.
-	countQuery := s.Client.InternetExchange.Query()
-	if len(predicates) > 0 {
-		countQuery = countQuery.Where(internetexchange.And(predicates...))
+	if req.NameLong != nil {
+		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldNameLong, *req.NameLong))
 	}
-	total, err := countQuery.Count(ctx)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("count internet exchanges: %w", err))
+	if req.Country != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldCountry, *req.Country))
 	}
-	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
-
-	// Stream records in batches using keyset pagination.
-	lastID := 0
-	if req.SinceId != nil {
-		lastID = int(*req.SinceId)
+	if req.City != nil {
+		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldCity, *req.City))
 	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
+	if req.Status != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldStatus, *req.Status))
+	}
+	if req.RegionContinent != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldRegionContinent, *req.RegionContinent))
+	}
+	if req.Media != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldMedia, *req.Media))
+	}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldNotes, *req.Notes))
+	}
+	if req.ProtoUnicast != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoUnicast, *req.ProtoUnicast))
+	}
+	if req.ProtoMulticast != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoMulticast, *req.ProtoMulticast))
+	}
+	if req.ProtoIpv6 != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoIpv6, *req.ProtoIpv6))
+	}
+	if req.Website != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldWebsite, *req.Website))
+	}
+	if req.UrlStats != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldURLStats, *req.UrlStats))
+	}
+	if req.TechEmail != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldTechEmail, *req.TechEmail))
+	}
+	if req.TechPhone != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldTechPhone, *req.TechPhone))
+	}
+	if req.PolicyEmail != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldPolicyEmail, *req.PolicyEmail))
+	}
+	if req.PolicyPhone != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldPolicyPhone, *req.PolicyPhone))
+	}
+	if req.SalesEmail != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldSalesEmail, *req.SalesEmail))
+	}
+	if req.SalesPhone != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldSalesPhone, *req.SalesPhone))
+	}
+	if req.ServiceLevel != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldServiceLevel, *req.ServiceLevel))
+	}
+	if req.Terms != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldTerms, *req.Terms))
+	}
+	if req.StatusDashboard != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldStatusDashboard, *req.StatusDashboard))
+	}
+	if req.Logo != nil {
+		preds = append(preds, sql.FieldEQ(internetexchange.FieldLogo, *req.Logo))
+	}
+	return preds, nil
+}
 
-		query := s.Client.InternetExchange.Query().
-			Where(internetexchange.IDGT(lastID)).
-			Order(ent.Asc(internetexchange.FieldID)).
-			Limit(streamBatchSize)
-		if len(predicates) > 0 {
-			query = query.Where(internetexchange.And(predicates...))
-		}
-
-		batch, err := query.All(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream internet exchanges batch after id %d: %w", lastID, err))
-		}
-		if len(batch) == 0 {
-			return nil
-		}
-
-		for _, ix := range batch {
-			if err := stream.Send(internetExchangeToProto(ix)); err != nil {
-				return err
+// ListInternetExchanges returns a paginated list of internet exchanges.
+func (s *InternetExchangeService) ListInternetExchanges(ctx context.Context, req *pb.ListInternetExchangesRequest) (*pb.ListInternetExchangesResponse, error) {
+	items, nextToken, err := ListEntities(ctx, ListParams[ent.InternetExchange, pb.InternetExchange]{
+		EntityName: "internetexchanges",
+		PageSize:   req.GetPageSize(),
+		PageToken:  req.GetPageToken(),
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyInternetExchangeListFilters(req)
+		},
+		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.InternetExchange, error) {
+			q := s.Client.InternetExchange.Query().
+				Order(ent.Asc(internetexchange.FieldID)).
+				Limit(limit).Offset(offset)
+			if len(preds) > 0 {
+				q = q.Where(internetexchange.And(castPredicates[predicate.InternetExchange](preds)...))
 			}
-		}
-
-		lastID = batch[len(batch)-1].ID
-		if len(batch) < streamBatchSize {
-			return nil
-		}
+			return q.All(ctx)
+		},
+		Convert: internetExchangeToProto,
+	})
+	if err != nil {
+		return nil, err
 	}
+	return &pb.ListInternetExchangesResponse{InternetExchanges: items, NextPageToken: nextToken}, nil
+}
+
+// StreamInternetExchanges streams all matching internet exchanges.
+func (s *InternetExchangeService) StreamInternetExchanges(ctx context.Context, req *pb.StreamInternetExchangesRequest, stream *connect.ServerStream[pb.InternetExchange]) error {
+	return StreamEntities(ctx, StreamParams[ent.InternetExchange, pb.InternetExchange]{
+		EntityName:   "internet exchanges",
+		Timeout:      s.StreamTimeout,
+		SinceID:      req.SinceId,
+		UpdatedSince: req.UpdatedSince,
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyInternetExchangeStreamFilters(req)
+		},
+		Count: func(ctx context.Context, preds []func(*sql.Selector)) (int, error) {
+			q := s.Client.InternetExchange.Query()
+			if len(preds) > 0 {
+				q = q.Where(internetexchange.And(castPredicates[predicate.InternetExchange](preds)...))
+			}
+			return q.Count(ctx)
+		},
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.InternetExchange, error) {
+			q := s.Client.InternetExchange.Query().
+				Where(internetexchange.IDGT(afterID)).
+				Order(ent.Asc(internetexchange.FieldID)).
+				Limit(limit)
+			if len(preds) > 0 {
+				q = q.Where(internetexchange.And(castPredicates[predicate.InternetExchange](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: internetExchangeToProto,
+		GetID:   func(ix *ent.InternetExchange) int { return ix.ID },
+	}, stream)
 }
 
 // internetExchangeToProto converts an ent InternetExchange entity to a

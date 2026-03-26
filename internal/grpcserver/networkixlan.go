@@ -3,10 +3,10 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
@@ -15,15 +15,13 @@ import (
 )
 
 // NetworkIxLanService implements the peeringdb.v1.NetworkIxLanService
-// ConnectRPC handler interface. It queries the ent database layer and converts
-// results to protobuf messages.
+// ConnectRPC handler interface.
 type NetworkIxLanService struct {
 	Client        *ent.Client
 	StreamTimeout time.Duration
 }
 
-// GetNetworkIxLan returns a single network IX LAN by ID. Returns NOT_FOUND if
-// the network IX LAN does not exist.
+// GetNetworkIxLan returns a single network IX LAN by ID.
 func (s *NetworkIxLanService) GetNetworkIxLan(ctx context.Context, req *pb.GetNetworkIxLanRequest) (*pb.GetNetworkIxLanResponse, error) {
 	nixl, err := s.Client.NetworkIxLan.Get(ctx, int(req.GetId()))
 	if err != nil {
@@ -35,176 +33,204 @@ func (s *NetworkIxLanService) GetNetworkIxLan(ctx context.Context, req *pb.GetNe
 	return &pb.GetNetworkIxLanResponse{NetworkIxLan: networkIxLanToProto(nixl)}, nil
 }
 
-// ListNetworkIxLans returns a paginated list of network IX LANs ordered by ID
-// ascending. Supports page_size, page_token, and optional filter fields
-// (net_id, ixlan_id, asn, name, status). Multiple filters combine with AND
-// logic.
-func (s *NetworkIxLanService) ListNetworkIxLans(ctx context.Context, req *pb.ListNetworkIxLansRequest) (*pb.ListNetworkIxLansResponse, error) {
-	pageSize := normalizePageSize(req.GetPageSize())
-	offset, err := decodePageToken(req.GetPageToken())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
+func applyNetworkIxLanListFilters(req *pb.ListNetworkIxLansRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Id != nil {
+		if *req.Id <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldID, int(*req.Id)))
 	}
-
-	// Build filter predicates from optional fields.
-	var predicates []predicate.NetworkIxLan
 	if req.NetId != nil {
 		if *req.NetId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: net_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_id must be positive"))
 		}
-		predicates = append(predicates, networkixlan.NetIDEQ(int(*req.NetId)))
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldNetID, int(*req.NetId)))
 	}
 	if req.IxlanId != nil {
 		if *req.IxlanId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: ixlan_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ixlan_id must be positive"))
 		}
-		predicates = append(predicates, networkixlan.IxlanIDEQ(int(*req.IxlanId)))
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxlanID, int(*req.IxlanId)))
 	}
 	if req.Asn != nil {
 		if *req.Asn <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: asn must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: asn must be positive"))
 		}
-		predicates = append(predicates, networkixlan.AsnEQ(int(*req.Asn)))
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldAsn, int(*req.Asn)))
 	}
 	if req.Name != nil {
-		predicates = append(predicates, networkixlan.NameContainsFold(*req.Name))
+		preds = append(preds, sql.FieldContainsFold(networkixlan.FieldName, *req.Name))
 	}
 	if req.Status != nil {
-		predicates = append(predicates, networkixlan.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldStatus, *req.Status))
 	}
-
-	query := s.Client.NetworkIxLan.Query().
-		Order(ent.Asc(networkixlan.FieldID)).
-		Limit(pageSize + 1).
-		Offset(offset)
-	if len(predicates) > 0 {
-		query = query.Where(networkixlan.And(predicates...))
+	if req.IxId != nil {
+		if *req.IxId <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxID, int(*req.IxId)))
 	}
-
-	// Fetch one extra to detect whether there is a next page.
-	results, err := query.All(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list networkixlans: %w", err))
+	if req.Speed != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldSpeed, int(*req.Speed)))
 	}
-
-	var nextPageToken string
-	if len(results) > pageSize {
-		results = results[:pageSize]
-		nextPageToken = encodePageToken(offset + pageSize)
+	if req.Ipaddr4 != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIpaddr4, *req.Ipaddr4))
 	}
-
-	items := make([]*pb.NetworkIxLan, len(results))
-	for i, nixl := range results {
-		items[i] = networkIxLanToProto(nixl)
+	if req.Ipaddr6 != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIpaddr6, *req.Ipaddr6))
 	}
-
-	return &pb.ListNetworkIxLansResponse{
-		NetworkIxLans: items,
-		NextPageToken: nextPageToken,
-	}, nil
+	if req.IsRsPeer != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIsRsPeer, *req.IsRsPeer))
+	}
+	if req.BfdSupport != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldBfdSupport, *req.BfdSupport))
+	}
+	if req.Operational != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldOperational, *req.Operational))
+	}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldNotes, *req.Notes))
+	}
+	if req.NetSideId != nil {
+		if *req.NetSideId <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_side_id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldNetSideID, int(*req.NetSideId)))
+	}
+	if req.IxSideId != nil {
+		if *req.IxSideId <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_side_id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxSideID, int(*req.IxSideId)))
+	}
+	return preds, nil
 }
 
-// StreamNetworkIxLans streams all matching network IX LANs one message at a
-// time using batched keyset pagination. Filters match the ListNetworkIxLans
-// behavior.
-func (s *NetworkIxLanService) StreamNetworkIxLans(ctx context.Context, req *pb.StreamNetworkIxLansRequest, stream *connect.ServerStream[pb.NetworkIxLan]) error {
-	// Apply stream timeout.
-	if s.StreamTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
-		defer cancel()
-	}
-
-	// Build filter predicates (identical to ListNetworkIxLans).
-	var predicates []predicate.NetworkIxLan
+func applyNetworkIxLanStreamFilters(req *pb.StreamNetworkIxLansRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
 	if req.NetId != nil {
 		if *req.NetId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: net_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_id must be positive"))
 		}
-		predicates = append(predicates, networkixlan.NetIDEQ(int(*req.NetId)))
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldNetID, int(*req.NetId)))
 	}
 	if req.IxlanId != nil {
 		if *req.IxlanId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: ixlan_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ixlan_id must be positive"))
 		}
-		predicates = append(predicates, networkixlan.IxlanIDEQ(int(*req.IxlanId)))
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxlanID, int(*req.IxlanId)))
 	}
 	if req.Asn != nil {
 		if *req.Asn <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: asn must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: asn must be positive"))
 		}
-		predicates = append(predicates, networkixlan.AsnEQ(int(*req.Asn)))
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldAsn, int(*req.Asn)))
 	}
 	if req.Name != nil {
-		predicates = append(predicates, networkixlan.NameContainsFold(*req.Name))
+		preds = append(preds, sql.FieldContainsFold(networkixlan.FieldName, *req.Name))
 	}
 	if req.Status != nil {
-		predicates = append(predicates, networkixlan.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldStatus, *req.Status))
 	}
-
-	// Resume and incremental filter support.
-	if req.SinceId != nil {
-		predicates = append(predicates, networkixlan.IDGT(int(*req.SinceId)))
-	}
-	if req.UpdatedSince != nil {
-		predicates = append(predicates, networkixlan.UpdatedGT(req.UpdatedSince.AsTime()))
-	}
-
-	// Count total matching records for header metadata.
-	countQuery := s.Client.NetworkIxLan.Query()
-	if len(predicates) > 0 {
-		countQuery = countQuery.Where(networkixlan.And(predicates...))
-	}
-	total, err := countQuery.Count(ctx)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("count networkixlans: %w", err))
-	}
-	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
-
-	// Stream records in batches using keyset pagination.
-	lastID := 0
-	if req.SinceId != nil {
-		lastID = int(*req.SinceId)
-	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
+	if req.IxId != nil {
+		if *req.IxId <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_id must be positive"))
 		}
-
-		query := s.Client.NetworkIxLan.Query().
-			Where(networkixlan.IDGT(lastID)).
-			Order(ent.Asc(networkixlan.FieldID)).
-			Limit(streamBatchSize)
-		if len(predicates) > 0 {
-			query = query.Where(networkixlan.And(predicates...))
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxID, int(*req.IxId)))
+	}
+	if req.Speed != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldSpeed, int(*req.Speed)))
+	}
+	if req.Ipaddr4 != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIpaddr4, *req.Ipaddr4))
+	}
+	if req.Ipaddr6 != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIpaddr6, *req.Ipaddr6))
+	}
+	if req.IsRsPeer != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIsRsPeer, *req.IsRsPeer))
+	}
+	if req.BfdSupport != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldBfdSupport, *req.BfdSupport))
+	}
+	if req.Operational != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldOperational, *req.Operational))
+	}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldNotes, *req.Notes))
+	}
+	if req.NetSideId != nil {
+		if *req.NetSideId <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_side_id must be positive"))
 		}
-
-		batch, err := query.All(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream networkixlans batch after id %d: %w", lastID, err))
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldNetSideID, int(*req.NetSideId)))
+	}
+	if req.IxSideId != nil {
+		if *req.IxSideId <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_side_id must be positive"))
 		}
-		if len(batch) == 0 {
-			return nil
-		}
+		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxSideID, int(*req.IxSideId)))
+	}
+	return preds, nil
+}
 
-		for _, nixl := range batch {
-			if err := stream.Send(networkIxLanToProto(nixl)); err != nil {
-				return err
+// ListNetworkIxLans returns a paginated list of network IX LANs.
+func (s *NetworkIxLanService) ListNetworkIxLans(ctx context.Context, req *pb.ListNetworkIxLansRequest) (*pb.ListNetworkIxLansResponse, error) {
+	items, nextToken, err := ListEntities(ctx, ListParams[ent.NetworkIxLan, pb.NetworkIxLan]{
+		EntityName: "networkixlans",
+		PageSize:   req.GetPageSize(),
+		PageToken:  req.GetPageToken(),
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyNetworkIxLanListFilters(req)
+		},
+		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.NetworkIxLan, error) {
+			q := s.Client.NetworkIxLan.Query().
+				Order(ent.Asc(networkixlan.FieldID)).
+				Limit(limit).Offset(offset)
+			if len(preds) > 0 {
+				q = q.Where(networkixlan.And(castPredicates[predicate.NetworkIxLan](preds)...))
 			}
-		}
-
-		lastID = batch[len(batch)-1].ID
-		if len(batch) < streamBatchSize {
-			return nil
-		}
+			return q.All(ctx)
+		},
+		Convert: networkIxLanToProto,
+	})
+	if err != nil {
+		return nil, err
 	}
+	return &pb.ListNetworkIxLansResponse{NetworkIxLans: items, NextPageToken: nextToken}, nil
+}
+
+// StreamNetworkIxLans streams all matching network IX LANs.
+func (s *NetworkIxLanService) StreamNetworkIxLans(ctx context.Context, req *pb.StreamNetworkIxLansRequest, stream *connect.ServerStream[pb.NetworkIxLan]) error {
+	return StreamEntities(ctx, StreamParams[ent.NetworkIxLan, pb.NetworkIxLan]{
+		EntityName:   "networkixlans",
+		Timeout:      s.StreamTimeout,
+		SinceID:      req.SinceId,
+		UpdatedSince: req.UpdatedSince,
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyNetworkIxLanStreamFilters(req)
+		},
+		Count: func(ctx context.Context, preds []func(*sql.Selector)) (int, error) {
+			q := s.Client.NetworkIxLan.Query()
+			if len(preds) > 0 {
+				q = q.Where(networkixlan.And(castPredicates[predicate.NetworkIxLan](preds)...))
+			}
+			return q.Count(ctx)
+		},
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.NetworkIxLan, error) {
+			q := s.Client.NetworkIxLan.Query().
+				Where(networkixlan.IDGT(afterID)).
+				Order(ent.Asc(networkixlan.FieldID)).
+				Limit(limit)
+			if len(preds) > 0 {
+				q = q.Where(networkixlan.And(castPredicates[predicate.NetworkIxLan](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: networkIxLanToProto,
+		GetID:   func(nixl *ent.NetworkIxLan) int { return nixl.ID },
+	}, stream)
 }
 
 // networkIxLanToProto converts an ent NetworkIxLan entity to a protobuf

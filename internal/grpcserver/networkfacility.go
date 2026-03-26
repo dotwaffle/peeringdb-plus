@@ -3,10 +3,10 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
@@ -15,15 +15,13 @@ import (
 )
 
 // NetworkFacilityService implements the peeringdb.v1.NetworkFacilityService
-// ConnectRPC handler interface. It queries the ent database layer and converts
-// results to protobuf messages.
+// ConnectRPC handler interface.
 type NetworkFacilityService struct {
 	Client        *ent.Client
 	StreamTimeout time.Duration
 }
 
-// GetNetworkFacility returns a single network facility by ID. Returns
-// NOT_FOUND if the network facility does not exist.
+// GetNetworkFacility returns a single network facility by ID.
 func (s *NetworkFacilityService) GetNetworkFacility(ctx context.Context, req *pb.GetNetworkFacilityRequest) (*pb.GetNetworkFacilityResponse, error) {
 	nf, err := s.Client.NetworkFacility.Get(ctx, int(req.GetId()))
 	if err != nil {
@@ -35,168 +33,138 @@ func (s *NetworkFacilityService) GetNetworkFacility(ctx context.Context, req *pb
 	return &pb.GetNetworkFacilityResponse{NetworkFacility: networkFacilityToProto(nf)}, nil
 }
 
-// ListNetworkFacilities returns a paginated list of network facilities ordered
-// by ID ascending. Supports page_size, page_token, and optional filter fields
-// (net_id, fac_id, country, city, status). Multiple filters combine with AND
-// logic.
-func (s *NetworkFacilityService) ListNetworkFacilities(ctx context.Context, req *pb.ListNetworkFacilitiesRequest) (*pb.ListNetworkFacilitiesResponse, error) {
-	pageSize := normalizePageSize(req.GetPageSize())
-	offset, err := decodePageToken(req.GetPageToken())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
+func applyNetworkFacilityListFilters(req *pb.ListNetworkFacilitiesRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Id != nil {
+		if *req.Id <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(networkfacility.FieldID, int(*req.Id)))
 	}
-
-	// Build filter predicates from optional fields.
-	var predicates []predicate.NetworkFacility
 	if req.NetId != nil {
 		if *req.NetId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: net_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_id must be positive"))
 		}
-		predicates = append(predicates, networkfacility.NetIDEQ(int(*req.NetId)))
+		preds = append(preds, sql.FieldEQ(networkfacility.FieldNetID, int(*req.NetId)))
 	}
 	if req.FacId != nil {
 		if *req.FacId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: fac_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: fac_id must be positive"))
 		}
-		predicates = append(predicates, networkfacility.FacIDEQ(int(*req.FacId)))
+		preds = append(preds, sql.FieldEQ(networkfacility.FieldFacID, int(*req.FacId)))
 	}
 	if req.Country != nil {
-		predicates = append(predicates, networkfacility.CountryEQ(*req.Country))
+		preds = append(preds, sql.FieldEQ(networkfacility.FieldCountry, *req.Country))
 	}
 	if req.City != nil {
-		predicates = append(predicates, networkfacility.CityContainsFold(*req.City))
+		preds = append(preds, sql.FieldContainsFold(networkfacility.FieldCity, *req.City))
 	}
 	if req.Status != nil {
-		predicates = append(predicates, networkfacility.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(networkfacility.FieldStatus, *req.Status))
 	}
-
-	query := s.Client.NetworkFacility.Query().
-		Order(ent.Asc(networkfacility.FieldID)).
-		Limit(pageSize + 1).
-		Offset(offset)
-	if len(predicates) > 0 {
-		query = query.Where(networkfacility.And(predicates...))
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(networkfacility.FieldName, *req.Name))
 	}
-
-	// Fetch one extra to detect whether there is a next page.
-	results, err := query.All(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list networkfacilities: %w", err))
+	if req.LocalAsn != nil {
+		if *req.LocalAsn <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: local_asn must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(networkfacility.FieldLocalAsn, int(*req.LocalAsn)))
 	}
-
-	var nextPageToken string
-	if len(results) > pageSize {
-		results = results[:pageSize]
-		nextPageToken = encodePageToken(offset + pageSize)
-	}
-
-	items := make([]*pb.NetworkFacility, len(results))
-	for i, nf := range results {
-		items[i] = networkFacilityToProto(nf)
-	}
-
-	return &pb.ListNetworkFacilitiesResponse{
-		NetworkFacilities: items,
-		NextPageToken:     nextPageToken,
-	}, nil
+	return preds, nil
 }
 
-// StreamNetworkFacilities streams all matching network facilities one message at
-// a time using batched keyset pagination. Filters match the
-// ListNetworkFacilities behavior.
-func (s *NetworkFacilityService) StreamNetworkFacilities(ctx context.Context, req *pb.StreamNetworkFacilitiesRequest, stream *connect.ServerStream[pb.NetworkFacility]) error {
-	// Apply stream timeout.
-	if s.StreamTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
-		defer cancel()
-	}
-
-	// Build filter predicates (identical to ListNetworkFacilities).
-	var predicates []predicate.NetworkFacility
+func applyNetworkFacilityStreamFilters(req *pb.StreamNetworkFacilitiesRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
 	if req.NetId != nil {
 		if *req.NetId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: net_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_id must be positive"))
 		}
-		predicates = append(predicates, networkfacility.NetIDEQ(int(*req.NetId)))
+		preds = append(preds, sql.FieldEQ(networkfacility.FieldNetID, int(*req.NetId)))
 	}
 	if req.FacId != nil {
 		if *req.FacId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: fac_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: fac_id must be positive"))
 		}
-		predicates = append(predicates, networkfacility.FacIDEQ(int(*req.FacId)))
+		preds = append(preds, sql.FieldEQ(networkfacility.FieldFacID, int(*req.FacId)))
 	}
 	if req.Country != nil {
-		predicates = append(predicates, networkfacility.CountryEQ(*req.Country))
+		preds = append(preds, sql.FieldEQ(networkfacility.FieldCountry, *req.Country))
 	}
 	if req.City != nil {
-		predicates = append(predicates, networkfacility.CityContainsFold(*req.City))
+		preds = append(preds, sql.FieldContainsFold(networkfacility.FieldCity, *req.City))
 	}
 	if req.Status != nil {
-		predicates = append(predicates, networkfacility.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(networkfacility.FieldStatus, *req.Status))
 	}
-
-	// Resume and incremental filter support.
-	if req.SinceId != nil {
-		predicates = append(predicates, networkfacility.IDGT(int(*req.SinceId)))
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(networkfacility.FieldName, *req.Name))
 	}
-	if req.UpdatedSince != nil {
-		predicates = append(predicates, networkfacility.UpdatedGT(req.UpdatedSince.AsTime()))
-	}
-
-	// Count total matching records for header metadata.
-	countQuery := s.Client.NetworkFacility.Query()
-	if len(predicates) > 0 {
-		countQuery = countQuery.Where(networkfacility.And(predicates...))
-	}
-	total, err := countQuery.Count(ctx)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("count network facilities: %w", err))
-	}
-	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
-
-	// Stream records in batches using keyset pagination.
-	lastID := 0
-	if req.SinceId != nil {
-		lastID = int(*req.SinceId)
-	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
+	if req.LocalAsn != nil {
+		if *req.LocalAsn <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: local_asn must be positive"))
 		}
+		preds = append(preds, sql.FieldEQ(networkfacility.FieldLocalAsn, int(*req.LocalAsn)))
+	}
+	return preds, nil
+}
 
-		query := s.Client.NetworkFacility.Query().
-			Where(networkfacility.IDGT(lastID)).
-			Order(ent.Asc(networkfacility.FieldID)).
-			Limit(streamBatchSize)
-		if len(predicates) > 0 {
-			query = query.Where(networkfacility.And(predicates...))
-		}
-
-		batch, err := query.All(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream network facilities batch after id %d: %w", lastID, err))
-		}
-		if len(batch) == 0 {
-			return nil
-		}
-
-		for _, nf := range batch {
-			if err := stream.Send(networkFacilityToProto(nf)); err != nil {
-				return err
+// ListNetworkFacilities returns a paginated list of network facilities.
+func (s *NetworkFacilityService) ListNetworkFacilities(ctx context.Context, req *pb.ListNetworkFacilitiesRequest) (*pb.ListNetworkFacilitiesResponse, error) {
+	items, nextToken, err := ListEntities(ctx, ListParams[ent.NetworkFacility, pb.NetworkFacility]{
+		EntityName: "networkfacilities",
+		PageSize:   req.GetPageSize(),
+		PageToken:  req.GetPageToken(),
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyNetworkFacilityListFilters(req)
+		},
+		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.NetworkFacility, error) {
+			q := s.Client.NetworkFacility.Query().
+				Order(ent.Asc(networkfacility.FieldID)).
+				Limit(limit).Offset(offset)
+			if len(preds) > 0 {
+				q = q.Where(networkfacility.And(castPredicates[predicate.NetworkFacility](preds)...))
 			}
-		}
-
-		lastID = batch[len(batch)-1].ID
-		if len(batch) < streamBatchSize {
-			return nil
-		}
+			return q.All(ctx)
+		},
+		Convert: networkFacilityToProto,
+	})
+	if err != nil {
+		return nil, err
 	}
+	return &pb.ListNetworkFacilitiesResponse{NetworkFacilities: items, NextPageToken: nextToken}, nil
+}
+
+// StreamNetworkFacilities streams all matching network facilities.
+func (s *NetworkFacilityService) StreamNetworkFacilities(ctx context.Context, req *pb.StreamNetworkFacilitiesRequest, stream *connect.ServerStream[pb.NetworkFacility]) error {
+	return StreamEntities(ctx, StreamParams[ent.NetworkFacility, pb.NetworkFacility]{
+		EntityName:   "network facilities",
+		Timeout:      s.StreamTimeout,
+		SinceID:      req.SinceId,
+		UpdatedSince: req.UpdatedSince,
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyNetworkFacilityStreamFilters(req)
+		},
+		Count: func(ctx context.Context, preds []func(*sql.Selector)) (int, error) {
+			q := s.Client.NetworkFacility.Query()
+			if len(preds) > 0 {
+				q = q.Where(networkfacility.And(castPredicates[predicate.NetworkFacility](preds)...))
+			}
+			return q.Count(ctx)
+		},
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.NetworkFacility, error) {
+			q := s.Client.NetworkFacility.Query().
+				Where(networkfacility.IDGT(afterID)).
+				Order(ent.Asc(networkfacility.FieldID)).
+				Limit(limit)
+			if len(preds) > 0 {
+				q = q.Where(networkfacility.And(castPredicates[predicate.NetworkFacility](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: networkFacilityToProto,
+		GetID:   func(nf *ent.NetworkFacility) int { return nf.ID },
+	}, stream)
 }
 
 // networkFacilityToProto converts an ent NetworkFacility entity to a protobuf
