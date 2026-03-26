@@ -5,6 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"entgo.io/ent"
+	entschema "entgo.io/ent/schema"
+
+	"github.com/dotwaffle/peeringdb-plus/ent/schema"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -859,6 +863,114 @@ func TestFKConstraintViolation(t *testing.T) {
 			err := tt.fn()
 			if err == nil {
 				t.Error("expected FK constraint error, got nil")
+			}
+		})
+	}
+}
+
+// TestSchemaEdges exercises the Edges() method on all 13 schema types,
+// covering 13 previously-uncovered configuration methods.
+func TestSchemaEdges(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		edgesFn func() []ent.Edge
+		minLen  int
+	}{
+		{"Organization", schema.Organization{}.Edges, 5},
+		{"Network", schema.Network{}.Edges, 3},
+		{"Facility", schema.Facility{}.Edges, 3},
+		{"InternetExchange", schema.InternetExchange{}.Edges, 3},
+		{"Campus", schema.Campus{}.Edges, 1},
+		{"Carrier", schema.Carrier{}.Edges, 1},
+		{"CarrierFacility", schema.CarrierFacility{}.Edges, 2},
+		{"IxFacility", schema.IxFacility{}.Edges, 2},
+		{"IxLan", schema.IxLan{}.Edges, 2},
+		{"IxPrefix", schema.IxPrefix{}.Edges, 1},
+		{"NetworkFacility", schema.NetworkFacility{}.Edges, 2},
+		{"NetworkIxLan", schema.NetworkIxLan{}.Edges, 2},
+		{"Poc", schema.Poc{}.Edges, 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			edges := tt.edgesFn()
+			if len(edges) < tt.minLen {
+				t.Errorf("len(Edges()) = %d, want >= %d", len(edges), tt.minLen)
+			}
+		})
+	}
+}
+
+// TestSchemaIndexes exercises the Indexes() method on all 13 schema types,
+// covering 13 previously-uncovered configuration methods.
+func TestSchemaIndexes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		indexesFn func() []ent.Index
+		minLen    int
+	}{
+		{"Organization", schema.Organization{}.Indexes, 1},
+		{"Network", schema.Network{}.Indexes, 1},
+		{"Facility", schema.Facility{}.Indexes, 1},
+		{"InternetExchange", schema.InternetExchange{}.Indexes, 1},
+		{"Campus", schema.Campus{}.Indexes, 1},
+		{"Carrier", schema.Carrier{}.Indexes, 1},
+		{"CarrierFacility", schema.CarrierFacility{}.Indexes, 1},
+		{"IxFacility", schema.IxFacility{}.Indexes, 1},
+		{"IxLan", schema.IxLan{}.Indexes, 1},
+		{"IxPrefix", schema.IxPrefix{}.Indexes, 1},
+		{"NetworkFacility", schema.NetworkFacility{}.Indexes, 1},
+		{"NetworkIxLan", schema.NetworkIxLan{}.Indexes, 1},
+		{"Poc", schema.Poc{}.Indexes, 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			indexes := tt.indexesFn()
+			if len(indexes) < tt.minLen {
+				t.Errorf("len(Indexes()) = %d, want >= %d", len(indexes), tt.minLen)
+			}
+		})
+	}
+}
+
+// TestSchemaAnnotations exercises the Annotations() method on all 13 schema
+// types, covering 13 previously-uncovered configuration methods.
+func TestSchemaAnnotations(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		annotationsFn func() []entschema.Annotation
+		minLen        int
+	}{
+		{"Organization", schema.Organization{}.Annotations, 1},
+		{"Network", schema.Network{}.Annotations, 1},
+		{"Facility", schema.Facility{}.Annotations, 1},
+		{"InternetExchange", schema.InternetExchange{}.Annotations, 1},
+		{"Campus", schema.Campus{}.Annotations, 1},
+		{"Carrier", schema.Carrier{}.Annotations, 1},
+		{"CarrierFacility", schema.CarrierFacility{}.Annotations, 1},
+		{"IxFacility", schema.IxFacility{}.Annotations, 1},
+		{"IxLan", schema.IxLan{}.Annotations, 1},
+		{"IxPrefix", schema.IxPrefix{}.Annotations, 1},
+		{"NetworkFacility", schema.NetworkFacility{}.Annotations, 1},
+		{"NetworkIxLan", schema.NetworkIxLan{}.Annotations, 1},
+		{"Poc", schema.Poc{}.Annotations, 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			annotations := tt.annotationsFn()
+			if len(annotations) < tt.minLen {
+				t.Errorf("len(Annotations()) = %d, want >= %d", len(annotations), tt.minLen)
 			}
 		})
 	}
