@@ -107,6 +107,7 @@ func seedAllTestData(t *testing.T, client *ent.Client) {
 		SetFacID(fac.ID).SetFacility(fac).
 		SetLocalAsn(13335).
 		SetName("Equinix FR5").
+		SetCity("Frankfurt").SetCountry("DE").
 		SetCreated(testHandlerTimestamp).SetUpdated(testHandlerTimestamp).
 		Save(ctx)
 	if err != nil {
@@ -400,15 +401,15 @@ func TestFragments_AllTypes(t *testing.T) {
 		wantBody []string
 		noBody   []string
 	}{
-		{"net ixlans", "/ui/fragment/net/10/ixlans", http.StatusOK, []string{"DE-CIX"}, []string{"<!doctype"}},
-		{"net facilities", "/ui/fragment/net/10/facilities", http.StatusOK, []string{"Equinix"}, []string{"<!doctype"}},
-		{"net contacts", "/ui/fragment/net/10/contacts", http.StatusOK, []string{"NOC"}, []string{"<!doctype"}},
-		{"ix participants", "/ui/fragment/ix/20/participants", http.StatusOK, []string{"13335"}, []string{"<!doctype"}},
-		{"ix facilities", "/ui/fragment/ix/20/facilities", http.StatusOK, []string{"DE-CIX Frankfurt"}, []string{"<!doctype"}},
-		{"ix prefixes", "/ui/fragment/ix/20/prefixes", http.StatusOK, []string{"80.81.192.0/22"}, []string{"<!doctype"}},
-		{"fac networks", "/ui/fragment/fac/30/networks", http.StatusOK, []string{"Equinix"}, []string{"<!doctype"}},
-		{"fac ixps", "/ui/fragment/fac/30/ixps", http.StatusOK, []string{"DE-CIX"}, []string{"<!doctype"}},
-		{"fac carriers", "/ui/fragment/fac/30/carriers", http.StatusOK, []string{"Equinix FR5"}, []string{"<!doctype"}},
+		{"net ixlans", "/ui/fragment/net/10/ixlans", http.StatusOK, []string{"DE-CIX", "<table", "data-sortable", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"net facilities", "/ui/fragment/net/10/facilities", http.StatusOK, []string{"Equinix", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"net contacts", "/ui/fragment/net/10/contacts", http.StatusOK, []string{"NOC", "<table", "data-sortable", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"ix participants", "/ui/fragment/ix/20/participants", http.StatusOK, []string{"13335", "<table", "data-sortable", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"ix facilities", "/ui/fragment/ix/20/facilities", http.StatusOK, []string{"DE-CIX Frankfurt", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"ix prefixes", "/ui/fragment/ix/20/prefixes", http.StatusOK, []string{"80.81.192.0/22", "<table", "data-sortable", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"fac networks", "/ui/fragment/fac/30/networks", http.StatusOK, []string{"Equinix", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"fac ixps", "/ui/fragment/fac/30/ixps", http.StatusOK, []string{"DE-CIX", "<table"}, []string{"<!doctype", "data-sortable", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"fac carriers", "/ui/fragment/fac/30/carriers", http.StatusOK, []string{"Equinix FR5", "<table"}, []string{"<!doctype", "data-sortable", "px-4 py-3 hover:bg-neutral-800/50"}},
 		{"org networks", "/ui/fragment/org/1/networks", http.StatusOK, []string{"Cloudflare", "<table", "data-sortable", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
 		{"org ixps", "/ui/fragment/org/1/ixps", http.StatusOK, []string{"DE-CIX", "<table"}, []string{"<!doctype", "data-sortable", "px-4 py-3 hover:bg-neutral-800/50"}},
 		{"org facilities", "/ui/fragment/org/1/facilities", http.StatusOK, []string{"Equinix", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
