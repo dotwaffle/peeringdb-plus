@@ -79,7 +79,7 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - gRPC handler deduplication (~1,154 lines of near-identical code across 13 services)
 - Error format unification across all 6 API surfaces
 - ConnectRPC filter parity with PeeringDB compat layer
-- Structured error logging fix (90 instances)
+- ~~Structured error logging fix (90 instances)~~ — completed Phase 32
 - Test coverage expansion (grpcserver, middleware)
 - Benchmark suite for hot paths
 - WCAG AA accessibility fixes (contrast, ARIA, form labels)
