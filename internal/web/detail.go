@@ -55,7 +55,7 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 			h.handleNotFound(w, r)
 			return
 		}
-		slog.Error("query network by ASN", slog.Int("asn", asn), slog.String("error", err.Error()))
+		slog.Error("query network by ASN", slog.Int("asn", asn), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -64,7 +64,7 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 		Where(poc.HasNetworkWith(network.ID(net.ID))).
 		Count(r.Context())
 	if err != nil {
-		slog.Error("count network contacts", slog.Int("network_id", net.ID), slog.String("error", err.Error()))
+		slog.Error("count network contacts", slog.Int("network_id", net.ID), slog.Any("error", err))
 	}
 
 	data := templates.NetworkDetail{
@@ -160,7 +160,7 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 		}
 		data.FacPresences = facRows
 	} else {
-		slog.Error("query network facilities for detail", slog.Int("network_id", net.ID), slog.String("error", facErr.Error()))
+		slog.Error("query network facilities for detail", slog.Int("network_id", net.ID), slog.Any("error", facErr))
 	}
 
 	page := PageContent{
@@ -170,7 +170,7 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		slog.Error("render network detail", slog.Int("asn", asn), slog.String("error", err.Error()))
+		slog.Error("render network detail", slog.Int("asn", asn), slog.Any("error", err))
 		h.handleServerError(w, r)
 	}
 }
@@ -192,7 +192,7 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 			h.handleNotFound(w, r)
 			return
 		}
-		slog.Error("query internet exchange", slog.Int("id", id), slog.String("error", err.Error()))
+		slog.Error("query internet exchange", slog.Int("id", id), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -259,7 +259,7 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 		data.AggregateBW = totalBW
 		data.Participants = rows
 	} else {
-		slog.Error("eager-load ix participants", slog.Int("ix_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load ix participants", slog.Int("ix_id", id), slog.Any("error", err))
 	}
 
 	// Eager-load IX facilities.
@@ -282,7 +282,7 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 		}
 		data.Facilities = facRows
 	} else {
-		slog.Error("eager-load ix facilities", slog.Int("ix_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load ix facilities", slog.Int("ix_id", id), slog.Any("error", err))
 	}
 
 	// Eager-load IX prefixes.
@@ -302,7 +302,7 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 		}
 		data.Prefixes = prefixRows
 	} else {
-		slog.Error("eager-load ix prefixes", slog.Int("ix_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load ix prefixes", slog.Int("ix_id", id), slog.Any("error", err))
 	}
 
 	page := PageContent{
@@ -312,7 +312,7 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		slog.Error("render ix detail", slog.Int("id", id), slog.String("error", err.Error()))
+		slog.Error("render ix detail", slog.Int("id", id), slog.Any("error", err))
 		h.handleServerError(w, r)
 	}
 }
@@ -335,7 +335,7 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 			h.handleNotFound(w, r)
 			return
 		}
-		slog.Error("query facility", slog.Int("id", id), slog.String("error", err.Error()))
+		slog.Error("query facility", slog.Int("id", id), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -386,7 +386,7 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 		}
 		data.Networks = netRows
 	} else {
-		slog.Error("eager-load fac networks", slog.Int("fac_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load fac networks", slog.Int("fac_id", id), slog.Any("error", err))
 	}
 
 	// Eager-load facility IXPs.
@@ -407,7 +407,7 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 		}
 		data.IXPs = ixRows
 	} else {
-		slog.Error("eager-load fac ixps", slog.Int("fac_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load fac ixps", slog.Int("fac_id", id), slog.Any("error", err))
 	}
 
 	// Eager-load facility carriers.
@@ -428,7 +428,7 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 		}
 		data.Carriers = carrierRows
 	} else {
-		slog.Error("eager-load fac carriers", slog.Int("fac_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load fac carriers", slog.Int("fac_id", id), slog.Any("error", err))
 	}
 
 	page := PageContent{
@@ -438,7 +438,7 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		slog.Error("render facility detail", slog.Int("id", id), slog.String("error", err.Error()))
+		slog.Error("render facility detail", slog.Int("id", id), slog.Any("error", err))
 		h.handleServerError(w, r)
 	}
 }
@@ -459,7 +459,7 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 			h.handleNotFound(w, r)
 			return
 		}
-		slog.Error("query organization", slog.Int("id", id), slog.String("error", err.Error()))
+		slog.Error("query organization", slog.Int("id", id), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -469,21 +469,21 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 		Where(internetexchange.HasOrganizationWith(organization.ID(id))).
 		Count(r.Context())
 	if err != nil {
-		slog.Error("count org IXPs", slog.Int("org_id", id), slog.String("error", err.Error()))
+		slog.Error("count org IXPs", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	campusCount, err := h.client.Campus.Query().
 		Where(campus.HasOrganizationWith(organization.ID(id))).
 		Count(r.Context())
 	if err != nil {
-		slog.Error("count org campuses", slog.Int("org_id", id), slog.String("error", err.Error()))
+		slog.Error("count org campuses", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	carrierCount, err := h.client.Carrier.Query().
 		Where(carrier.HasOrganizationWith(organization.ID(id))).
 		Count(r.Context())
 	if err != nil {
-		slog.Error("count org carriers", slog.Int("org_id", id), slog.String("error", err.Error()))
+		slog.Error("count org carriers", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	data := templates.OrgDetail{
@@ -522,7 +522,7 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 		}
 		data.Networks = netRows
 	} else {
-		slog.Error("eager-load org networks", slog.Int("org_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load org networks", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	// Eager-load org IXPs.
@@ -540,7 +540,7 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 		}
 		data.IXPs = ixRows
 	} else {
-		slog.Error("eager-load org ixps", slog.Int("org_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load org ixps", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	// Eager-load org facilities.
@@ -560,7 +560,7 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 		}
 		data.Facs = facRows
 	} else {
-		slog.Error("eager-load org facilities", slog.Int("org_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load org facilities", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	// Eager-load org campuses.
@@ -578,7 +578,7 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 		}
 		data.Campuses = campusRows
 	} else {
-		slog.Error("eager-load org campuses", slog.Int("org_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load org campuses", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	// Eager-load org carriers.
@@ -596,7 +596,7 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 		}
 		data.Carriers = carrierRows
 	} else {
-		slog.Error("eager-load org carriers", slog.Int("org_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load org carriers", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	page := PageContent{
@@ -606,7 +606,7 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		slog.Error("render org detail", slog.Int("id", id), slog.String("error", err.Error()))
+		slog.Error("render org detail", slog.Int("id", id), slog.Any("error", err))
 		h.handleServerError(w, r)
 	}
 }
@@ -628,7 +628,7 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 			h.handleNotFound(w, r)
 			return
 		}
-		slog.Error("query campus", slog.Int("id", id), slog.String("error", err.Error()))
+		slog.Error("query campus", slog.Int("id", id), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -637,7 +637,7 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 		Where(facility.HasCampusWith(campus.ID(id))).
 		Count(r.Context())
 	if err != nil {
-		slog.Error("count campus facilities", slog.Int("campus_id", id), slog.String("error", err.Error()))
+		slog.Error("count campus facilities", slog.Int("campus_id", id), slog.Any("error", err))
 	}
 
 	data := templates.CampusDetail{
@@ -680,7 +680,7 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 		}
 		data.Facilities = facRows
 	} else {
-		slog.Error("eager-load campus facilities", slog.Int("campus_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load campus facilities", slog.Int("campus_id", id), slog.Any("error", err))
 	}
 
 	page := PageContent{
@@ -690,7 +690,7 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		slog.Error("render campus detail", slog.Int("id", id), slog.String("error", err.Error()))
+		slog.Error("render campus detail", slog.Int("id", id), slog.Any("error", err))
 		h.handleServerError(w, r)
 	}
 }
@@ -712,7 +712,7 @@ func (h *Handler) handleCarrierDetail(w http.ResponseWriter, r *http.Request, id
 			h.handleNotFound(w, r)
 			return
 		}
-		slog.Error("query carrier", slog.Int("id", id), slog.String("error", err.Error()))
+		slog.Error("query carrier", slog.Int("id", id), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -750,7 +750,7 @@ func (h *Handler) handleCarrierDetail(w http.ResponseWriter, r *http.Request, id
 		}
 		data.Facilities = facRows
 	} else {
-		slog.Error("eager-load carrier facilities", slog.Int("carrier_id", id), slog.String("error", err.Error()))
+		slog.Error("eager-load carrier facilities", slog.Int("carrier_id", id), slog.Any("error", err))
 	}
 
 	page := PageContent{
@@ -760,7 +760,7 @@ func (h *Handler) handleCarrierDetail(w http.ResponseWriter, r *http.Request, id
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		slog.Error("render carrier detail", slog.Int("id", id), slog.String("error", err.Error()))
+		slog.Error("render carrier detail", slog.Int("id", id), slog.Any("error", err))
 		h.handleServerError(w, r)
 	}
 }
@@ -859,7 +859,7 @@ func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request
 		Order(networkixlan.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query network ixlans", slog.Int("network_id", netID), slog.String("error", err.Error()))
+		slog.Error("query network ixlans", slog.Int("network_id", netID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -882,7 +882,7 @@ func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := templates.NetworkIXLansList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render network ixlans fragment", slog.Int("network_id", netID), slog.String("error", err.Error()))
+		slog.Error("render network ixlans fragment", slog.Int("network_id", netID), slog.Any("error", err))
 	}
 }
 
@@ -893,7 +893,7 @@ func (h *Handler) handleNetFacilitiesFragment(w http.ResponseWriter, r *http.Req
 		Order(networkfacility.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query network facilities", slog.Int("network_id", netID), slog.String("error", err.Error()))
+		slog.Error("query network facilities", slog.Int("network_id", netID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -913,7 +913,7 @@ func (h *Handler) handleNetFacilitiesFragment(w http.ResponseWriter, r *http.Req
 	}
 
 	if err := templates.NetworkFacilitiesList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render network facilities fragment", slog.Int("network_id", netID), slog.String("error", err.Error()))
+		slog.Error("render network facilities fragment", slog.Int("network_id", netID), slog.Any("error", err))
 	}
 }
 
@@ -924,7 +924,7 @@ func (h *Handler) handleNetContactsFragment(w http.ResponseWriter, r *http.Reque
 		Order(poc.ByRole(), poc.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query network contacts", slog.Int("network_id", netID), slog.String("error", err.Error()))
+		slog.Error("query network contacts", slog.Int("network_id", netID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -941,7 +941,7 @@ func (h *Handler) handleNetContactsFragment(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := templates.NetworkContactsList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render network contacts fragment", slog.Int("network_id", netID), slog.String("error", err.Error()))
+		slog.Error("render network contacts fragment", slog.Int("network_id", netID), slog.Any("error", err))
 	}
 }
 
@@ -955,7 +955,7 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 		Order(networkixlan.ByAsn()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query ix participants", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
+		slog.Error("query ix participants", slog.Int("ix_id", ixID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -982,7 +982,7 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := templates.IXParticipantsList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render ix participants fragment", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
+		slog.Error("render ix participants fragment", slog.Int("ix_id", ixID), slog.Any("error", err))
 	}
 }
 
@@ -993,7 +993,7 @@ func (h *Handler) handleIXFacilitiesFragment(w http.ResponseWriter, r *http.Requ
 		Order(ixfacility.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query ix facilities", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
+		slog.Error("query ix facilities", slog.Int("ix_id", ixID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1012,7 +1012,7 @@ func (h *Handler) handleIXFacilitiesFragment(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := templates.IXFacilitiesList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render ix facilities fragment", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
+		slog.Error("render ix facilities fragment", slog.Int("ix_id", ixID), slog.Any("error", err))
 	}
 }
 
@@ -1025,7 +1025,7 @@ func (h *Handler) handleIXPrefixesFragment(w http.ResponseWriter, r *http.Reques
 		Order(ixprefix.ByPrefix()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query ix prefixes", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
+		slog.Error("query ix prefixes", slog.Int("ix_id", ixID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1040,7 +1040,7 @@ func (h *Handler) handleIXPrefixesFragment(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := templates.IXPrefixesList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render ix prefixes fragment", slog.Int("ix_id", ixID), slog.String("error", err.Error()))
+		slog.Error("render ix prefixes fragment", slog.Int("ix_id", ixID), slog.Any("error", err))
 	}
 }
 
@@ -1051,7 +1051,7 @@ func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Reque
 		Order(networkfacility.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query fac networks", slog.Int("fac_id", facID), slog.String("error", err.Error()))
+		slog.Error("query fac networks", slog.Int("fac_id", facID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1065,7 +1065,7 @@ func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := templates.FacNetworksList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render fac networks fragment", slog.Int("fac_id", facID), slog.String("error", err.Error()))
+		slog.Error("render fac networks fragment", slog.Int("fac_id", facID), slog.Any("error", err))
 	}
 }
 
@@ -1077,7 +1077,7 @@ func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, 
 		Order(ixfacility.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query fac ixps", slog.Int("fac_id", facID), slog.String("error", err.Error()))
+		slog.Error("query fac ixps", slog.Int("fac_id", facID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1094,7 +1094,7 @@ func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, 
 	}
 
 	if err := templates.FacIXPsList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render fac ixps fragment", slog.Int("fac_id", facID), slog.String("error", err.Error()))
+		slog.Error("render fac ixps fragment", slog.Int("fac_id", facID), slog.Any("error", err))
 	}
 }
 
@@ -1105,7 +1105,7 @@ func (h *Handler) handleFacCarriersFragment(w http.ResponseWriter, r *http.Reque
 		Order(carrierfacility.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query fac carriers", slog.Int("fac_id", facID), slog.String("error", err.Error()))
+		slog.Error("query fac carriers", slog.Int("fac_id", facID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1122,7 +1122,7 @@ func (h *Handler) handleFacCarriersFragment(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := templates.FacCarriersList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render fac carriers fragment", slog.Int("fac_id", facID), slog.String("error", err.Error()))
+		slog.Error("render fac carriers fragment", slog.Int("fac_id", facID), slog.Any("error", err))
 	}
 }
 
@@ -1133,7 +1133,7 @@ func (h *Handler) handleOrgNetworksFragment(w http.ResponseWriter, r *http.Reque
 		Order(network.ByAsn()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query org networks", slog.Int("org_id", orgID), slog.String("error", err.Error()))
+		slog.Error("query org networks", slog.Int("org_id", orgID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1147,7 +1147,7 @@ func (h *Handler) handleOrgNetworksFragment(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := templates.OrgNetworksList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render org networks fragment", slog.Int("org_id", orgID), slog.String("error", err.Error()))
+		slog.Error("render org networks fragment", slog.Int("org_id", orgID), slog.Any("error", err))
 	}
 }
 
@@ -1158,7 +1158,7 @@ func (h *Handler) handleOrgIXPsFragment(w http.ResponseWriter, r *http.Request, 
 		Order(internetexchange.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query org ixps", slog.Int("org_id", orgID), slog.String("error", err.Error()))
+		slog.Error("query org ixps", slog.Int("org_id", orgID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1172,7 +1172,7 @@ func (h *Handler) handleOrgIXPsFragment(w http.ResponseWriter, r *http.Request, 
 	}
 
 	if err := templates.OrgIXPsList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render org ixps fragment", slog.Int("org_id", orgID), slog.String("error", err.Error()))
+		slog.Error("render org ixps fragment", slog.Int("org_id", orgID), slog.Any("error", err))
 	}
 }
 
@@ -1183,7 +1183,7 @@ func (h *Handler) handleOrgFacilitiesFragment(w http.ResponseWriter, r *http.Req
 		Order(facility.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query org facilities", slog.Int("org_id", orgID), slog.String("error", err.Error()))
+		slog.Error("query org facilities", slog.Int("org_id", orgID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1199,7 +1199,7 @@ func (h *Handler) handleOrgFacilitiesFragment(w http.ResponseWriter, r *http.Req
 	}
 
 	if err := templates.OrgFacilitiesList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render org facilities fragment", slog.Int("org_id", orgID), slog.String("error", err.Error()))
+		slog.Error("render org facilities fragment", slog.Int("org_id", orgID), slog.Any("error", err))
 	}
 }
 
@@ -1210,7 +1210,7 @@ func (h *Handler) handleOrgCampusesFragment(w http.ResponseWriter, r *http.Reque
 		Order(campus.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query org campuses", slog.Int("org_id", orgID), slog.String("error", err.Error()))
+		slog.Error("query org campuses", slog.Int("org_id", orgID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1224,7 +1224,7 @@ func (h *Handler) handleOrgCampusesFragment(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := templates.OrgCampusesList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render org campuses fragment", slog.Int("org_id", orgID), slog.String("error", err.Error()))
+		slog.Error("render org campuses fragment", slog.Int("org_id", orgID), slog.Any("error", err))
 	}
 }
 
@@ -1235,7 +1235,7 @@ func (h *Handler) handleOrgCarriersFragment(w http.ResponseWriter, r *http.Reque
 		Order(carrier.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query org carriers", slog.Int("org_id", orgID), slog.String("error", err.Error()))
+		slog.Error("query org carriers", slog.Int("org_id", orgID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1249,7 +1249,7 @@ func (h *Handler) handleOrgCarriersFragment(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := templates.OrgCarriersList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render org carriers fragment", slog.Int("org_id", orgID), slog.String("error", err.Error()))
+		slog.Error("render org carriers fragment", slog.Int("org_id", orgID), slog.Any("error", err))
 	}
 }
 
@@ -1260,7 +1260,7 @@ func (h *Handler) handleCampusFacilitiesFragment(w http.ResponseWriter, r *http.
 		Order(facility.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query campus facilities", slog.Int("campus_id", campusID), slog.String("error", err.Error()))
+		slog.Error("query campus facilities", slog.Int("campus_id", campusID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1276,7 +1276,7 @@ func (h *Handler) handleCampusFacilitiesFragment(w http.ResponseWriter, r *http.
 	}
 
 	if err := templates.CampusFacilitiesList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render campus facilities fragment", slog.Int("campus_id", campusID), slog.String("error", err.Error()))
+		slog.Error("render campus facilities fragment", slog.Int("campus_id", campusID), slog.Any("error", err))
 	}
 }
 
@@ -1287,7 +1287,7 @@ func (h *Handler) handleCarrierFacilitiesFragment(w http.ResponseWriter, r *http
 		Order(carrierfacility.ByName()).
 		All(r.Context())
 	if err != nil {
-		slog.Error("query carrier facilities", slog.Int("carrier_id", carrierID), slog.String("error", err.Error()))
+		slog.Error("query carrier facilities", slog.Int("carrier_id", carrierID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -1304,6 +1304,6 @@ func (h *Handler) handleCarrierFacilitiesFragment(w http.ResponseWriter, r *http
 	}
 
 	if err := templates.CarrierFacilitiesList(rows).Render(r.Context(), w); err != nil {
-		slog.Error("render carrier facilities fragment", slog.Int("carrier_id", carrierID), slog.String("error", err.Error()))
+		slog.Error("render carrier facilities fragment", slog.Int("carrier_id", carrierID), slog.Any("error", err))
 	}
 }

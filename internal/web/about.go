@@ -15,7 +15,7 @@ func (h *Handler) handleAbout(w http.ResponseWriter, r *http.Request) {
 	if h.db != nil {
 		status, err := sync.GetLastStatus(r.Context(), h.db)
 		if err != nil {
-			slog.Error("get last sync status", slog.String("error", err.Error()))
+			slog.Error("get last sync status", slog.Any("error", err))
 		} else if status != nil && status.Status == "success" {
 			freshness = templates.DataFreshness{
 				Available:  true,

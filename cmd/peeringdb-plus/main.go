@@ -57,7 +57,7 @@ func main() {
 	// Load config from environment per D-33, CFG-1.
 	cfg, err := config.Load()
 	if err != nil {
-		slog.Error("failed to load config", slog.String("error", err.Error()))
+		slog.Error("failed to load config", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -70,7 +70,7 @@ func main() {
 		SampleRate:  cfg.OTelSampleRate,
 	})
 	if err != nil {
-		slog.Error("failed to init otel", slog.String("error", err.Error()))
+		slog.Error("failed to init otel", slog.Any("error", err))
 		os.Exit(1) //nolint:gocritic // exitAfterDefer: cancel() deferred above is trivial at this stage
 	}
 	defer otelOut.Shutdown(ctx) //nolint:errcheck // best-effort flush at exit
@@ -81,14 +81,14 @@ func main() {
 
 	// Initialize custom sync metrics per D-05.
 	if err := pdbotel.InitMetrics(); err != nil {
-		logger.Error("failed to init metrics", slog.String("error", err.Error()))
+		logger.Error("failed to init metrics", slog.Any("error", err))
 		os.Exit(1)
 	}
 
 	// Open database per D-28, D-34.
 	entClient, db, err := database.Open(cfg.DBPath)
 	if err != nil {
-		logger.Error("failed to open database", slog.String("error", err.Error()))
+		logger.Error("failed to open database", slog.Any("error", err))
 		os.Exit(1)
 	}
 	defer entClient.Close()
@@ -104,7 +104,7 @@ func main() {
 	// Auto-migrate schema on primary per D-43.
 	if isPrimary {
 		if err := entClient.Schema.Create(ctx); err != nil {
-			logger.Error("failed to migrate schema", slog.String("error", err.Error()))
+			logger.Error("failed to migrate schema", slog.Any("error", err))
 			os.Exit(1)
 		}
 	}
@@ -112,7 +112,7 @@ func main() {
 	// Initialize sync_status table on primary (raw SQL, outside ent schema management).
 	if isPrimary {
 		if err := pdbsync.InitStatusTable(ctx, db); err != nil {
-			logger.Error("failed to init sync_status table", slog.String("error", err.Error()))
+			logger.Error("failed to init sync_status table", slog.Any("error", err))
 			os.Exit(1)
 		}
 	}
@@ -125,13 +125,13 @@ func main() {
 		}
 		return status.LastSyncAt, true
 	}); err != nil {
-		logger.Error("failed to init freshness gauge", slog.String("error", err.Error()))
+		logger.Error("failed to init freshness gauge", slog.Any("error", err))
 		os.Exit(1)
 	}
 
 	// Initialize per-type object count gauges for business metrics dashboard.
 	if err := pdbotel.InitObjectCountGauges(entClient); err != nil {
-		logger.Error("failed to init object count gauges", slog.String("error", err.Error()))
+		logger.Error("failed to init object count gauges", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -203,7 +203,7 @@ func main() {
 		BasePath: "/rest/v1",
 	})
 	if err != nil {
-		logger.Error("failed to create REST server", slog.String("error", err.Error()))
+		logger.Error("failed to create REST server", slog.Any("error", err))
 		os.Exit(1)
 	}
 	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})
@@ -227,7 +227,7 @@ func main() {
 		otelconnect.WithoutTraceEvents(), // Suppress per-message events (critical for streaming RPCs per STRM-06).
 	)
 	if err != nil {
-		logger.Error("failed to create otel interceptor", slog.String("error", err.Error()))
+		logger.Error("failed to create otel interceptor", slog.Any("error", err))
 		os.Exit(1)
 	}
 	handlerOpts := connect.WithInterceptors(otelInterceptor)
@@ -330,7 +330,7 @@ func main() {
 				freshness = status.LastSyncAt
 			}
 			if err := renderer.RenderHelp(w, freshness); err != nil {
-				slog.Error("render terminal help", slog.String("error", err.Error()))
+				slog.Error("render terminal help", slog.Any("error", err))
 			}
 			return
 
@@ -381,7 +381,7 @@ func main() {
 			slog.Bool("h2c", true),
 		)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("server error", slog.String("error", err.Error()))
+			logger.Error("server error", slog.Any("error", err))
 			os.Exit(1)
 		}
 	}()
@@ -393,7 +393,7 @@ func main() {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.DrainTimeout)
 	defer shutdownCancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		logger.Error("shutdown error", slog.String("error", err.Error()))
+		logger.Error("shutdown error", slog.Any("error", err))
 	}
 }
 
