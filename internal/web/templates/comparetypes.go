@@ -68,6 +68,10 @@ type CompareFacility struct {
 	City string
 	// Country is the facility's country code.
 	Country string
+	// Latitude is the facility's geographic latitude. Zero means no data.
+	Latitude float64
+	// Longitude is the facility's geographic longitude. Zero means no data.
+	Longitude float64
 	// Shared indicates both networks are present at this facility.
 	Shared bool
 	// NetA holds network A's presence info (nil if not present).

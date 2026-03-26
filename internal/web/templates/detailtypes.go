@@ -312,6 +312,10 @@ type NetworkFacRow struct {
 	City string
 	// Country is the facility's country code.
 	Country string
+	// Latitude is the facility's geographic latitude. Zero means no data.
+	Latitude float64
+	// Longitude is the facility's geographic longitude. Zero means no data.
+	Longitude float64
 }
 
 // ContactRow holds display data for a network contact (poc) row.
@@ -354,6 +358,10 @@ type IXFacilityRow struct {
 	City string
 	// Country is the facility's country code.
 	Country string
+	// Latitude is the facility's geographic latitude. Zero means no data.
+	Latitude float64
+	// Longitude is the facility's geographic longitude. Zero means no data.
+	Longitude float64
 }
 
 // IXPrefixRow holds display data for an IXP prefix row.
@@ -420,6 +428,10 @@ type OrgFacilityRow struct {
 	City string
 	// Country is the facility's country code.
 	Country string
+	// Latitude is the facility's geographic latitude. Zero means no data.
+	Latitude float64
+	// Longitude is the facility's geographic longitude. Zero means no data.
+	Longitude float64
 }
 
 // OrgCampusRow holds display data for an org's campus row.
@@ -448,6 +460,10 @@ type CampusFacilityRow struct {
 	City string
 	// Country is the facility's country code.
 	Country string
+	// Latitude is the facility's geographic latitude. Zero means no data.
+	Latitude float64
+	// Longitude is the facility's geographic longitude. Zero means no data.
+	Longitude float64
 }
 
 // CarrierFacilityRow holds display data for a carrier's facility row.
@@ -456,4 +472,8 @@ type CarrierFacilityRow struct {
 	FacName string
 	// FacID is the facility's PeeringDB ID for cross-linking.
 	FacID int
+	// Latitude is the facility's geographic latitude. Zero means no data.
+	Latitude float64
+	// Longitude is the facility's geographic longitude. Zero means no data.
+	Longitude float64
 }
