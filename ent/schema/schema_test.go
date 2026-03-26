@@ -6,6 +6,9 @@ import (
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 // testTimestamp provides a consistent timestamp for all tests.
@@ -730,4 +733,133 @@ func TestEdgeTraversal(t *testing.T) {
 			t.Errorf("org name = %q, want %q", orgFromNet.Name, "Traversal Org")
 		}
 	})
+}
+
+// TestOtelMutationHook_ErrorPath verifies that the otelMutationHook records
+// errors on the span when a mutation fails (hooks.go line 28). Uses an
+// in-memory span exporter to capture and inspect span events.
+func TestOtelMutationHook_ErrorPath(t *testing.T) {
+	// Set up in-memory span exporter to capture spans.
+	exporter := tracetest.NewInMemoryExporter()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+	prev := otel.GetTracerProvider()
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() {
+		_ = tp.Shutdown(context.Background())
+		otel.SetTracerProvider(prev)
+	})
+
+	client := testutil.SetupClient(t)
+	ctx := context.Background()
+
+	// Create an Organization to establish ID=1.
+	_, err := client.Organization.Create().
+		SetID(1).
+		SetName("First").
+		SetCreated(testTimestamp).
+		SetUpdated(testTimestamp).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("first create: %v", err)
+	}
+
+	// Attempt duplicate ID -- triggers mutation error through hook.
+	_, err = client.Organization.Create().
+		SetID(1).
+		SetName("Dupe").
+		SetCreated(testTimestamp).
+		SetUpdated(testTimestamp).
+		Save(ctx)
+	if err == nil {
+		t.Fatal("expected error on duplicate ID")
+	}
+
+	// Flush the tracer provider so spans are exported.
+	if err := tp.ForceFlush(ctx); err != nil {
+		t.Fatalf("force flush: %v", err)
+	}
+
+	// Verify the hook recorded the error on the span.
+	// The hook names spans "ent.{Type}.{Op}" where Op.String() returns "OpCreate".
+	spans := exporter.GetSpans()
+	var found bool
+	for _, s := range spans {
+		if s.Name == "ent.Organization.OpCreate" {
+			for _, evt := range s.Events {
+				if evt.Name == "exception" {
+					found = true
+				}
+			}
+		}
+	}
+	if !found {
+		t.Error("expected span with RecordError event for ent.Organization.OpCreate")
+		for _, s := range spans {
+			t.Logf("  span: %s (events: %d)", s.Name, len(s.Events))
+		}
+	}
+}
+
+// TestFKConstraintViolation verifies that FK constraint violations are caught
+// when foreign_keys pragma is enabled. Table-driven per T-1.
+func TestFKConstraintViolation(t *testing.T) {
+	t.Parallel()
+
+	client := testutil.SetupClient(t)
+	ctx := context.Background()
+
+	tests := []struct {
+		name string
+		fn   func() error
+	}{
+		{
+			name: "Network with non-existent org_id",
+			fn: func() error {
+				_, err := client.Network.Create().
+					SetID(5000).
+					SetName("FK Test Network").
+					SetAsn(65000).
+					SetOrgID(99999). // Does not exist
+					SetCreated(testTimestamp).
+					SetUpdated(testTimestamp).
+					Save(ctx)
+				return err
+			},
+		},
+		{
+			name: "IxLan with non-existent ix_id",
+			fn: func() error {
+				_, err := client.IxLan.Create().
+					SetID(5001).
+					SetIxID(99999). // Does not exist
+					SetCreated(testTimestamp).
+					SetUpdated(testTimestamp).
+					Save(ctx)
+				return err
+			},
+		},
+		{
+			name: "Poc with non-existent net_id",
+			fn: func() error {
+				_, err := client.Poc.Create().
+					SetID(5002).
+					SetNetID(99999). // Does not exist
+					SetRole("Technical").
+					SetCreated(testTimestamp).
+					SetUpdated(testTimestamp).
+					Save(ctx)
+				return err
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			err := tt.fn()
+			if err == nil {
+				t.Error("expected FK constraint error, got nil")
+			}
+		})
+	}
 }
