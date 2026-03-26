@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 28-03-PLAN.md
-last_updated: "2026-03-25T23:56:26.440Z"
+status: Ready to execute
+stopped_at: Completed 29-01-PLAN.md
+last_updated: "2026-03-26T00:18:14.371Z"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 28 — terminal-detection-infrastructure
+**Current focus:** Phase 29 — network-detail-reference-implementation
 
 ## Current Position
 
-Phase: 29
-Plan: Not started
+Phase: 29 (network-detail-reference-implementation) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -78,6 +78,8 @@ Recent decisions affecting current work:
 - [Phase 28]: Vary header expanded to HX-Request, User-Agent, Accept on all renderPage branches
 - [Phase 28]: PageContent.Data field carries raw structs for terminal/JSON rendering alongside templ.Component
 - [Phase 28]: Title-based switch in renderPage dispatches error and help rendering without adding fields to PageContent
+- [Phase 29]: Type-switch dispatch in RenderPage for entity-specific terminal renderers
+- [Phase 29]: Eager-load IX/facility rows in handleNetworkDetail for terminal and JSON rendering modes
 
 ### Pending Todos
 
@@ -93,6 +95,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T23:51:13.487Z
-Stopped at: Completed 28-03-PLAN.md
+Last session: 2026-03-26T00:18:14.367Z
+Stopped at: Completed 29-01-PLAN.md
 Resume file: None
