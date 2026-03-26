@@ -45,7 +45,7 @@ Requirements for the Code Coverage & Test Quality milestone. Each maps to roadma
 ### Test Quality
 
 - [ ] **QUAL-01**: Existing tests audited for assertion density -- no test asserts only err == nil without data checks
-- [ ] **QUAL-02**: Every fmt.Errorf and connect.NewError call site has at least one test exercising the error path
+- [x] **QUAL-02**: Every fmt.Errorf and connect.NewError call site has at least one test exercising the error path
 - [ ] **QUAL-03**: Fuzz test for filter parser covering untrusted input patterns
 
 ## Future Requirements
@@ -95,7 +95,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MINOR-02 | Phase 41 | Complete |
 | MINOR-03 | Phase 41 | Complete |
 | QUAL-01 | Phase 42 | Pending |
-| QUAL-02 | Phase 42 | Pending |
+| QUAL-02 | Phase 42 | Complete |
 | QUAL-03 | Phase 42 | Pending |
 
 **Coverage:**
