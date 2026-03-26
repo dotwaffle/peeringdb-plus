@@ -137,6 +137,46 @@ func TestReadinessHandler(t *testing.T) {
 			wantSyncStatus: "degraded",
 			wantSyncMsg:    "last sync failed",
 		},
+		{
+			name: "running sync with no previous completed sync",
+			setupDB: func(t *testing.T) *sql.DB {
+				db := openTestDB(t)
+				initSyncTable(t, db)
+				insertRunningSync(t, db) // Only a "running" row, no prior completed
+				return db
+			},
+			wantHTTPStatus: http.StatusServiceUnavailable,
+			wantStatus:     "not_ready",
+			wantDBStatus:   "ok",
+			wantSyncStatus: "failed",
+			wantSyncMsg:    "no sync completed",
+		},
+		{
+			name: "unknown sync status",
+			setupDB: func(t *testing.T) *sql.DB {
+				db := openTestDB(t)
+				initSyncTable(t, db)
+				insertSync(t, db, time.Now().Add(-1*time.Hour), "bogus_status", "")
+				return db
+			},
+			wantHTTPStatus: http.StatusServiceUnavailable,
+			wantStatus:     "not_ready",
+			wantDBStatus:   "ok",
+			wantSyncStatus: "failed",
+			wantSyncMsg:    "unknown sync status",
+		},
+		{
+			name: "sync table missing causes GetLastStatus error",
+			setupDB: func(t *testing.T) *sql.DB {
+				db := openTestDB(t)
+				// Do NOT create the sync_status table -- GetLastStatus will fail
+				return db
+			},
+			wantHTTPStatus: http.StatusServiceUnavailable,
+			wantStatus:     "not_ready",
+			wantDBStatus:   "ok",
+			wantSyncStatus: "failed",
+		},
 	}
 
 	for _, tt := range tests {
