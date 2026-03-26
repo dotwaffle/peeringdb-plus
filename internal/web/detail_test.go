@@ -169,6 +169,19 @@ func seedAllTestData(t *testing.T, client *ent.Client) {
 	if err != nil {
 		t.Fatalf("creating ixprefix: %v", err)
 	}
+
+	// Create a facility with coordinates for map rendering tests.
+	_, err = client.Facility.Create().
+		SetID(32).SetName("Telehouse London").
+		SetOrgID(1).SetOrganization(org).
+		SetCity("London").SetCountry("GB").
+		SetLatitude(51.5074).SetLongitude(-0.1278).
+		SetNetCount(5).SetIxCount(3).
+		SetCreated(testHandlerTimestamp).SetUpdated(testHandlerTimestamp).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("creating facility with coords: %v", err)
+	}
 }
 
 // setupAllTestMux seeds all test data and returns a mux ready for testing.
@@ -555,6 +568,87 @@ func TestFragments_OrgCampusesAndCarriers(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestFacilityDetail_MapRendered(t *testing.T) {
+	t.Parallel()
+	mux := setupAllTestMux(t)
+
+	tests := []struct {
+		name     string
+		url      string
+		wantBody []string
+		noBody   []string
+	}{
+		{
+			"facility with coords shows map",
+			"/ui/fac/32",
+			[]string{
+				`id="map-fac-32"`,
+				"leaflet",
+				"Telehouse London",
+				"View facility",
+				`role="application"`,
+			},
+			nil,
+		},
+		{
+			"facility without coords omits map",
+			"/ui/fac/30",
+			[]string{"Equinix FR5"},
+			[]string{`id="map-fac-30"`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d", rec.Code)
+			}
+
+			body := rec.Body.String()
+			for _, want := range tt.wantBody {
+				if !strings.Contains(body, want) {
+					t.Errorf("response missing %q", want)
+				}
+			}
+			for _, notWant := range tt.noBody {
+				if strings.Contains(body, notWant) {
+					t.Errorf("response should not contain %q", notWant)
+				}
+			}
+		})
+	}
+}
+
+func TestLayout_MapDarkModeHook(t *testing.T) {
+	t.Parallel()
+	mux := setupAllTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/fac/32", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	checks := []string{
+		"__pdbMaps",
+		"leaflet@1.9.4/dist/leaflet.css",
+		"leaflet@1.9.4/dist/leaflet.js",
+	}
+	for _, want := range checks {
+		if !strings.Contains(body, want) {
+			t.Errorf("layout missing %q", want)
+		}
 	}
 }
 
