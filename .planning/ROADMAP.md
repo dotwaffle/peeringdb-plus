@@ -156,7 +156,10 @@ Plans:
   1. All 13 entity types have at least one List test that sets an optional proto filter field to a non-nil value and asserts the response contains only matching entities (not just "no error")
   2. All 13 entity types have Stream tests (closing the gap for CarrierFacility, IxPrefix, NetworkIxLan, and Poc), and each stream test asserts the streamed entity count and at least one field value
   3. Running `go test -race -cover ./internal/grpcserver/...` reports 80%+ package-level coverage
-**Plans**: TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 39-01-PLAN.md -- List filter tests for 6 missing types + Stream tests for 4 missing types + 80%+ coverage
 
 ### Phase 40: Web Handler Coverage
 **Goal**: All web handler paths -- fragment endpoints, terminal/JSON/WHOIS dispatch, and utility functions -- are tested
@@ -200,7 +203,7 @@ Phases execute in numeric order: 37 -> 38 -> 39 -> 40 -> 41 -> 42
 |-------|----------------|--------|-----------|
 | 37. Test Seed Infrastructure | 1/1 | Complete    | 2026-03-26 |
 | 38. GraphQL Resolver Coverage | 1/1 | Complete    | 2026-03-26 |
-| 39. gRPC Handler Coverage | 0/? | Not started | - |
+| 39. gRPC Handler Coverage | 0/1 | Not started | - |
 | 40. Web Handler Coverage | 0/? | Not started | - |
 | 41. Schema & Minor Package Coverage | 0/? | Not started | - |
 | 42. Test Quality Audit & Coverage Hygiene | 0/? | Not started | - |
