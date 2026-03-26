@@ -139,6 +139,28 @@ func TestDetect(t *testing.T) {
 	}
 }
 
+func TestDetect_ModeShort(t *testing.T) {
+	t.Parallel()
+
+	input := DetectInput{
+		Query:     url.Values{"format": {"short"}},
+		UserAgent: "curl/8.5.0",
+	}
+
+	got := Detect(input)
+	if got != ModeShort {
+		t.Errorf("Detect(format=short) = %v, want ModeShort", got)
+	}
+}
+
+func TestDetect_ModeShort_String(t *testing.T) {
+	t.Parallel()
+
+	if got := ModeShort.String(); got != "Short" {
+		t.Errorf("ModeShort.String() = %q, want %q", got, "Short")
+	}
+}
+
 func TestHasNoColor(t *testing.T) {
 	t.Parallel()
 
