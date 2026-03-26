@@ -9,8 +9,10 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"encoding/json"
 	"fmt"
 	"html"
+	"strconv"
 )
 
 // MapMarker holds data for a single map pin.
@@ -29,6 +31,12 @@ type MapMarker struct {
 	IXCount int
 	// DetailURL is the link to the entity detail page.
 	DetailURL string
+	// Color is the circleMarker fillColor hex (e.g. "#10b981"). Empty for single-pin maps.
+	Color string
+	// Stroke is the circleMarker stroke hex (e.g. "#059669"). Empty for single-pin maps.
+	Stroke string
+	// Extra is an additional popup line (e.g. network names for compare maps). Empty if not needed.
+	Extra string
 }
 
 // buildPopupHTML returns the HTML content for a Leaflet map popup.
@@ -46,6 +54,46 @@ func buildPopupHTML(m MapMarker) string {
 	s += fmt.Sprintf(`<a href="%s" style="font-size:12px;color:#10b981;">View facility &rarr;</a>`, html.EscapeString(m.DetailURL))
 	s += `</div>`
 	return s
+}
+
+// buildMultiPinPopupHTML returns the HTML content for a multi-pin Leaflet map popup.
+// It includes the facility name, location, optional extra line (e.g. network names),
+// and a link to the facility detail page. All user content is HTML-escaped (SEC-1).
+func buildMultiPinPopupHTML(m MapMarker) string {
+	s := `<div>`
+	s += fmt.Sprintf(`<div style="font-weight:600;font-size:14px;margin-bottom:4px;">%s</div>`, html.EscapeString(m.Name))
+	if m.Location != "" {
+		s += fmt.Sprintf(`<div style="font-size:12px;color:#666;margin-bottom:4px;">%s</div>`, html.EscapeString(m.Location))
+	}
+	if m.Extra != "" {
+		s += fmt.Sprintf(`<div style="font-size:12px;color:#666;margin-bottom:8px;">%s</div>`, html.EscapeString(m.Extra))
+	}
+	s += fmt.Sprintf(`<a href="%s" style="font-size:12px;color:#10b981;">View facility &rarr;</a>`, html.EscapeString(m.DetailURL))
+	s += `</div>`
+	return s
+}
+
+// filterMappableMarkers returns only markers with valid coordinates and the count
+// of unmapped markers. A marker is considered unmapped when both Lat and Lng are zero,
+// indicating missing coordinate data.
+func filterMappableMarkers(markers []MapMarker) (mappable []MapMarker, unmapped int) {
+	for _, m := range markers {
+		if m.Lat != 0 || m.Lng != 0 {
+			mappable = append(mappable, m)
+		} else {
+			unmapped++
+		}
+	}
+	return mappable, unmapped
+}
+
+// jsMarker is the JSON-serializable structure passed to the initMultiPinMap script.
+type jsMarker struct {
+	Lat       float64 `json:"lat"`
+	Lng       float64 `json:"lng"`
+	Color     string  `json:"color"`
+	Stroke    string  `json:"stroke"`
+	PopupHTML string  `json:"popup"`
 }
 
 // initMap initializes a Leaflet map with a single marker and popup.
@@ -76,6 +124,78 @@ func initMap(elementID string, lat float64, lng float64, zoom int, popupHTML str
 }`,
 		Call:       templ.SafeScript(`__templ_initMap_9537`, elementID, lat, lng, zoom, popupHTML),
 		CallInline: templ.SafeScriptInline(`__templ_initMap_9537`, elementID, lat, lng, zoom, popupHTML),
+	}
+}
+
+// initMultiPinMap initializes a Leaflet map with multiple circleMarker pins,
+// markerClusterGroup for clustering, fitBounds for auto-zoom, and an optional legend.
+func initMultiPinMap(elementID string, markersJSON string, showLegend bool, legendJSON string) templ.ComponentScript {
+	return templ.ComponentScript{
+		Name: `__templ_initMultiPinMap_5ef3`,
+		Function: `function __templ_initMultiPinMap_5ef3(elementID, markersJSON, showLegend, legendJSON){var markers = JSON.parse(markersJSON);
+	if (!markers || markers.length === 0) return;
+
+	var isDark = document.documentElement.classList.contains('dark');
+	var lightURL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+	var darkURL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+	var tileURL = isDark ? darkURL : lightURL;
+
+	var map = L.map(elementID, { scrollWheelZoom: false });
+	var tileLayer = L.tileLayer(tileURL, {
+		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+		subdomains: 'abcd',
+		maxZoom: 19
+	}).addTo(map);
+
+	var clusterGroup = L.markerClusterGroup();
+	var bounds = [];
+
+	for (var i = 0; i < markers.length; i++) {
+		var m = markers[i];
+		var cm = L.circleMarker([m.lat, m.lng], {
+			radius: 7,
+			fillColor: m.color,
+			color: m.stroke,
+			weight: 2,
+			opacity: 1,
+			fillOpacity: 0.8
+		}).bindPopup(m.popup);
+		clusterGroup.addLayer(cm);
+		bounds.push([m.lat, m.lng]);
+	}
+
+	map.addLayer(clusterGroup);
+	map.fitBounds(bounds, { maxZoom: 13, padding: [20, 20] });
+
+	map.on('click', function() { map.scrollWheelZoom.enable(); });
+	map.on('mouseout', function() { map.scrollWheelZoom.disable(); });
+
+	window.__pdbMaps = window.__pdbMaps || [];
+	window.__pdbMaps.push({ tileLayer: tileLayer, lightURL: lightURL, darkURL: darkURL });
+
+	if (showLegend && legendJSON) {
+		var legend = JSON.parse(legendJSON);
+		var ctrl = L.control({ position: 'bottomleft' });
+		ctrl.onAdd = function() {
+			var div = L.DomUtil.create('div', '');
+			var bg = isDark ? 'rgba(38,38,38,0.92)' : 'rgba(255,255,255,0.92)';
+			var textColor = isDark ? '#d4d4d4' : '#171717';
+			var shadow = isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.1)';
+			div.style.cssText = 'background:' + bg + ';padding:8px 12px;border-radius:6px;font-size:12px;line-height:1.5;box-shadow:' + shadow + ';color:' + textColor;
+			// Legend content uses server-side labels that are not user-provided input.
+			// The labels are static ASN identifiers set by the Go template, not from
+			// untrusted sources. This follows the same pattern as Phase 44 buildPopupHTML.
+			function row(color, label) {
+				return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><svg width="10" height="10"><circle cx="5" cy="5" r="5" fill="' + color + '"/></svg><span>' + label + '</span></div>';
+			}
+			div.innerHTML = row('#10b981', legend.shared) + row('#38bdf8', legend.netA) + row('#f59e0b', legend.netB);
+			return div;
+		};
+		ctrl.addTo(map);
+	}
+}`,
+		Call:       templ.SafeScript(`__templ_initMultiPinMap_5ef3`, elementID, markersJSON, showLegend, legendJSON),
+		CallInline: templ.SafeScriptInline(`__templ_initMultiPinMap_5ef3`, elementID, markersJSON, showLegend, legendJSON),
 	}
 }
 
@@ -110,7 +230,7 @@ func MapContainer(id string, markers []MapMarker, zoom int) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/map.templ`, Line: 73, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/map.templ`, Line: 187, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -128,6 +248,126 @@ func MapContainer(id string, markers []MapMarker, zoom int) templ.Component {
 		}
 		return nil
 	})
+}
+
+// MultiPinMapContainer renders a taller map container with clustered circleMarkers.
+// If no markers have valid coordinates, nothing is rendered (D-10). When some markers
+// lack coordinates, an unmapped count message is shown below the map (D-11).
+func MultiPinMapContainer(id string, markers []MapMarker, ariaLabel string, showLegend bool, legendLabels map[string]string) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var3 == nil {
+			templ_7745c5c3_Var3 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		if mappable, unmapped := filterMappableMarkers(markers); len(mappable) > 0 {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div id=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var4 string
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(id)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/map.templ`, Line: 203, Col: 10}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"w-full h-[250px] md:h-[450px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"application\" aria-label=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var5 string
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(ariaLabel)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/map.templ`, Line: 206, Col: 25}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = initMultiPinMap(id, marshalMarkers(mappable), showLegend, marshalLegend(legendLabels)).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, " ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if unmapped > 0 {
+				if unmapped == 1 {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<p class=\"text-xs text-neutral-500 dark:text-neutral-400 mt-2\">1 facility not shown (no location data)</p>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				} else {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<p class=\"text-xs text-neutral-500 dark:text-neutral-400 mt-2\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var6 string
+					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(unmapped))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/map.templ`, Line: 216, Col: 29}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, " facilities not shown (no location data)</p>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+			}
+		}
+		return nil
+	})
+}
+
+// marshalMarkers serializes mappable markers to a JSON string for the initMultiPinMap script.
+// Each marker includes pre-built popup HTML to avoid building HTML in JavaScript.
+func marshalMarkers(markers []MapMarker) string {
+	jsMarkers := make([]jsMarker, len(markers))
+	for i, m := range markers {
+		jsMarkers[i] = jsMarker{
+			Lat:       m.Lat,
+			Lng:       m.Lng,
+			Color:     m.Color,
+			Stroke:    m.Stroke,
+			PopupHTML: buildMultiPinPopupHTML(m),
+		}
+	}
+	b, _ := json.Marshal(jsMarkers)
+	return string(b)
+}
+
+// marshalLegend serializes legend labels to a JSON string for the initMultiPinMap script.
+func marshalLegend(labels map[string]string) string {
+	if len(labels) == 0 {
+		return ""
+	}
+	b, _ := json.Marshal(labels)
+	return string(b)
 }
 
 var _ = templruntime.GeneratedTemplate
