@@ -1152,3 +1152,1769 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 		})
 	}
 }
+
+// =======================================================================
+// Missing entity type tests: Campus, Carrier, InternetExchange,
+// IxFacility, IxLan, NetworkFacility
+// =======================================================================
+
+func TestGetCampus(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Campus.Create().
+		SetID(1).SetName("Test Campus").SetCountry("US").SetCity("Ashburn").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &CampusService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetCampus(ctx, &pb.GetCampusRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetCampus(1) unexpected error: %v", err)
+		}
+		c := resp.GetCampus()
+		if c == nil {
+			t.Fatal("GetCampus(1) returned nil campus")
+		}
+		if c.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", c.GetId())
+		}
+		if c.GetName() != "Test Campus" {
+			t.Errorf("Name = %q, want %q", c.GetName(), "Test Campus")
+		}
+		if c.GetCountry().GetValue() != "US" {
+			t.Errorf("Country = %q, want %q", c.GetCountry().GetValue(), "US")
+		}
+		if c.GetStatus() != "ok" {
+			t.Errorf("Status = %q, want %q", c.GetStatus(), "ok")
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetCampus(ctx, &pb.GetCampusRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetCampus(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+func TestListCampuses(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Campus.Create().
+		SetID(1).SetName("Campus Alpha").SetCountry("US").SetCity("Ashburn").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Campus.Create().
+		SetID(2).SetName("Campus Beta").SetCountry("GB").SetCity("London").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Campus.Create().
+		SetID(3).SetName("Campus Gamma").SetCountry("US").SetCity("Dallas").
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").
+		SaveX(ctx)
+
+	svc := &CampusService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListCampusesRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "no filters returns all",
+			req:     &pb.ListCampusesRequest{},
+			wantLen: 3,
+		},
+		{
+			name:    "filter by country US",
+			req:     &pb.ListCampusesRequest{Country: proto.String("US")},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by name case-insensitive",
+			req:     &pb.ListCampusesRequest{Name: proto.String("alpha")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by status ok",
+			req:     &pb.ListCampusesRequest{Status: proto.String("ok")},
+			wantLen: 2,
+		},
+		{
+			name:    "combined country and status",
+			req:     &pb.ListCampusesRequest{Country: proto.String("US"), Status: proto.String("ok")},
+			wantLen: 1,
+		},
+		{
+			name:    "invalid org_id",
+			req:     &pb.ListCampusesRequest{OrgId: proto.Int64(-1)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+		{
+			name:    "pagination",
+			req:     &pb.ListCampusesRequest{PageSize: 2},
+			wantLen: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListCampuses(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetCampuses()); got != tt.wantLen {
+				t.Errorf("got %d campuses, want %d", got, tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestGetCarrier(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Carrier.Create().
+		SetID(1).SetName("Test Carrier").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &CarrierService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetCarrier(ctx, &pb.GetCarrierRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetCarrier(1) unexpected error: %v", err)
+		}
+		c := resp.GetCarrier()
+		if c == nil {
+			t.Fatal("GetCarrier(1) returned nil carrier")
+		}
+		if c.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", c.GetId())
+		}
+		if c.GetName() != "Test Carrier" {
+			t.Errorf("Name = %q, want %q", c.GetName(), "Test Carrier")
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetCarrier(ctx, &pb.GetCarrierRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetCarrier(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+func TestListCarriers(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Carrier.Create().
+		SetID(1).SetName("Zayo").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Carrier.Create().
+		SetID(2).SetName("Lumen").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Carrier.Create().
+		SetID(3).SetName("Defunct Carrier").
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").
+		SaveX(ctx)
+
+	svc := &CarrierService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListCarriersRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "no filters returns all",
+			req:     &pb.ListCarriersRequest{},
+			wantLen: 3,
+		},
+		{
+			name:    "filter by name case-insensitive",
+			req:     &pb.ListCarriersRequest{Name: proto.String("zayo")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by status ok",
+			req:     &pb.ListCarriersRequest{Status: proto.String("ok")},
+			wantLen: 2,
+		},
+		{
+			name:    "invalid org_id",
+			req:     &pb.ListCarriersRequest{OrgId: proto.Int64(0)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListCarriers(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetCarriers()); got != tt.wantLen {
+				t.Errorf("got %d carriers, want %d", got, tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestGetInternetExchange(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.InternetExchange.Create().
+		SetID(1).SetName("DE-CIX Frankfurt").SetCountry("DE").SetCity("Frankfurt").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &InternetExchangeService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetInternetExchange(ctx, &pb.GetInternetExchangeRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetInternetExchange(1) unexpected error: %v", err)
+		}
+		ix := resp.GetInternetExchange()
+		if ix == nil {
+			t.Fatal("GetInternetExchange(1) returned nil")
+		}
+		if ix.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", ix.GetId())
+		}
+		if ix.GetName() != "DE-CIX Frankfurt" {
+			t.Errorf("Name = %q, want %q", ix.GetName(), "DE-CIX Frankfurt")
+		}
+		if ix.GetCountry().GetValue() != "DE" {
+			t.Errorf("Country = %q, want %q", ix.GetCountry().GetValue(), "DE")
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetInternetExchange(ctx, &pb.GetInternetExchangeRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetInternetExchange(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+func TestListInternetExchanges(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.InternetExchange.Create().
+		SetID(1).SetName("DE-CIX Frankfurt").SetCountry("DE").SetCity("Frankfurt").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.InternetExchange.Create().
+		SetID(2).SetName("AMS-IX").SetCountry("NL").SetCity("Amsterdam").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.InternetExchange.Create().
+		SetID(3).SetName("Old IX").SetCountry("DE").SetCity("Berlin").
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").
+		SaveX(ctx)
+
+	svc := &InternetExchangeService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListInternetExchangesRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "no filters returns all",
+			req:     &pb.ListInternetExchangesRequest{},
+			wantLen: 3,
+		},
+		{
+			name:    "filter by country DE",
+			req:     &pb.ListInternetExchangesRequest{Country: proto.String("DE")},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by name case-insensitive",
+			req:     &pb.ListInternetExchangesRequest{Name: proto.String("ams")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by status ok",
+			req:     &pb.ListInternetExchangesRequest{Status: proto.String("ok")},
+			wantLen: 2,
+		},
+		{
+			name:    "invalid org_id",
+			req:     &pb.ListInternetExchangesRequest{OrgId: proto.Int64(-1)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListInternetExchanges(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetInternetExchanges()); got != tt.wantLen {
+				t.Errorf("got %d internet exchanges, want %d", got, tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestGetIxFacility(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// IxFacility FK references IX and Facility -- create parents first.
+	client.InternetExchange.Create().
+		SetID(1).SetName("Parent IX").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(1).SetName("Parent Fac").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxFacility.Create().
+		SetID(1).SetIxID(1).SetFacID(1).SetName("IX-Fac-1").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &IxFacilityService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetIxFacility(ctx, &pb.GetIxFacilityRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetIxFacility(1) unexpected error: %v", err)
+		}
+		ixf := resp.GetIxFacility()
+		if ixf == nil {
+			t.Fatal("GetIxFacility(1) returned nil")
+		}
+		if ixf.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", ixf.GetId())
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetIxFacility(ctx, &pb.GetIxFacilityRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetIxFacility(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+func TestListIxFacilities(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// Create parent IX and Facility entities for FK constraints.
+	client.InternetExchange.Create().
+		SetID(10).SetName("IX-10").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.InternetExchange.Create().
+		SetID(20).SetName("IX-20").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(100).SetName("Fac-100").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(200).SetName("Fac-200").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	client.IxFacility.Create().
+		SetID(1).SetIxID(10).SetFacID(100).SetName("IX-Fac-A").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxFacility.Create().
+		SetID(2).SetIxID(10).SetFacID(200).SetName("IX-Fac-B").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxFacility.Create().
+		SetID(3).SetIxID(20).SetFacID(100).SetName("IX-Fac-C").
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").
+		SaveX(ctx)
+
+	svc := &IxFacilityService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListIxFacilitiesRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "no filters returns all",
+			req:     &pb.ListIxFacilitiesRequest{},
+			wantLen: 3,
+		},
+		{
+			name:    "filter by ix_id",
+			req:     &pb.ListIxFacilitiesRequest{IxId: proto.Int64(10)},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by fac_id",
+			req:     &pb.ListIxFacilitiesRequest{FacId: proto.Int64(100)},
+			wantLen: 2,
+		},
+		{
+			name:    "combined ix_id and fac_id",
+			req:     &pb.ListIxFacilitiesRequest{IxId: proto.Int64(10), FacId: proto.Int64(100)},
+			wantLen: 1,
+		},
+		{
+			name:    "invalid ix_id",
+			req:     &pb.ListIxFacilitiesRequest{IxId: proto.Int64(-1)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListIxFacilities(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetIxFacilities()); got != tt.wantLen {
+				t.Errorf("got %d ix facilities, want %d", got, tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestGetIxLan(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// IxLan FK references InternetExchange -- create parent first.
+	client.InternetExchange.Create().
+		SetID(1).SetName("Parent IX").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxLan.Create().
+		SetID(1).SetIxID(1).SetName("Test IxLan").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &IxLanService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetIxLan(ctx, &pb.GetIxLanRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetIxLan(1) unexpected error: %v", err)
+		}
+		il := resp.GetIxLan()
+		if il == nil {
+			t.Fatal("GetIxLan(1) returned nil")
+		}
+		if il.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", il.GetId())
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetIxLan(ctx, &pb.GetIxLanRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetIxLan(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+func TestListIxLans(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// Create parent IX entities for FK constraints.
+	client.InternetExchange.Create().
+		SetID(10).SetName("IX-10").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.InternetExchange.Create().
+		SetID(20).SetName("IX-20").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	client.IxLan.Create().
+		SetID(1).SetIxID(10).SetName("LAN-A").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxLan.Create().
+		SetID(2).SetIxID(10).SetName("LAN-B").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxLan.Create().
+		SetID(3).SetIxID(20).SetName("LAN-C").
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").
+		SaveX(ctx)
+
+	svc := &IxLanService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListIxLansRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "no filters returns all",
+			req:     &pb.ListIxLansRequest{},
+			wantLen: 3,
+		},
+		{
+			name:    "filter by ix_id",
+			req:     &pb.ListIxLansRequest{IxId: proto.Int64(10)},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by name case-insensitive",
+			req:     &pb.ListIxLansRequest{Name: proto.String("lan-a")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by status ok",
+			req:     &pb.ListIxLansRequest{Status: proto.String("ok")},
+			wantLen: 2,
+		},
+		{
+			name:    "invalid ix_id",
+			req:     &pb.ListIxLansRequest{IxId: proto.Int64(0)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListIxLans(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetIxLans()); got != tt.wantLen {
+				t.Errorf("got %d ix lans, want %d", got, tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestGetNetworkFacility(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// NetworkFacility FK references Network and Facility -- create parents.
+	client.Network.Create().
+		SetID(1).SetName("Net-1").SetAsn(65001).SetStatus("ok").
+		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
+		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(1).SetName("Fac-1").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.NetworkFacility.Create().
+		SetID(1).SetNetID(1).SetFacID(1).SetLocalAsn(65001).SetName("NetFac-1").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &NetworkFacilityService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetNetworkFacility(ctx, &pb.GetNetworkFacilityRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetNetworkFacility(1) unexpected error: %v", err)
+		}
+		nf := resp.GetNetworkFacility()
+		if nf == nil {
+			t.Fatal("GetNetworkFacility(1) returned nil")
+		}
+		if nf.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", nf.GetId())
+		}
+		if nf.GetLocalAsn() != 65001 {
+			t.Errorf("LocalAsn = %d, want 65001", nf.GetLocalAsn())
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetNetworkFacility(ctx, &pb.GetNetworkFacilityRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetNetworkFacility(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+func TestListNetworkFacilities(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// Create parent Network and Facility entities for FK constraints.
+	client.Network.Create().
+		SetID(100).SetName("Net-100").SetAsn(65001).SetStatus("ok").
+		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
+		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).
+		SaveX(ctx)
+	client.Network.Create().
+		SetID(200).SetName("Net-200").SetAsn(65002).SetStatus("ok").
+		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
+		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(200).SetName("Fac-200").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(300).SetName("Fac-300").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	client.NetworkFacility.Create().
+		SetID(1).SetNetID(100).SetFacID(200).SetLocalAsn(65001).SetName("NF-A").
+		SetCountry("US").SetCity("Dallas").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.NetworkFacility.Create().
+		SetID(2).SetNetID(100).SetFacID(300).SetLocalAsn(65001).SetName("NF-B").
+		SetCountry("GB").SetCity("London").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.NetworkFacility.Create().
+		SetID(3).SetNetID(200).SetFacID(200).SetLocalAsn(65002).SetName("NF-C").
+		SetCountry("US").SetCity("Ashburn").
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").
+		SaveX(ctx)
+
+	svc := &NetworkFacilityService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListNetworkFacilitiesRequest
+		wantLen int
+		wantErr connect.Code
+	}{
+		{
+			name:    "no filters returns all",
+			req:     &pb.ListNetworkFacilitiesRequest{},
+			wantLen: 3,
+		},
+		{
+			name:    "filter by net_id",
+			req:     &pb.ListNetworkFacilitiesRequest{NetId: proto.Int64(100)},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by fac_id",
+			req:     &pb.ListNetworkFacilitiesRequest{FacId: proto.Int64(200)},
+			wantLen: 2,
+		},
+		{
+			name:    "combined net_id and fac_id",
+			req:     &pb.ListNetworkFacilitiesRequest{NetId: proto.Int64(100), FacId: proto.Int64(200)},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by status ok",
+			req:     &pb.ListNetworkFacilitiesRequest{Status: proto.String("ok")},
+			wantLen: 2,
+		},
+		{
+			name:    "invalid net_id",
+			req:     &pb.ListNetworkFacilitiesRequest{NetId: proto.Int64(-1)},
+			wantErr: connect.CodeInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListNetworkFacilities(ctx, tt.req)
+			if tt.wantErr != 0 {
+				if err == nil {
+					t.Fatalf("expected error code %v, got nil", tt.wantErr)
+				}
+				if code := connect.CodeOf(err); code != tt.wantErr {
+					t.Errorf("error code = %v, want %v", code, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetNetworkFacilities()); got != tt.wantLen {
+				t.Errorf("got %d network facilities, want %d", got, tt.wantLen)
+			}
+		})
+	}
+}
+
+// =======================================================================
+// New filter parity tests for existing entity types
+// =======================================================================
+
+func TestListNetworksInfoTypeFilter(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Network.Create().
+		SetID(1).SetName("CDN Corp").SetAsn(65001).SetInfoType("Content").
+		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(true).
+		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Network.Create().
+		SetID(2).SetName("ISP Corp").SetAsn(65002).SetInfoType("NSP").
+		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
+		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Network.Create().
+		SetID(3).SetName("Enterprise Corp").SetAsn(65003).SetInfoType("Enterprise").
+		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
+		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &NetworkService{Client: client}
+
+	tests := []struct {
+		name    string
+		req     *pb.ListNetworksRequest
+		wantLen int
+	}{
+		{
+			name:    "filter by info_type Content",
+			req:     &pb.ListNetworksRequest{InfoType: proto.String("Content")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by info_type NSP",
+			req:     &pb.ListNetworksRequest{InfoType: proto.String("NSP")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by info_unicast true",
+			req:     &pb.ListNetworksRequest{InfoUnicast: proto.Bool(true)},
+			wantLen: 3,
+		},
+		{
+			name:    "filter by info_ipv6 true",
+			req:     &pb.ListNetworksRequest{InfoIpv6: proto.Bool(true)},
+			wantLen: 1,
+		},
+		{
+			name:    "combined info_type and ASN",
+			req:     &pb.ListNetworksRequest{InfoType: proto.String("Content"), Asn: proto.Int64(65001)},
+			wantLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := svc.ListNetworks(ctx, tt.req)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := len(resp.GetNetworks()); got != tt.wantLen {
+				t.Errorf("got %d networks, want %d", got, tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestGetFacility(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Facility.Create().
+		SetID(1).SetName("Equinix DA1").SetCountry("US").SetCity("Dallas").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &FacilityService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetFacility(ctx, &pb.GetFacilityRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetFacility(1) unexpected error: %v", err)
+		}
+		f := resp.GetFacility()
+		if f == nil {
+			t.Fatal("GetFacility(1) returned nil")
+		}
+		if f.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", f.GetId())
+		}
+		if f.GetName() != "Equinix DA1" {
+			t.Errorf("Name = %q, want %q", f.GetName(), "Equinix DA1")
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetFacility(ctx, &pb.GetFacilityRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetFacility(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+func TestGetCarrierFacility(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Carrier.Create().
+		SetID(10).SetName("Carrier A").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.CarrierFacility.Create().
+		SetID(1).SetCarrierID(10).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &CarrierFacilityService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetCarrierFacility(ctx, &pb.GetCarrierFacilityRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetCarrierFacility(1) unexpected error: %v", err)
+		}
+		cf := resp.GetCarrierFacility()
+		if cf == nil {
+			t.Fatal("GetCarrierFacility(1) returned nil")
+		}
+		if cf.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", cf.GetId())
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetCarrierFacility(ctx, &pb.GetCarrierFacilityRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetCarrierFacility(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+func TestGetOrganization(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Organization.Create().
+		SetID(1).SetName("Google LLC").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &OrganizationService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetOrganization(ctx, &pb.GetOrganizationRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetOrganization(1) unexpected error: %v", err)
+		}
+		o := resp.GetOrganization()
+		if o == nil {
+			t.Fatal("GetOrganization(1) returned nil")
+		}
+		if o.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", o.GetId())
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetOrganization(ctx, &pb.GetOrganizationRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetOrganization(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+func TestGetPoc(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// Poc FK references Network via net_id -- create parent.
+	client.Network.Create().
+		SetID(100).SetName("Net-100").SetAsn(65001).SetStatus("ok").
+		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
+		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).
+		SaveX(ctx)
+	client.Poc.Create().
+		SetID(1).SetRole("Abuse").SetName("Abuse Contact").SetNetID(100).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &PocService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetPoc(ctx, &pb.GetPocRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetPoc(1) unexpected error: %v", err)
+		}
+		p := resp.GetPoc()
+		if p == nil {
+			t.Fatal("GetPoc(1) returned nil")
+		}
+		if p.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", p.GetId())
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetPoc(ctx, &pb.GetPocRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetPoc(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+func TestGetIxPrefix(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.IxPrefix.Create().
+		SetID(1).SetPrefix("192.0.2.0/24").SetProtocol("IPv4").SetInDfz(true).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &IxPrefixService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetIxPrefix(ctx, &pb.GetIxPrefixRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetIxPrefix(1) unexpected error: %v", err)
+		}
+		p := resp.GetIxPrefix()
+		if p == nil {
+			t.Fatal("GetIxPrefix(1) returned nil")
+		}
+		if p.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", p.GetId())
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetIxPrefix(ctx, &pb.GetIxPrefixRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetIxPrefix(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+func TestGetNetworkIxLan(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.NetworkIxLan.Create().
+		SetID(1).SetAsn(15169).SetSpeed(10000).SetBfdSupport(false).
+		SetIsRsPeer(false).SetOperational(true).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	svc := &NetworkIxLanService{Client: client}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		resp, err := svc.GetNetworkIxLan(ctx, &pb.GetNetworkIxLanRequest{Id: 1})
+		if err != nil {
+			t.Fatalf("GetNetworkIxLan(1) unexpected error: %v", err)
+		}
+		n := resp.GetNetworkIxLan()
+		if n == nil {
+			t.Fatal("GetNetworkIxLan(1) returned nil")
+		}
+		if n.GetId() != 1 {
+			t.Errorf("Id = %d, want 1", n.GetId())
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+		_, err := svc.GetNetworkIxLan(ctx, &pb.GetNetworkIxLanRequest{Id: 999999})
+		if err == nil {
+			t.Fatal("GetNetworkIxLan(999999) expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeNotFound {
+			t.Errorf("error code = %v, want %v", code, connect.CodeNotFound)
+		}
+	})
+}
+
+// =======================================================================
+// Stream test helpers and tests for non-Network entity types
+// =======================================================================
+
+func setupFacilityStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.FacilityServiceClient {
+	t.Helper()
+	svc := &FacilityService{Client: client, StreamTimeout: 30 * time.Second}
+	mux := http.NewServeMux()
+	mux.Handle(peeringdbv1connect.NewFacilityServiceHandler(svc))
+	srv := httptest.NewUnstartedServer(mux)
+	srv.EnableHTTP2 = true
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	return peeringdbv1connect.NewFacilityServiceClient(srv.Client(), srv.URL)
+}
+
+func TestStreamFacilities(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Facility.Create().
+		SetID(1).SetName("Equinix DA1").SetCountry("US").SetCity("Dallas").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(2).SetName("Equinix LD5").SetCountry("GB").SetCity("London").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	rpcClient := setupFacilityStreamServer(t, client)
+
+	tests := []struct {
+		name    string
+		req     *pb.StreamFacilitiesRequest
+		wantLen int
+	}{
+		{
+			name:    "all records",
+			req:     &pb.StreamFacilitiesRequest{},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by country",
+			req:     &pb.StreamFacilitiesRequest{Country: proto.String("US")},
+			wantLen: 1,
+		},
+		{
+			name:    "filter by name case insensitive",
+			req:     &pb.StreamFacilitiesRequest{Name: proto.String("ld5")},
+			wantLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stream, err := rpcClient.StreamFacilities(ctx, tt.req)
+			if err != nil {
+				t.Fatalf("StreamFacilities returned error: %v", err)
+			}
+			var count int
+			for stream.Receive() {
+				if stream.Msg() == nil {
+					t.Fatal("received nil message")
+				}
+				count++
+			}
+			if streamErr := stream.Err(); streamErr != nil {
+				t.Fatalf("stream error: %v", streamErr)
+			}
+			if count != tt.wantLen {
+				t.Errorf("got %d messages, want %d", count, tt.wantLen)
+			}
+		})
+	}
+}
+
+func setupOrganizationStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.OrganizationServiceClient {
+	t.Helper()
+	svc := &OrganizationService{Client: client, StreamTimeout: 30 * time.Second}
+	mux := http.NewServeMux()
+	mux.Handle(peeringdbv1connect.NewOrganizationServiceHandler(svc))
+	srv := httptest.NewUnstartedServer(mux)
+	srv.EnableHTTP2 = true
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	return peeringdbv1connect.NewOrganizationServiceClient(srv.Client(), srv.URL)
+}
+
+func TestStreamOrganizations(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Organization.Create().
+		SetID(1).SetName("Google LLC").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Organization.Create().
+		SetID(2).SetName("Cloudflare Inc").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	rpcClient := setupOrganizationStreamServer(t, client)
+
+	tests := []struct {
+		name    string
+		req     *pb.StreamOrganizationsRequest
+		wantLen int
+	}{
+		{
+			name:    "all records",
+			req:     &pb.StreamOrganizationsRequest{},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by name",
+			req:     &pb.StreamOrganizationsRequest{Name: proto.String("google")},
+			wantLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stream, err := rpcClient.StreamOrganizations(ctx, tt.req)
+			if err != nil {
+				t.Fatalf("StreamOrganizations returned error: %v", err)
+			}
+			var count int
+			for stream.Receive() {
+				count++
+			}
+			if streamErr := stream.Err(); streamErr != nil {
+				t.Fatalf("stream error: %v", streamErr)
+			}
+			if count != tt.wantLen {
+				t.Errorf("got %d messages, want %d", count, tt.wantLen)
+			}
+		})
+	}
+}
+
+func setupCampusStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.CampusServiceClient {
+	t.Helper()
+	svc := &CampusService{Client: client, StreamTimeout: 30 * time.Second}
+	mux := http.NewServeMux()
+	mux.Handle(peeringdbv1connect.NewCampusServiceHandler(svc))
+	srv := httptest.NewUnstartedServer(mux)
+	srv.EnableHTTP2 = true
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	return peeringdbv1connect.NewCampusServiceClient(srv.Client(), srv.URL)
+}
+
+func TestStreamCampuses(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Campus.Create().
+		SetID(1).SetName("Campus Alpha").SetCountry("US").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Campus.Create().
+		SetID(2).SetName("Campus Beta").SetCountry("GB").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	rpcClient := setupCampusStreamServer(t, client)
+
+	tests := []struct {
+		name    string
+		req     *pb.StreamCampusesRequest
+		wantLen int
+	}{
+		{
+			name:    "all records",
+			req:     &pb.StreamCampusesRequest{},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by country",
+			req:     &pb.StreamCampusesRequest{Country: proto.String("US")},
+			wantLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stream, err := rpcClient.StreamCampuses(ctx, tt.req)
+			if err != nil {
+				t.Fatalf("StreamCampuses returned error: %v", err)
+			}
+			var count int
+			for stream.Receive() {
+				count++
+			}
+			if streamErr := stream.Err(); streamErr != nil {
+				t.Fatalf("stream error: %v", streamErr)
+			}
+			if count != tt.wantLen {
+				t.Errorf("got %d messages, want %d", count, tt.wantLen)
+			}
+		})
+	}
+}
+
+func setupCarrierStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.CarrierServiceClient {
+	t.Helper()
+	svc := &CarrierService{Client: client, StreamTimeout: 30 * time.Second}
+	mux := http.NewServeMux()
+	mux.Handle(peeringdbv1connect.NewCarrierServiceHandler(svc))
+	srv := httptest.NewUnstartedServer(mux)
+	srv.EnableHTTP2 = true
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	return peeringdbv1connect.NewCarrierServiceClient(srv.Client(), srv.URL)
+}
+
+func TestStreamCarriers(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Carrier.Create().
+		SetID(1).SetName("Zayo").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Carrier.Create().
+		SetID(2).SetName("Lumen").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	rpcClient := setupCarrierStreamServer(t, client)
+
+	tests := []struct {
+		name    string
+		req     *pb.StreamCarriersRequest
+		wantLen int
+	}{
+		{
+			name:    "all records",
+			req:     &pb.StreamCarriersRequest{},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by name",
+			req:     &pb.StreamCarriersRequest{Name: proto.String("zayo")},
+			wantLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stream, err := rpcClient.StreamCarriers(ctx, tt.req)
+			if err != nil {
+				t.Fatalf("StreamCarriers returned error: %v", err)
+			}
+			var count int
+			for stream.Receive() {
+				count++
+			}
+			if streamErr := stream.Err(); streamErr != nil {
+				t.Fatalf("stream error: %v", streamErr)
+			}
+			if count != tt.wantLen {
+				t.Errorf("got %d messages, want %d", count, tt.wantLen)
+			}
+		})
+	}
+}
+
+func setupInternetExchangeStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.InternetExchangeServiceClient {
+	t.Helper()
+	svc := &InternetExchangeService{Client: client, StreamTimeout: 30 * time.Second}
+	mux := http.NewServeMux()
+	mux.Handle(peeringdbv1connect.NewInternetExchangeServiceHandler(svc))
+	srv := httptest.NewUnstartedServer(mux)
+	srv.EnableHTTP2 = true
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	return peeringdbv1connect.NewInternetExchangeServiceClient(srv.Client(), srv.URL)
+}
+
+func TestStreamInternetExchanges(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.InternetExchange.Create().
+		SetID(1).SetName("DE-CIX Frankfurt").SetCountry("DE").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.InternetExchange.Create().
+		SetID(2).SetName("AMS-IX").SetCountry("NL").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	rpcClient := setupInternetExchangeStreamServer(t, client)
+
+	tests := []struct {
+		name    string
+		req     *pb.StreamInternetExchangesRequest
+		wantLen int
+	}{
+		{
+			name:    "all records",
+			req:     &pb.StreamInternetExchangesRequest{},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by country",
+			req:     &pb.StreamInternetExchangesRequest{Country: proto.String("DE")},
+			wantLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stream, err := rpcClient.StreamInternetExchanges(ctx, tt.req)
+			if err != nil {
+				t.Fatalf("StreamInternetExchanges returned error: %v", err)
+			}
+			var count int
+			for stream.Receive() {
+				count++
+			}
+			if streamErr := stream.Err(); streamErr != nil {
+				t.Fatalf("stream error: %v", streamErr)
+			}
+			if count != tt.wantLen {
+				t.Errorf("got %d messages, want %d", count, tt.wantLen)
+			}
+		})
+	}
+}
+
+func setupIxLanStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.IxLanServiceClient {
+	t.Helper()
+	svc := &IxLanService{Client: client, StreamTimeout: 30 * time.Second}
+	mux := http.NewServeMux()
+	mux.Handle(peeringdbv1connect.NewIxLanServiceHandler(svc))
+	srv := httptest.NewUnstartedServer(mux)
+	srv.EnableHTTP2 = true
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	return peeringdbv1connect.NewIxLanServiceClient(srv.Client(), srv.URL)
+}
+
+func TestStreamIxLans(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.InternetExchange.Create().
+		SetID(10).SetName("IX-10").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxLan.Create().
+		SetID(1).SetIxID(10).SetName("LAN-A").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxLan.Create().
+		SetID(2).SetIxID(10).SetName("LAN-B").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	rpcClient := setupIxLanStreamServer(t, client)
+
+	tests := []struct {
+		name    string
+		req     *pb.StreamIxLansRequest
+		wantLen int
+	}{
+		{
+			name:    "all records",
+			req:     &pb.StreamIxLansRequest{},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by ix_id",
+			req:     &pb.StreamIxLansRequest{IxId: proto.Int64(10)},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by name",
+			req:     &pb.StreamIxLansRequest{Name: proto.String("lan-a")},
+			wantLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stream, err := rpcClient.StreamIxLans(ctx, tt.req)
+			if err != nil {
+				t.Fatalf("StreamIxLans returned error: %v", err)
+			}
+			var count int
+			for stream.Receive() {
+				count++
+			}
+			if streamErr := stream.Err(); streamErr != nil {
+				t.Fatalf("stream error: %v", streamErr)
+			}
+			if count != tt.wantLen {
+				t.Errorf("got %d messages, want %d", count, tt.wantLen)
+			}
+		})
+	}
+}
+
+func setupIxFacilityStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.IxFacilityServiceClient {
+	t.Helper()
+	svc := &IxFacilityService{Client: client, StreamTimeout: 30 * time.Second}
+	mux := http.NewServeMux()
+	mux.Handle(peeringdbv1connect.NewIxFacilityServiceHandler(svc))
+	srv := httptest.NewUnstartedServer(mux)
+	srv.EnableHTTP2 = true
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	return peeringdbv1connect.NewIxFacilityServiceClient(srv.Client(), srv.URL)
+}
+
+func TestStreamIxFacilities(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.InternetExchange.Create().
+		SetID(10).SetName("IX-10").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(100).SetName("Fac-100").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxFacility.Create().
+		SetID(1).SetIxID(10).SetFacID(100).SetName("IXF-A").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.IxFacility.Create().
+		SetID(2).SetIxID(10).SetFacID(100).SetName("IXF-B").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	rpcClient := setupIxFacilityStreamServer(t, client)
+
+	tests := []struct {
+		name    string
+		req     *pb.StreamIxFacilitiesRequest
+		wantLen int
+	}{
+		{
+			name:    "all records",
+			req:     &pb.StreamIxFacilitiesRequest{},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by ix_id",
+			req:     &pb.StreamIxFacilitiesRequest{IxId: proto.Int64(10)},
+			wantLen: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stream, err := rpcClient.StreamIxFacilities(ctx, tt.req)
+			if err != nil {
+				t.Fatalf("StreamIxFacilities returned error: %v", err)
+			}
+			var count int
+			for stream.Receive() {
+				count++
+			}
+			if streamErr := stream.Err(); streamErr != nil {
+				t.Fatalf("stream error: %v", streamErr)
+			}
+			if count != tt.wantLen {
+				t.Errorf("got %d messages, want %d", count, tt.wantLen)
+			}
+		})
+	}
+}
+
+func setupNetworkFacilityStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.NetworkFacilityServiceClient {
+	t.Helper()
+	svc := &NetworkFacilityService{Client: client, StreamTimeout: 30 * time.Second}
+	mux := http.NewServeMux()
+	mux.Handle(peeringdbv1connect.NewNetworkFacilityServiceHandler(svc))
+	srv := httptest.NewUnstartedServer(mux)
+	srv.EnableHTTP2 = true
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	return peeringdbv1connect.NewNetworkFacilityServiceClient(srv.Client(), srv.URL)
+}
+
+func TestStreamNetworkFacilities(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client := testutil.SetupClient(t)
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	client.Network.Create().
+		SetID(100).SetName("Net-100").SetAsn(65001).SetStatus("ok").
+		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
+		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).
+		SaveX(ctx)
+	client.Facility.Create().
+		SetID(200).SetName("Fac-200").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.NetworkFacility.Create().
+		SetID(1).SetNetID(100).SetFacID(200).SetLocalAsn(65001).SetName("NF-A").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	client.NetworkFacility.Create().
+		SetID(2).SetNetID(100).SetFacID(200).SetLocalAsn(65001).SetName("NF-B").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	rpcClient := setupNetworkFacilityStreamServer(t, client)
+
+	tests := []struct {
+		name    string
+		req     *pb.StreamNetworkFacilitiesRequest
+		wantLen int
+	}{
+		{
+			name:    "all records",
+			req:     &pb.StreamNetworkFacilitiesRequest{},
+			wantLen: 2,
+		},
+		{
+			name:    "filter by net_id",
+			req:     &pb.StreamNetworkFacilitiesRequest{NetId: proto.Int64(100)},
+			wantLen: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stream, err := rpcClient.StreamNetworkFacilities(ctx, tt.req)
+			if err != nil {
+				t.Fatalf("StreamNetworkFacilities returned error: %v", err)
+			}
+			var count int
+			for stream.Receive() {
+				count++
+			}
+			if streamErr := stream.Err(); streamErr != nil {
+				t.Fatalf("stream error: %v", streamErr)
+			}
+			if count != tt.wantLen {
+				t.Errorf("got %d messages, want %d", count, tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestStreamNetworksInfoTypeFilter(t *testing.T) {
+	t.Parallel()
+	entClient := testutil.SetupClient(t)
+	ctx := context.Background()
+	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	entClient.Network.Create().
+		SetID(1).SetName("CDN Corp").SetAsn(65001).SetInfoType("Content").
+		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
+		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+	entClient.Network.Create().
+		SetID(2).SetName("ISP Corp").SetAsn(65002).SetInfoType("NSP").
+		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
+		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SaveX(ctx)
+
+	rpcClient := setupStreamTestServer(t, entClient)
+
+	stream, err := rpcClient.StreamNetworks(ctx, &pb.StreamNetworksRequest{
+		InfoType: proto.String("Content"),
+	})
+	if err != nil {
+		t.Fatalf("StreamNetworks returned error: %v", err)
+	}
+
+	var count int
+	for stream.Receive() {
+		if stream.Msg() == nil {
+			t.Fatal("received nil message")
+		}
+		count++
+	}
+	if streamErr := stream.Err(); streamErr != nil {
+		t.Fatalf("stream error: %v", streamErr)
+	}
+	if count != 1 {
+		t.Errorf("got %d messages, want 1", count)
+	}
+}
