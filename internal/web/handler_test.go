@@ -1096,6 +1096,105 @@ func TestTerminal404JSON(t *testing.T) {
 	}
 }
 
+func TestDetailPages_DispatchModes(t *testing.T) {
+	t.Parallel()
+	mux := setupAllTestMux(t)
+
+	tests := []struct {
+		name        string
+		path        string
+		userAgent   string
+		wantStatus  int
+		wantCT      string
+		wantContain []string
+		wantAbsent  []string
+	}{
+		{
+			name:        "network terminal rich",
+			path:        "/ui/asn/13335",
+			userAgent:   "curl/8.5.0",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"\x1b[", "Cloudflare"},
+			wantAbsent:  []string{"<!doctype html>"},
+		},
+		{
+			name:        "network JSON",
+			path:        "/ui/asn/13335?format=json",
+			wantStatus:  200,
+			wantCT:      "application/json",
+			wantContain: []string{"{", "Cloudflare"},
+		},
+		{
+			name:        "network WHOIS",
+			path:        "/ui/asn/13335?format=whois",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"aut-num:", "Cloudflare"},
+		},
+		{
+			name:        "network short",
+			path:        "/ui/asn/13335?format=short",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"AS13335"},
+		},
+		{
+			name:        "ix terminal rich",
+			path:        "/ui/ix/20",
+			userAgent:   "curl/8.5.0",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"\x1b[", "DE-CIX"},
+		},
+		{
+			name:        "ix WHOIS",
+			path:        "/ui/ix/20?format=whois",
+			wantStatus:  200,
+			wantCT:      "text/plain",
+			wantContain: []string{"DE-CIX"},
+		},
+		{
+			name:        "facility JSON",
+			path:        "/ui/fac/30?format=json",
+			wantStatus:  200,
+			wantCT:      "application/json",
+			wantContain: []string{"{", "Equinix"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			if tt.userAgent != "" {
+				req.Header.Set("User-Agent", tt.userAgent)
+			}
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+			ct := rec.Header().Get("Content-Type")
+			if !strings.HasPrefix(ct, tt.wantCT) {
+				t.Fatalf("Content-Type = %q, want prefix %q", ct, tt.wantCT)
+			}
+			body := rec.Body.String()
+			for _, s := range tt.wantContain {
+				if !strings.Contains(body, s) {
+					t.Errorf("body missing %q (first 500 chars: %s)", s, truncateBody(body, 500))
+				}
+			}
+			for _, s := range tt.wantAbsent {
+				if strings.Contains(body, s) {
+					t.Errorf("body unexpectedly contains %q", s)
+				}
+			}
+		})
+	}
+}
+
 func TestKeyboardNav_Integration(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)

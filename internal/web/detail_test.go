@@ -6,8 +6,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
@@ -511,5 +513,90 @@ func TestFragment_InvalidPath(t *testing.T) {
 				t.Fatalf("expected status 404, got %d", rec.Code)
 			}
 		})
+	}
+}
+
+func TestFragments_OrgCampusesAndCarriers(t *testing.T) {
+	t.Parallel()
+	mux := setupAllTestMux(t)
+
+	tests := []struct {
+		name     string
+		url      string
+		wantCode int
+		wantBody []string
+	}{
+		{"org campuses", "/ui/fragment/org/1/campuses", http.StatusOK, []string{"Test Campus"}},
+		{"org carriers", "/ui/fragment/org/1/carriers", http.StatusOK, []string{"Test Carrier"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantCode {
+				t.Fatalf("expected status %d, got %d", tt.wantCode, rec.Code)
+			}
+
+			body := rec.Body.String()
+			for _, want := range tt.wantBody {
+				if !strings.Contains(body, want) {
+					t.Errorf("response missing %q", want)
+				}
+			}
+		})
+	}
+}
+
+func TestGetFreshness_WithSyncRecord(t *testing.T) {
+	t.Parallel()
+	client, db := testutil.SetupClientWithDB(t)
+	ctx := context.Background()
+
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	startedAt := time.Now().Add(-time.Hour)
+	id, err := sync.RecordSyncStart(ctx, db, startedAt)
+	if err != nil {
+		t.Fatalf("record sync start: %v", err)
+	}
+
+	completedAt := time.Now().Add(-30 * time.Minute)
+	err = sync.RecordSyncComplete(ctx, db, id, sync.Status{
+		LastSyncAt: completedAt,
+		Duration:   5 * time.Second,
+		Status:     "success",
+	})
+	if err != nil {
+		t.Fatalf("record sync complete: %v", err)
+	}
+
+	h := NewHandler(client, db)
+	freshness := h.getFreshness(ctx)
+
+	if freshness.IsZero() {
+		t.Error("getFreshness should return non-zero time after sync record insertion")
+	}
+}
+
+func TestGetFreshness_EmptyTable(t *testing.T) {
+	t.Parallel()
+	client, db := testutil.SetupClientWithDB(t)
+	ctx := context.Background()
+
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	h := NewHandler(client, db)
+	freshness := h.getFreshness(ctx)
+
+	if !freshness.IsZero() {
+		t.Errorf("getFreshness should return zero time with empty table, got %v", freshness)
 	}
 }
