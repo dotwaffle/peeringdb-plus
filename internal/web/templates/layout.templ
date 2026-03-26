@@ -20,6 +20,7 @@ templ Layout(title string, contents templ.Component) {
 			</script>
 			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 			<script src="/static/htmx.min.js"></script>
+			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/css/flag-icons.min.css"/>
 			<style type="text/tailwindcss">
 				@custom-variant dark (&:where(.dark, .dark *));
 				@theme {
@@ -37,6 +38,11 @@ templ Layout(title string, contents templ.Component) {
 				.animate-fade-in { animation: fadeIn 200ms ease-out; }
 				.htmx-swapping { opacity: 0; transition: opacity 100ms ease-out; }
 				.htmx-settling { opacity: 1; transition: opacity 200ms ease-in; }
+				th[data-sortable] { cursor: pointer; user-select: none; position: relative; padding-right: 1.25rem; }
+				th[data-sortable]::after { content: ''; position: absolute; right: 0.25rem; top: 50%; transform: translateY(-50%); }
+				th[data-sort-active="asc"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #10b981; }
+				th[data-sort-active="desc"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid #10b981; }
+				th[data-sortable]:not([data-sort-active])::after { border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid #525252; margin-top: 2px; }
 				#global-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 50; }
 				.htmx-request #global-indicator, .htmx-request#global-indicator { opacity: 1; transition-delay: 0ms; }
 			</style>
@@ -171,6 +177,68 @@ templ Layout(title string, contents templ.Component) {
 					el.appendChild(wrapper);
 					htmx.process(el);
 				}
+			});
+		})();
+		</script>
+		<script>
+		// Table sort handler for sortable detail tables (Phase 43).
+		// Uses event delegation on document for htmx-injected content.
+		(function() {
+			function applySort(th) {
+				var table = th.closest('table');
+				var tbody = table.querySelector('tbody');
+				var colIndex = parseInt(th.getAttribute('data-sort-col'), 10);
+				var sortType = th.getAttribute('data-sort-type');
+
+				// Toggle direction
+				var current = th.getAttribute('data-sort-active');
+				var asc = current !== 'asc';
+
+				// Clear all sort indicators in this table
+				table.querySelectorAll('th[data-sortable]').forEach(function(h) {
+					h.removeAttribute('data-sort-active');
+				});
+				th.setAttribute('data-sort-active', asc ? 'asc' : 'desc');
+
+				var rows = Array.from(tbody.querySelectorAll('tr'));
+				rows.sort(function(a, b) {
+					var aCell = a.children[colIndex];
+					var bCell = b.children[colIndex];
+					var aVal = aCell ? aCell.getAttribute('data-sort-value') || '' : '';
+					var bVal = bCell ? bCell.getAttribute('data-sort-value') || '' : '';
+
+					// Empty values sort last regardless of direction (D-13)
+					if (aVal === '' && bVal !== '') return 1;
+					if (aVal !== '' && bVal === '') return -1;
+					if (aVal === '' && bVal === '') return 0;
+
+					var cmp;
+					if (sortType === 'numeric') {
+						cmp = parseFloat(aVal) - parseFloat(bVal);
+					} else {
+						cmp = aVal.localeCompare(bVal, undefined, {sensitivity: 'base'});
+					}
+					return asc ? cmp : -cmp;
+				});
+
+				rows.forEach(function(row) { tbody.appendChild(row); });
+			}
+
+			document.addEventListener('click', function(e) {
+				var th = e.target.closest('th[data-sortable]');
+				if (!th) return;
+				applySort(th);
+			});
+
+			// Auto-apply default sort indicator on htmx fragment load
+			document.addEventListener('htmx:afterSwap', function(e) {
+				var tables = (e.detail.target || document).querySelectorAll('table.sortable');
+				tables.forEach(function(table) {
+					var defaultTh = table.querySelector('th[data-sort-default]');
+					if (defaultTh && !table.querySelector('th[data-sort-active]')) {
+						defaultTh.setAttribute('data-sort-active', defaultTh.getAttribute('data-sort-default'));
+					}
+				});
 			});
 		})();
 		</script>
