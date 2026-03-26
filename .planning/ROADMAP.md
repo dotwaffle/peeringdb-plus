@@ -183,7 +183,7 @@ Plans:
   2. FK edge cases (creating an entity with a non-existent FK reference, nullable FK set to nil) have tests that verify the correct ent error is returned or the entity is created successfully
   3. Running `go test -race -cover` on `internal/otel`, `internal/health`, and `internal/peeringdb` each reports 90%+ coverage, with new tests specifically targeting error returns (not just happy paths)
   4. Running `go tool cover -func` on `ent/schema/` hand-written files shows 65%+ coverage
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 41-01-PLAN.md -- Schema hook error path, FK constraint tests, Edges/Indexes/Annotations coverage for all 13 types
@@ -212,5 +212,5 @@ Phases execute in numeric order: 37 -> 38 -> 39 -> 40 -> 41 -> 42
 | 38. GraphQL Resolver Coverage | 1/1 | Complete    | 2026-03-26 |
 | 39. gRPC Handler Coverage | 1/1 | Complete    | 2026-03-26 |
 | 40. Web Handler Coverage | 1/1 | Complete    | 2026-03-26 |
-| 41. Schema & Minor Package Coverage | 1/2 | In Progress|  |
+| 41. Schema & Minor Package Coverage | 1/2 | Complete    | 2026-03-26 |
 | 42. Test Quality Audit & Coverage Hygiene | 0/? | Not started | - |
