@@ -1,133 +1,100 @@
 # Requirements: PeeringDB Plus
 
-**Defined:** 2026-03-25
+**Defined:** 2026-03-26
 **Core Value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-## v1.8 Requirements
+## v1.9 Requirements
 
-Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
+Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 
-### Detection
+### Performance
 
-- [x] **DET-01**: Terminal clients (curl, wget, HTTPie, xh, PowerShell, fetch) auto-detected via User-Agent prefix matching
-- [x] **DET-02**: User can force plain text via ?T or ?format=plain query parameter
-- [x] **DET-03**: User can force JSON via ?format=json query parameter
-- [x] **DET-04**: Accept header (text/plain, application/json) serves as secondary format signal
-- [x] **DET-05**: Content negotiation applies to all /ui/ paths — browsers get HTML unchanged
+- [ ] **PERF-01**: Search service uses a single query per entity type instead of separate item + count queries
+- [ ] **PERF-02**: API responses include HTTP caching headers (Cache-Control, ETag) derived from sync timestamp
+- [ ] **PERF-03**: Database indexes exist on `updated` and `created` fields for incremental sync and filtered queries
+- [ ] **PERF-04**: Benchmark suite covers search, field projection, gRPC streaming conversion, and sync upsert hot paths
+- [ ] **PERF-05**: Field projection in pdbcompat avoids JSON marshal/unmarshal roundtrip per item
 
-### Rendering
+### Code Quality
 
-- [x] **RND-01**: Rich 256-color ANSI output with Unicode box-drawing for terminal clients
-- [x] **RND-02**: Network detail (/ui/asn/{asn}) renders with whois-style key-value header + IX/facility tables
-- [x] **RND-03**: IX detail (/ui/ix/{id}) renders with participant table, facility list, prefix list
-- [x] **RND-04**: Facility detail (/ui/fac/{id}) renders with address, network/IX/carrier lists
-- [ ] **RND-05**: Org detail (/ui/org/{id}) renders with child entity lists
-- [ ] **RND-06**: Campus detail (/ui/campus/{id}) renders with facility list
-- [ ] **RND-07**: Carrier detail (/ui/carrier/{id}) renders with facility list
-- [x] **RND-08**: Search results (/ui/?q=...) render as grouped text list for terminal clients
-- [x] **RND-09**: ASN comparison (/ui/compare/{asn1}/{asn2}) renders shared IXPs/facilities/campuses
-- [x] **RND-10**: Plain text mode (?T) produces identical layout with ASCII box drawing, no ANSI codes
-- [x] **RND-11**: JSON mode (?format=json) outputs the same data structures as JSON
-- [x] **RND-12**: Port speed tiers color-coded (gray/neutral/blue/emerald/amber) matching web UI
-- [x] **RND-13**: Peering policy color-coded (Open=green, Selective=yellow, Restrictive=red)
-- [x] **RND-14**: Route server peers marked with colored [RS] badge in IX presence tables
-- [x] **RND-15**: Aggregate bandwidth displayed in network and IX detail headers
-- [x] **RND-16**: Entity IDs and cross-reference paths shown in output for easy follow-up curls
-- [x] **RND-17**: WHOIS-style output mode (?format=whois) using RPSL-like key-value format
-- [x] **RND-18**: NO_COLOR convention respected — suppress ANSI codes when ?nocolor param present
+- [x] **QUAL-01**: gRPC service handlers share a generic List/Stream implementation, eliminating ~1,154 lines of duplicated logic across 13 files
+- [x] **QUAL-02**: All error logging uses `slog.Any("error", err)` instead of `slog.String("error", err.Error())`
+- [x] **QUAL-03**: Test coverage for `internal/grpcserver` reaches 60%+ and `internal/middleware` reaches 60%+
+- [x] **QUAL-04**: Web detail handlers in `detail.go` are refactored to separate query logic from rendering (each under 80 lines)
 
-### Navigation
+### Architecture
 
-- [x] **NAV-01**: Help text at /ui/ for terminal clients listing endpoints, params, and examples
-- [x] **NAV-02**: Text-formatted 404 error for terminal clients (not HTML)
-- [x] **NAV-03**: Text-formatted 500 error for terminal clients (not HTML)
-- [x] **NAV-04**: Root handler (/) returns help text for terminal clients (not redirect)
+- [ ] **ARCH-01**: All 6 API surfaces return errors in a consistent format with code, message, and optional details
+- [x] **ARCH-02**: ConnectRPC List RPCs expose the same filterable fields as the PeeringDB compat layer for each entity type
+- [x] **ARCH-03**: CORS middleware runs before OTel tracing in the middleware chain so OPTIONS preflight requests are not traced/logged
+- [x] **ARCH-04**: Terminal renderer dispatches to entity renderers via interface rather than type-switch on concrete template types
 
-### Differentiators
+### Web UI
 
-- [x] **DIF-01**: One-line summary mode (?format=short) outputs single-line entity summary
-- [x] **DIF-02**: Data freshness timestamp footer on all terminal responses
-- [ ] **DIF-03**: Section filtering (?section=ix,fac) renders only requested sections
-- [ ] **DIF-04**: Width parameter (?w=N) adapts table rendering to specified column width
+- [ ] **UI-01**: Dark mode text passes WCAG AA contrast ratio (4.5:1 minimum) on all pages
+- [ ] **UI-02**: All interactive elements have ARIA attributes (nav role, aria-expanded on mobile menu, form labels on search)
+- [ ] **UI-03**: Search results update the browser URL so searches are bookmarkable and shareable
+- [ ] **UI-04**: Failed htmx collapsible section loads show an error message with retry option instead of perpetual "Loading..."
+- [ ] **UI-05**: Detail pages include breadcrumb navigation (Home > Type > Entity)
+- [ ] **UI-06**: Mobile navigation menu closes after clicking a link
+- [ ] **UI-07**: Compare button on network detail pages is visually distinct from the page background
 
-### Shell Integration
+### Terminal UI
 
-- [x] **SHL-01**: Bash completion script downloadable from server for entity type/ASN completion
-- [x] **SHL-02**: Zsh completion script downloadable from server for entity type/ASN completion
-- [x] **SHL-03**: Shell alias/function setup instructions in help text
+- [ ] **TUI-01**: Long entity names in terminal output wrap intelligently instead of being truncated
+- [ ] **TUI-02**: Terminal error responses (404, 500, sync-not-ready) use styled text formatting consistent with normal output
 
 ## Future Requirements
 
-Deferred to future release.
+### Deferred from previous milestones
 
-### Extended Formats
-
-- **FMT-01**: CSV/TSV output mode for spreadsheet import
-- **FMT-02**: Custom format strings like wttr.in's ?format=%l:+%c+%t
-
-### Extended Shell
-
-- **SHL-04**: Fish completion script
-- **SHL-05**: Downloadable standalone CLI wrapper script (curl-based, not Go binary)
+- **SYNC-01**: SyncStatus custom RPC — available via existing REST/GraphQL
+- **BGP-01**: Per-ASN BGP summary from bgp.tools (prefix counts, RPKI coverage)
+- **IRR-01**: IRR/AS-SET membership from WHOIS source
+- **LOOKUP-01**: IP prefix lookup with origin ASN, RPKI status
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Interactive TUI (Bubble Tea) | Server-side HTTP, not client-side binary. User runs curl, not a Go binary |
-| Terminal width auto-detection | Impossible over HTTP. Provide ?w=N parameter instead |
-| Client-side pager support | Cannot control pager from HTTP response. Document `\| less -R` |
-| TrueColor (24-bit) as default | Not universally supported (screen, multiplexers). 256-color sufficient |
-| Custom color themes | Complexity for minimal gain. Ship one well-designed palette |
-| Markdown output format | Format proliferation. JSON for machines, ANSI/text for humans |
-| WHOIS protocol (port 43) | Separate application. Fly.io doesn't easily expose TCP ports |
-| Real-time streaming | curl is request-response. ConnectRPC streaming exists for bulk export |
-| Mobile CLI app | Out of scope. curl is the interface |
+| New API surfaces or entity types | v1.9 is hardening-only; no new features |
+| Write-path / data modification | Read-only mirror by design |
+| Response caching beyond HTTP headers | Application-level cache (e.g., sync.Map) adds complexity; HTTP caching sufficient for hourly sync |
+| gRPC handler code generation | Deduplication via generic helpers preferred over maintaining a codegen tool |
+| Full WCAG AAA compliance | AA is the target; AAA exceeds scope for a developer-focused tool |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DET-01 | Phase 28 | Complete |
-| DET-02 | Phase 28 | Complete |
-| DET-03 | Phase 28 | Complete |
-| DET-04 | Phase 28 | Complete |
-| DET-05 | Phase 28 | Complete |
-| RND-01 | Phase 28 | Complete |
-| RND-02 | Phase 29 | Complete |
-| RND-03 | Phase 30 | Complete |
-| RND-04 | Phase 30 | Complete |
-| RND-05 | Phase 30 | Pending |
-| RND-06 | Phase 30 | Pending |
-| RND-07 | Phase 30 | Pending |
-| RND-08 | Phase 30 | Complete |
-| RND-09 | Phase 30 | Complete |
-| RND-10 | Phase 30 | Complete |
-| RND-11 | Phase 30 | Complete |
-| RND-12 | Phase 29 | Complete |
-| RND-13 | Phase 29 | Complete |
-| RND-14 | Phase 29 | Complete |
-| RND-15 | Phase 29 | Complete |
-| RND-16 | Phase 29 | Complete |
-| RND-17 | Phase 30 | Complete |
-| RND-18 | Phase 28 | Complete |
-| NAV-01 | Phase 28 | Complete |
-| NAV-02 | Phase 28 | Complete |
-| NAV-03 | Phase 28 | Complete |
-| NAV-04 | Phase 28 | Complete |
-| DIF-01 | Phase 31 | Complete |
-| DIF-02 | Phase 31 | Complete |
-| DIF-03 | Phase 31 | Pending |
-| DIF-04 | Phase 31 | Pending |
-| SHL-01 | Phase 31 | Complete |
-| SHL-02 | Phase 31 | Complete |
-| SHL-03 | Phase 31 | Complete |
+| PERF-01 | Phase 34 | Pending |
+| PERF-02 | Phase 35 | Pending |
+| PERF-03 | Phase 34 | Pending |
+| PERF-04 | Phase 35 | Pending |
+| PERF-05 | Phase 34 | Pending |
+| QUAL-01 | Phase 33 | Complete |
+| QUAL-02 | Phase 32 | Complete |
+| QUAL-03 | Phase 33 | Complete |
+| QUAL-04 | Phase 34 | Complete |
+| ARCH-01 | Phase 34 | Pending |
+| ARCH-02 | Phase 33 | Complete |
+| ARCH-03 | Phase 32 | Complete |
+| ARCH-04 | Phase 34 | Complete |
+| UI-01 | Phase 36 | Pending |
+| UI-02 | Phase 36 | Pending |
+| UI-03 | Phase 36 | Pending |
+| UI-04 | Phase 36 | Pending |
+| UI-05 | Phase 36 | Pending |
+| UI-06 | Phase 36 | Pending |
+| UI-07 | Phase 36 | Pending |
+| TUI-01 | Phase 36 | Pending |
+| TUI-02 | Phase 36 | Pending |
 
 **Coverage:**
-- v1.8 requirements: 34 total
-- Mapped to phases: 34
+- v1.9 requirements: 22 total
+- Mapped to phases: 22
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after roadmap creation*
+*Requirements defined: 2026-03-26*
+*Last updated: 2026-03-26 after 34-03 completion*
