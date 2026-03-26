@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/termrender"
 )
@@ -97,9 +98,15 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		}
 		switch page.Title {
 		case "Not Found":
-			return termrender.RenderJSON(w, map[string]any{"error": "not found", "status": 404})
+			return termrender.RenderJSON(w, httperr.NewProblemDetail(httperr.WriteProblemInput{
+				Status: http.StatusNotFound,
+				Detail: "The page you're looking for doesn't exist.",
+			}))
 		case "Server Error":
-			return termrender.RenderJSON(w, map[string]any{"error": "internal server error", "status": 500})
+			return termrender.RenderJSON(w, httperr.NewProblemDetail(httperr.WriteProblemInput{
+				Status: http.StatusInternalServerError,
+				Detail: "An unexpected error occurred.",
+			}))
 		default:
 			return termrender.RenderJSON(w, map[string]string{"title": page.Title})
 		}

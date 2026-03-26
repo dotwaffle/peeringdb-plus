@@ -151,8 +151,8 @@ Plans:
 **Plans:** 1/3 plans executed
 
 Plans:
-- [x] 34-01-PLAN.md -- Search limit+1 optimization, database indexes on updated/created, reflect-based field projection
-- [ ] 34-02-PLAN.md -- RFC 9457 error format (httperr package) integrated into pdbcompat, web JSON mode, and REST middleware
+- [ ] 34-01-PLAN.md -- Search limit+1 optimization, database indexes on updated/created, reflect-based field projection
+- [x] 34-02-PLAN.md -- RFC 9457 error format (httperr package) integrated into pdbcompat, web JSON mode, and REST middleware
 - [ ] 34-03-PLAN.md -- Registered function map renderer dispatch, detail handler refactor with queryXxx methods
 
 ### Phase 35: HTTP Caching & Benchmarks

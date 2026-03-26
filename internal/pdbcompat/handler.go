@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 )
 
 // Handler serves PeeringDB-compatible API endpoints.
@@ -50,7 +51,11 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// Validate type name against Registry.
 	tc, ok := Registry[typeName]
 	if !ok {
-		WriteError(w, http.StatusNotFound, fmt.Sprintf("unknown type %q", typeName))
+		WriteProblem(w, httperr.WriteProblemInput{
+			Status:   http.StatusNotFound,
+			Detail:   fmt.Sprintf("unknown type %q", typeName),
+			Instance: r.URL.Path,
+		})
 		return
 	}
 
@@ -63,7 +68,11 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// Detail endpoint: /api/{type}/{id}
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		WriteError(w, http.StatusBadRequest, fmt.Sprintf("invalid id %q: not an integer", idStr))
+		WriteProblem(w, httperr.WriteProblemInput{
+			Status:   http.StatusBadRequest,
+			Detail:   fmt.Sprintf("invalid id %q: not an integer", idStr),
+			Instance: r.URL.Path,
+		})
 		return
 	}
 	h.serveDetail(tc, id, w, r)
@@ -135,14 +144,22 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// Parse filters per D-09, D-11.
 	filters, err := ParseFilters(params, tc.Fields)
 	if err != nil {
-		WriteError(w, http.StatusBadRequest, fmt.Sprintf("filter error: %v", err))
+		WriteProblem(w, httperr.WriteProblemInput{
+			Status:   http.StatusBadRequest,
+			Detail:   fmt.Sprintf("filter error: %v", err),
+			Instance: r.URL.Path,
+		})
 		return
 	}
 
 	// Parse since per D-15.
 	since, err := ParseSinceParam(params)
 	if err != nil {
-		WriteError(w, http.StatusBadRequest, fmt.Sprintf("invalid since parameter: %v", err))
+		WriteProblem(w, httperr.WriteProblemInput{
+			Status:   http.StatusBadRequest,
+			Detail:   fmt.Sprintf("invalid since parameter: %v", err),
+			Instance: r.URL.Path,
+		})
 		return
 	}
 
@@ -168,7 +185,11 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 
 	results, _, err := tc.List(r.Context(), h.client, opts)
 	if err != nil {
-		WriteError(w, http.StatusInternalServerError, fmt.Sprintf("query error: %v", err))
+		WriteProblem(w, httperr.WriteProblemInput{
+			Status:   http.StatusInternalServerError,
+			Detail:   fmt.Sprintf("query error: %v", err),
+			Instance: r.URL.Path,
+		})
 		return
 	}
 
@@ -202,10 +223,18 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 	result, err := tc.Get(r.Context(), h.client, id, depth)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			WriteError(w, http.StatusNotFound, fmt.Sprintf("%s with id %d not found", tc.Name, id))
+			WriteProblem(w, httperr.WriteProblemInput{
+				Status:   http.StatusNotFound,
+				Detail:   fmt.Sprintf("%s with id %d not found", tc.Name, id),
+				Instance: r.URL.Path,
+			})
 			return
 		}
-		WriteError(w, http.StatusInternalServerError, fmt.Sprintf("query error: %v", err))
+		WriteProblem(w, httperr.WriteProblemInput{
+			Status:   http.StatusInternalServerError,
+			Detail:   fmt.Sprintf("query error: %v", err),
+			Instance: r.URL.Path,
+		})
 		return
 	}
 

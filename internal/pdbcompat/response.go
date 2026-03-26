@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 )
 
 const (
@@ -25,11 +27,6 @@ type envelope struct {
 	Data any `json:"data"`
 }
 
-// errorMeta is the error metadata format per D-24.
-type errorMeta struct {
-	Error string `json:"error"`
-}
-
 // WriteResponse writes a successful PeeringDB-compatible JSON response with
 // the standard envelope format per D-04. Data must be a slice.
 func WriteResponse(w http.ResponseWriter, data any) {
@@ -43,18 +40,12 @@ func WriteResponse(w http.ResponseWriter, data any) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-// WriteError writes a PeeringDB-compatible error response with the standard
-// error envelope format per D-24.
-func WriteError(w http.ResponseWriter, status int, message string) {
-	w.Header().Set("Content-Type", "application/json")
+// WriteProblem writes an RFC 9457 problem detail error response with the
+// X-Powered-By header. This replaces the former PeeringDB error envelope
+// with a standards-based format per ARCH-01.
+func WriteProblem(w http.ResponseWriter, input httperr.WriteProblemInput) {
 	w.Header().Set("X-Powered-By", poweredByHeader)
-	w.WriteHeader(status)
-
-	resp := envelope{
-		Meta: errorMeta{Error: message},
-		Data: []any{},
-	}
-	_ = json.NewEncoder(w).Encode(resp)
+	httperr.WriteProblem(w, input)
 }
 
 // ParsePaginationParams extracts limit and skip from query parameters with
