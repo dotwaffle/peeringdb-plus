@@ -361,6 +361,18 @@ func marshalMarkers(markers []MapMarker) string {
 	return string(b)
 }
 
+// formatMapLocation formats city and country for map popup display.
+// Returns non-empty parts joined by ", ", or empty string if both are empty.
+func formatMapLocation(city, country string) string {
+	if city != "" && country != "" {
+		return city + ", " + country
+	}
+	if city != "" {
+		return city
+	}
+	return country
+}
+
 // marshalLegend serializes legend labels to a JSON string for the initMultiPinMap script.
 func marshalLegend(labels map[string]string) string {
 	if len(labels) == 0 {

@@ -90,6 +90,7 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*temp
 		var err error
 		facNetsA, err = s.client.NetworkFacility.Query().
 			Where(networkfacility.HasNetworkWith(network.ID(netA.ID))).
+			WithFacility(). // Eager-load for coordinates
 			All(gctx)
 		if err != nil {
 			return fmt.Errorf("query facility presences for ASN %d: %w", input.ASN1, err)
@@ -101,6 +102,7 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*temp
 		var err error
 		facNetsB, err = s.client.NetworkFacility.Query().
 			Where(networkfacility.HasNetworkWith(network.ID(netB.ID))).
+			WithFacility(). // Eager-load for coordinates
 			All(gctx)
 		if err != nil {
 			return fmt.Errorf("query facility presences for ASN %d: %w", input.ASN2, err)
@@ -141,10 +143,12 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*temp
 		ViewMode:         input.ViewMode,
 	}
 
-	// Full view: compute union of all presences with shared flags.
+	// Always compute all facilities for map rendering (D-08, D-12).
+	data.AllFacilities = computeAllFacilities(facNetsA, facNetsB)
+
+	// Full view: compute union of all IXP presences with shared flags.
 	if input.ViewMode == "full" {
 		data.AllIXPs = computeAllIXPs(ixLansA, ixLansB)
-		data.AllFacilities = computeAllFacilities(facNetsA, facNetsB)
 	}
 
 	return data, nil
@@ -199,7 +203,7 @@ func computeSharedFacilities(a, b []*ent.NetworkFacility) []templates.CompareFac
 		facID := *nf.FacID
 		if nfA, ok := facMapA[facID]; ok && !seen[facID] {
 			seen[facID] = true
-			shared = append(shared, templates.CompareFacility{
+			cf := templates.CompareFacility{
 				FacID:   facID,
 				FacName: nfA.Name,
 				City:    nfA.City,
@@ -207,7 +211,16 @@ func computeSharedFacilities(a, b []*ent.NetworkFacility) []templates.CompareFac
 				Shared:  true,
 				NetA:    &templates.CompareFacPresence{LocalASN: nfA.LocalAsn},
 				NetB:    &templates.CompareFacPresence{LocalASN: nf.LocalAsn},
-			})
+			}
+			if fac := nfA.Edges.Facility; fac != nil {
+				if fac.Latitude != nil {
+					cf.Latitude = *fac.Latitude
+				}
+				if fac.Longitude != nil {
+					cf.Longitude = *fac.Longitude
+				}
+			}
+			shared = append(shared, cf)
 		}
 	}
 
@@ -390,8 +403,22 @@ func computeAllFacilities(a, b []*ent.NetworkFacility) []templates.CompareFacili
 		facName string
 		city    string
 		country string
+		lat     float64
+		lng     float64
 		netA    *templates.CompareFacPresence
 		netB    *templates.CompareFacPresence
+	}
+
+	// extractCoords populates lat/lng from the eager-loaded Facility edge.
+	extractCoords := func(nf *ent.NetworkFacility, e *facEntry) {
+		if fac := nf.Edges.Facility; fac != nil {
+			if fac.Latitude != nil {
+				e.lat = *fac.Latitude
+			}
+			if fac.Longitude != nil {
+				e.lng = *fac.Longitude
+			}
+		}
 	}
 
 	entries := make(map[int]*facEntry)
@@ -400,13 +427,15 @@ func computeAllFacilities(a, b []*ent.NetworkFacility) []templates.CompareFacili
 		if nf.FacID == nil {
 			continue
 		}
-		entries[*nf.FacID] = &facEntry{
+		e := &facEntry{
 			facID:   *nf.FacID,
 			facName: nf.Name,
 			city:    nf.City,
 			country: nf.Country,
 			netA:    &templates.CompareFacPresence{LocalASN: nf.LocalAsn},
 		}
+		extractCoords(nf, e)
+		entries[*nf.FacID] = e
 	}
 
 	for _, nf := range b {
@@ -417,26 +446,30 @@ func computeAllFacilities(a, b []*ent.NetworkFacility) []templates.CompareFacili
 		if e, ok := entries[facID]; ok {
 			e.netB = &templates.CompareFacPresence{LocalASN: nf.LocalAsn}
 		} else {
-			entries[facID] = &facEntry{
+			e := &facEntry{
 				facID:   facID,
 				facName: nf.Name,
 				city:    nf.City,
 				country: nf.Country,
 				netB:    &templates.CompareFacPresence{LocalASN: nf.LocalAsn},
 			}
+			extractCoords(nf, e)
+			entries[facID] = e
 		}
 	}
 
 	result := make([]templates.CompareFacility, 0, len(entries))
 	for _, e := range entries {
 		result = append(result, templates.CompareFacility{
-			FacID:   e.facID,
-			FacName: e.facName,
-			City:    e.city,
-			Country: e.country,
-			Shared:  e.netA != nil && e.netB != nil,
-			NetA:    e.netA,
-			NetB:    e.netB,
+			FacID:     e.facID,
+			FacName:   e.facName,
+			City:      e.city,
+			Country:   e.country,
+			Latitude:  e.lat,
+			Longitude: e.lng,
+			Shared:    e.netA != nil && e.netB != nil,
+			NetA:      e.netA,
+			NetB:      e.netB,
 		})
 	}
 

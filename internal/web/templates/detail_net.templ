@@ -69,6 +69,7 @@ templ NetworkDetailPage(data NetworkDetail) {
 		@DetailLink("Route Server", data.RouteServer)
 		@DetailLink("Policy URL", data.PolicyURL)
 		@DetailField("Notes", data.Notes)
+		@netFacilityMap(data)
 		<div class="space-y-3 pt-4">
 			@CollapsibleSectionWithBandwidth("IX Presences", data.IXCount, formatAggregateBW(data.AggregateBW), fmt.Sprintf("/ui/fragment/net/%d/ixlans", data.ID))
 			@CollapsibleSection("Facility Presences", data.FacCount, fmt.Sprintf("/ui/fragment/net/%d/facilities", data.ID))
@@ -87,6 +88,38 @@ templ boolIndicator(label string, value bool) {
 		}
 		<span class="text-neutral-400">{ label }</span>
 	</span>
+}
+
+// netFacilityMarkers converts network facility rows to map markers with emerald pins.
+func netFacilityMarkers(rows []NetworkFacRow) []MapMarker {
+	markers := make([]MapMarker, len(rows))
+	for i, f := range rows {
+		markers[i] = MapMarker{
+			Lat:       f.Latitude,
+			Lng:       f.Longitude,
+			Name:      f.FacName,
+			Location:  formatMapLocation(f.City, f.Country),
+			DetailURL: fmt.Sprintf("/ui/fac/%d", f.FacID),
+			Color:     "#10b981",
+			Stroke:    "#059669",
+		}
+	}
+	return markers
+}
+
+// netFacilityMap builds map markers from network facility data and renders a multi-pin map.
+// Markers use the default emerald color (D-14). If no facilities have coordinates,
+// nothing is rendered (D-10).
+templ netFacilityMap(data NetworkDetail) {
+	if len(data.FacPresences) > 0 {
+		@MultiPinMapContainer(
+			fmt.Sprintf("map-net-%d", data.ID),
+			netFacilityMarkers(data.FacPresences),
+			"Map showing facility locations for this network",
+			false,
+			nil,
+		)
+	}
 }
 
 // NetworkIXLansList renders network IX presences as a 5-column sortable table

@@ -102,6 +102,7 @@ templ CompareResultsPage(data CompareData) {
 			@StatBadge("Shared Facilities", len(data.SharedFacilities))
 			@StatBadge("Shared Campuses", len(data.SharedCampuses))
 		</div>
+		@compareFacilityMap(data)
 		@compareIXPsSection(data)
 		@compareFacilitiesSection(data)
 		@compareCampusesSection(data)
@@ -293,6 +294,58 @@ templ compareCampusesSection(data CompareData) {
 			}
 		</div>
 	</div>
+}
+
+// compareFacilityMarkers builds map markers from comparison facility data with three-color scheme.
+// Shared facilities use emerald (#10b981), network A-only uses sky (#38bdf8),
+// network B-only uses amber (#f59e0b) per D-04 and D-05.
+func compareFacilityMarkers(facs []CompareFacility, netAName, netBName string) []MapMarker {
+	markers := make([]MapMarker, len(facs))
+	for i, f := range facs {
+		color := "#10b981"  // emerald for shared
+		stroke := "#059669"
+		extra := netAName + " + " + netBName
+		if !f.Shared {
+			if f.NetA != nil {
+				color = "#38bdf8" // sky for net A only
+				stroke = "#0284c7"
+				extra = netAName
+			} else {
+				color = "#f59e0b" // amber for net B only
+				stroke = "#d97706"
+				extra = netBName
+			}
+		}
+		markers[i] = MapMarker{
+			Lat:       f.Latitude,
+			Lng:       f.Longitude,
+			Name:      f.FacName,
+			Location:  formatMapLocation(f.City, f.Country),
+			DetailURL: fmt.Sprintf("/ui/fac/%d", f.FacID),
+			Color:     color,
+			Stroke:    stroke,
+			Extra:     extra,
+		}
+	}
+	return markers
+}
+
+// compareFacilityMap renders a multi-pin map with three-color pins and a legend
+// showing the geographic overlap between both networks' facility presences (D-08).
+templ compareFacilityMap(data CompareData) {
+	if len(data.AllFacilities) > 0 {
+		@MultiPinMapContainer(
+			"map-compare",
+			compareFacilityMarkers(data.AllFacilities, data.NetA.Name, data.NetB.Name),
+			"Map comparing facility locations between networks",
+			true,
+			map[string]string{
+				"shared": "Shared",
+				"netA":   fmt.Sprintf("AS%d only", data.NetA.ASN),
+				"netB":   fmt.Sprintf("AS%d only", data.NetB.ASN),
+			},
+		)
+	}
 }
 
 // compareRowClasses returns CSS classes for a comparison row.

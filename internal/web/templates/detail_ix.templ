@@ -39,6 +39,7 @@ templ IXDetailPage(data IXDetail) {
 		</div>
 		@DetailLink("Website", data.Website)
 		@DetailField("Notes", data.Notes)
+		@ixFacilityMap(data)
 		<div class="space-y-3 pt-4">
 			@CollapsibleSectionWithBandwidth("Participants", data.NetCount, formatAggregateBW(data.AggregateBW), fmt.Sprintf("/ui/fragment/ix/%d/participants", data.ID))
 			@CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/ix/%d/facilities", data.ID))
@@ -142,6 +143,38 @@ templ IXFacilitiesList(rows []IXFacilityRow) {
 				</tbody>
 			</table>
 		</div>
+	}
+}
+
+// ixFacilityMarkers converts IX facility rows to map markers with emerald pins.
+func ixFacilityMarkers(rows []IXFacilityRow) []MapMarker {
+	markers := make([]MapMarker, len(rows))
+	for i, f := range rows {
+		markers[i] = MapMarker{
+			Lat:       f.Latitude,
+			Lng:       f.Longitude,
+			Name:      f.FacName,
+			Location:  formatMapLocation(f.City, f.Country),
+			DetailURL: fmt.Sprintf("/ui/fac/%d", f.FacID),
+			Color:     "#10b981",
+			Stroke:    "#059669",
+		}
+	}
+	return markers
+}
+
+// ixFacilityMap builds map markers from IX facility data and renders a multi-pin map.
+// Markers use the default emerald color (D-14). If no facilities have coordinates,
+// nothing is rendered (D-10).
+templ ixFacilityMap(data IXDetail) {
+	if len(data.Facilities) > 0 {
+		@MultiPinMapContainer(
+			fmt.Sprintf("map-ix-%d", data.ID),
+			ixFacilityMarkers(data.Facilities),
+			"Map showing facility locations for this exchange",
+			false,
+			nil,
+		)
 	}
 }
 

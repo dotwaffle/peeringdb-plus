@@ -163,6 +163,7 @@ func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkD
 	// Build facility presence rows for terminal and JSON rendering.
 	facItems, facErr := h.client.NetworkFacility.Query().
 		Where(networkfacility.HasNetworkWith(network.ID(net.ID))).
+		WithFacility(). // Eager-load facility entity for lat/lng
 		Order(networkfacility.ByName()).
 		All(ctx)
 	if facErr == nil {
@@ -176,6 +177,14 @@ func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkD
 			}
 			if nf.FacID != nil {
 				row.FacID = *nf.FacID
+			}
+			if fac := nf.Edges.Facility; fac != nil {
+				if fac.Latitude != nil {
+					row.Latitude = *fac.Latitude
+				}
+				if fac.Longitude != nil {
+					row.Longitude = *fac.Longitude
+				}
 			}
 			facRows[i] = row
 		}
@@ -296,9 +305,10 @@ func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, erro
 		slog.Error("eager-load ix participants", slog.Int("ix_id", id), slog.Any("error", err))
 	}
 
-	// Eager-load IX facilities.
+	// Eager-load IX facilities with facility coordinates for map rendering.
 	ixFacItems, err := h.client.IxFacility.Query().
 		Where(ixfacility.HasInternetExchangeWith(internetexchange.ID(id))).
+		WithFacility(). // Eager-load facility entity for lat/lng
 		Order(ixfacility.ByName()).
 		All(ctx)
 	if err == nil {
@@ -307,12 +317,21 @@ func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, erro
 			if ixf.FacID == nil {
 				continue
 			}
-			facRows = append(facRows, templates.IXFacilityRow{
+			row := templates.IXFacilityRow{
 				FacName: ixf.Name,
 				FacID:   *ixf.FacID,
 				City:    ixf.City,
 				Country: ixf.Country,
-			})
+			}
+			if fac := ixf.Edges.Facility; fac != nil {
+				if fac.Latitude != nil {
+					row.Latitude = *fac.Latitude
+				}
+				if fac.Longitude != nil {
+					row.Longitude = *fac.Longitude
+				}
+			}
+			facRows = append(facRows, row)
 		}
 		data.Facilities = facRows
 	} else {
