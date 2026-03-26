@@ -212,17 +212,83 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 		data.OrgName = ix.Edges.Organization.Name
 		data.OrgID = ix.Edges.Organization.ID
 	}
-	// Compute aggregate bandwidth across all IX participants.
-	participants, err := h.client.IxLan.Query().
+	// Compute aggregate bandwidth and eager-load participant rows.
+	ixParticipants, err := h.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id))).
 		QueryNetworkIxLans().
+		WithNetwork().
+		Order(networkixlan.ByAsn()).
 		All(r.Context())
 	if err == nil {
 		var totalBW int
-		for _, nix := range participants {
+		rows := make([]templates.IXParticipantRow, len(ixParticipants))
+		for i, nix := range ixParticipants {
 			totalBW += nix.Speed
+			netName := ""
+			if net := nix.Edges.Network; net != nil {
+				netName = net.Name
+			}
+			row := templates.IXParticipantRow{
+				NetName:  netName,
+				ASN:      nix.Asn,
+				Speed:    nix.Speed,
+				IsRSPeer: nix.IsRsPeer,
+			}
+			if nix.Ipaddr4 != nil {
+				row.IPAddr4 = *nix.Ipaddr4
+			}
+			if nix.Ipaddr6 != nil {
+				row.IPAddr6 = *nix.Ipaddr6
+			}
+			rows[i] = row
 		}
 		data.AggregateBW = totalBW
+		data.Participants = rows
+	} else {
+		slog.Error("eager-load ix participants", slog.Int("ix_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load IX facilities.
+	ixFacItems, err := h.client.IxFacility.Query().
+		Where(ixfacility.HasInternetExchangeWith(internetexchange.ID(id))).
+		Order(ixfacility.ByName()).
+		All(r.Context())
+	if err == nil {
+		var facRows []templates.IXFacilityRow
+		for _, ixf := range ixFacItems {
+			if ixf.FacID == nil {
+				continue
+			}
+			facRows = append(facRows, templates.IXFacilityRow{
+				FacName: ixf.Name,
+				FacID:   *ixf.FacID,
+				City:    ixf.City,
+				Country: ixf.Country,
+			})
+		}
+		data.Facilities = facRows
+	} else {
+		slog.Error("eager-load ix facilities", slog.Int("ix_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load IX prefixes.
+	ixPrefixItems, err := h.client.IxLan.Query().
+		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id))).
+		QueryIxPrefixes().
+		Order(ixprefix.ByPrefix()).
+		All(r.Context())
+	if err == nil {
+		prefixRows := make([]templates.IXPrefixRow, len(ixPrefixItems))
+		for i, p := range ixPrefixItems {
+			prefixRows[i] = templates.IXPrefixRow{
+				Prefix:   p.Prefix,
+				Protocol: p.Protocol,
+				InDFZ:    p.InDfz,
+			}
+		}
+		data.Prefixes = prefixRows
+	} else {
+		slog.Error("eager-load ix prefixes", slog.Int("ix_id", id), slog.String("error", err.Error()))
 	}
 
 	page := PageContent{
@@ -288,6 +354,66 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 	if fac.Edges.Campus != nil {
 		data.CampusName = fac.Edges.Campus.Name
 		data.CampusID = fac.Edges.Campus.ID
+	}
+
+	// Eager-load facility networks.
+	facNetItems, err := h.client.NetworkFacility.Query().
+		Where(networkfacility.HasFacilityWith(facility.ID(id))).
+		Order(networkfacility.ByName()).
+		All(r.Context())
+	if err == nil {
+		netRows := make([]templates.FacNetworkRow, len(facNetItems))
+		for i, nf := range facNetItems {
+			netRows[i] = templates.FacNetworkRow{
+				NetName: nf.Name,
+				ASN:     nf.LocalAsn,
+			}
+		}
+		data.Networks = netRows
+	} else {
+		slog.Error("eager-load fac networks", slog.Int("fac_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load facility IXPs.
+	facIXItems, err := h.client.IxFacility.Query().
+		Where(ixfacility.HasFacilityWith(facility.ID(id))).
+		Order(ixfacility.ByName()).
+		All(r.Context())
+	if err == nil {
+		var ixRows []templates.FacIXRow
+		for _, ixf := range facIXItems {
+			if ixf.IxID == nil {
+				continue
+			}
+			ixRows = append(ixRows, templates.FacIXRow{
+				IXName: ixf.Name,
+				IXID:   *ixf.IxID,
+			})
+		}
+		data.IXPs = ixRows
+	} else {
+		slog.Error("eager-load fac ixps", slog.Int("fac_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load facility carriers.
+	facCarrierItems, err := h.client.CarrierFacility.Query().
+		Where(carrierfacility.HasFacilityWith(facility.ID(id))).
+		Order(carrierfacility.ByName()).
+		All(r.Context())
+	if err == nil {
+		var carrierRows []templates.FacCarrierRow
+		for _, cf := range facCarrierItems {
+			if cf.CarrierID == nil {
+				continue
+			}
+			carrierRows = append(carrierRows, templates.FacCarrierRow{
+				CarrierName: cf.Name,
+				CarrierID:   *cf.CarrierID,
+			})
+		}
+		data.Carriers = carrierRows
+	} else {
+		slog.Error("eager-load fac carriers", slog.Int("fac_id", id), slog.String("error", err.Error()))
 	}
 
 	page := PageContent{
@@ -365,6 +491,98 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 		CarrierCount: carrierCount,
 	}
 
+	// Eager-load org networks.
+	orgNetItems, err := h.client.Network.Query().
+		Where(network.HasOrganizationWith(organization.ID(id))).
+		Order(network.ByAsn()).
+		All(r.Context())
+	if err == nil {
+		netRows := make([]templates.OrgNetworkRow, len(orgNetItems))
+		for i, n := range orgNetItems {
+			netRows[i] = templates.OrgNetworkRow{
+				NetName: n.Name,
+				ASN:     n.Asn,
+			}
+		}
+		data.Networks = netRows
+	} else {
+		slog.Error("eager-load org networks", slog.Int("org_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load org IXPs.
+	orgIXItems, err := h.client.InternetExchange.Query().
+		Where(internetexchange.HasOrganizationWith(organization.ID(id))).
+		Order(internetexchange.ByName()).
+		All(r.Context())
+	if err == nil {
+		ixRows := make([]templates.OrgIXRow, len(orgIXItems))
+		for i, ix := range orgIXItems {
+			ixRows[i] = templates.OrgIXRow{
+				IXName: ix.Name,
+				IXID:   ix.ID,
+			}
+		}
+		data.IXPs = ixRows
+	} else {
+		slog.Error("eager-load org ixps", slog.Int("org_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load org facilities.
+	orgFacItems, err := h.client.Facility.Query().
+		Where(facility.HasOrganizationWith(organization.ID(id))).
+		Order(facility.ByName()).
+		All(r.Context())
+	if err == nil {
+		facRows := make([]templates.OrgFacilityRow, len(orgFacItems))
+		for i, f := range orgFacItems {
+			facRows[i] = templates.OrgFacilityRow{
+				FacName: f.Name,
+				FacID:   f.ID,
+				City:    f.City,
+				Country: f.Country,
+			}
+		}
+		data.Facs = facRows
+	} else {
+		slog.Error("eager-load org facilities", slog.Int("org_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load org campuses.
+	orgCampusItems, err := h.client.Campus.Query().
+		Where(campus.HasOrganizationWith(organization.ID(id))).
+		Order(campus.ByName()).
+		All(r.Context())
+	if err == nil {
+		campusRows := make([]templates.OrgCampusRow, len(orgCampusItems))
+		for i, c := range orgCampusItems {
+			campusRows[i] = templates.OrgCampusRow{
+				CampusName: c.Name,
+				CampusID:   c.ID,
+			}
+		}
+		data.Campuses = campusRows
+	} else {
+		slog.Error("eager-load org campuses", slog.Int("org_id", id), slog.String("error", err.Error()))
+	}
+
+	// Eager-load org carriers.
+	orgCarrierItems, err := h.client.Carrier.Query().
+		Where(carrier.HasOrganizationWith(organization.ID(id))).
+		Order(carrier.ByName()).
+		All(r.Context())
+	if err == nil {
+		carrierRows := make([]templates.OrgCarrierRow, len(orgCarrierItems))
+		for i, c := range orgCarrierItems {
+			carrierRows[i] = templates.OrgCarrierRow{
+				CarrierName: c.Name,
+				CarrierID:   c.ID,
+			}
+		}
+		data.Carriers = carrierRows
+	} else {
+		slog.Error("eager-load org carriers", slog.Int("org_id", id), slog.String("error", err.Error()))
+	}
+
 	page := PageContent{
 		Title:   org.Name,
 		Content: templates.OrgDetailPage(data),
@@ -428,6 +646,26 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 		data.OrgID = c.Edges.Organization.ID
 	}
 
+	// Eager-load campus facilities.
+	campusFacItems, err := h.client.Facility.Query().
+		Where(facility.HasCampusWith(campus.ID(id))).
+		Order(facility.ByName()).
+		All(r.Context())
+	if err == nil {
+		facRows := make([]templates.CampusFacilityRow, len(campusFacItems))
+		for i, f := range campusFacItems {
+			facRows[i] = templates.CampusFacilityRow{
+				FacName: f.Name,
+				FacID:   f.ID,
+				City:    f.City,
+				Country: f.Country,
+			}
+		}
+		data.Facilities = facRows
+	} else {
+		slog.Error("eager-load campus facilities", slog.Int("campus_id", id), slog.String("error", err.Error()))
+	}
+
 	page := PageContent{
 		Title:   c.Name,
 		Content: templates.CampusDetailPage(data),
@@ -474,6 +712,27 @@ func (h *Handler) handleCarrierDetail(w http.ResponseWriter, r *http.Request, id
 	if cr.Edges.Organization != nil {
 		data.OrgName = cr.Edges.Organization.Name
 		data.OrgID = cr.Edges.Organization.ID
+	}
+
+	// Eager-load carrier facilities.
+	carrierFacItems, err := h.client.CarrierFacility.Query().
+		Where(carrierfacility.HasCarrierWith(carrier.ID(id))).
+		Order(carrierfacility.ByName()).
+		All(r.Context())
+	if err == nil {
+		var facRows []templates.CarrierFacilityRow
+		for _, cf := range carrierFacItems {
+			if cf.FacID == nil {
+				continue
+			}
+			facRows = append(facRows, templates.CarrierFacilityRow{
+				FacName: cf.Name,
+				FacID:   *cf.FacID,
+			})
+		}
+		data.Facilities = facRows
+	} else {
+		slog.Error("eager-load carrier facilities", slog.Int("carrier_id", id), slog.String("error", err.Error()))
 	}
 
 	page := PageContent{

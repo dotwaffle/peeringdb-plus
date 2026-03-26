@@ -21,6 +21,8 @@ const (
 	ModePlain
 	// ModeJSON renders the data as JSON.
 	ModeJSON
+	// ModeWHOIS renders RPSL-style key-value output.
+	ModeWHOIS
 )
 
 // String returns a human-readable name for the render mode.
@@ -36,6 +38,8 @@ func (m RenderMode) String() string {
 		return "Plain"
 	case ModeJSON:
 		return "JSON"
+	case ModeWHOIS:
+		return "WHOIS"
 	default:
 		return "Unknown"
 	}
@@ -75,6 +79,8 @@ func Detect(input DetectInput) RenderMode {
 			return ModePlain
 		case "json":
 			return ModeJSON
+		case "whois":
+			return ModeWHOIS
 		}
 	}
 

@@ -70,6 +70,13 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 			return termrender.RenderJSON(w, map[string]string{"title": page.Title})
 		}
 
+	case termrender.ModeWHOIS:
+		// Temporary: renders as plain text until Plan 04 implements real WHOIS rendering.
+		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		renderer := termrender.NewRenderer(termrender.ModePlain, true)
+		return renderer.RenderPage(w, page.Title, page.Data)
+
 	case termrender.ModeHTMX:
 		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")

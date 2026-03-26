@@ -95,6 +95,10 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page := PageContent{Title: "Home", Content: templates.Home(query, groups)}
+	if len(groups) > 0 {
+		page.Title = "Search"
+		page.Data = groups
+	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		h.handleServerError(w, r)
 	}
