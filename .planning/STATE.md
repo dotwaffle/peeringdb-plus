@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 44-01-PLAN.md
-last_updated: "2026-03-26T21:43:33Z"
+stopped_at: Completed 44-02-PLAN.md
+last_updated: "2026-03-26T21:51:55.813Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 33
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 44
-Plan: 1 of 2 complete
-Status: Executing Phase 44
+Plan: 2 of 2 complete
+Status: Ready to execute
 Last activity: 2026-03-26
 
 Progress: [███░░░░░░░] 33%
@@ -55,6 +55,7 @@ Progress: [███░░░░░░░] 33%
 | Phase 43 P03 | 5min | 2 tasks | 7 files |
 | Phase 43 P04 | 4min | 1 tasks | 1 files |
 | Phase 44 P01 | 3min | 2 tasks | 8 files |
+| Phase 44 P02 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,7 @@ All decisions archived in PROJECT.md Key Decisions table (42 decisions across 11
 - [Phase 44]: window.__pdbMaps array pattern for multi-map dark mode tile swap (forward-compatible with Phase 45)
 - [Phase 44]: Inline styles in Leaflet popup HTML -- Tailwind classes do not penetrate Leaflet popup DOM
 - [Phase 44]: Treat (0,0) and nil lat/lng as missing data -- no real facility at null island
+- [Phase 44]: ID 32 for coordinated facility to avoid collision with existing test IDs (30, 31)
 
 ### Pending Todos
 
@@ -80,6 +82,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T21:43:33Z
-Stopped at: Completed 44-01-PLAN.md
+Last session: 2026-03-26T21:51:55.809Z
+Stopped at: Completed 44-02-PLAN.md
 Resume file: None
