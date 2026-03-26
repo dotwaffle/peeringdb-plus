@@ -21,11 +21,11 @@ Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 - [x] **RND-02**: Network detail (/ui/asn/{asn}) renders with whois-style key-value header + IX/facility tables
 - [x] **RND-03**: IX detail (/ui/ix/{id}) renders with participant table, facility list, prefix list
 - [x] **RND-04**: Facility detail (/ui/fac/{id}) renders with address, network/IX/carrier lists
-- [x] **RND-05**: Org detail (/ui/org/{id}) renders with child entity lists
-- [x] **RND-06**: Campus detail (/ui/campus/{id}) renders with facility list
-- [x] **RND-07**: Carrier detail (/ui/carrier/{id}) renders with facility list
-- [ ] **RND-08**: Search results (/ui/?q=...) render as grouped text list for terminal clients
-- [ ] **RND-09**: ASN comparison (/ui/compare/{asn1}/{asn2}) renders shared IXPs/facilities/campuses
+- [ ] **RND-05**: Org detail (/ui/org/{id}) renders with child entity lists
+- [ ] **RND-06**: Campus detail (/ui/campus/{id}) renders with facility list
+- [ ] **RND-07**: Carrier detail (/ui/carrier/{id}) renders with facility list
+- [x] **RND-08**: Search results (/ui/?q=...) render as grouped text list for terminal clients
+- [x] **RND-09**: ASN comparison (/ui/compare/{asn1}/{asn2}) renders shared IXPs/facilities/campuses
 - [x] **RND-10**: Plain text mode (?T) produces identical layout with ASCII box drawing, no ANSI codes
 - [ ] **RND-11**: JSON mode (?format=json) outputs the same data structures as JSON
 - [x] **RND-12**: Port speed tiers color-coded (gray/neutral/blue/emerald/amber) matching web UI
@@ -97,11 +97,11 @@ Deferred to future release.
 | RND-02 | Phase 29 | Complete |
 | RND-03 | Phase 30 | Complete |
 | RND-04 | Phase 30 | Complete |
-| RND-05 | Phase 30 | Complete |
-| RND-06 | Phase 30 | Complete |
-| RND-07 | Phase 30 | Complete |
-| RND-08 | Phase 30 | Pending |
-| RND-09 | Phase 30 | Pending |
+| RND-05 | Phase 30 | Pending |
+| RND-06 | Phase 30 | Pending |
+| RND-07 | Phase 30 | Pending |
+| RND-08 | Phase 30 | Complete |
+| RND-09 | Phase 30 | Complete |
 | RND-10 | Phase 30 | Complete |
 | RND-11 | Phase 30 | Pending |
 | RND-12 | Phase 29 | Complete |

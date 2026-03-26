@@ -132,8 +132,8 @@ Plans:
 
 Plans:
 - [x] 30-01-PLAN.md -- Data plumbing (struct fields, handler eager-loading, type-switch) + IX and Facility rich renderers
-- [x] 30-02-PLAN.md -- Org, Campus, Carrier minimal renderers
-- [ ] 30-03-PLAN.md -- Search results and ASN comparison renderers
+- [ ] 30-02-PLAN.md -- Org, Campus, Carrier minimal renderers
+- [x] 30-03-PLAN.md -- Search results and ASN comparison renderers
 - [ ] 30-04-PLAN.md -- WHOIS format for all entity types + JSON completeness verification
 
 ### Phase 31: Differentiators & Shell Integration

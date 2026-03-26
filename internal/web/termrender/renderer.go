@@ -98,15 +98,8 @@ func (r *Renderer) renderStub(w io.Writer, name string) error {
 	return r.Write(w, buf.String())
 }
 
-// RenderSearch renders search results as terminal output. Stub pending Plan 03.
-func (r *Renderer) RenderSearch(w io.Writer, groups []templates.SearchGroup) error {
-	return r.renderStub(w, "Search Results")
-}
-
-// RenderCompare renders ASN comparison as terminal output. Stub pending Plan 03.
-func (r *Renderer) RenderCompare(w io.Writer, data *templates.CompareData) error {
-	return r.renderStub(w, "Compare")
-}
+// RenderSearch is implemented in search.go.
+// RenderCompare is implemented in compare.go.
 
 // RenderJSON writes data as indented JSON to w.
 // Used for ?format=json responses. The caller is responsible for setting
