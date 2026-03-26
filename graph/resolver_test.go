@@ -16,6 +16,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
+	"github.com/dotwaffle/peeringdb-plus/internal/testutil/seed"
 )
 
 // testTimestamp provides a consistent timestamp for test data.
@@ -542,5 +543,320 @@ func TestGraphQLAPI_OffsetLimitList(t *testing.T) {
 	}
 	if len(data.NetworksList) != 2 {
 		t.Errorf("expected 2 networks, got %d", len(data.NetworksList))
+	}
+}
+
+// intPtr returns a pointer to the given int value.
+func intPtr(v int) *int { return &v }
+
+// seedFullTestServer creates an httptest.Server with all 13 entity types seeded
+// via seed.Full and a completed sync_status entry.
+func seedFullTestServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	client, db := testutil.SetupClientWithDB(t)
+	ctx := context.Background()
+
+	if err := pdbsync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init sync_status table: %v", err)
+	}
+
+	_ = seed.Full(t, client)
+
+	// Seed sync_status with a completed entry.
+	id, err := pdbsync.RecordSyncStart(ctx, db, testTimestamp)
+	if err != nil {
+		t.Fatalf("record sync start: %v", err)
+	}
+	if err := pdbsync.RecordSyncComplete(ctx, db, id, pdbsync.Status{
+		LastSyncAt:   testTimestamp,
+		Duration:     5 * time.Second,
+		ObjectCounts: map[string]int{"organization": 1, "network": 2},
+		Status:       "success",
+	}); err != nil {
+		t.Fatalf("record sync complete: %v", err)
+	}
+
+	resolver := graph.NewResolver(client, db)
+	gqlHandler := pdbgql.NewHandler(resolver)
+	mux := http.NewServeMux()
+	playgroundHandler := pdbgql.PlaygroundHandler("/graphql")
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			playgroundHandler.ServeHTTP(w, r)
+			return
+		}
+		gqlHandler.ServeHTTP(w, r)
+	})
+
+	handler := middleware.CORS(middleware.CORSInput{AllowedOrigins: "*"})(mux)
+	srv := httptest.NewServer(handler)
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+// TestGraphQLAPI_OffsetLimitListResolvers exercises all 13 offset/limit list resolvers
+// with data assertions matching seed.Full() entities (GQL-01).
+func TestGraphQLAPI_OffsetLimitListResolvers(t *testing.T) {
+	t.Parallel()
+	srv := seedFullTestServer(t)
+
+	tests := []struct {
+		name      string
+		query     string
+		dataField string
+		wantMin   int
+		wantField string // field to check on first item (empty = skip field check)
+		wantValue string // expected string value of that field
+	}{
+		{
+			name:      "organizationsList",
+			query:     `{ organizationsList { name } }`,
+			dataField: "organizationsList",
+			wantMin:   1,
+			wantField: "name",
+			wantValue: "Test Organization",
+		},
+		{
+			name:      "networksList",
+			query:     `{ networksList { name asn } }`,
+			dataField: "networksList",
+			wantMin:   2,
+			wantField: "name",
+			wantValue: "Cloudflare",
+		},
+		{
+			name:      "facilitiesList",
+			query:     `{ facilitiesList { name city } }`,
+			dataField: "facilitiesList",
+			wantMin:   2,
+			wantField: "name",
+			wantValue: "Equinix FR5",
+		},
+		{
+			name:      "internetExchangesList",
+			query:     `{ internetExchangesList { name } }`,
+			dataField: "internetExchangesList",
+			wantMin:   1,
+			wantField: "name",
+			wantValue: "DE-CIX Frankfurt",
+		},
+		{
+			name:      "pocsList",
+			query:     `{ pocsList { name role } }`,
+			dataField: "pocsList",
+			wantMin:   1,
+			wantField: "name",
+			wantValue: "NOC Contact",
+		},
+		{
+			name:      "ixLansList",
+			query:     `{ ixLansList { id } }`,
+			dataField: "ixLansList",
+			wantMin:   1,
+		},
+		{
+			name:      "ixPrefixesList",
+			query:     `{ ixPrefixesList { prefix protocol } }`,
+			dataField: "ixPrefixesList",
+			wantMin:   1,
+			wantField: "prefix",
+			wantValue: "80.81.192.0/22",
+		},
+		{
+			name:      "ixFacilitiesList",
+			query:     `{ ixFacilitiesList { name } }`,
+			dataField: "ixFacilitiesList",
+			wantMin:   1,
+			wantField: "name",
+			wantValue: "DE-CIX Frankfurt",
+		},
+		{
+			name:      "networkIxLansList",
+			query:     `{ networkIxLansList { asn speed } }`,
+			dataField: "networkIxLansList",
+			wantMin:   1,
+		},
+		{
+			name:      "networkFacilitiesList",
+			query:     `{ networkFacilitiesList { name localAsn } }`,
+			dataField: "networkFacilitiesList",
+			wantMin:   1,
+			wantField: "name",
+			wantValue: "Equinix FR5",
+		},
+		{
+			name:      "carriersList",
+			query:     `{ carriersList { name } }`,
+			dataField: "carriersList",
+			wantMin:   1,
+			wantField: "name",
+			wantValue: "Test Carrier",
+		},
+		{
+			name:      "carrierFacilitiesList",
+			query:     `{ carrierFacilitiesList { name } }`,
+			dataField: "carrierFacilitiesList",
+			wantMin:   1,
+			wantField: "name",
+			wantValue: "Equinix FR5",
+		},
+		{
+			name:      "campusesList",
+			query:     `{ campusesList { name city } }`,
+			dataField: "campusesList",
+			wantMin:   1,
+			wantField: "name",
+			wantValue: "Test Campus",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := postGraphQL(t, srv.URL, tt.query)
+			if len(result.Errors) > 0 {
+				t.Fatalf("unexpected errors: %v", result.Errors)
+			}
+
+			var raw map[string]json.RawMessage
+			if err := json.Unmarshal(result.Data, &raw); err != nil {
+				t.Fatalf("unmarshal data: %v", err)
+			}
+			var items []json.RawMessage
+			if err := json.Unmarshal(raw[tt.dataField], &items); err != nil {
+				t.Fatalf("unmarshal %s: %v", tt.dataField, err)
+			}
+			if len(items) < tt.wantMin {
+				t.Fatalf("expected at least %d items, got %d", tt.wantMin, len(items))
+			}
+			if tt.wantField != "" {
+				var item map[string]interface{}
+				if err := json.Unmarshal(items[0], &item); err != nil {
+					t.Fatalf("unmarshal first item: %v", err)
+				}
+				got, _ := item[tt.wantField].(string)
+				if got != tt.wantValue {
+					t.Errorf("%s = %q, want %q", tt.wantField, got, tt.wantValue)
+				}
+			}
+		})
+	}
+}
+
+// TestGraphQLAPI_NetworkByAsn_NotFound verifies that querying a non-existent ASN
+// returns null data without errors (GQL-02).
+func TestGraphQLAPI_NetworkByAsn_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := seedFullTestServer(t)
+
+	result := postGraphQL(t, srv.URL, `{ networkByAsn(asn: 99999) { name } }`)
+	if len(result.Errors) > 0 {
+		t.Fatalf("unexpected errors: %v", result.Errors)
+	}
+
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(result.Data, &raw); err != nil {
+		t.Fatalf("unmarshal data: %v", err)
+	}
+	if string(raw["networkByAsn"]) != "null" {
+		t.Errorf("networkByAsn = %s, want null", raw["networkByAsn"])
+	}
+}
+
+// TestGraphQLAPI_SyncStatus_Missing verifies that querying syncStatus with no
+// sync_status rows returns null data without errors (GQL-02).
+func TestGraphQLAPI_SyncStatus_Missing(t *testing.T) {
+	t.Parallel()
+	srv := setupTestServer(t) // no sync data seeded
+
+	result := postGraphQL(t, srv.URL, `{ syncStatus { status } }`)
+	if len(result.Errors) > 0 {
+		t.Fatalf("unexpected errors: %v", result.Errors)
+	}
+
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(result.Data, &raw); err != nil {
+		t.Fatalf("unmarshal data: %v", err)
+	}
+	if string(raw["syncStatus"]) != "null" {
+		t.Errorf("syncStatus = %s, want null", raw["syncStatus"])
+	}
+}
+
+// TestGraphQLAPI_SyncStatus_WithObjectCounts verifies the ObjectCounts sub-resolver
+// returns a non-null JSON object when sync data is seeded.
+func TestGraphQLAPI_SyncStatus_WithObjectCounts(t *testing.T) {
+	t.Parallel()
+	srv := seedFullTestServer(t)
+
+	result := postGraphQL(t, srv.URL, `{ syncStatus { status objectCounts } }`)
+	if len(result.Errors) > 0 {
+		t.Fatalf("unexpected errors: %v", result.Errors)
+	}
+
+	var data struct {
+		SyncStatus struct {
+			Status       string                 `json:"status"`
+			ObjectCounts map[string]interface{} `json:"objectCounts"`
+		} `json:"syncStatus"`
+	}
+	if err := json.Unmarshal(result.Data, &data); err != nil {
+		t.Fatalf("unmarshal data: %v", err)
+	}
+	if data.SyncStatus.Status != "success" {
+		t.Errorf("status = %q, want %q", data.SyncStatus.Status, "success")
+	}
+	if data.SyncStatus.ObjectCounts == nil {
+		t.Fatal("expected non-nil objectCounts")
+	}
+	if _, ok := data.SyncStatus.ObjectCounts["organization"]; !ok {
+		t.Error("expected objectCounts to contain 'organization'")
+	}
+}
+
+// TestValidateOffsetLimit exercises all branches of ValidateOffsetLimit (GQL-03).
+func TestValidateOffsetLimit(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		offset     *int
+		limit      *int
+		wantOffset int
+		wantLimit  int
+		wantErr    string
+	}{
+		{name: "defaults", wantOffset: 0, wantLimit: 100},
+		{name: "custom values", offset: intPtr(50), limit: intPtr(25), wantOffset: 50, wantLimit: 25},
+		{name: "negative offset", offset: intPtr(-1), wantErr: "non-negative"},
+		{name: "zero limit", limit: intPtr(0), wantErr: "at least 1"},
+		{name: "negative limit", limit: intPtr(-5), wantErr: "at least 1"},
+		{name: "over max limit", limit: intPtr(1001), wantErr: "must not exceed"},
+		{name: "max limit exactly", limit: intPtr(1000), wantOffset: 0, wantLimit: 1000},
+		{name: "zero offset", offset: intPtr(0), wantOffset: 0, wantLimit: 100},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result, err := graph.ValidateOffsetLimit(tt.offset, tt.limit)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("expected error containing %q, got nil", tt.wantErr)
+				}
+				if !strings.Contains(err.Error(), tt.wantErr) {
+					t.Errorf("error = %q, want containing %q", err.Error(), tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.Offset != tt.wantOffset {
+				t.Errorf("offset = %d, want %d", result.Offset, tt.wantOffset)
+			}
+			if result.Limit != tt.wantLimit {
+				t.Errorf("limit = %d, want %d", result.Limit, tt.wantLimit)
+			}
+		})
 	}
 }
