@@ -1,6 +1,9 @@
 package templates
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // CompareFormPage renders the comparison form with optional pre-filled ASN values.
 // asn1 and asn2 are pre-filled when navigating from a network detail page.
@@ -117,7 +120,7 @@ templ CompareResultsPage(data CompareData) {
 	</div>
 }
 
-// compareIXPsSection renders the IXP comparison table.
+// compareIXPsSection renders the IXP comparison as a sortable table.
 templ compareIXPsSection(data CompareData) {
 	<div class="bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden">
 		<div class="px-4 py-3 border-b border-neutral-700 flex items-center justify-between">
@@ -130,75 +133,170 @@ templ compareIXPsSection(data CompareData) {
 				}
 			</span>
 		</div>
-		<div class="divide-y divide-neutral-700/50">
-			if data.ViewMode == "full" {
-				for _, ix := range data.AllIXPs {
-					@compareIXPRow(ix, data.NetA.Name, data.NetB.Name)
-				}
-				if len(data.AllIXPs) == 0 {
-					<div class="px-4 py-3 text-neutral-500 text-sm">No IX presences found.</div>
-				}
-			} else {
-				for _, ix := range data.SharedIXPs {
-					@compareIXPRow(ix, data.NetA.Name, data.NetB.Name)
-				}
-				if len(data.SharedIXPs) == 0 {
-					<div class="px-4 py-3 text-neutral-500 text-sm">No shared IX presences found.</div>
-				}
-			}
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left sortable">
+				<thead>
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">IX Name</th>
+						<th class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="1" data-sort-type="numeric">{ fmt.Sprintf("Spd (AS%d)", data.NetA.ASN) }</th>
+						<th class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="2" data-sort-type="numeric">{ fmt.Sprintf("Spd (AS%d)", data.NetB.ASN) }</th>
+						<th class="px-3 py-2 hidden lg:table-cell">{ fmt.Sprintf("IPv4 (AS%d)", data.NetA.ASN) }</th>
+						<th class="px-3 py-2 hidden lg:table-cell">{ fmt.Sprintf("IPv4 (AS%d)", data.NetB.ASN) }</th>
+						<th class="px-3 py-2 hidden lg:table-cell">{ fmt.Sprintf("IPv6 (AS%d)", data.NetA.ASN) }</th>
+						<th class="px-3 py-2 hidden lg:table-cell">{ fmt.Sprintf("IPv6 (AS%d)", data.NetB.ASN) }</th>
+						<th class="px-3 py-2 hidden md:table-cell text-center">{ fmt.Sprintf("RS (AS%d)", data.NetA.ASN) }</th>
+						<th class="px-3 py-2 hidden md:table-cell text-center">{ fmt.Sprintf("RS (AS%d)", data.NetB.ASN) }</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					if data.ViewMode == "full" {
+						if len(data.AllIXPs) == 0 {
+							<tr><td colspan="9" class="px-4 py-3 text-neutral-500 text-sm">No IX presences found.</td></tr>
+						}
+						for _, ix := range data.AllIXPs {
+							<tr class={ compareRowClasses(ix.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
+								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(ix.IXName) }>
+									<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", ix.IXID)) }
+										class="text-sky-400 hover:text-sky-300 font-medium transition-colors">
+										{ ix.IXName }
+									</a>
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ speedSortValue(ix.NetA) }>
+									if ix.NetA != nil && ix.NetA.Speed > 0 {
+										<span class={ speedColorClass(ix.NetA.Speed) }>{ formatSpeed(ix.NetA.Speed) }</span>
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ speedSortValue(ix.NetB) }>
+									if ix.NetB != nil && ix.NetB.Speed > 0 {
+										<span class={ speedColorClass(ix.NetB.Speed) }>{ formatSpeed(ix.NetB.Speed) }</span>
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
+									if ix.NetA != nil && ix.NetA.IPAddr4 != "" {
+										{ ix.NetA.IPAddr4 }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
+									if ix.NetB != nil && ix.NetB.IPAddr4 != "" {
+										{ ix.NetB.IPAddr4 }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
+									if ix.NetA != nil && ix.NetA.IPAddr6 != "" {
+										{ ix.NetA.IPAddr6 }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
+									if ix.NetB != nil && ix.NetB.IPAddr6 != "" {
+										{ ix.NetB.IPAddr6 }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell text-center">
+									if ix.NetA != nil && ix.NetA.IsRSPeer {
+										<span class="text-emerald-400/70">RS</span>
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell text-center">
+									if ix.NetB != nil && ix.NetB.IsRSPeer {
+										<span class="text-emerald-400/70">RS</span>
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+							</tr>
+						}
+					} else {
+						if len(data.SharedIXPs) == 0 {
+							<tr><td colspan="9" class="px-4 py-3 text-neutral-500 text-sm">No shared IX presences found.</td></tr>
+						}
+						for _, ix := range data.SharedIXPs {
+							<tr class={ compareRowClasses(ix.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
+								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(ix.IXName) }>
+									<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", ix.IXID)) }
+										class="text-sky-400 hover:text-sky-300 font-medium transition-colors">
+										{ ix.IXName }
+									</a>
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ speedSortValue(ix.NetA) }>
+									if ix.NetA != nil && ix.NetA.Speed > 0 {
+										<span class={ speedColorClass(ix.NetA.Speed) }>{ formatSpeed(ix.NetA.Speed) }</span>
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ speedSortValue(ix.NetB) }>
+									if ix.NetB != nil && ix.NetB.Speed > 0 {
+										<span class={ speedColorClass(ix.NetB.Speed) }>{ formatSpeed(ix.NetB.Speed) }</span>
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
+									if ix.NetA != nil && ix.NetA.IPAddr4 != "" {
+										{ ix.NetA.IPAddr4 }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
+									if ix.NetB != nil && ix.NetB.IPAddr4 != "" {
+										{ ix.NetB.IPAddr4 }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
+									if ix.NetA != nil && ix.NetA.IPAddr6 != "" {
+										{ ix.NetA.IPAddr6 }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
+									if ix.NetB != nil && ix.NetB.IPAddr6 != "" {
+										{ ix.NetB.IPAddr6 }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell text-center">
+									if ix.NetA != nil && ix.NetA.IsRSPeer {
+										<span class="text-emerald-400/70">RS</span>
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell text-center">
+									if ix.NetB != nil && ix.NetB.IsRSPeer {
+										<span class="text-emerald-400/70">RS</span>
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+							</tr>
+						}
+					}
+				</tbody>
+			</table>
 		</div>
 	</div>
 }
 
-// compareIXPRow renders a single IXP comparison row.
-templ compareIXPRow(ix CompareIXP, netAName string, netBName string) {
-	<div class={ compareRowClasses(ix.Shared) }>
-		<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 px-4 py-3">
-			<div class="flex flex-col min-w-0">
-				<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", ix.IXID)) }
-					class="text-emerald-400 hover:text-emerald-300 font-medium truncate transition-colors">
-					{ ix.IXName }
-				</a>
-			</div>
-			<div class="flex flex-col min-w-0">
-				<span class="text-neutral-500 text-xs mb-1 lg:hidden">{ netAName }</span>
-				if ix.NetA != nil {
-					@compareIXPresenceDetail(*ix.NetA)
-				} else {
-					<span class="text-neutral-500 text-sm">---</span>
-				}
-			</div>
-			<div class="flex flex-col min-w-0">
-				<span class="text-neutral-500 text-xs mb-1 lg:hidden">{ netBName }</span>
-				if ix.NetB != nil {
-					@compareIXPresenceDetail(*ix.NetB)
-				} else {
-					<span class="text-neutral-500 text-sm">---</span>
-				}
-			</div>
-		</div>
-	</div>
-}
-
-// compareIXPresenceDetail renders one network's IX presence details.
-templ compareIXPresenceDetail(p CompareIXPresence) {
-	<div class="flex flex-wrap gap-3 text-sm text-neutral-400 font-mono">
-		if p.Speed > 0 {
-			<span>{ formatSpeed(p.Speed) }</span>
-		}
-		if p.IPAddr4 != "" {
-			<span>{ p.IPAddr4 }</span>
-		}
-		if p.IPAddr6 != "" {
-			<span>{ p.IPAddr6 }</span>
-		}
-		if p.IsRSPeer {
-			<span class="text-emerald-400/70">RS</span>
-		}
-	</div>
-}
-
-// compareFacilitiesSection renders the facility comparison list.
+// compareFacilitiesSection renders the facility comparison as a sortable table.
 templ compareFacilitiesSection(data CompareData) {
 	<div class="bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden">
 		<div class="px-4 py-3 border-b border-neutral-700 flex items-center justify-between">
@@ -211,53 +309,89 @@ templ compareFacilitiesSection(data CompareData) {
 				}
 			</span>
 		</div>
-		<div class="divide-y divide-neutral-700/50">
-			if data.ViewMode == "full" {
-				for _, fac := range data.AllFacilities {
-					@compareFacilityRow(fac)
-				}
-				if len(data.AllFacilities) == 0 {
-					<div class="px-4 py-3 text-neutral-500 text-sm">No facility presences found.</div>
-				}
-			} else {
-				for _, fac := range data.SharedFacilities {
-					@compareFacilityRow(fac)
-				}
-				if len(data.SharedFacilities) == 0 {
-					<div class="px-4 py-3 text-neutral-500 text-sm">No shared facility presences found.</div>
-				}
-			}
-		</div>
-	</div>
-}
-
-// compareFacilityRow renders a single facility comparison row.
-templ compareFacilityRow(fac CompareFacility) {
-	<div class={ compareRowClasses(fac.Shared) }>
-		<div class="flex items-center justify-between px-4 py-3">
-			<div class="flex flex-col min-w-0">
-				<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", fac.FacID)) }
-					class="text-emerald-400 hover:text-emerald-300 font-medium truncate transition-colors">
-					{ fac.FacName }
-				</a>
-				if fac.City != "" || fac.Country != "" {
-					<span class="text-sm text-neutral-400 font-mono">
-						{ formatFacLocation(fac.City, fac.Country) }
-					</span>
-				}
-			</div>
-			<div class="flex gap-4 text-sm text-neutral-500 font-mono shrink-0 ml-3">
-				if fac.NetA != nil {
-					<span>{ fmt.Sprintf("AS%d", fac.NetA.LocalASN) }</span>
-				} else {
-					<span class="text-neutral-500">---</span>
-				}
-				if fac.NetB != nil {
-					<span>{ fmt.Sprintf("AS%d", fac.NetB.LocalASN) }</span>
-				} else {
-					<span class="text-neutral-500">---</span>
-				}
-			</div>
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left sortable">
+				<thead>
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">Name</th>
+						<th class="px-3 py-2" data-sortable data-sort-col="1" data-sort-type="alpha">Country</th>
+						<th class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="2" data-sort-type="alpha">City</th>
+						<th class="px-3 py-2 hidden md:table-cell font-mono" data-sortable data-sort-col="3" data-sort-type="numeric">{ fmt.Sprintf("ASN (AS%d)", data.NetA.ASN) }</th>
+						<th class="px-3 py-2 hidden md:table-cell font-mono" data-sortable data-sort-col="4" data-sort-type="numeric">{ fmt.Sprintf("ASN (AS%d)", data.NetB.ASN) }</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					if data.ViewMode == "full" {
+						if len(data.AllFacilities) == 0 {
+							<tr><td colspan="5" class="px-4 py-3 text-neutral-500 text-sm">No facility presences found.</td></tr>
+						}
+						for _, fac := range data.AllFacilities {
+							<tr class={ compareRowClasses(fac.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
+								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(fac.FacName) }>
+									<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", fac.FacID)) }
+										class="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+										{ fac.FacName }
+									</a>
+								</td>
+								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(fac.Country) }>
+									@CountryFlag(fac.Country)
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400" data-sort-value={ strings.ToLower(fac.City) }>
+									{ fac.City }
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ facASNSortValue(fac.NetA) }>
+									if fac.NetA != nil {
+										{ fmt.Sprintf("AS%d", fac.NetA.LocalASN) }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ facASNSortValue(fac.NetB) }>
+									if fac.NetB != nil {
+										{ fmt.Sprintf("AS%d", fac.NetB.LocalASN) }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+							</tr>
+						}
+					} else {
+						if len(data.SharedFacilities) == 0 {
+							<tr><td colspan="5" class="px-4 py-3 text-neutral-500 text-sm">No shared facility presences found.</td></tr>
+						}
+						for _, fac := range data.SharedFacilities {
+							<tr class={ compareRowClasses(fac.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
+								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(fac.FacName) }>
+									<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", fac.FacID)) }
+										class="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+										{ fac.FacName }
+									</a>
+								</td>
+								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(fac.Country) }>
+									@CountryFlag(fac.Country)
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400" data-sort-value={ strings.ToLower(fac.City) }>
+									{ fac.City }
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ facASNSortValue(fac.NetA) }>
+									if fac.NetA != nil {
+										{ fmt.Sprintf("AS%d", fac.NetA.LocalASN) }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ facASNSortValue(fac.NetB) }>
+									if fac.NetB != nil {
+										{ fmt.Sprintf("AS%d", fac.NetB.LocalASN) }
+									} else {
+										<span class="text-neutral-500">---</span>
+									}
+								</td>
+							</tr>
+						}
+					}
+				</tbody>
+			</table>
 		</div>
 	</div>
 }
@@ -346,6 +480,24 @@ templ compareFacilityMap(data CompareData) {
 			},
 		)
 	}
+}
+
+// speedSortValue returns a string representation of port speed for sorting.
+// Returns empty string when presence is nil (sorts last).
+func speedSortValue(p *CompareIXPresence) string {
+	if p == nil {
+		return ""
+	}
+	return fmt.Sprintf("%d", p.Speed)
+}
+
+// facASNSortValue returns a string representation of ASN for sorting.
+// Returns empty string when presence is nil (sorts last).
+func facASNSortValue(p *CompareFacPresence) string {
+	if p == nil {
+		return ""
+	}
+	return fmt.Sprintf("%d", p.LocalASN)
 }
 
 // compareRowClasses returns CSS classes for a comparison row.
