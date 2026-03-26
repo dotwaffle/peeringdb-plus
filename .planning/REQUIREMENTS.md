@@ -20,9 +20,9 @@ Requirements for the Code Coverage & Test Quality milestone. Each maps to roadma
 
 ### gRPC Coverage
 
-- [ ] **GRPC-01**: All 13 entity types have List filter tests covering optional proto field nil-checks
-- [ ] **GRPC-02**: All 13 entity types have Stream tests (4 types currently missing)
-- [ ] **GRPC-03**: Filter branch coverage reaches 80%+ across all 13 types using generic test helpers
+- [x] **GRPC-01**: All 13 entity types have List filter tests covering optional proto field nil-checks
+- [x] **GRPC-02**: All 13 entity types have Stream tests (4 types currently missing)
+- [x] **GRPC-03**: Filter branch coverage reaches 80%+ across all 13 types using generic test helpers
 
 ### Web Coverage
 
@@ -82,9 +82,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GQL-01 | Phase 38 | Complete |
 | GQL-02 | Phase 38 | Complete |
 | GQL-03 | Phase 38 | Complete |
-| GRPC-01 | Phase 39 | Pending |
-| GRPC-02 | Phase 39 | Pending |
-| GRPC-03 | Phase 39 | Pending |
+| GRPC-01 | Phase 39 | Complete |
+| GRPC-02 | Phase 39 | Complete |
+| GRPC-03 | Phase 39 | Complete |
 | WEB-01 | Phase 40 | Pending |
 | WEB-02 | Phase 40 | Pending |
 | WEB-03 | Phase 40 | Pending |
