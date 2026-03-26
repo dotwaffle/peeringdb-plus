@@ -148,7 +148,7 @@ Plans:
   3. Field projection in the pdbcompat layer operates on struct fields directly, not through `json.Marshal` followed by `json.Unmarshal`
   4. A malformed request to any of the 6 API surfaces (GraphQL, REST, PeeringDB compat, ConnectRPC, Web UI, Terminal) returns an error body with the same top-level structure containing `code`, `message`, and optional `details`
   5. Terminal entity renderers implement a `Renderer` interface, and each web detail handler function body is under 80 lines with query logic separated from rendering
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 34-01-PLAN.md -- Search limit+1 optimization, database indexes on updated/created, reflect-based field projection
@@ -188,6 +188,6 @@ Phases execute in numeric order: 32 -> 33 -> 34 -> 35 -> 36
 |-------|----------------|--------|-----------|
 | 32. Quick Wins | 1/1 | Complete    | 2026-03-26 |
 | 33. gRPC Deduplication & Filter Parity | 3/3 | Complete    | 2026-03-26 |
-| 34. Query Optimization & Architecture | 0/3 | Not started | - |
+| 34. Query Optimization & Architecture | 0/3 | Complete    | 2026-03-26 |
 | 35. HTTP Caching & Benchmarks | 0/0 | Not started | - |
 | 36. UI & Terminal Polish | 0/0 | Not started | - |
