@@ -1,5 +1,26 @@
 # Milestones
 
+## v1.9 Hardening & Polish (Shipped: 2026-03-26)
+
+**Phases completed:** 5 phases, 12 plans, 24 tasks
+
+**Key accomplishments:**
+
+- CORS middleware reordered before OTel tracing to eliminate preflight trace noise, plus 90 slog.String error calls replaced with slog.Any to preserve structured error type information
+- Added ~96 optional filter fields across 26 ConnectRPC request messages for full pdbcompat parity, plus middleware tests reaching 96.7% coverage
+- Created generic ListEntities/StreamEntities helpers and refactored all 13 gRPC handler files to delegate pagination and streaming logic, with per-type filter functions covering all pdbcompat Registry fields
+- 61.8% grpcserver test coverage with all 13 entity types covered by Get/List/Stream tests, generic helper unit tests, and filter parity field verification
+- Halved search queries (12 to 6) via limit+1 pattern, added updated/created indexes to all 13 schemas, replaced JSON roundtrip field projection with reflect-based accessor map
+- Shared httperr package with RFC 9457 Problem Details integrated into pdbcompat, web JSON mode, and REST error middleware; ConnectRPC and GraphQL unchanged
+- Generic Register function replaces type-switch dispatch in terminal RenderPage; all 6 detail handlers refactored to 29-line bodies with extracted queryXxx methods
+- HTTP caching middleware with Cache-Control/ETag headers and 304 Not Modified for conditional GET/HEAD requests
+- Four benchmark files covering search (3 query patterns, 125 entities), field projection (3 field counts), gRPC list pagination (100/1000 items), and sync upsert (100/500 orgs) with Go 1.26 b.Loop() for benchstat-compatible output
+- WCAG AA dark-mode contrast fixes across 5 templates, ARIA nav attributes with mobile menu close, and breadcrumb navigation on all 6 entity detail pages
+- Bookmarkable search URLs via HX-Push-Url with browser history, plus htmx error retry on failed collapsible section loads
+- TruncateName helper with ellipsis truncation in all 6 entity renderers, plus styled terminal sync-not-ready detection in readinessMiddleware
+
+---
+
 ## v1.8 Terminal CLI Interface (Shipped: 2026-03-26)
 
 **Phases completed:** 4 phases, 12 plans, 24 tasks
