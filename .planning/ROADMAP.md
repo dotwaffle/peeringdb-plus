@@ -143,7 +143,10 @@ Plans:
   1. Running `go test -race ./graph/...` exercises all 13 offset/limit list resolvers, and each test asserts that returned data matches seeded entities (not just status code or nil error)
   2. Tests exercise the NetworkByAsn not-found path (returns GraphQL error, not panic), the SyncStatus-missing path (returns null, not error), and validatePageSize rejection (returns error for limit > max)
   3. Running `go tool cover -func` filtered to `custom.resolvers.go`, `schema.resolvers.go`, and `pagination.go` shows 80%+ coverage on each file
-**Plans**: TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 38-01-PLAN.md -- All 13 offset/limit + cursor resolvers, error paths, pagination unit tests, 80%+ per-file coverage
 
 ### Phase 39: gRPC Handler Coverage
 **Goal**: Every gRPC List filter branch and every Stream RPC is covered by tests, reaching 80%+ coverage on grpcserver handler code
@@ -196,7 +199,7 @@ Phases execute in numeric order: 37 -> 38 -> 39 -> 40 -> 41 -> 42
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 37. Test Seed Infrastructure | 1/1 | Complete    | 2026-03-26 |
-| 38. GraphQL Resolver Coverage | 0/? | Not started | - |
+| 38. GraphQL Resolver Coverage | 0/1 | Not started | - |
 | 39. gRPC Handler Coverage | 0/? | Not started | - |
 | 40. Web Handler Coverage | 0/? | Not started | - |
 | 41. Schema & Minor Package Coverage | 0/? | Not started | - |
