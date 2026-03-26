@@ -27,13 +27,13 @@ Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 - [x] **RND-08**: Search results (/ui/?q=...) render as grouped text list for terminal clients
 - [x] **RND-09**: ASN comparison (/ui/compare/{asn1}/{asn2}) renders shared IXPs/facilities/campuses
 - [x] **RND-10**: Plain text mode (?T) produces identical layout with ASCII box drawing, no ANSI codes
-- [ ] **RND-11**: JSON mode (?format=json) outputs the same data structures as JSON
+- [x] **RND-11**: JSON mode (?format=json) outputs the same data structures as JSON
 - [x] **RND-12**: Port speed tiers color-coded (gray/neutral/blue/emerald/amber) matching web UI
 - [x] **RND-13**: Peering policy color-coded (Open=green, Selective=yellow, Restrictive=red)
 - [x] **RND-14**: Route server peers marked with colored [RS] badge in IX presence tables
 - [x] **RND-15**: Aggregate bandwidth displayed in network and IX detail headers
 - [x] **RND-16**: Entity IDs and cross-reference paths shown in output for easy follow-up curls
-- [ ] **RND-17**: WHOIS-style output mode (?format=whois) using RPSL-like key-value format
+- [x] **RND-17**: WHOIS-style output mode (?format=whois) using RPSL-like key-value format
 - [x] **RND-18**: NO_COLOR convention respected — suppress ANSI codes when ?nocolor param present
 
 ### Navigation
@@ -103,13 +103,13 @@ Deferred to future release.
 | RND-08 | Phase 30 | Complete |
 | RND-09 | Phase 30 | Complete |
 | RND-10 | Phase 30 | Complete |
-| RND-11 | Phase 30 | Pending |
+| RND-11 | Phase 30 | Complete |
 | RND-12 | Phase 29 | Complete |
 | RND-13 | Phase 29 | Complete |
 | RND-14 | Phase 29 | Complete |
 | RND-15 | Phase 29 | Complete |
 | RND-16 | Phase 29 | Complete |
-| RND-17 | Phase 30 | Pending |
+| RND-17 | Phase 30 | Complete |
 | RND-18 | Phase 28 | Complete |
 | NAV-01 | Phase 28 | Complete |
 | NAV-02 | Phase 28 | Complete |

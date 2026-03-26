@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.8
-milestone_name: Terminal CLI Interface
-status: Executing phase 30
-stopped_at: Completed 30-03-PLAN.md
-last_updated: "2026-03-26T02:21:57.914Z"
+milestone: v1.0
+milestone_name: milestone
+status: Ready to execute
+stopped_at: Completed 30-04-PLAN.md
+last_updated: "2026-03-26T02:30:34.235Z"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 30
-Plan: 3 of 4 complete
+Plan: 4 of 4 complete
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Recent decisions affecting current work:
 - [Phase 30]: D-03 minimal layout for Org/Campus/Carrier: compact identity header + name-only child lists with cross-refs
 - [Phase 30]: Search renderer iterates groups without echoing query (not in data)
 - [Phase 30]: Compare writeIXPresence helper factored for per-network presence lines
+- [Phase 30]: RPSL aut-num class for networks, custom ix:/site:/organisation:/campus:/carrier: classes for WHOIS format
 
 ### Pending Todos
 
@@ -72,6 +73,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T02:21:57.910Z
-Stopped at: Completed 30-03-PLAN.md
+Last session: 2026-03-26T02:30:34.231Z
+Stopped at: Completed 30-04-PLAN.md
 Resume file: None
