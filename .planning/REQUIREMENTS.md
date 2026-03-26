@@ -9,11 +9,11 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 
 ### Performance
 
-- [ ] **PERF-01**: Search service uses a single query per entity type instead of separate item + count queries
+- [x] **PERF-01**: Search service uses a single query per entity type instead of separate item + count queries
 - [ ] **PERF-02**: API responses include HTTP caching headers (Cache-Control, ETag) derived from sync timestamp
-- [ ] **PERF-03**: Database indexes exist on `updated` and `created` fields for incremental sync and filtered queries
+- [x] **PERF-03**: Database indexes exist on `updated` and `created` fields for incremental sync and filtered queries
 - [ ] **PERF-04**: Benchmark suite covers search, field projection, gRPC streaming conversion, and sync upsert hot paths
-- [ ] **PERF-05**: Field projection in pdbcompat avoids JSON marshal/unmarshal roundtrip per item
+- [x] **PERF-05**: Field projection in pdbcompat avoids JSON marshal/unmarshal roundtrip per item
 
 ### Code Quality
 
@@ -67,11 +67,11 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PERF-01 | Phase 34 | Pending |
+| PERF-01 | Phase 34 | Complete |
 | PERF-02 | Phase 35 | Pending |
-| PERF-03 | Phase 34 | Pending |
+| PERF-03 | Phase 34 | Complete |
 | PERF-04 | Phase 35 | Pending |
-| PERF-05 | Phase 34 | Pending |
+| PERF-05 | Phase 34 | Complete |
 | QUAL-01 | Phase 33 | Complete |
 | QUAL-02 | Phase 32 | Complete |
 | QUAL-03 | Phase 33 | Complete |
