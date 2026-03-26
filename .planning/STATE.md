@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Terminal CLI Interface
-status: Ready to plan
-stopped_at: Completed 29-02-PLAN.md
-last_updated: "2026-03-26T00:32:34.860Z"
+status: Executing phase 30
+stopped_at: Completed 30-01-PLAN.md
+last_updated: "2026-03-26T02:12:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 9
+  completed_plans: 6
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 29 — network-detail-reference-implementation
+**Current focus:** Phase 30 — entity-types-search-formats
 
 ## Current Position
 
 Phase: 30
-Plan: Not started
+Plan: 1 of 4 complete
 
 ## Performance Metrics
 
@@ -32,6 +32,7 @@ Plan: Not started
 
 | Phase 28 P01 | 4min | 2 tasks | 7 files |
 | Phase 28 P03 | 3min | 2 tasks | 3 files |
+| Phase 30 P01 | 8min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -49,6 +50,8 @@ Recent decisions affecting current work:
 - [Phase 29]: Type-switch dispatch in RenderPage for entity-specific terminal renderers
 - [Phase 29]: Eager-load IX/facility rows in handleNetworkDetail for terminal and JSON rendering modes
 - [Phase 29]: styledVal helper wraps StyleValue.Render only for non-empty strings, ensuring writeKV empty-value skip works correctly
+- [Phase 30]: Eager-load unconditionally in all 5 entity handlers (not gated by render mode)
+- [Phase 30]: formatLocation as termrender-local helper for package independence
 
 ### Pending Todos
 
@@ -64,6 +67,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T00:26:12.123Z
-Stopped at: Completed 29-02-PLAN.md
+Last session: 2026-03-26T02:12:00Z
+Stopped at: Completed 30-01-PLAN.md
 Resume file: None

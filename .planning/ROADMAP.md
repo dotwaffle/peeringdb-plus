@@ -131,7 +131,7 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 30-01-PLAN.md -- Data plumbing (struct fields, handler eager-loading, type-switch) + IX and Facility rich renderers
+- [x] 30-01-PLAN.md -- Data plumbing (struct fields, handler eager-loading, type-switch) + IX and Facility rich renderers
 - [ ] 30-02-PLAN.md -- Org, Campus, Carrier minimal renderers
 - [ ] 30-03-PLAN.md -- Search results and ASN comparison renderers
 - [ ] 30-04-PLAN.md -- WHOIS format for all entity types + JSON completeness verification
@@ -156,5 +156,5 @@ Phases execute in numeric order: 28 -> 29 -> 30 -> 31
 |-------|----------------|--------|-----------|
 | 28. Terminal Detection & Infrastructure | 3/3 | Complete    | 2026-03-25 |
 | 29. Network Detail (Reference Implementation) | 2/2 | Complete    | 2026-03-26 |
-| 30. Entity Types, Search & Formats | 0/4 | Not started | - |
+| 30. Entity Types, Search & Formats | 1/4 | In progress | - |
 | 31. Differentiators & Shell Integration | 0/? | Not started | - |
