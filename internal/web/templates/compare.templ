@@ -396,36 +396,40 @@ templ compareFacilitiesSection(data CompareData) {
 	</div>
 }
 
-// compareCampusesSection renders the shared campuses list.
+// compareCampusesSection renders the campus comparison as a sortable table.
 templ compareCampusesSection(data CompareData) {
 	<div class="bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden">
 		<div class="px-4 py-3 border-b border-neutral-700 flex items-center justify-between">
 			<span class="font-medium text-neutral-100">Campuses</span>
 			<span class="text-neutral-500 text-sm font-mono">{ fmt.Sprintf("(%d)", len(data.SharedCampuses)) }</span>
 		</div>
-		<div class="divide-y divide-neutral-700/50">
-			if len(data.SharedCampuses) == 0 {
-				<div class="px-4 py-3 text-neutral-500 text-sm">No shared campuses found.</div>
-			} else {
-				for _, campus := range data.SharedCampuses {
-					<div class="px-4 py-3">
-						<a href={ templ.SafeURL(fmt.Sprintf("/ui/campus/%d", campus.CampusID)) }
-							class="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
-							{ campus.CampusName }
-						</a>
-						if len(campus.SharedFacilities) > 0 {
-							<div class="mt-2 space-y-1 pl-4">
-								for _, f := range campus.SharedFacilities {
-									<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", f.FacID)) }
-										class="block text-sm text-neutral-400 hover:text-neutral-300 transition-colors">
-										{ f.FacName }
-									</a>
-								}
-							</div>
-						}
-					</div>
-				}
-			}
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left sortable">
+				<thead>
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">Campus Name</th>
+						<th class="px-3 py-2 w-20 text-center" data-sortable data-sort-col="1" data-sort-type="numeric">Shared</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					if len(data.SharedCampuses) == 0 {
+						<tr><td colspan="2" class="px-4 py-3 text-neutral-500 text-sm">No shared campuses found.</td></tr>
+					}
+					for _, campus := range data.SharedCampuses {
+						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(campus.CampusName) }>
+								<a href={ templ.SafeURL(fmt.Sprintf("/ui/campus/%d", campus.CampusID)) }
+									class="text-rose-400 hover:text-rose-300 font-medium transition-colors">
+									{ campus.CampusName }
+								</a>
+							</td>
+							<td class="px-3 py-1.5 text-center font-mono text-neutral-400" data-sort-value={ fmt.Sprintf("%d", len(campus.SharedFacilities)) }>
+								{ fmt.Sprintf("%d", len(campus.SharedFacilities)) }
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
 		</div>
 	</div>
 }
