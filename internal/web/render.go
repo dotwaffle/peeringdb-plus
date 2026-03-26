@@ -71,11 +71,10 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		}
 
 	case termrender.ModeWHOIS:
-		// Temporary: renders as plain text until Plan 04 implements real WHOIS rendering.
 		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		renderer := termrender.NewRenderer(termrender.ModePlain, true)
-		return renderer.RenderPage(w, page.Title, page.Data)
+		renderer := termrender.NewRenderer(mode, true) // noColor always true for WHOIS
+		return renderer.RenderWHOIS(w, page.Title, page.Data)
 
 	case termrender.ModeHTMX:
 		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
