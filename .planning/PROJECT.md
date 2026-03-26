@@ -82,11 +82,11 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - ~~Structured error logging fix (90 instances)~~ — completed Phase 32
 - ~~Test coverage expansion (grpcserver, middleware)~~ — completed Phase 33
 - ~~Benchmark suite for hot paths~~ — completed Phase 35
-- WCAG AA accessibility fixes (contrast, ARIA, form labels)
-- Bookmarkable search results
-- htmx error handling for collapsible sections
-- Breadcrumbs, mobile menu fixes, visual polish
-- Terminal line wrapping and error rendering
+- ~~WCAG AA accessibility fixes (contrast, ARIA, form labels)~~ — completed Phase 36
+- ~~Bookmarkable search results~~ — completed Phase 36
+- ~~htmx error handling for collapsible sections~~ — completed Phase 36
+- ~~Breadcrumbs, mobile menu fixes, visual polish~~ — completed Phase 36
+- ~~Terminal line wrapping and error rendering~~ — completed Phase 36
 
 ### Deferred
 
