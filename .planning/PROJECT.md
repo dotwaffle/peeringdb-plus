@@ -76,11 +76,11 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 **Target features:**
 - Query optimization (eliminate double-count queries, add missing indexes, HTTP caching)
-- gRPC handler deduplication (~1,154 lines of near-identical code across 13 services)
+- ~~gRPC handler deduplication (~1,154 lines of near-identical code across 13 services)~~ — completed Phase 33
 - Error format unification across all 6 API surfaces
-- ConnectRPC filter parity with PeeringDB compat layer
+- ~~ConnectRPC filter parity with PeeringDB compat layer~~ — completed Phase 33
 - ~~Structured error logging fix (90 instances)~~ — completed Phase 32
-- Test coverage expansion (grpcserver, middleware)
+- ~~Test coverage expansion (grpcserver, middleware)~~ — completed Phase 33
 - Benchmark suite for hot paths
 - WCAG AA accessibility fixes (contrast, ARIA, form labels)
 - Bookmarkable search results
