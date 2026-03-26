@@ -434,6 +434,23 @@ func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 				webtemplates.SyncingPage().Render(r.Context(), w) //nolint:errcheck // best-effort render
 				return
 			}
+
+			// Terminal clients (curl, wget, HTTPie) get styled text output.
+			mode := termrender.Detect(termrender.DetectInput{
+				UserAgent: r.UserAgent(),
+				Accept:    accept,
+				Query:     r.URL.Query(),
+			})
+			if mode == termrender.ModeRich || mode == termrender.ModePlain {
+				noColor := termrender.HasNoColor(termrender.DetectInput{Query: r.URL.Query()})
+				renderer := termrender.NewRenderer(mode, noColor)
+				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+				w.WriteHeader(http.StatusServiceUnavailable)
+				renderer.RenderError(w, http.StatusServiceUnavailable, "Service Unavailable", "PeeringDB data sync has not yet completed.\nPlease try again in a few moments.") //nolint:errcheck // best-effort render
+				return
+			}
+
+			// API/JSON fallback for non-terminal, non-browser clients.
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
 			fmt.Fprint(w, `{"error":"sync not yet completed"}`)

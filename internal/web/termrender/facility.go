@@ -46,8 +46,18 @@ func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDeta
 		buf.WriteString("\n")
 
 		for _, row := range data.Networks {
+			name := row.NetName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.NetName))
+			buf.WriteString(StyleValue.Render(name))
 			if ShouldShowField("fac-networks", "crossref", r.Width) {
 				buf.WriteString(" ")
 				buf.WriteString(CrossRef(fmt.Sprintf("/ui/asn/%d", row.ASN)))
@@ -63,8 +73,18 @@ func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDeta
 		buf.WriteString("\n")
 
 		for _, row := range data.IXPs {
+			name := row.IXName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.IXName))
+			buf.WriteString(StyleValue.Render(name))
 			if ShouldShowField("fac-ixps", "crossref", r.Width) {
 				buf.WriteString(" ")
 				buf.WriteString(CrossRef(fmt.Sprintf("/ui/ix/%d", row.IXID)))
@@ -80,8 +100,18 @@ func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDeta
 		buf.WriteString("\n")
 
 		for _, row := range data.Carriers {
+			name := row.CarrierName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.CarrierName))
+			buf.WriteString(StyleValue.Render(name))
 			if ShouldShowField("fac-carriers", "crossref", r.Width) {
 				buf.WriteString(" ")
 				buf.WriteString(CrossRef(fmt.Sprintf("/ui/carrier/%d", row.CarrierID)))

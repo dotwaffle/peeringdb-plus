@@ -54,6 +54,28 @@ func TestRenderError_500(t *testing.T) {
 	}
 }
 
+func TestRenderError_RichContainsANSI(t *testing.T) {
+	t.Parallel()
+
+	r := NewRenderer(ModeRich, false)
+	var buf bytes.Buffer
+
+	if err := r.RenderError(&buf, 503, "Service Unavailable", "Sync not ready."); err != nil {
+		t.Fatalf("RenderError: %v", err)
+	}
+
+	out := buf.String()
+
+	if !strings.Contains(out, "503 Service Unavailable") {
+		t.Error("output missing '503 Service Unavailable'")
+	}
+
+	// Rich mode SHOULD contain ANSI escape codes for styling.
+	if !strings.Contains(out, "\x1b[") {
+		t.Error("expected ANSI escape codes in rich mode output")
+	}
+}
+
 func TestRenderError_PlainMode(t *testing.T) {
 	t.Parallel()
 
