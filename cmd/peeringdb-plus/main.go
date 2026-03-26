@@ -30,6 +30,7 @@ import (
 	pdbgql "github.com/dotwaffle/peeringdb-plus/internal/graphql"
 	"github.com/dotwaffle/peeringdb-plus/internal/grpcserver"
 	"github.com/dotwaffle/peeringdb-plus/internal/health"
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
@@ -57,7 +58,7 @@ func main() {
 	// Load config from environment per D-33, CFG-1.
 	cfg, err := config.Load()
 	if err != nil {
-		slog.Error("failed to load config", slog.String("error", err.Error()))
+		slog.Error("failed to load config", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -70,7 +71,7 @@ func main() {
 		SampleRate:  cfg.OTelSampleRate,
 	})
 	if err != nil {
-		slog.Error("failed to init otel", slog.String("error", err.Error()))
+		slog.Error("failed to init otel", slog.Any("error", err))
 		os.Exit(1) //nolint:gocritic // exitAfterDefer: cancel() deferred above is trivial at this stage
 	}
 	defer otelOut.Shutdown(ctx) //nolint:errcheck // best-effort flush at exit
@@ -81,14 +82,14 @@ func main() {
 
 	// Initialize custom sync metrics per D-05.
 	if err := pdbotel.InitMetrics(); err != nil {
-		logger.Error("failed to init metrics", slog.String("error", err.Error()))
+		logger.Error("failed to init metrics", slog.Any("error", err))
 		os.Exit(1)
 	}
 
 	// Open database per D-28, D-34.
 	entClient, db, err := database.Open(cfg.DBPath)
 	if err != nil {
-		logger.Error("failed to open database", slog.String("error", err.Error()))
+		logger.Error("failed to open database", slog.Any("error", err))
 		os.Exit(1)
 	}
 	defer entClient.Close()
@@ -104,7 +105,7 @@ func main() {
 	// Auto-migrate schema on primary per D-43.
 	if isPrimary {
 		if err := entClient.Schema.Create(ctx); err != nil {
-			logger.Error("failed to migrate schema", slog.String("error", err.Error()))
+			logger.Error("failed to migrate schema", slog.Any("error", err))
 			os.Exit(1)
 		}
 	}
@@ -112,7 +113,7 @@ func main() {
 	// Initialize sync_status table on primary (raw SQL, outside ent schema management).
 	if isPrimary {
 		if err := pdbsync.InitStatusTable(ctx, db); err != nil {
-			logger.Error("failed to init sync_status table", slog.String("error", err.Error()))
+			logger.Error("failed to init sync_status table", slog.Any("error", err))
 			os.Exit(1)
 		}
 	}
@@ -125,13 +126,13 @@ func main() {
 		}
 		return status.LastSyncAt, true
 	}); err != nil {
-		logger.Error("failed to init freshness gauge", slog.String("error", err.Error()))
+		logger.Error("failed to init freshness gauge", slog.Any("error", err))
 		os.Exit(1)
 	}
 
 	// Initialize per-type object count gauges for business metrics dashboard.
 	if err := pdbotel.InitObjectCountGauges(entClient); err != nil {
-		logger.Error("failed to init object count gauges", slog.String("error", err.Error()))
+		logger.Error("failed to init object count gauges", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -203,11 +204,11 @@ func main() {
 		BasePath: "/rest/v1",
 	})
 	if err != nil {
-		logger.Error("failed to create REST server", slog.String("error", err.Error()))
+		logger.Error("failed to create REST server", slog.Any("error", err))
 		os.Exit(1)
 	}
 	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})
-	mux.Handle("/rest/v1/", restCORS(restSrv.Handler()))
+	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restSrv.Handler())))
 	logger.Info("REST API mounted", slog.String("prefix", "/rest/v1/"))
 
 	// Mount PeeringDB compatibility API at /api/ per D-27, D-28.
@@ -227,7 +228,7 @@ func main() {
 		otelconnect.WithoutTraceEvents(), // Suppress per-message events (critical for streaming RPCs per STRM-06).
 	)
 	if err != nil {
-		logger.Error("failed to create otel interceptor", slog.String("error", err.Error()))
+		logger.Error("failed to create otel interceptor", slog.Any("error", err))
 		os.Exit(1)
 	}
 	handlerOpts := connect.WithInterceptors(otelInterceptor)
@@ -330,7 +331,7 @@ func main() {
 				freshness = status.LastSyncAt
 			}
 			if err := renderer.RenderHelp(w, freshness); err != nil {
-				slog.Error("render terminal help", slog.String("error", err.Error()))
+				slog.Error("render terminal help", slog.Any("error", err))
 			}
 			return
 
@@ -352,7 +353,7 @@ func main() {
 	})
 
 	// Build middleware stack (outermost first):
-	// Recovery -> OTel HTTP -> Logging -> CORS -> Readiness -> Caching -> mux
+	// Recovery -> CORS -> OTel HTTP -> Logging -> Readiness -> Caching -> mux
 	cachingMiddleware := middleware.Caching(middleware.CachingInput{
 		SyncTimeFn: func() time.Time {
 			t, _ := pdbsync.GetLastSuccessfulSyncTime(context.Background(), db)
@@ -362,9 +363,9 @@ func main() {
 	})
 	handler := cachingMiddleware(mux)
 	handler = readinessMiddleware(syncWorker, handler)
-	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
 	handler = middleware.Logging(logger)(handler)
 	handler = otelhttp.NewMiddleware("peeringdb-plus")(handler)
+	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
 	handler = middleware.Recovery(logger)(handler)
 
 	// Enable HTTP/1.1 + h2c (HTTP/2 cleartext) for gRPC support.
@@ -389,7 +390,7 @@ func main() {
 			slog.Bool("h2c", true),
 		)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("server error", slog.String("error", err.Error()))
+			logger.Error("server error", slog.Any("error", err))
 			os.Exit(1)
 		}
 	}()
@@ -401,13 +402,57 @@ func main() {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.DrainTimeout)
 	defer shutdownCancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		logger.Error("shutdown error", slog.String("error", err.Error()))
+		logger.Error("shutdown error", slog.Any("error", err))
 	}
 }
 
 // syncReadiness reports whether at least one sync has completed.
 type syncReadiness interface {
 	HasCompletedSync() bool
+}
+
+// restErrorMiddleware wraps entrest error responses in RFC 9457 Problem Details format.
+// It intercepts non-2xx responses and rewrites the body as application/problem+json.
+func restErrorMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rw := &restErrorWriter{ResponseWriter: w, r: r}
+		next.ServeHTTP(rw, r)
+	})
+}
+
+// restErrorWriter captures non-2xx status codes from entrest and converts them
+// to RFC 9457 Problem Details responses.
+type restErrorWriter struct {
+	http.ResponseWriter
+	r           *http.Request
+	wroteHeader bool
+}
+
+// WriteHeader intercepts non-2xx status codes and writes RFC 9457 problem detail.
+func (w *restErrorWriter) WriteHeader(code int) {
+	if code >= 400 && !w.wroteHeader {
+		w.wroteHeader = true
+		httperr.WriteProblem(w.ResponseWriter, httperr.WriteProblemInput{
+			Status:   code,
+			Instance: w.r.URL.Path,
+		})
+		return
+	}
+	w.ResponseWriter.WriteHeader(code)
+}
+
+// Write passes through for 2xx responses or suppresses body for error responses
+// (already written by WriteHeader).
+func (w *restErrorWriter) Write(b []byte) (int, error) {
+	if w.wroteHeader {
+		return len(b), nil // discard entrest's error body
+	}
+	return w.ResponseWriter.Write(b)
+}
+
+// Unwrap returns the underlying ResponseWriter for middleware-aware interface detection.
+func (w *restErrorWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
 }
 
 // readinessMiddleware returns 503 for all routes except infrastructure paths
