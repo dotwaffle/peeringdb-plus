@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
@@ -563,5 +564,28 @@ func TestCompareService_InvalidASN(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected error for non-existent ASN, got nil")
+	}
+}
+
+func TestCompareService_DBError(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seedCompareTestData(t, client)
+
+	svc := NewCompareService(client)
+
+	// Close the client to trigger DB error on the next query.
+	client.Close()
+
+	_, err := svc.Compare(context.Background(), CompareInput{
+		ASN1:     13335,
+		ASN2:     15169,
+		ViewMode: "shared",
+	})
+	if err == nil {
+		t.Fatal("expected error for closed DB, got nil")
+	}
+	if !strings.Contains(err.Error(), "network ASN") {
+		t.Errorf("error = %q, want substring %q", err.Error(), "network ASN")
 	}
 }

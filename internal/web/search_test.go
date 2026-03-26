@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -574,5 +575,22 @@ func TestSearchTypeOrder(t *testing.T) {
 		if results[i].TypeName != want {
 			t.Errorf("results[%d].TypeName = %q, want %q", i, results[i].TypeName, want)
 		}
+	}
+}
+
+func TestSearchService_DBError(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	svc := NewSearchService(client)
+
+	// Close the client to trigger DB error on the next query.
+	client.Close()
+
+	_, err := svc.Search(context.Background(), "test")
+	if err == nil {
+		t.Fatal("expected error for closed DB, got nil")
+	}
+	if !strings.Contains(err.Error(), "search") {
+		t.Errorf("error = %q, want substring %q", err.Error(), "search")
 	}
 }

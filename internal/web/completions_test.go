@@ -293,3 +293,32 @@ func TestCompletionSearch_IXType(t *testing.T) {
 		t.Errorf("expected first line to be IX ID '20', got %q", lines[0])
 	}
 }
+
+func TestExtractID(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name      string
+		detailURL string
+		typeSlug  string
+		want      string
+	}{
+		{"network", "/ui/asn/13335", "net", "13335"},
+		{"ix", "/ui/ix/20", "ix", "20"},
+		{"facility", "/ui/fac/30", "fac", "30"},
+		{"org", "/ui/org/1", "org", "1"},
+		{"campus", "/ui/campus/40", "campus", "40"},
+		{"carrier", "/ui/carrier/50", "carrier", "50"},
+		{"unknown type", "/ui/foo/1", "foo", ""},
+		{"empty url", "", "net", ""},
+		{"empty slug", "/ui/asn/13335", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := extractID(tt.detailURL, tt.typeSlug)
+			if got != tt.want {
+				t.Errorf("extractID(%q, %q) = %q, want %q", tt.detailURL, tt.typeSlug, got, tt.want)
+			}
+		})
+	}
+}

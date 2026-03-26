@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -184,6 +185,127 @@ func TestLoad_StreamTimeout(t *testing.T) {
 			}
 			if cfg.StreamTimeout != tt.want {
 				t.Errorf("StreamTimeout = %v, want %v", cfg.StreamTimeout, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoad_SyncInterval(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    time.Duration
+		wantErr bool
+		wantMsg string
+	}{
+		{name: "default is 1h", envVal: "", want: 1 * time.Hour},
+		{name: "explicit 30m", envVal: "30m", want: 30 * time.Minute},
+		{name: "invalid duration", envVal: "not-a-duration", wantErr: true, wantMsg: "PDBPLUS_SYNC_INTERVAL"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_SYNC_INTERVAL", tt.envVal)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_SYNC_INTERVAL=%q, got nil", tt.envVal)
+				}
+				if tt.wantMsg != "" && !strings.Contains(err.Error(), tt.wantMsg) {
+					t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.SyncInterval != tt.want {
+				t.Errorf("SyncInterval = %v, want %v", cfg.SyncInterval, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoad_IncludeDeleted(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    bool
+		wantErr bool
+		wantMsg string
+	}{
+		{name: "default is false", envVal: "", want: false},
+		{name: "explicit true", envVal: "true", want: true},
+		{name: "explicit false", envVal: "false", want: false},
+		{name: "invalid bool", envVal: "maybe", wantErr: true, wantMsg: "PDBPLUS_INCLUDE_DELETED"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_INCLUDE_DELETED", tt.envVal)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_INCLUDE_DELETED=%q, got nil", tt.envVal)
+				}
+				if tt.wantMsg != "" && !strings.Contains(err.Error(), tt.wantMsg) {
+					t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.IncludeDeleted != tt.want {
+				t.Errorf("IncludeDeleted = %v, want %v", cfg.IncludeDeleted, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoad_DrainTimeout(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    time.Duration
+		wantErr bool
+		wantMsg string
+	}{
+		{name: "default is 10s", envVal: "", want: 10 * time.Second},
+		{name: "explicit 5s", envVal: "5s", want: 5 * time.Second},
+		{name: "invalid duration", envVal: "garbage", wantErr: true, wantMsg: "PDBPLUS_DRAIN_TIMEOUT"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_DRAIN_TIMEOUT", tt.envVal)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_DRAIN_TIMEOUT=%q, got nil", tt.envVal)
+				}
+				if tt.wantMsg != "" && !strings.Contains(err.Error(), tt.wantMsg) {
+					t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.DrainTimeout != tt.want {
+				t.Errorf("DrainTimeout = %v, want %v", cfg.DrainTimeout, tt.want)
 			}
 		})
 	}

@@ -1,71 +1,54 @@
 # Feature Landscape
 
-**Domain:** Curl-friendly terminal CLI interface for PeeringDB data
-**Researched:** 2026-03-25
-**Milestone:** v1.8
+**Domain:** Test coverage and quality improvement for a Go application with 5 API surfaces
+**Researched:** 2026-03-26
+**Milestone:** v1.10
 
 ## Table Stakes
 
-Features that users of curl-friendly terminal services universally expect. These are established by wttr.in, cheat.sh, ifconfig.co, and similar services, adapted to the network engineering domain. Missing any of these makes the terminal interface feel broken or incomplete.
+Features that a robust test suite for this project must have. Missing = false confidence in coverage metrics.
 
-### Terminal Client Detection
+### Critical Coverage Gaps (Must Fix)
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| User-Agent-based terminal detection | Every curl-friendly service (wttr.in, ifconfig.co, cheat.sh) auto-detects terminal clients by User-Agent. Users expect `curl peeringdb-plus.fly.dev/ui/asn/13335` to just work without passing headers. | Low | Match substrings (case-insensitive): `curl`, `wget`, `httpie`, `go-http-client`, `python-requests`, `xh`, `fetch`, `powershell`, `lwp-request`, `aiohttp`, `nushell`. Empty UA also triggers terminal mode. |
-| Content negotiation on existing URLs | wttr.in serves ANSI at `wttr.in/London` for curl and HTML at the same URL for browsers. No separate endpoints. `/ui/asn/13335` must serve terminal output for curl and HTML for browsers. | Medium | Architectural keystone. Existing `renderPage()` already branches on `HX-Request` for htmx fragments. Add a third branch for terminal clients. Set `Vary: User-Agent, Accept, HX-Request`. |
-| Explicit format override via query parameter | wttr.in uses `?T` for plain text, cheat.sh uses `?T` to disable highlighting. Users must be able to force a format regardless of User-Agent. | Low | Three formats: `?T` (plain text, no ANSI), `?format=json` (JSON), default (ANSI for terminals). `?T` shorthand is muscle-memory for users of curl-friendly services. |
-| `Accept` header as secondary signal | Programmatic clients use `Accept: text/plain` or `Accept: application/json` to negotiate format. Standard HTTP content negotiation. | Low | Priority: `?format=` query param > `?T` > `Accept` header > User-Agent detection. |
+| Feature | Why Expected | Complexity | Existing Infrastructure | Current -> Target |
+|---------|--------------|------------|------------------------|-------------------|
+| **GraphQL offset/limit list resolver tests** | 11 of 13 `*List` resolvers in `custom.resolvers.go` at 0% coverage. Only `networksList` is partially covered (50%). These are hand-written resolvers with real validation and filter logic -- `ValidateOffsetLimit` + `WhereInput.P()` error handling in each. | Low | `graph/resolver_test.go` has `seedTestData`, `postGraphQL`, `gqlResponse` helpers. Pattern: add one GraphQL query per list type to hit the resolver. | graph: 2.6% -> 50%+ |
+| **GraphQL custom resolver error paths** | `NetworkByAsn` at 50% (only happy path). `SyncStatus` at 70% (nil status untested). `ObjectCounts` resolver at 0%. `SyncStatus` factory method at 0%. Error branch in `ValidateOffsetLimit` partially tested only through `networksList`. | Low | Same helpers. Need: query for nonexistent ASN (returns null, not error), query SyncStatus with no sync data, query ObjectCounts sub-resolver. | graph: +10% |
+| **gRPC streaming tests for 4 missing types** | `StreamCarrierFacilities`, `StreamIxPrefixes`, `StreamNetworkIxLans`, `StreamPocs` have 0% coverage. Their corresponding `apply*StreamFilters` functions also at 0%. The other 9 types all have stream tests. | Med | `grpcserver_test.go` has 43 tests. Streaming pattern is established: create entities, call `Stream*` directly on service struct, collect results. Copy pattern for 4 remaining types. | grpcserver: 61.7% -> 70%+ |
+| **gRPC filter branch coverage** | Every `apply*ListFilters` and `apply*StreamFilters` function has uncovered branches from optional proto field nil-checks. Coverage ranges from 43.8% (`applyNetworkIxLanListFilters`) to 63.6% (`applyIxFacilityListFilters`). Each filter function has 5-20 conditional branches, most untested. | Med | Filter tests exist for 7 entity types but test only 1-2 filter fields each. Need table-driven tests with each filter field populated individually. ~13 types x ~8 avg filter fields = ~104 filter branches. | grpcserver: +10-15% |
+| **Web detail fragment handler coverage** | 6 lazy-loaded fragment handlers at 58-69%: `handleNetIXLansFragment` (60%), `handleNetContactsFragment` (60%), `handleIXParticipantsFragment` (66.7%), `handleIXFacilitiesFragment` (58.3%), `handleIXPrefixesFragment` (60%), `handleFacCarriersFragment` (uncounted). Untested branches are entity-not-found errors and empty-relationship paths. | Med | `detail_test.go` (515 lines) tests full detail pages. Fragment tests need: `HX-Request: true` header, seeded relationship data (e.g., NetworkIxLan records for network IX fragments), and error cases (invalid IDs). | web: 74.8% -> 82%+ |
+| **Web `renderPage` multi-mode dispatch** | `renderPage` at 41.8%. Only HTML and htmx paths exercised by existing tests. Terminal mode branches (rich/plain/JSON/WHOIS/short) plus error-title branches (Not Found, Server Error) are all untested through `renderPage` despite termrender itself being tested. | Med | `handler_test.go` has `newTestMux`. Need requests with `User-Agent: curl/8.0` to exercise terminal paths, `?T` for plain, `?format=json` for JSON, `?format=whois` for WHOIS. All through existing handler endpoints. | web: +5-8% |
 
-### Output Formatting
+### Moderate Coverage Gaps (Should Fix)
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Rich ANSI output with 256-color | wttr.in uses ANSI escape sequences extensively. Network engineers' terminals universally support 256-color. Box-drawing characters and color-coded sections make data scannable. | Medium | lipgloss v2 + colorprofile.ANSI256 for server-side rendering. Unicode box-drawing via lipgloss border types. Color scheme should match existing web UI accent colors. |
-| Plain text fallback mode (`?T`) | Pipeable output without ANSI codes for `grep`, `awk`, `cut`. Table stakes for any terminal service. | Low | colorprofile.ASCII strips all escape codes. lipgloss ASCIIBorder for tables. Same data layout, ASCII characters only. |
-| JSON output mode (`?format=json`) | Machine-readable structured output. Users want `curl ... \| jq .policy_general` to extract fields. | Low | Marshal the same detail data structs as JSON. Use `encoding/json` stdlib. |
-| Whois-style key-value layout for headers | Network engineers' mental model for "looking up an ASN" is shaped by WHOIS output: key-value pairs, colon-separated, with section grouping. bgp.tools WHOIS and peeringdb-py both use this format. | Medium | Format: `ASN:            13335` with fixed-width labels (left-padded to align colons). Group related fields with blank line separators. This is the primary format for detail page headers. |
-| Formatted tables for list sections | IX presences, facility lists, participant lists need columnar display with headers and borders. | Medium | lipgloss/table with StyleFunc for per-cell coloring. Column widths computed from data. Headers, separators, and borders. |
-| Speed formatting with color tiers | Port speeds as human-readable (1G, 10G, 100G, 400G) with the 5-tier color scheme from v1.7 web UI. | Low | Map Tailwind colors to ANSI 256-color palette: sub-1G = 245 (gray), 1G = 250 (neutral), 10G = 33 (blue), 100G = 35 (emerald), 400G+ = 214 (amber). |
+| Feature | Why Expected | Complexity | Current -> Target |
+|---------|--------------|------------|-------------------|
+| **internal/otel `InitMetrics` error paths** | `InitMetrics` at 70%, `Setup` at 80%, `InitFreshnessGauge` at 80%. Error branches when OTel meter/provider creation fails. | Low | otel: 84% -> 92%+ |
+| **internal/health `checkSync` edge cases** | `checkSync` at 65.2%. Needs tests for: sync age exactly at threshold, nil timestamp, SQL error during query. | Low | health: 84.6% -> 92%+ |
+| **internal/peeringdb `doWithRetry` exhaustion** | `doWithRetry` at 84%. Missing: max-retry-exceeded path, non-retryable error (401/403) path. `SetRateLimit` and `SetRetryBaseDelay` at 0% (trivial setters). `FetchAll` at 80.8%. | Med | peeringdb: 83.2% -> 90%+ |
+| **internal/sync `deleteStaleChunked` error path** | `deleteStaleChunked` at 66.7%. The error path during chunk deletion is untested. Status table functions (`InitStatusTable` 71.4%, `RecordSyncStart` 71.4%) have untested SQL error branches. | Low | sync: 86.9% -> 92%+ |
+| **internal/web/termrender minor gaps** | `String()` method on RenderMode at 22.2% (only default case tested). `formatLocation` at 60%. `RenderJSON` at 70%. `RenderOrgDetail` at 72.5%. | Low | termrender: 88.2% -> 93%+ |
+| **Web `extractID` and `getFreshness`** | `extractID` at 37.5% (partial match, error paths). `getFreshness` at 50% (nil DB path). `handleAbout` at 40% (terminal path untested). | Low | web: +2-3% |
 
-### Navigation and Help
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Help text at `/ui/` root | When a terminal client hits `/ui/` with no path, show available endpoints, query parameters, and example curl commands. This is the discoverability mechanism. | Low | Static text template. Include endpoint list with examples, query parameter reference (`?T`, `?format=json`). Format as clean, readable text -- not heavy on ANSI color. |
-| Text-formatted error pages | Terminal clients hitting `/ui/nonexistent` must not get HTML garbage. Return: `404 Not Found: No network with ASN 99999`. | Low | Short, informative, one-line errors. Include a hint: `Try: curl peeringdb-plus.fly.dev/ui/` to guide to help page. |
-| Correct HTTP status codes | Terminal clients rely on `curl -f` failing on 4xx/5xx. Status codes must be accurate. | Low | Already correct in existing handlers. Must not regress through terminal rendering path. |
-
-### Detail Pages for All 6 Entity Types
+### Coverage Metrics Hygiene
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Network detail (`/ui/asn/{asn}`) | The primary use case. Shows name, ASN, org, policy, traffic, IX presences, facility presences, contacts. | Medium | Header: whois-style key-value. IX presences: table with IX name, speed, IPv4, IPv6, RS status. Facility presences: table. Contacts: table. |
-| IX detail (`/ui/ix/{id}`) | IX info, location, protocols, participant count, participant table, facility list, prefix list. | Medium | Participants table potentially 1000+ rows. Render all rows -- terminal users expect it and can pipe to `less -R`. |
-| Facility detail (`/ui/fac/{id}`) | Facility record: name, address, CLLI, network list, IX list, carrier list. | Medium | Address formatting: combine fields into multi-line block. |
-| Organization detail (`/ui/org/{id}`) | Org record: name, address, network list, facility list, IX list, campus list, carrier list. | Medium | Container entity -- primarily lists of owned sub-entities. |
-| Campus detail (`/ui/campus/{id}`) | Campus: name, org, location, facility list. | Low | Simplest entity type. Few fields, short facility list. |
-| Carrier detail (`/ui/carrier/{id}`) | Carrier: name, org, facility list. | Low | Similar to campus. |
-
-### Search
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Terminal search results (`/ui/?q=cloudflare`) | Terminal users need to discover entity IDs. Search returns grouped results matching web UI. | Medium | Grouped list: type header ("Networks (3)"), then results with name, subtitle, URL path. ANSI mode: colored type headers. 10 per type. |
+| **Exclude generated code from coverage metrics** | `graph/generated.go` (57,144 lines) dominates the `graph` package coverage denominator. All `ent/*` generated packages, `gen/peeringdb/v1/*`, `ent/rest/*` show 0% but are code-generated and untestable. Including them inflates the denominator and makes real coverage gains invisible. | Low | Use `-coverpkg` flag listing only hand-written packages in CI. Or filter `go tool cover -func` output to exclude `/generated.go`, `/ent/`, `/gen/`. |
+| **Per-package coverage tracking in CI** | Current CI reports overall coverage. Per-package breakdown reveals which hand-written packages are below threshold. | Low | `go test -coverprofile` + `go tool cover -func` per package. Report packages below 80% as CI annotations. |
 
 ## Differentiators
 
-Features that set this apart from "just curl the REST API." Not expected, but create significant value.
+Features beyond basic line coverage that make tests genuinely trustworthy.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| ASN comparison in terminal | `curl .../ui/compare/13335/32934` shows shared IXPs, facilities, campuses. No other terminal tool offers this. | Medium | Three tables: shared IXPs, shared facilities, shared campuses. Side-by-side data with colored columns per network. |
-| One-line summary mode | `curl ".../ui/asn/13335?format=short"` returns `AS13335 Cloudflare, Inc. \| Open \| 150 IXs \| 47 Facs`. Useful for scripts, ChatOps. | Low | Single-line formatter per entity type. Pipeable, greppable. |
-| Section filtering | `curl ".../ui/asn/13335?section=ix"` returns only IX presences. Reduces output noise for scripts. | Low | Parse `?section=` param, render only requested sections. Combinable: `?section=ix,fac`. |
-| RS badge indicator | Route server peers marked with colored `[RS]` badge in IX presence tables. Plain text: `*` suffix. | Low | Operationally important for peering decisions. |
-| Color-coded peering policy | Open = green, Selective = yellow, Restrictive = red, No Policy = gray. Instant visual signal. | Low | Policy status is constantly scanned by network engineers. |
-| Updated timestamp footer | "Data last synced: 2026-03-25T14:00:00Z (2 hours ago)" at bottom of every response. | Low | Users need data freshness awareness for a periodic-sync mirror. |
-| Width parameter (`?w=N`) | Tables adapt to specified width. Default 80 columns. | Medium | lipgloss table Width(n) with wrapping. Useful for wide terminals. |
+| **Test quality audit: assertion density** | Some existing tests may only assert `rec.Code == 200` without checking response bodies. A handler could return empty HTML with 200 and the test would pass. Audit each test function and flag those with status-only assertions. | Med | Review task, not code. Walk each `_test.go` file. Estimated: identify 5-10 weak tests. Fix by adding body content assertions. |
+| **Error path coverage audit** | Systematically map every `fmt.Errorf` and `connect.NewError` in hand-written code to a test that exercises it. `graph` has 14 error returns, only 2 tested. `grpcserver` has 26 `connect.NewError` calls -- 13 "not found" tested, filter validation errors partially. | Med | Use `go tool cover -func` sub-100% functions, read uncovered lines, verify they are error returns. Produces a checklist of specific error paths to test. |
+| **Cross-surface consistency tests** | Seed one entity, query it via GraphQL, gRPC, REST, and PeeringDB compat. Verify all 4 surfaces return equivalent data. Catches field mapping bugs that single-surface tests miss (e.g., a field named `info_type` in REST but `infoType` in GraphQL with different values). | High | Requires standing up all 4 API surfaces in a single test. New shared `setupFullServer` helper needed. Very high value for a project with 5 API surfaces -- unique to this codebase. |
+| **Golden file tests for gRPC responses** | Mirror the existing `pdbcompat` golden file pattern (39 golden files for 13 types x 3 scenarios) for gRPC Get/List responses. Catches unintended proto field mapping changes. | High | Serialize proto messages via `protojson.Marshal` to deterministic JSON. 13 types x 2 RPCs = 26 golden files. Pattern well-established in `pdbcompat/golden_test.go`. |
+| **Fuzz tests for untrusted inputs** | PeeringDB API responses contain user-generated content. The Django-style filter parser (`pdbcompat/filter.go`) and JSON deserializers (`peeringdb/types.go`) accept untrusted input. Per SEC-4 (CLAUDE.md). | Med | `testing.F` is stdlib. Focus on filter parser (complex string parsing with `__` operators) and custom JSON unmarshalers (handle PeeringDB spec-vs-reality discrepancies). |
+| **Streaming RPC integration test** | Current stream tests call service methods directly. A full-stack test via `httptest.Server` with ConnectRPC client would validate wire format, `grpc-total-count` header propagation, and otelconnect interceptor. | High | Tests the actual HTTP transport layer, not just the Go method. Catches issues like missing Flusher implementation in middleware wrappers. |
 
 ## Anti-Features
 
@@ -73,105 +56,84 @@ Features to explicitly NOT build.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| Interactive TUI (Bubble Tea) | This is server-side HTTP, not a client-side TUI. User runs `curl`, not a Go binary. | Render static ANSI text that curl pipes to stdout. |
-| Terminal width auto-detection | Server has no terminal. Cannot detect client width via HTTP. | Default 80 columns. Accept `?w=N` query parameter. |
-| Pager support | Cannot control client-side pager from HTTP response. | Document `curl ... \| less -R` in help text. |
-| Client-side CLI binary | Out of scope. This is zero-setup -- curl only. | gRPC/ConnectRPC API exists for programmatic access. |
-| Streaming/live updates | curl is request-response. | ConnectRPC streaming RPCs exist for bulk export. |
-| TrueColor (24-bit) default | Not universally supported (screen, some multiplexers). | 256-color is sufficient and universal. |
-| Custom color themes | Complexity for minimal gain. | Ship one well-designed color palette. |
-| Markdown output | Format proliferation. | JSON for machines, ANSI/text for humans. |
-| WHOIS protocol (port 43) | Separate application, Fly.io doesn't easily expose TCP ports. | HTTP-only via curl. |
-| CSV/TSV output | Format proliferation. | JSON with jq for extraction. |
+| **Testing generated code** | `graph/generated.go` (57K lines), all `ent/*` generated packages, `gen/peeringdb/v1/` are code-generated. Covering them inflates metrics without catching bugs. Schema changes regenerate them. | Exclude from coverage metrics. Focus on hand-written code in `graph/custom.resolvers.go`, `graph/schema.resolvers.go`, `graph/pagination.go`, `graph/resolver.go`. |
+| **Unit testing ent/schema Edges/Indexes/Annotations** | All 13 schema types have 0% on `Edges()`, `Indexes()`, `Annotations()`. These return static configuration structs consumed by ent codegen, not application logic. If wrong, codegen or migration fails -- caught by integration tests already. | Accept ~50% as reasonable for `ent/schema`. The hand-written logic (hooks in `hooks.go`, types in `types.go`, validation in Organization model) matters. Schema config methods do not. |
+| **Mock-heavy unit tests for thin wrappers** | The 13 cursor-based resolvers in `schema.resolvers.go` are 4-line functions: validate page size, call ent Paginate. Mocking the ent client to test these in isolation adds complexity for zero bug-finding value. | Test through integration: real ent client with SQLite, real GraphQL queries. This is the established pattern in `resolver_test.go`. |
+| **100% coverage target** | Leads to testing trivial getters, generated code, and impossible error paths. Go standard library averages ~80%. Diminishing returns above 90% for hand-written code. | Target 80%+ on hand-written packages. Accept lower numbers where generated code dominates the denominator. |
+| **Mutation testing in CI** | `go-mutesting` and `ooze` are viable but slow (10-100x test runtime) and noisy. Better as periodic audit, not CI gate. | Run mutation testing once manually after coverage improvements complete. Use to identify tests that execute code without asserting on results. |
+| **Property-based testing** | `pgregory.net/rapid` is powerful but the codebase has straightforward data transformations, not complex algorithms. ROI is low compared to closing basic coverage gaps. | Consider later for filter parser or JSON deserializers if those prove buggy in production. |
+| **Separate test binaries with `go build -cover`** | Go 1.20+ supports coverage for integration test binaries. Overkill for this project -- all tests run via `go test`, not external binary invocation. | Standard `go test -coverprofile` is sufficient. |
 
 ## Feature Dependencies
 
 ```
-Terminal client detection (User-Agent parsing)
-  |
-  +--> Content negotiation (branches rendering path)
-  |      |
-  |      +--> ANSI renderer (all entity types, search, compare, errors)
-  |      |      |
-  |      |      +--> Whois-style key-value formatter (header sections)
-  |      |      +--> lipgloss/table formatter (list sections)
-  |      |      +--> Color mapping (speed tiers, policy, entity type accents)
-  |      |      +--> Unicode box-drawing (lipgloss borders)
-  |      |
-  |      +--> Plain text renderer (same layout, ASCII-only via colorprofile.ASCII)
-  |      |
-  |      +--> JSON renderer (marshals view-model structs)
-  |
-  +--> Help text (terminal root endpoint)
-  +--> Error formatting (404, 500 for terminal clients)
+GraphQL list resolver tests -----> testutil.SetupClientWithDB (exists)
+                             |---> seedTestData helper (exists in resolver_test.go)
+                             |---> postGraphQL helper (exists)
+                             `---> pdbsync.InitStatusTable (for SyncStatus tests, exists)
 
-Format override (?T, ?format=) --> parsed in detection, overrides UA
-Section filtering (?section=) --> applied after data load, before rendering
-Width control (?w=N) --> passed to table formatter
+gRPC stream filter tests -------> testutil.SetupClient (exists)
+                             |---> entity seeding patterns (established in grpcserver_test.go)
+                             |---> ConnectRPC streaming test pattern (established for 9/13 types)
+                             `---> proto filter field population (manual per-type)
 
-Existing detail handlers --> provide data (no changes needed)
-  |
-  +--> Network detail data --> terminal network renderer
-  +--> IX detail data --> terminal IX renderer
-  +--> Facility detail data --> terminal facility renderer
-  +--> Org detail data --> terminal org renderer
-  +--> Campus detail data --> terminal campus renderer
-  +--> Carrier detail data --> terminal carrier renderer
-  +--> Search results data --> terminal search renderer
-  +--> Compare data --> terminal compare renderer
+gRPC filter branch tests -------> same as stream tests
+                             `---> table-driven per filter field (new, but pattern is mechanical)
+
+Web fragment tests -------------> newTestMux (exists)
+                             |---> entity seeding WITH relationships (partial -- need expansion)
+                             |---> HX-Request header in test requests (trivial)
+                             `---> seeded NetworkIxLan, IxFacility, etc. for relationship data
+
+Web renderPage mode tests ------> newTestMux (exists)
+                             |---> User-Agent strings: "curl/8.0", "wget/1.21"
+                             |---> Query params: "?T", "?format=json", "?format=whois"
+                             `---> seeded entity for data rendering (exists in detail tests)
+
+Cross-surface consistency ------> ALL surface handlers in one test server (NEW helper)
+                             |---> shared entity seeding
+                             `---> response comparison logic
 ```
-
-Key dependency: Content negotiation is the single chokepoint. Everything flows through "is this a terminal client?" followed by "which format?".
-
-Critical non-dependency: The existing detail handlers already load all needed data into typed structs (`NetworkDetail`, `IXDetail`, etc.). Terminal renderers consume these SAME structs. No new database queries or data loading logic needed.
 
 ## MVP Recommendation
 
-### Phase 1: Detection + Infrastructure + Help/Errors
+Prioritize by coverage delta per effort:
 
-1. **Terminal client detection** (low, unlocks everything)
-2. **Content negotiation with Vary header** (medium, architectural keystone)
-3. **Style palette + shared rendering utilities** (low, colors/borders/table helpers)
-4. **Help text at `/ui/`** for terminal clients (low, discoverability)
-5. **Text error pages** (low, prevents HTML garbage)
+1. **GraphQL offset/limit list resolvers** -- 11 resolvers at 0%, each testable with a single GraphQL query using existing helpers. Moves `graph` package from 2.6% to ~40%+ with ~80 lines of test code.
+2. **GraphQL custom resolver edge cases** -- `NetworkByAsn` nonexistent ASN, `SyncStatus` with no data, `ObjectCounts` resolver. Another ~15% on `graph` package.
+3. **gRPC streaming for 4 missing types** -- `CarrierFacility`, `IxPrefix`, `NetworkIxLan`, `Poc`. Copy-paste from established stream test pattern. ~120 lines.
+4. **gRPC filter branch coverage** -- Table-driven tests with each filter field populated. Repetitive but high coverage delta. ~200 lines for all 13 types.
+5. **Web fragment handlers** -- Seed relationship data, send HX-Request, verify fragment HTML. ~100 lines.
+6. **Web renderPage terminal modes** -- Add User-Agent/query-param variations to existing handler tests. ~60 lines.
+7. **Remaining minor package gaps** (otel, health, peeringdb, sync) -- Targeted tests for specific uncovered functions. ~100 lines total.
+8. **Coverage metrics hygiene** -- Exclude generated code from CI coverage tracking.
 
-### Phase 2: Network Detail (Reference Implementation)
+Defer:
+- **Cross-surface consistency tests**: High value but high complexity. Do after individual surfaces hit 80%+.
+- **Golden files for gRPC**: Valuable for regression prevention but better after filter coverage is complete.
+- **Fuzz tests**: Good for hardening, separate effort.
+- **Test quality audit**: Do after coverage numbers are raised -- easier to audit fewer weak tests.
 
-1. **Network detail ANSI rendering** (medium, establishes patterns)
-2. **Whois-style key-value formatter** (medium, shared utility)
-3. **Table formatter for IX/fac presences** (medium, shared utility)
-4. **ANSI color mapping** for speed tiers and policy (low)
+## Effort Estimates
 
-### Phase 3: Remaining Entity Types + Search
-
-1. **IX detail** (medium, large participant tables)
-2. **Facility, Org, Campus, Carrier** (low-medium, follow network pattern)
-3. **Search results** (medium)
-4. **Plain text mode** (`?T`) for all types (low, colorprofile.ASCII)
-5. **JSON mode** for all pages (low)
-
-### Phase 4: Differentiators
-
-1. **ASN comparison** terminal rendering (medium, high value)
-2. **One-line summary mode** (low, high utility for scripts)
-3. **Section filtering** (low)
-4. **Updated timestamp footer** (low)
-
-Defer: Width parameter, custom formatting modes.
-
-### Phase Ordering Rationale
-
-- **Detection first:** Terminal detection is the gate for all other work. Content negotiation must be proven before building on it.
-- **Network detail second:** Most complex entity (most fields, IX/fac relations). Establishes ANSI rendering patterns. If network renderer works, other types are mechanical.
-- **Remaining types third:** Leverages patterns from network. Search needed for discoverability. JSON/plain text can be added across all types at once.
-- **Differentiators last:** High-value but not core. Can ship incrementally.
+| Category | Packages Affected | Estimated Test Code | Coverage Impact |
+|----------|-------------------|--------------------|-----------------|
+| GraphQL list resolvers + edge cases | graph | ~150 lines | 2.6% -> 60%+ (hand-written code) |
+| gRPC streaming + filters | internal/grpcserver | ~350 lines | 61.7% -> 82%+ |
+| Web fragments + renderPage | internal/web | ~200 lines | 74.8% -> 85%+ |
+| Minor package gaps | otel, health, peeringdb, sync | ~150 lines | Each to 90%+ |
+| termrender minor gaps | internal/web/termrender | ~50 lines | 88.2% -> 93%+ |
+| ent/schema hooks edge case | ent/schema | ~20 lines | 47.4% -> 50% (ceiling due to static config) |
+| Coverage metrics config | CI / Taskfile | ~10 lines config | Accurate reporting |
+| **Total** | | **~930 lines of test code** | **All hand-written packages at 80%+** |
 
 ## Sources
 
-- [wttr.in](https://github.com/chubin/wttr.in) -- Reference curl-friendly service pattern
-- [cheat.sh](https://github.com/chubin/cheat.sh) -- `?T` plain text flag convention
-- [bgp.tools](https://bgp.tools/kb/api) -- Network engineering terminal conventions
-- [ifconfig.co](https://ifconfig.co/) -- Content negotiation: plain text for curl, HTML for browsers
-- [curl User-Agent docs](https://everything.curl.dev/http/modify/user-agent.html) -- Default `curl/VERSION` format
-- [lipgloss/table API](https://pkg.go.dev/charm.land/lipgloss/v2/table) -- Table rendering capabilities
-- Existing codebase: `internal/web/handler.go`, `internal/web/render.go`, `internal/web/templates/detailtypes.go`
+- [Go integration test coverage (go.dev)](https://go.dev/blog/integration-test-coverage) -- Coverage profiling for integration tests
+- [Go build coverage documentation (go.dev)](https://go.dev/doc/build-cover) -- `go build -cover` and `-coverpkg` usage
+- [Go coverage tracking best practices (OtterWise)](https://getotterwise.com/blog/go-code-coverage-tracking-best-practices-cicd) -- CI integration patterns
+- [gqlgen resolver reference](https://gqlgen.com/reference/resolvers/) -- Resolver testing approaches
+- [go-mutesting](https://github.com/zimmski/go-mutesting) -- Go mutation testing framework
+- [pgregory.net/rapid](https://pkg.go.dev/pgregory.net/rapid) -- Property-based testing for Go
+- [Go unit testing structure 2025](https://www.glukhov.org/post/2025/11/unit-tests-in-go/) -- Structural patterns
+- Project coverage data from `go test -coverprofile` and `go tool cover -func` (run 2026-03-26)

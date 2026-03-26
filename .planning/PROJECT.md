@@ -70,23 +70,17 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-## Current Milestone: v1.9 Hardening & Polish
+## Current Milestone: v1.10 Code Coverage & Test Quality
 
-**Goal:** Improve performance, code quality, architecture consistency, and UI polish across the entire codebase — no new features, just making what exists better.
+**Goal:** Raise test coverage across all hand-written packages and improve test quality, targeting 80%+ on all packages with meaningful gaps.
 
 **Target features:**
-- ~~Query optimization (eliminate double-count queries, add missing indexes, HTTP caching)~~ — completed Phase 34+35
-- ~~gRPC handler deduplication (~1,154 lines of near-identical code across 13 services)~~ — completed Phase 33
-- ~~Error format unification across all 6 API surfaces~~ — completed Phase 34 (RFC 9457)
-- ~~ConnectRPC filter parity with PeeringDB compat layer~~ — completed Phase 33
-- ~~Structured error logging fix (90 instances)~~ — completed Phase 32
-- ~~Test coverage expansion (grpcserver, middleware)~~ — completed Phase 33
-- ~~Benchmark suite for hot paths~~ — completed Phase 35
-- ~~WCAG AA accessibility fixes (contrast, ARIA, form labels)~~ — completed Phase 36
-- ~~Bookmarkable search results~~ — completed Phase 36
-- ~~htmx error handling for collapsible sections~~ — completed Phase 36
-- ~~Breadcrumbs, mobile menu fixes, visual polish~~ — completed Phase 36
-- ~~Terminal line wrapping and error rendering~~ — completed Phase 36
+- GraphQL resolver test coverage (graph package, currently 2.6%)
+- Schema validation/hook test coverage (ent/schema, currently 47.4%)
+- gRPC handler test coverage expansion (grpcserver, currently 61.7%)
+- Web handler test coverage expansion (internal/web, currently 74.8%)
+- Raise remaining packages (otel, health, peeringdb) above 85%
+- Test quality review: ensure existing tests are meaningful, not just line-coverage padding
 
 ### Deferred
 
@@ -195,22 +189,15 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.8 with 31 phases across 9 milestones (v1.0-v1.8). The terminal CLI interface is complete — all 6 PeeringDB entity types, search, and comparison are accessible via `curl` with rich ANSI output, plain text, JSON, WHOIS/RPSL, and short one-liner formats. Section filtering, width adaptation, data freshness footer, and shell completions (bash/zsh) round out the power-user experience. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Six user-facing surfaces: Web UI at /ui/, Terminal CLI at /ui/ (curl), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. 85 files, +16K lines added in v1.8.
+Shipped v1.10 with 42 phases across 11 milestones (v1.0-v1.10). The test infrastructure is mature: shared seed package for all 13 entity types, 80%+ coverage on GraphQL resolvers, gRPC handlers, and web handlers, 100% on ent/schema, 87-98% on utility packages, fuzz testing on the filter parser, and CI coverage reporting scoped to hand-written code only. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Six user-facing surfaces: Web UI at /ui/, Terminal CLI at /ui/ (curl), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. ~5,200 lines of test code added in v1.10.
 
 **Known tech debt:**
-- Nyquist validation frontmatter not formally signed off across v1.8 phases (VALIDATION.md exists, tests pass)
 - fly_region Grafana template variable needs verification after multi-region deployment
 - Go runtime metric names need verification against live Grafana Cloud
-- /ui/about terminal rendering falls through to generic stub (not in v1.8 scope)
-- All 8 grpcserver/convert.go helpers confirmed in use (boolPtrVal, float64PtrVal NOT unused)
-- Search service runs 12 queries per search (double-count pattern)
-- JSON marshal/unmarshal roundtrip for field projection in pdbcompat
-- 90 instances of slog.String("error", err.Error()) instead of slog.Any("error", err)
-- 13 gRPC handlers with ~1,154 lines of near-identical code
-- Error formats inconsistent across 6 API surfaces
-- ConnectRPC exposes fewer filters than PeeringDB compat
-- WCAG AA contrast failures in dark mode (text-neutral-600)
-- Search results not bookmarkable (no URL history push)
+- /ui/about terminal rendering falls through to generic stub
+- seed.Minimal/Networks exported but unused outside seed_test.go (consolidation opportunity)
+- internal/otel at 87.4% vs 90% target (unreachable OTel API branches)
+- CI coverage pipeline needs human verification on actual GitHub Actions run
 
 ---
-*Last updated: 2026-03-26 after v1.9 milestone start*
+*Last updated: 2026-03-26 after v1.10 milestone (Code Coverage & Test Quality) complete*

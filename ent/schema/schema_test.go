@@ -5,7 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"entgo.io/ent"
+	entschema "entgo.io/ent/schema"
+
+	"github.com/dotwaffle/peeringdb-plus/ent/schema"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 // testTimestamp provides a consistent timestamp for all tests.
@@ -730,4 +737,241 @@ func TestEdgeTraversal(t *testing.T) {
 			t.Errorf("org name = %q, want %q", orgFromNet.Name, "Traversal Org")
 		}
 	})
+}
+
+// TestOtelMutationHook_ErrorPath verifies that the otelMutationHook records
+// errors on the span when a mutation fails (hooks.go line 28). Uses an
+// in-memory span exporter to capture and inspect span events.
+func TestOtelMutationHook_ErrorPath(t *testing.T) {
+	// Set up in-memory span exporter to capture spans.
+	exporter := tracetest.NewInMemoryExporter()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+	prev := otel.GetTracerProvider()
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() {
+		_ = tp.Shutdown(context.Background())
+		otel.SetTracerProvider(prev)
+	})
+
+	client := testutil.SetupClient(t)
+	ctx := context.Background()
+
+	// Create an Organization to establish ID=1.
+	_, err := client.Organization.Create().
+		SetID(1).
+		SetName("First").
+		SetCreated(testTimestamp).
+		SetUpdated(testTimestamp).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("first create: %v", err)
+	}
+
+	// Attempt duplicate ID -- triggers mutation error through hook.
+	_, err = client.Organization.Create().
+		SetID(1).
+		SetName("Dupe").
+		SetCreated(testTimestamp).
+		SetUpdated(testTimestamp).
+		Save(ctx)
+	if err == nil {
+		t.Fatal("expected error on duplicate ID")
+	}
+
+	// Flush the tracer provider so spans are exported.
+	if err := tp.ForceFlush(ctx); err != nil {
+		t.Fatalf("force flush: %v", err)
+	}
+
+	// Verify the hook recorded the error on the span.
+	// The hook names spans "ent.{Type}.{Op}" where Op.String() returns "OpCreate".
+	spans := exporter.GetSpans()
+	var found bool
+	for _, s := range spans {
+		if s.Name == "ent.Organization.OpCreate" {
+			for _, evt := range s.Events {
+				if evt.Name == "exception" {
+					found = true
+				}
+			}
+		}
+	}
+	if !found {
+		t.Error("expected span with RecordError event for ent.Organization.OpCreate")
+		for _, s := range spans {
+			t.Logf("  span: %s (events: %d)", s.Name, len(s.Events))
+		}
+	}
+}
+
+// TestFKConstraintViolation verifies that FK constraint violations are caught
+// when foreign_keys pragma is enabled. Table-driven per T-1.
+func TestFKConstraintViolation(t *testing.T) {
+	t.Parallel()
+
+	client := testutil.SetupClient(t)
+	ctx := context.Background()
+
+	tests := []struct {
+		name string
+		fn   func() error
+	}{
+		{
+			name: "Network with non-existent org_id",
+			fn: func() error {
+				_, err := client.Network.Create().
+					SetID(5000).
+					SetName("FK Test Network").
+					SetAsn(65000).
+					SetOrgID(99999). // Does not exist
+					SetCreated(testTimestamp).
+					SetUpdated(testTimestamp).
+					Save(ctx)
+				return err
+			},
+		},
+		{
+			name: "IxLan with non-existent ix_id",
+			fn: func() error {
+				_, err := client.IxLan.Create().
+					SetID(5001).
+					SetIxID(99999). // Does not exist
+					SetCreated(testTimestamp).
+					SetUpdated(testTimestamp).
+					Save(ctx)
+				return err
+			},
+		},
+		{
+			name: "Poc with non-existent net_id",
+			fn: func() error {
+				_, err := client.Poc.Create().
+					SetID(5002).
+					SetNetID(99999). // Does not exist
+					SetRole("Technical").
+					SetCreated(testTimestamp).
+					SetUpdated(testTimestamp).
+					Save(ctx)
+				return err
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			err := tt.fn()
+			if err == nil {
+				t.Error("expected FK constraint error, got nil")
+			}
+		})
+	}
+}
+
+// TestSchemaEdges exercises the Edges() method on all 13 schema types,
+// covering 13 previously-uncovered configuration methods.
+func TestSchemaEdges(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		edgesFn func() []ent.Edge
+		minLen  int
+	}{
+		{"Organization", schema.Organization{}.Edges, 5},
+		{"Network", schema.Network{}.Edges, 3},
+		{"Facility", schema.Facility{}.Edges, 3},
+		{"InternetExchange", schema.InternetExchange{}.Edges, 3},
+		{"Campus", schema.Campus{}.Edges, 1},
+		{"Carrier", schema.Carrier{}.Edges, 1},
+		{"CarrierFacility", schema.CarrierFacility{}.Edges, 2},
+		{"IxFacility", schema.IxFacility{}.Edges, 2},
+		{"IxLan", schema.IxLan{}.Edges, 2},
+		{"IxPrefix", schema.IxPrefix{}.Edges, 1},
+		{"NetworkFacility", schema.NetworkFacility{}.Edges, 2},
+		{"NetworkIxLan", schema.NetworkIxLan{}.Edges, 2},
+		{"Poc", schema.Poc{}.Edges, 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			edges := tt.edgesFn()
+			if len(edges) < tt.minLen {
+				t.Errorf("len(Edges()) = %d, want >= %d", len(edges), tt.minLen)
+			}
+		})
+	}
+}
+
+// TestSchemaIndexes exercises the Indexes() method on all 13 schema types,
+// covering 13 previously-uncovered configuration methods.
+func TestSchemaIndexes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		indexesFn func() []ent.Index
+		minLen    int
+	}{
+		{"Organization", schema.Organization{}.Indexes, 1},
+		{"Network", schema.Network{}.Indexes, 1},
+		{"Facility", schema.Facility{}.Indexes, 1},
+		{"InternetExchange", schema.InternetExchange{}.Indexes, 1},
+		{"Campus", schema.Campus{}.Indexes, 1},
+		{"Carrier", schema.Carrier{}.Indexes, 1},
+		{"CarrierFacility", schema.CarrierFacility{}.Indexes, 1},
+		{"IxFacility", schema.IxFacility{}.Indexes, 1},
+		{"IxLan", schema.IxLan{}.Indexes, 1},
+		{"IxPrefix", schema.IxPrefix{}.Indexes, 1},
+		{"NetworkFacility", schema.NetworkFacility{}.Indexes, 1},
+		{"NetworkIxLan", schema.NetworkIxLan{}.Indexes, 1},
+		{"Poc", schema.Poc{}.Indexes, 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			indexes := tt.indexesFn()
+			if len(indexes) < tt.minLen {
+				t.Errorf("len(Indexes()) = %d, want >= %d", len(indexes), tt.minLen)
+			}
+		})
+	}
+}
+
+// TestSchemaAnnotations exercises the Annotations() method on all 13 schema
+// types, covering 13 previously-uncovered configuration methods.
+func TestSchemaAnnotations(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		annotationsFn func() []entschema.Annotation
+		minLen        int
+	}{
+		{"Organization", schema.Organization{}.Annotations, 1},
+		{"Network", schema.Network{}.Annotations, 1},
+		{"Facility", schema.Facility{}.Annotations, 1},
+		{"InternetExchange", schema.InternetExchange{}.Annotations, 1},
+		{"Campus", schema.Campus{}.Annotations, 1},
+		{"Carrier", schema.Carrier{}.Annotations, 1},
+		{"CarrierFacility", schema.CarrierFacility{}.Annotations, 1},
+		{"IxFacility", schema.IxFacility{}.Annotations, 1},
+		{"IxLan", schema.IxLan{}.Annotations, 1},
+		{"IxPrefix", schema.IxPrefix{}.Annotations, 1},
+		{"NetworkFacility", schema.NetworkFacility{}.Annotations, 1},
+		{"NetworkIxLan", schema.NetworkIxLan{}.Annotations, 1},
+		{"Poc", schema.Poc{}.Annotations, 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			annotations := tt.annotationsFn()
+			if len(annotations) < tt.minLen {
+				t.Errorf("len(Annotations()) = %d, want >= %d", len(annotations), tt.minLen)
+			}
+		})
+	}
 }

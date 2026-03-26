@@ -1007,3 +1007,312 @@ func TestFetchMetaEarliestAcrossPages(t *testing.T) {
 		t.Errorf("Meta.Generated = %v, want %v (should use earliest)", result.Meta.Generated, want)
 	}
 }
+
+func TestParseMeta_EdgeCases(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		raw  json.RawMessage
+		want time.Time
+	}{
+		{"nil input", nil, time.Time{}},
+		{"empty bytes", json.RawMessage{}, time.Time{}},
+		{"empty object", json.RawMessage(`{}`), time.Time{}},
+		{"invalid json", json.RawMessage(`{invalid`), time.Time{}},
+		{"generated zero", json.RawMessage(`{"generated":0}`), time.Time{}},
+		{"valid generated", json.RawMessage(`{"generated":1700000000}`), time.Unix(1700000000, 0)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := parseMeta(tt.raw)
+			if !got.Equal(tt.want) {
+				t.Errorf("parseMeta(%s) = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFetchAll_DecodeError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`not valid json at all`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+
+	_, err := client.FetchAll(context.Background(), "test")
+	if err == nil {
+		t.Fatal("expected error for invalid JSON response")
+	}
+	if !strings.Contains(err.Error(), "decode") {
+		t.Errorf("error = %q, want substring %q", err, "decode")
+	}
+}
+
+func TestFetchType_UnmarshalError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		// Valid JSON envelope but the data items can't be unmarshaled to the target type.
+		_, _ = w.Write([]byte(`{"meta": {}, "data": [{"id": "not_a_number"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+
+	// strictItem has ID as int; "not_a_number" string won't unmarshal to int.
+	type strictItem struct {
+		ID int `json:"id"`
+	}
+
+	_, err := FetchType[strictItem](context.Background(), client, "test")
+	if err == nil {
+		t.Fatal("expected unmarshal error")
+	}
+	if !strings.Contains(err.Error(), "unmarshal") {
+		t.Errorf("error = %q, want substring %q", err, "unmarshal")
+	}
+}
+
+func TestSetRateLimit(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(emptyResponse())
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Every(100*time.Millisecond), 5))
+
+	// Verify the client works after SetRateLimit.
+	_, err := client.FetchAll(context.Background(), TypeOrg)
+	if err != nil {
+		t.Fatalf("FetchAll after SetRateLimit: %v", err)
+	}
+}
+
+func TestSetRetryBaseDelay(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(emptyResponse())
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRetryBaseDelay(50 * time.Millisecond)
+
+	// Verify the client works after SetRetryBaseDelay.
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	_, err := client.FetchAll(context.Background(), TypeOrg)
+	if err != nil {
+		t.Fatalf("FetchAll after SetRetryBaseDelay: %v", err)
+	}
+}
+
+func TestFetchType_FetchAllError(t *testing.T) {
+	t.Parallel()
+
+	// Server returns non-retryable 404 -- FetchAll returns error.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+
+	type item struct{ ID int }
+	_, err := FetchType[item](context.Background(), client, "test")
+	if err == nil {
+		t.Fatal("expected error from FetchAll failure")
+	}
+}
+
+func TestFetchAll_DecodeError_Incremental(t *testing.T) {
+	t.Parallel()
+
+	// Incremental sync (WithSince) with invalid JSON response on first page.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`not valid json`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+
+	_, err := client.FetchAll(context.Background(), "test", WithSince(time.Unix(1000, 0)))
+	if err == nil {
+		t.Fatal("expected decode error for incremental sync")
+	}
+	if !strings.Contains(err.Error(), "decode") {
+		t.Errorf("error = %q, want substring %q", err, "decode")
+	}
+}
+
+// errorReader returns an error when Read is called.
+type errorReader struct{}
+
+func (errorReader) Read([]byte) (int, error) { return 0, fmt.Errorf("simulated body read error") }
+func (errorReader) Close() error             { return nil }
+
+func TestFetchAll_BodyReadError(t *testing.T) {
+	t.Parallel()
+
+	// Server that returns a response with a body that errors on Read.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		// Set content-length to trick the client into reading.
+		w.Header().Set("Content-Length", "100")
+		w.WriteHeader(http.StatusOK)
+		// Flush header without body -- this will cause a read error in practice,
+		// but since httptest handles this gracefully, we use a transport wrapper.
+	}))
+	defer server.Close()
+
+	// Use a custom transport that replaces the response body with an error reader.
+	transport := &bodyErrorTransport{inner: http.DefaultTransport, serverURL: server.URL}
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	client.http.Transport = transport
+
+	_, err := client.FetchAll(context.Background(), "test")
+	if err == nil {
+		t.Fatal("expected error from body read failure")
+	}
+	if !strings.Contains(err.Error(), "read") {
+		t.Errorf("error = %q, want substring %q", err, "read")
+	}
+}
+
+// bodyErrorTransport wraps a transport and replaces response bodies with error readers.
+type bodyErrorTransport struct {
+	inner     http.RoundTripper
+	serverURL string
+}
+
+func (t *bodyErrorTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := t.inner.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+	resp.Body = errorReader{}
+	return resp, nil
+}
+
+func TestFetchAll_IncrementalBodyReadError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	transport := &bodyErrorTransport{inner: http.DefaultTransport, serverURL: server.URL}
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	client.http.Transport = transport
+
+	_, err := client.FetchAll(context.Background(), "test", WithSince(time.Unix(1000, 0)))
+	if err == nil {
+		t.Fatal("expected error from incremental body read failure")
+	}
+	if !strings.Contains(err.Error(), "read") {
+		t.Errorf("error = %q, want substring %q", err, "read")
+	}
+}
+
+func TestFetchAll_IncrementalFetchError(t *testing.T) {
+	t.Parallel()
+
+	// Server returns a valid first page then becomes unavailable.
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		page := requestCount.Add(1)
+		if page == 1 {
+			_, _ = w.Write(makeOrgPage(1, 250)) // Full first page triggers pagination.
+		} else {
+			// Close connection abruptly for the second page.
+			hj, ok := w.(http.Hijacker)
+			if ok {
+				conn, _, _ := hj.Hijack()
+				conn.Close()
+			}
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	client.SetRetryBaseDelay(time.Millisecond) // Fast retries for testing.
+
+	_, err := client.FetchAll(context.Background(), "test", WithSince(time.Unix(1000, 0)))
+	if err == nil {
+		t.Fatal("expected error from paginated fetch failure")
+	}
+	if !strings.Contains(err.Error(), "fetch") {
+		t.Errorf("error = %q, want substring %q", err, "fetch")
+	}
+}
+
+func TestDoWithRetry_RateLimiterError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(emptyResponse())
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+
+	// Cancel context before the rate limiter can proceed.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Immediately cancelled.
+
+	_, err := client.FetchAll(ctx, "test")
+	if err == nil {
+		t.Fatal("expected error from rate limiter with cancelled context")
+	}
+	// The error could come from rate limiter or context cancellation.
+	if !strings.Contains(err.Error(), "context") && !strings.Contains(err.Error(), "rate") {
+		t.Errorf("error = %q, want substring %q or %q", err, "context", "rate")
+	}
+}
+
+func TestDoWithRetry_ContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	client.SetRetryBaseDelay(200 * time.Millisecond)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Cancel the context after a short delay so it triggers between retries.
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		cancel()
+	}()
+
+	_, err := client.FetchAll(ctx, "test")
+	if err == nil {
+		t.Fatal("expected error from context cancellation")
+	}
+	if !strings.Contains(err.Error(), "context") {
+		t.Errorf("error = %q, want substring %q", err, "context")
+	}
+}
