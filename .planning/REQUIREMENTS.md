@@ -18,7 +18,7 @@ Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 ### Rendering
 
 - [x] **RND-01**: Rich 256-color ANSI output with Unicode box-drawing for terminal clients
-- [ ] **RND-02**: Network detail (/ui/asn/{asn}) renders with whois-style key-value header + IX/facility tables
+- [x] **RND-02**: Network detail (/ui/asn/{asn}) renders with whois-style key-value header + IX/facility tables
 - [ ] **RND-03**: IX detail (/ui/ix/{id}) renders with participant table, facility list, prefix list
 - [ ] **RND-04**: Facility detail (/ui/fac/{id}) renders with address, network/IX/carrier lists
 - [ ] **RND-05**: Org detail (/ui/org/{id}) renders with child entity lists
@@ -30,9 +30,9 @@ Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 - [ ] **RND-11**: JSON mode (?format=json) outputs the same data structures as JSON
 - [x] **RND-12**: Port speed tiers color-coded (gray/neutral/blue/emerald/amber) matching web UI
 - [x] **RND-13**: Peering policy color-coded (Open=green, Selective=yellow, Restrictive=red)
-- [ ] **RND-14**: Route server peers marked with colored [RS] badge in IX presence tables
+- [x] **RND-14**: Route server peers marked with colored [RS] badge in IX presence tables
 - [x] **RND-15**: Aggregate bandwidth displayed in network and IX detail headers
-- [ ] **RND-16**: Entity IDs and cross-reference paths shown in output for easy follow-up curls
+- [x] **RND-16**: Entity IDs and cross-reference paths shown in output for easy follow-up curls
 - [ ] **RND-17**: WHOIS-style output mode (?format=whois) using RPSL-like key-value format
 - [x] **RND-18**: NO_COLOR convention respected — suppress ANSI codes when ?nocolor param present
 
@@ -94,7 +94,7 @@ Deferred to future release.
 | DET-04 | Phase 28 | Complete |
 | DET-05 | Phase 28 | Complete |
 | RND-01 | Phase 28 | Complete |
-| RND-02 | Phase 29 | Pending |
+| RND-02 | Phase 29 | Complete |
 | RND-03 | Phase 30 | Pending |
 | RND-04 | Phase 30 | Pending |
 | RND-05 | Phase 30 | Pending |
@@ -106,9 +106,9 @@ Deferred to future release.
 | RND-11 | Phase 30 | Pending |
 | RND-12 | Phase 29 | Complete |
 | RND-13 | Phase 29 | Complete |
-| RND-14 | Phase 29 | Pending |
+| RND-14 | Phase 29 | Complete |
 | RND-15 | Phase 29 | Complete |
-| RND-16 | Phase 29 | Pending |
+| RND-16 | Phase 29 | Complete |
 | RND-17 | Phase 30 | Pending |
 | RND-18 | Phase 28 | Complete |
 | NAV-01 | Phase 28 | Complete |
