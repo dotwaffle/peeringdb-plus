@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: v1.8 milestone complete
-stopped_at: Completed 31-03-PLAN.md
-last_updated: "2026-03-26T03:22:48.561Z"
+stopped_at: Completed 36-02-PLAN.md
+last_updated: "2026-03-26T08:39:22.164Z"
 progress:
   total_phases: 4
-  completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -66,6 +66,8 @@ Recent decisions affecting current work:
 - [Phase 31]: getFreshness returns zero time when db is nil for test safety
 - [Phase 31]: Section aliases support both short and long forms; width adaptation drops entire columns not truncating values; Sections/Width as exported Renderer fields
 - [Phase 31]: Completion search returns integer IDs only to prevent shell injection from entity names
+- [Phase 36]: HX-Push-Url over HX-Replace-Url for back/forward navigation support
+- [Phase 36]: DOM API for error UI construction to avoid XSS from string-based markup
 
 ### Pending Todos
 
@@ -81,6 +83,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T03:08:43.044Z
-Stopped at: Completed 31-03-PLAN.md
+Last session: 2026-03-26T08:39:22.161Z
+Stopped at: Completed 36-02-PLAN.md
 Resume file: None
