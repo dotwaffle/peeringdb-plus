@@ -1159,6 +1159,135 @@ func TestFetchAll_DecodeError_Incremental(t *testing.T) {
 	}
 }
 
+// errorReader returns an error when Read is called.
+type errorReader struct{}
+
+func (errorReader) Read([]byte) (int, error) { return 0, fmt.Errorf("simulated body read error") }
+func (errorReader) Close() error             { return nil }
+
+func TestFetchAll_BodyReadError(t *testing.T) {
+	t.Parallel()
+
+	// Server that returns a response with a body that errors on Read.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		// Set content-length to trick the client into reading.
+		w.Header().Set("Content-Length", "100")
+		w.WriteHeader(http.StatusOK)
+		// Flush header without body -- this will cause a read error in practice,
+		// but since httptest handles this gracefully, we use a transport wrapper.
+	}))
+	defer server.Close()
+
+	// Use a custom transport that replaces the response body with an error reader.
+	transport := &bodyErrorTransport{inner: http.DefaultTransport, serverURL: server.URL}
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	client.http.Transport = transport
+
+	_, err := client.FetchAll(context.Background(), "test")
+	if err == nil {
+		t.Fatal("expected error from body read failure")
+	}
+	if !strings.Contains(err.Error(), "read") {
+		t.Errorf("error = %q, want substring %q", err, "read")
+	}
+}
+
+// bodyErrorTransport wraps a transport and replaces response bodies with error readers.
+type bodyErrorTransport struct {
+	inner     http.RoundTripper
+	serverURL string
+}
+
+func (t *bodyErrorTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := t.inner.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+	resp.Body = errorReader{}
+	return resp, nil
+}
+
+func TestFetchAll_IncrementalBodyReadError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	transport := &bodyErrorTransport{inner: http.DefaultTransport, serverURL: server.URL}
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	client.http.Transport = transport
+
+	_, err := client.FetchAll(context.Background(), "test", WithSince(time.Unix(1000, 0)))
+	if err == nil {
+		t.Fatal("expected error from incremental body read failure")
+	}
+	if !strings.Contains(err.Error(), "read") {
+		t.Errorf("error = %q, want substring %q", err, "read")
+	}
+}
+
+func TestFetchAll_IncrementalFetchError(t *testing.T) {
+	t.Parallel()
+
+	// Server returns a valid first page then becomes unavailable.
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		page := requestCount.Add(1)
+		if page == 1 {
+			_, _ = w.Write(makeOrgPage(1, 250)) // Full first page triggers pagination.
+		} else {
+			// Close connection abruptly for the second page.
+			hj, ok := w.(http.Hijacker)
+			if ok {
+				conn, _, _ := hj.Hijack()
+				conn.Close()
+			}
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	client.SetRetryBaseDelay(time.Millisecond) // Fast retries for testing.
+
+	_, err := client.FetchAll(context.Background(), "test", WithSince(time.Unix(1000, 0)))
+	if err == nil {
+		t.Fatal("expected error from paginated fetch failure")
+	}
+	if !strings.Contains(err.Error(), "fetch") {
+		t.Errorf("error = %q, want substring %q", err, "fetch")
+	}
+}
+
+func TestDoWithRetry_RateLimiterError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(emptyResponse())
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+
+	// Cancel context before the rate limiter can proceed.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Immediately cancelled.
+
+	_, err := client.FetchAll(ctx, "test")
+	if err == nil {
+		t.Fatal("expected error from rate limiter with cancelled context")
+	}
+	// The error could come from rate limiter or context cancellation.
+	if !strings.Contains(err.Error(), "context") && !strings.Contains(err.Error(), "rate") {
+		t.Errorf("error = %q, want substring %q or %q", err, "context", "rate")
+	}
+}
+
 func TestDoWithRetry_ContextCancellation(t *testing.T) {
 	t.Parallel()
 
