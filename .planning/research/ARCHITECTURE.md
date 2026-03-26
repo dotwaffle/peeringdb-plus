@@ -1,413 +1,383 @@
 # Architecture Patterns
 
-**Domain:** Terminal CLI rendering integration for PeeringDB Plus v1.8
-**Researched:** 2026-03-25
+**Domain:** Test infrastructure for a multi-surface Go API application
+**Researched:** 2026-03-26
+
+## Current Test Architecture Assessment
+
+### Inventory
+
+The codebase has 60 test files totaling ~404K lines (overwhelmingly in generated code). Meaningful hand-written test code is approximately 8,500 lines across 15 packages. Overall statement coverage is 5.7% (dragged down by untestable generated code in `ent/`, `gen/`, and `graph/generated.go`).
+
+**Hand-written package coverage:**
+
+| Package | Coverage | LOC (tests) | LOC (source) | Assessment |
+|---------|----------|-------------|--------------|------------|
+| graph (resolvers only) | 2.6% | 546 | 548 | Critical gap -- 13 List resolvers untested, offset/limit variants 0% |
+| ent/schema | 47.4% | 908 | 2,143 | Fields/Hooks covered, Edges/Indexes/Annotations at 0% |
+| internal/grpcserver | 61.7% | 3,253 | 3,344 | Good breadth but 4 entity types have only Get, no List/Stream tests |
+| internal/web | 74.8% | 3,273 | ~2,500 | Detail/search/compare covered, some terminal render paths thin |
+| internal/web/termrender | 88.2% | ~2,000 | ~1,800 | Strong coverage, minor gaps in edge cases |
+| internal/pdbcompat | 85.4% | ~1,500 | ~1,200 | Golden files excellent, filter edge cases could be deeper |
+| internal/sync | 86.9% | ~800 | ~900 | Integration + unit, good |
+| internal/middleware | 98.2% | ~300 | ~200 | Near-complete |
+| internal/config | 86.1% | ~150 | ~200 | Adequate |
+| internal/otel | 84.0% | ~300 | ~400 | Provider/metrics covered, logger thin |
+| internal/health | 84.6% | ~100 | ~100 | Adequate |
+| internal/peeringdb | 83.2% | ~400 | ~500 | Client well tested |
+| internal/httperr | 100.0% | ~100 | ~50 | Complete |
+| internal/litefs | 87.5% | ~50 | ~50 | Adequate |
+
+### Existing Shared Infrastructure
+
+**`internal/testutil` (1 file, 57 lines):**
+- `SetupClient(t) *ent.Client` -- in-memory SQLite with auto-migration
+- `SetupClientWithDB(t) (*ent.Client, *sql.DB)` -- adds raw sql.DB access
+- Atomic counter for unique DB names enabling parallel tests
+- Registers `sqlite3` driver once via `init()`
+
+This is the single shared helper. All data seeding is package-local.
+
+### Data Seeding Patterns (Current State)
+
+Every package that needs test data seeds it independently:
+
+| Package | Seeding Approach | Entities Created | Duplication |
+|---------|-----------------|------------------|-------------|
+| graph | `seedTestData()` -- Org, 3 Networks, Facility + sync_status | Local to graph | HIGH |
+| grpcserver | Per-test inline `client.Network.Create()...` chains | Per entity type | HIGH |
+| pdbcompat | `setupTestHandler()` -- 3 Networks; `setupGoldenTestData()` -- all 13 types | Two separate setups | MEDIUM |
+| web | `seedAllTestData()` -- full relationship graph; `seedSearchData()` -- 6 types | Two separate setups | HIGH |
+| ent/schema | Per-subtest inline creation | All 13 types | LOW (correct) |
+| sync | `fixture` struct with mock HTTP server; `newFixtureServer()` with JSON fixtures | Via JSON testdata | LOW (correct) |
+
+**Key observation:** There are at least 6 independent implementations of "create a test Organization with required fields." The `setupGoldenTestData()` in pdbcompat is the most comprehensive (all 13 types with relationships), but it returns a `*http.ServeMux` specific to pdbcompat handlers, making it non-reusable.
 
 ## Recommended Architecture
 
-### Overview
+### Component Boundaries
 
-Content negotiation within the existing `/ui/` handler dispatch, using a rendering branch that shares data types between HTML (templ) and terminal (lipgloss) renderers. No new routes. No middleware-based approach. The terminal rendering is a peer of the htmx fragment rendering already in `renderPage()`.
+| Component | Responsibility | Used By |
+|-----------|---------------|---------|
+| `internal/testutil` (expanded) | Ent client setup, entity factory functions, shared timestamps | All packages with DB tests |
+| `internal/testutil/seed` (new) | Comprehensive data seeding with all 13 types + relationships | graph, grpcserver, pdbcompat, web |
+| Package-local test helpers | HTTP server setup, response parsing, package-specific assertions | Each package independently |
+| `testdata/fixtures/` (existing) | JSON fixture files from real PeeringDB API responses | sync integration tests |
+| `internal/pdbcompat/testdata/golden/` (existing) | Golden file snapshots | pdbcompat only |
 
-### Why Handler-Level, Not Middleware
-
-1. **The existing pattern already does this.** `renderPage()` in `internal/web/render.go` already branches on `HX-Request` header. Adding a third branch for terminal output follows the identical pattern.
-2. **Middleware cannot access typed data.** The terminal renderer needs `NetworkDetail`, `IXDetail`, etc. Middleware only sees `http.ResponseWriter` and `*http.Request`.
-3. **Handler dispatch already exists.** Each handler constructs the typed detail struct. The renderer choice must happen after data construction.
-
-### Architecture Diagram
-
-```
-Request flow (existing + new):
-
-  GET /ui/asn/13335
-       |
-  [dispatch()] -- routes to handleNetworkDetail
-       |
-  [query ent, build NetworkDetail struct]  <-- no change
-       |
-  [detect output mode] -- User-Agent + Accept + ?format= + ?T
-       |
-       +-- OutputJSON         --> json.Encode(data)         (NEW)
-       +-- OutputPlain        --> terminal.RenderNetwork    (NEW, colorprofile.ASCII)
-       +-- OutputANSI         --> terminal.RenderNetwork    (NEW, colorprofile.ANSI256)
-       +-- OutputHTML + htmx  --> templ fragment             (existing)
-       +-- OutputHTML         --> templ full page             (existing)
-```
-
-## Component Boundaries
-
-| Component | Responsibility | Communicates With | New/Modified |
-|-----------|---------------|-------------------|--------------|
-| `internal/web/handler.go` | Route dispatch, data assembly, output mode branch | ent client, detect.go, terminal pkg | **Modified** |
-| `internal/web/render.go` | HTML rendering (templ), Vary header | templ templates | **Modified** (Vary header update) |
-| `internal/web/detect.go` | User-Agent detection, format resolution | handler.go | **New** |
-| `internal/web/templates/detailtypes.go` | Shared data types (NetworkDetail, etc.) | All renderers | **No change** |
-| `internal/terminal/` | ANSI/plain rendering for all entity types | detailtypes, lipgloss | **New package** |
-| `internal/terminal/style.go` | Color palette, lipgloss style definitions | lipgloss v2 | **New** |
-| `internal/terminal/table.go` | Shared table rendering helpers | lipgloss/table | **New** |
-| `internal/terminal/render.go` | Core rendering functions, writer setup | colorprofile | **New** |
-| `internal/terminal/network.go` | NetworkDetail -> ANSI string | detailtypes, style, table | **New** |
-| `internal/terminal/ix.go` | IXDetail -> ANSI string | detailtypes, style, table | **New** |
-| `internal/terminal/facility.go` | FacilityDetail -> ANSI string | detailtypes, style, table | **New** |
-| `internal/terminal/org.go` | OrgDetail -> ANSI string | detailtypes, style, table | **New** |
-| `internal/terminal/campus.go` | CampusDetail -> ANSI string | detailtypes, style, table | **New** |
-| `internal/terminal/carrier.go` | CarrierDetail -> ANSI string | detailtypes, style, table | **New** |
-| `internal/terminal/search.go` | Search results -> ANSI string | searchtypes, style | **New** |
-| `internal/terminal/compare.go` | Compare results -> ANSI string | comparetypes, style, table | **New** |
-| `internal/terminal/help.go` | CLI help text for `/ui/` root | style | **New** |
-| `internal/terminal/error.go` | Error pages -> plain text | None | **New** |
-
-## Data Flow
-
-### Current Flow (HTML)
+### Data Flow for Shared Fixtures
 
 ```
-handleNetworkDetail()
-  -> query ent -> build templates.NetworkDetail
-  -> PageContent{Title: net.Name, Content: templates.NetworkDetailPage(data)}
-  -> renderPage(ctx, w, r, page)
-     -> if HX-Request: page.Content.Render(ctx, w)
-     -> else: templates.Layout(page.Title, page.Content).Render(ctx, w)
+testutil.SetupClient(t)                 -- Creates isolated in-memory SQLite
+    |
+    v
+seed.Full(t, client) -> seed.Result     -- Seeds all 13 types with relationships
+    |                                       Returns struct with IDs for assertions
+    v
+Package-local server setup               -- Wires seeded client into package handler
+    |                                       (GraphQL resolver, gRPC service, HTTP handler)
+    v
+Package-local test assertions             -- Tests exercise API surface with known IDs
 ```
 
-### New Flow (Terminal Detection Added)
-
-```
-handleNetworkDetail()
-  -> query ent -> build templates.NetworkDetail  [UNCHANGED]
-  -> mode := DetectOutput(r)
-  -> switch mode:
-     -> OutputJSON:  writeJSON(w, data)
-     -> OutputANSI:  terminal.RenderNetwork(w, data, terminal.ModeANSI)
-     -> OutputPlain: terminal.RenderNetwork(w, data, terminal.ModePlain)
-     -> OutputHTML:  renderPage(ctx, w, r, page)  [existing path, unchanged]
-```
-
-The key insight: **the detail data types are already decoupled from HTML rendering.** `templates.NetworkDetail` is a pure Go struct with zero dependencies on templ. Both the HTML renderer and the new terminal renderer consume the same struct.
-
-### Shared Data Types -- No Changes Needed
-
-The types in `detailtypes.go` are already pure data:
+### The `seed` Package Design
 
 ```go
-type NetworkDetail struct {
-    ID       int
-    ASN      int
-    Name     string
-    // ... 25+ fields, all plain Go types
+// Package seed provides deterministic test data for all 13 PeeringDB entity types.
+package seed
+
+// Timestamp is the fixed time used for all seeded entities.
+var Timestamp = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
+// Result holds the IDs and references of all seeded entities.
+// Tests use these for deterministic assertions.
+type Result struct {
+    Org              *ent.Organization  // ID=100
+    Networks         []*ent.Network     // IDs 200-202, ASNs 65001-65003
+    Facility         *ent.Facility      // ID=300
+    IX               *ent.InternetExchange // ID=400
+    Campus           *ent.Campus        // ID=500
+    Carrier          *ent.Carrier       // ID=600
+    IxLan            *ent.IxLan         // ID=700
+    IxPrefix         *ent.IxPrefix      // ID=800
+    IxFacility       *ent.IxFacility    // ID=900
+    NetworkIxLan     *ent.NetworkIxLan  // ID=1000
+    NetworkFacility  *ent.NetworkFacility // ID=1100
+    CarrierFacility  *ent.CarrierFacility // ID=1200
+    Poc              *ent.Poc           // ID=1300
 }
+
+// Full seeds all 13 entity types with relationships and returns their references.
+func Full(t *testing.T, client *ent.Client) Result { ... }
+
+// Minimal seeds only Org + Network (most common test scenario).
+func Minimal(t *testing.T, client *ent.Client) Result { ... }
+
+// Networks seeds n networks with sequential IDs and ASNs.
+func Networks(t *testing.T, client *ent.Client, n int) []*ent.Network { ... }
+
+// WithSyncStatus seeds the sync_status table with a successful sync record.
+func WithSyncStatus(t *testing.T, db *sql.DB) { ... }
 ```
 
-Same applies to `IXDetail`, `FacilityDetail`, `OrgDetail`, `CampusDetail`, `CarrierDetail`, and all row types.
+**Why a `seed` sub-package instead of expanding `testutil`:** The `testutil` package handles infrastructure (client setup). Seeding is a separate concern -- it creates domain-specific test data. Keeping them separate means packages that only need a client (like ent/schema tests) do not pull in all 13 entity creation paths.
 
-## Patterns to Follow
+### Test Boundary Recommendations Per Package
 
-### Pattern 1: Output Mode Detection
+#### 1. `graph/` -- GraphQL Resolvers (2.6% -> 80%+ target)
 
-**What:** Determine output format from User-Agent, Accept header, and query parameters. Resolve once per request.
+**What to test:** The hand-written resolvers in `custom.resolvers.go` (SyncStatus, NetworkByAsn, 13 offset/limit List resolvers, ObjectCounts) and `schema.resolvers.go` (validatePageSize, Node, Nodes, 13 cursor-based Paginate resolvers).
 
-**Implementation:**
+**What NOT to test:** `generated.go` (57K lines of gqlgen internals -- this is the gqlgen execution engine, not business logic).
+
+**Test boundary:** Integration tests via HTTP. Tests POST GraphQL queries to an httptest.Server and verify JSON response structure. This is the existing pattern (resolver_test.go) -- it just needs to be expanded to cover all 13 List/offset-limit resolvers and error paths.
+
+**Why HTTP-level, not unit:** The resolvers are thin wrappers around ent queries. Testing them at the HTTP level validates the full stack (argument parsing, resolver dispatch, ent query, serialization) with minimal test code. Unit-testing a resolver function directly would require constructing gqlgen context objects which is fragile and undocumented.
+
+**Infrastructure needed:**
+- Reuse existing `setupTestServer()` and `postGraphQL()` helpers (already in graph)
+- Replace `seedTestData()` with `seed.Full()` from shared package
+- Add test cases for each of the 13 `*List` offset/limit resolvers
+- Add error path tests (negative offset, limit > 1000, invalid where filters)
+
+#### 2. `ent/schema/` -- Schema Validation & Hooks (47.4% -> 70%+ target)
+
+**What to test:** Hook behavior (`otelMutationHook`), field validators (if any custom ones exist), and relationship constraints via CRUD operations. The Fields() functions show 100% coverage because enttest exercises them during migration; the 0% on Edges/Indexes/Annotations is **expected and acceptable** -- these return static configuration structs consumed by ent codegen, not runtime code paths.
+
+**What NOT to test:** The static schema declarations (Edges, Indexes, Annotations). These are configuration, not behavior. Testing "does Fields() return the right fields" is testing ent's codegen, not your application.
+
+**Test boundary:** Unit tests using ent client directly. The existing `schema_test.go` pattern of CRUD-per-type is correct. Focus expansion on:
+- Hook behavior: Verify `otelMutationHook` creates spans (currently 90% -- the miss is likely the error path)
+- Relationship cascading: Creating child entities without required parents should fail
+- Social media JSON field round-tripping (already partially covered in organization_test.go)
+
+**Infrastructure needed:**
+- `testutil.SetupClient(t)` is sufficient (already used)
+- No shared seeding needed -- schema tests should create their own entities to test specific constraints
+
+**Realistic target: 65-70%.** The Edges/Indexes/Annotations functions account for ~50% of the schema source code and are not worth testing. Raising coverage to 80% would require testing static configuration returns, which is test theater.
+
+#### 3. `internal/grpcserver/` -- ConnectRPC Handlers (61.7% -> 80%+ target)
+
+**What to test:** Get/List/Stream for all 13 entity types, filter validation, pagination, proto conversion, error mapping (not-found, invalid-argument).
+
+**Current gaps:**
+- Only Network, Facility, Organization, Poc, IxPrefix, NetworkIxLan, CarrierFacility have List filter tests
+- Missing List filter tests: Campus, Carrier, InternetExchange, IxFacility, IxLan, NetworkFacility (these have Get/List tests but no filter-specific tests)
+- Stream tests exist for Network, Facility, Organization, Campus, Carrier, InternetExchange, IxLan, IxFacility, NetworkFacility -- but not IxPrefix, NetworkIxLan, CarrierFacility, Poc
+
+**Test boundary:** White-box unit tests calling service methods directly (current pattern). The grpcserver tests are `package grpcserver` (not `_test`), giving access to unexported types. This is correct because the services are thin adapters -- testing through a full ConnectRPC client would add transport serialization overhead without catching different bugs.
+
+**Infrastructure needed:**
+- Replace per-test inline seeding with `seed.Networks(t, client, 3)` or `seed.Full(t, client)` for multi-type tests
+- The existing stream test setup (`setupStreamTestServer`) should be generalized to accept any service type
+- Filter test pattern is already table-driven and consistent -- just needs replication to remaining entity types
+
+#### 4. `internal/pdbcompat/` -- PeeringDB Compatibility Layer (85.4% -> 90%+ target)
+
+**What to test:** Handler routing, filter parsing, depth parameter, serialization, field projection, search endpoint, golden file output correctness.
+
+**Already well-structured:** The golden file pattern (`compareOrUpdate`, `-update` flag, deterministic timestamps) is the strongest test pattern in the codebase. The `setupGoldenTestData()` creates all 13 types -- this should become the shared `seed.Full()`.
+
+**Test boundary:** HTTP-level integration via httptest. Tests create handlers, register routes on a ServeMux, and assert response structure. This is the right boundary for a compatibility layer where exact HTTP response format matters.
+
+**Infrastructure needed:**
+- Extract `setupGoldenTestData()` entity creation logic into `seed.Full()` -- keep the mux/handler setup local
+- Expand filter tests for remaining filter operators (currently covers basic filtering; Django-style `__contains`, `__gte` etc. may have gaps)
+
+#### 5. `internal/web/` -- Web UI Handlers (74.8% -> 85%+ target)
+
+**What to test:** Route handling, template rendering (HTML contains expected elements), content negotiation (full page vs htmx fragment vs terminal), search service, comparison logic, detail page data loading.
+
+**Test boundary:** HTTP-level integration. Tests exercise handlers via httptest, assert on HTML content (string contains checks), HTTP headers (Vary, Content-Type), and status codes. This is the right level -- the templates are compiled Go code (templ), so testing them as rendered output catches template errors.
+
+**Infrastructure needed:**
+- `seedAllTestData()` and `seedSearchData()` should use `seed.Full()` or `seed.Minimal()` for entity creation, keeping only the handler/mux wiring local
+- Terminal render tests (`internal/web/termrender/`) are self-contained and work well -- no changes needed
+
+#### 6. `internal/sync/` -- Data Sync Worker (86.9% -> stable)
+
+**What NOT to change:** The sync package has two complementary test approaches:
+1. `worker_test.go` -- mock HTTP server (`fixture` struct) with programmatic responses for unit testing sync logic
+2. `integration_test.go` -- JSON fixture files from real PeeringDB API for integration testing the full parse-and-upsert pipeline
+
+This dual approach is correct. The fixture JSON files in `testdata/fixtures/` represent real PeeringDB API responses and should not be replaced with synthetic data.
+
+**Test boundary:** Internal package tests (access to unexported types). The `TestMain` initializing OTel metrics globally is a necessary workaround for global state in the metrics package.
+
+### Patterns to Follow
+
+#### Pattern 1: Table-Driven Tests With Shared Setup
+
+**What:** Single setup function seeds data once, multiple subtests exercise different behaviors.
+**When:** Testing the same handler/service with different inputs.
+**Example:** grpcserver filter tests -- one `seedData` call, table of `{req, wantLen, wantErr}`.
 
 ```go
-// internal/web/detect.go
+func TestListNetworksFilters(t *testing.T) {
+    t.Parallel()
+    client := testutil.SetupClient(t)
+    result := seed.Full(t, client)
+    svc := &NetworkService{Client: client}
 
-type OutputMode int
-
-const (
-    OutputHTML  OutputMode = iota // Browser: full HTML or htmx fragment
-    OutputANSI                   // Terminal: 256-color ANSI with box drawing
-    OutputPlain                  // Terminal: no color, plain text (?T)
-    OutputJSON                   // Any client: JSON (?format=json)
-)
-
-// DetectOutput determines output format from the request.
-// Priority: query params > Accept header > User-Agent.
-func DetectOutput(r *http.Request) OutputMode {
-    q := r.URL.Query()
-    if q.Get("format") == "json" {
-        return OutputJSON
+    tests := []struct {
+        name    string
+        req     *pb.ListNetworksRequest
+        wantLen int
+        wantErr connect.Code
+    }{
+        {name: "by ASN", req: &pb.ListNetworksRequest{Asn: proto.Int64(65001)}, wantLen: 1},
+        // ...
     }
-    if q.Has("T") || q.Get("format") == "text" {
-        return OutputPlain
-    }
-    if isTerminalClient(r) {
-        return OutputANSI
-    }
-    return OutputHTML
-}
-```
-
-### Pattern 2: User-Agent Detection (wttr.in Pattern)
-
-**What:** Case-insensitive substring match against known terminal HTTP clients.
-
-```go
-var terminalAgents = []string{
-    "curl", "httpie", "wget", "lwp-request",
-    "python-requests", "python-httpx", "openbsd ftp",
-    "powershell", "fetch", "aiohttp", "http_get",
-    "xh", "nushell", "go-http-client", "libfetch",
-}
-
-func isTerminalClient(r *http.Request) bool {
-    ua := strings.ToLower(r.Header.Get("User-Agent"))
-    if ua == "" {
-        return true // No UA = likely bare TCP tool
-    }
-    for _, agent := range terminalAgents {
-        if strings.Contains(ua, agent) {
-            return true
-        }
-    }
-    return false
-}
-```
-
-**Rationale for empty User-Agent = terminal:** Tools like `nc` send no UA. Returning terminal output is more useful than HTML. Browsers always send a UA.
-
-### Pattern 3: Handler-Level Mode Branching
-
-**What:** Each handler detects mode and branches. The existing `renderPage()` stays untouched for the HTML path.
-
-```go
-func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, asnStr string) {
-    // ... existing ent query and data construction, unchanged ...
-
-    mode := DetectOutput(r)
-    switch {
-    case mode == OutputJSON:
-        w.Header().Set("Content-Type", "application/json; charset=utf-8")
-        w.Header().Set("Vary", "User-Agent, Accept, HX-Request")
-        json.NewEncoder(w).Encode(data)
-    case mode == OutputANSI || mode == OutputPlain:
-        w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-        w.Header().Set("Vary", "User-Agent, Accept, HX-Request")
-        w.Header().Set("Cache-Control", "private")
-        terminal.RenderNetwork(w, data, terminalMode(mode))
-    default:
-        page := PageContent{Title: net.Name, Content: templates.NetworkDetailPage(data)}
-        renderPage(r.Context(), w, r, page)
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            t.Parallel()
+            resp, err := svc.ListNetworks(ctx, tt.req)
+            // assertions...
+        })
     }
 }
 ```
 
-**Why detect-in-handler instead of modifying renderPage:**
-- No changes to `PageContent` struct or existing `renderPage` function.
-- Terminal rendering added incrementally, one entity at a time.
-- Each path is isolated and testable.
+#### Pattern 2: Golden File Tests for Serialization-Sensitive Surfaces
 
-### Pattern 4: Server-Side ANSI Rendering with lipgloss v2
+**What:** Compare actual output against committed golden files. Update with `-update` flag.
+**When:** Testing exact output format (PeeringDB compat responses, terminal render output).
+**Example:** The pdbcompat golden test pattern is the reference implementation.
 
-**What:** Use lipgloss v2 for styling and lipgloss/table for tables. Explicitly set color profile since there is no terminal to detect.
+#### Pattern 3: HTTP-Level Integration for API Surfaces
 
-```go
-// internal/terminal/render.go
+**What:** Full handler stack via httptest.Server, real HTTP requests, assert on response body/headers.
+**When:** Testing API surfaces where transport behavior matters (CORS, content negotiation, status codes).
+**Not when:** Testing pure business logic (use direct function calls instead).
 
-import (
-    "github.com/charmbracelet/colorprofile"
-    lipgloss "charm.land/lipgloss/v2"
-    "charm.land/lipgloss/v2/table"
-)
+#### Pattern 4: White-Box for Adapters
 
-// Mode determines the terminal output format.
-type Mode int
+**What:** Internal package tests (`package foo`, not `package foo_test`) calling unexported types directly.
+**When:** Testing thin adapter layers (gRPC services, sync workers) where the public API is defined by an external interface.
+**Why:** Avoids constructing complex external client objects when the adapter's logic is just data transformation.
 
-const (
-    ModeANSI  Mode = iota // 256-color with Unicode box drawing
-    ModePlain             // ASCII only, no escape codes
-)
+### Anti-Patterns to Avoid
 
-// writeOutput writes styled content to w with appropriate color profile.
-func writeOutput(w io.Writer, content string, mode Mode) error {
-    switch mode {
-    case ModePlain:
-        // colorprofile.Writer with ASCII profile strips all ANSI codes
-        pw := &colorprofile.Writer{Forward: w, Profile: colorprofile.ASCII}
-        _, err := pw.Write([]byte(content))
-        return err
-    default:
-        // ANSI256 profile -- write escape codes as-is
-        _, err := io.WriteString(w, content)
-        return err
-    }
-}
-```
+#### Anti-Pattern 1: Testing Generated Code
 
-### Pattern 5: Whois-Style Key-Value Rendering
+**What:** Writing tests that exercise paths through `graph/generated.go`, `ent/*.go`, or `gen/peeringdb/v1/*.go`.
+**Why bad:** These are generated by codegen tools (gqlgen, ent, buf). Testing them tests the tool, not the application. Coverage numbers for generated packages should be excluded from targets.
+**Instead:** Test the hand-written code that uses the generated code (resolvers, services, handlers).
 
-**What:** Network engineers expect RPSL/WHOIS-style layout for entity details.
+#### Anti-Pattern 2: Duplicating Entity Creation
 
-```go
-// internal/terminal/render.go
+**What:** Each test file has its own `seedData()` with slightly different field values for the same entity types.
+**Why bad:** When schemas change (new required field), every seed function breaks independently. Currently there are 6+ independent Organization creation sites.
+**Instead:** Use shared `seed` package with a single, maintained creation path per entity type.
 
-// renderKeyValue formats a label:value pair with aligned colons.
-func renderKeyValue(label, value string, labelWidth int, styles Styles) string {
-    styledLabel := styles.Label.Render(fmt.Sprintf("%-*s", labelWidth, label))
-    return fmt.Sprintf("%s  %s", styledLabel, value)
-}
+#### Anti-Pattern 3: Asserting Internal Structure of Generated Responses
 
-// Example output:
-// ASN:            13335
-// Name:           Cloudflare, Inc.
-// Organization:   Cloudflare, Inc.
-// Policy:         Open
-// Traffic:        20000+ Gbps
-```
+**What:** Tests that decode GraphQL/REST responses into deeply nested structs and assert on every field.
+**Why bad:** Fragile to schema changes. A renamed field breaks tests even when behavior is correct.
+**Instead:** Assert on the aspects that matter: presence of data, correct count, specific business-critical fields, error codes. Not every field in every response.
 
-### Pattern 6: lipgloss/table for List Sections
+#### Anti-Pattern 4: Mocking ent Client
 
-**What:** Tables for IX presences, facility lists, participants. Per-cell styling via StyleFunc.
+**What:** Creating mock implementations of the ent client interface.
+**Why bad:** ent does not have a client interface -- it generates concrete types. Mocking would require creating an abstraction layer that does not exist. In-memory SQLite is fast enough (~5ms per test setup) and tests real SQL behavior.
+**Instead:** Use `testutil.SetupClient(t)` with real in-memory SQLite. It is fast, hermetic, and catches real query bugs.
 
-```go
-t := table.New().
-    Headers("IX", "Speed", "IPv4", "IPv6", "RS").
-    Border(lipgloss.RoundedBorder()).
-    BorderHeader(true).
-    BorderColumn(true).
-    Width(80).
-    StyleFunc(func(row, col int) lipgloss.Style {
-        if row == table.HeaderRow {
-            return styles.TableHeader
-        }
-        if row%2 == 0 {
-            return styles.TableEvenRow
-        }
-        return styles.TableOddRow
-    })
+## Integration Points With Existing Architecture
 
-for _, ix := range data.IXPresences {
-    t.Row(ix.IXName, formatSpeed(ix.Speed), ix.IPv4, ix.IPv6, rsIndicator(ix.IsRouteServer))
-}
+### New Components
 
-output := t.Render()
-```
+| Component | Location | Dependencies | Creates |
+|-----------|----------|-------------|---------|
+| `seed` package | `internal/testutil/seed/` | `ent`, `ent/enttest`, `internal/sync` (for sync_status) | Deterministic test entities |
 
-## Anti-Patterns to Avoid
+### Modified Components
 
-### Anti-Pattern 1: Separate Route Tree for Terminal
+| Component | Change | Reason |
+|-----------|--------|--------|
+| `internal/testutil/testutil.go` | No changes | Client setup is correct as-is |
+| `graph/resolver_test.go` | Expand with 13 List resolver tests, use seed.Full | Currently only 5 test functions |
+| `ent/schema/schema_test.go` | Add hook error path test | Raise hooks from 90% to 100% |
+| `internal/grpcserver/grpcserver_test.go` | Add missing entity type filter/stream tests | 6 entity types lack filter tests |
+| `internal/web/handler_test.go` | Swap seedAllTestData to use seed package | Reduce duplication |
+| `internal/pdbcompat/golden_test.go` | Extract entity creation into seed.Full | setupGoldenTestData becomes thin wrapper |
 
-**What:** Creating `/cli/asn/13335` alongside `/ui/asn/13335`.
-**Why bad:** Duplicates route registration and data assembly. Breaks "same URL, different representation" model.
-**Instead:** Content negotiation under existing `/ui/` URLs.
+### Unchanged Components
 
-### Anti-Pattern 2: Middleware-Based Content Negotiation
+| Component | Why No Changes |
+|-----------|---------------|
+| `internal/sync/` | Test infrastructure is well-designed (mock server + JSON fixtures) |
+| `internal/web/termrender/` | Self-contained, high coverage, no shared data needs |
+| `internal/middleware/` | 98.2% coverage, tests are simple and correct |
+| `internal/conformance/` | 96.3%, comparison logic tests are adequate |
+| `internal/httperr/` | 100%, complete |
+| `testdata/fixtures/` | Real PeeringDB API snapshots, must not be replaced with synthetic data |
+| `internal/pdbcompat/testdata/golden/` | Golden file snapshots, updated by test runs |
 
-**What:** Middleware that intercepts responses and transforms HTML to text.
-**Why bad:** Cannot produce rich ANSI tables from HTML. Middleware lacks access to typed data. Adds latency.
-**Instead:** Branch at the render point where typed data is available.
+## Build Order for Test Infrastructure
 
-### Anti-Pattern 3: Accept Header as Primary Detection
+Phase ordering is driven by dependency: shared infrastructure must exist before per-package test expansion.
 
-**What:** Using `Accept: text/plain` vs `Accept: text/html` as the primary mechanism.
-**Why bad:** curl sends `Accept: */*` by default. So does wget. Users would need `curl -H 'Accept: text/plain'` which defeats zero-setup.
-**Instead:** User-Agent detection as primary (wttr.in's proven approach). Accept header as secondary.
+### Phase 1: Shared Seed Package
 
-### Anti-Pattern 4: Global Color Profile State
+Create `internal/testutil/seed/` with `Full()`, `Minimal()`, `Networks()`, `WithSyncStatus()`. This has no test dependencies itself -- it is a helper library. Verify by running existing tests unchanged (seed package is additive, not breaking).
 
-**What:** Using `lipgloss.SetColorProfile()` globally.
-**Why bad:** In lipgloss v2, the rendering is deterministic -- styles produce ANSI strings based on their definition. The colorprofile.Writer handles downsampling when writing. Using a global profile is the v1 approach.
-**Instead:** Use lipgloss v2 styles directly (they produce full ANSI strings), then pass output through colorprofile.Writer with the appropriate profile for the output mode. For ANSI mode, write directly. For plain mode, use colorprofile.ASCII writer to strip codes.
+**Dependencies:** None (uses existing `ent` client)
+**Validates:** Compiles, existing tests still pass
 
-### Anti-Pattern 5: Buffering Both HTML and Terminal Output
+### Phase 2: GraphQL Resolver Coverage (graph/)
 
-**What:** Rendering both formats, then choosing which to send.
-**Why bad:** Doubles the work.
-**Instead:** Detect output mode first, render only the selected format.
+Expand `resolver_test.go` with tests for all 13 `*List` resolvers, error paths (negative offset, limit > MaxLimit), NetworkByAsn not-found, SyncStatus error path. Refactor `seedTestData()` to use `seed.Full()`.
 
-## Scalability Considerations
+**Dependencies:** Phase 1 (seed package)
+**Validates:** graph coverage rises from 2.6% to target
 
-Not applicable for scalability concerns -- this is a rendering layer change. Terminal rendering is pure string formatting with no I/O beyond writing to the HTTP response. Performance is bounded by the ent query (unchanged), not string formatting.
+### Phase 3: gRPC Handler Coverage (grpcserver/)
 
-One consideration: ANSI output for large IX participant lists (DE-CIX: 1000+ participants) could produce large responses (~50-100KB of ANSI text). This is fine -- the existing HTML path produces larger responses for the same data. Terminal users expect full output and can pipe to `less -R`.
+Add missing filter tests for Campus, Carrier, InternetExchange, IxFacility, IxLan, NetworkFacility. Add missing Stream tests for IxPrefix, NetworkIxLan, CarrierFacility, Poc. Refactor per-test seeding to use seed package where it simplifies code.
 
-## Caching Impact
+**Dependencies:** Phase 1 (seed package)
+**Validates:** grpcserver coverage rises from 61.7% to target
 
-The `Vary` header must be updated from `Vary: HX-Request` to `Vary: HX-Request, User-Agent, Accept` to prevent CDN/proxy caches from serving HTML to curl or ANSI to browsers. Additionally, terminal responses should set `Cache-Control: private` to prevent shared caches from storing ANSI output.
+### Phase 4: Schema Hook Coverage (ent/schema/)
 
-## Build Order (Dependency-Ordered)
+Add test for otelMutationHook error path (the missing 10%). Add relationship constraint tests (create child without parent).
 
-1. **`internal/web/detect.go`** -- User-Agent detection + output mode resolution. No dependencies on terminal package. Build and test independently.
+**Dependencies:** None (uses testutil.SetupClient directly)
+**Validates:** ent/schema coverage rises from 47.4% toward 65-70%
 
-2. **`internal/terminal/style.go`** -- Color palette and shared style definitions. Depends only on lipgloss v2.
+### Phase 5: Web Handler Coverage (web/)
 
-3. **`internal/terminal/table.go`** -- Shared table rendering helpers (border config, default widths). Depends on lipgloss/table.
+Expand handler tests for untested routes and error paths. Refactor seedAllTestData/seedSearchData to use seed package.
 
-4. **`internal/terminal/render.go`** -- Core rendering functions, colorprofile writer setup, key-value formatter. Depends on colorprofile.
+**Dependencies:** Phase 1 (seed package)
+**Validates:** web coverage rises from 74.8% to target
 
-5. **`internal/terminal/help.go`** -- CLI help text for `/ui/` root. No entity dependencies. Good first integration test.
+### Phase 6: Remaining Packages
 
-6. **`internal/terminal/error.go`** -- Error pages (404, 500) for terminal clients.
+Raise otel, health, peeringdb packages above 85%. These are smaller, independent efforts.
 
-7. **`internal/terminal/network.go`** -- Network detail ANSI renderer. First entity type. Validates the pattern.
+**Dependencies:** None (independent packages)
+**Validates:** Per-package coverage targets met
 
-8. **`internal/terminal/ix.go`** -- IX detail. Includes participant table (largest tables in dataset).
+## Coverage Exclusion Strategy
 
-9. **`internal/terminal/facility.go`**, **`org.go`**, **`campus.go`**, **`carrier.go`** -- Remaining entity types.
+The 5.7% total coverage number is misleading because it includes generated code. The coverage target should be stated per-package for hand-written code only.
 
-10. **`internal/terminal/search.go`** -- Search results in terminal format.
+**Packages to exclude from coverage targets:**
+- `ent/*` (all sub-packages) -- fully generated by entgo
+- `gen/peeringdb/v1/*` -- fully generated by buf/protoc
+- `graph/generated.go` -- fully generated by gqlgen
+- `graph/model/` -- fully generated by gqlgen
+- `ent/rest/` -- fully generated by entrest
+- `internal/web/templates/` -- generated by templ (compiled from .templ files)
 
-11. **`internal/terminal/compare.go`** -- ASN comparison in terminal format.
-
-12. **Modify `internal/web/handler.go`** -- Wire up detection and terminal rendering in each handler.
-
-13. **Modify `internal/web/render.go`** -- Update Vary header.
-
-14. **Modify `cmd/peeringdb-plus/main.go`** -- readinessMiddleware terminal-aware syncing message.
-
-Items 1-6 can be built without touching any existing code. Items 7-11 are independent of each other (parallelizable). Items 12-14 are integration points.
-
-## Package Structure
-
-```
-internal/
-  web/
-    detect.go          (NEW) -- OutputMode detection, isTerminalClient
-    detect_test.go     (NEW) -- User-Agent detection tests (table-driven)
-    handler.go         (MODIFIED) -- mode branching in each handler
-    render.go          (MODIFIED) -- Vary header update
-    templates/
-      detailtypes.go   (UNCHANGED) -- shared data types
-      comparetypes.go  (UNCHANGED) -- shared data types
-      searchtypes.go   (UNCHANGED) -- shared data types
-      *.templ          (UNCHANGED) -- HTML templates
-  terminal/
-    doc.go             (NEW) -- package documentation
-    style.go           (NEW) -- color palette, shared lipgloss styles
-    table.go           (NEW) -- table rendering helpers
-    render.go          (NEW) -- core rendering, colorprofile writer, key-value
-    help.go            (NEW) -- /ui/ root help text
-    error.go           (NEW) -- 404/500 for terminal
-    network.go         (NEW) -- NetworkDetail renderer
-    ix.go              (NEW) -- IXDetail renderer
-    facility.go        (NEW) -- FacilityDetail renderer
-    org.go             (NEW) -- OrgDetail renderer
-    campus.go          (NEW) -- CampusDetail renderer
-    carrier.go         (NEW) -- CarrierDetail renderer
-    search.go          (NEW) -- search results renderer
-    compare.go         (NEW) -- comparison renderer
-    render_test.go     (NEW) -- table-driven tests for all renderers
-```
-
-## Integration Points Summary
-
-| Integration Point | What Changes | Risk |
-|-------------------|-------------|------|
-| `internal/web/detect.go` | New file. User-Agent detection. | LOW -- purely additive |
-| `internal/web/render.go` | `Vary` header adds `User-Agent, Accept` | LOW -- one-line change |
-| `internal/web/handler.go` | Each handle* function gains mode check + terminal branch | LOW -- pattern is mechanical |
-| `internal/web/handler.go` handleHome | Terminal root shows help text | LOW |
-| `internal/web/handler.go` handleSearch | Terminal search returns text results | LOW |
-| `internal/web/handler.go` handleNotFound / handleServerError | Terminal-aware error messages | LOW |
-| `cmd/peeringdb-plus/main.go` readinessMiddleware | Terminal clients during sync get text message | LOW |
-| `go.mod` | Add `charm.land/lipgloss/v2`, `github.com/charmbracelet/colorprofile` | LOW |
-
-No existing tests should break. Default output mode is `OutputHTML` (current behavior). All terminal paths are additive.
+**Meaningful total coverage** should be computed across only hand-written packages. Based on current numbers, that is approximately 60-65% across hand-written code, with a target of 80%+.
 
 ## Sources
 
-- [wttr.in](https://github.com/chubin/wttr.in) -- Content negotiation via User-Agent, `?T` for plain text
-- [charm.land/lipgloss/v2](https://pkg.go.dev/charm.land/lipgloss/v2) -- v2.0.2, deterministic styles, border types
-- [charm.land/lipgloss/v2/table](https://pkg.go.dev/charm.land/lipgloss/v2/table) -- Table rendering with StyleFunc
-- [charmbracelet/colorprofile](https://pkg.go.dev/github.com/charmbracelet/colorprofile) -- v0.4.3, Profile constants, Writer type
-- Existing codebase: `internal/web/handler.go`, `internal/web/render.go`, `internal/web/templates/detailtypes.go`
+- Direct codebase analysis: 60 test files examined, per-function coverage profiling
+- Pattern analysis of existing test infrastructure in testutil, sync, pdbcompat, grpcserver
+- Coverage profile from `go test -coverprofile` across all packages
+- Go testing documentation: https://go.dev/doc/test
+- enttest documentation: https://entgo.io/docs/testing/

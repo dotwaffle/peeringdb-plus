@@ -1,276 +1,230 @@
 # Domain Pitfalls
 
-**Domain:** Terminal CLI interface for curl-friendly access to PeeringDB data
-**Researched:** 2026-03-25
-**Milestone:** v1.8 Terminal CLI Interface
+**Domain:** Test coverage improvement for existing Go application with 5 API surfaces
+**Researched:** 2026-03-26
+**Milestone:** v1.10 Code Coverage & Test Quality
 
 ## Critical Pitfalls
 
-Mistakes that cause broken output for users, content negotiation conflicts with existing API surfaces, or require rework of the middleware chain.
+Mistakes that waste significant effort, create tests worse than no tests, or cause ongoing CI pain.
 
-### Pitfall 1: ANSI Escape Codes in Non-Terminal Pipes Produce Garbage
+### Pitfall 1: Coverage-Padding Tests That Assert Nothing Meaningful
 
-**What goes wrong:** A user runs `curl https://peeringdb-plus.fly.dev/ui/asn/13335 | grep peering` and gets output littered with raw escape sequences like `[38;5;33m` mixed into every line, making grep/awk/sed results unusable.
+**What goes wrong:** Tests execute code paths but verify only that "no error was returned" or check a single trivial field. Coverage goes up; bug detection does not. The 2.6% graph package coverage could jump to 80% with tests that POST queries and check `len(resp.Errors) == 0` without verifying response shapes, pagination behavior, or edge cases.
 
-**Why it happens:** The server has no way to know whether the client's stdout is a terminal or a pipe. Unlike a local CLI tool which can call `isatty(stdout)`, an HTTP server only sees the HTTP request -- it cannot detect whether `curl` is writing to a terminal or to a pipe/file. The decision to send ANSI codes is made server-side at request time, but the client's output destination is determined client-side at render time.
+**Why it happens:** Coverage percentage is the metric being optimized. When the goal is "raise graph from 2.6% to 80%", the path of least resistance is broad-but-shallow tests. Each resolver is structurally similar (`validatePageSize` then `Query().Paginate()`), so a single test pattern can cover many lines.
 
-**Consequences:** Users who pipe output through text-processing tools get corrupted data. Users who redirect to files get files full of escape sequences. This is the single most common complaint about curl-friendly terminal services.
-
-**Prevention:**
-- Default to ANSI-colored output (the common case is direct terminal viewing).
-- Provide an explicit plain-text mode via query parameter (`?T` or `?format=plain`) that strips all ANSI codes. Document this prominently in the CLI help text.
-- Consider also supporting `?format=json` for programmatic consumers who want structured data.
-- The `?T` parameter follows wttr.in convention and is easy to type: `curl peeringdb-plus.fly.dev/ui/asn/13335?T | grep peering`.
-- Do NOT attempt server-side pipe detection. It is fundamentally impossible over HTTP.
-
-**Detection:** Test by piping curl output through `cat -v` or `grep`. If escape sequences appear as `^[[` character sequences, ANSI stripping is needed.
-
-### Pitfall 2: Content Negotiation Conflict with Existing Accept Header Logic
-
-**What goes wrong:** The root handler (`GET /`) and readiness middleware already branch on `Accept: text/html` to distinguish browsers from API clients. Adding User-Agent-based terminal detection creates a second, conflicting negotiation axis. A curl request with `Accept: text/html` (which curl does NOT send by default, but some wrapper scripts do) could match both the "browser" path and the "terminal" path, producing inconsistent behavior.
-
-**Why it happens:** The codebase has two different detection strategies for the same fundamental question ("is this a browser or a programmatic client?"):
-1. **Existing (main.go:313, main.go:390):** `Accept` header contains `text/html` => browser path.
-2. **New (v1.8):** `User-Agent` contains `curl/`, `wget/`, etc. => terminal path.
-
-These can conflict when a client sends both `Accept: text/html` AND has a terminal User-Agent (e.g., `curl -H "Accept: text/html"`), or when a non-terminal client omits Accept headers.
-
-**Consequences:** Some requests route to the wrong renderer. The readiness middleware returns HTML to curl when syncing (because curl with `-H "Accept: text/html"` triggers the HTML path). The root handler redirects curl to `/ui/` when the user wanted the JSON discovery document.
+**Consequences:**
+- False confidence: coverage dashboard shows green, bugs still ship
+- Tests never fail for real bugs because they assert nothing about the data
+- Maintenance burden with zero payoff -- tests break on refactors but never catch regressions
 
 **Prevention:**
-- Establish a clear priority: User-Agent detection takes precedence over Accept header for terminal-vs-browser decisions. If User-Agent matches a known terminal client, always use terminal rendering regardless of Accept headers.
-- Update the readiness middleware to return plain text "sync not yet completed" for terminal clients (not JSON, not HTML).
-- Update the root handler to return CLI help text for terminal clients (not redirect to /ui/, not JSON discovery).
-- Centralize the terminal detection logic into a single function (e.g., `isTerminalClient(r *http.Request) bool`) used by ALL content negotiation points. Do not duplicate detection logic across handlers.
-- Document the full decision tree: terminal User-Agent => terminal output; Accept: text/html => browser HTML; default => JSON.
+- Every test must assert at least one **behavioral** property: correct data returned, correct error code, correct pagination cursor behavior, correct filtering
+- For the graph resolvers: assert returned entity fields match seed data, assert `edges` and `pageInfo` structure, assert `where` filtering actually filters
+- For grpcserver handlers: assert proto field values match ent entity fields (the existing `TestGetNetwork` pattern is the right model -- it checks individual fields)
+- Review rule: if removing the function under test would not cause the test to fail, the test is worthless
 
-**Detection:** Write integration tests that combine terminal User-Agents with various Accept headers and verify correct response Content-Type in every combination.
+**Detection:** Run mutation testing (or mentally simulate: "if I break line X, does any test fail?"). Tests that pass regardless of implementation bugs are padding.
 
-### Pitfall 3: Vary Header Incorrectly Set, Breaking Caches
+### Pitfall 2: Testing Generated Code Instead of Hand-Written Logic
 
-**What goes wrong:** The existing `renderPage()` sets `Vary: HX-Request` for htmx fragment caching. Adding terminal detection requires varying on `User-Agent` as well. If the Vary header is set to `User-Agent` alone (overwriting `HX-Request`), htmx fragment caching breaks. If set to `Vary: User-Agent`, CDNs and intermediate caches treat it as effectively `Vary: *` because User-Agent has thousands of unique values, destroying cache hit rates.
+**What goes wrong:** Effort goes into testing the 57K-line `graph/generated.go`, the `ent/` generated packages (0% coverage, rightly so), or the `gen/peeringdb/v1/` protobuf stubs. These are code-generated by mature tools (gqlgen, ent, protoc-gen-go) and testing them validates the tool, not the application.
 
-**Why it happens:** `Vary: User-Agent` tells caches to store a separate copy for every distinct User-Agent string. Since User-Agent strings include version numbers (e.g., `curl/8.7.1` vs `curl/8.8.0`), this fragments the cache into thousands of entries that are never reused. Many CDNs (Cloudflare, Fastly) interpret `Vary: User-Agent` as uncacheable.
+**Why it happens:** The coverage report shows `ent/` at 0%, `gen/` at 0%, `graph/generated.go` contributes to the graph package's denominator. Treating the coverage report as a todo list leads to testing generated code.
 
-**Consequences:** Either cache pollution (thousands of near-identical entries) or total cache bypass (CDN treats as uncacheable). For an edge-deployed app on Fly.io, this matters because Fly.io's HTTP proxy may cache responses.
-
-**Prevention:**
-- Do NOT use `Vary: User-Agent`. Instead, normalize the detection result into a custom header or a binary classification.
-- Set `Vary: HX-Request, X-Output-Format` where `X-Output-Format` is a response header you control, set to `terminal` or `html`. This keeps the Vary space small (2 x 2 = 4 variants max).
-- Alternatively, since terminal responses are for programmatic clients that rarely benefit from caching, set `Cache-Control: no-store` on terminal responses and keep the existing Vary for browser responses.
-- The simplest correct approach: terminal responses get `Cache-Control: no-store` with no Vary header. Browser responses keep the existing `Vary: HX-Request`.
-
-**Detection:** Test with `curl -v` and inspect Vary and Cache-Control response headers for both terminal and browser requests.
-
-### Pitfall 4: Terminal Width Assumption Breaks Wide Tables
-
-**What goes wrong:** Network IX presence tables in PeeringDB can be very wide -- columns for IX name (up to ~40 chars), ASN (up to 10 chars), port speed, IPv4, IPv6 (up to 39 chars each for full IPv6 addresses), RS status, and operational status. A table rendered at 120 columns wraps catastrophically on an 80-column terminal, producing unreadable output where box-drawing characters no longer align.
-
-**Why it happens:** The server has no way to know the client's terminal width. Unlike SSH (which transmits terminal dimensions in the pty-req), HTTP has no mechanism for communicating terminal geometry. The server must pick a width and hope.
-
-**Consequences:** On narrow terminals (80 columns, common on default macOS Terminal, many Linux distributions), tables wrap mid-row, breaking Unicode box-drawing alignment. On very wide terminals (200+ columns), output looks needlessly cramped. IPv6 addresses alone consume 39 characters per column.
+**Consequences:**
+- Enormous test surface for zero bug-finding value
+- Tests couple to code generation output -- regenerating breaks tests
+- Wasted developer time that should go to testing the 567 lines of hand-written graph resolvers, the 4,200 lines of grpcserver handlers, and the schema hooks
 
 **Prevention:**
-- Design for 80 columns as the floor. All table layouts must render correctly at 80 columns.
-- Truncate long fields with ellipsis rather than wrapping. Network names beyond ~25 chars get `Cloudflare Data Cent...`. IX names beyond ~20 chars get truncated similarly.
-- For IPv6 addresses, abbreviate using standard :: notation (the data from PeeringDB should already be abbreviated, but verify).
-- Support a `?cols=N` query parameter for users who want to specify width: `curl peeringdb-plus.fly.dev/ui/asn/13335?cols=120`.
-- Use a tiered layout strategy: at 80 cols show essential columns; at 120+ cols show additional columns. The tier is determined by the `?cols` parameter with 80 as default.
-- For entity detail views (single network, single IX), use a key-value layout instead of tables -- this naturally fits any width.
+- Exclude generated packages from coverage targets entirely: `ent/`, `gen/`, `graph/model/`, `ent/rest/`
+- For `graph/` package: the denominator includes `generated.go` (57K lines). The 2.6% coverage means the hand-written resolvers (~550 lines across `resolver.go`, `schema.resolvers.go`, `custom.resolvers.go`, `pagination.go`) are barely tested. Focus there.
+- Use `//go:generate` comment grep to identify which files are generated
+- Coverage filter: `go test -coverprofile=c.out ./graph/` then `go tool cover -func=c.out | grep -v generated`
 
-**Detection:** Render every entity type at 80 columns and visually inspect. Check that no line exceeds 80 characters (including ANSI escape sequences, which contribute zero visible width but do add bytes).
+**Detection:** If a test file imports nothing from the package's public API and only exercises generated types, it is testing generated code.
+
+### Pitfall 3: Repetitive Boilerplate Tests for 13 Near-Identical Entity Types
+
+**What goes wrong:** The grpcserver has 13 entity handlers with ~1,154 lines of near-identical code (PROJECT.md tech debt). Writing 13 copies of the same Get/List/Stream/Filter test creates a maintenance nightmare. The existing `grpcserver_test.go` is already 2,920 lines with 43 test functions showing this pattern emerging.
+
+**Why it happens:** Each entity type has its own service struct (`NetworkService`, `FacilityService`, etc.) with identical logic patterns. The natural approach is to copy-paste tests, changing only the entity name, create call, and field assertions.
+
+**Consequences:**
+- 2,920 lines becomes 6,000+ lines of near-identical test code
+- Updating the test pattern (e.g., adding timeout assertion) requires 13 parallel edits
+- CI time balloons from test setup (each test creates its own in-memory SQLite database via `testutil.SetupClient`)
+- Merge conflicts when multiple people touch test files
+
+**Prevention:**
+- The existing `generic_test.go` with `TestListEntities` using type parameters is the right model -- extend this pattern
+- Use test helper functions that accept the service interface and entity creation functions
+- For Get handlers: parameterize by `(createEntity func(client *ent.Client) int, getFunc func(ctx, id) (proto.Message, error))`
+- For Stream handlers: the `setupStreamTestServer` pattern already exists -- make it generic
+- Budget: test the generic `ListEntities`/streaming logic thoroughly in one place, then do lightweight integration tests per entity type that verify wiring (correct entity created and retrievable)
+
+**Detection:** If you find yourself copying a test function and changing only type names and field names, stop and extract a helper.
+
+### Pitfall 4: SQLite In-Memory Database Contention in Parallel Tests
+
+**What goes wrong:** Tests using `testutil.SetupClient(t)` with `cache=shared` in-memory SQLite databases encounter intermittent failures or data leaks when subtests share parent-created data. The current pattern uses atomic counter-based unique database names, which is correct -- but careless test additions can break this.
+
+**Why it happens:** New test authors see existing tests creating entities in the parent test function (e.g., `TestGetNetwork` creates a network, then subtests query it). They follow the pattern but introduce shared mutable state: two parallel subtests both create entities with the same IDs, or a subtest modifies data another subtest reads.
+
+**Consequences:**
+- Flaky tests that pass locally but fail in CI (or vice versa) due to timing
+- `-race` detector flags that are hard to reproduce
+- Hours of debugging "impossible" test failures
+
+**Prevention:**
+- Rule: each `t.Run` subtest that uses `t.Parallel()` must use its own `testutil.SetupClient(t)` OR only read from parent-seeded data (never write)
+- The existing pattern in `TestGetNetwork` is safe: parent creates data, parallel subtests only read. Document this as the canonical pattern.
+- For new tests with write operations in subtests: each subtest gets its own client
+- Never share entity IDs across test functions -- the atomic counter helps but tests creating `SetID(42)` in multiple test functions will collide if they accidentally share a database
+
+**Detection:** Run `go test -race -count=10 ./...` -- flaky tests surface with higher count. Any test that creates entities without using `testutil.SetupClient` in its own scope is suspect.
 
 ## Moderate Pitfalls
 
-### Pitfall 5: User-Agent Detection False Positives and False Negatives
+### Pitfall 5: Testing Through the Full HTTP Stack When Unit Tests Suffice
 
-**What goes wrong:** A Python script using `requests` library (User-Agent: `python-requests/2.31.0`) gets ANSI-colored output when it expected JSON. A user running `xh` (a modern HTTPie alternative) gets HTML because `xh` isn't in the detection list. Monitoring tools like Prometheus, Datadog agent, or uptime checkers get terminal output.
+**What goes wrong:** Every test sets up `httptest.NewServer` with the full middleware chain (CORS, logging, recovery) when only the handler logic needs testing. The GraphQL test setup (`setupTestServer` in `resolver_test.go`) creates a full server with CORS middleware for every test case.
 
-**Why it happens:** User-Agent-based detection is inherently fragile. The list of terminal clients must be maintained manually. New clients appear (xh, nushell, hurl), old clients change their User-Agent format, and many programmatic HTTP clients use default User-Agents that overlap with neither browsers nor terminals.
-
-**Consequences:** API consumers get ANSI garbage in their responses. Monitoring tools parse ANSI-contaminated output and generate false alerts. Developer scripts break silently.
+**Why it happens:** Existing tests established this pattern. It works and gives confidence. But it makes each test ~10x slower than a direct function call and creates dependencies on middleware behavior.
 
 **Prevention:**
-- Use an allowlist of known terminal clients, not a blocklist of browsers. The terminal client list should be conservative:
-  - `curl/` (most common -- note the trailing slash to avoid matching "curling-club-api")
-  - `Wget/` (capital W, standard wget format)
-  - `HTTPie/` (HTTPie's actual User-Agent format)
-  - `xh/` (modern HTTPie alternative)
-  - `fetch` (OpenBSD ftp/fetch)
-  - `PowerShell/` (Invoke-WebRequest)
-  - `lwp-request` (Perl LWP)
-- Do NOT include generic HTTP libraries (`python-requests`, `aiohttp`, `Go-http-client`, `axios`) -- these are programmatic API clients that want JSON, not ANSI.
-- Provide an explicit opt-in: `Accept: text/x-ansi` (custom media type) or `?format=terminal` forces terminal rendering regardless of User-Agent. This is the escape hatch for unrecognized clients.
-- Provide an explicit opt-out: `?format=json` forces JSON regardless of User-Agent. This is the escape hatch for scripts using curl.
-- Log unrecognized User-Agents that hit /ui/ paths at DEBUG level for future allowlist tuning.
+- For grpcserver: the existing pattern of calling `svc.GetNetwork(ctx, req)` directly is correct and fast. Keep it for Get/List handler logic.
+- For grpcserver streaming: `httptest.NewUnstartedServer` with TLS is necessary because ConnectRPC streaming requires HTTP/2. Keep this pattern only for Stream tests.
+- For graph resolvers: call resolver methods directly instead of going through HTTP. The `queryResolver` struct is accessible. Test `SyncStatus`, `NetworkByAsn`, `OrganizationsList` etc. as direct function calls.
+- For web handlers: `httptest.NewRecorder` + `mux.ServeHTTP` is the right level (tests routing + handler together). No need for a running server.
+- Reserve full-stack `httptest.NewServer` tests for middleware interaction testing and CORS verification (which already exist in `middleware` package at 98.2%).
 
-**Detection:** Set up table-driven tests with ~20 User-Agent strings covering: major browsers, curl/wget/httpie, Python/Go/Node HTTP libraries, monitoring agents, empty User-Agent, and custom strings.
+**Detection:** If a test imports `net/http/httptest` but never checks HTTP-specific behavior (headers, status codes, content types), it is over-testing the transport layer.
 
-### Pitfall 6: Unicode Box Drawing Broken on Windows Terminals
+### Pitfall 6: Golden File Proliferation for Coverage
 
-**What goes wrong:** A network engineer on Windows using PowerShell or cmd.exe with the legacy console host sees garbled characters instead of box-drawing lines. Characters like `+`, `|`, and `-` appear, or worse, mojibake (raw UTF-8 bytes displayed as Windows-1252).
+**What goes wrong:** Golden file tests are extended to cover every entity type across every format (ANSI, JSON, WHOIS, short, plain text) at every width. The pdbcompat package already has 39 golden files. Adding golden files for termrender output across 6 entity types x 5 formats x 3 widths = 90 more files.
 
-**Why it happens:** Windows Console Host (conhost.exe, the legacy terminal before Windows Terminal) does not support UTF-8 output by default. The code page defaults to the system locale (e.g., 437 for US English, 1252 for Western European). Box-drawing characters like `\u2500` (horizontal line) and `\u2502` (vertical line) are multi-byte UTF-8 sequences that display as garbage under non-UTF-8 code pages. Windows Terminal (the modern replacement) handles UTF-8 correctly, but many engineers still use conhost or PuTTY.
+**Why it happens:** Golden files feel thorough. They catch unexpected output changes. They are easy to write: seed data, capture output, commit file.
 
-**Consequences:** Broken table rendering for any Windows user not using Windows Terminal. PuTTY users need to configure character encoding to UTF-8 manually.
+**Consequences:**
+- Golden files become the largest source of test maintenance: any cosmetic change (spacing, label text, color code) breaks dozens of files
+- `-update` flag is run reflexively without reviewing changes, defeating the purpose
+- CI diff output becomes unreadable when 40 golden files fail at once
+- Review fatigue: PRs with 90 golden file changes get rubber-stamped
 
 **Prevention:**
-- Provide ASCII-safe fallback table rendering using `+`, `-`, `|` characters (no Unicode box drawing). Activate via `?ascii` query parameter.
-- Document the requirement: "For best results on Windows, use Windows Terminal or configure your terminal for UTF-8."
-- When rendering with box drawing, stick to the basic Box Drawing Unicode block (U+2500-U+257F) which has the best cross-terminal support. Avoid Block Elements (U+2580-U+259F) and other decorative Unicode ranges.
-- Set the Content-Type response header to `text/plain; charset=utf-8` to signal UTF-8 encoding to HTTP clients.
+- Golden files for the pdbcompat layer: keep them -- they verify PeeringDB API compatibility which is a contractual requirement
+- Golden files for termrender: use sparingly. Test one representative entity type thoroughly (network -- it has the most complex output). Test other types with structural assertions (contains ASN, contains name, has correct section headers).
+- For format modes: golden file for the default ANSI mode only. Test JSON, WHOIS, short modes with parsed assertions (valid JSON, contains expected RPSL keys, one-liner format).
+- Width adaptation: test the column-dropping logic with targeted assertions, not golden files per width breakpoint.
 
-**Detection:** Test on Windows with both Windows Terminal and legacy conhost. Test via PuTTY from a Linux/macOS client.
+**Detection:** If a PR changes one display label and 30+ golden files need updating, you have too many golden files.
 
-### Pitfall 7: 256-Color ANSI Codes on Terminals That Only Support 16 Colors
+### Pitfall 7: Mocking OTel to Test Observability Side Effects
 
-**What goes wrong:** A user SSHed into a FreeBSD server with `TERM=vt100` runs curl and gets raw escape sequences like `[38;5;33m` displayed literally -- the terminal doesn't understand 256-color extended ANSI sequences and prints them as text.
+**What goes wrong:** Tests create mock TracerProviders and SpanExporters to verify that the correct span names, attributes, and metrics are emitted. The `otel` package is at 84% -- pushing to 100% means testing that `otel.Tracer("ent").Start(ctx, spanName)` was called with the right arguments.
 
-**Why it happens:** The project specification calls for "rich 256-color ANSI output." Extended 256-color codes use the `\033[38;5;Nm` syntax (SGR 38), which requires a terminal that supports xterm-256color or equivalent. Basic terminals (vt100, xterm without 256-color, some SSH sessions to embedded devices) only support the base 16 colors (SGR 30-37, 90-97 for foreground).
+**Why it happens:** The `otelMutationHook` in `ent/schema/hooks.go` and the OTel provider setup in `internal/otel/` are infrastructure code. Testing them to completion means verifying OTel SDK wiring.
 
-**Consequences:** On basic terminals, every 256-color escape sequence is printed as literal characters, making the entire output unreadable. This is worse than no color at all.
-
-**Prevention:**
-- Use 256-color as the default for ANSI output (the vast majority of modern terminals support it), but design the color scheme to degrade gracefully if a terminal strips unknown sequences (most terminals simply ignore unrecognized SGR codes rather than printing them literally).
-- Provide a `?color=16` parameter for users on basic terminals who want limited color.
-- Provide the `?T` (plain text) option for terminals that cannot handle any ANSI codes.
-- Choose 256-color palette values that have reasonable 16-color equivalents. For example, use color 33 (blue) which maps to ANSI blue (34) in the base palette.
-- Test: Most terminals that don't support 256-color will silently ignore the escape sequence rather than displaying it literally. The vt100 literal-display case is rare in practice (2026 -- most terminals support at least 16-color SGR).
-
-**Detection:** Test with `TERM=vt100 curl ...` and verify output is not garbled. Test with `TERM=xterm curl ...` (16-color) and verify colors appear reasonable.
-
-### Pitfall 8: PeeringDB Data with Non-ASCII Characters in Address Fields
-
-**What goes wrong:** A facility detail page showing "Equinix SP4 - Sao Paulo" renders the address field containing "Av. Ceci, 1900 - Res. Tambore" but the actual PeeringDB data has accented characters: "Sao Paulo" is really "Sao Paulo" (note: PeeringDB uses ASCII for city names in the name field but UTF-8 in address fields). Address fields contain characters like `e` with accent (`e`), `u` with umlaut (`u`), `n` with tilde, and ordinal markers like `2o` and `3a`.
-
-**Why it happens:** PeeringDB stores address fields in UTF-8. The data is primarily ASCII for entity names (networks, IXes) but address/notes fields for non-English-speaking countries contain accented Latin characters. East Asian characters are rare but possible in notes fields.
-
-**Consequences:** Terminal column width calculations break because multi-byte UTF-8 characters occupy 1 display column (for accented Latin) but 2 display columns (for CJK characters). A string that is 20 bytes may display as 18 columns (accented Latin) or 14 columns (mixed CJK). Box-drawing table alignment breaks if column width is calculated by byte count or rune count instead of display width.
+**Consequences:**
+- Tests couple tightly to OTel SDK internals (span names, attribute keys)
+- OTel SDK updates break tests without any application bug
+- Mock TracerProviders are complex to set up correctly
+- Tests verify "tracing happens" rather than "application behavior is correct"
 
 **Prevention:**
-- Calculate display width using Unicode East Asian Width property, not `len()` (byte count) or `utf8.RuneCountInString()` (rune count). The `go-runewidth` library (`github.com/mattn/go-runewidth`) handles this correctly.
-- Truncation must also account for display width: cutting a string to "20 display columns" may mean cutting at byte offset 22 (accented Latin) or byte offset 12 (CJK).
-- For entity names (which are primarily ASCII), this is low risk. For address and notes fields, it is moderate risk.
-- Test with real PeeringDB data from Brazil (accented characters), Germany (umlauts in addresses), Japan (potential CJK in notes), and China (potential CJK in addresses).
+- Test the `otelMutationHook` by verifying it does not interfere with mutations (create entity, verify it was created). The span creation is a side effect that should not be the primary assertion.
+- For `internal/otel/provider.go`: test that `SetupProvider` returns a valid shutdown function and does not panic. Do not assert on specific exporter wiring.
+- For metrics: test that the `RecordSyncMetrics` function does not error. The actual metric values are verified by the Grafana dashboard in production.
+- 84% on the otel package is good enough. The remaining 16% is likely error paths in SDK initialization that are hard to trigger and not worth mocking.
 
-**Detection:** Query facilities from Brazil, Germany, Japan via the live PeeringDB API and render in terminal mode. Check that table columns align correctly.
+**Detection:** If a test imports `go.opentelemetry.io/otel/sdk/trace/tracetest` or creates `InMemoryExporter`, question whether the assertion is about application behavior or SDK behavior.
 
-### Pitfall 9: Forgetting to Update All Content Negotiation Points
+### Pitfall 8: Ignoring the graph Package's Generated Code Denominator
 
-**What goes wrong:** Terminal detection is added to the `/ui/` dispatch handler but not to the readiness middleware, the root handler, or the error handlers. A curl user hits the readiness gate during sync and gets an HTML page (from the existing `Accept: text/html` check). A curl user hits a 404 and gets an HTML error page.
+**What goes wrong:** The graph package shows 2.6% coverage. Someone sets a target of 80%. But `generated.go` is 57,144 lines and the hand-written code is ~567 lines. Even with 100% coverage of all hand-written resolvers, the package-level coverage will only reach ~15-20% because `generated.go` dominates the denominator.
 
-**Why it happens:** The codebase has multiple points where browser-vs-API detection occurs:
-1. `GET /` root handler (main.go:312-320) -- branches on Accept header.
-2. `readinessMiddleware` (main.go:376-404) -- branches on Accept header.
-3. `renderPage` (render.go:27-35) -- branches on HX-Request header.
-4. `handleNotFound` (handler.go:132-138) -- renders HTML unconditionally.
-5. `handleServerError` (handler.go:141-147) -- renders HTML unconditionally.
+**Why it happens:** Coverage targets are set per-package without accounting for generated code. "80% on all packages" applied naively to `graph/` is either impossible or requires testing gqlgen's generated code.
 
-Each of these must be updated to handle terminal clients correctly, but it is easy to miss one.
-
-**Consequences:** Inconsistent experience: some endpoints return nice ANSI output while others return raw HTML that is unreadable in a terminal.
+**Consequences:**
+- Impossible targets cause frustration or lead to testing generated code (Pitfall 2)
+- Distorted metrics: "we only hit 18% on graph" sounds like a failure when it actually means "100% of our resolvers are tested"
 
 **Prevention:**
-- Create a centralized `internal/terminal/detect.go` package with a single `IsTerminal(r *http.Request) bool` function.
-- Audit every code path that writes Content-Type or branches on Accept/HX-Request. Create a checklist:
-  - [ ] `GET /` root handler
-  - [ ] Readiness middleware (503 during sync)
-  - [ ] `renderPage` (full page vs fragment)
-  - [ ] `handleNotFound` (404)
-  - [ ] `handleServerError` (500)
-  - [ ] Any future health/status endpoints that return human-readable output
-- Write integration tests that exercise each path with a curl User-Agent and verify non-HTML Content-Type.
+- Measure graph package coverage excluding `generated.go`: use `go tool cover -func=c.out` and sum only the hand-written files
+- Set the coverage target for `graph/` based on hand-written code: "100% of custom.resolvers.go, schema.resolvers.go, pagination.go, resolver.go"
+- Alternative: move hand-written resolver logic into a separate internal package that does not include generated code, then measure that package
+- Document this discrepancy in the milestone plan so progress is measured correctly
 
-**Detection:** Run `curl -v` against every URL path category (root, /ui/*, 404, 500-triggering path, readiness-blocked path) and check that no response has `Content-Type: text/html`.
-
-### Pitfall 10: ANSI String Building Allocations on Hot Path
-
-**What goes wrong:** Every request to a terminal-detected client constructs ANSI output by concatenating escape sequences with data. For a network detail page with IX presences (potentially 200+ IXes for large networks like Cloudflare or Akamai), naive string concatenation creates thousands of intermediate strings, causing excessive GC pressure under load.
-
-**Why it happens:** ANSI output requires interleaving escape codes (`\033[38;5;33m`) with data (`AS13335`) and reset codes (`\033[0m`) for every colored segment. A single colored cell requires 3 string operations minimum. A table with 200 rows and 6 columns = 3,600 string operations per request.
-
-**Consequences:** At high concurrency (edge node serving many terminal requests), GC overhead increases. Not a correctness issue but a latency issue -- P99 latency spikes during GC pauses.
-
-**Prevention:**
-- Use `strings.Builder` with `Grow()` pre-allocation. Estimate output size: ~100 bytes per table row (including ANSI codes) * number of rows. Call `builder.Grow(estimatedSize)` before building.
-- Use `sync.Pool` for builder reuse across requests if benchmarks show allocation is significant. Profile before optimizing per PERF-1.
-- Pre-compute ANSI color code strings as package-level constants (e.g., `const colorBlue = "\033[38;5;33m"`, `const reset = "\033[0m"`). Do not call `fmt.Sprintf` to generate escape codes per cell.
-- Consider building the ANSI output as `[]byte` using `bytes.Buffer` and writing directly to `http.ResponseWriter` via `w.Write()` instead of building a string and then converting. This avoids the final string allocation entirely.
-
-**Detection:** Benchmark with `go test -bench=BenchmarkRenderNetwork -benchmem` and check allocations per operation. Profile with `pprof` under concurrent load (100 rps terminal requests).
+**Detection:** If `go test -cover ./graph/` reports < 20% after testing all resolvers, the denominator is dominated by generated code.
 
 ## Minor Pitfalls
 
-### Pitfall 11: curl Follows Redirects Only with -L Flag
+### Pitfall 9: Asserting Proto Wrapper Types Without Nil Checks
 
-**What goes wrong:** The root handler (`GET /`) currently redirects browsers to `/ui/` via 302. If a terminal client hits `/`, they get a redirect response instead of useful output. Users who type `curl peeringdb-plus.fly.dev` see `<a href="/ui/">Found</a>` because curl does not follow redirects by default.
-
-**Prevention:** For terminal clients, return CLI help text directly at `/` instead of redirecting. The help text should show available endpoints and usage examples.
-
-### Pitfall 12: Search Results Require Different Rendering Strategy
-
-**What goes wrong:** The web UI search uses htmx to dynamically update search results. In terminal mode, there is no interactive search -- the user needs a one-shot query/response. Trying to replicate the interactive search experience for terminals leads to over-engineering.
-
-**Prevention:** Terminal search should be simple: `curl peeringdb-plus.fly.dev/ui/search?q=cloudflare` returns a table of results. No pagination, no incremental updates. Limit to top 10 per type (matching the web UI behavior). This is a fundamentally different interaction model from the htmx UI.
-
-### Pitfall 13: Compare View Complexity for Terminal
-
-**What goes wrong:** The ASN comparison view works well in HTML with tabs and collapsible sections. Rendering this in terminal mode produces extremely long output that scrolls off screen.
-
-**Prevention:** For terminal compare views, show only the summary (shared IX count, shared facility count) plus the shared items table. Skip the "only in A" / "only in B" sections by default. Provide `?view=full` to show everything. Design for pipe-to-less: `curl .../compare/13335/32934 | less -R` (the `-R` flag preserves ANSI colors in less).
-
-### Pitfall 14: Missing Content-Length Header for Terminal Responses
-
-**What goes wrong:** Terminal responses built with `strings.Builder` written directly to `http.ResponseWriter` don't set `Content-Length`. While HTTP/1.1 allows this (chunked transfer encoding is the default), some clients (notably wget) display progress bars based on Content-Length and show "unknown size" without it.
-
-**Prevention:** Since terminal responses are generated in memory (not streamed), calculate the byte length and set `Content-Length` before writing. This also enables wget progress bars and `curl --progress-bar` to show accurate progress.
-
-### Pitfall 15: Test Infrastructure for ANSI Output
-
-**What goes wrong:** Testing ANSI output is inherently visual -- comparing strings full of escape codes in test failures is unreadable. A test failure showing `expected "\033[38;5;33mAS13335\033[0m" but got "\033[38;5;34mAS13335\033[0m"` (color 33 vs 34) is nearly impossible to debug by reading the diff.
+**What goes wrong:** grpcserver tests call `resp.GetNetwork().GetAka().GetValue()` in assertion chains. If any intermediate getter returns nil (which it does for unset optional fields), the test panics instead of producing a useful error message.
 
 **Prevention:**
-- Use golden file testing (the project already uses this pattern for pdbcompat). Store expected ANSI output in `.golden` files and compare with `go-cmp`.
-- Provide an `-update` flag to regenerate golden files.
-- Also test the plain-text (`?T`) output separately -- this is easier to debug and validates the data correctness independent of styling.
-- Consider a test helper that strips ANSI codes for structural comparison (correct data) and a separate test that validates ANSI codes for style comparison (correct colors).
+- Use the existing pattern from `TestGetNetwork`: check for nil at each level before accessing nested fields
+- For optional proto fields (`wrapperspb.StringValue`, `wrapperspb.Int64Value`): always check `!= nil` before calling `.GetValue()`
+- Consider a test helper: `assertStringField(t, msg.GetField(), "expected")` that handles nil safely
+
+### Pitfall 10: Testing Error Messages Instead of Error Codes
+
+**What goes wrong:** Tests assert `err.Error() == "entity network 42 not found"` instead of checking the ConnectRPC error code (`connect.CodeNotFound`). Error message wording changes break tests without any behavioral change.
+
+**Prevention:**
+- Assert on `connect.CodeOf(err)` for ConnectRPC errors (the existing tests do this correctly)
+- Assert on `ent.IsNotFound(err)` for ent errors
+- Never string-match error messages. This is already project policy (ERR-2) but coverage pressure can tempt shortcuts.
+
+### Pitfall 11: Overusing t.Parallel() in Database-Heavy Tests
+
+**What goes wrong:** Every test is marked `t.Parallel()` because T-3 says to. But parallel tests with complex entity creation (13-type hierarchies with foreign key dependencies) contend on SQLite even with isolated databases, because `modernc.org/sqlite` has a global mutex for some operations.
+
+**Prevention:**
+- Use `t.Parallel()` on test functions (outer level) -- each gets its own database
+- Use `t.Parallel()` on subtests only when they are read-only against parent-seeded data
+- Do NOT use `t.Parallel()` on subtests that create entities with foreign key dependencies (e.g., creating Network requires Organization to exist first)
+- If test suite time is acceptable without parallelism in a specific package, sequential subtests are fine
+
+### Pitfall 12: Forgetting to Test Error Paths in GraphQL Resolvers
+
+**What goes wrong:** The custom resolvers in `custom.resolvers.go` have error handling (e.g., `SyncStatus` wraps errors, `NetworkByAsn` returns nil for not-found). Coverage improvement focuses on the happy path. Error paths remain untested because they require more setup (e.g., closed database, invalid inputs).
+
+**Prevention:**
+- For each resolver, enumerate the error cases from reading the code:
+  - `SyncStatus`: `GetLastStatus` returns error, returns nil status
+  - `NetworkByAsn`: network not found, query error
+  - `OrganizationsList`/all list resolvers: invalid offset/limit, `where` filter error
+  - `validatePageSize`: first > 1000, last > 1000
+- Test not-found returns nil (not error) for `NetworkByAsn`
+- Test `validatePageSize` with boundary values (1000, 1001)
+- These are small tests with high value -- each one covers a distinct code path
 
 ## Phase-Specific Warnings
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |-------------|---------------|------------|
-| Terminal detection (User-Agent parsing) | Pitfall 5: False positives/negatives with HTTP libraries | Conservative allowlist, explicit opt-in/opt-out query params |
-| Content negotiation integration | Pitfall 2: Conflict with existing Accept-header logic | Single centralized detection function, clear priority order |
-| Content negotiation integration | Pitfall 9: Missing updates to readiness, root, error handlers | Audit checklist of all negotiation points |
-| ANSI rendering implementation | Pitfall 1: Escape codes in pipes | Mandatory `?T` plain-text mode from day one |
-| ANSI rendering implementation | Pitfall 4: Width assumptions | Design for 80-column floor, truncation with ellipsis |
-| ANSI rendering implementation | Pitfall 10: String building performance | `strings.Builder` with `Grow()`, pre-computed constants |
-| Table rendering for entity details | Pitfall 8: Non-ASCII character width calculation | Use `go-runewidth` for display width, not byte/rune count |
-| Table rendering for entity details | Pitfall 6: Windows terminal Unicode support | ASCII fallback mode via `?ascii` parameter |
-| 256-color output | Pitfall 7: Basic terminals don't support 256-color | Graceful degradation, `?color=16` option |
-| Caching and Vary headers | Pitfall 3: `Vary: User-Agent` destroys cache hit rates | `Cache-Control: no-store` on terminal responses |
-| Error handling | Pitfall 9: Error pages render as HTML for terminal clients | Update handleNotFound/handleServerError to check terminal |
-| Help text and root handler | Pitfall 11: curl doesn't follow redirects by default | Return help text at `/` for terminal clients |
-| Search endpoint | Pitfall 12: Different interaction model needed | Simple one-shot query/response, no htmx |
-| Compare endpoint | Pitfall 13: Output too long for terminal | Summary-first design, `?view=full` opt-in |
-| Testing | Pitfall 15: ANSI output hard to debug in test failures | Golden files + ANSI-stripping test helpers |
+| GraphQL resolver coverage (graph package) | Pitfall 2 (testing generated code), Pitfall 8 (denominator distortion) | Measure coverage on hand-written files only. Set target as "100% of custom.resolvers.go + schema.resolvers.go + pagination.go" not "80% of graph package" |
+| Schema validation/hooks (ent/schema) | Pitfall 2 (testing schema definitions vs hook behavior) | Test hooks by verifying mutation side effects (entity created with correct defaults, OTel hook does not block mutations). Do not test that schema field definitions match -- that is ent's job. |
+| gRPC handler expansion (grpcserver) | Pitfall 3 (repetitive boilerplate), Pitfall 4 (database contention) | Extract generic test helpers parameterized by entity type. Expand the existing `generic_test.go` pattern. Each entity type gets a lightweight wiring test, not a full copy-paste. |
+| Web handler coverage (internal/web) | Pitfall 5 (over-testing transport), Pitfall 6 (golden file proliferation) | Test handler logic via `httptest.NewRecorder` (already established). Add targeted tests for uncovered branches, not golden files for every combination. |
+| Remaining packages (otel, health, peeringdb) | Pitfall 7 (mocking OTel internals), Pitfall 1 (padding coverage) | These are already at 83-87%. Focus on testing untested error paths, not padding. Accept 85% as adequate for infrastructure code. |
+| Test quality review | Pitfall 1 (meaningless assertions across existing tests) | Review existing tests for assertions that would pass even if the function under test were deleted. Flag and rewrite. |
 
 ## Sources
 
-- [wttr.in GitHub repository](https://github.com/chubin/wttr.in) -- Console-oriented weather service, uses PLAIN_TEXT_AGENTS list for User-Agent detection (curl, httpie, wget, python-requests, python-httpx, lwp-request, powershell, fetch, aiohttp, http_get, xh, nushell, zig)
-- [FOSDEM 2019 talk on console-oriented services](https://archive.fosdem.org/2019/schedule/event/console_services/) -- Architecture and lessons from wttr.in, cheat.sh, rate.sx
-- [NO_COLOR standard](https://no-color.org/) -- Environment variable convention for disabling ANSI color output
-- [CLICOLOR / CLICOLOR_FORCE](http://bixense.com/clicolors/) -- Alternative color control convention
-- [MDN Content Negotiation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Content_negotiation) -- Accept header vs User-Agent for server-driven negotiation
-- [Fastly Vary header best practices](https://www.fastly.com/blog/best-practices-using-vary-header) -- Why `Vary: User-Agent` destroys cache hit rates
-- [Smashing Magazine Vary header guide](https://www.smashingmagazine.com/2017/11/understanding-vary-header/) -- CDN caching implications of Vary
-- [Microsoft Terminal Unicode issues](https://github.com/microsoft/terminal/issues/13680) -- Windows Console doesn't support Unicode out of the box
-- [Microsoft Terminal box drawing issues](https://github.com/microsoft/terminal/issues/5897) -- Alternative box drawing rendering approaches
-- [charmbracelet/lipgloss table width discussion](https://github.com/charmbracelet/lipgloss/discussions/430) -- Making tables fit terminal width
-- [PeeringDB UTF-8 encoding issue #663](https://github.com/peeringdb/peeringdb/issues/663) -- Historical iso-8859-1 vs UTF-8 encoding problems
-- [go-isatty](https://github.com/mattn/go-isatty) -- Terminal detection for local CLI tools (not applicable for HTTP servers)
-- [bgp.tools API documentation](https://bgp.tools/kb/api) -- Requires custom User-Agent, blocks default/generic agents
-- [strings.Builder vs bytes.Buffer](https://brandur.org/fragments/bytes-buffer-vs-strings-builder) -- strings.Builder ~33% faster for string building
-- [everything curl: User-Agent](https://everything.curl.dev/http/modify/user-agent.html) -- Default curl User-Agent format: `curl/VERSION`
-- [GNU libtextstyle terminal emulators](https://www.gnu.org/software/gettext/libtextstyle/manual/html_node/Terminal-emulators.html) -- Comprehensive terminal color support matrix
-- Live PeeringDB API testing -- Confirmed: entity names are primarily ASCII; address fields contain accented Latin characters (Brazilian facilities, German addresses); CJK characters are rare but possible in notes fields
+- [Learn Go with Tests - Anti-patterns](https://quii.gitbook.io/learn-go-with-tests/meta/anti-patterns) - Comprehensive Go testing anti-patterns guide
+- [Go Unit Testing: Structure & Best Practices (2025)](https://www.glukhov.org/post/2025/11/unit-tests-in-go/) - Modern Go testing patterns
+- [Martin Fowler - Test Coverage](https://martinfowler.com/bliki/TestCoverage.html) - Why coverage metrics can mislead
+- [Unit Testing ConnectRPC Servers](https://kmcd.dev/posts/connectrpc-unittests/) - ConnectRPC testing patterns
+- [entgo.io Testing](https://entgo.io/docs/testing/) - Ent ORM test setup with enttest
+- [Parallel Table-Driven Tests in Go (2025)](https://www.glukhov.org/post/2025/12/parallel-table-driven-tests-in-go/) - Parallel test pitfalls
+- [SQLite race conditions in parallel tests](https://github.com/mattn/go-sqlite3/issues/1238) - SQLite concurrency in test databases
+- [Testing with Golden Files in Go](https://medium.com/soon-london/testing-with-golden-files-in-go-7fccc71c43d3) - Golden file best practices and brittleness
+- [Is 80% Code Coverage Good Enough?](https://www.qt.io/quality-assurance/blog/is-70-80-90-or-100-code-coverage-good-enough) - Coverage target analysis
+- Codebase analysis: `graph/generated.go` (57,144 lines), `grpcserver_test.go` (2,920 lines, 43 test functions), `testutil.go` (atomic counter isolation pattern)
