@@ -181,6 +181,51 @@ func TestSetup_RuntimeMetrics(t *testing.T) {
 	// If we get here without error, runtime.Start was called successfully.
 }
 
+func TestSetup_InvalidSpanExporter(t *testing.T) {
+	t.Setenv("OTEL_TRACES_EXPORTER", "invalid_exporter_that_does_not_exist")
+	t.Setenv("OTEL_METRICS_EXPORTER", "none")
+	t.Setenv("OTEL_LOGS_EXPORTER", "none")
+
+	ctx := context.Background()
+	_, err := Setup(ctx, SetupInput{ServiceName: "test", SampleRate: 1.0})
+	if err == nil {
+		t.Fatal("expected error for invalid span exporter")
+	}
+	if !strings.Contains(err.Error(), "creating span exporter") {
+		t.Errorf("error = %q, want substring %q", err, "creating span exporter")
+	}
+}
+
+func TestSetup_InvalidMetricReader(t *testing.T) {
+	t.Setenv("OTEL_TRACES_EXPORTER", "none")
+	t.Setenv("OTEL_METRICS_EXPORTER", "invalid_exporter_that_does_not_exist")
+	t.Setenv("OTEL_LOGS_EXPORTER", "none")
+
+	ctx := context.Background()
+	_, err := Setup(ctx, SetupInput{ServiceName: "test", SampleRate: 1.0})
+	if err == nil {
+		t.Fatal("expected error for invalid metric reader")
+	}
+	if !strings.Contains(err.Error(), "creating metric reader") {
+		t.Errorf("error = %q, want substring %q", err, "creating metric reader")
+	}
+}
+
+func TestSetup_InvalidLogExporter(t *testing.T) {
+	t.Setenv("OTEL_TRACES_EXPORTER", "none")
+	t.Setenv("OTEL_METRICS_EXPORTER", "none")
+	t.Setenv("OTEL_LOGS_EXPORTER", "invalid_exporter_that_does_not_exist")
+
+	ctx := context.Background()
+	_, err := Setup(ctx, SetupInput{ServiceName: "test", SampleRate: 1.0})
+	if err == nil {
+		t.Fatal("expected error for invalid log exporter")
+	}
+	if !strings.Contains(err.Error(), "creating log exporter") {
+		t.Errorf("error = %q, want substring %q", err, "creating log exporter")
+	}
+}
+
 func TestSetup_PrometheusExporter(t *testing.T) {
 	// Find an available port to avoid conflicts with parallel tests.
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
