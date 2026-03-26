@@ -42,7 +42,7 @@ func writeWHOISHeader(buf *strings.Builder, query string) {
 // Dispatches to per-entity WHOIS renderers based on data type.
 // Returns an "unsupported" message for search/compare views.
 // (RND-17, D-10 through D-15)
-func (r *Renderer) RenderWHOIS(w io.Writer, title string, data any) error {
+func (r *Renderer) RenderWHOIS(w io.Writer, _ string, data any) error {
 	switch d := data.(type) {
 	case templates.NetworkDetail:
 		return r.whoisNetwork(w, d)

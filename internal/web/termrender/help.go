@@ -42,14 +42,14 @@ func (r *Renderer) RenderHelp(w io.Writer, freshness time.Time) error {
 	// Format options section.
 	buf.WriteString(StyleHeading.Render("Format Options:"))
 	buf.WriteString("\n")
-	buf.WriteString(fmt.Sprintf("  %s  %s\n", StyleLabel.Render("?format=json"), "JSON output"))
-	buf.WriteString(fmt.Sprintf("  %s %s\n", StyleLabel.Render("?format=plain"), "Plain text (no ANSI colors)"))
-	buf.WriteString(fmt.Sprintf("  %s %s\n", StyleLabel.Render("?format=short"), "One-line summary"))
-	buf.WriteString(fmt.Sprintf("  %s %s\n", StyleLabel.Render("?format=whois"), "RPSL-style WHOIS output"))
-	buf.WriteString(fmt.Sprintf("  %s        %s\n", StyleLabel.Render("?T"), "Shorthand for ?format=plain"))
-	buf.WriteString(fmt.Sprintf("  %s   %s\n", StyleLabel.Render("?nocolor"), "Keep layout, strip colors"))
-	buf.WriteString(fmt.Sprintf("  %s  %s\n", StyleLabel.Render("?section=..."), "Filter sections (ix, fac, net, carrier, campus, prefix)"))
-	buf.WriteString(fmt.Sprintf("  %s       %s\n", StyleLabel.Render("?w=N"), "Adapt to terminal width (e.g. ?w=80)"))
+	fmt.Fprintf(&buf, "  %s  %s\n", StyleLabel.Render("?format=json"), "JSON output")
+	fmt.Fprintf(&buf, "  %s %s\n", StyleLabel.Render("?format=plain"), "Plain text (no ANSI colors)")
+	fmt.Fprintf(&buf, "  %s %s\n", StyleLabel.Render("?format=short"), "One-line summary")
+	fmt.Fprintf(&buf, "  %s %s\n", StyleLabel.Render("?format=whois"), "RPSL-style WHOIS output")
+	fmt.Fprintf(&buf, "  %s        %s\n", StyleLabel.Render("?T"), "Shorthand for ?format=plain")
+	fmt.Fprintf(&buf, "  %s   %s\n", StyleLabel.Render("?nocolor"), "Keep layout, strip colors")
+	fmt.Fprintf(&buf, "  %s  %s\n", StyleLabel.Render("?section=..."), "Filter sections (ix, fac, net, carrier, campus, prefix)")
+	fmt.Fprintf(&buf, "  %s       %s\n", StyleLabel.Render("?w=N"), "Adapt to terminal width (e.g. ?w=80)")
 	buf.WriteString("\n")
 
 	// Examples section.
