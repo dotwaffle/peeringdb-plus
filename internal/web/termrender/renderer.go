@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/charmbracelet/colorprofile"
-	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
 // Renderer produces styled terminal text output with ANSI color control.
@@ -68,28 +68,14 @@ func (r *Renderer) Writef(w io.Writer, format string, args ...any) error {
 }
 
 // RenderPage renders a terminal page, dispatching to entity-specific renderers
-// based on the data type. Falls back to a generic stub for unrecognized types.
+// via the registered function map. Falls back to a generic stub for unrecognized types.
 func (r *Renderer) RenderPage(w io.Writer, title string, data any) error {
-	switch d := data.(type) {
-	case templates.NetworkDetail:
-		return r.RenderNetworkDetail(w, d)
-	case templates.IXDetail:
-		return r.RenderIXDetail(w, d)
-	case templates.FacilityDetail:
-		return r.RenderFacilityDetail(w, d)
-	case templates.OrgDetail:
-		return r.RenderOrgDetail(w, d)
-	case templates.CampusDetail:
-		return r.RenderCampusDetail(w, d)
-	case templates.CarrierDetail:
-		return r.RenderCarrierDetail(w, d)
-	case []templates.SearchGroup:
-		return r.RenderSearch(w, d)
-	case *templates.CompareData:
-		return r.RenderCompare(w, d)
-	default:
-		return r.renderStub(w, title)
+	if data != nil {
+		if fn, ok := renderers[reflect.TypeOf(data)]; ok {
+			return fn(data, w, r)
+		}
 	}
+	return r.renderStub(w, title)
 }
 
 // renderStub renders a placeholder for entity types not yet fully implemented.

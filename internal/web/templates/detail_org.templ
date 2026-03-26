@@ -6,6 +6,7 @@ import "fmt"
 // detail fields, and collapsible lazy-loaded sections for related records.
 templ OrgDetailPage(data OrgDetail) {
 	<div class="space-y-6">
+		@Breadcrumb("Organizations", data.Name)
 		@DetailHeader("org", "amber", data.Name, "")
 		<div class="flex flex-wrap gap-2 mb-4">
 			@StatBadge("Networks", data.NetCount)

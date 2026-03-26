@@ -219,6 +219,8 @@ func (InternetExchange) Indexes() []ent.Index {
 		index.Fields("name"),
 		index.Fields("org_id"),
 		index.Fields("status"),
+		index.Fields("updated"),
+		index.Fields("created"),
 	}
 }
 

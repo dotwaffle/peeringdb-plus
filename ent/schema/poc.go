@@ -93,6 +93,8 @@ func (Poc) Indexes() []ent.Index {
 		index.Fields("net_id"),
 		index.Fields("role"),
 		index.Fields("status"),
+		index.Fields("updated"),
+		index.Fields("created"),
 	}
 }
 

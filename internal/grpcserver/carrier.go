@@ -3,10 +3,10 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
@@ -35,146 +35,139 @@ func (s *CarrierService) GetCarrier(ctx context.Context, req *pb.GetCarrierReque
 	return &pb.GetCarrierResponse{Carrier: carrierToProto(c)}, nil
 }
 
-// ListCarriers returns a paginated list of carriers ordered by ID ascending.
-// Supports page_size, page_token, and optional filter fields (name, status,
-// org_id). Multiple filters combine with AND logic.
-func (s *CarrierService) ListCarriers(ctx context.Context, req *pb.ListCarriersRequest) (*pb.ListCarriersResponse, error) {
-	pageSize := normalizePageSize(req.GetPageSize())
-	offset, err := decodePageToken(req.GetPageToken())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
-	}
-
-	// Build filter predicates from optional fields.
-	var predicates []predicate.Carrier
-	if req.Name != nil {
-		predicates = append(predicates, carrier.NameContainsFold(*req.Name))
-	}
-	if req.Status != nil {
-		predicates = append(predicates, carrier.StatusEQ(*req.Status))
+func applyCarrierListFilters(req *pb.ListCarriersRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Id != nil {
+		if *req.Id <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(carrier.FieldID, int(*req.Id)))
 	}
 	if req.OrgId != nil {
 		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: org_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
 		}
-		predicates = append(predicates, carrier.OrgIDEQ(int(*req.OrgId)))
+		preds = append(preds, sql.FieldEQ(carrier.FieldOrgID, int(*req.OrgId)))
 	}
-
-	query := s.Client.Carrier.Query().
-		Order(ent.Asc(carrier.FieldID)).
-		Limit(pageSize + 1).
-		Offset(offset)
-	if len(predicates) > 0 {
-		query = query.Where(carrier.And(predicates...))
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(carrier.FieldName, *req.Name))
 	}
-
-	// Fetch one extra to detect whether there is a next page.
-	results, err := query.All(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list carriers: %w", err))
+	if req.Aka != nil {
+		preds = append(preds, sql.FieldContainsFold(carrier.FieldAka, *req.Aka))
 	}
-
-	var nextPageToken string
-	if len(results) > pageSize {
-		results = results[:pageSize]
-		nextPageToken = encodePageToken(offset + pageSize)
+	if req.NameLong != nil {
+		preds = append(preds, sql.FieldContainsFold(carrier.FieldNameLong, *req.NameLong))
 	}
-
-	carriers := make([]*pb.Carrier, len(results))
-	for i, c := range results {
-		carriers[i] = carrierToProto(c)
+	if req.Status != nil {
+		preds = append(preds, sql.FieldEQ(carrier.FieldStatus, *req.Status))
 	}
-
-	return &pb.ListCarriersResponse{
-		Carriers:      carriers,
-		NextPageToken: nextPageToken,
-	}, nil
+	if req.Website != nil {
+		preds = append(preds, sql.FieldEQ(carrier.FieldWebsite, *req.Website))
+	}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(carrier.FieldNotes, *req.Notes))
+	}
+	// org_name filter -- stored as denormalized field on entity.
+	if req.OrgName != nil {
+		preds = append(preds, sql.FieldEQ(carrier.FieldOrgName, *req.OrgName))
+	}
+	if req.Logo != nil {
+		preds = append(preds, sql.FieldEQ(carrier.FieldLogo, *req.Logo))
+	}
+	return preds, nil
 }
 
-// StreamCarriers streams all matching carriers one message at a time using
-// batched keyset pagination. Filters match the ListCarriers behavior.
-func (s *CarrierService) StreamCarriers(ctx context.Context, req *pb.StreamCarriersRequest, stream *connect.ServerStream[pb.Carrier]) error {
-	// Apply stream timeout.
-	if s.StreamTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
-		defer cancel()
-	}
-
-	// Build filter predicates (identical to ListCarriers).
-	var predicates []predicate.Carrier
-	if req.Name != nil {
-		predicates = append(predicates, carrier.NameContainsFold(*req.Name))
-	}
-	if req.Status != nil {
-		predicates = append(predicates, carrier.StatusEQ(*req.Status))
-	}
+func applyCarrierStreamFilters(req *pb.StreamCarriersRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
 	if req.OrgId != nil {
 		if *req.OrgId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: org_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
 		}
-		predicates = append(predicates, carrier.OrgIDEQ(int(*req.OrgId)))
+		preds = append(preds, sql.FieldEQ(carrier.FieldOrgID, int(*req.OrgId)))
 	}
-
-	// Resume and incremental filter support.
-	if req.SinceId != nil {
-		predicates = append(predicates, carrier.IDGT(int(*req.SinceId)))
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(carrier.FieldName, *req.Name))
 	}
-	if req.UpdatedSince != nil {
-		predicates = append(predicates, carrier.UpdatedGT(req.UpdatedSince.AsTime()))
+	if req.Aka != nil {
+		preds = append(preds, sql.FieldContainsFold(carrier.FieldAka, *req.Aka))
 	}
-
-	// Count total matching records for header metadata.
-	countQuery := s.Client.Carrier.Query()
-	if len(predicates) > 0 {
-		countQuery = countQuery.Where(carrier.And(predicates...))
+	if req.NameLong != nil {
+		preds = append(preds, sql.FieldContainsFold(carrier.FieldNameLong, *req.NameLong))
 	}
-	total, err := countQuery.Count(ctx)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("count carriers: %w", err))
+	if req.Status != nil {
+		preds = append(preds, sql.FieldEQ(carrier.FieldStatus, *req.Status))
 	}
-	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
-
-	// Stream records in batches using keyset pagination.
-	lastID := 0
-	if req.SinceId != nil {
-		lastID = int(*req.SinceId)
+	if req.Website != nil {
+		preds = append(preds, sql.FieldEQ(carrier.FieldWebsite, *req.Website))
 	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(carrier.FieldNotes, *req.Notes))
+	}
+	if req.OrgName != nil {
+		preds = append(preds, sql.FieldEQ(carrier.FieldOrgName, *req.OrgName))
+	}
+	if req.Logo != nil {
+		preds = append(preds, sql.FieldEQ(carrier.FieldLogo, *req.Logo))
+	}
+	return preds, nil
+}
 
-		query := s.Client.Carrier.Query().
-			Where(carrier.IDGT(lastID)).
-			Order(ent.Asc(carrier.FieldID)).
-			Limit(streamBatchSize)
-		if len(predicates) > 0 {
-			query = query.Where(carrier.And(predicates...))
-		}
-
-		batch, err := query.All(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream carriers batch after id %d: %w", lastID, err))
-		}
-		if len(batch) == 0 {
-			return nil
-		}
-
-		for _, c := range batch {
-			if err := stream.Send(carrierToProto(c)); err != nil {
-				return err
+// ListCarriers returns a paginated list of carriers ordered by ID ascending.
+func (s *CarrierService) ListCarriers(ctx context.Context, req *pb.ListCarriersRequest) (*pb.ListCarriersResponse, error) {
+	items, nextToken, err := ListEntities(ctx, ListParams[ent.Carrier, pb.Carrier]{
+		EntityName: "carriers",
+		PageSize:   req.GetPageSize(),
+		PageToken:  req.GetPageToken(),
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyCarrierListFilters(req)
+		},
+		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.Carrier, error) {
+			q := s.Client.Carrier.Query().
+				Order(ent.Asc(carrier.FieldID)).
+				Limit(limit).Offset(offset)
+			if len(preds) > 0 {
+				q = q.Where(carrier.And(castPredicates[predicate.Carrier](preds)...))
 			}
-		}
-
-		lastID = batch[len(batch)-1].ID
-		if len(batch) < streamBatchSize {
-			return nil
-		}
+			return q.All(ctx)
+		},
+		Convert: carrierToProto,
+	})
+	if err != nil {
+		return nil, err
 	}
+	return &pb.ListCarriersResponse{Carriers: items, NextPageToken: nextToken}, nil
+}
+
+// StreamCarriers streams all matching carriers one message at a time.
+func (s *CarrierService) StreamCarriers(ctx context.Context, req *pb.StreamCarriersRequest, stream *connect.ServerStream[pb.Carrier]) error {
+	return StreamEntities(ctx, StreamParams[ent.Carrier, pb.Carrier]{
+		EntityName:   "carriers",
+		Timeout:      s.StreamTimeout,
+		SinceID:      req.SinceId,
+		UpdatedSince: req.UpdatedSince,
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyCarrierStreamFilters(req)
+		},
+		Count: func(ctx context.Context, preds []func(*sql.Selector)) (int, error) {
+			q := s.Client.Carrier.Query()
+			if len(preds) > 0 {
+				q = q.Where(carrier.And(castPredicates[predicate.Carrier](preds)...))
+			}
+			return q.Count(ctx)
+		},
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.Carrier, error) {
+			q := s.Client.Carrier.Query().
+				Where(carrier.IDGT(afterID)).
+				Order(ent.Asc(carrier.FieldID)).
+				Limit(limit)
+			if len(preds) > 0 {
+				q = q.Where(carrier.And(castPredicates[predicate.Carrier](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: carrierToProto,
+		GetID:   func(c *ent.Carrier) int { return c.ID },
+	}, stream)
 }
 
 // carrierToProto converts an ent Carrier entity to a protobuf Carrier message.

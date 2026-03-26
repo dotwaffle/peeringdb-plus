@@ -62,6 +62,35 @@ func TestShouldShowField_BelowThreshold(t *testing.T) {
 	}
 }
 
+func TestTruncateName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		maxWidth int
+		want     string
+	}{
+		{"fits within maxWidth", "short", 10, "short"},
+		{"truncated with ellipsis", "a very long entity name", 10, "a very ..."},
+		{"exact fit", "abc", 3, "abc"},
+		{"maxWidth <= 3 returns unchanged", "abcd", 3, "abcd"},
+		{"empty string", "", 10, ""},
+		{"zero width returns unchanged", "test", 0, "test"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := TruncateName(tt.input, tt.maxWidth)
+			if got != tt.want {
+				t.Errorf("TruncateName(%q, %d) = %q, want %q",
+					tt.input, tt.maxWidth, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestShouldShowField_IXParticipants(t *testing.T) {
 	t.Parallel()
 

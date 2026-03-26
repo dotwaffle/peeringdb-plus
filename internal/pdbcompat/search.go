@@ -1,8 +1,9 @@
 package pdbcompat
 
 import (
-	"encoding/json"
+	"reflect"
 	"strings"
+	"sync"
 
 	"entgo.io/ent/dialect/sql"
 )
@@ -72,20 +73,57 @@ func applyFieldProjection(data []any, fields []string) []any {
 	return out
 }
 
-// itemToMap converts an item (struct or map) to a map[string]any.
-// If the item is already a map[string]any it is returned directly.
-// Otherwise it is marshaled/unmarshaled through JSON.
+// fieldAccessor holds the struct field index for a JSON-tagged field.
+type fieldAccessor struct {
+	index int
+}
+
+// fieldMaps caches per-type field accessor maps to avoid rebuilding on every call.
+var fieldMaps sync.Map // map key: reflect.Type, value: map[string]fieldAccessor
+
+// getFieldMap lazily builds and caches a map from JSON tag names to struct field
+// indices for the given type. Unexported fields, fields tagged "-", and fields
+// without json tags are excluded.
+func getFieldMap(t reflect.Type) map[string]fieldAccessor {
+	if v, ok := fieldMaps.Load(t); ok {
+		return v.(map[string]fieldAccessor)
+	}
+	m := make(map[string]fieldAccessor, t.NumField())
+	for i := range t.NumField() {
+		f := t.Field(i)
+		tag := f.Tag.Get("json")
+		name, _, _ := strings.Cut(tag, ",")
+		if name == "" || name == "-" {
+			continue
+		}
+		m[name] = fieldAccessor{index: i}
+	}
+	fieldMaps.Store(t, m)
+	return m
+}
+
+// itemToMap converts an item (struct or map) to a map[string]any using reflect.
+// If the item is already a map[string]any it is returned directly. Struct fields
+// are accessed via cached field index maps derived from json tags, avoiding
+// json.Marshal/Unmarshal overhead.
 func itemToMap(item any) (map[string]any, bool) {
 	if m, ok := item.(map[string]any); ok {
 		return m, true
 	}
-	b, err := json.Marshal(item)
-	if err != nil {
+	v := reflect.ValueOf(item)
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return nil, false
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
 		return nil, false
 	}
-	var m map[string]any
-	if err := json.Unmarshal(b, &m); err != nil {
-		return nil, false
+	fm := getFieldMap(v.Type())
+	m := make(map[string]any, len(fm))
+	for name, acc := range fm {
+		m[name] = v.Field(acc.index).Interface()
 	}
 	return m, true
 }

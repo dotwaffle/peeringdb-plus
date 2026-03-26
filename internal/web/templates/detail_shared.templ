@@ -2,6 +2,21 @@ package templates
 
 import "fmt"
 
+// Breadcrumb renders navigation breadcrumbs: Home > TypePlural > EntityName.
+// typePlural is the display name for the entity type (e.g., "Networks").
+// entityName is the specific entity being viewed.
+templ Breadcrumb(typePlural string, entityName string) {
+	<nav aria-label="Breadcrumb" class="text-sm mb-4">
+		<ol class="flex items-center gap-1.5 text-neutral-400">
+			<li><a href="/ui/" class="hover:text-emerald-400 transition-colors">Home</a></li>
+			<li class="text-neutral-500">&gt;</li>
+			<li class="text-neutral-300">{ typePlural }</li>
+			<li class="text-neutral-500">&gt;</li>
+			<li class="text-neutral-100">{ entityName }</li>
+		</ol>
+	</nav>
+}
+
 // CollapsibleSection renders a collapsible details/summary element with
 // htmx lazy loading on first expand. If count is 0, the section is not
 // expandable and shows a static "None" message.
@@ -180,7 +195,7 @@ templ CopyableIP(label string, addr string) {
 			title="Click to copy"
 		>{ addr }</span>
 		<svg
-			class="w-3.5 h-3.5 text-neutral-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+			class="w-3.5 h-3.5 text-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
 			onclick={ copyToClipboard(addr, copyGroupID(addr)) }
 			xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
 		>

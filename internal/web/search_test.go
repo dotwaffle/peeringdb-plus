@@ -275,8 +275,8 @@ func TestSearchTypeResultFields(t *testing.T) {
 			t.Errorf("%s = %q, want %q", tt.field, tt.got, tt.want)
 		}
 	}
-	if r.TotalCount != 1 {
-		t.Errorf("TotalCount = %d, want 1", r.TotalCount)
+	if r.HasMore {
+		t.Errorf("HasMore = true, want false (only 1 result)")
 	}
 	if len(r.Results) != 1 {
 		t.Fatalf("len(Results) = %d, want 1", len(r.Results))
@@ -452,7 +452,7 @@ func TestSearchOrganizationDetailURL(t *testing.T) {
 	t.Error("Organizations group not found in results")
 }
 
-func TestSearchTotalCountExceedsResults(t *testing.T) {
+func TestSearchHasMore(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
 	ctx := context.Background()
@@ -500,8 +500,8 @@ func TestSearchTotalCountExceedsResults(t *testing.T) {
 	if len(r.Results) != 10 {
 		t.Errorf("len(Results) = %d, want 10 (capped)", len(r.Results))
 	}
-	if r.TotalCount != 15 {
-		t.Errorf("TotalCount = %d, want 15", r.TotalCount)
+	if !r.HasMore {
+		t.Error("HasMore = false, want true (15 matches exceeds display limit)")
 	}
 }
 

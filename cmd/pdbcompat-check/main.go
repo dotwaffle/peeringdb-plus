@@ -91,7 +91,7 @@ func run(cfg runConfig, logger *slog.Logger) error {
 		if err != nil {
 			logger.LogAttrs(ctx, slog.LevelError, "check failed",
 				slog.String("type", typeName),
-				slog.String("error", err.Error()),
+				slog.Any("error", err),
 			)
 			failures++
 			continue

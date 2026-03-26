@@ -145,6 +145,35 @@ templ Layout(title string, contents templ.Component) {
 			});
 		})();
 		</script>
+		<script>
+		// htmx error handling for collapsible sections (UI-04).
+		// On failed fetch inside a <details> element, replaces "Loading..." with
+		// an error message and retry button.
+		(function() {
+			document.body.addEventListener('htmx:afterRequest', function(evt) {
+				if (!evt.detail.successful && evt.detail.elt && evt.detail.elt.closest('details')) {
+					var el = evt.detail.elt;
+					var url = el.getAttribute('hx-get');
+					el.textContent = '';
+					var wrapper = document.createElement('div');
+					wrapper.className = 'px-4 py-3 text-center';
+					var msg = document.createElement('span');
+					msg.className = 'text-red-400 text-sm';
+					msg.textContent = 'Failed to load.';
+					var btn = document.createElement('button');
+					btn.className = 'text-emerald-400 hover:text-emerald-300 text-sm underline ml-2';
+					btn.textContent = 'Retry';
+					btn.setAttribute('hx-get', url);
+					btn.setAttribute('hx-target', 'closest div');
+					btn.setAttribute('hx-swap', 'innerHTML');
+					wrapper.appendChild(msg);
+					wrapper.appendChild(btn);
+					el.appendChild(wrapper);
+					htmx.process(el);
+				}
+			});
+		})();
+		</script>
 		</body>
 	</html>
 }

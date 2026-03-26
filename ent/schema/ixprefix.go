@@ -82,6 +82,8 @@ func (IxPrefix) Indexes() []ent.Index {
 		index.Fields("ixlan_id"),
 		index.Fields("prefix"),
 		index.Fields("status"),
+		index.Fields("updated"),
+		index.Fields("created"),
 	}
 }
 

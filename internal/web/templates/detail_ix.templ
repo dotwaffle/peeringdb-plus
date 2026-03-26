@@ -6,6 +6,7 @@ import "fmt"
 // detail fields, and collapsible lazy-loaded sections for related records.
 templ IXDetailPage(data IXDetail) {
 	<div class="space-y-6">
+		@Breadcrumb("Exchanges", data.Name)
 		@DetailHeader("ix", "sky", data.Name, formatFacLocation(data.City, data.Country))
 		<div class="flex flex-wrap gap-2 mb-4">
 			@StatBadge("Networks", data.NetCount)

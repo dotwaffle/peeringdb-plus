@@ -42,8 +42,18 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 		buf.WriteString("\n")
 
 		for _, row := range data.Networks {
+			name := row.NetName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.NetName))
+			buf.WriteString(StyleValue.Render(name))
 			buf.WriteString(" ")
 			buf.WriteString(CrossRef(fmt.Sprintf("/ui/asn/%d", row.ASN)))
 			buf.WriteString("\n")
@@ -57,8 +67,18 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 		buf.WriteString("\n")
 
 		for _, row := range data.IXPs {
+			name := row.IXName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.IXName))
+			buf.WriteString(StyleValue.Render(name))
 			buf.WriteString(" ")
 			buf.WriteString(CrossRef(fmt.Sprintf("/ui/ix/%d", row.IXID)))
 			buf.WriteString("\n")
@@ -72,8 +92,18 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 		buf.WriteString("\n")
 
 		for _, row := range data.Facs {
+			name := row.FacName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.FacName))
+			buf.WriteString(StyleValue.Render(name))
 			buf.WriteString(" ")
 			buf.WriteString(CrossRef(fmt.Sprintf("/ui/fac/%d", row.FacID)))
 
@@ -93,8 +123,18 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 		buf.WriteString("\n")
 
 		for _, row := range data.Campuses {
+			name := row.CampusName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.CampusName))
+			buf.WriteString(StyleValue.Render(name))
 			buf.WriteString(" ")
 			buf.WriteString(CrossRef(fmt.Sprintf("/ui/campus/%d", row.CampusID)))
 			buf.WriteString("\n")
@@ -108,8 +148,18 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 		buf.WriteString("\n")
 
 		for _, row := range data.Carriers {
+			name := row.CarrierName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.CarrierName))
+			buf.WriteString(StyleValue.Render(name))
 			buf.WriteString(" ")
 			buf.WriteString(CrossRef(fmt.Sprintf("/ui/carrier/%d", row.CarrierID)))
 			buf.WriteString("\n")

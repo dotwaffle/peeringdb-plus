@@ -17,7 +17,7 @@ var fullSearchGroups = []templates.SearchGroup{
 		TypeName:    "Networks",
 		TypeSlug:    "net",
 		AccentColor: "emerald",
-		TotalCount:  15,
+		HasMore:     true,
 		Results: []templates.SearchResult{
 			{Name: "Equinix (WAN)", Subtitle: "AS47541", DetailURL: "/ui/asn/47541"},
 			{Name: "Equinix LLC", Subtitle: "AS21928", DetailURL: "/ui/asn/21928"},
@@ -27,7 +27,7 @@ var fullSearchGroups = []templates.SearchGroup{
 		TypeName:    "IXPs",
 		TypeSlug:    "ix",
 		AccentColor: "sky",
-		TotalCount:  8,
+		HasMore:     true,
 		Results: []templates.SearchResult{
 			{Name: "Equinix Chicago", Subtitle: "Chicago, US", DetailURL: "/ui/ix/81"},
 		},
@@ -36,7 +36,7 @@ var fullSearchGroups = []templates.SearchGroup{
 		TypeName:    "Facilities",
 		TypeSlug:    "fac",
 		AccentColor: "orange",
-		TotalCount:  45,
+		HasMore:     true,
 		Results: []templates.SearchResult{
 			{Name: "Equinix AM1/AM2", Subtitle: "Amsterdam, NL", DetailURL: "/ui/fac/4"},
 		},
@@ -49,9 +49,9 @@ var emptySearchGroups []templates.SearchGroup
 // singleSearchGroup is a single-type result set.
 var singleSearchGroup = []templates.SearchGroup{
 	{
-		TypeName:   "Networks",
-		TypeSlug:   "net",
-		TotalCount: 1,
+		TypeName: "Networks",
+		TypeSlug: "net",
+		HasMore:  false,
 		Results: []templates.SearchResult{
 			{Name: "Test Network", Subtitle: "AS64512", DetailURL: "/ui/asn/64512"},
 		},
@@ -127,22 +127,19 @@ func TestRenderSearch_GroupedOutput(t *testing.T) {
 	}
 }
 
-func TestRenderSearch_TotalCountInHeader(t *testing.T) {
+func TestRenderSearch_HasMoreInHeader(t *testing.T) {
 	t.Parallel()
 
 	out := renderSearch(t, ModeRich, false, fullSearchGroups)
 	stripped := regexp.MustCompile(`\x1b\[[0-9;]*m`).ReplaceAllString(out, "")
 
-	// Headers must show TotalCount, not len(Results).
-	// Networks has 2 results but TotalCount 15.
-	if !strings.Contains(stripped, "15 results") {
-		t.Error("Networks header should show TotalCount 15, not result count 2")
+	// Headers should show len(Results) with "+" suffix when HasMore is true.
+	// Networks has 2 results and HasMore=true -> "2+ results".
+	if !strings.Contains(stripped, "2+ results") {
+		t.Error("Networks header should show '2+ results' (HasMore=true)")
 	}
-	if !strings.Contains(stripped, "8 results") {
-		t.Error("IXPs header should show TotalCount 8")
-	}
-	if !strings.Contains(stripped, "45 results") {
-		t.Error("Facilities header should show TotalCount 45")
+	if !strings.Contains(stripped, "1+ results") {
+		t.Error("IXPs/Facilities header should show '1+ results' (HasMore=true)")
 	}
 }
 

@@ -149,7 +149,7 @@ func TestRenderShort_SearchGroups(t *testing.T) {
 	var buf bytes.Buffer
 
 	data := []templates.SearchGroup{
-		{TypeName: "Networks", TotalCount: 5},
+		{TypeName: "Networks", HasMore: false},
 	}
 
 	if err := r.RenderShort(&buf, data); err != nil {

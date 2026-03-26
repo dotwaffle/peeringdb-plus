@@ -11,6 +11,9 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent"
 )
 
+// displayLimit is the maximum number of search results shown per entity type.
+const displayLimit = 10
+
 // SearchHit represents a single search result with display-ready fields.
 type SearchHit struct {
 	// ID is the entity's database identifier.
@@ -31,10 +34,10 @@ type TypeResult struct {
 	TypeSlug string
 	// AccentColor is the Tailwind color name for visual grouping (e.g. "emerald", "sky").
 	AccentColor string
-	// Results holds up to 10 matching entities.
+	// Results holds up to displayLimit matching entities.
 	Results []SearchHit
-	// TotalCount is the exact number of matching records for count badge display.
-	TotalCount int
+	// HasMore indicates whether additional matches exist beyond the displayed results.
+	HasMore bool
 }
 
 // searchTypeConfig defines the metadata and query fields for a searchable entity type.
@@ -99,7 +102,7 @@ func (s *SearchService) Search(ctx context.Context, query string) ([]TypeResult,
 	// Filter out types with zero matches.
 	var filtered []TypeResult
 	for _, r := range results {
-		if r.TotalCount > 0 {
+		if len(r.Results) > 0 {
 			filtered = append(filtered, r)
 		}
 	}
@@ -117,22 +120,22 @@ func (s *SearchService) typeQueryFunc(ctx context.Context, idx int, cfg searchTy
 		}
 
 		var hits []SearchHit
-		var count int
+		var hasMore bool
 		var err error
 
 		switch cfg.typeSlug {
 		case "net":
-			hits, count, err = s.queryNetworks(ctx, pred)
+			hits, hasMore, err = s.queryNetworks(ctx, pred)
 		case "ix":
-			hits, count, err = s.queryIXPs(ctx, pred)
+			hits, hasMore, err = s.queryIXPs(ctx, pred)
 		case "fac":
-			hits, count, err = s.queryFacilities(ctx, pred)
+			hits, hasMore, err = s.queryFacilities(ctx, pred)
 		case "org":
-			hits, count, err = s.queryOrganizations(ctx, pred)
+			hits, hasMore, err = s.queryOrganizations(ctx, pred)
 		case "campus":
-			hits, count, err = s.queryCampuses(ctx, pred)
+			hits, hasMore, err = s.queryCampuses(ctx, pred)
 		case "carrier":
-			hits, count, err = s.queryCarriers(ctx, pred)
+			hits, hasMore, err = s.queryCarriers(ctx, pred)
 		}
 
 		if err != nil {
@@ -140,19 +143,19 @@ func (s *SearchService) typeQueryFunc(ctx context.Context, idx int, cfg searchTy
 		}
 
 		results[idx].Results = hits
-		results[idx].TotalCount = count
+		results[idx].HasMore = hasMore
 		return nil
 	}
 }
 
-func (s *SearchService) queryNetworks(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
-	items, err := s.client.Network.Query().Where(pred).Limit(10).All(ctx)
+func (s *SearchService) queryNetworks(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, bool, error) {
+	items, err := s.client.Network.Query().Where(pred).Limit(displayLimit + 1).All(ctx)
 	if err != nil {
-		return nil, 0, fmt.Errorf("fetch networks: %w", err)
+		return nil, false, fmt.Errorf("fetch networks: %w", err)
 	}
-	count, err := s.client.Network.Query().Where(pred).Count(ctx)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count networks: %w", err)
+	hasMore := len(items) > displayLimit
+	if hasMore {
+		items = items[:displayLimit]
 	}
 	hits := make([]SearchHit, len(items))
 	for i, n := range items {
@@ -163,17 +166,17 @@ func (s *SearchService) queryNetworks(ctx context.Context, pred func(*sql.Select
 			DetailURL: fmt.Sprintf("/ui/asn/%d", n.Asn),
 		}
 	}
-	return hits, count, nil
+	return hits, hasMore, nil
 }
 
-func (s *SearchService) queryIXPs(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
-	items, err := s.client.InternetExchange.Query().Where(pred).Limit(10).All(ctx)
+func (s *SearchService) queryIXPs(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, bool, error) {
+	items, err := s.client.InternetExchange.Query().Where(pred).Limit(displayLimit + 1).All(ctx)
 	if err != nil {
-		return nil, 0, fmt.Errorf("fetch ixps: %w", err)
+		return nil, false, fmt.Errorf("fetch ixps: %w", err)
 	}
-	count, err := s.client.InternetExchange.Query().Where(pred).Count(ctx)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count ixps: %w", err)
+	hasMore := len(items) > displayLimit
+	if hasMore {
+		items = items[:displayLimit]
 	}
 	hits := make([]SearchHit, len(items))
 	for i, ix := range items {
@@ -184,17 +187,17 @@ func (s *SearchService) queryIXPs(ctx context.Context, pred func(*sql.Selector))
 			DetailURL: fmt.Sprintf("/ui/ix/%d", ix.ID),
 		}
 	}
-	return hits, count, nil
+	return hits, hasMore, nil
 }
 
-func (s *SearchService) queryFacilities(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
-	items, err := s.client.Facility.Query().Where(pred).Limit(10).All(ctx)
+func (s *SearchService) queryFacilities(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, bool, error) {
+	items, err := s.client.Facility.Query().Where(pred).Limit(displayLimit + 1).All(ctx)
 	if err != nil {
-		return nil, 0, fmt.Errorf("fetch facilities: %w", err)
+		return nil, false, fmt.Errorf("fetch facilities: %w", err)
 	}
-	count, err := s.client.Facility.Query().Where(pred).Count(ctx)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count facilities: %w", err)
+	hasMore := len(items) > displayLimit
+	if hasMore {
+		items = items[:displayLimit]
 	}
 	hits := make([]SearchHit, len(items))
 	for i, fac := range items {
@@ -205,17 +208,17 @@ func (s *SearchService) queryFacilities(ctx context.Context, pred func(*sql.Sele
 			DetailURL: fmt.Sprintf("/ui/fac/%d", fac.ID),
 		}
 	}
-	return hits, count, nil
+	return hits, hasMore, nil
 }
 
-func (s *SearchService) queryOrganizations(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
-	items, err := s.client.Organization.Query().Where(pred).Limit(10).All(ctx)
+func (s *SearchService) queryOrganizations(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, bool, error) {
+	items, err := s.client.Organization.Query().Where(pred).Limit(displayLimit + 1).All(ctx)
 	if err != nil {
-		return nil, 0, fmt.Errorf("fetch organizations: %w", err)
+		return nil, false, fmt.Errorf("fetch organizations: %w", err)
 	}
-	count, err := s.client.Organization.Query().Where(pred).Count(ctx)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count organizations: %w", err)
+	hasMore := len(items) > displayLimit
+	if hasMore {
+		items = items[:displayLimit]
 	}
 	hits := make([]SearchHit, len(items))
 	for i, org := range items {
@@ -225,17 +228,17 @@ func (s *SearchService) queryOrganizations(ctx context.Context, pred func(*sql.S
 			DetailURL: fmt.Sprintf("/ui/org/%d", org.ID),
 		}
 	}
-	return hits, count, nil
+	return hits, hasMore, nil
 }
 
-func (s *SearchService) queryCampuses(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
-	items, err := s.client.Campus.Query().Where(pred).Limit(10).All(ctx)
+func (s *SearchService) queryCampuses(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, bool, error) {
+	items, err := s.client.Campus.Query().Where(pred).Limit(displayLimit + 1).All(ctx)
 	if err != nil {
-		return nil, 0, fmt.Errorf("fetch campuses: %w", err)
+		return nil, false, fmt.Errorf("fetch campuses: %w", err)
 	}
-	count, err := s.client.Campus.Query().Where(pred).Count(ctx)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count campuses: %w", err)
+	hasMore := len(items) > displayLimit
+	if hasMore {
+		items = items[:displayLimit]
 	}
 	hits := make([]SearchHit, len(items))
 	for i, c := range items {
@@ -246,17 +249,17 @@ func (s *SearchService) queryCampuses(ctx context.Context, pred func(*sql.Select
 			DetailURL: fmt.Sprintf("/ui/campus/%d", c.ID),
 		}
 	}
-	return hits, count, nil
+	return hits, hasMore, nil
 }
 
-func (s *SearchService) queryCarriers(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, int, error) {
-	items, err := s.client.Carrier.Query().Where(pred).Limit(10).All(ctx)
+func (s *SearchService) queryCarriers(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, bool, error) {
+	items, err := s.client.Carrier.Query().Where(pred).Limit(displayLimit + 1).All(ctx)
 	if err != nil {
-		return nil, 0, fmt.Errorf("fetch carriers: %w", err)
+		return nil, false, fmt.Errorf("fetch carriers: %w", err)
 	}
-	count, err := s.client.Carrier.Query().Where(pred).Count(ctx)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count carriers: %w", err)
+	hasMore := len(items) > displayLimit
+	if hasMore {
+		items = items[:displayLimit]
 	}
 	hits := make([]SearchHit, len(items))
 	for i, cr := range items {
@@ -266,7 +269,7 @@ func (s *SearchService) queryCarriers(ctx context.Context, pred func(*sql.Select
 			DetailURL: fmt.Sprintf("/ui/carrier/%d", cr.ID),
 		}
 	}
-	return hits, count, nil
+	return hits, hasMore, nil
 }
 
 // buildSearchPredicate creates a sql.Selector predicate that ORs together

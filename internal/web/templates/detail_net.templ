@@ -6,6 +6,7 @@ import "fmt"
 // detail fields, and collapsible lazy-loaded sections for related records.
 templ NetworkDetailPage(data NetworkDetail) {
 	<div class="space-y-6">
+		@Breadcrumb("Networks", fmt.Sprintf("AS%d (%s)", data.ASN, data.Name))
 		@DetailHeader("net", "emerald", data.Name, fmt.Sprintf("AS%d", data.ASN))
 		<div class="flex flex-wrap gap-2 mb-4">
 			@StatBadge("IXPs", data.IXCount)
@@ -14,7 +15,7 @@ templ NetworkDetailPage(data NetworkDetail) {
 		</div>
 		<div class="mb-4">
 			<a href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d", data.ASN)) }
-				class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-neutral-800 text-neutral-300 border border-neutral-700 hover:bg-neutral-700 hover:text-neutral-100 transition-colors">
+				class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-emerald-500 text-emerald-500 hover:bg-emerald-500/10 dark:border-emerald-400 dark:text-emerald-400 transition-colors">
 				Compare with&hellip;
 			</a>
 		</div>
@@ -79,7 +80,7 @@ templ boolIndicator(label string, value bool) {
 		if value {
 			<span class="text-emerald-400">&#10003;</span>
 		} else {
-			<span class="text-neutral-600">&mdash;</span>
+			<span class="text-neutral-500">&mdash;</span>
 		}
 		<span class="text-neutral-400">{ label }</span>
 	</span>

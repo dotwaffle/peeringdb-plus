@@ -64,7 +64,7 @@ templ CompareResultsPage(data CompareData) {
 			</h1>
 			<div class="flex gap-3 mt-1 text-sm text-neutral-400 font-mono">
 				<span>{ fmt.Sprintf("AS%d", data.NetA.ASN) }</span>
-				<span class="text-neutral-600">|</span>
+				<span class="text-neutral-500">|</span>
 				<span>{ fmt.Sprintf("AS%d", data.NetB.ASN) }</span>
 			</div>
 		</div>
@@ -164,7 +164,7 @@ templ compareIXPRow(ix CompareIXP, netAName string, netBName string) {
 				if ix.NetA != nil {
 					@compareIXPresenceDetail(*ix.NetA)
 				} else {
-					<span class="text-neutral-600 text-sm">---</span>
+					<span class="text-neutral-500 text-sm">---</span>
 				}
 			</div>
 			<div class="flex flex-col min-w-0">
@@ -172,7 +172,7 @@ templ compareIXPRow(ix CompareIXP, netAName string, netBName string) {
 				if ix.NetB != nil {
 					@compareIXPresenceDetail(*ix.NetB)
 				} else {
-					<span class="text-neutral-600 text-sm">---</span>
+					<span class="text-neutral-500 text-sm">---</span>
 				}
 			</div>
 		</div>
@@ -249,12 +249,12 @@ templ compareFacilityRow(fac CompareFacility) {
 				if fac.NetA != nil {
 					<span>{ fmt.Sprintf("AS%d", fac.NetA.LocalASN) }</span>
 				} else {
-					<span class="text-neutral-600">---</span>
+					<span class="text-neutral-500">---</span>
 				}
 				if fac.NetB != nil {
 					<span>{ fmt.Sprintf("AS%d", fac.NetB.LocalASN) }</span>
 				} else {
-					<span class="text-neutral-600">---</span>
+					<span class="text-neutral-500">---</span>
 				}
 			</div>
 		</div>

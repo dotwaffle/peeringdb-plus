@@ -18,9 +18,13 @@ type testEnvelope struct {
 	Data json.RawMessage `json:"data"`
 }
 
-// testErrorMeta is used to decode error metadata from the envelope.
-type testErrorMeta struct {
-	Error string `json:"error"`
+// testProblemDetail is used to decode RFC 9457 error responses.
+type testProblemDetail struct {
+	Type     string `json:"type"`
+	Title    string `json:"title"`
+	Status   int    `json:"status"`
+	Detail   string `json:"detail"`
+	Instance string `json:"instance"`
 }
 
 // setupTestHandler creates a Handler with 3 test networks for use in tests.
@@ -186,25 +190,27 @@ func TestDetailNotFound(t *testing.T) {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var env testEnvelope
-	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
-		t.Fatalf("unmarshal error response: %v", err)
+	// Error responses use RFC 9457 Problem Details per ARCH-01.
+	ct := rec.Header().Get("Content-Type")
+	if ct != "application/problem+json" {
+		t.Errorf("Content-Type = %q, want application/problem+json", ct)
 	}
 
-	var meta testErrorMeta
-	if err := json.Unmarshal(env.Meta, &meta); err != nil {
-		t.Fatalf("unmarshal error meta: %v", err)
+	var problem testProblemDetail
+	if err := json.Unmarshal(rec.Body.Bytes(), &problem); err != nil {
+		t.Fatalf("unmarshal problem detail: %v", err)
 	}
-	if meta.Error == "" {
-		t.Error("expected non-empty error message in meta")
+	if problem.Type != "about:blank" {
+		t.Errorf("type = %q, want about:blank", problem.Type)
 	}
-
-	var data []json.RawMessage
-	if err := json.Unmarshal(env.Data, &data); err != nil {
-		t.Fatalf("unmarshal error data: %v", err)
+	if problem.Status != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", problem.Status, http.StatusNotFound)
 	}
-	if len(data) != 0 {
-		t.Errorf("expected empty data array, got %d items", len(data))
+	if problem.Detail == "" {
+		t.Error("expected non-empty detail field")
+	}
+	if problem.Instance != "/api/net/99999" {
+		t.Errorf("instance = %q, want /api/net/99999", problem.Instance)
 	}
 }
 
@@ -218,6 +224,18 @@ func TestUnknownType(t *testing.T) {
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// Verify RFC 9457 format.
+	var problem testProblemDetail
+	if err := json.Unmarshal(rec.Body.Bytes(), &problem); err != nil {
+		t.Fatalf("unmarshal problem detail: %v", err)
+	}
+	if problem.Type != "about:blank" {
+		t.Errorf("type = %q, want about:blank", problem.Type)
+	}
+	if problem.Status != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", problem.Status, http.StatusNotFound)
 	}
 }
 

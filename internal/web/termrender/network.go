@@ -70,8 +70,18 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 		buf.WriteString("\n")
 
 		for _, row := range data.IXPresences {
+			name := row.IXName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.IXName))
+			buf.WriteString(StyleValue.Render(name))
 
 			if ShouldShowField("net-ix", "crossref", r.Width) {
 				buf.WriteString(" ")
@@ -111,8 +121,18 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 		buf.WriteString("\n")
 
 		for _, row := range data.FacPresences {
+			name := row.FacName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.FacName))
+			buf.WriteString(StyleValue.Render(name))
 			if ShouldShowField("net-fac", "crossref", r.Width) && row.FacID != 0 {
 				buf.WriteString(" ")
 				buf.WriteString(CrossRef(fmt.Sprintf("/ui/fac/%d", row.FacID)))

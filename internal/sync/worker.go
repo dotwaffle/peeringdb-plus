@@ -115,7 +115,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	statusID, err := RecordSyncStart(ctx, w.db, start)
 	if err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "failed to record sync start",
-			slog.String("error", err.Error()),
+			slog.Any("error", err),
 		)
 		// Non-fatal: continue with sync.
 	}
@@ -161,7 +161,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		if cursorErr != nil {
 			w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to get cursor, using full sync",
 				slog.String("type", step.name),
-				slog.String("error", cursorErr.Error()),
+				slog.Any("error", cursorErr),
 			)
 		}
 
@@ -181,7 +181,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 				)
 				w.logger.LogAttrs(ctx, slog.LevelWarn, "incremental sync failed, falling back to full",
 					slog.String("type", step.name),
-					slog.String("error", stepErr.Error()),
+					slog.Any("error", stepErr),
 				)
 				var remoteIDs []int
 				count, remoteIDs, stepErr = step.upsertFn(ctx, tx)
@@ -220,7 +220,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 			// Rollback transaction per D-21.
 			if rbErr := tx.Rollback(); rbErr != nil {
 				w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
-					slog.String("error", rbErr.Error()),
+					slog.Any("error", rbErr),
 				)
 			}
 			syncErr := fmt.Errorf("sync %s: %w", step.name, stepErr)
@@ -264,7 +264,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 
 			if rbErr := tx.Rollback(); rbErr != nil {
 				w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
-					slog.String("error", rbErr.Error()),
+					slog.Any("error", rbErr),
 				)
 			}
 			syncErr := fmt.Errorf("delete stale %s: %w", step.name, stepErr)
@@ -295,7 +295,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		if err := UpsertCursor(ctx, w.db, typeName, generated, "success"); err != nil {
 			w.logger.LogAttrs(ctx, slog.LevelError, "failed to update cursor",
 				slog.String("type", typeName),
-				slog.String("error", err.Error()),
+				slog.Any("error", err),
 			)
 		}
 	}
@@ -360,7 +360,7 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 		w.logger.LogAttrs(ctx, slog.LevelWarn, "sync failed, retrying",
 			slog.Int("attempt", attempt+1),
 			slog.Duration("backoff", backoff),
-			slog.String("error", err.Error()),
+			slog.Any("error", err),
 		)
 
 		// Wait for backoff, respecting context cancellation.
@@ -380,7 +380,7 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 
 	w.logger.LogAttrs(ctx, slog.LevelError, "sync failed after all retries",
 		slog.Int("retries", maxRetries),
-		slog.String("error", err.Error()),
+		slog.Any("error", err),
 	)
 	return fmt.Errorf("sync failed after %d retries: %w", maxRetries, lastErr)
 }
@@ -421,7 +421,7 @@ func (w *Worker) runSyncCycle(ctx context.Context, mode config.SyncMode) {
 
 	if err := w.SyncWithRetry(cycleCtx, mode); err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "sync cycle failed",
-			slog.String("error", err.Error()),
+			slog.Any("error", err),
 		)
 	}
 	cycleCancel() // ensure monitor goroutine exits
@@ -446,7 +446,7 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 		lastSync, err := GetLastSuccessfulSyncTime(ctx, w.db)
 		if err != nil {
 			w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to get last sync time",
-				slog.String("error", err.Error()),
+				slog.Any("error", err),
 			)
 		}
 		if lastSync.IsZero() {

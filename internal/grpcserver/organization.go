@@ -3,10 +3,10 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
@@ -35,144 +35,170 @@ func (s *OrganizationService) GetOrganization(ctx context.Context, req *pb.GetOr
 	return &pb.GetOrganizationResponse{Organization: organizationToProto(o)}, nil
 }
 
-// ListOrganizations returns a paginated list of organizations ordered by ID
-// ascending. Supports page_size, page_token, and optional filter fields (name,
-// country, city, status). Multiple filters combine with AND logic.
-func (s *OrganizationService) ListOrganizations(ctx context.Context, req *pb.ListOrganizationsRequest) (*pb.ListOrganizationsResponse, error) {
-	pageSize := normalizePageSize(req.GetPageSize())
-	offset, err := decodePageToken(req.GetPageToken())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
+func applyOrganizationListFilters(req *pb.ListOrganizationsRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Id != nil {
+		if *req.Id <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(organization.FieldID, int(*req.Id)))
 	}
-
-	// Build filter predicates from optional fields.
-	var predicates []predicate.Organization
 	if req.Name != nil {
-		predicates = append(predicates, organization.NameContainsFold(*req.Name))
+		preds = append(preds, sql.FieldContainsFold(organization.FieldName, *req.Name))
+	}
+	if req.Aka != nil {
+		preds = append(preds, sql.FieldContainsFold(organization.FieldAka, *req.Aka))
+	}
+	if req.NameLong != nil {
+		preds = append(preds, sql.FieldContainsFold(organization.FieldNameLong, *req.NameLong))
 	}
 	if req.Country != nil {
-		predicates = append(predicates, organization.CountryEQ(*req.Country))
+		preds = append(preds, sql.FieldEQ(organization.FieldCountry, *req.Country))
 	}
 	if req.City != nil {
-		predicates = append(predicates, organization.CityContainsFold(*req.City))
+		preds = append(preds, sql.FieldContainsFold(organization.FieldCity, *req.City))
 	}
 	if req.Status != nil {
-		predicates = append(predicates, organization.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(organization.FieldStatus, *req.Status))
 	}
-
-	query := s.Client.Organization.Query().
-		Order(ent.Asc(organization.FieldID)).
-		Limit(pageSize + 1).
-		Offset(offset)
-	if len(predicates) > 0 {
-		query = query.Where(organization.And(predicates...))
+	if req.Website != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldWebsite, *req.Website))
 	}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldNotes, *req.Notes))
+	}
+	if req.Logo != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldLogo, *req.Logo))
+	}
+	if req.Address1 != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldAddress1, *req.Address1))
+	}
+	if req.Address2 != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldAddress2, *req.Address2))
+	}
+	if req.State != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldState, *req.State))
+	}
+	if req.Zipcode != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldZipcode, *req.Zipcode))
+	}
+	if req.Suite != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldSuite, *req.Suite))
+	}
+	if req.Floor != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldFloor, *req.Floor))
+	}
+	return preds, nil
+}
 
-	// Fetch one extra to detect whether there is a next page.
-	results, err := query.All(ctx)
+func applyOrganizationStreamFilters(req *pb.StreamOrganizationsRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Name != nil {
+		preds = append(preds, sql.FieldContainsFold(organization.FieldName, *req.Name))
+	}
+	if req.Aka != nil {
+		preds = append(preds, sql.FieldContainsFold(organization.FieldAka, *req.Aka))
+	}
+	if req.NameLong != nil {
+		preds = append(preds, sql.FieldContainsFold(organization.FieldNameLong, *req.NameLong))
+	}
+	if req.Country != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldCountry, *req.Country))
+	}
+	if req.City != nil {
+		preds = append(preds, sql.FieldContainsFold(organization.FieldCity, *req.City))
+	}
+	if req.Status != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldStatus, *req.Status))
+	}
+	if req.Website != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldWebsite, *req.Website))
+	}
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldNotes, *req.Notes))
+	}
+	if req.Logo != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldLogo, *req.Logo))
+	}
+	if req.Address1 != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldAddress1, *req.Address1))
+	}
+	if req.Address2 != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldAddress2, *req.Address2))
+	}
+	if req.State != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldState, *req.State))
+	}
+	if req.Zipcode != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldZipcode, *req.Zipcode))
+	}
+	if req.Suite != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldSuite, *req.Suite))
+	}
+	if req.Floor != nil {
+		preds = append(preds, sql.FieldEQ(organization.FieldFloor, *req.Floor))
+	}
+	return preds, nil
+}
+
+// ListOrganizations returns a paginated list of organizations ordered by ID
+// ascending. Supports all pdbcompat-parity filter fields with AND logic.
+func (s *OrganizationService) ListOrganizations(ctx context.Context, req *pb.ListOrganizationsRequest) (*pb.ListOrganizationsResponse, error) {
+	items, nextToken, err := ListEntities(ctx, ListParams[ent.Organization, pb.Organization]{
+		EntityName: "organizations",
+		PageSize:   req.GetPageSize(),
+		PageToken:  req.GetPageToken(),
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyOrganizationListFilters(req)
+		},
+		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.Organization, error) {
+			q := s.Client.Organization.Query().
+				Order(ent.Asc(organization.FieldID)).
+				Limit(limit).Offset(offset)
+			if len(preds) > 0 {
+				q = q.Where(organization.And(castPredicates[predicate.Organization](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: organizationToProto,
+	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list organizations: %w", err))
+		return nil, err
 	}
-
-	var nextPageToken string
-	if len(results) > pageSize {
-		results = results[:pageSize]
-		nextPageToken = encodePageToken(offset + pageSize)
-	}
-
-	orgs := make([]*pb.Organization, len(results))
-	for i, o := range results {
-		orgs[i] = organizationToProto(o)
-	}
-
-	return &pb.ListOrganizationsResponse{
-		Organizations: orgs,
-		NextPageToken: nextPageToken,
-	}, nil
+	return &pb.ListOrganizationsResponse{Organizations: items, NextPageToken: nextToken}, nil
 }
 
 // StreamOrganizations streams all matching organizations one message at a time
-// using batched keyset pagination. Filters match the ListOrganizations behavior.
+// using batched keyset pagination.
 func (s *OrganizationService) StreamOrganizations(ctx context.Context, req *pb.StreamOrganizationsRequest, stream *connect.ServerStream[pb.Organization]) error {
-	// Apply stream timeout.
-	if s.StreamTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
-		defer cancel()
-	}
-
-	// Build filter predicates (identical to ListOrganizations).
-	var predicates []predicate.Organization
-	if req.Name != nil {
-		predicates = append(predicates, organization.NameContainsFold(*req.Name))
-	}
-	if req.Country != nil {
-		predicates = append(predicates, organization.CountryEQ(*req.Country))
-	}
-	if req.City != nil {
-		predicates = append(predicates, organization.CityContainsFold(*req.City))
-	}
-	if req.Status != nil {
-		predicates = append(predicates, organization.StatusEQ(*req.Status))
-	}
-
-	// Resume and incremental filter support.
-	if req.SinceId != nil {
-		predicates = append(predicates, organization.IDGT(int(*req.SinceId)))
-	}
-	if req.UpdatedSince != nil {
-		predicates = append(predicates, organization.UpdatedGT(req.UpdatedSince.AsTime()))
-	}
-
-	// Count total matching records for header metadata.
-	countQuery := s.Client.Organization.Query()
-	if len(predicates) > 0 {
-		countQuery = countQuery.Where(organization.And(predicates...))
-	}
-	total, err := countQuery.Count(ctx)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("count organizations: %w", err))
-	}
-	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
-
-	// Stream records in batches using keyset pagination.
-	lastID := 0
-	if req.SinceId != nil {
-		lastID = int(*req.SinceId)
-	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		query := s.Client.Organization.Query().
-			Where(organization.IDGT(lastID)).
-			Order(ent.Asc(organization.FieldID)).
-			Limit(streamBatchSize)
-		if len(predicates) > 0 {
-			query = query.Where(organization.And(predicates...))
-		}
-
-		batch, err := query.All(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream organizations batch after id %d: %w", lastID, err))
-		}
-		if len(batch) == 0 {
-			return nil
-		}
-
-		for _, o := range batch {
-			if err := stream.Send(organizationToProto(o)); err != nil {
-				return err
+	return StreamEntities(ctx, StreamParams[ent.Organization, pb.Organization]{
+		EntityName:   "organizations",
+		Timeout:      s.StreamTimeout,
+		SinceID:      req.SinceId,
+		UpdatedSince: req.UpdatedSince,
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyOrganizationStreamFilters(req)
+		},
+		Count: func(ctx context.Context, preds []func(*sql.Selector)) (int, error) {
+			q := s.Client.Organization.Query()
+			if len(preds) > 0 {
+				q = q.Where(organization.And(castPredicates[predicate.Organization](preds)...))
 			}
-		}
-
-		lastID = batch[len(batch)-1].ID
-		if len(batch) < streamBatchSize {
-			return nil
-		}
-	}
+			return q.Count(ctx)
+		},
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.Organization, error) {
+			q := s.Client.Organization.Query().
+				Where(organization.IDGT(afterID)).
+				Order(ent.Asc(organization.FieldID)).
+				Limit(limit)
+			if len(preds) > 0 {
+				q = q.Where(organization.And(castPredicates[predicate.Organization](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: organizationToProto,
+		GetID:   func(o *ent.Organization) int { return o.ID },
+	}, stream)
 }
 
 // organizationToProto converts an ent Organization entity to a protobuf

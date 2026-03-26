@@ -3,10 +3,10 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
@@ -15,15 +15,13 @@ import (
 )
 
 // PocService implements the peeringdb.v1.PocService ConnectRPC handler
-// interface. It queries the ent database layer and converts results to protobuf
-// messages.
+// interface.
 type PocService struct {
 	Client        *ent.Client
 	StreamTimeout time.Duration
 }
 
-// GetPoc returns a single point of contact by ID. Returns NOT_FOUND if the POC
-// does not exist.
+// GetPoc returns a single point of contact by ID.
 func (s *PocService) GetPoc(ctx context.Context, req *pb.GetPocRequest) (*pb.GetPocResponse, error) {
 	p, err := s.Client.Poc.Get(ctx, int(req.GetId()))
 	if err != nil {
@@ -35,152 +33,132 @@ func (s *PocService) GetPoc(ctx context.Context, req *pb.GetPocRequest) (*pb.Get
 	return &pb.GetPocResponse{Poc: pocToProto(p)}, nil
 }
 
-// ListPocs returns a paginated list of points of contact ordered by ID
-// ascending. Supports page_size, page_token, and optional filter fields
-// (net_id, role, name, status). Multiple filters combine with AND logic.
-func (s *PocService) ListPocs(ctx context.Context, req *pb.ListPocsRequest) (*pb.ListPocsResponse, error) {
-	pageSize := normalizePageSize(req.GetPageSize())
-	offset, err := decodePageToken(req.GetPageToken())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
+func applyPocListFilters(req *pb.ListPocsRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Id != nil {
+		if *req.Id <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(poc.FieldID, int(*req.Id)))
 	}
-
-	// Build filter predicates from optional fields.
-	var predicates []predicate.Poc
 	if req.NetId != nil {
 		if *req.NetId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: net_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_id must be positive"))
 		}
-		predicates = append(predicates, poc.NetIDEQ(int(*req.NetId)))
+		preds = append(preds, sql.FieldEQ(poc.FieldNetID, int(*req.NetId)))
 	}
 	if req.Role != nil {
-		predicates = append(predicates, poc.RoleEQ(*req.Role))
+		preds = append(preds, sql.FieldEQ(poc.FieldRole, *req.Role))
 	}
 	if req.Name != nil {
-		predicates = append(predicates, poc.NameContainsFold(*req.Name))
+		preds = append(preds, sql.FieldContainsFold(poc.FieldName, *req.Name))
 	}
 	if req.Status != nil {
-		predicates = append(predicates, poc.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(poc.FieldStatus, *req.Status))
 	}
-
-	query := s.Client.Poc.Query().
-		Order(ent.Asc(poc.FieldID)).
-		Limit(pageSize + 1).
-		Offset(offset)
-	if len(predicates) > 0 {
-		query = query.Where(poc.And(predicates...))
+	if req.Visible != nil {
+		preds = append(preds, sql.FieldEQ(poc.FieldVisible, *req.Visible))
 	}
-
-	// Fetch one extra to detect whether there is a next page.
-	results, err := query.All(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list pocs: %w", err))
+	if req.Phone != nil {
+		preds = append(preds, sql.FieldEQ(poc.FieldPhone, *req.Phone))
 	}
-
-	var nextPageToken string
-	if len(results) > pageSize {
-		results = results[:pageSize]
-		nextPageToken = encodePageToken(offset + pageSize)
+	if req.Email != nil {
+		preds = append(preds, sql.FieldEQ(poc.FieldEmail, *req.Email))
 	}
-
-	pocs := make([]*pb.Poc, len(results))
-	for i, p := range results {
-		pocs[i] = pocToProto(p)
+	if req.Url != nil {
+		preds = append(preds, sql.FieldEQ(poc.FieldURL, *req.Url))
 	}
-
-	return &pb.ListPocsResponse{
-		Pocs:          pocs,
-		NextPageToken: nextPageToken,
-	}, nil
+	return preds, nil
 }
 
-// StreamPocs streams all matching points of contact one message at a time using
-// batched keyset pagination. Filters match the ListPocs behavior.
-func (s *PocService) StreamPocs(ctx context.Context, req *pb.StreamPocsRequest, stream *connect.ServerStream[pb.Poc]) error {
-	// Apply stream timeout.
-	if s.StreamTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
-		defer cancel()
-	}
-
-	// Build filter predicates (identical to ListPocs).
-	var predicates []predicate.Poc
+func applyPocStreamFilters(req *pb.StreamPocsRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
 	if req.NetId != nil {
 		if *req.NetId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: net_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_id must be positive"))
 		}
-		predicates = append(predicates, poc.NetIDEQ(int(*req.NetId)))
+		preds = append(preds, sql.FieldEQ(poc.FieldNetID, int(*req.NetId)))
 	}
 	if req.Role != nil {
-		predicates = append(predicates, poc.RoleEQ(*req.Role))
+		preds = append(preds, sql.FieldEQ(poc.FieldRole, *req.Role))
 	}
 	if req.Name != nil {
-		predicates = append(predicates, poc.NameContainsFold(*req.Name))
+		preds = append(preds, sql.FieldContainsFold(poc.FieldName, *req.Name))
 	}
 	if req.Status != nil {
-		predicates = append(predicates, poc.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(poc.FieldStatus, *req.Status))
 	}
-
-	// Resume and incremental filter support.
-	if req.SinceId != nil {
-		predicates = append(predicates, poc.IDGT(int(*req.SinceId)))
+	if req.Visible != nil {
+		preds = append(preds, sql.FieldEQ(poc.FieldVisible, *req.Visible))
 	}
-	if req.UpdatedSince != nil {
-		predicates = append(predicates, poc.UpdatedGT(req.UpdatedSince.AsTime()))
+	if req.Phone != nil {
+		preds = append(preds, sql.FieldEQ(poc.FieldPhone, *req.Phone))
 	}
-
-	// Count total matching records for header metadata.
-	countQuery := s.Client.Poc.Query()
-	if len(predicates) > 0 {
-		countQuery = countQuery.Where(poc.And(predicates...))
+	if req.Email != nil {
+		preds = append(preds, sql.FieldEQ(poc.FieldEmail, *req.Email))
 	}
-	total, err := countQuery.Count(ctx)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("count pocs: %w", err))
+	if req.Url != nil {
+		preds = append(preds, sql.FieldEQ(poc.FieldURL, *req.Url))
 	}
-	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
+	return preds, nil
+}
 
-	// Stream records in batches using keyset pagination.
-	lastID := 0
-	if req.SinceId != nil {
-		lastID = int(*req.SinceId)
-	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		query := s.Client.Poc.Query().
-			Where(poc.IDGT(lastID)).
-			Order(ent.Asc(poc.FieldID)).
-			Limit(streamBatchSize)
-		if len(predicates) > 0 {
-			query = query.Where(poc.And(predicates...))
-		}
-
-		batch, err := query.All(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream pocs batch after id %d: %w", lastID, err))
-		}
-		if len(batch) == 0 {
-			return nil
-		}
-
-		for _, p := range batch {
-			if err := stream.Send(pocToProto(p)); err != nil {
-				return err
+// ListPocs returns a paginated list of points of contact.
+func (s *PocService) ListPocs(ctx context.Context, req *pb.ListPocsRequest) (*pb.ListPocsResponse, error) {
+	items, nextToken, err := ListEntities(ctx, ListParams[ent.Poc, pb.Poc]{
+		EntityName: "pocs",
+		PageSize:   req.GetPageSize(),
+		PageToken:  req.GetPageToken(),
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyPocListFilters(req)
+		},
+		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.Poc, error) {
+			q := s.Client.Poc.Query().
+				Order(ent.Asc(poc.FieldID)).
+				Limit(limit).Offset(offset)
+			if len(preds) > 0 {
+				q = q.Where(poc.And(castPredicates[predicate.Poc](preds)...))
 			}
-		}
-
-		lastID = batch[len(batch)-1].ID
-		if len(batch) < streamBatchSize {
-			return nil
-		}
+			return q.All(ctx)
+		},
+		Convert: pocToProto,
+	})
+	if err != nil {
+		return nil, err
 	}
+	return &pb.ListPocsResponse{Pocs: items, NextPageToken: nextToken}, nil
+}
+
+// StreamPocs streams all matching points of contact.
+func (s *PocService) StreamPocs(ctx context.Context, req *pb.StreamPocsRequest, stream *connect.ServerStream[pb.Poc]) error {
+	return StreamEntities(ctx, StreamParams[ent.Poc, pb.Poc]{
+		EntityName:   "pocs",
+		Timeout:      s.StreamTimeout,
+		SinceID:      req.SinceId,
+		UpdatedSince: req.UpdatedSince,
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyPocStreamFilters(req)
+		},
+		Count: func(ctx context.Context, preds []func(*sql.Selector)) (int, error) {
+			q := s.Client.Poc.Query()
+			if len(preds) > 0 {
+				q = q.Where(poc.And(castPredicates[predicate.Poc](preds)...))
+			}
+			return q.Count(ctx)
+		},
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.Poc, error) {
+			q := s.Client.Poc.Query().
+				Where(poc.IDGT(afterID)).
+				Order(ent.Asc(poc.FieldID)).
+				Limit(limit)
+			if len(preds) > 0 {
+				q = q.Where(poc.And(castPredicates[predicate.Poc](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: pocToProto,
+		GetID:   func(p *ent.Poc) int { return p.ID },
+	}, stream)
 }
 
 // pocToProto converts an ent Poc entity to a protobuf Poc message.

@@ -3,10 +3,10 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
@@ -15,15 +15,13 @@ import (
 )
 
 // IxPrefixService implements the peeringdb.v1.IxPrefixService ConnectRPC
-// handler interface. It queries the ent database layer and converts results to
-// protobuf messages.
+// handler interface.
 type IxPrefixService struct {
 	Client        *ent.Client
 	StreamTimeout time.Duration
 }
 
-// GetIxPrefix returns a single IX prefix by ID. Returns NOT_FOUND if the IX
-// prefix does not exist.
+// GetIxPrefix returns a single IX prefix by ID.
 func (s *IxPrefixService) GetIxPrefix(ctx context.Context, req *pb.GetIxPrefixRequest) (*pb.GetIxPrefixResponse, error) {
 	ixp, err := s.Client.IxPrefix.Get(ctx, int(req.GetId()))
 	if err != nil {
@@ -35,146 +33,120 @@ func (s *IxPrefixService) GetIxPrefix(ctx context.Context, req *pb.GetIxPrefixRe
 	return &pb.GetIxPrefixResponse{IxPrefix: ixPrefixToProto(ixp)}, nil
 }
 
-// ListIxPrefixes returns a paginated list of IX prefixes ordered by ID
-// ascending. Supports page_size, page_token, and optional filter fields
-// (ixlan_id, protocol, status). Multiple filters combine with AND logic.
-func (s *IxPrefixService) ListIxPrefixes(ctx context.Context, req *pb.ListIxPrefixesRequest) (*pb.ListIxPrefixesResponse, error) {
-	pageSize := normalizePageSize(req.GetPageSize())
-	offset, err := decodePageToken(req.GetPageToken())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
+func applyIxPrefixListFilters(req *pb.ListIxPrefixesRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
+	if req.Id != nil {
+		if *req.Id <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
+		}
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldID, int(*req.Id)))
 	}
-
-	// Build filter predicates from optional fields.
-	var predicates []predicate.IxPrefix
 	if req.IxlanId != nil {
 		if *req.IxlanId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: ixlan_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ixlan_id must be positive"))
 		}
-		predicates = append(predicates, ixprefix.IxlanIDEQ(int(*req.IxlanId)))
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldIxlanID, int(*req.IxlanId)))
 	}
 	if req.Protocol != nil {
-		predicates = append(predicates, ixprefix.ProtocolEQ(*req.Protocol))
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldProtocol, *req.Protocol))
 	}
 	if req.Status != nil {
-		predicates = append(predicates, ixprefix.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldStatus, *req.Status))
 	}
-
-	query := s.Client.IxPrefix.Query().
-		Order(ent.Asc(ixprefix.FieldID)).
-		Limit(pageSize + 1).
-		Offset(offset)
-	if len(predicates) > 0 {
-		query = query.Where(ixprefix.And(predicates...))
+	if req.Prefix != nil {
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldPrefix, *req.Prefix))
 	}
-
-	// Fetch one extra to detect whether there is a next page.
-	results, err := query.All(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list ixprefixes: %w", err))
+	if req.InDfz != nil {
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldInDfz, *req.InDfz))
 	}
-
-	var nextPageToken string
-	if len(results) > pageSize {
-		results = results[:pageSize]
-		nextPageToken = encodePageToken(offset + pageSize)
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldNotes, *req.Notes))
 	}
-
-	items := make([]*pb.IxPrefix, len(results))
-	for i, ixp := range results {
-		items[i] = ixPrefixToProto(ixp)
-	}
-
-	return &pb.ListIxPrefixesResponse{
-		IxPrefixes:    items,
-		NextPageToken: nextPageToken,
-	}, nil
+	return preds, nil
 }
 
-// StreamIxPrefixes streams all matching IX prefixes one message at a time using
-// batched keyset pagination. Filters match the ListIxPrefixes behavior.
-func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIxPrefixesRequest, stream *connect.ServerStream[pb.IxPrefix]) error {
-	// Apply stream timeout.
-	if s.StreamTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.StreamTimeout)
-		defer cancel()
-	}
-
-	// Build filter predicates (identical to ListIxPrefixes).
-	var predicates []predicate.IxPrefix
+func applyIxPrefixStreamFilters(req *pb.StreamIxPrefixesRequest) ([]func(*sql.Selector), error) {
+	var preds []func(*sql.Selector)
 	if req.IxlanId != nil {
 		if *req.IxlanId <= 0 {
-			return connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: ixlan_id must be positive"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ixlan_id must be positive"))
 		}
-		predicates = append(predicates, ixprefix.IxlanIDEQ(int(*req.IxlanId)))
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldIxlanID, int(*req.IxlanId)))
 	}
 	if req.Protocol != nil {
-		predicates = append(predicates, ixprefix.ProtocolEQ(*req.Protocol))
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldProtocol, *req.Protocol))
 	}
 	if req.Status != nil {
-		predicates = append(predicates, ixprefix.StatusEQ(*req.Status))
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldStatus, *req.Status))
 	}
-
-	// Resume and incremental filter support.
-	if req.SinceId != nil {
-		predicates = append(predicates, ixprefix.IDGT(int(*req.SinceId)))
+	if req.Prefix != nil {
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldPrefix, *req.Prefix))
 	}
-	if req.UpdatedSince != nil {
-		predicates = append(predicates, ixprefix.UpdatedGT(req.UpdatedSince.AsTime()))
+	if req.InDfz != nil {
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldInDfz, *req.InDfz))
 	}
-
-	// Count total matching records for header metadata.
-	countQuery := s.Client.IxPrefix.Query()
-	if len(predicates) > 0 {
-		countQuery = countQuery.Where(ixprefix.And(predicates...))
+	if req.Notes != nil {
+		preds = append(preds, sql.FieldEQ(ixprefix.FieldNotes, *req.Notes))
 	}
-	total, err := countQuery.Count(ctx)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("count ix prefixes: %w", err))
-	}
-	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
+	return preds, nil
+}
 
-	// Stream records in batches using keyset pagination.
-	lastID := 0
-	if req.SinceId != nil {
-		lastID = int(*req.SinceId)
-	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		query := s.Client.IxPrefix.Query().
-			Where(ixprefix.IDGT(lastID)).
-			Order(ent.Asc(ixprefix.FieldID)).
-			Limit(streamBatchSize)
-		if len(predicates) > 0 {
-			query = query.Where(ixprefix.And(predicates...))
-		}
-
-		batch, err := query.All(ctx)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream ix prefixes batch after id %d: %w", lastID, err))
-		}
-		if len(batch) == 0 {
-			return nil
-		}
-
-		for _, ixp := range batch {
-			if err := stream.Send(ixPrefixToProto(ixp)); err != nil {
-				return err
+// ListIxPrefixes returns a paginated list of IX prefixes.
+func (s *IxPrefixService) ListIxPrefixes(ctx context.Context, req *pb.ListIxPrefixesRequest) (*pb.ListIxPrefixesResponse, error) {
+	items, nextToken, err := ListEntities(ctx, ListParams[ent.IxPrefix, pb.IxPrefix]{
+		EntityName: "ixprefixes",
+		PageSize:   req.GetPageSize(),
+		PageToken:  req.GetPageToken(),
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyIxPrefixListFilters(req)
+		},
+		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.IxPrefix, error) {
+			q := s.Client.IxPrefix.Query().
+				Order(ent.Asc(ixprefix.FieldID)).
+				Limit(limit).Offset(offset)
+			if len(preds) > 0 {
+				q = q.Where(ixprefix.And(castPredicates[predicate.IxPrefix](preds)...))
 			}
-		}
-
-		lastID = batch[len(batch)-1].ID
-		if len(batch) < streamBatchSize {
-			return nil
-		}
+			return q.All(ctx)
+		},
+		Convert: ixPrefixToProto,
+	})
+	if err != nil {
+		return nil, err
 	}
+	return &pb.ListIxPrefixesResponse{IxPrefixes: items, NextPageToken: nextToken}, nil
+}
+
+// StreamIxPrefixes streams all matching IX prefixes.
+func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIxPrefixesRequest, stream *connect.ServerStream[pb.IxPrefix]) error {
+	return StreamEntities(ctx, StreamParams[ent.IxPrefix, pb.IxPrefix]{
+		EntityName:   "ix prefixes",
+		Timeout:      s.StreamTimeout,
+		SinceID:      req.SinceId,
+		UpdatedSince: req.UpdatedSince,
+		ApplyFilters: func() ([]func(*sql.Selector), error) {
+			return applyIxPrefixStreamFilters(req)
+		},
+		Count: func(ctx context.Context, preds []func(*sql.Selector)) (int, error) {
+			q := s.Client.IxPrefix.Query()
+			if len(preds) > 0 {
+				q = q.Where(ixprefix.And(castPredicates[predicate.IxPrefix](preds)...))
+			}
+			return q.Count(ctx)
+		},
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.IxPrefix, error) {
+			q := s.Client.IxPrefix.Query().
+				Where(ixprefix.IDGT(afterID)).
+				Order(ent.Asc(ixprefix.FieldID)).
+				Limit(limit)
+			if len(preds) > 0 {
+				q = q.Where(ixprefix.And(castPredicates[predicate.IxPrefix](preds)...))
+			}
+			return q.All(ctx)
+		},
+		Convert: ixPrefixToProto,
+		GetID:   func(ixp *ent.IxPrefix) int { return ixp.ID },
+	}, stream)
 }
 
 // ixPrefixToProto converts an ent IxPrefix entity to a protobuf IxPrefix

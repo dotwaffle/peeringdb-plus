@@ -467,7 +467,7 @@ func TestSearchEndpoint_HtmxFragment(t *testing.T) {
 	}
 }
 
-func TestSearchEndpoint_HXReplaceUrl(t *testing.T) {
+func TestSearchEndpoint_HXPushUrl(t *testing.T) {
 	t.Parallel()
 	mux := newTestMux(t)
 
@@ -479,13 +479,13 @@ func TestSearchEndpoint_HXReplaceUrl(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", rec.Code)
 	}
 
-	hxURL := rec.Header().Get("HX-Replace-Url")
+	hxURL := rec.Header().Get("HX-Push-Url")
 	if hxURL != "/ui/?q=Cloud" {
-		t.Errorf("HX-Replace-Url = %q, want %q", hxURL, "/ui/?q=Cloud")
+		t.Errorf("HX-Push-Url = %q, want %q", hxURL, "/ui/?q=Cloud")
 	}
 }
 
-func TestSearchEndpoint_HXReplaceUrl_EmptyQuery(t *testing.T) {
+func TestSearchEndpoint_HXPushUrl_EmptyQuery(t *testing.T) {
 	t.Parallel()
 	mux := newTestMux(t)
 
@@ -493,9 +493,9 @@ func TestSearchEndpoint_HXReplaceUrl_EmptyQuery(t *testing.T) {
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	hxURL := rec.Header().Get("HX-Replace-Url")
+	hxURL := rec.Header().Get("HX-Push-Url")
 	if hxURL != "/ui/" {
-		t.Errorf("HX-Replace-Url = %q, want %q", hxURL, "/ui/")
+		t.Errorf("HX-Push-Url = %q, want %q", hxURL, "/ui/")
 	}
 }
 
@@ -802,7 +802,7 @@ func TestSearchResults_ARIARoles(t *testing.T) {
 			TypeName:    "Networks",
 			TypeSlug:    "net",
 			AccentColor: "emerald",
-			TotalCount:  1,
+			HasMore:     false,
 			Results: []templates.SearchResult{
 				{Name: "Cloudflare", Subtitle: "AS13335", DetailURL: "/ui/asn/13335"},
 			},
@@ -847,7 +847,7 @@ func TestSearchResults_FadeIn(t *testing.T) {
 			TypeName:    "Networks",
 			TypeSlug:    "net",
 			AccentColor: "emerald",
-			TotalCount:  1,
+			HasMore:     false,
 			Results: []templates.SearchResult{
 				{Name: "Cloudflare", Subtitle: "AS13335", DetailURL: "/ui/asn/13335"},
 			},
@@ -1083,9 +1083,16 @@ func TestTerminal404JSON(t *testing.T) {
 	if !strings.HasPrefix(ct, "application/json") {
 		t.Errorf("Content-Type = %q, want application/json prefix", ct)
 	}
+	// RFC 9457 Problem Detail format per ARCH-01.
 	body := rec.Body.String()
-	if !strings.Contains(body, `"error"`) {
-		t.Errorf("JSON 404 body missing error field: %s", body)
+	if !strings.Contains(body, `"type"`) || !strings.Contains(body, `about:blank`) {
+		t.Errorf("JSON 404 body missing RFC 9457 type field: %s", body)
+	}
+	if !strings.Contains(body, `"status"`) {
+		t.Errorf("JSON 404 body missing RFC 9457 status field: %s", body)
+	}
+	if !strings.Contains(body, `"title"`) {
+		t.Errorf("JSON 404 body missing RFC 9457 title field: %s", body)
 	}
 }
 

@@ -50,6 +50,15 @@ var columnThresholds = map[string]map[string]int{
 	},
 }
 
+// TruncateName returns name truncated to maxWidth with "..." suffix.
+// Returns name unchanged if it fits within maxWidth or maxWidth <= 3.
+func TruncateName(name string, maxWidth int) string {
+	if len(name) <= maxWidth || maxWidth <= 3 {
+		return name
+	}
+	return name[:maxWidth-3] + "..."
+}
+
 // ShouldShowField reports whether a field should be rendered at a given terminal
 // width. context identifies the entity-section (e.g., "net-ix"), field is the
 // column name, and width is the terminal width in characters.

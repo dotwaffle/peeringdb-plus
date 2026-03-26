@@ -80,6 +80,8 @@ func (CarrierFacility) Indexes() []ent.Index {
 		index.Fields("carrier_id"),
 		index.Fields("fac_id"),
 		index.Fields("status"),
+		index.Fields("updated"),
+		index.Fields("created"),
 	}
 }
 
