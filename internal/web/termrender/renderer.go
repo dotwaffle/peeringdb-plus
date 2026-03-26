@@ -115,10 +115,7 @@ func (r *Renderer) RenderCarrierDetail(w io.Writer, data templates.CarrierDetail
 
 // RenderSearch is implemented in search.go.
 
-// RenderCompare renders ASN comparison as terminal output. Stub pending Plan 03.
-func (r *Renderer) RenderCompare(w io.Writer, data *templates.CompareData) error {
-	return r.renderStub(w, "Compare")
-}
+// RenderCompare is implemented in compare.go.
 
 // RenderJSON writes data as indented JSON to w.
 // Used for ?format=json responses. The caller is responsible for setting
