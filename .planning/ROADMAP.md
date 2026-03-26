@@ -130,7 +130,10 @@ Plans:
   1. Calling `seed.Full(t, client)` creates at least one entity of each of the 13 PeeringDB types with realistic field values and correct FK relationships, and the returned `Result` struct provides typed references to every created entity
   2. Calling `seed.Minimal(t, client)` creates the minimum entity graph needed for relationship traversal (Org + Network + IX + Facility), and `seed.Networks(t, client, 2)` creates exactly 2 networks with their dependencies
   3. Tests in at least 3 different packages (graph, grpcserver, web) can import and use the seed package without import cycles or package-level setup conflicts
-**Plans**: TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 37-01-PLAN.md -- Seed package (Full/Minimal/Networks) with TDD + import-cycle validation
 
 ### Phase 38: GraphQL Resolver Coverage
 **Goal**: Hand-written GraphQL resolver code is tested to 80%+ coverage, with every custom resolver error path exercised
@@ -192,7 +195,7 @@ Phases execute in numeric order: 37 -> 38 -> 39 -> 40 -> 41 -> 42
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 37. Test Seed Infrastructure | 0/? | Not started | - |
+| 37. Test Seed Infrastructure | 0/1 | Planning complete | - |
 | 38. GraphQL Resolver Coverage | 0/? | Not started | - |
 | 39. gRPC Handler Coverage | 0/? | Not started | - |
 | 40. Web Handler Coverage | 0/? | Not started | - |
