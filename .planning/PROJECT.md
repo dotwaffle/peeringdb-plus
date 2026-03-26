@@ -70,23 +70,17 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-## Current Milestone: v1.9 Hardening & Polish
+## Current Milestone: v1.10 Code Coverage & Test Quality
 
-**Goal:** Improve performance, code quality, architecture consistency, and UI polish across the entire codebase — no new features, just making what exists better.
+**Goal:** Raise test coverage across all hand-written packages and improve test quality, targeting 80%+ on all packages with meaningful gaps.
 
 **Target features:**
-- ~~Query optimization (eliminate double-count queries, add missing indexes, HTTP caching)~~ — completed Phase 34+35
-- ~~gRPC handler deduplication (~1,154 lines of near-identical code across 13 services)~~ — completed Phase 33
-- ~~Error format unification across all 6 API surfaces~~ — completed Phase 34 (RFC 9457)
-- ~~ConnectRPC filter parity with PeeringDB compat layer~~ — completed Phase 33
-- ~~Structured error logging fix (90 instances)~~ — completed Phase 32
-- ~~Test coverage expansion (grpcserver, middleware)~~ — completed Phase 33
-- ~~Benchmark suite for hot paths~~ — completed Phase 35
-- ~~WCAG AA accessibility fixes (contrast, ARIA, form labels)~~ — completed Phase 36
-- ~~Bookmarkable search results~~ — completed Phase 36
-- ~~htmx error handling for collapsible sections~~ — completed Phase 36
-- ~~Breadcrumbs, mobile menu fixes, visual polish~~ — completed Phase 36
-- ~~Terminal line wrapping and error rendering~~ — completed Phase 36
+- GraphQL resolver test coverage (graph package, currently 2.6%)
+- Schema validation/hook test coverage (ent/schema, currently 47.4%)
+- gRPC handler test coverage expansion (grpcserver, currently 61.7%)
+- Web handler test coverage expansion (internal/web, currently 74.8%)
+- Raise remaining packages (otel, health, peeringdb) above 85%
+- Test quality review: ensure existing tests are meaningful, not just line-coverage padding
 
 ### Deferred
 
@@ -213,4 +207,4 @@ Shipped v1.8 with 31 phases across 9 milestones (v1.0-v1.8). The terminal CLI in
 - Search results not bookmarkable (no URL history push)
 
 ---
-*Last updated: 2026-03-26 after v1.9 milestone start*
+*Last updated: 2026-03-26 after v1.10 milestone start*
