@@ -52,7 +52,7 @@ func TestRenderPageDispatch(t *testing.T) {
 		{
 			name: "SearchGroup slice dispatches to search renderer",
 			data: []templates.SearchGroup{
-				{TypeName: "Networks", TotalCount: 1, Results: []templates.SearchResult{{Name: "SearchHit"}}},
+				{TypeName: "Networks", HasMore: false, Results: []templates.SearchResult{{Name: "SearchHit"}}},
 			},
 			wantSub: "SearchHit",
 		},
