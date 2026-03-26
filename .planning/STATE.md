@@ -2,35 +2,29 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 36-01-PLAN.md
-last_updated: "2026-03-26T08:46:06.944Z"
-last_activity: 2026-03-26
+status: v1.8 milestone complete
+stopped_at: Completed 36-02-PLAN.md
+last_updated: "2026-03-26T08:39:22.164Z"
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 12
-  completed_plans: 10
-  percent: 0
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-26)
+See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 36 — UI & Terminal Polish
+**Current focus:** Phase 31 — differentiators-shell-integration
 
 ## Current Position
 
-Phase: 36
-Plan: 01 complete
-Status: Executing Phase 36
-Last activity: 2026-03-26
-
-Progress: [████████░░] 83%
+Phase: 31
+Plan: Not started
 
 ## Performance Metrics
 
@@ -44,17 +38,36 @@ Progress: [████████░░] 83%
 | Phase 31 P01 | 6min | 2 tasks | 9 files |
 | Phase 31 P02 | 5min | 2 tasks | 12 files |
 | Phase 31 P03 | 4min | 2 tasks | 5 files |
-| Phase 36 P01 | 10min | 2 tasks | 20 files |
 
 ## Accumulated Context
 
 ### Decisions
 
 All decisions archived in PROJECT.md Key Decisions table (42 decisions across 8 milestones).
+Recent decisions affecting current work:
 
-- [Phase 33]: Test ListEntities with mock callbacks for pure generic logic coverage independent of ent entities
-- [Phase 36]: text-neutral-500 for WCAG AA contrast fix (4.7:1 on neutral-900)
-- [Phase 36]: Breadcrumb middle segment non-linked (no per-type list pages exist)
+- [v1.7]: 5-tier port speed color coding (reuse in terminal renderer)
+- [v1.4]: Dual render mode (full page vs htmx fragment) -- terminal adds third branch
+- [Phase 28]: Used colorprofile.NoTTY (not ASCII) for plain/noColor to strip ALL ANSI codes including bold/underline
+- [Phase 28]: Vary header expanded to HX-Request, User-Agent, Accept on all renderPage branches
+- [Phase 28]: PageContent.Data field carries raw structs for terminal/JSON rendering alongside templ.Component
+- [Phase 28]: Title-based switch in renderPage dispatches error and help rendering without adding fields to PageContent
+- [Phase 29]: Type-switch dispatch in RenderPage for entity-specific terminal renderers
+- [Phase 29]: Eager-load IX/facility rows in handleNetworkDetail for terminal and JSON rendering modes
+- [Phase 29]: styledVal helper wraps StyleValue.Render only for non-empty strings, ensuring writeKV empty-value skip works correctly
+- [Phase 30]: Eager-load unconditionally in all 5 entity handlers (not gated by render mode)
+- [Phase 30]: formatLocation as termrender-local helper for package independence
+- [Phase 30]: D-03 minimal layout for Org/Campus/Carrier: compact identity header + name-only child lists with cross-refs
+- [Phase 30]: Search renderer iterates groups without echoing query (not in data)
+- [Phase 30]: Compare writeIXPresence helper factored for per-network presence lines
+- [Phase 30]: RPSL aut-num class for networks, custom ix:/site:/organisation:/campus:/carrier: classes for WHOIS format
+- [Phase 31]: Short format writes directly to io.Writer without colorprofile (plain text only)
+- [Phase 31]: FormatFreshness uses StyleMuted with leading+trailing newlines for visual separation
+- [Phase 31]: getFreshness returns zero time when db is nil for test safety
+- [Phase 31]: Section aliases support both short and long forms; width adaptation drops entire columns not truncating values; Sections/Width as exported Renderer fields
+- [Phase 31]: Completion search returns integer IDs only to prevent shell injection from entity names
+- [Phase 36]: HX-Push-Url over HX-Replace-Url for back/forward navigation support
+- [Phase 36]: DOM API for error UI construction to avoid XSS from string-based markup
 
 ### Pending Todos
 
@@ -65,10 +78,11 @@ None.
 - LiteFS in maintenance mode -- monitor for issues
 - lipgloss v2 import path uses vanity domain `charm.land/lipgloss/v2` (not github.com) -- document clearly
 - colorprofile is pre-1.0 (v0.4.3) -- pin version, minimal API surface
+- Large IX tables (1000+ rows, e.g., DE-CIX) need benchmarking with lipgloss during Phase 29
 - `Vary: User-Agent` effectively disables shared caching -- acceptable (no CDN layer)
 
 ## Session Continuity
 
-Last session: 2026-03-26T08:46:06.940Z
-Stopped at: Completed 36-01-PLAN.md
+Last session: 2026-03-26T08:39:22.161Z
+Stopped at: Completed 36-02-PLAN.md
 Resume file: None

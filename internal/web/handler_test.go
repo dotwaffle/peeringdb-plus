@@ -467,7 +467,7 @@ func TestSearchEndpoint_HtmxFragment(t *testing.T) {
 	}
 }
 
-func TestSearchEndpoint_HXReplaceUrl(t *testing.T) {
+func TestSearchEndpoint_HXPushUrl(t *testing.T) {
 	t.Parallel()
 	mux := newTestMux(t)
 
@@ -479,13 +479,13 @@ func TestSearchEndpoint_HXReplaceUrl(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", rec.Code)
 	}
 
-	hxURL := rec.Header().Get("HX-Replace-Url")
+	hxURL := rec.Header().Get("HX-Push-Url")
 	if hxURL != "/ui/?q=Cloud" {
-		t.Errorf("HX-Replace-Url = %q, want %q", hxURL, "/ui/?q=Cloud")
+		t.Errorf("HX-Push-Url = %q, want %q", hxURL, "/ui/?q=Cloud")
 	}
 }
 
-func TestSearchEndpoint_HXReplaceUrl_EmptyQuery(t *testing.T) {
+func TestSearchEndpoint_HXPushUrl_EmptyQuery(t *testing.T) {
 	t.Parallel()
 	mux := newTestMux(t)
 
@@ -493,9 +493,9 @@ func TestSearchEndpoint_HXReplaceUrl_EmptyQuery(t *testing.T) {
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	hxURL := rec.Header().Get("HX-Replace-Url")
+	hxURL := rec.Header().Get("HX-Push-Url")
 	if hxURL != "/ui/" {
-		t.Errorf("HX-Replace-Url = %q, want %q", hxURL, "/ui/")
+		t.Errorf("HX-Push-Url = %q, want %q", hxURL, "/ui/")
 	}
 }
 

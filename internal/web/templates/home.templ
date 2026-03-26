@@ -48,7 +48,9 @@ templ Home(query string, groups []SearchGroup) {
 templ SearchForm(query string, groups []SearchGroup) {
 	<form id="search-form" action="/ui/" method="get" onsubmit="return handleSearchSubmit(event)">
 		<div class="relative">
+			<label for="search-input" class="sr-only">Search PeeringDB</label>
 			<input
+				id="search-input"
 				type="search"
 				name="q"
 				value={ query }
@@ -59,6 +61,7 @@ templ SearchForm(query string, groups []SearchGroup) {
 				hx-target="#search-results"
 				hx-sync="this:replace"
 				hx-indicator="#search-indicator"
+				hx-push-url="true"
 				hx-params="q"
 				autocomplete="off"
 			autofocus

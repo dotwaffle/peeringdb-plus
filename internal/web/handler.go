@@ -115,7 +115,8 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleSearch returns search results as an HTML fragment for htmx partial updates.
-// Sets HX-Replace-Url header to keep the browser URL in sync with the search query.
+// Sets HX-Push-Url header to keep the browser URL in sync with the search query
+// and create history entries for back/forward navigation (UI-03).
 func (h *Handler) handleSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	var groups []templates.SearchGroup
@@ -129,12 +130,12 @@ func (h *Handler) handleSearch(w http.ResponseWriter, r *http.Request) {
 		groups = convertToSearchGroups(results)
 	}
 
-	// Set HX-Replace-Url so the browser URL updates to /ui/?q=value
-	// without creating a new browser history entry (Pitfall 4).
+	// Set HX-Push-Url so the browser URL updates to /ui/?q=value
+	// and creates a history entry for back/forward navigation (UI-03).
 	if query != "" {
-		w.Header().Set("HX-Replace-Url", "/ui/?q="+url.QueryEscape(query))
+		w.Header().Set("HX-Push-Url", "/ui/?q="+url.QueryEscape(query))
 	} else {
-		w.Header().Set("HX-Replace-Url", "/ui/")
+		w.Header().Set("HX-Push-Url", "/ui/")
 	}
 
 	page := PageContent{
