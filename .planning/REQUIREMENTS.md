@@ -52,9 +52,9 @@ Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 
 ### Shell Integration
 
-- [ ] **SHL-01**: Bash completion script downloadable from server for entity type/ASN completion
-- [ ] **SHL-02**: Zsh completion script downloadable from server for entity type/ASN completion
-- [ ] **SHL-03**: Shell alias/function setup instructions in help text
+- [x] **SHL-01**: Bash completion script downloadable from server for entity type/ASN completion
+- [x] **SHL-02**: Zsh completion script downloadable from server for entity type/ASN completion
+- [x] **SHL-03**: Shell alias/function setup instructions in help text
 
 ## Future Requirements
 
@@ -119,9 +119,9 @@ Deferred to future release.
 | DIF-02 | Phase 31 | Complete |
 | DIF-03 | Phase 31 | Pending |
 | DIF-04 | Phase 31 | Pending |
-| SHL-01 | Phase 31 | Pending |
-| SHL-02 | Phase 31 | Pending |
-| SHL-03 | Phase 31 | Pending |
+| SHL-01 | Phase 31 | Complete |
+| SHL-02 | Phase 31 | Complete |
+| SHL-03 | Phase 31 | Complete |
 
 **Coverage:**
 - v1.8 requirements: 34 total

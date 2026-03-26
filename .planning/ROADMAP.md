@@ -146,12 +146,12 @@ Plans:
   3. Appending `?section=ix,fac` to a detail URL renders only the IX presences and facilities sections, omitting other sections
   4. Appending `?w=120` adapts table rendering to 120-column width, and `?w=80` produces narrower tables that fit standard terminals
   5. Running `curl /ui/completions/bash` and `curl /ui/completions/zsh` downloads shell completion scripts, and the help text includes alias/function setup instructions
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
 - [x] 31-01-PLAN.md -- Short format mode (?format=short) + data freshness footer on all terminal responses
 - [ ] 31-02-PLAN.md -- Section filtering (?section=) + width adaptation (?w=N) for detail views
-- [ ] 31-03-PLAN.md -- Shell completion scripts (bash, zsh) + search endpoint + help text update
+- [x] 31-03-PLAN.md -- Shell completion scripts (bash, zsh) + search endpoint + help text update
 
 ## Progress
 
@@ -163,4 +163,4 @@ Phases execute in numeric order: 28 -> 29 -> 30 -> 31
 | 28. Terminal Detection & Infrastructure | 3/3 | Complete    | 2026-03-25 |
 | 29. Network Detail (Reference Implementation) | 2/2 | Complete    | 2026-03-26 |
 | 30. Entity Types, Search & Formats | 4/4 | Complete    | 2026-03-26 |
-| 31. Differentiators & Shell Integration | 1/3 | In progress | - |
+| 31. Differentiators & Shell Integration | 2/3 | In Progress|  |
