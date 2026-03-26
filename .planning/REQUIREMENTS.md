@@ -3,73 +3,64 @@
 **Defined:** 2026-03-26
 **Core Value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-## v1.10 Requirements
+## v1.11 Requirements
 
-Requirements for the Code Coverage & Test Quality milestone. Each maps to roadmap phases.
+Requirements for the Web UI Density & Interactivity milestone. Each maps to roadmap phases.
 
-### Test Infrastructure
+### Density
 
-- [x] **INFRA-01**: Shared test seed package provides deterministic entity factories for all 13 PeeringDB types
-- [ ] **INFRA-02**: CI coverage reporting excludes generated code (ent/*, gen/*, generated.go, *_templ.go)
+- [ ] **DENS-01**: User sees detail page child-entity lists (IX participants, facilities, contacts) as dense columnar tables instead of multi-line card entries
+- [ ] **DENS-02**: User sees parsed city and country in dedicated columns on entity tables
+- [ ] **DENS-03**: User sees responsive column hiding on narrow screens (low-priority columns drop instead of horizontal scroll)
+- [ ] **DENS-04**: User sees search results in a denser layout with country/city information
+- [ ] **DENS-05**: User sees ASN comparison results (shared IXPs, facilities, campuses) as dense tables
 
-### GraphQL Coverage
+### Sorting
 
-- [x] **GQL-01**: All 13 offset/limit list resolvers have integration tests with data assertions
-- [x] **GQL-02**: Custom resolver error paths tested (NetworkByAsn not found, SyncStatus missing, validatePageSize)
-- [x] **GQL-03**: Hand-written resolver files (custom.resolvers.go, schema.resolvers.go, pagination.go) reach 80%+ coverage
+- [ ] **SORT-01**: User can sort key table columns (name, ASN, speed, country) by clicking column headers
+- [ ] **SORT-02**: User sees sort direction indicators on sortable column headers
+- [ ] **SORT-03**: User sees tables pre-sorted by a sensible default (IX participants by ASN, facilities by country)
 
-### gRPC Coverage
+### Flags
 
-- [x] **GRPC-01**: All 13 entity types have List filter tests covering optional proto field nil-checks
-- [x] **GRPC-02**: All 13 entity types have Stream tests (4 types currently missing)
-- [x] **GRPC-03**: Filter branch coverage reaches 80%+ across all 13 types using generic test helpers
+- [ ] **FLAG-01**: User sees SVG country flag icons alongside country codes in entity tables
+- [ ] **FLAG-02**: User sees country flags in search result entries
 
-### Web Coverage
+### Maps
 
-- [x] **WEB-01**: All 6 lazy-loaded fragment handlers have integration tests
-- [x] **WEB-02**: renderPage dispatch tested for terminal, JSON, and WHOIS output modes
-- [x] **WEB-03**: Edge case coverage for extractID, getFreshness, and error paths
-
-### Schema Coverage
-
-- [ ] **SCHEMA-01**: otelMutationHook error paths tested
-- [ ] **SCHEMA-02**: Relationship constraint validation tested for FK edge cases
-- [ ] **SCHEMA-03**: ent/schema hand-written code reaches 65%+ coverage (realistic ceiling)
-
-### Minor Package Gaps
-
-- [x] **MINOR-01**: internal/otel reaches 90%+ coverage with error path tests
-- [x] **MINOR-02**: internal/health reaches 90%+ coverage with edge case tests
-- [x] **MINOR-03**: internal/peeringdb reaches 90%+ coverage with error path tests
-
-### Test Quality
-
-- [ ] **QUAL-01**: Existing tests audited for assertion density -- no test asserts only err == nil without data checks
-- [x] **QUAL-02**: Every fmt.Errorf and connect.NewError call site has at least one test exercising the error path
-- [ ] **QUAL-03**: Fuzz test for filter parser covering untrusted input patterns
+- [ ] **MAP-01**: User sees an interactive map on facility detail pages showing the facility's location
+- [ ] **MAP-02**: User sees an interactive map on IX and network detail pages showing all associated facility locations with clustering
+- [ ] **MAP-03**: User sees an interactive map on ASN comparison page with colored pins (shared vs unique facilities)
+- [ ] **MAP-04**: User can click map pins to see popup with facility name and navigate to detail page
+- [ ] **MAP-05**: User sees map tiles switch between light/dark themes matching app dark mode
 
 ## Future Requirements
 
 Deferred to future milestones.
+
+### Server-Side Sorting
+
+- **SSORT-01**: Server-side table sorting via htmx for paginated datasets exceeding client-side limits
+
+### Map Enhancements
+
+- **MAPE-01**: Map on search results page showing locations of results
+- **MAPE-02**: Drawing tools / measurement on map for distance calculation
 
 ### Cross-Surface Consistency
 
 - **XSURF-01**: Same entity returns identical data across GraphQL, REST, PeeringDB compat, and gRPC surfaces
 - **XSURF-02**: Golden file tests for gRPC responses (after filter coverage is complete)
 
-### Advanced Testing
-
-- **ADV-01**: Property-based testing for data transformations
-- **ADV-02**: Mutation testing integrated into CI pipeline
-
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Testing generated code (ent/*, gen/*, generated.go) | Generated code is tested by its generators. Testing it directly inflates effort without value. |
-| 100% coverage targets | Diminishing returns past 85-90%. Static config methods in ent/schema are unreachable. |
-| New test framework (testify, gomock) | Project uses stdlib assertions consistently. Mixing styles creates inconsistency. |
-| Coverage badge services | Generated code distorts numbers. Per-function analysis is more useful. |
+| Server-side pagination for tables | PeeringDB data volumes are bounded (largest IX ~2500 participants). Client-side handling is sufficient. |
+| Search results map | Scope creep — search works well without a map. Defer to future. |
+| Map drawing/measurement tools | Read-only data mirror, not a network planning tool. |
+| Custom map markers (SVG icons) | Standard Leaflet markers with popups are sufficient for v1.11. |
+| Full Peercortex clone | Inspiration, not duplication. Focus on density, sorting, flags, maps. |
 
 ## Traceability
 
@@ -77,32 +68,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 37 | Complete |
-| INFRA-02 | Phase 42 | Pending |
-| GQL-01 | Phase 38 | Complete |
-| GQL-02 | Phase 38 | Complete |
-| GQL-03 | Phase 38 | Complete |
-| GRPC-01 | Phase 39 | Complete |
-| GRPC-02 | Phase 39 | Complete |
-| GRPC-03 | Phase 39 | Complete |
-| WEB-01 | Phase 40 | Complete |
-| WEB-02 | Phase 40 | Complete |
-| WEB-03 | Phase 40 | Complete |
-| SCHEMA-01 | Phase 41 | Pending |
-| SCHEMA-02 | Phase 41 | Pending |
-| SCHEMA-03 | Phase 41 | Pending |
-| MINOR-01 | Phase 41 | Complete |
-| MINOR-02 | Phase 41 | Complete |
-| MINOR-03 | Phase 41 | Complete |
-| QUAL-01 | Phase 42 | Pending |
-| QUAL-02 | Phase 42 | Complete |
-| QUAL-03 | Phase 42 | Pending |
+| DENS-01 | — | Pending |
+| DENS-02 | — | Pending |
+| DENS-03 | — | Pending |
+| DENS-04 | — | Pending |
+| DENS-05 | — | Pending |
+| SORT-01 | — | Pending |
+| SORT-02 | — | Pending |
+| SORT-03 | — | Pending |
+| FLAG-01 | — | Pending |
+| FLAG-02 | — | Pending |
+| MAP-01 | — | Pending |
+| MAP-02 | — | Pending |
+| MAP-03 | — | Pending |
+| MAP-04 | — | Pending |
+| MAP-05 | — | Pending |
 
 **Coverage:**
-- v1.10 requirements: 20 total
-- Mapped to phases: 20
-- Unmapped: 0
+- v1.11 requirements: 15 total
+- Mapped to phases: 0
+- Unmapped: 15 ⚠️
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after roadmap creation*
+*Last updated: 2026-03-26 after initial definition*
