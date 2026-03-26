@@ -54,25 +54,23 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] since_id stream resume and updated_since incremental filter on streaming RPCs — v1.7
 - [x] IX presence UI improvements (field labels, RS badge, port speed colors, copyable text) — v1.7
 
+- [x] Terminal client detection (User-Agent sniffing for curl, wget, HTTPie, etc.) — v1.8
+- [x] Content negotiation under existing /ui/ URLs — browsers unchanged, terminals get text — v1.8
+- [x] CLI help text at /ui/ for terminal clients listing available endpoints — v1.8
+- [x] Text-formatted error responses (404, 500) for terminal clients — v1.8
+- [x] Rich 256-color ANSI output with Unicode box drawing for all 6 entity types — v1.8
+- [x] Plain text mode (?T) and JSON mode (?format=json) as alternative output formats — v1.8
+- [x] WHOIS/RPSL format output (?format=whois) for all entity types — v1.8
+- [x] Short format one-liner mode (?format=short) for scripting — v1.8
+- [x] Data freshness timestamp footer on all terminal responses — v1.8
+- [x] Section filtering (?section=ix,fac) for detail views — v1.8
+- [x] Width adaptation (?w=N) with progressive column dropping — v1.8
+- [x] Bash and zsh shell completion scripts — v1.8
+- [x] Terminal search results and ASN comparison — v1.8
+
 ### Active
 
-- [x] Terminal client detection (User-Agent sniffing for curl, wget, HTTPie, etc.) — v1.8 Phase 28
-- [x] Content negotiation under existing /ui/ URLs — browsers unchanged, terminals get text — v1.8 Phase 28
-- [x] CLI help text at /ui/ for terminal clients listing available endpoints — v1.8 Phase 28
-- [x] Text-formatted error responses (404, 500) for terminal clients — v1.8 Phase 28
-- [ ] Rich 256-color ANSI output with Unicode box drawing for all 6 entity types
-- [ ] Plain text mode (?T) and JSON mode (?format=json) as alternative output formats
-
-## Current Milestone: v1.8 Terminal CLI Interface
-
-**Goal:** Enable network engineers to query PeeringDB data directly from the terminal with zero setup — just curl.
-
-**Target features:**
-- Terminal client detection via User-Agent (curl, wget, HTTPie, etc.)
-- Rich 256-color ANSI output with Unicode box drawing for all 6 entity types (network, IX, facility, org, campus, carrier)
-- Plain text mode (?T) and JSON mode (?format=json) as alternatives
-- Content negotiation under existing /ui/ URLs — browsers unchanged, terminals get text
-- CLI help and text-formatted error responses for terminal clients
+(No active requirements — start next milestone with `/gsd:new-milestone`)
 
 ### Deferred
 
@@ -155,6 +153,12 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 | since_id as both predicate and cursor | IDGT predicate affects count (grpc-total-count reflects remaining), sets initial lastID | ✓ Validated Phase 26 |
 | 5-tier port speed color coding | Sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber — networking industry intuitive gradient | ✓ Validated Phase 27 |
 | CopyableIP with click-to-copy + hover icon | Best discoverability — both click-on-IP and explicit clipboard icon | ✓ Validated Phase 27 |
+| lipgloss v2 + colorprofile for terminal rendering | Force ANSI256 over HTTP (not TTY), NoTTY for plain text; vanity domain charm.land/lipgloss/v2 | ✓ Validated Phase 28 |
+| Type-switch dispatch in RenderPage | Concrete type assertion over interface polymorphism — simpler, explicit, grep-able | ✓ Validated Phase 29 |
+| Eager-load child rows unconditionally | All 6 detail handlers eager-load regardless of render mode — simplifies handler logic | ✓ Validated Phase 30 |
+| RPSL aut-num class for WHOIS format | RFC 2622 aut-num for networks; custom ix:/site:/organisation:/campus:/carrier: for other types | ✓ Validated Phase 30 |
+| Renderer struct fields for per-request state | Sections/Width as exported fields set before RenderPage — avoids signature explosion (CS-5) | ✓ Validated Phase 31 |
+| Server-side completion search returning IDs only | Prevents shell injection from entity names containing special characters | ✓ Validated Phase 31 |
 
 ## Evolution
 
@@ -175,16 +179,14 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.7 with 27 phases across 8 milestones (v1.0-v1.7). Phase 28 complete — terminal client detection and content negotiation infrastructure. curl/wget/HTTPie clients now receive text output instead of HTML on all /ui/ URLs, with explicit format overrides (?T, ?format=json, ?nocolor). Help text at /ui/, text-formatted 404/500 errors. Built with lipgloss v2 for ANSI rendering, colorprofile for forced color profiles over HTTP. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Six user-facing surfaces: Web UI at /ui/, Terminal CLI at /ui/ (curl), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. Codebase passes golangci-lint v2 clean. Live deployment on Fly.io with comprehensive observability.
+Shipped v1.8 with 31 phases across 9 milestones (v1.0-v1.8). The terminal CLI interface is complete — all 6 PeeringDB entity types, search, and comparison are accessible via `curl` with rich ANSI output, plain text, JSON, WHOIS/RPSL, and short one-liner formats. Section filtering, width adaptation, data freshness footer, and shell completions (bash/zsh) round out the power-user experience. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Six user-facing surfaces: Web UI at /ui/, Terminal CLI at /ui/ (curl), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. 85 files, +16K lines added in v1.8.
 
 **Known tech debt:**
-- Nyquist validation incomplete for Phases 16-17, 21-24 (validation created but not formally signed off)
+- Nyquist validation frontmatter not formally signed off across v1.8 phases (VALIDATION.md exists, tests pass)
 - fly_region Grafana template variable needs verification after multi-region deployment
 - Go runtime metric names need verification against live Grafana Cloud
-- VFY-02 (coverage comment dedup) deferred to next PR creation
-- Syncing page animation and 500 error page untestable non-destructively in production
+- /ui/about terminal rendering falls through to generic stub (not in v1.8 scope)
 - 2 unused conversion helpers (boolPtrVal, float64PtrVal) in grpcserver/convert.go
-- 9 human verification items from v1.6 deferred to runtime testing
 
 ---
-*Last updated: 2026-03-25 after Phase 28 completion*
+*Last updated: 2026-03-26 after v1.8 milestone*

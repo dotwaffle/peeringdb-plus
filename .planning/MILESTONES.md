@@ -1,5 +1,26 @@
 # Milestones
 
+## v1.8 Terminal CLI Interface (Shipped: 2026-03-26)
+
+**Phases completed:** 4 phases, 12 plans, 24 tasks
+
+**Key accomplishments:**
+
+- Terminal client detection priority chain with lipgloss v2 ANSI rendering engine and Tailwind-to-ANSI256 color tier mapping
+- Terminal detection wired into renderPage with Rich/Plain/JSON branching, wttr.in-style help text, and styled error pages
+- Root handler terminal detection (NAV-04) with 14 integration tests covering curl/wget/HTTPie UA detection, Accept header negotiation, query param overrides, ANSI color control, and text error pages
+- Eager IX/facility data fetching in handleNetworkDetail, type-switch dispatch in RenderPage, and 6 tested terminal formatting helpers (speed tiers, policy colors, bandwidth, cross-references)
+- Whois-style RenderNetworkDetail with 15-field aligned header, color-coded policy/speed, RS badges, IX/facility sections with cross-references, and 12 comprehensive tests
+- IX and Facility rich terminal renderers with full data plumbing across all 5 entity types, handler eager-loading, type-switch dispatch, and search/WHOIS mode detection
+- Org, Campus, Carrier terminal renderers with D-03 compact layout, cross-referenced child entity lists, and 17 table-driven tests
+- Search grouped-text-list and ASN comparison renderers with per-network IX presence details, cross-references, and TDD test coverage
+- RPSL-like WHOIS format for all 6 entity types with 16-char key alignment and JSON child entity completeness verification
+- Pipe-delimited ?format=short mode for scripting and FormatFreshness sync timestamp footer on all terminal responses
+- Section filtering (?section=ix,fac) and width-adaptive column dropping (?w=N) for terminal detail views
+- Bash/zsh completion scripts with server-side search endpoint and help text with shell integration setup instructions
+
+---
+
 ## v1.7 Streaming RPCs & UI Polish (Shipped: 2026-03-25)
 
 **Phases completed:** 3 phases, 6 plans, 11 tasks
