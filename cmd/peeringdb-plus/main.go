@@ -30,7 +30,6 @@ import (
 	pdbgql "github.com/dotwaffle/peeringdb-plus/internal/graphql"
 	"github.com/dotwaffle/peeringdb-plus/internal/grpcserver"
 	"github.com/dotwaffle/peeringdb-plus/internal/health"
-	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
@@ -58,7 +57,7 @@ func main() {
 	// Load config from environment per D-33, CFG-1.
 	cfg, err := config.Load()
 	if err != nil {
-		slog.Error("failed to load config", slog.Any("error", err))
+		slog.Error("failed to load config", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
@@ -71,7 +70,7 @@ func main() {
 		SampleRate:  cfg.OTelSampleRate,
 	})
 	if err != nil {
-		slog.Error("failed to init otel", slog.Any("error", err))
+		slog.Error("failed to init otel", slog.String("error", err.Error()))
 		os.Exit(1) //nolint:gocritic // exitAfterDefer: cancel() deferred above is trivial at this stage
 	}
 	defer otelOut.Shutdown(ctx) //nolint:errcheck // best-effort flush at exit
@@ -82,14 +81,14 @@ func main() {
 
 	// Initialize custom sync metrics per D-05.
 	if err := pdbotel.InitMetrics(); err != nil {
-		logger.Error("failed to init metrics", slog.Any("error", err))
+		logger.Error("failed to init metrics", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
 	// Open database per D-28, D-34.
 	entClient, db, err := database.Open(cfg.DBPath)
 	if err != nil {
-		logger.Error("failed to open database", slog.Any("error", err))
+		logger.Error("failed to open database", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	defer entClient.Close()
@@ -105,7 +104,7 @@ func main() {
 	// Auto-migrate schema on primary per D-43.
 	if isPrimary {
 		if err := entClient.Schema.Create(ctx); err != nil {
-			logger.Error("failed to migrate schema", slog.Any("error", err))
+			logger.Error("failed to migrate schema", slog.String("error", err.Error()))
 			os.Exit(1)
 		}
 	}
@@ -113,7 +112,7 @@ func main() {
 	// Initialize sync_status table on primary (raw SQL, outside ent schema management).
 	if isPrimary {
 		if err := pdbsync.InitStatusTable(ctx, db); err != nil {
-			logger.Error("failed to init sync_status table", slog.Any("error", err))
+			logger.Error("failed to init sync_status table", slog.String("error", err.Error()))
 			os.Exit(1)
 		}
 	}
@@ -126,13 +125,13 @@ func main() {
 		}
 		return status.LastSyncAt, true
 	}); err != nil {
-		logger.Error("failed to init freshness gauge", slog.Any("error", err))
+		logger.Error("failed to init freshness gauge", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
 	// Initialize per-type object count gauges for business metrics dashboard.
 	if err := pdbotel.InitObjectCountGauges(entClient); err != nil {
-		logger.Error("failed to init object count gauges", slog.Any("error", err))
+		logger.Error("failed to init object count gauges", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
@@ -204,11 +203,11 @@ func main() {
 		BasePath: "/rest/v1",
 	})
 	if err != nil {
-		logger.Error("failed to create REST server", slog.Any("error", err))
+		logger.Error("failed to create REST server", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})
-	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restSrv.Handler())))
+	mux.Handle("/rest/v1/", restCORS(restSrv.Handler()))
 	logger.Info("REST API mounted", slog.String("prefix", "/rest/v1/"))
 
 	// Mount PeeringDB compatibility API at /api/ per D-27, D-28.
@@ -228,7 +227,7 @@ func main() {
 		otelconnect.WithoutTraceEvents(), // Suppress per-message events (critical for streaming RPCs per STRM-06).
 	)
 	if err != nil {
-		logger.Error("failed to create otel interceptor", slog.Any("error", err))
+		logger.Error("failed to create otel interceptor", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	handlerOpts := connect.WithInterceptors(otelInterceptor)
@@ -331,7 +330,7 @@ func main() {
 				freshness = status.LastSyncAt
 			}
 			if err := renderer.RenderHelp(w, freshness); err != nil {
-				slog.Error("render terminal help", slog.Any("error", err))
+				slog.Error("render terminal help", slog.String("error", err.Error()))
 			}
 			return
 
@@ -353,11 +352,19 @@ func main() {
 	})
 
 	// Build middleware stack (outermost first):
-	// Recovery -> CORS -> OTel HTTP -> Logging -> Readiness -> mux
-	handler := readinessMiddleware(syncWorker, mux)
+	// Recovery -> OTel HTTP -> Logging -> CORS -> Readiness -> Caching -> mux
+	cachingMiddleware := middleware.Caching(middleware.CachingInput{
+		SyncTimeFn: func() time.Time {
+			t, _ := pdbsync.GetLastSuccessfulSyncTime(context.Background(), db)
+			return t
+		},
+		SyncInterval: cfg.SyncInterval,
+	})
+	handler := cachingMiddleware(mux)
+	handler = readinessMiddleware(syncWorker, handler)
+	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
 	handler = middleware.Logging(logger)(handler)
 	handler = otelhttp.NewMiddleware("peeringdb-plus")(handler)
-	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
 	handler = middleware.Recovery(logger)(handler)
 
 	// Enable HTTP/1.1 + h2c (HTTP/2 cleartext) for gRPC support.
@@ -382,7 +389,7 @@ func main() {
 			slog.Bool("h2c", true),
 		)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("server error", slog.Any("error", err))
+			logger.Error("server error", slog.String("error", err.Error()))
 			os.Exit(1)
 		}
 	}()
@@ -394,75 +401,8 @@ func main() {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.DrainTimeout)
 	defer shutdownCancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		logger.Error("shutdown error", slog.Any("error", err))
+		logger.Error("shutdown error", slog.String("error", err.Error()))
 	}
-}
-
-// restErrorMiddleware wraps an HTTP handler to rewrite error responses (status >= 400)
-// into RFC 9457 Problem Details format. Successful responses pass through unchanged.
-// The wrapper implements http.Flusher and Unwrap per CLAUDE.md middleware conventions.
-func restErrorMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		rw := &restErrorWriter{ResponseWriter: w, request: r}
-		next.ServeHTTP(rw, r)
-
-		// If the upstream wrote an error status but we buffered the body,
-		// rewrite it as RFC 9457.
-		if rw.status >= 400 && !rw.flushed {
-			httperr.WriteProblem(w, httperr.WriteProblemInput{
-				Status:   rw.status,
-				Detail:   strings.TrimSpace(rw.buf.String()),
-				Instance: r.URL.Path,
-			})
-		}
-	})
-}
-
-// restErrorWriter intercepts WriteHeader and Write to capture error responses.
-// For status < 400, it writes through immediately. For status >= 400, it buffers
-// the body so it can be replaced with RFC 9457 format.
-type restErrorWriter struct {
-	http.ResponseWriter
-	request *http.Request
-	status  int
-	buf     strings.Builder
-	flushed bool // true if we already wrote through (success path)
-}
-
-// WriteHeader captures the status code. For success, it writes through immediately.
-// For errors (>= 400), it stores the status for later rewriting.
-func (w *restErrorWriter) WriteHeader(statusCode int) {
-	w.status = statusCode
-	if statusCode < 400 {
-		w.flushed = true
-		w.ResponseWriter.WriteHeader(statusCode)
-	}
-	// For errors, don't write the header yet -- we'll rewrite in the middleware.
-}
-
-// Write passes through for success responses or buffers for error responses.
-func (w *restErrorWriter) Write(b []byte) (int, error) {
-	if w.status == 0 {
-		w.status = http.StatusOK
-		w.flushed = true
-	}
-	if w.flushed {
-		return w.ResponseWriter.Write(b)
-	}
-	// Buffer error body for rewriting.
-	return w.buf.Write(b)
-}
-
-// Flush implements http.Flusher by delegating to the underlying writer.
-func (w *restErrorWriter) Flush() {
-	if f, ok := w.ResponseWriter.(http.Flusher); ok {
-		f.Flush()
-	}
-}
-
-// Unwrap returns the underlying http.ResponseWriter for middleware-aware detection.
-func (w *restErrorWriter) Unwrap() http.ResponseWriter {
-	return w.ResponseWriter
 }
 
 // syncReadiness reports whether at least one sync has completed.
