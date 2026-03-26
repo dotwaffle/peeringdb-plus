@@ -17,7 +17,7 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 
 ### Code Quality
 
-- [ ] **QUAL-01**: gRPC service handlers share a generic List/Stream implementation, eliminating ~1,154 lines of duplicated logic across 13 files
+- [x] **QUAL-01**: gRPC service handlers share a generic List/Stream implementation, eliminating ~1,154 lines of duplicated logic across 13 files
 - [x] **QUAL-02**: All error logging uses `slog.Any("error", err)` instead of `slog.String("error", err.Error())`
 - [ ] **QUAL-03**: Test coverage for `internal/grpcserver` reaches 60%+ and `internal/middleware` reaches 60%+
 - [ ] **QUAL-04**: Web detail handlers in `detail.go` are refactored to separate query logic from rendering (each under 80 lines)
@@ -72,7 +72,7 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 | PERF-03 | Phase 34 | Pending |
 | PERF-04 | Phase 35 | Pending |
 | PERF-05 | Phase 34 | Pending |
-| QUAL-01 | Phase 33 | Pending |
+| QUAL-01 | Phase 33 | Complete |
 | QUAL-02 | Phase 32 | Complete |
 | QUAL-03 | Phase 33 | Pending |
 | QUAL-04 | Phase 34 | Pending |
