@@ -29,8 +29,8 @@ Requirements for the Web UI Density & Interactivity milestone. Each maps to road
 ### Maps
 
 - [x] **MAP-01**: User sees an interactive map on facility detail pages showing the facility's location
-- [ ] **MAP-02**: User sees an interactive map on IX and network detail pages showing all associated facility locations with clustering
-- [ ] **MAP-03**: User sees an interactive map on ASN comparison page with colored pins (shared vs unique facilities)
+- [x] **MAP-02**: User sees an interactive map on IX and network detail pages showing all associated facility locations with clustering
+- [x] **MAP-03**: User sees an interactive map on ASN comparison page with colored pins (shared vs unique facilities)
 - [x] **MAP-04**: User can click map pins to see popup with facility name and navigate to detail page
 - [x] **MAP-05**: User sees map tiles switch between light/dark themes matching app dark mode
 
@@ -79,8 +79,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FLAG-01 | Phase 43 | In Progress (43-01) |
 | FLAG-02 | Phase 46 | Pending |
 | MAP-01 | Phase 44 | Complete |
-| MAP-02 | Phase 45 | Pending |
-| MAP-03 | Phase 45 | Pending |
+| MAP-02 | Phase 45 | Complete |
+| MAP-03 | Phase 45 | Complete |
 | MAP-04 | Phase 44 | Complete |
 | MAP-05 | Phase 44 | Complete |
 

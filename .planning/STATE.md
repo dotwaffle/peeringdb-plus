@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 45-01-PLAN.md
-last_updated: "2026-03-26T22:35:13Z"
+stopped_at: Completed 45-02-PLAN.md
+last_updated: "2026-03-26T22:48:54.334Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 3
+  total_plans: 8
+  completed_plans: 8
   percent: 33
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 45
-Plan: 1 of 2 complete
-Status: Executing Phase 45
+Plan: 2 of 2 complete
+Status: Ready to execute
 Last activity: 2026-03-26
 
 Progress: [███░░░░░░░] 33%
@@ -57,6 +57,7 @@ Progress: [███░░░░░░░] 33%
 | Phase 44 P01 | 3min | 2 tasks | 8 files |
 | Phase 44 P02 | 3min | 2 tasks | 2 files |
 | Phase 45 P01 | 15min | 2 tasks | 6 files |
+| Phase 45 P02 | 8min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,7 @@ All decisions archived in PROJECT.md Key Decisions table (42 decisions across 11
 - [Phase 45]: Server-side popup HTML serialized into marker JSON avoids building HTML in JavaScript
 - [Phase 45]: filterMappableMarkers keeps markers where at least one coordinate is non-zero
 - [Phase 45]: Legend uses inline styles in Leaflet Control for dark mode support
+- [Phase 45]: AllFacilities computed unconditionally (outside ViewMode if-block) so comparison map always renders in both shared and full view modes
 
 ### Pending Todos
 
@@ -86,6 +88,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T22:35:13Z
-Stopped at: Completed 45-01-PLAN.md
+Last session: 2026-03-26T22:48:54.330Z
+Stopped at: Completed 45-02-PLAN.md
 Resume file: None
