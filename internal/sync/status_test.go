@@ -2,6 +2,7 @@ package sync_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -119,5 +120,152 @@ func TestGetCursor_IgnoresFailedStatus(t *testing.T) {
 	}
 	if !got.IsZero() {
 		t.Errorf("expected zero time for failed cursor, got %v", got)
+	}
+}
+
+func TestInitStatusTable_DBError(t *testing.T) {
+	t.Parallel()
+	_, db := testutil.SetupClientWithDB(t)
+	ctx := context.Background()
+
+	db.Close()
+
+	err := sync.InitStatusTable(ctx, db)
+	if err == nil {
+		t.Fatal("expected error for closed DB, got nil")
+	}
+	if !strings.Contains(err.Error(), "create sync_status table") {
+		t.Errorf("error = %q, want substring %q", err.Error(), "create sync_status table")
+	}
+}
+
+func TestGetCursor_DBError(t *testing.T) {
+	t.Parallel()
+	_, db := testutil.SetupClientWithDB(t)
+	ctx := context.Background()
+
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("InitStatusTable: %v", err)
+	}
+
+	db.Close()
+
+	_, err := sync.GetCursor(ctx, db, "net")
+	if err == nil {
+		t.Fatal("expected error for closed DB, got nil")
+	}
+	if !strings.Contains(err.Error(), "get cursor for") {
+		t.Errorf("error = %q, want substring %q", err.Error(), "get cursor for")
+	}
+}
+
+func TestUpsertCursor_DBError(t *testing.T) {
+	t.Parallel()
+	_, db := testutil.SetupClientWithDB(t)
+	ctx := context.Background()
+
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("InitStatusTable: %v", err)
+	}
+
+	db.Close()
+
+	err := sync.UpsertCursor(ctx, db, "net", time.Now(), "success")
+	if err == nil {
+		t.Fatal("expected error for closed DB, got nil")
+	}
+	if !strings.Contains(err.Error(), "upsert cursor for") {
+		t.Errorf("error = %q, want substring %q", err.Error(), "upsert cursor for")
+	}
+}
+
+func TestRecordSyncStart_DBError(t *testing.T) {
+	t.Parallel()
+	_, db := testutil.SetupClientWithDB(t)
+	ctx := context.Background()
+
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("InitStatusTable: %v", err)
+	}
+
+	db.Close()
+
+	_, err := sync.RecordSyncStart(ctx, db, time.Now())
+	if err == nil {
+		t.Fatal("expected error for closed DB, got nil")
+	}
+	if !strings.Contains(err.Error(), "record sync start") {
+		t.Errorf("error = %q, want substring %q", err.Error(), "record sync start")
+	}
+}
+
+func TestRecordSyncComplete_DBError(t *testing.T) {
+	t.Parallel()
+	_, db := testutil.SetupClientWithDB(t)
+	ctx := context.Background()
+
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("InitStatusTable: %v", err)
+	}
+
+	// Record a start row so we have a valid ID.
+	id, err := sync.RecordSyncStart(ctx, db, time.Now())
+	if err != nil {
+		t.Fatalf("RecordSyncStart: %v", err)
+	}
+
+	db.Close()
+
+	err = sync.RecordSyncComplete(ctx, db, id, sync.Status{
+		LastSyncAt:   time.Now(),
+		Duration:     time.Second,
+		ObjectCounts: map[string]int{"net": 10},
+		Status:       "success",
+	})
+	if err == nil {
+		t.Fatal("expected error for closed DB, got nil")
+	}
+	if !strings.Contains(err.Error(), "record sync complete") {
+		t.Errorf("error = %q, want substring %q", err.Error(), "record sync complete")
+	}
+}
+
+func TestGetLastSuccessfulSyncTime_DBError(t *testing.T) {
+	t.Parallel()
+	_, db := testutil.SetupClientWithDB(t)
+	ctx := context.Background()
+
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("InitStatusTable: %v", err)
+	}
+
+	db.Close()
+
+	_, err := sync.GetLastSuccessfulSyncTime(ctx, db)
+	if err == nil {
+		t.Fatal("expected error for closed DB, got nil")
+	}
+	if !strings.Contains(err.Error(), "get last successful sync time") {
+		t.Errorf("error = %q, want substring %q", err.Error(), "get last successful sync time")
+	}
+}
+
+func TestGetLastStatus_DBError(t *testing.T) {
+	t.Parallel()
+	_, db := testutil.SetupClientWithDB(t)
+	ctx := context.Background()
+
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("InitStatusTable: %v", err)
+	}
+
+	db.Close()
+
+	_, err := sync.GetLastStatus(ctx, db)
+	if err == nil {
+		t.Fatal("expected error for closed DB, got nil")
+	}
+	if !strings.Contains(err.Error(), "get last sync status") {
+		t.Errorf("error = %q, want substring %q", err.Error(), "get last sync status")
 	}
 }
