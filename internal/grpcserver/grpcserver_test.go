@@ -3243,6 +3243,470 @@ func TestGetNetworkIxLan(t *testing.T) {
 }
 
 // =======================================================================
+// Filter validation error path tests (uncovered secondary ID validations)
+// =======================================================================
+
+// TestFilterValidationErrors covers all uncovered filter validation error paths
+// across all 13 entity types. These test the applyXxxListFilters and
+// applyXxxStreamFilters functions for secondary/tertiary ID field validation.
+func TestFilterValidationErrors(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NetworkIxLan_List_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name    string
+			req     *pb.ListNetworkIxLansRequest
+			wantMsg string
+		}{
+			{name: "net_side_id negative", req: &pb.ListNetworkIxLansRequest{NetSideId: proto.Int64(-1)}, wantMsg: "net_side_id must be positive"},
+			{name: "ix_side_id zero", req: &pb.ListNetworkIxLansRequest{IxSideId: proto.Int64(0)}, wantMsg: "ix_side_id must be positive"},
+			{name: "net_id negative", req: &pb.ListNetworkIxLansRequest{NetId: proto.Int64(-1)}, wantMsg: "net_id must be positive"},
+			{name: "ixlan_id zero", req: &pb.ListNetworkIxLansRequest{IxlanId: proto.Int64(0)}, wantMsg: "ixlan_id must be positive"},
+			{name: "asn negative", req: &pb.ListNetworkIxLansRequest{Asn: proto.Int64(-1)}, wantMsg: "asn must be positive"},
+			{name: "ix_id zero", req: &pb.ListNetworkIxLansRequest{IxId: proto.Int64(0)}, wantMsg: "ix_id must be positive"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				_, err := applyNetworkIxLanListFilters(tt.req)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+					t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+				}
+				if !containsStr(err.Error(), tt.wantMsg) {
+					t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
+				}
+			})
+		}
+	})
+
+	t.Run("NetworkIxLan_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name    string
+			req     *pb.StreamNetworkIxLansRequest
+			wantMsg string
+		}{
+			{name: "net_side_id negative", req: &pb.StreamNetworkIxLansRequest{NetSideId: proto.Int64(-1)}, wantMsg: "net_side_id must be positive"},
+			{name: "ix_side_id zero", req: &pb.StreamNetworkIxLansRequest{IxSideId: proto.Int64(0)}, wantMsg: "ix_side_id must be positive"},
+			{name: "net_id negative", req: &pb.StreamNetworkIxLansRequest{NetId: proto.Int64(-1)}, wantMsg: "net_id must be positive"},
+			{name: "ixlan_id zero", req: &pb.StreamNetworkIxLansRequest{IxlanId: proto.Int64(0)}, wantMsg: "ixlan_id must be positive"},
+			{name: "asn negative", req: &pb.StreamNetworkIxLansRequest{Asn: proto.Int64(-1)}, wantMsg: "asn must be positive"},
+			{name: "ix_id zero", req: &pb.StreamNetworkIxLansRequest{IxId: proto.Int64(0)}, wantMsg: "ix_id must be positive"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				_, err := applyNetworkIxLanStreamFilters(tt.req)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+					t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+				}
+				if !containsStr(err.Error(), tt.wantMsg) {
+					t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
+				}
+			})
+		}
+	})
+
+	t.Run("NetworkFacility_List_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name    string
+			req     *pb.ListNetworkFacilitiesRequest
+			wantMsg string
+		}{
+			{name: "local_asn negative", req: &pb.ListNetworkFacilitiesRequest{LocalAsn: proto.Int64(-1)}, wantMsg: "local_asn must be positive"},
+			{name: "net_id zero", req: &pb.ListNetworkFacilitiesRequest{NetId: proto.Int64(0)}, wantMsg: "net_id must be positive"},
+			{name: "fac_id negative", req: &pb.ListNetworkFacilitiesRequest{FacId: proto.Int64(-1)}, wantMsg: "fac_id must be positive"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				_, err := applyNetworkFacilityListFilters(tt.req)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+					t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+				}
+				if !containsStr(err.Error(), tt.wantMsg) {
+					t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
+				}
+			})
+		}
+	})
+
+	t.Run("NetworkFacility_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name    string
+			req     *pb.StreamNetworkFacilitiesRequest
+			wantMsg string
+		}{
+			{name: "local_asn negative", req: &pb.StreamNetworkFacilitiesRequest{LocalAsn: proto.Int64(-1)}, wantMsg: "local_asn must be positive"},
+			{name: "net_id zero", req: &pb.StreamNetworkFacilitiesRequest{NetId: proto.Int64(0)}, wantMsg: "net_id must be positive"},
+			{name: "fac_id negative", req: &pb.StreamNetworkFacilitiesRequest{FacId: proto.Int64(-1)}, wantMsg: "fac_id must be positive"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				_, err := applyNetworkFacilityStreamFilters(tt.req)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+					t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+				}
+			})
+		}
+	})
+
+	t.Run("CarrierFacility_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name    string
+			req     *pb.StreamCarrierFacilitiesRequest
+			wantMsg string
+		}{
+			{name: "carrier_id negative", req: &pb.StreamCarrierFacilitiesRequest{CarrierId: proto.Int64(-1)}, wantMsg: "carrier_id must be positive"},
+			{name: "fac_id zero", req: &pb.StreamCarrierFacilitiesRequest{FacId: proto.Int64(0)}, wantMsg: "fac_id must be positive"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				_, err := applyCarrierFacilityStreamFilters(tt.req)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+					t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+				}
+			})
+		}
+	})
+
+	t.Run("IxFacility_List_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name    string
+			req     *pb.ListIxFacilitiesRequest
+			wantMsg string
+		}{
+			{name: "ix_id zero", req: &pb.ListIxFacilitiesRequest{IxId: proto.Int64(0)}, wantMsg: "ix_id must be positive"},
+			{name: "fac_id negative", req: &pb.ListIxFacilitiesRequest{FacId: proto.Int64(-1)}, wantMsg: "fac_id must be positive"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				_, err := applyIxFacilityListFilters(tt.req)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+					t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+				}
+			})
+		}
+	})
+
+	t.Run("IxFacility_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name    string
+			req     *pb.StreamIxFacilitiesRequest
+			wantMsg string
+		}{
+			{name: "ix_id zero", req: &pb.StreamIxFacilitiesRequest{IxId: proto.Int64(0)}, wantMsg: "ix_id must be positive"},
+			{name: "fac_id negative", req: &pb.StreamIxFacilitiesRequest{FacId: proto.Int64(-1)}, wantMsg: "fac_id must be positive"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				_, err := applyIxFacilityStreamFilters(tt.req)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+					t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+				}
+			})
+		}
+	})
+
+	t.Run("IxLan_List_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name    string
+			req     *pb.ListIxLansRequest
+			wantMsg string
+		}{
+			{name: "ix_id zero", req: &pb.ListIxLansRequest{IxId: proto.Int64(0)}, wantMsg: "ix_id must be positive"},
+			{name: "rs_asn negative", req: &pb.ListIxLansRequest{RsAsn: proto.Int64(-1)}, wantMsg: "rs_asn must be positive"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				_, err := applyIxLanListFilters(tt.req)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+					t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+				}
+			})
+		}
+	})
+
+	t.Run("IxLan_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name    string
+			req     *pb.StreamIxLansRequest
+			wantMsg string
+		}{
+			{name: "ix_id zero", req: &pb.StreamIxLansRequest{IxId: proto.Int64(0)}, wantMsg: "ix_id must be positive"},
+			{name: "rs_asn negative", req: &pb.StreamIxLansRequest{RsAsn: proto.Int64(-1)}, wantMsg: "rs_asn must be positive"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				_, err := applyIxLanStreamFilters(tt.req)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+					t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+				}
+			})
+		}
+	})
+
+	t.Run("IxPrefix_List_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		_, err := applyIxPrefixListFilters(&pb.ListIxPrefixesRequest{IxlanId: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+		if !containsStr(err.Error(), "ixlan_id must be positive") {
+			t.Errorf("error %q does not contain expected message", err.Error())
+		}
+	})
+
+	t.Run("IxPrefix_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		_, err := applyIxPrefixStreamFilters(&pb.StreamIxPrefixesRequest{IxlanId: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+	})
+
+	t.Run("Poc_List_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		_, err := applyPocListFilters(&pb.ListPocsRequest{NetId: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+		if !containsStr(err.Error(), "net_id must be positive") {
+			t.Errorf("error %q does not contain expected message", err.Error())
+		}
+	})
+
+	t.Run("Poc_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		_, err := applyPocStreamFilters(&pb.StreamPocsRequest{NetId: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+	})
+
+	t.Run("Carrier_List_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		_, err := applyCarrierListFilters(&pb.ListCarriersRequest{OrgId: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+		if !containsStr(err.Error(), "org_id must be positive") {
+			t.Errorf("error %q does not contain expected message", err.Error())
+		}
+	})
+
+	t.Run("Carrier_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		_, err := applyCarrierStreamFilters(&pb.StreamCarriersRequest{OrgId: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+	})
+
+	t.Run("InternetExchange_List_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		_, err := applyInternetExchangeListFilters(&pb.ListInternetExchangesRequest{OrgId: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+		if !containsStr(err.Error(), "org_id must be positive") {
+			t.Errorf("error %q does not contain expected message", err.Error())
+		}
+	})
+
+	t.Run("InternetExchange_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		_, err := applyInternetExchangeStreamFilters(&pb.StreamInternetExchangesRequest{OrgId: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+	})
+
+	t.Run("Facility_List_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name    string
+			req     *pb.ListFacilitiesRequest
+			wantMsg string
+		}{
+			{name: "org_id negative", req: &pb.ListFacilitiesRequest{OrgId: proto.Int64(-1)}, wantMsg: "org_id must be positive"},
+			{name: "campus_id zero", req: &pb.ListFacilitiesRequest{CampusId: proto.Int64(0)}, wantMsg: "campus_id must be positive"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				_, err := applyFacilityListFilters(tt.req)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+					t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+				}
+			})
+		}
+	})
+
+	t.Run("Facility_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		tests := []struct {
+			name    string
+			req     *pb.StreamFacilitiesRequest
+			wantMsg string
+		}{
+			{name: "org_id negative", req: &pb.StreamFacilitiesRequest{OrgId: proto.Int64(-1)}, wantMsg: "org_id must be positive"},
+			{name: "campus_id zero", req: &pb.StreamFacilitiesRequest{CampusId: proto.Int64(0)}, wantMsg: "campus_id must be positive"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				_, err := applyFacilityStreamFilters(tt.req)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+					t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+				}
+			})
+		}
+	})
+
+	t.Run("Campus_List_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		_, err := applyCampusListFilters(&pb.ListCampusesRequest{OrgId: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+		if !containsStr(err.Error(), "org_id must be positive") {
+			t.Errorf("error %q does not contain expected message", err.Error())
+		}
+	})
+
+	t.Run("Campus_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		_, err := applyCampusStreamFilters(&pb.StreamCampusesRequest{OrgId: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+	})
+
+	t.Run("Network_List_id_filter", func(t *testing.T) {
+		t.Parallel()
+		_, err := applyNetworkListFilters(&pb.ListNetworksRequest{Id: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+		if !containsStr(err.Error(), "id must be positive") {
+			t.Errorf("error %q does not contain expected message", err.Error())
+		}
+	})
+
+	t.Run("Network_Stream_id_filter", func(t *testing.T) {
+		t.Parallel()
+		// Network stream filters with invalid org_id.
+		_, err := applyNetworkStreamFilters(&pb.StreamNetworksRequest{OrgId: proto.Int64(-1)})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if code := connect.CodeOf(err); code != connect.CodeInvalidArgument {
+			t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
+		}
+	})
+
+	t.Run("Organization_Stream_secondary_filters", func(t *testing.T) {
+		t.Parallel()
+		// Organization stream has ID filter only.
+		_, err := applyOrganizationStreamFilters(&pb.StreamOrganizationsRequest{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}
+
+// containsStr reports whether s contains substr.
+func containsStr(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
+// =======================================================================
 // Stream test helpers and tests for non-Network entity types
 // =======================================================================
 
