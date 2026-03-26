@@ -174,8 +174,12 @@ Plans:
   2. When many pins overlap in the same geographic area, they cluster into a numbered circle that expands on click
   3. The ASN comparison page displays a map with two pin colors distinguishing shared facilities from facilities unique to each network
   4. All multi-pin maps auto-fit bounds to show all pins, and clicking any pin shows a popup with facility name linking to its detail page
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 45-01-PLAN.md -- Markercluster CDN, row struct enrichment, MultiPinMapContainer component, popup helpers
+- [ ] 45-02-PLAN.md -- Handler query enrichment, IX/network/compare page integration, multi-pin map tests
 
 ### Phase 46: Search & Compare Density
 **Goal**: Users see search results and ASN comparison tables in a denser layout with country flags, completing the information density overhaul
@@ -198,5 +202,5 @@ Phases execute in numeric order: 43 -> 44 -> 45 -> 46
 |-------|----------------|--------|-----------|
 | 43. Dense Tables with Sorting and Flags | 4/4 | Complete    | 2026-03-26 |
 | 44. Facility Map & Map Infrastructure | 2/2 | Complete    | 2026-03-26 |
-| 45. Multi-Pin Maps | 0/? | Not started | - |
+| 45. Multi-Pin Maps | 0/2 | Not started | - |
 | 46. Search & Compare Density | 0/? | Not started | - |
