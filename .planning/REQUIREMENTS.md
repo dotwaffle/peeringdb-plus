@@ -14,9 +14,9 @@ Requirements for the Code Coverage & Test Quality milestone. Each maps to roadma
 
 ### GraphQL Coverage
 
-- [ ] **GQL-01**: All 13 offset/limit list resolvers have integration tests with data assertions
-- [ ] **GQL-02**: Custom resolver error paths tested (NetworkByAsn not found, SyncStatus missing, validatePageSize)
-- [ ] **GQL-03**: Hand-written resolver files (custom.resolvers.go, schema.resolvers.go, pagination.go) reach 80%+ coverage
+- [x] **GQL-01**: All 13 offset/limit list resolvers have integration tests with data assertions
+- [x] **GQL-02**: Custom resolver error paths tested (NetworkByAsn not found, SyncStatus missing, validatePageSize)
+- [x] **GQL-03**: Hand-written resolver files (custom.resolvers.go, schema.resolvers.go, pagination.go) reach 80%+ coverage
 
 ### gRPC Coverage
 
@@ -79,9 +79,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | INFRA-01 | Phase 37 | Complete |
 | INFRA-02 | Phase 42 | Pending |
-| GQL-01 | Phase 38 | Pending |
-| GQL-02 | Phase 38 | Pending |
-| GQL-03 | Phase 38 | Pending |
+| GQL-01 | Phase 38 | Complete |
+| GQL-02 | Phase 38 | Complete |
+| GQL-03 | Phase 38 | Complete |
 | GRPC-01 | Phase 39 | Pending |
 | GRPC-02 | Phase 39 | Pending |
 | GRPC-03 | Phase 39 | Pending |
