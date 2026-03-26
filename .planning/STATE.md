@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 42-05-PLAN.md
-last_updated: "2026-03-26T14:05:55.835Z"
+stopped_at: Completed 46-01-PLAN.md
+last_updated: "2026-03-26T23:15:30Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 6
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 40 — Web Handler Coverage
+**Current focus:** Phase 46 — Search & Compare Density
 
 ## Current Position
 
-Phase: 42
-Plan: Not started
-Status: Executing Phase 40
+Phase: 46
+Plan: 01 of 2 complete
+Status: Executing Phase 46
 Last activity: 2026-03-26
 
 Progress: [░░░░░░░░░░] 0%
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 41 P02 | 8 | 2 tasks | 4 files |
 | Phase 42 P03 | 10min | 2 tasks | 4 files |
 | Phase 42 P05 | 3min | 1 tasks | 1 files |
+| Phase 46 P01 | 9min | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ All decisions archived in PROJECT.md Key Decisions table (42 decisions across 9 
 - [Phase 41]: Accept 87.4% as otel ceiling -- 9 InitMetrics error branches unreachable with valid MeterProvider
 - [Phase 42]: Test filter validation functions directly rather than through full RPC for maximum coverage of secondary ID filters
 - [Phase 42]: Empty where not clause reliably triggers ErrEmptyXxxWhereInput for error path testing
+- [Phase 46]: Decompose Subtitle into Country/City/ASN for type-safe metadata rendering
+- [Phase 46]: Networks get ASN only (no org join per D-07) keeping queries simple
 
 ### Pending Todos
 
@@ -80,6 +83,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T13:49:35.043Z
-Stopped at: Completed 42-05-PLAN.md
+Last session: 2026-03-26T23:15:30Z
+Stopped at: Completed 46-01-PLAN.md
 Resume file: None
