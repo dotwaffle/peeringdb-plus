@@ -2,35 +2,29 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 34-02-PLAN.md
-last_updated: "2026-03-26T07:19:57.277Z"
-last_activity: 2026-03-26
+status: v1.8 milestone complete
+stopped_at: Completed 34-03-PLAN.md
+last_updated: "2026-03-26T07:17:38Z"
 progress:
-  total_phases: 5
-  completed_phases: 2
-  total_plans: 7
-  completed_plans: 5
-  percent: 0
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 12
+  completed_plans: 12
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-26)
+See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 33 — gRPC Deduplication & Filter Parity
+**Current focus:** Phase 34 — query-optimization-architecture
 
 ## Current Position
 
 Phase: 34
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-03-26
-
-Progress: [..........] 0%
+Plan: 03 of 03 complete
 
 ## Performance Metrics
 
@@ -44,15 +38,37 @@ Progress: [..........] 0%
 | Phase 31 P01 | 6min | 2 tasks | 9 files |
 | Phase 31 P02 | 5min | 2 tasks | 12 files |
 | Phase 31 P03 | 4min | 2 tasks | 5 files |
+| Phase 34 P03 | 9min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
 ### Decisions
 
 All decisions archived in PROJECT.md Key Decisions table (42 decisions across 8 milestones).
+Recent decisions affecting current work:
 
-- [Phase 33]: Test ListEntities with mock callbacks for pure generic logic coverage independent of ent entities
-- [Phase 34]: WriteProblem wrapper preserves X-Powered-By; REST middleware buffers error bodies for RFC 9457 rewrite
+- [v1.7]: 5-tier port speed color coding (reuse in terminal renderer)
+- [v1.4]: Dual render mode (full page vs htmx fragment) -- terminal adds third branch
+- [Phase 28]: Used colorprofile.NoTTY (not ASCII) for plain/noColor to strip ALL ANSI codes including bold/underline
+- [Phase 28]: Vary header expanded to HX-Request, User-Agent, Accept on all renderPage branches
+- [Phase 28]: PageContent.Data field carries raw structs for terminal/JSON rendering alongside templ.Component
+- [Phase 28]: Title-based switch in renderPage dispatches error and help rendering without adding fields to PageContent
+- [Phase 29]: Type-switch dispatch in RenderPage for entity-specific terminal renderers
+- [Phase 29]: Eager-load IX/facility rows in handleNetworkDetail for terminal and JSON rendering modes
+- [Phase 29]: styledVal helper wraps StyleValue.Render only for non-empty strings, ensuring writeKV empty-value skip works correctly
+- [Phase 30]: Eager-load unconditionally in all 5 entity handlers (not gated by render mode)
+- [Phase 30]: formatLocation as termrender-local helper for package independence
+- [Phase 30]: D-03 minimal layout for Org/Campus/Carrier: compact identity header + name-only child lists with cross-refs
+- [Phase 30]: Search renderer iterates groups without echoing query (not in data)
+- [Phase 30]: Compare writeIXPresence helper factored for per-network presence lines
+- [Phase 30]: RPSL aut-num class for networks, custom ix:/site:/organisation:/campus:/carrier: classes for WHOIS format
+- [Phase 31]: Short format writes directly to io.Writer without colorprofile (plain text only)
+- [Phase 31]: FormatFreshness uses StyleMuted with leading+trailing newlines for visual separation
+- [Phase 31]: getFreshness returns zero time when db is nil for test safety
+- [Phase 31]: Section aliases support both short and long forms; width adaptation drops entire columns not truncating values; Sections/Width as exported Renderer fields
+- [Phase 31]: Completion search returns integer IDs only to prevent shell injection from entity names
+- [Phase 34]: reflect.TypeOf dispatch map over interface-based polymorphism for terminal renderers
+- [Phase 34]: queryXxx methods return templates.XxxDetail structs (same types consumed by templates and renderers)
 
 ### Pending Todos
 
@@ -63,10 +79,11 @@ None.
 - LiteFS in maintenance mode -- monitor for issues
 - lipgloss v2 import path uses vanity domain `charm.land/lipgloss/v2` (not github.com) -- document clearly
 - colorprofile is pre-1.0 (v0.4.3) -- pin version, minimal API surface
+- Large IX tables (1000+ rows, e.g., DE-CIX) need benchmarking with lipgloss during Phase 29
 - `Vary: User-Agent` effectively disables shared caching -- acceptable (no CDN layer)
 
 ## Session Continuity
 
-Last session: 2026-03-26T07:19:57.273Z
-Stopped at: Completed 34-02-PLAN.md
+Last session: 2026-03-26T07:08:14Z
+Stopped at: Completed 34-03-PLAN.md
 Resume file: None

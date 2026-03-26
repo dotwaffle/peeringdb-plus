@@ -9,25 +9,25 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 
 ### Performance
 
-- [x] **PERF-01**: Search service uses a single query per entity type instead of separate item + count queries
+- [ ] **PERF-01**: Search service uses a single query per entity type instead of separate item + count queries
 - [ ] **PERF-02**: API responses include HTTP caching headers (Cache-Control, ETag) derived from sync timestamp
-- [x] **PERF-03**: Database indexes exist on `updated` and `created` fields for incremental sync and filtered queries
+- [ ] **PERF-03**: Database indexes exist on `updated` and `created` fields for incremental sync and filtered queries
 - [ ] **PERF-04**: Benchmark suite covers search, field projection, gRPC streaming conversion, and sync upsert hot paths
-- [x] **PERF-05**: Field projection in pdbcompat avoids JSON marshal/unmarshal roundtrip per item
+- [ ] **PERF-05**: Field projection in pdbcompat avoids JSON marshal/unmarshal roundtrip per item
 
 ### Code Quality
 
 - [x] **QUAL-01**: gRPC service handlers share a generic List/Stream implementation, eliminating ~1,154 lines of duplicated logic across 13 files
 - [x] **QUAL-02**: All error logging uses `slog.Any("error", err)` instead of `slog.String("error", err.Error())`
 - [x] **QUAL-03**: Test coverage for `internal/grpcserver` reaches 60%+ and `internal/middleware` reaches 60%+
-- [ ] **QUAL-04**: Web detail handlers in `detail.go` are refactored to separate query logic from rendering (each under 80 lines)
+- [x] **QUAL-04**: Web detail handlers in `detail.go` are refactored to separate query logic from rendering (each under 80 lines)
 
 ### Architecture
 
-- [x] **ARCH-01**: All 6 API surfaces return errors in a consistent format with code, message, and optional details
+- [ ] **ARCH-01**: All 6 API surfaces return errors in a consistent format with code, message, and optional details
 - [x] **ARCH-02**: ConnectRPC List RPCs expose the same filterable fields as the PeeringDB compat layer for each entity type
 - [x] **ARCH-03**: CORS middleware runs before OTel tracing in the middleware chain so OPTIONS preflight requests are not traced/logged
-- [ ] **ARCH-04**: Terminal renderer dispatches to entity renderers via interface rather than type-switch on concrete template types
+- [x] **ARCH-04**: Terminal renderer dispatches to entity renderers via interface rather than type-switch on concrete template types
 
 ### Web UI
 
@@ -67,19 +67,19 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PERF-01 | Phase 34 | Complete |
+| PERF-01 | Phase 34 | Pending |
 | PERF-02 | Phase 35 | Pending |
-| PERF-03 | Phase 34 | Complete |
+| PERF-03 | Phase 34 | Pending |
 | PERF-04 | Phase 35 | Pending |
-| PERF-05 | Phase 34 | Complete |
+| PERF-05 | Phase 34 | Pending |
 | QUAL-01 | Phase 33 | Complete |
 | QUAL-02 | Phase 32 | Complete |
 | QUAL-03 | Phase 33 | Complete |
-| QUAL-04 | Phase 34 | Pending |
-| ARCH-01 | Phase 34 | Complete |
+| QUAL-04 | Phase 34 | Complete |
+| ARCH-01 | Phase 34 | Pending |
 | ARCH-02 | Phase 33 | Complete |
 | ARCH-03 | Phase 32 | Complete |
-| ARCH-04 | Phase 34 | Pending |
+| ARCH-04 | Phase 34 | Complete |
 | UI-01 | Phase 36 | Pending |
 | UI-02 | Phase 36 | Pending |
 | UI-03 | Phase 36 | Pending |
@@ -97,4 +97,4 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after 33-01 completion*
+*Last updated: 2026-03-26 after 34-03 completion*
