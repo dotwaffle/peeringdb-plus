@@ -26,9 +26,9 @@ Requirements for the Code Coverage & Test Quality milestone. Each maps to roadma
 
 ### Web Coverage
 
-- [ ] **WEB-01**: All 6 lazy-loaded fragment handlers have integration tests
-- [ ] **WEB-02**: renderPage dispatch tested for terminal, JSON, and WHOIS output modes
-- [ ] **WEB-03**: Edge case coverage for extractID, getFreshness, and error paths
+- [x] **WEB-01**: All 6 lazy-loaded fragment handlers have integration tests
+- [x] **WEB-02**: renderPage dispatch tested for terminal, JSON, and WHOIS output modes
+- [x] **WEB-03**: Edge case coverage for extractID, getFreshness, and error paths
 
 ### Schema Coverage
 
@@ -85,9 +85,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GRPC-01 | Phase 39 | Complete |
 | GRPC-02 | Phase 39 | Complete |
 | GRPC-03 | Phase 39 | Complete |
-| WEB-01 | Phase 40 | Pending |
-| WEB-02 | Phase 40 | Pending |
-| WEB-03 | Phase 40 | Pending |
+| WEB-01 | Phase 40 | Complete |
+| WEB-02 | Phase 40 | Complete |
+| WEB-03 | Phase 40 | Complete |
 | SCHEMA-01 | Phase 41 | Pending |
 | SCHEMA-02 | Phase 41 | Pending |
 | SCHEMA-03 | Phase 41 | Pending |

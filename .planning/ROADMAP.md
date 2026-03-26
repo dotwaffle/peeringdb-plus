@@ -169,10 +169,10 @@ Plans:
   1. All 6 lazy-loaded fragment handlers (network IX presences, network facilities, IX networks, IX facilities, facility networks, org networks) have integration tests that seed data, request the fragment endpoint, and assert the response contains expected entity names or IDs
   2. Tests exercise renderPage dispatch for terminal (User-Agent: curl), JSON (?format=json), and WHOIS (?format=whois) modes, asserting each produces the correct content type and contains mode-specific markers (ANSI codes, JSON braces, RPSL keys respectively)
   3. Edge cases for extractID (invalid input, zero, negative), getFreshness (no sync status, stale data), and error response paths (404 entity not found, 500 database error) each have at least one test case
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 40-01-PLAN.md -- renderPage dispatch modes, org fragment gaps, extractID/getFreshness edge cases, coverage verification
+- [x] 40-01-PLAN.md -- renderPage dispatch modes, org fragment gaps, extractID/getFreshness edge cases, coverage verification
 
 ### Phase 41: Schema & Minor Package Coverage
 **Goal**: Schema validation hooks, relationship constraints, and three minor utility packages all have their error paths and edge cases tested
@@ -207,6 +207,6 @@ Phases execute in numeric order: 37 -> 38 -> 39 -> 40 -> 41 -> 42
 | 37. Test Seed Infrastructure | 1/1 | Complete    | 2026-03-26 |
 | 38. GraphQL Resolver Coverage | 1/1 | Complete    | 2026-03-26 |
 | 39. gRPC Handler Coverage | 1/1 | Complete    | 2026-03-26 |
-| 40. Web Handler Coverage | 0/1 | Not started | - |
+| 40. Web Handler Coverage | 1/1 | Complete   | 2026-03-26 |
 | 41. Schema & Minor Package Coverage | 0/? | Not started | - |
 | 42. Test Quality Audit & Coverage Hygiene | 0/? | Not started | - |
