@@ -46,8 +46,18 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 		buf.WriteString("\n")
 
 		for _, row := range data.Participants {
+			name := row.NetName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.NetName))
+			buf.WriteString(StyleValue.Render(name))
 			buf.WriteString(" ")
 			buf.WriteString(CrossRef(fmt.Sprintf("/ui/asn/%d", row.ASN)))
 
@@ -84,8 +94,18 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 		buf.WriteString("\n")
 
 		for _, row := range data.Facilities {
+			name := row.FacName
+			if r.Width > 0 {
+				maxNameWidth := max(r.Width/3, 15)
+				if len(name) > maxNameWidth {
+					buf.WriteString("  ")
+					buf.WriteString(StyleValue.Render(name))
+					buf.WriteString("\n")
+					name = TruncateName(name, maxNameWidth)
+				}
+			}
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.FacName))
+			buf.WriteString(StyleValue.Render(name))
 			if ShouldShowField("ix-facilities", "crossref", r.Width) {
 				buf.WriteString(" ")
 				buf.WriteString(CrossRef(fmt.Sprintf("/ui/fac/%d", row.FacID)))
