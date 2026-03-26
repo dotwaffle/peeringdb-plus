@@ -163,7 +163,11 @@ Plans:
   1. API responses include `Cache-Control` and `ETag` headers derived from the last sync timestamp, and a conditional `If-None-Match` request returns 304 Not Modified when data has not changed
   2. Running `go test -bench ./...` exercises benchmarks for search queries, pdbcompat field projection, gRPC streaming entity conversion, and sync upsert operations
   3. Benchmark results are stable across runs (no flaky timing from external I/O) and can be compared via `benchstat`
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 35-01-PLAN.md -- Caching middleware (Cache-Control, ETag, 304 Not Modified) + main.go middleware chain wiring
+- [ ] 35-02-PLAN.md -- Benchmark suite: search, field projection, generic list, sync upsert
 
 ### Phase 36: UI & Terminal Polish
 **Goal**: The web UI meets WCAG AA accessibility standards, search results are shareable, collapsible sections handle errors gracefully, and terminal output wraps cleanly
@@ -189,5 +193,5 @@ Phases execute in numeric order: 32 -> 33 -> 34 -> 35 -> 36
 | 32. Quick Wins | 1/1 | Complete    | 2026-03-26 |
 | 33. gRPC Deduplication & Filter Parity | 3/3 | Complete    | 2026-03-26 |
 | 34. Query Optimization & Architecture | 0/3 | Complete    | 2026-03-26 |
-| 35. HTTP Caching & Benchmarks | 0/0 | Not started | - |
+| 35. HTTP Caching & Benchmarks | 0/2 | Not started | - |
 | 36. UI & Terminal Polish | 0/0 | Not started | - |
