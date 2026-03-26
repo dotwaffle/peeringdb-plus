@@ -98,16 +98,6 @@ func (r *Renderer) renderStub(w io.Writer, name string) error {
 	return r.Write(w, buf.String())
 }
 
-// RenderIXDetail renders an IX entity as terminal output. Stub replaced by ix.go in Task 2.
-func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
-	return r.renderStub(w, data.Name)
-}
-
-// RenderFacilityDetail renders a facility entity as terminal output. Stub replaced by facility.go in Task 2.
-func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDetail) error {
-	return r.renderStub(w, data.Name)
-}
-
 // RenderOrgDetail renders an organization entity as terminal output. Stub pending Plan 02.
 func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error {
 	return r.renderStub(w, data.Name)
