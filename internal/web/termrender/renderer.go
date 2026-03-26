@@ -17,6 +17,12 @@ import (
 type Renderer struct {
 	mode    RenderMode
 	noColor bool
+	// Sections is a per-request section filter (nil = show all). Set by the
+	// caller after NewRenderer, before calling RenderPage.
+	Sections map[string]bool
+	// Width is a per-request width adaptation hint (0 = no restriction). Set
+	// by the caller after NewRenderer, before calling RenderPage.
+	Width int
 }
 
 // NewRenderer creates a terminal renderer. mode controls ANSI/ASCII/JSON selection.
