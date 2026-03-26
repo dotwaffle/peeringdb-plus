@@ -70,17 +70,16 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-## Current Milestone: v1.10 Code Coverage & Test Quality
+## Current Milestone: v1.11 Web UI Density & Interactivity
 
-**Goal:** Raise test coverage across all hand-written packages and improve test quality, targeting 80%+ on all packages with meaningful gaps.
+**Goal:** Overhaul the web UI with dense columnar layouts, sortable tables, country flags, and an interactive map — inspired by Peercortex.
 
 **Target features:**
-- GraphQL resolver test coverage (graph package, currently 2.6%)
-- Schema validation/hook test coverage (ent/schema, currently 47.4%)
-- gRPC handler test coverage expansion (grpcserver, currently 61.7%)
-- Web handler test coverage expansion (internal/web, currently 74.8%)
-- Raise remaining packages (otel, health, peeringdb) above 85%
-- Test quality review: ensure existing tests are meaningful, not just line-coverage padding
+- Dense columnar layouts replacing multi-line card entries across all detail pages, search results, and ASN comparison
+- Sortable table columns (client-side where data is loaded, server-side for paginated views)
+- Parsed city/country with emoji country flags in dedicated columns
+- Interactive Leaflet/OpenStreetMap with clickable pins, clustering, and popups linking to detail pages
+- Information density improvements throughout
 
 ### Deferred
 
@@ -200,4 +199,4 @@ Shipped v1.10 with 42 phases across 11 milestones (v1.0-v1.10). The test infrast
 - CI coverage pipeline needs human verification on actual GitHub Actions run
 
 ---
-*Last updated: 2026-03-26 after v1.10 milestone (Code Coverage & Test Quality) complete*
+*Last updated: 2026-03-26 after v1.11 milestone start (Web UI Density & Interactivity)*
