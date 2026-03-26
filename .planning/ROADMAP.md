@@ -162,7 +162,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 44-01-PLAN.md -- Leaflet CDN, data plumbing, MapContainer component, facility page integration
+- [x] 44-01-PLAN.md -- Leaflet CDN, data plumbing, MapContainer component, facility page integration
 - [ ] 44-02-PLAN.md -- Map rendering integration tests and popup HTML unit tests
 
 ### Phase 45: Multi-Pin Maps
@@ -197,6 +197,6 @@ Phases execute in numeric order: 43 -> 44 -> 45 -> 46
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 43. Dense Tables with Sorting and Flags | 4/4 | Complete    | 2026-03-26 |
-| 44. Facility Map & Map Infrastructure | 0/2 | Not started | - |
+| 44. Facility Map & Map Infrastructure | 1/2 | In progress | - |
 | 45. Multi-Pin Maps | 0/? | Not started | - |
 | 46. Search & Compare Density | 0/? | Not started | - |
