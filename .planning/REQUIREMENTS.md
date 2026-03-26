@@ -9,7 +9,7 @@ Requirements for the Code Coverage & Test Quality milestone. Each maps to roadma
 
 ### Test Infrastructure
 
-- [ ] **INFRA-01**: Shared test seed package provides deterministic entity factories for all 13 PeeringDB types
+- [x] **INFRA-01**: Shared test seed package provides deterministic entity factories for all 13 PeeringDB types
 - [ ] **INFRA-02**: CI coverage reporting excludes generated code (ent/*, gen/*, generated.go, *_templ.go)
 
 ### GraphQL Coverage
@@ -77,7 +77,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 37 | Pending |
+| INFRA-01 | Phase 37 | Complete |
 | INFRA-02 | Phase 42 | Pending |
 | GQL-01 | Phase 38 | Pending |
 | GQL-02 | Phase 38 | Pending |
