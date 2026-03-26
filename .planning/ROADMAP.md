@@ -198,12 +198,14 @@ Plans:
   2. Every `fmt.Errorf` and `connect.NewError` call site in hand-written code has at least one test that exercises the error path (verified by grepping error sites and cross-referencing with coverage output)
   3. Running `go test -fuzz=FuzzFilterParser -fuzztime=30s` exercises the filter parser with random inputs without panicking or returning incorrect parse results
   4. CI coverage reporting (GitHub Actions) excludes `ent/*`, `gen/*`, `*generated.go`, and `*_templ.go` from the coverage denominator, and the reported percentage reflects hand-written code only
-**Plans:** 1/3 plans executed
+**Plans:** 1/5 plans executed
 
 Plans:
 - [ ] 42-01-PLAN.md -- Fuzz test for filter parser + CI coverage exclusion for generated code
 - [ ] 42-02-PLAN.md -- Assertion density audit and weak test strengthening
 - [x] 42-03-PLAN.md -- Error path coverage cross-reference and gap closure
+- [ ] 42-04-PLAN.md -- Gap closure: sync status.go + web compare/search/handler DB error path tests
+- [ ] 42-05-PLAN.md -- Gap closure: graph resolver where.P() filter error path tests
 
 ## Progress
 
@@ -218,4 +220,4 @@ Phases execute in numeric order: 37 -> 38 -> 39 -> 40 -> 41 -> 42
 | 39. gRPC Handler Coverage | 1/1 | Complete    | 2026-03-26 |
 | 40. Web Handler Coverage | 1/1 | Complete    | 2026-03-26 |
 | 41. Schema & Minor Package Coverage | 1/2 | Complete    | 2026-03-26 |
-| 42. Test Quality Audit & Coverage Hygiene | 1/3 | In Progress|  |
+| 42. Test Quality Audit & Coverage Hygiene | 1/5 | In Progress|  |
