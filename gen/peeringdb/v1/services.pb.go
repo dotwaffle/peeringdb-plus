@@ -120,6 +120,15 @@ type ListCampusesRequest struct {
 	City          *string `protobuf:"bytes,5,opt,name=city,proto3,oneof" json:"city,omitempty"`
 	Status        *string `protobuf:"bytes,6,opt,name=status,proto3,oneof" json:"status,omitempty"`
 	OrgId         *int64  `protobuf:"varint,7,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	Id            *int64  `protobuf:"varint,8,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	OrgName       *string `protobuf:"bytes,9,opt,name=org_name,json=orgName,proto3,oneof" json:"org_name,omitempty"`
+	NameLong      *string `protobuf:"bytes,10,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	Aka           *string `protobuf:"bytes,11,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	Website       *string `protobuf:"bytes,12,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	Notes         *string `protobuf:"bytes,13,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	State         *string `protobuf:"bytes,14,opt,name=state,proto3,oneof" json:"state,omitempty"`
+	Zipcode       *string `protobuf:"bytes,15,opt,name=zipcode,proto3,oneof" json:"zipcode,omitempty"`
+	Logo          *string `protobuf:"bytes,16,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -203,6 +212,69 @@ func (x *ListCampusesRequest) GetOrgId() int64 {
 	return 0
 }
 
+func (x *ListCampusesRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListCampusesRequest) GetOrgName() string {
+	if x != nil && x.OrgName != nil {
+		return *x.OrgName
+	}
+	return ""
+}
+
+func (x *ListCampusesRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *ListCampusesRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *ListCampusesRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *ListCampusesRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *ListCampusesRequest) GetState() string {
+	if x != nil && x.State != nil {
+		return *x.State
+	}
+	return ""
+}
+
+func (x *ListCampusesRequest) GetZipcode() string {
+	if x != nil && x.Zipcode != nil {
+		return *x.Zipcode
+	}
+	return ""
+}
+
+func (x *ListCampusesRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
+}
+
 type ListCampusesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Campuses      []*Campus              `protobuf:"bytes,1,rep,name=campuses,proto3" json:"campuses,omitempty"`
@@ -266,6 +338,14 @@ type StreamCampusesRequest struct {
 	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
 	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	OrgName       *string                `protobuf:"bytes,8,opt,name=org_name,json=orgName,proto3,oneof" json:"org_name,omitempty"`
+	NameLong      *string                `protobuf:"bytes,9,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	Aka           *string                `protobuf:"bytes,10,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	Website       *string                `protobuf:"bytes,11,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	Notes         *string                `protobuf:"bytes,12,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	State         *string                `protobuf:"bytes,13,opt,name=state,proto3,oneof" json:"state,omitempty"`
+	Zipcode       *string                `protobuf:"bytes,14,opt,name=zipcode,proto3,oneof" json:"zipcode,omitempty"`
+	Logo          *string                `protobuf:"bytes,15,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -347,6 +427,62 @@ func (x *StreamCampusesRequest) GetUpdatedSince() *timestamppb.Timestamp {
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamCampusesRequest) GetOrgName() string {
+	if x != nil && x.OrgName != nil {
+		return *x.OrgName
+	}
+	return ""
+}
+
+func (x *StreamCampusesRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *StreamCampusesRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *StreamCampusesRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *StreamCampusesRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *StreamCampusesRequest) GetState() string {
+	if x != nil && x.State != nil {
+		return *x.State
+	}
+	return ""
+}
+
+func (x *StreamCampusesRequest) GetZipcode() string {
+	if x != nil && x.Zipcode != nil {
+		return *x.Zipcode
+	}
+	return ""
+}
+
+func (x *StreamCampusesRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
 }
 
 type GetCarrierRequest struct {
@@ -445,6 +581,13 @@ type ListCarriersRequest struct {
 	Name          *string `protobuf:"bytes,3,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	Status        *string `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
 	OrgId         *int64  `protobuf:"varint,5,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	Id            *int64  `protobuf:"varint,6,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Aka           *string `protobuf:"bytes,7,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	NameLong      *string `protobuf:"bytes,8,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	Website       *string `protobuf:"bytes,9,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	Notes         *string `protobuf:"bytes,10,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	OrgName       *string `protobuf:"bytes,11,opt,name=org_name,json=orgName,proto3,oneof" json:"org_name,omitempty"`
+	Logo          *string `protobuf:"bytes,12,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -514,6 +657,55 @@ func (x *ListCarriersRequest) GetOrgId() int64 {
 	return 0
 }
 
+func (x *ListCarriersRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListCarriersRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *ListCarriersRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *ListCarriersRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *ListCarriersRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *ListCarriersRequest) GetOrgName() string {
+	if x != nil && x.OrgName != nil {
+		return *x.OrgName
+	}
+	return ""
+}
+
+func (x *ListCarriersRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
+}
+
 type ListCarriersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Carriers      []*Carrier             `protobuf:"bytes,1,rep,name=carriers,proto3" json:"carriers,omitempty"`
@@ -575,6 +767,12 @@ type StreamCarriersRequest struct {
 	SinceId *int64 `protobuf:"varint,4,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
 	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	Aka           *string                `protobuf:"bytes,6,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	NameLong      *string                `protobuf:"bytes,7,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	Website       *string                `protobuf:"bytes,8,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	Notes         *string                `protobuf:"bytes,9,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	OrgName       *string                `protobuf:"bytes,10,opt,name=org_name,json=orgName,proto3,oneof" json:"org_name,omitempty"`
+	Logo          *string                `protobuf:"bytes,11,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -642,6 +840,48 @@ func (x *StreamCarriersRequest) GetUpdatedSince() *timestamppb.Timestamp {
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamCarriersRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *StreamCarriersRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *StreamCarriersRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *StreamCarriersRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *StreamCarriersRequest) GetOrgName() string {
+	if x != nil && x.OrgName != nil {
+		return *x.OrgName
+	}
+	return ""
+}
+
+func (x *StreamCarriersRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
 }
 
 type GetCarrierFacilityRequest struct {
@@ -740,6 +980,8 @@ type ListCarrierFacilitiesRequest struct {
 	CarrierId     *int64  `protobuf:"varint,3,opt,name=carrier_id,json=carrierId,proto3,oneof" json:"carrier_id,omitempty"`
 	FacId         *int64  `protobuf:"varint,4,opt,name=fac_id,json=facId,proto3,oneof" json:"fac_id,omitempty"`
 	Status        *string `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Id            *int64  `protobuf:"varint,6,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Name          *string `protobuf:"bytes,7,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -809,6 +1051,20 @@ func (x *ListCarrierFacilitiesRequest) GetStatus() string {
 	return ""
 }
 
+func (x *ListCarrierFacilitiesRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListCarrierFacilitiesRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
 type ListCarrierFacilitiesResponse struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	CarrierFacilities []*CarrierFacility     `protobuf:"bytes,1,rep,name=carrier_facilities,json=carrierFacilities,proto3" json:"carrier_facilities,omitempty"`
@@ -870,6 +1126,7 @@ type StreamCarrierFacilitiesRequest struct {
 	SinceId *int64 `protobuf:"varint,4,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
 	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	Name          *string                `protobuf:"bytes,6,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -937,6 +1194,13 @@ func (x *StreamCarrierFacilitiesRequest) GetUpdatedSince() *timestamppb.Timestam
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamCarrierFacilitiesRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
 }
 
 type GetFacilityRequest struct {
@@ -1032,13 +1296,38 @@ type ListFacilitiesRequest struct {
 	PageSize  int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	PageToken string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Filter fields -- all optional for presence detection.
-	Name          *string `protobuf:"bytes,3,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Country       *string `protobuf:"bytes,4,opt,name=country,proto3,oneof" json:"country,omitempty"`
-	City          *string `protobuf:"bytes,5,opt,name=city,proto3,oneof" json:"city,omitempty"`
-	Status        *string `protobuf:"bytes,6,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	OrgId         *int64  `protobuf:"varint,7,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Name                      *string `protobuf:"bytes,3,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Country                   *string `protobuf:"bytes,4,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City                      *string `protobuf:"bytes,5,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status                    *string `protobuf:"bytes,6,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId                     *int64  `protobuf:"varint,7,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	Id                        *int64  `protobuf:"varint,8,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Aka                       *string `protobuf:"bytes,9,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	NameLong                  *string `protobuf:"bytes,10,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	Website                   *string `protobuf:"bytes,11,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	Clli                      *string `protobuf:"bytes,12,opt,name=clli,proto3,oneof" json:"clli,omitempty"`
+	Rencode                   *string `protobuf:"bytes,13,opt,name=rencode,proto3,oneof" json:"rencode,omitempty"`
+	Npanxx                    *string `protobuf:"bytes,14,opt,name=npanxx,proto3,oneof" json:"npanxx,omitempty"`
+	TechEmail                 *string `protobuf:"bytes,15,opt,name=tech_email,json=techEmail,proto3,oneof" json:"tech_email,omitempty"`
+	TechPhone                 *string `protobuf:"bytes,16,opt,name=tech_phone,json=techPhone,proto3,oneof" json:"tech_phone,omitempty"`
+	SalesEmail                *string `protobuf:"bytes,17,opt,name=sales_email,json=salesEmail,proto3,oneof" json:"sales_email,omitempty"`
+	SalesPhone                *string `protobuf:"bytes,18,opt,name=sales_phone,json=salesPhone,proto3,oneof" json:"sales_phone,omitempty"`
+	Property                  *string `protobuf:"bytes,19,opt,name=property,proto3,oneof" json:"property,omitempty"`
+	DiverseServingSubstations *bool   `protobuf:"varint,20,opt,name=diverse_serving_substations,json=diverseServingSubstations,proto3,oneof" json:"diverse_serving_substations,omitempty"`
+	Notes                     *string `protobuf:"bytes,21,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	RegionContinent           *string `protobuf:"bytes,22,opt,name=region_continent,json=regionContinent,proto3,oneof" json:"region_continent,omitempty"`
+	StatusDashboard           *string `protobuf:"bytes,23,opt,name=status_dashboard,json=statusDashboard,proto3,oneof" json:"status_dashboard,omitempty"`
+	Logo                      *string `protobuf:"bytes,24,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
+	Address1                  *string `protobuf:"bytes,25,opt,name=address1,proto3,oneof" json:"address1,omitempty"`
+	Address2                  *string `protobuf:"bytes,26,opt,name=address2,proto3,oneof" json:"address2,omitempty"`
+	State                     *string `protobuf:"bytes,27,opt,name=state,proto3,oneof" json:"state,omitempty"`
+	Zipcode                   *string `protobuf:"bytes,28,opt,name=zipcode,proto3,oneof" json:"zipcode,omitempty"`
+	Suite                     *string `protobuf:"bytes,29,opt,name=suite,proto3,oneof" json:"suite,omitempty"`
+	Floor                     *string `protobuf:"bytes,30,opt,name=floor,proto3,oneof" json:"floor,omitempty"`
+	CampusId                  *int64  `protobuf:"varint,31,opt,name=campus_id,json=campusId,proto3,oneof" json:"campus_id,omitempty"`
+	OrgName                   *string `protobuf:"bytes,32,opt,name=org_name,json=orgName,proto3,oneof" json:"org_name,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ListFacilitiesRequest) Reset() {
@@ -1120,6 +1409,181 @@ func (x *ListFacilitiesRequest) GetOrgId() int64 {
 	return 0
 }
 
+func (x *ListFacilitiesRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListFacilitiesRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetClli() string {
+	if x != nil && x.Clli != nil {
+		return *x.Clli
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetRencode() string {
+	if x != nil && x.Rencode != nil {
+		return *x.Rencode
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetNpanxx() string {
+	if x != nil && x.Npanxx != nil {
+		return *x.Npanxx
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetTechEmail() string {
+	if x != nil && x.TechEmail != nil {
+		return *x.TechEmail
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetTechPhone() string {
+	if x != nil && x.TechPhone != nil {
+		return *x.TechPhone
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetSalesEmail() string {
+	if x != nil && x.SalesEmail != nil {
+		return *x.SalesEmail
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetSalesPhone() string {
+	if x != nil && x.SalesPhone != nil {
+		return *x.SalesPhone
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetProperty() string {
+	if x != nil && x.Property != nil {
+		return *x.Property
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetDiverseServingSubstations() bool {
+	if x != nil && x.DiverseServingSubstations != nil {
+		return *x.DiverseServingSubstations
+	}
+	return false
+}
+
+func (x *ListFacilitiesRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetRegionContinent() string {
+	if x != nil && x.RegionContinent != nil {
+		return *x.RegionContinent
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetStatusDashboard() string {
+	if x != nil && x.StatusDashboard != nil {
+		return *x.StatusDashboard
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetAddress1() string {
+	if x != nil && x.Address1 != nil {
+		return *x.Address1
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetAddress2() string {
+	if x != nil && x.Address2 != nil {
+		return *x.Address2
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetState() string {
+	if x != nil && x.State != nil {
+		return *x.State
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetZipcode() string {
+	if x != nil && x.Zipcode != nil {
+		return *x.Zipcode
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetSuite() string {
+	if x != nil && x.Suite != nil {
+		return *x.Suite
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetFloor() string {
+	if x != nil && x.Floor != nil {
+		return *x.Floor
+	}
+	return ""
+}
+
+func (x *ListFacilitiesRequest) GetCampusId() int64 {
+	if x != nil && x.CampusId != nil {
+		return *x.CampusId
+	}
+	return 0
+}
+
+func (x *ListFacilitiesRequest) GetOrgName() string {
+	if x != nil && x.OrgName != nil {
+		return *x.OrgName
+	}
+	return ""
+}
+
 type ListFacilitiesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Facilities    []*Facility            `protobuf:"bytes,1,rep,name=facilities,proto3" json:"facilities,omitempty"`
@@ -1182,9 +1646,33 @@ type StreamFacilitiesRequest struct {
 	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
 	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
-	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	UpdatedSince              *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	Aka                       *string                `protobuf:"bytes,8,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	NameLong                  *string                `protobuf:"bytes,9,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	Website                   *string                `protobuf:"bytes,10,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	Clli                      *string                `protobuf:"bytes,11,opt,name=clli,proto3,oneof" json:"clli,omitempty"`
+	Rencode                   *string                `protobuf:"bytes,12,opt,name=rencode,proto3,oneof" json:"rencode,omitempty"`
+	Npanxx                    *string                `protobuf:"bytes,13,opt,name=npanxx,proto3,oneof" json:"npanxx,omitempty"`
+	TechEmail                 *string                `protobuf:"bytes,14,opt,name=tech_email,json=techEmail,proto3,oneof" json:"tech_email,omitempty"`
+	TechPhone                 *string                `protobuf:"bytes,15,opt,name=tech_phone,json=techPhone,proto3,oneof" json:"tech_phone,omitempty"`
+	SalesEmail                *string                `protobuf:"bytes,16,opt,name=sales_email,json=salesEmail,proto3,oneof" json:"sales_email,omitempty"`
+	SalesPhone                *string                `protobuf:"bytes,17,opt,name=sales_phone,json=salesPhone,proto3,oneof" json:"sales_phone,omitempty"`
+	Property                  *string                `protobuf:"bytes,18,opt,name=property,proto3,oneof" json:"property,omitempty"`
+	DiverseServingSubstations *bool                  `protobuf:"varint,19,opt,name=diverse_serving_substations,json=diverseServingSubstations,proto3,oneof" json:"diverse_serving_substations,omitempty"`
+	Notes                     *string                `protobuf:"bytes,20,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	RegionContinent           *string                `protobuf:"bytes,21,opt,name=region_continent,json=regionContinent,proto3,oneof" json:"region_continent,omitempty"`
+	StatusDashboard           *string                `protobuf:"bytes,22,opt,name=status_dashboard,json=statusDashboard,proto3,oneof" json:"status_dashboard,omitempty"`
+	Logo                      *string                `protobuf:"bytes,23,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
+	Address1                  *string                `protobuf:"bytes,24,opt,name=address1,proto3,oneof" json:"address1,omitempty"`
+	Address2                  *string                `protobuf:"bytes,25,opt,name=address2,proto3,oneof" json:"address2,omitempty"`
+	State                     *string                `protobuf:"bytes,26,opt,name=state,proto3,oneof" json:"state,omitempty"`
+	Zipcode                   *string                `protobuf:"bytes,27,opt,name=zipcode,proto3,oneof" json:"zipcode,omitempty"`
+	Suite                     *string                `protobuf:"bytes,28,opt,name=suite,proto3,oneof" json:"suite,omitempty"`
+	Floor                     *string                `protobuf:"bytes,29,opt,name=floor,proto3,oneof" json:"floor,omitempty"`
+	CampusId                  *int64                 `protobuf:"varint,30,opt,name=campus_id,json=campusId,proto3,oneof" json:"campus_id,omitempty"`
+	OrgName                   *string                `protobuf:"bytes,31,opt,name=org_name,json=orgName,proto3,oneof" json:"org_name,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *StreamFacilitiesRequest) Reset() {
@@ -1264,6 +1752,174 @@ func (x *StreamFacilitiesRequest) GetUpdatedSince() *timestamppb.Timestamp {
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamFacilitiesRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetClli() string {
+	if x != nil && x.Clli != nil {
+		return *x.Clli
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetRencode() string {
+	if x != nil && x.Rencode != nil {
+		return *x.Rencode
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetNpanxx() string {
+	if x != nil && x.Npanxx != nil {
+		return *x.Npanxx
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetTechEmail() string {
+	if x != nil && x.TechEmail != nil {
+		return *x.TechEmail
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetTechPhone() string {
+	if x != nil && x.TechPhone != nil {
+		return *x.TechPhone
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetSalesEmail() string {
+	if x != nil && x.SalesEmail != nil {
+		return *x.SalesEmail
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetSalesPhone() string {
+	if x != nil && x.SalesPhone != nil {
+		return *x.SalesPhone
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetProperty() string {
+	if x != nil && x.Property != nil {
+		return *x.Property
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetDiverseServingSubstations() bool {
+	if x != nil && x.DiverseServingSubstations != nil {
+		return *x.DiverseServingSubstations
+	}
+	return false
+}
+
+func (x *StreamFacilitiesRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetRegionContinent() string {
+	if x != nil && x.RegionContinent != nil {
+		return *x.RegionContinent
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetStatusDashboard() string {
+	if x != nil && x.StatusDashboard != nil {
+		return *x.StatusDashboard
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetAddress1() string {
+	if x != nil && x.Address1 != nil {
+		return *x.Address1
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetAddress2() string {
+	if x != nil && x.Address2 != nil {
+		return *x.Address2
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetState() string {
+	if x != nil && x.State != nil {
+		return *x.State
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetZipcode() string {
+	if x != nil && x.Zipcode != nil {
+		return *x.Zipcode
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetSuite() string {
+	if x != nil && x.Suite != nil {
+		return *x.Suite
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetFloor() string {
+	if x != nil && x.Floor != nil {
+		return *x.Floor
+	}
+	return ""
+}
+
+func (x *StreamFacilitiesRequest) GetCampusId() int64 {
+	if x != nil && x.CampusId != nil {
+		return *x.CampusId
+	}
+	return 0
+}
+
+func (x *StreamFacilitiesRequest) GetOrgName() string {
+	if x != nil && x.OrgName != nil {
+		return *x.OrgName
+	}
+	return ""
 }
 
 type GetInternetExchangeRequest struct {
@@ -1359,13 +2015,34 @@ type ListInternetExchangesRequest struct {
 	PageSize  int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	PageToken string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Filter fields -- all optional for presence detection.
-	Name          *string `protobuf:"bytes,3,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Country       *string `protobuf:"bytes,4,opt,name=country,proto3,oneof" json:"country,omitempty"`
-	City          *string `protobuf:"bytes,5,opt,name=city,proto3,oneof" json:"city,omitempty"`
-	Status        *string `protobuf:"bytes,6,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	OrgId         *int64  `protobuf:"varint,7,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Name            *string `protobuf:"bytes,3,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Country         *string `protobuf:"bytes,4,opt,name=country,proto3,oneof" json:"country,omitempty"`
+	City            *string `protobuf:"bytes,5,opt,name=city,proto3,oneof" json:"city,omitempty"`
+	Status          *string `protobuf:"bytes,6,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId           *int64  `protobuf:"varint,7,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	Id              *int64  `protobuf:"varint,8,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Aka             *string `protobuf:"bytes,9,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	NameLong        *string `protobuf:"bytes,10,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	RegionContinent *string `protobuf:"bytes,11,opt,name=region_continent,json=regionContinent,proto3,oneof" json:"region_continent,omitempty"`
+	Media           *string `protobuf:"bytes,12,opt,name=media,proto3,oneof" json:"media,omitempty"`
+	Notes           *string `protobuf:"bytes,13,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	ProtoUnicast    *bool   `protobuf:"varint,14,opt,name=proto_unicast,json=protoUnicast,proto3,oneof" json:"proto_unicast,omitempty"`
+	ProtoMulticast  *bool   `protobuf:"varint,15,opt,name=proto_multicast,json=protoMulticast,proto3,oneof" json:"proto_multicast,omitempty"`
+	ProtoIpv6       *bool   `protobuf:"varint,16,opt,name=proto_ipv6,json=protoIpv6,proto3,oneof" json:"proto_ipv6,omitempty"`
+	Website         *string `protobuf:"bytes,17,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	UrlStats        *string `protobuf:"bytes,18,opt,name=url_stats,json=urlStats,proto3,oneof" json:"url_stats,omitempty"`
+	TechEmail       *string `protobuf:"bytes,19,opt,name=tech_email,json=techEmail,proto3,oneof" json:"tech_email,omitempty"`
+	TechPhone       *string `protobuf:"bytes,20,opt,name=tech_phone,json=techPhone,proto3,oneof" json:"tech_phone,omitempty"`
+	PolicyEmail     *string `protobuf:"bytes,21,opt,name=policy_email,json=policyEmail,proto3,oneof" json:"policy_email,omitempty"`
+	PolicyPhone     *string `protobuf:"bytes,22,opt,name=policy_phone,json=policyPhone,proto3,oneof" json:"policy_phone,omitempty"`
+	SalesEmail      *string `protobuf:"bytes,23,opt,name=sales_email,json=salesEmail,proto3,oneof" json:"sales_email,omitempty"`
+	SalesPhone      *string `protobuf:"bytes,24,opt,name=sales_phone,json=salesPhone,proto3,oneof" json:"sales_phone,omitempty"`
+	ServiceLevel    *string `protobuf:"bytes,25,opt,name=service_level,json=serviceLevel,proto3,oneof" json:"service_level,omitempty"`
+	Terms           *string `protobuf:"bytes,26,opt,name=terms,proto3,oneof" json:"terms,omitempty"`
+	StatusDashboard *string `protobuf:"bytes,27,opt,name=status_dashboard,json=statusDashboard,proto3,oneof" json:"status_dashboard,omitempty"`
+	Logo            *string `protobuf:"bytes,28,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ListInternetExchangesRequest) Reset() {
@@ -1447,6 +2124,153 @@ func (x *ListInternetExchangesRequest) GetOrgId() int64 {
 	return 0
 }
 
+func (x *ListInternetExchangesRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListInternetExchangesRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetRegionContinent() string {
+	if x != nil && x.RegionContinent != nil {
+		return *x.RegionContinent
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetMedia() string {
+	if x != nil && x.Media != nil {
+		return *x.Media
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetProtoUnicast() bool {
+	if x != nil && x.ProtoUnicast != nil {
+		return *x.ProtoUnicast
+	}
+	return false
+}
+
+func (x *ListInternetExchangesRequest) GetProtoMulticast() bool {
+	if x != nil && x.ProtoMulticast != nil {
+		return *x.ProtoMulticast
+	}
+	return false
+}
+
+func (x *ListInternetExchangesRequest) GetProtoIpv6() bool {
+	if x != nil && x.ProtoIpv6 != nil {
+		return *x.ProtoIpv6
+	}
+	return false
+}
+
+func (x *ListInternetExchangesRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetUrlStats() string {
+	if x != nil && x.UrlStats != nil {
+		return *x.UrlStats
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetTechEmail() string {
+	if x != nil && x.TechEmail != nil {
+		return *x.TechEmail
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetTechPhone() string {
+	if x != nil && x.TechPhone != nil {
+		return *x.TechPhone
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetPolicyEmail() string {
+	if x != nil && x.PolicyEmail != nil {
+		return *x.PolicyEmail
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetPolicyPhone() string {
+	if x != nil && x.PolicyPhone != nil {
+		return *x.PolicyPhone
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetSalesEmail() string {
+	if x != nil && x.SalesEmail != nil {
+		return *x.SalesEmail
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetSalesPhone() string {
+	if x != nil && x.SalesPhone != nil {
+		return *x.SalesPhone
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetServiceLevel() string {
+	if x != nil && x.ServiceLevel != nil {
+		return *x.ServiceLevel
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetTerms() string {
+	if x != nil && x.Terms != nil {
+		return *x.Terms
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetStatusDashboard() string {
+	if x != nil && x.StatusDashboard != nil {
+		return *x.StatusDashboard
+	}
+	return ""
+}
+
+func (x *ListInternetExchangesRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
+}
+
 type ListInternetExchangesResponse struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	InternetExchanges []*InternetExchange    `protobuf:"bytes,1,rep,name=internet_exchanges,json=internetExchanges,proto3" json:"internet_exchanges,omitempty"`
@@ -1509,9 +2333,29 @@ type StreamInternetExchangesRequest struct {
 	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
 	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
-	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	UpdatedSince    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	Aka             *string                `protobuf:"bytes,8,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	NameLong        *string                `protobuf:"bytes,9,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	RegionContinent *string                `protobuf:"bytes,10,opt,name=region_continent,json=regionContinent,proto3,oneof" json:"region_continent,omitempty"`
+	Media           *string                `protobuf:"bytes,11,opt,name=media,proto3,oneof" json:"media,omitempty"`
+	Notes           *string                `protobuf:"bytes,12,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	ProtoUnicast    *bool                  `protobuf:"varint,13,opt,name=proto_unicast,json=protoUnicast,proto3,oneof" json:"proto_unicast,omitempty"`
+	ProtoMulticast  *bool                  `protobuf:"varint,14,opt,name=proto_multicast,json=protoMulticast,proto3,oneof" json:"proto_multicast,omitempty"`
+	ProtoIpv6       *bool                  `protobuf:"varint,15,opt,name=proto_ipv6,json=protoIpv6,proto3,oneof" json:"proto_ipv6,omitempty"`
+	Website         *string                `protobuf:"bytes,16,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	UrlStats        *string                `protobuf:"bytes,17,opt,name=url_stats,json=urlStats,proto3,oneof" json:"url_stats,omitempty"`
+	TechEmail       *string                `protobuf:"bytes,18,opt,name=tech_email,json=techEmail,proto3,oneof" json:"tech_email,omitempty"`
+	TechPhone       *string                `protobuf:"bytes,19,opt,name=tech_phone,json=techPhone,proto3,oneof" json:"tech_phone,omitempty"`
+	PolicyEmail     *string                `protobuf:"bytes,20,opt,name=policy_email,json=policyEmail,proto3,oneof" json:"policy_email,omitempty"`
+	PolicyPhone     *string                `protobuf:"bytes,21,opt,name=policy_phone,json=policyPhone,proto3,oneof" json:"policy_phone,omitempty"`
+	SalesEmail      *string                `protobuf:"bytes,22,opt,name=sales_email,json=salesEmail,proto3,oneof" json:"sales_email,omitempty"`
+	SalesPhone      *string                `protobuf:"bytes,23,opt,name=sales_phone,json=salesPhone,proto3,oneof" json:"sales_phone,omitempty"`
+	ServiceLevel    *string                `protobuf:"bytes,24,opt,name=service_level,json=serviceLevel,proto3,oneof" json:"service_level,omitempty"`
+	Terms           *string                `protobuf:"bytes,25,opt,name=terms,proto3,oneof" json:"terms,omitempty"`
+	StatusDashboard *string                `protobuf:"bytes,26,opt,name=status_dashboard,json=statusDashboard,proto3,oneof" json:"status_dashboard,omitempty"`
+	Logo            *string                `protobuf:"bytes,27,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *StreamInternetExchangesRequest) Reset() {
@@ -1591,6 +2435,146 @@ func (x *StreamInternetExchangesRequest) GetUpdatedSince() *timestamppb.Timestam
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamInternetExchangesRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetRegionContinent() string {
+	if x != nil && x.RegionContinent != nil {
+		return *x.RegionContinent
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetMedia() string {
+	if x != nil && x.Media != nil {
+		return *x.Media
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetProtoUnicast() bool {
+	if x != nil && x.ProtoUnicast != nil {
+		return *x.ProtoUnicast
+	}
+	return false
+}
+
+func (x *StreamInternetExchangesRequest) GetProtoMulticast() bool {
+	if x != nil && x.ProtoMulticast != nil {
+		return *x.ProtoMulticast
+	}
+	return false
+}
+
+func (x *StreamInternetExchangesRequest) GetProtoIpv6() bool {
+	if x != nil && x.ProtoIpv6 != nil {
+		return *x.ProtoIpv6
+	}
+	return false
+}
+
+func (x *StreamInternetExchangesRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetUrlStats() string {
+	if x != nil && x.UrlStats != nil {
+		return *x.UrlStats
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetTechEmail() string {
+	if x != nil && x.TechEmail != nil {
+		return *x.TechEmail
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetTechPhone() string {
+	if x != nil && x.TechPhone != nil {
+		return *x.TechPhone
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetPolicyEmail() string {
+	if x != nil && x.PolicyEmail != nil {
+		return *x.PolicyEmail
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetPolicyPhone() string {
+	if x != nil && x.PolicyPhone != nil {
+		return *x.PolicyPhone
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetSalesEmail() string {
+	if x != nil && x.SalesEmail != nil {
+		return *x.SalesEmail
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetSalesPhone() string {
+	if x != nil && x.SalesPhone != nil {
+		return *x.SalesPhone
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetServiceLevel() string {
+	if x != nil && x.ServiceLevel != nil {
+		return *x.ServiceLevel
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetTerms() string {
+	if x != nil && x.Terms != nil {
+		return *x.Terms
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetStatusDashboard() string {
+	if x != nil && x.StatusDashboard != nil {
+		return *x.StatusDashboard
+	}
+	return ""
+}
+
+func (x *StreamInternetExchangesRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
 }
 
 type GetIxFacilityRequest struct {
@@ -1691,6 +2675,8 @@ type ListIxFacilitiesRequest struct {
 	Country       *string `protobuf:"bytes,5,opt,name=country,proto3,oneof" json:"country,omitempty"`
 	City          *string `protobuf:"bytes,6,opt,name=city,proto3,oneof" json:"city,omitempty"`
 	Status        *string `protobuf:"bytes,7,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Id            *int64  `protobuf:"varint,8,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Name          *string `protobuf:"bytes,9,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1774,6 +2760,20 @@ func (x *ListIxFacilitiesRequest) GetStatus() string {
 	return ""
 }
 
+func (x *ListIxFacilitiesRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListIxFacilitiesRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
 type ListIxFacilitiesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	IxFacilities  []*IxFacility          `protobuf:"bytes,1,rep,name=ix_facilities,json=ixFacilities,proto3" json:"ix_facilities,omitempty"`
@@ -1837,6 +2837,7 @@ type StreamIxFacilitiesRequest struct {
 	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
 	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	Name          *string                `protobuf:"bytes,8,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1918,6 +2919,13 @@ func (x *StreamIxFacilitiesRequest) GetUpdatedSince() *timestamppb.Timestamp {
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamIxFacilitiesRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
 }
 
 type GetIxLanRequest struct {
@@ -2013,11 +3021,19 @@ type ListIxLansRequest struct {
 	PageSize  int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	PageToken string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Filter fields -- all optional for presence detection.
-	IxId          *int64  `protobuf:"varint,3,opt,name=ix_id,json=ixId,proto3,oneof" json:"ix_id,omitempty"`
-	Name          *string `protobuf:"bytes,4,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Status        *string `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	IxId                       *int64  `protobuf:"varint,3,opt,name=ix_id,json=ixId,proto3,oneof" json:"ix_id,omitempty"`
+	Name                       *string `protobuf:"bytes,4,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status                     *string `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Id                         *int64  `protobuf:"varint,6,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Descr                      *string `protobuf:"bytes,7,opt,name=descr,proto3,oneof" json:"descr,omitempty"`
+	Mtu                        *int64  `protobuf:"varint,8,opt,name=mtu,proto3,oneof" json:"mtu,omitempty"`
+	Dot1QSupport               *bool   `protobuf:"varint,9,opt,name=dot1q_support,json=dot1qSupport,proto3,oneof" json:"dot1q_support,omitempty"`
+	RsAsn                      *int64  `protobuf:"varint,10,opt,name=rs_asn,json=rsAsn,proto3,oneof" json:"rs_asn,omitempty"`
+	ArpSponge                  *string `protobuf:"bytes,11,opt,name=arp_sponge,json=arpSponge,proto3,oneof" json:"arp_sponge,omitempty"`
+	IxfIxpMemberListUrlVisible *string `protobuf:"bytes,12,opt,name=ixf_ixp_member_list_url_visible,json=ixfIxpMemberListUrlVisible,proto3,oneof" json:"ixf_ixp_member_list_url_visible,omitempty"`
+	IxfIxpImportEnabled        *bool   `protobuf:"varint,13,opt,name=ixf_ixp_import_enabled,json=ixfIxpImportEnabled,proto3,oneof" json:"ixf_ixp_import_enabled,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *ListIxLansRequest) Reset() {
@@ -2085,6 +3101,62 @@ func (x *ListIxLansRequest) GetStatus() string {
 	return ""
 }
 
+func (x *ListIxLansRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListIxLansRequest) GetDescr() string {
+	if x != nil && x.Descr != nil {
+		return *x.Descr
+	}
+	return ""
+}
+
+func (x *ListIxLansRequest) GetMtu() int64 {
+	if x != nil && x.Mtu != nil {
+		return *x.Mtu
+	}
+	return 0
+}
+
+func (x *ListIxLansRequest) GetDot1QSupport() bool {
+	if x != nil && x.Dot1QSupport != nil {
+		return *x.Dot1QSupport
+	}
+	return false
+}
+
+func (x *ListIxLansRequest) GetRsAsn() int64 {
+	if x != nil && x.RsAsn != nil {
+		return *x.RsAsn
+	}
+	return 0
+}
+
+func (x *ListIxLansRequest) GetArpSponge() string {
+	if x != nil && x.ArpSponge != nil {
+		return *x.ArpSponge
+	}
+	return ""
+}
+
+func (x *ListIxLansRequest) GetIxfIxpMemberListUrlVisible() string {
+	if x != nil && x.IxfIxpMemberListUrlVisible != nil {
+		return *x.IxfIxpMemberListUrlVisible
+	}
+	return ""
+}
+
+func (x *ListIxLansRequest) GetIxfIxpImportEnabled() bool {
+	if x != nil && x.IxfIxpImportEnabled != nil {
+		return *x.IxfIxpImportEnabled
+	}
+	return false
+}
+
 type ListIxLansResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	IxLans        []*IxLan               `protobuf:"bytes,1,rep,name=ix_lans,json=ixLans,proto3" json:"ix_lans,omitempty"`
@@ -2145,9 +3217,16 @@ type StreamIxLansRequest struct {
 	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
 	SinceId *int64 `protobuf:"varint,4,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
-	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	UpdatedSince               *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	Descr                      *string                `protobuf:"bytes,6,opt,name=descr,proto3,oneof" json:"descr,omitempty"`
+	Mtu                        *int64                 `protobuf:"varint,7,opt,name=mtu,proto3,oneof" json:"mtu,omitempty"`
+	Dot1QSupport               *bool                  `protobuf:"varint,8,opt,name=dot1q_support,json=dot1qSupport,proto3,oneof" json:"dot1q_support,omitempty"`
+	RsAsn                      *int64                 `protobuf:"varint,9,opt,name=rs_asn,json=rsAsn,proto3,oneof" json:"rs_asn,omitempty"`
+	ArpSponge                  *string                `protobuf:"bytes,10,opt,name=arp_sponge,json=arpSponge,proto3,oneof" json:"arp_sponge,omitempty"`
+	IxfIxpMemberListUrlVisible *string                `protobuf:"bytes,11,opt,name=ixf_ixp_member_list_url_visible,json=ixfIxpMemberListUrlVisible,proto3,oneof" json:"ixf_ixp_member_list_url_visible,omitempty"`
+	IxfIxpImportEnabled        *bool                  `protobuf:"varint,12,opt,name=ixf_ixp_import_enabled,json=ixfIxpImportEnabled,proto3,oneof" json:"ixf_ixp_import_enabled,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *StreamIxLansRequest) Reset() {
@@ -2213,6 +3292,55 @@ func (x *StreamIxLansRequest) GetUpdatedSince() *timestamppb.Timestamp {
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamIxLansRequest) GetDescr() string {
+	if x != nil && x.Descr != nil {
+		return *x.Descr
+	}
+	return ""
+}
+
+func (x *StreamIxLansRequest) GetMtu() int64 {
+	if x != nil && x.Mtu != nil {
+		return *x.Mtu
+	}
+	return 0
+}
+
+func (x *StreamIxLansRequest) GetDot1QSupport() bool {
+	if x != nil && x.Dot1QSupport != nil {
+		return *x.Dot1QSupport
+	}
+	return false
+}
+
+func (x *StreamIxLansRequest) GetRsAsn() int64 {
+	if x != nil && x.RsAsn != nil {
+		return *x.RsAsn
+	}
+	return 0
+}
+
+func (x *StreamIxLansRequest) GetArpSponge() string {
+	if x != nil && x.ArpSponge != nil {
+		return *x.ArpSponge
+	}
+	return ""
+}
+
+func (x *StreamIxLansRequest) GetIxfIxpMemberListUrlVisible() string {
+	if x != nil && x.IxfIxpMemberListUrlVisible != nil {
+		return *x.IxfIxpMemberListUrlVisible
+	}
+	return ""
+}
+
+func (x *StreamIxLansRequest) GetIxfIxpImportEnabled() bool {
+	if x != nil && x.IxfIxpImportEnabled != nil {
+		return *x.IxfIxpImportEnabled
+	}
+	return false
 }
 
 type GetIxPrefixRequest struct {
@@ -2311,6 +3439,10 @@ type ListIxPrefixesRequest struct {
 	IxlanId       *int64  `protobuf:"varint,3,opt,name=ixlan_id,json=ixlanId,proto3,oneof" json:"ixlan_id,omitempty"`
 	Protocol      *string `protobuf:"bytes,4,opt,name=protocol,proto3,oneof" json:"protocol,omitempty"`
 	Status        *string `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Id            *int64  `protobuf:"varint,6,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Prefix        *string `protobuf:"bytes,7,opt,name=prefix,proto3,oneof" json:"prefix,omitempty"`
+	InDfz         *bool   `protobuf:"varint,8,opt,name=in_dfz,json=inDfz,proto3,oneof" json:"in_dfz,omitempty"`
+	Notes         *string `protobuf:"bytes,9,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2380,6 +3512,34 @@ func (x *ListIxPrefixesRequest) GetStatus() string {
 	return ""
 }
 
+func (x *ListIxPrefixesRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListIxPrefixesRequest) GetPrefix() string {
+	if x != nil && x.Prefix != nil {
+		return *x.Prefix
+	}
+	return ""
+}
+
+func (x *ListIxPrefixesRequest) GetInDfz() bool {
+	if x != nil && x.InDfz != nil {
+		return *x.InDfz
+	}
+	return false
+}
+
+func (x *ListIxPrefixesRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
 type ListIxPrefixesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	IxPrefixes    []*IxPrefix            `protobuf:"bytes,1,rep,name=ix_prefixes,json=ixPrefixes,proto3" json:"ix_prefixes,omitempty"`
@@ -2441,6 +3601,9 @@ type StreamIxPrefixesRequest struct {
 	SinceId *int64 `protobuf:"varint,4,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
 	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	Prefix        *string                `protobuf:"bytes,6,opt,name=prefix,proto3,oneof" json:"prefix,omitempty"`
+	InDfz         *bool                  `protobuf:"varint,7,opt,name=in_dfz,json=inDfz,proto3,oneof" json:"in_dfz,omitempty"`
+	Notes         *string                `protobuf:"bytes,8,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2508,6 +3671,27 @@ func (x *StreamIxPrefixesRequest) GetUpdatedSince() *timestamppb.Timestamp {
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamIxPrefixesRequest) GetPrefix() string {
+	if x != nil && x.Prefix != nil {
+		return *x.Prefix
+	}
+	return ""
+}
+
+func (x *StreamIxPrefixesRequest) GetInDfz() bool {
+	if x != nil && x.InDfz != nil {
+		return *x.InDfz
+	}
+	return false
+}
+
+func (x *StreamIxPrefixesRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
 }
 
 type GetNetworkRequest struct {
@@ -2603,12 +3787,39 @@ type ListNetworksRequest struct {
 	PageSize  int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	PageToken string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Filter fields -- all optional for presence detection.
-	Asn           *int64  `protobuf:"varint,3,opt,name=asn,proto3,oneof" json:"asn,omitempty"`
-	Name          *string `protobuf:"bytes,4,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Status        *string `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	OrgId         *int64  `protobuf:"varint,6,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Asn                      *int64  `protobuf:"varint,3,opt,name=asn,proto3,oneof" json:"asn,omitempty"`
+	Name                     *string `protobuf:"bytes,4,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Status                   *string `protobuf:"bytes,5,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	OrgId                    *int64  `protobuf:"varint,6,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"`
+	Id                       *int64  `protobuf:"varint,7,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Aka                      *string `protobuf:"bytes,8,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	NameLong                 *string `protobuf:"bytes,9,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	Website                  *string `protobuf:"bytes,10,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	LookingGlass             *string `protobuf:"bytes,11,opt,name=looking_glass,json=lookingGlass,proto3,oneof" json:"looking_glass,omitempty"`
+	RouteServer              *string `protobuf:"bytes,12,opt,name=route_server,json=routeServer,proto3,oneof" json:"route_server,omitempty"`
+	IrrAsSet                 *string `protobuf:"bytes,13,opt,name=irr_as_set,json=irrAsSet,proto3,oneof" json:"irr_as_set,omitempty"`
+	InfoType                 *string `protobuf:"bytes,14,opt,name=info_type,json=infoType,proto3,oneof" json:"info_type,omitempty"`
+	InfoPrefixes4            *int64  `protobuf:"varint,15,opt,name=info_prefixes4,json=infoPrefixes4,proto3,oneof" json:"info_prefixes4,omitempty"`
+	InfoPrefixes6            *int64  `protobuf:"varint,16,opt,name=info_prefixes6,json=infoPrefixes6,proto3,oneof" json:"info_prefixes6,omitempty"`
+	InfoTraffic              *string `protobuf:"bytes,17,opt,name=info_traffic,json=infoTraffic,proto3,oneof" json:"info_traffic,omitempty"`
+	InfoRatio                *string `protobuf:"bytes,18,opt,name=info_ratio,json=infoRatio,proto3,oneof" json:"info_ratio,omitempty"`
+	InfoScope                *string `protobuf:"bytes,19,opt,name=info_scope,json=infoScope,proto3,oneof" json:"info_scope,omitempty"`
+	InfoUnicast              *bool   `protobuf:"varint,20,opt,name=info_unicast,json=infoUnicast,proto3,oneof" json:"info_unicast,omitempty"`
+	InfoMulticast            *bool   `protobuf:"varint,21,opt,name=info_multicast,json=infoMulticast,proto3,oneof" json:"info_multicast,omitempty"`
+	InfoIpv6                 *bool   `protobuf:"varint,22,opt,name=info_ipv6,json=infoIpv6,proto3,oneof" json:"info_ipv6,omitempty"`
+	InfoNeverViaRouteServers *bool   `protobuf:"varint,23,opt,name=info_never_via_route_servers,json=infoNeverViaRouteServers,proto3,oneof" json:"info_never_via_route_servers,omitempty"`
+	Notes                    *string `protobuf:"bytes,24,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	PolicyUrl                *string `protobuf:"bytes,25,opt,name=policy_url,json=policyUrl,proto3,oneof" json:"policy_url,omitempty"`
+	PolicyGeneral            *string `protobuf:"bytes,26,opt,name=policy_general,json=policyGeneral,proto3,oneof" json:"policy_general,omitempty"`
+	PolicyLocations          *string `protobuf:"bytes,27,opt,name=policy_locations,json=policyLocations,proto3,oneof" json:"policy_locations,omitempty"`
+	PolicyRatio              *bool   `protobuf:"varint,28,opt,name=policy_ratio,json=policyRatio,proto3,oneof" json:"policy_ratio,omitempty"`
+	PolicyContracts          *string `protobuf:"bytes,29,opt,name=policy_contracts,json=policyContracts,proto3,oneof" json:"policy_contracts,omitempty"`
+	AllowIxpUpdate           *bool   `protobuf:"varint,30,opt,name=allow_ixp_update,json=allowIxpUpdate,proto3,oneof" json:"allow_ixp_update,omitempty"`
+	StatusDashboard          *string `protobuf:"bytes,31,opt,name=status_dashboard,json=statusDashboard,proto3,oneof" json:"status_dashboard,omitempty"`
+	RirStatus                *string `protobuf:"bytes,32,opt,name=rir_status,json=rirStatus,proto3,oneof" json:"rir_status,omitempty"`
+	Logo                     *string `protobuf:"bytes,33,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ListNetworksRequest) Reset() {
@@ -2683,6 +3894,195 @@ func (x *ListNetworksRequest) GetOrgId() int64 {
 	return 0
 }
 
+func (x *ListNetworksRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListNetworksRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetLookingGlass() string {
+	if x != nil && x.LookingGlass != nil {
+		return *x.LookingGlass
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetRouteServer() string {
+	if x != nil && x.RouteServer != nil {
+		return *x.RouteServer
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetIrrAsSet() string {
+	if x != nil && x.IrrAsSet != nil {
+		return *x.IrrAsSet
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetInfoType() string {
+	if x != nil && x.InfoType != nil {
+		return *x.InfoType
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetInfoPrefixes4() int64 {
+	if x != nil && x.InfoPrefixes4 != nil {
+		return *x.InfoPrefixes4
+	}
+	return 0
+}
+
+func (x *ListNetworksRequest) GetInfoPrefixes6() int64 {
+	if x != nil && x.InfoPrefixes6 != nil {
+		return *x.InfoPrefixes6
+	}
+	return 0
+}
+
+func (x *ListNetworksRequest) GetInfoTraffic() string {
+	if x != nil && x.InfoTraffic != nil {
+		return *x.InfoTraffic
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetInfoRatio() string {
+	if x != nil && x.InfoRatio != nil {
+		return *x.InfoRatio
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetInfoScope() string {
+	if x != nil && x.InfoScope != nil {
+		return *x.InfoScope
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetInfoUnicast() bool {
+	if x != nil && x.InfoUnicast != nil {
+		return *x.InfoUnicast
+	}
+	return false
+}
+
+func (x *ListNetworksRequest) GetInfoMulticast() bool {
+	if x != nil && x.InfoMulticast != nil {
+		return *x.InfoMulticast
+	}
+	return false
+}
+
+func (x *ListNetworksRequest) GetInfoIpv6() bool {
+	if x != nil && x.InfoIpv6 != nil {
+		return *x.InfoIpv6
+	}
+	return false
+}
+
+func (x *ListNetworksRequest) GetInfoNeverViaRouteServers() bool {
+	if x != nil && x.InfoNeverViaRouteServers != nil {
+		return *x.InfoNeverViaRouteServers
+	}
+	return false
+}
+
+func (x *ListNetworksRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetPolicyUrl() string {
+	if x != nil && x.PolicyUrl != nil {
+		return *x.PolicyUrl
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetPolicyGeneral() string {
+	if x != nil && x.PolicyGeneral != nil {
+		return *x.PolicyGeneral
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetPolicyLocations() string {
+	if x != nil && x.PolicyLocations != nil {
+		return *x.PolicyLocations
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetPolicyRatio() bool {
+	if x != nil && x.PolicyRatio != nil {
+		return *x.PolicyRatio
+	}
+	return false
+}
+
+func (x *ListNetworksRequest) GetPolicyContracts() string {
+	if x != nil && x.PolicyContracts != nil {
+		return *x.PolicyContracts
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetAllowIxpUpdate() bool {
+	if x != nil && x.AllowIxpUpdate != nil {
+		return *x.AllowIxpUpdate
+	}
+	return false
+}
+
+func (x *ListNetworksRequest) GetStatusDashboard() string {
+	if x != nil && x.StatusDashboard != nil {
+		return *x.StatusDashboard
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetRirStatus() string {
+	if x != nil && x.RirStatus != nil {
+		return *x.RirStatus
+	}
+	return ""
+}
+
+func (x *ListNetworksRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
+}
+
 type ListNetworksResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Networks      []*Network             `protobuf:"bytes,1,rep,name=networks,proto3" json:"networks,omitempty"`
@@ -2744,9 +4144,35 @@ type StreamNetworksRequest struct {
 	// Resume from this ID (exclusive). Only records with ID > since_id are returned.
 	SinceId *int64 `protobuf:"varint,5,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
-	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	UpdatedSince             *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	Aka                      *string                `protobuf:"bytes,7,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	NameLong                 *string                `protobuf:"bytes,8,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	Website                  *string                `protobuf:"bytes,9,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	LookingGlass             *string                `protobuf:"bytes,10,opt,name=looking_glass,json=lookingGlass,proto3,oneof" json:"looking_glass,omitempty"`
+	RouteServer              *string                `protobuf:"bytes,11,opt,name=route_server,json=routeServer,proto3,oneof" json:"route_server,omitempty"`
+	IrrAsSet                 *string                `protobuf:"bytes,12,opt,name=irr_as_set,json=irrAsSet,proto3,oneof" json:"irr_as_set,omitempty"`
+	InfoType                 *string                `protobuf:"bytes,13,opt,name=info_type,json=infoType,proto3,oneof" json:"info_type,omitempty"`
+	InfoPrefixes4            *int64                 `protobuf:"varint,14,opt,name=info_prefixes4,json=infoPrefixes4,proto3,oneof" json:"info_prefixes4,omitempty"`
+	InfoPrefixes6            *int64                 `protobuf:"varint,15,opt,name=info_prefixes6,json=infoPrefixes6,proto3,oneof" json:"info_prefixes6,omitempty"`
+	InfoTraffic              *string                `protobuf:"bytes,16,opt,name=info_traffic,json=infoTraffic,proto3,oneof" json:"info_traffic,omitempty"`
+	InfoRatio                *string                `protobuf:"bytes,17,opt,name=info_ratio,json=infoRatio,proto3,oneof" json:"info_ratio,omitempty"`
+	InfoScope                *string                `protobuf:"bytes,18,opt,name=info_scope,json=infoScope,proto3,oneof" json:"info_scope,omitempty"`
+	InfoUnicast              *bool                  `protobuf:"varint,19,opt,name=info_unicast,json=infoUnicast,proto3,oneof" json:"info_unicast,omitempty"`
+	InfoMulticast            *bool                  `protobuf:"varint,20,opt,name=info_multicast,json=infoMulticast,proto3,oneof" json:"info_multicast,omitempty"`
+	InfoIpv6                 *bool                  `protobuf:"varint,21,opt,name=info_ipv6,json=infoIpv6,proto3,oneof" json:"info_ipv6,omitempty"`
+	InfoNeverViaRouteServers *bool                  `protobuf:"varint,22,opt,name=info_never_via_route_servers,json=infoNeverViaRouteServers,proto3,oneof" json:"info_never_via_route_servers,omitempty"`
+	Notes                    *string                `protobuf:"bytes,23,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	PolicyUrl                *string                `protobuf:"bytes,24,opt,name=policy_url,json=policyUrl,proto3,oneof" json:"policy_url,omitempty"`
+	PolicyGeneral            *string                `protobuf:"bytes,25,opt,name=policy_general,json=policyGeneral,proto3,oneof" json:"policy_general,omitempty"`
+	PolicyLocations          *string                `protobuf:"bytes,26,opt,name=policy_locations,json=policyLocations,proto3,oneof" json:"policy_locations,omitempty"`
+	PolicyRatio              *bool                  `protobuf:"varint,27,opt,name=policy_ratio,json=policyRatio,proto3,oneof" json:"policy_ratio,omitempty"`
+	PolicyContracts          *string                `protobuf:"bytes,28,opt,name=policy_contracts,json=policyContracts,proto3,oneof" json:"policy_contracts,omitempty"`
+	AllowIxpUpdate           *bool                  `protobuf:"varint,29,opt,name=allow_ixp_update,json=allowIxpUpdate,proto3,oneof" json:"allow_ixp_update,omitempty"`
+	StatusDashboard          *string                `protobuf:"bytes,30,opt,name=status_dashboard,json=statusDashboard,proto3,oneof" json:"status_dashboard,omitempty"`
+	RirStatus                *string                `protobuf:"bytes,31,opt,name=rir_status,json=rirStatus,proto3,oneof" json:"rir_status,omitempty"`
+	Logo                     *string                `protobuf:"bytes,32,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *StreamNetworksRequest) Reset() {
@@ -2819,6 +4245,188 @@ func (x *StreamNetworksRequest) GetUpdatedSince() *timestamppb.Timestamp {
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamNetworksRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetLookingGlass() string {
+	if x != nil && x.LookingGlass != nil {
+		return *x.LookingGlass
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetRouteServer() string {
+	if x != nil && x.RouteServer != nil {
+		return *x.RouteServer
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetIrrAsSet() string {
+	if x != nil && x.IrrAsSet != nil {
+		return *x.IrrAsSet
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetInfoType() string {
+	if x != nil && x.InfoType != nil {
+		return *x.InfoType
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetInfoPrefixes4() int64 {
+	if x != nil && x.InfoPrefixes4 != nil {
+		return *x.InfoPrefixes4
+	}
+	return 0
+}
+
+func (x *StreamNetworksRequest) GetInfoPrefixes6() int64 {
+	if x != nil && x.InfoPrefixes6 != nil {
+		return *x.InfoPrefixes6
+	}
+	return 0
+}
+
+func (x *StreamNetworksRequest) GetInfoTraffic() string {
+	if x != nil && x.InfoTraffic != nil {
+		return *x.InfoTraffic
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetInfoRatio() string {
+	if x != nil && x.InfoRatio != nil {
+		return *x.InfoRatio
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetInfoScope() string {
+	if x != nil && x.InfoScope != nil {
+		return *x.InfoScope
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetInfoUnicast() bool {
+	if x != nil && x.InfoUnicast != nil {
+		return *x.InfoUnicast
+	}
+	return false
+}
+
+func (x *StreamNetworksRequest) GetInfoMulticast() bool {
+	if x != nil && x.InfoMulticast != nil {
+		return *x.InfoMulticast
+	}
+	return false
+}
+
+func (x *StreamNetworksRequest) GetInfoIpv6() bool {
+	if x != nil && x.InfoIpv6 != nil {
+		return *x.InfoIpv6
+	}
+	return false
+}
+
+func (x *StreamNetworksRequest) GetInfoNeverViaRouteServers() bool {
+	if x != nil && x.InfoNeverViaRouteServers != nil {
+		return *x.InfoNeverViaRouteServers
+	}
+	return false
+}
+
+func (x *StreamNetworksRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetPolicyUrl() string {
+	if x != nil && x.PolicyUrl != nil {
+		return *x.PolicyUrl
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetPolicyGeneral() string {
+	if x != nil && x.PolicyGeneral != nil {
+		return *x.PolicyGeneral
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetPolicyLocations() string {
+	if x != nil && x.PolicyLocations != nil {
+		return *x.PolicyLocations
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetPolicyRatio() bool {
+	if x != nil && x.PolicyRatio != nil {
+		return *x.PolicyRatio
+	}
+	return false
+}
+
+func (x *StreamNetworksRequest) GetPolicyContracts() string {
+	if x != nil && x.PolicyContracts != nil {
+		return *x.PolicyContracts
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetAllowIxpUpdate() bool {
+	if x != nil && x.AllowIxpUpdate != nil {
+		return *x.AllowIxpUpdate
+	}
+	return false
+}
+
+func (x *StreamNetworksRequest) GetStatusDashboard() string {
+	if x != nil && x.StatusDashboard != nil {
+		return *x.StatusDashboard
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetRirStatus() string {
+	if x != nil && x.RirStatus != nil {
+		return *x.RirStatus
+	}
+	return ""
+}
+
+func (x *StreamNetworksRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
 }
 
 type GetNetworkFacilityRequest struct {
@@ -2919,6 +4527,9 @@ type ListNetworkFacilitiesRequest struct {
 	Country       *string `protobuf:"bytes,5,opt,name=country,proto3,oneof" json:"country,omitempty"`
 	City          *string `protobuf:"bytes,6,opt,name=city,proto3,oneof" json:"city,omitempty"`
 	Status        *string `protobuf:"bytes,7,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Id            *int64  `protobuf:"varint,8,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Name          *string `protobuf:"bytes,9,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	LocalAsn      *int64  `protobuf:"varint,10,opt,name=local_asn,json=localAsn,proto3,oneof" json:"local_asn,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3002,6 +4613,27 @@ func (x *ListNetworkFacilitiesRequest) GetStatus() string {
 	return ""
 }
 
+func (x *ListNetworkFacilitiesRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListNetworkFacilitiesRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *ListNetworkFacilitiesRequest) GetLocalAsn() int64 {
+	if x != nil && x.LocalAsn != nil {
+		return *x.LocalAsn
+	}
+	return 0
+}
+
 type ListNetworkFacilitiesResponse struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	NetworkFacilities []*NetworkFacility     `protobuf:"bytes,1,rep,name=network_facilities,json=networkFacilities,proto3" json:"network_facilities,omitempty"`
@@ -3065,6 +4697,8 @@ type StreamNetworkFacilitiesRequest struct {
 	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
 	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	Name          *string                `protobuf:"bytes,8,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	LocalAsn      *int64                 `protobuf:"varint,9,opt,name=local_asn,json=localAsn,proto3,oneof" json:"local_asn,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3146,6 +4780,20 @@ func (x *StreamNetworkFacilitiesRequest) GetUpdatedSince() *timestamppb.Timestam
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamNetworkFacilitiesRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *StreamNetworkFacilitiesRequest) GetLocalAsn() int64 {
+	if x != nil && x.LocalAsn != nil {
+		return *x.LocalAsn
+	}
+	return 0
 }
 
 type GetNetworkIxLanRequest struct {
@@ -3246,6 +4894,17 @@ type ListNetworkIxLansRequest struct {
 	Asn           *int64  `protobuf:"varint,5,opt,name=asn,proto3,oneof" json:"asn,omitempty"`
 	Name          *string `protobuf:"bytes,6,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	Status        *string `protobuf:"bytes,7,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Id            *int64  `protobuf:"varint,8,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	IxId          *int64  `protobuf:"varint,9,opt,name=ix_id,json=ixId,proto3,oneof" json:"ix_id,omitempty"`
+	Speed         *int64  `protobuf:"varint,10,opt,name=speed,proto3,oneof" json:"speed,omitempty"`
+	Ipaddr4       *string `protobuf:"bytes,11,opt,name=ipaddr4,proto3,oneof" json:"ipaddr4,omitempty"`
+	Ipaddr6       *string `protobuf:"bytes,12,opt,name=ipaddr6,proto3,oneof" json:"ipaddr6,omitempty"`
+	IsRsPeer      *bool   `protobuf:"varint,13,opt,name=is_rs_peer,json=isRsPeer,proto3,oneof" json:"is_rs_peer,omitempty"`
+	BfdSupport    *bool   `protobuf:"varint,14,opt,name=bfd_support,json=bfdSupport,proto3,oneof" json:"bfd_support,omitempty"`
+	Operational   *bool   `protobuf:"varint,15,opt,name=operational,proto3,oneof" json:"operational,omitempty"`
+	Notes         *string `protobuf:"bytes,16,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	NetSideId     *int64  `protobuf:"varint,17,opt,name=net_side_id,json=netSideId,proto3,oneof" json:"net_side_id,omitempty"`
+	IxSideId      *int64  `protobuf:"varint,18,opt,name=ix_side_id,json=ixSideId,proto3,oneof" json:"ix_side_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3329,6 +4988,83 @@ func (x *ListNetworkIxLansRequest) GetStatus() string {
 	return ""
 }
 
+func (x *ListNetworkIxLansRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListNetworkIxLansRequest) GetIxId() int64 {
+	if x != nil && x.IxId != nil {
+		return *x.IxId
+	}
+	return 0
+}
+
+func (x *ListNetworkIxLansRequest) GetSpeed() int64 {
+	if x != nil && x.Speed != nil {
+		return *x.Speed
+	}
+	return 0
+}
+
+func (x *ListNetworkIxLansRequest) GetIpaddr4() string {
+	if x != nil && x.Ipaddr4 != nil {
+		return *x.Ipaddr4
+	}
+	return ""
+}
+
+func (x *ListNetworkIxLansRequest) GetIpaddr6() string {
+	if x != nil && x.Ipaddr6 != nil {
+		return *x.Ipaddr6
+	}
+	return ""
+}
+
+func (x *ListNetworkIxLansRequest) GetIsRsPeer() bool {
+	if x != nil && x.IsRsPeer != nil {
+		return *x.IsRsPeer
+	}
+	return false
+}
+
+func (x *ListNetworkIxLansRequest) GetBfdSupport() bool {
+	if x != nil && x.BfdSupport != nil {
+		return *x.BfdSupport
+	}
+	return false
+}
+
+func (x *ListNetworkIxLansRequest) GetOperational() bool {
+	if x != nil && x.Operational != nil {
+		return *x.Operational
+	}
+	return false
+}
+
+func (x *ListNetworkIxLansRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *ListNetworkIxLansRequest) GetNetSideId() int64 {
+	if x != nil && x.NetSideId != nil {
+		return *x.NetSideId
+	}
+	return 0
+}
+
+func (x *ListNetworkIxLansRequest) GetIxSideId() int64 {
+	if x != nil && x.IxSideId != nil {
+		return *x.IxSideId
+	}
+	return 0
+}
+
 type ListNetworkIxLansResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NetworkIxLans []*NetworkIxLan        `protobuf:"bytes,1,rep,name=network_ix_lans,json=networkIxLans,proto3" json:"network_ix_lans,omitempty"`
@@ -3392,6 +5128,16 @@ type StreamNetworkIxLansRequest struct {
 	SinceId *int64 `protobuf:"varint,6,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
 	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	IxId          *int64                 `protobuf:"varint,8,opt,name=ix_id,json=ixId,proto3,oneof" json:"ix_id,omitempty"`
+	Speed         *int64                 `protobuf:"varint,9,opt,name=speed,proto3,oneof" json:"speed,omitempty"`
+	Ipaddr4       *string                `protobuf:"bytes,10,opt,name=ipaddr4,proto3,oneof" json:"ipaddr4,omitempty"`
+	Ipaddr6       *string                `protobuf:"bytes,11,opt,name=ipaddr6,proto3,oneof" json:"ipaddr6,omitempty"`
+	IsRsPeer      *bool                  `protobuf:"varint,12,opt,name=is_rs_peer,json=isRsPeer,proto3,oneof" json:"is_rs_peer,omitempty"`
+	BfdSupport    *bool                  `protobuf:"varint,13,opt,name=bfd_support,json=bfdSupport,proto3,oneof" json:"bfd_support,omitempty"`
+	Operational   *bool                  `protobuf:"varint,14,opt,name=operational,proto3,oneof" json:"operational,omitempty"`
+	Notes         *string                `protobuf:"bytes,15,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	NetSideId     *int64                 `protobuf:"varint,16,opt,name=net_side_id,json=netSideId,proto3,oneof" json:"net_side_id,omitempty"`
+	IxSideId      *int64                 `protobuf:"varint,17,opt,name=ix_side_id,json=ixSideId,proto3,oneof" json:"ix_side_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3473,6 +5219,76 @@ func (x *StreamNetworkIxLansRequest) GetUpdatedSince() *timestamppb.Timestamp {
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamNetworkIxLansRequest) GetIxId() int64 {
+	if x != nil && x.IxId != nil {
+		return *x.IxId
+	}
+	return 0
+}
+
+func (x *StreamNetworkIxLansRequest) GetSpeed() int64 {
+	if x != nil && x.Speed != nil {
+		return *x.Speed
+	}
+	return 0
+}
+
+func (x *StreamNetworkIxLansRequest) GetIpaddr4() string {
+	if x != nil && x.Ipaddr4 != nil {
+		return *x.Ipaddr4
+	}
+	return ""
+}
+
+func (x *StreamNetworkIxLansRequest) GetIpaddr6() string {
+	if x != nil && x.Ipaddr6 != nil {
+		return *x.Ipaddr6
+	}
+	return ""
+}
+
+func (x *StreamNetworkIxLansRequest) GetIsRsPeer() bool {
+	if x != nil && x.IsRsPeer != nil {
+		return *x.IsRsPeer
+	}
+	return false
+}
+
+func (x *StreamNetworkIxLansRequest) GetBfdSupport() bool {
+	if x != nil && x.BfdSupport != nil {
+		return *x.BfdSupport
+	}
+	return false
+}
+
+func (x *StreamNetworkIxLansRequest) GetOperational() bool {
+	if x != nil && x.Operational != nil {
+		return *x.Operational
+	}
+	return false
+}
+
+func (x *StreamNetworkIxLansRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *StreamNetworkIxLansRequest) GetNetSideId() int64 {
+	if x != nil && x.NetSideId != nil {
+		return *x.NetSideId
+	}
+	return 0
+}
+
+func (x *StreamNetworkIxLansRequest) GetIxSideId() int64 {
+	if x != nil && x.IxSideId != nil {
+		return *x.IxSideId
+	}
+	return 0
 }
 
 type GetOrganizationRequest struct {
@@ -3572,6 +5388,18 @@ type ListOrganizationsRequest struct {
 	Country       *string `protobuf:"bytes,4,opt,name=country,proto3,oneof" json:"country,omitempty"`
 	City          *string `protobuf:"bytes,5,opt,name=city,proto3,oneof" json:"city,omitempty"`
 	Status        *string `protobuf:"bytes,6,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Id            *int64  `protobuf:"varint,7,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Aka           *string `protobuf:"bytes,8,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	NameLong      *string `protobuf:"bytes,9,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	Website       *string `protobuf:"bytes,10,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	Notes         *string `protobuf:"bytes,11,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	Logo          *string `protobuf:"bytes,12,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
+	Address1      *string `protobuf:"bytes,13,opt,name=address1,proto3,oneof" json:"address1,omitempty"`
+	Address2      *string `protobuf:"bytes,14,opt,name=address2,proto3,oneof" json:"address2,omitempty"`
+	State         *string `protobuf:"bytes,15,opt,name=state,proto3,oneof" json:"state,omitempty"`
+	Zipcode       *string `protobuf:"bytes,16,opt,name=zipcode,proto3,oneof" json:"zipcode,omitempty"`
+	Suite         *string `protobuf:"bytes,17,opt,name=suite,proto3,oneof" json:"suite,omitempty"`
+	Floor         *string `protobuf:"bytes,18,opt,name=floor,proto3,oneof" json:"floor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3648,6 +5476,90 @@ func (x *ListOrganizationsRequest) GetStatus() string {
 	return ""
 }
 
+func (x *ListOrganizationsRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListOrganizationsRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *ListOrganizationsRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *ListOrganizationsRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *ListOrganizationsRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *ListOrganizationsRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
+}
+
+func (x *ListOrganizationsRequest) GetAddress1() string {
+	if x != nil && x.Address1 != nil {
+		return *x.Address1
+	}
+	return ""
+}
+
+func (x *ListOrganizationsRequest) GetAddress2() string {
+	if x != nil && x.Address2 != nil {
+		return *x.Address2
+	}
+	return ""
+}
+
+func (x *ListOrganizationsRequest) GetState() string {
+	if x != nil && x.State != nil {
+		return *x.State
+	}
+	return ""
+}
+
+func (x *ListOrganizationsRequest) GetZipcode() string {
+	if x != nil && x.Zipcode != nil {
+		return *x.Zipcode
+	}
+	return ""
+}
+
+func (x *ListOrganizationsRequest) GetSuite() string {
+	if x != nil && x.Suite != nil {
+		return *x.Suite
+	}
+	return ""
+}
+
+func (x *ListOrganizationsRequest) GetFloor() string {
+	if x != nil && x.Floor != nil {
+		return *x.Floor
+	}
+	return ""
+}
+
 type ListOrganizationsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Organizations []*Organization        `protobuf:"bytes,1,rep,name=organizations,proto3" json:"organizations,omitempty"`
@@ -3710,6 +5622,17 @@ type StreamOrganizationsRequest struct {
 	SinceId *int64 `protobuf:"varint,5,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
 	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	Aka           *string                `protobuf:"bytes,7,opt,name=aka,proto3,oneof" json:"aka,omitempty"`
+	NameLong      *string                `protobuf:"bytes,8,opt,name=name_long,json=nameLong,proto3,oneof" json:"name_long,omitempty"`
+	Website       *string                `protobuf:"bytes,9,opt,name=website,proto3,oneof" json:"website,omitempty"`
+	Notes         *string                `protobuf:"bytes,10,opt,name=notes,proto3,oneof" json:"notes,omitempty"`
+	Logo          *string                `protobuf:"bytes,11,opt,name=logo,proto3,oneof" json:"logo,omitempty"`
+	Address1      *string                `protobuf:"bytes,12,opt,name=address1,proto3,oneof" json:"address1,omitempty"`
+	Address2      *string                `protobuf:"bytes,13,opt,name=address2,proto3,oneof" json:"address2,omitempty"`
+	State         *string                `protobuf:"bytes,14,opt,name=state,proto3,oneof" json:"state,omitempty"`
+	Zipcode       *string                `protobuf:"bytes,15,opt,name=zipcode,proto3,oneof" json:"zipcode,omitempty"`
+	Suite         *string                `protobuf:"bytes,16,opt,name=suite,proto3,oneof" json:"suite,omitempty"`
+	Floor         *string                `protobuf:"bytes,17,opt,name=floor,proto3,oneof" json:"floor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3784,6 +5707,83 @@ func (x *StreamOrganizationsRequest) GetUpdatedSince() *timestamppb.Timestamp {
 		return x.UpdatedSince
 	}
 	return nil
+}
+
+func (x *StreamOrganizationsRequest) GetAka() string {
+	if x != nil && x.Aka != nil {
+		return *x.Aka
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetNameLong() string {
+	if x != nil && x.NameLong != nil {
+		return *x.NameLong
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetWebsite() string {
+	if x != nil && x.Website != nil {
+		return *x.Website
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetNotes() string {
+	if x != nil && x.Notes != nil {
+		return *x.Notes
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetLogo() string {
+	if x != nil && x.Logo != nil {
+		return *x.Logo
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetAddress1() string {
+	if x != nil && x.Address1 != nil {
+		return *x.Address1
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetAddress2() string {
+	if x != nil && x.Address2 != nil {
+		return *x.Address2
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetState() string {
+	if x != nil && x.State != nil {
+		return *x.State
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetZipcode() string {
+	if x != nil && x.Zipcode != nil {
+		return *x.Zipcode
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetSuite() string {
+	if x != nil && x.Suite != nil {
+		return *x.Suite
+	}
+	return ""
+}
+
+func (x *StreamOrganizationsRequest) GetFloor() string {
+	if x != nil && x.Floor != nil {
+		return *x.Floor
+	}
+	return ""
 }
 
 type GetPocRequest struct {
@@ -3883,6 +5883,11 @@ type ListPocsRequest struct {
 	Role          *string `protobuf:"bytes,4,opt,name=role,proto3,oneof" json:"role,omitempty"`
 	Name          *string `protobuf:"bytes,5,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	Status        *string `protobuf:"bytes,6,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Id            *int64  `protobuf:"varint,7,opt,name=id,proto3,oneof" json:"id,omitempty"`
+	Visible       *string `protobuf:"bytes,8,opt,name=visible,proto3,oneof" json:"visible,omitempty"`
+	Phone         *string `protobuf:"bytes,9,opt,name=phone,proto3,oneof" json:"phone,omitempty"`
+	Email         *string `protobuf:"bytes,10,opt,name=email,proto3,oneof" json:"email,omitempty"`
+	Url           *string `protobuf:"bytes,11,opt,name=url,proto3,oneof" json:"url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3959,6 +5964,41 @@ func (x *ListPocsRequest) GetStatus() string {
 	return ""
 }
 
+func (x *ListPocsRequest) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *ListPocsRequest) GetVisible() string {
+	if x != nil && x.Visible != nil {
+		return *x.Visible
+	}
+	return ""
+}
+
+func (x *ListPocsRequest) GetPhone() string {
+	if x != nil && x.Phone != nil {
+		return *x.Phone
+	}
+	return ""
+}
+
+func (x *ListPocsRequest) GetEmail() string {
+	if x != nil && x.Email != nil {
+		return *x.Email
+	}
+	return ""
+}
+
+func (x *ListPocsRequest) GetUrl() string {
+	if x != nil && x.Url != nil {
+		return *x.Url
+	}
+	return ""
+}
+
 type ListPocsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Pocs          []*Poc                 `protobuf:"bytes,1,rep,name=pocs,proto3" json:"pocs,omitempty"`
@@ -4021,6 +6061,10 @@ type StreamPocsRequest struct {
 	SinceId *int64 `protobuf:"varint,5,opt,name=since_id,json=sinceId,proto3,oneof" json:"since_id,omitempty"`
 	// Only records updated after this timestamp are returned.
 	UpdatedSince  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_since,json=updatedSince,proto3,oneof" json:"updated_since,omitempty"`
+	Visible       *string                `protobuf:"bytes,7,opt,name=visible,proto3,oneof" json:"visible,omitempty"`
+	Phone         *string                `protobuf:"bytes,8,opt,name=phone,proto3,oneof" json:"phone,omitempty"`
+	Email         *string                `protobuf:"bytes,9,opt,name=email,proto3,oneof" json:"email,omitempty"`
+	Url           *string                `protobuf:"bytes,10,opt,name=url,proto3,oneof" json:"url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4097,6 +6141,34 @@ func (x *StreamPocsRequest) GetUpdatedSince() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *StreamPocsRequest) GetVisible() string {
+	if x != nil && x.Visible != nil {
+		return *x.Visible
+	}
+	return ""
+}
+
+func (x *StreamPocsRequest) GetPhone() string {
+	if x != nil && x.Phone != nil {
+		return *x.Phone
+	}
+	return ""
+}
+
+func (x *StreamPocsRequest) GetEmail() string {
+	if x != nil && x.Email != nil {
+		return *x.Email
+	}
+	return ""
+}
+
+func (x *StreamPocsRequest) GetUrl() string {
+	if x != nil && x.Url != nil {
+		return *x.Url
+	}
+	return ""
+}
+
 var File_peeringdb_v1_services_proto protoreflect.FileDescriptor
 
 const file_peeringdb_v1_services_proto_rawDesc = "" +
@@ -4105,7 +6177,7 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x10GetCampusRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"A\n" +
 	"\x11GetCampusResponse\x12,\n" +
-	"\x06campus\x18\x01 \x01(\v2\x14.peeringdb.v1.CampusR\x06campus\"\x8f\x02\n" +
+	"\x06campus\x18\x01 \x01(\v2\x14.peeringdb.v1.CampusR\x06campus\"\xe9\x04\n" +
 	"\x13ListCampusesRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -4114,16 +6186,39 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\acountry\x18\x04 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x05 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x06 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
-	"\x06org_id\x18\a \x01(\x03H\x04R\x05orgId\x88\x01\x01B\a\n" +
+	"\x06org_id\x18\a \x01(\x03H\x04R\x05orgId\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\b \x01(\x03H\x05R\x02id\x88\x01\x01\x12\x1e\n" +
+	"\borg_name\x18\t \x01(\tH\x06R\aorgName\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\n" +
+	" \x01(\tH\aR\bnameLong\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\v \x01(\tH\bR\x03aka\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\f \x01(\tH\tR\awebsite\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\r \x01(\tH\n" +
+	"R\x05notes\x88\x01\x01\x12\x19\n" +
+	"\x05state\x18\x0e \x01(\tH\vR\x05state\x88\x01\x01\x12\x1d\n" +
+	"\azipcode\x18\x0f \x01(\tH\fR\azipcode\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18\x10 \x01(\tH\rR\x04logo\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
 	"\a_statusB\t\n" +
-	"\a_org_id\"p\n" +
+	"\a_org_idB\x05\n" +
+	"\x03_idB\v\n" +
+	"\t_org_nameB\f\n" +
+	"\n" +
+	"_name_longB\x06\n" +
+	"\x04_akaB\n" +
+	"\n" +
+	"\b_websiteB\b\n" +
+	"\x06_notesB\b\n" +
+	"\x06_stateB\n" +
+	"\n" +
+	"\b_zipcodeB\a\n" +
+	"\x05_logo\"p\n" +
 	"\x14ListCampusesResponse\x120\n" +
 	"\bcampuses\x18\x01 \x03(\v2\x14.peeringdb.v1.CampusR\bcampuses\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xda\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x98\x05\n" +
 	"\x15StreamCampusesRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
@@ -4131,7 +6226,17 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
 	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\a\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01\x12\x1e\n" +
+	"\borg_name\x18\b \x01(\tH\aR\aorgName\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\t \x01(\tH\bR\bnameLong\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\n" +
+	" \x01(\tH\tR\x03aka\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\v \x01(\tH\n" +
+	"R\awebsite\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\f \x01(\tH\vR\x05notes\x88\x01\x01\x12\x19\n" +
+	"\x05state\x18\r \x01(\tH\fR\x05state\x88\x01\x01\x12\x1d\n" +
+	"\azipcode\x18\x0e \x01(\tH\rR\azipcode\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18\x0f \x01(\tH\x0eR\x04logo\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
@@ -4139,39 +6244,83 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_statusB\t\n" +
 	"\a_org_idB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\"#\n" +
+	"\x0e_updated_sinceB\v\n" +
+	"\t_org_nameB\f\n" +
+	"\n" +
+	"_name_longB\x06\n" +
+	"\x04_akaB\n" +
+	"\n" +
+	"\b_websiteB\b\n" +
+	"\x06_notesB\b\n" +
+	"\x06_stateB\n" +
+	"\n" +
+	"\b_zipcodeB\a\n" +
+	"\x05_logo\"#\n" +
 	"\x11GetCarrierRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"E\n" +
 	"\x12GetCarrierResponse\x12/\n" +
-	"\acarrier\x18\x01 \x01(\v2\x15.peeringdb.v1.CarrierR\acarrier\"\xc2\x01\n" +
+	"\acarrier\x18\x01 \x01(\v2\x15.peeringdb.v1.CarrierR\acarrier\"\xcc\x03\n" +
 	"\x13ListCarriersRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x17\n" +
 	"\x04name\x18\x03 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x04 \x01(\tH\x01R\x06status\x88\x01\x01\x12\x1a\n" +
-	"\x06org_id\x18\x05 \x01(\x03H\x02R\x05orgId\x88\x01\x01B\a\n" +
+	"\x06org_id\x18\x05 \x01(\x03H\x02R\x05orgId\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\x06 \x01(\x03H\x03R\x02id\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\a \x01(\tH\x04R\x03aka\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\b \x01(\tH\x05R\bnameLong\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\t \x01(\tH\x06R\awebsite\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\n" +
+	" \x01(\tH\aR\x05notes\x88\x01\x01\x12\x1e\n" +
+	"\borg_name\x18\v \x01(\tH\bR\aorgName\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18\f \x01(\tH\tR\x04logo\x88\x01\x01B\a\n" +
 	"\x05_nameB\t\n" +
 	"\a_statusB\t\n" +
-	"\a_org_id\"q\n" +
+	"\a_org_idB\x05\n" +
+	"\x03_idB\x06\n" +
+	"\x04_akaB\f\n" +
+	"\n" +
+	"_name_longB\n" +
+	"\n" +
+	"\b_websiteB\b\n" +
+	"\x06_notesB\v\n" +
+	"\t_org_nameB\a\n" +
+	"\x05_logo\"q\n" +
 	"\x14ListCarriersResponse\x121\n" +
 	"\bcarriers\x18\x01 \x03(\v2\x15.peeringdb.v1.CarrierR\bcarriers\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x8d\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xfb\x03\n" +
 	"\x15StreamCarriersRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x02 \x01(\tH\x01R\x06status\x88\x01\x01\x12\x1a\n" +
 	"\x06org_id\x18\x03 \x01(\x03H\x02R\x05orgId\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x04 \x01(\x03H\x03R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01B\a\n" +
+	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\x06 \x01(\tH\x05R\x03aka\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\a \x01(\tH\x06R\bnameLong\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\b \x01(\tH\aR\awebsite\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\t \x01(\tH\bR\x05notes\x88\x01\x01\x12\x1e\n" +
+	"\borg_name\x18\n" +
+	" \x01(\tH\tR\aorgName\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18\v \x01(\tH\n" +
+	"R\x04logo\x88\x01\x01B\a\n" +
 	"\x05_nameB\t\n" +
 	"\a_statusB\t\n" +
 	"\a_org_idB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\"+\n" +
+	"\x0e_updated_sinceB\x06\n" +
+	"\x04_akaB\f\n" +
+	"\n" +
+	"_name_longB\n" +
+	"\n" +
+	"\b_websiteB\b\n" +
+	"\x06_notesB\v\n" +
+	"\t_org_nameB\a\n" +
+	"\x05_logo\"+\n" +
 	"\x19GetCarrierFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"f\n" +
 	"\x1aGetCarrierFacilityResponse\x12H\n" +
-	"\x10carrier_facility\x18\x01 \x01(\v2\x1d.peeringdb.v1.CarrierFacilityR\x0fcarrierFacility\"\xdc\x01\n" +
+	"\x10carrier_facility\x18\x01 \x01(\v2\x1d.peeringdb.v1.CarrierFacilityR\x0fcarrierFacility\"\x9a\x02\n" +
 	"\x1cListCarrierFacilitiesRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -4179,29 +6328,35 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\n" +
 	"carrier_id\x18\x03 \x01(\x03H\x00R\tcarrierId\x88\x01\x01\x12\x1a\n" +
 	"\x06fac_id\x18\x04 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x05 \x01(\tH\x02R\x06status\x88\x01\x01B\r\n" +
+	"\x06status\x18\x05 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\x06 \x01(\x03H\x03R\x02id\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\a \x01(\tH\x04R\x04name\x88\x01\x01B\r\n" +
 	"\v_carrier_idB\t\n" +
 	"\a_fac_idB\t\n" +
-	"\a_status\"\x95\x01\n" +
+	"\a_statusB\x05\n" +
+	"\x03_idB\a\n" +
+	"\x05_name\"\x95\x01\n" +
 	"\x1dListCarrierFacilitiesResponse\x12L\n" +
 	"\x12carrier_facilities\x18\x01 \x03(\v2\x1d.peeringdb.v1.CarrierFacilityR\x11carrierFacilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa7\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xc9\x02\n" +
 	"\x1eStreamCarrierFacilitiesRequest\x12\"\n" +
 	"\n" +
 	"carrier_id\x18\x01 \x01(\x03H\x00R\tcarrierId\x88\x01\x01\x12\x1a\n" +
 	"\x06fac_id\x18\x02 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x04 \x01(\x03H\x03R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01B\r\n" +
+	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\x06 \x01(\tH\x05R\x04name\x88\x01\x01B\r\n" +
 	"\v_carrier_idB\t\n" +
 	"\a_fac_idB\t\n" +
 	"\a_statusB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\"$\n" +
+	"\x0e_updated_sinceB\a\n" +
+	"\x05_name\"$\n" +
 	"\x12GetFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"I\n" +
 	"\x13GetFacilityResponse\x122\n" +
-	"\bfacility\x18\x01 \x01(\v2\x16.peeringdb.v1.FacilityR\bfacility\"\x91\x02\n" +
+	"\bfacility\x18\x01 \x01(\v2\x16.peeringdb.v1.FacilityR\bfacility\"\xa5\v\n" +
 	"\x15ListFacilitiesRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -4210,18 +6365,79 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\acountry\x18\x04 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x05 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x06 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
-	"\x06org_id\x18\a \x01(\x03H\x04R\x05orgId\x88\x01\x01B\a\n" +
+	"\x06org_id\x18\a \x01(\x03H\x04R\x05orgId\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\b \x01(\x03H\x05R\x02id\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\t \x01(\tH\x06R\x03aka\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\n" +
+	" \x01(\tH\aR\bnameLong\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\v \x01(\tH\bR\awebsite\x88\x01\x01\x12\x17\n" +
+	"\x04clli\x18\f \x01(\tH\tR\x04clli\x88\x01\x01\x12\x1d\n" +
+	"\arencode\x18\r \x01(\tH\n" +
+	"R\arencode\x88\x01\x01\x12\x1b\n" +
+	"\x06npanxx\x18\x0e \x01(\tH\vR\x06npanxx\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"tech_email\x18\x0f \x01(\tH\fR\ttechEmail\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"tech_phone\x18\x10 \x01(\tH\rR\ttechPhone\x88\x01\x01\x12$\n" +
+	"\vsales_email\x18\x11 \x01(\tH\x0eR\n" +
+	"salesEmail\x88\x01\x01\x12$\n" +
+	"\vsales_phone\x18\x12 \x01(\tH\x0fR\n" +
+	"salesPhone\x88\x01\x01\x12\x1f\n" +
+	"\bproperty\x18\x13 \x01(\tH\x10R\bproperty\x88\x01\x01\x12C\n" +
+	"\x1bdiverse_serving_substations\x18\x14 \x01(\bH\x11R\x19diverseServingSubstations\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\x15 \x01(\tH\x12R\x05notes\x88\x01\x01\x12.\n" +
+	"\x10region_continent\x18\x16 \x01(\tH\x13R\x0fregionContinent\x88\x01\x01\x12.\n" +
+	"\x10status_dashboard\x18\x17 \x01(\tH\x14R\x0fstatusDashboard\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18\x18 \x01(\tH\x15R\x04logo\x88\x01\x01\x12\x1f\n" +
+	"\baddress1\x18\x19 \x01(\tH\x16R\baddress1\x88\x01\x01\x12\x1f\n" +
+	"\baddress2\x18\x1a \x01(\tH\x17R\baddress2\x88\x01\x01\x12\x19\n" +
+	"\x05state\x18\x1b \x01(\tH\x18R\x05state\x88\x01\x01\x12\x1d\n" +
+	"\azipcode\x18\x1c \x01(\tH\x19R\azipcode\x88\x01\x01\x12\x19\n" +
+	"\x05suite\x18\x1d \x01(\tH\x1aR\x05suite\x88\x01\x01\x12\x19\n" +
+	"\x05floor\x18\x1e \x01(\tH\x1bR\x05floor\x88\x01\x01\x12 \n" +
+	"\tcampus_id\x18\x1f \x01(\x03H\x1cR\bcampusId\x88\x01\x01\x12\x1e\n" +
+	"\borg_name\x18  \x01(\tH\x1dR\aorgName\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
 	"\a_statusB\t\n" +
-	"\a_org_id\"x\n" +
+	"\a_org_idB\x05\n" +
+	"\x03_idB\x06\n" +
+	"\x04_akaB\f\n" +
+	"\n" +
+	"_name_longB\n" +
+	"\n" +
+	"\b_websiteB\a\n" +
+	"\x05_clliB\n" +
+	"\n" +
+	"\b_rencodeB\t\n" +
+	"\a_npanxxB\r\n" +
+	"\v_tech_emailB\r\n" +
+	"\v_tech_phoneB\x0e\n" +
+	"\f_sales_emailB\x0e\n" +
+	"\f_sales_phoneB\v\n" +
+	"\t_propertyB\x1e\n" +
+	"\x1c_diverse_serving_substationsB\b\n" +
+	"\x06_notesB\x13\n" +
+	"\x11_region_continentB\x13\n" +
+	"\x11_status_dashboardB\a\n" +
+	"\x05_logoB\v\n" +
+	"\t_address1B\v\n" +
+	"\t_address2B\b\n" +
+	"\x06_stateB\n" +
+	"\n" +
+	"\b_zipcodeB\b\n" +
+	"\x06_suiteB\b\n" +
+	"\x06_floorB\f\n" +
+	"\n" +
+	"_campus_idB\v\n" +
+	"\t_org_name\"x\n" +
 	"\x16ListFacilitiesResponse\x126\n" +
 	"\n" +
 	"facilities\x18\x01 \x03(\v2\x16.peeringdb.v1.FacilityR\n" +
 	"facilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xdc\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xd4\v\n" +
 	"\x17StreamFacilitiesRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
@@ -4229,7 +6445,37 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
 	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\a\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\b \x01(\tH\aR\x03aka\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\t \x01(\tH\bR\bnameLong\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\n" +
+	" \x01(\tH\tR\awebsite\x88\x01\x01\x12\x17\n" +
+	"\x04clli\x18\v \x01(\tH\n" +
+	"R\x04clli\x88\x01\x01\x12\x1d\n" +
+	"\arencode\x18\f \x01(\tH\vR\arencode\x88\x01\x01\x12\x1b\n" +
+	"\x06npanxx\x18\r \x01(\tH\fR\x06npanxx\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"tech_email\x18\x0e \x01(\tH\rR\ttechEmail\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"tech_phone\x18\x0f \x01(\tH\x0eR\ttechPhone\x88\x01\x01\x12$\n" +
+	"\vsales_email\x18\x10 \x01(\tH\x0fR\n" +
+	"salesEmail\x88\x01\x01\x12$\n" +
+	"\vsales_phone\x18\x11 \x01(\tH\x10R\n" +
+	"salesPhone\x88\x01\x01\x12\x1f\n" +
+	"\bproperty\x18\x12 \x01(\tH\x11R\bproperty\x88\x01\x01\x12C\n" +
+	"\x1bdiverse_serving_substations\x18\x13 \x01(\bH\x12R\x19diverseServingSubstations\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\x14 \x01(\tH\x13R\x05notes\x88\x01\x01\x12.\n" +
+	"\x10region_continent\x18\x15 \x01(\tH\x14R\x0fregionContinent\x88\x01\x01\x12.\n" +
+	"\x10status_dashboard\x18\x16 \x01(\tH\x15R\x0fstatusDashboard\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18\x17 \x01(\tH\x16R\x04logo\x88\x01\x01\x12\x1f\n" +
+	"\baddress1\x18\x18 \x01(\tH\x17R\baddress1\x88\x01\x01\x12\x1f\n" +
+	"\baddress2\x18\x19 \x01(\tH\x18R\baddress2\x88\x01\x01\x12\x19\n" +
+	"\x05state\x18\x1a \x01(\tH\x19R\x05state\x88\x01\x01\x12\x1d\n" +
+	"\azipcode\x18\x1b \x01(\tH\x1aR\azipcode\x88\x01\x01\x12\x19\n" +
+	"\x05suite\x18\x1c \x01(\tH\x1bR\x05suite\x88\x01\x01\x12\x19\n" +
+	"\x05floor\x18\x1d \x01(\tH\x1cR\x05floor\x88\x01\x01\x12 \n" +
+	"\tcampus_id\x18\x1e \x01(\x03H\x1dR\bcampusId\x88\x01\x01\x12\x1e\n" +
+	"\borg_name\x18\x1f \x01(\tH\x1eR\aorgName\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
@@ -4237,11 +6483,41 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_statusB\t\n" +
 	"\a_org_idB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\",\n" +
+	"\x0e_updated_sinceB\x06\n" +
+	"\x04_akaB\f\n" +
+	"\n" +
+	"_name_longB\n" +
+	"\n" +
+	"\b_websiteB\a\n" +
+	"\x05_clliB\n" +
+	"\n" +
+	"\b_rencodeB\t\n" +
+	"\a_npanxxB\r\n" +
+	"\v_tech_emailB\r\n" +
+	"\v_tech_phoneB\x0e\n" +
+	"\f_sales_emailB\x0e\n" +
+	"\f_sales_phoneB\v\n" +
+	"\t_propertyB\x1e\n" +
+	"\x1c_diverse_serving_substationsB\b\n" +
+	"\x06_notesB\x13\n" +
+	"\x11_region_continentB\x13\n" +
+	"\x11_status_dashboardB\a\n" +
+	"\x05_logoB\v\n" +
+	"\t_address1B\v\n" +
+	"\t_address2B\b\n" +
+	"\x06_stateB\n" +
+	"\n" +
+	"\b_zipcodeB\b\n" +
+	"\x06_suiteB\b\n" +
+	"\x06_floorB\f\n" +
+	"\n" +
+	"_campus_idB\v\n" +
+	"\t_org_name\",\n" +
 	"\x1aGetInternetExchangeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"j\n" +
 	"\x1bGetInternetExchangeResponse\x12K\n" +
-	"\x11internet_exchange\x18\x01 \x01(\v2\x1e.peeringdb.v1.InternetExchangeR\x10internetExchange\"\x98\x02\n" +
+	"\x11internet_exchange\x18\x01 \x01(\v2\x1e.peeringdb.v1.InternetExchangeR\x10internetExchange\"\xaa\n" +
+	"\n" +
 	"\x1cListInternetExchangesRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -4250,16 +6526,69 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\acountry\x18\x04 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x05 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x06 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
-	"\x06org_id\x18\a \x01(\x03H\x04R\x05orgId\x88\x01\x01B\a\n" +
+	"\x06org_id\x18\a \x01(\x03H\x04R\x05orgId\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\b \x01(\x03H\x05R\x02id\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\t \x01(\tH\x06R\x03aka\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\n" +
+	" \x01(\tH\aR\bnameLong\x88\x01\x01\x12.\n" +
+	"\x10region_continent\x18\v \x01(\tH\bR\x0fregionContinent\x88\x01\x01\x12\x19\n" +
+	"\x05media\x18\f \x01(\tH\tR\x05media\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\r \x01(\tH\n" +
+	"R\x05notes\x88\x01\x01\x12(\n" +
+	"\rproto_unicast\x18\x0e \x01(\bH\vR\fprotoUnicast\x88\x01\x01\x12,\n" +
+	"\x0fproto_multicast\x18\x0f \x01(\bH\fR\x0eprotoMulticast\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"proto_ipv6\x18\x10 \x01(\bH\rR\tprotoIpv6\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\x11 \x01(\tH\x0eR\awebsite\x88\x01\x01\x12 \n" +
+	"\turl_stats\x18\x12 \x01(\tH\x0fR\burlStats\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"tech_email\x18\x13 \x01(\tH\x10R\ttechEmail\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"tech_phone\x18\x14 \x01(\tH\x11R\ttechPhone\x88\x01\x01\x12&\n" +
+	"\fpolicy_email\x18\x15 \x01(\tH\x12R\vpolicyEmail\x88\x01\x01\x12&\n" +
+	"\fpolicy_phone\x18\x16 \x01(\tH\x13R\vpolicyPhone\x88\x01\x01\x12$\n" +
+	"\vsales_email\x18\x17 \x01(\tH\x14R\n" +
+	"salesEmail\x88\x01\x01\x12$\n" +
+	"\vsales_phone\x18\x18 \x01(\tH\x15R\n" +
+	"salesPhone\x88\x01\x01\x12(\n" +
+	"\rservice_level\x18\x19 \x01(\tH\x16R\fserviceLevel\x88\x01\x01\x12\x19\n" +
+	"\x05terms\x18\x1a \x01(\tH\x17R\x05terms\x88\x01\x01\x12.\n" +
+	"\x10status_dashboard\x18\x1b \x01(\tH\x18R\x0fstatusDashboard\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18\x1c \x01(\tH\x19R\x04logo\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
 	"\a_statusB\t\n" +
-	"\a_org_id\"\x96\x01\n" +
+	"\a_org_idB\x05\n" +
+	"\x03_idB\x06\n" +
+	"\x04_akaB\f\n" +
+	"\n" +
+	"_name_longB\x13\n" +
+	"\x11_region_continentB\b\n" +
+	"\x06_mediaB\b\n" +
+	"\x06_notesB\x10\n" +
+	"\x0e_proto_unicastB\x12\n" +
+	"\x10_proto_multicastB\r\n" +
+	"\v_proto_ipv6B\n" +
+	"\n" +
+	"\b_websiteB\f\n" +
+	"\n" +
+	"_url_statsB\r\n" +
+	"\v_tech_emailB\r\n" +
+	"\v_tech_phoneB\x0f\n" +
+	"\r_policy_emailB\x0f\n" +
+	"\r_policy_phoneB\x0e\n" +
+	"\f_sales_emailB\x0e\n" +
+	"\f_sales_phoneB\x10\n" +
+	"\x0e_service_levelB\b\n" +
+	"\x06_termsB\x13\n" +
+	"\x11_status_dashboardB\a\n" +
+	"\x05_logo\"\x96\x01\n" +
 	"\x1dListInternetExchangesResponse\x12M\n" +
 	"\x12internet_exchanges\x18\x01 \x03(\v2\x1e.peeringdb.v1.InternetExchangeR\x11internetExchanges\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe3\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xd9\n" +
+	"\n" +
 	"\x1eStreamInternetExchangesRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
@@ -4267,7 +6596,34 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1a\n" +
 	"\x06org_id\x18\x05 \x01(\x03H\x04R\x05orgId\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\a\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\b \x01(\tH\aR\x03aka\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\t \x01(\tH\bR\bnameLong\x88\x01\x01\x12.\n" +
+	"\x10region_continent\x18\n" +
+	" \x01(\tH\tR\x0fregionContinent\x88\x01\x01\x12\x19\n" +
+	"\x05media\x18\v \x01(\tH\n" +
+	"R\x05media\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\f \x01(\tH\vR\x05notes\x88\x01\x01\x12(\n" +
+	"\rproto_unicast\x18\r \x01(\bH\fR\fprotoUnicast\x88\x01\x01\x12,\n" +
+	"\x0fproto_multicast\x18\x0e \x01(\bH\rR\x0eprotoMulticast\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"proto_ipv6\x18\x0f \x01(\bH\x0eR\tprotoIpv6\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\x10 \x01(\tH\x0fR\awebsite\x88\x01\x01\x12 \n" +
+	"\turl_stats\x18\x11 \x01(\tH\x10R\burlStats\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"tech_email\x18\x12 \x01(\tH\x11R\ttechEmail\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"tech_phone\x18\x13 \x01(\tH\x12R\ttechPhone\x88\x01\x01\x12&\n" +
+	"\fpolicy_email\x18\x14 \x01(\tH\x13R\vpolicyEmail\x88\x01\x01\x12&\n" +
+	"\fpolicy_phone\x18\x15 \x01(\tH\x14R\vpolicyPhone\x88\x01\x01\x12$\n" +
+	"\vsales_email\x18\x16 \x01(\tH\x15R\n" +
+	"salesEmail\x88\x01\x01\x12$\n" +
+	"\vsales_phone\x18\x17 \x01(\tH\x16R\n" +
+	"salesPhone\x88\x01\x01\x12(\n" +
+	"\rservice_level\x18\x18 \x01(\tH\x17R\fserviceLevel\x88\x01\x01\x12\x19\n" +
+	"\x05terms\x18\x19 \x01(\tH\x18R\x05terms\x88\x01\x01\x12.\n" +
+	"\x10status_dashboard\x18\x1a \x01(\tH\x19R\x0fstatusDashboard\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18\x1b \x01(\tH\x1aR\x04logo\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
@@ -4275,12 +6631,35 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\a_statusB\t\n" +
 	"\a_org_idB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\"&\n" +
+	"\x0e_updated_sinceB\x06\n" +
+	"\x04_akaB\f\n" +
+	"\n" +
+	"_name_longB\x13\n" +
+	"\x11_region_continentB\b\n" +
+	"\x06_mediaB\b\n" +
+	"\x06_notesB\x10\n" +
+	"\x0e_proto_unicastB\x12\n" +
+	"\x10_proto_multicastB\r\n" +
+	"\v_proto_ipv6B\n" +
+	"\n" +
+	"\b_websiteB\f\n" +
+	"\n" +
+	"_url_statsB\r\n" +
+	"\v_tech_emailB\r\n" +
+	"\v_tech_phoneB\x0f\n" +
+	"\r_policy_emailB\x0f\n" +
+	"\r_policy_phoneB\x0e\n" +
+	"\f_sales_emailB\x0e\n" +
+	"\f_sales_phoneB\x10\n" +
+	"\x0e_service_levelB\b\n" +
+	"\x06_termsB\x13\n" +
+	"\x11_status_dashboardB\a\n" +
+	"\x05_logo\"&\n" +
 	"\x14GetIxFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"R\n" +
 	"\x15GetIxFacilityResponse\x129\n" +
 	"\vix_facility\x18\x01 \x01(\v2\x18.peeringdb.v1.IxFacilityR\n" +
-	"ixFacility\"\x95\x02\n" +
+	"ixFacility\"\xd3\x02\n" +
 	"\x17ListIxFacilitiesRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -4289,16 +6668,20 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x06fac_id\x18\x04 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x05 \x01(\tH\x02R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x06 \x01(\tH\x03R\x04city\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\a \x01(\tH\x04R\x06status\x88\x01\x01B\b\n" +
+	"\x06status\x18\a \x01(\tH\x04R\x06status\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\b \x01(\x03H\x05R\x02id\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\t \x01(\tH\x06R\x04name\x88\x01\x01B\b\n" +
 	"\x06_ix_idB\t\n" +
 	"\a_fac_idB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
-	"\a_status\"\x81\x01\n" +
+	"\a_statusB\x05\n" +
+	"\x03_idB\a\n" +
+	"\x05_name\"\x81\x01\n" +
 	"\x18ListIxFacilitiesResponse\x12=\n" +
 	"\rix_facilities\x18\x01 \x03(\v2\x18.peeringdb.v1.IxFacilityR\fixFacilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe0\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x82\x03\n" +
 	"\x19StreamIxFacilitiesRequest\x12\x18\n" +
 	"\x05ix_id\x18\x01 \x01(\x03H\x00R\x04ixId\x88\x01\x01\x12\x1a\n" +
 	"\x06fac_id\x18\x02 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1d\n" +
@@ -4306,7 +6689,8 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x04city\x18\x04 \x01(\tH\x03R\x04city\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\b\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\b \x01(\tH\aR\x04name\x88\x01\x01B\b\n" +
 	"\x06_ix_idB\t\n" +
 	"\a_fac_idB\n" +
 	"\n" +
@@ -4314,68 +6698,119 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x05_cityB\t\n" +
 	"\a_statusB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\"!\n" +
+	"\x0e_updated_sinceB\a\n" +
+	"\x05_name\"!\n" +
 	"\x0fGetIxLanRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\">\n" +
 	"\x10GetIxLanResponse\x12*\n" +
-	"\x06ix_lan\x18\x01 \x01(\v2\x13.peeringdb.v1.IxLanR\x05ixLan\"\xbd\x01\n" +
+	"\x06ix_lan\x18\x01 \x01(\v2\x13.peeringdb.v1.IxLanR\x05ixLan\"\xf6\x04\n" +
 	"\x11ListIxLansRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x18\n" +
 	"\x05ix_id\x18\x03 \x01(\x03H\x00R\x04ixId\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x04 \x01(\tH\x01R\x04name\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x05 \x01(\tH\x02R\x06status\x88\x01\x01B\b\n" +
+	"\x06status\x18\x05 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\x06 \x01(\x03H\x03R\x02id\x88\x01\x01\x12\x19\n" +
+	"\x05descr\x18\a \x01(\tH\x04R\x05descr\x88\x01\x01\x12\x15\n" +
+	"\x03mtu\x18\b \x01(\x03H\x05R\x03mtu\x88\x01\x01\x12(\n" +
+	"\rdot1q_support\x18\t \x01(\bH\x06R\fdot1qSupport\x88\x01\x01\x12\x1a\n" +
+	"\x06rs_asn\x18\n" +
+	" \x01(\x03H\aR\x05rsAsn\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"arp_sponge\x18\v \x01(\tH\bR\tarpSponge\x88\x01\x01\x12H\n" +
+	"\x1fixf_ixp_member_list_url_visible\x18\f \x01(\tH\tR\x1aixfIxpMemberListUrlVisible\x88\x01\x01\x128\n" +
+	"\x16ixf_ixp_import_enabled\x18\r \x01(\bH\n" +
+	"R\x13ixfIxpImportEnabled\x88\x01\x01B\b\n" +
 	"\x06_ix_idB\a\n" +
 	"\x05_nameB\t\n" +
-	"\a_status\"j\n" +
+	"\a_statusB\x05\n" +
+	"\x03_idB\b\n" +
+	"\x06_descrB\x06\n" +
+	"\x04_mtuB\x10\n" +
+	"\x0e_dot1q_supportB\t\n" +
+	"\a_rs_asnB\r\n" +
+	"\v_arp_spongeB\"\n" +
+	" _ixf_ixp_member_list_url_visibleB\x19\n" +
+	"\x17_ixf_ixp_import_enabled\"j\n" +
 	"\x12ListIxLansResponse\x12,\n" +
 	"\aix_lans\x18\x01 \x03(\v2\x13.peeringdb.v1.IxLanR\x06ixLans\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x88\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa5\x05\n" +
 	"\x13StreamIxLansRequest\x12\x18\n" +
 	"\x05ix_id\x18\x01 \x01(\x03H\x00R\x04ixId\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x02 \x01(\tH\x01R\x04name\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x04 \x01(\x03H\x03R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01B\b\n" +
+	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01\x12\x19\n" +
+	"\x05descr\x18\x06 \x01(\tH\x05R\x05descr\x88\x01\x01\x12\x15\n" +
+	"\x03mtu\x18\a \x01(\x03H\x06R\x03mtu\x88\x01\x01\x12(\n" +
+	"\rdot1q_support\x18\b \x01(\bH\aR\fdot1qSupport\x88\x01\x01\x12\x1a\n" +
+	"\x06rs_asn\x18\t \x01(\x03H\bR\x05rsAsn\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"arp_sponge\x18\n" +
+	" \x01(\tH\tR\tarpSponge\x88\x01\x01\x12H\n" +
+	"\x1fixf_ixp_member_list_url_visible\x18\v \x01(\tH\n" +
+	"R\x1aixfIxpMemberListUrlVisible\x88\x01\x01\x128\n" +
+	"\x16ixf_ixp_import_enabled\x18\f \x01(\bH\vR\x13ixfIxpImportEnabled\x88\x01\x01B\b\n" +
 	"\x06_ix_idB\a\n" +
 	"\x05_nameB\t\n" +
 	"\a_statusB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\"$\n" +
+	"\x0e_updated_sinceB\b\n" +
+	"\x06_descrB\x06\n" +
+	"\x04_mtuB\x10\n" +
+	"\x0e_dot1q_supportB\t\n" +
+	"\a_rs_asnB\r\n" +
+	"\v_arp_spongeB\"\n" +
+	" _ixf_ixp_member_list_url_visibleB\x19\n" +
+	"\x17_ixf_ixp_import_enabled\"$\n" +
 	"\x12GetIxPrefixRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"J\n" +
 	"\x13GetIxPrefixResponse\x123\n" +
-	"\tix_prefix\x18\x01 \x01(\v2\x16.peeringdb.v1.IxPrefixR\bixPrefix\"\xd6\x01\n" +
+	"\tix_prefix\x18\x01 \x01(\v2\x16.peeringdb.v1.IxPrefixR\bixPrefix\"\xe6\x02\n" +
 	"\x15ListIxPrefixesRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x1e\n" +
 	"\bixlan_id\x18\x03 \x01(\x03H\x00R\aixlanId\x88\x01\x01\x12\x1f\n" +
 	"\bprotocol\x18\x04 \x01(\tH\x01R\bprotocol\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x05 \x01(\tH\x02R\x06status\x88\x01\x01B\v\n" +
+	"\x06status\x18\x05 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\x06 \x01(\x03H\x03R\x02id\x88\x01\x01\x12\x1b\n" +
+	"\x06prefix\x18\a \x01(\tH\x04R\x06prefix\x88\x01\x01\x12\x1a\n" +
+	"\x06in_dfz\x18\b \x01(\bH\x05R\x05inDfz\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\t \x01(\tH\x06R\x05notes\x88\x01\x01B\v\n" +
 	"\t_ixlan_idB\v\n" +
 	"\t_protocolB\t\n" +
-	"\a_status\"y\n" +
+	"\a_statusB\x05\n" +
+	"\x03_idB\t\n" +
+	"\a_prefixB\t\n" +
+	"\a_in_dfzB\b\n" +
+	"\x06_notes\"y\n" +
 	"\x16ListIxPrefixesResponse\x127\n" +
 	"\vix_prefixes\x18\x01 \x03(\v2\x16.peeringdb.v1.IxPrefixR\n" +
 	"ixPrefixes\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa1\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x95\x03\n" +
 	"\x17StreamIxPrefixesRequest\x12\x1e\n" +
 	"\bixlan_id\x18\x01 \x01(\x03H\x00R\aixlanId\x88\x01\x01\x12\x1f\n" +
 	"\bprotocol\x18\x02 \x01(\tH\x01R\bprotocol\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x04 \x01(\x03H\x03R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01B\v\n" +
+	"\rupdated_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\fupdatedSince\x88\x01\x01\x12\x1b\n" +
+	"\x06prefix\x18\x06 \x01(\tH\x05R\x06prefix\x88\x01\x01\x12\x1a\n" +
+	"\x06in_dfz\x18\a \x01(\bH\x06R\x05inDfz\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\b \x01(\tH\aR\x05notes\x88\x01\x01B\v\n" +
 	"\t_ixlan_idB\v\n" +
 	"\t_protocolB\t\n" +
 	"\a_statusB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\"#\n" +
+	"\x0e_updated_sinceB\t\n" +
+	"\a_prefixB\t\n" +
+	"\a_in_dfzB\b\n" +
+	"\x06_notes\"#\n" +
 	"\x11GetNetworkRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"E\n" +
 	"\x12GetNetworkResponse\x12/\n" +
-	"\anetwork\x18\x01 \x01(\v2\x15.peeringdb.v1.NetworkR\anetwork\"\xe1\x01\n" +
+	"\anetwork\x18\x01 \x01(\v2\x15.peeringdb.v1.NetworkR\anetwork\"\xb1\r\n" +
 	"\x13ListNetworksRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -4383,31 +6818,159 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x03asn\x18\x03 \x01(\x03H\x00R\x03asn\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x04 \x01(\tH\x01R\x04name\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x05 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x1a\n" +
-	"\x06org_id\x18\x06 \x01(\x03H\x03R\x05orgId\x88\x01\x01B\x06\n" +
+	"\x06org_id\x18\x06 \x01(\x03H\x03R\x05orgId\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\a \x01(\x03H\x04R\x02id\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\b \x01(\tH\x05R\x03aka\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\t \x01(\tH\x06R\bnameLong\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\n" +
+	" \x01(\tH\aR\awebsite\x88\x01\x01\x12(\n" +
+	"\rlooking_glass\x18\v \x01(\tH\bR\flookingGlass\x88\x01\x01\x12&\n" +
+	"\froute_server\x18\f \x01(\tH\tR\vrouteServer\x88\x01\x01\x12!\n" +
+	"\n" +
+	"irr_as_set\x18\r \x01(\tH\n" +
+	"R\birrAsSet\x88\x01\x01\x12 \n" +
+	"\tinfo_type\x18\x0e \x01(\tH\vR\binfoType\x88\x01\x01\x12*\n" +
+	"\x0einfo_prefixes4\x18\x0f \x01(\x03H\fR\rinfoPrefixes4\x88\x01\x01\x12*\n" +
+	"\x0einfo_prefixes6\x18\x10 \x01(\x03H\rR\rinfoPrefixes6\x88\x01\x01\x12&\n" +
+	"\finfo_traffic\x18\x11 \x01(\tH\x0eR\vinfoTraffic\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"info_ratio\x18\x12 \x01(\tH\x0fR\tinfoRatio\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"info_scope\x18\x13 \x01(\tH\x10R\tinfoScope\x88\x01\x01\x12&\n" +
+	"\finfo_unicast\x18\x14 \x01(\bH\x11R\vinfoUnicast\x88\x01\x01\x12*\n" +
+	"\x0einfo_multicast\x18\x15 \x01(\bH\x12R\rinfoMulticast\x88\x01\x01\x12 \n" +
+	"\tinfo_ipv6\x18\x16 \x01(\bH\x13R\binfoIpv6\x88\x01\x01\x12C\n" +
+	"\x1cinfo_never_via_route_servers\x18\x17 \x01(\bH\x14R\x18infoNeverViaRouteServers\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\x18 \x01(\tH\x15R\x05notes\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"policy_url\x18\x19 \x01(\tH\x16R\tpolicyUrl\x88\x01\x01\x12*\n" +
+	"\x0epolicy_general\x18\x1a \x01(\tH\x17R\rpolicyGeneral\x88\x01\x01\x12.\n" +
+	"\x10policy_locations\x18\x1b \x01(\tH\x18R\x0fpolicyLocations\x88\x01\x01\x12&\n" +
+	"\fpolicy_ratio\x18\x1c \x01(\bH\x19R\vpolicyRatio\x88\x01\x01\x12.\n" +
+	"\x10policy_contracts\x18\x1d \x01(\tH\x1aR\x0fpolicyContracts\x88\x01\x01\x12-\n" +
+	"\x10allow_ixp_update\x18\x1e \x01(\bH\x1bR\x0eallowIxpUpdate\x88\x01\x01\x12.\n" +
+	"\x10status_dashboard\x18\x1f \x01(\tH\x1cR\x0fstatusDashboard\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"rir_status\x18  \x01(\tH\x1dR\trirStatus\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18! \x01(\tH\x1eR\x04logo\x88\x01\x01B\x06\n" +
 	"\x04_asnB\a\n" +
 	"\x05_nameB\t\n" +
 	"\a_statusB\t\n" +
-	"\a_org_id\"q\n" +
+	"\a_org_idB\x05\n" +
+	"\x03_idB\x06\n" +
+	"\x04_akaB\f\n" +
+	"\n" +
+	"_name_longB\n" +
+	"\n" +
+	"\b_websiteB\x10\n" +
+	"\x0e_looking_glassB\x0f\n" +
+	"\r_route_serverB\r\n" +
+	"\v_irr_as_setB\f\n" +
+	"\n" +
+	"_info_typeB\x11\n" +
+	"\x0f_info_prefixes4B\x11\n" +
+	"\x0f_info_prefixes6B\x0f\n" +
+	"\r_info_trafficB\r\n" +
+	"\v_info_ratioB\r\n" +
+	"\v_info_scopeB\x0f\n" +
+	"\r_info_unicastB\x11\n" +
+	"\x0f_info_multicastB\f\n" +
+	"\n" +
+	"_info_ipv6B\x1f\n" +
+	"\x1d_info_never_via_route_serversB\b\n" +
+	"\x06_notesB\r\n" +
+	"\v_policy_urlB\x11\n" +
+	"\x0f_policy_generalB\x13\n" +
+	"\x11_policy_locationsB\x0f\n" +
+	"\r_policy_ratioB\x13\n" +
+	"\x11_policy_contractsB\x13\n" +
+	"\x11_allow_ixp_updateB\x13\n" +
+	"\x11_status_dashboardB\r\n" +
+	"\v_rir_statusB\a\n" +
+	"\x05_logo\"q\n" +
 	"\x14ListNetworksResponse\x121\n" +
 	"\bnetworks\x18\x01 \x03(\v2\x15.peeringdb.v1.NetworkR\bnetworks\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xac\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe0\r\n" +
 	"\x15StreamNetworksRequest\x12\x15\n" +
 	"\x03asn\x18\x01 \x01(\x03H\x00R\x03asn\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x02 \x01(\tH\x01R\x04name\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x1a\n" +
 	"\x06org_id\x18\x04 \x01(\x03H\x03R\x05orgId\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x05 \x01(\x03H\x04R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x05R\fupdatedSince\x88\x01\x01B\x06\n" +
+	"\rupdated_since\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x05R\fupdatedSince\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\a \x01(\tH\x06R\x03aka\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\b \x01(\tH\aR\bnameLong\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\t \x01(\tH\bR\awebsite\x88\x01\x01\x12(\n" +
+	"\rlooking_glass\x18\n" +
+	" \x01(\tH\tR\flookingGlass\x88\x01\x01\x12&\n" +
+	"\froute_server\x18\v \x01(\tH\n" +
+	"R\vrouteServer\x88\x01\x01\x12!\n" +
+	"\n" +
+	"irr_as_set\x18\f \x01(\tH\vR\birrAsSet\x88\x01\x01\x12 \n" +
+	"\tinfo_type\x18\r \x01(\tH\fR\binfoType\x88\x01\x01\x12*\n" +
+	"\x0einfo_prefixes4\x18\x0e \x01(\x03H\rR\rinfoPrefixes4\x88\x01\x01\x12*\n" +
+	"\x0einfo_prefixes6\x18\x0f \x01(\x03H\x0eR\rinfoPrefixes6\x88\x01\x01\x12&\n" +
+	"\finfo_traffic\x18\x10 \x01(\tH\x0fR\vinfoTraffic\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"info_ratio\x18\x11 \x01(\tH\x10R\tinfoRatio\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"info_scope\x18\x12 \x01(\tH\x11R\tinfoScope\x88\x01\x01\x12&\n" +
+	"\finfo_unicast\x18\x13 \x01(\bH\x12R\vinfoUnicast\x88\x01\x01\x12*\n" +
+	"\x0einfo_multicast\x18\x14 \x01(\bH\x13R\rinfoMulticast\x88\x01\x01\x12 \n" +
+	"\tinfo_ipv6\x18\x15 \x01(\bH\x14R\binfoIpv6\x88\x01\x01\x12C\n" +
+	"\x1cinfo_never_via_route_servers\x18\x16 \x01(\bH\x15R\x18infoNeverViaRouteServers\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\x17 \x01(\tH\x16R\x05notes\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"policy_url\x18\x18 \x01(\tH\x17R\tpolicyUrl\x88\x01\x01\x12*\n" +
+	"\x0epolicy_general\x18\x19 \x01(\tH\x18R\rpolicyGeneral\x88\x01\x01\x12.\n" +
+	"\x10policy_locations\x18\x1a \x01(\tH\x19R\x0fpolicyLocations\x88\x01\x01\x12&\n" +
+	"\fpolicy_ratio\x18\x1b \x01(\bH\x1aR\vpolicyRatio\x88\x01\x01\x12.\n" +
+	"\x10policy_contracts\x18\x1c \x01(\tH\x1bR\x0fpolicyContracts\x88\x01\x01\x12-\n" +
+	"\x10allow_ixp_update\x18\x1d \x01(\bH\x1cR\x0eallowIxpUpdate\x88\x01\x01\x12.\n" +
+	"\x10status_dashboard\x18\x1e \x01(\tH\x1dR\x0fstatusDashboard\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"rir_status\x18\x1f \x01(\tH\x1eR\trirStatus\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18  \x01(\tH\x1fR\x04logo\x88\x01\x01B\x06\n" +
 	"\x04_asnB\a\n" +
 	"\x05_nameB\t\n" +
 	"\a_statusB\t\n" +
 	"\a_org_idB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\"+\n" +
+	"\x0e_updated_sinceB\x06\n" +
+	"\x04_akaB\f\n" +
+	"\n" +
+	"_name_longB\n" +
+	"\n" +
+	"\b_websiteB\x10\n" +
+	"\x0e_looking_glassB\x0f\n" +
+	"\r_route_serverB\r\n" +
+	"\v_irr_as_setB\f\n" +
+	"\n" +
+	"_info_typeB\x11\n" +
+	"\x0f_info_prefixes4B\x11\n" +
+	"\x0f_info_prefixes6B\x0f\n" +
+	"\r_info_trafficB\r\n" +
+	"\v_info_ratioB\r\n" +
+	"\v_info_scopeB\x0f\n" +
+	"\r_info_unicastB\x11\n" +
+	"\x0f_info_multicastB\f\n" +
+	"\n" +
+	"_info_ipv6B\x1f\n" +
+	"\x1d_info_never_via_route_serversB\b\n" +
+	"\x06_notesB\r\n" +
+	"\v_policy_urlB\x11\n" +
+	"\x0f_policy_generalB\x13\n" +
+	"\x11_policy_locationsB\x0f\n" +
+	"\r_policy_ratioB\x13\n" +
+	"\x11_policy_contractsB\x13\n" +
+	"\x11_allow_ixp_updateB\x13\n" +
+	"\x11_status_dashboardB\r\n" +
+	"\v_rir_statusB\a\n" +
+	"\x05_logo\"+\n" +
 	"\x19GetNetworkFacilityRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"f\n" +
 	"\x1aGetNetworkFacilityResponse\x12H\n" +
-	"\x10network_facility\x18\x01 \x01(\v2\x1d.peeringdb.v1.NetworkFacilityR\x0fnetworkFacility\"\x9d\x02\n" +
+	"\x10network_facility\x18\x01 \x01(\v2\x1d.peeringdb.v1.NetworkFacilityR\x0fnetworkFacility\"\x8b\x03\n" +
 	"\x1cListNetworkFacilitiesRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -4416,16 +6979,24 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x06fac_id\x18\x04 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x05 \x01(\tH\x02R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x06 \x01(\tH\x03R\x04city\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\a \x01(\tH\x04R\x06status\x88\x01\x01B\t\n" +
+	"\x06status\x18\a \x01(\tH\x04R\x06status\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\b \x01(\x03H\x05R\x02id\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\t \x01(\tH\x06R\x04name\x88\x01\x01\x12 \n" +
+	"\tlocal_asn\x18\n" +
+	" \x01(\x03H\aR\blocalAsn\x88\x01\x01B\t\n" +
 	"\a_net_idB\t\n" +
 	"\a_fac_idB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
-	"\a_status\"\x95\x01\n" +
+	"\a_statusB\x05\n" +
+	"\x03_idB\a\n" +
+	"\x05_nameB\f\n" +
+	"\n" +
+	"_local_asn\"\x95\x01\n" +
 	"\x1dListNetworkFacilitiesResponse\x12L\n" +
 	"\x12network_facilities\x18\x01 \x03(\v2\x1d.peeringdb.v1.NetworkFacilityR\x11networkFacilities\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe8\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xba\x03\n" +
 	"\x1eStreamNetworkFacilitiesRequest\x12\x1a\n" +
 	"\x06net_id\x18\x01 \x01(\x03H\x00R\x05netId\x88\x01\x01\x12\x1a\n" +
 	"\x06fac_id\x18\x02 \x01(\x03H\x01R\x05facId\x88\x01\x01\x12\x1d\n" +
@@ -4433,7 +7004,9 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x04city\x18\x04 \x01(\tH\x03R\x04city\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\t\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\b \x01(\tH\aR\x04name\x88\x01\x01\x12 \n" +
+	"\tlocal_asn\x18\t \x01(\x03H\bR\blocalAsn\x88\x01\x01B\t\n" +
 	"\a_net_idB\t\n" +
 	"\a_fac_idB\n" +
 	"\n" +
@@ -4441,11 +7014,14 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x05_cityB\t\n" +
 	"\a_statusB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\"(\n" +
+	"\x0e_updated_sinceB\a\n" +
+	"\x05_nameB\f\n" +
+	"\n" +
+	"_local_asn\"(\n" +
 	"\x16GetNetworkIxLanRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"[\n" +
 	"\x17GetNetworkIxLanResponse\x12@\n" +
-	"\x0enetwork_ix_lan\x18\x01 \x01(\v2\x1a.peeringdb.v1.NetworkIxLanR\fnetworkIxLan\"\x93\x02\n" +
+	"\x0enetwork_ix_lan\x18\x01 \x01(\v2\x1a.peeringdb.v1.NetworkIxLanR\fnetworkIxLan\"\xf9\x05\n" +
 	"\x18ListNetworkIxLansRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -4454,15 +7030,44 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\bixlan_id\x18\x04 \x01(\x03H\x01R\aixlanId\x88\x01\x01\x12\x15\n" +
 	"\x03asn\x18\x05 \x01(\x03H\x02R\x03asn\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x06 \x01(\tH\x03R\x04name\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\a \x01(\tH\x04R\x06status\x88\x01\x01B\t\n" +
+	"\x06status\x18\a \x01(\tH\x04R\x06status\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\b \x01(\x03H\x05R\x02id\x88\x01\x01\x12\x18\n" +
+	"\x05ix_id\x18\t \x01(\x03H\x06R\x04ixId\x88\x01\x01\x12\x19\n" +
+	"\x05speed\x18\n" +
+	" \x01(\x03H\aR\x05speed\x88\x01\x01\x12\x1d\n" +
+	"\aipaddr4\x18\v \x01(\tH\bR\aipaddr4\x88\x01\x01\x12\x1d\n" +
+	"\aipaddr6\x18\f \x01(\tH\tR\aipaddr6\x88\x01\x01\x12!\n" +
+	"\n" +
+	"is_rs_peer\x18\r \x01(\bH\n" +
+	"R\bisRsPeer\x88\x01\x01\x12$\n" +
+	"\vbfd_support\x18\x0e \x01(\bH\vR\n" +
+	"bfdSupport\x88\x01\x01\x12%\n" +
+	"\voperational\x18\x0f \x01(\bH\fR\voperational\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\x10 \x01(\tH\rR\x05notes\x88\x01\x01\x12#\n" +
+	"\vnet_side_id\x18\x11 \x01(\x03H\x0eR\tnetSideId\x88\x01\x01\x12!\n" +
+	"\n" +
+	"ix_side_id\x18\x12 \x01(\x03H\x0fR\bixSideId\x88\x01\x01B\t\n" +
 	"\a_net_idB\v\n" +
 	"\t_ixlan_idB\x06\n" +
 	"\x04_asnB\a\n" +
 	"\x05_nameB\t\n" +
-	"\a_status\"\x87\x01\n" +
+	"\a_statusB\x05\n" +
+	"\x03_idB\b\n" +
+	"\x06_ix_idB\b\n" +
+	"\x06_speedB\n" +
+	"\n" +
+	"\b_ipaddr4B\n" +
+	"\n" +
+	"\b_ipaddr6B\r\n" +
+	"\v_is_rs_peerB\x0e\n" +
+	"\f_bfd_supportB\x0e\n" +
+	"\f_operationalB\b\n" +
+	"\x06_notesB\x0e\n" +
+	"\f_net_side_idB\r\n" +
+	"\v_ix_side_id\"\x87\x01\n" +
 	"\x19ListNetworkIxLansResponse\x12B\n" +
 	"\x0fnetwork_ix_lans\x18\x01 \x03(\v2\x1a.peeringdb.v1.NetworkIxLanR\rnetworkIxLans\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xde\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa8\x06\n" +
 	"\x1aStreamNetworkIxLansRequest\x12\x1a\n" +
 	"\x06net_id\x18\x01 \x01(\x03H\x00R\x05netId\x88\x01\x01\x12\x1e\n" +
 	"\bixlan_id\x18\x02 \x01(\x03H\x01R\aixlanId\x88\x01\x01\x12\x15\n" +
@@ -4470,18 +7075,45 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x04name\x18\x04 \x01(\tH\x03R\x04name\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x05 \x01(\tH\x04R\x06status\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x06 \x01(\x03H\x05R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01B\t\n" +
+	"\rupdated_since\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x06R\fupdatedSince\x88\x01\x01\x12\x18\n" +
+	"\x05ix_id\x18\b \x01(\x03H\aR\x04ixId\x88\x01\x01\x12\x19\n" +
+	"\x05speed\x18\t \x01(\x03H\bR\x05speed\x88\x01\x01\x12\x1d\n" +
+	"\aipaddr4\x18\n" +
+	" \x01(\tH\tR\aipaddr4\x88\x01\x01\x12\x1d\n" +
+	"\aipaddr6\x18\v \x01(\tH\n" +
+	"R\aipaddr6\x88\x01\x01\x12!\n" +
+	"\n" +
+	"is_rs_peer\x18\f \x01(\bH\vR\bisRsPeer\x88\x01\x01\x12$\n" +
+	"\vbfd_support\x18\r \x01(\bH\fR\n" +
+	"bfdSupport\x88\x01\x01\x12%\n" +
+	"\voperational\x18\x0e \x01(\bH\rR\voperational\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\x0f \x01(\tH\x0eR\x05notes\x88\x01\x01\x12#\n" +
+	"\vnet_side_id\x18\x10 \x01(\x03H\x0fR\tnetSideId\x88\x01\x01\x12!\n" +
+	"\n" +
+	"ix_side_id\x18\x11 \x01(\x03H\x10R\bixSideId\x88\x01\x01B\t\n" +
 	"\a_net_idB\v\n" +
 	"\t_ixlan_idB\x06\n" +
 	"\x04_asnB\a\n" +
 	"\x05_nameB\t\n" +
 	"\a_statusB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\"(\n" +
+	"\x0e_updated_sinceB\b\n" +
+	"\x06_ix_idB\b\n" +
+	"\x06_speedB\n" +
+	"\n" +
+	"\b_ipaddr4B\n" +
+	"\n" +
+	"\b_ipaddr6B\r\n" +
+	"\v_is_rs_peerB\x0e\n" +
+	"\f_bfd_supportB\x0e\n" +
+	"\f_operationalB\b\n" +
+	"\x06_notesB\x0e\n" +
+	"\f_net_side_idB\r\n" +
+	"\v_ix_side_id\"(\n" +
 	"\x16GetOrganizationRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"Y\n" +
 	"\x17GetOrganizationResponse\x12>\n" +
-	"\forganization\x18\x01 \x01(\v2\x1a.peeringdb.v1.OrganizationR\forganization\"\xed\x01\n" +
+	"\forganization\x18\x01 \x01(\v2\x1a.peeringdb.v1.OrganizationR\forganization\"\xc0\x05\n" +
 	"\x18ListOrganizationsRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -4489,33 +7121,89 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x04name\x18\x03 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x04 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x05 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x06 \x01(\tH\x03R\x06status\x88\x01\x01B\a\n" +
+	"\x06status\x18\x06 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\a \x01(\x03H\x04R\x02id\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\b \x01(\tH\x05R\x03aka\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\t \x01(\tH\x06R\bnameLong\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\n" +
+	" \x01(\tH\aR\awebsite\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\v \x01(\tH\bR\x05notes\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18\f \x01(\tH\tR\x04logo\x88\x01\x01\x12\x1f\n" +
+	"\baddress1\x18\r \x01(\tH\n" +
+	"R\baddress1\x88\x01\x01\x12\x1f\n" +
+	"\baddress2\x18\x0e \x01(\tH\vR\baddress2\x88\x01\x01\x12\x19\n" +
+	"\x05state\x18\x0f \x01(\tH\fR\x05state\x88\x01\x01\x12\x1d\n" +
+	"\azipcode\x18\x10 \x01(\tH\rR\azipcode\x88\x01\x01\x12\x19\n" +
+	"\x05suite\x18\x11 \x01(\tH\x0eR\x05suite\x88\x01\x01\x12\x19\n" +
+	"\x05floor\x18\x12 \x01(\tH\x0fR\x05floor\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
-	"\a_status\"\x85\x01\n" +
+	"\a_statusB\x05\n" +
+	"\x03_idB\x06\n" +
+	"\x04_akaB\f\n" +
+	"\n" +
+	"_name_longB\n" +
+	"\n" +
+	"\b_websiteB\b\n" +
+	"\x06_notesB\a\n" +
+	"\x05_logoB\v\n" +
+	"\t_address1B\v\n" +
+	"\t_address2B\b\n" +
+	"\x06_stateB\n" +
+	"\n" +
+	"\b_zipcodeB\b\n" +
+	"\x06_suiteB\b\n" +
+	"\x06_floor\"\x85\x01\n" +
 	"\x19ListOrganizationsResponse\x12@\n" +
 	"\rorganizations\x18\x01 \x03(\v2\x1a.peeringdb.v1.OrganizationR\rorganizations\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb8\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xef\x05\n" +
 	"\x1aStreamOrganizationsRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
 	"\acountry\x18\x02 \x01(\tH\x01R\acountry\x88\x01\x01\x12\x17\n" +
 	"\x04city\x18\x03 \x01(\tH\x02R\x04city\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x05 \x01(\x03H\x04R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x05R\fupdatedSince\x88\x01\x01B\a\n" +
+	"\rupdated_since\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x05R\fupdatedSince\x88\x01\x01\x12\x15\n" +
+	"\x03aka\x18\a \x01(\tH\x06R\x03aka\x88\x01\x01\x12 \n" +
+	"\tname_long\x18\b \x01(\tH\aR\bnameLong\x88\x01\x01\x12\x1d\n" +
+	"\awebsite\x18\t \x01(\tH\bR\awebsite\x88\x01\x01\x12\x19\n" +
+	"\x05notes\x18\n" +
+	" \x01(\tH\tR\x05notes\x88\x01\x01\x12\x17\n" +
+	"\x04logo\x18\v \x01(\tH\n" +
+	"R\x04logo\x88\x01\x01\x12\x1f\n" +
+	"\baddress1\x18\f \x01(\tH\vR\baddress1\x88\x01\x01\x12\x1f\n" +
+	"\baddress2\x18\r \x01(\tH\fR\baddress2\x88\x01\x01\x12\x19\n" +
+	"\x05state\x18\x0e \x01(\tH\rR\x05state\x88\x01\x01\x12\x1d\n" +
+	"\azipcode\x18\x0f \x01(\tH\x0eR\azipcode\x88\x01\x01\x12\x19\n" +
+	"\x05suite\x18\x10 \x01(\tH\x0fR\x05suite\x88\x01\x01\x12\x19\n" +
+	"\x05floor\x18\x11 \x01(\tH\x10R\x05floor\x88\x01\x01B\a\n" +
 	"\x05_nameB\n" +
 	"\n" +
 	"\b_countryB\a\n" +
 	"\x05_cityB\t\n" +
 	"\a_statusB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since\"\x1f\n" +
+	"\x0e_updated_sinceB\x06\n" +
+	"\x04_akaB\f\n" +
+	"\n" +
+	"_name_longB\n" +
+	"\n" +
+	"\b_websiteB\b\n" +
+	"\x06_notesB\a\n" +
+	"\x05_logoB\v\n" +
+	"\t_address1B\v\n" +
+	"\t_address2B\b\n" +
+	"\x06_stateB\n" +
+	"\n" +
+	"\b_zipcodeB\b\n" +
+	"\x06_suiteB\b\n" +
+	"\x06_floor\"\x1f\n" +
 	"\rGetPocRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"5\n" +
 	"\x0eGetPocResponse\x12#\n" +
-	"\x03poc\x18\x01 \x01(\v2\x11.peeringdb.v1.PocR\x03poc\"\xe0\x01\n" +
+	"\x03poc\x18\x01 \x01(\v2\x11.peeringdb.v1.PocR\x03poc\"\x90\x03\n" +
 	"\x0fListPocsRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -4523,27 +7211,49 @@ const file_peeringdb_v1_services_proto_rawDesc = "" +
 	"\x06net_id\x18\x03 \x01(\x03H\x00R\x05netId\x88\x01\x01\x12\x17\n" +
 	"\x04role\x18\x04 \x01(\tH\x01R\x04role\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x05 \x01(\tH\x02R\x04name\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18\x06 \x01(\tH\x03R\x06status\x88\x01\x01B\t\n" +
+	"\x06status\x18\x06 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x13\n" +
+	"\x02id\x18\a \x01(\x03H\x04R\x02id\x88\x01\x01\x12\x1d\n" +
+	"\avisible\x18\b \x01(\tH\x05R\avisible\x88\x01\x01\x12\x19\n" +
+	"\x05phone\x18\t \x01(\tH\x06R\x05phone\x88\x01\x01\x12\x19\n" +
+	"\x05email\x18\n" +
+	" \x01(\tH\aR\x05email\x88\x01\x01\x12\x15\n" +
+	"\x03url\x18\v \x01(\tH\bR\x03url\x88\x01\x01B\t\n" +
 	"\a_net_idB\a\n" +
 	"\x05_roleB\a\n" +
 	"\x05_nameB\t\n" +
-	"\a_status\"a\n" +
+	"\a_statusB\x05\n" +
+	"\x03_idB\n" +
+	"\n" +
+	"\b_visibleB\b\n" +
+	"\x06_phoneB\b\n" +
+	"\x06_emailB\x06\n" +
+	"\x04_url\"a\n" +
 	"\x10ListPocsResponse\x12%\n" +
 	"\x04pocs\x18\x01 \x03(\v2\x11.peeringdb.v1.PocR\x04pocs\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xab\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xbf\x03\n" +
 	"\x11StreamPocsRequest\x12\x1a\n" +
 	"\x06net_id\x18\x01 \x01(\x03H\x00R\x05netId\x88\x01\x01\x12\x17\n" +
 	"\x04role\x18\x02 \x01(\tH\x01R\x04role\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x03 \x01(\tH\x02R\x04name\x88\x01\x01\x12\x1b\n" +
 	"\x06status\x18\x04 \x01(\tH\x03R\x06status\x88\x01\x01\x12\x1e\n" +
 	"\bsince_id\x18\x05 \x01(\x03H\x04R\asinceId\x88\x01\x01\x12D\n" +
-	"\rupdated_since\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x05R\fupdatedSince\x88\x01\x01B\t\n" +
+	"\rupdated_since\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x05R\fupdatedSince\x88\x01\x01\x12\x1d\n" +
+	"\avisible\x18\a \x01(\tH\x06R\avisible\x88\x01\x01\x12\x19\n" +
+	"\x05phone\x18\b \x01(\tH\aR\x05phone\x88\x01\x01\x12\x19\n" +
+	"\x05email\x18\t \x01(\tH\bR\x05email\x88\x01\x01\x12\x15\n" +
+	"\x03url\x18\n" +
+	" \x01(\tH\tR\x03url\x88\x01\x01B\t\n" +
 	"\a_net_idB\a\n" +
 	"\x05_roleB\a\n" +
 	"\x05_nameB\t\n" +
 	"\a_statusB\v\n" +
 	"\t_since_idB\x10\n" +
-	"\x0e_updated_since2\x83\x02\n" +
+	"\x0e_updated_sinceB\n" +
+	"\n" +
+	"\b_visibleB\b\n" +
+	"\x06_phoneB\b\n" +
+	"\x06_emailB\x06\n" +
+	"\x04_url2\x83\x02\n" +
 	"\rCampusService\x12L\n" +
 	"\tGetCampus\x12\x1e.peeringdb.v1.GetCampusRequest\x1a\x1f.peeringdb.v1.GetCampusResponse\x12U\n" +
 	"\fListCampuses\x12!.peeringdb.v1.ListCampusesRequest\x1a\".peeringdb.v1.ListCampusesResponse\x12M\n" +
