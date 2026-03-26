@@ -162,6 +162,8 @@ func (Organization) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("name"),
 		index.Fields("status"),
+		index.Fields("updated"),
+		index.Fields("created"),
 	}
 }
 

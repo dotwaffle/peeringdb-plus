@@ -13,7 +13,7 @@ templ SearchResults(groups []SearchGroup) {
 					{ group.TypeName }
 				</span>
 				<span class="text-neutral-400 dark:text-neutral-500 text-sm font-mono">
-					{ fmt.Sprintf("(%d)", group.TotalCount) }
+					{ fmt.Sprintf("(%d%s)", len(group.Results), hasMoreSuffix(group.HasMore)) }
 				</span>
 			</div>
 			<div class="space-y-1">

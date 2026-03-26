@@ -26,8 +26,12 @@ func (r *Renderer) RenderSearch(w io.Writer, groups []templates.SearchGroup) err
 			buf.WriteString("\n")
 		}
 
-		// Group header: TypeName (N results)
-		header := fmt.Sprintf("%s (%d results)", group.TypeName, group.TotalCount)
+		// Group header: TypeName (N results) or TypeName (N+ results) if more exist.
+		suffix := ""
+		if group.HasMore {
+			suffix = "+"
+		}
+		header := fmt.Sprintf("%s (%d%s results)", group.TypeName, len(group.Results), suffix)
 		buf.WriteString(StyleHeading.Render(header))
 		buf.WriteString("\n")
 

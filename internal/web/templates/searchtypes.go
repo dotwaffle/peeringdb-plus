@@ -13,8 +13,17 @@ type SearchGroup struct {
 	AccentColor string
 	// Results holds up to 10 matching entities.
 	Results []SearchResult
-	// TotalCount is the exact number of matching records for count badge display.
-	TotalCount int
+	// HasMore indicates whether additional matches exist beyond the displayed results.
+	HasMore bool
+}
+
+// hasMoreSuffix returns "+" when hasMore is true, empty string otherwise.
+// Used in count badge display to indicate additional results exist.
+func hasMoreSuffix(hasMore bool) string {
+	if hasMore {
+		return "+"
+	}
+	return ""
 }
 
 // SearchResult represents a single search hit for template rendering.

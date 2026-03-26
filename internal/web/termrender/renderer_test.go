@@ -326,7 +326,7 @@ func TestRenderJSON_SearchGroups(t *testing.T) {
 			TypeName:    "Networks",
 			TypeSlug:    "net",
 			AccentColor: "emerald",
-			TotalCount:  42,
+			HasMore:     true,
 			Results: []templates.SearchResult{
 				{Name: "Cloudflare", Subtitle: "AS13335", DetailURL: "/ui/asn/13335"},
 				{Name: "Google", Subtitle: "AS15169", DetailURL: "/ui/asn/15169"},
@@ -336,7 +336,7 @@ func TestRenderJSON_SearchGroups(t *testing.T) {
 			TypeName:    "IXPs",
 			TypeSlug:    "ix",
 			AccentColor: "sky",
-			TotalCount:  3,
+			HasMore:     false,
 			Results: []templates.SearchResult{
 				{Name: "DE-CIX Frankfurt", Subtitle: "Frankfurt, DE", DetailURL: "/ui/ix/31"},
 			},

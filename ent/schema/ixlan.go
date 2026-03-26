@@ -106,6 +106,8 @@ func (IxLan) Indexes() []ent.Index {
 		index.Fields("ix_id"),
 		index.Fields("name"),
 		index.Fields("status"),
+		index.Fields("updated"),
+		index.Fields("created"),
 	}
 }
 

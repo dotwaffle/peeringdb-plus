@@ -182,7 +182,7 @@ func convertToSearchGroups(results []TypeResult) []templates.SearchGroup {
 			TypeSlug:    r.TypeSlug,
 			AccentColor: r.AccentColor,
 			Results:     hits,
-			TotalCount:  r.TotalCount,
+			HasMore:     r.HasMore,
 		}
 	}
 	return groups
