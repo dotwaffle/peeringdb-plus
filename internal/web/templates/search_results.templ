@@ -3,8 +3,8 @@ package templates
 import "fmt"
 
 // SearchResults renders grouped search results with per-type colored badges,
-// count badges, and clickable result links. Returns empty output when groups
-// is nil or empty.
+// count badges, and compact single-line result rows with inline metadata.
+// Returns empty output when groups is nil or empty.
 templ SearchResults(groups []SearchGroup) {
 	for _, group := range groups {
 		<div class="mb-6 animate-fade-in">
@@ -16,27 +16,28 @@ templ SearchResults(groups []SearchGroup) {
 					{ fmt.Sprintf("(%d%s)", len(group.Results), hasMoreSuffix(group.HasMore)) }
 				</span>
 			</div>
-			<div class="space-y-1">
+			<div class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
 				for _, result := range group.Results {
 					<a
 						href={ templ.SafeURL(result.DetailURL) }
 						role="option"
 						tabindex="-1"
 						aria-selected="false"
-						class="flex items-center justify-between px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-800/50 hover:border-neutral-300 dark:hover:border-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 focus:ring-offset-white dark:focus:ring-offset-neutral-900"
+						class="flex items-center justify-between px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 focus:ring-offset-white dark:focus:ring-offset-neutral-900"
 					>
-						<div class="flex flex-col min-w-0">
-							<span class="text-neutral-900 dark:text-neutral-100 font-medium truncate group-hover:text-emerald-400 transition-colors">
-								{ result.Name }
-							</span>
-							if result.Subtitle != "" {
-								<span class="text-neutral-500 dark:text-neutral-400 text-sm font-mono truncate">
-									{ result.Subtitle }
-								</span>
+						<span class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate min-w-0 group-hover:text-emerald-400 transition-colors">
+							{ result.Name }
+						</span>
+						<span class="shrink-0 ml-3 flex items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400 font-mono">
+							if result.Country != "" {
+								@CountryFlag(result.Country)
 							}
-						</div>
-						<span class={ resultBadgeClasses(group.AccentColor) }>
-							{ group.TypeSlug }
+							if result.City != "" {
+								<span class="hidden md:inline">{ result.City }</span>
+							}
+							if result.ASN > 0 {
+								<span>{ fmt.Sprintf("AS%d", result.ASN) }</span>
+							}
 						</span>
 					</a>
 				}
@@ -62,25 +63,5 @@ func groupBadgeClasses(color string) string {
 		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
 	default:
 		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-500/10 text-neutral-400 border border-neutral-500/20"
-	}
-}
-
-// resultBadgeClasses returns Tailwind classes for a small type badge on each result row.
-func resultBadgeClasses(color string) string {
-	switch color {
-	case "emerald":
-		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-emerald-400/70"
-	case "sky":
-		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-sky-400/70"
-	case "violet":
-		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-violet-400/70"
-	case "amber":
-		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-amber-400/70"
-	case "rose":
-		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-rose-400/70"
-	case "cyan":
-		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-cyan-400/70"
-	default:
-		return "shrink-0 ml-3 px-2 py-0.5 rounded text-xs font-mono text-neutral-400/70"
 	}
 }

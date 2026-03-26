@@ -20,8 +20,12 @@ type SearchHit struct {
 	ID int
 	// Name is the entity's display name.
 	Name string
-	// Subtitle provides context: ASN for networks, city/country for facilities/IXPs/campuses.
-	Subtitle string
+	// Country is the ISO 3166-1 alpha-2 code; empty if not available.
+	Country string
+	// City is the city name; empty if not available.
+	City string
+	// ASN is the AS number; 0 if not applicable (non-network entity).
+	ASN int
 	// DetailURL is the path to the entity's detail page (e.g. "/ui/asn/13335").
 	DetailURL string
 }
@@ -162,7 +166,7 @@ func (s *SearchService) queryNetworks(ctx context.Context, pred func(*sql.Select
 		hits[i] = SearchHit{
 			ID:        n.ID,
 			Name:      n.Name,
-			Subtitle:  fmt.Sprintf("AS%d", n.Asn),
+			ASN:       n.Asn,
 			DetailURL: fmt.Sprintf("/ui/asn/%d", n.Asn),
 		}
 	}
@@ -183,7 +187,8 @@ func (s *SearchService) queryIXPs(ctx context.Context, pred func(*sql.Selector))
 		hits[i] = SearchHit{
 			ID:        ix.ID,
 			Name:      ix.Name,
-			Subtitle:  formatLocation(ix.City, ix.Country),
+			Country:   ix.Country,
+			City:      ix.City,
 			DetailURL: fmt.Sprintf("/ui/ix/%d", ix.ID),
 		}
 	}
@@ -204,7 +209,8 @@ func (s *SearchService) queryFacilities(ctx context.Context, pred func(*sql.Sele
 		hits[i] = SearchHit{
 			ID:        fac.ID,
 			Name:      fac.Name,
-			Subtitle:  formatLocation(fac.City, fac.Country),
+			Country:   fac.Country,
+			City:      fac.City,
 			DetailURL: fmt.Sprintf("/ui/fac/%d", fac.ID),
 		}
 	}
@@ -225,6 +231,8 @@ func (s *SearchService) queryOrganizations(ctx context.Context, pred func(*sql.S
 		hits[i] = SearchHit{
 			ID:        org.ID,
 			Name:      org.Name,
+			Country:   org.Country,
+			City:      org.City,
 			DetailURL: fmt.Sprintf("/ui/org/%d", org.ID),
 		}
 	}
@@ -245,7 +253,8 @@ func (s *SearchService) queryCampuses(ctx context.Context, pred func(*sql.Select
 		hits[i] = SearchHit{
 			ID:        c.ID,
 			Name:      c.Name,
-			Subtitle:  formatLocation(c.City, c.Country),
+			Country:   c.Country,
+			City:      c.City,
 			DetailURL: fmt.Sprintf("/ui/campus/%d", c.ID),
 		}
 	}
@@ -294,20 +303,3 @@ func buildSearchPredicate(search string, searchFields []string) func(*sql.Select
 	}
 }
 
-// formatLocation returns a "City, Country" string, handling cases where
-// either or both may be empty.
-func formatLocation(city, country string) string {
-	city = strings.TrimSpace(city)
-	country = strings.TrimSpace(country)
-
-	switch {
-	case city != "" && country != "":
-		return city + ", " + country
-	case city != "":
-		return city
-	case country != "":
-		return country
-	default:
-		return ""
-	}
-}

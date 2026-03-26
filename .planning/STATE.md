@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 45-02-PLAN.md
-last_updated: "2026-03-26T22:53:54.227Z"
+stopped_at: Completed 46-01-PLAN.md
+last_updated: "2026-03-26T23:15:30Z"
 last_activity: 2026-03-26
 progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
-  percent: 33
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 11
+  completed_plans: 11
+  percent: 0
 ---
 
 # Project State
@@ -21,30 +21,30 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 45 — Multi-Pin Maps
+**Current focus:** Phase 46 — Search & Compare Density
 
 ## Current Position
 
 Phase: 46
-Plan: Not started
-Status: Ready to execute
+Plan: 01 of 2 complete
+Status: Executing Phase 46
 Last activity: 2026-03-26
 
-Progress: [███░░░░░░░] 33%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1
-- Average duration: 4min
-- Total execution time: 0.07 hours
+- Total plans completed: 0
+- Average duration: --
+- Total execution time: 0 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 43 | 1/3 | 4min | 4min |
+| - | - | - | - |
 
 **Recent Trend:**
 
@@ -52,31 +52,24 @@ Progress: [███░░░░░░░] 33%
 - Trend: --
 
 *Updated after each plan completion*
-| Phase 43 P03 | 5min | 2 tasks | 7 files |
-| Phase 43 P04 | 4min | 1 tasks | 1 files |
-| Phase 44 P01 | 3min | 2 tasks | 8 files |
-| Phase 44 P02 | 3min | 2 tasks | 2 files |
-| Phase 45 P01 | 15min | 2 tasks | 6 files |
-| Phase 45 P02 | 8min | 2 tasks | 12 files |
+| Phase 37 P01 | 4min | 2 tasks | 2 files |
+| Phase 41 P02 | 8 | 2 tasks | 4 files |
+| Phase 42 P03 | 10min | 2 tasks | 4 files |
+| Phase 42 P05 | 3min | 1 tasks | 1 files |
+| Phase 46 P01 | 9min | 2 tasks | 14 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-All decisions archived in PROJECT.md Key Decisions table (42 decisions across 11 milestones).
+All decisions archived in PROJECT.md Key Decisions table (42 decisions across 9 milestones).
 
-- **Phase 43-01:** Sort JS placed in layout.templ as global script (matches existing keyboard nav and htmx error handler patterns)
-- **Phase 43-01:** flag-icons v7.5.0 pinned via jsdelivr CDN (consistent with existing CDN delivery pattern)
-- [Phase 43]: OrgNetworksList 2-column (Name, ASN) without Country -- all networks on an org share the org country
-- [Phase 43]: Added City/Country to NetworkFacility seed data for CountryFlag rendering in fragment tests
-- [Phase 44]: window.__pdbMaps array pattern for multi-map dark mode tile swap (forward-compatible with Phase 45)
-- [Phase 44]: Inline styles in Leaflet popup HTML -- Tailwind classes do not penetrate Leaflet popup DOM
-- [Phase 44]: Treat (0,0) and nil lat/lng as missing data -- no real facility at null island
-- [Phase 44]: ID 32 for coordinated facility to avoid collision with existing test IDs (30, 31)
-- [Phase 45]: Server-side popup HTML serialized into marker JSON avoids building HTML in JavaScript
-- [Phase 45]: filterMappableMarkers keeps markers where at least one coordinate is non-zero
-- [Phase 45]: Legend uses inline styles in Leaflet Control for dark mode support
-- [Phase 45]: AllFacilities computed unconditionally (outside ViewMode if-block) so comparison map always renders in both shared and full view modes
+- [Phase 37]: Fixed IDs matching legacy seedAllTestData for backward compatibility; testing.TB for benchmark reuse
+- [Phase 41]: Accept 87.4% as otel ceiling -- 9 InitMetrics error branches unreachable with valid MeterProvider
+- [Phase 42]: Test filter validation functions directly rather than through full RPC for maximum coverage of secondary ID filters
+- [Phase 42]: Empty where not clause reliably triggers ErrEmptyXxxWhereInput for error path testing
+- [Phase 46]: Decompose Subtitle into Country/City/ASN for type-safe metadata rendering
+- [Phase 46]: Networks get ASN only (no org join per D-07) keeping queries simple
 
 ### Pending Todos
 
@@ -84,10 +77,12 @@ None.
 
 ### Blockers/Concerns
 
-None.
+- Graph package denominator distortion: 100% hand-written resolver coverage yields only ~15-20% package-level. Targets stated per-file, not per-package.
+- SQLite parallel test performance: ~930 lines of new tests with many SetupClient calls may increase CI time. Monitor after Phase 39.
+- Generic test helper feasibility for gRPC: verify type-parameterized approach scales to stream/filter tests during Phase 39 planning.
 
 ## Session Continuity
 
-Last session: 2026-03-26T22:48:54.330Z
-Stopped at: Completed 45-02-PLAN.md
+Last session: 2026-03-26T23:15:30Z
+Stopped at: Completed 46-01-PLAN.md
 Resume file: None

@@ -24,6 +24,8 @@ func seedSearchData(t *testing.T) *SearchService {
 		SetID(1).
 		SetName("Cloudflare Inc").
 		SetAka("CF").
+		SetCountry("US").
+		SetCity("San Francisco").
 		SetCreated(testSearchTimestamp).
 		SetUpdated(testSearchTimestamp).
 		Save(ctx)
@@ -310,9 +312,9 @@ func TestSearchNetworkDetailURL(t *testing.T) {
 		if hit.DetailURL != "/ui/asn/13335" {
 			t.Errorf("hit.DetailURL = %q, want %q", hit.DetailURL, "/ui/asn/13335")
 		}
-		// Networks show ASN as subtitle
-		if hit.Subtitle != "AS13335" {
-			t.Errorf("hit.Subtitle = %q, want %q", hit.Subtitle, "AS13335")
+		// Networks populate ASN field (no Country/City without org join per D-07)
+		if hit.ASN != 13335 {
+			t.Errorf("hit.ASN = %d, want %d", hit.ASN, 13335)
 		}
 		return
 	}
@@ -336,12 +338,15 @@ func TestSearchIXPDetailURL(t *testing.T) {
 	if hit.DetailURL != "/ui/ix/20" {
 		t.Errorf("hit.DetailURL = %q, want %q", hit.DetailURL, "/ui/ix/20")
 	}
-	if hit.Subtitle != "Frankfurt, DE" {
-		t.Errorf("hit.Subtitle = %q, want %q", hit.Subtitle, "Frankfurt, DE")
+	if hit.Country != "DE" {
+		t.Errorf("hit.Country = %q, want %q", hit.Country, "DE")
+	}
+	if hit.City != "Frankfurt" {
+		t.Errorf("hit.City = %q, want %q", hit.City, "Frankfurt")
 	}
 }
 
-func TestSearchFacilitySubtitle(t *testing.T) {
+func TestSearchFacilityMetadata(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
 	ctx := context.Background()
@@ -362,8 +367,11 @@ func TestSearchFacilitySubtitle(t *testing.T) {
 		if hit.DetailURL != "/ui/fac/30" {
 			t.Errorf("hit.DetailURL = %q, want %q", hit.DetailURL, "/ui/fac/30")
 		}
-		if hit.Subtitle != "Ashburn, US" {
-			t.Errorf("hit.Subtitle = %q, want %q", hit.Subtitle, "Ashburn, US")
+		if hit.Country != "US" {
+			t.Errorf("hit.Country = %q, want %q", hit.Country, "US")
+		}
+		if hit.City != "Ashburn" {
+			t.Errorf("hit.City = %q, want %q", hit.City, "Ashburn")
 		}
 		return
 	}
@@ -391,8 +399,11 @@ func TestSearchCampusDetailURL(t *testing.T) {
 		if hit.DetailURL != "/ui/campus/40" {
 			t.Errorf("hit.DetailURL = %q, want %q", hit.DetailURL, "/ui/campus/40")
 		}
-		if hit.Subtitle != "Ashburn, US" {
-			t.Errorf("hit.Subtitle = %q, want %q", hit.Subtitle, "Ashburn, US")
+		if hit.Country != "US" {
+			t.Errorf("hit.Country = %q, want %q", hit.Country, "US")
+		}
+		if hit.City != "Ashburn" {
+			t.Errorf("hit.City = %q, want %q", hit.City, "Ashburn")
 		}
 		return
 	}
@@ -421,8 +432,14 @@ func TestSearchCarrierDetailURL(t *testing.T) {
 	if hit.DetailURL != "/ui/carrier/50" {
 		t.Errorf("hit.DetailURL = %q, want %q", hit.DetailURL, "/ui/carrier/50")
 	}
-	if hit.Subtitle != "" {
-		t.Errorf("hit.Subtitle = %q, want empty string", hit.Subtitle)
+	if hit.Country != "" {
+		t.Errorf("hit.Country = %q, want empty string", hit.Country)
+	}
+	if hit.City != "" {
+		t.Errorf("hit.City = %q, want empty string", hit.City)
+	}
+	if hit.ASN != 0 {
+		t.Errorf("hit.ASN = %d, want 0", hit.ASN)
 	}
 }
 
@@ -448,9 +465,48 @@ func TestSearchOrganizationDetailURL(t *testing.T) {
 		if hit.DetailURL != "/ui/org/1" {
 			t.Errorf("hit.DetailURL = %q, want %q", hit.DetailURL, "/ui/org/1")
 		}
+		if hit.Country != "US" {
+			t.Errorf("hit.Country = %q, want %q", hit.Country, "US")
+		}
+		if hit.City != "San Francisco" {
+			t.Errorf("hit.City = %q, want %q", hit.City, "San Francisco")
+		}
 		return
 	}
 	t.Error("Organizations group not found in results")
+}
+
+func TestSearchNetworkASNField(t *testing.T) {
+	t.Parallel()
+	svc := seedSearchData(t)
+	ctx := context.Background()
+
+	results, err := svc.Search(ctx, "Cloudflare")
+	if err != nil {
+		t.Fatalf("Search for Cloudflare: %v", err)
+	}
+
+	for _, r := range results {
+		if r.TypeName != "Networks" {
+			continue
+		}
+		if len(r.Results) == 0 {
+			t.Fatal("Networks group has no results")
+		}
+		hit := r.Results[0]
+		if hit.ASN != 13335 {
+			t.Errorf("hit.ASN = %d, want %d", hit.ASN, 13335)
+		}
+		// Networks have no direct Country/City (no org join per D-07)
+		if hit.Country != "" {
+			t.Errorf("hit.Country = %q, want empty string (no org join)", hit.Country)
+		}
+		if hit.City != "" {
+			t.Errorf("hit.City = %q, want empty string (no org join)", hit.City)
+		}
+		return
+	}
+	t.Error("Networks group not found in results")
 }
 
 func TestSearchHasMore(t *testing.T) {

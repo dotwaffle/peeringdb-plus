@@ -328,8 +328,8 @@ func TestRenderJSON_SearchGroups(t *testing.T) {
 			AccentColor: "emerald",
 			HasMore:     true,
 			Results: []templates.SearchResult{
-				{Name: "Cloudflare", Subtitle: "AS13335", DetailURL: "/ui/asn/13335"},
-				{Name: "Google", Subtitle: "AS15169", DetailURL: "/ui/asn/15169"},
+				{Name: "Cloudflare", ASN: 13335, DetailURL: "/ui/asn/13335"},
+				{Name: "Google", ASN: 15169, DetailURL: "/ui/asn/15169"},
 			},
 		},
 		{
@@ -338,7 +338,7 @@ func TestRenderJSON_SearchGroups(t *testing.T) {
 			AccentColor: "sky",
 			HasMore:     false,
 			Results: []templates.SearchResult{
-				{Name: "DE-CIX Frankfurt", Subtitle: "Frankfurt, DE", DetailURL: "/ui/ix/31"},
+				{Name: "DE-CIX Frankfurt", Country: "DE", City: "Frankfurt", DetailURL: "/ui/ix/31"},
 			},
 		},
 	}

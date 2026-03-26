@@ -40,9 +40,18 @@ func (r *Renderer) RenderSearch(w io.Writer, groups []templates.SearchGroup) err
 			buf.WriteString("  ")
 			buf.WriteString(StyleValue.Render(result.Name))
 
-			if result.Subtitle != "" {
+			// Show metadata: ASN, country, city as applicable.
+			if result.ASN > 0 {
 				buf.WriteString("  ")
-				buf.WriteString(StyleMuted.Render(result.Subtitle))
+				buf.WriteString(StyleMuted.Render(fmt.Sprintf("AS%d", result.ASN)))
+			}
+			if result.Country != "" {
+				buf.WriteString("  ")
+				buf.WriteString(StyleMuted.Render(result.Country))
+			}
+			if result.City != "" {
+				buf.WriteString("  ")
+				buf.WriteString(StyleMuted.Render(result.City))
 			}
 
 			buf.WriteString("  ")

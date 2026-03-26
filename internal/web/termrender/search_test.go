@@ -19,8 +19,8 @@ var fullSearchGroups = []templates.SearchGroup{
 		AccentColor: "emerald",
 		HasMore:     true,
 		Results: []templates.SearchResult{
-			{Name: "Equinix (WAN)", Subtitle: "AS47541", DetailURL: "/ui/asn/47541"},
-			{Name: "Equinix LLC", Subtitle: "AS21928", DetailURL: "/ui/asn/21928"},
+			{Name: "Equinix (WAN)", ASN: 47541, DetailURL: "/ui/asn/47541"},
+			{Name: "Equinix LLC", ASN: 21928, DetailURL: "/ui/asn/21928"},
 		},
 	},
 	{
@@ -29,7 +29,7 @@ var fullSearchGroups = []templates.SearchGroup{
 		AccentColor: "sky",
 		HasMore:     true,
 		Results: []templates.SearchResult{
-			{Name: "Equinix Chicago", Subtitle: "Chicago, US", DetailURL: "/ui/ix/81"},
+			{Name: "Equinix Chicago", Country: "US", City: "Chicago", DetailURL: "/ui/ix/81"},
 		},
 	},
 	{
@@ -38,7 +38,7 @@ var fullSearchGroups = []templates.SearchGroup{
 		AccentColor: "orange",
 		HasMore:     true,
 		Results: []templates.SearchResult{
-			{Name: "Equinix AM1/AM2", Subtitle: "Amsterdam, NL", DetailURL: "/ui/fac/4"},
+			{Name: "Equinix AM1/AM2", Country: "NL", City: "Amsterdam", DetailURL: "/ui/fac/4"},
 		},
 	},
 }
@@ -53,7 +53,7 @@ var singleSearchGroup = []templates.SearchGroup{
 		TypeSlug: "net",
 		HasMore:  false,
 		Results: []templates.SearchResult{
-			{Name: "Test Network", Subtitle: "AS64512", DetailURL: "/ui/asn/64512"},
+			{Name: "Test Network", ASN: 64512, DetailURL: "/ui/asn/64512"},
 		},
 	},
 }
@@ -100,16 +100,18 @@ func TestRenderSearch_GroupedOutput(t *testing.T) {
 		}
 	}
 
-	// All subtitles should appear.
-	subtitleChecks := []string{
+	// All metadata (ASN, country, city) should appear.
+	metadataChecks := []string{
 		"AS47541",
 		"AS21928",
-		"Chicago, US",
-		"Amsterdam, NL",
+		"US",
+		"Chicago",
+		"NL",
+		"Amsterdam",
 	}
-	for _, want := range subtitleChecks {
+	for _, want := range metadataChecks {
 		if !strings.Contains(stripped, want) {
-			t.Errorf("output missing subtitle %q", want)
+			t.Errorf("output missing metadata %q", want)
 		}
 	}
 
@@ -167,7 +169,7 @@ func TestRenderSearch_SingleGroup(t *testing.T) {
 		t.Error("output missing result name 'Test Network'")
 	}
 	if !strings.Contains(stripped, "AS64512") {
-		t.Error("output missing subtitle 'AS64512'")
+		t.Error("output missing ASN 'AS64512'")
 	}
 	if !strings.Contains(stripped, "/ui/asn/64512") {
 		t.Error("output missing detail URL '/ui/asn/64512'")
@@ -225,14 +227,14 @@ func TestRenderSearch_ResultLineFormat(t *testing.T) {
 	out := renderSearch(t, ModeRich, false, fullSearchGroups)
 	stripped := regexp.MustCompile(`\x1b\[[0-9;]*m`).ReplaceAllString(out, "")
 
-	// Each result line should have name, subtitle, and URL on the same line.
+	// Each result line should have name, metadata, and URL on the same line.
 	lines := strings.Split(stripped, "\n")
 	foundEquinixWAN := false
 	for _, line := range lines {
 		if strings.Contains(line, "Equinix (WAN)") {
 			foundEquinixWAN = true
 			if !strings.Contains(line, "AS47541") {
-				t.Error("Equinix (WAN) line should contain subtitle AS47541")
+				t.Error("Equinix (WAN) line should contain ASN AS47541")
 			}
 			if !strings.Contains(line, "/ui/asn/47541") {
 				t.Error("Equinix (WAN) line should contain detail URL")
