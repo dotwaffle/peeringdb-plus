@@ -1146,3 +1146,22 @@ func TestKeyboardNav_Integration(t *testing.T) {
 		}
 	}
 }
+
+func TestHandleServerError(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	h := NewHandler(client, nil)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/ui/500", nil)
+
+	h.handleServerError(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Server Error") {
+		t.Errorf("response body missing %q, got %q", "Server Error", body)
+	}
+}
