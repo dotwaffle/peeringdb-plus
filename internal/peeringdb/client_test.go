@@ -1007,3 +1007,183 @@ func TestFetchMetaEarliestAcrossPages(t *testing.T) {
 		t.Errorf("Meta.Generated = %v, want %v (should use earliest)", result.Meta.Generated, want)
 	}
 }
+
+func TestParseMeta_EdgeCases(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		raw  json.RawMessage
+		want time.Time
+	}{
+		{"nil input", nil, time.Time{}},
+		{"empty bytes", json.RawMessage{}, time.Time{}},
+		{"empty object", json.RawMessage(`{}`), time.Time{}},
+		{"invalid json", json.RawMessage(`{invalid`), time.Time{}},
+		{"generated zero", json.RawMessage(`{"generated":0}`), time.Time{}},
+		{"valid generated", json.RawMessage(`{"generated":1700000000}`), time.Unix(1700000000, 0)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := parseMeta(tt.raw)
+			if !got.Equal(tt.want) {
+				t.Errorf("parseMeta(%s) = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFetchAll_DecodeError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`not valid json at all`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+
+	_, err := client.FetchAll(context.Background(), "test")
+	if err == nil {
+		t.Fatal("expected error for invalid JSON response")
+	}
+	if !strings.Contains(err.Error(), "decode") {
+		t.Errorf("error = %q, want substring %q", err, "decode")
+	}
+}
+
+func TestFetchType_UnmarshalError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		// Valid JSON envelope but the data items can't be unmarshaled to the target type.
+		_, _ = w.Write([]byte(`{"meta": {}, "data": [{"id": "not_a_number"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+
+	// strictItem has ID as int; "not_a_number" string won't unmarshal to int.
+	type strictItem struct {
+		ID int `json:"id"`
+	}
+
+	_, err := FetchType[strictItem](context.Background(), client, "test")
+	if err == nil {
+		t.Fatal("expected unmarshal error")
+	}
+	if !strings.Contains(err.Error(), "unmarshal") {
+		t.Errorf("error = %q, want substring %q", err, "unmarshal")
+	}
+}
+
+func TestSetRateLimit(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(emptyResponse())
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Every(100*time.Millisecond), 5))
+
+	// Verify the client works after SetRateLimit.
+	_, err := client.FetchAll(context.Background(), TypeOrg)
+	if err != nil {
+		t.Fatalf("FetchAll after SetRateLimit: %v", err)
+	}
+}
+
+func TestSetRetryBaseDelay(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(emptyResponse())
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRetryBaseDelay(50 * time.Millisecond)
+
+	// Verify the client works after SetRetryBaseDelay.
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	_, err := client.FetchAll(context.Background(), TypeOrg)
+	if err != nil {
+		t.Fatalf("FetchAll after SetRetryBaseDelay: %v", err)
+	}
+}
+
+func TestFetchType_FetchAllError(t *testing.T) {
+	t.Parallel()
+
+	// Server returns non-retryable 404 -- FetchAll returns error.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+
+	type item struct{ ID int }
+	_, err := FetchType[item](context.Background(), client, "test")
+	if err == nil {
+		t.Fatal("expected error from FetchAll failure")
+	}
+}
+
+func TestFetchAll_DecodeError_Incremental(t *testing.T) {
+	t.Parallel()
+
+	// Incremental sync (WithSince) with invalid JSON response on first page.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`not valid json`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+
+	_, err := client.FetchAll(context.Background(), "test", WithSince(time.Unix(1000, 0)))
+	if err == nil {
+		t.Fatal("expected decode error for incremental sync")
+	}
+	if !strings.Contains(err.Error(), "decode") {
+		t.Errorf("error = %q, want substring %q", err, "decode")
+	}
+}
+
+func TestDoWithRetry_ContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	client.SetRetryBaseDelay(200 * time.Millisecond)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Cancel the context after a short delay so it triggers between retries.
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		cancel()
+	}()
+
+	_, err := client.FetchAll(ctx, "test")
+	if err == nil {
+		t.Fatal("expected error from context cancellation")
+	}
+	if !strings.Contains(err.Error(), "context") {
+		t.Errorf("error = %q, want substring %q", err, "context")
+	}
+}
