@@ -200,8 +200,8 @@ func TestFieldMapCaching(t *testing.T) {
 	m1 := getFieldMap(typ)
 	m2 := getFieldMap(typ)
 
-	// Both calls should return the same map instance (cached via sync.Map).
-	if &m1 == nil || &m2 == nil {
+	// Both calls should return a non-nil map (cached via sync.Map).
+	if m1 == nil || m2 == nil {
 		t.Fatal("getFieldMap returned nil")
 	}
 

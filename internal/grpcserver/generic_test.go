@@ -18,12 +18,12 @@ func TestListEntities(t *testing.T) {
 		Name string
 	}
 	type mockProto struct {
-		Id   int64
+		ID   int64
 		Name string
 	}
 
 	convert := func(e *mockEntity) *mockProto {
-		return &mockProto{Id: int64(e.ID), Name: e.Name}
+		return &mockProto{ID: int64(e.ID), Name: e.Name}
 	}
 
 	// makeMockData generates n mock entities starting from ID 1.

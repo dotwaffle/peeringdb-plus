@@ -94,7 +94,7 @@ func TestRegisterCustomType(t *testing.T) {
 	type customData struct{ Msg string }
 
 	called := false
-	Register(func(d customData, w io.Writer, r *Renderer) error {
+	Register(func(d customData, w io.Writer, _ *Renderer) error {
 		called = true
 		_, err := w.Write([]byte("custom:" + d.Msg))
 		return err
