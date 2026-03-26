@@ -68,27 +68,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DENS-01 | — | Pending |
-| DENS-02 | — | Pending |
-| DENS-03 | — | Pending |
-| DENS-04 | — | Pending |
-| DENS-05 | — | Pending |
-| SORT-01 | — | Pending |
-| SORT-02 | — | Pending |
-| SORT-03 | — | Pending |
-| FLAG-01 | — | Pending |
-| FLAG-02 | — | Pending |
-| MAP-01 | — | Pending |
-| MAP-02 | — | Pending |
-| MAP-03 | — | Pending |
-| MAP-04 | — | Pending |
-| MAP-05 | — | Pending |
+| DENS-01 | Phase 43 | Pending |
+| DENS-02 | Phase 43 | Pending |
+| DENS-03 | Phase 43 | Pending |
+| DENS-04 | Phase 46 | Pending |
+| DENS-05 | Phase 46 | Pending |
+| SORT-01 | Phase 43 | Pending |
+| SORT-02 | Phase 43 | Pending |
+| SORT-03 | Phase 43 | Pending |
+| FLAG-01 | Phase 43 | Pending |
+| FLAG-02 | Phase 46 | Pending |
+| MAP-01 | Phase 44 | Pending |
+| MAP-02 | Phase 45 | Pending |
+| MAP-03 | Phase 45 | Pending |
+| MAP-04 | Phase 44 | Pending |
+| MAP-05 | Phase 44 | Pending |
 
 **Coverage:**
 - v1.11 requirements: 15 total
-- Mapped to phases: 0
-- Unmapped: 15 ⚠️
+- Mapped to phases: 15
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after initial definition*
+*Last updated: 2026-03-26 after roadmap creation*
