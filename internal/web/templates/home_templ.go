@@ -71,20 +71,20 @@ func SearchForm(query string, groups []SearchGroup) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<form id=\"search-form\" action=\"/ui/\" method=\"get\" onsubmit=\"return handleSearchSubmit(event)\"><div class=\"relative\"><input type=\"search\" name=\"q\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<form id=\"search-form\" action=\"/ui/\" method=\"get\" onsubmit=\"return handleSearchSubmit(event)\"><div class=\"relative\"><label for=\"search-input\" class=\"sr-only\">Search PeeringDB</label> <input id=\"search-input\" type=\"search\" name=\"q\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(query)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/home.templ`, Line: 54, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/home.templ`, Line: 56, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" placeholder=\"Search networks, IXPs, facilities...\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono\" hx-get=\"/ui/search\" hx-trigger=\"input changed delay:300ms\" hx-target=\"#search-results\" hx-sync=\"this:replace\" hx-indicator=\"#search-indicator\" hx-params=\"q\" autocomplete=\"off\" autofocus><div id=\"search-indicator\" class=\"htmx-indicator absolute right-3 top-3.5\"><svg class=\"animate-spin h-5 w-5 text-emerald-500\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\"><circle class=\"opacity-25\" cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"4\"></circle> <path class=\"opacity-75\" fill=\"currentColor\" d=\"M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z\"></path></svg></div></div></form><style>\n\t\t.htmx-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; }\n\t\t.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; transition-delay: 0ms; }\n\t</style><div id=\"search-results\" class=\"mt-6 text-left\" role=\"listbox\" aria-label=\"Search results\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" placeholder=\"Search networks, IXPs, facilities...\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono\" hx-get=\"/ui/search\" hx-trigger=\"input changed delay:300ms\" hx-target=\"#search-results\" hx-sync=\"this:replace\" hx-indicator=\"#search-indicator\" hx-push-url=\"true\" hx-params=\"q\" autocomplete=\"off\" autofocus><div id=\"search-indicator\" class=\"htmx-indicator absolute right-3 top-3.5\"><svg class=\"animate-spin h-5 w-5 text-emerald-500\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\"><circle class=\"opacity-25\" cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"4\"></circle> <path class=\"opacity-75\" fill=\"currentColor\" d=\"M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z\"></path></svg></div></div></form><style>\n\t\t.htmx-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; }\n\t\t.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; transition-delay: 0ms; }\n\t</style><div id=\"search-results\" class=\"mt-6 text-left\" role=\"listbox\" aria-label=\"Search results\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
