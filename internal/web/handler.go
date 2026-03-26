@@ -76,6 +76,12 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 		h.handleCompareForm(w, r)
 	case strings.HasPrefix(rest, "compare/"):
 		h.handleCompare(w, r, strings.TrimPrefix(rest, "compare/"))
+	case rest == "completions/bash":
+		h.handleCompletionBash(w, r)
+	case rest == "completions/zsh":
+		h.handleCompletionZsh(w, r)
+	case rest == "completions/search":
+		h.handleCompletionSearch(w, r)
 	default:
 		h.handleNotFound(w, r)
 	}
