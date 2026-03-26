@@ -38,7 +38,6 @@ func newTestMux(t *testing.T) *http.ServeMux {
 // testHandlerTimestamp is a consistent timestamp for handler test data seeding.
 var testHandlerTimestamp = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 
-
 func TestHomeHandler_FullPage(t *testing.T) {
 	t.Parallel()
 	mux := newTestMux(t)
@@ -929,12 +928,12 @@ func TestTerminalDetection(t *testing.T) {
 			wantVary:    "User-Agent",
 		},
 		{
-			name:        "httpie /ui/ gets text",
-			path:        "/ui/",
-			userAgent:   "HTTPie/3.2.4",
-			wantStatus:  200,
-			wantCT:      "text/plain",
-			wantVary:    "User-Agent",
+			name:       "httpie /ui/ gets text",
+			path:       "/ui/",
+			userAgent:  "HTTPie/3.2.4",
+			wantStatus: 200,
+			wantCT:     "text/plain",
+			wantVary:   "User-Agent",
 		},
 		{
 			name:        "browser /ui/ gets HTML",
@@ -946,12 +945,12 @@ func TestTerminalDetection(t *testing.T) {
 			wantVary:    "User-Agent",
 		},
 		{
-			name:        "?format=json returns JSON",
-			path:        "/ui/?format=json",
-			userAgent:   "curl/8.5.0",
-			wantStatus:  200,
-			wantCT:      "application/json",
-			wantVary:    "User-Agent",
+			name:       "?format=json returns JSON",
+			path:       "/ui/?format=json",
+			userAgent:  "curl/8.5.0",
+			wantStatus: 200,
+			wantCT:     "application/json",
+			wantVary:   "User-Agent",
 		},
 		{
 			name:        "?T returns plain text without ANSI",
