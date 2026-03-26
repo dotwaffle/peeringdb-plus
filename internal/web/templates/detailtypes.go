@@ -162,6 +162,10 @@ type FacilityDetail struct {
 	IXCount int
 	// CarrierCount is the pre-computed count of carriers.
 	CarrierCount int
+	// Latitude is the facility's geographic latitude. Zero means no data.
+	Latitude float64
+	// Longitude is the facility's geographic longitude. Zero means no data.
+	Longitude float64
 	// Networks holds eager-loaded network rows for terminal/JSON rendering. Nil for web UI requests.
 	Networks []FacNetworkRow `json:"networks,omitempty"`
 	// IXPs holds eager-loaded IXP rows for terminal/JSON rendering. Nil for web UI requests.

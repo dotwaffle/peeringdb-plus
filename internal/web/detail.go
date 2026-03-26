@@ -415,6 +415,12 @@ func (h *Handler) queryFacility(ctx context.Context, id int) (templates.Facility
 		data.CampusName = fac.Edges.Campus.Name
 		data.CampusID = fac.Edges.Campus.ID
 	}
+	if fac.Latitude != nil && fac.Longitude != nil {
+		if *fac.Latitude != 0 || *fac.Longitude != 0 {
+			data.Latitude = *fac.Latitude
+			data.Longitude = *fac.Longitude
+		}
+	}
 
 	// Eager-load facility networks.
 	facNetItems, err := h.client.NetworkFacility.Query().

@@ -21,6 +21,12 @@ templ Layout(title string, contents templ.Component) {
 			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 			<script src="/static/htmx.min.js"></script>
 			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/css/flag-icons.min.css"/>
+			<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+				integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+				crossorigin=""/>
+			<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+				integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+				crossorigin=""></script>
 			<style type="text/tailwindcss">
 				@custom-variant dark (&:where(.dark, .dark *));
 				@theme {
@@ -67,6 +73,11 @@ templ Layout(title string, contents templ.Component) {
 						} else {
 							html.classList.add('dark');
 							localStorage.setItem('darkMode', 'dark');
+						}
+						if (window.__pdbMaps) {
+							window.__pdbMaps.forEach(function(m) {
+								m.tileLayer.setUrl(html.classList.contains('dark') ? m.darkURL : m.lightURL);
+							});
 						}
 						setTimeout(function() { html.classList.remove('theme-transition'); }, 200);
 					});
