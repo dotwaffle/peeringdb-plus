@@ -40,7 +40,7 @@ func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDeta
 	writeKV(&buf, "Carriers", StyleValue.Render(strconv.Itoa(data.CarrierCount)), labelWidth)
 
 	// Networks section.
-	if len(data.Networks) > 0 {
+	if len(data.Networks) > 0 && ShouldShowSection(r.Sections, "net") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Networks (%d)", len(data.Networks))))
 		buf.WriteString("\n")
@@ -48,14 +48,16 @@ func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDeta
 		for _, row := range data.Networks {
 			buf.WriteString("  ")
 			buf.WriteString(StyleValue.Render(row.NetName))
-			buf.WriteString(" ")
-			buf.WriteString(CrossRef(fmt.Sprintf("/ui/asn/%d", row.ASN)))
+			if ShouldShowField("fac-networks", "crossref", r.Width) {
+				buf.WriteString(" ")
+				buf.WriteString(CrossRef(fmt.Sprintf("/ui/asn/%d", row.ASN)))
+			}
 			buf.WriteString("\n")
 		}
 	}
 
 	// IXPs section.
-	if len(data.IXPs) > 0 {
+	if len(data.IXPs) > 0 && ShouldShowSection(r.Sections, "ix") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("IXPs (%d)", len(data.IXPs))))
 		buf.WriteString("\n")
@@ -63,14 +65,16 @@ func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDeta
 		for _, row := range data.IXPs {
 			buf.WriteString("  ")
 			buf.WriteString(StyleValue.Render(row.IXName))
-			buf.WriteString(" ")
-			buf.WriteString(CrossRef(fmt.Sprintf("/ui/ix/%d", row.IXID)))
+			if ShouldShowField("fac-ixps", "crossref", r.Width) {
+				buf.WriteString(" ")
+				buf.WriteString(CrossRef(fmt.Sprintf("/ui/ix/%d", row.IXID)))
+			}
 			buf.WriteString("\n")
 		}
 	}
 
 	// Carriers section.
-	if len(data.Carriers) > 0 {
+	if len(data.Carriers) > 0 && ShouldShowSection(r.Sections, "carrier") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Carriers (%d)", len(data.Carriers))))
 		buf.WriteString("\n")
@@ -78,8 +82,10 @@ func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDeta
 		for _, row := range data.Carriers {
 			buf.WriteString("  ")
 			buf.WriteString(StyleValue.Render(row.CarrierName))
-			buf.WriteString(" ")
-			buf.WriteString(CrossRef(fmt.Sprintf("/ui/carrier/%d", row.CarrierID)))
+			if ShouldShowField("fac-carriers", "crossref", r.Width) {
+				buf.WriteString(" ")
+				buf.WriteString(CrossRef(fmt.Sprintf("/ui/carrier/%d", row.CarrierID)))
+			}
 			buf.WriteString("\n")
 		}
 	}

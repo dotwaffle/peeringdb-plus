@@ -36,7 +36,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 	}
 
 	// Networks section.
-	if len(data.Networks) > 0 {
+	if len(data.Networks) > 0 && ShouldShowSection(r.Sections, "net") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Networks (%d)", len(data.Networks))))
 		buf.WriteString("\n")
@@ -51,7 +51,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 	}
 
 	// IXPs section.
-	if len(data.IXPs) > 0 {
+	if len(data.IXPs) > 0 && ShouldShowSection(r.Sections, "ix") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("IXPs (%d)", len(data.IXPs))))
 		buf.WriteString("\n")
@@ -66,7 +66,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 	}
 
 	// Facilities section.
-	if len(data.Facs) > 0 {
+	if len(data.Facs) > 0 && ShouldShowSection(r.Sections, "fac") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Facilities (%d)", len(data.Facs))))
 		buf.WriteString("\n")
@@ -87,7 +87,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 	}
 
 	// Campuses section.
-	if len(data.Campuses) > 0 {
+	if len(data.Campuses) > 0 && ShouldShowSection(r.Sections, "campus") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Campuses (%d)", len(data.Campuses))))
 		buf.WriteString("\n")
@@ -102,7 +102,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 	}
 
 	// Carriers section.
-	if len(data.Carriers) > 0 {
+	if len(data.Carriers) > 0 && ShouldShowSection(r.Sections, "carrier") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Carriers (%d)", len(data.Carriers))))
 		buf.WriteString("\n")

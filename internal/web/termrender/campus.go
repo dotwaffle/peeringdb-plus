@@ -27,7 +27,7 @@ func (r *Renderer) RenderCampusDetail(w io.Writer, data templates.CampusDetail) 
 	writeKV(&buf, "Facilities", StyleValue.Render(strconv.Itoa(data.FacCount)), labelWidth)
 
 	// Facilities section.
-	if len(data.Facilities) > 0 {
+	if len(data.Facilities) > 0 && ShouldShowSection(r.Sections, "fac") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Facilities (%d)", len(data.Facilities))))
 		buf.WriteString("\n")

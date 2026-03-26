@@ -40,7 +40,7 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 	}
 
 	// Participants section (rich layout with speed, RS badge, IPs).
-	if len(data.Participants) > 0 {
+	if len(data.Participants) > 0 && ShouldShowSection(r.Sections, "net") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Participants (%d)", len(data.Participants))))
 		buf.WriteString("\n")
@@ -51,24 +51,24 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 			buf.WriteString(" ")
 			buf.WriteString(CrossRef(fmt.Sprintf("/ui/asn/%d", row.ASN)))
 
-			if row.IsRSPeer {
+			if ShouldShowField("ix-participants", "rs", r.Width) && row.IsRSPeer {
 				buf.WriteString("  ")
 				buf.WriteString(rsBadge)
 			}
 
-			if row.Speed > 0 {
+			if ShouldShowField("ix-participants", "speed", r.Width) && row.Speed > 0 {
 				buf.WriteString("  ")
 				buf.WriteString(SpeedStyle(row.Speed).Render(FormatSpeed(row.Speed)))
 			}
 
-			if row.IPAddr4 != "" {
+			if ShouldShowField("ix-participants", "ipv4", r.Width) && row.IPAddr4 != "" {
 				buf.WriteString("  ")
 				buf.WriteString(row.IPAddr4)
-				if row.IPAddr6 != "" {
+				if ShouldShowField("ix-participants", "ipv6", r.Width) && row.IPAddr6 != "" {
 					buf.WriteString(" / ")
 					buf.WriteString(row.IPAddr6)
 				}
-			} else if row.IPAddr6 != "" {
+			} else if ShouldShowField("ix-participants", "ipv6", r.Width) && row.IPAddr6 != "" {
 				buf.WriteString("  ")
 				buf.WriteString(row.IPAddr6)
 			}
@@ -78,7 +78,7 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 	}
 
 	// Facilities section.
-	if len(data.Facilities) > 0 {
+	if len(data.Facilities) > 0 && ShouldShowSection(r.Sections, "fac") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Facilities (%d)", len(data.Facilities))))
 		buf.WriteString("\n")
@@ -86,12 +86,16 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 		for _, row := range data.Facilities {
 			buf.WriteString("  ")
 			buf.WriteString(StyleValue.Render(row.FacName))
-			buf.WriteString(" ")
-			buf.WriteString(CrossRef(fmt.Sprintf("/ui/fac/%d", row.FacID)))
+			if ShouldShowField("ix-facilities", "crossref", r.Width) {
+				buf.WriteString(" ")
+				buf.WriteString(CrossRef(fmt.Sprintf("/ui/fac/%d", row.FacID)))
+			}
 
-			if loc := formatLocation(row.City, row.Country); loc != "" {
-				buf.WriteString("  ")
-				buf.WriteString(StyleMuted.Render(loc))
+			if ShouldShowField("ix-facilities", "location", r.Width) {
+				if loc := formatLocation(row.City, row.Country); loc != "" {
+					buf.WriteString("  ")
+					buf.WriteString(StyleMuted.Render(loc))
+				}
 			}
 
 			buf.WriteString("\n")
@@ -99,7 +103,7 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 	}
 
 	// Prefixes section.
-	if len(data.Prefixes) > 0 {
+	if len(data.Prefixes) > 0 && ShouldShowSection(r.Sections, "prefix") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Prefixes (%d)", len(data.Prefixes))))
 		buf.WriteString("\n")
@@ -109,11 +113,13 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 			buf.WriteString(StyleValue.Render(row.Prefix))
 			buf.WriteString("  ")
 			buf.WriteString(StyleMuted.Render(row.Protocol))
-			buf.WriteString("  ")
-			if row.InDFZ {
-				buf.WriteString(StyleHeading.Render("[DFZ]"))
-			} else {
-				buf.WriteString(StyleMuted.Render("[not in DFZ]"))
+			if ShouldShowField("ix-prefixes", "dfz", r.Width) {
+				buf.WriteString("  ")
+				if row.InDFZ {
+					buf.WriteString(StyleHeading.Render("[DFZ]"))
+				} else {
+					buf.WriteString(StyleMuted.Render("[not in DFZ]"))
+				}
 			}
 			buf.WriteString("\n")
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/a-h/templ"
@@ -43,6 +44,12 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		renderer := termrender.NewRenderer(mode, noColor)
+		renderer.Sections = termrender.ParseSections(r.URL.Query().Get("section"))
+		if wStr := r.URL.Query().Get("w"); wStr != "" {
+			if wVal, err := strconv.Atoi(wStr); err == nil && wVal > 0 {
+				renderer.Width = wVal
+			}
+		}
 		if err := renderer.RenderShort(w, page.Data); err != nil {
 			return err
 		}
@@ -56,6 +63,12 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		renderer := termrender.NewRenderer(mode, noColor)
+		renderer.Sections = termrender.ParseSections(r.URL.Query().Get("section"))
+		if wStr := r.URL.Query().Get("w"); wStr != "" {
+			if wVal, err := strconv.Atoi(wStr); err == nil && wVal > 0 {
+				renderer.Width = wVal
+			}
+		}
 		switch page.Title {
 		case "Not Found":
 			return renderer.RenderError(w, http.StatusNotFound, "Not Found",
@@ -95,6 +108,12 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		renderer := termrender.NewRenderer(mode, true) // noColor always true for WHOIS
+		renderer.Sections = termrender.ParseSections(r.URL.Query().Get("section"))
+		if wStr := r.URL.Query().Get("w"); wStr != "" {
+			if wVal, err := strconv.Atoi(wStr); err == nil && wVal > 0 {
+				renderer.Width = wVal
+			}
+		}
 		return renderer.RenderWHOIS(w, page.Title, page.Data)
 
 	case termrender.ModeHTMX:

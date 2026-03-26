@@ -55,7 +55,7 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 	}
 
 	// IX Presences section.
-	if len(data.IXPresences) > 0 {
+	if len(data.IXPresences) > 0 && ShouldShowSection(r.Sections, "ix") {
 		sectionBW := 0
 		for _, row := range data.IXPresences {
 			sectionBW += row.Speed
@@ -72,27 +72,30 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 		for _, row := range data.IXPresences {
 			buf.WriteString("  ")
 			buf.WriteString(StyleValue.Render(row.IXName))
-			buf.WriteString(" ")
-			buf.WriteString(CrossRef(fmt.Sprintf("/ui/ix/%d", row.IXID)))
 
-			if row.IsRSPeer {
+			if ShouldShowField("net-ix", "crossref", r.Width) {
+				buf.WriteString(" ")
+				buf.WriteString(CrossRef(fmt.Sprintf("/ui/ix/%d", row.IXID)))
+			}
+
+			if ShouldShowField("net-ix", "rs", r.Width) && row.IsRSPeer {
 				buf.WriteString("  ")
 				buf.WriteString(rsBadge)
 			}
 
-			if row.Speed > 0 {
+			if ShouldShowField("net-ix", "speed", r.Width) && row.Speed > 0 {
 				buf.WriteString("  ")
 				buf.WriteString(SpeedStyle(row.Speed).Render(FormatSpeed(row.Speed)))
 			}
 
-			if row.IPAddr4 != "" {
+			if ShouldShowField("net-ix", "ipv4", r.Width) && row.IPAddr4 != "" {
 				buf.WriteString("  ")
 				buf.WriteString(row.IPAddr4)
-				if row.IPAddr6 != "" {
+				if ShouldShowField("net-ix", "ipv6", r.Width) && row.IPAddr6 != "" {
 					buf.WriteString(" / ")
 					buf.WriteString(row.IPAddr6)
 				}
-			} else if row.IPAddr6 != "" {
+			} else if ShouldShowField("net-ix", "ipv6", r.Width) && row.IPAddr6 != "" {
 				buf.WriteString("  ")
 				buf.WriteString(row.IPAddr6)
 			}
@@ -102,7 +105,7 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 	}
 
 	// Facilities section.
-	if len(data.FacPresences) > 0 {
+	if len(data.FacPresences) > 0 && ShouldShowSection(r.Sections, "fac") {
 		buf.WriteString("\n")
 		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Facilities (%d)", len(data.FacPresences))))
 		buf.WriteString("\n")
@@ -110,12 +113,12 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 		for _, row := range data.FacPresences {
 			buf.WriteString("  ")
 			buf.WriteString(StyleValue.Render(row.FacName))
-			if row.FacID != 0 {
+			if ShouldShowField("net-fac", "crossref", r.Width) && row.FacID != 0 {
 				buf.WriteString(" ")
 				buf.WriteString(CrossRef(fmt.Sprintf("/ui/fac/%d", row.FacID)))
 			}
 
-			if row.City != "" || row.Country != "" {
+			if ShouldShowField("net-fac", "location", r.Width) && (row.City != "" || row.Country != "") {
 				buf.WriteString("  ")
 				loc := row.City
 				if loc != "" && row.Country != "" {
