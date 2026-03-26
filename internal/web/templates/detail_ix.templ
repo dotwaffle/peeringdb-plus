@@ -1,6 +1,9 @@
 package templates
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // IXDetailPage renders the full IXP detail page with header, stats,
 // detail fields, and collapsible lazy-loaded sections for related records.
@@ -44,94 +47,137 @@ templ IXDetailPage(data IXDetail) {
 	</div>
 }
 
-// IXParticipantsList renders the list of IX participants with labeled fields,
-// speed color tiers, inline RS badge, and copyable IP addresses.
+// IXParticipantsList renders IX participants as a 6-column sortable table
+// with Name, ASN, Speed, IPv4, IPv6, and RS columns.
 templ IXParticipantsList(rows []IXParticipantRow) {
 	if len(rows) == 0 {
-		<div class="px-4 py-3 text-neutral-500 text-sm">No participants found.</div>
+		<div class="px-4 py-3 text-neutral-500 dark:text-neutral-500 text-sm">No participants found.</div>
 	} else {
-		<div class="divide-y divide-neutral-700/50">
-			for _, row := range rows {
-				<div class="px-4 py-3 hover:bg-neutral-800/50 transition-colors">
-					<div class="flex items-center gap-2 mb-1.5">
-						<a href={ templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)) }
-							class="text-neutral-100 font-medium hover:text-sky-400 transition-colors truncate">
-							if row.NetName != "" {
-								{ row.NetName }
-							} else {
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left sortable">
+				<thead>
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha">Name</th>
+						<th class="px-3 py-2" data-sortable data-sort-col="1" data-sort-type="numeric" data-sort-default="asc">ASN</th>
+						<th class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="2" data-sort-type="numeric">Speed</th>
+						<th class="px-3 py-2 hidden md:table-cell">IPv4</th>
+						<th class="px-3 py-2 hidden md:table-cell">IPv6</th>
+						<th class="px-3 py-2 hidden md:table-cell">RS</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					for _, row := range rows {
+						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.NetName) }>
+								<a href={ templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)) }
+									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-400 transition-colors">
+									if row.NetName != "" {
+										{ row.NetName }
+									} else {
+										{ fmt.Sprintf("AS%d", row.ASN) }
+									}
+								</a>
+							</td>
+							<td class="px-3 py-1.5 font-mono text-neutral-500 dark:text-neutral-400" data-sort-value={ fmt.Sprintf("%d", row.ASN) }>
 								{ fmt.Sprintf("AS%d", row.ASN) }
-							}
-						</a>
-						<span class="text-neutral-500 text-xs font-mono">{ fmt.Sprintf("AS%d", row.ASN) }</span>
-						if row.IsRSPeer {
-							<span class="text-xs text-emerald-400 border border-emerald-400/30 rounded px-1.5 py-0.5 font-mono">RS</span>
-						}
-					</div>
-					<div class="grid grid-cols-[auto_1fr_1fr] gap-x-4 gap-y-0.5 text-sm">
-						if row.Speed > 0 {
-							<div class="col-span-3 flex items-center gap-1.5">
-								<span class="text-neutral-500 text-xs">Speed</span>
-								<span class={ speedColorClass(row.Speed) + " font-mono font-medium" }>{ formatSpeed(row.Speed) }</span>
-							</div>
-						}
-						if row.IPAddr4 != "" {
-							<div class="col-span-3">
-								@CopyableIP("IPv4", row.IPAddr4)
-							</div>
-						}
-						if row.IPAddr6 != "" {
-							<div class="col-span-3">
-								@CopyableIP("IPv6", row.IPAddr6)
-							</div>
-						}
-					</div>
-				</div>
-			}
+							</td>
+							<td class={ "px-3 py-1.5 font-mono hidden md:table-cell " + speedColorClass(row.Speed) } data-sort-value={ fmt.Sprintf("%d", row.Speed) }>
+								{ formatSpeed(row.Speed) }
+							</td>
+							<td class="px-3 py-1.5 hidden md:table-cell">
+								if row.IPAddr4 != "" {
+									@CopyableIP("", row.IPAddr4)
+								}
+							</td>
+							<td class="px-3 py-1.5 hidden md:table-cell">
+								if row.IPAddr6 != "" {
+									@CopyableIP("", row.IPAddr6)
+								}
+							</td>
+							<td class="px-3 py-1.5 hidden md:table-cell text-center">
+								if row.IsRSPeer {
+									<span class="text-xs text-emerald-400 border border-emerald-400/30 rounded px-1.5 py-0.5 font-mono">RS</span>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
 		</div>
 	}
 }
 
-// IXFacilitiesList renders the list of IX facilities as clickable rows
-// linking to the respective facility detail page.
+// IXFacilitiesList renders IX facilities as a 3-column sortable table
+// with Name, City, and Country+flag columns.
 templ IXFacilitiesList(rows []IXFacilityRow) {
 	if len(rows) == 0 {
-		<div class="px-4 py-3 text-neutral-500 text-sm">No facilities found.</div>
+		<div class="px-4 py-3 text-neutral-500 dark:text-neutral-500 text-sm">No facilities found.</div>
 	} else {
-		<div class="divide-y divide-neutral-700/50">
-			for _, row := range rows {
-				<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
-					class="flex items-center justify-between px-4 py-3 hover:bg-neutral-800/50 transition-colors">
-					<div class="flex flex-col min-w-0">
-						<span class="text-neutral-100 font-medium truncate">{ row.FacName }</span>
-						if row.City != "" || row.Country != "" {
-							<span class="text-sm text-neutral-400 font-mono">
-								{ formatFacLocation(row.City, row.Country) }
-							</span>
-						}
-					</div>
-				</a>
-			}
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left sortable">
+				<thead>
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha">Name</th>
+						<th class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="1" data-sort-type="alpha">City</th>
+						<th class="px-3 py-2" data-sortable data-sort-col="2" data-sort-type="alpha" data-sort-default="asc">Country</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					for _, row := range rows {
+						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.FacName) }>
+								<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
+									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-400 transition-colors">
+									{ row.FacName }
+								</a>
+							</td>
+							<td class="px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400" data-sort-value={ strings.ToLower(row.City) }>
+								{ row.City }
+							</td>
+							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.Country) }>
+								@CountryFlag(row.Country)
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
 		</div>
 	}
 }
 
-// IXPrefixesList renders the list of IX prefixes (no cross-links for prefixes).
+// IXPrefixesList renders IX prefixes as a 3-column sortable table
+// with Prefix, Protocol, and DFZ columns.
 templ IXPrefixesList(rows []IXPrefixRow) {
 	if len(rows) == 0 {
-		<div class="px-4 py-3 text-neutral-500 text-sm">No prefixes found.</div>
+		<div class="px-4 py-3 text-neutral-500 dark:text-neutral-500 text-sm">No prefixes found.</div>
 	} else {
-		<div class="divide-y divide-neutral-700/50">
-			for _, row := range rows {
-				<div class="flex items-center justify-between px-4 py-3">
-					<div class="flex flex-col min-w-0">
-						<span class="text-neutral-100 font-medium font-mono truncate">{ row.Prefix }</span>
-						<span class="text-sm text-neutral-400">{ row.Protocol }</span>
-					</div>
-					if row.InDFZ {
-						<span class="text-xs text-sky-400/70 font-mono shrink-0 ml-3">DFZ</span>
+		<div class="overflow-x-auto">
+			<table class="w-full text-sm text-left sortable">
+				<thead>
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+						<th class="px-3 py-2 font-mono" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">Prefix</th>
+						<th class="px-3 py-2" data-sortable data-sort-col="1" data-sort-type="alpha">Protocol</th>
+						<th class="px-3 py-2 text-center">DFZ</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
+					for _, row := range rows {
+						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+							<td class="px-3 py-1.5 font-mono text-neutral-900 dark:text-neutral-100" data-sort-value={ strings.ToLower(row.Prefix) }>
+								{ row.Prefix }
+							</td>
+							<td class="px-3 py-1.5 text-neutral-500 dark:text-neutral-400" data-sort-value={ strings.ToLower(row.Protocol) }>
+								{ row.Protocol }
+							</td>
+							<td class="px-3 py-1.5 text-center">
+								if row.InDFZ {
+									<span class="text-xs text-sky-400/70 font-mono">DFZ</span>
+								}
+							</td>
+						</tr>
 					}
-				</div>
-			}
+				</tbody>
+			</table>
 		</div>
 	}
 }
