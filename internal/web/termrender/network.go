@@ -31,16 +31,17 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 	buf.WriteString("\n")
 
 	// Key-value header with right-aligned labels.
-	writeKV(&buf, "Type", StyleValue.Render(data.InfoType), labelWidth)
+	// Use styledVal to ensure empty fields pass "" to writeKV (which skips them).
+	writeKV(&buf, "Type", styledVal(data.InfoType), labelWidth)
 	writeKV(&buf, "Peering Policy", PolicyStyle(data.PolicyGeneral), labelWidth)
-	writeKV(&buf, "Website", StyleValue.Render(data.Website), labelWidth)
-	writeKV(&buf, "Organization", StyleValue.Render(data.OrgName), labelWidth)
-	writeKV(&buf, "IRR AS-SET", StyleValue.Render(data.IRRAsSet), labelWidth)
-	writeKV(&buf, "Looking Glass", StyleValue.Render(data.LookingGlass), labelWidth)
-	writeKV(&buf, "Route Server", StyleValue.Render(data.RouteServer), labelWidth)
-	writeKV(&buf, "Traffic", StyleValue.Render(data.InfoTraffic), labelWidth)
-	writeKV(&buf, "Ratio", StyleValue.Render(data.InfoRatio), labelWidth)
-	writeKV(&buf, "Scope", StyleValue.Render(data.InfoScope), labelWidth)
+	writeKV(&buf, "Website", styledVal(data.Website), labelWidth)
+	writeKV(&buf, "Organization", styledVal(data.OrgName), labelWidth)
+	writeKV(&buf, "IRR AS-SET", styledVal(data.IRRAsSet), labelWidth)
+	writeKV(&buf, "Looking Glass", styledVal(data.LookingGlass), labelWidth)
+	writeKV(&buf, "Route Server", styledVal(data.RouteServer), labelWidth)
+	writeKV(&buf, "Traffic", styledVal(data.InfoTraffic), labelWidth)
+	writeKV(&buf, "Ratio", styledVal(data.InfoRatio), labelWidth)
+	writeKV(&buf, "Scope", styledVal(data.InfoScope), labelWidth)
 	writeKV(&buf, "IX Presences", StyleValue.Render(strconv.Itoa(data.IXCount)), labelWidth)
 	writeKV(&buf, "Facilities", StyleValue.Render(strconv.Itoa(data.FacCount)), labelWidth)
 	if data.InfoPrefixes4 > 0 {
@@ -197,6 +198,15 @@ func PolicyStyle(policy string) string {
 // Example output: "[/ui/ix/31]" with link styling.
 func CrossRef(path string) string {
 	return StyleLink.Render("[" + path + "]")
+}
+
+// styledVal returns StyleValue-rendered text for non-empty strings.
+// Returns "" for empty input so writeKV can skip the field.
+func styledVal(s string) string {
+	if s == "" {
+		return ""
+	}
+	return StyleValue.Render(s)
 }
 
 // writeKV writes a labeled key-value pair with right-aligned label. (D-01)
