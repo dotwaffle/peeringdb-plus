@@ -861,6 +861,107 @@ func TestValidateOffsetLimit(t *testing.T) {
 	}
 }
 
+// TestGraphQLAPI_WhereFilterError exercises all 13 list resolver where.P()
+// error paths in custom.resolvers.go by sending an empty "not" clause that
+// causes the nested .P() call to return ErrEmptyXxxWhereInput (QUAL-02).
+func TestGraphQLAPI_WhereFilterError(t *testing.T) {
+	t.Parallel()
+	srv := setupTestServer(t)
+
+	tests := []struct {
+		name      string
+		query     string
+		wantError string
+	}{
+		{
+			name:      "organizationsList",
+			query:     `{ organizationsList(where: { not: {} }) { name } }`,
+			wantError: "apply organization filter",
+		},
+		{
+			name:      "networksList",
+			query:     `{ networksList(where: { not: {} }) { name } }`,
+			wantError: "apply network filter",
+		},
+		{
+			name:      "facilitiesList",
+			query:     `{ facilitiesList(where: { not: {} }) { name } }`,
+			wantError: "apply facility filter",
+		},
+		{
+			name:      "internetExchangesList",
+			query:     `{ internetExchangesList(where: { not: {} }) { name } }`,
+			wantError: "apply internet exchange filter",
+		},
+		{
+			name:      "pocsList",
+			query:     `{ pocsList(where: { not: {} }) { name } }`,
+			wantError: "apply poc filter",
+		},
+		{
+			name:      "ixLansList",
+			query:     `{ ixLansList(where: { not: {} }) { id } }`,
+			wantError: "apply ix lan filter",
+		},
+		{
+			name:      "ixPrefixesList",
+			query:     `{ ixPrefixesList(where: { not: {} }) { protocol } }`,
+			wantError: "apply ix prefix filter",
+		},
+		{
+			name:      "ixFacilitiesList",
+			query:     `{ ixFacilitiesList(where: { not: {} }) { id } }`,
+			wantError: "apply ix facility filter",
+		},
+		{
+			name:      "networkIxLansList",
+			query:     `{ networkIxLansList(where: { not: {} }) { speed } }`,
+			wantError: "apply network ix lan filter",
+		},
+		{
+			name:      "networkFacilitiesList",
+			query:     `{ networkFacilitiesList(where: { not: {} }) { localAsn } }`,
+			wantError: "apply network facility filter",
+		},
+		{
+			name:      "carriersList",
+			query:     `{ carriersList(where: { not: {} }) { name } }`,
+			wantError: "apply carrier filter",
+		},
+		{
+			name:      "carrierFacilitiesList",
+			query:     `{ carrierFacilitiesList(where: { not: {} }) { id } }`,
+			wantError: "apply carrier facility filter",
+		},
+		{
+			name:      "campusesList",
+			query:     `{ campusesList(where: { not: {} }) { name } }`,
+			wantError: "apply campus filter",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			resp := postGraphQL(t, srv.URL, tc.query)
+			if len(resp.Errors) == 0 {
+				t.Fatal("expected GraphQL error for empty not clause, got none")
+			}
+			found := false
+			for _, e := range resp.Errors {
+				if strings.Contains(e.Message, tc.wantError) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("expected error containing %q, got errors: %v",
+					tc.wantError, resp.Errors)
+			}
+		})
+	}
+}
+
 // TestGraphQLAPI_CursorResolvers exercises all 13 cursor-based resolvers
 // with edge count and totalCount assertions (GQL-01/GQL-03).
 func TestGraphQLAPI_CursorResolvers(t *testing.T) {
