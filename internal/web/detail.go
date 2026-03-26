@@ -1,11 +1,13 @@
 package web
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
@@ -21,8 +23,19 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
+	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
+
+// getFreshness returns the last successful sync time for freshness footer display.
+// Returns zero time if db is nil or on query error (footer will be omitted).
+func (h *Handler) getFreshness(ctx context.Context) time.Time {
+	if h.db == nil {
+		return time.Time{}
+	}
+	t, _ := sync.GetLastSuccessfulSyncTime(ctx, h.db)
+	return t
+}
 
 // handleNetworkDetail renders the network detail page for the given ASN string.
 // Looks up the network by ASN (not internal ID) per CONTEXT.md decision.
@@ -151,9 +164,10 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 	}
 
 	page := PageContent{
-		Title:   net.Name,
-		Content: templates.NetworkDetailPage(data),
-		Data:    data,
+		Title:     net.Name,
+		Content:   templates.NetworkDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render network detail", slog.Int("asn", asn), slog.String("error", err.Error()))
@@ -292,9 +306,10 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 	}
 
 	page := PageContent{
-		Title:   ix.Name,
-		Content: templates.IXDetailPage(data),
-		Data:    data,
+		Title:     ix.Name,
+		Content:   templates.IXDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render ix detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -417,9 +432,10 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 	}
 
 	page := PageContent{
-		Title:   fac.Name,
-		Content: templates.FacilityDetailPage(data),
-		Data:    data,
+		Title:     fac.Name,
+		Content:   templates.FacilityDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render facility detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -584,9 +600,10 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 	}
 
 	page := PageContent{
-		Title:   org.Name,
-		Content: templates.OrgDetailPage(data),
-		Data:    data,
+		Title:     org.Name,
+		Content:   templates.OrgDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render org detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -667,9 +684,10 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 	}
 
 	page := PageContent{
-		Title:   c.Name,
-		Content: templates.CampusDetailPage(data),
-		Data:    data,
+		Title:     c.Name,
+		Content:   templates.CampusDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render campus detail", slog.Int("id", id), slog.String("error", err.Error()))
@@ -736,9 +754,10 @@ func (h *Handler) handleCarrierDetail(w http.ResponseWriter, r *http.Request, id
 	}
 
 	page := PageContent{
-		Title:   cr.Name,
-		Content: templates.CarrierDetailPage(data),
-		Data:    data,
+		Title:     cr.Name,
+		Content:   templates.CarrierDetailPage(data),
+		Data:      data,
+		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render carrier detail", slog.Int("id", id), slog.String("error", err.Error()))

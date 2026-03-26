@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"time"
 
@@ -13,9 +14,10 @@ import (
 // PageContent holds the title and body component for a page render.
 // Defined per CS-5 to avoid >2 non-ctx arguments in renderPage.
 type PageContent struct {
-	Title   string
-	Content templ.Component
-	Data    any // Raw data struct for terminal/JSON rendering. Nil for pages without entity data.
+	Title     string
+	Content   templ.Component
+	Data      any       // Raw data struct for terminal/JSON rendering. Nil for pages without entity data.
+	Freshness time.Time // Freshness is the last successful sync time for terminal footer display.
 }
 
 // renderPage renders a response in the appropriate format based on terminal detection.
@@ -37,6 +39,19 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 	noColor := termrender.HasNoColor(termrender.DetectInput{Query: r.URL.Query()})
 
 	switch mode {
+	case termrender.ModeShort:
+		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		renderer := termrender.NewRenderer(mode, noColor)
+		if err := renderer.RenderShort(w, page.Data); err != nil {
+			return err
+		}
+		if footer := termrender.FormatFreshness(page.Freshness); footer != "" {
+			_, err := io.WriteString(w, footer)
+			return err
+		}
+		return nil
+
 	case termrender.ModeRich, termrender.ModePlain:
 		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -49,10 +64,16 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 			return renderer.RenderError(w, http.StatusInternalServerError, "Internal Server Error",
 				"An unexpected error occurred. Please try again later.")
 		case "Home":
-			// Freshness not available without db access; zero time omits the line.
-			return renderer.RenderHelp(w, time.Time{})
+			return renderer.RenderHelp(w, page.Freshness)
 		default:
-			return renderer.RenderPage(w, page.Title, page.Data)
+			if err := renderer.RenderPage(w, page.Title, page.Data); err != nil {
+				return err
+			}
+			if footer := termrender.FormatFreshness(page.Freshness); footer != "" {
+				_, err := io.WriteString(w, footer)
+				return err
+			}
+			return nil
 		}
 
 	case termrender.ModeJSON:
