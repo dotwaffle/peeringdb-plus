@@ -352,11 +352,11 @@ func main() {
 	})
 
 	// Build middleware stack (outermost first):
-	// Recovery -> OTel HTTP -> Logging -> CORS -> Readiness -> mux
+	// Recovery -> CORS -> OTel HTTP -> Logging -> Readiness -> mux
 	handler := readinessMiddleware(syncWorker, mux)
-	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
 	handler = middleware.Logging(logger)(handler)
 	handler = otelhttp.NewMiddleware("peeringdb-plus")(handler)
+	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
 	handler = middleware.Recovery(logger)(handler)
 
 	// Enable HTTP/1.1 + h2c (HTTP/2 cleartext) for gRPC support.
