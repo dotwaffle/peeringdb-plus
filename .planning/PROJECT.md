@@ -75,9 +75,9 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 **Goal:** Improve performance, code quality, architecture consistency, and UI polish across the entire codebase — no new features, just making what exists better.
 
 **Target features:**
-- Query optimization (eliminate double-count queries, add missing indexes, HTTP caching)
+- ~~Query optimization (eliminate double-count queries, add missing indexes)~~ — completed Phase 34 (HTTP caching in Phase 35)
 - ~~gRPC handler deduplication (~1,154 lines of near-identical code across 13 services)~~ — completed Phase 33
-- Error format unification across all 6 API surfaces
+- ~~Error format unification across all 6 API surfaces~~ — completed Phase 34 (RFC 9457)
 - ~~ConnectRPC filter parity with PeeringDB compat layer~~ — completed Phase 33
 - ~~Structured error logging fix (90 instances)~~ — completed Phase 32
 - ~~Test coverage expansion (grpcserver, middleware)~~ — completed Phase 33
