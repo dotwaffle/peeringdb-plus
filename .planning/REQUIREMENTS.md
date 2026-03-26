@@ -31,13 +31,13 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 
 ### Web UI
 
-- [ ] **UI-01**: Dark mode text passes WCAG AA contrast ratio (4.5:1 minimum) on all pages
-- [ ] **UI-02**: All interactive elements have ARIA attributes (nav role, aria-expanded on mobile menu, form labels on search)
+- [x] **UI-01**: Dark mode text passes WCAG AA contrast ratio (4.5:1 minimum) on all pages
+- [x] **UI-02**: All interactive elements have ARIA attributes (nav role, aria-expanded on mobile menu, form labels on search)
 - [ ] **UI-03**: Search results update the browser URL so searches are bookmarkable and shareable
 - [ ] **UI-04**: Failed htmx collapsible section loads show an error message with retry option instead of perpetual "Loading..."
-- [ ] **UI-05**: Detail pages include breadcrumb navigation (Home > Type > Entity)
-- [ ] **UI-06**: Mobile navigation menu closes after clicking a link
-- [ ] **UI-07**: Compare button on network detail pages is visually distinct from the page background
+- [x] **UI-05**: Detail pages include breadcrumb navigation (Home > Type > Entity)
+- [x] **UI-06**: Mobile navigation menu closes after clicking a link
+- [x] **UI-07**: Compare button on network detail pages is visually distinct from the page background
 
 ### Terminal UI
 
@@ -80,13 +80,13 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 | ARCH-02 | Phase 33 | Complete |
 | ARCH-03 | Phase 32 | Complete |
 | ARCH-04 | Phase 34 | Complete |
-| UI-01 | Phase 36 | Pending |
-| UI-02 | Phase 36 | Pending |
+| UI-01 | Phase 36 | Complete |
+| UI-02 | Phase 36 | Complete |
 | UI-03 | Phase 36 | Pending |
 | UI-04 | Phase 36 | Pending |
-| UI-05 | Phase 36 | Pending |
-| UI-06 | Phase 36 | Pending |
-| UI-07 | Phase 36 | Pending |
+| UI-05 | Phase 36 | Complete |
+| UI-06 | Phase 36 | Complete |
+| UI-07 | Phase 36 | Complete |
 | TUI-01 | Phase 36 | Pending |
 | TUI-02 | Phase 36 | Pending |
 

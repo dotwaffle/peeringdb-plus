@@ -180,10 +180,10 @@ Plans:
   4. When an htmx collapsible section fetch fails, the section displays an error message with a clickable retry button instead of showing "Loading..." indefinitely
   5. Detail pages show breadcrumb navigation (Home > Type > Entity), the mobile nav menu closes after link selection, and the Compare button on network pages is visually distinct from the background
   6. Long entity names in terminal tables wrap to the next line instead of being truncated, and terminal error responses (404, 500, sync-not-ready) use the same styled formatting as normal terminal output
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
-- [ ] 36-01-PLAN.md -- WCAG AA contrast fixes, ARIA attributes, breadcrumbs, mobile menu close, compare button styling
+- [x] 36-01-PLAN.md -- WCAG AA contrast fixes, ARIA attributes, breadcrumbs, mobile menu close, compare button styling
 - [ ] 36-02-PLAN.md -- Bookmarkable search (HX-Push-Url), htmx error handling with retry on collapsible sections
 - [ ] 36-03-PLAN.md -- Terminal name wrapping (TruncateName), styled error responses, sync-not-ready terminal detection
 
@@ -198,4 +198,4 @@ Phases execute in numeric order: 32 -> 33 -> 34 -> 35 -> 36
 | 33. gRPC Deduplication & Filter Parity | 3/3 | Complete    | 2026-03-26 |
 | 34. Query Optimization & Architecture | 0/3 | Complete    | 2026-03-26 |
 | 35. HTTP Caching & Benchmarks | 0/2 | Complete    | 2026-03-26 |
-| 36. UI & Terminal Polish | 0/3 | Not started | - |
+| 36. UI & Terminal Polish | 1/3 | In Progress|  |
