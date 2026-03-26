@@ -52,6 +52,23 @@ templ FacilityDetailPage(data FacilityDetail) {
 		</div>
 		@DetailLink("Website", data.Website)
 		@DetailField("Notes", data.Notes)
+		if data.Latitude != 0 || data.Longitude != 0 {
+			<div class="pt-4">
+				@MapContainer(
+					fmt.Sprintf("map-fac-%d", data.ID),
+					[]MapMarker{{
+						Lat:       data.Latitude,
+						Lng:       data.Longitude,
+						Name:      data.Name,
+						Location:  formatFacLocation(data.City, data.Country),
+						NetCount:  data.NetCount,
+						IXCount:   data.IXCount,
+						DetailURL: fmt.Sprintf("/ui/fac/%d", data.ID),
+					}},
+					10,
+				)
+			</div>
+		}
 		<div class="space-y-3 pt-4">
 			@CollapsibleSection("Networks", data.NetCount, fmt.Sprintf("/ui/fragment/fac/%d/networks", data.ID))
 			@CollapsibleSection("IXPs", data.IXCount, fmt.Sprintf("/ui/fragment/fac/%d/ixps", data.ID))
