@@ -3,19 +3,132 @@ package termrender
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	lipgloss "charm.land/lipgloss/v2"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
-// RenderNetworkDetail renders a network entity detail page for terminal output.
-// Placeholder -- full implementation in Plan 02.
+// labelWidth is the column width for right-aligned header labels.
+// "Aggregate Bandwidth" is the longest label at 19 characters.
+const labelWidth = 19
+
+// rsBadge is the styled [RS] badge for route server peers.
+var rsBadge = lipgloss.NewStyle().Foreground(ColorSuccess).Render("[RS]")
+
+// RenderNetworkDetail renders a network entity as whois-style terminal output
+// with colored speed tiers, policy badges, RS indicators, and navigable
+// cross-references. (RND-02, RND-14, RND-16, D-01 through D-09)
 func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail) error {
 	var buf strings.Builder
+	buf.Grow(len(data.IXPresences)*120 + len(data.FacPresences)*80 + 500)
+
+	// Title line: Name  AS{ASN}
 	buf.WriteString(StyleHeading.Render(data.Name))
 	buf.WriteString("  ")
 	buf.WriteString(StyleMuted.Render(fmt.Sprintf("AS%d", data.ASN)))
+	buf.WriteString("\n")
+
+	// Key-value header with right-aligned labels.
+	writeKV(&buf, "Type", StyleValue.Render(data.InfoType), labelWidth)
+	writeKV(&buf, "Peering Policy", PolicyStyle(data.PolicyGeneral), labelWidth)
+	writeKV(&buf, "Website", StyleValue.Render(data.Website), labelWidth)
+	writeKV(&buf, "Organization", StyleValue.Render(data.OrgName), labelWidth)
+	writeKV(&buf, "IRR AS-SET", StyleValue.Render(data.IRRAsSet), labelWidth)
+	writeKV(&buf, "Looking Glass", StyleValue.Render(data.LookingGlass), labelWidth)
+	writeKV(&buf, "Route Server", StyleValue.Render(data.RouteServer), labelWidth)
+	writeKV(&buf, "Traffic", StyleValue.Render(data.InfoTraffic), labelWidth)
+	writeKV(&buf, "Ratio", StyleValue.Render(data.InfoRatio), labelWidth)
+	writeKV(&buf, "Scope", StyleValue.Render(data.InfoScope), labelWidth)
+	writeKV(&buf, "IX Presences", StyleValue.Render(strconv.Itoa(data.IXCount)), labelWidth)
+	writeKV(&buf, "Facilities", StyleValue.Render(strconv.Itoa(data.FacCount)), labelWidth)
+	if data.InfoPrefixes4 > 0 {
+		writeKV(&buf, "Prefixes v4", StyleValue.Render(strconv.Itoa(data.InfoPrefixes4)), labelWidth)
+	}
+	if data.InfoPrefixes6 > 0 {
+		writeKV(&buf, "Prefixes v6", StyleValue.Render(strconv.Itoa(data.InfoPrefixes6)), labelWidth)
+	}
+	if data.AggregateBW > 0 {
+		writeKV(&buf, "Aggregate Bandwidth", StyleValue.Render(FormatBandwidth(data.AggregateBW)), labelWidth)
+	}
+
+	// IX Presences section.
+	if len(data.IXPresences) > 0 {
+		sectionBW := 0
+		for _, row := range data.IXPresences {
+			sectionBW += row.Speed
+		}
+
+		buf.WriteString("\n")
+		buf.WriteString(StyleHeading.Render(fmt.Sprintf("IX Presences (%d)", len(data.IXPresences))))
+		if sectionBW > 0 {
+			buf.WriteString("  ")
+			buf.WriteString(StyleMuted.Render(FormatBandwidth(sectionBW)))
+		}
+		buf.WriteString("\n")
+
+		for _, row := range data.IXPresences {
+			buf.WriteString("  ")
+			buf.WriteString(StyleValue.Render(row.IXName))
+			buf.WriteString(" ")
+			buf.WriteString(CrossRef(fmt.Sprintf("/ui/ix/%d", row.IXID)))
+
+			if row.IsRSPeer {
+				buf.WriteString("  ")
+				buf.WriteString(rsBadge)
+			}
+
+			if row.Speed > 0 {
+				buf.WriteString("  ")
+				buf.WriteString(SpeedStyle(row.Speed).Render(FormatSpeed(row.Speed)))
+			}
+
+			if row.IPAddr4 != "" {
+				buf.WriteString("  ")
+				buf.WriteString(row.IPAddr4)
+				if row.IPAddr6 != "" {
+					buf.WriteString(" / ")
+					buf.WriteString(row.IPAddr6)
+				}
+			} else if row.IPAddr6 != "" {
+				buf.WriteString("  ")
+				buf.WriteString(row.IPAddr6)
+			}
+
+			buf.WriteString("\n")
+		}
+	}
+
+	// Facilities section.
+	if len(data.FacPresences) > 0 {
+		buf.WriteString("\n")
+		buf.WriteString(StyleHeading.Render(fmt.Sprintf("Facilities (%d)", len(data.FacPresences))))
+		buf.WriteString("\n")
+
+		for _, row := range data.FacPresences {
+			buf.WriteString("  ")
+			buf.WriteString(StyleValue.Render(row.FacName))
+			if row.FacID != 0 {
+				buf.WriteString(" ")
+				buf.WriteString(CrossRef(fmt.Sprintf("/ui/fac/%d", row.FacID)))
+			}
+
+			if row.City != "" || row.Country != "" {
+				buf.WriteString("  ")
+				loc := row.City
+				if loc != "" && row.Country != "" {
+					loc += ", " + row.Country
+				} else if row.Country != "" {
+					loc = row.Country
+				}
+				buf.WriteString(StyleMuted.Render(loc))
+			}
+
+			buf.WriteString("\n")
+		}
+	}
+
 	buf.WriteString("\n")
 	return r.Write(w, buf.String())
 }
