@@ -10,7 +10,8 @@
 - [x] **v1.5 Tech Debt & Observability** - Phases 18-20 (shipped 2026-03-24)
 - [x] **v1.6 ConnectRPC / gRPC API** - Phases 21-24 (shipped 2026-03-25)
 - [x] **v1.7 Streaming RPCs & UI Polish** - Phases 25-27 (shipped 2026-03-25)
-- [ ] **v1.8 Terminal CLI Interface** - Phases 28-31 (in progress)
+- [x] **v1.8 Terminal CLI Interface** - Phases 28-31 (shipped 2026-03-26)
+- [ ] **v1.9 Hardening & Polish** - Phases 32-36 (in progress)
 
 ## Phases
 
@@ -19,71 +20,25 @@
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 <details>
-<summary>v1.7 Streaming RPCs & UI Polish (Phases 25-27) - SHIPPED 2026-03-25</summary>
+<summary>v1.8 Terminal CLI Interface (Phases 28-31) - SHIPPED 2026-03-26</summary>
 
-- [x] **Phase 25: Streaming RPCs** - Proto definitions, code generation, and 13 streaming handlers with batched keyset pagination (completed 2026-03-25)
-- [x] **Phase 26: Stream Resume & Incremental Filters** - since_id resume and updated_since timestamp filtering on streaming RPCs (completed 2026-03-25)
-- [x] **Phase 27: IX Presence UI Polish** - Field labels, speed colors, RS badge, IP alignment, copyable text, and aggregate bandwidth (completed 2026-03-25)
+- [x] **Phase 28: Terminal Detection & Infrastructure** - Content negotiation, User-Agent detection, rendering framework, help text, and error pages for terminal clients (completed 2026-03-25)
+- [x] **Phase 29: Network Detail (Reference Implementation)** - Network entity terminal renderer with whois-style header, IX/facility tables, colored speed tiers, and cross-reference paths (completed 2026-03-26)
+- [x] **Phase 30: Entity Types, Search & Formats** - Terminal renderers for remaining 5 entity types, search results, ASN comparison, plus plain text, JSON, and WHOIS output modes (completed 2026-03-26)
+- [x] **Phase 31: Differentiators & Shell Integration** - One-line summary, section filtering, width control, freshness footer, and downloadable bash/zsh completions (completed 2026-03-26)
 
 </details>
 
-- [ ] **Phase 28: Terminal Detection & Infrastructure** - Content negotiation, User-Agent detection, rendering framework, help text, and error pages for terminal clients
-- [ ] **Phase 29: Network Detail (Reference Implementation)** - Network entity terminal renderer with whois-style header, IX/facility tables, colored speed tiers, and cross-reference paths
-- [ ] **Phase 30: Entity Types, Search & Formats** - Terminal renderers for remaining 5 entity types, search results, ASN comparison, plus plain text, JSON, and WHOIS output modes
-- [ ] **Phase 31: Differentiators & Shell Integration** - One-line summary, section filtering, width control, freshness footer, and downloadable bash/zsh completions
+- [ ] **Phase 32: Quick Wins** - Middleware reorder and structured error logging fix across 90 call sites
+- [ ] **Phase 33: gRPC Deduplication & Filter Parity** - Generic List/Stream helpers replacing 1,154 lines of duplicated handlers, plus ConnectRPC filter parity with PeeringDB compat
+- [ ] **Phase 34: Query Optimization & Architecture** - Eliminate double-count queries, add indexes, fix field projection, unify error formats, refactor renderer and detail handlers
+- [ ] **Phase 35: HTTP Caching & Benchmarks** - Cache-Control/ETag headers derived from sync timestamp, plus benchmark suite for hot paths
+- [ ] **Phase 36: UI & Terminal Polish** - WCAG AA contrast, ARIA attributes, bookmarkable search, htmx error handling, breadcrumbs, mobile menu, terminal wrapping and error styling
 
 ## Phase Details
 
 <details>
-<summary>v1.7 Streaming RPCs & UI Polish (Phases 25-27) - SHIPPED 2026-03-25</summary>
-
-### Phase 25: Streaming RPCs
-**Goal**: Consumers can stream entire entity tables via gRPC/ConnectRPC without manual pagination
-**Depends on**: Phase 24
-**Requirements**: STRM-01, STRM-02, STRM-03, STRM-04, STRM-05, STRM-06, STRM-07
-**Success Criteria** (what must be TRUE):
-  1. A `buf curl` or `grpcurl` call to any of the 13 `Stream*` RPCs returns all rows streamed one message at a time
-  2. Memory usage stays bounded during a full-table stream (batched keyset pagination, not full `ent.All()`)
-  3. Cancelling a stream mid-flight (client disconnect) terminates the server-side query loop promptly
-  4. Total record count is available in the response header metadata before the first message arrives
-  5. Applying filter fields on a streaming RPC returns only matching records, consistent with the corresponding List RPC
-**Plans:** 3/3 plans complete
-
-Plans:
-- [x] 25-01-PLAN.md -- Proto schema + codegen + config + stubs + OTel update
-- [x] 25-02-PLAN.md -- StreamNetworks reference implementation + integration tests
-- [x] 25-03-PLAN.md -- Remaining 12 streaming handlers + consumer documentation
-
-### Phase 26: Stream Resume & Incremental Filters
-**Goal**: Automation consumers can resume interrupted streams and fetch only recently-changed records
-**Depends on**: Phase 25
-**Requirements**: STRM-08, STRM-09
-**Success Criteria** (what must be TRUE):
-  1. Passing `since_id` to a streaming RPC returns only records with ID greater than the given value
-  2. Passing `updated_since` to a streaming RPC returns only records modified after the given timestamp
-  3. Combining `since_id` or `updated_since` with other filters works correctly (filters compose via AND)
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] 26-01-PLAN.md -- Proto fields + codegen + all 13 handler updates + integration tests
-
-### Phase 27: IX Presence UI Polish
-**Goal**: IX presence sections display connection details clearly with labeled fields, visual speed indicators, and copyable addresses
-**Depends on**: Phase 24 (no dependency on streaming phases)
-**Requirements**: IXUI-01, IXUI-02, IXUI-03, IXUI-04, IXUI-05, IXUI-06, IXUI-07
-**Success Criteria** (what must be TRUE):
-  1. Each IX presence row shows labeled Speed, IPv4, and IPv6 fields (not just bare values)
-  2. Port speeds are color-coded by tier (sub-1G muted, 1G neutral, 10G blue, 100G emerald, 400G+ amber) and the RS badge sits inline after the IX name
-  3. IP addresses align consistently across rows via grid layout, are selectable as plain text, and have a copy-to-clipboard button
-  4. The IX presence section header shows aggregate bandwidth across all listed connections
-  5. The same layout improvements apply to both the network detail page (`detail_net.templ`) and the IX detail page (`detail_ix.templ`)
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] 27-01-PLAN.md -- Shared helpers (speed colors, copyable IPs, bandwidth section) + NetworkIXLansList redesign
-- [x] 27-02-PLAN.md -- IXParticipantsList redesign + visual verification checkpoint
-
-</details>
+<summary>v1.8 Terminal CLI Interface (Phases 28-31) - SHIPPED 2026-03-26</summary>
 
 ### Phase 28: Terminal Detection & Infrastructure
 **Goal**: Terminal clients (curl, wget, HTTPie) hitting any /ui/ URL receive appropriate text responses instead of HTML, with explicit format overrides available
@@ -150,17 +105,76 @@ Plans:
 
 Plans:
 - [x] 31-01-PLAN.md -- Short format mode (?format=short) + data freshness footer on all terminal responses
-- [ ] 31-02-PLAN.md -- Section filtering (?section=) + width adaptation (?w=N) for detail views
+- [x] 31-02-PLAN.md -- Section filtering (?section=) + width adaptation (?w=N) for detail views
 - [x] 31-03-PLAN.md -- Shell completion scripts (bash, zsh) + search endpoint + help text update
+
+</details>
+
+### Phase 32: Quick Wins
+**Goal**: Middleware ordering prevents unnecessary OTel noise from preflight requests, and all error logging preserves structured error types
+**Depends on**: Phase 31
+**Requirements**: ARCH-03, QUAL-02
+**Success Criteria** (what must be TRUE):
+  1. An OPTIONS preflight request to any endpoint returns CORS headers without creating an OTel trace span or emitting a log line
+  2. Every `slog` error log call in the codebase passes the error value via `slog.Any("error", err)`, preserving error type information for structured log consumers
+**Plans**: TBD
+
+### Phase 33: gRPC Deduplication & Filter Parity
+**Goal**: gRPC service handlers use shared generic helpers instead of per-type copy-paste, and ConnectRPC exposes the same filter fields as the PeeringDB compat layer
+**Depends on**: Phase 32
+**Requirements**: QUAL-01, QUAL-03, ARCH-02
+**Success Criteria** (what must be TRUE):
+  1. The `internal/grpcserver/` package contains a generic `List` and `Stream` implementation parameterized by entity type, and per-type handler files delegate to it
+  2. Total line count in `internal/grpcserver/` service handler files is reduced by at least 800 lines compared to v1.8
+  3. Running `go test -race ./internal/grpcserver/...` passes with 60%+ coverage, and `go test -race ./internal/middleware/...` passes with 60%+ coverage
+  4. Every filterable field available on a PeeringDB compat List endpoint (e.g., `/api/net?info_type=Content`) has a corresponding optional field on the ConnectRPC List RPC request message
+**Plans**: TBD
+
+### Phase 34: Query Optimization & Architecture
+**Goal**: Search and API queries are faster (no double-counting, proper indexes, no JSON roundtrips), errors are consistent across all surfaces, and the renderer and detail handlers are cleanly structured
+**Depends on**: Phase 33
+**Requirements**: PERF-01, PERF-03, PERF-05, ARCH-01, ARCH-04, QUAL-04
+**Success Criteria** (what must be TRUE):
+  1. The search service issues one SQL query per entity type (not separate item + count queries) -- observable via OTel trace spans or query logging
+  2. Running `EXPLAIN QUERY PLAN` on filtered queries against `updated` and `created` fields shows index usage (not full table scans)
+  3. Field projection in the pdbcompat layer operates on struct fields directly, not through `json.Marshal` followed by `json.Unmarshal`
+  4. A malformed request to any of the 6 API surfaces (GraphQL, REST, PeeringDB compat, ConnectRPC, Web UI, Terminal) returns an error body with the same top-level structure containing `code`, `message`, and optional `details`
+  5. Terminal entity renderers implement a `Renderer` interface, and each web detail handler function body is under 80 lines with query logic separated from rendering
+**Plans**: TBD
+
+### Phase 35: HTTP Caching & Benchmarks
+**Goal**: Browsers and HTTP clients can cache API responses between sync cycles, and a benchmark suite establishes performance baselines on the optimized code
+**Depends on**: Phase 34
+**Requirements**: PERF-02, PERF-04
+**Success Criteria** (what must be TRUE):
+  1. API responses include `Cache-Control` and `ETag` headers derived from the last sync timestamp, and a conditional `If-None-Match` request returns 304 Not Modified when data has not changed
+  2. Running `go test -bench ./...` exercises benchmarks for search queries, pdbcompat field projection, gRPC streaming entity conversion, and sync upsert operations
+  3. Benchmark results are stable across runs (no flaky timing from external I/O) and can be compared via `benchstat`
+**Plans**: TBD
+
+### Phase 36: UI & Terminal Polish
+**Goal**: The web UI meets WCAG AA accessibility standards, search results are shareable, collapsible sections handle errors gracefully, and terminal output wraps cleanly
+**Depends on**: Phase 34 (ARCH-04 renderer interface)
+**Requirements**: UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, UI-07, TUI-01, TUI-02
+**Success Criteria** (what must be TRUE):
+  1. All text in dark mode passes WCAG AA contrast ratio (4.5:1 minimum) when checked with a contrast analyzer tool
+  2. Screen reader navigation identifies the main nav, mobile menu toggle state (aria-expanded), and search input (label) correctly
+  3. Typing a search query updates the browser URL (e.g., `/ui/?q=equinix`) so bookmarking or sharing the URL reproduces the search results
+  4. When an htmx collapsible section fetch fails, the section displays an error message with a clickable retry button instead of showing "Loading..." indefinitely
+  5. Detail pages show breadcrumb navigation (Home > Type > Entity), the mobile nav menu closes after link selection, and the Compare button on network pages is visually distinct from the background
+  6. Long entity names in terminal tables wrap to the next line instead of being truncated, and terminal error responses (404, 500, sync-not-ready) use the same styled formatting as normal terminal output
+**Plans**: TBD
+**UI hint**: yes
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 28 -> 29 -> 30 -> 31
+Phases execute in numeric order: 32 -> 33 -> 34 -> 35 -> 36
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 28. Terminal Detection & Infrastructure | 3/3 | Complete    | 2026-03-25 |
-| 29. Network Detail (Reference Implementation) | 2/2 | Complete    | 2026-03-26 |
-| 30. Entity Types, Search & Formats | 4/4 | Complete    | 2026-03-26 |
-| 31. Differentiators & Shell Integration | 2/3 | Complete    | 2026-03-26 |
+| 32. Quick Wins | 0/0 | Not started | - |
+| 33. gRPC Deduplication & Filter Parity | 0/0 | Not started | - |
+| 34. Query Optimization & Architecture | 0/0 | Not started | - |
+| 35. HTTP Caching & Benchmarks | 0/0 | Not started | - |
+| 36. UI & Terminal Polish | 0/0 | Not started | - |

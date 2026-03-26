@@ -67,34 +67,34 @@ Requirements for Hardening & Polish milestone. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PERF-01 | TBD | Pending |
-| PERF-02 | TBD | Pending |
-| PERF-03 | TBD | Pending |
-| PERF-04 | TBD | Pending |
-| PERF-05 | TBD | Pending |
-| QUAL-01 | TBD | Pending |
-| QUAL-02 | TBD | Pending |
-| QUAL-03 | TBD | Pending |
-| QUAL-04 | TBD | Pending |
-| ARCH-01 | TBD | Pending |
-| ARCH-02 | TBD | Pending |
-| ARCH-03 | TBD | Pending |
-| ARCH-04 | TBD | Pending |
-| UI-01 | TBD | Pending |
-| UI-02 | TBD | Pending |
-| UI-03 | TBD | Pending |
-| UI-04 | TBD | Pending |
-| UI-05 | TBD | Pending |
-| UI-06 | TBD | Pending |
-| UI-07 | TBD | Pending |
-| TUI-01 | TBD | Pending |
-| TUI-02 | TBD | Pending |
+| PERF-01 | Phase 34 | Pending |
+| PERF-02 | Phase 35 | Pending |
+| PERF-03 | Phase 34 | Pending |
+| PERF-04 | Phase 35 | Pending |
+| PERF-05 | Phase 34 | Pending |
+| QUAL-01 | Phase 33 | Pending |
+| QUAL-02 | Phase 32 | Pending |
+| QUAL-03 | Phase 33 | Pending |
+| QUAL-04 | Phase 34 | Pending |
+| ARCH-01 | Phase 34 | Pending |
+| ARCH-02 | Phase 33 | Pending |
+| ARCH-03 | Phase 32 | Pending |
+| ARCH-04 | Phase 34 | Pending |
+| UI-01 | Phase 36 | Pending |
+| UI-02 | Phase 36 | Pending |
+| UI-03 | Phase 36 | Pending |
+| UI-04 | Phase 36 | Pending |
+| UI-05 | Phase 36 | Pending |
+| UI-06 | Phase 36 | Pending |
+| UI-07 | Phase 36 | Pending |
+| TUI-01 | Phase 36 | Pending |
+| TUI-02 | Phase 36 | Pending |
 
 **Coverage:**
 - v1.9 requirements: 22 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 22
+- Mapped to phases: 22
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after initial definition*
+*Last updated: 2026-03-26 after roadmap creation*
