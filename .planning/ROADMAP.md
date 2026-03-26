@@ -131,12 +131,12 @@ Plans:
   2. Total line count in `internal/grpcserver/` service handler files is reduced by at least 800 lines compared to v1.8
   3. Running `go test -race ./internal/grpcserver/...` passes with 60%+ coverage, and `go test -race ./internal/middleware/...` passes with 60%+ coverage
   4. Every filterable field available on a PeeringDB compat List endpoint (e.g., `/api/net?info_type=Content`) has a corresponding optional field on the ConnectRPC List RPC request message
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 33-01-PLAN.md -- Proto filter parity (add ~96 optional fields to services.proto) + middleware test coverage
 - [x] 33-02-PLAN.md -- Generic ListEntities/StreamEntities helpers + refactor all 13 handler files with full filter functions
-- [ ] 33-03-PLAN.md -- Comprehensive grpcserver tests for all 13 entity types + coverage validation
+- [x] 33-03-PLAN.md -- Comprehensive grpcserver tests for all 13 entity types + coverage validation
 
 ### Phase 34: Query Optimization & Architecture
 **Goal**: Search and API queries are faster (no double-counting, proper indexes, no JSON roundtrips), errors are consistent across all surfaces, and the renderer and detail handlers are cleanly structured
@@ -182,7 +182,7 @@ Phases execute in numeric order: 32 -> 33 -> 34 -> 35 -> 36
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 32. Quick Wins | 1/1 | Complete    | 2026-03-26 |
-| 33. gRPC Deduplication & Filter Parity | 2/3 | In Progress|  |
+| 33. gRPC Deduplication & Filter Parity | 3/3 | Complete   | 2026-03-26 |
 | 34. Query Optimization & Architecture | 0/0 | Not started | - |
 | 35. HTTP Caching & Benchmarks | 0/0 | Not started | - |
 | 36. UI & Terminal Polish | 0/0 | Not started | - |
