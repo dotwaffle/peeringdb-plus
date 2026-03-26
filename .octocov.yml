@@ -1,5 +1,10 @@
 coverage:
   paths:
     - coverage.out
+  exclude:
+    - 'ent/**/*.go'
+    - 'gen/**/*.go'
+    - 'graph/generated.go'
+    - '**/*_templ.go'
 comment:
   deletePrevious: true

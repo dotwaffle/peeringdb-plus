@@ -21,27 +21,95 @@
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 <details>
-<summary>v1.9 Hardening & Polish (Phases 32-36) - SHIPPED 2026-03-26</summary>
+<summary>v1.8 Terminal CLI Interface (Phases 28-31) - SHIPPED 2026-03-26</summary>
 
-- [x] **Phase 32: Quick Wins** - Middleware reorder and structured error logging fix across 90 call sites
-- [x] **Phase 33: gRPC Deduplication & Filter Parity** - Generic List/Stream helpers replacing 1,154 lines of duplicated handlers, plus ConnectRPC filter parity with PeeringDB compat
-- [x] **Phase 34: Query Optimization & Architecture** - Eliminate double-count queries, add indexes, fix field projection, unify error formats, refactor renderer and detail handlers
-- [x] **Phase 35: HTTP Caching & Benchmarks** - Cache-Control/ETag headers derived from sync timestamp, plus benchmark suite for hot paths
-- [x] **Phase 36: UI & Terminal Polish** - WCAG AA contrast, ARIA attributes, bookmarkable search, htmx error handling, breadcrumbs, mobile menu, terminal wrapping and error styling
+- [x] **Phase 28: Terminal Detection & Infrastructure** - Content negotiation, User-Agent detection, rendering framework, help text, and error pages for terminal clients (completed 2026-03-25)
+- [x] **Phase 29: Network Detail (Reference Implementation)** - Network entity terminal renderer with whois-style header, IX/facility tables, colored speed tiers, and cross-reference paths (completed 2026-03-26)
+- [x] **Phase 30: Entity Types, Search & Formats** - Terminal renderers for remaining 5 entity types, search results, ASN comparison, plus plain text, JSON, and WHOIS output modes (completed 2026-03-26)
+- [x] **Phase 31: Differentiators & Shell Integration** - One-line summary, section filtering, width control, freshness footer, and downloadable bash/zsh completions (completed 2026-03-26)
 
 </details>
 
-- [ ] **Phase 37: Test Seed Infrastructure** - Shared deterministic entity factory package for all 13 PeeringDB types
-- [ ] **Phase 38: GraphQL Resolver Coverage** - Integration tests for all 13 list resolvers and custom resolver error paths
-- [ ] **Phase 39: gRPC Handler Coverage** - Filter, streaming, and branch coverage for all 13 entity types
-- [ ] **Phase 40: Web Handler Coverage** - Fragment handler, multi-mode dispatch, and edge case tests
-- [ ] **Phase 41: Schema & Minor Package Coverage** - Schema hook/constraint tests plus otel, health, and peeringdb error path tests
-- [ ] **Phase 42: Test Quality Audit & Coverage Hygiene** - Assertion density audit, error path coverage, fuzz tests, and CI coverage filtering
+- [ ] **Phase 32: Quick Wins** - Middleware reorder and structured error logging fix across 90 call sites
+- [ ] **Phase 33: gRPC Deduplication & Filter Parity** - Generic List/Stream helpers replacing 1,154 lines of duplicated handlers, plus ConnectRPC filter parity with PeeringDB compat
+- [ ] **Phase 34: Query Optimization & Architecture** - Eliminate double-count queries, add indexes, fix field projection, unify error formats, refactor renderer and detail handlers
+- [ ] **Phase 35: HTTP Caching & Benchmarks** - Cache-Control/ETag headers derived from sync timestamp, plus benchmark suite for hot paths
+- [ ] **Phase 36: UI & Terminal Polish** - WCAG AA contrast, ARIA attributes, bookmarkable search, htmx error handling, breadcrumbs, mobile menu, terminal wrapping and error styling
 
 ## Phase Details
 
 <details>
-<summary>v1.9 Hardening & Polish (Phases 32-36) - SHIPPED 2026-03-26</summary>
+<summary>v1.8 Terminal CLI Interface (Phases 28-31) - SHIPPED 2026-03-26</summary>
+
+### Phase 28: Terminal Detection & Infrastructure
+**Goal**: Terminal clients (curl, wget, HTTPie) hitting any /ui/ URL receive appropriate text responses instead of HTML, with explicit format overrides available
+**Depends on**: Phase 27
+**Requirements**: DET-01, DET-02, DET-03, DET-04, DET-05, RND-01, RND-18, NAV-01, NAV-02, NAV-03, NAV-04
+**Success Criteria** (what must be TRUE):
+  1. Running `curl peeringdb-plus.fly.dev/ui/` returns CLI help text listing available endpoints, query parameters, and usage examples -- not an HTML page
+  2. Running `curl peeringdb-plus.fly.dev/ui/asn/13335` returns ANSI-colored text output (not HTML), while the same URL in a browser returns the existing web UI unchanged
+  3. Appending `?T` or `?format=plain` to any /ui/ URL returns plain ASCII output with no ANSI escape codes, and `?format=json` returns JSON
+  4. Requesting a nonexistent path like `curl /ui/asn/99999999` returns a text-formatted 404 error (not HTML), and server errors return text-formatted 500 errors
+  5. Setting `?nocolor` suppresses all ANSI escape codes in terminal output while preserving layout
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 28-01-PLAN.md -- termrender package foundation: detection logic, renderer engine, style definitions
+- [x] 28-02-PLAN.md -- renderPage integration, PageContent.Data wiring, help text and error renderers
+- [x] 28-03-PLAN.md -- Root handler terminal detection, error handler wiring, integration tests
+
+### Phase 29: Network Detail (Reference Implementation)
+**Goal**: Network engineers can look up any network by ASN from the terminal and see a comprehensive, well-formatted detail view with colored status indicators and navigable cross-references
+**Depends on**: Phase 28
+**Requirements**: RND-02, RND-12, RND-13, RND-14, RND-15, RND-16
+**Success Criteria** (what must be TRUE):
+  1. Running `curl /ui/asn/13335` displays a whois-style key-value header (name, ASN, type, policy, website, etc.) followed by tabular IX presences and facility lists with Unicode box drawing
+  2. Port speeds in IX presence tables are color-coded matching the web UI tiers (gray sub-1G, neutral 1G, blue 10G, emerald 100G, amber 400G+) and route server peers show a colored [RS] badge
+  3. Peering policy is color-coded (green for Open, yellow for Selective, red for Restrictive) in the network header
+  4. Aggregate bandwidth is displayed in the network header and per-IX section headers
+  5. Each entity reference (IX name, facility name) includes its ID or path (e.g., `/ui/ix/123`) so the user can follow up with another curl command
+**Plans:** 2/2 plans complete
+
+Plans:
+- [x] 29-01-PLAN.md -- Data plumbing: NetworkDetail struct extension, eager IX/facility fetching, type-switch dispatch, formatting helpers
+- [x] 29-02-PLAN.md -- RenderNetworkDetail full implementation with whois-style output and comprehensive tests
+
+### Phase 30: Entity Types, Search & Formats
+**Goal**: All six PeeringDB entity types, search, and comparison are accessible from the terminal, with plain text, JSON, and WHOIS as alternative output formats
+**Depends on**: Phase 29
+**Requirements**: RND-03, RND-04, RND-05, RND-06, RND-07, RND-08, RND-09, RND-10, RND-11, RND-17
+**Success Criteria** (what must be TRUE):
+  1. Running `curl /ui/ix/{id}`, `/ui/fac/{id}`, `/ui/org/{id}`, `/ui/campus/{id}`, and `/ui/carrier/{id}` each returns a formatted terminal detail view appropriate to that entity type
+  2. Running `curl /ui/?q=equinix` returns search results grouped by entity type as a text list, matching the web UI search behavior
+  3. Running `curl /ui/compare/13335/15169` renders a terminal comparison of two networks showing shared IXPs, facilities, and campuses
+  4. Appending `?format=whois` to any detail URL returns RPSL-like key-value output suitable for parsing by network automation scripts
+  5. All alternative format modes (?T, ?format=json, ?format=whois) produce consistent output across all entity types -- not just networks
+**Plans:** 4/4 plans complete
+
+Plans:
+- [x] 30-01-PLAN.md -- Data plumbing (struct fields, handler eager-loading, type-switch) + IX and Facility rich renderers
+- [x] 30-02-PLAN.md -- Org, Campus, Carrier minimal renderers
+- [x] 30-03-PLAN.md -- Search results and ASN comparison renderers
+- [x] 30-04-PLAN.md -- WHOIS format for all entity types + JSON completeness verification
+
+### Phase 31: Differentiators & Shell Integration
+**Goal**: Power users can customize terminal output (summary mode, section filtering, width control) and install shell completions for a native CLI feel
+**Depends on**: Phase 30
+**Requirements**: DIF-01, DIF-02, DIF-03, DIF-04, SHL-01, SHL-02, SHL-03
+**Success Criteria** (what must be TRUE):
+  1. Running `curl /ui/asn/13335?format=short` returns a single-line summary suitable for scripting (e.g., `AS13335 | Cloudflare, Inc. | Open | 2847 prefixes`)
+  2. Every terminal response includes a data freshness timestamp footer showing when PeeringDB data was last synced
+  3. Appending `?section=ix,fac` to a detail URL renders only the IX presences and facilities sections, omitting other sections
+  4. Appending `?w=120` adapts table rendering to 120-column width, and `?w=80` produces narrower tables that fit standard terminals
+  5. Running `curl /ui/completions/bash` and `curl /ui/completions/zsh` downloads shell completion scripts, and the help text includes alias/function setup instructions
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 31-01-PLAN.md -- Short format mode (?format=short) + data freshness footer on all terminal responses
+- [x] 31-02-PLAN.md -- Section filtering (?section=) + width adaptation (?w=N) for detail views
+- [x] 31-03-PLAN.md -- Shell completion scripts (bash, zsh) + search endpoint + help text update
+
+</details>
 
 ### Phase 32: Quick Wins
 **Goal**: Middleware ordering prevents unnecessary OTel noise from preflight requests, and all error logging preserves structured error types
@@ -84,8 +152,8 @@ Plans:
 **Plans:** 3/3 plans complete
 
 Plans:
-- [x] 34-01-PLAN.md -- Search limit+1 optimization, database indexes on updated/created, reflect-based field projection
-- [x] 34-02-PLAN.md -- RFC 9457 error format (httperr package) integrated into pdbcompat, web JSON mode, and REST middleware
+- [ ] 34-01-PLAN.md -- Search limit+1 optimization, database indexes on updated/created, reflect-based field projection
+- [ ] 34-02-PLAN.md -- RFC 9457 error format (httperr package) integrated into pdbcompat, web JSON mode, and REST middleware
 - [x] 34-03-PLAN.md -- Registered function map renderer dispatch, detail handler refactor with queryXxx methods
 
 ### Phase 35: HTTP Caching & Benchmarks
@@ -99,8 +167,8 @@ Plans:
 **Plans:** 2/2 plans complete
 
 Plans:
-- [x] 35-01-PLAN.md -- Caching middleware (Cache-Control, ETag, 304 Not Modified) + main.go middleware chain wiring
-- [x] 35-02-PLAN.md -- Benchmark suite: search, field projection, generic list, sync upsert
+- [ ] 35-01-PLAN.md -- Caching middleware (Cache-Control, ETag, 304 Not Modified) + main.go middleware chain wiring
+- [ ] 35-02-PLAN.md -- Benchmark suite: search, field projection, generic list, sync upsert
 
 ### Phase 36: UI & Terminal Polish
 **Goal**: The web UI meets WCAG AA accessibility standards, search results are shareable, collapsible sections handle errors gracefully, and terminal output wraps cleanly
@@ -117,105 +185,35 @@ Plans:
 
 Plans:
 - [x] 36-01-PLAN.md -- WCAG AA contrast fixes, ARIA attributes, breadcrumbs, mobile menu close, compare button styling
-- [x] 36-02-PLAN.md -- Bookmarkable search (HX-Push-Url), htmx error handling with retry on collapsible sections
-- [x] 36-03-PLAN.md -- Terminal name wrapping (TruncateName), styled error responses, sync-not-ready terminal detection
-
-</details>
-
-### Phase 37: Test Seed Infrastructure
-**Goal**: Any test file in the project can create a fully-populated database with all 13 PeeringDB entity types by calling a single function, eliminating duplicated entity creation code
-**Depends on**: Phase 36
-**Requirements**: INFRA-01
-**Success Criteria** (what must be TRUE):
-  1. Calling `seed.Full(t, client)` creates at least one entity of each of the 13 PeeringDB types with realistic field values and correct FK relationships, and the returned `Result` struct provides typed references to every created entity
-  2. Calling `seed.Minimal(t, client)` creates the minimum entity graph needed for relationship traversal (Org + Network + IX + Facility), and `seed.Networks(t, client, 2)` creates exactly 2 networks with their dependencies
-  3. Tests in at least 3 different packages (graph, grpcserver, web) can import and use the seed package without import cycles or package-level setup conflicts
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] 37-01-PLAN.md -- Seed package (Full/Minimal/Networks) with TDD + import-cycle validation
-
-### Phase 38: GraphQL Resolver Coverage
-**Goal**: Hand-written GraphQL resolver code is tested to 80%+ coverage, with every custom resolver error path exercised
-**Depends on**: Phase 37
-**Requirements**: GQL-01, GQL-02, GQL-03
-**Success Criteria** (what must be TRUE):
-  1. Running `go test -race ./graph/...` exercises all 13 offset/limit list resolvers, and each test asserts that returned data matches seeded entities (not just status code or nil error)
-  2. Tests exercise the NetworkByAsn not-found path (returns GraphQL error, not panic), the SyncStatus-missing path (returns null, not error), and validatePageSize rejection (returns error for limit > max)
-  3. Running `go tool cover -func` filtered to `custom.resolvers.go`, `schema.resolvers.go`, and `pagination.go` shows 80%+ coverage on each file
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] 38-01-PLAN.md -- All 13 offset/limit + cursor resolvers, error paths, pagination unit tests, 80%+ per-file coverage
-
-### Phase 39: gRPC Handler Coverage
-**Goal**: Every gRPC List filter branch and every Stream RPC is covered by tests, reaching 80%+ coverage on grpcserver handler code
-**Depends on**: Phase 37
-**Requirements**: GRPC-01, GRPC-02, GRPC-03
-**Success Criteria** (what must be TRUE):
-  1. All 13 entity types have at least one List test that sets an optional proto filter field to a non-nil value and asserts the response contains only matching entities (not just "no error")
-  2. All 13 entity types have Stream tests (closing the gap for CarrierFacility, IxPrefix, NetworkIxLan, and Poc), and each stream test asserts the streamed entity count and at least one field value
-  3. Running `go test -race -cover ./internal/grpcserver/...` reports 80%+ package-level coverage
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] 39-01-PLAN.md -- List filter tests for 6 missing types + Stream tests for 4 missing types + 80%+ coverage
-
-### Phase 40: Web Handler Coverage
-**Goal**: All web handler paths -- fragment endpoints, terminal/JSON/WHOIS dispatch, and utility functions -- are tested
-**Depends on**: Phase 37
-**Requirements**: WEB-01, WEB-02, WEB-03
-**Success Criteria** (what must be TRUE):
-  1. All 6 lazy-loaded fragment handlers (network IX presences, network facilities, IX networks, IX facilities, facility networks, org networks) have integration tests that seed data, request the fragment endpoint, and assert the response contains expected entity names or IDs
-  2. Tests exercise renderPage dispatch for terminal (User-Agent: curl), JSON (?format=json), and WHOIS (?format=whois) modes, asserting each produces the correct content type and contains mode-specific markers (ANSI codes, JSON braces, RPSL keys respectively)
-  3. Edge cases for extractID (invalid input, zero, negative), getFreshness (no sync status, stale data), and error response paths (404 entity not found, 500 database error) each have at least one test case
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] 40-01-PLAN.md -- renderPage dispatch modes, org fragment gaps, extractID/getFreshness edge cases, coverage verification
-
-### Phase 41: Schema & Minor Package Coverage
-**Goal**: Schema validation hooks, relationship constraints, and three minor utility packages all have their error paths and edge cases tested
-**Depends on**: Phase 37
-**Requirements**: SCHEMA-01, SCHEMA-02, SCHEMA-03, MINOR-01, MINOR-02, MINOR-03
-**Success Criteria** (what must be TRUE):
-  1. The otelMutationHook error path (OTel span records error when mutation fails) has a test that triggers a mutation failure and asserts the hook does not panic and the error propagates correctly
-  2. FK edge cases (creating an entity with a non-existent FK reference, nullable FK set to nil) have tests that verify the correct ent error is returned or the entity is created successfully
-  3. Running `go test -race -cover` on `internal/otel`, `internal/health`, and `internal/peeringdb` each reports 90%+ coverage, with new tests specifically targeting error returns (not just happy paths)
-  4. Running `go tool cover -func` on `ent/schema/` hand-written files shows 65%+ coverage
-**Plans:** 2/2 plans complete
-
-Plans:
-- [ ] 41-01-PLAN.md -- Schema hook error path, FK constraint tests, Edges/Indexes/Annotations coverage for all 13 types
-- [x] 41-02-PLAN.md -- internal/otel, internal/health, internal/peeringdb error path and edge case coverage to 90%+
+- [ ] 36-02-PLAN.md -- Bookmarkable search (HX-Push-Url), htmx error handling with retry on collapsible sections
+- [ ] 36-03-PLAN.md -- Terminal name wrapping (TruncateName), styled error responses, sync-not-ready terminal detection
 
 ### Phase 42: Test Quality Audit & Coverage Hygiene
 **Goal**: Existing tests are validated for meaningful assertions, every error code path has test coverage, and CI reports accurate coverage numbers excluding generated code
 **Depends on**: Phase 38, Phase 39, Phase 40, Phase 41
 **Requirements**: QUAL-01, QUAL-02, QUAL-03, INFRA-02
 **Success Criteria** (what must be TRUE):
-  1. An audit pass through all test files confirms no test function asserts only `err == nil` or `status == 200` without also checking at least one data property -- any such tests found are updated with data assertions
-  2. Every `fmt.Errorf` and `connect.NewError` call site in hand-written code has at least one test that exercises the error path (verified by grepping error sites and cross-referencing with coverage output)
-  3. Running `go test -fuzz=FuzzFilterParser -fuzztime=30s` exercises the filter parser with random inputs without panicking or returning incorrect parse results
-  4. CI coverage reporting (GitHub Actions) excludes `ent/*`, `gen/*`, `*generated.go`, and `*_templ.go` from the coverage denominator, and the reported percentage reflects hand-written code only
-**Plans:** 3 plans
+  1. An audit pass through all test files confirms no test function asserts only `err == nil` or `status == 200` without also checking at least one data property
+  2. Every `fmt.Errorf` and `connect.NewError` call site in hand-written code has at least one test that exercises the error path
+  3. Running `go test -fuzz=FuzzFilterParser -fuzztime=30s` exercises the filter parser with random inputs without panicking
+  4. CI coverage reporting excludes `ent/*`, `gen/*`, `*generated.go`, and `*_templ.go` from the coverage denominator
+**Plans:** 1/3 plans complete
 
 Plans:
-- [ ] 42-01-PLAN.md -- Fuzz test for filter parser + CI coverage exclusion for generated code
+- [x] 42-01-PLAN.md -- Fuzz test for filter parser + CI coverage exclusion for generated code
 - [ ] 42-02-PLAN.md -- Assertion density audit and weak test strengthening
 - [ ] 42-03-PLAN.md -- Error path coverage cross-reference and gap closure
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 37 -> 38 -> 39 -> 40 -> 41 -> 42
-(Phases 38 and 39 can execute in parallel after 37 completes)
+Phases execute in numeric order: 32 -> 33 -> 34 -> 35 -> 36 -> 42
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 37. Test Seed Infrastructure | 1/1 | Complete    | 2026-03-26 |
-| 38. GraphQL Resolver Coverage | 1/1 | Complete    | 2026-03-26 |
-| 39. gRPC Handler Coverage | 1/1 | Complete    | 2026-03-26 |
-| 40. Web Handler Coverage | 1/1 | Complete    | 2026-03-26 |
-| 41. Schema & Minor Package Coverage | 1/2 | Complete    | 2026-03-26 |
-| 42. Test Quality Audit & Coverage Hygiene | 0/3 | Not started | - |
+| 32. Quick Wins | 1/1 | Complete    | 2026-03-26 |
+| 33. gRPC Deduplication & Filter Parity | 3/3 | Complete    | 2026-03-26 |
+| 34. Query Optimization & Architecture | 0/3 | Complete    | 2026-03-26 |
+| 35. HTTP Caching & Benchmarks | 0/2 | Complete    | 2026-03-26 |
+| 36. UI & Terminal Polish | 1/3 | Complete    | 2026-03-26 |
+| 42. Test Quality Audit & Coverage Hygiene | 1/3 | In progress | - |

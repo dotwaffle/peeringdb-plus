@@ -60,7 +60,9 @@ jobs:
           go-version: stable
 
       - name: Run tests with race detector
-        run: CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...
+        run: |
+          COVERPKG=$(go list ./... | grep -vE '/ent(/|$)|/gen(/|$)' | tr '\n' ',' | sed 's/,$//')
+          CGO_ENABLED=1 go test -race -coverprofile=coverage.out -coverpkg="${COVERPKG}" ./...
 
       - name: Post coverage comment
         uses: k1LoW/octocov-action@v1
