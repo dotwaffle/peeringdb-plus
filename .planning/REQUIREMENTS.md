@@ -47,8 +47,8 @@ Requirements for Terminal CLI Interface milestone. Each maps to roadmap phases.
 
 - [x] **DIF-01**: One-line summary mode (?format=short) outputs single-line entity summary
 - [x] **DIF-02**: Data freshness timestamp footer on all terminal responses
-- [ ] **DIF-03**: Section filtering (?section=ix,fac) renders only requested sections
-- [ ] **DIF-04**: Width parameter (?w=N) adapts table rendering to specified column width
+- [x] **DIF-03**: Section filtering (?section=ix,fac) renders only requested sections
+- [x] **DIF-04**: Width parameter (?w=N) adapts table rendering to specified column width
 
 ### Shell Integration
 
@@ -117,8 +117,8 @@ Deferred to future release.
 | NAV-04 | Phase 28 | Complete |
 | DIF-01 | Phase 31 | Complete |
 | DIF-02 | Phase 31 | Complete |
-| DIF-03 | Phase 31 | Pending |
-| DIF-04 | Phase 31 | Pending |
+| DIF-03 | Phase 31 | Complete |
+| DIF-04 | Phase 31 | Complete |
 | SHL-01 | Phase 31 | Pending |
 | SHL-02 | Phase 31 | Pending |
 | SHL-03 | Phase 31 | Pending |
