@@ -149,7 +149,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 31-01-PLAN.md -- Short format mode (?format=short) + data freshness footer on all terminal responses
+- [x] 31-01-PLAN.md -- Short format mode (?format=short) + data freshness footer on all terminal responses
 - [ ] 31-02-PLAN.md -- Section filtering (?section=) + width adaptation (?w=N) for detail views
 - [ ] 31-03-PLAN.md -- Shell completion scripts (bash, zsh) + search endpoint + help text update
 
@@ -163,4 +163,4 @@ Phases execute in numeric order: 28 -> 29 -> 30 -> 31
 | 28. Terminal Detection & Infrastructure | 3/3 | Complete    | 2026-03-25 |
 | 29. Network Detail (Reference Implementation) | 2/2 | Complete    | 2026-03-26 |
 | 30. Entity Types, Search & Formats | 4/4 | Complete    | 2026-03-26 |
-| 31. Differentiators & Shell Integration | 0/3 | Not started | - |
+| 31. Differentiators & Shell Integration | 1/3 | In progress | - |

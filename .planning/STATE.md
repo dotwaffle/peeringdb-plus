@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-stopped_at: Completed 30-04-PLAN.md
-last_updated: "2026-03-26T02:35:26.141Z"
+stopped_at: Completed 31-01-PLAN.md
+last_updated: "2026-03-26T02:59:30.000Z"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 12
+  completed_plans: 10
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 30 — entity-types-search-formats
+**Current focus:** Phase 31 — differentiators-shell-integration
 
 ## Current Position
 
 Phase: 31
-Plan: Not started
+Plan: 1 of 3 complete
 
 ## Performance Metrics
 
@@ -35,6 +35,7 @@ Plan: Not started
 | Phase 30 P01 | 8min | 2 tasks | 10 files |
 | Phase 30 P02 | 3min | 2 tasks | 7 files |
 | Phase 30 P03 | 3min | 2 tasks | 5 files |
+| Phase 31 P01 | 6min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -58,6 +59,9 @@ Recent decisions affecting current work:
 - [Phase 30]: Search renderer iterates groups without echoing query (not in data)
 - [Phase 30]: Compare writeIXPresence helper factored for per-network presence lines
 - [Phase 30]: RPSL aut-num class for networks, custom ix:/site:/organisation:/campus:/carrier: classes for WHOIS format
+- [Phase 31]: Short format writes directly to io.Writer without colorprofile (plain text only)
+- [Phase 31]: FormatFreshness uses StyleMuted with leading+trailing newlines for visual separation
+- [Phase 31]: getFreshness returns zero time when db is nil for test safety
 
 ### Pending Todos
 
@@ -73,6 +77,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T02:30:34.231Z
-Stopped at: Completed 30-04-PLAN.md
+Last session: 2026-03-26T02:59:30Z
+Stopped at: Completed 31-01-PLAN.md
 Resume file: None
