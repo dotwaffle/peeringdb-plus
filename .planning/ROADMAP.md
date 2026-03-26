@@ -12,6 +12,7 @@
 - [x] **v1.7 Streaming RPCs & UI Polish** - Phases 25-27 (shipped 2026-03-25)
 - [x] **v1.8 Terminal CLI Interface** - Phases 28-31 (shipped 2026-03-26)
 - [x] **v1.9 Hardening & Polish** - Phases 32-36 (shipped 2026-03-26)
+- [ ] **v1.10 Code Coverage & Test Quality** - Phases 37-42 (in progress)
 
 ## Phases
 
@@ -187,10 +188,26 @@ Plans:
 - [ ] 36-02-PLAN.md -- Bookmarkable search (HX-Push-Url), htmx error handling with retry on collapsible sections
 - [ ] 36-03-PLAN.md -- Terminal name wrapping (TruncateName), styled error responses, sync-not-ready terminal detection
 
+### Phase 42: Test Quality Audit & Coverage Hygiene
+**Goal**: Existing tests are validated for meaningful assertions, every error code path has test coverage, and CI reports accurate coverage numbers excluding generated code
+**Depends on**: Phase 38, Phase 39, Phase 40, Phase 41
+**Requirements**: QUAL-01, QUAL-02, QUAL-03, INFRA-02
+**Success Criteria** (what must be TRUE):
+  1. An audit pass through all test files confirms no test function asserts only `err == nil` or `status == 200` without also checking at least one data property
+  2. Every `fmt.Errorf` and `connect.NewError` call site in hand-written code has at least one test that exercises the error path
+  3. Running `go test -fuzz=FuzzFilterParser -fuzztime=30s` exercises the filter parser with random inputs without panicking
+  4. CI coverage reporting excludes `ent/*`, `gen/*`, `*generated.go`, and `*_templ.go` from the coverage denominator
+**Plans:** 1/3 plans complete
+
+Plans:
+- [x] 42-01-PLAN.md -- Fuzz test for filter parser + CI coverage exclusion for generated code
+- [ ] 42-02-PLAN.md -- Assertion density audit and weak test strengthening
+- [ ] 42-03-PLAN.md -- Error path coverage cross-reference and gap closure
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 32 -> 33 -> 34 -> 35 -> 36
+Phases execute in numeric order: 32 -> 33 -> 34 -> 35 -> 36 -> 42
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -199,3 +216,4 @@ Phases execute in numeric order: 32 -> 33 -> 34 -> 35 -> 36
 | 34. Query Optimization & Architecture | 0/3 | Complete    | 2026-03-26 |
 | 35. HTTP Caching & Benchmarks | 0/2 | Complete    | 2026-03-26 |
 | 36. UI & Terminal Polish | 1/3 | Complete    | 2026-03-26 |
+| 42. Test Quality Audit & Coverage Hygiene | 1/3 | In progress | - |
