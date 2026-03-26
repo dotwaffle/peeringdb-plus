@@ -19,7 +19,7 @@ func writeWHOISField(buf *strings.Builder, key, value string) {
 	if value == "" {
 		return
 	}
-	buf.WriteString(fmt.Sprintf("%-*s%s\n", whoisKeyWidth, key+":", value))
+	fmt.Fprintf(buf, "%-*s%s\n", whoisKeyWidth, key+":", value)
 }
 
 // writeWHOISMulti writes multiple values for the same key using RPSL repeated
@@ -34,7 +34,7 @@ func writeWHOISMulti(buf *strings.Builder, key string, values []string) {
 // Includes source identification and query echo.
 func writeWHOISHeader(buf *strings.Builder, query string) {
 	buf.WriteString("% Source: PeeringDB-Plus\n")
-	buf.WriteString(fmt.Sprintf("%% Query: %s\n", query))
+	fmt.Fprintf(buf, "%% Query: %s\n", query)
 	buf.WriteString("\n")
 }
 
