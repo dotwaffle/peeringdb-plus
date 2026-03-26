@@ -113,10 +113,7 @@ func (r *Renderer) RenderCarrierDetail(w io.Writer, data templates.CarrierDetail
 	return r.renderStub(w, data.Name)
 }
 
-// RenderSearch renders search results as terminal output. Stub pending Plan 03.
-func (r *Renderer) RenderSearch(w io.Writer, groups []templates.SearchGroup) error {
-	return r.renderStub(w, "Search Results")
-}
+// RenderSearch is implemented in search.go.
 
 // RenderCompare renders ASN comparison as terminal output. Stub pending Plan 03.
 func (r *Renderer) RenderCompare(w io.Writer, data *templates.CompareData) error {
