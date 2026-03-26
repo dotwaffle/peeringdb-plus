@@ -31,7 +31,7 @@ func FuzzFilterParser(f *testing.F) {
 		"latitude":     FieldFloat,
 	}
 
-	f.Fuzz(func(t *testing.T, key, value string) {
+	f.Fuzz(func(_ *testing.T, key, value string) {
 		params := url.Values{key: {value}}
 		// Must not panic. Errors are acceptable.
 		_, _ = ParseFilters(params, fields)

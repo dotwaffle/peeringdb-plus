@@ -1235,7 +1235,7 @@ func TestFetchAll_IncrementalFetchError(t *testing.T) {
 
 	// Server returns a valid first page then becomes unavailable.
 	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		page := requestCount.Add(1)
 		if page == 1 {
 			_, _ = w.Write(makeOrgPage(1, 250)) // Full first page triggers pagination.
