@@ -77,32 +77,32 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| GQL-01 | — | Pending |
-| GQL-02 | — | Pending |
-| GQL-03 | — | Pending |
-| GRPC-01 | — | Pending |
-| GRPC-02 | — | Pending |
-| GRPC-03 | — | Pending |
-| WEB-01 | — | Pending |
-| WEB-02 | — | Pending |
-| WEB-03 | — | Pending |
-| SCHEMA-01 | — | Pending |
-| SCHEMA-02 | — | Pending |
-| SCHEMA-03 | — | Pending |
-| MINOR-01 | — | Pending |
-| MINOR-02 | — | Pending |
-| MINOR-03 | — | Pending |
-| QUAL-01 | — | Pending |
-| QUAL-02 | — | Pending |
-| QUAL-03 | — | Pending |
+| INFRA-01 | Phase 37 | Pending |
+| INFRA-02 | Phase 42 | Pending |
+| GQL-01 | Phase 38 | Pending |
+| GQL-02 | Phase 38 | Pending |
+| GQL-03 | Phase 38 | Pending |
+| GRPC-01 | Phase 39 | Pending |
+| GRPC-02 | Phase 39 | Pending |
+| GRPC-03 | Phase 39 | Pending |
+| WEB-01 | Phase 40 | Pending |
+| WEB-02 | Phase 40 | Pending |
+| WEB-03 | Phase 40 | Pending |
+| SCHEMA-01 | Phase 41 | Pending |
+| SCHEMA-02 | Phase 41 | Pending |
+| SCHEMA-03 | Phase 41 | Pending |
+| MINOR-01 | Phase 41 | Pending |
+| MINOR-02 | Phase 41 | Pending |
+| MINOR-03 | Phase 41 | Pending |
+| QUAL-01 | Phase 42 | Pending |
+| QUAL-02 | Phase 42 | Pending |
+| QUAL-03 | Phase 42 | Pending |
 
 **Coverage:**
 - v1.10 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20
+- Mapped to phases: 20
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after initial definition*
+*Last updated: 2026-03-26 after roadmap creation*
