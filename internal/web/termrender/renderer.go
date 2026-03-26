@@ -98,17 +98,6 @@ func (r *Renderer) renderStub(w io.Writer, name string) error {
 	return r.Write(w, buf.String())
 }
 
-
-// RenderCampusDetail renders a campus entity as terminal output. Stub pending Plan 02.
-func (r *Renderer) RenderCampusDetail(w io.Writer, data templates.CampusDetail) error {
-	return r.renderStub(w, data.Name)
-}
-
-// RenderCarrierDetail renders a carrier entity as terminal output. Stub pending Plan 02.
-func (r *Renderer) RenderCarrierDetail(w io.Writer, data templates.CarrierDetail) error {
-	return r.renderStub(w, data.Name)
-}
-
 // RenderSearch renders search results as terminal output. Stub pending Plan 03.
 func (r *Renderer) RenderSearch(w io.Writer, groups []templates.SearchGroup) error {
 	return r.renderStub(w, "Search Results")
