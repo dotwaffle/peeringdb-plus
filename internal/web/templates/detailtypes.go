@@ -368,6 +368,10 @@ type FacNetworkRow struct {
 	NetName string
 	// ASN is the network's Autonomous System Number.
 	ASN int
+	// City is the facility network's city (from NetworkFacility computed field).
+	City string
+	// Country is the facility network's country code (from NetworkFacility computed field).
+	Country string
 }
 
 // FacIXRow holds display data for a facility's IXP row.

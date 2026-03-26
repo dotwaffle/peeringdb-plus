@@ -20,6 +20,7 @@ templ Layout(title string, contents templ.Component) {
 			</script>
 			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 			<script src="/static/htmx.min.js"></script>
+			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/css/flag-icons.min.css"/>
 			<style type="text/tailwindcss">
 				@custom-variant dark (&:where(.dark, .dark *));
 				@theme {
@@ -39,6 +40,10 @@ templ Layout(title string, contents templ.Component) {
 				.htmx-settling { opacity: 1; transition: opacity 200ms ease-in; }
 				#global-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 50; }
 				.htmx-request #global-indicator, .htmx-request#global-indicator { opacity: 1; transition-delay: 0ms; }
+				th[data-sortable] { cursor: pointer; user-select: none; position: relative; padding-right: 1.25rem; }
+				th[data-sortable]::after { content: ''; position: absolute; right: 0.25rem; top: 50%; transform: translateY(-50%); border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid #525252; margin-top: 2px; }
+				th[data-sort-active="asc"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #10b981; border-bottom: none; margin-top: 0; }
+				th[data-sort-active="desc"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid #10b981; border-top: none; margin-top: 0; }
 			</style>
 		</head>
 		<body class="bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 min-h-screen flex flex-col" hx-indicator="#global-indicator">
@@ -172,6 +177,72 @@ templ Layout(title string, contents templ.Component) {
 					htmx.process(el);
 				}
 			});
+		})();
+		</script>
+		<script>
+		// Client-side table sorting for sortable tables (SORT-01, SORT-02).
+		// Handles click on th[data-sortable], toggles asc/desc, re-orders rows.
+		(function() {
+			function sortTable(th) {
+				var table = th.closest('table');
+				if (!table) return;
+				var tbody = table.querySelector('tbody');
+				if (!tbody) return;
+				var col = parseInt(th.getAttribute('data-sort-col'), 10);
+				var type = th.getAttribute('data-sort-type') || 'alpha';
+				var current = th.getAttribute('data-sort-active');
+				var dir = (current === 'asc') ? 'desc' : 'asc';
+
+				// Clear all sort indicators in this table
+				table.querySelectorAll('th[data-sortable]').forEach(function(h) {
+					h.removeAttribute('data-sort-active');
+				});
+				th.setAttribute('data-sort-active', dir);
+
+				var rows = Array.from(tbody.querySelectorAll('tr'));
+				rows.sort(function(a, b) {
+					var cellA = a.children[col];
+					var cellB = b.children[col];
+					var valA = cellA ? (cellA.getAttribute('data-sort-value') || '') : '';
+					var valB = cellB ? (cellB.getAttribute('data-sort-value') || '') : '';
+
+					// Empty values sort last regardless of direction
+					if (valA === '' && valB !== '') return 1;
+					if (valA !== '' && valB === '') return -1;
+					if (valA === '' && valB === '') return 0;
+
+					var cmp;
+					if (type === 'numeric') {
+						cmp = parseFloat(valA) - parseFloat(valB);
+					} else {
+						cmp = valA.localeCompare(valB);
+					}
+					return dir === 'asc' ? cmp : -cmp;
+				});
+
+				rows.forEach(function(row) { tbody.appendChild(row); });
+			}
+
+			function applyDefaultSort(root) {
+				var tables = (root || document).querySelectorAll('table.sortable');
+				tables.forEach(function(table) {
+					var defaultTh = table.querySelector('th[data-sort-default]');
+					if (defaultTh && !table.querySelector('th[data-sort-active]')) {
+						sortTable(defaultTh);
+					}
+				});
+			}
+
+			document.addEventListener('click', function(e) {
+				var th = e.target.closest('th[data-sortable]');
+				if (th) sortTable(th);
+			});
+
+			document.addEventListener('htmx:afterSwap', function(e) {
+				applyDefaultSort(e.detail.target);
+			});
+
+			applyDefaultSort();
 		})();
 		</script>
 		</body>
