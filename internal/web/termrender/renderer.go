@@ -98,10 +98,6 @@ func (r *Renderer) renderStub(w io.Writer, name string) error {
 	return r.Write(w, buf.String())
 }
 
-// RenderOrgDetail renders an organization entity as terminal output. Stub pending Plan 02.
-func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error {
-	return r.renderStub(w, data.Name)
-}
 
 // RenderCampusDetail renders a campus entity as terminal output. Stub pending Plan 02.
 func (r *Renderer) RenderCampusDetail(w io.Writer, data templates.CampusDetail) error {
