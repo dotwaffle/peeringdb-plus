@@ -44,7 +44,7 @@ func Breadcrumb(typePlural string, entityName string) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(typePlural)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 16, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 16, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -57,7 +57,7 @@ func Breadcrumb(typePlural string, entityName string) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(entityName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 18, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 18, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -102,7 +102,7 @@ func CollapsibleSection(title string, count int, loadURL string) templ.Component
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 29, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 29, Col: 75}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -115,7 +115,7 @@ func CollapsibleSection(title string, count int, loadURL string) templ.Component
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("(%d)", count))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 30, Col: 102}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 30, Col: 102}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -133,7 +133,7 @@ func CollapsibleSection(title string, count int, loadURL string) templ.Component
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(loadURL)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 34, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 34, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -197,7 +197,7 @@ func DetailHeader(typeBadge string, accentColor string, name string, subtitle st
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var9).String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 1, Col: 0}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 1, Col: 0}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -210,7 +210,7 @@ func DetailHeader(typeBadge string, accentColor string, name string, subtitle st
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(typeBadge)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 55, Col: 15}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 55, Col: 15}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {
@@ -228,7 +228,7 @@ func DetailHeader(typeBadge string, accentColor string, name string, subtitle st
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(subtitle)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 59, Col: 15}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 59, Col: 15}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -246,7 +246,7 @@ func DetailHeader(typeBadge string, accentColor string, name string, subtitle st
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 63, Col: 78}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 63, Col: 78}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
@@ -289,7 +289,7 @@ func StatBadge(label string, count int) templ.Component {
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", count))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 70, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 70, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 		if templ_7745c5c3_Err != nil {
@@ -302,7 +302,7 @@ func StatBadge(label string, count int) templ.Component {
 		var templ_7745c5c3_Var16 string
 		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 71, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 71, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 		if templ_7745c5c3_Err != nil {
@@ -346,7 +346,7 @@ func DetailField(label string, value string) templ.Component {
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 79, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 79, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 			if templ_7745c5c3_Err != nil {
@@ -359,7 +359,7 @@ func DetailField(label string, value string) templ.Component {
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(value)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 80, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 80, Col: 63}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -404,7 +404,7 @@ func DetailLink(label string, url string) templ.Component {
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 89, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 89, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -417,7 +417,7 @@ func DetailLink(label string, url string) templ.Component {
 			var templ_7745c5c3_Var22 templ.SafeURL
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(url))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 90, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 90, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
@@ -430,7 +430,7 @@ func DetailLink(label string, url string) templ.Component {
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(url)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 92, Col: 9}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 92, Col: 9}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -573,7 +573,7 @@ func CopyableIP(label string, addr string) templ.Component {
 		var templ_7745c5c3_Var25 string
 		templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(copyGroupID(addr))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 193, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 193, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 		if templ_7745c5c3_Err != nil {
@@ -586,7 +586,7 @@ func CopyableIP(label string, addr string) templ.Component {
 		var templ_7745c5c3_Var26 string
 		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 194, Col: 48}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 194, Col: 48}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 		if templ_7745c5c3_Err != nil {
@@ -616,7 +616,7 @@ func CopyableIP(label string, addr string) templ.Component {
 		var templ_7745c5c3_Var28 string
 		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(addr)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 199, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 199, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {
@@ -687,7 +687,7 @@ func CountryFlag(code string) templ.Component {
 			var templ_7745c5c3_Var32 string
 			templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var31).String())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 1, Col: 0}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 1, Col: 0}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 			if templ_7745c5c3_Err != nil {
@@ -700,7 +700,7 @@ func CountryFlag(code string) templ.Component {
 			var templ_7745c5c3_Var33 string
 			templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(code)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 217, Col: 80}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 217, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 			if templ_7745c5c3_Err != nil {
@@ -746,7 +746,7 @@ func CollapsibleSectionWithBandwidth(title string, count int, bandwidth string, 
 		var templ_7745c5c3_Var35 string
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 228, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 228, Col: 75}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 		if templ_7745c5c3_Err != nil {
@@ -764,7 +764,7 @@ func CollapsibleSectionWithBandwidth(title string, count int, bandwidth string, 
 			var templ_7745c5c3_Var36 string
 			templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("(%d)", count))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 230, Col: 103}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 230, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 			if templ_7745c5c3_Err != nil {
@@ -777,7 +777,7 @@ func CollapsibleSectionWithBandwidth(title string, count int, bandwidth string, 
 			var templ_7745c5c3_Var37 string
 			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(bandwidth)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 230, Col: 125}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 230, Col: 125}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 			if templ_7745c5c3_Err != nil {
@@ -795,7 +795,7 @@ func CollapsibleSectionWithBandwidth(title string, count int, bandwidth string, 
 			var templ_7745c5c3_Var38 string
 			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("(%d)", count))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 232, Col: 103}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 232, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 			if templ_7745c5c3_Err != nil {
@@ -818,7 +818,7 @@ func CollapsibleSectionWithBandwidth(title string, count int, bandwidth string, 
 			var templ_7745c5c3_Var39 string
 			templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(loadURL)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_shared.templ`, Line: 237, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 237, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 			if templ_7745c5c3_Err != nil {

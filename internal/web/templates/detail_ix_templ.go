@@ -72,7 +72,7 @@ func IXDetailPage(data IXDetail) templ.Component {
 			var templ_7745c5c3_Var2 templ.SafeURL
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/org/%d", data.OrgID)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 22, Col: 67}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 22, Col: 67}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -85,7 +85,7 @@ func IXDetailPage(data IXDetail) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.OrgName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 24, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 24, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -213,7 +213,7 @@ func IXParticipantsList(rows []IXParticipantRow) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.NetName))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 72, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 72, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -226,7 +226,7 @@ func IXParticipantsList(rows []IXParticipantRow) templ.Component {
 				var templ_7745c5c3_Var6 templ.SafeURL
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 73, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 73, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -240,7 +240,7 @@ func IXParticipantsList(rows []IXParticipantRow) templ.Component {
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(row.NetName)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 76, Col: 23}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 76, Col: 23}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
@@ -250,7 +250,7 @@ func IXParticipantsList(rows []IXParticipantRow) templ.Component {
 					var templ_7745c5c3_Var8 string
 					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("AS%d", row.ASN))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 78, Col: 40}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 78, Col: 40}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 					if templ_7745c5c3_Err != nil {
@@ -264,7 +264,7 @@ func IXParticipantsList(rows []IXParticipantRow) templ.Component {
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", row.ASN))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 82, Col: 124}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 82, Col: 124}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -277,7 +277,7 @@ func IXParticipantsList(rows []IXParticipantRow) templ.Component {
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("AS%d", row.ASN))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 83, Col: 38}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 83, Col: 38}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -299,7 +299,7 @@ func IXParticipantsList(rows []IXParticipantRow) templ.Component {
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var11).String())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 1, Col: 0}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 1, Col: 0}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -312,7 +312,7 @@ func IXParticipantsList(rows []IXParticipantRow) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", row.Speed))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 85, Col: 142}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 85, Col: 142}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -325,7 +325,7 @@ func IXParticipantsList(rows []IXParticipantRow) templ.Component {
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(formatSpeed(row.Speed))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 86, Col: 32}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 86, Col: 32}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -416,7 +416,7 @@ func IXFacilitiesList(rows []IXFacilityRow) templ.Component {
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.FacName))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 129, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 129, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -429,7 +429,7 @@ func IXFacilitiesList(rows []IXFacilityRow) templ.Component {
 				var templ_7745c5c3_Var17 templ.SafeURL
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 130, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 130, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -442,7 +442,7 @@ func IXFacilitiesList(rows []IXFacilityRow) templ.Component {
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(row.FacName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 132, Col: 22}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 132, Col: 22}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
@@ -455,7 +455,7 @@ func IXFacilitiesList(rows []IXFacilityRow) templ.Component {
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.City))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 135, Col: 134}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 135, Col: 134}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
@@ -468,7 +468,7 @@ func IXFacilitiesList(rows []IXFacilityRow) templ.Component {
 				var templ_7745c5c3_Var20 string
 				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(row.City)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 136, Col: 18}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 136, Col: 18}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 				if templ_7745c5c3_Err != nil {
@@ -481,7 +481,7 @@ func IXFacilitiesList(rows []IXFacilityRow) templ.Component {
 				var templ_7745c5c3_Var21 string
 				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.Country))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 138, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 138, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 				if templ_7745c5c3_Err != nil {
@@ -607,7 +607,7 @@ func IXPrefixesList(rows []IXPrefixRow) templ.Component {
 				var templ_7745c5c3_Var24 string
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.Prefix))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 199, Col: 125}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 199, Col: 125}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 				if templ_7745c5c3_Err != nil {
@@ -620,7 +620,7 @@ func IXPrefixesList(rows []IXPrefixRow) templ.Component {
 				var templ_7745c5c3_Var25 string
 				templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(row.Prefix)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 200, Col: 20}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 200, Col: 20}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 				if templ_7745c5c3_Err != nil {
@@ -633,7 +633,7 @@ func IXPrefixesList(rows []IXPrefixRow) templ.Component {
 				var templ_7745c5c3_Var26 string
 				templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.Protocol))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 202, Col: 117}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 202, Col: 117}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 				if templ_7745c5c3_Err != nil {
@@ -646,7 +646,7 @@ func IXPrefixesList(rows []IXPrefixRow) templ.Component {
 				var templ_7745c5c3_Var27 string
 				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(row.Protocol)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_ix.templ`, Line: 203, Col: 22}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_ix.templ`, Line: 203, Col: 22}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 				if templ_7745c5c3_Err != nil {

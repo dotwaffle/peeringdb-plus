@@ -2,7 +2,6 @@ package schema
 
 import (
 	"entgo.io/contrib/entgql"
-	"entgo.io/contrib/entproto"
 	"entgo.io/ent"
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
@@ -23,32 +22,30 @@ func (Campus) Fields() []ent.Field {
 		field.Int("id").
 			Positive().
 			Immutable().
-			Annotations(entproto.Field(1)).
 			Comment("PeeringDB campus ID"),
 		field.Int("org_id").
 			Optional().
 			Nillable().
-			Annotations(entrest.WithFilter(entrest.FilterEQ|entrest.FilterNEQ|entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE|entrest.FilterIn|entrest.FilterNotIn), entproto.Field(2)).
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to organization"),
 		field.String("aka").
 			Optional().
 			Nillable().
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(3)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Also known as"),
 		field.String("city").
 			Optional().
 			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(4)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("City"),
 		field.String("country").
 			Optional().
 			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(5)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Country code"),
 		field.String("logo").
 			Optional().
 			Nillable().
-			Annotations(entproto.Field(6)).
 			Comment("Logo URL"),
 		field.String("name").
 			NotEmpty().
@@ -56,57 +53,52 @@ func (Campus) Fields() []ent.Field {
 			Annotations(
 				entgql.OrderField("NAME"),
 				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
-				entproto.Field(7),
 			).
 			Comment("Campus name"),
 		field.String("name_long").
 			Optional().
 			Nillable().
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(8)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Long name"),
 		field.String("notes").
 			Optional().
 			Default("").
-			Annotations(entproto.Field(9)).
 			Comment("Notes"),
 		field.JSON("social_media", []SocialMedia{}).
 			Optional().
-			Annotations(entrest.WithSchema(socialMediaSchema()), entproto.Skip()).
+			Annotations(entrest.WithSchema(socialMediaSchema())).
 			Comment("Social media links"),
 		field.String("state").
 			Optional().
 			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(10)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("State or province"),
 		field.String("website").
 			Optional().
 			Default("").
-			Annotations(entproto.Field(11)).
 			Comment("Campus website URL"),
 		field.String("zipcode").
 			Optional().
 			Default("").
-			Annotations(entproto.Field(12)).
 			Comment("Postal / ZIP code"),
 
 		// Computed fields (from serializer, stored per D-40)
 		field.String("org_name").
 			Optional().
 			Default("").
-			Annotations(entproto.Field(13)).
 			Comment("Org Name (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").
 			Immutable().
-			Annotations(entrest.WithFilter(entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE), entproto.Field(14)).
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
-			Annotations(entrest.WithFilter(entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE), entproto.Field(15)).
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			Default("ok").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(16)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
 	}
 }
@@ -115,12 +107,12 @@ func (Campus) Fields() []ent.Field {
 func (Campus) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("facilities", Facility.Type).
-			Annotations(entrest.WithEagerLoad(true), entproto.Skip()),
+			Annotations(entrest.WithEagerLoad(true)),
 		edge.From("organization", Organization.Type).
 			Ref("campuses").
 			Field("org_id").
 			Unique().
-			Annotations(entrest.WithEagerLoad(true), entproto.Skip()),
+			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
 
@@ -130,8 +122,6 @@ func (Campus) Indexes() []ent.Index {
 		index.Fields("name"),
 		index.Fields("org_id"),
 		index.Fields("status"),
-		index.Fields("updated"),
-		index.Fields("created"),
 	}
 }
 
@@ -141,7 +131,6 @@ func (Campus) Annotations() []schema.Annotation {
 		entgql.RelayConnection(),
 		entgql.QueryField(),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
-		entproto.Message(entproto.PackageName("peeringdb.v1")),
 	}
 }
 

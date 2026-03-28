@@ -57,16 +57,6 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{CampusesColumns[15]},
 			},
-			{
-				Name:    "campus_updated",
-				Unique:  false,
-				Columns: []*schema.Column{CampusesColumns[14]},
-			},
-			{
-				Name:    "campus_created",
-				Unique:  false,
-				Columns: []*schema.Column{CampusesColumns[13]},
-			},
 		},
 	}
 	// CarriersColumns holds the columns for the "carriers" table.
@@ -115,16 +105,6 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{CarriersColumns[12]},
 			},
-			{
-				Name:    "carrier_updated",
-				Unique:  false,
-				Columns: []*schema.Column{CarriersColumns[11]},
-			},
-			{
-				Name:    "carrier_created",
-				Unique:  false,
-				Columns: []*schema.Column{CarriersColumns[10]},
-			},
 		},
 	}
 	// CarrierFacilitiesColumns holds the columns for the "carrier_facilities" table.
@@ -171,16 +151,6 @@ var (
 				Name:    "carrierfacility_status",
 				Unique:  false,
 				Columns: []*schema.Column{CarrierFacilitiesColumns[4]},
-			},
-			{
-				Name:    "carrierfacility_updated",
-				Unique:  false,
-				Columns: []*schema.Column{CarrierFacilitiesColumns[3]},
-			},
-			{
-				Name:    "carrierfacility_created",
-				Unique:  false,
-				Columns: []*schema.Column{CarrierFacilitiesColumns[2]},
 			},
 		},
 	}
@@ -266,16 +236,6 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{FacilitiesColumns[36]},
 			},
-			{
-				Name:    "facility_updated",
-				Unique:  false,
-				Columns: []*schema.Column{FacilitiesColumns[35]},
-			},
-			{
-				Name:    "facility_created",
-				Unique:  false,
-				Columns: []*schema.Column{FacilitiesColumns[34]},
-			},
 		},
 	}
 	// InternetExchangesColumns holds the columns for the "internet_exchanges" table.
@@ -345,16 +305,6 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{InternetExchangesColumns[33]},
 			},
-			{
-				Name:    "internetexchange_updated",
-				Unique:  false,
-				Columns: []*schema.Column{InternetExchangesColumns[32]},
-			},
-			{
-				Name:    "internetexchange_created",
-				Unique:  false,
-				Columns: []*schema.Column{InternetExchangesColumns[31]},
-			},
 		},
 	}
 	// IxFacilitiesColumns holds the columns for the "ix_facilities" table.
@@ -404,16 +354,6 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{IxFacilitiesColumns[6]},
 			},
-			{
-				Name:    "ixfacility_updated",
-				Unique:  false,
-				Columns: []*schema.Column{IxFacilitiesColumns[5]},
-			},
-			{
-				Name:    "ixfacility_created",
-				Unique:  false,
-				Columns: []*schema.Column{IxFacilitiesColumns[4]},
-			},
 		},
 	}
 	// IxLansColumns holds the columns for the "ix_lans" table.
@@ -461,16 +401,6 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{IxLansColumns[11]},
 			},
-			{
-				Name:    "ixlan_updated",
-				Unique:  false,
-				Columns: []*schema.Column{IxLansColumns[10]},
-			},
-			{
-				Name:    "ixlan_created",
-				Unique:  false,
-				Columns: []*schema.Column{IxLansColumns[9]},
-			},
 		},
 	}
 	// IxPrefixesColumns holds the columns for the "ix_prefixes" table.
@@ -513,16 +443,6 @@ var (
 				Name:    "ixprefix_status",
 				Unique:  false,
 				Columns: []*schema.Column{IxPrefixesColumns[7]},
-			},
-			{
-				Name:    "ixprefix_updated",
-				Unique:  false,
-				Columns: []*schema.Column{IxPrefixesColumns[6]},
-			},
-			{
-				Name:    "ixprefix_created",
-				Unique:  false,
-				Columns: []*schema.Column{IxPrefixesColumns[5]},
 			},
 		},
 	}
@@ -604,16 +524,6 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{NetworksColumns[39]},
 			},
-			{
-				Name:    "network_updated",
-				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[38]},
-			},
-			{
-				Name:    "network_created",
-				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[37]},
-			},
 		},
 	}
 	// NetworkFacilitiesColumns holds the columns for the "network_facilities" table.
@@ -663,16 +573,6 @@ var (
 				Name:    "networkfacility_status",
 				Unique:  false,
 				Columns: []*schema.Column{NetworkFacilitiesColumns[7]},
-			},
-			{
-				Name:    "networkfacility_updated",
-				Unique:  false,
-				Columns: []*schema.Column{NetworkFacilitiesColumns[6]},
-			},
-			{
-				Name:    "networkfacility_created",
-				Unique:  false,
-				Columns: []*schema.Column{NetworkFacilitiesColumns[5]},
 			},
 		},
 	}
@@ -742,16 +642,6 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{NetworkIxLansColumns[15]},
 			},
-			{
-				Name:    "networkixlan_updated",
-				Unique:  false,
-				Columns: []*schema.Column{NetworkIxLansColumns[14]},
-			},
-			{
-				Name:    "networkixlan_created",
-				Unique:  false,
-				Columns: []*schema.Column{NetworkIxLansColumns[13]},
-			},
 		},
 	}
 	// OrganizationsColumns holds the columns for the "organizations" table.
@@ -795,16 +685,6 @@ var (
 				Name:    "organization_status",
 				Unique:  false,
 				Columns: []*schema.Column{OrganizationsColumns[22]},
-			},
-			{
-				Name:    "organization_updated",
-				Unique:  false,
-				Columns: []*schema.Column{OrganizationsColumns[21]},
-			},
-			{
-				Name:    "organization_created",
-				Unique:  false,
-				Columns: []*schema.Column{OrganizationsColumns[20]},
 			},
 		},
 	}
@@ -855,16 +735,6 @@ var (
 				Name:    "poc_status",
 				Unique:  false,
 				Columns: []*schema.Column{PocsColumns[9]},
-			},
-			{
-				Name:    "poc_updated",
-				Unique:  false,
-				Columns: []*schema.Column{PocsColumns[8]},
-			},
-			{
-				Name:    "poc_created",
-				Unique:  false,
-				Columns: []*schema.Column{PocsColumns[7]},
 			},
 		},
 	}

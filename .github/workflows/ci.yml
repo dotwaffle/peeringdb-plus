@@ -23,24 +23,13 @@ jobs:
           go-version: stable
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
 
-      - name: Check for ent generated code drift
+      - name: Check for generated code drift
         run: |
-          go generate ./ent
-          if ! git diff --exit-code -- ent/; then
-            echo "::error::Generated ent code is out of date. Run 'go generate ./ent' and commit the changes."
-            exit 1
-          fi
-
-      - name: Install templ
-        run: go install github.com/a-h/templ/cmd/templ@latest
-
-      - name: Check for templ generated code drift
-        run: |
-          templ generate ./internal/web/templates/
-          if ! git diff --exit-code; then
-            echo "::error::Generated templ code is out of date. Run 'templ generate ./internal/web/templates/' and commit the changes."
+          go generate ./...
+          if ! git diff --exit-code -- ent/ gen/ graph/ internal/web/templates/; then
+            echo "::error::Generated code is out of date. Run 'go generate ./...' and commit the changes."
             exit 1
           fi
 

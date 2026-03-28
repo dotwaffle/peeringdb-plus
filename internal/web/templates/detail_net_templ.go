@@ -71,7 +71,7 @@ func NetworkDetailPage(data NetworkDetail) templ.Component {
 		var templ_7745c5c3_Var2 templ.SafeURL
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/compare/%d", data.ASN)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 20, Col: 67}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 20, Col: 67}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -89,7 +89,7 @@ func NetworkDetailPage(data NetworkDetail) templ.Component {
 			var templ_7745c5c3_Var3 templ.SafeURL
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/org/%d", data.OrgID)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 29, Col: 67}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 29, Col: 67}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -102,7 +102,7 @@ func NetworkDetailPage(data NetworkDetail) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.OrgName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 31, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 31, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -182,7 +182,7 @@ func NetworkDetailPage(data NetworkDetail) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", data.InfoPrefixes4))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 56, Col: 91}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 56, Col: 91}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -201,7 +201,7 @@ func NetworkDetailPage(data NetworkDetail) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", data.InfoPrefixes6))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 62, Col: 91}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 62, Col: 91}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -309,7 +309,7 @@ func boolIndicator(label string, value bool) templ.Component {
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 89, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 89, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -421,7 +421,7 @@ func NetworkIXLansList(rows []NetworkIXLanRow) templ.Component {
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.IXName))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 145, Col: 76}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 145, Col: 76}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -434,7 +434,7 @@ func NetworkIXLansList(rows []NetworkIXLanRow) templ.Component {
 				var templ_7745c5c3_Var12 templ.SafeURL
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/ix/%d", row.IXID)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 146, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 146, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -447,7 +447,7 @@ func NetworkIXLansList(rows []NetworkIXLanRow) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(row.IXName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 148, Col: 21}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 148, Col: 21}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -469,7 +469,7 @@ func NetworkIXLansList(rows []NetworkIXLanRow) templ.Component {
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var14).String())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 1, Col: 0}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 1, Col: 0}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -482,7 +482,7 @@ func NetworkIXLansList(rows []NetworkIXLanRow) templ.Component {
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", row.Speed))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 151, Col: 142}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 151, Col: 142}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -495,7 +495,7 @@ func NetworkIXLansList(rows []NetworkIXLanRow) templ.Component {
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(formatSpeed(row.Speed))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 152, Col: 32}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 152, Col: 32}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -586,7 +586,7 @@ func NetworkFacilitiesList(rows []NetworkFacRow) templ.Component {
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.FacName))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 195, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 195, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
@@ -599,7 +599,7 @@ func NetworkFacilitiesList(rows []NetworkFacRow) templ.Component {
 				var templ_7745c5c3_Var20 templ.SafeURL
 				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 196, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 196, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 				if templ_7745c5c3_Err != nil {
@@ -612,7 +612,7 @@ func NetworkFacilitiesList(rows []NetworkFacRow) templ.Component {
 				var templ_7745c5c3_Var21 string
 				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(row.FacName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 198, Col: 22}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 198, Col: 22}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 				if templ_7745c5c3_Err != nil {
@@ -625,7 +625,7 @@ func NetworkFacilitiesList(rows []NetworkFacRow) templ.Component {
 				var templ_7745c5c3_Var22 string
 				templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.City))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 201, Col: 134}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 201, Col: 134}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 				if templ_7745c5c3_Err != nil {
@@ -638,7 +638,7 @@ func NetworkFacilitiesList(rows []NetworkFacRow) templ.Component {
 				var templ_7745c5c3_Var23 string
 				templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(row.City)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 202, Col: 18}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 202, Col: 18}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 				if templ_7745c5c3_Err != nil {
@@ -651,7 +651,7 @@ func NetworkFacilitiesList(rows []NetworkFacRow) templ.Component {
 				var templ_7745c5c3_Var24 string
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.Country))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 204, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 204, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 				if templ_7745c5c3_Err != nil {
@@ -720,7 +720,7 @@ func NetworkContactsList(rows []ContactRow) templ.Component {
 				var templ_7745c5c3_Var26 string
 				templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.Name))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 234, Col: 113}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 234, Col: 113}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 				if templ_7745c5c3_Err != nil {
@@ -733,7 +733,7 @@ func NetworkContactsList(rows []ContactRow) templ.Component {
 				var templ_7745c5c3_Var27 string
 				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(row.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 235, Col: 18}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 235, Col: 18}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 				if templ_7745c5c3_Err != nil {
@@ -746,7 +746,7 @@ func NetworkContactsList(rows []ContactRow) templ.Component {
 				var templ_7745c5c3_Var28 string
 				templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.Role))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 237, Col: 131}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 237, Col: 131}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 				if templ_7745c5c3_Err != nil {
@@ -759,7 +759,7 @@ func NetworkContactsList(rows []ContactRow) templ.Component {
 				var templ_7745c5c3_Var29 string
 				templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(row.Role)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 238, Col: 18}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 238, Col: 18}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 				if templ_7745c5c3_Err != nil {
@@ -772,7 +772,7 @@ func NetworkContactsList(rows []ContactRow) templ.Component {
 				var templ_7745c5c3_Var30 string
 				templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(row.Email)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 241, Col: 19}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 241, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 				if templ_7745c5c3_Err != nil {
@@ -785,7 +785,7 @@ func NetworkContactsList(rows []ContactRow) templ.Component {
 				var templ_7745c5c3_Var31 string
 				templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(row.Phone)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_net.templ`, Line: 244, Col: 19}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 244, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 				if templ_7745c5c3_Err != nil {

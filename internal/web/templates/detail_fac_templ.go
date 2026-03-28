@@ -76,7 +76,7 @@ func FacilityDetailPage(data FacilityDetail) templ.Component {
 			var templ_7745c5c3_Var2 templ.SafeURL
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/org/%d", data.OrgID)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 23, Col: 67}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 23, Col: 67}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -89,7 +89,7 @@ func FacilityDetailPage(data FacilityDetail) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.OrgName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 25, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 25, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -108,7 +108,7 @@ func FacilityDetailPage(data FacilityDetail) templ.Component {
 			var templ_7745c5c3_Var4 templ.SafeURL
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/campus/%d", data.CampusID)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 34, Col: 73}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 34, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -121,7 +121,7 @@ func FacilityDetailPage(data FacilityDetail) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.CampusName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 36, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 36, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -279,7 +279,7 @@ func FacNetworksList(rows []FacNetworkRow) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.NetName))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 98, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 98, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -292,7 +292,7 @@ func FacNetworksList(rows []FacNetworkRow) templ.Component {
 				var templ_7745c5c3_Var8 templ.SafeURL
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 99, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 99, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -305,7 +305,7 @@ func FacNetworksList(rows []FacNetworkRow) templ.Component {
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(row.NetName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 101, Col: 22}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 101, Col: 22}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -318,7 +318,7 @@ func FacNetworksList(rows []FacNetworkRow) templ.Component {
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", row.ASN))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 104, Col: 124}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 104, Col: 124}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -331,7 +331,7 @@ func FacNetworksList(rows []FacNetworkRow) templ.Component {
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("AS%d", row.ASN))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 105, Col: 38}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 105, Col: 38}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -344,7 +344,7 @@ func FacNetworksList(rows []FacNetworkRow) templ.Component {
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.Country))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 107, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 107, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -413,7 +413,7 @@ func FacIXPsList(rows []FacIXRow) templ.Component {
 				var templ_7745c5c3_Var14 templ.SafeURL
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/ix/%d", row.IXID)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 130, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 130, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -426,7 +426,7 @@ func FacIXPsList(rows []FacIXRow) templ.Component {
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(row.IXName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 132, Col: 21}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 132, Col: 21}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -487,7 +487,7 @@ func FacCarriersList(rows []FacCarrierRow) templ.Component {
 				var templ_7745c5c3_Var17 templ.SafeURL
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/carrier/%d", row.CarrierID)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 155, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 155, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -500,7 +500,7 @@ func FacCarriersList(rows []FacCarrierRow) templ.Component {
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(row.CarrierName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_fac.templ`, Line: 157, Col: 26}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_fac.templ`, Line: 157, Col: 26}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {

@@ -9,6 +9,17 @@ const (
 	MaxLimit = 1000
 )
 
+// validatePageSize checks that first/last do not exceed MaxLimit for cursor-based pagination.
+func validatePageSize(first, last *int) error {
+	if first != nil && *first > MaxLimit {
+		return fmt.Errorf("first must not exceed %d, got %d", MaxLimit, *first)
+	}
+	if last != nil && *last > MaxLimit {
+		return fmt.Errorf("last must not exceed %d, got %d", MaxLimit, *last)
+	}
+	return nil
+}
+
 // OffsetLimitInput holds validated offset and limit values.
 type OffsetLimitInput struct {
 	Offset int

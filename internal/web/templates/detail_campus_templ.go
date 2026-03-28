@@ -68,7 +68,7 @@ func CampusDetailPage(data CampusDetail) templ.Component {
 			var templ_7745c5c3_Var2 templ.SafeURL
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/org/%d", data.OrgID)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_campus.templ`, Line: 21, Col: 67}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_campus.templ`, Line: 21, Col: 67}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -81,7 +81,7 @@ func CampusDetailPage(data CampusDetail) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.OrgName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_campus.templ`, Line: 23, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_campus.templ`, Line: 23, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -189,7 +189,7 @@ func CampusFacilitiesList(rows []CampusFacilityRow) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.FacName))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_campus.templ`, Line: 62, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_campus.templ`, Line: 62, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -202,7 +202,7 @@ func CampusFacilitiesList(rows []CampusFacilityRow) templ.Component {
 				var templ_7745c5c3_Var6 templ.SafeURL
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_campus.templ`, Line: 63, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_campus.templ`, Line: 63, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -215,7 +215,7 @@ func CampusFacilitiesList(rows []CampusFacilityRow) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(row.FacName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_campus.templ`, Line: 65, Col: 22}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_campus.templ`, Line: 65, Col: 22}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -228,7 +228,7 @@ func CampusFacilitiesList(rows []CampusFacilityRow) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.City))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_campus.templ`, Line: 68, Col: 134}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_campus.templ`, Line: 68, Col: 134}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -241,7 +241,7 @@ func CampusFacilitiesList(rows []CampusFacilityRow) templ.Component {
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(row.City)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_campus.templ`, Line: 69, Col: 18}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_campus.templ`, Line: 69, Col: 18}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -254,7 +254,7 @@ func CampusFacilitiesList(rows []CampusFacilityRow) templ.Component {
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(strings.ToLower(row.Country))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates/detail_campus.templ`, Line: 71, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_campus.templ`, Line: 71, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {

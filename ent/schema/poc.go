@@ -2,7 +2,6 @@ package schema
 
 import (
 	"entgo.io/contrib/entgql"
-	"entgo.io/contrib/entproto"
 	"entgo.io/ent"
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
@@ -23,54 +22,51 @@ func (Poc) Fields() []ent.Field {
 		field.Int("id").
 			Positive().
 			Immutable().
-			Annotations(entproto.Field(1)).
 			Comment("PeeringDB poc ID"),
 		field.Int("net_id").
 			Optional().
 			Nillable().
-			Annotations(entrest.WithFilter(entrest.FilterEQ|entrest.FilterNEQ|entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE|entrest.FilterIn|entrest.FilterNotIn), entproto.Field(2)).
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to network"),
 		field.String("email").
 			Optional().
 			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(3)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Email address"),
 		field.String("name").
 			Optional().
 			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(4)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Contact name"),
 		field.String("phone").
 			Optional().
 			Default("").
-			Annotations(entproto.Field(5)).
 			Comment("Phone number"),
 		field.String("role").
 			NotEmpty().
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(6)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Contact role"),
 		field.String("url").
 			Optional().
 			Default("").
-			Annotations(entproto.Field(7)).
 			Comment("URL"),
 		field.String("visible").
 			Optional().
 			Default("Public").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(8)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Visibility level"),
 
 		// HandleRefModel common fields
 		field.Time("created").
 			Immutable().
-			Annotations(entrest.WithFilter(entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE), entproto.Field(9)).
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
-			Annotations(entrest.WithFilter(entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE), entproto.Field(10)).
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			Default("ok").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(11)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
 	}
 }
@@ -82,7 +78,7 @@ func (Poc) Edges() []ent.Edge {
 			Ref("pocs").
 			Field("net_id").
 			Unique().
-			Annotations(entrest.WithEagerLoad(true), entproto.Skip()),
+			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
 
@@ -93,8 +89,6 @@ func (Poc) Indexes() []ent.Index {
 		index.Fields("net_id"),
 		index.Fields("role"),
 		index.Fields("status"),
-		index.Fields("updated"),
-		index.Fields("created"),
 	}
 }
 
@@ -104,7 +98,6 @@ func (Poc) Annotations() []schema.Annotation {
 		entgql.RelayConnection(),
 		entgql.QueryField(),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
-		entproto.Message(entproto.PackageName("peeringdb.v1")),
 	}
 }
 

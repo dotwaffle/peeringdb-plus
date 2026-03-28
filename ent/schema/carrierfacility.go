@@ -2,7 +2,6 @@ package schema
 
 import (
 	"entgo.io/contrib/entgql"
-	"entgo.io/contrib/entproto"
 	"entgo.io/ent"
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
@@ -23,37 +22,36 @@ func (CarrierFacility) Fields() []ent.Field {
 		field.Int("id").
 			Positive().
 			Immutable().
-			Annotations(entproto.Field(1)).
 			Comment("PeeringDB carrierfacility ID"),
 		field.Int("carrier_id").
 			Optional().
 			Nillable().
-			Annotations(entrest.WithFilter(entrest.FilterEQ|entrest.FilterNEQ|entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE|entrest.FilterIn|entrest.FilterNotIn), entproto.Field(2)).
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to carrier"),
 		field.Int("fac_id").
 			Optional().
 			Nillable().
-			Annotations(entrest.WithFilter(entrest.FilterEQ|entrest.FilterNEQ|entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE|entrest.FilterIn|entrest.FilterNotIn), entproto.Field(3)).
+			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to facility"),
 
 		// Computed fields (from serializer, stored per D-40)
 		field.String("name").
 			Optional().
 			Default("").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(4)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Name (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").
 			Immutable().
-			Annotations(entrest.WithFilter(entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE), entproto.Field(5)).
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
-			Annotations(entrest.WithFilter(entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE), entproto.Field(6)).
+			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			Default("ok").
-			Annotations(entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray), entproto.Field(7)).
+			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
 	}
 }
@@ -65,12 +63,12 @@ func (CarrierFacility) Edges() []ent.Edge {
 			Ref("carrier_facilities").
 			Field("carrier_id").
 			Unique().
-			Annotations(entrest.WithEagerLoad(true), entproto.Skip()),
+			Annotations(entrest.WithEagerLoad(true)),
 		edge.From("facility", Facility.Type).
 			Ref("carrier_facilities").
 			Field("fac_id").
 			Unique().
-			Annotations(entrest.WithEagerLoad(true), entproto.Skip()),
+			Annotations(entrest.WithEagerLoad(true)),
 	}
 }
 
@@ -80,8 +78,6 @@ func (CarrierFacility) Indexes() []ent.Index {
 		index.Fields("carrier_id"),
 		index.Fields("fac_id"),
 		index.Fields("status"),
-		index.Fields("updated"),
-		index.Fields("created"),
 	}
 }
 
@@ -91,7 +87,6 @@ func (CarrierFacility) Annotations() []schema.Annotation {
 		entgql.RelayConnection(),
 		entgql.QueryField(),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
-		entproto.Message(entproto.PackageName("peeringdb.v1")),
 	}
 }
 

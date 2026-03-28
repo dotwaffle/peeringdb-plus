@@ -112,6 +112,45 @@ Streams have a server-side timeout (default 60 seconds, configurable via
 `PDBPLUS_STREAM_TIMEOUT` environment variable). The timeout covers the
 entire stream duration, not individual messages.
 
+## Development
+
+### Prerequisites
+
+- Go 1.26+
+
+All code generation tools (`buf`, `templ`, `gqlgen`) are declared as Go tool
+dependencies in `go.mod` and require no separate installation.
+
+### Build
+
+```bash
+go build ./...
+```
+
+### Code Generation
+
+```bash
+go generate ./...
+```
+
+This runs the full pipeline in dependency order: ent codegen (schemas, GraphQL,
+REST, protobuf), buf generate (proto Go types), and templ generate (HTML
+templates).
+
+### Test
+
+```bash
+go test -race ./...
+```
+
+### Lint
+
+```bash
+go vet ./...
+golangci-lint run
+govulncheck ./...
+```
+
 ## Configuration
 
 | Environment Variable | Default | Description |
@@ -126,3 +165,7 @@ entire stream duration, not individual messages.
 - **LiteFS** for edge replication on Fly.io
 - **ConnectRPC** for gRPC/Connect/gRPC-Web on standard net/http
 - **OpenTelemetry** for tracing, metrics, and logs
+- **templ** + **htmx** + **Tailwind CSS** for the web UI
+- **gqlgen** via entgql for GraphQL
+- **entrest** for OpenAPI-compliant REST
+- **Chainguard** base images for minimal container footprint
