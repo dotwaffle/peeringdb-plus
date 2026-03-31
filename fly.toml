@@ -19,9 +19,6 @@ kill_timeout = 30
   PDBPLUS_DB_PATH = "/litefs/peeringdb-plus.db"
   # Primary region for LiteFS lease candidate evaluation
   PRIMARY_REGION = "lhr"
-  # Expose OTel metrics via Prometheus exporter on port 9091
-  OTEL_METRICS_EXPORTER = "prometheus"
-  OTEL_EXPORTER_PROMETHEUS_PORT = "9091"
 
 # Consul is required for LiteFS leader election.
 [consul]
