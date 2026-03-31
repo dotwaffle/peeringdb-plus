@@ -69,11 +69,13 @@ templ NetworkDetailPage(data NetworkDetail) {
 		@DetailLink("Route Server", data.RouteServer)
 		@DetailLink("Policy URL", data.PolicyURL)
 		@DetailField("Notes", data.Notes)
-		@netFacilityMap(data)
 		<div class="space-y-3 pt-4">
 			@CollapsibleSectionWithBandwidth("IX Presences", data.IXCount, formatAggregateBW(data.AggregateBW), fmt.Sprintf("/ui/fragment/net/%d/ixlans", data.ID))
 			@CollapsibleSection("Facility Presences", data.FacCount, fmt.Sprintf("/ui/fragment/net/%d/facilities", data.ID))
 			@CollapsibleSection("Contacts", data.PocCount, fmt.Sprintf("/ui/fragment/net/%d/contacts", data.ID))
+		</div>
+		<div class="pt-4">
+			@netFacilityMap(data)
 		</div>
 	</div>
 }
