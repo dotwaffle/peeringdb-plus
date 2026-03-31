@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 Phase: 46
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-03-26
+Last activity: 2026-03-31 - Completed quick task 260331-cxk: Move maps to bottom of pages and add fold-out arrows to collapsibles
 
 Progress: [███░░░░░░░] 33%
 
@@ -87,6 +87,12 @@ None.
 ### Blockers/Concerns
 
 None.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260331-cxk | Move maps to bottom of pages and add fold-out arrows to collapsibles | 2026-03-31 | eefa79b | [260331-cxk-move-maps-to-bottom-of-pages-and-add-fol](./quick/260331-cxk-move-maps-to-bottom-of-pages-and-add-fol/) |
 
 ## Session Continuity
 
