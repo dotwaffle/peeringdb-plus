@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.12
-milestone_name: Hardening & Tech Debt
+milestone: v1.0
+milestone_name: milestone
 status: executing
-stopped_at: Completed 49-04-PLAN.md
-last_updated: "2026-04-02T05:08:12.432Z"
-last_activity: 2026-04-02
+stopped_at: Completed 49-01-PLAN.md
+last_updated: "2026-04-02T05:09:20Z"
+last_activity: "2026-04-02 - Completed 49-01-PLAN.md (split detail.go into per-entity query files)"
 progress:
-  total_phases: 8
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 5
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
   percent: 33
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 49 — Refactoring & Tech Debt
+**Current focus:** Phase 45 — Multi-Pin Maps
 
 ## Current Position
 
-Phase: 49 (Refactoring & Tech Debt) — EXECUTING
-Plan: 2 of 4
-Status: Ready to execute
-Last activity: 2026-04-02
+Phase: 49
+Plan: 01 complete
+Status: Executing
+Last activity: 2026-04-02 - Completed 49-01-PLAN.md (split detail.go into per-entity query files)
 
 Progress: [███░░░░░░░] 33%
 
@@ -59,8 +59,7 @@ Progress: [███░░░░░░░] 33%
 | Phase 45 P01 | 15min | 2 tasks | 6 files |
 | Phase 45 P02 | 8min | 2 tasks | 12 files |
 | Phase 46 P02 | 4min | 2 tasks | 2 files |
-| Phase 48 P02 | 7min | 2 tasks | 6 files |
-| Phase 49 P04 | 3min | 2 tasks | 5 files |
+| Phase 49 P01 | 5min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -81,8 +80,7 @@ All decisions archived in PROJECT.md Key Decisions table (42 decisions across 11
 - [Phase 45]: Legend uses inline styles in Leaflet Control for dark mode support
 - [Phase 45]: AllFacilities computed unconditionally (outside ViewMode if-block) so comparison map always renders in both shared and full view modes
 - [Phase 46]: Entity-type accent colors for comparison table links: sky=IX, violet=fac, rose=campus
-- [Phase 48]: OnSyncComplete callback only fires from Sync method (not startup detection), cached gauge reads from atomic.Pointer
-- [Phase 49]: seed_test.go changed from package seed_test to package seed for internal access to unexported minimal/networks functions
+- [Phase 49-01]: Query files get only the queryXxx function, no fragment handlers -- fragments are routing logic that stays in detail.go
 
 ### Pending Todos
 
@@ -100,6 +98,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-02T05:08:12.428Z
-Stopped at: Completed 49-04-PLAN.md
+Last session: 2026-04-02T05:09:20Z
+Stopped at: Completed 49-01-PLAN.md
 Resume file: None
