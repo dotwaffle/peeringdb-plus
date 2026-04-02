@@ -1,38 +1,47 @@
 # Requirements: PeeringDB Plus
 
-**Defined:** 2026-03-26
+**Defined:** 2026-04-02
 **Core Value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-## v1.11 Requirements
+## v1.12 Requirements
 
-Requirements for the Web UI Density & Interactivity milestone. Each maps to roadmap phases.
+Requirements for the Hardening & Tech Debt milestone. Each maps to roadmap phases.
 
-### Density
+### Server Hardening
 
-- [x] **DENS-01**: User sees detail page child-entity lists (IX participants, facilities, contacts) as dense columnar tables instead of multi-line card entries
-- [x] **DENS-02**: User sees parsed city and country in dedicated columns on entity tables
-- [x] **DENS-03**: User sees responsive column hiding on narrow screens (low-priority columns drop instead of horizontal scroll)
-- [ ] **DENS-04**: User sees search results in a denser layout with country/city information
-- [x] **DENS-05**: User sees ASN comparison results (shared IXPs, facilities, campuses) as dense tables
+- [ ] **SRVR-01**: Server sets ReadHeaderTimeout (10s) and IdleTimeout (120s) to prevent connection exhaustion
+- [ ] **SRVR-02**: SQLite connection pool configured with MaxOpenConns, MaxIdleConns, and ConnMaxLifetime
+- [ ] **SRVR-03**: Config validates ListenAddr format, PeeringDBBaseURL as valid URL, and DrainTimeout > 0 at startup
+- [ ] **SRVR-04**: POST endpoints enforce request body size limits via http.MaxBytesReader
 
-### Sorting
+### Security
 
-- [x] **SORT-01**: User can sort key table columns (name, ASN, speed, country) by clicking column headers
-- [x] **SORT-02**: User sees sort direction indicators on sortable column headers
-- [x] **SORT-03**: User sees tables pre-sorted by a sensible default (IX participants by ASN, facilities by country)
+- [ ] **SEC-01**: ASN input validated to 0 < ASN < 4294967296 range in all web handlers
+- [ ] **SEC-02**: Width query parameter (?w=) bounded to a reasonable maximum
+- [ ] **SEC-03**: Content-Security-Policy-Report-Only header served with CDN allowlist on web UI responses
 
-### Flags
+### Performance
 
-- [x] **FLAG-01**: User sees SVG country flag icons alongside country codes in entity tables
-- [ ] **FLAG-02**: User sees country flags in search result entries
+- [ ] **PERF-01**: HTTP responses compressed via gzip middleware, excluding gRPC content types
+- [ ] **PERF-02**: Metrics type count gauge reads cached values computed at sync time, not per-scrape COUNT queries
+- [ ] **PERF-03**: GraphQL error presenter classifies errors via ent.IsNotFound / errors.Is instead of string matching
 
-### Maps
+### Quality
 
-- [x] **MAP-01**: User sees an interactive map on facility detail pages showing the facility's location
-- [x] **MAP-02**: User sees an interactive map on IX and network detail pages showing all associated facility locations with clustering
-- [x] **MAP-03**: User sees an interactive map on ASN comparison page with colored pins (shared vs unique facilities)
-- [x] **MAP-04**: User can click map pins to see popup with facility name and navigate to detail page
-- [x] **MAP-05**: User sees map tiles switch between light/dark themes matching app dark mode
+- [ ] **QUAL-01**: internal/graphql/handler.go has test coverage for error classification and complexity limits
+- [ ] **QUAL-02**: internal/database/database.go has test coverage for Open() pragmas and error paths
+- [ ] **QUAL-03**: golangci-lint config enables exhaustive, contextcheck, and gosec linters with clean pass
+- [ ] **QUAL-04**: CI pipeline builds both Dockerfiles and fails on build errors
+
+### Refactoring
+
+- [ ] **REFAC-01**: internal/web/detail.go split into focused per-entity query helpers
+- [ ] **REFAC-02**: internal/sync/upsert.go duplication reduced via generic bulk upsert pattern
+
+### Tech Debt
+
+- [ ] **DEBT-01**: /ui/about renders properly for terminal clients (no stub fallthrough)
+- [ ] **DEBT-02**: seed.Minimal and seed.Networks consolidated (unused exports removed)
 
 ## Future Requirements
 
@@ -52,15 +61,27 @@ Deferred to future milestones.
 - **XSURF-01**: Same entity returns identical data across GraphQL, REST, PeeringDB compat, and gRPC surfaces
 - **XSURF-02**: Golden file tests for gRPC responses (after filter coverage is complete)
 
+### CDN Security
+
+- **CDNS-01**: Subresource Integrity (SRI) attributes on all CDN-loaded assets with pinned versions
+
+### Operational Verification
+
+- **OPVR-01**: fly_region Grafana template variable verified against live multi-region deployment
+- **OPVR-02**: Go runtime metric names verified against live Grafana Cloud
+- **OPVR-03**: CI coverage pipeline verified on actual GitHub Actions run
+
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Server-side pagination for tables | PeeringDB data volumes are bounded (largest IX ~2500 participants). Client-side handling is sufficient. |
-| Search results map | Scope creep — search works well without a map. Defer to future. |
-| Map drawing/measurement tools | Read-only data mirror, not a network planning tool. |
-| Custom map markers (SVG icons) | Standard Leaflet markers with popups are sufficient for v1.11. |
-| Full Peercortex clone | Inspiration, not duplication. Focus on density, sorting, flags, maps. |
+| SRI on CDN assets | Tailwind browser CDN may not support SRI; pin versions first in future milestone |
+| Dockerfile HEALTHCHECK | Fly.io handles health checks via fly.toml; Docker-only adds minimal value |
+| Grafana variable verification | Requires live multi-region deployment; defer to operational validation |
+| CI coverage pipeline verification | Requires live GitHub Actions run; not automatable in this milestone |
+| WriteTimeout on http.Server | Kills streaming RPCs; ReadHeaderTimeout + IdleTimeout sufficient |
+| CORS preflight caching | Already implemented (MaxAge: 86400) |
+| Rate limiting middleware | Fly.io proxy provides connection-level limits; app-level adds complexity without clear need |
 
 ## Traceability
 
@@ -68,27 +89,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DENS-01 | Phase 43 | Complete |
-| DENS-02 | Phase 43 | In Progress (43-01) |
-| DENS-03 | Phase 43 | Complete |
-| DENS-04 | Phase 46 | Pending |
-| DENS-05 | Phase 46 | Complete |
-| SORT-01 | Phase 43 | In Progress (43-01) |
-| SORT-02 | Phase 43 | In Progress (43-01) |
-| SORT-03 | Phase 43 | Complete |
-| FLAG-01 | Phase 43 | In Progress (43-01) |
-| FLAG-02 | Phase 46 | Pending |
-| MAP-01 | Phase 44 | Complete |
-| MAP-02 | Phase 45 | Complete |
-| MAP-03 | Phase 45 | Complete |
-| MAP-04 | Phase 44 | Complete |
-| MAP-05 | Phase 44 | Complete |
+| SRVR-01 | — | Pending |
+| SRVR-02 | — | Pending |
+| SRVR-03 | — | Pending |
+| SRVR-04 | — | Pending |
+| SEC-01 | — | Pending |
+| SEC-02 | — | Pending |
+| SEC-03 | — | Pending |
+| PERF-01 | — | Pending |
+| PERF-02 | — | Pending |
+| PERF-03 | — | Pending |
+| QUAL-01 | — | Pending |
+| QUAL-02 | — | Pending |
+| QUAL-03 | — | Pending |
+| QUAL-04 | — | Pending |
+| REFAC-01 | — | Pending |
+| REFAC-02 | — | Pending |
+| DEBT-01 | — | Pending |
+| DEBT-02 | — | Pending |
 
 **Coverage:**
-- v1.11 requirements: 15 total
-- Mapped to phases: 15
-- Unmapped: 0
+- v1.12 requirements: 18 total
+- Mapped to phases: 0
+- Unmapped: 18 (pending roadmap creation)
 
 ---
-*Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after roadmap creation*
+*Requirements defined: 2026-04-02*
+*Last updated: 2026-04-02 after initial definition*
