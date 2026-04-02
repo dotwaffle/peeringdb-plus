@@ -1,16 +1,15 @@
-package seed_test
+package seed
 
 import (
 	"testing"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
-	"github.com/dotwaffle/peeringdb-plus/internal/testutil/seed"
 )
 
 func TestFull(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	r := seed.Full(t, client)
+	r := Full(t, client)
 
 	// All 15 fields must be non-nil (13 types + Network2 + Facility2).
 	checks := []struct {
@@ -92,7 +91,7 @@ func TestFull(t *testing.T) {
 func TestFull_EntityCounts(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	seed.Full(t, client)
+	Full(t, client)
 
 	ctx := t.Context()
 	counts := []struct {
@@ -124,7 +123,7 @@ func TestFull_EntityCounts(t *testing.T) {
 func TestFull_Relationships(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	r := seed.Full(t, client)
+	r := Full(t, client)
 
 	ctx := t.Context()
 
@@ -228,20 +227,20 @@ func TestFull_Relationships(t *testing.T) {
 func TestMinimal(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	r := seed.Minimal(t, client)
+	r := minimal(t, client)
 
 	// Core 4 entities must be non-nil.
 	if r.Org == nil {
-		t.Error("Minimal: Org is nil")
+		t.Error("minimal: Org is nil")
 	}
 	if r.Network == nil {
-		t.Error("Minimal: Network is nil")
+		t.Error("minimal: Network is nil")
 	}
 	if r.IX == nil {
-		t.Error("Minimal: IX is nil")
+		t.Error("minimal: IX is nil")
 	}
 	if r.Facility == nil {
-		t.Error("Minimal: Facility is nil")
+		t.Error("minimal: Facility is nil")
 	}
 
 	// Junction types must be nil.
@@ -263,20 +262,20 @@ func TestMinimal(t *testing.T) {
 	}
 	for _, c := range nilChecks {
 		if !c.ok {
-			t.Errorf("Minimal: Result.%s should be nil", c.name)
+			t.Errorf("minimal: Result.%s should be nil", c.name)
 		}
 	}
 
 	// AllNetworks should contain one network.
 	if len(r.AllNetworks) != 1 {
-		t.Errorf("Minimal: AllNetworks length = %d, want 1", len(r.AllNetworks))
+		t.Errorf("minimal: AllNetworks length = %d, want 1", len(r.AllNetworks))
 	}
 }
 
 func TestMinimal_EntityCounts(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	seed.Minimal(t, client)
+	minimal(t, client)
 
 	ctx := t.Context()
 	counts := []struct {
@@ -321,13 +320,13 @@ func TestNetworks(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			client := testutil.SetupClient(t)
-			r := seed.Networks(t, client, tt.n)
+			r := networks(t, client, tt.n)
 
 			if r.Org == nil {
-				t.Fatal("Networks: Org is nil")
+				t.Fatal("networks: Org is nil")
 			}
 			if r.Network == nil {
-				t.Fatal("Networks: Network (first) is nil")
+				t.Fatal("networks: Network (first) is nil")
 			}
 			if len(r.AllNetworks) != tt.n {
 				t.Fatalf("AllNetworks length = %d, want %d", len(r.AllNetworks), tt.n)

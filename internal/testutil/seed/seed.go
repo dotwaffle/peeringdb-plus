@@ -224,10 +224,10 @@ func Full(tb testing.TB, client *ent.Client) *Result {
 	return r
 }
 
-// Minimal creates only the 4 core entity types needed for basic relationship
+// minimal creates only the 4 core entity types needed for basic relationship
 // traversal: Organization, Network, InternetExchange, and Facility.
 // Junction types are not created; their Result fields remain nil.
-func Minimal(tb testing.TB, client *ent.Client) *Result {
+func minimal(tb testing.TB, client *ent.Client) *Result {
 	tb.Helper()
 	ctx := context.Background()
 	r := &Result{}
@@ -278,9 +278,9 @@ func Minimal(tb testing.TB, client *ent.Client) *Result {
 	return r
 }
 
-// Networks creates one Organization and n Networks, each with a unique ASN
+// networks creates one Organization and n Networks, each with a unique ASN
 // starting at 65001. Result.Network is set to the first network created.
-func Networks(tb testing.TB, client *ent.Client, n int) *Result {
+func networks(tb testing.TB, client *ent.Client, n int) *Result {
 	tb.Helper()
 	ctx := context.Background()
 	r := &Result{}
