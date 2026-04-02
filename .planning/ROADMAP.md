@@ -166,7 +166,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. golangci-lint config includes exhaustive, contextcheck, and gosec linters, and `golangci-lint run` passes cleanly on the full codebase
   2. The CI pipeline builds both Dockerfiles (production and dev) and fails the build if either Dockerfile produces an error
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 50-01-PLAN.md -- Enable exhaustive/contextcheck/gosec linters and add Docker build CI job
 
 ## Progress
 
@@ -178,4 +181,4 @@ Phases execute in numeric order: 47 -> 48 -> 49 -> 50
 | 47. Server & Request Hardening | 2/2 | Complete    | 2026-04-02 |
 | 48. Response Hardening & Internal Quality | 0/2 | Complete    | 2026-04-02 |
 | 49. Refactoring & Tech Debt | 1/4 | Complete    | 2026-04-02 |
-| 50. CI & Linting | 0/? | Not started | - |
+| 50. CI & Linting | 0/1 | Not started | - |
