@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
+milestone: v1.12
+milestone_name: Hardening & Tech Debt
 status: executing
 stopped_at: Completed 47-02-PLAN.md
-last_updated: "2026-04-02T04:25:36.887Z"
-last_activity: "2026-03-31 - Completed quick task 260331-cxk: Move maps to bottom of pages and add fold-out arrows to collapsibles"
+last_updated: "2026-04-02T04:29:49.956Z"
+last_activity: 2026-04-02
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
   percent: 33
 ---
 
@@ -21,14 +21,25 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
+<<<<<<< Updated upstream
 **Current focus:** Phase 45 — Multi-Pin Maps
 
 ## Current Position
 
-Phase: 46
+Phase: 48
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-03-31 - Completed quick task 260331-cxk: Move maps to bottom of pages and add fold-out arrows to collapsibles
+Last activity: 2026-04-02
+=======
+**Current focus:** Phase 47 — Server & Request Hardening
+
+## Current Position
+
+Phase: 47 (Server & Request Hardening) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 47
+Last activity: 2026-04-02 -- Phase 47 execution started
+>>>>>>> Stashed changes
 
 Progress: [███░░░░░░░] 33%
 
@@ -67,6 +78,8 @@ Progress: [███░░░░░░░] 33%
 
 All decisions archived in PROJECT.md Key Decisions table (42 decisions across 11 milestones).
 
+<<<<<<< Updated upstream
+
 - **Phase 43-01:** Sort JS placed in layout.templ as global script (matches existing keyboard nav and htmx error handler patterns)
 - **Phase 43-01:** flag-icons v7.5.0 pinned via jsdelivr CDN (consistent with existing CDN delivery pattern)
 - [Phase 43]: OrgNetworksList 2-column (Name, ASN) without Country -- all networks on an org share the org country
@@ -82,6 +95,16 @@ All decisions archived in PROJECT.md Key Decisions table (42 decisions across 11
 - [Phase 46]: Entity-type accent colors for comparison table links: sky=IX, violet=fac, rose=campus
 - [Phase 47]: parseASN returns false for non-numeric (400 not 404) -- invalid input is client error
 - [Phase 47]: Width capping is silent (no error) -- graceful degradation for terminal users
+
+=======
+Research-informed constraints for v1.12:
+
+- WriteTimeout must NOT be set on http.Server (kills streaming RPCs)
+- Compression middleware must exclude gRPC content types (application/grpc*, application/connect+proto)
+- CSP must deploy as Report-Only first (CDN assets + GraphiQL need permissive policy)
+- Linters must come AFTER refactoring to avoid lint churn on restructured code
+
+>>>>>>> Stashed changes
 
 ### Pending Todos
 
