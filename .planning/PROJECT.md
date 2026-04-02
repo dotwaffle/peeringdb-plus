@@ -70,16 +70,21 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ### Active
 
-## Current Milestone: v1.11 Web UI Density & Interactivity
+## Current Milestone: v1.12 Hardening & Tech Debt
 
-**Goal:** Overhaul the web UI with dense columnar layouts, sortable tables, country flags, and an interactive map — inspired by Peercortex.
+**Goal:** Harden the application against security, reliability, and operational gaps identified by codebase audit, plus clean up accumulated tech debt.
 
 **Target features:**
-- Dense columnar layouts replacing multi-line card entries across all detail pages, search results, and ASN comparison
-- Sortable table columns (client-side where data is loaded, server-side for paginated views)
-- Parsed city/country with emoji country flags in dedicated columns
-- Interactive Leaflet/OpenStreetMap with clickable pins, clustering, and popups linking to detail pages
-- Information density improvements throughout
+- HTTP server timeouts, SQLite connection pool limits, request body size limits
+- Input validation (ASN range, width parameter bounds)
+- CSP header and Subresource Integrity on CDN assets
+- GraphQL error classification via sentinel errors, metrics COUNT query caching
+- Compression middleware, CORS preflight caching
+- Test coverage for GraphQL handler and database package
+- Config validation, additional linters (exhaustive, contextcheck, gosec)
+- Docker build in CI, Dockerfile HEALTHCHECK
+- Refactor detail.go and sync upsert duplication
+- Tech debt: Grafana verification, /ui/about terminal stub, CI coverage pipeline, seed consolidation
 
 ### Deferred
 
@@ -199,4 +204,4 @@ Shipped v1.10 with 42 phases across 11 milestones (v1.0-v1.10). The test infrast
 - CI coverage pipeline needs human verification on actual GitHub Actions run
 
 ---
-*Last updated: 2026-03-26 after v1.11 milestone start (Web UI Density & Interactivity)*
+*Last updated: 2026-04-02 after v1.12 milestone start (Hardening & Tech Debt)*

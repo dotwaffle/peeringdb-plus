@@ -1,36 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: executing
-stopped_at: Completed 46-02-PLAN.md
-last_updated: "2026-03-26T23:31:09.616Z"
-last_activity: 2026-03-26
+milestone: v1.12
+milestone_name: Hardening & Tech Debt
+status: defining
+stopped_at: null
+last_updated: "2026-04-02"
+last_activity: 2026-04-02
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 10
-  completed_plans: 10
-  percent: 33
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-26)
+See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 45 — Multi-Pin Maps
+**Current focus:** Not started (defining requirements)
 
 ## Current Position
 
-Phase: 46
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-03-31 - Completed quick task 260331-cxk: Move maps to bottom of pages and add fold-out arrows to collapsibles
-
-Progress: [███░░░░░░░] 33%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-02 — Milestone v1.12 started
 
 ## Performance Metrics
 
