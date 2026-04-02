@@ -123,8 +123,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 47-01-PLAN.md -- Server timeouts, SQLite pool config, config validation, POST body limits
-- [ ] 47-02-PLAN.md -- ASN range validation and width parameter capping
+- [x] 47-01-PLAN.md -- Server timeouts, SQLite pool config, config validation, POST body limits
+- [x] 47-02-PLAN.md -- ASN range validation and width parameter capping
 
 ### Phase 48: Response Hardening & Internal Quality
 **Goal**: The application serves responses with security headers and compression, and internal error handling uses type-safe patterns instead of string matching
@@ -135,7 +135,11 @@ Plans:
   2. HTML and JSON responses are gzip-compressed (verified via Content-Encoding header), while gRPC content types (application/grpc*, application/connect+proto) are NOT compressed by the HTTP middleware
   3. The metrics type count gauge returns cached values computed at sync completion time, not live COUNT queries on each scrape
   4. GraphQL errors for not-found entities return a structured error with appropriate classification, using sentinel error checks (errors.Is, ent.IsNotFound) instead of string matching
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 48-01-PLAN.md -- CSP headers middleware, gzip compression middleware, main.go middleware chain wiring
+- [ ] 48-02-PLAN.md -- GraphQL sentinel error classification, metrics count caching with sync worker callback
 
 ### Phase 49: Refactoring & Tech Debt
 **Goal**: Large files are split for maintainability, duplicated patterns are extracted, untested packages gain coverage, and known tech debt items are resolved
@@ -165,7 +169,7 @@ Phases execute in numeric order: 47 -> 48 -> 49 -> 50
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 47. Server & Request Hardening | 0/2 | Complete    | 2026-04-02 |
-| 48. Response Hardening & Internal Quality | 0/? | Not started | - |
+| 47. Server & Request Hardening | 2/2 | Complete    | 2026-04-02 |
+| 48. Response Hardening & Internal Quality | 0/2 | Not started | - |
 | 49. Refactoring & Tech Debt | 0/? | Not started | - |
 | 50. CI & Linting | 0/? | Not started | - |
