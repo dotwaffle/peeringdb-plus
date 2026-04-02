@@ -145,7 +145,7 @@ func (c *Client) FetchAll(ctx context.Context, objectType string, opts ...FetchO
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close() //nolint:gosec // error from closing response body is non-actionable
+		_ = resp.Body.Close()
 		if err != nil {
 			span.RecordError(err)
 			return FetchResult{}, fmt.Errorf("read %s body: %w", objectType, err)
@@ -189,7 +189,7 @@ func (c *Client) FetchAll(ctx context.Context, objectType string, opts ...FetchO
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close() //nolint:gosec // error from closing response body is non-actionable
+		_ = resp.Body.Close()
 		if err != nil {
 			span.RecordError(err)
 			return FetchResult{}, fmt.Errorf("read %s page %d body: %w", objectType, page, err)
@@ -314,7 +314,7 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 
 		// Read and discard body so the connection can be reused.
 		_, _ = io.Copy(io.Discard, resp.Body)
-		_ = resp.Body.Close() //nolint:gosec // error from closing response body is non-actionable
+		_ = resp.Body.Close()
 
 		// Auth errors indicate invalid API key -- log and fail immediately.
 		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {

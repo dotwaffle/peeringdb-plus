@@ -276,7 +276,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 			h.handleNotFound(w, r)
 			return
 		}
-		slog.Error("compare networks", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.Any("error", err))
+		slog.Error("compare networks", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.Any("error", err)) //nolint:gosec // error from ent query, not user input
 		h.handleServerError(w, r)
 		return
 	}

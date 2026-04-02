@@ -180,7 +180,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("generate schema for %s: %v", typeName, err)
 		}
-		filename := filepath.Join(outputDir, strings.ToLower(typeDef.ModelName)+".go")
+		filename := filepath.Join(outputDir, strings.ToLower(typeDef.ModelName)+".go") //nolint:gosec // path from controlled code generator input
 		if err := os.WriteFile(filename, code, 0o600); err != nil {
 			log.Fatalf("write %s: %v", filename, err) //nolint:gosec // output of controlled code generator, not user input
 		}
@@ -192,7 +192,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("generate types.go: %v", err)
 	}
-	typesPath := filepath.Join(outputDir, "types.go")
+	typesPath := filepath.Join(outputDir, "types.go") //nolint:gosec // path from controlled code generator input
 	if err := os.WriteFile(typesPath, typesCode, 0o600); err != nil {
 		log.Fatalf("write %s: %v", typesPath, err) //nolint:gosec // output of controlled code generator, not user input
 	}

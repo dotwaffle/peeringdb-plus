@@ -43,14 +43,14 @@ func SetupClientWithDB(t *testing.T) (*ent.Client, *sql.DB) {
 		dialect.SQLite,
 		dsn,
 	)
-	t.Cleanup(func() { client.Close() })
+	t.Cleanup(func() { _ = client.Close() })
 
 	// Open a second connection to the same shared in-memory database for raw SQL.
 	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		t.Fatalf("open raw sql.DB: %v", err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 
 	return client, db
 }
