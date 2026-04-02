@@ -89,30 +89,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SRVR-01 | — | Pending |
-| SRVR-02 | — | Pending |
-| SRVR-03 | — | Pending |
-| SRVR-04 | — | Pending |
-| SEC-01 | — | Pending |
-| SEC-02 | — | Pending |
-| SEC-03 | — | Pending |
-| PERF-01 | — | Pending |
-| PERF-02 | — | Pending |
-| PERF-03 | — | Pending |
-| QUAL-01 | — | Pending |
-| QUAL-02 | — | Pending |
-| QUAL-03 | — | Pending |
-| QUAL-04 | — | Pending |
-| REFAC-01 | — | Pending |
-| REFAC-02 | — | Pending |
-| DEBT-01 | — | Pending |
-| DEBT-02 | — | Pending |
+| SRVR-01 | Phase 47 | Pending |
+| SRVR-02 | Phase 47 | Pending |
+| SRVR-03 | Phase 47 | Pending |
+| SRVR-04 | Phase 47 | Pending |
+| SEC-01 | Phase 47 | Pending |
+| SEC-02 | Phase 47 | Pending |
+| SEC-03 | Phase 48 | Pending |
+| PERF-01 | Phase 48 | Pending |
+| PERF-02 | Phase 48 | Pending |
+| PERF-03 | Phase 48 | Pending |
+| QUAL-01 | Phase 49 | Pending |
+| QUAL-02 | Phase 49 | Pending |
+| QUAL-03 | Phase 50 | Pending |
+| QUAL-04 | Phase 50 | Pending |
+| REFAC-01 | Phase 49 | Pending |
+| REFAC-02 | Phase 49 | Pending |
+| DEBT-01 | Phase 49 | Pending |
+| DEBT-02 | Phase 49 | Pending |
 
 **Coverage:**
 - v1.12 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18 (pending roadmap creation)
+- Mapped to phases: 18
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after initial definition*
+*Last updated: 2026-04-02 after roadmap creation*

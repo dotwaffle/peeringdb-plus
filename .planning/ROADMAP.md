@@ -13,7 +13,8 @@
 - [x] **v1.8 Terminal CLI Interface** - Phases 28-31 (shipped 2026-03-26)
 - [x] **v1.9 Hardening & Polish** - Phases 32-36 (shipped 2026-03-26)
 - [x] **v1.10 Code Coverage & Test Quality** - Phases 37-42 (shipped 2026-03-26)
-- [ ] **v1.11 Web UI Density & Interactivity** - Phases 43-46 (in progress)
+- [x] **v1.11 Web UI Density & Interactivity** - Phases 43-46 (shipped 2026-03-26)
+- [ ] **v1.12 Hardening & Tech Debt** - Phases 47-50 (in progress)
 
 ## Phases
 
@@ -22,113 +23,26 @@
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 <details>
-<summary>v1.10 Code Coverage & Test Quality (Phases 37-42) - SHIPPED 2026-03-26</summary>
+<summary>v1.11 Web UI Density & Interactivity (Phases 43-46) - SHIPPED 2026-03-26</summary>
 
-- [x] **Phase 37: Test Seed Infrastructure** - Shared deterministic entity factory package for all 13 PeeringDB types
-- [x] **Phase 38: GraphQL Resolver Coverage** - Integration tests for all 13 list resolvers and custom resolver error paths
-- [x] **Phase 39: gRPC Handler Coverage** - Filter, streaming, and branch coverage for all 13 entity types
-- [x] **Phase 40: Web Handler Coverage** - Fragment handler, multi-mode dispatch, and edge case tests
-- [x] **Phase 41: Schema & Minor Package Coverage** - Schema hook/constraint tests plus otel, health, and peeringdb error path tests
-- [x] **Phase 42: Test Quality Audit & Coverage Hygiene** - Assertion density audit, error path coverage, fuzz tests, and CI coverage filtering
+- [x] **Phase 43: Dense Tables with Sorting and Flags** - Convert all detail page child-entity lists to dense sortable tables with country flag columns
+- [x] **Phase 44: Facility Map & Map Infrastructure** - Interactive Leaflet map on facility detail pages with dark/light tiles and clickable pins
+- [x] **Phase 45: Multi-Pin Maps** - Maps on IX, network, and comparison pages with marker clustering and colored pins
+- [x] **Phase 46: Search & Compare Density** - Dense layouts for search results and ASN comparison with country flags
 
 </details>
 
-- [ ] **Phase 43: Dense Tables with Sorting and Flags** - Convert all detail page child-entity lists to dense sortable tables with country flag columns
-- [ ] **Phase 44: Facility Map & Map Infrastructure** - Interactive Leaflet map on facility detail pages with dark/light tiles and clickable pins
-- [ ] **Phase 45: Multi-Pin Maps** - Maps on IX, network, and comparison pages with marker clustering and colored pins
-- [ ] **Phase 46: Search & Compare Density** - Dense layouts for search results and ASN comparison with country flags
+### v1.12 Hardening & Tech Debt
+
+- [ ] **Phase 47: Server & Request Hardening** - HTTP server timeouts, connection pool limits, body size limits, config validation, and input validation
+- [ ] **Phase 48: Response Hardening & Internal Quality** - CSP headers, gzip compression, metrics caching, and GraphQL error classification
+- [ ] **Phase 49: Refactoring & Tech Debt** - Split detail.go, extract generic upsert, write tests for graphql/database, clean up tech debt items
+- [ ] **Phase 50: CI & Linting** - Additional linters (exhaustive, contextcheck, gosec) and Docker build in CI
 
 ## Phase Details
 
 <details>
-<summary>v1.10 Code Coverage & Test Quality (Phases 37-42) - SHIPPED 2026-03-26</summary>
-
-### Phase 37: Test Seed Infrastructure
-**Goal**: Any test file in the project can create a fully-populated database with all 13 PeeringDB types by calling a single function
-**Depends on**: Phase 36
-**Requirements**: INFRA-01
-**Success Criteria** (what must be TRUE):
-  1. Calling `seed.Full(t, client)` creates at least one entity of each of the 13 PeeringDB types with realistic field values and correct FK relationships
-  2. Calling `seed.Minimal(t, client)` creates the minimum entity graph needed for relationship traversal
-  3. Tests in at least 3 different packages can import and use the seed package without import cycles
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] 37-01-PLAN.md -- Seed package (Full/Minimal/Networks) with TDD + import-cycle validation
-
-### Phase 38: GraphQL Resolver Coverage
-**Goal**: Hand-written GraphQL resolver code is tested to 80%+ coverage
-**Depends on**: Phase 37
-**Requirements**: GQL-01, GQL-02, GQL-03
-**Success Criteria** (what must be TRUE):
-  1. All 13 offset/limit list resolvers exercised with data assertions
-  2. Error paths for NetworkByAsn, SyncStatus, and validatePageSize tested
-  3. 80%+ coverage on each hand-written resolver file
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] 38-01-PLAN.md -- All 13 offset/limit + cursor resolvers, error paths, pagination unit tests
-
-### Phase 39: gRPC Handler Coverage
-**Goal**: Every gRPC List filter branch and Stream RPC covered by tests at 80%+
-**Depends on**: Phase 37
-**Requirements**: GRPC-01, GRPC-02, GRPC-03
-**Success Criteria** (what must be TRUE):
-  1. All 13 entity types have List tests with filter assertions
-  2. All 13 entity types have Stream tests with count and field assertions
-  3. 80%+ package-level coverage on grpcserver
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] 39-01-PLAN.md -- List filter tests for 6 missing types + Stream tests for 4 missing types
-
-### Phase 40: Web Handler Coverage
-**Goal**: All web handler paths tested including fragments, dispatch modes, and edge cases
-**Depends on**: Phase 37
-**Requirements**: WEB-01, WEB-02, WEB-03
-**Success Criteria** (what must be TRUE):
-  1. All 6 lazy-loaded fragment handlers have integration tests
-  2. renderPage dispatch tested for terminal, JSON, and WHOIS modes
-  3. Edge cases for extractID, getFreshness, and error responses tested
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] 40-01-PLAN.md -- renderPage dispatch modes, org fragment gaps, extractID/getFreshness edge cases
-
-### Phase 41: Schema & Minor Package Coverage
-**Goal**: Schema hooks, FK constraints, and utility packages all have error paths tested
-**Depends on**: Phase 37
-**Requirements**: SCHEMA-01, SCHEMA-02, SCHEMA-03, MINOR-01, MINOR-02, MINOR-03
-**Success Criteria** (what must be TRUE):
-  1. otelMutationHook error path tested
-  2. FK edge cases (non-existent reference, nullable nil) tested
-  3. internal/otel, health, peeringdb each at 90%+ coverage
-  4. ent/schema/ hand-written files at 65%+ coverage
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] 41-01-PLAN.md -- Schema hook error path, FK constraint tests, Edges/Indexes/Annotations coverage
-- [x] 41-02-PLAN.md -- internal/otel, internal/health, internal/peeringdb error path coverage to 90%+
-
-### Phase 42: Test Quality Audit & Coverage Hygiene
-**Goal**: All tests validated for meaningful assertions, error paths covered, CI reports accurate numbers
-**Depends on**: Phase 38, Phase 39, Phase 40, Phase 41
-**Requirements**: QUAL-01, QUAL-02, QUAL-03, INFRA-02
-**Success Criteria** (what must be TRUE):
-  1. No test asserts only err == nil without data property checks
-  2. Every error call site has at least one test exercising the error path
-  3. Fuzz testing exercises filter parser without panics
-  4. CI coverage excludes generated code from denominator
-**Plans:** 5/5 plans complete
-
-Plans:
-- [x] 42-01-PLAN.md -- Fuzz test for filter parser + CI coverage exclusion
-- [x] 42-02-PLAN.md -- Assertion density audit and weak test strengthening
-- [x] 42-03-PLAN.md -- Error path coverage cross-reference and gap closure
-- [x] 42-04-PLAN.md -- Gap closure: sync status.go + web compare/search/handler DB error path tests
-- [x] 42-05-PLAN.md -- Gap closure: graph resolver where.P() filter error path tests
-
-</details>
+<summary>v1.11 Web UI Density & Interactivity (Phases 43-46) - SHIPPED 2026-03-26</summary>
 
 ### Phase 43: Dense Tables with Sorting and Flags
 **Goal**: Users see detail page child-entity lists as information-dense sortable tables with country flags, replacing the current multi-line card layout
@@ -140,8 +54,7 @@ Plans:
   3. User sees parsed city and country in dedicated columns, with an SVG country flag icon (via flag-icons CSS) alongside the country code
   4. On narrow screens (< 768px), low-priority columns (city, speed, etc.) hide automatically instead of causing horizontal scroll
   5. Tables load with a sensible default sort order (IX participants by ASN, facilities by country)
-**Plans**: 4 plans
-**UI hint**: yes
+**Plans**: 4/4 plans complete
 
 Plans:
 - [x] 43-01-PLAN.md -- Flag-icons CDN, sort JS/CSS, CountryFlag component, FacNetworkRow data enrichment
@@ -158,8 +71,7 @@ Plans:
   2. Clicking the map pin shows a popup with the facility name (and a link back to the detail page when navigated from another context)
   3. The map tile layer switches between CARTO light and dark basemaps matching the current app dark mode setting
   4. Facility detail pages without lat/lng data render normally with no map section (no empty container or error)
-**Plans**: 2 plans
-**UI hint**: yes
+**Plans**: 2/2 plans complete
 
 Plans:
 - [x] 44-01-PLAN.md -- Leaflet CDN, data plumbing, MapContainer component, facility page integration
@@ -174,8 +86,7 @@ Plans:
   2. When many pins overlap in the same geographic area, they cluster into a numbered circle that expands on click
   3. The ASN comparison page displays a map with two pin colors distinguishing shared facilities from facilities unique to each network
   4. All multi-pin maps auto-fit bounds to show all pins, and clicking any pin shows a popup with facility name linking to its detail page
-**Plans**: 2 plans
-**UI hint**: yes
+**Plans**: 2/2 plans complete
 
 Plans:
 - [x] 45-01-PLAN.md -- Markercluster CDN, row struct enrichment, MultiPinMapContainer component, popup helpers
@@ -189,22 +100,68 @@ Plans:
   1. Search results display country and city information with SVG country flag icons alongside each result entry
   2. ASN comparison results (shared IXPs, shared facilities, shared campuses) render as dense columnar tables consistent with the detail page table style from Phase 43
   3. Search result entries show key metadata (country, city, ASN where applicable) in a compact layout without expanding vertical space per result
-**Plans**: 2 plans
-**UI hint**: yes
+**Plans**: 2/2 plans complete
 
 Plans:
-- [ ] 46-01-PLAN.md -- Search struct enrichment, compact row template with flags and metadata badges
+- [x] 46-01-PLAN.md -- Search struct enrichment, compact row template with flags and metadata badges
 - [x] 46-02-PLAN.md -- Compare IXP/Facility/Campus table conversions with sorting and flags
+
+</details>
+
+### v1.12 Hardening & Tech Debt
+
+### Phase 47: Server & Request Hardening
+**Goal**: The application rejects malformed, oversized, and slow-loris requests at the server level and validates all user-facing inputs before processing
+**Depends on**: Phase 46
+**Requirements**: SRVR-01, SRVR-02, SRVR-03, SRVR-04, SEC-01, SEC-02
+**Success Criteria** (what must be TRUE):
+  1. A client that opens a connection but sends headers slowly is disconnected after 10 seconds (ReadHeaderTimeout), and idle connections are reaped after 120 seconds (IdleTimeout)
+  2. The SQLite connection pool has explicit MaxOpenConns, MaxIdleConns, and ConnMaxLifetime values visible in startup logs or config output
+  3. The application exits with a clear error message at startup if ListenAddr format is invalid, PeeringDBBaseURL is not a valid URL, or DrainTimeout is zero or negative
+  4. POST requests with bodies exceeding the configured limit receive a 413 response
+  5. Requesting /ui/asn/99999999999 (out of range) or ?w=99999 (out of bounds) returns a user-facing error instead of unexpected behavior
+**Plans**: TBD
+
+### Phase 48: Response Hardening & Internal Quality
+**Goal**: The application serves responses with security headers and compression, and internal error handling uses type-safe patterns instead of string matching
+**Depends on**: Phase 47
+**Requirements**: SEC-03, PERF-01, PERF-02, PERF-03
+**Success Criteria** (what must be TRUE):
+  1. Web UI responses include a Content-Security-Policy-Report-Only header with directives allowing the known CDN origins (jsdelivr, unpkg) while reporting violations
+  2. HTML and JSON responses are gzip-compressed (verified via Content-Encoding header), while gRPC content types (application/grpc*, application/connect+proto) are NOT compressed by the HTTP middleware
+  3. The metrics type count gauge returns cached values computed at sync completion time, not live COUNT queries on each scrape
+  4. GraphQL errors for not-found entities return a structured error with appropriate classification, using sentinel error checks (errors.Is, ent.IsNotFound) instead of string matching
+**Plans**: TBD
+
+### Phase 49: Refactoring & Tech Debt
+**Goal**: Large files are split for maintainability, duplicated patterns are extracted, untested packages gain coverage, and known tech debt items are resolved
+**Depends on**: Phase 48
+**Requirements**: REFAC-01, REFAC-02, QUAL-01, QUAL-02, DEBT-01, DEBT-02
+**Success Criteria** (what must be TRUE):
+  1. internal/web/detail.go is split into focused per-entity files with no single file exceeding 300 lines, and all existing detail page routes continue to work
+  2. The sync upsert logic uses a shared generic pattern instead of per-type copy-pasted loops, reducing total line count
+  3. internal/graphql/handler.go has test coverage for error classification paths and complexity limit enforcement
+  4. internal/database/database.go has test coverage for Open() pragma application and error paths (invalid DSN, pragma failure)
+  5. curl /ui/about returns properly formatted terminal output (not a generic stub), and seed.Minimal/seed.Networks exports are consolidated
+**Plans**: TBD
+
+### Phase 50: CI & Linting
+**Goal**: The CI pipeline catches more defect classes via additional linters and validates that Docker images build successfully
+**Depends on**: Phase 49
+**Requirements**: QUAL-03, QUAL-04
+**Success Criteria** (what must be TRUE):
+  1. golangci-lint config includes exhaustive, contextcheck, and gosec linters, and `golangci-lint run` passes cleanly on the full codebase
+  2. The CI pipeline builds both Dockerfiles (production and dev) and fails the build if either Dockerfile produces an error
+**Plans**: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 43 -> 44 -> 45 -> 46
-(Phase 46 can execute in parallel with Phase 44/45 after Phase 43 completes)
+Phases execute in numeric order: 47 -> 48 -> 49 -> 50
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 43. Dense Tables with Sorting and Flags | 4/4 | Complete    | 2026-03-26 |
-| 44. Facility Map & Map Infrastructure | 2/2 | Complete    | 2026-03-26 |
-| 45. Multi-Pin Maps | 2/2 | Complete    | 2026-03-26 |
-| 46. Search & Compare Density | 1/2 | Complete    | 2026-03-26 |
+| 47. Server & Request Hardening | 0/? | Not started | - |
+| 48. Response Hardening & Internal Quality | 0/? | Not started | - |
+| 49. Refactoring & Tech Debt | 0/? | Not started | - |
+| 50. CI & Linting | 0/? | Not started | - |
