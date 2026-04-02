@@ -570,6 +570,20 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 		slog.Error("count org carriers", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
+	netCount, err := h.client.Network.Query().
+		Where(network.HasOrganizationWith(organization.ID(id))).
+		Count(ctx)
+	if err != nil {
+		slog.Error("count org networks", slog.Int("org_id", id), slog.Any("error", err))
+	}
+
+	facCount, err := h.client.Facility.Query().
+		Where(facility.HasOrganizationWith(organization.ID(id))).
+		Count(ctx)
+	if err != nil {
+		slog.Error("count org facilities", slog.Int("org_id", id), slog.Any("error", err))
+	}
+
 	data := templates.OrgDetail{
 		ID:           org.ID,
 		Name:         org.Name,
@@ -584,8 +598,8 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 		Zipcode:      org.Zipcode,
 		Notes:        org.Notes,
 		Status:       org.Status,
-		NetCount:     org.NetCount,
-		FacCount:     org.FacCount,
+		NetCount:     netCount,
+		FacCount:     facCount,
 		IXCount:      ixCount,
 		CampusCount:  campusCount,
 		CarrierCount: carrierCount,
