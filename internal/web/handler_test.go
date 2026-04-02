@@ -1277,6 +1277,44 @@ func TestASNValidation(t *testing.T) {
 	}
 }
 
+func TestWidthParameterCapping(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	tests := []struct {
+		name       string
+		width      string
+		wantStatus int
+	}{
+		{name: "extreme width", width: "99999", wantStatus: http.StatusOK},
+		{name: "max width", width: "500", wantStatus: http.StatusOK},
+		{name: "normal width", width: "80", wantStatus: http.StatusOK},
+		{name: "zero width ignored", width: "0", wantStatus: http.StatusOK},
+		{name: "negative width ignored", width: "-1", wantStatus: http.StatusOK},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, "/ui/?format=plain&w="+tt.width, nil)
+			req.Header.Set("User-Agent", "curl/8.0")
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+		})
+	}
+}
+
+func TestMaxTerminalWidthConstant(t *testing.T) {
+	t.Parallel()
+	if maxTerminalWidth != 500 {
+		t.Errorf("maxTerminalWidth = %d, want 500", maxTerminalWidth)
+	}
+}
+
 func TestHandleServerError(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
