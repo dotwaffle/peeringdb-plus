@@ -156,8 +156,8 @@ Plans:
 Plans:
 - [ ] 49-01-PLAN.md -- Split detail.go into per-entity query files (query_network.go, query_ix.go, etc.)
 - [ ] 49-02-PLAN.md -- Extract generic upsertBatch function from 13 copy-pasted upsert functions
-- [ ] 49-03-PLAN.md -- Add test coverage for GraphQL handler limits and database.Open pragmas
-- [x] 49-04-PLAN.md -- About page terminal renderer and seed export consolidation
+- [x] 49-03-PLAN.md -- Add test coverage for GraphQL handler limits and database.Open pragmas
+- [ ] 49-04-PLAN.md -- About page terminal renderer and seed export consolidation
 
 ### Phase 50: CI & Linting
 **Goal**: The CI pipeline catches more defect classes via additional linters and validates that Docker images build successfully
