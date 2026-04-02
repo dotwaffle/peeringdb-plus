@@ -10,8 +10,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
-
-	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
 func TestInitMetrics_NoError(t *testing.T) {
@@ -240,8 +238,8 @@ func TestInitObjectCountGauges_NoError(t *testing.T) {
 	otel.SetMeterProvider(mp)
 	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
-	client := testutil.SetupClient(t)
-	if err := InitObjectCountGauges(client); err != nil {
+	counts := make(map[string]int64)
+	if err := InitObjectCountGauges(func() map[string]int64 { return counts }); err != nil {
 		t.Fatalf("InitObjectCountGauges returned error: %v", err)
 	}
 }
@@ -252,10 +250,14 @@ func TestInitObjectCountGauges_RecordsValues(t *testing.T) {
 	otel.SetMeterProvider(mp)
 	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
-	// Empty database: all types should report count 0.
-	client := testutil.SetupClient(t)
+	// Pre-populated counts simulating a post-sync cache update.
+	counts := map[string]int64{
+		"org": 42, "campus": 5, "fac": 100, "carrier": 3, "carrierfac": 7,
+		"ix": 50, "ixlan": 50, "ixpfx": 200, "ixfac": 80,
+		"net": 300, "poc": 150, "netfac": 400, "netixlan": 500,
+	}
 
-	if err := InitObjectCountGauges(client); err != nil {
+	if err := InitObjectCountGauges(func() map[string]int64 { return counts }); err != nil {
 		t.Fatalf("InitObjectCountGauges: %v", err)
 	}
 
@@ -290,45 +292,31 @@ func TestInitObjectCountGauges_RecordsValues(t *testing.T) {
 		}
 	}
 
-	// All counts should be 0 in an empty database.
-	expectedTypes := []string{
-		"org", "campus", "fac", "carrier", "carrierfac",
-		"ix", "ixlan", "ixpfx", "ixfac",
-		"net", "poc", "netfac", "netixlan",
-	}
-	for _, typ := range expectedTypes {
+	// Verify each type reports the expected cached count.
+	for typ, expected := range counts {
 		val, exists := typeValues[typ]
 		if !exists {
 			t.Errorf("missing type attribute %q in data points", typ)
 			continue
 		}
-		if val != 0 {
-			t.Errorf("type %q count = %d, want 0 in empty database", typ, val)
+		if val != expected {
+			t.Errorf("type %q count = %d, want %d", typ, val, expected)
 		}
 	}
 }
 
-func TestInitObjectCountGauges_ErrorInCallback(t *testing.T) {
+func TestInitObjectCountGauges_EmptyCache(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
 	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
-	client := testutil.SetupClient(t)
-
-	if err := InitObjectCountGauges(client); err != nil {
+	// Empty map simulates state before first sync completes.
+	counts := make(map[string]int64)
+	if err := InitObjectCountGauges(func() map[string]int64 { return counts }); err != nil {
 		t.Fatalf("InitObjectCountGauges: %v", err)
 	}
 
-	// Close the underlying database to trigger errors in the callback.
-	// testutil.SetupClient uses ent which wraps a sql.DB.
-	// We need to close the DB before collecting metrics.
-	if err := client.Close(); err != nil {
-		t.Fatalf("closing client: %v", err)
-	}
-
-	// Collect metrics -- the callback should encounter errors for each type
-	// and skip them gracefully (continue branch).
 	ctx := t.Context()
 	var rm metricdata.ResourceMetrics
 	if err := reader.Collect(ctx, &rm); err != nil {
@@ -336,7 +324,7 @@ func TestInitObjectCountGauges_ErrorInCallback(t *testing.T) {
 	}
 
 	// The gauge should still be present but with zero data points
-	// because all count queries failed.
+	// because the cache is empty (no sync has run yet).
 	found := findMetric(rm, "pdbplus.data.type.count")
 	if found == nil {
 		// Acceptable: SDK may omit gauges with no observations.
@@ -348,7 +336,7 @@ func TestInitObjectCountGauges_ErrorInCallback(t *testing.T) {
 		t.Fatalf("expected Gauge[int64], got %T", found.Data)
 	}
 	if len(gauge.DataPoints) != 0 {
-		t.Errorf("expected 0 data points when DB is closed, got %d", len(gauge.DataPoints))
+		t.Errorf("expected 0 data points for empty cache, got %d", len(gauge.DataPoints))
 	}
 }
 

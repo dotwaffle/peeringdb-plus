@@ -5,13 +5,13 @@ import (
 	"context"
 	"html/template"
 	"net/http"
-	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
+	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/graph"
 	"github.com/oyyblin/gqlgen-depth-limit-extension/depth"
 )
@@ -54,18 +54,18 @@ func NewHandler(resolver *graph.Resolver) http.Handler {
 }
 
 // classifyError returns a machine-readable error code based on the error type.
+// Uses ent type checks (errors.As) instead of string matching per GO-ERR-2.
 func classifyError(err error) string {
 	if err == nil {
 		return "INTERNAL_ERROR"
 	}
-	msg := err.Error()
 	switch {
-	case strings.Contains(msg, "not found"):
+	case ent.IsNotFound(err):
 		return "NOT_FOUND"
-	case strings.Contains(msg, "validation"):
+	case ent.IsValidationError(err):
 		return "VALIDATION_ERROR"
-	case strings.Contains(msg, "limit must"), strings.Contains(msg, "offset must"):
-		return "BAD_REQUEST"
+	case ent.IsConstraintError(err):
+		return "CONSTRAINT_ERROR"
 	default:
 		return "INTERNAL_ERROR"
 	}
