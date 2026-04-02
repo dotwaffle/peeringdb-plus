@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -130,8 +131,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Cached object counts for metrics gauge (PERF-02).
+	// Updated by sync worker after each successful sync.
+	var objectCountCache atomic.Pointer[map[string]int64]
+	initialCounts := make(map[string]int64)
+	objectCountCache.Store(&initialCounts)
+
 	// Initialize per-type object count gauges for business metrics dashboard.
-	if err := pdbotel.InitObjectCountGauges(entClient); err != nil {
+	// Reads from atomic cache instead of live COUNT queries per PERF-02.
+	if err := pdbotel.InitObjectCountGauges(func() map[string]int64 {
+		return *objectCountCache.Load()
+	}); err != nil {
 		logger.Error("failed to init object count gauges", slog.Any("error", err))
 		os.Exit(1)
 	}
@@ -152,6 +162,13 @@ func main() {
 		IncludeDeleted: cfg.IncludeDeleted,
 		IsPrimary:      isPrimaryFn,
 		SyncMode:       cfg.SyncMode,
+		OnSyncComplete: func(counts map[string]int) {
+			m := make(map[string]int64, len(counts))
+			for k, v := range counts {
+				m[k] = int64(v)
+			}
+			objectCountCache.Store(&m)
+		},
 	}, logger)
 
 	// Start scheduler on all instances per D-22, D-29.

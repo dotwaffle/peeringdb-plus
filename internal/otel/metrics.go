@@ -8,8 +8,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-
-	"github.com/dotwaffle/peeringdb-plus/ent"
 )
 
 // SyncDuration records the duration of sync operations in seconds.
@@ -145,49 +143,20 @@ func InitFreshnessGauge(lastSyncFn func(ctx context.Context) (time.Time, bool)) 
 	return nil
 }
 
-// typeCounter pairs a short PeeringDB type name with a function that returns
-// the count of stored objects for that type.
-type typeCounter struct {
-	name    string
-	countFn func(ctx context.Context) (int, error)
-}
-
 // InitObjectCountGauges registers an observable Int64Gauge that reports the
-// number of objects stored per PeeringDB type. The gauge callback queries the
-// ent client for all 13 PeeringDB types on each scrape per D-12, D-13, D-14.
-// Must be called after OTel Setup() and database initialization.
-func InitObjectCountGauges(client *ent.Client) error {
-	counters := []typeCounter{
-		{"org", func(ctx context.Context) (int, error) { return client.Organization.Query().Count(ctx) }},
-		{"campus", func(ctx context.Context) (int, error) { return client.Campus.Query().Count(ctx) }},
-		{"fac", func(ctx context.Context) (int, error) { return client.Facility.Query().Count(ctx) }},
-		{"carrier", func(ctx context.Context) (int, error) { return client.Carrier.Query().Count(ctx) }},
-		{"carrierfac", func(ctx context.Context) (int, error) { return client.CarrierFacility.Query().Count(ctx) }},
-		{"ix", func(ctx context.Context) (int, error) { return client.InternetExchange.Query().Count(ctx) }},
-		{"ixlan", func(ctx context.Context) (int, error) { return client.IxLan.Query().Count(ctx) }},
-		{"ixpfx", func(ctx context.Context) (int, error) { return client.IxPrefix.Query().Count(ctx) }},
-		{"ixfac", func(ctx context.Context) (int, error) { return client.IxFacility.Query().Count(ctx) }},
-		{"net", func(ctx context.Context) (int, error) { return client.Network.Query().Count(ctx) }},
-		{"poc", func(ctx context.Context) (int, error) { return client.Poc.Query().Count(ctx) }},
-		{"netfac", func(ctx context.Context) (int, error) { return client.NetworkFacility.Query().Count(ctx) }},
-		{"netixlan", func(ctx context.Context) (int, error) { return client.NetworkIxLan.Query().Count(ctx) }},
-	}
-
+// number of objects stored per PeeringDB type. Reads from a cache function
+// that returns pre-computed counts updated at sync completion time (PERF-02).
+// Must be called after OTel Setup().
+func InitObjectCountGauges(countsFn func() map[string]int64) error {
 	meter := otel.Meter("peeringdb-plus")
 	_, err := meter.Int64ObservableGauge("pdbplus.data.type.count",
 		metric.WithDescription("Number of objects stored per PeeringDB type"),
 		metric.WithUnit("{object}"),
 		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
-			ctx := context.Background()
-			for _, c := range counters {
-				count, err := c.countFn(ctx)
-				if err != nil {
-					// Skip this type on error; avoid noisy errors in
-					// observable callbacks that run on every scrape.
-					continue
-				}
-				o.Observe(int64(count), metric.WithAttributes(
-					attribute.String("type", c.name),
+			counts := countsFn()
+			for typeName, count := range counts {
+				o.Observe(count, metric.WithAttributes(
+					attribute.String("type", typeName),
 				))
 			}
 			return nil

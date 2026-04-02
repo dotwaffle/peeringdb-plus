@@ -27,8 +27,9 @@ var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 
 // WorkerConfig holds configuration for the sync worker.
 type WorkerConfig struct {
 	IncludeDeleted bool
-	IsPrimary      func() bool // live primary detection; nil defaults to always-primary
+	IsPrimary      func() bool              // live primary detection; nil defaults to always-primary
 	SyncMode       config.SyncMode
+	OnSyncComplete func(counts map[string]int) // called after successful sync with per-type object counts
 }
 
 // Worker orchestrates PeeringDB data synchronization.
@@ -325,6 +326,11 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 
 	// Mark first successful sync per D-30.
 	w.synced.Store(true)
+
+	// Notify listeners (e.g. cached metrics gauge) with per-type object counts.
+	if w.config.OnSyncComplete != nil {
+		w.config.OnSyncComplete(objectCounts)
+	}
 
 	return nil
 }
