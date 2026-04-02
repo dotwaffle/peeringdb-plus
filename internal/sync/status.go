@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -57,7 +58,7 @@ func GetCursor(ctx context.Context, db *sql.DB, objType string) (time.Time, erro
 		`SELECT last_sync_at FROM sync_cursors WHERE type = ? AND last_status = 'success'`,
 		objType,
 	).Scan(&lastSyncAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return time.Time{}, nil
 	}
 	if err != nil {
@@ -125,7 +126,7 @@ func GetLastSuccessfulSyncTime(ctx context.Context, db *sql.DB) (time.Time, erro
 	err := db.QueryRowContext(ctx,
 		`SELECT completed_at FROM sync_status WHERE status = 'success' ORDER BY id DESC LIMIT 1`,
 	).Scan(&completedAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return time.Time{}, nil
 	}
 	if err != nil {
@@ -150,7 +151,7 @@ func GetLastStatus(ctx context.Context, db *sql.DB) (*Status, error) {
 		errorMessage sql.NullString
 	)
 	err := row.Scan(&startedAt, &completedAt, &durationMs, &countsStr, &statusStr, &errorMessage)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

@@ -1,9 +1,10 @@
 package web
 
 import (
+	"cmp"
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 
 	"golang.org/x/sync/errgroup"
 
@@ -178,7 +179,7 @@ func computeSharedIXPs(a, b []*ent.NetworkIxLan) []templates.CompareIXP {
 		}
 	}
 
-	sort.Slice(shared, func(i, j int) bool { return shared[i].IXName < shared[j].IXName })
+	slices.SortFunc(shared, func(a, b templates.CompareIXP) int { return cmp.Compare(a.IXName, b.IXName) })
 	return shared
 }
 
@@ -224,7 +225,7 @@ func computeSharedFacilities(a, b []*ent.NetworkFacility) []templates.CompareFac
 		}
 	}
 
-	sort.Slice(shared, func(i, j int) bool { return shared[i].FacName < shared[j].FacName })
+	slices.SortFunc(shared, func(a, b templates.CompareFacility) int { return cmp.Compare(a.FacName, b.FacName) })
 	return shared
 }
 
@@ -293,7 +294,7 @@ func (s *CompareService) computeSharedCampuses(ctx context.Context, facNetsA, fa
 		})
 	}
 
-	sort.Slice(shared, func(i, j int) bool { return shared[i].CampusName < shared[j].CampusName })
+	slices.SortFunc(shared, func(a, b templates.CompareCampus) int { return cmp.Compare(a.CampusName, b.CampusName) })
 	return shared, nil
 }
 
@@ -392,7 +393,7 @@ func computeAllIXPs(a, b []*ent.NetworkIxLan) []templates.CompareIXP {
 		})
 	}
 
-	sort.Slice(result, func(i, j int) bool { return result[i].IXName < result[j].IXName })
+	slices.SortFunc(result, func(a, b templates.CompareIXP) int { return cmp.Compare(a.IXName, b.IXName) })
 	return result
 }
 
@@ -473,7 +474,7 @@ func computeAllFacilities(a, b []*ent.NetworkFacility) []templates.CompareFacili
 		})
 	}
 
-	sort.Slice(result, func(i, j int) bool { return result[i].FacName < result[j].FacName })
+	slices.SortFunc(result, func(a, b templates.CompareFacility) int { return cmp.Compare(a.FacName, b.FacName) })
 	return result
 }
 

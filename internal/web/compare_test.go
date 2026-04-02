@@ -1,7 +1,6 @@
 package web
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -29,7 +28,7 @@ import (
 //   - NetworkFacility for B at Equinix AM5 (ID=302, local_asn=15169)
 func seedCompareTestData(t *testing.T, client *ent.Client) {
 	t.Helper()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	org, err := client.Organization.Create().
 		SetID(1).SetName("TestOrg").
@@ -230,7 +229,7 @@ func TestCompareService_SharedIXPs(t *testing.T) {
 	seedCompareTestData(t, client)
 
 	svc := NewCompareService(client)
-	data, err := svc.Compare(context.Background(), CompareInput{
+	data, err := svc.Compare(t.Context(), CompareInput{
 		ASN1:     13335,
 		ASN2:     15169,
 		ViewMode: "shared",
@@ -285,7 +284,7 @@ func TestCompareService_SharedFacilities(t *testing.T) {
 	seedCompareTestData(t, client)
 
 	svc := NewCompareService(client)
-	data, err := svc.Compare(context.Background(), CompareInput{
+	data, err := svc.Compare(t.Context(), CompareInput{
 		ASN1:     13335,
 		ASN2:     15169,
 		ViewMode: "shared",
@@ -328,7 +327,7 @@ func TestCompareService_SharedCampuses(t *testing.T) {
 	seedCompareTestData(t, client)
 
 	svc := NewCompareService(client)
-	data, err := svc.Compare(context.Background(), CompareInput{
+	data, err := svc.Compare(t.Context(), CompareInput{
 		ASN1:     13335,
 		ASN2:     15169,
 		ViewMode: "shared",
@@ -359,7 +358,7 @@ func TestCompareService_SharedCampuses(t *testing.T) {
 func TestCompareService_NoOverlap(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	org, err := client.Organization.Create().
 		SetID(1).SetName("TestOrg").
@@ -466,7 +465,7 @@ func TestCompareService_FullViewIXPs(t *testing.T) {
 	seedCompareTestData(t, client)
 
 	svc := NewCompareService(client)
-	data, err := svc.Compare(context.Background(), CompareInput{
+	data, err := svc.Compare(t.Context(), CompareInput{
 		ASN1:     13335,
 		ASN2:     15169,
 		ViewMode: "full",
@@ -512,7 +511,7 @@ func TestCompareService_FullViewFacilities(t *testing.T) {
 	seedCompareTestData(t, client)
 
 	svc := NewCompareService(client)
-	data, err := svc.Compare(context.Background(), CompareInput{
+	data, err := svc.Compare(t.Context(), CompareInput{
 		ASN1:     13335,
 		ASN2:     15169,
 		ViewMode: "full",
@@ -557,7 +556,7 @@ func TestCompareService_InvalidASN(t *testing.T) {
 	client := testutil.SetupClient(t)
 
 	svc := NewCompareService(client)
-	_, err := svc.Compare(context.Background(), CompareInput{
+	_, err := svc.Compare(t.Context(), CompareInput{
 		ASN1:     99999,
 		ASN2:     99998,
 		ViewMode: "shared",
@@ -577,7 +576,7 @@ func TestCompareService_DBError(t *testing.T) {
 	// Close the client to trigger DB error on the next query.
 	client.Close()
 
-	_, err := svc.Compare(context.Background(), CompareInput{
+	_, err := svc.Compare(t.Context(), CompareInput{
 		ASN1:     13335,
 		ASN2:     15169,
 		ViewMode: "shared",

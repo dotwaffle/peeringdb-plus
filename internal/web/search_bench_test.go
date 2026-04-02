@@ -1,7 +1,6 @@
 package web
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -21,7 +20,7 @@ func seedBenchSearchData(b *testing.B) *SearchService {
 	client := enttest.Open(b, dialect.SQLite, dsn)
 	b.Cleanup(func() { client.Close() })
 
-	ctx := context.Background()
+	ctx := b.Context()
 	ts := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	// Seed 20 organizations.
@@ -136,7 +135,7 @@ func seedBenchSearchData(b *testing.B) *SearchService {
 // with 125 seeded entities.
 func BenchmarkSearch(b *testing.B) {
 	svc := seedBenchSearchData(b)
-	ctx := context.Background()
+	ctx := b.Context()
 
 	b.Run("broad_match", func(b *testing.B) {
 		b.ResetTimer()

@@ -5,9 +5,10 @@
 package conformance
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
-	"sort"
+	"slices"
 )
 
 // Difference describes a structural mismatch between two JSON responses.
@@ -23,8 +24,8 @@ type Difference struct {
 // returned sorted by Path for deterministic output.
 func CompareStructure(reference, actual map[string]any) []Difference {
 	diffs := compareStructure("", reference, actual)
-	sort.Slice(diffs, func(i, j int) bool {
-		return diffs[i].Path < diffs[j].Path
+	slices.SortFunc(diffs, func(a, b Difference) int {
+		return cmp.Compare(a.Path, b.Path)
 	})
 	return diffs
 }

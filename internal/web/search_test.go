@@ -1,7 +1,6 @@
 package web
 
 import (
-	"context"
 	"strings"
 	"testing"
 	"time"
@@ -17,7 +16,7 @@ var testSearchTimestamp = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 func seedSearchData(t *testing.T) *SearchService {
 	t.Helper()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Organization (parent for Network, IXP, Facility, Campus, Carrier)
 	org, err := client.Organization.Create().
@@ -124,7 +123,7 @@ func TestSearchServiceNew(t *testing.T) {
 func TestSearchEmptyQuery(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	results, err := svc.Search(ctx, "")
 	if err != nil {
@@ -138,7 +137,7 @@ func TestSearchEmptyQuery(t *testing.T) {
 func TestSearchSingleCharQuery(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	results, err := svc.Search(ctx, "a")
 	if err != nil {
@@ -152,7 +151,7 @@ func TestSearchSingleCharQuery(t *testing.T) {
 func TestSearchWhitespaceQuery(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	results, err := svc.Search(ctx, "  ")
 	if err != nil {
@@ -166,7 +165,7 @@ func TestSearchWhitespaceQuery(t *testing.T) {
 func TestSearchMatchesMultipleTypes(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// "Cloud" should match Network ("Cloudflare") and Organization ("Cloudflare Inc")
 	results, err := svc.Search(ctx, "Cloud")
@@ -193,7 +192,7 @@ func TestSearchMatchesMultipleTypes(t *testing.T) {
 func TestSearchMatchesSingleType(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// "DE-CIX" should match only the IXP
 	results, err := svc.Search(ctx, "DE-CIX")
@@ -214,7 +213,7 @@ func TestSearchMatchesSingleType(t *testing.T) {
 func TestSearchMatchesFacilityAndCampus(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// "Equinix" matches Facility and Campus
 	results, err := svc.Search(ctx, "Equinix")
@@ -239,7 +238,7 @@ func TestSearchMatchesFacilityAndCampus(t *testing.T) {
 func TestSearchNoMatches(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	results, err := svc.Search(ctx, "nonexistent")
 	if err != nil {
@@ -253,7 +252,7 @@ func TestSearchNoMatches(t *testing.T) {
 func TestSearchTypeResultFields(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	results, err := svc.Search(ctx, "DE-CIX")
 	if err != nil {
@@ -289,7 +288,7 @@ func TestSearchTypeResultFields(t *testing.T) {
 func TestSearchNetworkDetailURL(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	results, err := svc.Search(ctx, "Cloudflare")
 	if err != nil {
@@ -324,7 +323,7 @@ func TestSearchNetworkDetailURL(t *testing.T) {
 func TestSearchIXPDetailURL(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	results, err := svc.Search(ctx, "DE-CIX")
 	if err != nil {
@@ -349,7 +348,7 @@ func TestSearchIXPDetailURL(t *testing.T) {
 func TestSearchFacilityMetadata(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	results, err := svc.Search(ctx, "Equinix DC5")
 	if err != nil {
@@ -381,7 +380,7 @@ func TestSearchFacilityMetadata(t *testing.T) {
 func TestSearchCampusDetailURL(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	results, err := svc.Search(ctx, "Campus Ashburn")
 	if err != nil {
@@ -413,7 +412,7 @@ func TestSearchCampusDetailURL(t *testing.T) {
 func TestSearchCarrierDetailURL(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	results, err := svc.Search(ctx, "Zayo")
 	if err != nil {
@@ -446,7 +445,7 @@ func TestSearchCarrierDetailURL(t *testing.T) {
 func TestSearchOrganizationDetailURL(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// "Cloudflare Inc" matches the Organization name exactly
 	results, err := svc.Search(ctx, "Cloudflare Inc")
@@ -479,7 +478,7 @@ func TestSearchOrganizationDetailURL(t *testing.T) {
 func TestSearchNetworkASNField(t *testing.T) {
 	t.Parallel()
 	svc := seedSearchData(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	results, err := svc.Search(ctx, "Cloudflare")
 	if err != nil {
@@ -512,7 +511,7 @@ func TestSearchNetworkASNField(t *testing.T) {
 func TestSearchHasMore(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create organization
 	org, err := client.Organization.Create().
@@ -565,7 +564,7 @@ func TestSearchHasMore(t *testing.T) {
 func TestSearchTypeOrder(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create org
 	org, err := client.Organization.Create().
@@ -642,7 +641,7 @@ func TestSearchService_DBError(t *testing.T) {
 	// Close the client to trigger DB error on the next query.
 	client.Close()
 
-	_, err := svc.Search(context.Background(), "test")
+	_, err := svc.Search(t.Context(), "test")
 	if err == nil {
 		t.Fatal("expected error for closed DB, got nil")
 	}

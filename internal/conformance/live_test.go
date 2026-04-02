@@ -1,7 +1,6 @@
 package conformance_test
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -51,7 +50,7 @@ func TestLiveConformance(t *testing.T) {
 
 		t.Run(typeName, func(t *testing.T) {
 			// NOT parallel: sequential to respect rate limits.
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Fetch from beta.peeringdb.com.
 			url := fmt.Sprintf("https://beta.peeringdb.com/api/%s?limit=1", typeName)

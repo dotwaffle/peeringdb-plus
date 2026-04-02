@@ -1,7 +1,6 @@
 package sync_test
 
 import (
-	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -121,7 +120,7 @@ func TestFullSyncWithFixtures(t *testing.T) {
 	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	pdbClient.SetRetryBaseDelay(0)
 
-	if err := sync.InitStatusTable(context.Background(), db); err != nil {
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
 		t.Fatalf("init status table: %v", err)
 	}
 
@@ -129,7 +128,7 @@ func TestFullSyncWithFixtures(t *testing.T) {
 		IncludeDeleted: false,
 	}, slog.Default())
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Run sync.
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
@@ -225,7 +224,7 @@ func TestSyncDeletesStaleRecords(t *testing.T) {
 	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	pdbClient.SetRetryBaseDelay(0)
 
-	if err := sync.InitStatusTable(context.Background(), db); err != nil {
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
 		t.Fatalf("init status table: %v", err)
 	}
 
@@ -233,7 +232,7 @@ func TestSyncDeletesStaleRecords(t *testing.T) {
 		IncludeDeleted: false,
 	}, slog.Default())
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// First sync with full fixtures.
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
@@ -372,7 +371,7 @@ func TestSyncIncludeDeleted(t *testing.T) {
 	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	pdbClient.SetRetryBaseDelay(0)
 
-	if err := sync.InitStatusTable(context.Background(), db); err != nil {
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
 		t.Fatalf("init status table: %v", err)
 	}
 
@@ -380,7 +379,7 @@ func TestSyncIncludeDeleted(t *testing.T) {
 		IncludeDeleted: true,
 	}, slog.Default())
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
 		t.Fatalf("sync failed: %v", err)
@@ -420,7 +419,7 @@ func TestSyncDeletesFKIntegrity(t *testing.T) {
 	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	pdbClient.SetRetryBaseDelay(0)
 
-	if err := sync.InitStatusTable(context.Background(), db); err != nil {
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
 		t.Fatalf("init status table: %v", err)
 	}
 
@@ -428,7 +427,7 @@ func TestSyncDeletesFKIntegrity(t *testing.T) {
 		IncludeDeleted: false,
 	}, slog.Default())
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// First sync with full fixtures.
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
@@ -564,7 +563,7 @@ func TestSyncIdempotent(t *testing.T) {
 	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	pdbClient.SetRetryBaseDelay(0)
 
-	if err := sync.InitStatusTable(context.Background(), db); err != nil {
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
 		t.Fatalf("init status table: %v", err)
 	}
 
@@ -572,7 +571,7 @@ func TestSyncIdempotent(t *testing.T) {
 		IncludeDeleted: false,
 	}, slog.Default())
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// First sync.
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {

@@ -68,7 +68,7 @@ func TestFetchAllPagination(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), TypeOrg, WithSince(time.Unix(1000, 0)))
+	result, err := client.FetchAll(t.Context(), TypeOrg, WithSince(time.Unix(1000, 0)))
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestFetchAllRetryOn429(t *testing.T) {
 	client.limiter.SetBurst(1000)
 	client.retryBaseDelay = 1 * time.Millisecond // Speed up tests.
 
-	result, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(t.Context(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -141,7 +141,7 @@ func TestFetchAllRetryOn5xx(t *testing.T) {
 	client.limiter.SetBurst(1000)
 	client.retryBaseDelay = 1 * time.Millisecond
 
-	result, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(t.Context(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -166,7 +166,7 @@ func TestFetchAllMaxRetries(t *testing.T) {
 	client.limiter.SetBurst(1000)
 	client.retryBaseDelay = 1 * time.Millisecond
 
-	_, err := client.FetchAll(context.Background(), TypeOrg)
+	_, err := client.FetchAll(t.Context(), TypeOrg)
 	if err == nil {
 		t.Fatal("expected error after max retries, got nil")
 	}
@@ -196,7 +196,7 @@ func TestFetchAllNoRetryOn4xx(t *testing.T) {
 	client.limiter.SetBurst(1000)
 	client.retryBaseDelay = 1 * time.Millisecond
 
-	_, err := client.FetchAll(context.Background(), TypeOrg)
+	_, err := client.FetchAll(t.Context(), TypeOrg)
 	if err == nil {
 		t.Fatal("expected error on 404, got nil")
 	}
@@ -212,7 +212,7 @@ func TestFetchAllContextCancellation(t *testing.T) {
 
 	// Cancel context before calling FetchAll. The rate limiter's Wait
 	// will return immediately with a context error.
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel() // Cancel immediately.
 
 	client := NewClient("http://127.0.0.1:1", slog.Default())
@@ -243,7 +243,7 @@ func TestFetchAllDepthZero(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	_, err := client.FetchAll(context.Background(), TypeNet)
+	_, err := client.FetchAll(t.Context(), TypeNet)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -274,7 +274,7 @@ func TestFetchAllEmptyFirstPage(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), TypePoc)
+	result, err := client.FetchAll(t.Context(), TypePoc)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -312,7 +312,7 @@ func TestFetchAllAccumulatesAllPages(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), TypeOrg, WithSince(time.Unix(1000, 0)))
+	result, err := client.FetchAll(t.Context(), TypeOrg, WithSince(time.Unix(1000, 0)))
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -343,7 +343,7 @@ func TestFetchAllRateLimiter(t *testing.T) {
 	client.limiter.SetBurst(1)
 
 	start := time.Now()
-	result, err := client.FetchAll(context.Background(), TypeOrg, WithSince(time.Unix(1000, 0)))
+	result, err := client.FetchAll(t.Context(), TypeOrg, WithSince(time.Unix(1000, 0)))
 	elapsed := time.Since(start)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
@@ -389,7 +389,7 @@ func TestFetchAllUnknownFieldsIgnored(t *testing.T) {
 
 	// FetchAll returns json.RawMessage, so unknown fields are always preserved.
 	// The key test is that the client doesn't error on unknown JSON fields.
-	result, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(t.Context(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -444,7 +444,7 @@ func TestFetchTypeDeserialization(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	orgs, err := FetchType[Organization](context.Background(), client, TypeOrg)
+	orgs, err := FetchType[Organization](t.Context(), client, TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchType: %v", err)
 	}
@@ -475,7 +475,7 @@ func TestUserAgent(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	_, _ = client.FetchAll(context.Background(), TypeOrg)
+	_, _ = client.FetchAll(t.Context(), TypeOrg)
 
 	if capturedUA != "peeringdb-plus/1.0" {
 		t.Errorf("User-Agent = %q, want %q", capturedUA, "peeringdb-plus/1.0")
@@ -490,7 +490,7 @@ func setupTraceTest(t *testing.T) *tracetest.InMemoryExporter {
 	exporter := tracetest.NewInMemoryExporter()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
 	otel.SetTracerProvider(tp)
-	t.Cleanup(func() { _ = tp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = tp.Shutdown(t.Context()) })
 	return exporter
 }
 
@@ -534,7 +534,7 @@ func TestFetchAllCreatesSpanHierarchy(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), "net")
+	result, err := client.FetchAll(t.Context(), "net")
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -600,7 +600,7 @@ func TestFetchAllRecordsPageEvents(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), "org", WithSince(time.Unix(1000, 0)))
+	result, err := client.FetchAll(t.Context(), "org", WithSince(time.Unix(1000, 0)))
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -683,7 +683,7 @@ func TestDoWithRetryCreatesPerAttemptSpans(t *testing.T) {
 	client.limiter.SetBurst(1000)
 	client.retryBaseDelay = 1 * time.Millisecond
 
-	result, err := client.FetchAll(context.Background(), "org", WithSince(time.Unix(1000, 0)))
+	result, err := client.FetchAll(t.Context(), "org", WithSince(time.Unix(1000, 0)))
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -735,7 +735,7 @@ func TestWithAPIKeyHeader(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	_, err := client.FetchAll(context.Background(), TypeOrg)
+	_, err := client.FetchAll(t.Context(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -759,7 +759,7 @@ func TestNoAPIKeyNoHeader(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	_, err := client.FetchAll(context.Background(), TypeOrg)
+	_, err := client.FetchAll(t.Context(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -807,7 +807,7 @@ func TestAuthErrorNotRetried_401(t *testing.T) {
 	client.limiter.SetBurst(1000)
 	client.retryBaseDelay = 1 * time.Millisecond
 
-	_, err := client.FetchAll(context.Background(), TypeOrg)
+	_, err := client.FetchAll(t.Context(), TypeOrg)
 	if err == nil {
 		t.Fatal("expected error on 401, got nil")
 	}
@@ -841,7 +841,7 @@ func TestAuthErrorNotRetried_403(t *testing.T) {
 	client.limiter.SetBurst(1000)
 	client.retryBaseDelay = 1 * time.Millisecond
 
-	_, err := client.FetchAll(context.Background(), TypeOrg)
+	_, err := client.FetchAll(t.Context(), TypeOrg)
 	if err == nil {
 		t.Fatal("expected error on 403, got nil")
 	}
@@ -905,7 +905,7 @@ func TestFetchAllWithSince(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	_, err := client.FetchAll(context.Background(), TypeOrg, WithSince(sinceTime))
+	_, err := client.FetchAll(t.Context(), TypeOrg, WithSince(sinceTime))
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -934,7 +934,7 @@ func TestFetchMetaParsing(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(t.Context(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -963,7 +963,7 @@ func TestFetchMetaMissing(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), TypeOrg)
+	result, err := client.FetchAll(t.Context(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -997,7 +997,7 @@ func TestFetchMetaEarliestAcrossPages(t *testing.T) {
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
 
-	result, err := client.FetchAll(context.Background(), TypeOrg, WithSince(time.Unix(1000, 0)))
+	result, err := client.FetchAll(t.Context(), TypeOrg, WithSince(time.Unix(1000, 0)))
 	if err != nil {
 		t.Fatalf("FetchAll: %v", err)
 	}
@@ -1046,7 +1046,7 @@ func TestFetchAll_DecodeError(t *testing.T) {
 	client := NewClient(server.URL, slog.Default())
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 
-	_, err := client.FetchAll(context.Background(), "test")
+	_, err := client.FetchAll(t.Context(), "test")
 	if err == nil {
 		t.Fatal("expected error for invalid JSON response")
 	}
@@ -1072,7 +1072,7 @@ func TestFetchType_UnmarshalError(t *testing.T) {
 		ID int `json:"id"`
 	}
 
-	_, err := FetchType[strictItem](context.Background(), client, "test")
+	_, err := FetchType[strictItem](t.Context(), client, "test")
 	if err == nil {
 		t.Fatal("expected unmarshal error")
 	}
@@ -1093,7 +1093,7 @@ func TestSetRateLimit(t *testing.T) {
 	client.SetRateLimit(rate.NewLimiter(rate.Every(100*time.Millisecond), 5))
 
 	// Verify the client works after SetRateLimit.
-	_, err := client.FetchAll(context.Background(), TypeOrg)
+	_, err := client.FetchAll(t.Context(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll after SetRateLimit: %v", err)
 	}
@@ -1112,7 +1112,7 @@ func TestSetRetryBaseDelay(t *testing.T) {
 
 	// Verify the client works after SetRetryBaseDelay.
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
-	_, err := client.FetchAll(context.Background(), TypeOrg)
+	_, err := client.FetchAll(t.Context(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll after SetRetryBaseDelay: %v", err)
 	}
@@ -1131,7 +1131,7 @@ func TestFetchType_FetchAllError(t *testing.T) {
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 
 	type item struct{ ID int }
-	_, err := FetchType[item](context.Background(), client, "test")
+	_, err := FetchType[item](t.Context(), client, "test")
 	if err == nil {
 		t.Fatal("expected error from FetchAll failure")
 	}
@@ -1150,7 +1150,7 @@ func TestFetchAll_DecodeError_Incremental(t *testing.T) {
 	client := NewClient(server.URL, slog.Default())
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 
-	_, err := client.FetchAll(context.Background(), "test", WithSince(time.Unix(1000, 0)))
+	_, err := client.FetchAll(t.Context(), "test", WithSince(time.Unix(1000, 0)))
 	if err == nil {
 		t.Fatal("expected decode error for incremental sync")
 	}
@@ -1184,7 +1184,7 @@ func TestFetchAll_BodyReadError(t *testing.T) {
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	client.http.Transport = transport
 
-	_, err := client.FetchAll(context.Background(), "test")
+	_, err := client.FetchAll(t.Context(), "test")
 	if err == nil {
 		t.Fatal("expected error from body read failure")
 	}
@@ -1221,7 +1221,7 @@ func TestFetchAll_IncrementalBodyReadError(t *testing.T) {
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	client.http.Transport = transport
 
-	_, err := client.FetchAll(context.Background(), "test", WithSince(time.Unix(1000, 0)))
+	_, err := client.FetchAll(t.Context(), "test", WithSince(time.Unix(1000, 0)))
 	if err == nil {
 		t.Fatal("expected error from incremental body read failure")
 	}
@@ -1254,7 +1254,7 @@ func TestFetchAll_IncrementalFetchError(t *testing.T) {
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	client.SetRetryBaseDelay(time.Millisecond) // Fast retries for testing.
 
-	_, err := client.FetchAll(context.Background(), "test", WithSince(time.Unix(1000, 0)))
+	_, err := client.FetchAll(t.Context(), "test", WithSince(time.Unix(1000, 0)))
 	if err == nil {
 		t.Fatal("expected error from paginated fetch failure")
 	}
@@ -1275,7 +1275,7 @@ func TestDoWithRetry_RateLimiterError(t *testing.T) {
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 
 	// Cancel context before the rate limiter can proceed.
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel() // Immediately cancelled.
 
 	_, err := client.FetchAll(ctx, "test")
@@ -1300,7 +1300,7 @@ func TestDoWithRetry_ContextCancellation(t *testing.T) {
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	client.SetRetryBaseDelay(200 * time.Millisecond)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 
 	// Cancel the context after a short delay so it triggers between retries.
 	go func() {

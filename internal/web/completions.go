@@ -139,20 +139,17 @@ func (h *Handler) handleCompletionSearch(w http.ResponseWriter, r *http.Request)
 // For networks (TypeSlug "net"), returns the ASN from "/ui/asn/<asn>".
 // For other types, returns the ID from "/ui/<type>/<id>".
 func extractID(detailURL, typeSlug string) string {
+	var prefix string
 	switch typeSlug {
 	case "net":
-		return strings.TrimPrefix(detailURL, "/ui/asn/")
-	case "ix":
-		return strings.TrimPrefix(detailURL, "/ui/ix/")
-	case "fac":
-		return strings.TrimPrefix(detailURL, "/ui/fac/")
-	case "org":
-		return strings.TrimPrefix(detailURL, "/ui/org/")
-	case "campus":
-		return strings.TrimPrefix(detailURL, "/ui/campus/")
-	case "carrier":
-		return strings.TrimPrefix(detailURL, "/ui/carrier/")
+		prefix = "/ui/asn/"
+	case "ix", "fac", "org", "campus", "carrier":
+		prefix = "/ui/" + typeSlug + "/"
 	default:
 		return ""
 	}
+	if id, ok := strings.CutPrefix(detailURL, prefix); ok {
+		return id
+	}
+	return ""
 }

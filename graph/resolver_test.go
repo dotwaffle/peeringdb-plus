@@ -2,7 +2,6 @@ package graph_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -29,7 +28,7 @@ func setupTestServer(t *testing.T) *httptest.Server {
 	client, db := testutil.SetupClientWithDB(t)
 
 	// Initialize sync_status table (raw SQL, outside ent).
-	if err := pdbsync.InitStatusTable(context.Background(), db); err != nil {
+	if err := pdbsync.InitStatusTable(t.Context(), db); err != nil {
 		t.Fatalf("init sync_status table: %v", err)
 	}
 
@@ -56,8 +55,8 @@ type gqlResponse struct {
 	Data   json.RawMessage `json:"data"`
 	Errors []struct {
 		Message    string                 `json:"message"`
-		Path       []interface{}          `json:"path"`
-		Extensions map[string]interface{} `json:"extensions"`
+		Path       []any          `json:"path"`
+		Extensions map[string]any `json:"extensions"`
 	} `json:"errors"`
 }
 
@@ -89,7 +88,7 @@ func postGraphQL(t *testing.T, serverURL, query string) gqlResponse {
 func seedTestData(t *testing.T) *httptest.Server {
 	t.Helper()
 	client, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Initialize sync_status table.
 	if err := pdbsync.InitStatusTable(ctx, db); err != nil {
@@ -546,15 +545,13 @@ func TestGraphQLAPI_OffsetLimitList(t *testing.T) {
 	}
 }
 
-// intPtr returns a pointer to the given int value.
-func intPtr(v int) *int { return &v }
 
 // seedFullTestServer creates an httptest.Server with all 13 entity types seeded
 // via seed.Full and a completed sync_status entry.
 func seedFullTestServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	client, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := pdbsync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("init sync_status table: %v", err)
@@ -730,7 +727,7 @@ func TestGraphQLAPI_OffsetLimitListResolvers(t *testing.T) {
 				t.Fatalf("expected at least %d items, got %d", tt.wantMin, len(items))
 			}
 			if tt.wantField != "" {
-				var item map[string]interface{}
+				var item map[string]any
 				if err := json.Unmarshal(items[0], &item); err != nil {
 					t.Fatalf("unmarshal first item: %v", err)
 				}
@@ -797,7 +794,7 @@ func TestGraphQLAPI_SyncStatus_WithObjectCounts(t *testing.T) {
 	var data struct {
 		SyncStatus struct {
 			Status       string                 `json:"status"`
-			ObjectCounts map[string]interface{} `json:"objectCounts"`
+			ObjectCounts map[string]any `json:"objectCounts"`
 		} `json:"syncStatus"`
 	}
 	if err := json.Unmarshal(result.Data, &data); err != nil {
@@ -826,13 +823,13 @@ func TestValidateOffsetLimit(t *testing.T) {
 		wantErr    string
 	}{
 		{name: "defaults", wantOffset: 0, wantLimit: 100},
-		{name: "custom values", offset: intPtr(50), limit: intPtr(25), wantOffset: 50, wantLimit: 25},
-		{name: "negative offset", offset: intPtr(-1), wantErr: "non-negative"},
-		{name: "zero limit", limit: intPtr(0), wantErr: "at least 1"},
-		{name: "negative limit", limit: intPtr(-5), wantErr: "at least 1"},
-		{name: "over max limit", limit: intPtr(1001), wantErr: "must not exceed"},
-		{name: "max limit exactly", limit: intPtr(1000), wantOffset: 0, wantLimit: 1000},
-		{name: "zero offset", offset: intPtr(0), wantOffset: 0, wantLimit: 100},
+		{name: "custom values", offset: new(50), limit: new(25), wantOffset: 50, wantLimit: 25},
+		{name: "negative offset", offset: new(-1), wantErr: "non-negative"},
+		{name: "zero limit", limit: new(0), wantErr: "at least 1"},
+		{name: "negative limit", limit: new(-5), wantErr: "at least 1"},
+		{name: "over max limit", limit: new(1001), wantErr: "must not exceed"},
+		{name: "max limit exactly", limit: new(1000), wantOffset: 0, wantLimit: 1000},
+		{name: "zero offset", offset: new(0), wantOffset: 0, wantLimit: 100},
 	}
 
 	for _, tt := range tests {
@@ -1294,7 +1291,7 @@ func TestGraphQLAPI_OffsetLimitWithWhereFilter(t *testing.T) {
 				t.Fatalf("expected at least %d items, got %d", tt.wantMin, len(items))
 			}
 			if tt.wantField != "" {
-				var item map[string]interface{}
+				var item map[string]any
 				if err := json.Unmarshal(items[0], &item); err != nil {
 					t.Fatalf("unmarshal first item: %v", err)
 				}

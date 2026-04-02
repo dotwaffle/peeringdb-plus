@@ -1,11 +1,12 @@
 package web
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -138,8 +139,8 @@ func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkD
 
 		// Build IX presence rows for terminal and JSON rendering.
 		// Sort by name to match web UI fragment ordering.
-		sort.Slice(ixlans, func(i, j int) bool {
-			return ixlans[i].Name < ixlans[j].Name
+		slices.SortFunc(ixlans, func(a, b *ent.NetworkIxLan) int {
+			return cmp.Compare(a.Name, b.Name)
 		})
 		ixRows := make([]templates.NetworkIXLanRow, len(ixlans))
 		for i, nix := range ixlans {

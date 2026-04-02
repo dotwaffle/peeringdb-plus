@@ -1,14 +1,14 @@
 package pdbcompat
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"maps"
 	"path/filepath"
-	"sort"
+	"slices"
 	"testing"
 	"time"
 
@@ -54,7 +54,7 @@ func compareOrUpdate(t *testing.T, goldenPath string, got []byte) {
 func setupGoldenTestData(t *testing.T) (*http.ServeMux, map[string]int) {
 	t.Helper()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// 1. Organization (ID=100)
 	org, err := client.Organization.Create().
@@ -281,11 +281,7 @@ func TestGoldenFiles(t *testing.T) {
 	mux, ids := setupGoldenTestData(t)
 
 	// Sorted type names for deterministic test order.
-	typeNames := make([]string, 0, len(Registry))
-	for name := range Registry {
-		typeNames = append(typeNames, name)
-	}
-	sort.Strings(typeNames)
+	typeNames := slices.Sorted(maps.Keys(Registry))
 
 	scenarios := []struct {
 		name   string

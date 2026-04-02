@@ -33,7 +33,7 @@ func ParseSections(raw string) map[string]bool {
 	}
 
 	result := make(map[string]bool)
-	for _, part := range strings.Split(raw, ",") {
+	for part := range strings.SplitSeq(raw, ",") {
 		name := strings.ToLower(strings.TrimSpace(part))
 		if canonical, ok := sectionAliases[name]; ok {
 			result[canonical] = true

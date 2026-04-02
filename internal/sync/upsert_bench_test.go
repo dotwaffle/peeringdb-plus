@@ -1,7 +1,6 @@
 package sync
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -39,7 +38,7 @@ func generateBenchOrgs(n int) []peeringdb.Organization {
 // BenchmarkUpsertOrganizations measures bulk upsert performance at different
 // batch sizes using in-memory SQLite.
 func BenchmarkUpsertOrganizations(b *testing.B) {
-	ctx := context.Background()
+	ctx := b.Context()
 
 	b.Run("100_orgs", func(b *testing.B) {
 		dsn := "file:bench_upsert_100?mode=memory&cache=shared&_pragma=foreign_keys(1)"

@@ -13,7 +13,7 @@ import (
 func TestNewDualLogger_WritesToStdout(t *testing.T) {
 	var buf bytes.Buffer
 	lp := sdklog.NewLoggerProvider()
-	defer func() { _ = lp.Shutdown(context.Background()) }()
+	defer func() { _ = lp.Shutdown(t.Context()) }()
 
 	logger := NewDualLogger(&buf, lp)
 	logger.Info("test message", slog.String("key", "value"))
@@ -31,7 +31,7 @@ func TestNewDualLogger_WritesToStdout(t *testing.T) {
 func TestNewDualLogger_WritesToOTelHandler(t *testing.T) {
 	var buf bytes.Buffer
 	lp := sdklog.NewLoggerProvider()
-	defer func() { _ = lp.Shutdown(context.Background()) }()
+	defer func() { _ = lp.Shutdown(t.Context()) }()
 
 	logger := NewDualLogger(&buf, lp)
 
@@ -69,7 +69,7 @@ func TestFanoutHandler_EnabledAnyTrue(t *testing.T) {
 		&recordingHandler{enabled: false},
 		&recordingHandler{enabled: true},
 	}}
-	if !h.Enabled(context.Background(), slog.LevelInfo) {
+	if !h.Enabled(t.Context(), slog.LevelInfo) {
 		t.Error("fanoutHandler.Enabled should return true when any handler is enabled")
 	}
 }
@@ -79,7 +79,7 @@ func TestFanoutHandler_EnabledAllFalse(t *testing.T) {
 		&recordingHandler{enabled: false},
 		&recordingHandler{enabled: false},
 	}}
-	if h.Enabled(context.Background(), slog.LevelInfo) {
+	if h.Enabled(t.Context(), slog.LevelInfo) {
 		t.Error("fanoutHandler.Enabled should return false when no handler is enabled")
 	}
 }

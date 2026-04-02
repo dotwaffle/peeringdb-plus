@@ -1,7 +1,6 @@
 package schema_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -14,7 +13,7 @@ func TestOrganizationCRUD(t *testing.T) {
 	t.Parallel()
 
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	now := time.Now().Truncate(time.Second)
 
 	tests := []struct {
@@ -44,8 +43,8 @@ func TestOrganizationCRUD(t *testing.T) {
 			name:       "organization with coordinates",
 			id:         2,
 			orgName:    "Geo Org",
-			latitude:   ptrFloat64(37.7749),
-			longitude:  ptrFloat64(-122.4194),
+			latitude:   new(37.7749),
+			longitude:  new(-122.4194),
 			wantStatus: "ok",
 		},
 		{
@@ -168,8 +167,4 @@ func TestOrganizationCRUD(t *testing.T) {
 			t.Errorf("got %d organizations after delete, want 2", count)
 		}
 	})
-}
-
-func ptrFloat64(v float64) *float64 {
-	return &v
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -143,7 +144,7 @@ func TestParseSerializers(t *testing.T) {
 				t.Errorf("model = %q, want %q", found.ModelName, tt.wantModel)
 			}
 			for _, ro := range tt.wantRO {
-				if !containsStr(found.ReadOnlyFields, ro) {
+				if !slices.Contains(found.ReadOnlyFields, ro) {
 					t.Errorf("expected read_only_field %q, not found in %v", ro, found.ReadOnlyFields)
 				}
 			}
@@ -368,7 +369,7 @@ func TestParsePythonDefault(t *testing.T) {
 
 	tests := []struct {
 		input string
-		want  interface{}
+		want  any
 	}{
 		{`True`, true},
 		{`False`, false},
@@ -377,7 +378,7 @@ func TestParsePythonDefault(t *testing.T) {
 		{`"hello"`, "hello"},
 		{`0`, float64(0)},
 		{`42`, float64(42)},
-		{`[]`, []interface{}{}},
+		{`[]`, []any{}},
 	}
 
 	for _, tt := range tests {
@@ -393,13 +394,4 @@ func TestParsePythonDefault(t *testing.T) {
 			}
 		})
 	}
-}
-
-func containsStr(ss []string, s string) bool {
-	for _, v := range ss {
-		if v == s {
-			return true
-		}
-	}
-	return false
 }

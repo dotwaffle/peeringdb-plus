@@ -1,7 +1,6 @@
 package peeringdb
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -148,7 +147,7 @@ func TestMetaGeneratedLive(t *testing.T) {
 func doGet(t *testing.T, client *http.Client, url string, apiKey string) []byte {
 	t.Helper()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		t.Fatalf("create request for %s: %v", url, err)

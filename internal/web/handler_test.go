@@ -2,7 +2,6 @@ package web
 
 import (
 	"bytes"
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,7 +18,7 @@ import (
 func renderComponent(t *testing.T, c templ.Component) string {
 	t.Helper()
 	var buf bytes.Buffer
-	if err := c.Render(context.Background(), &buf); err != nil {
+	if err := c.Render(t.Context(), &buf); err != nil {
 		t.Fatalf("render component: %v", err)
 	}
 	return buf.String()
@@ -331,7 +330,7 @@ func TestSearchEndpoint_EmptyQuery(t *testing.T) {
 func TestSearchEndpoint_MinLength(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	org, err := client.Organization.Create().
 		SetID(1).SetName("TestOrg").
@@ -371,7 +370,7 @@ func TestSearchEndpoint_MinLength(t *testing.T) {
 func TestSearchEndpoint_WithResults(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	org, err := client.Organization.Create().
 		SetID(1).SetName("TestOrg").
@@ -426,7 +425,7 @@ func TestSearchEndpoint_WithResults(t *testing.T) {
 func TestSearchEndpoint_HtmxFragment(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	org, err := client.Organization.Create().
 		SetID(1).SetName("TestOrg").
@@ -501,7 +500,7 @@ func TestSearchEndpoint_HXPushUrl_EmptyQuery(t *testing.T) {
 func TestHomeWithQuery_PreRendered(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	org, err := client.Organization.Create().
 		SetID(1).SetName("TestOrg").
@@ -1197,7 +1196,7 @@ func TestDetailPages_DispatchModes(t *testing.T) {
 func TestKeyboardNav_Integration(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	org, err := client.Organization.Create().
 		SetID(1).SetName("TestOrg").

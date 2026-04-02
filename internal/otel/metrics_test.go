@@ -52,7 +52,7 @@ func TestSyncDuration_RecordDoesNotPanic(t *testing.T) {
 	}
 
 	// Recording a value should not panic.
-	SyncDuration.Record(context.Background(), 5.0,
+	SyncDuration.Record(t.Context(), 5.0,
 		metric.WithAttributes(attribute.String("type", "full")),
 	)
 }
@@ -65,7 +65,7 @@ func TestSyncOperations_AddDoesNotPanic(t *testing.T) {
 	}
 
 	// Adding a value should not panic.
-	SyncOperations.Add(context.Background(), 1,
+	SyncOperations.Add(t.Context(), 1,
 		metric.WithAttributes(attribute.String("status", "success")),
 	)
 }
@@ -101,7 +101,7 @@ func TestInitMetrics_PerTypeRecordDoesNotPanic(t *testing.T) {
 		t.Fatalf("InitMetrics returned error: %v", err)
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	typeAttr := metric.WithAttributes(attribute.String("type", "org"))
 
 	SyncTypeDuration.Record(ctx, 1.5, typeAttr)
@@ -126,7 +126,7 @@ func TestInitFreshnessGauge_NoSync(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
-	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
 	// Callback returns false (no successful sync yet).
 	err := InitFreshnessGauge(func(_ context.Context) (time.Time, bool) {
@@ -136,7 +136,7 @@ func TestInitFreshnessGauge_NoSync(t *testing.T) {
 		t.Fatalf("InitFreshnessGauge: %v", err)
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	var rm metricdata.ResourceMetrics
 	if err := reader.Collect(ctx, &rm); err != nil {
 		t.Fatalf("Collect: %v", err)
@@ -161,13 +161,13 @@ func TestInitMetrics_RecordsValues(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
-	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
 	if err := InitMetrics(); err != nil {
 		t.Fatalf("InitMetrics: %v", err)
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	typeAttr := metric.WithAttributes(attribute.String("type", "org"))
 
 	SyncTypeDuration.Record(ctx, 2.5, typeAttr)
@@ -199,7 +199,7 @@ func TestInitFreshnessGauge_RecordsValue(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
-	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
 	lastSync := time.Now().Add(-5 * time.Minute)
 	err := InitFreshnessGauge(func(_ context.Context) (time.Time, bool) {
@@ -209,7 +209,7 @@ func TestInitFreshnessGauge_RecordsValue(t *testing.T) {
 		t.Fatalf("InitFreshnessGauge: %v", err)
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	var rm metricdata.ResourceMetrics
 	if err := reader.Collect(ctx, &rm); err != nil {
 		t.Fatalf("Collect: %v", err)
@@ -238,7 +238,7 @@ func TestInitObjectCountGauges_NoError(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
-	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
 	client := testutil.SetupClient(t)
 	if err := InitObjectCountGauges(client); err != nil {
@@ -250,7 +250,7 @@ func TestInitObjectCountGauges_RecordsValues(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
-	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
 	// Empty database: all types should report count 0.
 	client := testutil.SetupClient(t)
@@ -259,7 +259,7 @@ func TestInitObjectCountGauges_RecordsValues(t *testing.T) {
 		t.Fatalf("InitObjectCountGauges: %v", err)
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	var rm metricdata.ResourceMetrics
 	if err := reader.Collect(ctx, &rm); err != nil {
 		t.Fatalf("Collect: %v", err)
@@ -312,7 +312,7 @@ func TestInitObjectCountGauges_ErrorInCallback(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
-	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
 	client := testutil.SetupClient(t)
 
@@ -329,7 +329,7 @@ func TestInitObjectCountGauges_ErrorInCallback(t *testing.T) {
 
 	// Collect metrics -- the callback should encounter errors for each type
 	// and skip them gracefully (continue branch).
-	ctx := context.Background()
+	ctx := t.Context()
 	var rm metricdata.ResourceMetrics
 	if err := reader.Collect(ctx, &rm); err != nil {
 		t.Fatalf("Collect: %v", err)

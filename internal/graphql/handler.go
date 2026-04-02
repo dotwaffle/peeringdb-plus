@@ -44,7 +44,7 @@ func NewHandler(resolver *graph.Resolver) http.Handler {
 		}
 		// Add extensions with error classification for client consumption.
 		if gqlErr.Extensions == nil {
-			gqlErr.Extensions = make(map[string]interface{})
+			gqlErr.Extensions = make(map[string]any)
 		}
 		gqlErr.Extensions["code"] = classifyError(err)
 		return gqlErr

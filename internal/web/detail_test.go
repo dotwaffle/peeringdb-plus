@@ -1,7 +1,6 @@
 package web
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -17,7 +16,7 @@ import (
 // Uses well-known IDs so assertions are deterministic.
 func seedAllTestData(t *testing.T, client *ent.Client) {
 	t.Helper()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	org, err := client.Organization.Create().
 		SetID(1).SetName("TestOrg").
@@ -682,7 +681,7 @@ func TestLayout_MapDarkModeHook(t *testing.T) {
 func TestGetFreshness_WithSyncRecord(t *testing.T) {
 	t.Parallel()
 	client, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("init status table: %v", err)
@@ -715,7 +714,7 @@ func TestGetFreshness_WithSyncRecord(t *testing.T) {
 func TestGetFreshness_EmptyTable(t *testing.T) {
 	t.Parallel()
 	client, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("init status table: %v", err)

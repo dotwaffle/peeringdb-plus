@@ -1,7 +1,6 @@
 package pdbcompat
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -32,7 +31,7 @@ type testProblemDetail struct {
 func setupTestHandler(t *testing.T) (*Handler, *http.ServeMux) {
 	t.Helper()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	now := time.Now().Truncate(time.Second).UTC()
 	past := now.Add(-2 * time.Hour)
@@ -498,7 +497,7 @@ func TestSearchEmpty(t *testing.T) {
 func TestSearchFacility(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	now := time.Now().Truncate(time.Second).UTC()
 
 	// Create facilities with different names.

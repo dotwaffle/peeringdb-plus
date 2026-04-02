@@ -28,7 +28,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 )
@@ -62,7 +61,7 @@ type FieldDef struct {
 	ReadOnly   bool        `json:"read_only"`
 	Deprecated bool        `json:"deprecated"`
 	HelpText   string      `json:"help_text,omitempty"`
-	Default    interface{} `json:"default"`
+	Default    any `json:"default"`
 	References string      `json:"references,omitempty"`
 }
 
@@ -643,7 +642,7 @@ func parseStringList(s string) []string {
 }
 
 // parsePythonDefault converts a Python default value literal to a Go value.
-func parsePythonDefault(s string) interface{} {
+func parsePythonDefault(s string) any {
 	s = strings.Trim(s, " \t")
 	switch {
 	case s == "True":
@@ -657,7 +656,7 @@ func parsePythonDefault(s string) interface{} {
 	case strings.HasPrefix(s, `"`) || strings.HasPrefix(s, `'`):
 		return strings.Trim(s, `"'`)
 	case s == "[]":
-		return []interface{}{}
+		return []any{}
 	case s == "0":
 		return float64(0) // JSON number.
 	default:
@@ -699,7 +698,7 @@ func validateAgainstAPI(schema *Schema) error {
 		}
 
 		var apiResp struct {
-			Data []map[string]interface{} `json:"data"`
+			Data []map[string]any `json:"data"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 			errors = append(errors, fmt.Sprintf("%s: decode error: %v", apiPath, err))
@@ -741,8 +740,8 @@ func validateAgainstAPI(schema *Schema) error {
 			}
 		}
 
-		sort.Strings(missing)
-		sort.Strings(extra)
+		slices.Sort(missing)
+		slices.Sort(extra)
 
 		if len(missing) > 0 {
 			log.Printf("WARN %s: fields in API but not schema: %v", apiPath, missing)

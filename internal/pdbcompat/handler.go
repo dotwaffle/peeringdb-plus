@@ -3,8 +3,9 @@ package pdbcompat
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -81,25 +82,12 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 // splitTypeID splits a rest path like "net", "net/", "net/42" into type name
 // and optional ID string.
 func splitTypeID(rest string) (typeName, id string) {
+	rest = strings.TrimRight(rest, "/")
 	if rest == "" {
 		return "", ""
 	}
-
-	// Strip trailing slash for type-only paths.
-	for len(rest) > 0 && rest[len(rest)-1] == '/' {
-		rest = rest[:len(rest)-1]
-	}
-	if rest == "" {
-		return "", ""
-	}
-
-	// Find the first slash separator.
-	for i := 0; i < len(rest); i++ {
-		if rest[i] == '/' {
-			return rest[:i], rest[i+1:]
-		}
-	}
-	return rest, ""
+	typeName, id, _ = strings.Cut(rest, "/")
+	return typeName, id
 }
 
 // indexBody is computed once at init time since the Registry does not change.
@@ -111,11 +99,7 @@ func init() {
 	}
 
 	// Collect sorted type names for deterministic output.
-	names := make([]string, 0, len(Registry))
-	for name := range Registry {
-		names = append(names, name)
-	}
-	sort.Strings(names)
+	names := slices.Sorted(maps.Keys(Registry))
 
 	index := make(map[string]indexEntry, len(Registry))
 	for _, name := range names {

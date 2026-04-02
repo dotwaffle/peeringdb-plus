@@ -1,7 +1,6 @@
 package pdbcompat
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -17,7 +16,7 @@ import (
 func setupDepthTestData(t *testing.T) (*Handler, *http.ServeMux) {
 	t.Helper()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	now := time.Now().Truncate(time.Second).UTC()
 
 	// Create org.
@@ -360,7 +359,7 @@ func TestDepth(t *testing.T) {
 		t.Parallel()
 		// Create an org with no related entities.
 		client := testutil.SetupClient(t)
-		ctx := context.Background()
+		ctx := t.Context()
 		now := time.Now().Truncate(time.Second).UTC()
 		org, err := client.Organization.Create().
 			SetName("Empty Org").

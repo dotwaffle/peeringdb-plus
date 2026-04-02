@@ -1,7 +1,6 @@
 package grpcserver
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -21,7 +20,7 @@ func seedBenchNetworks(b *testing.B, n int) *NetworkService {
 	client := enttest.Open(b, dialect.SQLite, dsn)
 	b.Cleanup(func() { client.Close() })
 
-	ctx := context.Background()
+	ctx := b.Context()
 	ts := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	for i := range n {
@@ -44,7 +43,7 @@ func seedBenchNetworks(b *testing.B, n int) *NetworkService {
 // sizes and page sizes. This benchmarks the actual hot path used by all 13
 // gRPC List RPCs (query + convert + paginate).
 func BenchmarkListNetworks(b *testing.B) {
-	ctx := context.Background()
+	ctx := b.Context()
 
 	b.Run("100_items_page50", func(b *testing.B) {
 		svc := seedBenchNetworks(b, 100)

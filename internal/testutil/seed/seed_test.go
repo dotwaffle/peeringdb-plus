@@ -1,7 +1,6 @@
 package seed_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
@@ -95,7 +94,7 @@ func TestFull_EntityCounts(t *testing.T) {
 	client := testutil.SetupClient(t)
 	seed.Full(t, client)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	counts := []struct {
 		name string
 		got  int
@@ -127,7 +126,7 @@ func TestFull_Relationships(t *testing.T) {
 	client := testutil.SetupClient(t)
 	r := seed.Full(t, client)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// NetworkIxLan -> IxLan
 	nixl, err := client.NetworkIxLan.Get(ctx, r.NetworkIxLan.ID)
@@ -279,7 +278,7 @@ func TestMinimal_EntityCounts(t *testing.T) {
 	client := testutil.SetupClient(t)
 	seed.Minimal(t, client)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	counts := []struct {
 		name string
 		got  int

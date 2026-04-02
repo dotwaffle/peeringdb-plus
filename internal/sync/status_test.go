@@ -1,7 +1,6 @@
 package sync_test
 
 import (
-	"context"
 	"strings"
 	"testing"
 	"time"
@@ -13,7 +12,7 @@ import (
 func TestInitStatusTable_CreatesCursorsTable(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)
@@ -34,7 +33,7 @@ func TestInitStatusTable_CreatesCursorsTable(t *testing.T) {
 func TestGetCursor_NoRows(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)
@@ -52,7 +51,7 @@ func TestGetCursor_NoRows(t *testing.T) {
 func TestUpsertCursor_InsertAndGet(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)
@@ -75,7 +74,7 @@ func TestUpsertCursor_InsertAndGet(t *testing.T) {
 func TestUpsertCursor_UpdateExisting(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)
@@ -103,7 +102,7 @@ func TestUpsertCursor_UpdateExisting(t *testing.T) {
 func TestGetCursor_IgnoresFailedStatus(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)
@@ -126,7 +125,7 @@ func TestGetCursor_IgnoresFailedStatus(t *testing.T) {
 func TestInitStatusTable_DBError(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	db.Close()
 
@@ -142,7 +141,7 @@ func TestInitStatusTable_DBError(t *testing.T) {
 func TestGetCursor_DBError(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)
@@ -162,7 +161,7 @@ func TestGetCursor_DBError(t *testing.T) {
 func TestUpsertCursor_DBError(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)
@@ -182,7 +181,7 @@ func TestUpsertCursor_DBError(t *testing.T) {
 func TestRecordSyncStart_DBError(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)
@@ -202,7 +201,7 @@ func TestRecordSyncStart_DBError(t *testing.T) {
 func TestRecordSyncComplete_DBError(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)
@@ -233,7 +232,7 @@ func TestRecordSyncComplete_DBError(t *testing.T) {
 func TestGetLastSuccessfulSyncTime_DBError(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)
@@ -253,7 +252,7 @@ func TestGetLastSuccessfulSyncTime_DBError(t *testing.T) {
 func TestGetLastStatus_DBError(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)

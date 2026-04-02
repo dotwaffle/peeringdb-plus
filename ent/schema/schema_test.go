@@ -1,7 +1,6 @@
 package schema_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -24,7 +23,7 @@ func TestAllSchemasCRUD(t *testing.T) {
 	t.Parallel()
 
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create Organization (parent for many types)
 	org, err := client.Organization.Create().
@@ -499,7 +498,7 @@ func TestNullableFK(t *testing.T) {
 	t.Parallel()
 
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := []struct {
 		name string
@@ -607,7 +606,7 @@ func TestEdgeTraversal(t *testing.T) {
 	t.Parallel()
 
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create org -> network -> network_ix_lan chain
 	org, err := client.Organization.Create().
@@ -749,12 +748,12 @@ func TestOtelMutationHook_ErrorPath(t *testing.T) {
 	prev := otel.GetTracerProvider()
 	otel.SetTracerProvider(tp)
 	t.Cleanup(func() {
-		_ = tp.Shutdown(context.Background())
+		_ = tp.Shutdown(t.Context())
 		otel.SetTracerProvider(prev)
 	})
 
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create an Organization to establish ID=1.
 	_, err := client.Organization.Create().
@@ -810,7 +809,7 @@ func TestFKConstraintViolation(t *testing.T) {
 	t.Parallel()
 
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tests := []struct {
 		name string

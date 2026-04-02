@@ -21,7 +21,7 @@ import (
 
 func TestGetNetwork(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -99,7 +99,7 @@ func TestGetNetwork(t *testing.T) {
 
 func TestListNetworks(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -199,7 +199,7 @@ func TestListNetworks(t *testing.T) {
 
 func TestListNetworksFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -341,7 +341,7 @@ func TestListNetworksFilters(t *testing.T) {
 
 func TestListFacilitiesFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -473,7 +473,7 @@ func TestListFacilitiesFilters(t *testing.T) {
 
 func TestListOrganizationsFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -573,7 +573,7 @@ func TestListOrganizationsFilters(t *testing.T) {
 
 func TestListPocsFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -688,7 +688,7 @@ func TestListPocsFilters(t *testing.T) {
 
 func TestListIxPrefixesFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -777,7 +777,7 @@ func TestListIxPrefixesFilters(t *testing.T) {
 
 func TestListNetworkIxLansFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -912,7 +912,7 @@ func TestListNetworkIxLansFilters(t *testing.T) {
 
 func TestListCarrierFacilitiesFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -996,7 +996,7 @@ func TestListCarrierFacilitiesFilters(t *testing.T) {
 
 func TestListCampusesFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -1100,7 +1100,7 @@ func TestListCampusesFilters(t *testing.T) {
 
 func TestListCarriersFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -1187,7 +1187,7 @@ func TestListCarriersFilters(t *testing.T) {
 
 func TestListInternetExchangesFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -1314,7 +1314,7 @@ func TestListInternetExchangesFilters(t *testing.T) {
 
 func TestListIxFacilitiesFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -1405,7 +1405,7 @@ func TestListIxFacilitiesFilters(t *testing.T) {
 
 func TestListIxLansFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -1493,7 +1493,7 @@ func TestListIxLansFilters(t *testing.T) {
 
 func TestListNetworkFacilitiesFilters(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -1587,7 +1587,7 @@ func TestListNetworkFacilitiesFilters(t *testing.T) {
 
 func TestListNetworksFiltersPaginated(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -1682,7 +1682,7 @@ func setupStreamTestServer(t *testing.T, client *ent.Client) peeringdbv1connect.
 // for reference. IDs 1=Google(ok), 2=Cloudflare(ok), 3=Deleted(deleted).
 func seedStreamNetworks(t *testing.T, client *ent.Client) {
 	t.Helper()
-	ctx := context.Background()
+	ctx := t.Context()
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
 	client.Network.Create().
@@ -1800,7 +1800,7 @@ func TestStreamNetworks(t *testing.T) {
 			entClient := testutil.SetupClient(t)
 			seedStreamNetworks(t, entClient)
 			rpcClient := setupStreamTestServer(t, entClient)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			stream, err := rpcClient.StreamNetworks(ctx, tt.req)
 			if tt.wantErr != 0 {
@@ -1872,7 +1872,7 @@ func TestStreamNetworksTotalCount(t *testing.T) {
 			ec := testutil.SetupClient(t)
 			seedStreamNetworks(t, ec)
 			rpcClient := setupStreamTestServer(t, ec)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			stream, err := rpcClient.StreamNetworks(ctx, tt.req)
 			if err != nil {
@@ -1909,7 +1909,7 @@ func TestStreamNetworksCancellation(t *testing.T) {
 	seedStreamNetworks(t, entClient)
 	rpcClient := setupStreamTestServer(t, entClient)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 
 	stream, err := rpcClient.StreamNetworks(ctx, &pb.StreamNetworksRequest{})
 	if err != nil {
@@ -1977,7 +1977,7 @@ func TestStreamNetworksSinceId(t *testing.T) {
 			entClient := testutil.SetupClient(t)
 			seedStreamNetworks(t, entClient)
 			rpcClient := setupStreamTestServer(t, entClient)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			stream, err := rpcClient.StreamNetworks(ctx, tt.req)
 			if err != nil {
@@ -2061,7 +2061,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 			entClient := testutil.SetupClient(t)
 			seedStreamNetworks(t, entClient)
 			rpcClient := setupStreamTestServer(t, entClient)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			stream, err := rpcClient.StreamNetworks(ctx, tt.req)
 			if err != nil {
@@ -2101,7 +2101,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 
 func TestGetCampus(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2150,7 +2150,7 @@ func TestGetCampus(t *testing.T) {
 
 func TestListCampuses(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2237,7 +2237,7 @@ func TestListCampuses(t *testing.T) {
 
 func TestGetCarrier(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2280,7 +2280,7 @@ func TestGetCarrier(t *testing.T) {
 
 func TestListCarriers(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2352,7 +2352,7 @@ func TestListCarriers(t *testing.T) {
 
 func TestGetInternetExchange(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2398,7 +2398,7 @@ func TestGetInternetExchange(t *testing.T) {
 
 func TestListInternetExchanges(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2475,7 +2475,7 @@ func TestListInternetExchanges(t *testing.T) {
 
 func TestGetIxFacility(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2524,7 +2524,7 @@ func TestGetIxFacility(t *testing.T) {
 
 func TestListIxFacilities(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2619,7 +2619,7 @@ func TestListIxFacilities(t *testing.T) {
 
 func TestGetIxLan(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2664,7 +2664,7 @@ func TestGetIxLan(t *testing.T) {
 
 func TestListIxLans(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2751,7 +2751,7 @@ func TestListIxLans(t *testing.T) {
 
 func TestGetNetworkFacility(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2805,7 +2805,7 @@ func TestGetNetworkFacility(t *testing.T) {
 
 func TestListNetworkFacilities(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2916,7 +2916,7 @@ func TestListNetworkFacilities(t *testing.T) {
 
 func TestListNetworksInfoTypeFilter(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -2989,7 +2989,7 @@ func TestListNetworksInfoTypeFilter(t *testing.T) {
 
 func TestGetFacility(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -3032,7 +3032,7 @@ func TestGetFacility(t *testing.T) {
 
 func TestGetCarrierFacility(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -3076,7 +3076,7 @@ func TestGetCarrierFacility(t *testing.T) {
 
 func TestGetOrganization(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -3116,7 +3116,7 @@ func TestGetOrganization(t *testing.T) {
 
 func TestGetPoc(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -3163,7 +3163,7 @@ func TestGetPoc(t *testing.T) {
 
 func TestGetIxPrefix(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -3203,7 +3203,7 @@ func TestGetIxPrefix(t *testing.T) {
 
 func TestGetNetworkIxLan(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -3724,7 +3724,7 @@ func setupFacilityStreamServer(t *testing.T, client *ent.Client) peeringdbv1conn
 
 func TestStreamFacilities(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -3845,7 +3845,7 @@ func setupOrganizationStreamServer(t *testing.T, client *ent.Client) peeringdbv1
 
 func TestStreamOrganizations(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -3943,7 +3943,7 @@ func setupCampusStreamServer(t *testing.T, client *ent.Client) peeringdbv1connec
 
 func TestStreamCampuses(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -4025,7 +4025,7 @@ func setupCarrierStreamServer(t *testing.T, client *ent.Client) peeringdbv1conne
 
 func TestStreamCarriers(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -4107,7 +4107,7 @@ func setupInternetExchangeStreamServer(t *testing.T, client *ent.Client) peering
 
 func TestStreamInternetExchanges(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -4234,7 +4234,7 @@ func setupIxLanStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect
 
 func TestStreamIxLans(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -4320,7 +4320,7 @@ func setupIxFacilityStreamServer(t *testing.T, client *ent.Client) peeringdbv1co
 
 func TestStreamIxFacilities(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -4415,7 +4415,7 @@ func setupNetworkFacilityStreamServer(t *testing.T, client *ent.Client) peeringd
 
 func TestStreamNetworkFacilities(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -4524,7 +4524,7 @@ func setupCarrierFacilityStreamServer(t *testing.T, client *ent.Client) peeringd
 
 func TestStreamCarrierFacilities(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -4611,7 +4611,7 @@ func setupIxPrefixStreamServer(t *testing.T, client *ent.Client) peeringdbv1conn
 
 func TestStreamIxPrefixes(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -4708,7 +4708,7 @@ func setupNetworkIxLanStreamServer(t *testing.T, client *ent.Client) peeringdbv1
 
 func TestStreamNetworkIxLans(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -4834,7 +4834,7 @@ func setupPocStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.P
 
 func TestStreamPocs(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -4940,7 +4940,7 @@ func TestStreamPocs(t *testing.T) {
 func TestStreamNetworksInfoTypeFilter(t *testing.T) {
 	t.Parallel()
 	entClient := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
 	entClient.Network.Create().

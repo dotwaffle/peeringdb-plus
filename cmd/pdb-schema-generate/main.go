@@ -16,8 +16,9 @@ import (
 	"go/format"
 	"log"
 	"os"
+	"cmp"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"text/template"
 	"unicode"
@@ -51,7 +52,7 @@ type FieldDef struct {
 	ReadOnly   bool        `json:"read_only"`
 	Deprecated bool        `json:"deprecated"`
 	HelpText   string      `json:"help_text,omitempty"`
-	Default    interface{} `json:"default"`
+	Default    any `json:"default"`
 	References string      `json:"references,omitempty"`
 }
 
@@ -477,8 +478,8 @@ func sortedRelationships(rels map[string]Relationship) []namedRelationship {
 	for name, rel := range rels {
 		result = append(result, namedRelationship{name, rel})
 	}
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].name < result[j].name
+	slices.SortFunc(result, func(a, b namedRelationship) int {
+		return cmp.Compare(a.name, b.name)
 	})
 	return result
 }
@@ -562,7 +563,7 @@ func generateIndexes(apiPath string, ot ObjectType) []string {
 	// Always index status (common field).
 	indexes = append(indexes, "status")
 
-	sort.Strings(indexes)
+	slices.Sort(indexes)
 	// Deduplicate.
 	result := indexes[:0]
 	seen := make(map[string]bool)
@@ -738,8 +739,8 @@ func sortedFieldNames(fields map[string]FieldDef) []string {
 			regular = append(regular, name)
 		}
 	}
-	sort.Strings(fks)
-	sort.Strings(regular)
+	slices.Sort(fks)
+	slices.Sort(regular)
 	return append(fks, regular...)
 }
 

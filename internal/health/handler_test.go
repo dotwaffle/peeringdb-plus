@@ -1,7 +1,6 @@
 package health_test
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -287,7 +286,7 @@ func openTestDB(t *testing.T) *sql.DB {
 // initSyncTable creates the sync_status table.
 func initSyncTable(t *testing.T, db *sql.DB) {
 	t.Helper()
-	if err := sync.InitStatusTable(context.Background(), db); err != nil {
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
 		t.Fatalf("init sync_status table: %v", err)
 	}
 }
@@ -297,7 +296,7 @@ func insertSync(t *testing.T, db *sql.DB, completedAt time.Time, status string, 
 	t.Helper()
 	startedAt := completedAt.Add(-5 * time.Minute)
 	durationMs := completedAt.Sub(startedAt).Milliseconds()
-	_, err := db.ExecContext(context.Background(),
+	_, err := db.ExecContext(t.Context(),
 		`INSERT INTO sync_status (started_at, completed_at, duration_ms, object_counts, status, error_message) VALUES (?, ?, ?, ?, ?, ?)`,
 		startedAt, completedAt, durationMs, `{"network":100}`, status, errMsg,
 	)
@@ -309,7 +308,7 @@ func insertSync(t *testing.T, db *sql.DB, completedAt time.Time, status string, 
 // insertRunningSync inserts a currently-running sync row (no completed_at).
 func insertRunningSync(t *testing.T, db *sql.DB) {
 	t.Helper()
-	_, err := db.ExecContext(context.Background(),
+	_, err := db.ExecContext(t.Context(),
 		`INSERT INTO sync_status (started_at, status) VALUES (?, 'running')`,
 		time.Now(),
 	)

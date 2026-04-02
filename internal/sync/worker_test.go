@@ -105,7 +105,7 @@ func newTestWorker(t *testing.T, f *fixture, includeDeleted bool) (*Worker, *sql
 	client, db := testutil.SetupClientWithDB(t)
 	pdbClient := newFastPDBClient(t, f.server.URL)
 
-	err := InitStatusTable(context.Background(), db)
+	err := InitStatusTable(t.Context(), db)
 	if err != nil {
 		t.Fatalf("init status table: %v", err)
 	}
@@ -168,13 +168,13 @@ func TestSyncFetchesAll13Types(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "TestOrg", "ok")}
 	w, _ := newTestWorker(t, f, false)
 
-	err := w.Sync(context.Background(), config.SyncModeFull)
+	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
 
 	// Verify org was synced.
-	orgs, err := w.entClient.Organization.Query().All(context.Background())
+	orgs, err := w.entClient.Organization.Query().All(t.Context())
 	if err != nil {
 		t.Fatalf("query orgs: %v", err)
 	}
@@ -193,13 +193,13 @@ func TestSyncTransaction(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f, false)
 
-	err := w.Sync(context.Background(), config.SyncModeFull)
+	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
 
 	// Verify org is committed.
-	count, err := w.entClient.Organization.Query().Count(context.Background())
+	count, err := w.entClient.Organization.Query().Count(t.Context())
 	if err != nil {
 		t.Fatalf("query org count: %v", err)
 	}
@@ -216,7 +216,7 @@ func TestSyncUpsertUpdatesExisting(t *testing.T) {
 	w, _ := newTestWorker(t, f, false)
 
 	// First sync.
-	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
+	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
 
@@ -224,11 +224,11 @@ func TestSyncUpsertUpdatesExisting(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "UpdatedName", "ok")}
 
 	// Second sync.
-	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
+	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
 
-	org, err := w.entClient.Organization.Get(context.Background(), 1)
+	org, err := w.entClient.Organization.Get(t.Context(), 1)
 	if err != nil {
 		t.Fatalf("get org: %v", err)
 	}
@@ -249,10 +249,10 @@ func TestSyncHardDelete(t *testing.T) {
 	}
 	w, _ := newTestWorker(t, f, false)
 
-	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
+	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
-	count, _ := w.entClient.Organization.Query().Count(context.Background())
+	count, _ := w.entClient.Organization.Query().Count(t.Context())
 	if count != 3 {
 		t.Fatalf("expected 3 orgs, got %d", count)
 	}
@@ -263,10 +263,10 @@ func TestSyncHardDelete(t *testing.T) {
 		makeOrg(3, "Org3", "ok"),
 	}
 
-	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
+	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
-	count, _ = w.entClient.Organization.Query().Count(context.Background())
+	count, _ = w.entClient.Organization.Query().Count(t.Context())
 	if count != 2 {
 		t.Errorf("expected 2 orgs after delete, got %d", count)
 	}
@@ -284,14 +284,14 @@ func TestSyncMutex(t *testing.T) {
 	w.running.Store(true)
 
 	// Second call should return nil without error (skipped).
-	err := w.Sync(context.Background(), config.SyncModeFull)
+	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err != nil {
 		t.Errorf("expected nil when sync already running, got: %v", err)
 	}
 
 	// Reset and verify it can run after.
 	w.running.Store(false)
-	err = w.Sync(context.Background(), config.SyncModeFull)
+	err = w.Sync(t.Context(), config.SyncModeFull)
 	if err != nil {
 		t.Errorf("expected sync to succeed after mutex release: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestSyncLogsProgress(t *testing.T) {
 
 	// Just verify sync completes without error -- log output is verified by
 	// the presence of slog.String("type", ...) calls in the worker code.
-	err := w.Sync(context.Background(), config.SyncModeFull)
+	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
@@ -319,12 +319,12 @@ func TestSyncRecordsStatusSuccess(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, db := newTestWorker(t, f, false)
 
-	err := w.Sync(context.Background(), config.SyncModeFull)
+	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
 
-	status, err := GetLastStatus(context.Background(), db)
+	status, err := GetLastStatus(t.Context(), db)
 	if err != nil {
 		t.Fatalf("get status: %v", err)
 	}
@@ -347,12 +347,12 @@ func TestSyncRecordsStatusFailure(t *testing.T) {
 	f.failTypes["org"] = true
 	w, db := newTestWorker(t, f, false)
 
-	err := w.Sync(context.Background(), config.SyncModeFull)
+	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err == nil {
 		t.Fatal("expected error from failed sync")
 	}
 
-	status, err := GetLastStatus(context.Background(), db)
+	status, err := GetLastStatus(t.Context(), db)
 	if err != nil {
 		t.Fatalf("get status: %v", err)
 	}
@@ -375,10 +375,10 @@ func TestSyncRollbackOnFailure(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f, false)
 
-	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
+	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
-	count, _ := w.entClient.Organization.Query().Count(context.Background())
+	count, _ := w.entClient.Organization.Query().Count(t.Context())
 	if count != 1 {
 		t.Fatalf("expected 1 org, got %d", count)
 	}
@@ -387,17 +387,17 @@ func TestSyncRollbackOnFailure(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "UpdatedOrg", "ok"), makeOrg(2, "NewOrg", "ok")}
 	f.failTypes["net"] = true
 
-	err := w.Sync(context.Background(), config.SyncModeFull)
+	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err == nil {
 		t.Fatal("expected error from failed sync")
 	}
 
 	// Verify original data is preserved (rollback worked).
-	count, _ = w.entClient.Organization.Query().Count(context.Background())
+	count, _ = w.entClient.Organization.Query().Count(t.Context())
 	if count != 1 {
 		t.Errorf("expected 1 org after rollback, got %d", count)
 	}
-	org, _ := w.entClient.Organization.Get(context.Background(), 1)
+	org, _ := w.entClient.Organization.Get(t.Context(), 1)
 	if org.Name != "Org1" {
 		t.Errorf("expected original name Org1, got %s", org.Name)
 	}
@@ -416,10 +416,10 @@ func TestSyncFilterDeletedObjects(t *testing.T) {
 		}
 		w, _ := newTestWorker(t, f, false)
 
-		if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
+		if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 			t.Fatalf("sync: %v", err)
 		}
-		count, _ := w.entClient.Organization.Query().Count(context.Background())
+		count, _ := w.entClient.Organization.Query().Count(t.Context())
 		if count != 1 {
 			t.Errorf("expected 1 org (deleted excluded), got %d", count)
 		}
@@ -434,10 +434,10 @@ func TestSyncFilterDeletedObjects(t *testing.T) {
 		}
 		w, _ := newTestWorker(t, f, true)
 
-		if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
+		if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 			t.Fatalf("sync: %v", err)
 		}
-		count, _ := w.entClient.Organization.Query().Count(context.Background())
+		count, _ := w.entClient.Organization.Query().Count(t.Context())
 		if count != 2 {
 			t.Errorf("expected 2 orgs (deleted included), got %d", count)
 		}
@@ -453,7 +453,7 @@ func TestSyncScheduler(t *testing.T) {
 	w, _ := newTestWorker(t, f, false)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond, 2 * time.Millisecond, 3 * time.Millisecond})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	done := make(chan struct{})
@@ -483,7 +483,7 @@ func TestHasCompletedSync(t *testing.T) {
 		t.Error("expected false before sync")
 	}
 
-	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
+	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 
@@ -531,14 +531,14 @@ func TestSyncWithRetrySucceedsOnSecondAttempt(t *testing.T) {
 
 	client, db := testutil.SetupClientWithDB(t)
 	pdbClient := newFastPDBClient(t, srv.URL)
-	if err := InitStatusTable(context.Background(), db); err != nil {
+	if err := InitStatusTable(t.Context(), db); err != nil {
 		t.Fatalf("init status: %v", err)
 	}
 
 	w := NewWorker(pdbClient, client, db, WorkerConfig{}, slog.Default())
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond, 2 * time.Millisecond, 3 * time.Millisecond})
 
-	err := w.SyncWithRetry(context.Background(), config.SyncModeFull)
+	err := w.SyncWithRetry(t.Context(), config.SyncModeFull)
 	if err != nil {
 		t.Fatalf("expected SyncWithRetry to succeed on retry, got: %v", err)
 	}
@@ -553,7 +553,7 @@ func TestSyncWithRetryExhaustsRetries(t *testing.T) {
 	w, _ := newTestWorker(t, f, false)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond, 2 * time.Millisecond, 3 * time.Millisecond})
 
-	err := w.SyncWithRetry(context.Background(), config.SyncModeFull)
+	err := w.SyncWithRetry(t.Context(), config.SyncModeFull)
 	if err == nil {
 		t.Fatal("expected error after exhausting retries")
 	}
@@ -571,7 +571,7 @@ func TestSyncWithRetryContextCancellation(t *testing.T) {
 	w, _ := newTestWorker(t, f, false)
 	w.SetRetryBackoffs([]time.Duration{10 * time.Second, 10 * time.Second, 10 * time.Second})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 	defer cancel()
 
 	start := time.Now()
@@ -596,13 +596,13 @@ func TestSyncWithNetAndFac(t *testing.T) {
 	f.responses["net"] = []any{makeNet(100, 1, 65000, fmt.Sprintf("Net-%d", 100), "ok")}
 	w, _ := newTestWorker(t, f, false)
 
-	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
+	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 
-	orgCount, _ := w.entClient.Organization.Query().Count(context.Background())
-	facCount, _ := w.entClient.Facility.Query().Count(context.Background())
-	netCount, _ := w.entClient.Network.Query().Count(context.Background())
+	orgCount, _ := w.entClient.Organization.Query().Count(t.Context())
+	facCount, _ := w.entClient.Facility.Query().Count(t.Context())
+	netCount, _ := w.entClient.Network.Query().Count(t.Context())
 
 	if orgCount != 1 {
 		t.Errorf("expected 1 org, got %d", orgCount)
@@ -622,7 +622,7 @@ func setupMetricTest(t *testing.T) *sdkmetric.ManualReader {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
-	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 	if err := pdbotel.InitMetrics(); err != nil {
 		t.Fatalf("InitMetrics: %v", err)
 	}
@@ -651,12 +651,12 @@ func TestSyncRecordsMetrics(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f, false)
 
-	if err := w.Sync(context.Background(), config.SyncModeFull); err != nil {
+	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
 
 	var rm metricdata.ResourceMetrics
-	if err := reader.Collect(context.Background(), &rm); err != nil {
+	if err := reader.Collect(t.Context(), &rm); err != nil {
 		t.Fatalf("Collect: %v", err)
 	}
 
@@ -705,13 +705,13 @@ func TestSyncRecordsFailureMetrics(t *testing.T) {
 	f.failTypes["org"] = true
 	w, _ := newTestWorker(t, f, false)
 
-	err := w.Sync(context.Background(), config.SyncModeFull)
+	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err == nil {
 		t.Fatal("expected error from failed sync")
 	}
 
 	var rm metricdata.ResourceMetrics
-	if err := reader.Collect(context.Background(), &rm); err != nil {
+	if err := reader.Collect(t.Context(), &rm); err != nil {
 		t.Fatalf("Collect: %v", err)
 	}
 
@@ -850,7 +850,7 @@ func newTestWorkerWithMode(t *testing.T, baseURL string, mode config.SyncMode, i
 	client, db := testutil.SetupClientWithDB(t)
 	pdbClient := newFastPDBClient(t, baseURL)
 
-	if err := InitStatusTable(context.Background(), db); err != nil {
+	if err := InitStatusTable(t.Context(), db); err != nil {
 		t.Fatalf("init status table: %v", err)
 	}
 
@@ -870,7 +870,7 @@ func TestIncrementalSync(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// First sync: no cursors, so full fetch runs.
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
@@ -925,7 +925,7 @@ func TestIncrementalFirstSyncFull(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 
 	w, _ := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// First sync with no cursors should use full fetch.
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
@@ -955,7 +955,7 @@ func TestIncrementalFallback(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Establish cursors with a full sync first.
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
@@ -1012,7 +1012,7 @@ func TestCursorsUpdatedAfterCommit(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeFull, false)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
 		t.Fatalf("sync: %v", err)
@@ -1043,7 +1043,7 @@ func TestCursorsNotUpdatedOnRollback(t *testing.T) {
 	f.failTypes["net"] = true
 
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeFull, false)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	err := w.Sync(ctx, config.SyncModeFull)
 	if err == nil {
@@ -1073,7 +1073,7 @@ func TestSyncWithRetryPassesMode(t *testing.T) {
 
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// First call establishes cursors.
 	if err := w.SyncWithRetry(ctx, config.SyncModeFull); err != nil {
@@ -1113,7 +1113,7 @@ func TestIncrementalSkipsDeleteStale(t *testing.T) {
 	}
 
 	w, _ := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Full sync to establish data and cursors.
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
@@ -1153,7 +1153,7 @@ func TestSchedulerSkipsSyncWithExistingData(t *testing.T) {
 	w, db := newTestWorker(t, f, false)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Record a successful sync that completed recently (within the interval).
 	now := time.Now()
@@ -1203,7 +1203,7 @@ func TestSchedulerSyncsImmediatelyOnEmptyDB(t *testing.T) {
 	w, _ := newTestWorker(t, f, false)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	done := make(chan struct{})
@@ -1237,7 +1237,7 @@ func TestSchedulerSyncsWhenOverdue(t *testing.T) {
 	w, db := newTestWorker(t, f, false)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Record a successful sync from 2 hours ago (with 1h interval, it's overdue).
 	twoHoursAgo := time.Now().Add(-2 * time.Hour)
@@ -1305,7 +1305,7 @@ func TestStartScheduler_SkipsOnReplica(t *testing.T) {
 	w.config.IsPrimary = ps.IsPrimary
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 300*time.Millisecond)
 	defer cancel()
 
 	done := make(chan struct{})
@@ -1337,7 +1337,7 @@ func TestStartScheduler_PromotionSync(t *testing.T) {
 	w.config.IsPrimary = ps.IsPrimary
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 
 	done := make(chan struct{})
@@ -1395,7 +1395,7 @@ func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 
 	client, db := testutil.SetupClientWithDB(t)
 	pdbClient := newFastPDBClient(t, srv.URL)
-	if err := InitStatusTable(context.Background(), db); err != nil {
+	if err := InitStatusTable(t.Context(), db); err != nil {
 		t.Fatalf("init status: %v", err)
 	}
 
@@ -1404,7 +1404,7 @@ func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 	}, slog.Default())
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
 	// Start runSyncCycle in a goroutine.

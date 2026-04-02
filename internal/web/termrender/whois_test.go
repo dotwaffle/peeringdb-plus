@@ -77,7 +77,7 @@ func TestRenderWHOIS_NetworkMultiValue(t *testing.T) {
 
 	// Should have multiple ix: lines (one per IX presence).
 	ixLines := 0
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		if strings.HasPrefix(line, "ix:") {
 			ixLines++
 		}
@@ -88,7 +88,7 @@ func TestRenderWHOIS_NetworkMultiValue(t *testing.T) {
 
 	// Should have multiple fac: lines (one per facility presence).
 	facLines := 0
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		if strings.HasPrefix(line, "fac:") {
 			facLines++
 		}
@@ -158,7 +158,7 @@ func TestRenderWHOIS_IXClass(t *testing.T) {
 
 	// Proto should include unicast and IPv6 but not multicast.
 	protoLine := ""
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		if strings.HasPrefix(line, "proto:") {
 			protoLine = line
 			break
@@ -224,7 +224,7 @@ func TestRenderWHOIS_FacilityClass(t *testing.T) {
 
 	// Address should appear as multi-value (two address: lines).
 	addrLines := 0
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		if strings.HasPrefix(line, "address:") {
 			addrLines++
 		}
@@ -348,7 +348,7 @@ func TestRenderWHOIS_KeyAlignment(t *testing.T) {
 	// Format: "key:            value" where key+colon is left-aligned within 16 chars.
 	keyLineRE := regexp.MustCompile(`^([a-z][a-z0-9-]*:\s+)(\S.*)$`)
 
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		if line == "" || strings.HasPrefix(line, "%") {
 			continue
 		}

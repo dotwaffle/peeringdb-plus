@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/conformance"
@@ -196,5 +196,5 @@ func findGoldenDir() string {
 
 func init() {
 	// Ensure allTypes stays sorted.
-	sort.Strings(allTypes)
+	slices.Sort(allTypes)
 }

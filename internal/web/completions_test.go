@@ -1,7 +1,6 @@
 package web
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,7 +17,7 @@ var testCompletionTimestamp = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 func seedCompletionData(t *testing.T) *http.ServeMux {
 	t.Helper()
 	client := testutil.SetupClient(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	org, err := client.Organization.Create().
 		SetID(1).
