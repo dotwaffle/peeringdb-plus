@@ -18,6 +18,7 @@ require (
 	github.com/go-playground/form/v4 v4.3.0
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/klauspost/compress v1.18.5
 	github.com/lrstanley/entrest v1.0.2
 	github.com/ogen-go/ogen v1.20.2
 	github.com/oyyblin/gqlgen-depth-limit-extension v0.1.0
@@ -116,7 +117,6 @@ require (
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jdx/go-netrc v1.0.0 // indirect
-	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
