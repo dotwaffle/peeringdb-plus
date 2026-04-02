@@ -363,7 +363,9 @@ func main() {
 	})
 
 	// Build middleware stack (outermost first):
-	// Recovery -> CORS -> OTel HTTP -> Logging -> Readiness -> Caching -> mux
+	// Recovery -> CORS -> OTel HTTP -> Logging -> Readiness -> CSP -> Caching -> Gzip -> mux
+	compressionMiddleware := middleware.Compression()
+	handler := compressionMiddleware(mux)
 	cachingMiddleware := middleware.Caching(middleware.CachingInput{
 		SyncTimeFn: func() time.Time {
 			t, _ := pdbsync.GetLastSuccessfulSyncTime(context.Background(), db)
@@ -371,7 +373,11 @@ func main() {
 		},
 		SyncInterval: cfg.SyncInterval,
 	})
-	handler := cachingMiddleware(mux)
+	handler = cachingMiddleware(handler)
+	handler = middleware.CSP(middleware.CSPInput{
+		UIPolicy:      "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: https://*.basemaps.cartocdn.com; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net",
+		GraphQLPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'",
+	})(handler)
 	handler = readinessMiddleware(syncWorker, handler)
 	handler = middleware.Logging(logger)(handler)
 	handler = otelhttp.NewMiddleware("peeringdb-plus")(handler)
