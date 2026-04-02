@@ -1,259 +1,569 @@
-# Technology Stack
+# Technology Stack: v1.12 Hardening & Tech Debt
 
-**Project:** PeeringDB Plus -- v1.11 Web UI Density & Interactivity
-**Researched:** 2026-03-26
-**Confidence:** HIGH
+**Project:** PeeringDB Plus
+**Researched:** 2026-04-02
+**Mode:** Incremental -- additions/changes for hardening milestone only
 
-## Recommended Stack
+## Executive Summary
 
-This document covers ONLY the new additions needed for v1.11. The existing stack (templ v0.3.x, htmx 2.0.8, Tailwind CSS v4 via CDN, Go 1.26, net/http, entgo) is validated and unchanged.
+The v1.12 hardening milestone requires **zero new direct dependencies** for most items. HTTP server timeouts, SQLite connection pool, request body limits, and CSP headers are all stdlib/configuration changes. Compression middleware promotes the existing `klauspost/compress` transitive dependency to a direct one. The three new linters (`exhaustive`, `contextcheck`, `gosec`) are config-only additions to golangci-lint. Go 1.26's `slog.NewMultiHandler` replaces the project's hand-written `fanoutHandler`, eliminating custom code.
 
-### Client-Side Libraries (CDN)
+## 1. HTTP Server Timeouts
 
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| Leaflet.js | 1.9.4 | Interactive map with clickable pins, popups | The standard open-source mapping library. 42K GitHub stars. Stable since Sep 2022 (1.9.x line). v2.0.0 is alpha-only -- not production ready. Lightweight (~42KB gzipped). No build toolchain needed: one CSS + one JS via CDN. | HIGH |
-| Leaflet.markercluster | 1.5.3 | Marker clustering for map with many facilities | Official Leaflet plugin. Clusters overlapping markers at low zoom levels, spiderifies on click. Required when displaying hundreds of facilities on a single map. Available via unpkg CDN. Compatible with Leaflet 1.x. | HIGH |
-| sortable-tablesort | 4.1.7 | Client-side column sorting for dense tables | 899 bytes gzipped (lightweight flavor). Vanilla JS, zero dependencies. CSS class-based activation (`class="sortable"` on `<table>`). Auto version includes MutationObserver for htmx-loaded content. `data-sort` attribute allows custom sort values (useful for speed columns: display "10G" but sort by 10000). Unlicense. | HIGH |
+**Confidence:** HIGH (stdlib, well-documented, no Go 1.26 changes to http.Server timeout fields)
 
-### Tile Provider
+### Current State
 
-| Provider | URL Pattern | Purpose | Why | Confidence |
-|----------|-------------|---------|-----|------------|
-| CARTO Dark Matter | `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png` | Dark-themed map tiles matching app's dark UI | No API key required. No registration. Free with attribution (CC-BY 4.0). Dark background matches the dark-mode-first design. Subdomains a/b/c/d for parallel loading. Attribution: "CARTO, OpenStreetMap contributors". | HIGH |
-| CARTO Positron | `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png` | Light-themed map tiles for light mode | Same terms as Dark Matter. Switch tile URL based on dark/light mode toggle. | MEDIUM |
+The `http.Server` in `cmd/peeringdb-plus/main.go` (line 376) has **no timeouts configured**. This means:
+- Unlimited read time (slow client can hold connections open indefinitely)
+- Unlimited write time (stuck handlers never timeout)
+- Unlimited idle time (default 0 means no keep-alive timeout beyond TCP)
+- No header read timeout (Slowloris attack vector)
 
-### Go Server-Side Additions
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| No new Go dependencies | -- | Country code to emoji flag conversion | Pure Go function: 6 lines. ISO 3166-1 alpha-2 country codes map to Unicode Regional Indicator Symbols (U+1F1E6 to U+1F1FF). Formula: `rune(char) - 'A' + 0x1F1E6` for each letter. No library needed. PeeringDB stores 2-letter country codes on facilities, IXPs, orgs, and campuses. | HIGH |
-| No new Go dependencies | -- | Latitude/longitude extraction for map | Facility and Organization ent schemas already have `latitude` and `longitude` fields (Optional, Nillable, Float). These are already synced from PeeringDB. No additional data fetching needed -- just include lat/lng in the view model structs. | HIGH |
-
-## Integration Architecture
-
-### Sortable Tables + htmx
-
-Two sorting modes needed, driven by data volume:
-
-**Client-side sorting** (sortable-tablesort): For htmx fragment data already loaded in the DOM. Applies to collapsible sections (IX participants, facility networks, etc.) where all rows are returned in a single fragment response. The `sortable.auto.min.js` flavor uses MutationObserver to automatically initialize sorting on tables added by htmx swaps -- no `htmx.onLoad()` glue code needed.
-
-**Server-side sorting** (htmx hx-get with query params): For future paginated views where not all data is in the DOM. Use `hx-get="/ui/fragment/ix/{id}/participants?sort=speed&dir=desc"` with `hx-target` replacing the table body. The server reads sort/dir params and applies ent `.Order()`. Not needed in v1.11 -- all collapsible sections load full datasets.
-
-**Recommendation for v1.11:** Client-side only via sortable-tablesort. All data sections load complete datasets into the DOM (IX participants lists are ~500 rows max for the largest exchanges). Server-side sorting is premature optimization for this data volume.
-
-### Table Structure
-
-Current templates use `<div>` with flexbox/grid for lists. Tables need conversion to semantic `<table>` elements for sortable-tablesort to work. This is the correct direction anyway -- the data IS tabular.
-
-```html
-<!-- Current pattern (div-based cards) -->
-<div class="divide-y divide-neutral-700/50">
-  <div class="px-4 py-3">...</div>
-</div>
-
-<!-- New pattern (dense sortable table) -->
-<table class="sortable w-full text-sm">
-  <thead>
-    <tr><th>Name</th><th>Country</th><th>Speed</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>...</td><td>...</td><td data-sort="10000">10G</td></tr>
-  </tbody>
-</table>
-```
-
-### Leaflet Map Integration
-
-Maps appear in two contexts:
-
-1. **Facility detail page**: Single marker showing facility location. Simple, no clustering.
-2. **IX detail page / Org detail page / Network detail page**: Multiple markers showing all facilities. Needs MarkerCluster for IXs with many facilities in close proximity (e.g., Amsterdam, Frankfurt metro areas).
-3. **Search results** (deferred): Optional map view of search hits -- can be added later.
-
-Map loads conditionally -- only when lat/lng data exists. Templ renders a `<div id="map">` with `data-lat` and `data-lng` attributes (or a JSON array for multi-marker). A small inline `<script>` block initializes Leaflet after the div renders. No htmx interaction needed for the map itself.
-
-**Dark/light mode tile switching:** Read `document.documentElement.classList.contains('dark')` on map init. Listen for the dark mode toggle event to swap tile layers.
-
-### Country Flag Emoji
-
-Conversion happens server-side in Go, injected into templ templates as a string. Implementation:
+### Recommendation
 
 ```go
-// CountryFlag converts an ISO 3166-1 alpha-2 country code to its flag emoji.
-// Returns empty string for invalid or empty codes.
-func CountryFlag(code string) string {
-    if len(code) != 2 {
-        return ""
-    }
-    code = strings.ToUpper(code)
-    if code[0] < 'A' || code[0] > 'Z' || code[1] < 'A' || code[1] > 'Z' {
-        return ""
-    }
-    return string(rune(code[0])-'A'+0x1F1E6) + string(rune(code[1])-'A'+0x1F1E6)
+server := &http.Server{
+    Addr:              cfg.ListenAddr,
+    Handler:           handler,
+    Protocols:         &protocols,
+    ReadTimeout:       30 * time.Second,
+    ReadHeaderTimeout: 10 * time.Second,
+    IdleTimeout:       120 * time.Second,
+    // WriteTimeout intentionally omitted (0 = no limit).
+    // Streaming RPCs manage their own timeout via cfg.StreamTimeout.
 }
 ```
 
-Place in `internal/web/templates/` as a template helper function (same package as `formatSpeed`, `speedColorClass`). Use in templates as `{ CountryFlag(row.Country) }` alongside the country code text.
+**Rationale for values:**
+- `ReadHeaderTimeout: 10s` -- Prevents Slowloris attacks. Must be set independently of `ReadTimeout` because it governs the TLS handshake deadline too (since Go 1.19).
+- `ReadTimeout: 30s` -- Covers full request body read. The only POST endpoint is `/sync` (no body), so 30s is generous. GraphQL POST bodies are small queries.
+- `IdleTimeout: 120s` -- Keep-alive connection reuse for htmx polling and gRPC multiplexing. Default is infinite; 120s matches common reverse proxy timeouts.
+- `WriteTimeout` intentionally omitted (0 = no limit) -- Streaming RPCs have their own `StreamTimeout` (default 60s). Setting `WriteTimeout` at the server level would kill long-running gRPC streams. Per-handler timeout control via `http.TimeoutHandler` can be added later if needed for non-streaming routes.
 
-**Platform note:** Emoji flags render correctly on macOS, Linux (with Noto Color Emoji), iOS, and Android. Windows 10/11 shows two-letter codes instead of flags (Microsoft policy decision). This is acceptable -- the two-letter country code is always displayed alongside the flag as a text column, so Windows users still see the country.
+**Go 1.26 changes:** None to `http.Server` timeout fields. The `HTTP2Config.StrictMaxConcurrentRequests` field was added but is unrelated to timeouts. The existing timeout semantics are unchanged.
 
-### Tailwind Dense Table Styling
+**New dependencies:** None. Pure stdlib.
 
-No Tailwind plugins needed. Standard utility classes achieve dense tables:
+**Configuration:** Add `PDBPLUS_READ_TIMEOUT`, `PDBPLUS_IDLE_TIMEOUT` env vars to `internal/config/config.go` with the defaults above. `ReadHeaderTimeout` can be hardcoded (no reason to make configurable).
 
-| Class Pattern | Purpose |
-|---------------|---------|
-| `text-xs` / `text-sm` | Smaller text for data density |
-| `px-2 py-1` | Tight cell padding (vs current `px-4 py-3`) |
-| `font-mono` | Monospace for numeric/technical columns (ASN, speed, IP) |
-| `tabular-nums` | Fixed-width numerals for numeric column alignment |
-| `whitespace-nowrap` | Prevent wrapping in narrow columns (country, speed) |
-| `truncate` | Ellipsis overflow for long names in constrained widths |
-| `sticky top-0` | Sticky table headers for scrollable sections |
+### Sources
 
-Dark mode table styling via existing `@custom-variant dark` already in layout.templ. Table rows: `hover:bg-neutral-800/50 dark:hover:bg-neutral-800/50` (already established pattern).
+- [The complete guide to Go net/http timeouts (Cloudflare)](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
+- [Go 1.26 Release Notes](https://go.dev/doc/go1.26) -- no http.Server timeout changes
+- [Exposing Go on the Internet (Gopher Academy)](https://blog.gopheracademy.com/advent-2016/exposing-go-on-the-internet/)
 
-### CDN Loading Strategy
+---
 
-Add to `layout.templ` `<head>` section, loaded on every page (they're small):
+## 2. SQLite Connection Pool Configuration
 
-```html
-<!-- Leaflet (loaded on all pages for consistency, 42KB gzipped) -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+**Confidence:** HIGH (database/sql pool is well-documented, modernc.org/sqlite behavior verified)
 
-<!-- MarkerCluster (loaded on all pages, 8KB gzipped) -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+### Current State
 
-<!-- Sortable tables (loaded on all pages, <1KB gzipped) -->
-<script src="https://unpkg.com/sortable-tablesort@4.1.7/dist/sortable.auto.min.js"></script>
+`internal/database/database.go` opens the database with no pool configuration:
+```go
+db, err := sql.Open("sqlite3", dsn)
 ```
 
-**Alternative approach (deferred loading):** If total CDN payload is a concern, conditionally include Leaflet resources only on pages with maps by using templ component composition -- have a `MapHead()` component that detail pages opt into. The current layout already loads Tailwind Browser (300KB) and htmx, so 50KB more for Leaflet is marginal.
+The default `sql.DB` pool has unlimited open connections and 2 idle connections. With SQLite's single-writer constraint, concurrent writes cause `SQLITE_BUSY` errors (mitigated by the 5000ms `busy_timeout` pragma but not eliminated).
 
-**Self-hosting consideration:** Currently htmx.min.js is embedded in `internal/web/static/` via `embed.FS`. The same pattern COULD be used for Leaflet and MarkerCluster to avoid CDN dependency. However, Leaflet is significantly larger and CDN caching (unpkg is backed by Cloudflare) means most users already have it cached from other sites. Recommendation: **keep CDN** for Leaflet, consistent with Tailwind CDN approach. Self-host only sortable-tablesort (trivially small).
-
-## What NOT to Add
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| AG Grid / DataTables.js | Massive (~100KB+) for sorting that's achievable in <1KB. Brings jQuery or framework dependency. | sortable-tablesort (899 bytes gzipped) |
-| MapLibre GL JS / Mapbox GL JS | Vector tile rendering -- overkill for pin maps. 200KB+. Requires WebGL. Complex dark mode. | Leaflet 1.9.4 with raster tiles |
-| OpenLayers | Enterprise mapping library. 200KB+. Steep learning curve. | Leaflet 1.9.4 |
-| Leaflet 2.0.0-alpha | Alpha since Aug 2025. ESM-only breaking change. Not stable. | Leaflet 1.9.4 (stable since May 2023) |
-| SortableJS (Shopify/Sortable) | Drag-and-drop reordering library, NOT table sorting. Common name confusion. | sortable-tablesort |
-| Stadia Maps tiles | Requires API key registration. Free tier is non-commercial only. | CARTO basemaps (no auth, CC-BY 4.0) |
-| OpenStreetMap tiles directly | Usage policy prohibits heavy/commercial use. Requires custom User-Agent. Rate limits. | CARTO basemaps (designed for third-party use) |
-| Go emoji/flag libraries | No Go library exists for this trivially -- it's 6 lines of code with zero edge cases for ISO 3166-1 alpha-2 codes. | Inline `CountryFlag()` function |
-| country-flag-icons (SVG) | SVG flag images are heavier than emoji, require bundling, and don't work in terminal/JSON output modes. | Unicode Regional Indicator emoji |
-| Tailwind plugins for tables | `@tailwindcss/typography` and table plugins add weight for styling achievable with base utilities. | Standard `text-sm`, `px-2 py-1` utilities |
-| React/Vue/Svelte | This project deliberately avoids SPA frameworks and JS build toolchains. templ + htmx is the validated pattern. | templ server-rendered HTML + htmx fragments |
-
-## Version Pinning Strategy
-
-Pin all CDN URLs to exact versions with SRI hashes where available:
-
-| Library | Pin | SRI Available |
-|---------|-----|---------------|
-| Leaflet JS | `@1.9.4` | Yes (sha256) |
-| Leaflet CSS | `@1.9.4` | Yes (sha256) |
-| MarkerCluster JS | `@1.5.3` | No (verify hash from unpkg) |
-| MarkerCluster CSS | `@1.5.3` | No |
-| sortable-tablesort | `@4.1.7` | No |
-
-Generate SRI hashes for MarkerCluster and sortable-tablesort during implementation: `shasum -b -a 256 <file> | xxd -r -p | base64`.
-
-## Alternatives Considered
-
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| Table sorting | sortable-tablesort (client-side) | htmx server-side sort (hx-get with sort params) | All data fits in DOM. Client-side is faster (no round-trip). Server-side sort useful later for paginated views. |
-| Table sorting | sortable-tablesort | Vanilla JS sort (~30 lines) | sortable-tablesort handles edge cases (numeric vs alpha detection, sort indicators, accessibility), is battle-tested, and is <1KB. Not worth hand-rolling. |
-| Map library | Leaflet 1.9.4 | Leaflet 2.0.0-alpha.1 | Alpha. ESM-only (breaks script tag loading pattern). Unnecessary modernization for pin maps. |
-| Map library | Leaflet 1.9.4 | MapLibre GL JS | Vector tiles need styling, 200KB+, WebGL required. Raster tiles with pins is sufficient. |
-| Map tiles (dark) | CARTO Dark Matter | Stadia Alidade Smooth Dark | Stadia requires API key, free tier non-commercial only. CARTO is free, no auth. |
-| Map tiles (dark) | CARTO Dark Matter | OSM tiles + CSS filter invert | CSS invert looks bad (inverts label colors). CARTO provides a properly designed dark map. |
-| Clustering | MarkerCluster | Supercluster | Supercluster is for GeoJSON with MapLibre. MarkerCluster is the standard Leaflet solution. |
-| Country flags | Unicode emoji (server-side Go) | SVG flag images | Emoji renders natively everywhere (except Windows flag limitation). No asset pipeline. Works in terminal output mode too (already using emoji in templ). |
-| Country flags | Unicode emoji (server-side Go) | Client-side JS conversion | Server-side avoids FOUC (flag appears with initial HTML). Consistent with templ rendering model. |
-
-## Data Requirements
-
-Fields needed from ent schemas that are NOT yet in view model structs:
-
-| View Model | Missing Field | Source | Purpose |
-|------------|---------------|--------|---------|
-| `FacilityDetail` | Latitude, Longitude | `ent.Facility` (already in schema) | Single-marker map on facility detail page |
-| `IXFacilityRow` | Latitude, Longitude | `ent.Facility` via edge | Multi-marker map on IX detail page |
-| `OrgFacilityRow` | Latitude, Longitude | `ent.Facility` via edge | Multi-marker map on org detail page |
-| `NetworkFacRow` | Latitude, Longitude | `ent.Facility` via netfac edge | Multi-marker map on network detail page |
-| `CampusFacilityRow` | Latitude, Longitude | `ent.Facility` via edge | Multi-marker map on campus detail page |
-| `NetworkIXLanRow` | Country (optional) | IX edge -> IXLan -> IX | Country flag in IX presence table |
-| `IXParticipantRow` | -- | Already has what's needed | Just needs table conversion |
-| `CompareFacility` | Latitude, Longitude | Already has city/country | Map of shared/all facilities |
-
-**Key observation:** Lat/lng is on `Facility` entities. For IX detail pages, IX facilities already have a `FacID` link. The handler queries need to eager-load facility lat/lng alongside existing data. This is a query change, not a schema change.
-
-## Installation
-
-No `go get` commands needed. All additions are client-side CDN or pure Go code.
-
-```html
-<!-- Add to internal/web/templates/layout.templ <head> -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="https://unpkg.com/sortable-tablesort@4.1.7/dist/sortable.auto.min.js"></script>
-```
+### Recommendation
 
 ```go
-// Add to internal/web/templates/ (e.g., helpers.go or detail_shared.go)
-func CountryFlag(code string) string {
-    if len(code) != 2 {
-        return ""
+db.SetMaxOpenConns(4)
+db.SetMaxIdleConns(4)
+db.SetConnMaxLifetime(0) // connections reused indefinitely (SQLite is local)
+db.SetConnMaxIdleTime(5 * time.Minute)
+```
+
+**Rationale:**
+- `MaxOpenConns(4)` -- This is a **read-heavy** application. Multiple concurrent readers improve query throughput on the 5 API surfaces. Only the sync worker writes. 4 connections balances read parallelism against SQLite's file-level locking.
+- `MaxIdleConns(4)` -- Match `MaxOpenConns` to avoid connection churn. SQLite connections are cheap (local file), so keeping them idle is fine.
+- `ConnMaxLifetime(0)` -- No reason to expire connections to a local file. Unlike network databases, there is no connection staleness concern.
+- `ConnMaxIdleTime(5m)` -- Reclaim truly unused connections during idle periods, but generous enough to survive traffic bursts.
+
+**Important:** Each `sql.DB` connection in modernc.org/sqlite holds a separate SQLite connection to the same file. WAL mode allows concurrent readers with one writer. The `busy_timeout(5000)` pragma (already set) handles write contention by retrying for 5 seconds before returning SQLITE_BUSY.
+
+**New dependencies:** None. Pure `database/sql` stdlib configuration.
+
+**Configuration:** Hardcode these values. They are internal implementation details, not user-facing config. The pool sizes could be made configurable later if needed.
+
+### Sources
+
+- [Managing connections (Go docs)](https://go.dev/doc/database/manage-connections)
+- [Configuring sql.DB for Better Performance (Alex Edwards)](https://www.alexedwards.net/blog/configuring-sqldb)
+- [SQLite with Go best practices (modernc.org)](https://theitsolutions.io/blog/modernc.org-sqlite-with-go)
+
+---
+
+## 3. Request Body Size Limits
+
+**Confidence:** HIGH (stdlib `http.MaxBytesReader`)
+
+### Current State
+
+No request body size limits. The GraphQL endpoint accepts POST bodies of arbitrary size.
+
+### Recommendation
+
+Use `http.MaxBytesReader` in a middleware wrapper for POST/PUT/PATCH routes:
+
+```go
+func MaxBodySize(maxBytes int64) func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            if r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodPatch {
+                r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+            }
+            next.ServeHTTP(w, r)
+        })
     }
-    code = strings.ToUpper(code)
-    if code[0] < 'A' || code[0] > 'Z' || code[1] < 'A' || code[1] > 'Z' {
-        return ""
-    }
-    return string(rune(code[0])-'A'+0x1F1E6) + string(rune(code[1])-'A'+0x1F1E6)
 }
 ```
 
-## Risk Register
+**Recommended limit: 1 MB (1048576 bytes)**. GraphQL queries are typically < 10KB. The largest legitimate PeeringDB-related GraphQL query would be well under 100KB. 1MB provides generous headroom while preventing abuse.
 
-| Risk | Severity | Likelihood | Mitigation |
-|------|----------|------------|------------|
-| unpkg CDN outage | MEDIUM | LOW | SRI hashes ensure integrity. Fallback: self-host copies in `internal/web/static/`. unpkg is backed by Cloudflare CDN with global PoPs. |
-| CARTO tile service discontinuation | MEDIUM | LOW | CARTO basemaps have been free since 2015. If discontinued, swap tile URL to OSM (for light) or Stadia (with registration). Tile URL is a single line change. |
-| sortable-tablesort MutationObserver conflicts with htmx | LOW | LOW | The `.auto` version uses MutationObserver which fires on htmx DOM swaps. If issues arise, switch to lightweight version + `htmx.onLoad()` hook. |
-| MarkerCluster CSS conflicts with Tailwind | LOW | MEDIUM | MarkerCluster.Default.css uses opinionated cluster styling. May need custom CSS to match dark theme. Override `.marker-cluster-small/medium/large` background colors. |
-| Windows not rendering flag emoji | LOW | HIGH (by design) | Windows shows two-letter codes instead of flags. Acceptable because country code text column is always displayed alongside. Document this known behavior. |
-| Leaflet 1.9.4 end-of-life before 2.0 stable | LOW | LOW | 1.9.4 is the current stable line. Even when 2.0 ships, 1.9.x will continue working -- it's a client-side library with no server dependency. Migration to 2.0 is optional. |
+**Why `http.MaxBytesReader` over middleware alternatives:**
+- Stdlib, zero dependencies
+- Automatically returns 413 Request Entity Too Large when exceeded
+- Properly terminates the read, preventing memory exhaustion
+- Works with any handler (GraphQL, REST, ConnectRPC)
+
+**New dependencies:** None.
+
+**Configuration:** Add `PDBPLUS_MAX_BODY_SIZE` env var with default `1048576` (1MB).
+
+### Sources
+
+- [Go stdlib http.MaxBytesReader](https://pkg.go.dev/net/http#MaxBytesReader)
+
+---
+
+## 4. Compression Middleware (Gzip + Zstd)
+
+**Confidence:** HIGH (klauspost/compress already a transitive dependency)
+
+### Current State
+
+No response compression. All responses sent uncompressed.
+
+### Recommendation
+
+Use `github.com/klauspost/compress/gzhttp` -- the `gzhttp` subpackage of the already-transitive `klauspost/compress` (v1.18.4 in go.mod as indirect). Promotes to direct dependency.
+
+```go
+import "github.com/klauspost/compress/gzhttp"
+
+// In middleware chain:
+handler = gzhttp.GzipHandler(handler)
+```
+
+**Why klauspost/compress/gzhttp:**
+- Already in the dependency tree (transitive via buf/protobuf tooling) -- zero new modules downloaded
+- Supports gzip + zstd by default with content negotiation
+- Benchmarks: 214 MB/s gzip, 548 MB/s zstd (vs stdlib 169 MB/s)
+- Minimum body size 200 bytes by default (avoids compressing tiny responses)
+- Properly handles `Vary: Accept-Encoding`, skips already-compressed content types
+- Implements `http.Flusher` passthrough (required for gRPC streaming)
+
+**Why NOT brotli:**
+- `gzhttp` does not include brotli. Adding brotli requires `CAFxX/httpcompression` which is a new dependency.
+- Gzip + zstd covers all modern clients. Zstd is better than brotli for real-time compression (faster encode, similar ratio).
+- Fly.io's edge proxy already handles brotli for TLS-terminated connections. Adding it at the app layer is redundant for production.
+
+**Why NOT stdlib `compress/gzip`:**
+- No middleware wrapper, no content negotiation, no zstd support
+- klauspost/compress is faster (214 MB/s vs 169 MB/s single-core)
+
+**Middleware chain placement:**
+Compression must wrap **after** CORS (CORS headers must not be compressed) and **before** OTel HTTP (trace the compressed response).
+
+**gRPC/ConnectRPC compatibility:** The gzhttp middleware skips compression for `application/grpc` content types by default. ConnectRPC's `application/connect+proto` will be compressed, which is desirable.
+
+**New dependencies:** None new in go.sum. Promotes `github.com/klauspost/compress` from indirect to direct.
+
+### Sources
+
+- [klauspost/compress/gzhttp package](https://pkg.go.dev/github.com/klauspost/compress/gzhttp)
+- [klauspost/compress GitHub](https://github.com/klauspost/compress)
+
+---
+
+## 5. Content-Security-Policy Headers
+
+**Confidence:** HIGH (standard HTTP header, well-documented)
+
+### Current State
+
+No CSP header set. The layout template loads these CDN resources:
+
+| Resource | Source | SRI |
+|----------|--------|-----|
+| @tailwindcss/browser@4 | cdn.jsdelivr.net | No |
+| flag-icons@7.5.0 | cdn.jsdelivr.net | No |
+| leaflet@1.9.4 CSS | unpkg.com | Yes |
+| leaflet@1.9.4 JS | unpkg.com | Yes |
+| leaflet.markercluster@1.5.3 CSS (x2) | unpkg.com | No |
+| leaflet.markercluster@1.5.3 JS | unpkg.com | No |
+| htmx.min.js | /static/ (self-hosted) | N/A |
+| Tile images | basemaps.cartocdn.com | N/A (img) |
+
+Additionally, the syncing page loads `@tailwindcss/browser@4` from jsdelivr.
+
+### Recommendation
+
+**Phase 1: Add SRI hashes to all CDN assets missing them.** This is the highest-value security improvement. SRI prevents CDN compromise from serving malicious code.
+
+Missing SRI: `@tailwindcss/browser@4`, `flag-icons@7.5.0`, `leaflet.markercluster@1.5.3` (CSS x2 + JS).
+
+Generate hashes with:
+```bash
+curl -sL https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4 | openssl dgst -sha256 -binary | openssl base64 -A
+```
+
+**Phase 2: Add CSP header via middleware.**
+
+```
+Content-Security-Policy:
+  default-src 'none';
+  script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline';
+  style-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline';
+  img-src 'self' https://*.basemaps.cartocdn.com data:;
+  font-src https://cdn.jsdelivr.net;
+  connect-src 'self';
+  frame-src 'none';
+  base-uri 'self';
+  form-action 'self';
+```
+
+**Key decisions:**
+- `'unsafe-inline'` for `script-src` is **required** because: (a) Tailwind CSS browser runtime generates inline styles, (b) layout.templ has inline `<script>` blocks for dark mode detection, keyboard navigation, table sorting, and spotlight search. Nonce-based CSP would require per-request nonce generation and templ modifications -- deferred to a future milestone if Tailwind is self-hosted.
+- `'unsafe-inline'` for `style-src` is required because Tailwind browser runtime injects `<style>` elements. Also, inline `<style>` blocks exist in layout.templ for marker-cluster theming and animations.
+- `connect-src 'self'` covers htmx AJAX requests.
+- `img-src` includes `data:` for potential base64 inline images and `*.basemaps.cartocdn.com` for Leaflet tile layers.
+- `font-src` for flag-icons web font from jsdelivr.
+
+**Implementation:** New middleware function in `internal/middleware/` that sets the header on all responses.
+
+**New dependencies:** None.
+
+**Caveat:** The `'unsafe-inline'` directives weaken CSP for XSS protection. This is an inherent limitation of using Tailwind CSS browser runtime and inline scripts. The primary value of this CSP is preventing unauthorized resource loading (exfiltration, cryptominers). SRI hashes on CDN assets provide the actual defense layer for third-party code.
+
+### Sources
+
+- [Content Security Policy (MDN)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP)
+- [CSP OWASP Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html)
+- [Tailwind CSS CSP discussion](https://github.com/tailwindlabs/tailwindcss/discussions/13326)
+
+---
+
+## 6. Additional golangci-lint Linters
+
+**Confidence:** HIGH (verified against golangci-lint v2 linter catalog)
+
+### Current State
+
+`.golangci.yml` enables: standard preset + `gocritic`, `misspell`, `nolintlint`, `revive`. Has exclusion for `gosec` in test files.
+
+### Recommendation
+
+```yaml
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - exhaustive
+    - contextcheck
+    - gosec
+    - gocritic
+    - misspell
+    - nolintlint
+    - revive
+  exclusions:
+    generated: strict
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+```
+
+**Linter details:**
+
+| Linter | Purpose | Why Add | Noise Risk |
+|--------|---------|---------|------------|
+| `exhaustive` | Checks enum switch completeness | Catches missing cases in `SyncMode`, `termrender.Mode` type switches. Prevents silent bugs when new enum values are added. | LOW -- only fires on actual switch statements with enum types |
+| `contextcheck` | Detects non-inherited context usage | Catches `context.Background()` where a request context should be propagated. Critical for OTel trace continuity. | LOW-MEDIUM -- may flag intentional `context.Background()` uses (e.g., the sync goroutine uses `appCtx` deliberately). Add `//nolint:contextcheck` with rationale for legitimate cases. |
+| `gosec` | Security issue detection | Catches hardcoded credentials, weak crypto, SQL injection, path traversal, etc. Already excluded in test files. Recent v2 updates added rules G113 (HTTP body closure), G118-G123 (various). | MEDIUM -- may flag false positives on modernc.org/sqlite DSN strings. Tune with `gosec.excludes` if needed. |
+
+**Linters considered but NOT recommended:**
+
+| Linter | Why Not |
+|--------|---------|
+| `bodyclose` | Only relevant for HTTP client code, limited to `internal/peeringdb/client.go`. Already handles body closure. Low value. |
+| `exhaustruct` | Too aggressive for a codebase using struct literals extensively. Massive noise. |
+| `wrapcheck` | The project already wraps errors consistently per GO-ERR-1. Would flag generated code patterns. |
+
+**New dependencies:** None. Linters are built into golangci-lint.
+
+**Configuration additions for gosec (if needed after initial run):**
+
+```yaml
+linters:
+  settings:
+    gosec:
+      excludes:
+        - G304  # File path from variable (used for DB path from config, validated)
+```
+
+### Sources
+
+- [golangci-lint v2 Linters catalog](https://golangci-lint.run/docs/linters/)
+- [gosec rules](https://github.com/securego/gosec#available-rules)
+
+---
+
+## 7. Docker HEALTHCHECK and Docker Build in CI
+
+**Confidence:** HIGH (Docker and GitHub Actions are well-documented)
+
+### Current State
+
+- Dockerfile has no `HEALTHCHECK` instruction
+- CI does not build the Docker image (only `go build ./...`)
+- Runtime image is `cgr.dev/chainguard/glibc-dynamic:latest-dev` which has no `curl`/`wget`
+
+### Recommendation: HEALTHCHECK
+
+Since the Chainguard glibc-dynamic image contains no shell utilities, build a tiny Go healthcheck binary:
+
+```go
+// cmd/healthcheck/main.go
+package main
+
+import (
+    "net/http"
+    "os"
+)
+
+func main() {
+    resp, err := http.Get("http://localhost:8080/healthz")
+    if err != nil || resp.StatusCode != http.StatusOK {
+        os.Exit(1)
+    }
+}
+```
+
+Add to Dockerfile:
+
+```dockerfile
+# Build stage
+FROM cgr.dev/chainguard/go AS build
+WORKDIR /app
+COPY . .
+RUN \
+    --mount=type=cache,target=/root/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /bin/peeringdb-plus ./cmd/peeringdb-plus && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /bin/healthcheck ./cmd/healthcheck
+
+# Runtime stage
+FROM cgr.dev/chainguard/glibc-dynamic:latest-dev
+COPY --from=build /bin/peeringdb-plus /usr/local/bin/peeringdb-plus
+COPY --from=build /bin/healthcheck /usr/local/bin/healthcheck
+RUN mkdir -p /data
+ENV PDBPLUS_DB_PATH=/data/peeringdb-plus.db
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
+    CMD ["/usr/local/bin/healthcheck"]
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/peeringdb-plus"]
+```
+
+**Timing rationale:**
+- `--start-period=120s` -- Generous startup window for initial PeeringDB sync (can take 60-90s on first boot)
+- `--interval=30s` -- Frequent enough to detect issues quickly
+- `--timeout=5s` -- /healthz is a trivial handler, should respond in < 1ms
+- `--retries=3` -- Allows transient failures during sync
+
+### Recommendation: Docker Build in CI
+
+Add a new job to `.github/workflows/ci.yml`:
+
+```yaml
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          load: true
+          tags: peeringdb-plus:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify HEALTHCHECK is configured
+        run: |
+          docker inspect peeringdb-plus:ci --format='{{json .Config.Healthcheck}}' | grep -q healthcheck
+```
+
+**Why `docker/build-push-action@v7`:**
+- Official Docker action, well-maintained
+- `push: false` + `load: true` -- builds and loads into local Docker daemon without pushing
+- GHA cache support reduces build times on subsequent runs
+- Catches Dockerfile syntax errors, build failures, and missing files before deploy
+
+**New dependencies:** GitHub Actions only (`docker/setup-buildx-action@v3`, `docker/build-push-action@v7`).
+
+### Sources
+
+- [Docker test before push (Docker docs)](https://docs.docker.com/build/ci/github-actions/test-before-push/)
+- [docker/build-push-action](https://github.com/docker/build-push-action)
+- [Chainguard glibc-dynamic image](https://images.chainguard.dev/directory/image/glibc-dynamic/overview)
+
+---
+
+## 8. Go 1.26-Specific Improvements
+
+**Confidence:** HIGH (verified against Go 1.26 release notes)
+
+### slog.NewMultiHandler (replaces custom fanoutHandler)
+
+Go 1.26 adds `slog.NewMultiHandler` to the stdlib, which is a drop-in replacement for the project's hand-written `fanoutHandler` in `internal/otel/logger.go` (75 lines of custom code).
+
+**Current code:**
+```go
+type fanoutHandler struct {
+    handlers []slog.Handler
+}
+// ... Enabled, Handle, WithAttrs, WithGroup methods (75 lines)
+```
+
+**Replacement:**
+```go
+func NewDualLogger(stdout io.Writer, logProvider *sdklog.LoggerProvider) *slog.Logger {
+    otelHandler := otelslog.NewHandler("peeringdb-plus",
+        otelslog.WithLoggerProvider(logProvider),
+    )
+    stdoutHandler := slog.NewJSONHandler(stdout, &slog.HandlerOptions{
+        Level: slog.LevelInfo,
+    })
+    return slog.New(slog.NewMultiHandler(stdoutHandler, otelHandler))
+}
+```
+
+Eliminates the entire `fanoutHandler` type and its 4 methods. The stdlib implementation is tested and handles edge cases that the custom implementation may not.
+
+### io.ReadAll performance (free win)
+
+Go 1.26 makes `io.ReadAll` approximately 2x faster with half the memory. The sync client uses `io.ReadAll` to read PeeringDB API responses. This is a free performance win with zero code changes -- just building with Go 1.26.
+
+### errors.AsType -- NOT applicable
+
+Go 1.26 adds the generic `errors.AsType[E]`. However, all `errors.As` calls in the codebase are in **generated code** (`ent/ent.go`, `ent/rest/server.go`). No hand-written code uses `errors.As`. Not relevant for v1.12.
+
+### Other Go 1.26 features NOT relevant to v1.12
+- `crypto/hpke` -- not applicable (no custom crypto)
+- Green Tea GC -- automatic, no code changes needed
+- `net.Dialer.DialTCP/DialUDP` -- not applicable
+- `http.HTTP2Config.StrictMaxConcurrentRequests` -- not needed
+- Goroutine leak profiler (experimental) -- nice for testing but not a hardening item
+- `bytes.Buffer.Peek` -- potentially useful for terminal renderer but not a priority
+
+---
+
+## Stack Changes Summary
+
+### New Direct Dependencies
+
+| Dependency | Version | Purpose | Already in go.sum |
+|------------|---------|---------|-------------------|
+| `github.com/klauspost/compress/gzhttp` | v1.18.4 | HTTP compression middleware | Yes (promote indirect to direct) |
+
+### New Go Files
+
+| File | Purpose |
+|------|---------|
+| `cmd/healthcheck/main.go` | Docker HEALTHCHECK binary (~15 lines) |
+| `internal/middleware/compression.go` | Compression middleware wrapper |
+| `internal/middleware/csp.go` | Content-Security-Policy header middleware |
+| `internal/middleware/bodylimit.go` | Request body size limit middleware |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `cmd/peeringdb-plus/main.go` | Add server timeouts, body limit middleware, compression middleware, CSP middleware to chain |
+| `internal/config/config.go` | Add timeout config fields, body size limit |
+| `internal/database/database.go` | Add connection pool configuration |
+| `internal/otel/logger.go` | Replace fanoutHandler with slog.NewMultiHandler |
+| `.golangci.yml` | Add exhaustive, contextcheck, gosec linters |
+| `Dockerfile` | Add healthcheck binary build, HEALTHCHECK instruction |
+| `.github/workflows/ci.yml` | Add Docker build job |
+| `internal/web/templates/layout.templ` | Add SRI hashes to CDN assets missing them |
+| `internal/web/templates/syncing.templ` | Add SRI hash to Tailwind CDN script |
+
+### What NOT to Add
+
+| Technology | Why Not |
+|------------|---------|
+| Brotli middleware (CAFxX/httpcompression) | New dependency. Gzip + zstd covers all clients. Fly.io edge handles brotli for TLS. |
+| Nonce-based CSP | Requires per-request nonce generation and templ changes. Premature while using Tailwind browser runtime. |
+| `bodyclose` linter | Minimal value -- only one HTTP client in the project, already handles body closure. |
+| `exhaustruct` linter | Too aggressive, massive noise from struct literals throughout codebase. |
+| Custom error types for Go 1.26 `errors.AsType` | All `errors.As` usage is in generated code. |
+| `http.TimeoutHandler` per-route wrappers | Over-engineering for v1.12. Server-level timeouts + existing StreamTimeout cover the attack surface. |
+| Rate limiting middleware | Out of scope for v1.12. Read-only app behind Fly.io's proxy. |
+
+---
+
+## Middleware Chain Order (After Hardening)
+
+```
+Recovery -> CORS -> Compression -> OTel HTTP -> Logging -> CSP -> BodyLimit -> Readiness -> Caching -> mux
+```
+
+**Order rationale:**
+1. **Recovery** -- outermost to catch panics from any layer
+2. **CORS** -- before compression (CORS headers must be present in responses)
+3. **Compression** -- wraps response writer, must be early to compress all downstream output
+4. **OTel HTTP** -- traces the compressed response
+5. **Logging** -- logs after OTel has added trace context
+6. **CSP** -- sets security headers on all responses
+7. **BodyLimit** -- limits request bodies before handlers read them
+8. **Readiness** -- gates routes until sync complete
+9. **Caching** -- sets cache headers, closest to handlers
+
+---
 
 ## Sources
 
-- [Leaflet Downloads](https://leafletjs.com/download.html) -- v1.9.4 stable, CDN links with SRI hashes
-- [Leaflet GitHub Releases](https://github.com/Leaflet/Leaflet/releases) -- v1.9.4 (May 2025), v2.0.0-alpha.1 (Aug 2025)
-- [Leaflet.markercluster GitHub](https://github.com/Leaflet/Leaflet.markercluster) -- v1.5.3, official plugin
-- [sortable-tablesort npm](https://www.npmjs.com/package/sortable-tablesort) -- v4.1.7
-- [tofsjonas/sortable GitHub](https://github.com/tofsjonas/sortable) -- Features, MutationObserver, CSS options
-- [CARTO Basemaps](https://carto.com/basemaps) -- Free tile service, no API key
-- [CARTO Attribution](https://carto.com/attribution) -- CC-BY 4.0 licensing terms
-- [Regional Indicator Symbols](https://en.wikipedia.org/wiki/Regional_indicator_symbol) -- Unicode flag emoji encoding
-- [htmx Server-Side Sorting Pattern](https://dev.to/vladkens/table-sorting-and-pagination-with-htmx-3dh8) -- hx-get with sort params
-- [OSM Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/) -- Why NOT to use OSM tiles directly
-- [Stadia Maps Pricing](https://stadiamaps.com/pricing) -- Free tier is non-commercial only
+### Official Documentation
+- [Go 1.26 Release Notes](https://go.dev/doc/go1.26)
+- [Go database/sql managing connections](https://go.dev/doc/database/manage-connections)
+- [Go net/http package](https://pkg.go.dev/net/http)
+- [golangci-lint v2 Linters](https://golangci-lint.run/docs/linters/)
 
----
-*Stack research for: Web UI Density & Interactivity (v1.11)*
-*Researched: 2026-03-26*
+### Libraries
+- [klauspost/compress/gzhttp](https://pkg.go.dev/github.com/klauspost/compress/gzhttp)
+- [klauspost/compress GitHub](https://github.com/klauspost/compress)
+
+### Best Practices
+- [Go net/http timeouts (Cloudflare)](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
+- [Configuring sql.DB (Alex Edwards)](https://www.alexedwards.net/blog/configuring-sqldb)
+- [CSP OWASP Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html)
+- [MDN CSP Guide](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP)
+- [Docker HEALTHCHECK test before push](https://docs.docker.com/build/ci/github-actions/test-before-push/)
+- [docker/build-push-action](https://github.com/docker/build-push-action)

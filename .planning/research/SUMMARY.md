@@ -1,167 +1,200 @@
 # Project Research Summary
 
-**Project:** PeeringDB Plus -- v1.11 Web UI Density & Interactivity
-**Domain:** Web UI enhancement for data-dense network infrastructure portal
-**Researched:** 2026-03-26
+**Project:** PeeringDB Plus -- v1.12 Hardening & Tech Debt
+**Domain:** Security hardening, operational improvements, and tech debt cleanup for a mature Go HTTP server
+**Researched:** 2026-04-02
 **Confidence:** HIGH
 
 ## Executive Summary
 
-v1.11 is a UI density and interactivity milestone that transforms the existing templ + htmx detail pages from vertical card-style layouts into proper dense data tables with client-side sorting, adds interactive Leaflet maps with facility pins, and introduces emoji country flags as a visual scanning aid. The scope is well-bounded: no new Go dependencies are required, no backend architecture changes, and all additions are either pure Go utility functions or lightweight CDN-delivered client-side libraries (Leaflet 1.9.4 at 42KB, MarkerCluster at 10KB, sortable-tablesort at under 1KB).
+The v1.12 hardening milestone is a well-scoped collection of security, reliability, and code quality improvements for an existing production Go HTTP server with five API surfaces (Web UI, GraphQL, REST, PeeringDB compat, ConnectRPC/gRPC). The application is mature -- 46 phases and 11 milestones shipped -- and the hardening work requires **zero new direct dependencies** for most items. The single new dependency (promoting `klauspost/compress` from indirect to direct for compression middleware) is already in the module graph. Go 1.26's `slog.NewMultiHandler` eliminates 75 lines of custom handler code. All changes are additive or configurational -- no architectural rework is needed.
 
-The recommended approach follows a strict dependency chain: country flag utility first (zero risk, unblocks all flag columns), then data layer additions (lat/lng and flag fields on view model structs), then the largest change -- converting all detail page child-entity lists from `divide-y` div layouts to semantic `<table>` elements with sortable columns -- and finally Leaflet map integration starting with the simplest case (single-pin facility page) and progressing to multi-pin IX/network/comparison pages. All geographic data already exists in the ent schema (facility lat/lng is synced from PeeringDB); the work is surfacing it through queries and templates.
+The recommended approach is to phase the work by dependency chain and risk profile: start with the zero-risk server configuration items (timeouts, connection pool, body limits), progress through request/response hardening (CSP, SRI, input validation), then tackle internal quality improvements (sentinel errors, metrics caching, compression), and finish with refactoring and CI improvements. This order ensures each phase has a clean rollback boundary and avoids the anti-pattern of refactoring code that is about to have new linters applied to it.
 
-The primary risks are operational, not architectural: sortable.js must use the `.auto` variant (MutationObserver) or htmx-loaded fragment tables will not be sortable; Leaflet maps must render outside collapsible `<details>` elements to avoid zero-height initialization; facility lat/lng queries must be batched (not N+1) to avoid span explosion in OTel traces; and emoji flags must always display the country code alongside the emoji because Windows does not render Regional Indicator Symbols as flags. None of these are hard problems -- they are known gotchas with documented prevention strategies.
+The primary risks are: (1) setting `WriteTimeout` on `http.Server` which will kill gRPC streaming RPCs -- use `ReadHeaderTimeout` only; (2) compression middleware double-encoding ConnectRPC responses -- exclude gRPC content types; (3) CSP headers breaking the web UI due to CDN-loaded assets and inline scripts -- deploy as `Report-Only` first; (4) SRI hash incompatibility with `@tailwindcss/browser@4` semver ranges -- pin exact versions. All four have clear, well-documented prevention strategies.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new Go dependencies. Three small client-side libraries delivered via CDN, plus a 6-line pure Go function for country flags. See [STACK.md](STACK.md) for full details.
+No new technologies are introduced. The hardening milestone is entirely about configuring, securing, and improving what already exists. See [STACK.md](STACK.md) for full details.
 
-**Core technologies:**
-- **Leaflet 1.9.4**: Interactive maps with clickable pins and popups -- the standard open-source mapping library (42KB gzipped, stable since 2023, do NOT use 2.0.0-alpha)
-- **Leaflet.markercluster 1.5.3**: Marker clustering for pages with many facility pins -- official Leaflet plugin, required for IX/network pages with 50+ facility locations
-- **sortable-tablesort 4.1.7**: Client-side column sorting -- 899 bytes gzipped, zero dependencies, MutationObserver auto-init variant works with htmx fragment loading
-- **CARTO basemaps**: Dark and light map tiles -- no API key, no registration, free with CC-BY 4.0 attribution, native dark/light variants eliminate CSS invert hack
-- **CountryFlag() Go function**: Unicode Regional Indicator Symbol math -- 6 lines of Go, no library needed, converts ISO 3166-1 alpha-2 codes to emoji flags server-side
+**Core changes:**
+- **HTTP server timeouts**: `ReadHeaderTimeout: 10s`, `IdleTimeout: 120s` on `http.Server` -- stdlib, prevents Slowloris attacks without killing gRPC streams
+- **SQLite connection pool**: `MaxOpenConns` + `MaxIdleConns` + `ConnMaxIdleTime` -- stdlib `database/sql`, prevents fd exhaustion under concurrent reads
+- **Compression**: `klauspost/compress/gzhttp` -- already a transitive dependency, supports gzip + zstd with content negotiation, handles ETag suffixing and `http.Flusher` passthrough
+- **Go 1.26**: `slog.NewMultiHandler` replaces custom `fanoutHandler` (75 lines eliminated); `io.ReadAll` is ~2x faster for free
+
+**What NOT to add:** Brotli (Fly.io edge handles it), nonce-based CSP (premature while using Tailwind browser runtime), `bodyclose` linter (minimal value), `exhaustruct` linter (too noisy), rate limiting (read-only app behind Fly.io proxy).
 
 ### Expected Features
 
-See [FEATURES.md](FEATURES.md) for full feature landscape.
+See [FEATURES.md](FEATURES.md) for full analysis including dependency graph.
 
 **Must have (table stakes):**
-- Dense columnar table layouts replacing current card/div lists (3-4x vertical space reduction)
-- Sortable table columns with numeric sort keys (data-sort attributes)
-- Country emoji flags as visual scanning aid alongside country codes
-- Responsive table behavior (hide low-priority columns on mobile)
+- HTTP server timeouts (ReadHeaderTimeout, IdleTimeout) -- zero-timeout server is a known vulnerability
+- SQLite connection pool limits -- unbounded connections risk fd exhaustion
+- Request body size limits -- DoS vector even on read-only endpoints
+- Input validation (ASN range 1-4294967295, width parameter 40-500) -- prevents edge cases and confusing errors
+- Config validation expansion -- fail-fast per GO-CFG-1
+- GraphQL error classification via sentinel errors -- fixes GO-ERR-2 violation (string matching)
+- SRI attributes on remaining CDN assets -- completes partial supply chain protection
 
 **Should have (differentiators):**
-- Interactive Leaflet map with facility pins on detail pages (PeeringDB has no map)
-- Marker clustering for large IXes with many facility locations
-- Clickable map popups linking to facility detail pages
-- Dark mode map tiles matching app theme
-- Comparison page map with colored pins (shared vs unique facilities)
+- Gzip/zstd compression middleware -- 60-80% bandwidth reduction on JSON/HTML
+- Content-Security-Policy header -- prevents XSS on web UI
+- Metrics COUNT query caching -- eliminates 13 unnecessary queries per scrape
+- Test coverage for GraphQL handler and database package -- zero test files in both
+- Additional linters (exhaustive, contextcheck, gosec) -- catches enum gaps, context misuse, security issues
+- Docker build in CI + Dockerfile HEALTHCHECK -- catches build failures before deploy
 
-**Defer (v2+):**
-- Server-side table sorting via htmx (unnecessary at current data volumes, all datasets under 2K rows)
-- Paginated tables for child entities (bounded data, pagination adds complexity for no benefit)
-- Search results layout density redesign (current card layout works, improve later)
-- Map on search results page (scope creep)
-- Drawing tools / measurement on map (out of scope for read-only mirror)
+**Defer:**
+- Generic upsert refactoring -- low ROI, ent types have no shared interface
+- CORS preflight caching -- already done (MaxAge=86400), verify only
+- Rate limiting -- Fly.io proxy handles it
+- Self-hosted CDN assets -- SRI provides equivalent security
 
 ### Architecture Approach
 
-The features integrate into the existing architecture with no structural changes. All data transformations happen server-side in Go (flag conversion, lat/lng extraction, MapPoint generation). Client-side libraries operate independently on the rendered DOM (sortable attaches to `<table class="sortable">`, Leaflet reads embedded GeoJSON from `<script type="application/json">`). See [ARCHITECTURE.md](ARCHITECTURE.md) for component boundaries and data flow.
+The existing architecture is clean and modular. Hardening changes fit naturally into the existing component boundaries. The middleware chain gains three new layers (body limit, compression, CSP), the server gains timeout configuration, the database gains pool configuration, and internal packages get quality improvements. No cross-cutting architectural changes are needed. See [ARCHITECTURE.md](ARCHITECTURE.md) for component-by-component integration analysis.
 
-**Major components:**
-1. **countryflags.go** (new) -- `CountryFlag()` function and `MapPoint` type definition
-2. **detail.go / search.go / compare.go** (modified) -- populate new fields (CountryFlag, Latitude, Longitude, MapPoints) in query functions, batch-query facility lat/lng for IX/network pages
-3. **layout.templ** (modified) -- CDN script/link tags for Leaflet, MarkerCluster, sortable; custom sort indicator CSS for dark mode
-4. **detail_*.templ** (modified, largest change) -- convert all child-entity lists from `divide-y` divs to `<table class="sortable">` with flag columns, data-sort attributes, and responsive hiding
-5. **detail_shared.templ** (modified) -- new `MapSection` shared templ component; adapt `CopyableIP` for inline table cell use
+**Key integration points:**
+1. **`cmd/peeringdb-plus/main.go`** -- server timeouts, middleware chain additions, healthcheck mode
+2. **`internal/middleware/`** -- three new files: `bodylimit.go`, `compression.go`, `csp.go`
+3. **`internal/config/config.go`** -- new timeout fields, expanded validation
+4. **`internal/database/database.go`** -- connection pool configuration (3 lines)
+5. **`internal/otel/`** -- `slog.NewMultiHandler` replacement, metrics count caching
+6. **`internal/graphql/handler.go`** -- sentinel error classification
+7. **Templates** -- SRI hashes on 5 CDN assets
+8. **CI/Docker** -- Docker build job, HEALTHCHECK instruction with Go-based health binary
+
+**Updated middleware chain order:**
+```
+Recovery -> CORS -> Compression -> OTel HTTP -> Logging -> CSP -> BodyLimit -> Readiness -> Caching -> mux
+```
 
 ### Critical Pitfalls
 
-See [PITFALLS.md](PITFALLS.md) for full analysis with 13 identified pitfalls.
+See [PITFALLS.md](PITFALLS.md) for full analysis with 13 pitfalls (4 critical, 5 moderate, 4 minor).
 
-1. **sortable.js not auto-initializing on htmx fragments** -- Use `sortable.auto.min.js` (MutationObserver variant), not the standard `sortable.min.js`. Without this, every table inside a collapsible section is silently non-sortable.
-2. **Leaflet map zero height in collapsed sections** -- Render maps as top-level page sections, never inside `<details>` elements. Leaflet calculates viewport on init; hidden containers report 0x0 dimensions.
-3. **N+1 queries for facility lat/lng** -- Junction entities (IxFacility, NetworkFacility) lack lat/lng. Batch-query actual Facility entities with `facility.IDIn(ids...)` instead of per-facility queries. Otherwise OTel traces show span explosion.
-4. **Missing data-sort on numeric columns** -- Speed "10G" sorts lexicographically without `data-sort="10000"`. ASN "13335" sorts after "2" as strings. Every formatted numeric cell needs a data-sort attribute.
-5. **Emoji flags invisible on Windows** -- Always display country code text alongside the flag emoji. Windows renders Regional Indicator Symbols as two-letter codes, not flags.
+1. **WriteTimeout kills gRPC streaming** -- Do NOT set `WriteTimeout` or `ReadTimeout` on `http.Server`. Use `ReadHeaderTimeout` + `IdleTimeout` only. ConnectRPC streaming RPCs require long-lived HTTP/2 connections. The existing per-stream `StreamTimeout` handles application-level timeout.
+
+2. **Compression double-encodes gRPC responses** -- Exclude `application/grpc*` and `application/connect+proto` content types from HTTP compression. ConnectRPC handles its own compression negotiation. Test with `grpcurl` after adding middleware.
+
+3. **CSP blocks CDN assets and GraphiQL** -- The app loads from `cdn.jsdelivr.net`, `unpkg.com`, and uses inline scripts/styles. GraphiQL needs dynamic code generation CSP permissions. Deploy with `Content-Security-Policy-Report-Only` first. Use per-route CSP (more permissive for GraphiQL).
+
+4. **SRI incompatible with @tailwindcss/browser semver ranges** -- `@tailwindcss/browser@4` resolves to different files as versions publish, breaking static hashes. Pin exact versions (`@4.1.3`) before adding SRI. Consider that SRI on Tailwind browser is lower value than on React/GraphiQL since it only generates CSS.
+
+5. **Adding linters produces hundreds of findings** -- Enable one at a time. Use `--new-from-merge-base=main` in CI for incremental enforcement. Configure `exclusions.generated: strict` (already done). Run locally first to assess finding count.
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure:
+Based on research, the milestone should be structured in 7 phases ordered by dependency chain, risk profile, and logical grouping.
 
-### Phase 1: Country Flag Utility and Data Layer Additions
+### Phase 1: Server Foundation
+**Rationale:** Highest-impact security items with zero risk and no dependencies. Three small changes to three existing files. Enables the new config fields that later phases reference.
+**Delivers:** HTTP server timeout protection (Slowloris mitigation), SQLite connection pool bounds (fd exhaustion prevention), expanded config validation (fail-fast on invalid config).
+**Addresses:** Server timeouts, connection pool, config validation (table stakes items 1, 2, 5 from FEATURES.md).
+**Avoids:** Pitfall 1 (WriteTimeout -- use ReadHeaderTimeout only), Pitfall 5 (SQLITE_BUSY -- set pool limits, preserve busy_timeout), Pitfall 11 (config rejects deployments -- defaults match current behavior).
 
-**Rationale:** Zero dependencies on other features. Unblocks all subsequent phases that display flags. Type definition changes (adding fields to view model structs) must happen before any template work.
-**Delivers:** `CountryFlag()` Go function with tests, `MapPoint` type, and updated view model structs with CountryFlag/Latitude/Longitude/MapPoints fields.
-**Addresses:** Country emoji flags (table stakes), data plumbing for maps.
-**Avoids:** Pitfall 3 (flag rendering) by establishing the pattern of always showing country code alongside emoji from the start.
+### Phase 2: Request/Response Hardening
+**Rationale:** Input validation and body limits are independent, zero-risk changes that harden the request path. SRI completion is a prerequisite for CSP (Phase 3). Group these because they share a theme (request-path security) and have no cross-dependencies.
+**Delivers:** Request body size limits (DoS prevention), input validation (ASN range, width bounds, ID positivity), SRI hashes on all 5 missing CDN assets.
+**Addresses:** Body limits, input validation, SRI attributes (table stakes items 3, 4, 7 from FEATURES.md).
+**Avoids:** Pitfall 6 (body limit breaks GraphQL -- use 1MB global limit, generous for any legitimate query), Pitfall 4 (SRI + Tailwind -- pin exact CDN versions).
 
-### Phase 2: Dense Table Layouts with Sortable Columns
+### Phase 3: Security Headers and Compression
+**Rationale:** CSP depends on SRI completion (Phase 2). Compression interacts with the caching middleware's ETag generation. Both are new middleware additions that modify the response path. Group them because they both modify the middleware chain and need careful testing.
+**Delivers:** Content-Security-Policy header (XSS prevention), gzip/zstd compression (60-80% bandwidth reduction).
+**Addresses:** CSP header, compression middleware (differentiator items 1, 2 from FEATURES.md).
+**Avoids:** Pitfall 2 (compression double-encodes gRPC -- exclude content types), Pitfall 3 (CSP blocks CDN -- deploy Report-Only first), Pitfall 7 (per-route CSP -- separate GraphiQL policy).
 
-**Rationale:** Largest change by template line count and highest user-visible impact. Must happen before map integration because it restructures all detail page templates. Sortable tables require semantic `<table>` markup, so this conversion is a prerequisite.
-**Delivers:** All detail page child-entity lists converted from div-based cards to dense sortable tables. CDN integration for sortable-tablesort. Flag columns populated. Data-sort attributes on all numeric cells. Dark mode sort indicator CSS. Updated `CopyableIP` for table cell use. Responsive column hiding.
-**Uses:** sortable-tablesort 4.1.7 (CDN), CountryFlag() from Phase 1.
-**Avoids:** Pitfall 1 (use `.auto` variant), Pitfall 5 (data-sort on every numeric cell), Pitfall 8 (CopyableIP inline adaptation), Pitfall 12 (currentColor sort indicators for dark mode).
+### Phase 4: Internal Quality
+**Rationale:** Self-contained code quality improvements with no external-facing changes. GraphQL sentinel errors fix a GO-ERR-2 violation. Metrics caching eliminates unnecessary DB load. Go 1.26 cleanup removes custom code.
+**Delivers:** GraphQL error classification via sentinel errors, metrics COUNT query caching (zero-query scrapes), `slog.NewMultiHandler` replacement of custom fanoutHandler.
+**Addresses:** GraphQL sentinel errors, metrics caching, Go 1.26 improvements (table stakes item 6, differentiator item 3 from FEATURES.md).
+**Avoids:** Pitfall 9 (stale metrics -- invalidate on sync completion, not timer-based TTL).
 
-### Phase 3: Facility Detail Page Map (Single Pin)
+### Phase 5: Test Coverage
+**Rationale:** Tests should be written after the code they test is stable. GraphQL handler tests validate the sentinel error migration from Phase 4. Database tests verify pragmas are actually applied (WAL, FK, busy_timeout). Tests before refactoring (Phase 6) provide a safety net.
+**Delivers:** Test files for `internal/graphql/` and `internal/database/` (both currently at zero coverage).
+**Addresses:** Test coverage (differentiator items 7, 8 from FEATURES.md).
+**Avoids:** Pitfall 10 (refactoring breaks routes -- tests provide safety net for Phase 6).
 
-**Rationale:** Simplest map case -- single facility with its own lat/lng, no junction queries, no clustering complexity. Establishes the `MapSection` shared component and Leaflet CDN integration that all subsequent map work builds on.
-**Delivers:** Leaflet + MarkerCluster CDN in layout.templ. `MapSection` templ component. Single-pin map on facility detail page with dark/light CARTO tiles. Conditional rendering when lat/lng exists.
-**Uses:** Leaflet 1.9.4, CARTO basemaps.
-**Avoids:** Pitfall 2 (render outside collapsible sections), Pitfall 6 (CARTO attribution), Pitfall 9 (CSS load order testing), Pitfall 10 (filter nil coordinates).
+### Phase 6: Refactoring
+**Rationale:** File reorganization is safest after tests exist (Phase 5) and before linters are added (Phase 7). detail.go (1422 LOC) splits into 7+ files with no logic changes. Upsert batch loop extraction saves ~100 lines.
+**Delivers:** `detail.go` split into per-entity files, upsert batch loop extracted to generic helper.
+**Addresses:** Refactor detail.go, refactor sync upsert (differentiator items 11, 12 from FEATURES.md).
+**Avoids:** Pitfall 10 (fragment routes break -- extract one entity at a time, run tests after each), Pitfall 13 (insert order changes -- test against empty database).
 
-### Phase 4: Multi-Pin Maps (IX, Network, Comparison)
-
-**Rationale:** Builds on established MapSection component from Phase 3. Adds the junction-entity-to-facility query pattern and MarkerCluster usage. Comparison map with colored pins is the most novel feature.
-**Delivers:** Maps on IX detail pages (multi-pin from facility associations), network detail pages (multi-pin from facility presences), and comparison pages (colored pins for shared vs unique facilities). Batch facility lat/lng queries.
-**Uses:** MapSection component from Phase 3, MarkerCluster for clustering.
-**Avoids:** Pitfall 4 (batch-query with IDIn, not N+1), Pitfall 10 (filter nil coords), Pitfall 11 (both MarkerCluster CSS files).
-
-### Phase 5: Search Results and Polish
-
-**Rationale:** Low dependency, lower priority. Search results already work; this adds flag display and optional density improvements. Also addresses any dark mode map tile toggle edge cases identified during Phase 3-4 testing.
-**Delivers:** Country flags in search result subtitles. Any remaining table or map polish identified during prior phases.
-**Avoids:** Pitfall 7 (document dark mode toggle as known limitation, defer MutationObserver tile swap).
+### Phase 7: CI and Linting
+**Rationale:** Linters go last to avoid lint churn on code being refactored. Docker build catches Dockerfile errors before deploy. HEALTHCHECK enables local Docker health monitoring. Group all CI/tooling changes together.
+**Delivers:** Three new linters (exhaustive, contextcheck, gosec), Docker build in CI, Dockerfile HEALTHCHECK with Go-based health binary.
+**Addresses:** Linter additions, Docker CI build, Dockerfile HEALTHCHECK (differentiator items 5, 6, 9 from FEATURES.md).
+**Avoids:** Pitfall 8 (linter flood -- enable one at a time, use --new-from-merge-base), Pitfall 12 (Docker/Fly.io health conflict -- use /healthz liveness endpoint, generous start-period).
 
 ### Phase Ordering Rationale
 
-- **Dependency chain drives order:** Types and utilities first (Phase 1), then the templates that consume them (Phase 2-5). Table conversion (Phase 2) before maps (Phase 3-4) because it restructures the templates that maps will be added to.
-- **Risk gradient:** Each phase adds one category of complexity. Phase 1 is pure Go with zero risk. Phase 2 is template refactoring with a new JS library. Phase 3 introduces Leaflet with the simplest map case. Phase 4 adds query complexity and clustering. Phase 5 is polish.
-- **Biggest value first:** Dense tables (Phase 2) deliver the largest UX improvement -- 3-4x vertical space reduction on every detail page. Maps (Phase 3-4) are differentiators but less impactful than fixing the fundamental data density problem.
-- **Each phase is independently shippable:** The product improves after every phase. If the milestone needs to be cut short, Phase 1-2 alone deliver major value.
+- **Dependency chain drives order:** Server config (Phase 1) must precede middleware additions (Phase 3) because config fields feed timeout values. SRI (Phase 2) must precede CSP (Phase 3) because CSP policy depends on knowing which assets have SRI. Sentinel errors (Phase 4) should precede GraphQL tests (Phase 5). Tests (Phase 5) should precede refactoring (Phase 6). Refactoring (Phase 6) should precede linters (Phase 7).
+- **Risk isolation:** Each phase has a clean rollback boundary. Phases 1-2 are zero-risk additive changes. Phase 3 introduces the highest-risk items (CSP, compression) but with documented mitigation (Report-Only, content-type exclusion). Phase 6 is the riskiest code change (1422 LOC split) but arrives after test coverage exists.
+- **Pitfall avoidance:** The ordering avoids the anti-pattern of refactoring + linting simultaneously (Pitfall 8, Architecture anti-pattern 4), and ensures security fundamentals land before the more complex middleware additions.
 
 ### Research Flags
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1:** Pure Go utility function and struct field additions. Well-documented Unicode standard. No research needed.
-- **Phase 2:** Table HTML conversion with Tailwind styling. Standard web development. sortable-tablesort behavior is well-documented. No research needed.
-- **Phase 5:** Search result template changes. Trivial. No research needed.
+Phases likely needing deeper research during planning:
+- **Phase 3 (Security Headers and Compression):** CSP policy must be tested against all 5 API surfaces. Compression middleware ETag interaction with caching middleware needs careful verification. GraphiQL's CSP requirements (dynamic code generation keyword) need per-route handling.
+- **Phase 6 (Refactoring):** detail.go split requires auditing all fragment route registrations. Upsert refactoring needs empty-database integration testing.
 
-Phases that may benefit from brief validation during planning:
-- **Phase 3:** Leaflet initialization in templ templates. The pattern of embedding GeoJSON in `<script type="application/json">` and initializing Leaflet from a raw `<script>` tag is well-documented, but test the Tailwind CSS interaction (Pitfall 9) early. Brief validation, not full research.
-- **Phase 4:** Multi-pin maps with batch facility queries. The ent query pattern (`IDIn`) is standard, but the junction-entity-to-facility join for IX/network geo data should be validated against the actual query structure in `detail.go`. Brief code review during planning is sufficient.
+Phases with standard patterns (skip research-phase):
+- **Phase 1 (Server Foundation):** stdlib configuration, well-documented patterns, zero ambiguity.
+- **Phase 2 (Request/Response Hardening):** `http.MaxBytesReader`, input validation, SRI hashes -- all straightforward.
+- **Phase 4 (Internal Quality):** sentinel errors and cache invalidation are standard Go patterns.
+- **Phase 5 (Test Coverage):** table-driven tests per GO-T-1, no research needed.
+- **Phase 7 (CI and Linting):** golangci-lint config and Docker GitHub Actions are well-documented.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All libraries are stable, widely used, and well-documented. Leaflet 1.9.4 is the current stable line. sortable-tablesort is tiny and battle-tested. No new Go dependencies. |
-| Features | HIGH | Feature set is clearly scoped against existing codebase analysis and competitor comparison (PeeringDB, Peercortex). Table stakes vs differentiators are well-defined. |
-| Architecture | HIGH | Integrates into existing templ + htmx patterns with no structural changes. Data flow is straightforward: ent queries -> Go view models -> templ templates -> client-side JS. |
-| Pitfalls | HIGH | 13 pitfalls identified with concrete prevention strategies. The critical ones (MutationObserver, zero-height map, N+1 queries) are well-known issues with documented solutions. |
+| Stack | HIGH | All technologies are stdlib or already in the dependency graph. Go 1.26 features verified against release notes. No new dependencies introduced except promoting one indirect to direct. |
+| Features | HIGH | Feature set derived from codebase audit of actual missing capabilities. Priority ordering based on risk/reward analysis with dependency chains validated against code. |
+| Architecture | HIGH | Integration points verified against actual file locations and line numbers. Middleware chain ordering rationale grounded in HTTP semantics (CORS before compression, compression before OTel). |
+| Pitfalls | HIGH | Critical pitfalls (WriteTimeout, compression double-encoding, CSP blocking) backed by ConnectRPC deployment docs, gRPC GitHub issues, and MDN CSP reference. Prevention strategies are specific and actionable. |
 
 **Overall confidence:** HIGH
 
+All four research files cite authoritative sources (Go stdlib docs, Cloudflare engineering blog, ConnectRPC deployment docs, MDN, OWASP). The codebase is mature and well-understood -- research was able to reference specific file paths, line numbers, and existing patterns. No speculative recommendations were made.
+
 ### Gaps to Address
 
-- **Tailwind CDN vs Leaflet CSS interaction:** Pitfall 9 flags a potential conflict between Tailwind's CSS reset and Leaflet control styling. The Tailwind browser CDN may not apply full Preflight reset, making this a non-issue -- but it should be tested in Phase 3 before committing to the CDN load order.
-- **MarkerCluster dark mode styling:** MarkerCluster.Default.css uses blue/green cluster circles that may clash with the dark theme. Custom CSS overrides for `.marker-cluster-small/medium/large` background colors may be needed. Assess during Phase 4 implementation.
-- **Actual data coverage for facility lat/lng:** The percentage of PeeringDB facilities with populated lat/lng is unknown. If coverage is low, maps will appear sparse. Check data coverage during Phase 3 to set expectations for the map feature's utility.
+- **Compression + ETag interaction:** STACK.md recommends compression after CORS and before OTel; ARCHITECTURE.md recommends compression after caching and before mux. The correct position depends on whether ETags should reflect compressed or uncompressed content. `gzhttp.SuffixETag()` handles this, but needs validation during Phase 3 planning.
+- **SQLite pool size disagreement:** STACK.md recommends `MaxOpenConns(4)`, FEATURES.md recommends 25, ARCHITECTURE.md recommends 10. The correct value depends on actual concurrent query load. Recommendation: start with 10, instrument connection pool metrics via `db.Stats()`, and tune based on production data.
+- **Body size limit scope:** STACK.md recommends a global 1MB middleware. PITFALLS.md recommends per-route limits (256KB for GraphQL, 64KB for REST, skip ConnectRPC). The global approach is simpler and 1MB is generous for all legitimate payloads. Recommendation: start global at 1MB; add per-route limits only if specific endpoint abuse emerges.
+- **Tailwind SRI feasibility:** Pitfall 4 identifies that `@tailwindcss/browser@4` semver range makes SRI unreliable. Need to verify whether pinning an exact version (e.g., `@4.1.3`) produces a stable hash. If not, self-hosting may be required for that one asset.
+- **CORS preflight caching:** Already implemented (`MaxAge: 86400`). Both FEATURES.md and ARCHITECTURE.md confirm this is a verify-only task. No work needed beyond a quick confirmation.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Leaflet.js](https://leafletjs.com/) -- v1.9.4 stable, CDN links with SRI hashes
-- [sortable-tablesort](https://github.com/tofsjonas/sortable) -- MutationObserver behavior, data-sort attributes, CDN
-- [CARTO Basemaps](https://carto.com/basemaps) -- free dark/light tile variants, attribution requirements
-- [Unicode Regional Indicator Symbols](https://en.wikipedia.org/wiki/Regional_indicator_symbol) -- flag emoji encoding standard
-- [Leaflet MarkerCluster](https://github.com/Leaflet/Leaflet.markercluster) -- v1.5.3 clustering plugin
+- [Go 1.26 Release Notes](https://go.dev/doc/go1.26) -- slog.NewMultiHandler, io.ReadAll performance
+- [Go database/sql: Managing connections](https://go.dev/doc/database/manage-connections) -- pool configuration
+- [Cloudflare: Complete Guide to Go net/http Timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/) -- timeout semantics
+- [ConnectRPC Deployment docs](https://connectrpc.com/docs/go/deployment/) -- streaming timeout warnings
+- [MDN: Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP) -- CSP directives
+- [OWASP: CSP Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html) -- CSP deployment strategy
+- [golangci-lint v2 Linters](https://golangci-lint.run/docs/linters/) -- linter configuration
+- [klauspost/compress/gzhttp](https://pkg.go.dev/github.com/klauspost/compress/gzhttp) -- compression middleware
 
 ### Secondary (MEDIUM confidence)
-- [CARTO attribution requirements](https://carto.com/attributions) -- CC-BY 4.0 licensing terms
-- [Stadia Maps pricing](https://stadiamaps.com/pricing) -- alternative tile provider comparison (rejected)
-- [OSM Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/) -- why not to use OSM tiles directly
-- [htmx Table Sorting Pattern](https://dev.to/vladkens/table-sorting-and-pagination-with-htmx-3dh8) -- server-side sort approach (deferred)
+- [Alex Edwards: Configuring sql.DB](https://www.alexedwards.net/blog/configuring-sqldb) -- pool tuning
+- [Gopher Academy: Exposing Go on the Internet](https://blog.gopheracademy.com/advent-2016/exposing-go-on-the-internet/) -- production hardening
+- [Alex Edwards: http.ResponseController](https://www.alexedwards.net/blog/how-to-use-the-http-responsecontroller-type) -- per-request deadlines
+- [Docker: Test before push](https://docs.docker.com/build/ci/github-actions/test-before-push/) -- CI Docker build
+- [grpc-go #3884: Server streams never close with HTTP mux timeout](https://github.com/grpc/grpc-go/issues/3884) -- WriteTimeout kills streaming
 
 ### Tertiary (LOW confidence)
-- MarkerCluster dark mode compatibility -- not explicitly documented, needs testing during implementation
+- None. All recommendations are backed by multiple sources or official documentation.
 
 ---
-*Research completed: 2026-03-26*
+*Research completed: 2026-04-02*
 *Ready for roadmap: yes*

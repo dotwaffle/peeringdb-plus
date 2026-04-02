@@ -1,446 +1,672 @@
 # Architecture Patterns
 
-**Domain:** Web UI density, sortable tables, Leaflet maps, emoji country flags
-**Researched:** 2026-03-26
+**Domain:** Hardening & tech debt integration for existing Go HTTP server
+**Researched:** 2026-04-02
 
-## Recommended Architecture
+## Existing Architecture Summary
 
-The v1.11 features integrate into the existing templ + htmx + Tailwind architecture with minimal new dependencies. No Go libraries are added. Three small JS/CSS assets are loaded via CDN (matching the Tailwind CDN pattern already established). All data transformations happen server-side in Go.
-
-### Component Boundaries
-
-| Component | Responsibility | Communicates With |
-|-----------|---------------|-------------------|
-| `internal/web/templates/*.templ` | Dense table markup, map container, flag rendering | Data types in `detailtypes.go`, `comparetypes.go`, `searchtypes.go` |
-| `internal/web/detail.go` | Query lat/lng from ent, populate new type fields (Latitude, Longitude, CountryFlag) | ent client, template data types |
-| `internal/web/templates/layout.templ` | CDN script/link tags for Leaflet, MarkerCluster, sortable.css | Browser loads at page level |
-| `internal/web/countryflags.go` (new) | Pure Go function: ISO 3166-1 alpha-2 code to emoji flag string | Called by detail.go, search.go, compare.go when populating template data |
-| Client-side JS (inline in templ) | Leaflet map initialization, GeoJSON layer from `<script type="application/json">` block | Reads data attributes / embedded JSON from server-rendered HTML |
-| `sortable` library (CDN) | Client-side table column sorting via `class="sortable"` on `<table>` | Operates on DOM, no htmx interaction needed |
-
-### Data Flow
+The application is a mature Go 1.26 HTTP server with five API surfaces (Web UI, GraphQL, REST, PeeringDB compat, ConnectRPC) served from a single `http.ServeMux`. The middleware chain runs outermost-first:
 
 ```
-[ent DB] --> detail.go queries facility lat/lng, country code
-         --> countryflags.go converts "US" to unicode regional indicators
-         --> template data struct gets Latitude, Longitude, CountryFlag fields
-         --> templ renders:
-             - <table class="sortable"> with dense columnar rows
-             - data-sort attributes on <td> for numeric sort keys
-             - emoji flags in dedicated <td> column
-             - <div id="map"> container
-             - <script type="application/json" id="map-data"> with GeoJSON
-         --> browser loads:
-             - sortable.min.js attaches click handlers to <th> in .sortable tables
-             - inline JS reads #map-data JSON, creates Leaflet map with markers
+Recovery -> CORS -> OTel HTTP -> Logging -> Readiness -> Caching -> mux
 ```
 
-## Integration Patterns
+Key integration points for hardening:
+- **Server config**: `cmd/peeringdb-plus/main.go` lines 376-381 -- `http.Server` struct with only `Addr`, `Handler`, `Protocols`
+- **Database**: `internal/database/database.go` -- bare `sql.Open` with no pool config
+- **Config**: `internal/config/config.go` -- env var parsing, `validate()` method, 12 existing fields
+- **Middleware**: `internal/middleware/` -- 4 files (CORS, logging, recovery, caching)
+- **Templates**: `internal/web/templates/layout.templ` -- CDN script/style tags, some with SRI, some without
+- **Metrics**: `internal/otel/metrics.go` -- 13 COUNT queries per scrape in `InitObjectCountGauges`
+- **GraphQL**: `internal/graphql/handler.go` -- string-matching error classification
+- **Detail handlers**: `internal/web/detail.go` -- 1422 LOC, 30 functions, repeated patterns
+- **Upsert functions**: `internal/sync/upsert.go` -- 613 LOC, 13 near-identical functions
+- **CI**: `.github/workflows/ci.yml` -- 4 jobs (lint, test, build, govulncheck)
+- **Docker**: `Dockerfile` + `Dockerfile.prod` -- Chainguard-based multi-stage, no HEALTHCHECK
+- **Linters**: `.golangci.yml` -- standard + gocritic, misspell, nolintlint, revive
 
-### Pattern 1: Country Code to Emoji Flag (Go Server-Side)
+## Integration Analysis: Each Hardening Item
 
-**What:** Convert ISO 3166-1 alpha-2 country codes to Unicode regional indicator symbol pairs.
+### 1. HTTP Server Timeouts
 
-**When:** Every template data struct that has a `Country` field also gets a computed `CountryFlag` field.
+**What changes:** `cmd/peeringdb-plus/main.go` -- add fields to `http.Server` struct (lines 376-381).
 
-**Why server-side:** Emoji flags are pure Unicode -- no JS needed. Computing in Go means the flag renders in the initial HTML, works in terminal mode (ANSI/WHOIS), and avoids a flash of unstyled content. The algorithm is trivial (two character shifts), no external library needed.
-
-**Implementation:**
-
+**Current state:**
 ```go
-// CountryFlag converts an ISO 3166-1 alpha-2 country code to its emoji flag.
-// Returns empty string for invalid or empty input.
-func CountryFlag(code string) string {
-    if len(code) != 2 {
-        return ""
-    }
-    code = strings.ToUpper(code)
-    r1 := rune(code[0]) + 0x1F1A5
-    r2 := rune(code[1]) + 0x1F1A5
-    return string([]rune{r1, r2})
+server := &http.Server{
+    Addr:      cfg.ListenAddr,
+    Handler:   handler,
+    Protocols: &protocols,
 }
 ```
 
-**Confidence:** HIGH -- This is a well-documented Unicode standard (Regional Indicator Symbols U+1F1E6 to U+1F1FF). The algorithm is deterministic and has been validated across multiple sources. Every modern browser and terminal renders these correctly.
-
-**Integration points:**
-- Add `CountryFlag string` to: `IXDetail`, `FacilityDetail`, `CampusDetail`, `OrgDetail`, `NetworkFacRow`, `IXFacilityRow`, `OrgFacilityRow`, `CampusFacilityRow`, `CompareFacility`, `SearchResult`
-- Populate in `detail.go` query functions alongside existing `Country` field mapping
-- Populate in `search.go` when building `SearchResult` subtitle
-- Populate in `compare.go` when building facility comparison data
-
-### Pattern 2: Dense Sortable Tables (sortable.js + Tailwind)
-
-**What:** Replace the current vertical card/list layouts (`divide-y` stacked divs) with proper `<table>` elements using `<thead>`/`<tbody>`, styled with Tailwind for density, and made sortable via the `sortable` library.
-
-**When:** All child-entity lists in detail pages (participants, facilities, networks, contacts, etc.), search results, and comparison tables.
-
-**Library choice:** `sortable` by tofsjonas (https://github.com/tofsjonas/sortable)
-- 899 bytes gzipped -- smaller than a single SVG icon
-- Zero dependencies, vanilla JS
-- Works via `class="sortable"` on `<table>` -- no initialization code needed
-- Includes CSS for sort indicators (arrows on `<th>`)
-- MutationObserver in `sortable.auto.min.js` (1.36K gzipped) auto-initializes tables added to the DOM after page load -- this is critical for htmx fragment loading
-
-**Confidence:** HIGH -- The library is well-maintained, tiny, and its MutationObserver feature specifically addresses the htmx lazy-load concern.
-
-**Why not server-side sort via htmx:** The child entity lists (IX participants, facility networks, etc.) are fully loaded into the DOM when the collapsible section opens. Data volumes are small (largest IX has ~2,000 participants). Client-side sort is instant, avoids a server round-trip, and keeps the current lazy-load-once pattern intact. Server-side sort would require either: (a) refetching the fragment with sort params on every column click (latency, complexity), or (b) maintaining sort state server-side (session state on a stateless edge app). Neither makes sense for datasets that fit in the DOM.
-
-**Why not htmx hx-trigger on th click:** This would work but adds latency per sort action, network requests for what should be instant client-side reordering, and complicates the fragment handler with sort parameters. The sortable library is a better fit.
-
-**CDN integration in layout.templ:**
-
-```html
-<!-- In <head>, after htmx -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/sortable-base.min.css"/>
-<script src="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/dist/sortable.auto.min.js"></script>
-```
-
-**Custom Tailwind overrides for sort indicators and dense table styling:**
-
-```css
-/* In <style> block of layout.templ */
-table.sortable th { cursor: pointer; user-select: none; }
-table.sortable th::after { content: ""; display: inline-block; width: 0; height: 0; margin-left: 6px; vertical-align: middle; }
-table.sortable th[aria-sort="ascending"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 4px solid currentColor; }
-table.sortable th[aria-sort="descending"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid currentColor; }
-```
-
-**Numeric sort via data-sort attribute:**
-
-The sortable library uses `data-sort` attributes for custom sort values. This is essential for speed columns (display "10G" but sort by 10000) and for consistent country flag sorting (sort by country code, not emoji):
-
-```html
-<td data-sort="10000">
-  <span class="text-blue-400 font-mono">10G</span>
-</td>
-```
-
-**htmx compatibility:** The `sortable.auto.min.js` variant uses MutationObserver to detect new `<table class="sortable">` elements added to the DOM. When htmx swaps in a fragment containing a sortable table (e.g., opening a collapsible section), the library automatically attaches sort handlers. No custom `htmx:afterSwap` event listener needed. Verified via library documentation.
-
-### Pattern 3: Leaflet Map with Facility Pins
-
-**What:** Interactive OpenStreetMap-based map showing facility locations as clickable pins with clustering and popups linking to detail pages. Displayed on facility detail pages (single pin), IX detail pages (multiple facility pins), network detail pages (all facility locations), and comparison pages (shared/unique facilities on map).
-
-**When:** Only on pages where geographic data (lat/lng) is available. Facilities are the primary geo-located entities. IXes get their locations from their associated facilities. Networks get locations from their facility presences.
-
-**Leaflet CDN (in layout.templ `<head>`):**
-
-```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
-<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-```
-
-**Total CDN payload:** Leaflet JS ~42KB gzipped, CSS ~4KB. MarkerCluster JS ~10KB gzipped, CSS ~1KB. Combined ~57KB -- comparable to htmx (15KB) + Tailwind CDN (~300KB) already loaded.
-
-**Confidence:** HIGH for Leaflet 1.9.4 (stable, widely deployed). MEDIUM for MarkerCluster 1.5.3 (last release 2022, but stable and compatible with Leaflet 1.9.x). Leaflet 2.0 is alpha, do not use.
-
-**Data flow -- Go to Leaflet:**
-
-The map data is serialized as GeoJSON in a `<script type="application/json">` block rendered by templ. This avoids inline JS in templ (which requires `script` blocks), avoids a separate AJAX fetch (the data is already in the handler), and is SSR-friendly.
-
+**Target state:**
 ```go
-// MapPoint represents a single geo-located entity for the map.
-type MapPoint struct {
-    Lat     float64 `json:"lat"`
-    Lng     float64 `json:"lng"`
-    Name    string  `json:"name"`
-    URL     string  `json:"url"`
-    PopupHTML string `json:"popup"` // pre-rendered HTML for popup content
+server := &http.Server{
+    Addr:              cfg.ListenAddr,
+    Handler:           handler,
+    Protocols:         &protocols,
+    ReadHeaderTimeout: cfg.ReadHeaderTimeout,
+    IdleTimeout:       cfg.IdleTimeout,
 }
 ```
 
-Templ renders:
+**Integration type:** Modify existing (3 lines in main.go + 2 config fields).
 
-```html
-<div id="map" class="h-80 rounded-lg border border-neutral-700 overflow-hidden"></div>
-<script type="application/json" id="map-data">
-  [{"lat":51.5074,"lng":-0.1278,"name":"Equinix LD8","url":"/ui/fac/123","popup":"..."}]
-</script>
-```
+**Why NOT ReadTimeout/WriteTimeout:** This server runs ConnectRPC streaming RPCs (StreamNetworks etc.) with a 60s configurable `StreamTimeout`. Setting a global `WriteTimeout` would kill long-running streams. `ReadHeaderTimeout` protects against Slowloris without affecting streaming. `IdleTimeout` protects against connection exhaustion from idle keep-alives.
 
-Client-side initialization (inline `<script>` at bottom of map-containing templates):
+**New config fields:**
+- `PDBPLUS_READ_HEADER_TIMEOUT` (default: 5s)
+- `PDBPLUS_IDLE_TIMEOUT` (default: 120s)
 
-```javascript
-(function() {
-    var dataEl = document.getElementById('map-data');
-    if (!dataEl) return;
-    var points = JSON.parse(dataEl.textContent);
-    if (points.length === 0) return;
+**Dependencies:** Config validation (item 11). No other dependencies.
 
-    var isDark = document.documentElement.classList.contains('dark');
-    var tileURL = isDark
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+**Risk:** LOW -- additive fields on existing struct.
 
-    var map = L.map('map');
-    L.tileLayer(tileURL, {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        maxZoom: 19
-    }).addTo(map);
+### 2. SQLite Connection Pool Limits
 
-    var markers = L.markerClusterGroup();
-    points.forEach(function(p) {
-        var marker = L.marker([p.lat, p.lng]);
-        if (p.popup) marker.bindPopup(p.popup);
-        markers.addLayer(marker);
-    });
-    map.addLayer(markers);
-    map.fitBounds(markers.getBounds().pad(0.1));
-})();
-```
+**What changes:** `internal/database/database.go` -- add `SetMaxOpenConns`/`SetMaxIdleConns` after `sql.Open`.
 
-**Tile provider choice -- CARTO (CartoDB) basemaps:**
+**Current state:** No pool configuration. Go's `database/sql` defaults to unlimited open connections, 2 idle connections.
 
-| Provider | Dark Mode | Free Tier | API Key | Attribution |
-|----------|-----------|-----------|---------|-------------|
-| CARTO (CartoDB) | `dark_all` / `light_all` native variants | Unlimited for non-commercial, reasonable use | No API key needed | Required: OSM + CARTO |
-| OpenStreetMap tile.openstreetmap.org | No dark mode | Fair use only, strict policy | None | Required: OSM |
-| Stadia Maps Alidade Smooth Dark | Purpose-built dark tiles | 2,500 credits/month (~25K tiles) | Required (free signup) | Required |
-| CSS filter invert | Any light tiles inverted | N/A | N/A | Labels become inverted and unreadable |
-
-**Recommendation: CARTO basemaps.** Native dark/light variants avoid the CSS invert hack (which makes labels unreadable). No API key or signup required. No usage limits for reasonable traffic. Both `dark_all` and `light_all` are available, enabling dark mode switching that matches the app's existing dark mode toggle.
-
-**Confidence:** HIGH -- CARTO basemaps are widely used, free, and require no registration. The `{s}.basemaps.cartocdn.com` URLs have been stable for years.
-
-**Dark mode tile switching:**
-
-The map checks `document.documentElement.classList.contains('dark')` at initialization time. This aligns with the existing class-based dark mode system (see `layout.templ` dark mode toggle). A full theme switch while a map is visible would require reinitializing the tile layer, but this is an edge case -- the dark mode toggle does not currently trigger page reloads or htmx swaps. If needed later, a `MutationObserver` on the `<html>` class list could swap tile layers. Defer this to a follow-up.
-
-**Map conditional rendering:**
-
-The map container and script block should only render when there are geo-points. In templ:
-
-```
-if len(data.MapPoints) > 0 {
-    @MapSection(data.MapPoints)
-}
-```
-
-This keeps pages without geographic data (e.g., carriers, networks without facility presences) clean.
-
-### Pattern 4: Dense Table Layout (Replacing Stacked Cards)
-
-**What:** Convert the current `divide-y` stacked div layouts to proper `<table>` elements with compact row heights, monospace data columns, and multi-column density.
-
-**Current layout (IX Participants):**
-```
-[Name + ASN badge + RS badge]
-  Speed: 10G
-  IPv4: 192.0.2.1
-  IPv6: 2001:db8::1
---- divider ---
-[Next participant...]
-```
-
-**New layout (IX Participants table):**
-```
-| Flag | Network         | ASN      | Speed | IPv4       | IPv6            | RS |
-|------|-----------------|----------|-------|------------|-----------------|----|
-| US   | Cloudflare      | AS13335  | 100G  | 192.0.2.1  | 2001:db8::1     | RS |
-| US   | Google          | AS15169  | 100G  | 192.0.2.2  | 2001:db8::2     |    |
-```
-
-**Density gains:** The current layout uses ~4-5 lines per participant. The table layout uses 1 line. For an IX with 200 participants, this reduces from ~1000 lines of vertical scroll to ~200 lines.
-
-**Template structure:**
-
-```html
-<table class="sortable w-full text-sm">
-  <thead>
-    <tr class="text-left text-neutral-500 border-b border-neutral-700">
-      <th class="px-2 py-1.5"></th>           <!-- flag, no-sort -->
-      <th class="px-2 py-1.5">Network</th>
-      <th class="px-2 py-1.5 font-mono">ASN</th>
-      <th class="px-2 py-1.5">Speed</th>
-      <th class="px-2 py-1.5 font-mono">IPv4</th>
-      <th class="px-2 py-1.5 font-mono">IPv6</th>
-      <th class="px-2 py-1.5 no-sort">RS</th>
-    </tr>
-  </thead>
-  <tbody>
-    <!-- rows rendered by templ range -->
-  </tbody>
-</table>
-```
-
-**Responsive behavior:** On narrow screens (mobile), hide lower-priority columns via Tailwind responsive classes: `class="hidden md:table-cell"` on IPv6, RS columns. Keep flag, name, ASN, speed always visible. This is simpler than the current approach which shows everything stacked.
-
-### Pattern 5: Geo Data Enrichment from ent
-
-**What:** The `facility` entity has `Latitude *float64` and `Longitude *float64` fields in ent schema. These are currently not surfaced in the web UI at all. IXes and networks do NOT have lat/lng -- they derive location from their facility associations.
-
-**Facility detail page:** Single map pin from the facility's own lat/lng. Straightforward.
-
-**IX detail page:** Multiple pins from IX facilities (already eager-loaded in `queryIX`). Need to join through to the actual `Facility` entity to get lat/lng, since `IxFacility` (the junction entity) does not carry lat/lng -- only `city` and `country`.
-
-**Implementation for IX geo data:**
-
+**Target state:**
 ```go
-// In queryIX, after eager-loading IX facilities, also fetch actual Facility entities for lat/lng.
-facIDs := make([]int, 0, len(ixFacItems))
-for _, ixf := range ixFacItems {
-    if ixf.FacID != nil {
-        facIDs = append(facIDs, *ixf.FacID)
+db.SetMaxOpenConns(maxOpen)
+db.SetMaxIdleConns(maxIdle)
+db.SetConnMaxIdleTime(connMaxIdleTime)
+```
+
+**Integration type:** Modify existing (3 lines in database.go).
+
+**Rationale:** SQLite in WAL mode allows concurrent readers but only one writer. Unbounded connections waste file descriptors and can hit SQLite's internal limits. For this read-heavy workload:
+- `MaxOpenConns`: 10 (allows parallel reads across API surfaces)
+- `MaxIdleConns`: 5 (keep warm connections for bursty traffic)
+- `ConnMaxIdleTime`: 5m (release stale connections)
+
+**Approach:** Hardcode sensible defaults in `database.Open` -- these are infrastructure constants, not user-tunable. The app is read-only with one writer (sync), so hardcoded defaults are appropriate.
+
+**Dependencies:** None. Pure additive.
+
+**Risk:** LOW -- but test under load to verify 10 is sufficient for parallel GraphQL + REST + gRPC + web.
+
+### 3. Request Body Size Limits
+
+**What changes:** New middleware in `internal/middleware/bodylimit.go`.
+
+**Current state:** No body size limits. Only POST endpoint is `/sync` (fire-and-forget, no body parsing) and `/graphql` (JSON body). REST/compat/web are all GET.
+
+**Target state:** Middleware wraps request bodies with `http.MaxBytesReader` for POST/PUT/PATCH requests.
+
+**Integration type:** New file + modify middleware chain in main.go.
+
+**Middleware position:** After Recovery, before CORS (or after CORS -- order doesn't matter since CORS only adds headers).
+
+```
+Recovery -> CORS -> OTel HTTP -> BodyLimit -> Logging -> Readiness -> Caching -> mux
+```
+
+**Default limit:** 1MB. GraphQL queries are typically < 10KB. The `/sync` endpoint doesn't read the body at all.
+
+**Dependencies:** None. Pure additive.
+
+**Risk:** LOW -- but must NOT apply to ConnectRPC streaming (client-streaming not used, so this is moot for current API).
+
+### 4. Compression Middleware
+
+**What changes:** New middleware in `internal/middleware/compress.go` or use `klauspost/compress/gzhttp`.
+
+**Current state:** No response compression. All responses served uncompressed.
+
+**Target state:** Gzip/zstd compression for responses based on `Accept-Encoding`.
+
+**Integration type:** New file (or new dependency) + modify middleware chain in main.go.
+
+**Library choice:** `klauspost/compress/gzhttp` -- battle-tested, wraps `http.Handler`, handles ETag interaction correctly (critical since caching middleware sets ETags). The `SuffixETag()` option prevents ETag collisions on compressed responses. Alternatively, write a minimal gzip middleware using stdlib `compress/gzip` (fewer features but zero new deps).
+
+**Recommendation:** Use `klauspost/compress/gzhttp` because it handles the ETag suffix correctly, which interacts with the existing caching middleware's ETag generation. Rolling your own would require reimplementing this.
+
+**Middleware position:** Between Caching and mux (compress the response after cache headers are set):
+
+```
+Recovery -> CORS -> OTel HTTP -> BodyLimit -> Logging -> Readiness -> Caching -> Compress -> mux
+```
+
+**Interaction with gRPC:** ConnectRPC handles its own compression via the Connect protocol. The compression middleware should skip paths with `application/grpc` content type or `application/connect+proto`. The `gzhttp` middleware's `ContentTypes` option handles this.
+
+**Dependencies:** Caching middleware (ETag interaction). Should be implemented after or alongside caching review.
+
+**Risk:** MEDIUM -- ETag interaction with caching middleware needs careful testing. gRPC/ConnectRPC content-type exclusion is critical.
+
+### 5. CSP Header and Subresource Integrity
+
+**What changes:** Two locations: new middleware for CSP header + template modifications for SRI.
+
+**CSP middleware:** New file `internal/middleware/csp.go` or inline in existing middleware. Sets `Content-Security-Policy` header on HTML responses only.
+
+**Current CDN assets (from layout.templ):**
+| Asset | SRI Present? |
+|-------|-------------|
+| `@tailwindcss/browser@4` (cdn.jsdelivr.net) | NO |
+| `flag-icons@7.5.0` (cdn.jsdelivr.net) | NO |
+| `leaflet@1.9.4` CSS (unpkg.com) | YES |
+| `leaflet@1.9.4` JS (unpkg.com) | YES |
+| `leaflet.markercluster@1.5.3` CSS x2 (unpkg.com) | NO |
+| `leaflet.markercluster@1.5.3` JS (unpkg.com) | NO |
+| `htmx.min.js` (self-hosted /static/) | N/A (self) |
+
+**GraphiQL playground CDN assets (graphql/handler.go):**
+| Asset | SRI Present? |
+|-------|-------------|
+| `react@18.2.0` (cdn.jsdelivr.net) | YES |
+| `react-dom@18.2.0` (cdn.jsdelivr.net) | YES |
+| `graphiql@3.7.0` CSS (cdn.jsdelivr.net) | YES |
+| `graphiql@3.7.0` JS (cdn.jsdelivr.net) | YES |
+
+**Syncing page (syncing.templ):**
+| Asset | SRI Present? |
+|-------|-------------|
+| `@tailwindcss/browser@4` (cdn.jsdelivr.net) | NO |
+
+**SRI additions needed:** 4 assets in layout.templ + 1 in syncing.templ. Generate hashes with `openssl dgst -sha256 -binary <file> | openssl base64 -A`.
+
+**CSP policy:**
+```
+default-src 'self';
+script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com;
+style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com;
+img-src 'self' data: https://*.basemaps.cartocdn.com;
+connect-src 'self';
+font-src 'self' https://cdn.jsdelivr.net;
+```
+
+Note: `'unsafe-inline'` is required because:
+- Tailwind CSS browser runtime uses inline styles
+- Layout template has inline `<script>` blocks (dark mode, Leaflet config)
+- templ components may generate inline event handlers
+
+**Integration type:** New middleware file + modify 5 template lines for SRI hashes.
+
+**Middleware position:** Only applies to HTML responses. Could be a dedicated middleware or added to the dispatch in web handler. Middleware is cleaner -- set on all responses, browsers ignore it for non-HTML.
+
+**Dependencies:** Must catalog all CDN assets first (done above). Template changes are independent of middleware.
+
+**Risk:** MEDIUM -- CSP violations can break functionality silently. Deploy with `Content-Security-Policy-Report-Only` first, then switch to enforcing after validation.
+
+### 6. Input Validation (ASN Range, Width Parameter)
+
+**What changes:** Modify existing handler code in `internal/web/handler.go` and `internal/web/detail.go`.
+
+**Current state:** ASN parsing uses `strconv.Atoi()` with no range check. Width parameter `?w=N` parsed without bounds.
+
+**Target validation:**
+- ASN: Must be 1-4294967295 (32-bit unsigned, per RFC 6793)
+- Width `?w=N`: Must be 40-500 (reasonable terminal width range)
+- ID parameters: Must be positive integers
+
+**Integration type:** Modify existing functions. Add validation helper functions (new file `internal/web/validate.go` or inline).
+
+**Where:**
+- `handleNetworkDetail` (line 45-49): Add ASN range check after `strconv.Atoi`
+- `handleFragment` (line 889): Add positive ID check after `strconv.Atoi`
+- Width parameter parsing in `termrender` package: Add bounds clamping
+- All `handleXXXDetail` functions (6 total): Add positive ID check
+
+**Dependencies:** None. Pure logic change.
+
+**Risk:** LOW -- straightforward validation. Edge case: ASN 0 and ASN 4294967295 (reserved ranges) may or may not exist in PeeringDB.
+
+### 7. GraphQL Error Classification via Sentinel Errors
+
+**What changes:** Modify `internal/graphql/handler.go` -- replace string matching with `errors.Is`/`errors.As`.
+
+**Current state:**
+```go
+func classifyError(err error) string {
+    msg := err.Error()
+    switch {
+    case strings.Contains(msg, "not found"):
+        return "NOT_FOUND"
+    case strings.Contains(msg, "validation"):
+        return "VALIDATION_ERROR"
+    ...
     }
 }
-if len(facIDs) > 0 {
-    facs, err := h.client.Facility.Query().
-        Where(facility.IDIn(facIDs...)).
-        All(ctx)
-    // Build MapPoints from facs with non-nil Latitude/Longitude
+```
+
+**Target state:** Define sentinel errors, use `errors.Is`/`errors.As` per GO-ERR-2.
+
+**Integration type:** Modify existing file + potentially new sentinel error definitions in a shared package.
+
+**Dependencies:** None. Self-contained refactor.
+
+**Risk:** LOW -- but must verify that ent errors wrap properly with `errors.Is` (ent's `IsNotFound` already does this).
+
+### 8. Metrics COUNT Query Caching
+
+**What changes:** Modify `internal/otel/metrics.go` `InitObjectCountGauges` function.
+
+**Current state:** 13 `COUNT(*)` queries execute on every OTel scrape (typically every 15-60s). Each is a full table scan.
+
+**Target state:** Cache counts with a TTL (e.g., 5 minutes). Since data only changes on sync (hourly), counts are stable between syncs.
+
+**Approach options:**
+1. **Sync-time cache:** Compute counts after each sync, store in memory. Observable gauge reads cached values. Zero scrape-time queries.
+2. **TTL cache:** Cache counts for N minutes, refresh on miss. Simple but still hits DB periodically.
+3. **Sync-triggered invalidation:** Cache counts, invalidate when sync completes. Re-query lazily on next scrape.
+
+**Recommendation:** Option 1 (sync-time cache). The sync worker already runs after data changes. Add a `RefreshCounts()` call at sync completion. The observable gauge callback reads from a `sync.Map` or atomic struct. Zero DB queries during normal scrape cycles.
+
+**Integration type:** Modify `InitObjectCountGauges` to accept a cache instead of querying directly. Add count refresh to sync worker completion path.
+
+**Files changed:**
+- `internal/otel/metrics.go` -- change observable gauge to read from cache
+- `internal/sync/worker.go` -- add count refresh after successful sync
+- New: cached count storage (could be in otel package or a shared struct)
+
+**Dependencies:** Requires understanding sync worker completion hook. No hard blockers.
+
+**Risk:** LOW -- worst case is stale counts for one sync cycle, which is fine for metrics.
+
+### 9. CORS Preflight Caching
+
+**What changes:** Already partially done. Check `internal/middleware/cors.go`.
+
+**Current state:** `MaxAge: 86400` is already set in CORS options. This tells browsers to cache preflight responses for 24 hours.
+
+**Assessment:** This may already be sufficient. Verify that the `MaxAge` value is being sent as `Access-Control-Max-Age` header in preflight responses. The `rs/cors` library handles this.
+
+**Integration type:** Verify existing (may be a no-op).
+
+**Risk:** NONE.
+
+### 10. Test Coverage: GraphQL Handler and Database Package
+
+**What changes:** New test files.
+
+**Current state:**
+- `internal/graphql/` -- NO test files
+- `internal/database/` -- NO test files
+- `internal/config/` -- has `config_test.go` (comprehensive)
+
+**GraphQL handler tests (`internal/graphql/handler_test.go`):**
+- Test `NewHandler` returns non-nil handler
+- Test complexity limit enforcement (query exceeding 500 complexity)
+- Test depth limit enforcement (query exceeding 15 depth)
+- Test error presenter populates path and extensions
+- Test `classifyError` function with various error types
+- Test playground handler returns HTML with correct template data
+
+**Database package tests (`internal/database/database_test.go`):**
+- Test `Open` with valid path returns working client and db
+- Test `Open` with invalid path returns error
+- Test WAL mode is enabled (query `PRAGMA journal_mode`)
+- Test foreign keys are enabled (query `PRAGMA foreign_keys`)
+- Test busy timeout is set (query `PRAGMA busy_timeout`)
+
+**Integration type:** New test files only. No production code changes.
+
+**Dependencies:** GraphQL tests need the `graph` package schema. Database tests are self-contained (SQLite in-memory or temp dir).
+
+**Risk:** LOW.
+
+### 11. Config Validation Enhancements
+
+**What changes:** Modify `internal/config/config.go` `validate()` method.
+
+**Current state:** Validates only `DBPath` non-empty, `SyncInterval > 0`, and `OTelSampleRate` range.
+
+**New validations:**
+- `ListenAddr` format (must parse as host:port or :port)
+- `DrainTimeout > 0`
+- `SyncStaleThreshold > SyncInterval` (stale threshold should exceed sync interval)
+- `StreamTimeout > 0`
+- New timeout fields: `ReadHeaderTimeout > 0`, `IdleTimeout > 0`
+
+**Integration type:** Modify existing `validate()` method + add new config fields (if adding timeout configs).
+
+**Dependencies:** New config fields from item 1 (server timeouts) should be added first or simultaneously.
+
+**Risk:** LOW -- but breaking change if existing deployments have invalid-but-working configs. Use sensible defaults.
+
+### 12. Additional Linters (exhaustive, contextcheck, gosec)
+
+**What changes:** Modify `.golangci.yml`.
+
+**Current enabled linters:** `standard` preset + gocritic, misspell, nolintlint, revive.
+
+**Target additions:**
+- `exhaustive` -- checks exhaustiveness of enum switch statements. Catches missing cases in type switches (relevant for detail.go dispatch, termrender dispatch).
+- `contextcheck` -- detects nested contexts in loops. Catches context misuse.
+- `gosec` -- security linter (already in exclusions for test files, but not in enable list; the `standard` preset may include it).
+
+**Current gosec status:** Listed in exclusions (`path: _test\.go, linters: [gosec]`) suggesting it's already active via the `standard` preset. Verify.
+
+**Integration type:** Modify `.golangci.yml` (add to enable list) + fix any new findings.
+
+**Potential findings to expect:**
+- `exhaustive`: The `handleFragment` switch in detail.go has default cases, so exhaustive may be satisfied. Terminal render dispatch type-switch may trigger.
+- `contextcheck`: Verify sync worker goroutine context usage.
+- `gosec`: May flag the missing `ReadHeaderTimeout` (G112 rule) which is addressed by item 1.
+
+**Dependencies:** Should be done AFTER refactoring (items 15-16) to avoid fixing lint issues in code that's about to be restructured.
+
+**Risk:** LOW-MEDIUM -- may surface issues that need fixing across the codebase.
+
+### 13. Docker Build in CI
+
+**What changes:** Modify `.github/workflows/ci.yml` -- add Docker build job.
+
+**Current CI jobs:** lint, test, build, govulncheck.
+
+**New job:**
+```yaml
+docker:
+  name: Docker Build
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v6
+    - name: Build Docker image
+      run: docker build -f Dockerfile -t peeringdb-plus:ci .
+    - name: Build prod Docker image
+      run: docker build -f Dockerfile.prod -t peeringdb-plus-prod:ci .
+```
+
+**Integration type:** Additive CI job. No production code changes.
+
+**Dependencies:** Dockerfile changes (item 14) should be done first so CI validates the updated Dockerfiles.
+
+**Risk:** LOW -- but adds ~2-3 minutes to CI.
+
+### 14. Dockerfile HEALTHCHECK
+
+**What changes:** Modify `Dockerfile` and `Dockerfile.prod`.
+
+**Current state:** No HEALTHCHECK instruction. Fly.io uses its own health checks (`/healthz`, `/readyz`) configured in `fly.toml`, but Docker-level health checks are useful for local development and non-Fly deployments.
+
+**Addition to both Dockerfiles:**
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD ["/usr/local/bin/peeringdb-plus", "--healthcheck"] || exit 1
+```
+
+**Problem:** The app binary doesn't have a `--healthcheck` flag. Options:
+1. Add a `--healthcheck` mode that GETs `http://localhost:8080/healthz` and exits 0/1
+2. Use `wget` or `curl` -- neither is in Chainguard images
+3. Install a minimal HTTP client in the image
+4. Use a Go-based healthcheck binary
+
+**Recommendation:** Option 1 is cleanest -- add a `--healthcheck` flag to the existing binary that performs a simple HTTP GET to `localhost:$PDBPLUS_PORT/healthz`. This keeps the image minimal and avoids adding tools to the Chainguard base.
+
+**Integration type:** Modify both Dockerfiles + add healthcheck mode to main.go (or separate small cmd).
+
+**Dependencies:** None, but pairs well with config validation (uses same listen addr/port).
+
+**Risk:** LOW.
+
+### 15. Refactor detail.go
+
+**What changes:** Split `internal/web/detail.go` (1422 LOC, 30 functions) into smaller files.
+
+**Current structure:**
+- 6 `handleXXXDetail` functions (network, IX, facility, org, campus, carrier)
+- 6 `queryXXX` functions (corresponding queries)
+- 1 `handleFragment` dispatcher
+- 17 `handleXXXFragment` functions (lazy-loaded child sections)
+
+**Recommended split:**
+```
+internal/web/
+  detail_network.go    -- handleNetworkDetail, queryNetwork
+  detail_ix.go         -- handleIXDetail, queryIX
+  detail_facility.go   -- handleFacilityDetail, queryFacility
+  detail_org.go        -- handleOrgDetail, queryOrg
+  detail_campus.go     -- handleCampusDetail, queryCampus
+  detail_carrier.go    -- handleCarrierDetail, queryCarrier
+  fragment.go          -- handleFragment dispatcher + all fragment handlers
+  freshness.go         -- getFreshness helper
+```
+
+**Integration type:** File reorganization only. No logic changes. All functions are methods on `*Handler`, same package.
+
+**Pattern to extract:** Each detail type follows identical structure:
+1. Parse ID/ASN from URL
+2. Query with eager-loaded relations
+3. Map to template struct
+4. Render via `renderPage`
+
+The fragment handlers also follow a uniform pattern:
+1. Query child entities with parent filter
+2. Map to template row structs
+3. Render template component
+
+**Dependencies:** Should be done BEFORE adding linters (item 12) to avoid lint churn on code being moved.
+
+**Risk:** LOW -- pure file split, no logic changes. Git will track moves correctly with `git diff -M`.
+
+### 16. Refactor sync/upsert.go Duplication
+
+**What changes:** Reduce 13 near-identical `upsertXXX` functions in `internal/sync/upsert.go` (613 LOC).
+
+**Current pattern (repeated 13 times):**
+```go
+func upsertXXX(ctx context.Context, tx *ent.Tx, items []peeringdb.XXX) ([]int, error) {
+    builders := make([]*ent.XXXCreate, 0, len(items))
+    ids := make([]int, 0, len(items))
+    for _, item := range items {
+        ids = append(ids, item.ID)
+        b := tx.XXX.Create().SetID(item.ID).SetField1(item.Field1)...
+        builders = append(builders, b)
+    }
+    for i := 0; i < len(builders); i += batchSize {
+        end := min(i+batchSize, len(builders))
+        err := tx.XXX.CreateBulk(builders[i:end]...).
+            OnConflictColumns(xxx.FieldID).UpdateNewValues().Exec(ctx)
+        if err != nil {
+            return nil, fmt.Errorf("upsert xxx batch %d: %w", i/batchSize, err)
+        }
+    }
+    return ids, nil
 }
 ```
 
-**Network detail page:** Same pattern -- fetch Facility entities from NetworkFacility junction rows to get lat/lng.
+**Refactoring approach:** Extract the batched upsert loop into a generic helper:
 
-**Comparison page:** Merge facility locations from both networks, coloring shared vs unique pins differently (green for shared, grey for unique-to-one-network).
+```go
+func batchUpsert[B any](ctx context.Context, builders []B, execFn func([]B) error, typeName string) error {
+    for i := 0; i < len(builders); i += batchSize {
+        end := min(i+batchSize, len(builders))
+        if err := execFn(builders[i:end]); err != nil {
+            return fmt.Errorf("upsert %s batch %d: %w", typeName, i/batchSize, err)
+        }
+    }
+    return nil
+}
+```
 
-**Data availability concern:** Not all PeeringDB facilities have lat/lng populated. The map should gracefully handle empty coordinates by simply not placing a marker for those facilities. The map section should not render at all if zero facilities have valid coordinates.
+Each `upsertXXX` keeps its field-mapping logic (which is inherently type-specific) but delegates the batching loop. This eliminates ~13 copies of the batch loop (~8 lines each = ~100 lines saved).
 
-**Confidence:** HIGH -- lat/lng fields exist in ent schema and are synced from PeeringDB. The join pattern through junction entities to get facility coordinates is standard ent querying.
+**Important constraint:** The field-mapping portion CANNOT be generified because each PeeringDB type has different fields and different ent builder types. Only the batch loop and error wrapping can be extracted.
+
+**Integration type:** Modify existing file. Extract helper, simplify each function.
+
+**Dependencies:** Should be done BEFORE adding linters to avoid lint churn.
+
+**Risk:** LOW -- the batch loop is identical across all 13 functions. The refactoring is mechanical.
+
+## Component Boundaries
+
+| Component | Responsibility | Changes For Hardening |
+|-----------|---------------|----------------------|
+| `cmd/peeringdb-plus/main.go` | Server setup, handler registration, middleware chain | Add server timeouts, body limit middleware, compression middleware, healthcheck mode |
+| `internal/config/config.go` | Environment variable parsing and validation | New timeout fields, enhanced validate() |
+| `internal/database/database.go` | SQLite connection setup | Add pool configuration |
+| `internal/middleware/` | HTTP middleware chain | New: bodylimit.go, compress.go, csp.go |
+| `internal/graphql/handler.go` | GraphQL handler factory | Sentinel error classification |
+| `internal/otel/metrics.go` | OTel metric instruments | Cached count gauges |
+| `internal/sync/worker.go` | Sync orchestration | Trigger count cache refresh |
+| `internal/sync/upsert.go` | Bulk upsert logic | Extract batch helper |
+| `internal/web/detail.go` | Detail page handlers | Split into 7+ files, add input validation |
+| `internal/web/templates/layout.templ` | HTML layout | Add SRI hashes |
+| `internal/web/templates/syncing.templ` | Syncing page | Add SRI hash |
+| `.golangci.yml` | Linter config | Add exhaustive, contextcheck |
+| `.github/workflows/ci.yml` | CI pipeline | Add Docker build job |
+| `Dockerfile` / `Dockerfile.prod` | Container build | Add HEALTHCHECK |
+
+## Data Flow Changes
+
+### Metrics Count Caching (New Data Flow)
+
+```
+Before:
+  OTel scrape -> InitObjectCountGauges callback -> 13 COUNT queries -> observe values
+
+After:
+  Sync completes -> RefreshCounts() -> 13 COUNT queries -> store in cache
+  OTel scrape -> callback -> read cached values -> observe values (0 queries)
+```
+
+### Compression (New Data Flow)
+
+```
+Before:
+  Request -> middleware chain -> handler -> raw response body -> client
+
+After:
+  Request -> middleware chain -> handler -> compress middleware checks Accept-Encoding
+    -> if gzip/zstd: compress body, suffix ETag, set Content-Encoding
+    -> if grpc/connect content-type: skip compression (protocol handles it)
+    -> client
+```
+
+### Body Size Limit (New Data Flow)
+
+```
+Before:
+  POST request -> handler reads body without limit
+
+After:
+  POST request -> MaxBytesReader wraps body (1MB limit) -> handler reads body
+    -> if exceeds: http.StatusRequestEntityTooLarge
+```
+
+## Optimal Build Order
+
+The items have the following dependency graph:
+
+```
+Independent (no deps):
+  [2] SQLite pool limits
+  [6] Input validation
+  [7] GraphQL sentinel errors
+  [9] CORS preflight (verify only)
+
+Config-dependent:
+  [11] Config validation  <->  [1] Server timeouts (co-develop)
+
+Caching-aware:
+  [4] Compression middleware  -- interacts with caching ETags
+
+Refactor-before-lint:
+  [15] Refactor detail.go  \
+  [16] Refactor upsert.go  /->  [12] Additional linters
+
+Docker-related:
+  [14] Dockerfile HEALTHCHECK  ->  [13] Docker build in CI
+
+Template + middleware:
+  [5] CSP + SRI  (template changes + new middleware)
+
+Metrics:
+  [8] Metrics count caching  (crosses otel + sync packages)
+
+Tests:
+  [10] Test coverage  -- after [7] GraphQL sentinel errors
+```
+
+### Recommended Phase Ordering
+
+**Phase 1: Foundation (no dependencies, enables later phases)**
+Items: [1] Server timeouts, [2] SQLite pool, [11] Config validation
+
+Rationale: Server timeouts and pool limits are the highest-impact security items. Config validation supports the new timeout fields. All are small, self-contained changes to existing files.
+
+**Phase 2: Request/Response Hardening**
+Items: [3] Body size limits, [5] CSP + SRI, [6] Input validation
+
+Rationale: These are the request-path security items. Body limits and CSP are new middleware. Input validation modifies existing handlers. All are independent of each other.
+
+**Phase 3: Middleware Additions**
+Items: [4] Compression, [9] CORS preflight verification
+
+Rationale: Compression interacts with caching middleware ETags and must be tested carefully. CORS preflight is a verify-only task. Group these because compression is the trickiest middleware addition.
+
+**Phase 4: Internal Quality**
+Items: [7] GraphQL sentinel errors, [8] Metrics caching
+
+Rationale: These are internal code quality improvements. Sentinel errors are a self-contained refactor. Metrics caching crosses package boundaries (otel + sync) but is well-defined.
+
+**Phase 5: Refactoring**
+Items: [15] Refactor detail.go, [16] Refactor upsert.go
+
+Rationale: File reorganization is safest when done before adding new linters (which would create noise on old code). These are mechanical refactors with no logic changes.
+
+**Phase 6: Test Coverage**
+Items: [10] GraphQL + database tests
+
+Rationale: Tests are best written after the code they test is stable. GraphQL sentinel errors (Phase 4) change the error classification, so tests should come after.
+
+**Phase 7: CI and Linting**
+Items: [12] Additional linters, [13] Docker build in CI, [14] Dockerfile HEALTHCHECK
+
+Rationale: Linters go last because they may surface issues in refactored code. Docker changes are independent but grouping them with CI makes sense for a single "CI hardening" phase.
+
+**Phase 8: Tech Debt Items**
+Items: Grafana verification, /ui/about terminal stub, seed consolidation, CI coverage pipeline verification
+
+Rationale: These are the deferred tech debt items listed in PROJECT.md. They are independent of hardening and can be done in any order.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Inline JavaScript in templ `script` Blocks for Map Init
+### Anti-Pattern 1: Global WriteTimeout with Streaming RPCs
+**What:** Setting `http.Server.WriteTimeout` globally.
+**Why bad:** Kills ConnectRPC streaming RPCs (StreamNetworks etc.) after the timeout. The server currently has a per-stream `StreamTimeout` (configurable, default 60s) that handles this correctly at the application level.
+**Instead:** Use `ReadHeaderTimeout` + `IdleTimeout` for server-level protection. Stream timeouts remain application-level.
 
-**What:** Using templ's `script` directive to define map initialization functions.
+### Anti-Pattern 2: Compression on gRPC Paths
+**What:** Applying HTTP-level gzip compression to ConnectRPC/gRPC responses.
+**Why bad:** gRPC has its own compression negotiation. Double-compressing wastes CPU and can break protocol framing.
+**Instead:** Configure compression middleware to skip `application/grpc*` and `application/connect+proto` content types.
 
-**Why bad:** templ `script` blocks generate named JavaScript functions that get called via `onclick` or similar attributes. They work well for small actions (like `copyToClipboard`) but are awkward for initialization code that should run once when the element appears. They also make it harder to access DOM elements by ID since the function runs in a different scope.
+### Anti-Pattern 3: Enforcing CSP Before Testing
+**What:** Deploying `Content-Security-Policy` header directly.
+**Why bad:** Tailwind CSS browser runtime and inline scripts may trigger violations that break the UI.
+**Instead:** Deploy with `Content-Security-Policy-Report-Only` first, monitor for violations, then switch to enforcing.
 
-**Instead:** Use a raw `<script>` tag at the end of the map-containing template. The script reads data from a `<script type="application/json">` element, keeping the data flow explicit and the initialization self-contained.
+### Anti-Pattern 4: Refactoring and Adding Linters Simultaneously
+**What:** Adding exhaustive/contextcheck linters in the same phase as refactoring detail.go/upsert.go.
+**Why bad:** Linter findings in code that's about to be restructured creates wasted effort. Fix findings in old locations, then move code, then fix again.
+**Instead:** Refactor first (Phase 5), then add linters (Phase 7).
 
-### Anti-Pattern 2: Fetching Map Data via Separate AJAX Endpoint
-
-**What:** Creating a `/ui/fragment/ix/{id}/mapdata` endpoint that returns JSON, then fetching it client-side to populate the map.
-
-**Why bad:** The geographic data is already available when the page loads -- it comes from the same ent queries that populate the detail page. Adding a separate endpoint means: an extra HTTP round-trip, a flash of empty map while loading, a new handler to maintain, and duplicated query logic.
-
-**Instead:** Embed the GeoJSON data inline in the HTML response. The data is small (a few hundred bytes for typical facility counts) and is always needed when the map renders.
-
-### Anti-Pattern 3: Server-Side Table Sorting via htmx for Small Datasets
-
-**What:** Using `hx-get` with sort parameters on `<th>` clicks to reload the table from the server with different ordering.
-
-**Why bad for this project:** The collapsible sections use `hx-trigger="toggle once"` -- they load data once and keep it in the DOM. Server-side sorting would either break this "load once" pattern (requiring re-fetch on every sort) or need complex client-side state management. The datasets are small enough (largest: ~2K IX participants) that client-side sorting is instant.
-
-**When server-side sorting IS appropriate:** If a future feature adds paginated tables (e.g., browsing all 80K+ networks), server-side sorting with htmx would be the right approach. The current architecture is per-entity detail pages where child counts are in the hundreds, not tens of thousands.
-
-### Anti-Pattern 4: CSS Filter Invert for Dark Mode Maps
-
-**What:** Applying `filter: invert(1) hue-rotate(180deg)` to map tiles for dark mode.
-
-**Why bad:** Inverts all tile colors including text labels, making them unreadable. Also inverts marker icons and popup content. Requires exception rules for every interactive element.
-
-**Instead:** Use a tile provider with native dark/light variants (CARTO basemaps). Switch the tile URL based on the app's dark mode state.
-
-### Anti-Pattern 5: Computing Emoji Flags in JavaScript
-
-**What:** Sending country codes to the browser and converting to emoji flags client-side.
-
-**Why bad:** Adds unnecessary JS, creates a flash of "US" text before the flag renders, doesn't work in terminal rendering mode, and the computation is trivial to do server-side. Also, some edge cases (invalid codes, missing data) are better handled with Go string validation.
-
-**Instead:** Compute in Go when populating template data. The flag appears in the initial HTML render.
-
-## New Components vs Modified Components
-
-### New Files
-
-| File | Purpose |
-|------|---------|
-| `internal/web/countryflags.go` | `CountryFlag(code string) string` function + `MapPoint` type |
-| `internal/web/countryflags_test.go` | Table-driven tests for flag conversion, edge cases |
-
-### Modified Files (Summary)
-
-| File | Changes |
-|------|---------|
-| `internal/web/templates/layout.templ` | Add Leaflet CSS/JS CDN links, MarkerCluster CSS/JS, sortable CSS/JS, custom sort indicator CSS |
-| `internal/web/templates/detailtypes.go` | Add `CountryFlag string`, `Latitude *float64`, `Longitude *float64`, `MapPoints []MapPoint` to relevant structs |
-| `internal/web/templates/searchtypes.go` | Add `CountryFlag string` to `SearchResult` |
-| `internal/web/templates/comparetypes.go` | Add `CountryFlag string` to `CompareFacility`, add `MapPoints []MapPoint` to `CompareData` |
-| `internal/web/templates/detail_ix.templ` | Convert `IXParticipantsList`, `IXFacilitiesList` from div-based to table-based. Add map section. Add flag column. |
-| `internal/web/templates/detail_net.templ` | Convert `NetworkIXLansList`, `NetworkFacilitiesList` from div-based to table-based. Add map section. Add flag column. |
-| `internal/web/templates/detail_fac.templ` | Convert `FacNetworksList`, `FacIXPsList` from div-based to table-based. Add single-pin map. Add flag to header. |
-| `internal/web/templates/detail_org.templ` | Convert child lists to table-based. Add flag columns where applicable. |
-| `internal/web/templates/detail_campus.templ` | Convert facility list to table-based. Add flag column. |
-| `internal/web/templates/detail_carrier.templ` | Convert facility list to table-based. |
-| `internal/web/templates/detail_shared.templ` | Add `MapSection` templ component. Modify `CopyableIP` to work in table cells. |
-| `internal/web/templates/compare.templ` | Convert comparison sections to table-based. Add flag columns. Add map with colored pins. |
-| `internal/web/templates/search_results.templ` | Add flag to subtitle area in search results. |
-| `internal/web/detail.go` | Populate CountryFlag, Latitude, Longitude, MapPoints in all query functions. Add facility geo lookup for IX/network. |
-| `internal/web/search.go` | Populate CountryFlag in search result building. |
-| `internal/web/compare.go` | Populate CountryFlag in comparison building. Add MapPoints for comparison map. |
-| `internal/web/handler_test.go` | Verify table structure in rendered HTML, flag presence, map container presence. |
-| `internal/web/detail_test.go` | Test geo data population, flag conversion, map point generation. |
-
-## Build Order (Dependency-Aware)
-
-The features have clear dependencies. Build in this order:
-
-### Phase 1: Country Flag Utility
-
-No other features depend on external changes. Self-contained.
-- Create `countryflags.go` with `CountryFlag()` function
-- Create `countryflags_test.go`
-- Zero impact on existing templates
-
-### Phase 2: Type Additions (Data Layer)
-
-All template changes depend on having the right fields.
-- Add `CountryFlag`, `Latitude`, `Longitude`, `MapPoints` to type definitions
-- No template changes yet -- just data plumbing
-
-### Phase 3: Dense Table Layouts
-
-This is the largest change by line count. Independent of Leaflet/map work.
-- Add sortable.js CDN and CSS to `layout.templ`
-- Convert all child-entity list templates from `divide-y` divs to `<table class="sortable">`
-- Add `data-sort` attributes for numeric columns
-- Insert flag columns
-- Update `detail.go` to populate new fields (CountryFlag, lat/lng)
-- Update handlers to call `CountryFlag()` during data population
-- Test that sortable works with htmx-loaded fragments
-
-### Phase 4: Leaflet Map Integration
-
-Depends on lat/lng being populated (Phase 2-3 data plumbing).
-- Add Leaflet + MarkerCluster CDN to `layout.templ`
-- Create `MapSection` shared templ component
-- Add map to facility detail page (simplest: single pin, own lat/lng)
-- Add map to IX detail page (multiple pins from facility associations)
-- Add map to network detail page (multiple pins from facility presences)
-- Add map to comparison page (colored pins for shared/unique)
-- Handle dark mode tile switching
-
-### Phase 5: Search Results Density
-
-Depends on flag utility (Phase 1) but independent of tables/maps.
-- Add flag display to search result rows
-- Optionally convert search results to denser layout
+### Anti-Pattern 5: Over-Parameterizing Infrastructure Constants
+**What:** Making SQLite pool sizes configurable via env vars.
+**Why bad:** Users don't know what good values are. Bad values (MaxOpenConns=1) would kill performance. These are implementation details, not user-facing config.
+**Instead:** Hardcode sensible defaults in `database.Open`. Make configurable only if there's a demonstrated need.
 
 ## Scalability Considerations
 
-| Concern | Current Scale | At v1.11 | Notes |
-|---------|--------------|----------|-------|
-| JS payload size | htmx (15KB) + Tailwind CDN (~300KB) | +sortable (1.4KB) +Leaflet (42KB) +MarkerCluster (10KB) = ~368KB total | Acceptable for non-mobile-first app. All CDN-cached. |
-| Map markers per page | N/A | Largest IX has ~2,000 participants across ~50 facilities. Map shows facilities (50 pins), not participants (2,000). | MarkerCluster handles hundreds of pins efficiently. |
-| Table rows in DOM | Current: ~2,000 max (large IX participants list) | Same data, different layout. No change in DOM node count. | sortable.js handles 10K+ rows. |
-| Geo data queries | Not queried | 1 additional query per IX/network page to fetch facility lat/lng | Batch query via `IDIn()`, not N+1. Sub-millisecond on SQLite. |
-| CDN availability | Tailwind CDN, self-hosted htmx | CARTO tiles, jsDelivr for libraries | CARTO has been stable for years. jsDelivr is the recommended Leaflet CDN. Self-hosting Leaflet/sortable in `/static/` is trivial if CDN reliability is a concern (same pattern as htmx). |
+| Concern | Current (5 machines) | At 20 machines | At 100 machines |
+|---------|---------------------|----------------|-----------------|
+| Metrics COUNT queries | 65 queries/scrape (13 types x 5 machines) | 260/scrape | 1300/scrape -- caching essential |
+| SQLite connections | Unbounded, works by luck | May hit FD limits under load | Pool limits prevent resource exhaustion |
+| Body size limit | No limit, low risk (read-only) | Same | Same -- attack surface doesn't scale with replicas |
+| Compression | Bandwidth cost linear with machines | Meaningful bandwidth savings | Significant bandwidth reduction for REST/GraphQL JSON |
 
 ## Sources
 
-- [Leaflet.js download](https://leafletjs.com/download.html) -- v1.9.4 stable, v2.0.0-alpha.1 (do not use alpha)
-- [Leaflet GeoJSON tutorial](https://leafletjs.com/examples/geojson/) -- inline GeoJSON data loading
-- [Leaflet MarkerCluster](https://github.com/Leaflet/Leaflet.markercluster) -- v1.5.3 clustering plugin
-- [CARTO Basemaps](https://carto.com/basemaps) -- free dark_all/light_all tile variants, no API key
-- [sortable by tofsjonas](https://github.com/tofsjonas/sortable) -- 899B gzipped table sort with MutationObserver for dynamic content
-- [Unicode Regional Indicator Symbols](https://en.wikipedia.org/wiki/Regional_indicator_symbol) -- U+1F1E6 to U+1F1FF for country flags
-- [htmx table sorting example](https://htmx.org/examples/sortable/) -- server-side approach (not recommended for our use case)
-- [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/) -- restrictions on tile.openstreetmap.org usage
-- [Stadia Maps pricing](https://stadiamaps.com/pricing) -- free tier requires API key, limited credits
-- [Leaflet Provider Demo](https://leaflet-extras.github.io/leaflet-providers/preview/) -- tile provider comparison
+- [Cloudflare: Go net/http timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/) - Timeout field semantics
+- [Go docs: Managing connections](https://go.dev/doc/database/manage-connections) - Connection pool configuration
+- [klauspost/compress gzhttp](https://pkg.go.dev/github.com/klauspost/compress/gzhttp) - Compression middleware with ETag handling
+- [MDN: Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP) - CSP header reference
+- [OWASP: CSP Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html) - CSP deployment strategy
+- [golangci-lint: Linters](https://golangci-lint.run/docs/linters/) - Linter documentation
+- [Alex Edwards: Configuring sql.DB](https://www.alexedwards.net/blog/configuring-sqldb) - Pool tuning guidance
