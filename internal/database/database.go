@@ -5,6 +5,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -30,6 +31,13 @@ func Open(dbPath string) (*ent.Client, *sql.DB, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("opening database %s: %w", dbPath, err)
 	}
+
+	// Configure connection pool for SQLite WAL mode.
+	// Hardcoded infrastructure constants per SRVR-02.
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
 	drv := entsql.OpenDB(dialect.SQLite, db)
 	return ent.NewClient(ent.Driver(drv)), db, nil
 }

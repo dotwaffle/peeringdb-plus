@@ -5,8 +5,10 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -146,6 +148,16 @@ func (c *Config) validate() error {
 	}
 	if c.OTelSampleRate < 0.0 || c.OTelSampleRate > 1.0 {
 		return errors.New("PDBPLUS_OTEL_SAMPLE_RATE must be between 0.0 and 1.0")
+	}
+	if !strings.Contains(c.ListenAddr, ":") {
+		return errors.New("PDBPLUS_LISTEN_ADDR must contain ':' (e.g., ':8080' or '0.0.0.0:8080')")
+	}
+	u, err := url.Parse(c.PeeringDBBaseURL)
+	if err != nil || u.Scheme == "" {
+		return fmt.Errorf("PDBPLUS_PEERINGDB_URL must be a valid URL with scheme (got %q)", c.PeeringDBBaseURL)
+	}
+	if c.DrainTimeout <= 0 {
+		return errors.New("PDBPLUS_DRAIN_TIMEOUT must be greater than 0")
 	}
 	return nil
 }

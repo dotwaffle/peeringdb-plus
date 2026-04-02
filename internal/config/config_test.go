@@ -311,6 +311,51 @@ func TestLoad_DrainTimeout(t *testing.T) {
 	}
 }
 
+func TestLoad_Validate(t *testing.T) {
+	tests := []struct {
+		name        string
+		env         string
+		val         string
+		wantErr     bool
+		errContains string
+	}{
+		{name: "valid defaults", wantErr: false},
+		{name: "listen addr missing colon", env: "PDBPLUS_LISTEN_ADDR", val: "no-colon", wantErr: true, errContains: "must contain"},
+		{name: "listen addr with port only", env: "PDBPLUS_LISTEN_ADDR", val: ":8080", wantErr: false},
+		{name: "listen addr with host:port", env: "PDBPLUS_LISTEN_ADDR", val: "0.0.0.0:9090", wantErr: false},
+		{name: "peeringdb url invalid", env: "PDBPLUS_PEERINGDB_URL", val: "not://valid url %%%", wantErr: true, errContains: "valid URL"},
+		{name: "peeringdb url valid", env: "PDBPLUS_PEERINGDB_URL", val: "https://api.peeringdb.com", wantErr: false},
+		{name: "peeringdb url no scheme", env: "PDBPLUS_PEERINGDB_URL", val: "just-a-hostname", wantErr: true, errContains: "valid URL"},
+		{name: "drain timeout zero", env: "PDBPLUS_DRAIN_TIMEOUT", val: "0s", wantErr: true, errContains: "greater than 0"},
+		{name: "drain timeout negative", env: "PDBPLUS_DRAIN_TIMEOUT", val: "-5s", wantErr: true, errContains: "greater than 0"},
+		{name: "drain timeout valid", env: "PDBPLUS_DRAIN_TIMEOUT", val: "10s", wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.env != "" {
+				t.Setenv(tt.env, tt.val)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for %s=%q, got nil", tt.env, tt.val)
+				}
+				if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
+					t.Errorf("error %q does not contain %q", err.Error(), tt.errContains)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			_ = cfg
+		})
+	}
+}
+
 func TestLoad_OTelEndpointRemoved(t *testing.T) {
 	t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
 
