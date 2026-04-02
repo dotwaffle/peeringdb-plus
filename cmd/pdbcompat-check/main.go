@@ -152,7 +152,7 @@ func checkType(ctx context.Context, client *http.Client, baseURL, goldenDir, typ
 
 	// Read golden file.
 	goldenPath := filepath.Join(goldenDir, typeName, "list.json")
-	goldenBody, err := os.ReadFile(goldenPath) //nolint:gosec // CLI tool reads user-specified golden file path
+	goldenBody, err := os.ReadFile(goldenPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("golden file not found: %s (run golden tests with -update to create)", goldenPath)

@@ -171,7 +171,7 @@ func main() {
 	// The JSON schema may omit reverse edges when only the FK side is defined.
 	synthesizeReverseEdges(schema)
 
-	if err := os.MkdirAll(outputDir, 0o750); err != nil { //nolint:gosec // code generator output directory
+	if err := os.MkdirAll(outputDir, 0o750); err != nil {
 		log.Fatalf("create output dir: %v", err)
 	}
 
