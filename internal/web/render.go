@@ -13,6 +13,10 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/web/termrender"
 )
 
+// maxTerminalWidth is the maximum allowed terminal width for text rendering.
+// Values exceeding this are silently capped per SEC-02.
+const maxTerminalWidth = 500
+
 // PageContent holds the title and body component for a page render.
 // Defined per CS-5 to avoid >2 non-ctx arguments in renderPage.
 type PageContent struct {
@@ -48,6 +52,9 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		renderer.Sections = termrender.ParseSections(r.URL.Query().Get("section"))
 		if wStr := r.URL.Query().Get("w"); wStr != "" {
 			if wVal, err := strconv.Atoi(wStr); err == nil && wVal > 0 {
+				if wVal > maxTerminalWidth {
+					wVal = maxTerminalWidth
+				}
 				renderer.Width = wVal
 			}
 		}
@@ -67,6 +74,9 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		renderer.Sections = termrender.ParseSections(r.URL.Query().Get("section"))
 		if wStr := r.URL.Query().Get("w"); wStr != "" {
 			if wVal, err := strconv.Atoi(wStr); err == nil && wVal > 0 {
+				if wVal > maxTerminalWidth {
+					wVal = maxTerminalWidth
+				}
 				renderer.Width = wVal
 			}
 		}
@@ -118,6 +128,9 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		renderer.Sections = termrender.ParseSections(r.URL.Query().Get("section"))
 		if wStr := r.URL.Query().Get("w"); wStr != "" {
 			if wVal, err := strconv.Atoi(wStr); err == nil && wVal > 0 {
+				if wVal > maxTerminalWidth {
+					wVal = maxTerminalWidth
+				}
 				renderer.Width = wVal
 			}
 		}
