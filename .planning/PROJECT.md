@@ -68,23 +68,23 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] Bash and zsh shell completion scripts — v1.8
 - [x] Terminal search results and ASN comparison — v1.8
 
+- [x] HTTP server timeouts (ReadHeaderTimeout, IdleTimeout) and SQLite connection pool configuration — v1.12
+- [x] Config startup validation for ListenAddr, PeeringDBBaseURL, DrainTimeout — v1.12
+- [x] POST body size limits (1MB) on /graphql and /sync endpoints — v1.12
+- [x] ASN input validation (32-bit range, 400 Bad Request) and width parameter capping (500 max) — v1.12
+- [x] Content-Security-Policy-Report-Only headers with per-route policies — v1.12
+- [x] Gzip compression middleware excluding gRPC content types — v1.12
+- [x] Cached metrics object count gauge eliminating per-scrape COUNT queries — v1.12
+- [x] GraphQL error classification via ent sentinel errors (GO-ERR-2 fix) — v1.12
+- [x] GraphQL handler and database.Open() test coverage — v1.12
+- [x] exhaustive, contextcheck, gosec linters enabled with clean pass — v1.12
+- [x] Docker build validation (both Dockerfiles) in CI pipeline — v1.12
+- [x] detail.go split into 6 per-entity query files — v1.12
+- [x] Generic upsertBatch replacing 13 copy-pasted upsert functions — v1.12
+- [x] /ui/about terminal rendering with rich output — v1.12
+- [x] seed.Minimal/Networks unexported (seed.Full is sole public API) — v1.12
+
 ### Active
-
-## Current Milestone: v1.12 Hardening & Tech Debt
-
-**Goal:** Harden the application against security, reliability, and operational gaps identified by codebase audit, plus clean up accumulated tech debt.
-
-**Target features:**
-- HTTP server timeouts, SQLite connection pool limits, request body size limits
-- Input validation (ASN range, width parameter bounds)
-- CSP header and Subresource Integrity on CDN assets
-- GraphQL error classification via sentinel errors, metrics COUNT query caching
-- Compression middleware, CORS preflight caching
-- Test coverage for GraphQL handler and database package
-- Config validation, additional linters (exhaustive, contextcheck, gosec)
-- Docker build in CI, Dockerfile HEALTHCHECK
-- Refactor detail.go and sync upsert duplication
-- Tech debt: Grafana verification, /ui/about terminal stub, CI coverage pipeline, seed consolidation
 
 ### Deferred
 
@@ -193,15 +193,15 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Shipped v1.10 with 42 phases across 11 milestones (v1.0-v1.10). The test infrastructure is mature: shared seed package for all 13 entity types, 80%+ coverage on GraphQL resolvers, gRPC handlers, and web handlers, 100% on ent/schema, 87-98% on utility packages, fuzz testing on the filter parser, and CI coverage reporting scoped to hand-written code only. Go codebase using entgo ORM, modernc.org/sqlite, gqlgen GraphQL, entrest REST, custom PeeringDB compat layer, ConnectRPC/gRPC API with streaming, web UI (templ + htmx + Tailwind CSS), OpenTelemetry with Grafana dashboard. Six user-facing surfaces: Web UI at /ui/, Terminal CLI at /ui/ (curl), GraphQL at /graphql, REST at /rest/v1/, PeeringDB compat at /api/, ConnectRPC at /peeringdb.v1.*/. Application serves traffic directly (no LiteFS proxy) with h2c support. ~5,200 lines of test code added in v1.10.
+Shipped v1.12 with 50 phases across 13 milestones (v1.0-v1.12). Server hardened with HTTP timeouts, SQLite connection pool limits, body size limits, and config validation. CSP-Report-Only headers and gzip compression on all non-gRPC responses. Metrics scrape overhead eliminated via sync-time count caching. GraphQL error classification uses ent sentinel types (GO-ERR-2 compliant). CI pipeline expanded: 5 parallel jobs (lint, test, build, govulncheck, docker-build) with 7 linters (exhaustive, contextcheck, gosec added). detail.go split from 1422 to 6 focused query files. Generic upsert pattern replaces 13 copy-pasted functions. Terminal /ui/about renders rich output. ~6,800 lines changed in v1.12.
 
 **Known tech debt:**
 - fly_region Grafana template variable needs verification after multi-region deployment
 - Go runtime metric names need verification against live Grafana Cloud
-- /ui/about terminal rendering falls through to generic stub
-- seed.Minimal/Networks exported but unused outside seed_test.go (consolidation opportunity)
 - internal/otel at 87.4% vs 90% target (unreachable OTel API branches)
 - CI coverage pipeline needs human verification on actual GitHub Actions run
+- CSP deployed as Report-Only — needs enforcement after violation monitoring
+- detail.go still 775 lines (handlers + shared helpers remain bundled)
 
 ---
-*Last updated: 2026-04-02 after v1.12 milestone start (Hardening & Tech Debt)*
+*Last updated: 2026-04-02 after v1.12 milestone completion (Hardening & Tech Debt)*

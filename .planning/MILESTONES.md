@@ -1,5 +1,23 @@
 # Milestones
 
+## v1.12 Hardening & Tech Debt (Shipped: 2026-04-02)
+
+**Phases completed:** 4 phases, 9 plans, 18 tasks
+
+**Key accomplishments:**
+
+- HTTP server timeouts (slowloris/idle), SQLite pool config, config startup validation, and 1 MB POST body limits on /graphql and /sync
+- ASN range validation returning 400 Bad Request for out-of-range values, and silent width capping at 500 columns
+- Content-Security-Policy-Report-Only headers on web routes and gzip compression via klauspost/gzhttp with gRPC content-type exclusions
+- Type-safe ent error classification in GraphQL (fixing GO-ERR-2) and cached object count gauge eliminating 13 live COUNT queries per metrics scrape
+- Split 1422-line detail.go into 6 focused query files (61-177 lines each) plus 769-line handler/fragment file
+- Generic upsertBatch function extracts batch-loop boilerplate from 13 copy-pasted upsert functions, reducing upsert.go from 613 to 541 lines
+- Integration tests for GraphQL error presenter, complexity/depth limits, and SQLite pragma verification via database.Open
+- Rich terminal rendering for /ui/about with project info, freshness, and API endpoints; seed.Minimal and seed.Networks unexported
+- Enabled exhaustive, contextcheck, and gosec linters plus Docker build validation job in CI pipeline
+
+---
+
 ## v1.11 Web UI Density & Interactivity (Shipped: 2026-03-26)
 
 **Phases completed:** 4 phases, 10 plans, 19 tasks

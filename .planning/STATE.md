@@ -4,10 +4,10 @@ milestone: v1.12
 milestone_name: Hardening & Tech Debt
 status: executing
 stopped_at: Completed 50-01-PLAN.md
-last_updated: "2026-04-02T05:29:51.855Z"
+last_updated: "2026-04-02T05:35:09.664Z"
 last_activity: 2026-04-02
 progress:
-  total_phases: 4
+  total_phases: 8
   completed_phases: 4
   total_plans: 9
   completed_plans: 9
