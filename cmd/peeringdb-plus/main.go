@@ -42,6 +42,10 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/web/termrender"
 )
 
+// maxRequestBodySize is the maximum allowed request body for POST endpoints (1 MB).
+// GraphQL queries rarely exceed 10 KB; 1 MB is generous per SRVR-04.
+const maxRequestBodySize = 1 << 20
+
 func init() {
 	// Best-effort memory limit configuration from cgroup/system.
 	_, _ = memlimit.SetGoMemLimitWithOpts(
@@ -169,14 +173,18 @@ func main() {
 
 	// POST /sync: on-demand sync trigger per D-23.
 	// Write forwarding: replicas replay to primary via fly-replay header on Fly.io.
-	mux.HandleFunc("POST /sync", newSyncHandler(ctx, SyncHandlerInput{
+	syncHandler := newSyncHandler(ctx, SyncHandlerInput{
 		IsPrimaryFn: isPrimaryFn,
 		SyncToken:   cfg.SyncToken,
 		DefaultMode: cfg.SyncMode,
 		SyncFn: func(syncCtx context.Context, mode config.SyncMode) {
 			syncWorker.SyncWithRetry(syncCtx, mode) //nolint:errcheck // fire-and-forget
 		},
-	}))
+	})
+	mux.HandleFunc("POST /sync", func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
+		syncHandler(w, r)
+	})
 
 	// GET /healthz: liveness probe (always 200, not gated by readiness).
 	mux.HandleFunc("GET /healthz", health.LivenessHandler())
@@ -189,12 +197,14 @@ func main() {
 
 	// GET /graphql: serve GraphiQL playground per D-17, D-18, D-21.
 	// POST /graphql: handle GraphQL queries per D-18.
+	// POST body limited to maxRequestBodySize per SRVR-04.
 	playgroundHandler := pdbgql.PlaygroundHandler("/graphql")
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			playgroundHandler.ServeHTTP(w, r)
 			return
 		}
+		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 		gqlHandler.ServeHTTP(w, r)
 	})
 
