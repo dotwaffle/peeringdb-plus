@@ -132,10 +132,13 @@ func (h *Handler) handleSearch(w http.ResponseWriter, r *http.Request) {
 
 	// Set HX-Push-Url so the browser URL updates to /ui/?q=value
 	// and creates a history entry for back/forward navigation (UI-03).
-	if query != "" {
-		w.Header().Set("HX-Push-Url", "/ui/?q="+url.QueryEscape(query))
-	} else {
-		w.Header().Set("HX-Push-Url", "/ui/")
+	// Skip for spotlight overlay requests — they shouldn't modify browser history.
+	if r.URL.Query().Get("spotlight") != "1" {
+		if query != "" {
+			w.Header().Set("HX-Push-Url", "/ui/?q="+url.QueryEscape(query))
+		} else {
+			w.Header().Set("HX-Push-Url", "/ui/")
+		}
 	}
 
 	page := PageContent{
