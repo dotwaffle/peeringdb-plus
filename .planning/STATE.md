@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 46-02-PLAN.md
+stopped_at: Completed 48-01-PLAN.md
 last_updated: "2026-03-26T23:31:09.616Z"
 last_activity: 2026-03-26
 progress:
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 45 — Multi-Pin Maps
+**Current focus:** Phase 48 — Response Hardening & Internal Quality
 
 ## Current Position
 
-Phase: 46
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-03-31 - Completed quick task 260331-cxk: Move maps to bottom of pages and add fold-out arrows to collapsibles
+Phase: 48
+Plan: 1 of 2
+Status: Executing
+Last activity: 2026-04-02 - Completed 48-01-PLAN.md
 
 Progress: [███░░░░░░░] 33%
 
@@ -59,6 +59,7 @@ Progress: [███░░░░░░░] 33%
 | Phase 45 P01 | 15min | 2 tasks | 6 files |
 | Phase 45 P02 | 8min | 2 tasks | 12 files |
 | Phase 46 P02 | 4min | 2 tasks | 2 files |
+| Phase 48 P01 | 3min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,7 @@ All decisions archived in PROJECT.md Key Decisions table (42 decisions across 11
 - [Phase 45]: Legend uses inline styles in Leaflet Control for dark mode support
 - [Phase 45]: AllFacilities computed unconditionally (outside ViewMode if-block) so comparison map always renders in both shared and full view modes
 - [Phase 46]: Entity-type accent colors for comparison table links: sky=IX, violet=fac, rose=campus
+- [Phase 48]: gzhttp ExceptContentTypes needs explicit application/grpc+proto -- MIME matching treats it as distinct from application/grpc
 
 ### Pending Todos
 
@@ -96,6 +98,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T23:12:49.762Z
-Stopped at: Completed 46-02-PLAN.md
+Last session: 2026-04-02T04:40:29Z
+Stopped at: Completed 48-01-PLAN.md
 Resume file: None
