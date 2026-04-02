@@ -134,7 +134,7 @@ func buildStartsWith(field, value string, ft FieldType) (func(*sql.Selector), er
 // buildIn builds an IN predicate with proper type conversion per Pitfall 5.
 func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
 	parts := strings.Split(value, ",")
-	switch ft {
+	switch ft { //nolint:exhaustive // default case handles remaining types (Bool, Time, Float) with error
 	case FieldString:
 		return sql.FieldIn(field, parts...), nil
 	case FieldInt:

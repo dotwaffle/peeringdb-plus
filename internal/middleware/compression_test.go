@@ -71,7 +71,7 @@ func TestCompression(t *testing.T) {
 			inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", tc.contentType)
 				w.WriteHeader(http.StatusOK)
-				io.WriteString(w, largeBody)
+				_, _ = io.WriteString(w, largeBody)
 			})
 
 			handler := compressionMW(inner)
@@ -105,10 +105,8 @@ func TestCompression(t *testing.T) {
 				if string(decoded) != largeBody {
 					t.Errorf("decoded body length = %d, want %d", len(decoded), len(largeBody))
 				}
-			} else {
-				if gotEncoding == "gzip" {
-					t.Errorf("Content-Encoding = %q, want no gzip for content-type %q", gotEncoding, tc.contentType)
-				}
+			} else if gotEncoding == "gzip" {
+				t.Errorf("Content-Encoding = %q, want no gzip for content-type %q", gotEncoding, tc.contentType)
 			}
 		})
 	}

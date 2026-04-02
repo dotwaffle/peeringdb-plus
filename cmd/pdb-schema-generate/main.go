@@ -171,7 +171,7 @@ func main() {
 	// The JSON schema may omit reverse edges when only the FK side is defined.
 	synthesizeReverseEdges(schema)
 
-	if err := os.MkdirAll(outputDir, 0o755); err != nil {
+	if err := os.MkdirAll(outputDir, 0o750); err != nil { //nolint:gosec // code generator output directory
 		log.Fatalf("create output dir: %v", err)
 	}
 
@@ -181,10 +181,10 @@ func main() {
 			log.Fatalf("generate schema for %s: %v", typeName, err)
 		}
 		filename := filepath.Join(outputDir, strings.ToLower(typeDef.ModelName)+".go")
-		if err := os.WriteFile(filename, code, 0o644); err != nil {
-			log.Fatalf("write %s: %v", filename, err)
+		if err := os.WriteFile(filename, code, 0o600); err != nil {
+			log.Fatalf("write %s: %v", filename, err) //nolint:gosec // output of controlled code generator, not user input
 		}
-		log.Printf("wrote %s", filename)
+		log.Printf("wrote %s", filename) //nolint:gosec // output of controlled code generator, not user input
 	}
 
 	// Generate shared types file.
@@ -193,15 +193,15 @@ func main() {
 		log.Fatalf("generate types.go: %v", err)
 	}
 	typesPath := filepath.Join(outputDir, "types.go")
-	if err := os.WriteFile(typesPath, typesCode, 0o644); err != nil {
-		log.Fatalf("write %s: %v", typesPath, err)
+	if err := os.WriteFile(typesPath, typesCode, 0o600); err != nil {
+		log.Fatalf("write %s: %v", typesPath, err) //nolint:gosec // output of controlled code generator, not user input
 	}
-	log.Printf("wrote %s", typesPath)
+	log.Printf("wrote %s", typesPath) //nolint:gosec // output of controlled code generator, not user input
 }
 
 // loadSchema reads and parses a JSON schema file.
 func loadSchema(path string) (*Schema, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // CLI tool reads user-specified file path
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
 	}

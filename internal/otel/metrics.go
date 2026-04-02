@@ -129,7 +129,7 @@ func InitFreshnessGauge(lastSyncFn func(ctx context.Context) (time.Time, bool)) 
 		metric.WithDescription("Seconds since last successful sync"),
 		metric.WithUnit("s"),
 		metric.WithFloat64Callback(func(_ context.Context, o metric.Float64Observer) error {
-			lastSync, ok := lastSyncFn(context.Background())
+			lastSync, ok := lastSyncFn(context.Background()) //nolint:contextcheck // observable callback receives unused context parameter; context.Background() is intentional for DB queries
 			if !ok {
 				return nil // No observation if no successful sync.
 			}

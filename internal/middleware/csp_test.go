@@ -97,10 +97,8 @@ func TestCSP(t *testing.T) {
 				if got != tc.wantPolicy {
 					t.Errorf("%s = %q, want %q", headerName, got, tc.wantPolicy)
 				}
-			} else {
-				if got != "" {
-					t.Errorf("%s = %q, want empty (no CSP on this path)", headerName, got)
-				}
+			} else if got != "" {
+				t.Errorf("%s = %q, want empty (no CSP on this path)", headerName, got)
 			}
 
 			// Verify it's Report-Only, not enforcing.

@@ -46,7 +46,8 @@ func BenchmarkListNetworks(b *testing.B) {
 	ctx := b.Context()
 
 	b.Run("100_items_page50", func(b *testing.B) {
-		svc := seedBenchNetworks(b, 100)
+		svc := seedBenchNetworks(b, 100) //nolint:contextcheck // bench setup uses enttest.Open which calls migrateSchema without ctx
+
 		req := &pb.ListNetworksRequest{PageSize: 50}
 		b.ResetTimer()
 		for b.Loop() {
@@ -58,7 +59,7 @@ func BenchmarkListNetworks(b *testing.B) {
 	})
 
 	b.Run("1000_items_page100", func(b *testing.B) {
-		svc := seedBenchNetworks(b, 1000)
+		svc := seedBenchNetworks(b, 1000) //nolint:contextcheck // bench setup uses enttest.Open which calls migrateSchema without ctx
 		req := &pb.ListNetworksRequest{PageSize: 100}
 		b.ResetTimer()
 		for b.Loop() {
@@ -70,7 +71,7 @@ func BenchmarkListNetworks(b *testing.B) {
 	})
 
 	b.Run("empty_result", func(b *testing.B) {
-		svc := seedBenchNetworks(b, 0)
+		svc := seedBenchNetworks(b, 0) //nolint:contextcheck // bench setup uses enttest.Open which calls migrateSchema without ctx
 		req := &pb.ListNetworksRequest{}
 		b.ResetTimer()
 		for b.Loop() {

@@ -13,7 +13,9 @@ FROM cgr.dev/chainguard/glibc-dynamic:latest-dev
 
 COPY --from=build /bin/peeringdb-plus /usr/local/bin/peeringdb-plus
 
-RUN mkdir -p /data
+USER root
+RUN mkdir -p /data && chown nonroot:nonroot /data
+USER nonroot
 ENV PDBPLUS_DB_PATH=/data/peeringdb-plus.db
 
 LABEL org.opencontainers.image.title="peeringdb-plus" \

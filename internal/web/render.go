@@ -44,7 +44,7 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 	})
 	noColor := termrender.HasNoColor(termrender.DetectInput{Query: r.URL.Query()})
 
-	switch mode {
+	switch mode { //nolint:exhaustive // default case handles remaining modes (ModeHTML)
 	case termrender.ModeShort:
 		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")

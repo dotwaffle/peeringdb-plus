@@ -42,7 +42,7 @@ func BenchmarkUpsertOrganizations(b *testing.B) {
 
 	b.Run("100_orgs", func(b *testing.B) {
 		dsn := "file:bench_upsert_100?mode=memory&cache=shared&_pragma=foreign_keys(1)"
-		client := enttest.Open(b, dialect.SQLite, dsn)
+		client := enttest.Open(b, dialect.SQLite, dsn) //nolint:contextcheck // bench setup uses enttest.Open which calls migrateSchema without ctx
 		b.Cleanup(func() { client.Close() })
 
 		orgs := generateBenchOrgs(100)
@@ -64,7 +64,7 @@ func BenchmarkUpsertOrganizations(b *testing.B) {
 
 	b.Run("500_orgs", func(b *testing.B) {
 		dsn := "file:bench_upsert_500?mode=memory&cache=shared&_pragma=foreign_keys(1)"
-		client := enttest.Open(b, dialect.SQLite, dsn)
+		client := enttest.Open(b, dialect.SQLite, dsn) //nolint:contextcheck // bench setup uses enttest.Open which calls migrateSchema without ctx
 		b.Cleanup(func() { client.Close() })
 
 		orgs := generateBenchOrgs(500)

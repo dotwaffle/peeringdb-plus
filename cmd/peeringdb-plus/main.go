@@ -347,7 +347,7 @@ func main() {
 		})
 		noColor := termrender.HasNoColor(termrender.DetectInput{Query: r.URL.Query()})
 
-		switch mode {
+		switch mode { //nolint:exhaustive // default case handles remaining modes
 		case termrender.ModeRich, termrender.ModePlain:
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 			w.Header().Set("Vary", "User-Agent, Accept")
