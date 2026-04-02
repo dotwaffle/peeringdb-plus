@@ -25,6 +25,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
@@ -42,9 +43,13 @@ func (h *Handler) getFreshness(ctx context.Context) time.Time {
 // handleNetworkDetail renders the network detail page for the given ASN string.
 // Looks up the network by ASN (not internal ID) per CONTEXT.md decision.
 func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, asnStr string) {
-	asn, err := strconv.Atoi(asnStr)
-	if err != nil {
-		h.handleNotFound(w, r)
+	asn, ok := parseASN(asnStr)
+	if !ok {
+		httperr.WriteProblem(w, httperr.WriteProblemInput{
+			Status:   http.StatusBadRequest,
+			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and %d", asnStr, maxASN),
+			Instance: r.URL.Path,
+		})
 		return
 	}
 

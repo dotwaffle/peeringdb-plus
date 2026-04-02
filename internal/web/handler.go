@@ -10,8 +10,26 @@ import (
 	"strings"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
+
+// maxASN is the maximum valid ASN value (2^32 - 1, per 32-bit unsigned range).
+const maxASN = 4294967295
+
+// parseASN parses and validates an ASN string. Returns the ASN value and true
+// if valid (1 <= asn <= maxASN). Returns 0 and false for non-numeric, zero,
+// negative, or out-of-range values.
+func parseASN(s string) (int, bool) {
+	asn, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, false
+	}
+	if asn < 1 || asn > maxASN {
+		return 0, false
+	}
+	return asn, true
+}
 
 // Handler serves web UI pages.
 type Handler struct {
@@ -210,9 +228,13 @@ func (h *Handler) handleCompareForm(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path string) {
 	parts := strings.SplitN(path, "/", 2)
 
-	asn1, err := strconv.Atoi(parts[0])
-	if err != nil {
-		h.handleNotFound(w, r)
+	asn1, ok := parseASN(parts[0])
+	if !ok {
+		httperr.WriteProblem(w, httperr.WriteProblemInput{
+			Status:   http.StatusBadRequest,
+			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and %d", parts[0], maxASN),
+			Instance: r.URL.Path,
+		})
 		return
 	}
 
@@ -229,9 +251,13 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 	}
 
 	// /ui/compare/{asn1}/{asn2} -- show results.
-	asn2, err := strconv.Atoi(parts[1])
-	if err != nil {
-		h.handleNotFound(w, r)
+	asn2, ok := parseASN(parts[1])
+	if !ok {
+		httperr.WriteProblem(w, httperr.WriteProblemInput{
+			Status:   http.StatusBadRequest,
+			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and %d", parts[1], maxASN),
+			Instance: r.URL.Path,
+		})
 		return
 	}
 

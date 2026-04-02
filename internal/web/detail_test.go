@@ -265,21 +265,22 @@ func TestDetailPages_NotFound(t *testing.T) {
 	mux := setupAllTestMux(t)
 
 	tests := []struct {
-		name string
-		url  string
+		name       string
+		url        string
+		wantStatus int
 	}{
-		{"network not found", "/ui/asn/99999"},
-		{"ix not found", "/ui/ix/99999"},
-		{"fac not found", "/ui/fac/99999"},
-		{"org not found", "/ui/org/99999"},
-		{"campus not found", "/ui/campus/99999"},
-		{"carrier not found", "/ui/carrier/99999"},
-		{"invalid asn", "/ui/asn/abc"},
-		{"invalid ix id", "/ui/ix/abc"},
-		{"invalid fac id", "/ui/fac/abc"},
-		{"invalid org id", "/ui/org/abc"},
-		{"invalid campus id", "/ui/campus/abc"},
-		{"invalid carrier id", "/ui/carrier/abc"},
+		{"network not found", "/ui/asn/99999", http.StatusNotFound},
+		{"ix not found", "/ui/ix/99999", http.StatusNotFound},
+		{"fac not found", "/ui/fac/99999", http.StatusNotFound},
+		{"org not found", "/ui/org/99999", http.StatusNotFound},
+		{"campus not found", "/ui/campus/99999", http.StatusNotFound},
+		{"carrier not found", "/ui/carrier/99999", http.StatusNotFound},
+		{"invalid asn", "/ui/asn/abc", http.StatusBadRequest},
+		{"invalid ix id", "/ui/ix/abc", http.StatusNotFound},
+		{"invalid fac id", "/ui/fac/abc", http.StatusNotFound},
+		{"invalid org id", "/ui/org/abc", http.StatusNotFound},
+		{"invalid campus id", "/ui/campus/abc", http.StatusNotFound},
+		{"invalid carrier id", "/ui/carrier/abc", http.StatusNotFound},
 	}
 
 	for _, tt := range tests {
@@ -289,8 +290,8 @@ func TestDetailPages_NotFound(t *testing.T) {
 			rec := httptest.NewRecorder()
 			mux.ServeHTTP(rec, req)
 
-			if rec.Code != http.StatusNotFound {
-				t.Fatalf("expected status 404, got %d", rec.Code)
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("expected status %d, got %d", tt.wantStatus, rec.Code)
 			}
 		})
 	}

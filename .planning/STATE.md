@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 47-01-PLAN.md
-last_updated: "2026-04-02T04:24:17.414Z"
+stopped_at: Completed 47-02-PLAN.md
+last_updated: "2026-04-02T04:25:36.887Z"
 last_activity: "2026-03-31 - Completed quick task 260331-cxk: Move maps to bottom of pages and add fold-out arrows to collapsibles"
 progress:
   total_phases: 4
@@ -59,7 +59,7 @@ Progress: [███░░░░░░░] 33%
 | Phase 45 P01 | 15min | 2 tasks | 6 files |
 | Phase 45 P02 | 8min | 2 tasks | 12 files |
 | Phase 46 P02 | 4min | 2 tasks | 2 files |
-| Phase 47 P01 | 3min | 2 tasks | 4 files |
+| Phase 47 P02 | 4min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -80,9 +80,8 @@ All decisions archived in PROJECT.md Key Decisions table (42 decisions across 11
 - [Phase 45]: Legend uses inline styles in Leaflet Control for dark mode support
 - [Phase 45]: AllFacilities computed unconditionally (outside ViewMode if-block) so comparison map always renders in both shared and full view modes
 - [Phase 46]: Entity-type accent colors for comparison table links: sky=IX, violet=fac, rose=campus
-- [Phase 47]: ReadHeaderTimeout(10s) + IdleTimeout(120s) without WriteTimeout (streaming RPCs)
-- [Phase 47]: SQLite pool hardcoded (MaxOpenConns 10, MaxIdleConns 5, ConnMaxLifetime 5m) not user-configurable
-- [Phase 47]: 1 MB body limit per-endpoint via MaxBytesReader on POST /graphql and POST /sync
+- [Phase 47]: parseASN returns false for non-numeric (400 not 404) -- invalid input is client error
+- [Phase 47]: Width capping is silent (no error) -- graceful degradation for terminal users
 
 ### Pending Todos
 
@@ -100,6 +99,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-02T04:24:17.411Z
-Stopped at: Completed 47-01-PLAN.md
+Last session: 2026-04-02T04:25:36.884Z
+Stopped at: Completed 47-02-PLAN.md
 Resume file: None

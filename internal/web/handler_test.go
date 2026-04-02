@@ -689,8 +689,8 @@ func TestCompareResultsPage_NonNumericASN(t *testing.T) {
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("expected status 404, got %d", rec.Code)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rec.Code)
 	}
 }
 
@@ -1241,6 +1241,77 @@ func TestKeyboardNav_Integration(t *testing.T) {
 		if !strings.Contains(body, c.want) {
 			t.Errorf("integration page missing %s (%q)", c.desc, c.want)
 		}
+	}
+}
+
+func TestASNValidation(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	tests := []struct {
+		name       string
+		path       string
+		wantStatus int
+	}{
+		{name: "overflow ASN", path: "/ui/asn/99999999999", wantStatus: http.StatusBadRequest},
+		{name: "exactly 2^32", path: "/ui/asn/4294967296", wantStatus: http.StatusBadRequest},
+		{name: "zero ASN", path: "/ui/asn/0", wantStatus: http.StatusBadRequest},
+		{name: "negative ASN", path: "/ui/asn/-1", wantStatus: http.StatusBadRequest},
+		{name: "non-numeric ASN", path: "/ui/asn/abc", wantStatus: http.StatusBadRequest},
+		{name: "compare first ASN overflow", path: "/ui/compare/99999999999/65535", wantStatus: http.StatusBadRequest},
+		{name: "compare second ASN overflow", path: "/ui/compare/65535/99999999999", wantStatus: http.StatusBadRequest},
+		{name: "compare zero ASN", path: "/ui/compare/0/65535", wantStatus: http.StatusBadRequest},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+		})
+	}
+}
+
+func TestWidthParameterCapping(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	tests := []struct {
+		name       string
+		width      string
+		wantStatus int
+	}{
+		{name: "extreme width", width: "99999", wantStatus: http.StatusOK},
+		{name: "max width", width: "500", wantStatus: http.StatusOK},
+		{name: "normal width", width: "80", wantStatus: http.StatusOK},
+		{name: "zero width ignored", width: "0", wantStatus: http.StatusOK},
+		{name: "negative width ignored", width: "-1", wantStatus: http.StatusOK},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, "/ui/?format=plain&w="+tt.width, nil)
+			req.Header.Set("User-Agent", "curl/8.0")
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+		})
+	}
+}
+
+func TestMaxTerminalWidthConstant(t *testing.T) {
+	t.Parallel()
+	if maxTerminalWidth != 500 {
+		t.Errorf("maxTerminalWidth = %d, want 500", maxTerminalWidth)
 	}
 }
 
