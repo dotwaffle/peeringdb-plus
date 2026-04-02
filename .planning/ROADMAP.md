@@ -108,7 +108,7 @@ Plans:
 
 </details>
 
-### v1.12 Hardening & Tech Debt
+#### v1.12 Hardening & Tech Debt
 
 ### Phase 47: Server & Request Hardening
 **Goal**: The application rejects malformed, oversized, and slow-loris requests at the server level and validates all user-facing inputs before processing
@@ -120,7 +120,11 @@ Plans:
   3. The application exits with a clear error message at startup if ListenAddr format is invalid, PeeringDBBaseURL is not a valid URL, or DrainTimeout is zero or negative
   4. POST requests with bodies exceeding the configured limit receive a 413 response
   5. Requesting /ui/asn/99999999999 (out of range) or ?w=99999 (out of bounds) returns a user-facing error instead of unexpected behavior
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 47-01-PLAN.md -- Server timeouts, SQLite pool config, config validation, POST body limits
+- [ ] 47-02-PLAN.md -- ASN range validation and width parameter capping
 
 ### Phase 48: Response Hardening & Internal Quality
 **Goal**: The application serves responses with security headers and compression, and internal error handling uses type-safe patterns instead of string matching
@@ -161,7 +165,7 @@ Phases execute in numeric order: 47 -> 48 -> 49 -> 50
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 47. Server & Request Hardening | 0/? | Not started | - |
+| 47. Server & Request Hardening | 0/2 | Planned | - |
 | 48. Response Hardening & Internal Quality | 0/? | Not started | - |
 | 49. Refactoring & Tech Debt | 0/? | Not started | - |
 | 50. CI & Linting | 0/? | Not started | - |
