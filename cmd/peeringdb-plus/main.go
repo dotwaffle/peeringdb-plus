@@ -374,9 +374,11 @@ func main() {
 	protocols.SetUnencryptedHTTP2(true)
 
 	server := &http.Server{
-		Addr:      cfg.ListenAddr,
-		Handler:   handler,
-		Protocols: &protocols,
+		Addr:              cfg.ListenAddr,
+		Handler:           handler,
+		Protocols:         &protocols,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	// Graceful shutdown on SIGINT/SIGTERM.
