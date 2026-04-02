@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.12
 milestone_name: Hardening & Tech Debt
 status: executing
-stopped_at: Completed 48-02-PLAN.md
-last_updated: "2026-04-02T04:55:41.953Z"
+stopped_at: Completed 49-03-PLAN.md
+last_updated: "2026-04-02T05:15:34.400Z"
 last_activity: 2026-04-02
 progress:
-  total_phases: 4
+  total_phases: 8
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 8
+  completed_plans: 5
   percent: 33
 ---
 
@@ -60,6 +60,7 @@ Progress: [███░░░░░░░] 33%
 | Phase 45 P02 | 8min | 2 tasks | 12 files |
 | Phase 46 P02 | 4min | 2 tasks | 2 files |
 | Phase 48 P02 | 7min | 2 tasks | 6 files |
+| Phase 49 P03 | 9min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,7 @@ All decisions archived in PROJECT.md Key Decisions table (42 decisions across 11
 - [Phase 45]: AllFacilities computed unconditionally (outside ViewMode if-block) so comparison map always renders in both shared and full view modes
 - [Phase 46]: Entity-type accent colors for comparison table links: sky=IX, violet=fac, rose=campus
 - [Phase 48]: OnSyncComplete callback only fires from Sync method (not startup detection), cached gauge reads from atomic.Pointer
+- [Phase 49]: gqlgen default complexity counts 1 per field (no pagination multiplier); 100 aliased queries to exceed limit
 
 ### Pending Todos
 
@@ -98,6 +100,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-02T04:52:10.971Z
-Stopped at: Completed 48-02-PLAN.md
+Last session: 2026-04-02T05:15:34.396Z
+Stopped at: Completed 49-03-PLAN.md
 Resume file: None

@@ -28,8 +28,8 @@ Requirements for the Hardening & Tech Debt milestone. Each maps to roadmap phase
 
 ### Quality
 
-- [ ] **QUAL-01**: internal/graphql/handler.go has test coverage for error classification and complexity limits
-- [ ] **QUAL-02**: internal/database/database.go has test coverage for Open() pragmas and error paths
+- [x] **QUAL-01**: internal/graphql/handler.go has test coverage for error classification and complexity limits
+- [x] **QUAL-02**: internal/database/database.go has test coverage for Open() pragmas and error paths
 - [ ] **QUAL-03**: golangci-lint config enables exhaustive, contextcheck, and gosec linters with clean pass
 - [ ] **QUAL-04**: CI pipeline builds both Dockerfiles and fails on build errors
 
@@ -99,8 +99,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERF-01 | Phase 48 | Pending |
 | PERF-02 | Phase 48 | Pending |
 | PERF-03 | Phase 48 | Pending |
-| QUAL-01 | Phase 49 | Pending |
-| QUAL-02 | Phase 49 | Pending |
+| QUAL-01 | Phase 49 | Complete |
+| QUAL-02 | Phase 49 | Complete |
 | QUAL-03 | Phase 50 | Pending |
 | QUAL-04 | Phase 50 | Pending |
 | REFAC-01 | Phase 49 | Pending |
