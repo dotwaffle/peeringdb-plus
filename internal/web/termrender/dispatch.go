@@ -45,4 +45,7 @@ func init() {
 	Register(func(d *templates.CompareData, w io.Writer, r *Renderer) error {
 		return r.RenderCompare(w, d)
 	})
+	Register(func(d templates.DataFreshness, w io.Writer, r *Renderer) error {
+		return r.RenderAboutPage(w, d)
+	})
 }
