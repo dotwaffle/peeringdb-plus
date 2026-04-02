@@ -151,7 +151,13 @@ Plans:
   3. internal/graphql/handler.go has test coverage for error classification paths and complexity limit enforcement
   4. internal/database/database.go has test coverage for Open() pragma application and error paths (invalid DSN, pragma failure)
   5. curl /ui/about returns properly formatted terminal output (not a generic stub), and seed.Minimal/seed.Networks exports are consolidated
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 49-01-PLAN.md -- Split detail.go into per-entity query files (query_network.go, query_ix.go, etc.)
+- [ ] 49-02-PLAN.md -- Extract generic upsertBatch function from 13 copy-pasted upsert functions
+- [ ] 49-03-PLAN.md -- Add test coverage for GraphQL handler limits and database.Open pragmas
+- [ ] 49-04-PLAN.md -- About page terminal renderer and seed export consolidation
 
 ### Phase 50: CI & Linting
 **Goal**: The CI pipeline catches more defect classes via additional linters and validates that Docker images build successfully
@@ -171,5 +177,5 @@ Phases execute in numeric order: 47 -> 48 -> 49 -> 50
 |-------|----------------|--------|-----------|
 | 47. Server & Request Hardening | 2/2 | Complete    | 2026-04-02 |
 | 48. Response Hardening & Internal Quality | 0/2 | Complete    | 2026-04-02 |
-| 49. Refactoring & Tech Debt | 0/? | Not started | - |
+| 49. Refactoring & Tech Debt | 0/4 | Not started | - |
 | 50. CI & Linting | 0/? | Not started | - |
