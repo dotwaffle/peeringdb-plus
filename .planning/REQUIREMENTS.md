@@ -40,8 +40,8 @@ Requirements for the Hardening & Tech Debt milestone. Each maps to roadmap phase
 
 ### Tech Debt
 
-- [ ] **DEBT-01**: /ui/about renders properly for terminal clients (no stub fallthrough)
-- [ ] **DEBT-02**: seed.Minimal and seed.Networks consolidated (unused exports removed)
+- [x] **DEBT-01**: /ui/about renders properly for terminal clients (no stub fallthrough)
+- [x] **DEBT-02**: seed.Minimal and seed.Networks consolidated (unused exports removed)
 
 ## Future Requirements
 
@@ -105,8 +105,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | QUAL-04 | Phase 50 | Pending |
 | REFAC-01 | Phase 49 | Pending |
 | REFAC-02 | Phase 49 | Pending |
-| DEBT-01 | Phase 49 | Pending |
-| DEBT-02 | Phase 49 | Pending |
+| DEBT-01 | Phase 49 | Complete |
+| DEBT-02 | Phase 49 | Complete |
 
 **Coverage:**
 - v1.12 requirements: 18 total
