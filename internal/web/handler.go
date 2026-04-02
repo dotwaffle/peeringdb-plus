@@ -289,7 +289,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		slog.Error("render compare", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.Any("error", err))
+		slog.Error("render compare", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.Any("error", err)) //nolint:gosec // error from template render, not user input
 		h.handleServerError(w, r)
 	}
 }

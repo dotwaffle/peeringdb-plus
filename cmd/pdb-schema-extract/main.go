@@ -140,7 +140,7 @@ func extractSchema(repoPath string) (*Schema, error) {
 // readSourceFile reads a Python source file relative to repoPath.
 func readSourceFile(repoPath, relPath string) (string, error) {
 	p := filepath.Join(repoPath, relPath)
-	data, err := os.ReadFile(p) //nolint:gosec // CLI tool reads user-specified file path
+	data, err := os.ReadFile(p)
 	if err != nil {
 		return "", fmt.Errorf("read %s: %w", p, err)
 	}

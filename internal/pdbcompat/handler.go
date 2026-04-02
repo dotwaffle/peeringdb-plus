@@ -115,7 +115,7 @@ func init() {
 func (h *Handler) serveIndex(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Powered-By", poweredByHeader)
-	_, _ = w.Write(indexBody) //nolint:errcheck // best-effort write
+	_, _ = w.Write(indexBody)
 }
 
 // serveList handles list requests for the given type.

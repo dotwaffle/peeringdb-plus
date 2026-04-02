@@ -195,7 +195,7 @@ func main() {
 		SyncToken:   cfg.SyncToken,
 		DefaultMode: cfg.SyncMode,
 		SyncFn: func(syncCtx context.Context, mode config.SyncMode) {
-			syncWorker.SyncWithRetry(syncCtx, mode) //nolint:errcheck // fire-and-forget
+			syncWorker.SyncWithRetry(syncCtx, mode) //nolint:errcheck,gosec // fire-and-forget
 		},
 	})
 	mux.HandleFunc("POST /sync", func(w http.ResponseWriter, r *http.Request) {
@@ -511,7 +511,7 @@ func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 			if strings.Contains(accept, "text/html") {
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
 				w.WriteHeader(http.StatusServiceUnavailable)
-				webtemplates.SyncingPage().Render(r.Context(), w) //nolint:errcheck // best-effort render
+				webtemplates.SyncingPage().Render(r.Context(), w) //nolint:errcheck,gosec // best-effort render
 				return
 			}
 
@@ -526,7 +526,7 @@ func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 				renderer := termrender.NewRenderer(mode, noColor)
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				w.WriteHeader(http.StatusServiceUnavailable)
-				renderer.RenderError(w, http.StatusServiceUnavailable, "Service Unavailable", "PeeringDB data sync has not yet completed.\nPlease try again in a few moments.") //nolint:errcheck // best-effort render
+				renderer.RenderError(w, http.StatusServiceUnavailable, "Service Unavailable", "PeeringDB data sync has not yet completed.\nPlease try again in a few moments.") //nolint:errcheck,gosec // best-effort render
 				return
 			}
 

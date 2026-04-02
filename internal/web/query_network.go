@@ -30,7 +30,7 @@ func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkD
 		Where(poc.HasNetworkWith(network.ID(net.ID))).
 		Count(ctx)
 	if err != nil {
-		slog.Error("count network contacts", slog.Int("network_id", net.ID), slog.Any("error", err))
+		slog.Error("count network contacts", slog.Int("network_id", net.ID), slog.Any("error", err)) //nolint:gosec // error from ent query, not user input
 	}
 
 	data := templates.NetworkDetail{
@@ -135,7 +135,7 @@ func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkD
 		}
 		data.FacPresences = facRows
 	} else {
-		slog.Error("query network facilities for detail", slog.Int("network_id", net.ID), slog.Any("error", facErr))
+		slog.Error("query network facilities for detail", slog.Int("network_id", net.ID), slog.Any("error", facErr)) //nolint:gosec // error from ent query, not user input
 	}
 
 	return data, nil
