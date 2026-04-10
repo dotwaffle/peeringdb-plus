@@ -1333,3 +1333,49 @@ func TestHandleServerError(t *testing.T) {
 		t.Errorf("response body missing %q, got %q", "Server Error", body)
 	}
 }
+
+// TestParseASN_Boundary verifies SEC-11: parseASN uses strconv.ParseUint with
+// bit size 32, so the parser natively rejects values > 2^32-1 without a
+// manual cap. Covers boundary conditions (0, 1, max 32-bit, overflow) and
+// several "looks numeric but isn't" rejection cases.
+//
+// The asserted return type is (uint32, bool) — a future accidental signature
+// flip back to (int, bool) surfaces here as a compile error, not a runtime
+// subtle-correctness regression.
+func TestParseASN_Boundary(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		in      string
+		wantASN uint32
+		wantOK  bool
+	}{
+		{name: "empty string", in: "", wantASN: 0, wantOK: false},
+		{name: "zero rejected", in: "0", wantASN: 0, wantOK: false},
+		{name: "one accepted", in: "1", wantASN: 1, wantOK: true},
+		{name: "cloudflare 13335", in: "13335", wantASN: 13335, wantOK: true},
+		{name: "max 32-bit accepted", in: "4294967295", wantASN: 4294967295, wantOK: true},
+		{name: "max 32-bit plus one rejected", in: "4294967296", wantASN: 0, wantOK: false},
+		{name: "negative rejected", in: "-1", wantASN: 0, wantOK: false},
+		{name: "non-numeric rejected", in: "abc", wantASN: 0, wantOK: false},
+		{name: "float rejected", in: "1.5", wantASN: 0, wantOK: false},
+		{name: "max 64-bit rejected", in: "18446744073709551615", wantASN: 0, wantOK: false},
+		{name: "leading whitespace rejected", in: "  13335", wantASN: 0, wantOK: false},
+		{name: "trailing whitespace rejected", in: "13335 ", wantASN: 0, wantOK: false},
+		{name: "leading plus rejected", in: "+13335", wantASN: 0, wantOK: false},
+		{name: "hex literal rejected", in: "0x3417", wantASN: 0, wantOK: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotASN, gotOK := parseASN(tt.in)
+			if gotASN != tt.wantASN || gotOK != tt.wantOK {
+				t.Errorf("parseASN(%q) = (%d, %v), want (%d, %v)",
+					tt.in, gotASN, gotOK, tt.wantASN, tt.wantOK)
+			}
+		})
+	}
+}
