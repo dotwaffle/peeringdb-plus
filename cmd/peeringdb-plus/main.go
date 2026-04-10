@@ -217,9 +217,12 @@ func main() {
 	mux.HandleFunc("GET /healthz", health.LivenessHandler())
 
 	// GET /readyz: readiness probe (checks DB connectivity and sync freshness).
+	// SEC-08: detailed error strings flow to logger via slog.LogAttrs; the wire
+	// body carries only the generic {"status":"ok"|"unhealthy"} shape.
 	mux.HandleFunc("GET /readyz", health.ReadinessHandler(health.ReadinessInput{
 		DB:             db,
 		StaleThreshold: cfg.SyncStaleThreshold,
+		Logger:         logger,
 	}))
 
 	// GET /graphql: serve GraphiQL playground per D-17, D-18, D-21.
