@@ -203,13 +203,19 @@ func validatePeeringDBURL(raw string) error {
 	if u.Scheme == "" {
 		return fmt.Errorf("PDBPLUS_PEERINGDB_URL missing scheme — expected https:// (got %q)", raw)
 	}
-	if u.Host == "" {
-		return fmt.Errorf("PDBPLUS_PEERINGDB_URL has empty host (got %q)", raw)
-	}
+	// Scheme is checked BEFORE host — a URL like "file:///tmp/foo" has an
+	// empty host by design, but the scheme rejection is the more useful
+	// diagnostic, so it wins classification.
 	switch u.Scheme {
 	case "https":
+		if u.Host == "" {
+			return fmt.Errorf("PDBPLUS_PEERINGDB_URL has empty host (got %q)", raw)
+		}
 		return nil
 	case "http":
+		if u.Host == "" {
+			return fmt.Errorf("PDBPLUS_PEERINGDB_URL has empty host (got %q)", raw)
+		}
 		if isLocalOrPrivateHost(u.Hostname()) {
 			return nil
 		}

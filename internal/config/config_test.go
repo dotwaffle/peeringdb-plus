@@ -370,3 +370,151 @@ func TestLoad_OTelEndpointRemoved(t *testing.T) {
 	// by compiling successfully without any OTelEndpoint reference.
 	_ = cfg
 }
+
+// TestConfig_PeeringDBURLValidation verifies SEC-06: PDBPLUS_PEERINGDB_URL must
+// be https://, OR http:// against loopback / RFC 1918 private IPs / literal
+// "localhost". Each rejection class produces a distinct error message.
+//
+// Rows marked wantErrContains distinguish the four error classes:
+//   - "missing scheme"  — no scheme at all
+//   - "empty host"      — scheme present, host empty
+//   - "unsupported scheme" — not http or https
+//   - "non-local host"  — http:// against public host
+func TestConfig_PeeringDBURLValidation(t *testing.T) {
+	tests := []struct {
+		name            string
+		envVal          string
+		wantErr         bool
+		wantErrContains string // substring asserted when wantErr is true
+	}{
+		// Accept — https:// always
+		{name: "https api.peeringdb.com", envVal: "https://api.peeringdb.com", wantErr: false},
+		{name: "https localhost", envVal: "https://localhost:8443", wantErr: false},
+		{name: "https public IP", envVal: "https://203.0.113.1", wantErr: false},
+
+		// Accept — http:// loopback / localhost
+		{name: "http localhost", envVal: "http://localhost:8000", wantErr: false},
+		{name: "http 127.0.0.1", envVal: "http://127.0.0.1", wantErr: false},
+		{name: "http 127.0.0.1 with port", envVal: "http://127.0.0.1:9000", wantErr: false},
+		{name: "http IPv6 loopback", envVal: "http://[::1]", wantErr: false},
+		{name: "http IPv6 loopback with port", envVal: "http://[::1]:8080", wantErr: false},
+
+		// Accept — http:// RFC 1918 private ranges
+		{name: "http 10.0.0.0/8 low", envVal: "http://10.0.0.1", wantErr: false},
+		{name: "http 10.0.0.0/8 high", envVal: "http://10.255.255.254", wantErr: false},
+		{name: "http 172.16.0.0/12 low", envVal: "http://172.16.0.1", wantErr: false},
+		{name: "http 172.16.0.0/12 mid", envVal: "http://172.20.1.1", wantErr: false},
+		{name: "http 172.16.0.0/12 high", envVal: "http://172.31.255.254", wantErr: false},
+		{name: "http 192.168.0.0/16 low", envVal: "http://192.168.0.1", wantErr: false},
+		{name: "http 192.168.0.0/16 high", envVal: "http://192.168.255.254", wantErr: false},
+
+		// Reject — http:// outside private ranges (boundary cases per mp-7)
+		{
+			name:            "http 11.0.0.1 outside 10/8",
+			envVal:          "http://11.0.0.1",
+			wantErr:         true,
+			wantErrContains: "non-local host",
+		},
+		{
+			name:            "http 172.15.255.255 below 172.16/12",
+			envVal:          "http://172.15.255.255",
+			wantErr:         true,
+			wantErrContains: "non-local host",
+		},
+		{
+			name:            "http 172.32.0.1 above 172.16/12",
+			envVal:          "http://172.32.0.1",
+			wantErr:         true,
+			wantErrContains: "non-local host",
+		},
+		{
+			name:            "http 193.168.0.1 outside 192.168/16",
+			envVal:          "http://193.168.0.1",
+			wantErr:         true,
+			wantErrContains: "non-local host",
+		},
+
+		// Reject — http:// public hostnames
+		{
+			name:            "http example.com",
+			envVal:          "http://example.com",
+			wantErr:         true,
+			wantErrContains: "non-local host",
+		},
+		{
+			name:            "http api.peeringdb.com",
+			envVal:          "http://api.peeringdb.com",
+			wantErr:         true,
+			wantErrContains: "non-local host",
+		},
+
+		// Reject — missing scheme
+		{
+			name:            "bare hostname",
+			envVal:          "example.com",
+			wantErr:         true,
+			wantErrContains: "missing scheme",
+		},
+		{
+			name:            "protocol-relative",
+			envVal:          "//api.peeringdb.com",
+			wantErr:         true,
+			wantErrContains: "missing scheme",
+		},
+
+		// Reject — empty host
+		{
+			name:            "https empty host",
+			envVal:          "https://",
+			wantErr:         true,
+			wantErrContains: "empty host",
+		},
+		{
+			name:            "http empty host",
+			envVal:          "http://",
+			wantErr:         true,
+			wantErrContains: "empty host",
+		},
+
+		// Reject — unsupported scheme
+		{
+			name:            "ftp scheme",
+			envVal:          "ftp://example.com",
+			wantErr:         true,
+			wantErrContains: "unsupported scheme",
+		},
+		{
+			name:            "file scheme",
+			envVal:          "file:///tmp/foo",
+			wantErr:         true,
+			wantErrContains: "unsupported scheme",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Cannot use t.Parallel with t.Setenv per Go testing rules.
+			t.Setenv("PDBPLUS_PEERINGDB_URL", tt.envVal)
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			_, err := Load()
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("PDBPLUS_PEERINGDB_URL=%q: expected error, got nil", tt.envVal)
+				}
+				msg := err.Error()
+				if !strings.Contains(msg, "PDBPLUS_PEERINGDB_URL") {
+					t.Errorf("error must name env var; got %q", msg)
+				}
+				if tt.wantErrContains != "" && !strings.Contains(msg, tt.wantErrContains) {
+					t.Errorf("error must contain %q to distinguish rejection class; got %q", tt.wantErrContains, msg)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("PDBPLUS_PEERINGDB_URL=%q: unexpected error: %v", tt.envVal, err)
+			}
+		})
+	}
+}
