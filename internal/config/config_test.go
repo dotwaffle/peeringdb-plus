@@ -325,7 +325,7 @@ func TestLoad_Validate(t *testing.T) {
 		{name: "listen addr with host:port", env: "PDBPLUS_LISTEN_ADDR", val: "0.0.0.0:9090", wantErr: false},
 		{name: "peeringdb url invalid", env: "PDBPLUS_PEERINGDB_URL", val: "not://valid url %%%", wantErr: true, errContains: "valid URL"},
 		{name: "peeringdb url valid", env: "PDBPLUS_PEERINGDB_URL", val: "https://api.peeringdb.com", wantErr: false},
-		{name: "peeringdb url no scheme", env: "PDBPLUS_PEERINGDB_URL", val: "just-a-hostname", wantErr: true, errContains: "valid URL"},
+		{name: "peeringdb url no scheme", env: "PDBPLUS_PEERINGDB_URL", val: "just-a-hostname", wantErr: true, errContains: "missing scheme"},
 		{name: "drain timeout zero", env: "PDBPLUS_DRAIN_TIMEOUT", val: "0s", wantErr: true, errContains: "greater than 0"},
 		{name: "drain timeout negative", env: "PDBPLUS_DRAIN_TIMEOUT", val: "-5s", wantErr: true, errContains: "greater than 0"},
 		{name: "drain timeout valid", env: "PDBPLUS_DRAIN_TIMEOUT", val: "10s", wantErr: false},

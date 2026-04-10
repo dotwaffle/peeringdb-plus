@@ -5,6 +5,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"strconv"
@@ -21,6 +22,29 @@ const (
 	// SyncModeIncremental fetches only objects modified since the last sync.
 	SyncModeIncremental SyncMode = "incremental"
 )
+
+// privateIPNets are the RFC 1918 private-use IPv4 ranges that may appear in
+// http:// URLs for PDBPLUS_PEERINGDB_URL (local dev carveout per SEC-06).
+// Parsed once at package init so validate() is allocation-free on the hot
+// path (even though validate is startup-only, package-level parsing keeps the
+// CIDR strings in one place and eliminates per-call net.ParseCIDR failures).
+var privateIPNets = func() []*net.IPNet {
+	cidrs := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+	}
+	nets := make([]*net.IPNet, 0, len(cidrs))
+	for _, c := range cidrs {
+		_, n, err := net.ParseCIDR(c)
+		if err != nil {
+			// Constant input — unreachable at runtime, panic surfaces any future typo.
+			panic(fmt.Sprintf("config: invalid builtin CIDR %q: %v", c, err))
+		}
+		nets = append(nets, n)
+	}
+	return nets
+}()
 
 // Config holds all application configuration. Immutable after Load returns.
 type Config struct {
@@ -152,14 +176,70 @@ func (c *Config) validate() error {
 	if !strings.Contains(c.ListenAddr, ":") {
 		return errors.New("PDBPLUS_LISTEN_ADDR must contain ':' (e.g., ':8080' or '0.0.0.0:8080')")
 	}
-	u, err := url.Parse(c.PeeringDBBaseURL)
-	if err != nil || u.Scheme == "" {
-		return fmt.Errorf("PDBPLUS_PEERINGDB_URL must be a valid URL with scheme (got %q)", c.PeeringDBBaseURL)
+	if err := validatePeeringDBURL(c.PeeringDBBaseURL); err != nil {
+		return err
 	}
 	if c.DrainTimeout <= 0 {
 		return errors.New("PDBPLUS_DRAIN_TIMEOUT must be greater than 0")
 	}
 	return nil
+}
+
+// validatePeeringDBURL enforces SEC-06: PDBPLUS_PEERINGDB_URL must be https://,
+// or http:// against loopback (localhost / 127.0.0.1 / ::1) or RFC 1918 private
+// ranges (10/8, 172.16/12, 192.168/16). Each rejection class produces a distinct
+// error message so operators can diagnose misconfiguration from a log line.
+//
+// Trap avoided (PITFALLS.md §mp-7): url.Parse("example.com") succeeds with an
+// empty Scheme — the caller MUST check Scheme explicitly, not just err.
+func validatePeeringDBURL(raw string) error {
+	if raw == "" {
+		return errors.New("PDBPLUS_PEERINGDB_URL must not be empty")
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("PDBPLUS_PEERINGDB_URL is not a valid URL (got %q): %w", raw, err)
+	}
+	if u.Scheme == "" {
+		return fmt.Errorf("PDBPLUS_PEERINGDB_URL missing scheme — expected https:// (got %q)", raw)
+	}
+	if u.Host == "" {
+		return fmt.Errorf("PDBPLUS_PEERINGDB_URL has empty host (got %q)", raw)
+	}
+	switch u.Scheme {
+	case "https":
+		return nil
+	case "http":
+		if isLocalOrPrivateHost(u.Hostname()) {
+			return nil
+		}
+		return fmt.Errorf("PDBPLUS_PEERINGDB_URL uses http:// against a non-local host %q — use https:// for production or a loopback/RFC-1918 host for local dev", u.Hostname())
+	default:
+		return fmt.Errorf("PDBPLUS_PEERINGDB_URL has unsupported scheme %q — expected https (or http for local dev)", u.Scheme)
+	}
+}
+
+// isLocalOrPrivateHost reports whether host is the string "localhost", a
+// loopback IP literal, or an RFC 1918 private IPv4 literal. Hostnames other
+// than "localhost" are NOT resolved via DNS — production hosts cannot bypass
+// the https:// requirement by setting an A record to 127.0.0.1.
+func isLocalOrPrivateHost(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	if ip.IsLoopback() {
+		return true
+	}
+	for _, n := range privateIPNets {
+		if n.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 func envOrDefault(key, defaultVal string) string {
