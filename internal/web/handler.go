@@ -14,21 +14,16 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
-// maxASN is the maximum valid ASN value (2^32 - 1, per 32-bit unsigned range).
-const maxASN = 4294967295
-
 // parseASN parses and validates an ASN string. Returns the ASN value and true
-// if valid (1 <= asn <= maxASN). Returns 0 and false for non-numeric, zero,
-// negative, or out-of-range values.
-func parseASN(s string) (int, bool) {
-	asn, err := strconv.Atoi(s)
-	if err != nil {
+// if valid (1 <= asn <= 2^32-1). Returns 0 and false for non-numeric, zero,
+// negative, or out-of-range values. The 32-bit bit size of ParseUint is the
+// single source of truth for the upper bound — SEC-11.
+func parseASN(s string) (uint32, bool) {
+	asn, err := strconv.ParseUint(s, 10, 32)
+	if err != nil || asn < 1 {
 		return 0, false
 	}
-	if asn < 1 || asn > maxASN {
-		return 0, false
-	}
-	return asn, true
+	return uint32(asn), true
 }
 
 // Handler serves web UI pages.
@@ -232,7 +227,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 	if !ok {
 		httperr.WriteProblem(w, httperr.WriteProblemInput{
 			Status:   http.StatusBadRequest,
-			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and %d", parts[0], maxASN),
+			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and 4294967295", parts[0]),
 			Instance: r.URL.Path,
 		})
 		return
@@ -255,7 +250,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 	if !ok {
 		httperr.WriteProblem(w, httperr.WriteProblemInput{
 			Status:   http.StatusBadRequest,
-			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and %d", parts[1], maxASN),
+			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and 4294967295", parts[1]),
 			Instance: r.URL.Path,
 		})
 		return
@@ -267,8 +262,8 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 	}
 
 	data, err := h.comparer.Compare(r.Context(), CompareInput{
-		ASN1:     asn1,
-		ASN2:     asn2,
+		ASN1:     int(asn1),
+		ASN2:     int(asn2),
 		ViewMode: viewMode,
 	})
 	if err != nil {
@@ -276,7 +271,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 			h.handleNotFound(w, r)
 			return
 		}
-		slog.Error("compare networks", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.Any("error", err)) //nolint:gosec // error from ent query, not user input
+		slog.Error("compare networks", slog.Int("asn1", int(asn1)), slog.Int("asn2", int(asn2)), slog.Any("error", err)) //nolint:gosec // error from ent query, not user input
 		h.handleServerError(w, r)
 		return
 	}
@@ -289,7 +284,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		slog.Error("render compare", slog.Int("asn1", asn1), slog.Int("asn2", asn2), slog.Any("error", err)) //nolint:gosec // error from template render, not user input
+		slog.Error("render compare", slog.Int("asn1", int(asn1)), slog.Int("asn2", int(asn2)), slog.Any("error", err)) //nolint:gosec // error from template render, not user input
 		h.handleServerError(w, r)
 	}
 }
