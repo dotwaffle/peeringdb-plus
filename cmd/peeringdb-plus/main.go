@@ -417,13 +417,7 @@ func main() {
 	protocols.SetHTTP1(true)
 	protocols.SetUnencryptedHTTP2(true)
 
-	server := &http.Server{
-		Addr:              cfg.ListenAddr,
-		Handler:           handler,
-		Protocols:         &protocols,
-		ReadHeaderTimeout: 10 * time.Second,
-		IdleTimeout:       120 * time.Second,
-	}
+	server := buildServer(cfg.ListenAddr, handler, &protocols)
 
 	// Graceful shutdown on SIGINT/SIGTERM.
 	sigChan := make(chan os.Signal, 1)
@@ -499,6 +493,33 @@ func (w *restErrorWriter) Write(b []byte) (int, error) {
 // Unwrap returns the underlying ResponseWriter for middleware-aware interface detection.
 func (w *restErrorWriter) Unwrap() http.ResponseWriter {
 	return w.ResponseWriter
+}
+
+// buildServer constructs the production http.Server with all timeouts
+// deliberately set. WriteTimeout is explicitly 0 because StreamEntities in
+// internal/grpcserver/generic.go already enforces cfg.StreamTimeout per
+// stream via context.WithTimeout; a server-wide WriteTimeout would race
+// with it and silently truncate streams (see PITFALLS.md §CP-2).
+//
+// ReadHeaderTimeout=10s mitigates slowloris header-stall attacks;
+// ReadTimeout=30s mitigates slowloris body-stall attacks (SEC-05);
+// IdleTimeout=120s caps keep-alive idle connections.
+// Go 1.26 net/http godoc: "A zero or negative value means there will be
+// no timeout" — WriteTimeout:0 is safe for long-lived h2c streams.
+//
+// TestServer_NoWriteTimeoutOnStreamingPaths regression-locks every field;
+// any drift fails CI.
+func buildServer(addr string, handler http.Handler, protocols *http.Protocols) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		Protocols:         protocols,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		// WriteTimeout intentionally 0 — see buildServer doc comment.
+		WriteTimeout: 0,
+		IdleTimeout:  120 * time.Second,
+	}
 }
 
 // readinessMiddleware returns 503 for all routes except infrastructure paths
