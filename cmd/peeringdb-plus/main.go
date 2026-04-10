@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -159,6 +160,15 @@ func main() {
 		logger.Info("PeeringDB API key not configured, using unauthenticated access",
 			slog.String("api_key", "[not set]"))
 	}
+
+	// SEC-04: make the disabled-sync-auth state loud at boot so operators see it
+	// in deploy logs rather than discovering it via a curl probe.
+	if cfg.SyncToken == "" {
+		logger.Warn("sync endpoint is unauthenticated — set PDBPLUS_SYNC_TOKEN to require authentication",
+			slog.String("endpoint", "/sync"),
+			slog.String("action", "set PDBPLUS_SYNC_TOKEN"))
+	}
+
 	pdbClient := peeringdb.NewClient(cfg.PeeringDBBaseURL, logger, clientOpts...)
 
 	// Create sync worker.
@@ -566,7 +576,10 @@ func newSyncHandler(appCtx context.Context, in SyncHandlerInput) http.HandlerFun
 			http.Error(w, "not primary", http.StatusServiceUnavailable)
 			return
 		}
-		if in.SyncToken == "" || r.Header.Get("X-Sync-Token") != in.SyncToken {
+		got := r.Header.Get("X-Sync-Token")
+		if in.SyncToken == "" ||
+			len(got) != len(in.SyncToken) ||
+			subtle.ConstantTimeCompare([]byte(got), []byte(in.SyncToken)) != 1 {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
