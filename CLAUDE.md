@@ -84,6 +84,7 @@ LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | `24h` | Max age of sync data before health reports degraded |
 | `PDBPLUS_INCLUDE_DELETED` | `false` | Include objects with status=deleted |
 | `PDBPLUS_CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
+| `PDBPLUS_CSP_ENFORCE` | `false` | When `true`, serve enforcing `Content-Security-Policy` on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only`. |
 | `PDBPLUS_DRAIN_TIMEOUT` | `10s` | Graceful shutdown drain timeout |
 | `PDBPLUS_OTEL_SAMPLE_RATE` | `1.0` | Trace sampling ratio 0.0-1.0 |
 | `PDBPLUS_STREAM_TIMEOUT` | `60s` | Max duration for a streaming RPC |

@@ -404,6 +404,7 @@ func main() {
 	handler = middleware.CSP(middleware.CSPInput{
 		UIPolicy:      "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: https://*.basemaps.cartocdn.com; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net",
 		GraphQLPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'",
+		EnforcingMode: cfg.CSPEnforce,
 	})(handler)
 	handler = readinessMiddleware(syncWorker, handler)
 	handler = middleware.Logging(logger)(handler)
