@@ -271,6 +271,47 @@ func TestLoad_IncludeDeleted(t *testing.T) {
 	}
 }
 
+func TestLoad_CSPEnforce(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    bool
+		wantErr bool
+		wantMsg string
+	}{
+		{name: "default is false", envVal: "", want: false},
+		{name: "explicit true", envVal: "true", want: true},
+		{name: "explicit false", envVal: "false", want: false},
+		{name: "invalid bool", envVal: "maybe", wantErr: true, wantMsg: "PDBPLUS_CSP_ENFORCE"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_CSP_ENFORCE", tt.envVal)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_CSP_ENFORCE=%q, got nil", tt.envVal)
+				}
+				if tt.wantMsg != "" && !strings.Contains(err.Error(), tt.wantMsg) {
+					t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.CSPEnforce != tt.want {
+				t.Errorf("CSPEnforce = %v, want %v", cfg.CSPEnforce, tt.want)
+			}
+		})
+	}
+}
+
 func TestLoad_DrainTimeout(t *testing.T) {
 	tests := []struct {
 		name    string

@@ -93,6 +93,12 @@ type Config struct {
 	// StreamTimeout is the maximum duration for a single streaming RPC.
 	// Configured via PDBPLUS_STREAM_TIMEOUT. Default is 60 seconds.
 	StreamTimeout time.Duration
+
+	// CSPEnforce controls whether the CSP middleware serves the enforcing
+	// Content-Security-Policy header (true) or the Content-Security-Policy-Report-Only
+	// header (false). Configured via PDBPLUS_CSP_ENFORCE. Default is false per SEC-07
+	// rollout strategy — enforcement is opt-in per deploy through v1.13.
+	CSPEnforce bool
 }
 
 // Load reads configuration from environment variables, applies defaults,
@@ -155,6 +161,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing PDBPLUS_STREAM_TIMEOUT: %w", err)
 	}
 	cfg.StreamTimeout = streamTimeout
+
+	cspEnforce, err := parseBool("PDBPLUS_CSP_ENFORCE", false)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_CSP_ENFORCE: %w", err)
+	}
+	cfg.CSPEnforce = cspEnforce
 
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
