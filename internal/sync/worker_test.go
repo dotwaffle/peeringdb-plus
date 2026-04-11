@@ -1958,11 +1958,14 @@ func TestSync_PhaseAFetchHasNoTx(t *testing.T) {
 }
 
 // TestSync_BatchFreeAfterUpsert is a structural regression lock for the
-// MANDATORY memory optimization in syncUpsertPass: after each per-type
-// upsert completes, the batch entry MUST be set to the zero value so the
-// slice backing array can be reclaimed by GC. Per ARCHITECTURE.md §2 this
-// is the difference between "fits in 512 MB VM" and "OOM" on production
-// scale. A source scan catches accidental removal during future edits.
+// MANDATORY memory optimization in the Phase B chunked replay loop:
+// after each per-chunk upsert completes, the batch entry MUST be set to
+// the zero value so the slice backing array can be reclaimed by GC. Per
+// ARCHITECTURE.md §2 this is the difference between "fits in 512 MB VM"
+// and "OOM" on production scale. Commit D' moved the batch-free line
+// from syncUpsertPass (old in-memory path) into drainAndUpsertType (the
+// chunked scratch replay) where each loop iteration processes one
+// scratchChunkSize-bounded chunk.
 func TestSync_BatchFreeAfterUpsert(t *testing.T) {
 	t.Parallel()
 
@@ -1971,8 +1974,8 @@ func TestSync_BatchFreeAfterUpsert(t *testing.T) {
 		t.Fatalf("read worker.go: %v", err)
 	}
 
-	// Locate syncUpsertPass function body and search within it only.
-	needle := "func (w *Worker) syncUpsertPass("
+	// Locate drainAndUpsertType function body and search within it only.
+	needle := "func (w *Worker) drainAndUpsertType("
 	start := strings.Index(string(src), needle)
 	if start < 0 {
 		t.Fatalf("did not find %q in worker.go", needle)
@@ -1984,11 +1987,13 @@ func TestSync_BatchFreeAfterUpsert(t *testing.T) {
 		body = body[:nextFunc+1]
 	}
 
-	if !strings.Contains(body, "batches[step.name] = syncBatch{}") {
-		t.Fatalf("syncUpsertPass does not contain the MANDATORY batch-free line " +
-			"`batches[step.name] = syncBatch{}`. This is the core PERF-05 memory " +
-			"optimization (ARCHITECTURE.md §2) — removing it breaks the 512 MB VM " +
-			"hard cap and is a regression.")
+	// Accept either `batches[name]` or `batches[step.name]` — the inner
+	// chunked replay loop uses `name` because step.name is out of scope.
+	if !strings.Contains(body, "batches[name] = syncBatch{}") && !strings.Contains(body, "batches[step.name] = syncBatch{}") {
+		t.Fatalf("drainAndUpsertType does not contain the MANDATORY batch-free line " +
+			"`batches[name] = syncBatch{}` (or the step.name variant). This is the " +
+			"core PERF-05 memory optimization (ARCHITECTURE.md §2) — removing it " +
+			"breaks the 512 MB VM hard cap and is a regression.")
 	}
 }
 
