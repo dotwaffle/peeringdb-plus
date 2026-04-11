@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.12
-milestone_name: Hardening & Tech Debt
-status: executing
-stopped_at: Completed 50-01-PLAN.md
-last_updated: "2026-04-02T05:35:09.664Z"
-last_activity: 2026-04-02
+milestone: v1.13
+milestone_name: Security & Sync Hardening
+status: shipped
+stopped_at: v1.13 shipped 2026-04-11
+last_updated: "2026-04-11T00:00:00Z"
+last_activity: 2026-04-11
 progress:
-  total_phases: 8
-  completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
-  percent: 33
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 16
+  completed_plans: 16
+  percent: 100
 ---
 
 # Project State
@@ -21,70 +21,50 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 45 — Multi-Pin Maps
+**Current focus:** None — v1.13 shipped. Run `/gsd-new-milestone` to begin the next cycle.
 
 ## Current Position
 
-Phase: 50
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-04-02
+Milestone: v1.13 Security & Sync Hardening (shipped 2026-04-11)
+Phase: all 6 complete (51-56)
+Status: idle
+Last activity: 2026-04-11
 
-Progress: [███░░░░░░░] 33%
+Progress (v1.13): [██████████] 100%
+Cumulative shipped: 56 phases across v1.0-v1.13.
 
-## Performance Metrics
+## Recently Shipped
 
-**Velocity:**
+**v1.13 Security & Sync Hardening** — 6 phases, 16 plans, 16 requirements (SEC-04 through SEC-11, PERF-04 through PERF-07, REFAC-03/04/05, DEBT-03). Merged via PR #8 (commit 18d3735) on 2026-04-11. Key outcomes:
 
-- Total plans completed: 1
-- Average duration: 4min
-- Total execution time: 0.07 hours
+- Security hardening: constant-time sync token compare, strict PeeringDB URL validator, parseASN via ParseUint, CSP enforcement feature flag, ReadTimeout=30s, generic /readyz body, global 1 MB body cap, HSTS/XFO/XCTO headers
+- Sync worker overhaul: Phase A/B split with fetch barrier, streaming JSON decoder, scratch-SQLite fallback, 535 → 380 MiB peak heap under 400 MiB gate
+- Perf: delta streams skip COUNT preflight, ETag cache wired through OnSyncComplete
+- Filter consolidation: generic filterFn[REQ] runner with zero any-boxing on hot paths
+- Production incident fix: dropped UNIQUE(organizations.name), added Retry-After handling (12 → 1 req/hour on /api/org)
 
-**By Phase:**
+Post-milestone follow-ups already merged into main:
+- #9 Go 1.26 modernization pass (2026-04-11)
+- #10 fix(sync): reap stale running rows on primary startup (2026-04-11)
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 43 | 1/3 | 4min | 4min |
+## Outstanding Human Verification
 
-**Recent Trend:**
+Deferred from v1.13 autonomous run, tracked for manual confirmation:
 
-- Last 5 plans: --
-- Trend: --
+- **Phase 52:** Chrome devtools CSP check on `/ui/`, `/ui/asn/13335`, `/ui/compare` with `PDBPLUS_CSP_ENFORCE=true` (Tailwind v4 JIT runtime behaviour)
+- **Phase 53:** curl HSTS / X-Frame-Options / X-Content-Type-Options headers, 2 MB body-cap REST vs gRPC skip-list, slowloris TCP smoke test
 
-*Updated after each plan completion*
-| Phase 43 P03 | 5min | 2 tasks | 7 files |
-| Phase 43 P04 | 4min | 1 tasks | 1 files |
-| Phase 44 P01 | 3min | 2 tasks | 8 files |
-| Phase 44 P02 | 3min | 2 tasks | 2 files |
-| Phase 45 P01 | 15min | 2 tasks | 6 files |
-| Phase 45 P02 | 8min | 2 tasks | 12 files |
-| Phase 46 P02 | 4min | 2 tasks | 2 files |
-| Phase 50-ci-linting P01 | 1min | 2 tasks | 2 files |
+See `memory/project_human_verification.md` for the full backlog across v1.6, v1.7, v1.11, and v1.13.
 
 ## Accumulated Context
 
 ### Decisions
 
-All decisions archived in PROJECT.md Key Decisions table (42 decisions across 11 milestones).
-
-- **Phase 43-01:** Sort JS placed in layout.templ as global script (matches existing keyboard nav and htmx error handler patterns)
-- **Phase 43-01:** flag-icons v7.5.0 pinned via jsdelivr CDN (consistent with existing CDN delivery pattern)
-- [Phase 43]: OrgNetworksList 2-column (Name, ASN) without Country -- all networks on an org share the org country
-- [Phase 43]: Added City/Country to NetworkFacility seed data for CountryFlag rendering in fragment tests
-- [Phase 44]: window.__pdbMaps array pattern for multi-map dark mode tile swap (forward-compatible with Phase 45)
-- [Phase 44]: Inline styles in Leaflet popup HTML -- Tailwind classes do not penetrate Leaflet popup DOM
-- [Phase 44]: Treat (0,0) and nil lat/lng as missing data -- no real facility at null island
-- [Phase 44]: ID 32 for coordinated facility to avoid collision with existing test IDs (30, 31)
-- [Phase 45]: Server-side popup HTML serialized into marker JSON avoids building HTML in JavaScript
-- [Phase 45]: filterMappableMarkers keeps markers where at least one coordinate is non-zero
-- [Phase 45]: Legend uses inline styles in Leaflet Control for dark mode support
-- [Phase 45]: AllFacilities computed unconditionally (outside ViewMode if-block) so comparison map always renders in both shared and full view modes
-- [Phase 46]: Entity-type accent colors for comparison table links: sky=IX, violet=fac, rose=campus
-- [Phase 50-ci-linting]: All 3 new linters (exhaustive, contextcheck, gosec) pass cleanly -- no source code fixes needed
+All decisions archived in PROJECT.md Key Decisions table (42+ decisions across 13 milestones).
 
 ### Pending Todos
 
-None.
+None on main. Check `.planning/HANDOFF.json` and `memory/` for parked ideas.
 
 ### Blockers/Concerns
 
@@ -98,6 +78,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-02T05:26:43.488Z
-Stopped at: Completed 50-01-PLAN.md
+Last session: 2026-04-11
+Stopped at: v1.13 shipped — no active work
 Resume file: None

@@ -1,5 +1,22 @@
 # Milestones
 
+## v1.13 Security & Sync Hardening (Shipped: 2026-04-11)
+
+**Phases completed:** 6 phases (51-56), 16 plans
+
+**Key accomplishments:**
+
+- Phase 51 quick security wins: constant-time `/sync` token compare via `crypto/subtle` + startup WARN when token empty, strict `PDBPLUS_PEERINGDB_URL` validator (HTTPS required except loopback/RFC-1918 with four distinct rejection classes), `parseASN` via `strconv.ParseUint(s, 10, 32)` with `maxASN` constant deleted
+- Phase 52 CSP enforcement: new `PDBPLUS_CSP_ENFORCE` feature flag (default false) and `CSPInput.EnforcingMode` header-name switch flipping `/ui/` and `/graphql` to enforcing `Content-Security-Policy` when enabled, Tailwind v4 CDN statically verified not to require `unsafe-eval`
+- Phase 53 server hardening + browser headers: `buildServer` helper with `ReadTimeout: 30s` and explicit `WriteTimeout: 0` (locked against refactor drift by signature-lock test), generic `/readyz` body with detailed errors routed to `slog` only, global 1 MB `MaxBytesBody` middleware with gRPC skip-list, `SecurityHeaders` middleware (HSTS 180d + includeSubDomains, X-Frame-Options DENY, X-Content-Type-Options nosniff), `TestMiddlewareChain_Order` source-scan regression lock
+- Phase 54 sync worker overhaul: `BenchmarkSyncWorker_FullMemoryPeak` harness with 400 MiB regression gate (535 → 380 MiB), `Worker.Sync` reduced from 234 to 87 lines via Phase A/B split with fetch barrier, streaming `json.Decoder` `StreamAll` callback API, scratch-SQLite fallback (`/tmp/pdbplus-sync-scratch-{pid}-{seq}.db` via `O_CREATE|O_EXCL`) with ATTACH-inside-real-tx INSERT OR REPLACE + DELETE, generic `syncIncremental[E]` replaces 13 per-entity variants, runtime memory guardrail (`PDBPLUS_SYNC_MEMORY_LIMIT` default 400 MB), per-tx `PRAGMA defer_foreign_keys = ON` via ent `sql/execquery` feature
+- Phase 55 streaming/caching perf: `StreamEntities` skips `SELECT COUNT(*)` preflight when `SinceID != nil || UpdatedSince != nil` (delta streams omit `grpc-total-count` header), `CachingState` holds `atomic.Pointer[string]` ETag wired through `OnSyncComplete` with extended signature `func(map[string]int, time.Time)`, warm-restart ETag seeded from last successful sync time at startup
+- Phase 56 filter consolidation: generic `filterFn[REQ any]` runner in new `internal/grpcserver/filter.go` with compile-time type safety and zero any-boxing on hot paths, 6 reusable predicate builders (`fieldEQInt`, `fieldEQString`, `fieldContainsFold`, `fieldEQBool`, `fieldEQFloat64`, `fieldInTimeRange`) + 2 validators, all 13 entity handlers migrated to `xListFilters`/`xStreamFilters` closure tables, `TestAllFilterFieldsExercised` uses protoreflect to assert every optional request field has a filter entry
+- Production incident resolved: dropped `UNIQUE(organizations.name)` constraint (PeeringDB began serving duplicate display names upstream ~2026-04-04 breaking every sync) and added `Retry-After` honoring on HTTP 429 via new typed `RateLimitError` with `errors.As` detection to short-circuit both in-request and sync-level retry ladders (per-hour `/api/org` rate: 12 → 1)
+- Hard constraints upheld: `fly.toml memory = "512mb"` unchanged, `go.mod`/`go.sum` byte-identical across the entire milestone, D-19 single-tx atomicity preserved, `grpcserver_test.go` byte-identical through the Phase 56 refactor
+
+---
+
 ## v1.12 Hardening & Tech Debt (Shipped: 2026-04-02)
 
 **Phases completed:** 4 phases, 9 plans, 18 tasks
