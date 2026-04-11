@@ -16,15 +16,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/KimMachineGun/automemlimit/memlimit"
 	"connectrpc.com/connect"
 	"connectrpc.com/grpchealth"
 	"connectrpc.com/grpcreflect"
 	"connectrpc.com/otelconnect"
+	"github.com/KimMachineGun/automemlimit/memlimit"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
-	_ "github.com/dotwaffle/peeringdb-plus/ent/runtime" // register schema hooks (OTel mutation tracing)
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
+	_ "github.com/dotwaffle/peeringdb-plus/ent/runtime" // register schema hooks (OTel mutation tracing)
 	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 	"github.com/dotwaffle/peeringdb-plus/graph"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"

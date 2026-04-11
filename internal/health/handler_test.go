@@ -51,8 +51,8 @@ func (h *testLogHandler) snapshot() []slog.Record {
 func collectReadinessResponse(t *testing.T, in health.ReadinessInput) (int, string, []slog.Record) {
 	t.Helper()
 
-	cap := &testLogHandler{}
-	in.Logger = slog.New(cap)
+	logCap := &testLogHandler{}
+	in.Logger = slog.New(logCap)
 
 	handler := health.ReadinessHandler(in)
 	rec := httptest.NewRecorder()
@@ -60,7 +60,7 @@ func collectReadinessResponse(t *testing.T, in health.ReadinessInput) (int, stri
 	handler.ServeHTTP(rec, req)
 
 	body := strings.TrimSpace(rec.Body.String())
-	return rec.Code, body, cap.snapshot()
+	return rec.Code, body, logCap.snapshot()
 }
 
 // findAttr walks a slog.Record looking for an attribute with key k. It returns
@@ -131,7 +131,7 @@ func TestHealth_GenericResponse(t *testing.T) {
 			},
 			wantStatus: http.StatusOK,
 			wantBody:   `{"status":"ok"}`,
-			logAssert: func(t *testing.T, records []slog.Record) string {
+			logAssert: func(_ *testing.T, records []slog.Record) string {
 				// Healthy path MUST NOT emit any error-level records.
 				for _, r := range records {
 					if r.Level >= slog.LevelError {
@@ -150,7 +150,7 @@ func TestHealth_GenericResponse(t *testing.T) {
 			},
 			wantStatus: http.StatusServiceUnavailable,
 			wantBody:   `{"status":"unhealthy"}`,
-			logAssert: func(t *testing.T, records []slog.Record) string {
+			logAssert: func(_ *testing.T, records []slog.Record) string {
 				// Exactly one error record with component=db and a non-empty
 				// error attr.
 				var hits int
@@ -176,14 +176,12 @@ func TestHealth_GenericResponse(t *testing.T) {
 		},
 		{
 			name: "sync_lookup_fails",
-			setupDB: func(t *testing.T) *sql.DB {
-				// DB is open but sync_status table does not exist, so
-				// GetLastStatus will return a non-nil error.
-				return openTestDB(t)
-			},
+			// DB is open but sync_status table does not exist, so
+			// GetLastStatus will return a non-nil error.
+			setupDB: openTestDB,
 			wantStatus: http.StatusServiceUnavailable,
 			wantBody:   `{"status":"unhealthy"}`,
-			logAssert: func(t *testing.T, records []slog.Record) string {
+			logAssert: func(_ *testing.T, records []slog.Record) string {
 				for _, r := range records {
 					if r.Level != slog.LevelError {
 						continue
@@ -211,7 +209,7 @@ func TestHealth_GenericResponse(t *testing.T) {
 			},
 			wantStatus: http.StatusServiceUnavailable,
 			wantBody:   `{"status":"unhealthy"}`,
-			logAssert: func(t *testing.T, records []slog.Record) string {
+			logAssert: func(_ *testing.T, records []slog.Record) string {
 				for _, r := range records {
 					if r.Level != slog.LevelWarn {
 						continue
@@ -242,7 +240,7 @@ func TestHealth_GenericResponse(t *testing.T) {
 			},
 			wantStatus: http.StatusServiceUnavailable,
 			wantBody:   `{"status":"unhealthy"}`,
-			logAssert: func(t *testing.T, records []slog.Record) string {
+			logAssert: func(_ *testing.T, records []slog.Record) string {
 				for _, r := range records {
 					if r.Level != slog.LevelWarn {
 						continue
@@ -279,7 +277,7 @@ func TestHealth_GenericResponse(t *testing.T) {
 			},
 			wantStatus: http.StatusServiceUnavailable,
 			wantBody:   `{"status":"unhealthy"}`,
-			logAssert: func(t *testing.T, records []slog.Record) string {
+			logAssert: func(_ *testing.T, records []slog.Record) string {
 				for _, r := range records {
 					if r.Level != slog.LevelWarn {
 						continue
