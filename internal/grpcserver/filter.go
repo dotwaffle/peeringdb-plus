@@ -41,6 +41,12 @@ func eqFilter[REQ, V any](
 // validatingFilter is like eqFilter but runs a validator over the dereferenced
 // value before constructing the predicate. Validation failures are wrapped as
 // connect.CodeInvalidArgument with the filter name included in the error text.
+//
+// The error format is "invalid filter: <name> <validator_err>" — e.g.
+// "invalid filter: asn must be positive". This matches the pre-Phase-56
+// per-entity error format verbatim so that existing grpcserver_test.go
+// assertions (containsStr on substrings like "asn must be positive") stay
+// green without test modification. See 56-02-PLAN.md Task 1 Step 0 (option A).
 func validatingFilter[REQ, V any](
 	name string,
 	get func(*REQ) *V,
@@ -54,7 +60,7 @@ func validatingFilter[REQ, V any](
 		}
 		if err := validate(*v); err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter %q: %w", name, err))
+				fmt.Errorf("invalid filter: %s %w", name, err))
 		}
 		return pred(*v), nil
 	}
@@ -129,23 +135,29 @@ func fieldInTimeRange(field string) func(time.Time) func(*sql.Selector) {
 }
 
 // positiveInt64 returns a validator that rejects non-positive int64 values
-// with the canonical "value must be positive" error. Preserves the
-// pre-Phase-56 semantic that 0 is NOT positive (see network.go line 44 in the
+// with the canonical "must be positive" error. Preserves the pre-Phase-56
+// semantic that 0 is NOT positive (see network.go line 44 in the
 // pre-consolidation code).
+//
+// The error text deliberately omits a "value" prefix so that the
+// validatingFilter wrapper produces "invalid filter: <name> must be positive"
+// — matching the pre-consolidation per-entity error strings that existing
+// grpcserver_test.go assertions depend on.
 func positiveInt64() func(int64) error {
 	return func(v int64) error {
 		if v <= 0 {
-			return fmt.Errorf("value must be positive")
+			return fmt.Errorf("must be positive")
 		}
 		return nil
 	}
 }
 
 // nonEmptyString returns a validator that rejects zero-length strings.
+// See positiveInt64 for error-format rationale.
 func nonEmptyString() func(string) error {
 	return func(v string) error {
 		if len(v) == 0 {
-			return fmt.Errorf("value must not be empty")
+			return fmt.Errorf("must not be empty")
 		}
 		return nil
 	}

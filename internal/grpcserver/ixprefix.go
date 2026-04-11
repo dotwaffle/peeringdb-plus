@@ -21,6 +21,45 @@ type IxPrefixService struct {
 	StreamTimeout time.Duration
 }
 
+// ixPrefixListFilters is the generic filter table consumed by
+// applyIxPrefixListFilters. Entries run in slice order.
+var ixPrefixListFilters = []filterFn[pb.ListIxPrefixesRequest]{
+	validatingFilter("id",
+		func(r *pb.ListIxPrefixesRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(ixprefix.FieldID)),
+	validatingFilter("ixlan_id",
+		func(r *pb.ListIxPrefixesRequest) *int64 { return r.IxlanId },
+		positiveInt64(), fieldEQInt(ixprefix.FieldIxlanID)),
+	eqFilter(func(r *pb.ListIxPrefixesRequest) *string { return r.Protocol },
+		fieldEQString(ixprefix.FieldProtocol)),
+	eqFilter(func(r *pb.ListIxPrefixesRequest) *string { return r.Status },
+		fieldEQString(ixprefix.FieldStatus)),
+	eqFilter(func(r *pb.ListIxPrefixesRequest) *string { return r.Prefix },
+		fieldEQString(ixprefix.FieldPrefix)),
+	eqFilter(func(r *pb.ListIxPrefixesRequest) *bool { return r.InDfz },
+		fieldEQBool(ixprefix.FieldInDfz)),
+	eqFilter(func(r *pb.ListIxPrefixesRequest) *string { return r.Notes },
+		fieldEQString(ixprefix.FieldNotes)),
+}
+
+// ixPrefixStreamFilters mirrors ixPrefixListFilters but omits the id entry —
+// Stream uses SinceID handled by generic.StreamEntities.
+var ixPrefixStreamFilters = []filterFn[pb.StreamIxPrefixesRequest]{
+	validatingFilter("ixlan_id",
+		func(r *pb.StreamIxPrefixesRequest) *int64 { return r.IxlanId },
+		positiveInt64(), fieldEQInt(ixprefix.FieldIxlanID)),
+	eqFilter(func(r *pb.StreamIxPrefixesRequest) *string { return r.Protocol },
+		fieldEQString(ixprefix.FieldProtocol)),
+	eqFilter(func(r *pb.StreamIxPrefixesRequest) *string { return r.Status },
+		fieldEQString(ixprefix.FieldStatus)),
+	eqFilter(func(r *pb.StreamIxPrefixesRequest) *string { return r.Prefix },
+		fieldEQString(ixprefix.FieldPrefix)),
+	eqFilter(func(r *pb.StreamIxPrefixesRequest) *bool { return r.InDfz },
+		fieldEQBool(ixprefix.FieldInDfz)),
+	eqFilter(func(r *pb.StreamIxPrefixesRequest) *string { return r.Notes },
+		fieldEQString(ixprefix.FieldNotes)),
+}
+
 // GetIxPrefix returns a single IX prefix by ID.
 func (s *IxPrefixService) GetIxPrefix(ctx context.Context, req *pb.GetIxPrefixRequest) (*pb.GetIxPrefixResponse, error) {
 	ixp, err := s.Client.IxPrefix.Get(ctx, int(req.GetId()))
@@ -33,62 +72,14 @@ func (s *IxPrefixService) GetIxPrefix(ctx context.Context, req *pb.GetIxPrefixRe
 	return &pb.GetIxPrefixResponse{IxPrefix: ixPrefixToProto(ixp)}, nil
 }
 
+// applyIxPrefixListFilters builds filter predicates from the generic filter table.
 func applyIxPrefixListFilters(req *pb.ListIxPrefixesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldID, int(*req.Id)))
-	}
-	if req.IxlanId != nil {
-		if *req.IxlanId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ixlan_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldIxlanID, int(*req.IxlanId)))
-	}
-	if req.Protocol != nil {
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldProtocol, *req.Protocol))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldStatus, *req.Status))
-	}
-	if req.Prefix != nil {
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldPrefix, *req.Prefix))
-	}
-	if req.InDfz != nil {
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldInDfz, *req.InDfz))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldNotes, *req.Notes))
-	}
-	return preds, nil
+	return applyFilters(req, ixPrefixListFilters)
 }
 
+// applyIxPrefixStreamFilters builds filter predicates from the generic filter table.
 func applyIxPrefixStreamFilters(req *pb.StreamIxPrefixesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.IxlanId != nil {
-		if *req.IxlanId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ixlan_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldIxlanID, int(*req.IxlanId)))
-	}
-	if req.Protocol != nil {
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldProtocol, *req.Protocol))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldStatus, *req.Status))
-	}
-	if req.Prefix != nil {
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldPrefix, *req.Prefix))
-	}
-	if req.InDfz != nil {
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldInDfz, *req.InDfz))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(ixprefix.FieldNotes, *req.Notes))
-	}
-	return preds, nil
+	return applyFilters(req, ixPrefixStreamFilters)
 }
 
 // ListIxPrefixes returns a paginated list of IX prefixes.

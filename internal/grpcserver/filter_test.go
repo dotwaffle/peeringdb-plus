@@ -121,7 +121,10 @@ func TestValidatingFilter_ValidatorErrorWrappedAsInvalidArgument(t *testing.T) {
 		t.Errorf("error code = %v, want %v", code, connect.CodeInvalidArgument)
 	}
 	msg := err.Error()
-	if !strings.Contains(msg, `invalid filter "testfield":`) {
+	// Format is "invalid filter: <name> <validator_err>" — matches the
+	// pre-Phase-56 per-entity error strings so existing grpcserver_test.go
+	// containsStr assertions stay green without test modification.
+	if !strings.Contains(msg, "invalid filter: testfield ") {
 		t.Errorf("error %q does not contain the filter name prefix", msg)
 	}
 	if !strings.Contains(msg, "boom") {

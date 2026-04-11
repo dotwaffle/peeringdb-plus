@@ -22,6 +22,58 @@ type CarrierService struct {
 	StreamTimeout time.Duration
 }
 
+// carrierListFilters is the generic filter table consumed by
+// applyCarrierListFilters. Entries run in slice order. The OrgName entry
+// represents the denormalized org_name field stored on the entity.
+var carrierListFilters = []filterFn[pb.ListCarriersRequest]{
+	validatingFilter("id",
+		func(r *pb.ListCarriersRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(carrier.FieldID)),
+	validatingFilter("org_id",
+		func(r *pb.ListCarriersRequest) *int64 { return r.OrgId },
+		positiveInt64(), fieldEQInt(carrier.FieldOrgID)),
+	eqFilter(func(r *pb.ListCarriersRequest) *string { return r.Name },
+		fieldContainsFold(carrier.FieldName)),
+	eqFilter(func(r *pb.ListCarriersRequest) *string { return r.Aka },
+		fieldContainsFold(carrier.FieldAka)),
+	eqFilter(func(r *pb.ListCarriersRequest) *string { return r.NameLong },
+		fieldContainsFold(carrier.FieldNameLong)),
+	eqFilter(func(r *pb.ListCarriersRequest) *string { return r.Status },
+		fieldEQString(carrier.FieldStatus)),
+	eqFilter(func(r *pb.ListCarriersRequest) *string { return r.Website },
+		fieldEQString(carrier.FieldWebsite)),
+	eqFilter(func(r *pb.ListCarriersRequest) *string { return r.Notes },
+		fieldEQString(carrier.FieldNotes)),
+	eqFilter(func(r *pb.ListCarriersRequest) *string { return r.OrgName },
+		fieldEQString(carrier.FieldOrgName)),
+	eqFilter(func(r *pb.ListCarriersRequest) *string { return r.Logo },
+		fieldEQString(carrier.FieldLogo)),
+}
+
+// carrierStreamFilters mirrors carrierListFilters but omits the id entry —
+// Stream uses SinceID handled by generic.StreamEntities.
+var carrierStreamFilters = []filterFn[pb.StreamCarriersRequest]{
+	validatingFilter("org_id",
+		func(r *pb.StreamCarriersRequest) *int64 { return r.OrgId },
+		positiveInt64(), fieldEQInt(carrier.FieldOrgID)),
+	eqFilter(func(r *pb.StreamCarriersRequest) *string { return r.Name },
+		fieldContainsFold(carrier.FieldName)),
+	eqFilter(func(r *pb.StreamCarriersRequest) *string { return r.Aka },
+		fieldContainsFold(carrier.FieldAka)),
+	eqFilter(func(r *pb.StreamCarriersRequest) *string { return r.NameLong },
+		fieldContainsFold(carrier.FieldNameLong)),
+	eqFilter(func(r *pb.StreamCarriersRequest) *string { return r.Status },
+		fieldEQString(carrier.FieldStatus)),
+	eqFilter(func(r *pb.StreamCarriersRequest) *string { return r.Website },
+		fieldEQString(carrier.FieldWebsite)),
+	eqFilter(func(r *pb.StreamCarriersRequest) *string { return r.Notes },
+		fieldEQString(carrier.FieldNotes)),
+	eqFilter(func(r *pb.StreamCarriersRequest) *string { return r.OrgName },
+		fieldEQString(carrier.FieldOrgName)),
+	eqFilter(func(r *pb.StreamCarriersRequest) *string { return r.Logo },
+		fieldEQString(carrier.FieldLogo)),
+}
+
 // GetCarrier returns a single carrier by ID. Returns NOT_FOUND if the carrier
 // does not exist.
 func (s *CarrierService) GetCarrier(ctx context.Context, req *pb.GetCarrierRequest) (*pb.GetCarrierResponse, error) {
@@ -35,81 +87,14 @@ func (s *CarrierService) GetCarrier(ctx context.Context, req *pb.GetCarrierReque
 	return &pb.GetCarrierResponse{Carrier: carrierToProto(c)}, nil
 }
 
+// applyCarrierListFilters builds filter predicates from the generic filter table.
 func applyCarrierListFilters(req *pb.ListCarriersRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(carrier.FieldID, int(*req.Id)))
-	}
-	if req.OrgId != nil {
-		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(carrier.FieldOrgID, int(*req.OrgId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(carrier.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(carrier.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(carrier.FieldNameLong, *req.NameLong))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(carrier.FieldStatus, *req.Status))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(carrier.FieldWebsite, *req.Website))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(carrier.FieldNotes, *req.Notes))
-	}
-	// org_name filter -- stored as denormalized field on entity.
-	if req.OrgName != nil {
-		preds = append(preds, sql.FieldEQ(carrier.FieldOrgName, *req.OrgName))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(carrier.FieldLogo, *req.Logo))
-	}
-	return preds, nil
+	return applyFilters(req, carrierListFilters)
 }
 
+// applyCarrierStreamFilters builds filter predicates from the generic filter table.
 func applyCarrierStreamFilters(req *pb.StreamCarriersRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.OrgId != nil {
-		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(carrier.FieldOrgID, int(*req.OrgId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(carrier.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(carrier.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(carrier.FieldNameLong, *req.NameLong))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(carrier.FieldStatus, *req.Status))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(carrier.FieldWebsite, *req.Website))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(carrier.FieldNotes, *req.Notes))
-	}
-	if req.OrgName != nil {
-		preds = append(preds, sql.FieldEQ(carrier.FieldOrgName, *req.OrgName))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(carrier.FieldLogo, *req.Logo))
-	}
-	return preds, nil
+	return applyFilters(req, carrierStreamFilters)
 }
 
 // ListCarriers returns a paginated list of carriers ordered by ID ascending.

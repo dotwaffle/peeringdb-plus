@@ -21,6 +21,47 @@ type IxFacilityService struct {
 	StreamTimeout time.Duration
 }
 
+// ixFacilityListFilters is the generic filter table consumed by
+// applyIxFacilityListFilters. Entries run in slice order.
+var ixFacilityListFilters = []filterFn[pb.ListIxFacilitiesRequest]{
+	validatingFilter("id",
+		func(r *pb.ListIxFacilitiesRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(ixfacility.FieldID)),
+	validatingFilter("ix_id",
+		func(r *pb.ListIxFacilitiesRequest) *int64 { return r.IxId },
+		positiveInt64(), fieldEQInt(ixfacility.FieldIxID)),
+	validatingFilter("fac_id",
+		func(r *pb.ListIxFacilitiesRequest) *int64 { return r.FacId },
+		positiveInt64(), fieldEQInt(ixfacility.FieldFacID)),
+	eqFilter(func(r *pb.ListIxFacilitiesRequest) *string { return r.Country },
+		fieldEQString(ixfacility.FieldCountry)),
+	eqFilter(func(r *pb.ListIxFacilitiesRequest) *string { return r.City },
+		fieldContainsFold(ixfacility.FieldCity)),
+	eqFilter(func(r *pb.ListIxFacilitiesRequest) *string { return r.Status },
+		fieldEQString(ixfacility.FieldStatus)),
+	eqFilter(func(r *pb.ListIxFacilitiesRequest) *string { return r.Name },
+		fieldContainsFold(ixfacility.FieldName)),
+}
+
+// ixFacilityStreamFilters mirrors ixFacilityListFilters but omits the id
+// entry — Stream uses SinceID handled by generic.StreamEntities.
+var ixFacilityStreamFilters = []filterFn[pb.StreamIxFacilitiesRequest]{
+	validatingFilter("ix_id",
+		func(r *pb.StreamIxFacilitiesRequest) *int64 { return r.IxId },
+		positiveInt64(), fieldEQInt(ixfacility.FieldIxID)),
+	validatingFilter("fac_id",
+		func(r *pb.StreamIxFacilitiesRequest) *int64 { return r.FacId },
+		positiveInt64(), fieldEQInt(ixfacility.FieldFacID)),
+	eqFilter(func(r *pb.StreamIxFacilitiesRequest) *string { return r.Country },
+		fieldEQString(ixfacility.FieldCountry)),
+	eqFilter(func(r *pb.StreamIxFacilitiesRequest) *string { return r.City },
+		fieldContainsFold(ixfacility.FieldCity)),
+	eqFilter(func(r *pb.StreamIxFacilitiesRequest) *string { return r.Status },
+		fieldEQString(ixfacility.FieldStatus)),
+	eqFilter(func(r *pb.StreamIxFacilitiesRequest) *string { return r.Name },
+		fieldContainsFold(ixfacility.FieldName)),
+}
+
 // GetIxFacility returns a single IX facility by ID.
 func (s *IxFacilityService) GetIxFacility(ctx context.Context, req *pb.GetIxFacilityRequest) (*pb.GetIxFacilityResponse, error) {
 	ixf, err := s.Client.IxFacility.Get(ctx, int(req.GetId()))
@@ -33,68 +74,14 @@ func (s *IxFacilityService) GetIxFacility(ctx context.Context, req *pb.GetIxFaci
 	return &pb.GetIxFacilityResponse{IxFacility: ixFacilityToProto(ixf)}, nil
 }
 
+// applyIxFacilityListFilters builds filter predicates from the generic filter table.
 func applyIxFacilityListFilters(req *pb.ListIxFacilitiesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixfacility.FieldID, int(*req.Id)))
-	}
-	if req.IxId != nil {
-		if *req.IxId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixfacility.FieldIxID, int(*req.IxId)))
-	}
-	if req.FacId != nil {
-		if *req.FacId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: fac_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixfacility.FieldFacID, int(*req.FacId)))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(ixfacility.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(ixfacility.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(ixfacility.FieldStatus, *req.Status))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(ixfacility.FieldName, *req.Name))
-	}
-	return preds, nil
+	return applyFilters(req, ixFacilityListFilters)
 }
 
+// applyIxFacilityStreamFilters builds filter predicates from the generic filter table.
 func applyIxFacilityStreamFilters(req *pb.StreamIxFacilitiesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.IxId != nil {
-		if *req.IxId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixfacility.FieldIxID, int(*req.IxId)))
-	}
-	if req.FacId != nil {
-		if *req.FacId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: fac_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixfacility.FieldFacID, int(*req.FacId)))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(ixfacility.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(ixfacility.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(ixfacility.FieldStatus, *req.Status))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(ixfacility.FieldName, *req.Name))
-	}
-	return preds, nil
+	return applyFilters(req, ixFacilityStreamFilters)
 }
 
 // ListIxFacilities returns a paginated list of IX facilities.
