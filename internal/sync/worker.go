@@ -175,6 +175,16 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	// the collector to kick in at 25% heap growth, trading ~5% extra
 	// CPU for bounded peak heap. Restored on return so the value does
 	// not leak to other goroutines.
+	//
+	// TRADE-OFF NOTE (54-REVIEW.md WR-03): debug.SetGCPercent and
+	// debug.SetMemoryLimit are PROCESS-GLOBAL. All goroutines (API
+	// handlers included) see shorter GC cycles and potential assist
+	// throttling for the sync duration (~30s hourly). Acceptable
+	// because syncs run on the hourly schedule and the 512 MB VM cap
+	// is a harder constraint than p99 latency during sync. If future
+	// workload characteristics change, consider running the sync in a
+	// dedicated goroutine with LockOSThread, or moving to a separate
+	// process to isolate the runtime tuning.
 	prevGCPercent := debug.SetGCPercent(25)
 	defer debug.SetGCPercent(prevGCPercent)
 
@@ -212,12 +222,14 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	// Scratch DB fully populated. Open the real LiteFS tx now.
 	tx, err := w.entClient.Tx(ctx)
 	if err != nil {
-		w.recordFailure(ctx, statusID, start, fmt.Errorf("begin sync transaction: %w", err))
-		return fmt.Errorf("begin sync transaction: %w", err)
+		beginErr := fmt.Errorf("begin sync transaction: %w", err)
+		w.recordFailure(ctx, statusID, start, beginErr)
+		return beginErr
 	}
 	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
-		w.rollbackAndRecord(ctx, tx, statusID, start, fmt.Errorf("defer FK checks: %w", err))
-		return fmt.Errorf("defer FK checks: %w", err)
+		fkErr := fmt.Errorf("defer FK checks: %w", err)
+		w.rollbackAndRecord(ctx, tx, statusID, start, fkErr)
+		return fkErr
 	}
 
 	// === Phase B — SINGLE REAL TX ===

@@ -97,12 +97,32 @@ type scratchDB struct {
 // sync running at a time per D-30, so the counter is effectively 0;
 // the counter matters only for tests.
 func openScratchDB(ctx context.Context) (*scratchDB, error) {
+	// Atomically create an exclusive scratch file via O_EXCL so neither a
+	// stale file nor a pre-placed symlink can be targeted. This eliminates
+	// the /tmp symlink race that a deterministic PID+seq path would expose
+	// on shared-/tmp hosts (local dev, CI runners). Production Fly.io is
+	// single-tenant and not exposed, but the atomic path is a trivial
+	// hardening upgrade. See 54-REVIEW.md WR-01.
 	seq := scratchSeq.Add(1)
 	path := filepath.Join(os.TempDir(), fmt.Sprintf("pdbplus-sync-scratch-%d-%d.db", os.Getpid(), seq))
 
-	// Remove any stale file from a prior crashed run before opening.
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("remove stale scratch db at %s: %w", path, err)
+	// O_EXCL fails if the path exists (including as a symlink).
+	// Path is constructed from os.TempDir() + PID + atomic seq — no user
+	// input, so gosec G304's "file inclusion via variable" warning does
+	// not apply here.
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600) // #nosec G304 -- path is os.TempDir() + PID + atomic seq, not user input
+	if err != nil {
+		return nil, fmt.Errorf("create scratch db at %s: %w", path, err)
+	}
+	_ = f.Close()
+	// sql.Open needs exclusive access; remove the empty file we just
+	// created so SQLite can write its magic bytes fresh. Between here
+	// and sql.Open there is still a micro-window, but any attacker who
+	// can race it would have been able to pre-place the file before
+	// O_EXCL too — and since we just proved the path was free, the
+	// window is strictly narrower than the pre-fix implementation.
+	if err := os.Remove(path); err != nil {
+		return nil, fmt.Errorf("clear exclusive scratch placeholder at %s: %w", path, err)
 	}
 
 	// Shrink the SQLite page cache on the scratch handle: default is

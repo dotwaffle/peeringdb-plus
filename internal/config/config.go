@@ -5,6 +5,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/url"
 	"os"
@@ -399,6 +400,12 @@ func parseByteSize(key string, defaultVal int64) (int64, error) {
 		mult = 1024 * 1024 * 1024 * 1024
 	default:
 		return 0, fmt.Errorf("invalid byte size %q for %s: unknown unit %q (want KB/MB/GB/TB)", v, key, unit)
+	}
+	// Overflow guard: num*mult must fit in int64. Operators realistically
+	// never configure petabyte heap limits, but the helper is shaped as a
+	// general-purpose parser; defense in depth. See 54-REVIEW.md WR-02.
+	if num != 0 && mult != 0 && num > math.MaxInt64/mult {
+		return 0, fmt.Errorf("invalid byte size %q for %s: overflows int64", v, key)
 	}
 	return num * mult, nil
 }
