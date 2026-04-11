@@ -26,7 +26,7 @@ type Campus implements Node {
   """
   logo: String
   """
-  Campus name
+  Campus name (not unique — PeeringDB permits duplicates)
   """
   name: String!
   """
@@ -412,7 +412,7 @@ type Carrier implements Node {
   """
   logo: String
   """
-  Carrier name
+  Carrier name (not unique — PeeringDB permits duplicates)
   """
   name: String!
   """
@@ -950,7 +950,7 @@ type Facility implements Node {
   """
   longitude: Float
   """
-  Facility name
+  Facility name (not unique — PeeringDB permits duplicates)
   """
   name: String!
   """
@@ -1759,7 +1759,7 @@ type InternetExchange implements Node {
   """
   media: String
   """
-  Internet exchange name
+  Internet exchange name (not unique — PeeringDB permits duplicates)
   """
   name: String!
   """
@@ -2963,7 +2963,7 @@ type IxPrefix implements Node {
   """
   notes: String
   """
-  IP prefix
+  IP prefix (not unique — PeeringDB permits duplicates)
   """
   prefix: String!
   """
@@ -3221,7 +3221,7 @@ type Network implements Node {
   """
   lookingGlass: String
   """
-  Network name
+  Network name (not unique — PeeringDB permits duplicates)
   """
   name: String!
   """

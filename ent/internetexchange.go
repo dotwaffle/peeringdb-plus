@@ -37,7 +37,7 @@ type InternetExchange struct {
 	Logo *string `json:"logo"`
 	// Exchange media type
 	Media string `json:"media"`
-	// Internet exchange name
+	// Internet exchange name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
 	NameLong string `json:"name_long"`

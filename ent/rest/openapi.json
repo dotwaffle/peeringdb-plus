@@ -9020,7 +9020,7 @@
                         "nullable": true
                     },
                     "name": {
-                        "description": "Campus name",
+                        "description": "Campus name (not unique — PeeringDB permits duplicates)",
                         "type": "string"
                     },
                     "name_long": {
@@ -9195,7 +9195,7 @@
                         "nullable": true
                     },
                     "name": {
-                        "description": "Carrier name",
+                        "description": "Carrier name (not unique — PeeringDB permits duplicates)",
                         "type": "string"
                     },
                     "name_long": {
@@ -9783,7 +9783,7 @@
                         "nullable": true
                     },
                     "name": {
-                        "description": "Facility name",
+                        "description": "Facility name (not unique — PeeringDB permits duplicates)",
                         "type": "string"
                     },
                     "name_long": {
@@ -10095,7 +10095,7 @@
                         "default": "Ethernet"
                     },
                     "name": {
-                        "description": "Internet exchange name",
+                        "description": "Internet exchange name (not unique — PeeringDB permits duplicates)",
                         "type": "string"
                     },
                     "name_long": {
@@ -10653,7 +10653,7 @@
                         "default": ""
                     },
                     "prefix": {
-                        "description": "IP prefix",
+                        "description": "IP prefix (not unique — PeeringDB permits duplicates)",
                         "type": "string"
                     },
                     "protocol": {
@@ -10844,7 +10844,7 @@
                         "default": ""
                     },
                     "name": {
-                        "description": "Network name",
+                        "description": "Network name (not unique — PeeringDB permits duplicates)",
                         "type": "string"
                     },
                     "name_long": {

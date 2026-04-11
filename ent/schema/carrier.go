@@ -39,12 +39,11 @@ func (Carrier) Fields() []ent.Field {
 			Comment("Logo URL"),
 		field.String("name").
 			NotEmpty().
-			Unique().
 			Annotations(
 				entgql.OrderField("NAME"),
 				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
 			).
-			Comment("Carrier name"),
+			Comment("Carrier name (not unique — PeeringDB permits duplicates)"),
 		field.String("name_long").
 			Optional().
 			Default("").

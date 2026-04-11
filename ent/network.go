@@ -57,7 +57,7 @@ type Network struct {
 	Logo *string `json:"logo"`
 	// Looking glass URL
 	LookingGlass string `json:"looking_glass"`
-	// Network name
+	// Network name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
 	NameLong string `json:"name_long"`

@@ -6,7 +6,10 @@
     "org": {
       "model_name": "Organization",
       "api_path": "org",
-      "base_classes": ["HandleRefModel", "AddressModel"],
+      "base_classes": [
+        "HandleRefModel",
+        "AddressModel"
+      ],
       "fields": {
         "name": {
           "type": "string",
@@ -16,7 +19,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Organization name (not unique — PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)",
+          "help_text": "Organization name (not unique \u2014 PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)",
           "default": null
         },
         "aka": {
@@ -173,7 +176,10 @@
           "default": null
         }
       },
-      "computed_fields": ["net_count", "fac_count"],
+      "computed_fields": [
+        "net_count",
+        "fac_count"
+      ],
       "relationships": {
         "networks": {
           "target": "net",
@@ -205,7 +211,9 @@
     "net": {
       "model_name": "Network",
       "api_path": "net",
-      "base_classes": ["HandleRefModel"],
+      "base_classes": [
+        "HandleRefModel"
+      ],
       "fields": {
         "org_id": {
           "type": "integer",
@@ -221,11 +229,11 @@
           "type": "string",
           "max_length": 255,
           "required": true,
-          "unique": true,
+          "unique": false,
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Network name",
+          "help_text": "Network name (not unique \u2014 PeeringDB permits duplicates)",
           "default": null
         },
         "aka": {
@@ -511,7 +519,13 @@
           "default": null
         }
       },
-      "computed_fields": ["ix_count", "fac_count", "netixlan_updated", "netfac_updated", "poc_updated"],
+      "computed_fields": [
+        "ix_count",
+        "fac_count",
+        "netixlan_updated",
+        "netfac_updated",
+        "poc_updated"
+      ],
       "relationships": {
         "organization": {
           "target": "org",
@@ -538,7 +552,10 @@
     "fac": {
       "model_name": "Facility",
       "api_path": "fac",
-      "base_classes": ["HandleRefModel", "AddressModel"],
+      "base_classes": [
+        "HandleRefModel",
+        "AddressModel"
+      ],
       "fields": {
         "org_id": {
           "type": "integer",
@@ -564,11 +581,11 @@
           "type": "string",
           "max_length": 255,
           "required": true,
-          "unique": true,
+          "unique": false,
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Facility name",
+          "help_text": "Facility name (not unique \u2014 PeeringDB permits duplicates)",
           "default": null
         },
         "aka": {
@@ -841,7 +858,12 @@
           "default": null
         }
       },
-      "computed_fields": ["org_name", "net_count", "ix_count", "carrier_count"],
+      "computed_fields": [
+        "org_name",
+        "net_count",
+        "ix_count",
+        "carrier_count"
+      ],
       "relationships": {
         "organization": {
           "target": "org",
@@ -858,7 +880,9 @@
     "ix": {
       "model_name": "InternetExchange",
       "api_path": "ix",
-      "base_classes": ["HandleRefModel"],
+      "base_classes": [
+        "HandleRefModel"
+      ],
       "fields": {
         "org_id": {
           "type": "integer",
@@ -874,11 +898,11 @@
           "type": "string",
           "max_length": 64,
           "required": true,
-          "unique": true,
+          "unique": false,
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Internet exchange name",
+          "help_text": "Internet exchange name (not unique \u2014 PeeringDB permits duplicates)",
           "default": null
         },
         "aka": {
@@ -1120,7 +1144,12 @@
           "default": null
         }
       },
-      "computed_fields": ["net_count", "fac_count", "ixf_import_request", "ixf_import_request_status"],
+      "computed_fields": [
+        "net_count",
+        "fac_count",
+        "ixf_import_request",
+        "ixf_import_request_status"
+      ],
       "relationships": {
         "organization": {
           "target": "org",
@@ -1142,7 +1171,9 @@
     "ixlan": {
       "model_name": "IXLan",
       "api_path": "ixlan",
-      "base_classes": ["HandleRefModel"],
+      "base_classes": [
+        "HandleRefModel"
+      ],
       "fields": {
         "ix_id": {
           "type": "integer",
@@ -1251,7 +1282,9 @@
     "ixpfx": {
       "model_name": "IXPrefix",
       "api_path": "ixpfx",
-      "base_classes": ["HandleRefModel"],
+      "base_classes": [
+        "HandleRefModel"
+      ],
       "fields": {
         "ixlan_id": {
           "type": "integer",
@@ -1276,11 +1309,11 @@
         "prefix": {
           "type": "string",
           "required": true,
-          "unique": true,
+          "unique": false,
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "IP prefix",
+          "help_text": "IP prefix (not unique \u2014 PeeringDB permits duplicates)",
           "default": null
         },
         "in_dfz": {
@@ -1315,7 +1348,9 @@
     "ixfac": {
       "model_name": "IXFacility",
       "api_path": "ixfac",
-      "base_classes": ["HandleRefModel"],
+      "base_classes": [
+        "HandleRefModel"
+      ],
       "fields": {
         "ix_id": {
           "type": "integer",
@@ -1338,7 +1373,11 @@
           "references": "fac"
         }
       },
-      "computed_fields": ["name", "city", "country"],
+      "computed_fields": [
+        "name",
+        "city",
+        "country"
+      ],
       "relationships": {
         "internet_exchange": {
           "target": "ix",
@@ -1355,7 +1394,9 @@
     "poc": {
       "model_name": "NetworkContact",
       "api_path": "poc",
-      "base_classes": ["HandleRefModel"],
+      "base_classes": [
+        "HandleRefModel"
+      ],
       "fields": {
         "net_id": {
           "type": "integer",
@@ -1439,7 +1480,9 @@
     "netfac": {
       "model_name": "NetworkFacility",
       "api_path": "netfac",
-      "base_classes": ["HandleRefModel"],
+      "base_classes": [
+        "HandleRefModel"
+      ],
       "fields": {
         "net_id": {
           "type": "integer",
@@ -1471,7 +1514,11 @@
           "default": null
         }
       },
-      "computed_fields": ["name", "city", "country"],
+      "computed_fields": [
+        "name",
+        "city",
+        "country"
+      ],
       "relationships": {
         "network": {
           "target": "net",
@@ -1488,7 +1535,9 @@
     "netixlan": {
       "model_name": "NetworkIXLan",
       "api_path": "netixlan",
-      "base_classes": ["HandleRefModel"],
+      "base_classes": [
+        "HandleRefModel"
+      ],
       "fields": {
         "net_id": {
           "type": "integer",
@@ -1604,7 +1653,10 @@
           "references": "fac"
         }
       },
-      "computed_fields": ["ix_id", "name"],
+      "computed_fields": [
+        "ix_id",
+        "name"
+      ],
       "relationships": {
         "network": {
           "target": "net",
@@ -1621,7 +1673,9 @@
     "carrier": {
       "model_name": "Carrier",
       "api_path": "carrier",
-      "base_classes": ["HandleRefModel"],
+      "base_classes": [
+        "HandleRefModel"
+      ],
       "fields": {
         "org_id": {
           "type": "integer",
@@ -1637,11 +1691,11 @@
           "type": "string",
           "max_length": 255,
           "required": true,
-          "unique": true,
+          "unique": false,
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Carrier name",
+          "help_text": "Carrier name (not unique \u2014 PeeringDB permits duplicates)",
           "default": null
         },
         "aka": {
@@ -1701,7 +1755,10 @@
           "default": null
         }
       },
-      "computed_fields": ["org_name", "fac_count"],
+      "computed_fields": [
+        "org_name",
+        "fac_count"
+      ],
       "relationships": {
         "organization": {
           "target": "org",
@@ -1718,7 +1775,9 @@
     "carrierfac": {
       "model_name": "CarrierFacility",
       "api_path": "carrierfac",
-      "base_classes": ["HandleRefModel"],
+      "base_classes": [
+        "HandleRefModel"
+      ],
       "fields": {
         "carrier_id": {
           "type": "integer",
@@ -1741,7 +1800,9 @@
           "references": "fac"
         }
       },
-      "computed_fields": ["name"],
+      "computed_fields": [
+        "name"
+      ],
       "relationships": {
         "carrier": {
           "target": "carrier",
@@ -1758,7 +1819,9 @@
     "campus": {
       "model_name": "Campus",
       "api_path": "campus",
-      "base_classes": ["HandleRefModel"],
+      "base_classes": [
+        "HandleRefModel"
+      ],
       "fields": {
         "org_id": {
           "type": "integer",
@@ -1774,11 +1837,11 @@
           "type": "string",
           "max_length": 255,
           "required": true,
-          "unique": true,
+          "unique": false,
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Campus name",
+          "help_text": "Campus name (not unique \u2014 PeeringDB permits duplicates)",
           "default": null
         },
         "name_long": {
@@ -1874,7 +1937,9 @@
           "default": null
         }
       },
-      "computed_fields": ["org_name"],
+      "computed_fields": [
+        "org_name"
+      ],
       "relationships": {
         "organization": {
           "target": "org",

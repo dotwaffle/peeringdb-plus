@@ -35,7 +35,7 @@ type CreateCampusParams struct {
 	Country *string `json:"country,omitempty"`
 	// Logo URL
 	Logo *string `json:"logo,omitempty"`
-	// Campus name
+	// Campus name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
 	NameLong *string `json:"name_long,omitempty"`
@@ -124,7 +124,7 @@ type CreateCarrierParams struct {
 	Aka *string `json:"aka,omitempty"`
 	// Logo URL
 	Logo *string `json:"logo,omitempty"`
-	// Carrier name
+	// Carrier name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
 	NameLong *string `json:"name_long,omitempty"`
@@ -269,7 +269,7 @@ type CreateFacilityParams struct {
 	Logo *string `json:"logo,omitempty"`
 	// Longitude
 	Longitude *float64 `json:"longitude,omitempty"`
-	// Facility name
+	// Facility name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
 	NameLong *string `json:"name_long,omitempty"`
@@ -460,7 +460,7 @@ type CreateInternetExchangeParams struct {
 	Logo *string `json:"logo,omitempty"`
 	// Exchange media type
 	Media *string `json:"media,omitempty"`
-	// Internet exchange name
+	// Internet exchange name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
 	NameLong *string `json:"name_long,omitempty"`
@@ -763,7 +763,7 @@ type CreateIxPrefixParams struct {
 	InDfz *bool `json:"in_dfz"`
 	// Notes
 	Notes *string `json:"notes,omitempty"`
-	// IP prefix
+	// IP prefix (not unique — PeeringDB permits duplicates)
 	Prefix string `json:"prefix"`
 	// Protocol (IPv4/IPv6)
 	Protocol *string `json:"protocol,omitempty"`
@@ -846,7 +846,7 @@ type CreateNetworkParams struct {
 	Logo *string `json:"logo,omitempty"`
 	// Looking glass URL
 	LookingGlass *string `json:"looking_glass,omitempty"`
-	// Network name
+	// Network name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
 	NameLong *string `json:"name_long,omitempty"`

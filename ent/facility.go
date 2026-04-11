@@ -50,7 +50,7 @@ type Facility struct {
 	Logo *string `json:"logo"`
 	// Longitude
 	Longitude *float64 `json:"longitude"`
-	// Facility name
+	// Facility name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
 	NameLong string `json:"name_long"`

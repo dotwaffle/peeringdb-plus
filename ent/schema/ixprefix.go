@@ -37,8 +37,7 @@ func (IxPrefix) Fields() []ent.Field {
 			Comment("Notes"),
 		field.String("prefix").
 			NotEmpty().
-			Unique().
-			Comment("IP prefix"),
+			Comment("IP prefix (not unique — PeeringDB permits duplicates)"),
 		field.String("protocol").
 			Optional().
 			Default("").

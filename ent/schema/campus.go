@@ -49,12 +49,11 @@ func (Campus) Fields() []ent.Field {
 			Comment("Logo URL"),
 		field.String("name").
 			NotEmpty().
-			Unique().
 			Annotations(
 				entgql.OrderField("NAME"),
 				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
 			).
-			Comment("Campus name"),
+			Comment("Campus name (not unique — PeeringDB permits duplicates)"),
 		field.String("name_long").
 			Optional().
 			Nillable().

@@ -35,7 +35,7 @@ type UpdateCampusParams struct {
 	Country Option[string] `json:"country,omitempty"`
 	// Logo URL
 	Logo Option[*string] `json:"logo,omitempty"`
-	// Campus name
+	// Campus name (not unique — PeeringDB permits duplicates)
 	Name Option[string] `json:"name"`
 	// Long name
 	NameLong Option[*string] `json:"name_long,omitempty"`
@@ -142,7 +142,7 @@ type UpdateCarrierParams struct {
 	Aka Option[string] `json:"aka,omitempty"`
 	// Logo URL
 	Logo Option[*string] `json:"logo,omitempty"`
-	// Carrier name
+	// Carrier name (not unique — PeeringDB permits duplicates)
 	Name Option[string] `json:"name"`
 	// Long name
 	NameLong Option[string] `json:"name_long,omitempty"`
@@ -305,7 +305,7 @@ type UpdateFacilityParams struct {
 	Logo Option[*string] `json:"logo,omitempty"`
 	// Longitude
 	Longitude Option[*float64] `json:"longitude,omitempty"`
-	// Facility name
+	// Facility name (not unique — PeeringDB permits duplicates)
 	Name Option[string] `json:"name"`
 	// Long name
 	NameLong Option[string] `json:"name_long,omitempty"`
@@ -534,7 +534,7 @@ type UpdateInternetExchangeParams struct {
 	Logo Option[*string] `json:"logo,omitempty"`
 	// Exchange media type
 	Media Option[string] `json:"media,omitempty"`
-	// Internet exchange name
+	// Internet exchange name (not unique — PeeringDB permits duplicates)
 	Name Option[string] `json:"name"`
 	// Long name
 	NameLong Option[string] `json:"name_long,omitempty"`
@@ -879,7 +879,7 @@ type UpdateIxPrefixParams struct {
 	InDfz Option[bool] `json:"in_dfz"`
 	// Notes
 	Notes Option[string] `json:"notes,omitempty"`
-	// IP prefix
+	// IP prefix (not unique — PeeringDB permits duplicates)
 	Prefix Option[string] `json:"prefix"`
 	// Protocol (IPv4/IPv6)
 	Protocol Option[string] `json:"protocol,omitempty"`
@@ -968,7 +968,7 @@ type UpdateNetworkParams struct {
 	Logo Option[*string] `json:"logo,omitempty"`
 	// Looking glass URL
 	LookingGlass Option[string] `json:"looking_glass,omitempty"`
-	// Network name
+	// Network name (not unique — PeeringDB permits duplicates)
 	Name Option[string] `json:"name"`
 	// Long name
 	NameLong Option[string] `json:"name_long,omitempty"`

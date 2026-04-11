@@ -94,12 +94,11 @@ func (Network) Fields() []ent.Field {
 			Comment("Looking glass URL"),
 		field.String("name").
 			NotEmpty().
-			Unique().
 			Annotations(
 				entgql.OrderField("NAME"),
 				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
 			).
-			Comment("Network name"),
+			Comment("Network name (not unique — PeeringDB permits duplicates)"),
 		field.String("name_long").
 			Optional().
 			Default("").
