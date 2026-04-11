@@ -5,15 +5,19 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/ent/enttest"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
 	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
@@ -1939,35 +1943,43 @@ func TestStreamNetworksCancellation(t *testing.T) {
 func TestStreamNetworksSinceId(t *testing.T) {
 	t.Parallel()
 
+	// PERF-06: delta streams (SinceID set) omit the grpc-total-count header
+	// entirely. wantCount is "" on every subtest because header absence is the
+	// wire contract. The "since_id zero" subtest also expects absence: the
+	// StreamEntities guard is a pointer-nil check (params.SinceID == nil), so a
+	// non-nil *int64 pointing at 0 still counts as "delta filter set". The
+	// "same as omitted" phrasing in the test name refers to result-row
+	// equivalence (3 rows returned), not header equivalence.
 	tests := []struct {
 		name      string
 		req       *pb.StreamNetworksRequest
 		wantLen   int
-		wantCount string
+		wantCount string // PERF-06: "" means header absent on delta streams.
 	}{
 		{
 			name:      "since_id returns records after given ID",
 			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(1)},
 			wantLen:   2,
-			wantCount: "2",
+			wantCount: "",
 		},
 		{
 			name:      "since_id beyond max returns empty",
 			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(9999)},
 			wantLen:   0,
-			wantCount: "0",
+			wantCount: "",
 		},
 		{
 			name:      "since_id with status filter composes via AND",
 			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(1), Status: proto.String("ok")},
 			wantLen:   1,
-			wantCount: "1",
+			wantCount: "",
 		},
 		{
+			// Header absent because SinceId pointer is non-nil regardless of value.
 			name:      "since_id zero returns all (same as omitted)",
 			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(0)},
 			wantLen:   3,
-			wantCount: "3",
+			wantCount: "",
 		},
 	}
 
@@ -1998,13 +2010,15 @@ func TestStreamNetworksSinceId(t *testing.T) {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
 
-			// Check response header for total count.
+			// Check response header for total count. PERF-06: delta streams
+			// must omit the header entirely — wantCount is "" for every case
+			// in this test, asserting absence.
 			got := stream.ResponseHeader().Get("Grpc-Total-Count")
 			if got == "" {
 				got = stream.ResponseHeader().Get("grpc-total-count")
 			}
 			if got != tt.wantCount {
-				t.Errorf("grpc-total-count = %q, want %q", got, tt.wantCount)
+				t.Errorf("grpc-total-count = %q, want absent (delta stream)", got)
 			}
 		})
 	}
@@ -2013,11 +2027,15 @@ func TestStreamNetworksSinceId(t *testing.T) {
 func TestStreamNetworksUpdatedSince(t *testing.T) {
 	t.Parallel()
 
+	// PERF-06: delta streams (UpdatedSince set) omit the grpc-total-count
+	// header entirely. wantCount is "" on every subtest — including the
+	// combined SinceId+UpdatedSince case — because header absence is the
+	// wire contract whenever either delta filter pointer is non-nil.
 	tests := []struct {
 		name      string
 		req       *pb.StreamNetworksRequest
 		wantLen   int
-		wantCount string
+		wantCount string // PERF-06: "" means header absent on delta streams.
 	}{
 		{
 			name: "updated_since before seed time returns all",
@@ -2025,7 +2043,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 				UpdatedSince: timestamppb.New(time.Date(2026, 1, 14, 0, 0, 0, 0, time.UTC)),
 			},
 			wantLen:   3,
-			wantCount: "3",
+			wantCount: "",
 		},
 		{
 			name: "updated_since after seed time returns none",
@@ -2033,7 +2051,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 				UpdatedSince: timestamppb.New(time.Date(2026, 1, 16, 0, 0, 0, 0, time.UTC)),
 			},
 			wantLen:   0,
-			wantCount: "0",
+			wantCount: "",
 		},
 		{
 			name: "updated_since with status filter composes via AND",
@@ -2042,7 +2060,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 				Status:       proto.String("ok"),
 			},
 			wantLen:   2,
-			wantCount: "2",
+			wantCount: "",
 		},
 		{
 			name: "since_id and updated_since compose together",
@@ -2051,7 +2069,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 				UpdatedSince: timestamppb.New(time.Date(2026, 1, 14, 0, 0, 0, 0, time.UTC)),
 			},
 			wantLen:   2,
-			wantCount: "2",
+			wantCount: "",
 		},
 	}
 
@@ -2082,15 +2100,120 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
 
-			// Check response header for total count.
+			// Check response header for total count. PERF-06: delta streams
+			// must omit the header entirely — wantCount is "" for every case
+			// in this test, asserting absence.
 			got := stream.ResponseHeader().Get("Grpc-Total-Count")
 			if got == "" {
 				got = stream.ResponseHeader().Get("grpc-total-count")
 			}
 			if got != tt.wantCount {
-				t.Errorf("grpc-total-count = %q, want %q", got, tt.wantCount)
+				t.Errorf("grpc-total-count = %q, want absent (delta stream)", got)
 			}
 		})
+	}
+}
+
+// countStmtRE matches any SQL statement that contains SELECT COUNT( (any
+// whitespace, case-insensitive). Used by TestStream_SkipCountOnDelta to assert
+// no COUNT(*) preflight was issued on delta streams.
+var countStmtRE = regexp.MustCompile(`(?i)select\s+count\(`)
+
+// TestStream_SkipCountOnDelta is the load-bearing PERF-06 assertion: on a
+// StreamNetworks RPC with SinceId set, StreamEntities must NOT issue a
+// SELECT COUNT(*) query and must NOT write the grpc-total-count response
+// header. Verified via ent's dialect.Debug() driver wrapper capturing every
+// Exec/Query SQL string and a post-stream scan for any COUNT(...) shape.
+func TestStream_SkipCountOnDelta(t *testing.T) {
+	t.Parallel()
+
+	// Capture every SQL statement the ent driver issues during the stream.
+	// dialect.Debug wraps the underlying driver and forwards every Exec/Query
+	// call through the log function as a formatted "driver.Query: query=... args=..."
+	// string. A mutex guards concurrent writes because ent may issue queries
+	// from goroutines spawned inside the connect handler.
+	var (
+		mu       sync.Mutex
+		captured []string
+	)
+	logFn := func(args ...any) {
+		mu.Lock()
+		defer mu.Unlock()
+		captured = append(captured, fmt.Sprint(args...))
+	}
+
+	// Build an ent client whose driver is wrapped in dialect.Debug. Fresh DSN
+	// per test run so we stay hermetic under t.Parallel().
+	dsn := fmt.Sprintf("file:test_skipcount_%d?mode=memory&cache=shared&_pragma=foreign_keys(1)",
+		time.Now().UnixNano())
+	entClient := enttest.Open(t,
+		dialect.SQLite,
+		dsn,
+		enttest.WithOptions(ent.Debug(), ent.Log(logFn)),
+	)
+	t.Cleanup(func() { _ = entClient.Close() })
+
+	seedStreamNetworks(t, entClient)
+
+	// Reset capture AFTER seeding — seed inserts are noise, we only care about
+	// the SQL emitted by the stream handler itself.
+	mu.Lock()
+	captured = captured[:0]
+	mu.Unlock()
+
+	rpcClient := setupStreamTestServer(t, entClient)
+	ctx := t.Context()
+
+	stream, err := rpcClient.StreamNetworks(ctx, &pb.StreamNetworksRequest{
+		SinceId: proto.Int64(1),
+	})
+	if err != nil {
+		t.Fatalf("StreamNetworks returned error: %v", err)
+	}
+
+	// Drain the stream fully so every driver op is captured before asserting.
+	var got int
+	for stream.Receive() {
+		if stream.Msg() == nil {
+			t.Fatal("received nil message from stream")
+		}
+		got++
+	}
+	if streamErr := stream.Err(); streamErr != nil {
+		t.Fatalf("stream error: %v", streamErr)
+	}
+
+	// Snapshot the captured slice under the mutex.
+	mu.Lock()
+	stmts := make([]string, len(captured))
+	copy(stmts, captured)
+	mu.Unlock()
+
+	// PERF-06 assertion 1: no SELECT COUNT( statement was issued at all.
+	for _, stmt := range stmts {
+		if countStmtRE.MatchString(stmt) {
+			t.Errorf("delta stream issued a COUNT(*) preflight, PERF-06 violation: %s", stmt)
+		}
+	}
+
+	// PERF-06 assertion 2: the grpc-total-count header is absent in both
+	// canonical and lowercase forms.
+	if h := stream.ResponseHeader().Get("Grpc-Total-Count"); h != "" {
+		t.Errorf("Grpc-Total-Count = %q, want absent on delta stream", h)
+	}
+	if h := stream.ResponseHeader().Get("grpc-total-count"); h != "" {
+		t.Errorf("grpc-total-count = %q, want absent on delta stream", h)
+	}
+
+	// Sanity: the stream still returned the expected rows (ids 2 and 3).
+	if got != 2 {
+		t.Errorf("got %d messages, want 2 (rows after id=1)", got)
+	}
+
+	// Sanity: the capture hook actually fired for the stream — otherwise the
+	// negative assertion above would be vacuously true.
+	if len(stmts) == 0 {
+		t.Fatal("query log captured zero statements; debug wrapper not wired correctly")
 	}
 }
 
