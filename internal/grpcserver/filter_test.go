@@ -434,12 +434,8 @@ func TestNonEmptyString(t *testing.T) {
 // individually — the combination catches both missing entries (count
 // drift) and wrong extractors (behavior test failure).
 //
-// Wave 2 gating: Plan 56-02 migrated only 6 of 13 entities. Subtests for
-// the 7 unmigrated entities (network, facility, internetexchange, ixlan,
-// campus, organization, networkixlan) are skipped. Plan 56-03 will
-// delete the migratedEntities map and the skip branch once the remaining
-// 7 entities are migrated, flipping the gate to enforce full 13/13
-// coverage.
+// As of Plan 56-03, all 13 entities are migrated and the gate enforces
+// full 13/13 coverage with zero skips.
 // =======================================================================
 
 // paginationFields are excluded from per-entity filter coverage. page_size
@@ -456,26 +452,14 @@ var paginationFields = map[string]struct{}{
 	"request_id":    {},
 }
 
-// migratedEntities gates TestAllFilterFieldsExercised during Plan 56-02.
-// Only the 6 migrated entities are enforced. Plan 56-03 will delete this
-// map and the skip branch below, enforcing full 13-entity coverage.
-var migratedEntities = map[string]bool{
-	"carrierfacility": true,
-	"ixprefix":        true,
-	"ixfacility":      true,
-	"poc":             true,
-	"networkfacility": true,
-	"carrier":         true,
-}
-
-// entityFilterSpec couples a proto request type with the (possibly
-// migrated) filter-slice length that should match its descriptor count.
+// entityFilterSpec couples a proto request type with the filter-slice
+// length that should match its descriptor count.
 type entityFilterSpec struct {
 	name          string
 	listReq       protoreflect.Message
 	streamReq     protoreflect.Message
-	listFilters   int // len of the migrated xListFilters slice, or -1 if not migrated
-	streamFilters int // len of the migrated xStreamFilters slice, or -1 if not migrated
+	listFilters   int // len of the xListFilters slice
+	streamFilters int // len of the xStreamFilters slice
 }
 
 func allEntityFilterSpecs() []entityFilterSpec {
@@ -484,22 +468,22 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			name:          "network",
 			listReq:       (&pb.ListNetworksRequest{}).ProtoReflect(),
 			streamReq:     (&pb.StreamNetworksRequest{}).ProtoReflect(),
-			listFilters:   -1, // not migrated yet (Plan 56-03)
-			streamFilters: -1,
+			listFilters:   len(networkListFilters),
+			streamFilters: len(networkStreamFilters),
 		},
 		{
 			name:          "facility",
 			listReq:       (&pb.ListFacilitiesRequest{}).ProtoReflect(),
 			streamReq:     (&pb.StreamFacilitiesRequest{}).ProtoReflect(),
-			listFilters:   -1,
-			streamFilters: -1,
+			listFilters:   len(facilityListFilters),
+			streamFilters: len(facilityStreamFilters),
 		},
 		{
 			name:          "internetexchange",
 			listReq:       (&pb.ListInternetExchangesRequest{}).ProtoReflect(),
 			streamReq:     (&pb.StreamInternetExchangesRequest{}).ProtoReflect(),
-			listFilters:   -1,
-			streamFilters: -1,
+			listFilters:   len(internetExchangeListFilters),
+			streamFilters: len(internetExchangeStreamFilters),
 		},
 		{
 			name:          "ixfacility",
@@ -512,8 +496,8 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			name:          "ixlan",
 			listReq:       (&pb.ListIxLansRequest{}).ProtoReflect(),
 			streamReq:     (&pb.StreamIxLansRequest{}).ProtoReflect(),
-			listFilters:   -1,
-			streamFilters: -1,
+			listFilters:   len(ixLanListFilters),
+			streamFilters: len(ixLanStreamFilters),
 		},
 		{
 			name:          "ixprefix",
@@ -533,8 +517,8 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			name:          "networkixlan",
 			listReq:       (&pb.ListNetworkIxLansRequest{}).ProtoReflect(),
 			streamReq:     (&pb.StreamNetworkIxLansRequest{}).ProtoReflect(),
-			listFilters:   -1,
-			streamFilters: -1,
+			listFilters:   len(networkIxLanListFilters),
+			streamFilters: len(networkIxLanStreamFilters),
 		},
 		{
 			name:          "carrier",
@@ -554,15 +538,15 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			name:          "campus",
 			listReq:       (&pb.ListCampusesRequest{}).ProtoReflect(),
 			streamReq:     (&pb.StreamCampusesRequest{}).ProtoReflect(),
-			listFilters:   -1,
-			streamFilters: -1,
+			listFilters:   len(campusListFilters),
+			streamFilters: len(campusStreamFilters),
 		},
 		{
 			name:          "organization",
 			listReq:       (&pb.ListOrganizationsRequest{}).ProtoReflect(),
 			streamReq:     (&pb.StreamOrganizationsRequest{}).ProtoReflect(),
-			listFilters:   -1,
-			streamFilters: -1,
+			listFilters:   len(organizationListFilters),
+			streamFilters: len(organizationStreamFilters),
 		},
 		{
 			name:          "poc",
@@ -605,9 +589,6 @@ func TestAllFilterFieldsExercised(t *testing.T) {
 		spec := spec // capture for subtest closure
 		t.Run(spec.name, func(t *testing.T) {
 			t.Parallel()
-			if !migratedEntities[spec.name] {
-				t.Skipf("%s not yet migrated to filterFn tables; Plan 56-03 will enable coverage assertion", spec.name)
-			}
 			wantList := countFilterableFields(spec.listReq)
 			if spec.listFilters != wantList {
 				t.Errorf("%sListFilters: got %d entries, want %d (reflected from %s ListRequest proto descriptor); a new field was likely added without a filter table entry",
