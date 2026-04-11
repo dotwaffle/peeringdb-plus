@@ -63,14 +63,38 @@ type WorkerConfig struct {
 
 // Worker orchestrates PeeringDB data synchronization.
 type Worker struct {
-	pdbClient      *peeringdb.Client
-	entClient      *ent.Client
-	db             *sql.DB // underlying sql.DB for sync_status table
-	config         WorkerConfig
-	running        atomic.Bool
-	synced         atomic.Bool    // true after first successful sync (D-30)
-	logger         *slog.Logger
-	retryBackoffs  []time.Duration // per D-21; defaults to 30s, 2m, 8m
+	pdbClient     *peeringdb.Client
+	entClient     *ent.Client
+	db            *sql.DB // underlying sql.DB for sync_status table
+	config        WorkerConfig
+	running       atomic.Bool
+	synced        atomic.Bool     // true after first successful sync (D-30)
+	logger        *slog.Logger
+	retryBackoffs []time.Duration // per D-21; defaults to 30s, 2m, 8m
+	// fkRegistry maps parent type name to the set of IDs successfully
+	// upserted during the current Phase B. Populated by recordIDs
+	// callbacks from dispatchScratchChunk as parent types land (org,
+	// fac, net, ...); consumed by fkFilter closures on downstream child
+	// types (netixlan, poc, ...) so rows referencing an orphaned parent
+	// are dropped before the upsert rather than rolled back at commit.
+	//
+	// PeeringDB's public /api/{type}?depth=0 responses occasionally
+	// contain child rows whose parent rows are suppressed server-side
+	// (deleted orgs still referenced by live nets, etc). Without this
+	// registry, Phase 54's defer_foreign_keys=ON commit check rejects
+	// the entire sync transaction. See v1.13 Phase 54-FK-ORPHAN notes.
+	//
+	// Reset by resetFKState at the start of each Sync run. Single-writer
+	// because Worker.running serialises concurrent Sync calls.
+	fkRegistry map[string]map[int]struct{}
+	// fkSkippedIDs maps type name to the set of row IDs that were
+	// dropped by the upsert-time fkFilter. Used by syncUpsertPass to
+	// subtract these from remoteIDsByType before the delete pass runs,
+	// so any previously-inserted row whose FK is now orphaned is
+	// cleaned up (avoids a parent-delete-while-child-remains FK
+	// violation at commit in steady-state syncs). Reset alongside
+	// fkRegistry in resetFKState.
+	fkSkippedIDs map[string]map[int]struct{}
 }
 
 // NewWorker creates a new sync worker.
@@ -93,6 +117,63 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 // SetRetryBackoffs overrides the default retry backoff durations. Intended for testing.
 func (w *Worker) SetRetryBackoffs(backoffs []time.Duration) {
 	w.retryBackoffs = backoffs
+}
+
+// resetFKState clears the per-sync FK registry and skipped-ID tracker.
+// Called at the start of each Sync run so downstream fkFilter closures
+// see a clean slate — the previous run's parent IDs are irrelevant to
+// the next run's orphan detection.
+func (w *Worker) resetFKState() {
+	w.fkRegistry = make(map[string]map[int]struct{}, 13)
+	w.fkSkippedIDs = make(map[string]map[int]struct{}, 13)
+}
+
+// fkRegisterIDs records successfully-upserted IDs for the named parent
+// type so child types processed later in Phase B can validate their FK
+// references against this set. Safe to call with an empty slice.
+func (w *Worker) fkRegisterIDs(typeName string, ids []int) {
+	set, ok := w.fkRegistry[typeName]
+	if !ok {
+		set = make(map[int]struct{}, len(ids))
+		w.fkRegistry[typeName] = set
+	}
+	for _, id := range ids {
+		set[id] = struct{}{}
+	}
+}
+
+// fkHasParent reports whether the given ID is registered for the named
+// parent type. An id of zero is treated as a null/unset FK and passes
+// through unchanged — ent's schema nullability is the source of truth
+// for whether zero/null is actually allowed on the column. If the
+// parent set is missing entirely (parent type not yet upserted) the
+// row is allowed through on the assumption that syncSteps is in
+// parent-first FK order and a missing entry represents a programming
+// mistake that should surface at commit rather than silently drop data.
+func (w *Worker) fkHasParent(typeName string, id int) bool {
+	if id == 0 {
+		return true
+	}
+	set, ok := w.fkRegistry[typeName]
+	if !ok {
+		return true
+	}
+	_, ok = set[id]
+	return ok
+}
+
+// fkMarkSkipped records that the given child ID was dropped by the
+// upsert-time fkFilter. syncUpsertPass subtracts these IDs from
+// remoteIDsByType before the delete pass so any previously-inserted
+// row with the same ID is cleaned up, preventing a
+// parent-delete-while-child-remains FK violation on the next commit.
+func (w *Worker) fkMarkSkipped(typeName string, id int) {
+	set, ok := w.fkSkippedIDs[typeName]
+	if !ok {
+		set = make(map[int]struct{})
+		w.fkSkippedIDs[typeName] = set
+	}
+	set[id] = struct{}{}
 }
 
 // syncStep defines a single step in the sync process. Upserts run in
@@ -510,6 +591,11 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 	remoteIDsByType map[string][]int,
 	err error,
 ) {
+	// Reset the per-sync FK orphan-filter state before the first
+	// dispatchScratchChunk call populates it. Kept here rather than in
+	// Sync so the Sync body stays within the REFAC-03 100-line budget
+	// enforced by TestWorkerSync_LineBudget.
+	w.resetFKState()
 	steps := w.syncSteps()
 	objectCounts = make(map[string]int, len(steps))
 	remoteIDsByType = make(map[string][]int, len(steps))
@@ -539,10 +625,24 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 		// the delete pass. Incremental batches are a delta only — skip
 		// delete. The remote IDs are read from scratch directly so the
 		// ID set does not inflate Go heap during the upsert phase.
+		//
+		// Subtract any IDs dropped by the upsert-time fkFilter so the
+		// delete pass picks up previously-inserted rows whose FK is now
+		// orphaned — this prevents parent-delete-while-child-remains FK
+		// violations at commit in steady-state syncs.
 		if !fromIncremental[step.name] {
 			ids, idErr := w.collectScratchIDs(ctx, scratch, step.name)
 			if idErr != nil {
 				return nil, nil, fmt.Errorf("collect remote ids %s: %w", step.name, idErr)
+			}
+			if skipped := w.fkSkippedIDs[step.name]; len(skipped) > 0 {
+				filtered := ids[:0]
+				for _, id := range ids {
+					if _, drop := skipped[id]; !drop {
+						filtered = append(filtered, id)
+					}
+				}
+				ids = filtered
 			}
 			remoteIDsByType[step.name] = ids
 		}
@@ -675,9 +775,23 @@ func filterByStatus[E any](items []E, getStatus func(E) string) []E {
 // function per GO-CS-6. objectType is used for error-wrap context;
 // getStatus extracts the deleted-status filter key from an element;
 // upsert performs the bulk upsert inside the caller's ent.Tx.
+//
+// fkFilter, when non-nil, is called per row after the deleted-status
+// filter and before the upsert. The row pointer lets the closure
+// mutate nullable FK fields in place (e.g. null out an orphaned
+// campus_id on a facility so the facility row itself is kept). When
+// the closure returns false the row is dropped from the chunk and
+// the caller MUST call fkMarkSkipped on its id so the delete pass
+// can reconcile any previously-inserted row with the same id.
+//
+// recordIDs, when non-nil, is called with the []int returned by the
+// upsert closure so downstream child types can validate their FK
+// references against the parent set (see Worker.fkRegisterIDs).
 type syncIncrementalInput[E any] struct {
 	objectType string
 	getStatus  func(E) string
+	fkFilter   func(*E) bool
+	recordIDs  func(ids []int)
 	upsert     func(ctx context.Context, tx *ent.Tx, items []E) ([]int, error)
 }
 
@@ -716,8 +830,21 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 	if !includeDeleted {
 		items = filterByStatus(items, in.getStatus)
 	}
-	if _, err := in.upsert(ctx, tx, items); err != nil {
+	if in.fkFilter != nil {
+		kept := make([]E, 0, len(items))
+		for i := range items {
+			if in.fkFilter(&items[i]) {
+				kept = append(kept, items[i])
+			}
+		}
+		items = kept
+	}
+	insertedIDs, err := in.upsert(ctx, tx, items)
+	if err != nil {
 		return 0, fmt.Errorf("upsert %s: %w", in.objectType, err)
+	}
+	if in.recordIDs != nil {
+		in.recordIDs(insertedIDs)
 	}
 	return len(items), nil
 }
@@ -726,45 +853,225 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 // PeeringDB type through the generic syncIncremental[E] helper. This
 // is the single dispatch point for the 13 closed-set entity types —
 // each case binds the concrete type E plus its per-type status accessor
-// and upsert helper in one line, then calls the generic.
+// and upsert helper, then calls the generic.
 //
 // REFAC-04 (Commit E): this 13-arm dispatch replaces the two separate
 // 13-arm type-switches that used to live in decodeScratchChunk and
 // upsertOneType. Adding a new PeeringDB type now requires a single
-// one-line case entry here (and the corresponding entry in syncSteps /
+// case entry here (and the corresponding entry in syncSteps /
 // scratchTypes). Removing or reordering cases must stay in lockstep
 // with syncSteps() to preserve FK dependency ordering.
+//
+// v1.13 FK orphan filter: cases for child types supply a fkFilter
+// closure that checks each incoming row's FK references against the
+// parent sets populated by earlier syncIncremental.recordIDs
+// callbacks. Rows whose parents are missing are dropped and logged,
+// and their IDs are recorded via fkMarkSkipped so the delete pass can
+// clean up any previously-inserted row with the same ID. This handles
+// PeeringDB snapshots that expose live children pointing at
+// server-side-suppressed parents (e.g. NTT America carrier → org).
 func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name string, rows []scratchRow) (int, error) {
 	includeDeleted := w.config.IncludeDeleted
 	switch name {
 	case peeringdb.TypeOrg:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Organization]{objectType: name, getStatus: func(v peeringdb.Organization) string { return v.Status }, upsert: upsertOrganizations}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Organization]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Organization) string { return v.Status },
+			recordIDs:  func(ids []int) { w.fkRegisterIDs(peeringdb.TypeOrg, ids) },
+			upsert:     upsertOrganizations,
+		}, rows, includeDeleted)
 	case peeringdb.TypeCampus:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Campus]{objectType: name, getStatus: func(v peeringdb.Campus) string { return v.Status }, upsert: upsertCampuses}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Campus]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Campus) string { return v.Status },
+			fkFilter: func(v *peeringdb.Campus) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeCampus, v.ID,
+					peeringdb.TypeOrg, v.OrgID, "org_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCampus, ids) },
+			upsert:    upsertCampuses,
+		}, rows, includeDeleted)
 	case peeringdb.TypeFac:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Facility]{objectType: name, getStatus: func(v peeringdb.Facility) string { return v.Status }, upsert: upsertFacilities}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Facility]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Facility) string { return v.Status },
+			fkFilter: func(v *peeringdb.Facility) bool {
+				if !w.fkCheckParent(ctx, peeringdb.TypeFac, v.ID,
+					peeringdb.TypeOrg, v.OrgID, "org_id") {
+					return false
+				}
+				// campus_id is Optional().Nillable() in the ent
+				// schema — if the referenced campus is missing,
+				// null the reference out and keep the facility
+				// (avoids cascading the drop through netfac /
+				// ixfac / carrierfac children of the facility).
+				if v.CampusID != nil && !w.fkHasParent(peeringdb.TypeCampus, *v.CampusID) {
+					w.logger.LogAttrs(ctx, slog.LevelWarn, "nulling orphan FK",
+						slog.String("child_type", peeringdb.TypeFac),
+						slog.Int("child_id", v.ID),
+						slog.String("field", "campus_id"),
+						slog.Int("orphan_parent_id", *v.CampusID),
+					)
+					v.CampusID = nil
+				}
+				return true
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeFac, ids) },
+			upsert:    upsertFacilities,
+		}, rows, includeDeleted)
 	case peeringdb.TypeCarrier:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Carrier]{objectType: name, getStatus: func(v peeringdb.Carrier) string { return v.Status }, upsert: upsertCarriers}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Carrier]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Carrier) string { return v.Status },
+			fkFilter: func(v *peeringdb.Carrier) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeCarrier, v.ID,
+					peeringdb.TypeOrg, v.OrgID, "org_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCarrier, ids) },
+			upsert:    upsertCarriers,
+		}, rows, includeDeleted)
 	case peeringdb.TypeCarrierFac:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.CarrierFacility]{objectType: name, getStatus: func(v peeringdb.CarrierFacility) string { return v.Status }, upsert: upsertCarrierFacilities}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.CarrierFacility]{
+			objectType: name,
+			getStatus:  func(v peeringdb.CarrierFacility) string { return v.Status },
+			fkFilter: func(v *peeringdb.CarrierFacility) bool {
+				if !w.fkCheckParent(ctx, peeringdb.TypeCarrierFac, v.ID,
+					peeringdb.TypeCarrier, v.CarrierID, "carrier_id") {
+					return false
+				}
+				return w.fkCheckParent(ctx, peeringdb.TypeCarrierFac, v.ID,
+					peeringdb.TypeFac, v.FacID, "fac_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCarrierFac, ids) },
+			upsert:    upsertCarrierFacilities,
+		}, rows, includeDeleted)
 	case peeringdb.TypeIX:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.InternetExchange]{objectType: name, getStatus: func(v peeringdb.InternetExchange) string { return v.Status }, upsert: upsertInternetExchanges}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.InternetExchange]{
+			objectType: name,
+			getStatus:  func(v peeringdb.InternetExchange) string { return v.Status },
+			fkFilter: func(v *peeringdb.InternetExchange) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeIX, v.ID,
+					peeringdb.TypeOrg, v.OrgID, "org_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIX, ids) },
+			upsert:    upsertInternetExchanges,
+		}, rows, includeDeleted)
 	case peeringdb.TypeIXLan:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxLan]{objectType: name, getStatus: func(v peeringdb.IxLan) string { return v.Status }, upsert: upsertIxLans}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxLan]{
+			objectType: name,
+			getStatus:  func(v peeringdb.IxLan) string { return v.Status },
+			fkFilter: func(v *peeringdb.IxLan) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeIXLan, v.ID,
+					peeringdb.TypeIX, v.IXID, "ix_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXLan, ids) },
+			upsert:    upsertIxLans,
+		}, rows, includeDeleted)
 	case peeringdb.TypeIXPfx:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxPrefix]{objectType: name, getStatus: func(v peeringdb.IxPrefix) string { return v.Status }, upsert: upsertIxPrefixes}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxPrefix]{
+			objectType: name,
+			getStatus:  func(v peeringdb.IxPrefix) string { return v.Status },
+			fkFilter: func(v *peeringdb.IxPrefix) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeIXPfx, v.ID,
+					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXPfx, ids) },
+			upsert:    upsertIxPrefixes,
+		}, rows, includeDeleted)
 	case peeringdb.TypeIXFac:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxFacility]{objectType: name, getStatus: func(v peeringdb.IxFacility) string { return v.Status }, upsert: upsertIxFacilities}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxFacility]{
+			objectType: name,
+			getStatus:  func(v peeringdb.IxFacility) string { return v.Status },
+			fkFilter: func(v *peeringdb.IxFacility) bool {
+				if !w.fkCheckParent(ctx, peeringdb.TypeIXFac, v.ID,
+					peeringdb.TypeIX, v.IXID, "ix_id") {
+					return false
+				}
+				return w.fkCheckParent(ctx, peeringdb.TypeIXFac, v.ID,
+					peeringdb.TypeFac, v.FacID, "fac_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXFac, ids) },
+			upsert:    upsertIxFacilities,
+		}, rows, includeDeleted)
 	case peeringdb.TypeNet:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Network]{objectType: name, getStatus: func(v peeringdb.Network) string { return v.Status }, upsert: upsertNetworks}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Network]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Network) string { return v.Status },
+			fkFilter: func(v *peeringdb.Network) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeNet, v.ID,
+					peeringdb.TypeOrg, v.OrgID, "org_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNet, ids) },
+			upsert:    upsertNetworks,
+		}, rows, includeDeleted)
 	case peeringdb.TypePoc:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Poc]{objectType: name, getStatus: func(v peeringdb.Poc) string { return v.Status }, upsert: upsertPocs}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Poc]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Poc) string { return v.Status },
+			fkFilter: func(v *peeringdb.Poc) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypePoc, v.ID,
+					peeringdb.TypeNet, v.NetID, "net_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypePoc, ids) },
+			upsert:    upsertPocs,
+		}, rows, includeDeleted)
 	case peeringdb.TypeNetFac:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkFacility]{objectType: name, getStatus: func(v peeringdb.NetworkFacility) string { return v.Status }, upsert: upsertNetworkFacilities}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkFacility]{
+			objectType: name,
+			getStatus:  func(v peeringdb.NetworkFacility) string { return v.Status },
+			fkFilter: func(v *peeringdb.NetworkFacility) bool {
+				if !w.fkCheckParent(ctx, peeringdb.TypeNetFac, v.ID,
+					peeringdb.TypeNet, v.NetID, "net_id") {
+					return false
+				}
+				return w.fkCheckParent(ctx, peeringdb.TypeNetFac, v.ID,
+					peeringdb.TypeFac, v.FacID, "fac_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetFac, ids) },
+			upsert:    upsertNetworkFacilities,
+		}, rows, includeDeleted)
 	case peeringdb.TypeNetIXLan:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkIxLan]{objectType: name, getStatus: func(v peeringdb.NetworkIxLan) string { return v.Status }, upsert: upsertNetworkIxLans}, rows, includeDeleted)
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkIxLan]{
+			objectType: name,
+			getStatus:  func(v peeringdb.NetworkIxLan) string { return v.Status },
+			fkFilter: func(v *peeringdb.NetworkIxLan) bool {
+				if !w.fkCheckParent(ctx, peeringdb.TypeNetIXLan, v.ID,
+					peeringdb.TypeNet, v.NetID, "net_id") {
+					return false
+				}
+				if !w.fkCheckParent(ctx, peeringdb.TypeNetIXLan, v.ID,
+					peeringdb.TypeIX, v.IXID, "ix_id") {
+					return false
+				}
+				return w.fkCheckParent(ctx, peeringdb.TypeNetIXLan, v.ID,
+					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetIXLan, ids) },
+			upsert:    upsertNetworkIxLans,
+		}, rows, includeDeleted)
 	}
 	return 0, fmt.Errorf("unknown sync type: %s", name)
+}
+
+// fkCheckParent is the per-row FK validation helper called from the
+// fkFilter closures in dispatchScratchChunk. Returns true if parentID
+// is registered for parentType (or is a zero/null FK); otherwise logs
+// the orphan at WARN, records the child id in fkSkippedIDs so the
+// delete pass can reconcile, and returns false so syncIncremental
+// drops the row from the chunk.
+func (w *Worker) fkCheckParent(ctx context.Context, childType string, childID int, parentType string, parentID int, field string) bool {
+	if w.fkHasParent(parentType, parentID) {
+		return true
+	}
+	w.fkMarkSkipped(childType, childID)
+	w.logger.LogAttrs(ctx, slog.LevelWarn, "dropping FK orphan",
+		slog.String("child_type", childType),
+		slog.Int("child_id", childID),
+		slog.String("field", field),
+		slog.String("parent_type", parentType),
+		slog.Int("parent_id", parentID),
+	)
+	return false
 }
 
 // syncDeletePass runs the per-type delete loop in child-first (reverse FK)

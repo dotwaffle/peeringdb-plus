@@ -2108,18 +2108,19 @@ func TestSync_PhaseOrderComments(t *testing.T) {
 // pre-sync state (empty for a fresh DB). Without the single ent.Tx
 // wrapping every write, partial upserts would survive the failure.
 //
-// Injection strategy: seed the facility fixture with an org_id that
-// references a non-existent organization AND set PDBPLUS_INCLUDE_DELETED=false
-// so the row is NOT filtered. But since defer_foreign_keys defers FK
-// enforcement to commit time, the upsert path will SUCCEED and only
-// commit will fail — which still rolls back all prior writes per D-19.
+// Injection strategy: return a campus payload whose `id` field is a
+// JSON string instead of an int. json.Unmarshal into peeringdb.Campus
+// fails inside syncIncremental, propagating a decode error out of
+// dispatchScratchChunk → drainAndUpsertType → syncUpsertPass, and the
+// orchestrator rolls back the tx. Organizations have already been
+// upserted inside the tx at that point, so their post-rollback count
+// proves the single-tx guarantee.
 //
-// Simpler injection: substitute a malformed campus fixture that causes
-// the campus upsert to return an error (e.g., invalid org_id type in JSON
-// which causes the peeringdb unmarshal to fail). Fetch-path failures
-// happen in Phase A (no tx opened), so we need an injection inside Phase
-// B. We use a fake PeeringDB server that returns a campus row with a
-// missing required field (name) — SQLite will reject on NOT NULL.
+// We deliberately use a decode failure rather than an FK-orphan
+// injection here because the v1.13 upsert-time fkFilter would catch
+// an FK orphan cleanly and let the sync succeed with the orphan
+// dropped — which is the correct production behaviour and therefore
+// no longer a D-19 failure injection path.
 func TestSync_D19Atomicity(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
@@ -2130,23 +2131,16 @@ func TestSync_D19Atomicity(t *testing.T) {
 	pfs := newParityFixtureServer(t)
 
 	// Build a server that wraps pfs.server but intercepts /api/campus with
-	// a payload containing a row referencing a non-existent org_id. With
-	// defer_foreign_keys = ON the FK error surfaces at commit time (still a
-	// rollback). With an obvious cross-field violation (negative row ID)
-	// SQLite raises at insert time instead. Use negative ID: guaranteed
-	// rejection because campus.id is ent's positive-only PK.
+	// a payload whose `id` is a JSON string — peeringdb.Campus.ID is an
+	// int, so json.Unmarshal returns a type error at decode time inside
+	// Phase B. The error surfaces out of dispatchScratchChunk and triggers
+	// a Phase B rollback after organizations have been upserted.
 	injectingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/api/")
 		objType := strings.Split(path, "?")[0]
 		if objType == peeringdb.TypeCampus {
-			// Missing org_id entirely — campus.org_id is a required FK; with
-			// defer_foreign_keys deferred, the error surfaces at commit. An
-			// even stronger injection uses a campus row with a totally
-			// absent org_id (0 by json default → FK to org 0 which doesn't
-			// exist). On commit, SQLite raises "FOREIGN KEY constraint failed"
-			// and Phase B rolls back every Organization that was upserted.
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"meta":{},"data":[{"id":999999,"org_id":888888,"name":"d19-injection","country":"DE","created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z","status":"ok"}]}`))
+			_, _ = w.Write([]byte(`{"meta":{},"data":[{"id":"not-an-int","org_id":1,"name":"d19-injection","country":"DE","created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z","status":"ok"}]}`))
 			return
 		}
 		// Delegate to parity fixture server for all other types.
