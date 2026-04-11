@@ -393,34 +393,37 @@ func main() {
 	})
 
 	// Build middleware stack (outermost first):
-	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> Readiness -> CSP -> Caching -> Gzip -> mux
+	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> mux
 	//
 	// MaxBytesBody caps every non-gRPC request body at maxRequestBodySize (1 MB)
 	// per SEC-09. Per-route http.MaxBytesReader wraps at /sync and /graphql stay
 	// as belt-and-suspenders — innermost wins, so they remain effective and the
 	// redundancy is intentional. ConnectRPC/gRPC paths bypass via the middleware's
 	// hardcoded skip list; streaming RPCs would break if the body were capped.
-	compressionMiddleware := middleware.Compression()
-	handler := compressionMiddleware(mux)
-	cachingMiddleware := middleware.Caching(middleware.CachingInput{
-		SyncTimeFn: func() time.Time {
-			t, _ := pdbsync.GetLastSuccessfulSyncTime(context.Background(), db)
-			return t
+	//
+	// SecurityHeaders (SEC-10) sits between Readiness and CSP so HSTS/XCTO fire
+	// on every response — including the Readiness 503 syncing page — and XFO
+	// stays scoped to browser paths. The wrap order is regression-locked by
+	// TestMiddlewareChain_Order in middleware_chain_test.go.
+	handler := buildMiddlewareChain(mux, chainConfig{
+		Logger:      logger,
+		CORSOrigins: cfg.CORSOrigins,
+		CSPInput: middleware.CSPInput{
+			UIPolicy:      "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: https://*.basemaps.cartocdn.com; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net",
+			GraphQLPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'",
+			EnforcingMode: cfg.CSPEnforce,
 		},
-		SyncInterval: cfg.SyncInterval,
+		CachingInput: middleware.CachingInput{
+			SyncTimeFn: func() time.Time {
+				t, _ := pdbsync.GetLastSuccessfulSyncTime(context.Background(), db)
+				return t
+			},
+			SyncInterval: cfg.SyncInterval,
+		},
+		SyncWorker:   syncWorker,
+		MaxBodyBytes: maxRequestBodySize,
+		HSTSMaxAge:   180 * 24 * time.Hour,
 	})
-	handler = cachingMiddleware(handler)
-	handler = middleware.CSP(middleware.CSPInput{
-		UIPolicy:      "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: https://*.basemaps.cartocdn.com; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net",
-		GraphQLPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'",
-		EnforcingMode: cfg.CSPEnforce,
-	})(handler)
-	handler = readinessMiddleware(syncWorker, handler)
-	handler = middleware.Logging(logger)(handler)
-	handler = otelhttp.NewMiddleware("peeringdb-plus")(handler)
-	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
-	handler = middleware.MaxBytesBody(middleware.MaxBytesBodyInput{MaxBytes: maxRequestBodySize})(handler)
-	handler = middleware.Recovery(logger)(handler)
 
 	// Enable HTTP/1.1 + h2c (HTTP/2 cleartext) for gRPC support.
 	var protocols http.Protocols
@@ -530,6 +533,54 @@ func buildServer(addr string, handler http.Handler, protocols *http.Protocols) *
 		WriteTimeout: 0,
 		IdleTimeout:  120 * time.Second,
 	}
+}
+
+// chainConfig bundles the inputs for buildMiddlewareChain. It is a plain
+// data struct rather than a fluent builder — the chain is locked and
+// every field is required at startup.
+type chainConfig struct {
+	Logger       *slog.Logger
+	CORSOrigins  string // comma-separated list of allowed CORS origins
+	CSPInput     middleware.CSPInput
+	CachingInput middleware.CachingInput
+	SyncWorker   syncReadiness
+	MaxBodyBytes int64
+	HSTSMaxAge   time.Duration
+}
+
+// buildMiddlewareChain wraps the innermost handler in the full production
+// middleware stack, returning the outermost handler. The chain order is:
+//
+//	Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> Readiness ->
+//	SecurityHeaders -> CSP -> Caching -> Gzip -> innermost
+//
+// The code below wraps innermost-first (Gzip is wrapped first so it sits
+// closest to the handler; Recovery is wrapped last so it sits outermost).
+// This ordering is regression-locked by TestMiddlewareChain_Order, which
+// source-scans this function body and asserts the literal wrap order.
+//
+// SecurityHeaders (SEC-10) sits between Readiness and CSP so HSTS/XCTO fire
+// on every response, including the Readiness 503 syncing page, and XFO
+// stays scoped to browser paths via middleware.isBrowserPath. The 180-day
+// HSTSMaxAge is passed through chainConfig so v1.14 can flip the default
+// without touching this helper.
+func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
+	h := middleware.Compression()(inner)
+	h = middleware.Caching(cc.CachingInput)(h)
+	h = middleware.CSP(cc.CSPInput)(h)
+	h = middleware.SecurityHeaders(middleware.SecurityHeadersInput{
+		HSTSMaxAge:            cc.HSTSMaxAge,
+		HSTSIncludeSubDomains: true,
+		FrameOptions:          "DENY",
+		ContentTypeOptions:    true,
+	})(h)
+	h = readinessMiddleware(cc.SyncWorker, h)
+	h = middleware.Logging(cc.Logger)(h)
+	h = otelhttp.NewMiddleware("peeringdb-plus")(h)
+	h = middleware.CORS(middleware.CORSInput{AllowedOrigins: cc.CORSOrigins})(h)
+	h = middleware.MaxBytesBody(middleware.MaxBytesBodyInput{MaxBytes: cc.MaxBodyBytes})(h)
+	h = middleware.Recovery(cc.Logger)(h)
+	return h
 }
 
 // readinessMiddleware returns 503 for all routes except infrastructure paths
