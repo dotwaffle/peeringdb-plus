@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -1197,8 +1198,8 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 // in its chain. Used by SyncWithRetry to skip the retry ladder on HTTP 429
 // responses from PeeringDB.
 func rateLimited(err error) bool {
-	var rlErr *peeringdb.RateLimitError
-	return errors.As(err, &rlErr)
+	_, ok := errors.AsType[*peeringdb.RateLimitError](err)
+	return ok
 }
 
 // HasCompletedSync reports whether at least one successful sync has completed.
@@ -1249,10 +1250,7 @@ func (w *Worker) runSyncCycle(ctx context.Context, mode config.SyncMode) {
 // Role changes are detected dynamically each tick via w.config.IsPrimary().
 // The scheduler stops when ctx is cancelled per CC-2.
 func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
-	mode := w.config.SyncMode
-	if mode == "" {
-		mode = config.SyncModeFull
-	}
+	mode := cmp.Or(w.config.SyncMode, config.SyncModeFull)
 
 	wasPrimary := false
 
