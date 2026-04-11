@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
@@ -762,6 +764,131 @@ func TestAboutPage_NoSync(t *testing.T) {
 	}
 }
 
+// TestAboutPage_FallbackToLastSuccess verifies that the about page always
+// shows the most recent successful sync, even when newer sync_status rows
+// exist with status "running" (in-flight) or "failed" (upstream error).
+// Covers the real production failure mode observed on peeringdb-plus.fly.dev
+// 2026-04-11 where PeeringDB rate-limited the sync worker with HTTP 429,
+// leaving a cascade of "failed" rows newer than the last success.
+func TestAboutPage_FallbackToLastSuccess(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		extraRows  func(t *testing.T, db *sql.DB, successTime time.Time)
+		wantAvail  bool
+		wantReason string
+	}{
+		{
+			name: "newer_running_row",
+			extraRows: func(t *testing.T, db *sql.DB, successTime time.Time) {
+				runningTime := successTime.Add(time.Hour)
+				if _, err := pdbsync.RecordSyncStart(t.Context(), db, runningTime); err != nil {
+					t.Fatalf("record sync start (running): %v", err)
+				}
+			},
+			wantAvail:  true,
+			wantReason: "in-flight sync should not hide previous success",
+		},
+		{
+			name: "newer_failed_row",
+			extraRows: func(t *testing.T, db *sql.DB, successTime time.Time) {
+				failedTime := successTime.Add(time.Hour)
+				failedID, err := pdbsync.RecordSyncStart(t.Context(), db, failedTime)
+				if err != nil {
+					t.Fatalf("record sync start (failed): %v", err)
+				}
+				if err := pdbsync.RecordSyncComplete(t.Context(), db, failedID, pdbsync.Status{
+					LastSyncAt:   failedTime,
+					Duration:     5 * time.Second,
+					Status:       "failed",
+					ErrorMessage: "upstream 429 rate limit",
+				}); err != nil {
+					t.Fatalf("record sync complete (failed): %v", err)
+				}
+			},
+			wantAvail:  true,
+			wantReason: "failed sync should not hide previous success (prod 2026-04-11 scenario)",
+		},
+		{
+			name: "failed_then_running",
+			extraRows: func(t *testing.T, db *sql.DB, successTime time.Time) {
+				failedTime := successTime.Add(time.Hour)
+				failedID, err := pdbsync.RecordSyncStart(t.Context(), db, failedTime)
+				if err != nil {
+					t.Fatalf("record sync start (failed): %v", err)
+				}
+				if err := pdbsync.RecordSyncComplete(t.Context(), db, failedID, pdbsync.Status{
+					LastSyncAt:   failedTime,
+					Duration:     5 * time.Second,
+					Status:       "failed",
+					ErrorMessage: "upstream 429 rate limit",
+				}); err != nil {
+					t.Fatalf("record sync complete (failed): %v", err)
+				}
+				runningTime := successTime.Add(2 * time.Hour)
+				if _, err := pdbsync.RecordSyncStart(t.Context(), db, runningTime); err != nil {
+					t.Fatalf("record sync start (running): %v", err)
+				}
+			},
+			wantAvail:  true,
+			wantReason: "running-newer-than-failed should fall back through both",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			client, db := testutil.SetupClientWithDB(t)
+
+			if err := pdbsync.InitStatusTable(t.Context(), db); err != nil {
+				t.Fatalf("init sync_status: %v", err)
+			}
+
+			successTime := time.Date(2026, 4, 11, 10, 0, 0, 0, time.UTC)
+			successID, err := pdbsync.RecordSyncStart(t.Context(), db, successTime)
+			if err != nil {
+				t.Fatalf("record sync start (success): %v", err)
+			}
+			if err := pdbsync.RecordSyncComplete(t.Context(), db, successID, pdbsync.Status{
+				LastSyncAt: successTime.Add(30 * time.Second),
+				Duration:   30 * time.Second,
+				Status:     "success",
+			}); err != nil {
+				t.Fatalf("record sync complete (success): %v", err)
+			}
+
+			tt.extraRows(t, db, successTime)
+
+			h := NewHandler(client, db)
+			mux := http.NewServeMux()
+			h.Register(mux)
+
+			req := httptest.NewRequest(http.MethodGet, "/ui/about", nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d", rec.Code)
+			}
+
+			body := rec.Body.String()
+			if tt.wantAvail {
+				if strings.Contains(body, "Sync status unavailable") {
+					t.Errorf("%s: showed 'Sync status unavailable' (%s)", tt.name, tt.wantReason)
+				}
+				if !strings.Contains(body, "Last synced:") {
+					t.Errorf("%s: missing 'Last synced:' (%s)", tt.name, tt.wantReason)
+				}
+				wantTime := successTime.Add(30 * time.Second).Format("2006-01-02 15:04:05")
+				if !strings.Contains(body, wantTime) {
+					t.Errorf("%s: missing fallback timestamp %q", tt.name, wantTime)
+				}
+			}
+		})
+	}
+}
+
 // --- Dark mode and CSS animation tests ---
 
 func TestLayout_CSSAnimations(t *testing.T) {
@@ -1331,5 +1458,51 @@ func TestHandleServerError(t *testing.T) {
 	body := rec.Body.String()
 	if !strings.Contains(body, "Server Error") {
 		t.Errorf("response body missing %q, got %q", "Server Error", body)
+	}
+}
+
+// TestParseASN_Boundary verifies SEC-11: parseASN uses strconv.ParseUint with
+// bit size 32, so the parser natively rejects values > 2^32-1 without a
+// manual cap. Covers boundary conditions (0, 1, max 32-bit, overflow) and
+// several "looks numeric but isn't" rejection cases.
+//
+// The asserted return type is (uint32, bool) — a future accidental signature
+// flip back to (int, bool) surfaces here as a compile error, not a runtime
+// subtle-correctness regression.
+func TestParseASN_Boundary(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		in      string
+		wantASN uint32
+		wantOK  bool
+	}{
+		{name: "empty string", in: "", wantASN: 0, wantOK: false},
+		{name: "zero rejected", in: "0", wantASN: 0, wantOK: false},
+		{name: "one accepted", in: "1", wantASN: 1, wantOK: true},
+		{name: "cloudflare 13335", in: "13335", wantASN: 13335, wantOK: true},
+		{name: "max 32-bit accepted", in: "4294967295", wantASN: 4294967295, wantOK: true},
+		{name: "max 32-bit plus one rejected", in: "4294967296", wantASN: 0, wantOK: false},
+		{name: "negative rejected", in: "-1", wantASN: 0, wantOK: false},
+		{name: "non-numeric rejected", in: "abc", wantASN: 0, wantOK: false},
+		{name: "float rejected", in: "1.5", wantASN: 0, wantOK: false},
+		{name: "max 64-bit rejected", in: "18446744073709551615", wantASN: 0, wantOK: false},
+		{name: "leading whitespace rejected", in: "  13335", wantASN: 0, wantOK: false},
+		{name: "trailing whitespace rejected", in: "13335 ", wantASN: 0, wantOK: false},
+		{name: "leading plus rejected", in: "+13335", wantASN: 0, wantOK: false},
+		{name: "hex literal rejected", in: "0x3417", wantASN: 0, wantOK: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotASN, gotOK := parseASN(tt.in)
+			if gotASN != tt.wantASN || gotOK != tt.wantOK {
+				t.Errorf("parseASN(%q) = (%d, %v), want (%d, %v)",
+					tt.in, gotASN, gotOK, tt.wantASN, tt.wantOK)
+			}
+		})
 	}
 }

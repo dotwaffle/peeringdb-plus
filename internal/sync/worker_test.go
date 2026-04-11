@@ -1,14 +1,18 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -19,11 +23,31 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"golang.org/x/time/rate"
 
+	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/ent/campus"
+	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
+	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/facility"
+	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
+	"github.com/dotwaffle/peeringdb-plus/ent/network"
+	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/organization"
+	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
+
+// updateGolden enables golden-file regeneration via `go test -update`. When
+// set, TestSync_RefactorParity writes its dump to the golden path instead of
+// comparing. Run ONCE against the pre-refactor Sync to capture the baseline,
+// then run without -update to verify the refactor preserved behavior.
+var updateGolden = flag.Bool("update", false, "update golden files")
 
 // TestMain initializes OTel metrics once before any tests run, preventing
 // race conditions on global metric variables between parallel tests.
@@ -134,7 +158,7 @@ func makeFac(id, orgID int, name, status string) map[string]any {
 		"clli": "", "rencode": "", "npanxx": "", "tech_email": "",
 		"tech_phone": "", "sales_email": "", "sales_phone": "",
 		"available_voltage_services": []any{},
-		"notes": "", "net_count": 0, "ix_count": 0, "carrier_count": 0,
+		"notes":                      "", "net_count": 0, "ix_count": 0, "carrier_count": 0,
 		"address1": "", "address2": "", "city": "", "state": "",
 		"country": "", "zipcode": "", "suite": "", "floor": "",
 		"created": "2024-01-01T00:00:00Z", "updated": "2024-01-01T00:00:00Z",
@@ -562,6 +586,78 @@ func TestSyncWithRetryExhaustsRetries(t *testing.T) {
 	}
 }
 
+// TestSyncWithRetryShortCircuitsOnRateLimit locks the rate-limit short-circuit
+// contract: when PeeringDB returns HTTP 429, SyncWithRetry must abort the
+// 30s/2m/8m retry ladder immediately instead of waiting through backoffs that
+// all fall inside the Retry-After window. Every in-ladder retry is guaranteed
+// to 429 again AND burns another slot against PeeringDB's 1 req/hr per-URL
+// unauthenticated quota, so retrying is actively harmful.
+//
+// Test strategy: long-duration retry backoffs (10s each = 30s total) that the
+// test would block on if the short-circuit failed. Expected runtime is <100ms
+// because SyncWithRetry returns immediately on RateLimitError detection.
+// Also asserts the HTTP server received exactly ONE request.
+//
+// Production incident 2026-04-11: this short-circuit would have prevented the
+// 12 req/hr against /api/org that kept the fly.io primary permanently rate-
+// limited after PeeringDB's unique-name upstream change broke sync upserts.
+func TestSyncWithRetryShortCircuitsOnRateLimit(t *testing.T) {
+	t.Parallel()
+
+	var orgAttempts atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "?")
+		objType := parts[0]
+		if objType == "org" {
+			orgAttempts.Add(1)
+			w.Header().Set("Retry-After", "2200")
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"message":"Request was throttled","meta":{"error":"Too Many Requests"}}`))
+			return
+		}
+		// Non-org types never reached when org fails.
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
+	}))
+	t.Cleanup(srv.Close)
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := newFastPDBClient(t, srv.URL)
+	if err := InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status: %v", err)
+	}
+	w := NewWorker(pdbClient, client, db, WorkerConfig{}, slog.Default())
+	// Long backoffs that would block the test if the short-circuit fails.
+	w.SetRetryBackoffs([]time.Duration{10 * time.Second, 10 * time.Second, 10 * time.Second})
+
+	start := time.Now()
+	err := w.SyncWithRetry(t.Context(), config.SyncModeFull)
+	elapsed := time.Since(start)
+
+	if err == nil {
+		t.Fatal("expected error from rate-limit short-circuit, got nil")
+	}
+	rlErr, ok := errors.AsType[*peeringdb.RateLimitError](err)
+	if !ok {
+		t.Fatalf("expected *peeringdb.RateLimitError, got %T: %v", err, err)
+	}
+	if rlErr.RetryAfter != 2200*time.Second {
+		t.Errorf("RetryAfter = %s, want %s", rlErr.RetryAfter, 2200*time.Second)
+	}
+
+	// Strict upper bound: short-circuit must not block on any retry backoff.
+	// 2 seconds allows generous slack for slow CI while catching any accidental
+	// retry wait (which would be at least 10 seconds).
+	if elapsed > 2*time.Second {
+		t.Errorf("SyncWithRetry took %s — rate-limit short-circuit should return immediately (< 2s)", elapsed)
+	}
+
+	// Exactly one attempt against the server — no retries.
+	if got := orgAttempts.Load(); got != 1 {
+		t.Errorf("org fetched %d times, want 1 (rate limit must short-circuit the retry ladder)", got)
+	}
+}
+
 // TestSyncWithRetryContextCancellation verifies context cancellation during backoff.
 func TestSyncWithRetryContextCancellation(t *testing.T) {
 	t.Parallel()
@@ -769,13 +865,13 @@ type fixtureWithMeta struct {
 func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
 	t.Helper()
 	f := &fixtureWithMeta{
-		responses:     make(map[string]any),
-		failTypes:     make(map[string]bool),
-		failOnce:      make(map[string]bool),
+		responses:       make(map[string]any),
+		failTypes:       make(map[string]bool),
+		failOnce:        make(map[string]bool),
 		failIncremental: make(map[string]bool),
-		callCounts:    make(map[string]*atomic.Int64),
-		sinceSeen:     make(map[string]*atomic.Bool),
-		generated:     generatedEpoch,
+		callCounts:      make(map[string]*atomic.Int64),
+		sinceSeen:       make(map[string]*atomic.Bool),
+		generated:       generatedEpoch,
 	}
 	f.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "?")
@@ -1426,5 +1522,854 @@ func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 	// Should return much faster than the 3s org delay.
 	if elapsed > 2500*time.Millisecond {
 		t.Errorf("expected early abort on demotion, took %v", elapsed)
+	}
+}
+
+// ----------------------------------------------------------------------------
+// Phase 54-01 Commit B tests
+//
+// TestSync_DeferredFKSameTx    — regression-locks the FK pragma switch.
+// TestSync_RefactorParity      — byte-identical DB state before/after refactor.
+// TestWorkerSync_LineBudget    — enforces the REFAC-03 line budget on Sync.
+// ----------------------------------------------------------------------------
+
+// TestSync_DeferredFKSameTx verifies that the refactor's per-tx
+// `PRAGMA defer_foreign_keys = ON` correctly defers FK enforcement until
+// commit time, allowing temporarily-dangling FKs inside the transaction.
+//
+// Test shape:
+//
+//  1. Open an ent.Tx.
+//  2. Set `PRAGMA defer_foreign_keys = ON` via the generated tx.ExecContext
+//     (sql/execquery feature enabled in ent/entc.go).
+//  3. Insert a Facility referencing Organization 999 which does NOT yet exist.
+//  4. Insert Organization 999 BEFORE commit.
+//  5. Commit. Asserts no FK error.
+//
+// Without the pragma, SQLite's default immediate FK enforcement would reject
+// step 3 on insert. With the pragma, FK checks are deferred to commit time;
+// at commit time the FK is resolved because step 4 ran first.
+func TestSync_DeferredFKSameTx(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	client, _ := testutil.SetupClientWithDB(t)
+
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		t.Fatalf("begin tx: %v", err)
+	}
+	t.Cleanup(func() {
+		// Rollback is a no-op after Commit.
+		_ = tx.Rollback()
+	})
+
+	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
+		t.Fatalf("set defer_foreign_keys: %v", err)
+	}
+
+	// Insert a facility referencing org_id=999 which does not yet exist.
+	// Without defer_foreign_keys this would fail at insert time.
+	_, err = tx.Facility.Create().
+		SetID(12345).
+		SetName("dangling-fk-fac").
+		SetOrgID(999).
+		SetCity("Testville").
+		SetCountry("DE").
+		SetCreated(time.Now()).
+		SetUpdated(time.Now()).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("insert facility with temporarily-dangling FK: %v", err)
+	}
+
+	// Now insert the parent org BEFORE commit — this resolves the FK.
+	_, err = tx.Organization.Create().
+		SetID(999).
+		SetName("dangling-fk-resolver").
+		SetCity("Testville").
+		SetCountry("DE").
+		SetCreated(time.Now()).
+		SetUpdated(time.Now()).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("insert parent org: %v", err)
+	}
+
+	// Commit MUST succeed — the FK is resolved and deferred enforcement passes.
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit with resolved deferred FK: %v", err)
+	}
+
+	// Sanity: both rows are present on a fresh query.
+	gotFac, err := client.Facility.Get(ctx, 12345)
+	if err != nil {
+		t.Fatalf("get facility after commit: %v", err)
+	}
+	if gotFac.Name != "dangling-fk-fac" {
+		t.Errorf("facility name: got %q, want %q", gotFac.Name, "dangling-fk-fac")
+	}
+	gotOrg, err := client.Organization.Get(ctx, 999)
+	if err != nil {
+		t.Fatalf("get org after commit: %v", err)
+	}
+	if gotOrg.Name != "dangling-fk-resolver" {
+		t.Errorf("org name: got %q, want %q", gotOrg.Name, "dangling-fk-resolver")
+	}
+}
+
+// parityFixtureServer is a minimal httptest server serving the project
+// testdata/fixtures/*.json files at /api/{type} for TestSync_RefactorParity.
+// Co-located in worker_test.go (package sync) rather than integration_test.go
+// (package sync_test) because the parity dump walks internal ent entity
+// types and needs direct access.
+type parityFixtureServer struct {
+	server   *httptest.Server
+	fixtures map[string]json.RawMessage
+}
+
+// parityFixtureTypeMap locks the mapping from PeeringDB URL path to fixture
+// filename, matching internal/sync/integration_test.go#fixtureTypeMap. Kept
+// local so the parity test remains hermetic and does not cross package
+// boundaries.
+var parityFixtureTypeMap = map[string]string{
+	peeringdb.TypeOrg:        "org.json",
+	peeringdb.TypeNet:        "net.json",
+	peeringdb.TypeFac:        "fac.json",
+	peeringdb.TypeIX:         "ix.json",
+	peeringdb.TypePoc:        "poc.json",
+	peeringdb.TypeIXLan:      "ixlan.json",
+	peeringdb.TypeIXPfx:      "ixpfx.json",
+	peeringdb.TypeNetIXLan:   "netixlan.json",
+	peeringdb.TypeNetFac:     "netfac.json",
+	peeringdb.TypeIXFac:      "ixfac.json",
+	peeringdb.TypeCarrier:    "carrier.json",
+	peeringdb.TypeCarrierFac: "carrierfac.json",
+	peeringdb.TypeCampus:     "campus.json",
+}
+
+func newParityFixtureServer(t *testing.T) *parityFixtureServer {
+	t.Helper()
+	fs := &parityFixtureServer{
+		fixtures: make(map[string]json.RawMessage, len(parityFixtureTypeMap)),
+	}
+
+	for apiType, filename := range parityFixtureTypeMap {
+		raw, err := os.ReadFile(filepath.Join("..", "..", "testdata", "fixtures", filename))
+		if err != nil {
+			t.Fatalf("load fixture %s: %v", filename, err)
+		}
+		var resp struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(raw, &resp); err != nil {
+			t.Fatalf("parse fixture %s: %v", filename, err)
+		}
+		fs.fixtures[apiType] = resp.Data
+	}
+
+	fs.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/api/")
+		objType := strings.Split(path, "?")[0]
+
+		// Terminate pagination: empty data for any skip>0.
+		if skip := r.URL.Query().Get("skip"); skip != "" && skip != "0" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+		data, ok := fs.fixtures[objType]
+		if !ok {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"meta":{},"data":`))
+		_, _ = w.Write(data)
+		_, _ = w.Write([]byte(`}`))
+	}))
+	t.Cleanup(func() { fs.server.Close() })
+	return fs
+}
+
+// parityDump is the canonical JSON shape for TestSync_RefactorParity. Field
+// ordering is locked by Go's json.Marshal struct field order; all 13 entity
+// types are represented and rows are sorted by ID for deterministic output.
+type parityDump struct {
+	Organizations     []*ent.Organization     `json:"organizations"`
+	Campuses          []*ent.Campus           `json:"campuses"`
+	Facilities        []*ent.Facility         `json:"facilities"`
+	Carriers          []*ent.Carrier          `json:"carriers"`
+	CarrierFacilities []*ent.CarrierFacility  `json:"carrier_facilities"`
+	InternetExchanges []*ent.InternetExchange `json:"internet_exchanges"`
+	IxLans            []*ent.IxLan            `json:"ix_lans"`
+	IxPrefixes        []*ent.IxPrefix         `json:"ix_prefixes"`
+	IxFacilities      []*ent.IxFacility       `json:"ix_facilities"`
+	Networks          []*ent.Network          `json:"networks"`
+	Pocs              []*ent.Poc              `json:"pocs"`
+	NetworkFacilities []*ent.NetworkFacility  `json:"network_facilities"`
+	NetworkIxLans     []*ent.NetworkIxLan     `json:"network_ix_lans"`
+}
+
+// dumpAllTables returns a canonical parityDump of all 13 ent tables sorted
+// by ID. This is the source of truth for TestSync_RefactorParity.
+func dumpAllTables(ctx context.Context, t *testing.T, client *ent.Client) *parityDump {
+	t.Helper()
+	d := &parityDump{}
+	var err error
+
+	d.Organizations, err = client.Organization.Query().Order(ent.Asc(organization.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump organizations: %v", err)
+	}
+	d.Campuses, err = client.Campus.Query().Order(ent.Asc(campus.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump campuses: %v", err)
+	}
+	d.Facilities, err = client.Facility.Query().Order(ent.Asc(facility.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump facilities: %v", err)
+	}
+	d.Carriers, err = client.Carrier.Query().Order(ent.Asc(carrier.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump carriers: %v", err)
+	}
+	d.CarrierFacilities, err = client.CarrierFacility.Query().Order(ent.Asc(carrierfacility.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump carrier_facilities: %v", err)
+	}
+	d.InternetExchanges, err = client.InternetExchange.Query().Order(ent.Asc(internetexchange.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump internet_exchanges: %v", err)
+	}
+	d.IxLans, err = client.IxLan.Query().Order(ent.Asc(ixlan.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump ix_lans: %v", err)
+	}
+	d.IxPrefixes, err = client.IxPrefix.Query().Order(ent.Asc(ixprefix.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump ix_prefixes: %v", err)
+	}
+	d.IxFacilities, err = client.IxFacility.Query().Order(ent.Asc(ixfacility.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump ix_facilities: %v", err)
+	}
+	d.Networks, err = client.Network.Query().Order(ent.Asc(network.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump networks: %v", err)
+	}
+	d.Pocs, err = client.Poc.Query().Order(ent.Asc(poc.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump pocs: %v", err)
+	}
+	d.NetworkFacilities, err = client.NetworkFacility.Query().Order(ent.Asc(networkfacility.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump network_facilities: %v", err)
+	}
+	d.NetworkIxLans, err = client.NetworkIxLan.Query().Order(ent.Asc(networkixlan.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump network_ix_lans: %v", err)
+	}
+	return d
+}
+
+// TestSync_RefactorParity locks the behavior of Worker.Sync against a golden
+// dump so the Commit B extract-method refactor cannot silently drift.
+//
+// Order of operations (REFAC-03 protocol):
+//  1. This test was first authored BEFORE the refactor was applied.
+//  2. Run `go test -update ./internal/sync/... -run TestSync_RefactorParity`
+//     ONCE against the pre-refactor Worker.Sync. This writes the golden file.
+//  3. Commit the golden file alongside the refactor (atomic Commit B).
+//  4. Subsequent runs (without -update) MUST match byte-for-byte. Any drift
+//     is a regression — reviewer investigates before merge.
+//
+// To intentionally update the golden (e.g. after a deliberate data-path
+// change in a later plan), rerun with -update and carefully review the diff.
+func TestSync_RefactorParity(t *testing.T) {
+	// Not parallel: we write to a single golden file; concurrent runs would
+	// race. Also, `go test -update` mutations must be observable to reviewers.
+	fs := newParityFixtureServer(t)
+	client, db := testutil.SetupClientWithDB(t)
+
+	pdbClient := peeringdb.NewClient(fs.server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+
+	ctx := t.Context()
+	if err := InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	w := NewWorker(pdbClient, client, db, WorkerConfig{
+		IncludeDeleted: false,
+	}, slog.Default())
+
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("sync failed: %v", err)
+	}
+
+	dump := dumpAllTables(ctx, t, client)
+	got, err := json.MarshalIndent(dump, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal parity dump: %v", err)
+	}
+	// Trailing newline for POSIX text-file convention.
+	got = append(got, '\n')
+
+	goldenPath := filepath.Join("testdata", "refactor_parity.golden.json")
+
+	if *updateGolden {
+		if err := os.WriteFile(goldenPath, got, 0o644); err != nil {
+			t.Fatalf("write golden: %v", err)
+		}
+		t.Logf("updated golden: %s (%d bytes)", goldenPath, len(got))
+		return
+	}
+
+	want, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatalf("read golden (run with -update to create): %v", err)
+	}
+	if !bytesEqual(got, want) {
+		t.Fatalf("parity drift: sync produced output that differs from golden file %s.\n"+
+			"Run `go test -update ./internal/sync/... -run TestSync_RefactorParity` to regenerate.\n"+
+			"got %d bytes, want %d bytes", goldenPath, len(got), len(want))
+	}
+}
+
+// bytesEqual avoids pulling in bytes package for a single comparison.
+func bytesEqual(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// TestWorkerSync_LineBudget enforces the REFAC-03 line budget on Worker.Sync.
+// The body (opening brace through matching closing brace) must be <= 100
+// lines. This is a structural guardrail so future edits cannot silently
+// bloat Sync again.
+//
+// Implementation: read worker.go, locate `func (w *Worker) Sync(`, walk the
+// source counting braces until depth returns to 0, assert line count <= 100.
+func TestWorkerSync_LineBudget(t *testing.T) {
+	t.Parallel()
+
+	const maxLines = 100
+
+	src, err := os.ReadFile("worker.go")
+	if err != nil {
+		t.Fatalf("read worker.go: %v", err)
+	}
+
+	needle := "func (w *Worker) Sync("
+	idx := strings.Index(string(src), needle)
+	if idx < 0 {
+		t.Fatalf("did not find %q in worker.go", needle)
+	}
+
+	// Walk forward from idx to the opening brace of the function body.
+	body := string(src)[idx:]
+	openIdx := strings.Index(body, "{")
+	if openIdx < 0 {
+		t.Fatalf("did not find opening brace of Sync body")
+	}
+
+	// Walk the body counting braces to find the matching close.
+	depth := 0
+	lineCount := 1
+	closeIdx := -1
+	inString := false
+	inRune := false
+	inLineComment := false
+	inBlockComment := false
+	// Iterate rune-by-rune from the opening brace onward.
+	for i := openIdx; i < len(body); i++ {
+		c := body[i]
+		next := byte(0)
+		if i+1 < len(body) {
+			next = body[i+1]
+		}
+		switch {
+		case inLineComment:
+			if c == '\n' {
+				inLineComment = false
+				lineCount++
+			}
+			continue
+		case inBlockComment:
+			if c == '*' && next == '/' {
+				inBlockComment = false
+				i++
+			} else if c == '\n' {
+				lineCount++
+			}
+			continue
+		case inString:
+			if c == '\\' && next != 0 {
+				i++ // skip escaped char
+				continue
+			}
+			switch c {
+			case '"':
+				inString = false
+			case '\n':
+				lineCount++
+			}
+			continue
+		case inRune:
+			if c == '\\' && next != 0 {
+				i++
+				continue
+			}
+			if c == '\'' {
+				inRune = false
+			}
+			continue
+		}
+
+		if c == '/' && next == '/' {
+			inLineComment = true
+			i++
+			continue
+		}
+		if c == '/' && next == '*' {
+			inBlockComment = true
+			i++
+			continue
+		}
+		if c == '"' {
+			inString = true
+			continue
+		}
+		if c == '\'' {
+			inRune = true
+			continue
+		}
+		if c == '\n' {
+			lineCount++
+			continue
+		}
+		if c == '{' {
+			depth++
+			continue
+		}
+		if c == '}' {
+			depth--
+			if depth == 0 {
+				closeIdx = i
+				break
+			}
+			continue
+		}
+	}
+
+	if closeIdx < 0 {
+		t.Fatalf("did not find matching close brace for Sync")
+	}
+	if lineCount > maxLines {
+		t.Fatalf("Worker.Sync body is %d lines; REFAC-03 budget is %d lines.\n"+
+			"Future refactors must keep Sync an orchestrator, not a doer.", lineCount, maxLines)
+	}
+	t.Logf("Worker.Sync body: %d lines (budget: %d)", lineCount, maxLines)
+}
+
+// TestSync_PhaseAFetchHasNoTx is a structural regression lock for PERF-05:
+// the fetch pass MUST NOT hold an ent.Tx. This is enforced at compile-time
+// by the syncFetchPass signature — this test scans the worker.go source
+// and asserts the signature does NOT contain `*ent.Tx`. A future edit
+// that sneaks a tx parameter back into Phase A will fail this test.
+func TestSync_PhaseAFetchHasNoTx(t *testing.T) {
+	t.Parallel()
+
+	src, err := os.ReadFile("worker.go")
+	if err != nil {
+		t.Fatalf("read worker.go: %v", err)
+	}
+
+	needle := "func (w *Worker) syncFetchPass("
+	idx := strings.Index(string(src), needle)
+	if idx < 0 {
+		t.Fatalf("did not find %q in worker.go", needle)
+	}
+
+	// Walk forward from idx to the closing ')' of the signature.
+	body := string(src)[idx:]
+	found := strings.Contains(body, ")")
+	if !found {
+		t.Fatalf("did not find closing paren of syncFetchPass signature")
+	}
+	// The signature wraps across multiple lines; find the full parameter
+	// list by scanning to the ')' that terminates the parameters.
+	paren := 0
+	end := -1
+	for i, c := range body {
+		if c == '(' {
+			paren++
+		}
+		if c == ')' {
+			paren--
+			if paren == 0 {
+				end = i
+				break
+			}
+		}
+	}
+	if end < 0 {
+		t.Fatalf("did not find balanced closing paren of syncFetchPass signature")
+	}
+	sig := body[:end+1]
+	if strings.Contains(sig, "*ent.Tx") {
+		t.Fatalf("syncFetchPass signature contains *ent.Tx — Phase A must NOT hold a tx:\n%s", sig)
+	}
+	t.Logf("syncFetchPass signature: %s", sig)
+}
+
+// TestSync_BatchFreeAfterUpsert is a structural regression lock for the
+// MANDATORY memory optimization in the Phase B chunked replay loop:
+// after each per-chunk upsert completes, the batch entry MUST be set to
+// the zero value so the slice backing array can be reclaimed by GC. Per
+// ARCHITECTURE.md §2 this is the difference between "fits in 512 MB VM"
+// and "OOM" on production scale. Commit D' moved the batch-free line
+// from syncUpsertPass (old in-memory path) into drainAndUpsertType (the
+// chunked scratch replay) where each loop iteration processes one
+// scratchChunkSize-bounded chunk.
+func TestSync_BatchFreeAfterUpsert(t *testing.T) {
+	t.Parallel()
+
+	src, err := os.ReadFile("worker.go")
+	if err != nil {
+		t.Fatalf("read worker.go: %v", err)
+	}
+
+	// Locate drainAndUpsertType function body and search within it only.
+	needle := "func (w *Worker) drainAndUpsertType("
+	start := strings.Index(string(src), needle)
+	if start < 0 {
+		t.Fatalf("did not find %q in worker.go", needle)
+	}
+	body := string(src)[start:]
+	// Find the next top-level func declaration to bound the search.
+	nextFunc := strings.Index(body[1:], "\nfunc ")
+	if nextFunc > 0 {
+		body = body[:nextFunc+1]
+	}
+
+	// Accept either `batches[name]` or `batches[step.name]` — the inner
+	// chunked replay loop uses `name` because step.name is out of scope.
+	if !strings.Contains(body, "batches[name] = syncBatch{}") && !strings.Contains(body, "batches[step.name] = syncBatch{}") {
+		t.Fatalf("drainAndUpsertType does not contain the MANDATORY batch-free line " +
+			"`batches[name] = syncBatch{}` (or the step.name variant). This is the " +
+			"core PERF-05 memory optimization (ARCHITECTURE.md §2) — removing it " +
+			"breaks the 512 MB VM hard cap and is a regression.")
+	}
+}
+
+// TestSync_PhaseOrderComments is a structural regression lock for the
+// three load-bearing phase marker comments in Worker.Sync. A future edit
+// that reorders or drops one of these markers will fail this test.
+func TestSync_PhaseOrderComments(t *testing.T) {
+	t.Parallel()
+
+	src, err := os.ReadFile("worker.go")
+	if err != nil {
+		t.Fatalf("read worker.go: %v", err)
+	}
+	body := string(src)
+
+	markers := []string{
+		"=== Phase A — NO TX HELD ===",
+		"=== Fetch Barrier ===",
+		"=== Phase B — SINGLE REAL TX ===",
+	}
+	lastIdx := -1
+	for _, m := range markers {
+		idx := strings.Index(body, m)
+		if idx < 0 {
+			t.Fatalf("missing phase marker comment: %q", m)
+		}
+		if idx <= lastIdx {
+			t.Fatalf("phase marker %q out of order (index %d <= previous %d)",
+				m, idx, lastIdx)
+		}
+		lastIdx = idx
+	}
+}
+
+// TestSync_D19Atomicity is the PERF-05 regression lock for D-19 single-
+// transaction atomicity. It asserts that if a Phase B upsert fails mid-way
+// through the 13 types, the rollback leaves the database in its
+// pre-sync state (empty for a fresh DB). Without the single ent.Tx
+// wrapping every write, partial upserts would survive the failure.
+//
+// Injection strategy: return a campus payload whose `id` field is a
+// JSON string instead of an int. json.Unmarshal into peeringdb.Campus
+// fails inside syncIncremental, propagating a decode error out of
+// dispatchScratchChunk → drainAndUpsertType → syncUpsertPass, and the
+// orchestrator rolls back the tx. Organizations have already been
+// upserted inside the tx at that point, so their post-rollback count
+// proves the single-tx guarantee.
+//
+// We deliberately use a decode failure rather than an FK-orphan
+// injection here because the v1.13 upsert-time fkFilter would catch
+// an FK orphan cleanly and let the sync succeed with the orphan
+// dropped — which is the correct production behaviour and therefore
+// no longer a D-19 failure injection path.
+func TestSync_D19Atomicity(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	// parityFixtureServer uses testdata/fixtures for 12 of 13 types; override
+	// the campus payload with an upsert-fatal row to trigger a Phase B
+	// rollback after Organizations have already been upserted.
+	pfs := newParityFixtureServer(t)
+
+	// Build a server that wraps pfs.server but intercepts /api/campus with
+	// a payload whose `id` is a JSON string — peeringdb.Campus.ID is an
+	// int, so json.Unmarshal returns a type error at decode time inside
+	// Phase B. The error surfaces out of dispatchScratchChunk and triggers
+	// a Phase B rollback after organizations have been upserted.
+	injectingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/api/")
+		objType := strings.Split(path, "?")[0]
+		if objType == peeringdb.TypeCampus {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"meta":{},"data":[{"id":"not-an-int","org_id":1,"name":"d19-injection","country":"DE","created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z","status":"ok"}]}`))
+			return
+		}
+		// Delegate to parity fixture server for all other types.
+		pfs.server.Config.Handler.ServeHTTP(w, r)
+	}))
+	defer injectingServer.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+
+	pdbClient := peeringdb.NewClient(injectingServer.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+
+	worker := NewWorker(pdbClient, client, db, WorkerConfig{
+		IncludeDeleted: false,
+		SyncMode:       config.SyncModeFull,
+		IsPrimary:      func() bool { return true },
+	}, slog.Default())
+	if err := InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	syncErr := worker.Sync(ctx, config.SyncModeFull)
+	if syncErr == nil {
+		t.Fatal("expected sync error from D-19 injection, got nil")
+	}
+
+	// D-19 assertion: every table must be empty. A partial upsert that
+	// survives the rollback is a regression.
+	counts := map[string]int{}
+	if counts["organizations"], _ = client.Organization.Query().Count(ctx); counts["organizations"] != 0 {
+		t.Errorf("D-19 violated: organizations table has %d rows post-rollback", counts["organizations"])
+	}
+	if counts["campuses"], _ = client.Campus.Query().Count(ctx); counts["campuses"] != 0 {
+		t.Errorf("D-19 violated: campuses table has %d rows post-rollback", counts["campuses"])
+	}
+	if counts["facilities"], _ = client.Facility.Query().Count(ctx); counts["facilities"] != 0 {
+		t.Errorf("D-19 violated: facilities table has %d rows post-rollback", counts["facilities"])
+	}
+	if counts["networks"], _ = client.Network.Query().Count(ctx); counts["networks"] != 0 {
+		t.Errorf("D-19 violated: networks table has %d rows post-rollback", counts["networks"])
+	}
+	if counts["ix"], _ = client.InternetExchange.Query().Count(ctx); counts["ix"] != 0 {
+		t.Errorf("D-19 violated: internet_exchanges table has %d rows post-rollback", counts["ix"])
+	}
+	t.Logf("D-19 atomicity verified: all tables empty after rollback (%+v)", counts)
+}
+
+// TestSync_MemoryLimitAbort verifies the Commit F (Plan 54-03) memory
+// guardrail: when WorkerConfig.SyncMemoryLimit is set absurdly low
+// (1 byte), the Worker.Sync abort path fires AFTER Phase A fetch
+// completes and BEFORE the ent.Tx opens. The test asserts:
+//
+//   - The returned error wraps ErrSyncMemoryLimitExceeded (errors.Is
+//     per GO-ERR-2, no string matching).
+//   - A WARN log line with slog.Int64("heap_alloc", ...) is emitted.
+//   - No organizations were written to the real DB (no tx opened).
+//   - The running mutex is released on return (second Sync call
+//     proceeds past the running guard, though it also aborts for the
+//     same reason — reaching the abort path twice proves the mutex
+//     was released).
+func TestSync_MemoryLimitAbort(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "ok-org", "ok")}
+
+	client, db := testutil.SetupClientWithDB(t)
+	if err := InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	var logBuf bytes.Buffer
+	// Serialize writes because slog.Handler does not promise
+	// goroutine-safety for the underlying writer, and the Worker's
+	// otel metric pipeline + log pipeline may race on the buffer
+	// across the running-mutex release boundary.
+	logger := slog.New(slog.NewJSONHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	pdbClient := newFastPDBClient(t, f.server.URL)
+
+	worker := NewWorker(pdbClient, client, db, WorkerConfig{
+		IncludeDeleted:  false,
+		IsPrimary:       func() bool { return true },
+		SyncMode:        config.SyncModeFull,
+		SyncMemoryLimit: 1, // 1 byte — guaranteed to trip after Phase A
+	}, logger)
+
+	err := worker.Sync(ctx, config.SyncModeFull)
+	if !errors.Is(err, ErrSyncMemoryLimitExceeded) {
+		t.Fatalf("first Sync: expected ErrSyncMemoryLimitExceeded, got %v", err)
+	}
+
+	// Verify WARN log emitted with the expected attribute keys.
+	logs := logBuf.String()
+	if !strings.Contains(logs, `"msg":"sync aborted: memory limit exceeded"`) {
+		t.Errorf("expected WARN log message; captured logs:\n%s", logs)
+	}
+	if !strings.Contains(logs, `"heap_alloc"`) {
+		t.Errorf("expected heap_alloc log attr; captured logs:\n%s", logs)
+	}
+	if !strings.Contains(logs, `"limit"`) {
+		t.Errorf("expected limit log attr; captured logs:\n%s", logs)
+	}
+	if !strings.Contains(logs, `"level":"WARN"`) {
+		t.Errorf("expected WARN level; captured logs:\n%s", logs)
+	}
+
+	// Verify NO tx was opened — real DB is empty.
+	count, err := client.Organization.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("count orgs: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("memory-aborted sync wrote %d orgs, want 0 (tx should not have opened)", count)
+	}
+
+	// Verify running mutex released — a second Sync call reaches the
+	// abort path again instead of being silently dropped by the
+	// running CAS guard (which logs "sync already running, skipping"
+	// and returns nil).
+	err2 := worker.Sync(ctx, config.SyncModeFull)
+	if !errors.Is(err2, ErrSyncMemoryLimitExceeded) {
+		t.Errorf("second Sync after mutex release: expected ErrSyncMemoryLimitExceeded, got %v", err2)
+	}
+}
+
+// TestSync_MemoryLimitDisabled verifies the opt-out path: when
+// SyncMemoryLimit is 0, the guardrail is disabled and Sync proceeds
+// normally. This is the local-dev / benchmark-mode path.
+func TestSync_MemoryLimitDisabled(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "ok-org", "ok")}
+
+	client, db := testutil.SetupClientWithDB(t)
+	if err := InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	pdbClient := newFastPDBClient(t, f.server.URL)
+
+	worker := NewWorker(pdbClient, client, db, WorkerConfig{
+		IncludeDeleted:  false,
+		IsPrimary:       func() bool { return true },
+		SyncMode:        config.SyncModeFull,
+		SyncMemoryLimit: 0, // disabled
+	}, slog.Default())
+
+	if err := worker.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("sync with disabled guardrail: %v", err)
+	}
+
+	count, err := client.Organization.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("count orgs: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 org after sync, got %d", count)
+	}
+}
+
+// TestCheckMemoryLimit_HelperUnit directly exercises the extracted
+// checkMemoryLimit helper so the full sync flow is not needed to lock
+// the guardrail semantics. Table-driven per GO-T-1.
+func TestCheckMemoryLimit_HelperUnit(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		heapAlloc uint64
+		limit     int64
+		wantErr   error
+	}{
+		{name: "disabled_zero_limit", heapAlloc: 1 << 30, limit: 0, wantErr: nil},
+		{name: "disabled_negative_limit", heapAlloc: 1 << 30, limit: -1, wantErr: nil},
+		{name: "under_limit", heapAlloc: 100, limit: 1000, wantErr: nil},
+		{name: "exactly_at_limit", heapAlloc: 1000, limit: 1000, wantErr: nil},
+		{name: "one_over_limit", heapAlloc: 1001, limit: 1000, wantErr: ErrSyncMemoryLimitExceeded},
+		{name: "vastly_over_limit", heapAlloc: 1 << 30, limit: 1, wantErr: ErrSyncMemoryLimitExceeded},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var logBuf bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelWarn}))
+			w := &Worker{logger: logger}
+			err := w.checkMemoryLimit(t.Context(), tt.heapAlloc, tt.limit, 13)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("checkMemoryLimit(%d, %d) = %v, want %v", tt.heapAlloc, tt.limit, err, tt.wantErr)
+			}
+			// On breach, log line must be present; on pass, must be absent.
+			hasBreach := errors.Is(tt.wantErr, ErrSyncMemoryLimitExceeded)
+			hasLog := strings.Contains(logBuf.String(), "sync aborted: memory limit exceeded")
+			if hasBreach && !hasLog {
+				t.Errorf("expected WARN log on breach, got empty buffer")
+			}
+			if !hasBreach && hasLog {
+				t.Errorf("expected NO log on pass, got: %s", logBuf.String())
+			}
+		})
+	}
+}
+
+// TestWorker_CheckMemoryLimitExtracted is a structural regression
+// lock for Commit F: the checkMemoryLimit helper MUST remain a
+// package-private method on *Worker (NOT inlined into Sync). Inlining
+// would push Worker.Sync's body over the REFAC-03 100-line budget.
+func TestWorker_CheckMemoryLimitExtracted(t *testing.T) {
+	t.Parallel()
+
+	src, err := os.ReadFile("worker.go")
+	if err != nil {
+		t.Fatalf("read worker.go: %v", err)
+	}
+	if !bytes.Contains(src, []byte("func (w *Worker) checkMemoryLimit(")) {
+		t.Fatalf("checkMemoryLimit helper must be declared on *Worker — " +
+			"inlining the guardrail into Sync breaks the REFAC-03 line budget")
+	}
+	if !bytes.Contains(src, []byte("w.checkMemoryLimit(")) {
+		t.Fatalf("Worker.Sync must CALL w.checkMemoryLimit — not found in worker.go")
+	}
+	if !bytes.Contains(src, []byte("runtime.ReadMemStats(&ms)")) {
+		t.Fatalf("Worker.Sync must call runtime.ReadMemStats before checkMemoryLimit")
+	}
+	if !bytes.Contains(src, []byte("ErrSyncMemoryLimitExceeded")) {
+		t.Fatalf("ErrSyncMemoryLimitExceeded sentinel must be declared in worker.go")
 	}
 }

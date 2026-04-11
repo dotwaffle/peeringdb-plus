@@ -21,6 +21,53 @@ type NetworkFacilityService struct {
 	StreamTimeout time.Duration
 }
 
+// networkFacilityListFilters is the generic filter table consumed by
+// applyNetworkFacilityListFilters. Entries run in slice order.
+var networkFacilityListFilters = []filterFn[pb.ListNetworkFacilitiesRequest]{
+	validatingFilter("id",
+		func(r *pb.ListNetworkFacilitiesRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(networkfacility.FieldID)),
+	validatingFilter("net_id",
+		func(r *pb.ListNetworkFacilitiesRequest) *int64 { return r.NetId },
+		positiveInt64(), fieldEQInt(networkfacility.FieldNetID)),
+	validatingFilter("fac_id",
+		func(r *pb.ListNetworkFacilitiesRequest) *int64 { return r.FacId },
+		positiveInt64(), fieldEQInt(networkfacility.FieldFacID)),
+	eqFilter(func(r *pb.ListNetworkFacilitiesRequest) *string { return r.Country },
+		fieldEQString(networkfacility.FieldCountry)),
+	eqFilter(func(r *pb.ListNetworkFacilitiesRequest) *string { return r.City },
+		fieldContainsFold(networkfacility.FieldCity)),
+	eqFilter(func(r *pb.ListNetworkFacilitiesRequest) *string { return r.Status },
+		fieldEQString(networkfacility.FieldStatus)),
+	eqFilter(func(r *pb.ListNetworkFacilitiesRequest) *string { return r.Name },
+		fieldContainsFold(networkfacility.FieldName)),
+	validatingFilter("local_asn",
+		func(r *pb.ListNetworkFacilitiesRequest) *int64 { return r.LocalAsn },
+		positiveInt64(), fieldEQInt(networkfacility.FieldLocalAsn)),
+}
+
+// networkFacilityStreamFilters mirrors networkFacilityListFilters but omits
+// the id entry — Stream uses SinceID handled by generic.StreamEntities.
+var networkFacilityStreamFilters = []filterFn[pb.StreamNetworkFacilitiesRequest]{
+	validatingFilter("net_id",
+		func(r *pb.StreamNetworkFacilitiesRequest) *int64 { return r.NetId },
+		positiveInt64(), fieldEQInt(networkfacility.FieldNetID)),
+	validatingFilter("fac_id",
+		func(r *pb.StreamNetworkFacilitiesRequest) *int64 { return r.FacId },
+		positiveInt64(), fieldEQInt(networkfacility.FieldFacID)),
+	eqFilter(func(r *pb.StreamNetworkFacilitiesRequest) *string { return r.Country },
+		fieldEQString(networkfacility.FieldCountry)),
+	eqFilter(func(r *pb.StreamNetworkFacilitiesRequest) *string { return r.City },
+		fieldContainsFold(networkfacility.FieldCity)),
+	eqFilter(func(r *pb.StreamNetworkFacilitiesRequest) *string { return r.Status },
+		fieldEQString(networkfacility.FieldStatus)),
+	eqFilter(func(r *pb.StreamNetworkFacilitiesRequest) *string { return r.Name },
+		fieldContainsFold(networkfacility.FieldName)),
+	validatingFilter("local_asn",
+		func(r *pb.StreamNetworkFacilitiesRequest) *int64 { return r.LocalAsn },
+		positiveInt64(), fieldEQInt(networkfacility.FieldLocalAsn)),
+}
+
 // GetNetworkFacility returns a single network facility by ID.
 func (s *NetworkFacilityService) GetNetworkFacility(ctx context.Context, req *pb.GetNetworkFacilityRequest) (*pb.GetNetworkFacilityResponse, error) {
 	nf, err := s.Client.NetworkFacility.Get(ctx, int(req.GetId()))
@@ -33,80 +80,14 @@ func (s *NetworkFacilityService) GetNetworkFacility(ctx context.Context, req *pb
 	return &pb.GetNetworkFacilityResponse{NetworkFacility: networkFacilityToProto(nf)}, nil
 }
 
+// applyNetworkFacilityListFilters builds filter predicates from the generic filter table.
 func applyNetworkFacilityListFilters(req *pb.ListNetworkFacilitiesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkfacility.FieldID, int(*req.Id)))
-	}
-	if req.NetId != nil {
-		if *req.NetId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkfacility.FieldNetID, int(*req.NetId)))
-	}
-	if req.FacId != nil {
-		if *req.FacId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: fac_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkfacility.FieldFacID, int(*req.FacId)))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(networkfacility.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(networkfacility.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(networkfacility.FieldStatus, *req.Status))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(networkfacility.FieldName, *req.Name))
-	}
-	if req.LocalAsn != nil {
-		if *req.LocalAsn <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: local_asn must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkfacility.FieldLocalAsn, int(*req.LocalAsn)))
-	}
-	return preds, nil
+	return applyFilters(req, networkFacilityListFilters)
 }
 
+// applyNetworkFacilityStreamFilters builds filter predicates from the generic filter table.
 func applyNetworkFacilityStreamFilters(req *pb.StreamNetworkFacilitiesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.NetId != nil {
-		if *req.NetId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkfacility.FieldNetID, int(*req.NetId)))
-	}
-	if req.FacId != nil {
-		if *req.FacId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: fac_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkfacility.FieldFacID, int(*req.FacId)))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(networkfacility.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(networkfacility.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(networkfacility.FieldStatus, *req.Status))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(networkfacility.FieldName, *req.Name))
-	}
-	if req.LocalAsn != nil {
-		if *req.LocalAsn <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: local_asn must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkfacility.FieldLocalAsn, int(*req.LocalAsn)))
-	}
-	return preds, nil
+	return applyFilters(req, networkFacilityStreamFilters)
 }
 
 // ListNetworkFacilities returns a paginated list of network facilities.

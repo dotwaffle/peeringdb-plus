@@ -85,12 +85,11 @@ func (Facility) Fields() []ent.Field {
 			Comment("Longitude"),
 		field.String("name").
 			NotEmpty().
-			Unique().
 			Annotations(
 				entgql.OrderField("NAME"),
 				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
 			).
-			Comment("Facility name"),
+			Comment("Facility name (not unique — PeeringDB permits duplicates)"),
 		field.String("name_long").
 			Optional().
 			Default("").

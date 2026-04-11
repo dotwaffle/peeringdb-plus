@@ -192,7 +192,7 @@ func TestApplyFieldProjectionReflect(t *testing.T) {
 func TestFieldMapCaching(t *testing.T) {
 	t.Parallel()
 
-	typ := reflect.TypeOf(testEntity{})
+	typ := reflect.TypeFor[testEntity]()
 
 	// Clear any cached entry for this type to start fresh.
 	fieldMaps.Delete(typ)

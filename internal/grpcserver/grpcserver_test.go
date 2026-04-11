@@ -5,15 +5,19 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
+	"entgo.io/ent/dialect"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/ent/enttest"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
 	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
@@ -241,17 +245,17 @@ func TestListNetworksFilters(t *testing.T) {
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListNetworksRequest{Status: proto.String("ok")},
+			req:     &pb.ListNetworksRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by name substring case-insensitive",
-			req:     &pb.ListNetworksRequest{Name: proto.String("cloud")},
+			req:     &pb.ListNetworksRequest{Name: new("cloud")},
 			wantLen: 1,
 		},
 		{
 			name:    "combined filters AND",
-			req:     &pb.ListNetworksRequest{Status: proto.String("ok"), Asn: proto.Int64(15169)},
+			req:     &pb.ListNetworksRequest{Status: new("ok"), Asn: proto.Int64(15169)},
 			wantLen: 1,
 		},
 		{
@@ -266,42 +270,42 @@ func TestListNetworksFilters(t *testing.T) {
 		},
 		{
 			name:    "filter by info_type",
-			req:     &pb.ListNetworksRequest{InfoType: proto.String("Content")},
+			req:     &pb.ListNetworksRequest{InfoType: new("Content")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by info_traffic",
-			req:     &pb.ListNetworksRequest{InfoTraffic: proto.String("1 Tbps+")},
+			req:     &pb.ListNetworksRequest{InfoTraffic: new("1 Tbps+")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by policy_general",
-			req:     &pb.ListNetworksRequest{PolicyGeneral: proto.String("Open")},
+			req:     &pb.ListNetworksRequest{PolicyGeneral: new("Open")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by website",
-			req:     &pb.ListNetworksRequest{Website: proto.String("https://google.com")},
+			req:     &pb.ListNetworksRequest{Website: new("https://google.com")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.ListNetworksRequest{Notes: proto.String("search")},
+			req:     &pb.ListNetworksRequest{Notes: new("search")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by info_ipv6",
-			req:     &pb.ListNetworksRequest{InfoIpv6: proto.Bool(true)},
+			req:     &pb.ListNetworksRequest{InfoIpv6: new(true)},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by info_unicast",
-			req:     &pb.ListNetworksRequest{InfoUnicast: proto.Bool(true)},
+			req:     &pb.ListNetworksRequest{InfoUnicast: new(true)},
 			wantLen: 3,
 		},
 		{
 			name:    "filter by info_multicast",
-			req:     &pb.ListNetworksRequest{InfoMulticast: proto.Bool(false)},
+			req:     &pb.ListNetworksRequest{InfoMulticast: new(false)},
 			wantLen: 3,
 		},
 		{
@@ -373,67 +377,67 @@ func TestListFacilitiesFilters(t *testing.T) {
 	}{
 		{
 			name:    "filter by country US",
-			req:     &pb.ListFacilitiesRequest{Country: proto.String("US")},
+			req:     &pb.ListFacilitiesRequest{Country: new("US")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by city case-insensitive substring",
-			req:     &pb.ListFacilitiesRequest{City: proto.String("dallas")},
+			req:     &pb.ListFacilitiesRequest{City: new("dallas")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name and country combined",
-			req:     &pb.ListFacilitiesRequest{Name: proto.String("Equinix"), Country: proto.String("US")},
+			req:     &pb.ListFacilitiesRequest{Name: new("Equinix"), Country: new("US")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.ListFacilitiesRequest{Status: proto.String("ok")},
+			req:     &pb.ListFacilitiesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by state",
-			req:     &pb.ListFacilitiesRequest{State: proto.String("TX")},
+			req:     &pb.ListFacilitiesRequest{State: new("TX")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by zipcode",
-			req:     &pb.ListFacilitiesRequest{Zipcode: proto.String("75201")},
+			req:     &pb.ListFacilitiesRequest{Zipcode: new("75201")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by address1",
-			req:     &pb.ListFacilitiesRequest{Address1: proto.String("123 Main St")},
+			req:     &pb.ListFacilitiesRequest{Address1: new("123 Main St")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by website",
-			req:     &pb.ListFacilitiesRequest{Website: proto.String("https://equinix.com")},
+			req:     &pb.ListFacilitiesRequest{Website: new("https://equinix.com")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.ListFacilitiesRequest{Notes: proto.String("tier 3")},
+			req:     &pb.ListFacilitiesRequest{Notes: new("tier 3")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by region_continent",
-			req:     &pb.ListFacilitiesRequest{RegionContinent: proto.String("North America")},
+			req:     &pb.ListFacilitiesRequest{RegionContinent: new("North America")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by clli",
-			req:     &pb.ListFacilitiesRequest{Clli: proto.String("DLLS")},
+			req:     &pb.ListFacilitiesRequest{Clli: new("DLLS")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by npanxx",
-			req:     &pb.ListFacilitiesRequest{Npanxx: proto.String("214555")},
+			req:     &pb.ListFacilitiesRequest{Npanxx: new("214555")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by property",
-			req:     &pb.ListFacilitiesRequest{Property: proto.String("Colocation")},
+			req:     &pb.ListFacilitiesRequest{Property: new("Colocation")},
 			wantLen: 1,
 		},
 		{
@@ -503,47 +507,47 @@ func TestListOrganizationsFilters(t *testing.T) {
 	}{
 		{
 			name:    "filter by name substring case-insensitive",
-			req:     &pb.ListOrganizationsRequest{Name: proto.String("google")},
+			req:     &pb.ListOrganizationsRequest{Name: new("google")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status ok excludes deleted",
-			req:     &pb.ListOrganizationsRequest{Status: proto.String("ok")},
+			req:     &pb.ListOrganizationsRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by country",
-			req:     &pb.ListOrganizationsRequest{Country: proto.String("US")},
+			req:     &pb.ListOrganizationsRequest{Country: new("US")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by city",
-			req:     &pb.ListOrganizationsRequest{City: proto.String("mountain")},
+			req:     &pb.ListOrganizationsRequest{City: new("mountain")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by state",
-			req:     &pb.ListOrganizationsRequest{State: proto.String("CA")},
+			req:     &pb.ListOrganizationsRequest{State: new("CA")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by website",
-			req:     &pb.ListOrganizationsRequest{Website: proto.String("https://google.com")},
+			req:     &pb.ListOrganizationsRequest{Website: new("https://google.com")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.ListOrganizationsRequest{Notes: proto.String("search giant")},
+			req:     &pb.ListOrganizationsRequest{Notes: new("search giant")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by address1",
-			req:     &pb.ListOrganizationsRequest{Address1: proto.String("1600 Amphitheatre Pkwy")},
+			req:     &pb.ListOrganizationsRequest{Address1: new("1600 Amphitheatre Pkwy")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by zipcode",
-			req:     &pb.ListOrganizationsRequest{Zipcode: proto.String("94043")},
+			req:     &pb.ListOrganizationsRequest{Zipcode: new("94043")},
 			wantLen: 1,
 		},
 	}
@@ -618,7 +622,7 @@ func TestListPocsFilters(t *testing.T) {
 	}{
 		{
 			name:    "filter by role Abuse",
-			req:     &pb.ListPocsRequest{Role: proto.String("Abuse")},
+			req:     &pb.ListPocsRequest{Role: new("Abuse")},
 			wantLen: 1,
 		},
 		{
@@ -628,32 +632,32 @@ func TestListPocsFilters(t *testing.T) {
 		},
 		{
 			name:    "filter by name substring",
-			req:     &pb.ListPocsRequest{Name: proto.String("abuse")},
+			req:     &pb.ListPocsRequest{Name: new("abuse")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by visible",
-			req:     &pb.ListPocsRequest{Visible: proto.String("Users")},
+			req:     &pb.ListPocsRequest{Visible: new("Users")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by phone",
-			req:     &pb.ListPocsRequest{Phone: proto.String("+1-555-0100")},
+			req:     &pb.ListPocsRequest{Phone: new("+1-555-0100")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by email",
-			req:     &pb.ListPocsRequest{Email: proto.String("abuse@example.com")},
+			req:     &pb.ListPocsRequest{Email: new("abuse@example.com")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by url",
-			req:     &pb.ListPocsRequest{Url: proto.String("https://example.com/abuse")},
+			req:     &pb.ListPocsRequest{Url: new("https://example.com/abuse")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListPocsRequest{Status: proto.String("ok")},
+			req:     &pb.ListPocsRequest{Status: new("ok")},
 			wantLen: 3,
 		},
 		{
@@ -717,32 +721,32 @@ func TestListIxPrefixesFilters(t *testing.T) {
 	}{
 		{
 			name:    "filter by protocol IPv4",
-			req:     &pb.ListIxPrefixesRequest{Protocol: proto.String("IPv4")},
+			req:     &pb.ListIxPrefixesRequest{Protocol: new("IPv4")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListIxPrefixesRequest{Status: proto.String("ok")},
+			req:     &pb.ListIxPrefixesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by prefix exact",
-			req:     &pb.ListIxPrefixesRequest{Prefix: proto.String("192.0.2.0/24")},
+			req:     &pb.ListIxPrefixesRequest{Prefix: new("192.0.2.0/24")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by in_dfz true",
-			req:     &pb.ListIxPrefixesRequest{InDfz: proto.Bool(true)},
+			req:     &pb.ListIxPrefixesRequest{InDfz: new(true)},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by in_dfz false",
-			req:     &pb.ListIxPrefixesRequest{InDfz: proto.Bool(false)},
+			req:     &pb.ListIxPrefixesRequest{InDfz: new(false)},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.ListIxPrefixesRequest{Notes: proto.String("primary v4")},
+			req:     &pb.ListIxPrefixesRequest{Notes: new("primary v4")},
 			wantLen: 1,
 		},
 		{
@@ -816,7 +820,7 @@ func TestListNetworkIxLansFilters(t *testing.T) {
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListNetworkIxLansRequest{Status: proto.String("ok")},
+			req:     &pb.ListNetworkIxLansRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
@@ -826,37 +830,37 @@ func TestListNetworkIxLansFilters(t *testing.T) {
 		},
 		{
 			name:    "filter by is_rs_peer true",
-			req:     &pb.ListNetworkIxLansRequest{IsRsPeer: proto.Bool(true)},
+			req:     &pb.ListNetworkIxLansRequest{IsRsPeer: new(true)},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by operational true",
-			req:     &pb.ListNetworkIxLansRequest{Operational: proto.Bool(true)},
+			req:     &pb.ListNetworkIxLansRequest{Operational: new(true)},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by bfd_support false",
-			req:     &pb.ListNetworkIxLansRequest{BfdSupport: proto.Bool(false)},
+			req:     &pb.ListNetworkIxLansRequest{BfdSupport: new(false)},
 			wantLen: 3,
 		},
 		{
 			name:    "filter by ipaddr4",
-			req:     &pb.ListNetworkIxLansRequest{Ipaddr4: proto.String("192.0.2.1")},
+			req:     &pb.ListNetworkIxLansRequest{Ipaddr4: new("192.0.2.1")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by ipaddr6",
-			req:     &pb.ListNetworkIxLansRequest{Ipaddr6: proto.String("2001:db8::1")},
+			req:     &pb.ListNetworkIxLansRequest{Ipaddr6: new("2001:db8::1")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.ListNetworkIxLansRequest{Name: proto.String("alpha")},
+			req:     &pb.ListNetworkIxLansRequest{Name: new("alpha")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.ListNetworkIxLansRequest{Notes: proto.String("test notes")},
+			req:     &pb.ListNetworkIxLansRequest{Notes: new("test notes")},
 			wantLen: 1,
 		},
 		{
@@ -951,12 +955,12 @@ func TestListCarrierFacilitiesFilters(t *testing.T) {
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListCarrierFacilitiesRequest{Status: proto.String("ok")},
+			req:     &pb.ListCarrierFacilitiesRequest{Status: new("ok")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.ListCarrierFacilitiesRequest{Name: proto.String("alpha")},
+			req:     &pb.ListCarrierFacilitiesRequest{Name: new("alpha")},
 			wantLen: 1,
 		},
 		{
@@ -1022,42 +1026,42 @@ func TestListCampusesFilters(t *testing.T) {
 	}{
 		{
 			name:    "filter by name",
-			req:     &pb.ListCampusesRequest{Name: proto.String("alpha")},
+			req:     &pb.ListCampusesRequest{Name: new("alpha")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by country",
-			req:     &pb.ListCampusesRequest{Country: proto.String("US")},
+			req:     &pb.ListCampusesRequest{Country: new("US")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.ListCampusesRequest{Status: proto.String("ok")},
+			req:     &pb.ListCampusesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by city",
-			req:     &pb.ListCampusesRequest{City: proto.String("dallas")},
+			req:     &pb.ListCampusesRequest{City: new("dallas")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by state",
-			req:     &pb.ListCampusesRequest{State: proto.String("TX")},
+			req:     &pb.ListCampusesRequest{State: new("TX")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by zipcode",
-			req:     &pb.ListCampusesRequest{Zipcode: proto.String("75201")},
+			req:     &pb.ListCampusesRequest{Zipcode: new("75201")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by website",
-			req:     &pb.ListCampusesRequest{Website: proto.String("https://campus-a.com")},
+			req:     &pb.ListCampusesRequest{Website: new("https://campus-a.com")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.ListCampusesRequest{Notes: proto.String("main campus")},
+			req:     &pb.ListCampusesRequest{Notes: new("main campus")},
 			wantLen: 1,
 		},
 		{
@@ -1124,22 +1128,22 @@ func TestListCarriersFilters(t *testing.T) {
 	}{
 		{
 			name:    "filter by name",
-			req:     &pb.ListCarriersRequest{Name: proto.String("zayo")},
+			req:     &pb.ListCarriersRequest{Name: new("zayo")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListCarriersRequest{Status: proto.String("ok")},
+			req:     &pb.ListCarriersRequest{Status: new("ok")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by website",
-			req:     &pb.ListCarriersRequest{Website: proto.String("https://zayo.com")},
+			req:     &pb.ListCarriersRequest{Website: new("https://zayo.com")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.ListCarriersRequest{Notes: proto.String("dark fiber")},
+			req:     &pb.ListCarriersRequest{Notes: new("dark fiber")},
 			wantLen: 1,
 		},
 		{
@@ -1216,62 +1220,62 @@ func TestListInternetExchangesFilters(t *testing.T) {
 	}{
 		{
 			name:    "filter by name",
-			req:     &pb.ListInternetExchangesRequest{Name: proto.String("ams")},
+			req:     &pb.ListInternetExchangesRequest{Name: new("ams")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by country",
-			req:     &pb.ListInternetExchangesRequest{Country: proto.String("NL")},
+			req:     &pb.ListInternetExchangesRequest{Country: new("NL")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by media",
-			req:     &pb.ListInternetExchangesRequest{Media: proto.String("Ethernet")},
+			req:     &pb.ListInternetExchangesRequest{Media: new("Ethernet")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by region_continent",
-			req:     &pb.ListInternetExchangesRequest{RegionContinent: proto.String("Europe")},
+			req:     &pb.ListInternetExchangesRequest{RegionContinent: new("Europe")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.ListInternetExchangesRequest{Notes: proto.String("largest IX")},
+			req:     &pb.ListInternetExchangesRequest{Notes: new("largest IX")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by proto_unicast",
-			req:     &pb.ListInternetExchangesRequest{ProtoUnicast: proto.Bool(true)},
+			req:     &pb.ListInternetExchangesRequest{ProtoUnicast: new(true)},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by proto_ipv6",
-			req:     &pb.ListInternetExchangesRequest{ProtoIpv6: proto.Bool(true)},
+			req:     &pb.ListInternetExchangesRequest{ProtoIpv6: new(true)},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by website",
-			req:     &pb.ListInternetExchangesRequest{Website: proto.String("https://ams-ix.net")},
+			req:     &pb.ListInternetExchangesRequest{Website: new("https://ams-ix.net")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by tech_email",
-			req:     &pb.ListInternetExchangesRequest{TechEmail: proto.String("tech@ams-ix.net")},
+			req:     &pb.ListInternetExchangesRequest{TechEmail: new("tech@ams-ix.net")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by service_level",
-			req:     &pb.ListInternetExchangesRequest{ServiceLevel: proto.String("Gold")},
+			req:     &pb.ListInternetExchangesRequest{ServiceLevel: new("Gold")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by city",
-			req:     &pb.ListInternetExchangesRequest{City: proto.String("amsterdam")},
+			req:     &pb.ListInternetExchangesRequest{City: new("amsterdam")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.ListInternetExchangesRequest{Status: proto.String("ok")},
+			req:     &pb.ListInternetExchangesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
@@ -1352,12 +1356,12 @@ func TestListIxFacilitiesFilters(t *testing.T) {
 	}{
 		{
 			name:    "filter by country",
-			req:     &pb.ListIxFacilitiesRequest{Country: proto.String("US")},
+			req:     &pb.ListIxFacilitiesRequest{Country: new("US")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.ListIxFacilitiesRequest{Name: proto.String("ixfac-a")},
+			req:     &pb.ListIxFacilitiesRequest{Name: new("ixfac-a")},
 			wantLen: 1,
 		},
 		{
@@ -1435,12 +1439,12 @@ func TestListIxLansFilters(t *testing.T) {
 	}{
 		{
 			name:    "filter by name",
-			req:     &pb.ListIxLansRequest{Name: proto.String("primary")},
+			req:     &pb.ListIxLansRequest{Name: new("primary")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListIxLansRequest{Status: proto.String("ok")},
+			req:     &pb.ListIxLansRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
@@ -1529,12 +1533,12 @@ func TestListNetworkFacilitiesFilters(t *testing.T) {
 	}{
 		{
 			name:    "filter by country",
-			req:     &pb.ListNetworkFacilitiesRequest{Country: proto.String("US")},
+			req:     &pb.ListNetworkFacilitiesRequest{Country: new("US")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.ListNetworkFacilitiesRequest{Name: proto.String("nf-a")},
+			req:     &pb.ListNetworkFacilitiesRequest{Name: new("nf-a")},
 			wantLen: 1,
 		},
 		{
@@ -1614,7 +1618,7 @@ func TestListNetworksFiltersPaginated(t *testing.T) {
 
 	// Page 1: filter by status="ok", page_size=2.
 	resp, err := svc.ListNetworks(ctx, &pb.ListNetworksRequest{
-		Status:   proto.String("ok"),
+		Status:   new("ok"),
 		PageSize: 2,
 	})
 	if err != nil {
@@ -1629,7 +1633,7 @@ func TestListNetworksFiltersPaginated(t *testing.T) {
 
 	// Page 2: continue with page token.
 	resp2, err := svc.ListNetworks(ctx, &pb.ListNetworksRequest{
-		Status:    proto.String("ok"),
+		Status:    new("ok"),
 		PageSize:  2,
 		PageToken: resp.GetNextPageToken(),
 	})
@@ -1645,7 +1649,7 @@ func TestListNetworksFiltersPaginated(t *testing.T) {
 
 	// Page 3: last page with remaining result.
 	resp3, err := svc.ListNetworks(ctx, &pb.ListNetworksRequest{
-		Status:    proto.String("ok"),
+		Status:    new("ok"),
 		PageSize:  2,
 		PageToken: resp2.GetNextPageToken(),
 	})
@@ -1729,17 +1733,17 @@ func TestStreamNetworks(t *testing.T) {
 		},
 		{
 			name:    "filter by name case insensitive",
-			req:     &pb.StreamNetworksRequest{Name: proto.String("cloud")},
+			req:     &pb.StreamNetworksRequest{Name: new("cloud")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamNetworksRequest{Status: proto.String("ok")},
+			req:     &pb.StreamNetworksRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "combined filters",
-			req:     &pb.StreamNetworksRequest{Asn: proto.Int64(15169), Status: proto.String("ok")},
+			req:     &pb.StreamNetworksRequest{Asn: proto.Int64(15169), Status: new("ok")},
 			wantLen: 1,
 		},
 		{
@@ -1749,37 +1753,37 @@ func TestStreamNetworks(t *testing.T) {
 		},
 		{
 			name:    "filter by info_type",
-			req:     &pb.StreamNetworksRequest{InfoType: proto.String("Content")},
+			req:     &pb.StreamNetworksRequest{InfoType: new("Content")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by info_traffic",
-			req:     &pb.StreamNetworksRequest{InfoTraffic: proto.String("1 Tbps+")},
+			req:     &pb.StreamNetworksRequest{InfoTraffic: new("1 Tbps+")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by policy_general",
-			req:     &pb.StreamNetworksRequest{PolicyGeneral: proto.String("Open")},
+			req:     &pb.StreamNetworksRequest{PolicyGeneral: new("Open")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by website",
-			req:     &pb.StreamNetworksRequest{Website: proto.String("https://google.com")},
+			req:     &pb.StreamNetworksRequest{Website: new("https://google.com")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.StreamNetworksRequest{Notes: proto.String("search giant")},
+			req:     &pb.StreamNetworksRequest{Notes: new("search giant")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by info_ipv6",
-			req:     &pb.StreamNetworksRequest{InfoIpv6: proto.Bool(true)},
+			req:     &pb.StreamNetworksRequest{InfoIpv6: new(true)},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by info_unicast",
-			req:     &pb.StreamNetworksRequest{InfoUnicast: proto.Bool(true)},
+			req:     &pb.StreamNetworksRequest{InfoUnicast: new(true)},
 			wantLen: 3,
 		},
 		{
@@ -1860,7 +1864,7 @@ func TestStreamNetworksTotalCount(t *testing.T) {
 		},
 		{
 			name:      "status ok filter returns 2",
-			req:       &pb.StreamNetworksRequest{Status: proto.String("ok")},
+			req:       &pb.StreamNetworksRequest{Status: new("ok")},
 			wantCount: "2",
 		},
 	}
@@ -1939,35 +1943,43 @@ func TestStreamNetworksCancellation(t *testing.T) {
 func TestStreamNetworksSinceId(t *testing.T) {
 	t.Parallel()
 
+	// PERF-06: delta streams (SinceID set) omit the grpc-total-count header
+	// entirely. wantCount is "" on every subtest because header absence is the
+	// wire contract. The "since_id zero" subtest also expects absence: the
+	// StreamEntities guard is a pointer-nil check (params.SinceID == nil), so a
+	// non-nil *int64 pointing at 0 still counts as "delta filter set". The
+	// "same as omitted" phrasing in the test name refers to result-row
+	// equivalence (3 rows returned), not header equivalence.
 	tests := []struct {
 		name      string
 		req       *pb.StreamNetworksRequest
 		wantLen   int
-		wantCount string
+		wantCount string // PERF-06: "" means header absent on delta streams.
 	}{
 		{
 			name:      "since_id returns records after given ID",
 			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(1)},
 			wantLen:   2,
-			wantCount: "2",
+			wantCount: "",
 		},
 		{
 			name:      "since_id beyond max returns empty",
 			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(9999)},
 			wantLen:   0,
-			wantCount: "0",
+			wantCount: "",
 		},
 		{
 			name:      "since_id with status filter composes via AND",
-			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(1), Status: proto.String("ok")},
+			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(1), Status: new("ok")},
 			wantLen:   1,
-			wantCount: "1",
+			wantCount: "",
 		},
 		{
+			// Header absent because SinceId pointer is non-nil regardless of value.
 			name:      "since_id zero returns all (same as omitted)",
 			req:       &pb.StreamNetworksRequest{SinceId: proto.Int64(0)},
 			wantLen:   3,
-			wantCount: "3",
+			wantCount: "",
 		},
 	}
 
@@ -1998,13 +2010,15 @@ func TestStreamNetworksSinceId(t *testing.T) {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
 
-			// Check response header for total count.
+			// Check response header for total count. PERF-06: delta streams
+			// must omit the header entirely — wantCount is "" for every case
+			// in this test, asserting absence.
 			got := stream.ResponseHeader().Get("Grpc-Total-Count")
 			if got == "" {
 				got = stream.ResponseHeader().Get("grpc-total-count")
 			}
 			if got != tt.wantCount {
-				t.Errorf("grpc-total-count = %q, want %q", got, tt.wantCount)
+				t.Errorf("grpc-total-count = %q, want absent (delta stream)", got)
 			}
 		})
 	}
@@ -2013,11 +2027,15 @@ func TestStreamNetworksSinceId(t *testing.T) {
 func TestStreamNetworksUpdatedSince(t *testing.T) {
 	t.Parallel()
 
+	// PERF-06: delta streams (UpdatedSince set) omit the grpc-total-count
+	// header entirely. wantCount is "" on every subtest — including the
+	// combined SinceId+UpdatedSince case — because header absence is the
+	// wire contract whenever either delta filter pointer is non-nil.
 	tests := []struct {
 		name      string
 		req       *pb.StreamNetworksRequest
 		wantLen   int
-		wantCount string
+		wantCount string // PERF-06: "" means header absent on delta streams.
 	}{
 		{
 			name: "updated_since before seed time returns all",
@@ -2025,7 +2043,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 				UpdatedSince: timestamppb.New(time.Date(2026, 1, 14, 0, 0, 0, 0, time.UTC)),
 			},
 			wantLen:   3,
-			wantCount: "3",
+			wantCount: "",
 		},
 		{
 			name: "updated_since after seed time returns none",
@@ -2033,16 +2051,16 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 				UpdatedSince: timestamppb.New(time.Date(2026, 1, 16, 0, 0, 0, 0, time.UTC)),
 			},
 			wantLen:   0,
-			wantCount: "0",
+			wantCount: "",
 		},
 		{
 			name: "updated_since with status filter composes via AND",
 			req: &pb.StreamNetworksRequest{
 				UpdatedSince: timestamppb.New(time.Date(2026, 1, 14, 0, 0, 0, 0, time.UTC)),
-				Status:       proto.String("ok"),
+				Status:       new("ok"),
 			},
 			wantLen:   2,
-			wantCount: "2",
+			wantCount: "",
 		},
 		{
 			name: "since_id and updated_since compose together",
@@ -2051,7 +2069,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 				UpdatedSince: timestamppb.New(time.Date(2026, 1, 14, 0, 0, 0, 0, time.UTC)),
 			},
 			wantLen:   2,
-			wantCount: "2",
+			wantCount: "",
 		},
 	}
 
@@ -2082,15 +2100,120 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
 
-			// Check response header for total count.
+			// Check response header for total count. PERF-06: delta streams
+			// must omit the header entirely — wantCount is "" for every case
+			// in this test, asserting absence.
 			got := stream.ResponseHeader().Get("Grpc-Total-Count")
 			if got == "" {
 				got = stream.ResponseHeader().Get("grpc-total-count")
 			}
 			if got != tt.wantCount {
-				t.Errorf("grpc-total-count = %q, want %q", got, tt.wantCount)
+				t.Errorf("grpc-total-count = %q, want absent (delta stream)", got)
 			}
 		})
+	}
+}
+
+// countStmtRE matches any SQL statement that contains SELECT COUNT( (any
+// whitespace, case-insensitive). Used by TestStream_SkipCountOnDelta to assert
+// no COUNT(*) preflight was issued on delta streams.
+var countStmtRE = regexp.MustCompile(`(?i)select\s+count\(`)
+
+// TestStream_SkipCountOnDelta is the load-bearing PERF-06 assertion: on a
+// StreamNetworks RPC with SinceId set, StreamEntities must NOT issue a
+// SELECT COUNT(*) query and must NOT write the grpc-total-count response
+// header. Verified via ent's dialect.Debug() driver wrapper capturing every
+// Exec/Query SQL string and a post-stream scan for any COUNT(...) shape.
+func TestStream_SkipCountOnDelta(t *testing.T) {
+	t.Parallel()
+
+	// Capture every SQL statement the ent driver issues during the stream.
+	// dialect.Debug wraps the underlying driver and forwards every Exec/Query
+	// call through the log function as a formatted "driver.Query: query=... args=..."
+	// string. A mutex guards concurrent writes because ent may issue queries
+	// from goroutines spawned inside the connect handler.
+	var (
+		mu       sync.Mutex
+		captured []string
+	)
+	logFn := func(args ...any) {
+		mu.Lock()
+		defer mu.Unlock()
+		captured = append(captured, fmt.Sprint(args...))
+	}
+
+	// Build an ent client whose driver is wrapped in dialect.Debug. Fresh DSN
+	// per test run so we stay hermetic under t.Parallel().
+	dsn := fmt.Sprintf("file:test_skipcount_%d?mode=memory&cache=shared&_pragma=foreign_keys(1)",
+		time.Now().UnixNano())
+	entClient := enttest.Open(t,
+		dialect.SQLite,
+		dsn,
+		enttest.WithOptions(ent.Debug(), ent.Log(logFn)),
+	)
+	t.Cleanup(func() { _ = entClient.Close() })
+
+	seedStreamNetworks(t, entClient)
+
+	// Reset capture AFTER seeding — seed inserts are noise, we only care about
+	// the SQL emitted by the stream handler itself.
+	mu.Lock()
+	captured = captured[:0]
+	mu.Unlock()
+
+	rpcClient := setupStreamTestServer(t, entClient)
+	ctx := t.Context()
+
+	stream, err := rpcClient.StreamNetworks(ctx, &pb.StreamNetworksRequest{
+		SinceId: proto.Int64(1),
+	})
+	if err != nil {
+		t.Fatalf("StreamNetworks returned error: %v", err)
+	}
+
+	// Drain the stream fully so every driver op is captured before asserting.
+	var got int
+	for stream.Receive() {
+		if stream.Msg() == nil {
+			t.Fatal("received nil message from stream")
+		}
+		got++
+	}
+	if streamErr := stream.Err(); streamErr != nil {
+		t.Fatalf("stream error: %v", streamErr)
+	}
+
+	// Snapshot the captured slice under the mutex.
+	mu.Lock()
+	stmts := make([]string, len(captured))
+	copy(stmts, captured)
+	mu.Unlock()
+
+	// PERF-06 assertion 1: no SELECT COUNT( statement was issued at all.
+	for _, stmt := range stmts {
+		if countStmtRE.MatchString(stmt) {
+			t.Errorf("delta stream issued a COUNT(*) preflight, PERF-06 violation: %s", stmt)
+		}
+	}
+
+	// PERF-06 assertion 2: the grpc-total-count header is absent in both
+	// canonical and lowercase forms.
+	if h := stream.ResponseHeader().Get("Grpc-Total-Count"); h != "" {
+		t.Errorf("Grpc-Total-Count = %q, want absent on delta stream", h)
+	}
+	if h := stream.ResponseHeader().Get("grpc-total-count"); h != "" {
+		t.Errorf("grpc-total-count = %q, want absent on delta stream", h)
+	}
+
+	// Sanity: the stream still returned the expected rows (ids 2 and 3).
+	if got != 2 {
+		t.Errorf("got %d messages, want 2 (rows after id=1)", got)
+	}
+
+	// Sanity: the capture hook actually fired for the stream — otherwise the
+	// negative assertion above would be vacuously true.
+	if len(stmts) == 0 {
+		t.Fatal("query log captured zero statements; debug wrapper not wired correctly")
 	}
 }
 
@@ -2182,22 +2305,22 @@ func TestListCampuses(t *testing.T) {
 		},
 		{
 			name:    "filter by country US",
-			req:     &pb.ListCampusesRequest{Country: proto.String("US")},
+			req:     &pb.ListCampusesRequest{Country: new("US")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by name case-insensitive",
-			req:     &pb.ListCampusesRequest{Name: proto.String("alpha")},
+			req:     &pb.ListCampusesRequest{Name: new("alpha")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListCampusesRequest{Status: proto.String("ok")},
+			req:     &pb.ListCampusesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "combined country and status",
-			req:     &pb.ListCampusesRequest{Country: proto.String("US"), Status: proto.String("ok")},
+			req:     &pb.ListCampusesRequest{Country: new("US"), Status: new("ok")},
 			wantLen: 1,
 		},
 		{
@@ -2312,12 +2435,12 @@ func TestListCarriers(t *testing.T) {
 		},
 		{
 			name:    "filter by name case-insensitive",
-			req:     &pb.ListCarriersRequest{Name: proto.String("zayo")},
+			req:     &pb.ListCarriersRequest{Name: new("zayo")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListCarriersRequest{Status: proto.String("ok")},
+			req:     &pb.ListCarriersRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
@@ -2430,17 +2553,17 @@ func TestListInternetExchanges(t *testing.T) {
 		},
 		{
 			name:    "filter by country DE",
-			req:     &pb.ListInternetExchangesRequest{Country: proto.String("DE")},
+			req:     &pb.ListInternetExchangesRequest{Country: new("DE")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by name case-insensitive",
-			req:     &pb.ListInternetExchangesRequest{Name: proto.String("ams")},
+			req:     &pb.ListInternetExchangesRequest{Name: new("ams")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListInternetExchangesRequest{Status: proto.String("ok")},
+			req:     &pb.ListInternetExchangesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
@@ -2711,12 +2834,12 @@ func TestListIxLans(t *testing.T) {
 		},
 		{
 			name:    "filter by name case-insensitive",
-			req:     &pb.ListIxLansRequest{Name: proto.String("lan-a")},
+			req:     &pb.ListIxLansRequest{Name: new("lan-a")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListIxLansRequest{Status: proto.String("ok")},
+			req:     &pb.ListIxLansRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
@@ -2877,7 +3000,7 @@ func TestListNetworkFacilities(t *testing.T) {
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.ListNetworkFacilitiesRequest{Status: proto.String("ok")},
+			req:     &pb.ListNetworkFacilitiesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
@@ -2948,27 +3071,27 @@ func TestListNetworksInfoTypeFilter(t *testing.T) {
 	}{
 		{
 			name:    "filter by info_type Content",
-			req:     &pb.ListNetworksRequest{InfoType: proto.String("Content")},
+			req:     &pb.ListNetworksRequest{InfoType: new("Content")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by info_type NSP",
-			req:     &pb.ListNetworksRequest{InfoType: proto.String("NSP")},
+			req:     &pb.ListNetworksRequest{InfoType: new("NSP")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by info_unicast true",
-			req:     &pb.ListNetworksRequest{InfoUnicast: proto.Bool(true)},
+			req:     &pb.ListNetworksRequest{InfoUnicast: new(true)},
 			wantLen: 3,
 		},
 		{
 			name:    "filter by info_ipv6 true",
-			req:     &pb.ListNetworksRequest{InfoIpv6: proto.Bool(true)},
+			req:     &pb.ListNetworksRequest{InfoIpv6: new(true)},
 			wantLen: 1,
 		},
 		{
 			name:    "combined info_type and ASN",
-			req:     &pb.ListNetworksRequest{InfoType: proto.String("Content"), Asn: proto.Int64(65001)},
+			req:     &pb.ListNetworksRequest{InfoType: new("Content"), Asn: proto.Int64(65001)},
 			wantLen: 1,
 		},
 	}
@@ -3757,52 +3880,52 @@ func TestStreamFacilities(t *testing.T) {
 		},
 		{
 			name:    "filter by country",
-			req:     &pb.StreamFacilitiesRequest{Country: proto.String("US")},
+			req:     &pb.StreamFacilitiesRequest{Country: new("US")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name case insensitive",
-			req:     &pb.StreamFacilitiesRequest{Name: proto.String("ld5")},
+			req:     &pb.StreamFacilitiesRequest{Name: new("ld5")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by city",
-			req:     &pb.StreamFacilitiesRequest{City: proto.String("dallas")},
+			req:     &pb.StreamFacilitiesRequest{City: new("dallas")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamFacilitiesRequest{Status: proto.String("ok")},
+			req:     &pb.StreamFacilitiesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by state",
-			req:     &pb.StreamFacilitiesRequest{State: proto.String("TX")},
+			req:     &pb.StreamFacilitiesRequest{State: new("TX")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by zipcode",
-			req:     &pb.StreamFacilitiesRequest{Zipcode: proto.String("75201")},
+			req:     &pb.StreamFacilitiesRequest{Zipcode: new("75201")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by address1",
-			req:     &pb.StreamFacilitiesRequest{Address1: proto.String("123 Main St")},
+			req:     &pb.StreamFacilitiesRequest{Address1: new("123 Main St")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by website",
-			req:     &pb.StreamFacilitiesRequest{Website: proto.String("https://equinix.com")},
+			req:     &pb.StreamFacilitiesRequest{Website: new("https://equinix.com")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.StreamFacilitiesRequest{Notes: proto.String("tier 3")},
+			req:     &pb.StreamFacilitiesRequest{Notes: new("tier 3")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by region_continent",
-			req:     &pb.StreamFacilitiesRequest{RegionContinent: proto.String("North America")},
+			req:     &pb.StreamFacilitiesRequest{RegionContinent: new("North America")},
 			wantLen: 1,
 		},
 	}
@@ -3873,37 +3996,37 @@ func TestStreamOrganizations(t *testing.T) {
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.StreamOrganizationsRequest{Name: proto.String("google")},
+			req:     &pb.StreamOrganizationsRequest{Name: new("google")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by country",
-			req:     &pb.StreamOrganizationsRequest{Country: proto.String("US")},
+			req:     &pb.StreamOrganizationsRequest{Country: new("US")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by city",
-			req:     &pb.StreamOrganizationsRequest{City: proto.String("mountain")},
+			req:     &pb.StreamOrganizationsRequest{City: new("mountain")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamOrganizationsRequest{Status: proto.String("ok")},
+			req:     &pb.StreamOrganizationsRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by website",
-			req:     &pb.StreamOrganizationsRequest{Website: proto.String("https://google.com")},
+			req:     &pb.StreamOrganizationsRequest{Website: new("https://google.com")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by state",
-			req:     &pb.StreamOrganizationsRequest{State: proto.String("CA")},
+			req:     &pb.StreamOrganizationsRequest{State: new("CA")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.StreamOrganizationsRequest{Notes: proto.String("search giant")},
+			req:     &pb.StreamOrganizationsRequest{Notes: new("search giant")},
 			wantLen: 1,
 		},
 	}
@@ -3970,22 +4093,22 @@ func TestStreamCampuses(t *testing.T) {
 		},
 		{
 			name:    "filter by country",
-			req:     &pb.StreamCampusesRequest{Country: proto.String("US")},
+			req:     &pb.StreamCampusesRequest{Country: new("US")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.StreamCampusesRequest{Name: proto.String("alpha")},
+			req:     &pb.StreamCampusesRequest{Name: new("alpha")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by city",
-			req:     &pb.StreamCampusesRequest{City: proto.String("london")},
+			req:     &pb.StreamCampusesRequest{City: new("london")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamCampusesRequest{Status: proto.String("ok")},
+			req:     &pb.StreamCampusesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 	}
@@ -4052,22 +4175,22 @@ func TestStreamCarriers(t *testing.T) {
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.StreamCarriersRequest{Name: proto.String("zayo")},
+			req:     &pb.StreamCarriersRequest{Name: new("zayo")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamCarriersRequest{Status: proto.String("ok")},
+			req:     &pb.StreamCarriersRequest{Status: new("ok")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by website",
-			req:     &pb.StreamCarriersRequest{Website: proto.String("https://zayo.com")},
+			req:     &pb.StreamCarriersRequest{Website: new("https://zayo.com")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.StreamCarriersRequest{Notes: proto.String("dark fiber")},
+			req:     &pb.StreamCarriersRequest{Notes: new("dark fiber")},
 			wantLen: 1,
 		},
 	}
@@ -4139,62 +4262,62 @@ func TestStreamInternetExchanges(t *testing.T) {
 		},
 		{
 			name:    "filter by country",
-			req:     &pb.StreamInternetExchangesRequest{Country: proto.String("DE")},
+			req:     &pb.StreamInternetExchangesRequest{Country: new("DE")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.StreamInternetExchangesRequest{Name: proto.String("ams")},
+			req:     &pb.StreamInternetExchangesRequest{Name: new("ams")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by city",
-			req:     &pb.StreamInternetExchangesRequest{City: proto.String("frankfurt")},
+			req:     &pb.StreamInternetExchangesRequest{City: new("frankfurt")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by media",
-			req:     &pb.StreamInternetExchangesRequest{Media: proto.String("Ethernet")},
+			req:     &pb.StreamInternetExchangesRequest{Media: new("Ethernet")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamInternetExchangesRequest{Status: proto.String("ok")},
+			req:     &pb.StreamInternetExchangesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by region_continent",
-			req:     &pb.StreamInternetExchangesRequest{RegionContinent: proto.String("Europe")},
+			req:     &pb.StreamInternetExchangesRequest{RegionContinent: new("Europe")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.StreamInternetExchangesRequest{Notes: proto.String("large IX")},
+			req:     &pb.StreamInternetExchangesRequest{Notes: new("large IX")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by proto_unicast",
-			req:     &pb.StreamInternetExchangesRequest{ProtoUnicast: proto.Bool(true)},
+			req:     &pb.StreamInternetExchangesRequest{ProtoUnicast: new(true)},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by proto_ipv6",
-			req:     &pb.StreamInternetExchangesRequest{ProtoIpv6: proto.Bool(true)},
+			req:     &pb.StreamInternetExchangesRequest{ProtoIpv6: new(true)},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by website",
-			req:     &pb.StreamInternetExchangesRequest{Website: proto.String("https://de-cix.net")},
+			req:     &pb.StreamInternetExchangesRequest{Website: new("https://de-cix.net")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by tech_email",
-			req:     &pb.StreamInternetExchangesRequest{TechEmail: proto.String("tech@de-cix.net")},
+			req:     &pb.StreamInternetExchangesRequest{TechEmail: new("tech@de-cix.net")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by service_level",
-			req:     &pb.StreamInternetExchangesRequest{ServiceLevel: proto.String("Gold")},
+			req:     &pb.StreamInternetExchangesRequest{ServiceLevel: new("Gold")},
 			wantLen: 1,
 		},
 	}
@@ -4270,12 +4393,12 @@ func TestStreamIxLans(t *testing.T) {
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.StreamIxLansRequest{Name: proto.String("lan-a")},
+			req:     &pb.StreamIxLansRequest{Name: new("lan-a")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamIxLansRequest{Status: proto.String("ok")},
+			req:     &pb.StreamIxLansRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
@@ -4360,22 +4483,22 @@ func TestStreamIxFacilities(t *testing.T) {
 		},
 		{
 			name:    "filter by country",
-			req:     &pb.StreamIxFacilitiesRequest{Country: proto.String("US")},
+			req:     &pb.StreamIxFacilitiesRequest{Country: new("US")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.StreamIxFacilitiesRequest{Name: proto.String("ixf-a")},
+			req:     &pb.StreamIxFacilitiesRequest{Name: new("ixf-a")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamIxFacilitiesRequest{Status: proto.String("ok")},
+			req:     &pb.StreamIxFacilitiesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by city",
-			req:     &pb.StreamIxFacilitiesRequest{City: proto.String("dallas")},
+			req:     &pb.StreamIxFacilitiesRequest{City: new("dallas")},
 			wantLen: 1,
 		},
 	}
@@ -4464,17 +4587,17 @@ func TestStreamNetworkFacilities(t *testing.T) {
 		},
 		{
 			name:    "filter by country",
-			req:     &pb.StreamNetworkFacilitiesRequest{Country: proto.String("US")},
+			req:     &pb.StreamNetworkFacilitiesRequest{Country: new("US")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.StreamNetworkFacilitiesRequest{Name: proto.String("nf-a")},
+			req:     &pb.StreamNetworkFacilitiesRequest{Name: new("nf-a")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamNetworkFacilitiesRequest{Status: proto.String("ok")},
+			req:     &pb.StreamNetworkFacilitiesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
@@ -4484,7 +4607,7 @@ func TestStreamNetworkFacilities(t *testing.T) {
 		},
 		{
 			name:    "filter by city",
-			req:     &pb.StreamNetworkFacilitiesRequest{City: proto.String("london")},
+			req:     &pb.StreamNetworkFacilitiesRequest{City: new("london")},
 			wantLen: 1,
 		},
 	}
@@ -4557,12 +4680,12 @@ func TestStreamCarrierFacilities(t *testing.T) {
 		},
 		{
 			name:    "filter by status ok",
-			req:     &pb.StreamCarrierFacilitiesRequest{Status: proto.String("ok")},
+			req:     &pb.StreamCarrierFacilitiesRequest{Status: new("ok")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.StreamCarrierFacilitiesRequest{Name: proto.String("cf-a")},
+			req:     &pb.StreamCarrierFacilitiesRequest{Name: new("cf-a")},
 			wantLen: 1,
 		},
 	}
@@ -4639,27 +4762,27 @@ func TestStreamIxPrefixes(t *testing.T) {
 		},
 		{
 			name:    "filter by protocol IPv4",
-			req:     &pb.StreamIxPrefixesRequest{Protocol: proto.String("IPv4")},
+			req:     &pb.StreamIxPrefixesRequest{Protocol: new("IPv4")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamIxPrefixesRequest{Status: proto.String("ok")},
+			req:     &pb.StreamIxPrefixesRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by prefix",
-			req:     &pb.StreamIxPrefixesRequest{Prefix: proto.String("192.0.2.0/24")},
+			req:     &pb.StreamIxPrefixesRequest{Prefix: new("192.0.2.0/24")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by in_dfz true",
-			req:     &pb.StreamIxPrefixesRequest{InDfz: proto.Bool(true)},
+			req:     &pb.StreamIxPrefixesRequest{InDfz: new(true)},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.StreamIxPrefixesRequest{Notes: proto.String("primary v4")},
+			req:     &pb.StreamIxPrefixesRequest{Notes: new("primary v4")},
 			wantLen: 1,
 		},
 	}
@@ -4745,12 +4868,12 @@ func TestStreamNetworkIxLans(t *testing.T) {
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.StreamNetworkIxLansRequest{Name: proto.String("nixl-a")},
+			req:     &pb.StreamNetworkIxLansRequest{Name: new("nixl-a")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamNetworkIxLansRequest{Status: proto.String("ok")},
+			req:     &pb.StreamNetworkIxLansRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
@@ -4760,32 +4883,32 @@ func TestStreamNetworkIxLans(t *testing.T) {
 		},
 		{
 			name:    "filter by ipaddr4",
-			req:     &pb.StreamNetworkIxLansRequest{Ipaddr4: proto.String("192.0.2.1")},
+			req:     &pb.StreamNetworkIxLansRequest{Ipaddr4: new("192.0.2.1")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by ipaddr6",
-			req:     &pb.StreamNetworkIxLansRequest{Ipaddr6: proto.String("2001:db8::1")},
+			req:     &pb.StreamNetworkIxLansRequest{Ipaddr6: new("2001:db8::1")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by is_rs_peer",
-			req:     &pb.StreamNetworkIxLansRequest{IsRsPeer: proto.Bool(true)},
+			req:     &pb.StreamNetworkIxLansRequest{IsRsPeer: new(true)},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by operational",
-			req:     &pb.StreamNetworkIxLansRequest{Operational: proto.Bool(true)},
+			req:     &pb.StreamNetworkIxLansRequest{Operational: new(true)},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by bfd_support",
-			req:     &pb.StreamNetworkIxLansRequest{BfdSupport: proto.Bool(false)},
+			req:     &pb.StreamNetworkIxLansRequest{BfdSupport: new(false)},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by notes",
-			req:     &pb.StreamNetworkIxLansRequest{Notes: proto.String("primary")},
+			req:     &pb.StreamNetworkIxLansRequest{Notes: new("primary")},
 			wantLen: 1,
 		},
 	}
@@ -4872,37 +4995,37 @@ func TestStreamPocs(t *testing.T) {
 		},
 		{
 			name:    "filter by role Abuse",
-			req:     &pb.StreamPocsRequest{Role: proto.String("Abuse")},
+			req:     &pb.StreamPocsRequest{Role: new("Abuse")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by name",
-			req:     &pb.StreamPocsRequest{Name: proto.String("abuse")},
+			req:     &pb.StreamPocsRequest{Name: new("abuse")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by status",
-			req:     &pb.StreamPocsRequest{Status: proto.String("ok")},
+			req:     &pb.StreamPocsRequest{Status: new("ok")},
 			wantLen: 2,
 		},
 		{
 			name:    "filter by visible",
-			req:     &pb.StreamPocsRequest{Visible: proto.String("Users")},
+			req:     &pb.StreamPocsRequest{Visible: new("Users")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by email",
-			req:     &pb.StreamPocsRequest{Email: proto.String("abuse@example.com")},
+			req:     &pb.StreamPocsRequest{Email: new("abuse@example.com")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by phone",
-			req:     &pb.StreamPocsRequest{Phone: proto.String("+1-555-0100")},
+			req:     &pb.StreamPocsRequest{Phone: new("+1-555-0100")},
 			wantLen: 1,
 		},
 		{
 			name:    "filter by url",
-			req:     &pb.StreamPocsRequest{Url: proto.String("https://example.com/abuse")},
+			req:     &pb.StreamPocsRequest{Url: new("https://example.com/abuse")},
 			wantLen: 1,
 		},
 	}
@@ -4959,7 +5082,7 @@ func TestStreamNetworksInfoTypeFilter(t *testing.T) {
 	rpcClient := setupStreamTestServer(t, entClient)
 
 	stream, err := rpcClient.StreamNetworks(ctx, &pb.StreamNetworksRequest{
-		InfoType: proto.String("Content"),
+		InfoType: new("Content"),
 	})
 	if err != nil {
 		t.Fatalf("StreamNetworks returned error: %v", err)

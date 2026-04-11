@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -15,6 +16,64 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/time/rate"
 )
+
+// RateLimitError is returned when PeeringDB responds with HTTP 429 Too Many
+// Requests. It carries the Retry-After delay parsed from the response header
+// so upstream callers (sync worker retry loops) can short-circuit their own
+// backoff ladders instead of burning more of our rate-limited quota on retries
+// that are guaranteed to 429 again.
+//
+// Background: PeeringDB enforces 1 request per distinct query-string per hour
+// for unauthenticated clients. Their 429 response includes a Retry-After
+// header in seconds (e.g. "Retry-After: 2200" = 36m40s). The sync worker's
+// default retry backoff ladder (30s, 2m, 8m) all fall well inside that window,
+// so every retry within a single sync cycle is doomed — and each one consumes
+// another slot against the hourly quota.
+type RateLimitError struct {
+	// URL is the request URL that was rate-limited.
+	URL string
+	// RetryAfter is the delay parsed from the Retry-After response header.
+	// Zero if the header was absent or unparseable.
+	RetryAfter time.Duration
+	// Status is always http.StatusTooManyRequests for RateLimitError.
+	Status int
+}
+
+// Error implements the error interface.
+func (e *RateLimitError) Error() string {
+	if e.RetryAfter > 0 {
+		return fmt.Sprintf("fetch %s: HTTP %d (rate-limited, retry after %s)",
+			e.URL, e.Status, e.RetryAfter)
+	}
+	return fmt.Sprintf("fetch %s: HTTP %d (rate-limited)", e.URL, e.Status)
+}
+
+// parseRetryAfter parses an HTTP Retry-After header value into a duration.
+// Per RFC 7231 §7.1.3, Retry-After is either a non-negative integer number of
+// seconds ("120") or an HTTP date ("Fri, 31 Dec 1999 23:59:59 GMT"). Returns
+// zero duration if the header is empty or cannot be parsed — callers should
+// treat zero as "header absent, use default backoff".
+//
+// The `now` argument is injectable for deterministic testing of the HTTP-date
+// path; production callers pass time.Now().
+func parseRetryAfter(header string, now time.Time) time.Duration {
+	if header == "" {
+		return 0
+	}
+	// Integer seconds (the common case — PeeringDB uses this form).
+	if seconds, err := strconv.Atoi(header); err == nil && seconds >= 0 {
+		return time.Duration(seconds) * time.Second
+	}
+	// HTTP date (the uncommon case — still RFC-valid so honor it).
+	if t, err := http.ParseTime(header); err == nil {
+		delta := t.Sub(now)
+		if delta < 0 {
+			return 0
+		}
+		return delta
+	}
+	return 0
+}
 
 const (
 	// pageSize is the maximum number of objects per page (verified against PeeringDB API).
@@ -118,138 +177,50 @@ func parseMeta(raw json.RawMessage) time.Time {
 	return time.Unix(int64(meta.Generated), 0)
 }
 
-// FetchAll pages through all objects of the given type, returning each
-// as a json.RawMessage inside a FetchResult. It loops until the API
-// returns an empty data array. Each request is rate-limited and retried
-// on transient errors.
+// FetchAll pages through all objects of the given type, collecting each
+// element as a json.RawMessage in a FetchResult. It is a thin wrapper
+// over StreamAll — new callers should prefer StreamAll directly to avoid
+// the allocation of a full []json.RawMessage slice. FetchAll exists for
+// the pdbcompat-check CLI and the conformance test, which consume the
+// full result set as a batch.
+//
+// The handler clones each raw message because json.Decoder reuses its
+// internal buffer across Decode calls — without the clone, every slice
+// entry would alias the same memory.
 func (c *Client) FetchAll(ctx context.Context, objectType string, opts ...FetchOption) (FetchResult, error) {
-	var cfg fetchConfig
-	for _, opt := range opts {
-		opt(&cfg)
+	var data []json.RawMessage
+	handler := func(raw json.RawMessage) error {
+		clone := make(json.RawMessage, len(raw))
+		copy(clone, raw)
+		data = append(data, clone)
+		return nil
 	}
-
-	tracer := otel.Tracer("peeringdb")
-	ctx, span := tracer.Start(ctx, "peeringdb.fetch/"+objectType)
-	defer span.End()
-
-	// Full sync (no since): fetch entire dataset in one request without
-	// limit/skip. PeeringDB returns the full cached dataset, avoiding
-	// dozens of paginated requests and rate-limit pressure.
-	if cfg.since.IsZero() {
-		url := fmt.Sprintf("%s/api/%s?depth=0", c.baseURL, objectType)
-
-		resp, err := c.doWithRetry(ctx, url)
-		if err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("fetch %s: %w", objectType, err)
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		if err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("read %s body: %w", objectType, err)
-		}
-
-		var apiResp Response[json.RawMessage]
-		if err := json.Unmarshal(body, &apiResp); err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("decode %s response: %w", objectType, err)
-		}
-
-		generated := parseMeta(apiResp.Meta)
-
-		span.AddEvent("fetched",
-			trace.WithAttributes(
-				attribute.Int("count", len(apiResp.Data)),
-			),
-		)
-
-		c.logger.LogAttrs(ctx, slog.LevelDebug, "fetched all",
-			slog.String("type", objectType),
-			slog.Int("count", len(apiResp.Data)),
-		)
-
-		return FetchResult{Data: apiResp.Data, Meta: FetchMeta{Generated: generated}}, nil
+	meta, err := c.StreamAll(ctx, objectType, handler, opts...)
+	if err != nil {
+		return FetchResult{}, err
 	}
-
-	// Incremental sync (with since): paginate through delta results.
-	var all []json.RawMessage
-	var earliestGenerated time.Time
-
-	for skip := 0; ; skip += pageSize {
-		page := skip / pageSize
-		url := fmt.Sprintf("%s/api/%s?limit=%d&skip=%d&depth=0&since=%d",
-			c.baseURL, objectType, pageSize, skip, cfg.since.Unix())
-
-		resp, err := c.doWithRetry(ctx, url)
-		if err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("fetch %s page %d: %w", objectType, page, err)
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		if err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("read %s page %d body: %w", objectType, page, err)
-		}
-
-		var apiResp Response[json.RawMessage]
-		if err := json.Unmarshal(body, &apiResp); err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("decode %s page %d response: %w", objectType, page, err)
-		}
-
-		pageGenerated := parseMeta(apiResp.Meta)
-		if !pageGenerated.IsZero() && (earliestGenerated.IsZero() || pageGenerated.Before(earliestGenerated)) {
-			earliestGenerated = pageGenerated
-		}
-
-		if len(apiResp.Data) == 0 {
-			break
-		}
-
-		all = append(all, apiResp.Data...)
-
-		span.AddEvent("page.fetched",
-			trace.WithAttributes(
-				attribute.Int("page", page),
-				attribute.Int("count", len(apiResp.Data)),
-				attribute.Int("running_total", len(all)),
-			),
-		)
-
-		c.logger.LogAttrs(ctx, slog.LevelDebug, "fetched page",
-			slog.String("type", objectType),
-			slog.Int("page", page),
-			slog.Int("count", len(apiResp.Data)),
-			slog.Int("total", len(all)),
-		)
-	}
-
-	return FetchResult{Data: all, Meta: FetchMeta{Generated: earliestGenerated}}, nil
+	return FetchResult{Data: data, Meta: meta}, nil
 }
 
-// FetchType pages through all objects of the given type and unmarshals
-// each into the concrete type T. Unknown JSON fields are silently
-// ignored per D-08. This is a package-level function because Go does
-// not allow type parameters on methods.
+// FetchType streams objects of the given type and unmarshals each directly
+// into the concrete type T. Unknown JSON fields are silently ignored per
+// D-08. This is a package-level function because Go does not allow type
+// parameters on methods. Unlike FetchAll, FetchType does not clone the
+// raw bytes — each element is decoded into a fresh T immediately and the
+// underlying decoder buffer can be reused for the next element.
 func FetchType[T any](ctx context.Context, c *Client, objectType string, opts ...FetchOption) ([]T, error) {
-	result, err := c.FetchAll(ctx, objectType, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]T, 0, len(result.Data))
-	for i, item := range result.Data {
+	var items []T
+	handler := func(raw json.RawMessage) error {
 		var v T
-		if err := json.Unmarshal(item, &v); err != nil {
-			return nil, fmt.Errorf("unmarshal %s item %d: %w", objectType, i, err)
+		if err := json.Unmarshal(raw, &v); err != nil {
+			return fmt.Errorf("unmarshal %s item %d: %w", objectType, len(items), err)
 		}
 		items = append(items, v)
+		return nil
 	}
-
+	if _, err := c.StreamAll(ctx, objectType, handler, opts...); err != nil {
+		return nil, err
+	}
 	return items, nil
 }
 
@@ -312,6 +283,11 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 			return resp, nil
 		}
 
+		// Capture Retry-After before draining the body — it's a response
+		// header so body reads don't affect it, but we read it here to keep
+		// the 429 short-circuit path below self-contained.
+		retryAfterHeader := resp.Header.Get("Retry-After")
+
 		// Read and discard body so the connection can be reused.
 		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
@@ -326,6 +302,28 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 			attemptSpan.RecordError(authErr)
 			attemptSpan.End()
 			return nil, authErr
+		}
+
+		// Rate limit short-circuit: PeeringDB's 1 req/hr unauth limit means
+		// the within-request 2s/8s retry ladder is pure waste — every retry
+		// lands inside the Retry-After window and burns another slot against
+		// our quota. Parse Retry-After, return a typed RateLimitError, and
+		// let the sync-level caller decide whether to back off further.
+		if resp.StatusCode == http.StatusTooManyRequests {
+			retryAfter := parseRetryAfter(retryAfterHeader, time.Now())
+			rlErr := &RateLimitError{
+				URL:        url,
+				RetryAfter: retryAfter,
+				Status:     resp.StatusCode,
+			}
+			c.logger.LogAttrs(ctx, slog.LevelWarn, "PeeringDB rate-limited, aborting request retries",
+				slog.String("url", url),
+				slog.Int("status", resp.StatusCode),
+				slog.Duration("retry_after", retryAfter),
+			)
+			attemptSpan.RecordError(rlErr)
+			attemptSpan.End()
+			return nil, rlErr
 		}
 
 		// Determine if retryable.

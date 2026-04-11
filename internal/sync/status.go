@@ -141,7 +141,52 @@ func GetLastStatus(ctx context.Context, db *sql.DB) (*Status, error) {
 	row := db.QueryRowContext(ctx,
 		`SELECT started_at, completed_at, duration_ms, object_counts, status, error_message FROM sync_status ORDER BY id DESC LIMIT 1`,
 	)
+	return scanStatusRow(row, "get last sync status")
+}
 
+// GetLastCompletedStatus returns the most recent non-running sync status row
+// (either "success" or "failed"). Used by /readyz to fall back past an
+// in-flight "running" row so the health check reflects the most recent
+// outcome — whether success or failure. Returns nil if no completed sync
+// has ever been recorded.
+//
+// NOTE: this is the right answer for /readyz (which wants to know "what's
+// the most recent outcome?" and reports unhealthy on failed) but NOT for
+// UI freshness displays (which want "when was the last known-good data?").
+// UI surfaces should use GetLastSuccessfulStatus instead.
+func GetLastCompletedStatus(ctx context.Context, db *sql.DB) (*Status, error) {
+	row := db.QueryRowContext(ctx,
+		`SELECT started_at, completed_at, duration_ms, object_counts, status, error_message
+		 FROM sync_status
+		 WHERE status != 'running'
+		 ORDER BY id DESC LIMIT 1`,
+	)
+	return scanStatusRow(row, "get last completed sync status")
+}
+
+// GetLastSuccessfulStatus returns the most recent successful sync status row.
+// This is the right answer for UI surfaces that want to display "when was
+// the last known-good data?" — it skips past any in-flight "running" rows
+// AND any "failed" rows to find the most recent row with status="success".
+// Returns nil if no successful sync has ever been recorded.
+//
+// Unlike GetLastSuccessfulSyncTime (which returns only the timestamp for
+// ETag seeding), this returns the full Status struct including object
+// counts and duration for display purposes.
+func GetLastSuccessfulStatus(ctx context.Context, db *sql.DB) (*Status, error) {
+	row := db.QueryRowContext(ctx,
+		`SELECT started_at, completed_at, duration_ms, object_counts, status, error_message
+		 FROM sync_status
+		 WHERE status = 'success'
+		 ORDER BY id DESC LIMIT 1`,
+	)
+	return scanStatusRow(row, "get last successful sync status")
+}
+
+// scanStatusRow decodes a sync_status row into a *Status. Returns (nil, nil)
+// when the row is empty (sql.ErrNoRows). errContext is used as the error
+// message prefix so callers can tell which query failed.
+func scanStatusRow(row *sql.Row, errContext string) (*Status, error) {
 	var (
 		startedAt    time.Time
 		completedAt  sql.NullTime
@@ -155,7 +200,7 @@ func GetLastStatus(ctx context.Context, db *sql.DB) (*Status, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get last sync status: %w", err)
+		return nil, fmt.Errorf("%s: %w", errContext, err)
 	}
 
 	s := &Status{

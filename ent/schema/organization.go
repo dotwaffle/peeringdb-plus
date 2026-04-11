@@ -64,12 +64,11 @@ func (Organization) Fields() []ent.Field {
 			Comment("Longitude"),
 		field.String("name").
 			NotEmpty().
-			Unique().
 			Annotations(
 				entgql.OrderField("NAME"),
 				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
 			).
-			Comment("Organization name"),
+			Comment("Organization name (not unique — PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)"),
 		field.String("name_long").
 			Optional().
 			Default("").

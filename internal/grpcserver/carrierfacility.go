@@ -21,6 +21,41 @@ type CarrierFacilityService struct {
 	StreamTimeout time.Duration
 }
 
+// carrierFacilityListFilters is the generic filter table consumed by
+// applyCarrierFacilityListFilters. Entries run in slice order. See
+// internal/grpcserver/filter.go for the filterFn[REQ] contract and the
+// reusable predicate builders.
+var carrierFacilityListFilters = []filterFn[pb.ListCarrierFacilitiesRequest]{
+	validatingFilter("id",
+		func(r *pb.ListCarrierFacilitiesRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(carrierfacility.FieldID)),
+	validatingFilter("carrier_id",
+		func(r *pb.ListCarrierFacilitiesRequest) *int64 { return r.CarrierId },
+		positiveInt64(), fieldEQInt(carrierfacility.FieldCarrierID)),
+	validatingFilter("fac_id",
+		func(r *pb.ListCarrierFacilitiesRequest) *int64 { return r.FacId },
+		positiveInt64(), fieldEQInt(carrierfacility.FieldFacID)),
+	eqFilter(func(r *pb.ListCarrierFacilitiesRequest) *string { return r.Status },
+		fieldEQString(carrierfacility.FieldStatus)),
+	eqFilter(func(r *pb.ListCarrierFacilitiesRequest) *string { return r.Name },
+		fieldContainsFold(carrierfacility.FieldName)),
+}
+
+// carrierFacilityStreamFilters mirrors carrierFacilityListFilters but omits
+// the id entry — Stream uses SinceID handled by generic.StreamEntities.
+var carrierFacilityStreamFilters = []filterFn[pb.StreamCarrierFacilitiesRequest]{
+	validatingFilter("carrier_id",
+		func(r *pb.StreamCarrierFacilitiesRequest) *int64 { return r.CarrierId },
+		positiveInt64(), fieldEQInt(carrierfacility.FieldCarrierID)),
+	validatingFilter("fac_id",
+		func(r *pb.StreamCarrierFacilitiesRequest) *int64 { return r.FacId },
+		positiveInt64(), fieldEQInt(carrierfacility.FieldFacID)),
+	eqFilter(func(r *pb.StreamCarrierFacilitiesRequest) *string { return r.Status },
+		fieldEQString(carrierfacility.FieldStatus)),
+	eqFilter(func(r *pb.StreamCarrierFacilitiesRequest) *string { return r.Name },
+		fieldContainsFold(carrierfacility.FieldName)),
+}
+
 // GetCarrierFacility returns a single carrier facility by ID.
 func (s *CarrierFacilityService) GetCarrierFacility(ctx context.Context, req *pb.GetCarrierFacilityRequest) (*pb.GetCarrierFacilityResponse, error) {
 	cf, err := s.Client.CarrierFacility.Get(ctx, int(req.GetId()))
@@ -33,56 +68,16 @@ func (s *CarrierFacilityService) GetCarrierFacility(ctx context.Context, req *pb
 	return &pb.GetCarrierFacilityResponse{CarrierFacility: carrierFacilityToProto(cf)}, nil
 }
 
+// applyCarrierFacilityListFilters builds filter predicates from the generic
+// filter table. See carrierFacilityListFilters and internal/grpcserver/filter.go.
 func applyCarrierFacilityListFilters(req *pb.ListCarrierFacilitiesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(carrierfacility.FieldID, int(*req.Id)))
-	}
-	if req.CarrierId != nil {
-		if *req.CarrierId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: carrier_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(carrierfacility.FieldCarrierID, int(*req.CarrierId)))
-	}
-	if req.FacId != nil {
-		if *req.FacId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: fac_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(carrierfacility.FieldFacID, int(*req.FacId)))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(carrierfacility.FieldStatus, *req.Status))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(carrierfacility.FieldName, *req.Name))
-	}
-	return preds, nil
+	return applyFilters(req, carrierFacilityListFilters)
 }
 
+// applyCarrierFacilityStreamFilters builds filter predicates from the generic
+// filter table. See carrierFacilityStreamFilters and internal/grpcserver/filter.go.
 func applyCarrierFacilityStreamFilters(req *pb.StreamCarrierFacilitiesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.CarrierId != nil {
-		if *req.CarrierId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: carrier_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(carrierfacility.FieldCarrierID, int(*req.CarrierId)))
-	}
-	if req.FacId != nil {
-		if *req.FacId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: fac_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(carrierfacility.FieldFacID, int(*req.FacId)))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(carrierfacility.FieldStatus, *req.Status))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(carrierfacility.FieldName, *req.Name))
-	}
-	return preds, nil
+	return applyFilters(req, carrierFacilityStreamFilters)
 }
 
 // ListCarrierFacilities returns a paginated list of carrier facilities.

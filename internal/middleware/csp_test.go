@@ -143,3 +143,70 @@ func TestCSPUIDirectives(t *testing.T) {
 		}
 	}
 }
+
+func TestCSP_EnforcingModeHeaders(t *testing.T) {
+	t.Parallel()
+
+	uiPolicy := "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: https://*.basemaps.cartocdn.com; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net"
+	graphQLPolicy := "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'"
+
+	const (
+		enforcing  = "Content-Security-Policy"
+		reportOnly = "Content-Security-Policy-Report-Only"
+	)
+
+	tests := []struct {
+		name          string
+		enforcingMode bool
+		path          string
+		wantHeader    string // header that SHOULD be set (empty string means no CSP header at all)
+		wantPolicy    string
+		wantAbsent    string // header that MUST NOT be set (empty means no check)
+	}{
+		{name: "report-only UI", enforcingMode: false, path: "/ui/", wantHeader: reportOnly, wantPolicy: uiPolicy, wantAbsent: enforcing},
+		{name: "enforcing UI", enforcingMode: true, path: "/ui/", wantHeader: enforcing, wantPolicy: uiPolicy, wantAbsent: reportOnly},
+		{name: "report-only graphql", enforcingMode: false, path: "/graphql", wantHeader: reportOnly, wantPolicy: graphQLPolicy, wantAbsent: enforcing},
+		{name: "enforcing graphql", enforcingMode: true, path: "/graphql", wantHeader: enforcing, wantPolicy: graphQLPolicy, wantAbsent: reportOnly},
+		{name: "enforcing skips /api/", enforcingMode: true, path: "/api/net", wantHeader: "", wantAbsent: enforcing},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			cspMW := middleware.CSP(middleware.CSPInput{
+				UIPolicy:      uiPolicy,
+				GraphQLPolicy: graphQLPolicy,
+				EnforcingMode: tc.enforcingMode,
+			})
+			handler := cspMW(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			}))
+
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+
+			if tc.wantHeader != "" {
+				got := rec.Header().Get(tc.wantHeader)
+				if got == "" {
+					t.Fatalf("%s header missing, want policy set", tc.wantHeader)
+				}
+				if got != tc.wantPolicy {
+					t.Errorf("%s = %q, want %q", tc.wantHeader, got, tc.wantPolicy)
+				}
+			}
+			if tc.wantAbsent != "" {
+				if absent := rec.Header().Get(tc.wantAbsent); absent != "" {
+					t.Errorf("%s = %q, want empty (mode mismatch)", tc.wantAbsent, absent)
+				}
+			}
+			if tc.wantHeader == "" && tc.path == "/api/net" {
+				// Non-browser path must have NO CSP header at all.
+				if r := rec.Header().Get(reportOnly); r != "" {
+					t.Errorf("%s = %q, want empty on /api/ path", reportOnly, r)
+				}
+			}
+		})
+	}
+}

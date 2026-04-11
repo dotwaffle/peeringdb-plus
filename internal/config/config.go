@@ -5,6 +5,8 @@ package config
 import (
 	"errors"
 	"fmt"
+	"math"
+	"net"
 	"net/url"
 	"os"
 	"strconv"
@@ -21,6 +23,29 @@ const (
 	// SyncModeIncremental fetches only objects modified since the last sync.
 	SyncModeIncremental SyncMode = "incremental"
 )
+
+// privateIPNets are the RFC 1918 private-use IPv4 ranges that may appear in
+// http:// URLs for PDBPLUS_PEERINGDB_URL (local dev carveout per SEC-06).
+// Parsed once at package init so validate() is allocation-free on the hot
+// path (even though validate is startup-only, package-level parsing keeps the
+// CIDR strings in one place and eliminates per-call net.ParseCIDR failures).
+var privateIPNets = func() []*net.IPNet {
+	cidrs := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+	}
+	nets := make([]*net.IPNet, 0, len(cidrs))
+	for _, c := range cidrs {
+		_, n, err := net.ParseCIDR(c)
+		if err != nil {
+			// Constant input — unreachable at runtime, panic surfaces any future typo.
+			panic(fmt.Sprintf("config: invalid builtin CIDR %q: %v", c, err))
+		}
+		nets = append(nets, n)
+	}
+	return nets
+}()
 
 // Config holds all application configuration. Immutable after Load returns.
 type Config struct {
@@ -69,6 +94,30 @@ type Config struct {
 	// StreamTimeout is the maximum duration for a single streaming RPC.
 	// Configured via PDBPLUS_STREAM_TIMEOUT. Default is 60 seconds.
 	StreamTimeout time.Duration
+
+	// CSPEnforce controls whether the CSP middleware serves the enforcing
+	// Content-Security-Policy header (true) or the Content-Security-Policy-Report-Only
+	// header (false). Configured via PDBPLUS_CSP_ENFORCE. Default is false per SEC-07
+	// rollout strategy — enforcement is opt-in per deploy through v1.13.
+	CSPEnforce bool
+
+	// SyncMemoryLimit is the peak Go heap ceiling (bytes) checked after
+	// the sync worker's Phase A fetch pass completes and before the
+	// database transaction opens. If runtime.ReadMemStats reports
+	// HeapAlloc above this value, the sync aborts with a WARN log and
+	// returns sync.ErrSyncMemoryLimitExceeded. The next scheduled sync
+	// retries normally after the current batches are reclaimed by GC.
+	//
+	// Configured via PDBPLUS_SYNC_MEMORY_LIMIT. Default is 400MB —
+	// matches the DEBT-03 regression gate in BenchmarkSyncWorker_FullMemoryPeak
+	// and leaves 112 MB headroom under the 512 MB Fly.io VM cap per
+	// v1.13 hard constraint. Set to 0 to disable the guardrail (local
+	// dev only; guardrail is defense-in-depth against runtime memory
+	// spikes that exceed what the benchmark harness measured).
+	//
+	// Unit suffix is required (KB/MB/GB/TB, base 1024); bare numbers
+	// are rejected for unambiguous operator configuration.
+	SyncMemoryLimit int64
 }
 
 // Load reads configuration from environment variables, applies defaults,
@@ -96,7 +145,7 @@ func Load() (*Config, error) {
 	}
 	cfg.SyncInterval = syncInterval
 
-	includeDeleted, err := parseBool("PDBPLUS_INCLUDE_DELETED", false)
+	includeDeleted, err := parseBool("PDBPLUS_INCLUDE_DELETED", true)
 	if err != nil {
 		return nil, fmt.Errorf("parsing PDBPLUS_INCLUDE_DELETED: %w", err)
 	}
@@ -132,6 +181,18 @@ func Load() (*Config, error) {
 	}
 	cfg.StreamTimeout = streamTimeout
 
+	cspEnforce, err := parseBool("PDBPLUS_CSP_ENFORCE", false)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_CSP_ENFORCE: %w", err)
+	}
+	cfg.CSPEnforce = cspEnforce
+
+	syncMemoryLimit, err := parseByteSize("PDBPLUS_SYNC_MEMORY_LIMIT", 400*1024*1024)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_SYNC_MEMORY_LIMIT: %w", err)
+	}
+	cfg.SyncMemoryLimit = syncMemoryLimit
+
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
 	}
@@ -152,14 +213,79 @@ func (c *Config) validate() error {
 	if !strings.Contains(c.ListenAddr, ":") {
 		return errors.New("PDBPLUS_LISTEN_ADDR must contain ':' (e.g., ':8080' or '0.0.0.0:8080')")
 	}
-	u, err := url.Parse(c.PeeringDBBaseURL)
-	if err != nil || u.Scheme == "" {
-		return fmt.Errorf("PDBPLUS_PEERINGDB_URL must be a valid URL with scheme (got %q)", c.PeeringDBBaseURL)
+	if err := validatePeeringDBURL(c.PeeringDBBaseURL); err != nil {
+		return err
 	}
 	if c.DrainTimeout <= 0 {
 		return errors.New("PDBPLUS_DRAIN_TIMEOUT must be greater than 0")
 	}
+	if c.SyncMemoryLimit < 0 {
+		return errors.New("PDBPLUS_SYNC_MEMORY_LIMIT must be non-negative (0 = disabled)")
+	}
 	return nil
+}
+
+// validatePeeringDBURL enforces SEC-06: PDBPLUS_PEERINGDB_URL must be https://,
+// or http:// against loopback (localhost / 127.0.0.1 / ::1) or RFC 1918 private
+// ranges (10/8, 172.16/12, 192.168/16). Each rejection class produces a distinct
+// error message so operators can diagnose misconfiguration from a log line.
+//
+// Trap avoided (PITFALLS.md §mp-7): url.Parse("example.com") succeeds with an
+// empty Scheme — the caller MUST check Scheme explicitly, not just err.
+func validatePeeringDBURL(raw string) error {
+	if raw == "" {
+		return errors.New("PDBPLUS_PEERINGDB_URL must not be empty")
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("PDBPLUS_PEERINGDB_URL is not a valid URL (got %q): %w", raw, err)
+	}
+	if u.Scheme == "" {
+		return fmt.Errorf("PDBPLUS_PEERINGDB_URL missing scheme — expected https:// (got %q)", raw)
+	}
+	// Scheme is checked BEFORE host — a URL like "file:///tmp/foo" has an
+	// empty host by design, but the scheme rejection is the more useful
+	// diagnostic, so it wins classification.
+	switch u.Scheme {
+	case "https":
+		if u.Host == "" {
+			return fmt.Errorf("PDBPLUS_PEERINGDB_URL has empty host (got %q)", raw)
+		}
+		return nil
+	case "http":
+		if u.Host == "" {
+			return fmt.Errorf("PDBPLUS_PEERINGDB_URL has empty host (got %q)", raw)
+		}
+		if isLocalOrPrivateHost(u.Hostname()) {
+			return nil
+		}
+		return fmt.Errorf("PDBPLUS_PEERINGDB_URL uses http:// against a non-local host %q — use https:// for production or a loopback/RFC-1918 host for local dev", u.Hostname())
+	default:
+		return fmt.Errorf("PDBPLUS_PEERINGDB_URL has unsupported scheme %q — expected https (or http for local dev)", u.Scheme)
+	}
+}
+
+// isLocalOrPrivateHost reports whether host is the string "localhost", a
+// loopback IP literal, or an RFC 1918 private IPv4 literal. Hostnames other
+// than "localhost" are NOT resolved via DNS — production hosts cannot bypass
+// the https:// requirement by setting an A record to 127.0.0.1.
+func isLocalOrPrivateHost(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	if ip.IsLoopback() {
+		return true
+	}
+	for _, n := range privateIPNets {
+		if n.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 func envOrDefault(key, defaultVal string) string {
@@ -216,4 +342,70 @@ func parseSyncMode(key string, defaultVal SyncMode) (SyncMode, error) {
 	default:
 		return "", fmt.Errorf("invalid sync mode %q for %s: must be 'full' or 'incremental'", v, key)
 	}
+}
+
+// parseByteSize parses an env var as a byte count with a MANDATORY unit
+// suffix (KB, MB, GB, TB — base 1024). An empty env var falls back to
+// defaultVal. The literal "0" is accepted as an explicit disable value.
+// A bare number without a unit is REJECTED to eliminate ambiguity in
+// operator configuration (PERF-05 ergonomics) — was the 500 meant as
+// 500 bytes, 500 KB, or 500 MB? Force the operator to be explicit.
+//
+// Accepted forms: "0", "100KB", "400MB", "2GB", "1TB" (case-insensitive
+// suffix). The short forms "K", "M", "G", "T" are accepted as aliases
+// for "KB", "MB", "GB", "TB" respectively.
+//
+// Examples: "400MB" -> 400 * 1024 * 1024; "1GB" -> 1024^3; "0" -> 0
+// (guardrail disabled).
+func parseByteSize(key string, defaultVal int64) (int64, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultVal, nil
+	}
+	// Allow literal "0" as an explicit disable value.
+	if v == "0" {
+		return 0, nil
+	}
+	// Locate the first unit-suffix rune. Accept upper- and lower-case.
+	idx := strings.IndexFunc(v, func(r rune) bool {
+		switch r {
+		case 'K', 'M', 'G', 'T', 'k', 'm', 'g', 't':
+			return true
+		}
+		return false
+	})
+	if idx < 0 {
+		return 0, fmt.Errorf("invalid byte size %q for %s: missing unit (KB/MB/GB/TB)", v, key)
+	}
+	if idx == 0 {
+		return 0, fmt.Errorf("invalid byte size %q for %s: missing numeric prefix", v, key)
+	}
+	num, err := strconv.ParseInt(v[:idx], 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid byte size %q for %s: %w", v, key, err)
+	}
+	if num < 0 {
+		return 0, fmt.Errorf("invalid byte size %q for %s: must be non-negative", v, key)
+	}
+	unit := strings.ToUpper(v[idx:])
+	var mult int64
+	switch unit {
+	case "K", "KB":
+		mult = 1024
+	case "M", "MB":
+		mult = 1024 * 1024
+	case "G", "GB":
+		mult = 1024 * 1024 * 1024
+	case "T", "TB":
+		mult = 1024 * 1024 * 1024 * 1024
+	default:
+		return 0, fmt.Errorf("invalid byte size %q for %s: unknown unit %q (want KB/MB/GB/TB)", v, key, unit)
+	}
+	// Overflow guard: num*mult must fit in int64. Operators realistically
+	// never configure petabyte heap limits, but the helper is shaped as a
+	// general-purpose parser; defense in depth. See 54-REVIEW.md WR-02.
+	if num != 0 && mult != 0 && num > math.MaxInt64/mult {
+		return 0, fmt.Errorf("invalid byte size %q for %s: overflows int64", v, key)
+	}
+	return num * mult, nil
 }

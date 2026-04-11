@@ -3,6 +3,7 @@ package peeringdb
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -22,7 +23,7 @@ import (
 // makeOrgPage creates a JSON response with n Organization objects starting at the given ID offset.
 func makeOrgPage(startID, count int) []byte {
 	var items []json.RawMessage
-	for i := 0; i < count; i++ {
+	for i := range count {
 		raw, _ := json.Marshal(map[string]any{
 			"id":      startID + i,
 			"name":    fmt.Sprintf("Org %d", startID+i),
@@ -83,38 +84,119 @@ func TestFetchAllPagination(t *testing.T) {
 	}
 }
 
-func TestFetchAllRetryOn429(t *testing.T) {
+// TestFetchAllShortCircuitsOn429 locks the PeeringDB rate-limit contract:
+// the within-request retry ladder (2s/8s/32s) is pure waste against PeeringDB's
+// 1-request-per-hour-per-query unauthenticated quota. When the upstream returns
+// HTTP 429 with a Retry-After header, the client must abort immediately with
+// a *RateLimitError carrying the parsed Retry-After — NO retries, because every
+// retry lands inside the window and burns another slot against the hourly quota.
+//
+// Observed in production 2026-04-11: with the pre-fix behavior, a single failed
+// sync cycle made 12 requests/hour to /api/org against the 1/hour limit,
+// keeping us permanently rate-limited. See .planning/STATE.md 260411 fast tasks.
+func TestFetchAllShortCircuitsOn429(t *testing.T) {
 	t.Parallel()
 
 	var attempt atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		n := attempt.Add(1)
-		if n <= 2 {
-			w.WriteHeader(http.StatusTooManyRequests)
-			_, _ = w.Write([]byte(`{"detail":"Rate limit exceeded"}`))
-			return
-		}
-		// Third attempt succeeds, then second request gets empty.
-		if n == 3 {
-			_, _ = w.Write(makeOrgPage(1, 5))
-			return
-		}
-		_, _ = w.Write(emptyResponse())
+		attempt.Add(1)
+		w.Header().Set("Retry-After", "2200") // matches real PeeringDB header
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"message":"Request was throttled. Expected available in 36 minutes.","meta":{"error":"Too Many Requests"}}`))
 	}))
 	defer server.Close()
 
 	client := NewClient(server.URL, slog.Default())
 	client.limiter.SetLimit(1000)
 	client.limiter.SetBurst(1000)
-	client.retryBaseDelay = 1 * time.Millisecond // Speed up tests.
+	client.retryBaseDelay = 1 * time.Millisecond // Would be observable if retries fired.
 
-	result, err := client.FetchAll(t.Context(), TypeOrg)
-	if err != nil {
-		t.Fatalf("FetchAll: %v", err)
+	_, err := client.FetchAll(t.Context(), TypeOrg)
+	if err == nil {
+		t.Fatal("expected error from 429 short-circuit, got nil")
 	}
 
-	if len(result.Data) != 5 {
-		t.Errorf("got %d items, want 5", len(result.Data))
+	rlErr, ok := errors.AsType[*RateLimitError](err)
+	if !ok {
+		t.Fatalf("expected *RateLimitError, got %T: %v", err, err)
+	}
+	if rlErr.Status != http.StatusTooManyRequests {
+		t.Errorf("Status = %d, want %d", rlErr.Status, http.StatusTooManyRequests)
+	}
+	if rlErr.RetryAfter != 2200*time.Second {
+		t.Errorf("RetryAfter = %s, want %s", rlErr.RetryAfter, 2200*time.Second)
+	}
+	if rlErr.URL == "" {
+		t.Error("URL should be populated")
+	}
+
+	// The critical assertion: exactly ONE HTTP request, no retries.
+	if got := attempt.Load(); got != 1 {
+		t.Errorf("made %d attempts, want 1 (429 must short-circuit, not retry)", got)
+	}
+}
+
+func TestParseRetryAfter(t *testing.T) {
+	t.Parallel()
+
+	// Fixed reference time for deterministic HTTP-date parsing tests.
+	now := time.Date(2026, 4, 11, 9, 30, 0, 0, time.UTC)
+
+	tests := []struct {
+		name   string
+		header string
+		want   time.Duration
+	}{
+		{"empty", "", 0},
+		{"integer_seconds_zero", "0", 0},
+		{"integer_seconds_positive", "2200", 2200 * time.Second},
+		{"integer_seconds_one_hour", "3600", time.Hour},
+		{"negative_rejected", "-1", 0},
+		{"non_numeric_non_date", "soon", 0},
+		{"http_date_future", "Sat, 11 Apr 2026 10:00:00 GMT", 30 * time.Minute},
+		{"http_date_past", "Sat, 11 Apr 2026 09:00:00 GMT", 0},
+		{"http_date_exact_now", "Sat, 11 Apr 2026 09:30:00 GMT", 0},
+		{"malformed_date", "Not a date", 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := parseRetryAfter(tt.header, now)
+			if got != tt.want {
+				t.Errorf("parseRetryAfter(%q) = %s, want %s", tt.header, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestFetchAllShortCircuitsOn429NoHeader verifies that a 429 without a
+// Retry-After header still short-circuits (no retries, *RateLimitError
+// returned) but with RetryAfter == 0. Callers treat zero as "header absent".
+func TestFetchAllShortCircuitsOn429NoHeader(t *testing.T) {
+	t.Parallel()
+
+	var attempt atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		attempt.Add(1)
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(1000)
+	client.limiter.SetBurst(1000)
+	client.retryBaseDelay = 1 * time.Millisecond
+
+	_, err := client.FetchAll(t.Context(), TypeOrg)
+	rlErr, ok := errors.AsType[*RateLimitError](err)
+	if !ok {
+		t.Fatalf("expected *RateLimitError, got %T: %v", err, err)
+	}
+	if rlErr.RetryAfter != 0 {
+		t.Errorf("RetryAfter = %s, want 0 (header absent)", rlErr.RetryAfter)
+	}
+	if got := attempt.Load(); got != 1 {
+		t.Errorf("made %d attempts, want 1", got)
 	}
 }
 
@@ -545,9 +627,9 @@ func TestFetchAllCreatesSpanHierarchy(t *testing.T) {
 	spans := exporter.GetSpans()
 
 	// Verify parent span exists.
-	fetchSpan := findSpanByName(spans, "peeringdb.fetch/net")
+	fetchSpan := findSpanByName(spans, "peeringdb.stream/net")
 	if fetchSpan == nil {
-		t.Fatal("expected peeringdb.fetch/net span, not found")
+		t.Fatal("expected peeringdb.stream/net span, not found")
 	}
 
 	// Verify at least one request span exists.
@@ -559,7 +641,7 @@ func TestFetchAllCreatesSpanHierarchy(t *testing.T) {
 	// Verify request spans are children of the fetch span.
 	for _, rs := range requestSpans {
 		if rs.Parent.SpanID() != fetchSpan.SpanContext.SpanID() {
-			t.Errorf("peeringdb.request span parent=%s, want %s (peeringdb.fetch/net)",
+			t.Errorf("peeringdb.request span parent=%s, want %s (peeringdb.stream/net)",
 				rs.Parent.SpanID(), fetchSpan.SpanContext.SpanID())
 		}
 	}
@@ -609,34 +691,34 @@ func TestFetchAllRecordsPageEvents(t *testing.T) {
 	}
 
 	spans := exporter.GetSpans()
-	fetchSpan := findSpanByName(spans, "peeringdb.fetch/org")
+	fetchSpan := findSpanByName(spans, "peeringdb.stream/org")
 	if fetchSpan == nil {
-		t.Fatal("expected peeringdb.fetch/org span, not found")
+		t.Fatal("expected peeringdb.stream/org span, not found")
 	}
 
-	// Count page.fetched events.
+	// Count page.streamed events.
 	var pageFetchedCount int
 	for _, evt := range fetchSpan.Events {
-		if evt.Name == "page.fetched" {
+		if evt.Name == "page.streamed" {
 			pageFetchedCount++
 		}
 	}
 	if pageFetchedCount < 2 {
-		t.Fatalf("expected at least 2 page.fetched events, got %d", pageFetchedCount)
+		t.Fatalf("expected at least 2 page.streamed events, got %d", pageFetchedCount)
 	}
 
 	// Verify first page event attributes.
 	firstEvt := fetchSpan.Events[0]
-	if firstEvt.Name != "page.fetched" {
-		t.Fatalf("first event name=%q, want page.fetched", firstEvt.Name)
+	if firstEvt.Name != "page.streamed" {
+		t.Fatalf("first event name=%q, want page.streamed", firstEvt.Name)
 	}
 	assertEventAttr(t, firstEvt.Attributes, "page", attribute.IntValue(0))
 	assertEventAttr(t, firstEvt.Attributes, "count", attribute.IntValue(250))
 
 	// Verify second page event attributes.
 	secondEvt := fetchSpan.Events[1]
-	if secondEvt.Name != "page.fetched" {
-		t.Fatalf("second event name=%q, want page.fetched", secondEvt.Name)
+	if secondEvt.Name != "page.streamed" {
+		t.Fatalf("second event name=%q, want page.streamed", secondEvt.Name)
 	}
 	assertEventAttr(t, secondEvt.Attributes, "page", attribute.IntValue(1))
 	assertEventAttr(t, secondEvt.Attributes, "count", attribute.IntValue(50))
@@ -665,9 +747,11 @@ func TestDoWithRetryCreatesPerAttemptSpans(t *testing.T) {
 		n := attempt.Add(1)
 		switch n {
 		case 1:
-			// First request for page 0: return 429.
-			w.WriteHeader(http.StatusTooManyRequests)
-			_, _ = w.Write([]byte(`{"detail":"Rate limit exceeded"}`))
+			// First request for page 0: return a retryable 5xx error.
+			// (429 no longer retries — it short-circuits via RateLimitError,
+			// so use 502 Bad Gateway to exercise the retry span hierarchy.)
+			w.WriteHeader(http.StatusBadGateway)
+			_, _ = w.Write([]byte(`{"detail":"Bad gateway"}`))
 		case 2:
 			// Second request for page 0: succeed.
 			_, _ = w.Write(makeOrgPage(1, 5))
@@ -872,7 +956,7 @@ func TestNewClientBackwardCompatible(t *testing.T) {
 // makeOrgPageWithMeta creates a JSON response with n Organization objects and a meta.generated epoch.
 func makeOrgPageWithMeta(startID, count int, generated float64) []byte {
 	var items []json.RawMessage
-	for i := 0; i < count; i++ {
+	for i := range count {
 		raw, _ := json.Marshal(map[string]any{
 			"id":      startID + i,
 			"name":    fmt.Sprintf("Org %d", startID+i),

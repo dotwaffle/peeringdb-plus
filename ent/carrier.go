@@ -27,7 +27,7 @@ type Carrier struct {
 	Aka string `json:"aka"`
 	// Logo URL
 	Logo *string `json:"logo"`
-	// Carrier name
+	// Carrier name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
 	NameLong string `json:"name_long"`

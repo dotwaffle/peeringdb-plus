@@ -61,12 +61,11 @@ func (InternetExchange) Fields() []ent.Field {
 			Comment("Exchange media type"),
 		field.String("name").
 			NotEmpty().
-			Unique().
 			Annotations(
 				entgql.OrderField("NAME"),
 				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
 			).
-			Comment("Internet exchange name"),
+			Comment("Internet exchange name (not unique — PeeringDB permits duplicates)"),
 		field.String("name_long").
 			Optional().
 			Default("").

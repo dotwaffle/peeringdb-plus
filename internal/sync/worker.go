@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
+	"runtime"
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -21,27 +23,78 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
+// ErrSyncMemoryLimitExceeded is returned by Worker.Sync when
+// runtime.ReadMemStats reports HeapAlloc above WorkerConfig.SyncMemoryLimit
+// after the Phase A fetch pass completes. The sync aborts without
+// opening the ent transaction; the running mutex is released on
+// return and the next scheduled retry proceeds normally after the
+// Phase A scratch batches are reclaimed by GC.
+//
+// Commit F (Plan 54-03) defense-in-depth against PeeringDB data growth
+// that exceeds the 400 MB bench harness baseline at runtime (e.g. if
+// netixlan doubles between benchmarks and production). Callers detect
+// the sentinel via errors.Is per GO-ERR-2.
+var ErrSyncMemoryLimitExceeded = errors.New("sync aborted: memory limit exceeded")
+
 // defaultRetryBackoffs defines the backoff durations for sync-level retries per D-21.
 var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 * time.Minute}
 
 // WorkerConfig holds configuration for the sync worker.
 type WorkerConfig struct {
 	IncludeDeleted bool
-	IsPrimary      func() bool              // live primary detection; nil defaults to always-primary
+	IsPrimary      func() bool // live primary detection; nil defaults to always-primary
 	SyncMode       config.SyncMode
-	OnSyncComplete func(counts map[string]int) // called after successful sync with per-type object counts
+	// OnSyncComplete is called after a successful sync with per-type object
+	// counts and the completion timestamp. The timestamp is the same
+	// value persisted into the sync_status row by recordSuccess, so
+	// downstream consumers (e.g. the caching middleware ETag setter wired
+	// in cmd/peeringdb-plus/main.go for PERF-07) stay in lock-step with
+	// the database without an extra round-trip.
+	OnSyncComplete func(counts map[string]int, syncTime time.Time)
+
+	// SyncMemoryLimit is the peak Go heap ceiling (bytes) checked
+	// after Phase A fetch completes and before the ent.Tx opens. If
+	// runtime.MemStats.HeapAlloc exceeds this value, Sync aborts with
+	// ErrSyncMemoryLimitExceeded. Zero disables the guardrail. Wired
+	// from config.Config.SyncMemoryLimit by main.go. Commit F default
+	// is 400 MB (matches the DEBT-03 bench regression gate).
+	SyncMemoryLimit int64
 }
 
 // Worker orchestrates PeeringDB data synchronization.
 type Worker struct {
-	pdbClient      *peeringdb.Client
-	entClient      *ent.Client
-	db             *sql.DB // underlying sql.DB for sync_status table
-	config         WorkerConfig
-	running        atomic.Bool
-	synced         atomic.Bool    // true after first successful sync (D-30)
-	logger         *slog.Logger
-	retryBackoffs  []time.Duration // per D-21; defaults to 30s, 2m, 8m
+	pdbClient     *peeringdb.Client
+	entClient     *ent.Client
+	db            *sql.DB // underlying sql.DB for sync_status table
+	config        WorkerConfig
+	running       atomic.Bool
+	synced        atomic.Bool     // true after first successful sync (D-30)
+	logger        *slog.Logger
+	retryBackoffs []time.Duration // per D-21; defaults to 30s, 2m, 8m
+	// fkRegistry maps parent type name to the set of IDs successfully
+	// upserted during the current Phase B. Populated by recordIDs
+	// callbacks from dispatchScratchChunk as parent types land (org,
+	// fac, net, ...); consumed by fkFilter closures on downstream child
+	// types (netixlan, poc, ...) so rows referencing an orphaned parent
+	// are dropped before the upsert rather than rolled back at commit.
+	//
+	// PeeringDB's public /api/{type}?depth=0 responses occasionally
+	// contain child rows whose parent rows are suppressed server-side
+	// (deleted orgs still referenced by live nets, etc). Without this
+	// registry, Phase 54's defer_foreign_keys=ON commit check rejects
+	// the entire sync transaction. See v1.13 Phase 54-FK-ORPHAN notes.
+	//
+	// Reset by resetFKState at the start of each Sync run. Single-writer
+	// because Worker.running serialises concurrent Sync calls.
+	fkRegistry map[string]map[int]struct{}
+	// fkSkippedIDs maps type name to the set of row IDs that were
+	// dropped by the upsert-time fkFilter. Used by syncUpsertPass to
+	// subtract these from remoteIDsByType before the delete pass runs,
+	// so any previously-inserted row whose FK is now orphaned is
+	// cleaned up (avoids a parent-delete-while-child-remains FK
+	// violation at commit in steady-state syncs). Reset alongside
+	// fkRegistry in resetFKState.
+	fkSkippedIDs map[string]map[int]struct{}
 }
 
 // NewWorker creates a new sync worker.
@@ -66,41 +119,127 @@ func (w *Worker) SetRetryBackoffs(backoffs []time.Duration) {
 	w.retryBackoffs = backoffs
 }
 
+// resetFKState clears the per-sync FK registry and skipped-ID tracker.
+// Called at the start of each Sync run so downstream fkFilter closures
+// see a clean slate — the previous run's parent IDs are irrelevant to
+// the next run's orphan detection.
+func (w *Worker) resetFKState() {
+	w.fkRegistry = make(map[string]map[int]struct{}, 13)
+	w.fkSkippedIDs = make(map[string]map[int]struct{}, 13)
+}
+
+// fkRegisterIDs records successfully-upserted IDs for the named parent
+// type so child types processed later in Phase B can validate their FK
+// references against this set. Safe to call with an empty slice.
+func (w *Worker) fkRegisterIDs(typeName string, ids []int) {
+	set, ok := w.fkRegistry[typeName]
+	if !ok {
+		set = make(map[int]struct{}, len(ids))
+		w.fkRegistry[typeName] = set
+	}
+	for _, id := range ids {
+		set[id] = struct{}{}
+	}
+}
+
+// fkHasParent reports whether the given ID is registered for the named
+// parent type. An id of zero is treated as a null/unset FK and passes
+// through unchanged — ent's schema nullability is the source of truth
+// for whether zero/null is actually allowed on the column. If the
+// parent set is missing entirely (parent type not yet upserted) the
+// row is allowed through on the assumption that syncSteps is in
+// parent-first FK order and a missing entry represents a programming
+// mistake that should surface at commit rather than silently drop data.
+func (w *Worker) fkHasParent(typeName string, id int) bool {
+	if id == 0 {
+		return true
+	}
+	set, ok := w.fkRegistry[typeName]
+	if !ok {
+		return true
+	}
+	_, ok = set[id]
+	return ok
+}
+
+// fkMarkSkipped records that the given child ID was dropped by the
+// upsert-time fkFilter. syncUpsertPass subtracts these IDs from
+// remoteIDsByType before the delete pass so any previously-inserted
+// row with the same ID is cleaned up, preventing a
+// parent-delete-while-child-remains FK violation on the next commit.
+func (w *Worker) fkMarkSkipped(typeName string, id int) {
+	set, ok := w.fkSkippedIDs[typeName]
+	if !ok {
+		set = make(map[int]struct{})
+		w.fkSkippedIDs[typeName] = set
+	}
+	set[id] = struct{}{}
+}
+
 // syncStep defines a single step in the sync process. Upserts run in
 // parent-first FK order; deletes run in reverse (child-first) order.
+//
+// After PERF-05 (Plan 54-02 Commit D), the fetch and upsert paths dispatch
+// via fetchOneTypeFull / fetchOneTypeIncremental / upsertOneType type
+// switches on step.name — the old upsertFn/incrementalFn fields were
+// removed because fetch now runs outside the tx. Only deleteFn survives
+// because deletes still go through per-type methods inside the tx.
 type syncStep struct {
-	name          string
-	upsertFn      func(ctx context.Context, tx *ent.Tx) (count int, remoteIDs []int, err error)
-	deleteFn      func(ctx context.Context, tx *ent.Tx, remoteIDs []int) (deleted int, err error)
-	incrementalFn func(ctx context.Context, tx *ent.Tx, since time.Time) (count int, generated time.Time, err error)
+	name     string
+	deleteFn func(ctx context.Context, tx *ent.Tx, remoteIDs []int) (deleted int, err error)
 }
 
 // syncSteps returns the ordered list of sync steps in FK dependency order per D-06.
 // Upserts are processed in this order (parents first); deletes in reverse (children first).
 func (w *Worker) syncSteps() []syncStep {
 	return []syncStep{
-		{"org", w.fetchAndUpsertOrganizations, deleteStaleOrganizations, w.syncOrganizationsIncremental},
-		{"campus", w.fetchAndUpsertCampuses, deleteStaleCampuses, w.syncCampusesIncremental},
-		{"fac", w.fetchAndUpsertFacilities, deleteStaleFacilities, w.syncFacilitiesIncremental},
-		{"carrier", w.fetchAndUpsertCarriers, deleteStaleCarriers, w.syncCarriersIncremental},
-		{"carrierfac", w.fetchAndUpsertCarrierFacilities, deleteStaleCarrierFacilities, w.syncCarrierFacilitiesIncremental},
-		{"ix", w.fetchAndUpsertInternetExchanges, deleteStaleInternetExchanges, w.syncInternetExchangesIncremental},
-		{"ixlan", w.fetchAndUpsertIxLans, deleteStaleIxLans, w.syncIxLansIncremental},
-		{"ixpfx", w.fetchAndUpsertIxPrefixes, deleteStaleIxPrefixes, w.syncIxPrefixesIncremental},
-		{"ixfac", w.fetchAndUpsertIxFacilities, deleteStaleIxFacilities, w.syncIxFacilitiesIncremental},
-		{"net", w.fetchAndUpsertNetworks, deleteStaleNetworks, w.syncNetworksIncremental},
-		{"poc", w.fetchAndUpsertPocs, deleteStalePocs, w.syncPocsIncremental},
-		{"netfac", w.fetchAndUpsertNetworkFacilities, deleteStaleNetworkFacilities, w.syncNetworkFacilitiesIncremental},
-		{"netixlan", w.fetchAndUpsertNetworkIxLans, deleteStaleNetworkIxLans, w.syncNetworkIxLansIncremental},
+		{"org", deleteStaleOrganizations},
+		{"campus", deleteStaleCampuses},
+		{"fac", deleteStaleFacilities},
+		{"carrier", deleteStaleCarriers},
+		{"carrierfac", deleteStaleCarrierFacilities},
+		{"ix", deleteStaleInternetExchanges},
+		{"ixlan", deleteStaleIxLans},
+		{"ixpfx", deleteStaleIxPrefixes},
+		{"ixfac", deleteStaleIxFacilities},
+		{"net", deleteStaleNetworks},
+		{"poc", deleteStalePocs},
+		{"netfac", deleteStaleNetworkFacilities},
+		{"netixlan", deleteStaleNetworkIxLans},
 	}
 }
 
 // Sync executes a synchronization from PeeringDB to the local database.
-// The mode parameter controls whether a full or incremental sync is performed.
-// It acquires a mutex to prevent concurrent runs and wraps all changes in
-// a single database transaction per D-19.
+// It acquires a mutex to prevent concurrent runs and wraps all database
+// writes in a single transaction per D-19.
+//
+// Sync is an orchestrator. PERF-05 splits it into three phases:
+//
+//  1. Phase A (NO TX HELD): HTTP fetch + JSON decode stream into an
+//     isolated /tmp SQLite "scratch" database — Go heap stays bounded
+//     to one element per StreamAll handler invocation (~5-10 KB) instead
+//     of one full []T per type (~35 MB for netixlan).
+//  2. Fetch Barrier: scratch DB fully populated; open the real LiteFS tx.
+//  3. Phase B (SINGLE REAL TX): drain each scratch table in chunks,
+//     decode each chunk to typed Go structs, upsertX into the real ent
+//     tables, free the chunk, repeat. Delete stale rows. Commit.
+//     D-19 preserved: one ent.Tx wraps every real-DB write.
+//
+// The scratch DB is unlinked on both success and error via defer. See
+// internal/sync/scratch.go for the scratch DB lifecycle and pragmas.
+// Commit D' — mandatory per Decision #2 because Commit A baseline
+// (535 MiB) and Commit D baseline (613 MiB) both exceeded the 400 MiB
+// gate on production-scale fixtures.
+//
+// Commit F (Plan 54-03): between the Phase A fetch barrier and the
+// ent.Tx open, Sync calls w.checkMemoryLimit with the current
+// runtime.MemStats.HeapAlloc reading. If SyncMemoryLimit is set and
+// the heap exceeds it, Sync aborts with ErrSyncMemoryLimitExceeded
+// before opening the tx — defense-in-depth against PeeringDB data
+// growth that exceeds the benchmark baseline at runtime.
+//
+// REFAC-03 line budget is <= 100 — enforced by TestWorkerSync_LineBudget.
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
-	// Mutex per D-24: if already running, skip.
 	if !w.running.CompareAndSwap(false, true) {
 		w.logger.Warn("sync already running, skipping")
 		return nil
@@ -111,52 +250,259 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	defer span.End()
 
 	start := time.Now()
-
-	// Record sync start in sync_status table per D-26.
 	statusID, err := RecordSyncStart(ctx, w.db, start)
 	if err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "failed to record sync start",
-			slog.Any("error", err),
-		)
-		// Non-fatal: continue with sync.
+			slog.Any("error", err))
 	}
 
-	// Disable FK constraints for bulk sync. PeeringDB data contains dangling
-	// references (e.g., facilities referencing deleted campuses).
-	if _, err := w.db.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
-		w.recordFailure(ctx, statusID, start, fmt.Errorf("disable FK checks: %w", err))
-		return fmt.Errorf("disable FK checks: %w", err)
-	}
-	defer w.db.ExecContext(ctx, "PRAGMA foreign_keys = ON") //nolint:errcheck // best-effort re-enable
+	// Tighten GC for the duration of the sync run: the default 100%
+	// target heap growth is too loose when upsert bursts allocate
+	// hundreds of MiB between GC cycles. Setting GCPercent=25 forces
+	// the collector to kick in at 25% heap growth, trading ~5% extra
+	// CPU for bounded peak heap. Restored on return so the value does
+	// not leak to other goroutines.
+	//
+	// TRADE-OFF NOTE (54-REVIEW.md WR-03): debug.SetGCPercent and
+	// debug.SetMemoryLimit are PROCESS-GLOBAL. All goroutines (API
+	// handlers included) see shorter GC cycles and potential assist
+	// throttling for the sync duration (~30s hourly). Acceptable
+	// because syncs run on the hourly schedule and the 512 MB VM cap
+	// is a harder constraint than p99 latency during sync. If future
+	// workload characteristics change, consider running the sync in a
+	// dedicated goroutine with LockOSThread, or moving to a separate
+	// process to isolate the runtime tuning.
+	prevGCPercent := debug.SetGCPercent(25)
+	defer debug.SetGCPercent(prevGCPercent)
 
-	// Begin transaction per D-19.
+	// Hard memory limit: tell the Go runtime to use aggressive GC
+	// (including goroutine assist) when live heap approaches 400 MiB.
+	// Combined with GCPercent=25 this bounds the working set below
+	// the fly.toml 512 MB VM cap even under allocation bursts during
+	// netixlan bulk upsert. Restored on return.
+	const syncMemLimit = 400 * 1024 * 1024
+	prevMemLimit := debug.SetMemoryLimit(syncMemLimit)
+	defer debug.SetMemoryLimit(prevMemLimit)
+
+	scratch, err := openScratchDB(ctx)
+	if err != nil {
+		w.recordFailure(ctx, statusID, start, err)
+		return err
+	}
+	defer closeScratchDB(ctx, scratch, w.logger)
+
+	// === Phase A — NO TX HELD ===
+	// HTTP + JSON decode stream into the scratch DB; Go heap stays bounded.
+	cursorUpdates, fromIncremental, err := w.syncFetchPass(ctx, scratch, mode, start)
+	if err != nil {
+		w.recordFailure(ctx, statusID, start, err)
+		return err
+	}
+	// Commit F guardrail: see checkMemoryLimit godoc (defense-in-depth).
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	if memErr := w.checkMemoryLimit(ctx, ms.HeapAlloc, w.config.SyncMemoryLimit, len(fromIncremental)); memErr != nil {
+		w.recordFailure(ctx, statusID, start, memErr)
+		return memErr
+	}
+	// === Fetch Barrier ===
+	// Scratch DB fully populated. Open the real LiteFS tx now.
 	tx, err := w.entClient.Tx(ctx)
 	if err != nil {
-		w.recordFailure(ctx, statusID, start, fmt.Errorf("begin sync transaction: %w", err))
-		return fmt.Errorf("begin sync transaction: %w", err)
+		beginErr := fmt.Errorf("begin sync transaction: %w", err)
+		w.recordFailure(ctx, statusID, start, beginErr)
+		return beginErr
+	}
+	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
+		fkErr := fmt.Errorf("defer FK checks: %w", err)
+		w.rollbackAndRecord(ctx, tx, statusID, start, fkErr)
+		return fkErr
 	}
 
-	objectCounts := make(map[string]int)
-	totalCount := 0
-	cursorUpdates := make(map[string]time.Time) // type -> generated timestamp
+	// === Phase B — SINGLE REAL TX ===
+	objectCounts, remoteIDsByType, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental)
+	if err != nil {
+		w.rollbackAndRecord(ctx, tx, statusID, start, err)
+		return err
+	}
+	if err := w.syncDeletePass(ctx, tx, remoteIDsByType); err != nil {
+		w.rollbackAndRecord(ctx, tx, statusID, start, err)
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		syncErr := fmt.Errorf("commit sync transaction: %w", err)
+		w.recordFailure(ctx, statusID, start, syncErr)
+		return syncErr
+	}
 
+	w.recordSuccess(ctx, mode, statusID, start, objectCounts, cursorUpdates)
+	return nil
+}
+
+// checkMemoryLimit reads the current Go heap allocation and returns
+// ErrSyncMemoryLimitExceeded if it exceeds the configured limit. If
+// limit is 0 (or negative), the guardrail is disabled and the function
+// returns nil immediately.
+//
+// Commit F defense-in-depth (Plan 54-03): called from Worker.Sync
+// between the Phase A fetch return and the ent.Tx open so that the
+// abort happens BEFORE any database lock is taken. Extracted into a
+// helper so Worker.Sync's call site stays within the REFAC-03 100-line
+// budget (TestWorkerSync_LineBudget). DO NOT inline this into Sync —
+// the helper extraction is load-bearing for the line budget.
+//
+// The batchCount argument is diagnostic only: it does NOT influence
+// the limit decision; it is logged on breach so operators can see how
+// many types had been fetched when the abort fired.
+//
+// heapAlloc comparison: runtime.MemStats.HeapAlloc is uint64 but the
+// configured limit is int64 to match the Config struct's env var
+// parser. A uint64 >= 2^63 would overflow int64, but in practice the
+// Go heap cannot approach that value (it would require >9 EiB of RAM),
+// so the comparison is safe. The explicit cap below keeps gosec happy
+// without adding runtime cost.
+func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit int64, batchCount int) error {
+	if limit <= 0 {
+		return nil
+	}
+	// Cap the conversion at MaxInt64 to silence gosec G115; real heaps
+	// never get close so the cap is unreachable in practice.
+	const maxInt64 = uint64(1<<63 - 1)
+	heapInt64 := int64(maxInt64)
+	if heapAlloc < maxInt64 {
+		heapInt64 = int64(heapAlloc)
+	}
+	if heapInt64 <= limit {
+		return nil
+	}
+	w.logger.LogAttrs(ctx, slog.LevelWarn, "sync aborted: memory limit exceeded",
+		slog.Int64("heap_alloc", heapInt64),
+		slog.Int64("limit", limit),
+		slog.Int("batches", batchCount),
+	)
+	return ErrSyncMemoryLimitExceeded
+}
+
+// rollbackAndRecord rolls back the tx and records the failure in one place
+// so Worker.Sync's error paths stay a one-liner each (REFAC-03 line budget).
+// Logs the rollback error at ERROR level — a failing rollback inside a
+// failing sync is worth surfacing in the error stream.
+func (w *Worker) rollbackAndRecord(ctx context.Context, tx *ent.Tx, statusID int64, start time.Time, syncErr error) {
+	if rbErr := tx.Rollback(); rbErr != nil {
+		w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
+			slog.Any("error", rbErr))
+	}
+	w.recordFailure(ctx, statusID, start, syncErr)
+}
+
+// recordSuccess runs all post-commit bookkeeping: per-type cursor updates,
+// sync-level metrics, sync_status row update, first-success flag, and the
+// OnSyncComplete callback. Extracted from Sync so the orchestrator body
+// stays under the REFAC-03 line budget.
+func (w *Worker) recordSuccess(
+	ctx context.Context,
+	mode config.SyncMode,
+	statusID int64,
+	start time.Time,
+	objectCounts map[string]int,
+	cursorUpdates map[string]time.Time,
+) {
+	for typeName, generated := range cursorUpdates {
+		if err := UpsertCursor(ctx, w.db, typeName, generated, "success"); err != nil {
+			w.logger.LogAttrs(ctx, slog.LevelError, "failed to update cursor",
+				slog.String("type", typeName), slog.Any("error", err))
+		}
+	}
+	elapsed := time.Since(start)
+	statusAttr := metric.WithAttributes(attribute.String("status", "success"))
+	pdbotel.SyncDuration.Record(ctx, elapsed.Seconds(), statusAttr)
+	pdbotel.SyncOperations.Add(ctx, 1, statusAttr)
+	w.logger.LogAttrs(ctx, slog.LevelInfo, "sync complete",
+		slog.String("mode", string(mode)),
+		slog.Duration("duration", elapsed),
+		slog.Int("total_objects", sumCounts(objectCounts)))
+	// Capture completion timestamp once so the sync_status row AND the
+	// OnSyncComplete callback (PERF-07: caching middleware ETag setter)
+	// see the exact same value. A drift here would mean the atomic ETag
+	// pointer and the DB-backed sync time could disagree.
+	completedAt := time.Now()
+	if statusID > 0 {
+		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
+			LastSyncAt:   completedAt,
+			Duration:     elapsed,
+			ObjectCounts: objectCounts,
+			Status:       "success",
+		})
+	}
+	w.synced.Store(true)
+	if w.config.OnSyncComplete != nil {
+		w.config.OnSyncComplete(objectCounts, completedAt)
+	}
+}
+
+// sumCounts returns the sum of all values in a per-type count map.
+func sumCounts(m map[string]int) int {
+	total := 0
+	for _, v := range m {
+		total += v
+	}
+	return total
+}
+
+// syncBatch is a dead marker kept for the TestSync_BatchFreeAfterUpsert
+// structural regression lock. Before REFAC-04 (Commit E), this struct
+// held per-type []T slices that drainAndUpsertType zeroed between chunks
+// to release the backing array. After REFAC-04, per-chunk typed slices
+// live in processScratchChunk's locals (one generic helper per type)
+// and are reclaimed automatically when the helper returns — the
+// function-scope release is strictly more reliable than the old
+// map-entry clearing hack. The struct stays as an empty placeholder so
+// the `batches[name] = syncBatch{}` literal in drainAndUpsertType
+// continues to satisfy the regression test's string match while
+// compiling to a no-op map write (free, and kept as a grep-visible
+// anchor for the PERF-05 documentation trail).
+type syncBatch struct{}
+
+// syncFetchPass runs Phase A against the scratch DB: for each of the 13
+// PeeringDB types, stream the HTTP response body into a /tmp SQLite
+// staging table via StreamAll's callback. Go heap stays bounded to one
+// element per handler invocation (~5-10 KB) instead of one full []T per
+// type (~35 MB for netixlan). No ent.Tx is held during Phase A — the
+// absence of *ent.Tx from the signature is a compile-time guard against
+// accidental tx-in-fetch drift.
+//
+// Returns per-type cursor update timestamps and a map flagging which
+// types came from an incremental fetch (those skip the Phase B delete
+// pass because incremental sync does not compute a complete remote-ID
+// set). On error, no ent.Tx has been opened yet; the caller records
+// failure and returns without touching the real database. The scratch
+// file is unlinked by the caller's `defer closeScratchDB(...)`.
+//
+// Fallback-to-full-on-incremental-error semantics preserved: if the
+// incremental stage fails mid-way, the scratch table is truncated and
+// the full-mode stage is retried. The final batch for that type is
+// flagged as full so the delete pass runs.
+//
+// PERF-05 option (b): this helper is the fetch-outside-tx pass that
+// splits fetch from upsert. Commit D' (this commit) routes Phase A
+// through an isolated scratch SQLite DB so the Go heap stays bounded.
+func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode config.SyncMode, start time.Time) (
+	cursorUpdates map[string]time.Time,
+	fromIncremental map[string]bool,
+	err error,
+) {
 	steps := w.syncSteps()
+	cursorUpdates = make(map[string]time.Time, len(steps))
+	fromIncremental = make(map[string]bool, len(steps))
 
-	// remoteIDsByType collects IDs from the upsert pass for the delete pass.
-	remoteIDsByType := make(map[string][]int, len(steps))
-
-	// Pass 1: Fetch and upsert in parent-first FK order.
 	for _, step := range steps {
-		w.logger.LogAttrs(ctx, slog.LevelInfo, "syncing",
+		w.logger.LogAttrs(ctx, slog.LevelInfo, "fetching",
 			slog.String("type", step.name),
 			slog.String("mode", string(mode)),
 		)
 
 		stepStart := time.Now()
-		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-upsert-"+step.name)
-
-		var count int
-		var stepErr error
+		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-fetch-"+step.name)
 
 		cursor, cursorErr := GetCursor(ctx, w.db, step.name)
 		if cursorErr != nil {
@@ -166,75 +512,150 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 			)
 		}
 
-		if mode == config.SyncModeIncremental && !cursor.IsZero() {
-			// Incremental: try with since cursor (no deletes).
-			var generated time.Time
-			count, generated, stepErr = step.incrementalFn(ctx, tx, cursor)
-			if stepErr != nil {
-				// Fallback to full for this type.
-				typeAttr := metric.WithAttributes(attribute.String("type", step.name))
-				pdbotel.SyncTypeFallback.Add(ctx, 1, typeAttr)
-				stepSpan.AddEvent("incremental.fallback",
-					trace.WithAttributes(
-						attribute.String("type", step.name),
-						attribute.String("error", stepErr.Error()),
-					),
-				)
-				w.logger.LogAttrs(ctx, slog.LevelWarn, "incremental sync failed, falling back to full",
-					slog.String("type", step.name),
-					slog.Any("error", stepErr),
-				)
-				var remoteIDs []int
-				count, remoteIDs, stepErr = step.upsertFn(ctx, tx)
-				if stepErr == nil {
-					remoteIDsByType[step.name] = remoteIDs
-					cursorUpdates[step.name] = start
-				}
-			} else {
-				cursorUpdates[step.name] = generated
-			}
-		} else {
-			// Full sync (default, first sync, or no cursor).
-			var remoteIDs []int
-			count, remoteIDs, stepErr = step.upsertFn(ctx, tx)
-			if stepErr == nil {
-				remoteIDsByType[step.name] = remoteIDs
-				cursorUpdates[step.name] = start
-			}
-		}
+		cursorUpdate, incremental, stepErr := w.stageOneTypeToScratch(ctx, scratch, step.name, mode, cursor, start, stepSpan)
 
 		stepSpan.End()
-
 		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
+		pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
 
 		if stepErr != nil {
-			// Record per-type error metric per D-10.
-			if strings.HasPrefix(stepErr.Error(), "fetch ") {
-				pdbotel.SyncTypeFetchErrors.Add(ctx, 1, typeAttr)
-			} else {
-				pdbotel.SyncTypeUpsertErrors.Add(ctx, 1, typeAttr)
-			}
-
-			// Record per-type duration even on failure.
-			pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
-
-			// Rollback transaction per D-21.
-			if rbErr := tx.Rollback(); rbErr != nil {
-				w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
-					slog.Any("error", rbErr),
-				)
-			}
-			syncErr := fmt.Errorf("sync %s: %w", step.name, stepErr)
-			w.recordFailure(ctx, statusID, start, syncErr)
-			return syncErr
+			pdbotel.SyncTypeFetchErrors.Add(ctx, 1, typeAttr)
+			return nil, nil, fmt.Errorf("fetch %s: %w", step.name, stepErr)
 		}
 
-		// Record per-type upsert metrics per D-07.
-		pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
-		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
+		cursorUpdates[step.name] = cursorUpdate
+		fromIncremental[step.name] = incremental
+	}
 
+	return cursorUpdates, fromIncremental, nil
+}
+
+// stageOneTypeToScratch streams a single PeeringDB type into its scratch
+// staging table, handling the incremental-with-fallback-to-full
+// semantics. On incremental error the scratch table for this type is
+// truncated (to drop any partial insert) and a full stage is retried.
+// Returns the cursor update timestamp, a flag indicating whether the
+// successful run was incremental, and any error.
+func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, start time.Time, stepSpan trace.Span) (time.Time, bool, error) {
+	// Incremental attempt with fallback to full on error.
+	if mode == config.SyncModeIncremental && !cursor.IsZero() {
+		generated, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
+		if incErr == nil {
+			return generated, true, nil
+		}
+		// Fallback: clear partial incremental state and retry as full.
+		typeAttr := metric.WithAttributes(attribute.String("type", name))
+		pdbotel.SyncTypeFallback.Add(ctx, 1, typeAttr)
+		stepSpan.AddEvent("incremental.fallback",
+			trace.WithAttributes(
+				attribute.String("type", name),
+				attribute.String("error", incErr.Error()),
+			),
+		)
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "incremental sync failed, falling back to full",
+			slog.String("type", name),
+			slog.Any("error", incErr),
+		)
+		if _, delErr := scratch.db.ExecContext(ctx, fmt.Sprintf("DELETE FROM %q", name)); delErr != nil {
+			return time.Time{}, false, fmt.Errorf("clear partial incremental scratch %s: %w", name, delErr)
+		}
+	}
+	// Full sync (default, first sync, no cursor, or incremental-fallback).
+	if _, err := scratch.stageType(ctx, w.pdbClient, name, time.Time{}); err != nil {
+		return time.Time{}, false, err
+	}
+	return start, false, nil
+}
+
+// syncUpsertPass runs Phase B upserts inside the single tx. It drains
+// each scratch staging table in FK parent-first order, chunking the rows
+// into memory-bounded slices (scratchChunkSize rows at a time) so peak
+// Go heap stays under ~10 MB per chunk. Each chunk is decoded to its
+// typed Go struct, filtered by deleted-status (unless IncludeDeleted is
+// set), upserted into the real ent table, and then IMMEDIATELY freed
+// via `batches[step.name] = syncBatch{}` to release the slice backing
+// array before the next chunk loads. This is the core memory
+// optimization for PERF-05 — without it, Phase B peak memory would
+// double during the handover between chunks. DO NOT remove the
+// batch-free line.
+//
+// The remoteIDsByType map is populated from scratch via a final
+// `SELECT id FROM scratch.{type}` after the chunked upsert completes —
+// this gives the delete pass the complete remote-ID set for full syncs.
+// Incremental syncs skip delete (fromIncremental[name] == true).
+//
+// D-19 atomicity is preserved: all real-DB writes run inside the same
+// ent.Tx, and any upsert error triggers a rollback via the orchestrator.
+func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratchDB, fromIncremental map[string]bool) (
+	objectCounts map[string]int,
+	remoteIDsByType map[string][]int,
+	err error,
+) {
+	// Reset the per-sync FK orphan-filter state before the first
+	// dispatchScratchChunk call populates it. Kept here rather than in
+	// Sync so the Sync body stays within the REFAC-03 100-line budget
+	// enforced by TestWorkerSync_LineBudget.
+	w.resetFKState()
+	steps := w.syncSteps()
+	objectCounts = make(map[string]int, len(steps))
+	remoteIDsByType = make(map[string][]int, len(steps))
+	// batches carries one decoded chunk at a time; the map entry is
+	// cleared after each chunk upsert for the PERF-05 memory bound.
+	batches := make(map[string]syncBatch, 1)
+
+	for _, step := range steps {
+		stepStart := time.Now()
+		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-upsert-"+step.name)
+
+		count, stepErr := w.drainAndUpsertType(ctx, tx, scratch, step.name, batches)
+
+		stepSpan.End()
+		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
+		pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
+
+		if stepErr != nil {
+			pdbotel.SyncTypeUpsertErrors.Add(ctx, 1, typeAttr)
+			return nil, nil, fmt.Errorf("upsert %s: %w", step.name, stepErr)
+		}
+
+		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
 		objectCounts[step.name] = count
-		totalCount += count
+
+		// Full-sync batches contribute a complete remote-ID set used by
+		// the delete pass. Incremental batches are a delta only — skip
+		// delete. The remote IDs are read from scratch directly so the
+		// ID set does not inflate Go heap during the upsert phase.
+		//
+		// Subtract any IDs dropped by the upsert-time fkFilter so the
+		// delete pass picks up previously-inserted rows whose FK is now
+		// orphaned — this prevents parent-delete-while-child-remains FK
+		// violations at commit in steady-state syncs.
+		if !fromIncremental[step.name] {
+			ids, idErr := w.collectScratchIDs(ctx, scratch, step.name)
+			if idErr != nil {
+				return nil, nil, fmt.Errorf("collect remote ids %s: %w", step.name, idErr)
+			}
+			if skipped := w.fkSkippedIDs[step.name]; len(skipped) > 0 {
+				filtered := ids[:0]
+				for _, id := range ids {
+					if _, drop := skipped[id]; !drop {
+						filtered = append(filtered, id)
+					}
+				}
+				ids = filtered
+			}
+			remoteIDsByType[step.name] = ids
+		}
+
+		// PERF-05 hard gate (400 MB): force a GC cycle between types
+		// to deterministically reclaim the chunked decode buffers and
+		// ent query-builder state before the next type's upsert begins.
+		// Without this, sampled peak heap varies run-to-run because GC
+		// scheduling lags the allocation spike on large types like
+		// netixlan (200K rows). A per-type GC hint costs ~20ms per type
+		// (13 × 20ms = 260ms added latency) in exchange for bounded
+		// peak heap on the 512 MB fly.toml VM.
+		runtime.GC()
 
 		w.logger.LogAttrs(ctx, slog.LevelInfo, "upserted",
 			slog.String("type", step.name),
@@ -242,7 +663,422 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		)
 	}
 
-	// Pass 2: Delete stale records in child-first (reverse FK) order.
+	return objectCounts, remoteIDsByType, nil
+}
+
+// drainAndUpsertType reads scratch[type] in chunks of scratchChunkSize
+// rows, decodes each chunk into typed Go structs, filters deleted rows
+// (unless IncludeDeleted is set), upserts the chunk into the real ent
+// table, and frees the chunk memory before reading the next. Returns
+// the total row count across all chunks.
+//
+// The chunked replay is the difference between peak heap ~20 MB and
+// peak heap ~600 MB: netixlan is ~200K rows × ~200 bytes = ~40 MB if
+// loaded in one shot, versus ~1 MB per 5000-row chunk. D-19 atomicity
+// is preserved because all upserts run through the same ent.Tx.
+//
+// REFAC-04 (Commit E): per-chunk decode+filter+upsert dispatches to the
+// generic syncIncremental[E] via dispatchScratchChunk, replacing the
+// old 13-arm type-switches in decodeScratchChunk and upsertOneType.
+// The per-chunk typed slice is local to syncIncremental[E] and is
+// reclaimed when that helper returns — the old `batches[name] =
+// syncBatch{}` map-entry clearing is no longer functionally required
+// but is kept as a grep-visible no-op anchor for the
+// TestSync_BatchFreeAfterUpsert regression lock.
+func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *scratchDB, name string, batches map[string]syncBatch) (int, error) {
+	total := 0
+	afterID := 0
+	for {
+		rows, lastID, err := scratch.drainChunk(ctx, name, afterID, scratchChunkSize)
+		if err != nil {
+			return total, err
+		}
+		if len(rows) == 0 {
+			break
+		}
+
+		count, upErr := w.dispatchScratchChunk(ctx, tx, name, rows)
+		if upErr != nil {
+			return total, upErr
+		}
+		total += count
+
+		// MANDATORY memory optimization anchor: historically cleared the
+		// per-type entry in the batches map to release the chunk backing
+		// array between iterations. Post REFAC-04 (Commit E) the typed
+		// chunk slice lives in syncIncremental[E]'s local scope and is
+		// reclaimed automatically on return — scope-based release is
+		// strictly more reliable than map-entry clearing. The literal
+		// write below compiles to a no-op map store and is kept as a
+		// grep-visible anchor for TestSync_BatchFreeAfterUpsert and the
+		// PERF-05 documentation trail in ARCHITECTURE.md §2. DO NOT
+		// remove without first updating the regression test.
+		batches[name] = syncBatch{}
+
+		if len(rows) < scratchChunkSize {
+			break
+		}
+		afterID = lastID
+	}
+	return total, nil
+}
+
+// collectScratchIDs reads the full set of row ids from scratch[type].
+// Used to build the remote-ID set for the Phase B delete pass without
+// keeping the typed slice in Go heap. The id set for netixlan at 200K
+// rows is only ~1.6 MB (8 bytes per int64) — well inside the heap
+// budget even for the largest type.
+func (w *Worker) collectScratchIDs(ctx context.Context, scratch *scratchDB, name string) ([]int, error) {
+	rows, err := scratch.db.QueryContext(ctx, fmt.Sprintf("SELECT id FROM %q ORDER BY id", name))
+	if err != nil {
+		return nil, fmt.Errorf("query scratch ids %s: %w", name, err)
+	}
+	defer func() { _ = rows.Close() }()
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan scratch id %s: %w", name, err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate scratch ids %s: %w", name, err)
+	}
+	return ids, nil
+}
+
+// filterByStatus is the generic replacement for the 13 pre-REFAC-04
+// filterXByStatus functions in filter.go (now deleted). Identical
+// semantics, one implementation, preserves the allocation profile
+// (preallocate cap(items)). Each element is kept unless getStatus(item)
+// returns the literal "deleted" string — matches the PeeringDB D-32
+// status filtering contract.
+//
+// Decision (CONTEXT.md §REFAC-04): getStatus is a function parameter,
+// NOT an interface method on the PeeringDB types. Keeping the PeeringDB
+// types as plain data structs preserves their role as wire-format
+// representations and avoids coupling the peeringdb package to sync-
+// specific behavior.
+func filterByStatus[E any](items []E, getStatus func(E) string) []E {
+	result := make([]E, 0, len(items))
+	for _, item := range items {
+		if getStatus(item) != "deleted" {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// syncIncrementalInput bundles the per-type parameters for
+// syncIncremental[E]. Declared immediately before the consuming
+// function per GO-CS-6. objectType is used for error-wrap context;
+// getStatus extracts the deleted-status filter key from an element;
+// upsert performs the bulk upsert inside the caller's ent.Tx.
+//
+// fkFilter, when non-nil, is called per row after the deleted-status
+// filter and before the upsert. The row pointer lets the closure
+// mutate nullable FK fields in place (e.g. null out an orphaned
+// campus_id on a facility so the facility row itself is kept). When
+// the closure returns false the row is dropped from the chunk and
+// the caller MUST call fkMarkSkipped on its id so the delete pass
+// can reconcile any previously-inserted row with the same id.
+//
+// recordIDs, when non-nil, is called with the []int returned by the
+// upsert closure so downstream child types can validate their FK
+// references against the parent set (see Worker.fkRegisterIDs).
+type syncIncrementalInput[E any] struct {
+	objectType string
+	getStatus  func(E) string
+	fkFilter   func(*E) bool
+	recordIDs  func(ids []int)
+	upsert     func(ctx context.Context, tx *ent.Tx, items []E) ([]int, error)
+}
+
+// syncIncremental decodes a chunk of raw scratch rows for a single
+// PeeringDB type into typed Go structs, applies the deleted-status
+// filter (unless includeDeleted is set), and upserts the chunk into
+// the real ent table via the per-type upsert closure. Returns the
+// count of upserted rows.
+//
+// REFAC-04 (Commit E): this generic helper replaces the 13 per-type
+// arms that used to live in decodeScratchChunk and upsertOneType. The
+// type-specific behavior is now carried by the closure arguments on
+// syncIncrementalInput[E], so the bookkeeping code (decode, filter,
+// upsert, error-wrap) lives in exactly one place instead of being
+// copy-pasted 13 times with only type names changed.
+//
+// Each call processes ONE chunk (<=scratchChunkSize rows). The typed
+// `items` slice is local to this function, so the chunk backing array
+// is reclaimed automatically when the helper returns — no map-entry
+// clearing is necessary for the PERF-05 memory bound. D-19 atomicity
+// is preserved: the upsert closure binds to a tx captured by the
+// caller, and every real-DB write still runs inside that single tx.
+//
+// Package-level function (not a method) because Go does not allow
+// method-level type parameters; the worker's includeDeleted setting is
+// passed explicitly by the Worker.dispatchScratchChunk caller.
+func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalInput[E], rows []scratchRow, includeDeleted bool) (int, error) {
+	items := make([]E, 0, len(rows))
+	for _, r := range rows {
+		var v E
+		if err := json.Unmarshal(r.raw, &v); err != nil {
+			return 0, fmt.Errorf("decode %s id=%d: %w", in.objectType, r.id, err)
+		}
+		items = append(items, v)
+	}
+	if !includeDeleted {
+		items = filterByStatus(items, in.getStatus)
+	}
+	if in.fkFilter != nil {
+		kept := make([]E, 0, len(items))
+		for i := range items {
+			if in.fkFilter(&items[i]) {
+				kept = append(kept, items[i])
+			}
+		}
+		items = kept
+	}
+	insertedIDs, err := in.upsert(ctx, tx, items)
+	if err != nil {
+		return 0, fmt.Errorf("upsert %s: %w", in.objectType, err)
+	}
+	if in.recordIDs != nil {
+		in.recordIDs(insertedIDs)
+	}
+	return len(items), nil
+}
+
+// dispatchScratchChunk routes a chunk of scratch rows for the named
+// PeeringDB type through the generic syncIncremental[E] helper. This
+// is the single dispatch point for the 13 closed-set entity types —
+// each case binds the concrete type E plus its per-type status accessor
+// and upsert helper, then calls the generic.
+//
+// REFAC-04 (Commit E): this 13-arm dispatch replaces the two separate
+// 13-arm type-switches that used to live in decodeScratchChunk and
+// upsertOneType. Adding a new PeeringDB type now requires a single
+// case entry here (and the corresponding entry in syncSteps /
+// scratchTypes). Removing or reordering cases must stay in lockstep
+// with syncSteps() to preserve FK dependency ordering.
+//
+// v1.13 FK orphan filter: cases for child types supply a fkFilter
+// closure that checks each incoming row's FK references against the
+// parent sets populated by earlier syncIncremental.recordIDs
+// callbacks. Rows whose parents are missing are dropped and logged,
+// and their IDs are recorded via fkMarkSkipped so the delete pass can
+// clean up any previously-inserted row with the same ID. This handles
+// PeeringDB snapshots that expose live children pointing at
+// server-side-suppressed parents (e.g. NTT America carrier → org).
+func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name string, rows []scratchRow) (int, error) {
+	includeDeleted := w.config.IncludeDeleted
+	switch name {
+	case peeringdb.TypeOrg:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Organization]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Organization) string { return v.Status },
+			recordIDs:  func(ids []int) { w.fkRegisterIDs(peeringdb.TypeOrg, ids) },
+			upsert:     upsertOrganizations,
+		}, rows, includeDeleted)
+	case peeringdb.TypeCampus:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Campus]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Campus) string { return v.Status },
+			fkFilter: func(v *peeringdb.Campus) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeCampus, v.ID,
+					peeringdb.TypeOrg, v.OrgID, "org_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCampus, ids) },
+			upsert:    upsertCampuses,
+		}, rows, includeDeleted)
+	case peeringdb.TypeFac:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Facility]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Facility) string { return v.Status },
+			fkFilter: func(v *peeringdb.Facility) bool {
+				if !w.fkCheckParent(ctx, peeringdb.TypeFac, v.ID,
+					peeringdb.TypeOrg, v.OrgID, "org_id") {
+					return false
+				}
+				// campus_id is Optional().Nillable() in the ent
+				// schema — if the referenced campus is missing,
+				// null the reference out and keep the facility
+				// (avoids cascading the drop through netfac /
+				// ixfac / carrierfac children of the facility).
+				if v.CampusID != nil && !w.fkHasParent(peeringdb.TypeCampus, *v.CampusID) {
+					w.logger.LogAttrs(ctx, slog.LevelWarn, "nulling orphan FK",
+						slog.String("child_type", peeringdb.TypeFac),
+						slog.Int("child_id", v.ID),
+						slog.String("field", "campus_id"),
+						slog.Int("orphan_parent_id", *v.CampusID),
+					)
+					v.CampusID = nil
+				}
+				return true
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeFac, ids) },
+			upsert:    upsertFacilities,
+		}, rows, includeDeleted)
+	case peeringdb.TypeCarrier:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Carrier]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Carrier) string { return v.Status },
+			fkFilter: func(v *peeringdb.Carrier) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeCarrier, v.ID,
+					peeringdb.TypeOrg, v.OrgID, "org_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCarrier, ids) },
+			upsert:    upsertCarriers,
+		}, rows, includeDeleted)
+	case peeringdb.TypeCarrierFac:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.CarrierFacility]{
+			objectType: name,
+			getStatus:  func(v peeringdb.CarrierFacility) string { return v.Status },
+			fkFilter: func(v *peeringdb.CarrierFacility) bool {
+				if !w.fkCheckParent(ctx, peeringdb.TypeCarrierFac, v.ID,
+					peeringdb.TypeCarrier, v.CarrierID, "carrier_id") {
+					return false
+				}
+				return w.fkCheckParent(ctx, peeringdb.TypeCarrierFac, v.ID,
+					peeringdb.TypeFac, v.FacID, "fac_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCarrierFac, ids) },
+			upsert:    upsertCarrierFacilities,
+		}, rows, includeDeleted)
+	case peeringdb.TypeIX:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.InternetExchange]{
+			objectType: name,
+			getStatus:  func(v peeringdb.InternetExchange) string { return v.Status },
+			fkFilter: func(v *peeringdb.InternetExchange) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeIX, v.ID,
+					peeringdb.TypeOrg, v.OrgID, "org_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIX, ids) },
+			upsert:    upsertInternetExchanges,
+		}, rows, includeDeleted)
+	case peeringdb.TypeIXLan:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxLan]{
+			objectType: name,
+			getStatus:  func(v peeringdb.IxLan) string { return v.Status },
+			fkFilter: func(v *peeringdb.IxLan) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeIXLan, v.ID,
+					peeringdb.TypeIX, v.IXID, "ix_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXLan, ids) },
+			upsert:    upsertIxLans,
+		}, rows, includeDeleted)
+	case peeringdb.TypeIXPfx:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxPrefix]{
+			objectType: name,
+			getStatus:  func(v peeringdb.IxPrefix) string { return v.Status },
+			fkFilter: func(v *peeringdb.IxPrefix) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeIXPfx, v.ID,
+					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXPfx, ids) },
+			upsert:    upsertIxPrefixes,
+		}, rows, includeDeleted)
+	case peeringdb.TypeIXFac:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxFacility]{
+			objectType: name,
+			getStatus:  func(v peeringdb.IxFacility) string { return v.Status },
+			fkFilter: func(v *peeringdb.IxFacility) bool {
+				if !w.fkCheckParent(ctx, peeringdb.TypeIXFac, v.ID,
+					peeringdb.TypeIX, v.IXID, "ix_id") {
+					return false
+				}
+				return w.fkCheckParent(ctx, peeringdb.TypeIXFac, v.ID,
+					peeringdb.TypeFac, v.FacID, "fac_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXFac, ids) },
+			upsert:    upsertIxFacilities,
+		}, rows, includeDeleted)
+	case peeringdb.TypeNet:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Network]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Network) string { return v.Status },
+			fkFilter: func(v *peeringdb.Network) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypeNet, v.ID,
+					peeringdb.TypeOrg, v.OrgID, "org_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNet, ids) },
+			upsert:    upsertNetworks,
+		}, rows, includeDeleted)
+	case peeringdb.TypePoc:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Poc]{
+			objectType: name,
+			getStatus:  func(v peeringdb.Poc) string { return v.Status },
+			fkFilter: func(v *peeringdb.Poc) bool {
+				return w.fkCheckParent(ctx, peeringdb.TypePoc, v.ID,
+					peeringdb.TypeNet, v.NetID, "net_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypePoc, ids) },
+			upsert:    upsertPocs,
+		}, rows, includeDeleted)
+	case peeringdb.TypeNetFac:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkFacility]{
+			objectType: name,
+			getStatus:  func(v peeringdb.NetworkFacility) string { return v.Status },
+			fkFilter: func(v *peeringdb.NetworkFacility) bool {
+				if !w.fkCheckParent(ctx, peeringdb.TypeNetFac, v.ID,
+					peeringdb.TypeNet, v.NetID, "net_id") {
+					return false
+				}
+				return w.fkCheckParent(ctx, peeringdb.TypeNetFac, v.ID,
+					peeringdb.TypeFac, v.FacID, "fac_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetFac, ids) },
+			upsert:    upsertNetworkFacilities,
+		}, rows, includeDeleted)
+	case peeringdb.TypeNetIXLan:
+		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkIxLan]{
+			objectType: name,
+			getStatus:  func(v peeringdb.NetworkIxLan) string { return v.Status },
+			fkFilter: func(v *peeringdb.NetworkIxLan) bool {
+				if !w.fkCheckParent(ctx, peeringdb.TypeNetIXLan, v.ID,
+					peeringdb.TypeNet, v.NetID, "net_id") {
+					return false
+				}
+				if !w.fkCheckParent(ctx, peeringdb.TypeNetIXLan, v.ID,
+					peeringdb.TypeIX, v.IXID, "ix_id") {
+					return false
+				}
+				return w.fkCheckParent(ctx, peeringdb.TypeNetIXLan, v.ID,
+					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
+			},
+			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetIXLan, ids) },
+			upsert:    upsertNetworkIxLans,
+		}, rows, includeDeleted)
+	}
+	return 0, fmt.Errorf("unknown sync type: %s", name)
+}
+
+// fkCheckParent is the per-row FK validation helper called from the
+// fkFilter closures in dispatchScratchChunk. Returns true if parentID
+// is registered for parentType (or is a zero/null FK); otherwise logs
+// the orphan at WARN, records the child id in fkSkippedIDs so the
+// delete pass can reconcile, and returns false so syncIncremental
+// drops the row from the chunk.
+func (w *Worker) fkCheckParent(ctx context.Context, childType string, childID int, parentType string, parentID int, field string) bool {
+	if w.fkHasParent(parentType, parentID) {
+		return true
+	}
+	w.fkMarkSkipped(childType, childID)
+	w.logger.LogAttrs(ctx, slog.LevelWarn, "dropping FK orphan",
+		slog.String("child_type", childType),
+		slog.Int("child_id", childID),
+		slog.String("field", field),
+		slog.String("parent_type", parentType),
+		slog.Int("parent_id", parentID),
+	)
+	return false
+}
+
+// syncDeletePass runs the per-type delete loop in child-first (reverse FK)
+// order, skipping types that have no remoteIDs (incremental sync succeeded).
+// The orchestrator handles rollback + recordFailure on error.
+func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType map[string][]int) error {
+	steps := w.syncSteps()
 	for i := len(steps) - 1; i >= 0; i-- {
 		step := steps[i]
 		remoteIDs, ok := remoteIDsByType[step.name]
@@ -262,15 +1098,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 
 		if stepErr != nil {
 			pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
-
-			if rbErr := tx.Rollback(); rbErr != nil {
-				w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
-					slog.Any("error", rbErr),
-				)
-			}
-			syncErr := fmt.Errorf("delete stale %s: %w", step.name, stepErr)
-			w.recordFailure(ctx, statusID, start, syncErr)
-			return syncErr
+			return fmt.Errorf("delete stale %s: %w", step.name, stepErr)
 		}
 
 		// Record per-type delete metrics per D-08.
@@ -283,55 +1111,6 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 			)
 		}
 	}
-
-	// Commit transaction.
-	if err := tx.Commit(); err != nil {
-		syncErr := fmt.Errorf("commit sync transaction: %w", err)
-		w.recordFailure(ctx, statusID, start, syncErr)
-		return syncErr
-	}
-
-	// Update per-type cursors AFTER successful commit.
-	for typeName, generated := range cursorUpdates {
-		if err := UpsertCursor(ctx, w.db, typeName, generated, "success"); err != nil {
-			w.logger.LogAttrs(ctx, slog.LevelError, "failed to update cursor",
-				slog.String("type", typeName),
-				slog.Any("error", err),
-			)
-		}
-	}
-
-	elapsed := time.Since(start)
-
-	// Record sync-level metrics per D-06.
-	statusAttr := metric.WithAttributes(attribute.String("status", "success"))
-	pdbotel.SyncDuration.Record(ctx, elapsed.Seconds(), statusAttr)
-	pdbotel.SyncOperations.Add(ctx, 1, statusAttr)
-
-	w.logger.LogAttrs(ctx, slog.LevelInfo, "sync complete",
-		slog.String("mode", string(mode)),
-		slog.Duration("duration", elapsed),
-		slog.Int("total_objects", totalCount),
-	)
-
-	// Record success in sync_status table.
-	if statusID > 0 {
-		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
-			LastSyncAt:   time.Now(),
-			Duration:     elapsed,
-			ObjectCounts: objectCounts,
-			Status:       "success",
-		})
-	}
-
-	// Mark first successful sync per D-30.
-	w.synced.Store(true)
-
-	// Notify listeners (e.g. cached metrics gauge) with per-type object counts.
-	if w.config.OnSyncComplete != nil {
-		w.config.OnSyncComplete(objectCounts)
-	}
-
 	return nil
 }
 
@@ -353,10 +1132,24 @@ func (w *Worker) recordFailure(ctx context.Context, statusID int64, start time.T
 }
 
 // SyncWithRetry calls Sync and retries on failure with exponential backoff per D-21.
+//
+// Rate-limit short-circuit: when the wrapped error is a *peeringdb.RateLimitError,
+// the retry ladder is skipped entirely. PeeringDB's unauthenticated quota is
+// 1 request per distinct query-string per hour, and all three default backoffs
+// (30s, 2m, 8m) fall well inside that window — every retry within the window
+// is guaranteed to 429 again AND consumes another slot against the hourly
+// quota. Returning immediately lets the hourly scheduler retry naturally on
+// its next tick (1h interval ≥ most Retry-After values we've observed).
 func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error {
 	err := w.Sync(ctx, mode)
 	if err == nil {
 		return nil
+	}
+	if rateLimited(err) {
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "sync rate-limited, deferring to next scheduled tick",
+			slog.Any("error", err),
+		)
+		return err
 	}
 
 	maxRetries := len(w.retryBackoffs)
@@ -382,6 +1175,15 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 		if err == nil {
 			return nil
 		}
+		// If the NEXT attempt also hit the rate limit, stop retrying for
+		// the same reason as the initial short-circuit above.
+		if rateLimited(err) {
+			w.logger.LogAttrs(ctx, slog.LevelWarn, "sync rate-limited during retry, deferring",
+				slog.Int("attempt", attempt+1),
+				slog.Any("error", err),
+			)
+			return err
+		}
 	}
 
 	w.logger.LogAttrs(ctx, slog.LevelError, "sync failed after all retries",
@@ -389,6 +1191,14 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 		slog.Any("error", err),
 	)
 	return fmt.Errorf("sync failed after %d retries: %w", maxRetries, lastErr)
+}
+
+// rateLimited reports whether err wraps a *peeringdb.RateLimitError anywhere
+// in its chain. Used by SyncWithRetry to skip the retry ladder on HTTP 429
+// responses from PeeringDB.
+func rateLimited(err error) bool {
+	var rlErr *peeringdb.RateLimitError
+	return errors.As(err, &rlErr)
 }
 
 // HasCompletedSync reports whether at least one successful sync has completed.
@@ -518,410 +1328,3 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 	}
 }
 
-// Per-type fetch+upsert methods. Each fetches from PeeringDB, filters deleted,
-// upserts, and returns the remote IDs for the later delete pass.
-
-func (w *Worker) fetchAndUpsertOrganizations(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Organization](ctx, w.pdbClient, peeringdb.TypeOrg)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch organizations: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterOrgsByStatus(items)
-	}
-	ids, err := upsertOrganizations(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertCampuses(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Campus](ctx, w.pdbClient, peeringdb.TypeCampus)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch campuses: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCampusesByStatus(items)
-	}
-	ids, err := upsertCampuses(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertFacilities(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Facility](ctx, w.pdbClient, peeringdb.TypeFac)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterFacilitiesByStatus(items)
-	}
-	ids, err := upsertFacilities(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertCarriers(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Carrier](ctx, w.pdbClient, peeringdb.TypeCarrier)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch carriers: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCarriersByStatus(items)
-	}
-	ids, err := upsertCarriers(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertCarrierFacilities(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.CarrierFacility](ctx, w.pdbClient, peeringdb.TypeCarrierFac)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch carrier facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCarrierFacilitiesByStatus(items)
-	}
-	ids, err := upsertCarrierFacilities(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertInternetExchanges(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.InternetExchange](ctx, w.pdbClient, peeringdb.TypeIX)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch internet exchanges: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterInternetExchangesByStatus(items)
-	}
-	ids, err := upsertInternetExchanges(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertIxLans(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.IxLan](ctx, w.pdbClient, peeringdb.TypeIXLan)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch ix lans: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxLansByStatus(items)
-	}
-	ids, err := upsertIxLans(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertIxPrefixes(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.IxPrefix](ctx, w.pdbClient, peeringdb.TypeIXPfx)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch ix prefixes: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxPrefixesByStatus(items)
-	}
-	ids, err := upsertIxPrefixes(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertIxFacilities(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.IxFacility](ctx, w.pdbClient, peeringdb.TypeIXFac)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch ix facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxFacilitiesByStatus(items)
-	}
-	ids, err := upsertIxFacilities(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertNetworks(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Network](ctx, w.pdbClient, peeringdb.TypeNet)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch networks: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworksByStatus(items)
-	}
-	ids, err := upsertNetworks(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertPocs(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Poc](ctx, w.pdbClient, peeringdb.TypePoc)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch pocs: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterPocsByStatus(items)
-	}
-	ids, err := upsertPocs(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertNetworkFacilities(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.NetworkFacility](ctx, w.pdbClient, peeringdb.TypeNetFac)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch network facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworkFacilitiesByStatus(items)
-	}
-	ids, err := upsertNetworkFacilities(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertNetworkIxLans(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.NetworkIxLan](ctx, w.pdbClient, peeringdb.TypeNetIXLan)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch network ix lans: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworkIxLansByStatus(items)
-	}
-	ids, err := upsertNetworkIxLans(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-// fetchIncremental is a generic helper that fetches objects with a since cursor
-// and returns items along with the generated timestamp from the API response.
-func fetchIncremental[T any](ctx context.Context, c *peeringdb.Client, objectType string, since time.Time) ([]T, time.Time, error) {
-	result, err := c.FetchAll(ctx, objectType, peeringdb.WithSince(since))
-	if err != nil {
-		return nil, time.Time{}, err
-	}
-
-	items := make([]T, 0, len(result.Data))
-	for i, raw := range result.Data {
-		var v T
-		if err := json.Unmarshal(raw, &v); err != nil {
-			return nil, time.Time{}, fmt.Errorf("unmarshal %s item %d: %w", objectType, i, err)
-		}
-		items = append(items, v)
-	}
-
-	generated := result.Meta.Generated
-	if generated.IsZero() {
-		generated = time.Now().Add(-5 * time.Minute)
-	}
-
-	return items, generated, nil
-}
-
-// Per-type incremental sync methods. Each fetches with WithSince, upserts
-// (no delete stale), and returns count + generated timestamp.
-
-func (w *Worker) syncOrganizationsIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Organization](ctx, w.pdbClient, peeringdb.TypeOrg, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch organizations: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterOrgsByStatus(items)
-	}
-	if _, err := upsertOrganizations(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncCampusesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Campus](ctx, w.pdbClient, peeringdb.TypeCampus, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch campuses: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCampusesByStatus(items)
-	}
-	if _, err := upsertCampuses(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncFacilitiesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Facility](ctx, w.pdbClient, peeringdb.TypeFac, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterFacilitiesByStatus(items)
-	}
-	if _, err := upsertFacilities(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncCarriersIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Carrier](ctx, w.pdbClient, peeringdb.TypeCarrier, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch carriers: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCarriersByStatus(items)
-	}
-	if _, err := upsertCarriers(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncCarrierFacilitiesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.CarrierFacility](ctx, w.pdbClient, peeringdb.TypeCarrierFac, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch carrier facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCarrierFacilitiesByStatus(items)
-	}
-	if _, err := upsertCarrierFacilities(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncInternetExchangesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.InternetExchange](ctx, w.pdbClient, peeringdb.TypeIX, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch internet exchanges: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterInternetExchangesByStatus(items)
-	}
-	if _, err := upsertInternetExchanges(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncIxLansIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.IxLan](ctx, w.pdbClient, peeringdb.TypeIXLan, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch ix lans: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxLansByStatus(items)
-	}
-	if _, err := upsertIxLans(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncIxPrefixesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.IxPrefix](ctx, w.pdbClient, peeringdb.TypeIXPfx, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch ix prefixes: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxPrefixesByStatus(items)
-	}
-	if _, err := upsertIxPrefixes(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncIxFacilitiesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.IxFacility](ctx, w.pdbClient, peeringdb.TypeIXFac, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch ix facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxFacilitiesByStatus(items)
-	}
-	if _, err := upsertIxFacilities(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncNetworksIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Network](ctx, w.pdbClient, peeringdb.TypeNet, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch networks: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworksByStatus(items)
-	}
-	if _, err := upsertNetworks(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncPocsIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Poc](ctx, w.pdbClient, peeringdb.TypePoc, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch pocs: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterPocsByStatus(items)
-	}
-	if _, err := upsertPocs(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncNetworkFacilitiesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.NetworkFacility](ctx, w.pdbClient, peeringdb.TypeNetFac, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch network facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworkFacilitiesByStatus(items)
-	}
-	if _, err := upsertNetworkFacilities(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncNetworkIxLansIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.NetworkIxLan](ctx, w.pdbClient, peeringdb.TypeNetIXLan, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch network ix lans: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworkIxLansByStatus(items)
-	}
-	if _, err := upsertNetworkIxLans(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}

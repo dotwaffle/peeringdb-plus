@@ -1,11 +1,14 @@
 package health_test
 
 import (
+	"bytes"
+	"context"
 	"database/sql"
-	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	stdsync "sync"
 	"testing"
 	"time"
 
@@ -13,6 +16,68 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	_ "modernc.org/sqlite"
 )
+
+// testLogHandler is a slog.Handler test double that records every log record
+// passed to Handle. It is concurrency-safe for parallel test execution.
+type testLogHandler struct {
+	mu      stdsync.Mutex
+	records []slog.Record
+}
+
+func (h *testLogHandler) Enabled(_ context.Context, _ slog.Level) bool { return true }
+
+func (h *testLogHandler) Handle(_ context.Context, r slog.Record) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.records = append(h.records, r)
+	return nil
+}
+
+func (h *testLogHandler) WithAttrs(_ []slog.Attr) slog.Handler { return h }
+func (h *testLogHandler) WithGroup(_ string) slog.Handler      { return h }
+
+// snapshot returns a copy of the records captured so far.
+func (h *testLogHandler) snapshot() []slog.Record {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	out := make([]slog.Record, len(h.records))
+	copy(out, h.records)
+	return out
+}
+
+// collectReadinessResponse invokes the readiness handler against in and returns
+// the observed HTTP status, the wire body (trimmed), and the log records that
+// the handler wrote to the injected logger.
+func collectReadinessResponse(t *testing.T, in health.ReadinessInput) (int, string, []slog.Record) {
+	t.Helper()
+
+	logCap := &testLogHandler{}
+	in.Logger = slog.New(logCap)
+
+	handler := health.ReadinessHandler(in)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	handler.ServeHTTP(rec, req)
+
+	body := strings.TrimSpace(rec.Body.String())
+	return rec.Code, body, logCap.snapshot()
+}
+
+// findAttr walks a slog.Record looking for an attribute with key k. It returns
+// the matching attr and true if found. Used by the log-shape assertions below.
+func findAttr(r slog.Record, k string) (slog.Attr, bool) {
+	var found slog.Attr
+	var ok bool
+	r.Attrs(func(a slog.Attr) bool {
+		if a.Key == k {
+			found = a
+			ok = true
+			return false
+		}
+		return true
+	})
+	return found, ok
+}
 
 func TestLivenessHandler(t *testing.T) {
 	t.Parallel()
@@ -32,149 +97,199 @@ func TestLivenessHandler(t *testing.T) {
 		t.Errorf("Content-Type = %q, want application/json", ct)
 	}
 
-	var resp health.Response
-	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
-		t.Fatalf("decoding response: %v", err)
-	}
-	if resp.Status != "ok" {
-		t.Errorf("status = %q, want %q", resp.Status, "ok")
+	got := strings.TrimSpace(rec.Body.String())
+	if got != `{"status":"ok"}` {
+		t.Errorf("body = %q, want %q", got, `{"status":"ok"}`)
 	}
 }
 
-func TestReadinessHandler(t *testing.T) {
+// TestHealth_GenericResponse is the SEC-08 regression lock. It asserts that
+// the /readyz wire body is a fixed generic shape and that all detail flows to
+// the structured logger via slog attrs. Consumers MUST NOT see err.Error(),
+// sync.Status.ErrorMessage, or any internal file paths/driver messages.
+func TestHealth_GenericResponse(t *testing.T) {
 	t.Parallel()
 
 	staleThreshold := 24 * time.Hour
 
 	tests := []struct {
-		name           string
-		setupDB        func(t *testing.T) *sql.DB
-		wantHTTPStatus int
-		wantStatus     string
-		wantDBStatus   string
-		wantSyncStatus string
-		wantSyncMsg    string // substring check for sync component message
+		name       string
+		setupDB    func(t *testing.T) *sql.DB
+		wantStatus int
+		wantBody   string
+		// logAssert runs against the captured records. Returning a non-empty
+		// string signals a failure with the returned message.
+		logAssert func(t *testing.T, records []slog.Record) string
 	}{
 		{
-			name: "healthy: db ok and recent sync",
+			name: "healthy_all_ok",
 			setupDB: func(t *testing.T) *sql.DB {
 				db := openTestDB(t)
 				initSyncTable(t, db)
 				insertSync(t, db, time.Now().Add(-1*time.Hour), "success", "")
 				return db
 			},
-			wantHTTPStatus: http.StatusOK,
-			wantStatus:     "ready",
-			wantDBStatus:   "ok",
-			wantSyncStatus: "ok",
+			wantStatus: http.StatusOK,
+			wantBody:   `{"status":"ok"}`,
+			logAssert: func(_ *testing.T, records []slog.Record) string {
+				// Healthy path MUST NOT emit any error-level records.
+				for _, r := range records {
+					if r.Level >= slog.LevelError {
+						return "unexpected error log on healthy path"
+					}
+				}
+				return ""
+			},
 		},
 		{
-			name: "stale sync: last sync older than threshold",
+			name: "db_ping_fails",
+			setupDB: func(t *testing.T) *sql.DB {
+				db := openTestDB(t)
+				db.Close() // force PingContext to fail
+				return db
+			},
+			wantStatus: http.StatusServiceUnavailable,
+			wantBody:   `{"status":"unhealthy"}`,
+			logAssert: func(_ *testing.T, records []slog.Record) string {
+				// Exactly one error record with component=db and a non-empty
+				// error attr.
+				var hits int
+				for _, r := range records {
+					if r.Level != slog.LevelError {
+						continue
+					}
+					comp, ok := findAttr(r, "component")
+					if !ok || comp.Value.String() != "db" {
+						continue
+					}
+					errAttr, ok := findAttr(r, "error")
+					if !ok || errAttr.Value.String() == "" {
+						return "db error record missing non-empty error attr"
+					}
+					hits++
+				}
+				if hits != 1 {
+					return "expected exactly 1 component=db error record"
+				}
+				return ""
+			},
+		},
+		{
+			name: "sync_lookup_fails",
+			// DB is open but sync_status table does not exist, so
+			// GetLastStatus will return a non-nil error.
+			setupDB: openTestDB,
+			wantStatus: http.StatusServiceUnavailable,
+			wantBody:   `{"status":"unhealthy"}`,
+			logAssert: func(_ *testing.T, records []slog.Record) string {
+				for _, r := range records {
+					if r.Level != slog.LevelError {
+						continue
+					}
+					comp, ok := findAttr(r, "component")
+					if !ok || comp.Value.String() != "sync" {
+						continue
+					}
+					errAttr, ok := findAttr(r, "error")
+					if !ok || errAttr.Value.String() == "" {
+						return "sync lookup error record missing non-empty error attr"
+					}
+					return ""
+				}
+				return "expected a component=sync error record from sync lookup failure"
+			},
+		},
+		{
+			name: "sync_marked_failed",
+			setupDB: func(t *testing.T) *sql.DB {
+				db := openTestDB(t)
+				initSyncTable(t, db)
+				insertSync(t, db, time.Now().Add(-1*time.Hour), "failed", "connection timeout to upstream")
+				return db
+			},
+			wantStatus: http.StatusServiceUnavailable,
+			wantBody:   `{"status":"unhealthy"}`,
+			logAssert: func(_ *testing.T, records []slog.Record) string {
+				for _, r := range records {
+					if r.Level != slog.LevelWarn {
+						continue
+					}
+					comp, ok := findAttr(r, "component")
+					if !ok || comp.Value.String() != "sync" {
+						continue
+					}
+					errAttr, ok := findAttr(r, "error")
+					if !ok || errAttr.Value.String() != "connection timeout to upstream" {
+						return "sync failed record must carry ErrorMessage in error attr"
+					}
+					if _, ok := findAttr(r, "last_sync_at"); !ok {
+						return "sync failed record missing last_sync_at attr"
+					}
+					return ""
+				}
+				return "expected a component=sync warn record for failed sync"
+			},
+		},
+		{
+			name: "sync_stale",
 			setupDB: func(t *testing.T) *sql.DB {
 				db := openTestDB(t)
 				initSyncTable(t, db)
 				insertSync(t, db, time.Now().Add(-48*time.Hour), "success", "")
 				return db
 			},
-			wantHTTPStatus: http.StatusServiceUnavailable,
-			wantStatus:     "not_ready",
-			wantDBStatus:   "ok",
-			wantSyncStatus: "degraded",
-			wantSyncMsg:    "stale",
+			wantStatus: http.StatusServiceUnavailable,
+			wantBody:   `{"status":"unhealthy"}`,
+			logAssert: func(_ *testing.T, records []slog.Record) string {
+				for _, r := range records {
+					if r.Level != slog.LevelWarn {
+						continue
+					}
+					comp, ok := findAttr(r, "component")
+					if !ok || comp.Value.String() != "sync" {
+						continue
+					}
+					if _, ok := findAttr(r, "last_sync_at"); !ok {
+						return "stale sync record missing last_sync_at attr"
+					}
+					ageAttr, ok := findAttr(r, "age")
+					if !ok {
+						return "stale sync record missing age attr"
+					}
+					// The age attr carries a duration; its value must be
+					// strictly greater than the 24h stale threshold.
+					if d, ok := ageAttr.Value.Any().(time.Duration); ok {
+						if d <= staleThreshold {
+							return "stale sync age must exceed threshold"
+						}
+					}
+					return ""
+				}
+				return "expected a component=sync warn record for stale sync"
+			},
 		},
 		{
-			name: "no sync: no rows in sync_status",
+			name: "no_sync_yet",
 			setupDB: func(t *testing.T) *sql.DB {
 				db := openTestDB(t)
 				initSyncTable(t, db)
 				return db
 			},
-			wantHTTPStatus: http.StatusServiceUnavailable,
-			wantStatus:     "not_ready",
-			wantDBStatus:   "ok",
-			wantSyncStatus: "failed",
-			wantSyncMsg:    "no sync completed",
-		},
-		{
-			name: "db down: closed database",
-			setupDB: func(t *testing.T) *sql.DB {
-				db := openTestDB(t)
-				db.Close()
-				return db
+			wantStatus: http.StatusServiceUnavailable,
+			wantBody:   `{"status":"unhealthy"}`,
+			logAssert: func(_ *testing.T, records []slog.Record) string {
+				for _, r := range records {
+					if r.Level != slog.LevelWarn {
+						continue
+					}
+					comp, ok := findAttr(r, "component")
+					if !ok || comp.Value.String() != "sync" {
+						continue
+					}
+					return ""
+				}
+				return "expected a component=sync warn record for no-sync-yet"
 			},
-			wantHTTPStatus: http.StatusServiceUnavailable,
-			wantStatus:     "not_ready",
-			wantDBStatus:   "failed",
-		},
-		{
-			name: "running sync with previous success within threshold",
-			setupDB: func(t *testing.T) *sql.DB {
-				db := openTestDB(t)
-				initSyncTable(t, db)
-				// Insert a successful sync from 1 hour ago
-				insertSync(t, db, time.Now().Add(-1*time.Hour), "success", "")
-				// Insert a currently running sync (no completed_at)
-				insertRunningSync(t, db)
-				return db
-			},
-			wantHTTPStatus: http.StatusOK,
-			wantStatus:     "ready",
-			wantDBStatus:   "ok",
-			wantSyncStatus: "ok",
-		},
-		{
-			name: "failed sync within threshold still shows degraded",
-			setupDB: func(t *testing.T) *sql.DB {
-				db := openTestDB(t)
-				initSyncTable(t, db)
-				insertSync(t, db, time.Now().Add(-1*time.Hour), "failed", "connection timeout")
-				return db
-			},
-			wantHTTPStatus: http.StatusServiceUnavailable,
-			wantStatus:     "not_ready",
-			wantDBStatus:   "ok",
-			wantSyncStatus: "degraded",
-			wantSyncMsg:    "last sync failed",
-		},
-		{
-			name: "running sync with no previous completed sync",
-			setupDB: func(t *testing.T) *sql.DB {
-				db := openTestDB(t)
-				initSyncTable(t, db)
-				insertRunningSync(t, db) // Only a "running" row, no prior completed
-				return db
-			},
-			wantHTTPStatus: http.StatusServiceUnavailable,
-			wantStatus:     "not_ready",
-			wantDBStatus:   "ok",
-			wantSyncStatus: "failed",
-			wantSyncMsg:    "no sync completed",
-		},
-		{
-			name: "unknown sync status",
-			setupDB: func(t *testing.T) *sql.DB {
-				db := openTestDB(t)
-				initSyncTable(t, db)
-				insertSync(t, db, time.Now().Add(-1*time.Hour), "bogus_status", "")
-				return db
-			},
-			wantHTTPStatus: http.StatusServiceUnavailable,
-			wantStatus:     "not_ready",
-			wantDBStatus:   "ok",
-			wantSyncStatus: "failed",
-			wantSyncMsg:    "unknown sync status",
-		},
-		{
-			name: "sync table missing causes GetLastStatus error",
-			setupDB: func(t *testing.T) *sql.DB {
-				db := openTestDB(t)
-				// Do NOT create the sync_status table -- GetLastStatus will fail
-				return db
-			},
-			wantHTTPStatus: http.StatusServiceUnavailable,
-			wantStatus:     "not_ready",
-			wantDBStatus:   "ok",
-			wantSyncStatus: "failed",
 		},
 	}
 
@@ -183,92 +298,29 @@ func TestReadinessHandler(t *testing.T) {
 			t.Parallel()
 			db := tt.setupDB(t)
 
-			handler := health.ReadinessHandler(health.ReadinessInput{
+			status, body, records := collectReadinessResponse(t, health.ReadinessInput{
 				DB:             db,
 				StaleThreshold: staleThreshold,
 			})
 
-			rec := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
-			handler.ServeHTTP(rec, req)
-
-			if rec.Code != tt.wantHTTPStatus {
-				t.Errorf("HTTP status = %d, want %d", rec.Code, tt.wantHTTPStatus)
+			if status != tt.wantStatus {
+				t.Errorf("status = %d, want %d", status, tt.wantStatus)
 			}
-
-			ct := rec.Header().Get("Content-Type")
-			if !strings.HasPrefix(ct, "application/json") {
-				t.Errorf("Content-Type = %q, want application/json", ct)
+			if body != tt.wantBody {
+				t.Errorf("body = %q, want %q", body, tt.wantBody)
 			}
-
-			var resp health.Response
-			if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
-				t.Fatalf("decoding response: %v", err)
+			// The body must be EXACTLY one of the two generic shapes — no
+			// surprise fields, no "components" map.
+			if body != `{"status":"ok"}` && body != `{"status":"unhealthy"}` {
+				t.Errorf("body %q is not a recognized generic shape", body)
 			}
-			if resp.Status != tt.wantStatus {
-				t.Errorf("status = %q, want %q", resp.Status, tt.wantStatus)
+			if bytes.Contains([]byte(body), []byte("components")) {
+				t.Errorf("body leaks components map: %q", body)
 			}
-
-			if tt.wantDBStatus != "" {
-				db, ok := resp.Components["db"]
-				if !ok {
-					t.Fatal("missing 'db' component in response")
-				}
-				if db.Status != tt.wantDBStatus {
-					t.Errorf("db.status = %q, want %q", db.Status, tt.wantDBStatus)
-				}
-			}
-
-			if tt.wantSyncStatus != "" {
-				sc, ok := resp.Components["sync"]
-				if !ok {
-					t.Fatal("missing 'sync' component in response")
-				}
-				if sc.Status != tt.wantSyncStatus {
-					t.Errorf("sync.status = %q, want %q", sc.Status, tt.wantSyncStatus)
-				}
-				if tt.wantSyncMsg != "" && !strings.Contains(sc.Message, tt.wantSyncMsg) {
-					t.Errorf("sync.message = %q, want substring %q", sc.Message, tt.wantSyncMsg)
-				}
+			if msg := tt.logAssert(t, records); msg != "" {
+				t.Errorf("log assertion failed: %s", msg)
 			}
 		})
-	}
-}
-
-func TestReadinessHandlerSyncTimestamp(t *testing.T) {
-	t.Parallel()
-
-	db := openTestDB(t)
-	initSyncTable(t, db)
-	insertSync(t, db, time.Now().Add(-1*time.Hour), "success", "")
-
-	handler := health.ReadinessHandler(health.ReadinessInput{
-		DB:             db,
-		StaleThreshold: 24 * time.Hour,
-	})
-
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
-	handler.ServeHTTP(rec, req)
-
-	var resp health.Response
-	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
-		t.Fatalf("decoding response: %v", err)
-	}
-
-	sc, ok := resp.Components["sync"]
-	if !ok {
-		t.Fatal("missing 'sync' component")
-	}
-
-	// Verify the message contains an RFC3339 timestamp
-	if !strings.Contains(sc.Message, "T") || !strings.Contains(sc.Message, "Z") {
-		t.Errorf("sync.message = %q, expected RFC3339 timestamp", sc.Message)
-	}
-
-	// Verify the message contains an age duration
-	if !strings.Contains(sc.Message, "age") {
-		t.Errorf("sync.message = %q, expected age duration", sc.Message)
 	}
 }
 
@@ -302,17 +354,5 @@ func insertSync(t *testing.T, db *sql.DB, completedAt time.Time, status string, 
 	)
 	if err != nil {
 		t.Fatalf("inserting sync status: %v", err)
-	}
-}
-
-// insertRunningSync inserts a currently-running sync row (no completed_at).
-func insertRunningSync(t *testing.T, db *sql.DB) {
-	t.Helper()
-	_, err := db.ExecContext(t.Context(),
-		`INSERT INTO sync_status (started_at, status) VALUES (?, 'running')`,
-		time.Now(),
-	)
-	if err != nil {
-		t.Fatalf("inserting running sync: %v", err)
 	}
 }

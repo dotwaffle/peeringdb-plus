@@ -8,8 +8,8 @@ import (
 
 // EagerLoadCampus eager-loads the edges of a Campus entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadCampus(query *ent.CampusQuery) *ent.CampusQuery {
-	return query.WithFacilities(
+func EagerLoadCampus(_query *ent.CampusQuery) *ent.CampusQuery {
+	return _query.WithFacilities(
 		func(e *ent.FacilityQuery) {
 			applySortingFacility(e, "id", "asc")
 			e.Limit(1000)
@@ -19,8 +19,8 @@ func EagerLoadCampus(query *ent.CampusQuery) *ent.CampusQuery {
 
 // EagerLoadCarrier eager-loads the edges of a Carrier entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadCarrier(query *ent.CarrierQuery) *ent.CarrierQuery {
-	return query.WithCarrierFacilities(
+func EagerLoadCarrier(_query *ent.CarrierQuery) *ent.CarrierQuery {
+	return _query.WithCarrierFacilities(
 		func(e *ent.CarrierFacilityQuery) {
 			applySortingCarrierFacility(e, "id", "asc")
 			e.Limit(1000)
@@ -30,14 +30,14 @@ func EagerLoadCarrier(query *ent.CarrierQuery) *ent.CarrierQuery {
 
 // EagerLoadCarrierFacility eager-loads the edges of a CarrierFacility entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadCarrierFacility(query *ent.CarrierFacilityQuery) *ent.CarrierFacilityQuery {
-	return query.WithCarrier().WithFacility()
+func EagerLoadCarrierFacility(_query *ent.CarrierFacilityQuery) *ent.CarrierFacilityQuery {
+	return _query.WithCarrier().WithFacility()
 }
 
 // EagerLoadFacility eager-loads the edges of a Facility entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadFacility(query *ent.FacilityQuery) *ent.FacilityQuery {
-	return query.WithCampus().WithCarrierFacilities(
+func EagerLoadFacility(_query *ent.FacilityQuery) *ent.FacilityQuery {
+	return _query.WithCampus().WithCarrierFacilities(
 		func(e *ent.CarrierFacilityQuery) {
 			applySortingCarrierFacility(e, "id", "asc")
 			e.Limit(1000)
@@ -57,8 +57,8 @@ func EagerLoadFacility(query *ent.FacilityQuery) *ent.FacilityQuery {
 
 // EagerLoadInternetExchange eager-loads the edges of a InternetExchange entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadInternetExchange(query *ent.InternetExchangeQuery) *ent.InternetExchangeQuery {
-	return query.WithIxFacilities(
+func EagerLoadInternetExchange(_query *ent.InternetExchangeQuery) *ent.InternetExchangeQuery {
+	return _query.WithIxFacilities(
 		func(e *ent.IxFacilityQuery) {
 			applySortingIxFacility(e, "id", "asc")
 			e.Limit(1000)
@@ -73,14 +73,14 @@ func EagerLoadInternetExchange(query *ent.InternetExchangeQuery) *ent.InternetEx
 
 // EagerLoadIxFacility eager-loads the edges of a IxFacility entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadIxFacility(query *ent.IxFacilityQuery) *ent.IxFacilityQuery {
-	return query.WithFacility().WithInternetExchange()
+func EagerLoadIxFacility(_query *ent.IxFacilityQuery) *ent.IxFacilityQuery {
+	return _query.WithFacility().WithInternetExchange()
 }
 
 // EagerLoadIxLan eager-loads the edges of a IxLan entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadIxLan(query *ent.IxLanQuery) *ent.IxLanQuery {
-	return query.WithInternetExchange().WithIxPrefixes(
+func EagerLoadIxLan(_query *ent.IxLanQuery) *ent.IxLanQuery {
+	return _query.WithInternetExchange().WithIxPrefixes(
 		func(e *ent.IxPrefixQuery) {
 			applySortingIxPrefix(e, "id", "asc")
 			e.Limit(1000)
@@ -95,14 +95,14 @@ func EagerLoadIxLan(query *ent.IxLanQuery) *ent.IxLanQuery {
 
 // EagerLoadIxPrefix eager-loads the edges of a IxPrefix entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadIxPrefix(query *ent.IxPrefixQuery) *ent.IxPrefixQuery {
-	return query.WithIxLan()
+func EagerLoadIxPrefix(_query *ent.IxPrefixQuery) *ent.IxPrefixQuery {
+	return _query.WithIxLan()
 }
 
 // EagerLoadNetwork eager-loads the edges of a Network entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadNetwork(query *ent.NetworkQuery) *ent.NetworkQuery {
-	return query.WithNetworkFacilities(
+func EagerLoadNetwork(_query *ent.NetworkQuery) *ent.NetworkQuery {
+	return _query.WithNetworkFacilities(
 		func(e *ent.NetworkFacilityQuery) {
 			applySortingNetworkFacility(e, "id", "asc")
 			e.Limit(1000)
@@ -122,20 +122,20 @@ func EagerLoadNetwork(query *ent.NetworkQuery) *ent.NetworkQuery {
 
 // EagerLoadNetworkFacility eager-loads the edges of a NetworkFacility entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadNetworkFacility(query *ent.NetworkFacilityQuery) *ent.NetworkFacilityQuery {
-	return query.WithFacility().WithNetwork()
+func EagerLoadNetworkFacility(_query *ent.NetworkFacilityQuery) *ent.NetworkFacilityQuery {
+	return _query.WithFacility().WithNetwork()
 }
 
 // EagerLoadNetworkIxLan eager-loads the edges of a NetworkIxLan entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadNetworkIxLan(query *ent.NetworkIxLanQuery) *ent.NetworkIxLanQuery {
-	return query.WithIxLan().WithNetwork()
+func EagerLoadNetworkIxLan(_query *ent.NetworkIxLanQuery) *ent.NetworkIxLanQuery {
+	return _query.WithIxLan().WithNetwork()
 }
 
 // EagerLoadOrganization eager-loads the edges of a Organization entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadOrganization(query *ent.OrganizationQuery) *ent.OrganizationQuery {
-	return query.WithCampuses(
+func EagerLoadOrganization(_query *ent.OrganizationQuery) *ent.OrganizationQuery {
+	return _query.WithCampuses(
 		func(e *ent.CampusQuery) {
 			applySortingCampus(e, "id", "asc")
 			e.Limit(1000)
@@ -165,6 +165,6 @@ func EagerLoadOrganization(query *ent.OrganizationQuery) *ent.OrganizationQuery 
 
 // EagerLoadPoc eager-loads the edges of a Poc entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadPoc(query *ent.PocQuery) *ent.PocQuery {
-	return query.WithNetwork()
+func EagerLoadPoc(_query *ent.PocQuery) *ent.PocQuery {
+	return _query.WithNetwork()
 }

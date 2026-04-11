@@ -22,6 +22,123 @@ type InternetExchangeService struct {
 	StreamTimeout time.Duration
 }
 
+// internetExchangeListFilters is the generic filter table consumed by
+// applyInternetExchangeListFilters. Entries run in slice order. See
+// internal/grpcserver/filter.go for the filterFn[REQ] contract and the
+// reusable predicate builders.
+var internetExchangeListFilters = []filterFn[pb.ListInternetExchangesRequest]{
+	validatingFilter("id",
+		func(r *pb.ListInternetExchangesRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(internetexchange.FieldID)),
+	validatingFilter("org_id",
+		func(r *pb.ListInternetExchangesRequest) *int64 { return r.OrgId },
+		positiveInt64(), fieldEQInt(internetexchange.FieldOrgID)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.Name },
+		fieldContainsFold(internetexchange.FieldName)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.Aka },
+		fieldContainsFold(internetexchange.FieldAka)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.NameLong },
+		fieldContainsFold(internetexchange.FieldNameLong)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.Country },
+		fieldEQString(internetexchange.FieldCountry)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.City },
+		fieldContainsFold(internetexchange.FieldCity)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.Status },
+		fieldEQString(internetexchange.FieldStatus)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.RegionContinent },
+		fieldEQString(internetexchange.FieldRegionContinent)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.Media },
+		fieldEQString(internetexchange.FieldMedia)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.Notes },
+		fieldEQString(internetexchange.FieldNotes)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *bool { return r.ProtoUnicast },
+		fieldEQBool(internetexchange.FieldProtoUnicast)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *bool { return r.ProtoMulticast },
+		fieldEQBool(internetexchange.FieldProtoMulticast)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *bool { return r.ProtoIpv6 },
+		fieldEQBool(internetexchange.FieldProtoIpv6)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.Website },
+		fieldEQString(internetexchange.FieldWebsite)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.UrlStats },
+		fieldEQString(internetexchange.FieldURLStats)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.TechEmail },
+		fieldEQString(internetexchange.FieldTechEmail)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.TechPhone },
+		fieldEQString(internetexchange.FieldTechPhone)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.PolicyEmail },
+		fieldEQString(internetexchange.FieldPolicyEmail)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.PolicyPhone },
+		fieldEQString(internetexchange.FieldPolicyPhone)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.SalesEmail },
+		fieldEQString(internetexchange.FieldSalesEmail)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.SalesPhone },
+		fieldEQString(internetexchange.FieldSalesPhone)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.ServiceLevel },
+		fieldEQString(internetexchange.FieldServiceLevel)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.Terms },
+		fieldEQString(internetexchange.FieldTerms)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.StatusDashboard },
+		fieldEQString(internetexchange.FieldStatusDashboard)),
+	eqFilter(func(r *pb.ListInternetExchangesRequest) *string { return r.Logo },
+		fieldEQString(internetexchange.FieldLogo)),
+}
+
+// internetExchangeStreamFilters mirrors internetExchangeListFilters but omits
+// the id entry — Stream uses SinceID handled by generic.StreamEntities.
+var internetExchangeStreamFilters = []filterFn[pb.StreamInternetExchangesRequest]{
+	validatingFilter("org_id",
+		func(r *pb.StreamInternetExchangesRequest) *int64 { return r.OrgId },
+		positiveInt64(), fieldEQInt(internetexchange.FieldOrgID)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.Name },
+		fieldContainsFold(internetexchange.FieldName)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.Aka },
+		fieldContainsFold(internetexchange.FieldAka)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.NameLong },
+		fieldContainsFold(internetexchange.FieldNameLong)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.Country },
+		fieldEQString(internetexchange.FieldCountry)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.City },
+		fieldContainsFold(internetexchange.FieldCity)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.Status },
+		fieldEQString(internetexchange.FieldStatus)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.RegionContinent },
+		fieldEQString(internetexchange.FieldRegionContinent)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.Media },
+		fieldEQString(internetexchange.FieldMedia)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.Notes },
+		fieldEQString(internetexchange.FieldNotes)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *bool { return r.ProtoUnicast },
+		fieldEQBool(internetexchange.FieldProtoUnicast)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *bool { return r.ProtoMulticast },
+		fieldEQBool(internetexchange.FieldProtoMulticast)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *bool { return r.ProtoIpv6 },
+		fieldEQBool(internetexchange.FieldProtoIpv6)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.Website },
+		fieldEQString(internetexchange.FieldWebsite)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.UrlStats },
+		fieldEQString(internetexchange.FieldURLStats)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.TechEmail },
+		fieldEQString(internetexchange.FieldTechEmail)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.TechPhone },
+		fieldEQString(internetexchange.FieldTechPhone)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.PolicyEmail },
+		fieldEQString(internetexchange.FieldPolicyEmail)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.PolicyPhone },
+		fieldEQString(internetexchange.FieldPolicyPhone)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.SalesEmail },
+		fieldEQString(internetexchange.FieldSalesEmail)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.SalesPhone },
+		fieldEQString(internetexchange.FieldSalesPhone)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.ServiceLevel },
+		fieldEQString(internetexchange.FieldServiceLevel)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.Terms },
+		fieldEQString(internetexchange.FieldTerms)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.StatusDashboard },
+		fieldEQString(internetexchange.FieldStatusDashboard)),
+	eqFilter(func(r *pb.StreamInternetExchangesRequest) *string { return r.Logo },
+		fieldEQString(internetexchange.FieldLogo)),
+}
+
 // GetInternetExchange returns a single internet exchange by ID. Returns
 // NOT_FOUND if the internet exchange does not exist.
 func (s *InternetExchangeService) GetInternetExchange(ctx context.Context, req *pb.GetInternetExchangeRequest) (*pb.GetInternetExchangeResponse, error) {
@@ -35,176 +152,16 @@ func (s *InternetExchangeService) GetInternetExchange(ctx context.Context, req *
 	return &pb.GetInternetExchangeResponse{InternetExchange: internetExchangeToProto(ix)}, nil
 }
 
+// applyInternetExchangeListFilters builds filter predicates from the generic
+// filter table. See internetExchangeListFilters and internal/grpcserver/filter.go.
 func applyInternetExchangeListFilters(req *pb.ListInternetExchangesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldID, int(*req.Id)))
-	}
-	if req.OrgId != nil {
-		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldOrgID, int(*req.OrgId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldNameLong, *req.NameLong))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldStatus, *req.Status))
-	}
-	if req.RegionContinent != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldRegionContinent, *req.RegionContinent))
-	}
-	if req.Media != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldMedia, *req.Media))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldNotes, *req.Notes))
-	}
-	if req.ProtoUnicast != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoUnicast, *req.ProtoUnicast))
-	}
-	if req.ProtoMulticast != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoMulticast, *req.ProtoMulticast))
-	}
-	if req.ProtoIpv6 != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoIpv6, *req.ProtoIpv6))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldWebsite, *req.Website))
-	}
-	if req.UrlStats != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldURLStats, *req.UrlStats))
-	}
-	if req.TechEmail != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldTechEmail, *req.TechEmail))
-	}
-	if req.TechPhone != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldTechPhone, *req.TechPhone))
-	}
-	if req.PolicyEmail != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldPolicyEmail, *req.PolicyEmail))
-	}
-	if req.PolicyPhone != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldPolicyPhone, *req.PolicyPhone))
-	}
-	if req.SalesEmail != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldSalesEmail, *req.SalesEmail))
-	}
-	if req.SalesPhone != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldSalesPhone, *req.SalesPhone))
-	}
-	if req.ServiceLevel != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldServiceLevel, *req.ServiceLevel))
-	}
-	if req.Terms != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldTerms, *req.Terms))
-	}
-	if req.StatusDashboard != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldStatusDashboard, *req.StatusDashboard))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldLogo, *req.Logo))
-	}
-	return preds, nil
+	return applyFilters(req, internetExchangeListFilters)
 }
 
+// applyInternetExchangeStreamFilters builds filter predicates from the generic
+// filter table. See internetExchangeStreamFilters and internal/grpcserver/filter.go.
 func applyInternetExchangeStreamFilters(req *pb.StreamInternetExchangesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.OrgId != nil {
-		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldOrgID, int(*req.OrgId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldNameLong, *req.NameLong))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(internetexchange.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldStatus, *req.Status))
-	}
-	if req.RegionContinent != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldRegionContinent, *req.RegionContinent))
-	}
-	if req.Media != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldMedia, *req.Media))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldNotes, *req.Notes))
-	}
-	if req.ProtoUnicast != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoUnicast, *req.ProtoUnicast))
-	}
-	if req.ProtoMulticast != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoMulticast, *req.ProtoMulticast))
-	}
-	if req.ProtoIpv6 != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldProtoIpv6, *req.ProtoIpv6))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldWebsite, *req.Website))
-	}
-	if req.UrlStats != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldURLStats, *req.UrlStats))
-	}
-	if req.TechEmail != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldTechEmail, *req.TechEmail))
-	}
-	if req.TechPhone != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldTechPhone, *req.TechPhone))
-	}
-	if req.PolicyEmail != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldPolicyEmail, *req.PolicyEmail))
-	}
-	if req.PolicyPhone != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldPolicyPhone, *req.PolicyPhone))
-	}
-	if req.SalesEmail != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldSalesEmail, *req.SalesEmail))
-	}
-	if req.SalesPhone != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldSalesPhone, *req.SalesPhone))
-	}
-	if req.ServiceLevel != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldServiceLevel, *req.ServiceLevel))
-	}
-	if req.Terms != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldTerms, *req.Terms))
-	}
-	if req.StatusDashboard != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldStatusDashboard, *req.StatusDashboard))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(internetexchange.FieldLogo, *req.Logo))
-	}
-	return preds, nil
+	return applyFilters(req, internetExchangeStreamFilters)
 }
 
 // ListInternetExchanges returns a paginated list of internet exchanges.

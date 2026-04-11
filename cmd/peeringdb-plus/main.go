@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -15,15 +16,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/KimMachineGun/automemlimit/memlimit"
 	"connectrpc.com/connect"
 	"connectrpc.com/grpchealth"
 	"connectrpc.com/grpcreflect"
 	"connectrpc.com/otelconnect"
+	"github.com/KimMachineGun/automemlimit/memlimit"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
-	_ "github.com/dotwaffle/peeringdb-plus/ent/runtime" // register schema hooks (OTel mutation tracing)
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
+	_ "github.com/dotwaffle/peeringdb-plus/ent/runtime" // register schema hooks (OTel mutation tracing)
 	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 	"github.com/dotwaffle/peeringdb-plus/graph"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
@@ -159,20 +160,45 @@ func main() {
 		logger.Info("PeeringDB API key not configured, using unauthenticated access",
 			slog.String("api_key", "[not set]"))
 	}
+
+	// SEC-04: make the disabled-sync-auth state loud at boot so operators see it
+	// in deploy logs rather than discovering it via a curl probe.
+	if cfg.SyncToken == "" {
+		logger.Warn("sync endpoint is unauthenticated — set PDBPLUS_SYNC_TOKEN to require authentication",
+			slog.String("endpoint", "/sync"),
+			slog.String("action", "set PDBPLUS_SYNC_TOKEN"))
+	}
+
 	pdbClient := peeringdb.NewClient(cfg.PeeringDBBaseURL, logger, clientOpts...)
+
+	// PERF-07: Caching middleware holds the current ETag behind an atomic
+	// pointer. Constructed once here so the OnSyncComplete callback below
+	// can capture it. The initial ETag is seeded from any existing
+	// sync_status row so warm restarts serve cacheable GETs immediately;
+	// cold starts leave the pointer nil (Middleware skips caching headers
+	// until the first sync completes, matching pre-PERF-07 behavior).
+	cachingState := middleware.NewCachingState(cfg.SyncInterval)
+	if t, err := pdbsync.GetLastSuccessfulSyncTime(ctx, db); err == nil && !t.IsZero() {
+		cachingState.UpdateETag(t)
+	}
 
 	// Create sync worker.
 	syncWorker := pdbsync.NewWorker(pdbClient, entClient, db, pdbsync.WorkerConfig{
 		IncludeDeleted: cfg.IncludeDeleted,
 		IsPrimary:      isPrimaryFn,
 		SyncMode:       cfg.SyncMode,
-		OnSyncComplete: func(counts map[string]int) {
+		OnSyncComplete: func(counts map[string]int, syncTime time.Time) {
 			m := make(map[string]int64, len(counts))
 			for k, v := range counts {
 				m[k] = int64(v)
 			}
 			objectCountCache.Store(&m)
+			// PERF-07: swap the cached ETag using the exact completion
+			// timestamp the worker persisted to sync_status. One SHA-256
+			// per sync, zero per request.
+			cachingState.UpdateETag(syncTime)
 		},
+		SyncMemoryLimit: cfg.SyncMemoryLimit,
 	}, logger)
 
 	// Start scheduler on all instances per D-22, D-29.
@@ -207,9 +233,12 @@ func main() {
 	mux.HandleFunc("GET /healthz", health.LivenessHandler())
 
 	// GET /readyz: readiness probe (checks DB connectivity and sync freshness).
+	// SEC-08: detailed error strings flow to logger via slog.LogAttrs; the wire
+	// body carries only the generic {"status":"ok"|"unhealthy"} shape.
 	mux.HandleFunc("GET /readyz", health.ReadinessHandler(health.ReadinessInput{
 		DB:             db,
 		StaleThreshold: cfg.SyncStaleThreshold,
+		Logger:         logger,
 	}))
 
 	// GET /graphql: serve GraphiQL playground per D-17, D-18, D-21.
@@ -380,39 +409,38 @@ func main() {
 	})
 
 	// Build middleware stack (outermost first):
-	// Recovery -> CORS -> OTel HTTP -> Logging -> Readiness -> CSP -> Caching -> Gzip -> mux
-	compressionMiddleware := middleware.Compression()
-	handler := compressionMiddleware(mux)
-	cachingMiddleware := middleware.Caching(middleware.CachingInput{
-		SyncTimeFn: func() time.Time {
-			t, _ := pdbsync.GetLastSuccessfulSyncTime(context.Background(), db)
-			return t
+	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> mux
+	//
+	// MaxBytesBody caps every non-gRPC request body at maxRequestBodySize (1 MB)
+	// per SEC-09. Per-route http.MaxBytesReader wraps at /sync and /graphql stay
+	// as belt-and-suspenders — innermost wins, so they remain effective and the
+	// redundancy is intentional. ConnectRPC/gRPC paths bypass via the middleware's
+	// hardcoded skip list; streaming RPCs would break if the body were capped.
+	//
+	// SecurityHeaders (SEC-10) sits between Readiness and CSP so HSTS/XCTO fire
+	// on every response — including the Readiness 503 syncing page — and XFO
+	// stays scoped to browser paths. The wrap order is regression-locked by
+	// TestMiddlewareChain_Order in middleware_chain_test.go.
+	handler := buildMiddlewareChain(mux, chainConfig{
+		Logger:      logger,
+		CORSOrigins: cfg.CORSOrigins,
+		CSPInput: middleware.CSPInput{
+			UIPolicy:      "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: https://*.basemaps.cartocdn.com; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net",
+			GraphQLPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'",
+			EnforcingMode: cfg.CSPEnforce,
 		},
-		SyncInterval: cfg.SyncInterval,
+		CachingState: cachingState,
+		SyncWorker:   syncWorker,
+		MaxBodyBytes: maxRequestBodySize,
+		HSTSMaxAge:   180 * 24 * time.Hour,
 	})
-	handler = cachingMiddleware(handler)
-	handler = middleware.CSP(middleware.CSPInput{
-		UIPolicy:      "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: https://*.basemaps.cartocdn.com; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net",
-		GraphQLPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'",
-	})(handler)
-	handler = readinessMiddleware(syncWorker, handler)
-	handler = middleware.Logging(logger)(handler)
-	handler = otelhttp.NewMiddleware("peeringdb-plus")(handler)
-	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
-	handler = middleware.Recovery(logger)(handler)
 
 	// Enable HTTP/1.1 + h2c (HTTP/2 cleartext) for gRPC support.
 	var protocols http.Protocols
 	protocols.SetHTTP1(true)
 	protocols.SetUnencryptedHTTP2(true)
 
-	server := &http.Server{
-		Addr:              cfg.ListenAddr,
-		Handler:           handler,
-		Protocols:         &protocols,
-		ReadHeaderTimeout: 10 * time.Second,
-		IdleTimeout:       120 * time.Second,
-	}
+	server := buildServer(cfg.ListenAddr, handler, &protocols)
 
 	// Graceful shutdown on SIGINT/SIGTERM.
 	sigChan := make(chan os.Signal, 1)
@@ -488,6 +516,81 @@ func (w *restErrorWriter) Write(b []byte) (int, error) {
 // Unwrap returns the underlying ResponseWriter for middleware-aware interface detection.
 func (w *restErrorWriter) Unwrap() http.ResponseWriter {
 	return w.ResponseWriter
+}
+
+// buildServer constructs the production http.Server with all timeouts
+// deliberately set. WriteTimeout is explicitly 0 because StreamEntities in
+// internal/grpcserver/generic.go already enforces cfg.StreamTimeout per
+// stream via context.WithTimeout; a server-wide WriteTimeout would race
+// with it and silently truncate streams (see PITFALLS.md §CP-2).
+//
+// ReadHeaderTimeout=10s mitigates slowloris header-stall attacks;
+// ReadTimeout=30s mitigates slowloris body-stall attacks (SEC-05);
+// IdleTimeout=120s caps keep-alive idle connections.
+// Go 1.26 net/http godoc: "A zero or negative value means there will be
+// no timeout" — WriteTimeout:0 is safe for long-lived h2c streams.
+//
+// TestServer_NoWriteTimeoutOnStreamingPaths regression-locks every field;
+// any drift fails CI.
+func buildServer(addr string, handler http.Handler, protocols *http.Protocols) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		Protocols:         protocols,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		// WriteTimeout intentionally 0 — see buildServer doc comment.
+		WriteTimeout: 0,
+		IdleTimeout:  120 * time.Second,
+	}
+}
+
+// chainConfig bundles the inputs for buildMiddlewareChain. It is a plain
+// data struct rather than a fluent builder — the chain is locked and
+// every field is required at startup.
+type chainConfig struct {
+	Logger       *slog.Logger
+	CORSOrigins  string // comma-separated list of allowed CORS origins
+	CSPInput     middleware.CSPInput
+	CachingState *middleware.CachingState
+	SyncWorker   syncReadiness
+	MaxBodyBytes int64
+	HSTSMaxAge   time.Duration
+}
+
+// buildMiddlewareChain wraps the innermost handler in the full production
+// middleware stack, returning the outermost handler. The chain order is:
+//
+//	Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> Readiness ->
+//	SecurityHeaders -> CSP -> Caching -> Gzip -> innermost
+//
+// The code below wraps innermost-first (Gzip is wrapped first so it sits
+// closest to the handler; Recovery is wrapped last so it sits outermost).
+// This ordering is regression-locked by TestMiddlewareChain_Order, which
+// source-scans this function body and asserts the literal wrap order.
+//
+// SecurityHeaders (SEC-10) sits between Readiness and CSP so HSTS/XCTO fire
+// on every response, including the Readiness 503 syncing page, and XFO
+// stays scoped to browser paths via middleware.isBrowserPath. The 180-day
+// HSTSMaxAge is passed through chainConfig so v1.14 can flip the default
+// without touching this helper.
+func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
+	h := middleware.Compression()(inner)
+	h = cc.CachingState.Middleware()(h)
+	h = middleware.CSP(cc.CSPInput)(h)
+	h = middleware.SecurityHeaders(middleware.SecurityHeadersInput{
+		HSTSMaxAge:            cc.HSTSMaxAge,
+		HSTSIncludeSubDomains: true,
+		FrameOptions:          "DENY",
+		ContentTypeOptions:    true,
+	})(h)
+	h = readinessMiddleware(cc.SyncWorker, h)
+	h = middleware.Logging(cc.Logger)(h)
+	h = otelhttp.NewMiddleware("peeringdb-plus")(h)
+	h = middleware.CORS(middleware.CORSInput{AllowedOrigins: cc.CORSOrigins})(h)
+	h = middleware.MaxBytesBody(middleware.MaxBytesBodyInput{MaxBytes: cc.MaxBodyBytes})(h)
+	h = middleware.Recovery(cc.Logger)(h)
+	return h
 }
 
 // readinessMiddleware returns 503 for all routes except infrastructure paths
@@ -566,7 +669,10 @@ func newSyncHandler(appCtx context.Context, in SyncHandlerInput) http.HandlerFun
 			http.Error(w, "not primary", http.StatusServiceUnavailable)
 			return
 		}
-		if in.SyncToken == "" || r.Header.Get("X-Sync-Token") != in.SyncToken {
+		got := r.Header.Get("X-Sync-Token")
+		if in.SyncToken == "" ||
+			len(got) != len(in.SyncToken) ||
+			subtle.ConstantTimeCompare([]byte(got), []byte(in.SyncToken)) != 1 {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -587,3 +693,4 @@ func newSyncHandler(appCtx context.Context, in SyncHandlerInput) http.HandlerFun
 		fmt.Fprint(w, `{"status":"accepted"}`)
 	}
 }
+

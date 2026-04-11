@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,26 +44,26 @@ type Schema struct {
 
 // ObjectType describes a single PeeringDB object type.
 type ObjectType struct {
-	ModelName      string                    `json:"model_name"`
-	APIPath        string                    `json:"api_path"`
-	BaseClasses    []string                  `json:"base_classes,omitempty"`
-	Fields         map[string]FieldDef       `json:"fields"`
-	ComputedFields []string                  `json:"computed_fields,omitempty"`
-	Relationships  map[string]Relationship   `json:"relationships,omitempty"`
+	ModelName      string                  `json:"model_name"`
+	APIPath        string                  `json:"api_path"`
+	BaseClasses    []string                `json:"base_classes,omitempty"`
+	Fields         map[string]FieldDef     `json:"fields"`
+	ComputedFields []string                `json:"computed_fields,omitempty"`
+	Relationships  map[string]Relationship `json:"relationships,omitempty"`
 }
 
 // FieldDef describes a single field within an object type.
 type FieldDef struct {
-	Type       string      `json:"type"`
-	MaxLength  int         `json:"max_length,omitempty"`
-	Required   bool        `json:"required"`
-	Unique     bool        `json:"unique,omitempty"`
-	Nullable   bool        `json:"nullable,omitempty"`
-	ReadOnly   bool        `json:"read_only"`
-	Deprecated bool        `json:"deprecated"`
-	HelpText   string      `json:"help_text,omitempty"`
-	Default    any `json:"default"`
-	References string      `json:"references,omitempty"`
+	Type       string `json:"type"`
+	MaxLength  int    `json:"max_length,omitempty"`
+	Required   bool   `json:"required"`
+	Unique     bool   `json:"unique,omitempty"`
+	Nullable   bool   `json:"nullable,omitempty"`
+	ReadOnly   bool   `json:"read_only"`
+	Deprecated bool   `json:"deprecated"`
+	HelpText   string `json:"help_text,omitempty"`
+	Default    any    `json:"default"`
+	References string `json:"references,omitempty"`
 }
 
 // Relationship describes a relationship between object types.
@@ -149,13 +150,13 @@ func readSourceFile(repoPath, relPath string) (string, error) {
 
 // SerializerInfo holds parsed data about a Django REST Framework serializer class.
 type SerializerInfo struct {
-	Name            string
-	ModelName       string
-	BaseClasses     []string
-	Fields          map[string]FieldDef
-	ReadOnlyFields  []string
-	AllFields       bool // True when fields = "__all__"
-	FieldList       []string
+	Name           string
+	ModelName      string
+	BaseClasses    []string
+	Fields         map[string]FieldDef
+	ReadOnlyFields []string
+	AllFields      bool // True when fields = "__all__"
+	FieldList      []string
 }
 
 // Regex patterns for parsing Django source.
@@ -451,19 +452,19 @@ func buildObjectTypes(serializers []SerializerInfo, modelFields map[string]map[s
 
 	// Map serializer names to API paths.
 	serializerAPIMap := map[string]string{
-		"OrganizationSerializer": "org",
-		"CampusSerializer":      "campus",
-		"FacilitySerializer":    "fac",
-		"CarrierSerializer":     "carrier",
-		"CarrierFacSerializer":  "carrierfac",
-		"InternetExchangeSerializer":     "ix",
-		"InternetExchangeLanSerializer":  "ixlan",
+		"OrganizationSerializer":           "org",
+		"CampusSerializer":                 "campus",
+		"FacilitySerializer":               "fac",
+		"CarrierSerializer":                "carrier",
+		"CarrierFacSerializer":             "carrierfac",
+		"InternetExchangeSerializer":       "ix",
+		"InternetExchangeLanSerializer":    "ixlan",
 		"InternetExchangePrefixSerializer": "ixpfx",
-		"IXFacSerializer":       "ixfac",
-		"NetworkSerializer":     "net",
-		"NetworkContactSerializer": "poc",
-		"NetworkFacilitySerializer": "netfac",
-		"NetworkIXLanSerializer":   "netixlan",
+		"IXFacSerializer":                  "ixfac",
+		"NetworkSerializer":                "net",
+		"NetworkContactSerializer":         "poc",
+		"NetworkFacilitySerializer":        "netfac",
+		"NetworkIXLanSerializer":           "netixlan",
 	}
 
 	for _, ser := range serializers {
@@ -482,9 +483,7 @@ func buildObjectTypes(serializers []SerializerInfo, modelFields map[string]map[s
 		// Merge model fields for the serializer's model.
 		if ser.ModelName != "" {
 			if mf, ok := modelFields[ser.ModelName]; ok {
-				for name, fd := range mf {
-					ot.Fields[name] = fd
-				}
+				maps.Copy(ot.Fields, mf)
 			}
 			// Also check base model classes for inherited fields.
 			for modelName, mf := range modelFields {
@@ -499,9 +498,7 @@ func buildObjectTypes(serializers []SerializerInfo, modelFields map[string]map[s
 		}
 
 		// Overlay serializer-declared fields (override model fields).
-		for name, fd := range ser.Fields {
-			ot.Fields[name] = fd
-		}
+		maps.Copy(ot.Fields, ser.Fields)
 
 		// Apply read_only_fields from Meta.
 		for _, roField := range ser.ReadOnlyFields {
@@ -533,16 +530,16 @@ func isBaseModel(name string) bool {
 // for a given API path.
 func detectComputedFields(apiPath string) []string {
 	known := map[string][]string{
-		"org":     {"net_count", "fac_count"},
-		"net":     {"ix_count", "fac_count", "netixlan_updated", "netfac_updated", "poc_updated"},
-		"fac":     {"org_name", "net_count", "ix_count", "carrier_count"},
-		"ix":      {"net_count", "fac_count", "ixf_import_request", "ixf_import_request_status"},
-		"ixfac":   {"name", "city", "country"},
-		"netfac":  {"name", "city", "country"},
-		"netixlan": {"ix_id", "name"},
-		"carrier":  {"org_name", "fac_count"},
+		"org":        {"net_count", "fac_count"},
+		"net":        {"ix_count", "fac_count", "netixlan_updated", "netfac_updated", "poc_updated"},
+		"fac":        {"org_name", "net_count", "ix_count", "carrier_count"},
+		"ix":         {"net_count", "fac_count", "ixf_import_request", "ixf_import_request_status"},
+		"ixfac":      {"name", "city", "country"},
+		"netfac":     {"name", "city", "country"},
+		"netixlan":   {"ix_id", "name"},
+		"carrier":    {"org_name", "fac_count"},
 		"carrierfac": {"name"},
-		"campus":  {"org_name"},
+		"campus":     {"org_name"},
 	}
 	if cf, ok := known[apiPath]; ok {
 		return cf
@@ -611,19 +608,19 @@ func detectRelationships(apiPath string, fields map[string]FieldDef) map[string]
 // modelNameToAPIPath converts a Django model class name to its PeeringDB API path.
 func modelNameToAPIPath(modelName string) string {
 	m := map[string]string{
-		"Organization":          "org",
-		"Campus":                "campus",
-		"Facility":              "fac",
-		"Carrier":               "carrier",
-		"CarrierFacility":       "carrierfac",
-		"InternetExchange":      "ix",
-		"InternetExchangeLan":   "ixlan",
-		"InternetExchangePrefix": "ixpfx",
+		"Organization":             "org",
+		"Campus":                   "campus",
+		"Facility":                 "fac",
+		"Carrier":                  "carrier",
+		"CarrierFacility":          "carrierfac",
+		"InternetExchange":         "ix",
+		"InternetExchangeLan":      "ixlan",
+		"InternetExchangePrefix":   "ixpfx",
 		"InternetExchangeFacility": "ixfac",
-		"Network":               "net",
-		"NetworkContact":        "poc",
-		"NetworkFacility":       "netfac",
-		"NetworkIXLan":          "netixlan",
+		"Network":                  "net",
+		"NetworkContact":           "poc",
+		"NetworkFacility":          "netfac",
+		"NetworkIXLan":             "netixlan",
 	}
 	if p, ok := m[modelName]; ok {
 		return p

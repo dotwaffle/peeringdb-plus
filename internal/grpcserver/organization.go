@@ -22,6 +22,81 @@ type OrganizationService struct {
 	StreamTimeout time.Duration
 }
 
+// organizationListFilters is the generic filter table consumed by
+// applyOrganizationListFilters. Entries run in slice order. See
+// internal/grpcserver/filter.go for the filterFn[REQ] contract and the
+// reusable predicate builders.
+var organizationListFilters = []filterFn[pb.ListOrganizationsRequest]{
+	validatingFilter("id",
+		func(r *pb.ListOrganizationsRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(organization.FieldID)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Name },
+		fieldContainsFold(organization.FieldName)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Aka },
+		fieldContainsFold(organization.FieldAka)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.NameLong },
+		fieldContainsFold(organization.FieldNameLong)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Country },
+		fieldEQString(organization.FieldCountry)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.City },
+		fieldContainsFold(organization.FieldCity)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Status },
+		fieldEQString(organization.FieldStatus)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Website },
+		fieldEQString(organization.FieldWebsite)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Notes },
+		fieldEQString(organization.FieldNotes)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Logo },
+		fieldEQString(organization.FieldLogo)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Address1 },
+		fieldEQString(organization.FieldAddress1)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Address2 },
+		fieldEQString(organization.FieldAddress2)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.State },
+		fieldEQString(organization.FieldState)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Zipcode },
+		fieldEQString(organization.FieldZipcode)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Suite },
+		fieldEQString(organization.FieldSuite)),
+	eqFilter(func(r *pb.ListOrganizationsRequest) *string { return r.Floor },
+		fieldEQString(organization.FieldFloor)),
+}
+
+// organizationStreamFilters mirrors organizationListFilters but omits the id
+// entry — Stream uses SinceID handled by generic.StreamEntities.
+var organizationStreamFilters = []filterFn[pb.StreamOrganizationsRequest]{
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Name },
+		fieldContainsFold(organization.FieldName)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Aka },
+		fieldContainsFold(organization.FieldAka)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.NameLong },
+		fieldContainsFold(organization.FieldNameLong)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Country },
+		fieldEQString(organization.FieldCountry)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.City },
+		fieldContainsFold(organization.FieldCity)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Status },
+		fieldEQString(organization.FieldStatus)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Website },
+		fieldEQString(organization.FieldWebsite)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Notes },
+		fieldEQString(organization.FieldNotes)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Logo },
+		fieldEQString(organization.FieldLogo)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Address1 },
+		fieldEQString(organization.FieldAddress1)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Address2 },
+		fieldEQString(organization.FieldAddress2)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.State },
+		fieldEQString(organization.FieldState)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Zipcode },
+		fieldEQString(organization.FieldZipcode)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Suite },
+		fieldEQString(organization.FieldSuite)),
+	eqFilter(func(r *pb.StreamOrganizationsRequest) *string { return r.Floor },
+		fieldEQString(organization.FieldFloor)),
+}
+
 // GetOrganization returns a single organization by ID. Returns NOT_FOUND if
 // the organization does not exist.
 func (s *OrganizationService) GetOrganization(ctx context.Context, req *pb.GetOrganizationRequest) (*pb.GetOrganizationResponse, error) {
@@ -35,110 +110,16 @@ func (s *OrganizationService) GetOrganization(ctx context.Context, req *pb.GetOr
 	return &pb.GetOrganizationResponse{Organization: organizationToProto(o)}, nil
 }
 
+// applyOrganizationListFilters builds filter predicates from the generic
+// filter table. See organizationListFilters and internal/grpcserver/filter.go.
 func applyOrganizationListFilters(req *pb.ListOrganizationsRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(organization.FieldID, int(*req.Id)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(organization.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(organization.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(organization.FieldNameLong, *req.NameLong))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(organization.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldStatus, *req.Status))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldWebsite, *req.Website))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldNotes, *req.Notes))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldLogo, *req.Logo))
-	}
-	if req.Address1 != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldAddress1, *req.Address1))
-	}
-	if req.Address2 != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldAddress2, *req.Address2))
-	}
-	if req.State != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldState, *req.State))
-	}
-	if req.Zipcode != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldZipcode, *req.Zipcode))
-	}
-	if req.Suite != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldSuite, *req.Suite))
-	}
-	if req.Floor != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldFloor, *req.Floor))
-	}
-	return preds, nil
+	return applyFilters(req, organizationListFilters)
 }
 
+// applyOrganizationStreamFilters builds filter predicates from the generic
+// filter table. See organizationStreamFilters and internal/grpcserver/filter.go.
 func applyOrganizationStreamFilters(req *pb.StreamOrganizationsRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(organization.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(organization.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(organization.FieldNameLong, *req.NameLong))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(organization.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldStatus, *req.Status))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldWebsite, *req.Website))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldNotes, *req.Notes))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldLogo, *req.Logo))
-	}
-	if req.Address1 != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldAddress1, *req.Address1))
-	}
-	if req.Address2 != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldAddress2, *req.Address2))
-	}
-	if req.State != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldState, *req.State))
-	}
-	if req.Zipcode != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldZipcode, *req.Zipcode))
-	}
-	if req.Suite != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldSuite, *req.Suite))
-	}
-	if req.Floor != nil {
-		preds = append(preds, sql.FieldEQ(organization.FieldFloor, *req.Floor))
-	}
-	return preds, nil
+	return applyFilters(req, organizationStreamFilters)
 }
 
 // ListOrganizations returns a paginated list of organizations ordered by ID

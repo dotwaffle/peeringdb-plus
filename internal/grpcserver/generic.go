@@ -73,6 +73,14 @@ type StreamParams[E any, P any] struct {
 
 // StreamEntities streams all matching entities using batched keyset pagination.
 // Handles timeout, count header, SinceID/UpdatedSince, and batch iteration.
+//
+// Header contract (PERF-06): on full streams (SinceID == nil AND UpdatedSince ==
+// nil) a SELECT COUNT(*) preflight runs and the grpc-total-count response header
+// is set to the total matching row count. On delta streams (SinceID or
+// UpdatedSince set) the COUNT preflight is skipped entirely and
+// the grpc-total-count response header is absent — not "present with 0", not
+// "present with -1". Delta clients pull incremental ranges and have no use for a
+// full-table total, so we do not pay for the count.
 func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P], stream *connect.ServerStream[P]) error {
 	// Apply stream timeout.
 	if params.Timeout > 0 {
@@ -95,13 +103,17 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 		predicates = append(predicates, sql.FieldGT("updated", params.UpdatedSince.AsTime()))
 	}
 
-	// Count total matching records for header metadata.
-	total, err := params.Count(ctx, predicates)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal,
-			fmt.Errorf("count %s: %w", params.EntityName, err))
+	// Count total matching records for header metadata. Skipped on delta streams
+	// (SinceID or UpdatedSince set) because delta clients pull incremental ranges
+	// and have no use for a full-table total — see PERF-06.
+	if params.SinceID == nil && params.UpdatedSince == nil {
+		total, err := params.Count(ctx, predicates)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal,
+				fmt.Errorf("count %s: %w", params.EntityName, err))
+		}
+		stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
 	}
-	stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
 
 	// Stream records in batches using keyset pagination.
 	lastID := 0

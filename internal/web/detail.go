@@ -45,19 +45,19 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 	if !ok {
 		httperr.WriteProblem(w, httperr.WriteProblemInput{
 			Status:   http.StatusBadRequest,
-			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and %d", asnStr, maxASN),
+			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and 4294967295", asnStr),
 			Instance: r.URL.Path,
 		})
 		return
 	}
 
-	data, err := h.queryNetwork(r.Context(), asn)
+	data, err := h.queryNetwork(r.Context(), int(asn))
 	if err != nil {
 		if ent.IsNotFound(err) {
 			h.handleNotFound(w, r)
 			return
 		}
-		slog.Error("query network", slog.Int("asn", asn), slog.Any("error", err)) //nolint:gosec // error from ent query, not user input
+		slog.Error("query network", slog.Int("asn", int(asn)), slog.Any("error", err)) //nolint:gosec // error from ent query, not user input
 		h.handleServerError(w, r)
 		return
 	}
@@ -69,7 +69,7 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		slog.Error("render network detail", slog.Int("asn", asn), slog.Any("error", err)) //nolint:gosec // error from template render, not user input
+		slog.Error("render network detail", slog.Int("asn", int(asn)), slog.Any("error", err)) //nolint:gosec // error from template render, not user input
 		h.handleServerError(w, r)
 	}
 }

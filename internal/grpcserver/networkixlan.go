@@ -21,6 +21,93 @@ type NetworkIxLanService struct {
 	StreamTimeout time.Duration
 }
 
+// networkIxLanListFilters is the generic filter table consumed by
+// applyNetworkIxLanListFilters. Entries run in slice order. See
+// internal/grpcserver/filter.go for the filterFn[REQ] contract and the
+// reusable predicate builders.
+var networkIxLanListFilters = []filterFn[pb.ListNetworkIxLansRequest]{
+	validatingFilter("id",
+		func(r *pb.ListNetworkIxLansRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(networkixlan.FieldID)),
+	validatingFilter("net_id",
+		func(r *pb.ListNetworkIxLansRequest) *int64 { return r.NetId },
+		positiveInt64(), fieldEQInt(networkixlan.FieldNetID)),
+	validatingFilter("ixlan_id",
+		func(r *pb.ListNetworkIxLansRequest) *int64 { return r.IxlanId },
+		positiveInt64(), fieldEQInt(networkixlan.FieldIxlanID)),
+	validatingFilter("asn",
+		func(r *pb.ListNetworkIxLansRequest) *int64 { return r.Asn },
+		positiveInt64(), fieldEQInt(networkixlan.FieldAsn)),
+	eqFilter(func(r *pb.ListNetworkIxLansRequest) *string { return r.Name },
+		fieldContainsFold(networkixlan.FieldName)),
+	eqFilter(func(r *pb.ListNetworkIxLansRequest) *string { return r.Status },
+		fieldEQString(networkixlan.FieldStatus)),
+	validatingFilter("ix_id",
+		func(r *pb.ListNetworkIxLansRequest) *int64 { return r.IxId },
+		positiveInt64(), fieldEQInt(networkixlan.FieldIxID)),
+	eqFilter(func(r *pb.ListNetworkIxLansRequest) *int64 { return r.Speed },
+		fieldEQInt(networkixlan.FieldSpeed)),
+	eqFilter(func(r *pb.ListNetworkIxLansRequest) *string { return r.Ipaddr4 },
+		fieldEQString(networkixlan.FieldIpaddr4)),
+	eqFilter(func(r *pb.ListNetworkIxLansRequest) *string { return r.Ipaddr6 },
+		fieldEQString(networkixlan.FieldIpaddr6)),
+	eqFilter(func(r *pb.ListNetworkIxLansRequest) *bool { return r.IsRsPeer },
+		fieldEQBool(networkixlan.FieldIsRsPeer)),
+	eqFilter(func(r *pb.ListNetworkIxLansRequest) *bool { return r.BfdSupport },
+		fieldEQBool(networkixlan.FieldBfdSupport)),
+	eqFilter(func(r *pb.ListNetworkIxLansRequest) *bool { return r.Operational },
+		fieldEQBool(networkixlan.FieldOperational)),
+	eqFilter(func(r *pb.ListNetworkIxLansRequest) *string { return r.Notes },
+		fieldEQString(networkixlan.FieldNotes)),
+	validatingFilter("net_side_id",
+		func(r *pb.ListNetworkIxLansRequest) *int64 { return r.NetSideId },
+		positiveInt64(), fieldEQInt(networkixlan.FieldNetSideID)),
+	validatingFilter("ix_side_id",
+		func(r *pb.ListNetworkIxLansRequest) *int64 { return r.IxSideId },
+		positiveInt64(), fieldEQInt(networkixlan.FieldIxSideID)),
+}
+
+// networkIxLanStreamFilters mirrors networkIxLanListFilters but omits the id
+// entry — Stream uses SinceID handled by generic.StreamEntities.
+var networkIxLanStreamFilters = []filterFn[pb.StreamNetworkIxLansRequest]{
+	validatingFilter("net_id",
+		func(r *pb.StreamNetworkIxLansRequest) *int64 { return r.NetId },
+		positiveInt64(), fieldEQInt(networkixlan.FieldNetID)),
+	validatingFilter("ixlan_id",
+		func(r *pb.StreamNetworkIxLansRequest) *int64 { return r.IxlanId },
+		positiveInt64(), fieldEQInt(networkixlan.FieldIxlanID)),
+	validatingFilter("asn",
+		func(r *pb.StreamNetworkIxLansRequest) *int64 { return r.Asn },
+		positiveInt64(), fieldEQInt(networkixlan.FieldAsn)),
+	eqFilter(func(r *pb.StreamNetworkIxLansRequest) *string { return r.Name },
+		fieldContainsFold(networkixlan.FieldName)),
+	eqFilter(func(r *pb.StreamNetworkIxLansRequest) *string { return r.Status },
+		fieldEQString(networkixlan.FieldStatus)),
+	validatingFilter("ix_id",
+		func(r *pb.StreamNetworkIxLansRequest) *int64 { return r.IxId },
+		positiveInt64(), fieldEQInt(networkixlan.FieldIxID)),
+	eqFilter(func(r *pb.StreamNetworkIxLansRequest) *int64 { return r.Speed },
+		fieldEQInt(networkixlan.FieldSpeed)),
+	eqFilter(func(r *pb.StreamNetworkIxLansRequest) *string { return r.Ipaddr4 },
+		fieldEQString(networkixlan.FieldIpaddr4)),
+	eqFilter(func(r *pb.StreamNetworkIxLansRequest) *string { return r.Ipaddr6 },
+		fieldEQString(networkixlan.FieldIpaddr6)),
+	eqFilter(func(r *pb.StreamNetworkIxLansRequest) *bool { return r.IsRsPeer },
+		fieldEQBool(networkixlan.FieldIsRsPeer)),
+	eqFilter(func(r *pb.StreamNetworkIxLansRequest) *bool { return r.BfdSupport },
+		fieldEQBool(networkixlan.FieldBfdSupport)),
+	eqFilter(func(r *pb.StreamNetworkIxLansRequest) *bool { return r.Operational },
+		fieldEQBool(networkixlan.FieldOperational)),
+	eqFilter(func(r *pb.StreamNetworkIxLansRequest) *string { return r.Notes },
+		fieldEQString(networkixlan.FieldNotes)),
+	validatingFilter("net_side_id",
+		func(r *pb.StreamNetworkIxLansRequest) *int64 { return r.NetSideId },
+		positiveInt64(), fieldEQInt(networkixlan.FieldNetSideID)),
+	validatingFilter("ix_side_id",
+		func(r *pb.StreamNetworkIxLansRequest) *int64 { return r.IxSideId },
+		positiveInt64(), fieldEQInt(networkixlan.FieldIxSideID)),
+}
+
 // GetNetworkIxLan returns a single network IX LAN by ID.
 func (s *NetworkIxLanService) GetNetworkIxLan(ctx context.Context, req *pb.GetNetworkIxLanRequest) (*pb.GetNetworkIxLanResponse, error) {
 	nixl, err := s.Client.NetworkIxLan.Get(ctx, int(req.GetId()))
@@ -33,146 +120,16 @@ func (s *NetworkIxLanService) GetNetworkIxLan(ctx context.Context, req *pb.GetNe
 	return &pb.GetNetworkIxLanResponse{NetworkIxLan: networkIxLanToProto(nixl)}, nil
 }
 
+// applyNetworkIxLanListFilters builds filter predicates from the generic
+// filter table. See networkIxLanListFilters and internal/grpcserver/filter.go.
 func applyNetworkIxLanListFilters(req *pb.ListNetworkIxLansRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldID, int(*req.Id)))
-	}
-	if req.NetId != nil {
-		if *req.NetId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldNetID, int(*req.NetId)))
-	}
-	if req.IxlanId != nil {
-		if *req.IxlanId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ixlan_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxlanID, int(*req.IxlanId)))
-	}
-	if req.Asn != nil {
-		if *req.Asn <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: asn must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldAsn, int(*req.Asn)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(networkixlan.FieldName, *req.Name))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldStatus, *req.Status))
-	}
-	if req.IxId != nil {
-		if *req.IxId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxID, int(*req.IxId)))
-	}
-	if req.Speed != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldSpeed, int(*req.Speed)))
-	}
-	if req.Ipaddr4 != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIpaddr4, *req.Ipaddr4))
-	}
-	if req.Ipaddr6 != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIpaddr6, *req.Ipaddr6))
-	}
-	if req.IsRsPeer != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIsRsPeer, *req.IsRsPeer))
-	}
-	if req.BfdSupport != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldBfdSupport, *req.BfdSupport))
-	}
-	if req.Operational != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldOperational, *req.Operational))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldNotes, *req.Notes))
-	}
-	if req.NetSideId != nil {
-		if *req.NetSideId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_side_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldNetSideID, int(*req.NetSideId)))
-	}
-	if req.IxSideId != nil {
-		if *req.IxSideId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_side_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxSideID, int(*req.IxSideId)))
-	}
-	return preds, nil
+	return applyFilters(req, networkIxLanListFilters)
 }
 
+// applyNetworkIxLanStreamFilters builds filter predicates from the generic
+// filter table. See networkIxLanStreamFilters and internal/grpcserver/filter.go.
 func applyNetworkIxLanStreamFilters(req *pb.StreamNetworkIxLansRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.NetId != nil {
-		if *req.NetId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldNetID, int(*req.NetId)))
-	}
-	if req.IxlanId != nil {
-		if *req.IxlanId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ixlan_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxlanID, int(*req.IxlanId)))
-	}
-	if req.Asn != nil {
-		if *req.Asn <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: asn must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldAsn, int(*req.Asn)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(networkixlan.FieldName, *req.Name))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldStatus, *req.Status))
-	}
-	if req.IxId != nil {
-		if *req.IxId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxID, int(*req.IxId)))
-	}
-	if req.Speed != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldSpeed, int(*req.Speed)))
-	}
-	if req.Ipaddr4 != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIpaddr4, *req.Ipaddr4))
-	}
-	if req.Ipaddr6 != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIpaddr6, *req.Ipaddr6))
-	}
-	if req.IsRsPeer != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIsRsPeer, *req.IsRsPeer))
-	}
-	if req.BfdSupport != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldBfdSupport, *req.BfdSupport))
-	}
-	if req.Operational != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldOperational, *req.Operational))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldNotes, *req.Notes))
-	}
-	if req.NetSideId != nil {
-		if *req.NetSideId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: net_side_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldNetSideID, int(*req.NetSideId)))
-	}
-	if req.IxSideId != nil {
-		if *req.IxSideId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_side_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(networkixlan.FieldIxSideID, int(*req.IxSideId)))
-	}
-	return preds, nil
+	return applyFilters(req, networkIxLanStreamFilters)
 }
 
 // ListNetworkIxLans returns a paginated list of network IX LANs.

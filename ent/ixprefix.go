@@ -25,7 +25,7 @@ type IxPrefix struct {
 	InDfz bool `json:"in_dfz"`
 	// Notes
 	Notes string `json:"notes"`
-	// IP prefix
+	// IP prefix (not unique — PeeringDB permits duplicates)
 	Prefix string `json:"prefix"`
 	// Protocol (IPv4/IPv6)
 	Protocol string `json:"protocol"`

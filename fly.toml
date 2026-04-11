@@ -10,7 +10,11 @@ kill_timeout = 30
 
 [deploy]
   strategy = "rolling"
-  max_unavailable = 1
+  # Parallelise rolling deploys to ~4-at-a-time (half the 9-machine fleet).
+  # Trades ~55% worst-moment capacity for ~3-4x faster rollouts.
+  # Bluegreen is NOT an option here: parallel fleets fight LiteFS +
+  # Consul primary election.
+  max_unavailable = 0.5
 
 [env]
   # App listens on 8080 directly (LiteFS proxy removed for h2c/gRPC support)

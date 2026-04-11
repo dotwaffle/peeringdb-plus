@@ -31,7 +31,7 @@ type Campus struct {
 	Country string `json:"country"`
 	// Logo URL
 	Logo *string `json:"logo"`
-	// Campus name
+	// Campus name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
 	NameLong *string `json:"name_long"`

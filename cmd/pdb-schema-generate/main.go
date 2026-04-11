@@ -431,7 +431,12 @@ func fieldAnnotations(name string, fd FieldDef) string {
 	if name == "social_media" {
 		return ".\n\t\t\t" + socialMediaSchemaAnnotation
 	}
-	if name == "name" && fd.Required && fd.Unique {
+	// "name" fields get GraphQL order-by support and REST filter annotations
+	// whether or not they carry a UNIQUE constraint. Historically this branch
+	// required fd.Unique, but PeeringDB introduced duplicate organization
+	// display names 2026-04-04 (see schema/peeringdb.json org.name.unique=false)
+	// and the GraphQL ordering affordance is independent of uniqueness.
+	if name == "name" && fd.Required {
 		return ".\n\t\t\tAnnotations(\n\t\t\t\tentgql.OrderField(\"NAME\"),\n\t\t\t\tentrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray),\n\t\t\t)"
 	}
 	if filterableStringFields[name] {
