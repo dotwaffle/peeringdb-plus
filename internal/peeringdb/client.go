@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -15,6 +16,64 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/time/rate"
 )
+
+// RateLimitError is returned when PeeringDB responds with HTTP 429 Too Many
+// Requests. It carries the Retry-After delay parsed from the response header
+// so upstream callers (sync worker retry loops) can short-circuit their own
+// backoff ladders instead of burning more of our rate-limited quota on retries
+// that are guaranteed to 429 again.
+//
+// Background: PeeringDB enforces 1 request per distinct query-string per hour
+// for unauthenticated clients. Their 429 response includes a Retry-After
+// header in seconds (e.g. "Retry-After: 2200" = 36m40s). The sync worker's
+// default retry backoff ladder (30s, 2m, 8m) all fall well inside that window,
+// so every retry within a single sync cycle is doomed — and each one consumes
+// another slot against the hourly quota.
+type RateLimitError struct {
+	// URL is the request URL that was rate-limited.
+	URL string
+	// RetryAfter is the delay parsed from the Retry-After response header.
+	// Zero if the header was absent or unparseable.
+	RetryAfter time.Duration
+	// Status is always http.StatusTooManyRequests for RateLimitError.
+	Status int
+}
+
+// Error implements the error interface.
+func (e *RateLimitError) Error() string {
+	if e.RetryAfter > 0 {
+		return fmt.Sprintf("fetch %s: HTTP %d (rate-limited, retry after %s)",
+			e.URL, e.Status, e.RetryAfter)
+	}
+	return fmt.Sprintf("fetch %s: HTTP %d (rate-limited)", e.URL, e.Status)
+}
+
+// parseRetryAfter parses an HTTP Retry-After header value into a duration.
+// Per RFC 7231 §7.1.3, Retry-After is either a non-negative integer number of
+// seconds ("120") or an HTTP date ("Fri, 31 Dec 1999 23:59:59 GMT"). Returns
+// zero duration if the header is empty or cannot be parsed — callers should
+// treat zero as "header absent, use default backoff".
+//
+// The `now` argument is injectable for deterministic testing of the HTTP-date
+// path; production callers pass time.Now().
+func parseRetryAfter(header string, now time.Time) time.Duration {
+	if header == "" {
+		return 0
+	}
+	// Integer seconds (the common case — PeeringDB uses this form).
+	if seconds, err := strconv.Atoi(header); err == nil && seconds >= 0 {
+		return time.Duration(seconds) * time.Second
+	}
+	// HTTP date (the uncommon case — still RFC-valid so honor it).
+	if t, err := http.ParseTime(header); err == nil {
+		delta := t.Sub(now)
+		if delta < 0 {
+			return 0
+		}
+		return delta
+	}
+	return 0
+}
 
 const (
 	// pageSize is the maximum number of objects per page (verified against PeeringDB API).
@@ -224,6 +283,11 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 			return resp, nil
 		}
 
+		// Capture Retry-After before draining the body — it's a response
+		// header so body reads don't affect it, but we read it here to keep
+		// the 429 short-circuit path below self-contained.
+		retryAfterHeader := resp.Header.Get("Retry-After")
+
 		// Read and discard body so the connection can be reused.
 		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
@@ -238,6 +302,28 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 			attemptSpan.RecordError(authErr)
 			attemptSpan.End()
 			return nil, authErr
+		}
+
+		// Rate limit short-circuit: PeeringDB's 1 req/hr unauth limit means
+		// the within-request 2s/8s retry ladder is pure waste — every retry
+		// lands inside the Retry-After window and burns another slot against
+		// our quota. Parse Retry-After, return a typed RateLimitError, and
+		// let the sync-level caller decide whether to back off further.
+		if resp.StatusCode == http.StatusTooManyRequests {
+			retryAfter := parseRetryAfter(retryAfterHeader, time.Now())
+			rlErr := &RateLimitError{
+				URL:        url,
+				RetryAfter: retryAfter,
+				Status:     resp.StatusCode,
+			}
+			c.logger.LogAttrs(ctx, slog.LevelWarn, "PeeringDB rate-limited, aborting request retries",
+				slog.String("url", url),
+				slog.Int("status", resp.StatusCode),
+				slog.Duration("retry_after", retryAfter),
+			)
+			attemptSpan.RecordError(rlErr)
+			attemptSpan.End()
+			return nil, rlErr
 		}
 
 		// Determine if retryable.

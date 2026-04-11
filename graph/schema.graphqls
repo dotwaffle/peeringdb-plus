@@ -4564,7 +4564,7 @@ type Organization implements Node {
   """
   longitude: Float
   """
-  Organization name
+  Organization name (not unique — PeeringDB permits duplicates)
   """
   name: String!
   """

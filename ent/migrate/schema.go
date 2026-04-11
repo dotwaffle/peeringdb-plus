@@ -656,7 +656,7 @@ var (
 		{Name: "latitude", Type: field.TypeFloat64, Nullable: true},
 		{Name: "logo", Type: field.TypeString, Nullable: true},
 		{Name: "longitude", Type: field.TypeFloat64, Nullable: true},
-		{Name: "name", Type: field.TypeString, Unique: true},
+		{Name: "name", Type: field.TypeString},
 		{Name: "name_long", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "notes", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "social_media", Type: field.TypeJSON, Nullable: true},

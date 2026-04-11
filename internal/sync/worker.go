@@ -825,10 +825,24 @@ func (w *Worker) recordFailure(ctx context.Context, statusID int64, start time.T
 }
 
 // SyncWithRetry calls Sync and retries on failure with exponential backoff per D-21.
+//
+// Rate-limit short-circuit: when the wrapped error is a *peeringdb.RateLimitError,
+// the retry ladder is skipped entirely. PeeringDB's unauthenticated quota is
+// 1 request per distinct query-string per hour, and all three default backoffs
+// (30s, 2m, 8m) fall well inside that window — every retry within the window
+// is guaranteed to 429 again AND consumes another slot against the hourly
+// quota. Returning immediately lets the hourly scheduler retry naturally on
+// its next tick (1h interval ≥ most Retry-After values we've observed).
 func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error {
 	err := w.Sync(ctx, mode)
 	if err == nil {
 		return nil
+	}
+	if rateLimited(err) {
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "sync rate-limited, deferring to next scheduled tick",
+			slog.Any("error", err),
+		)
+		return err
 	}
 
 	maxRetries := len(w.retryBackoffs)
@@ -854,6 +868,15 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 		if err == nil {
 			return nil
 		}
+		// If the NEXT attempt also hit the rate limit, stop retrying for
+		// the same reason as the initial short-circuit above.
+		if rateLimited(err) {
+			w.logger.LogAttrs(ctx, slog.LevelWarn, "sync rate-limited during retry, deferring",
+				slog.Int("attempt", attempt+1),
+				slog.Any("error", err),
+			)
+			return err
+		}
 	}
 
 	w.logger.LogAttrs(ctx, slog.LevelError, "sync failed after all retries",
@@ -861,6 +884,14 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 		slog.Any("error", err),
 	)
 	return fmt.Errorf("sync failed after %d retries: %w", maxRetries, lastErr)
+}
+
+// rateLimited reports whether err wraps a *peeringdb.RateLimitError anywhere
+// in its chain. Used by SyncWithRetry to skip the retry ladder on HTTP 429
+// responses from PeeringDB.
+func rateLimited(err error) bool {
+	var rlErr *peeringdb.RateLimitError
+	return errors.As(err, &rlErr)
 }
 
 // HasCompletedSync reports whether at least one successful sync has completed.

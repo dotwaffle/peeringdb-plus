@@ -586,6 +586,78 @@ func TestSyncWithRetryExhaustsRetries(t *testing.T) {
 	}
 }
 
+// TestSyncWithRetryShortCircuitsOnRateLimit locks the rate-limit short-circuit
+// contract: when PeeringDB returns HTTP 429, SyncWithRetry must abort the
+// 30s/2m/8m retry ladder immediately instead of waiting through backoffs that
+// all fall inside the Retry-After window. Every in-ladder retry is guaranteed
+// to 429 again AND burns another slot against PeeringDB's 1 req/hr per-URL
+// unauthenticated quota, so retrying is actively harmful.
+//
+// Test strategy: long-duration retry backoffs (10s each = 30s total) that the
+// test would block on if the short-circuit failed. Expected runtime is <100ms
+// because SyncWithRetry returns immediately on RateLimitError detection.
+// Also asserts the HTTP server received exactly ONE request.
+//
+// Production incident 2026-04-11: this short-circuit would have prevented the
+// 12 req/hr against /api/org that kept the fly.io primary permanently rate-
+// limited after PeeringDB's unique-name upstream change broke sync upserts.
+func TestSyncWithRetryShortCircuitsOnRateLimit(t *testing.T) {
+	t.Parallel()
+
+	var orgAttempts atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "?")
+		objType := parts[0]
+		if objType == "org" {
+			orgAttempts.Add(1)
+			w.Header().Set("Retry-After", "2200")
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"message":"Request was throttled","meta":{"error":"Too Many Requests"}}`))
+			return
+		}
+		// Non-org types never reached when org fails.
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
+	}))
+	t.Cleanup(srv.Close)
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := newFastPDBClient(t, srv.URL)
+	if err := InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status: %v", err)
+	}
+	w := NewWorker(pdbClient, client, db, WorkerConfig{}, slog.Default())
+	// Long backoffs that would block the test if the short-circuit fails.
+	w.SetRetryBackoffs([]time.Duration{10 * time.Second, 10 * time.Second, 10 * time.Second})
+
+	start := time.Now()
+	err := w.SyncWithRetry(t.Context(), config.SyncModeFull)
+	elapsed := time.Since(start)
+
+	if err == nil {
+		t.Fatal("expected error from rate-limit short-circuit, got nil")
+	}
+	var rlErr *peeringdb.RateLimitError
+	if !errors.As(err, &rlErr) {
+		t.Fatalf("expected *peeringdb.RateLimitError, got %T: %v", err, err)
+	}
+	if rlErr.RetryAfter != 2200*time.Second {
+		t.Errorf("RetryAfter = %s, want %s", rlErr.RetryAfter, 2200*time.Second)
+	}
+
+	// Strict upper bound: short-circuit must not block on any retry backoff.
+	// 2 seconds allows generous slack for slow CI while catching any accidental
+	// retry wait (which would be at least 10 seconds).
+	if elapsed > 2*time.Second {
+		t.Errorf("SyncWithRetry took %s — rate-limit short-circuit should return immediately (< 2s)", elapsed)
+	}
+
+	// Exactly one attempt against the server — no retries.
+	if got := orgAttempts.Load(); got != 1 {
+		t.Errorf("org fetched %d times, want 1 (rate limit must short-circuit the retry ladder)", got)
+	}
+}
+
 // TestSyncWithRetryContextCancellation verifies context cancellation during backoff.
 func TestSyncWithRetryContextCancellation(t *testing.T) {
 	t.Parallel()

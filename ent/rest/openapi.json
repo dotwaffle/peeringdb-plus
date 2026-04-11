@@ -11437,7 +11437,7 @@
                         "nullable": true
                     },
                     "name": {
-                        "description": "Organization name",
+                        "description": "Organization name (not unique — PeeringDB permits duplicates)",
                         "type": "string"
                     },
                     "name_long": {

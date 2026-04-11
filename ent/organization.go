@@ -38,7 +38,7 @@ type Organization struct {
 	Logo *string `json:"logo"`
 	// Longitude
 	Longitude *float64 `json:"longitude"`
-	// Organization name
+	// Organization name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
 	NameLong string `json:"name_long"`

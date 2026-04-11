@@ -110,6 +110,19 @@ func main() {
 
 	// Auto-migrate schema on primary per D-43.
 	if isPrimary {
+		// One-shot migration (2026-04-11): drop the obsolete UNIQUE INDEX on
+		// organizations.name that the ent schema used to declare via .Unique().
+		// PeeringDB began serving duplicate display names ~2026-04-04, breaking
+		// every sync with "UNIQUE constraint failed: organizations.name". The
+		// ent schema no longer declares the uniqueness so subsequent syncs are
+		// fine, but ent.Schema.Create is additive-only and won't drop the old
+		// index on its own. This DROP is idempotent and cheap — it runs once
+		// per primary startup until the index is fully gone.
+		if _, err := db.ExecContext(ctx, `DROP INDEX IF EXISTS organizations_name_key`); err != nil {
+			logger.Error("failed to drop obsolete organizations_name_key index",
+				slog.Any("error", err))
+			os.Exit(1)
+		}
 		if err := entClient.Schema.Create(ctx); err != nil {
 			logger.Error("failed to migrate schema", slog.Any("error", err))
 			os.Exit(1)
