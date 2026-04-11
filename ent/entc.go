@@ -86,7 +86,13 @@ func main() {
 
 	opts := []entc.Option{
 		entc.Extensions(gqlExt, restExt, protoExt),
-		entc.FeatureNames("sql/upsert"),
+		// sql/upsert: used by internal/sync/upsert.go for bulk UpsertColumns.
+		// sql/execquery: exposes tx.ExecContext on the generated ent.Tx so
+		// the sync worker can run `PRAGMA defer_foreign_keys = ON` on the
+		// SAME connection as the writes (the previous connection-level
+		// `PRAGMA foreign_keys = OFF` was silently non-functional because
+		// the ent tx pulled a fresh pool connection). See Phase 54-01 Commit B.
+		entc.FeatureNames("sql/upsert", "sql/execquery"),
 	}
 
 	if err := entc.Generate("./schema", &gen.Config{}, opts...); err != nil {

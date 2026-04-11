@@ -96,11 +96,15 @@ func (w *Worker) syncSteps() []syncStep {
 }
 
 // Sync executes a synchronization from PeeringDB to the local database.
-// The mode parameter controls whether a full or incremental sync is performed.
 // It acquires a mutex to prevent concurrent runs and wraps all changes in
 // a single database transaction per D-19.
+//
+// Sync is an orchestrator: the three extracted helpers (syncFetchPass,
+// syncUpsertPass, syncDeletePass) do the actual work. REFAC-03 line budget
+// is <= 100 — enforced by TestWorkerSync_LineBudget. Plan 54-02 will split
+// syncFetchPass into a real fetch-outside-tx pass and populate
+// syncUpsertPass with the inside-tx upsert logic (PERF-05 option b).
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
-	// Mutex per D-24: if already running, skip.
 	if !w.running.CompareAndSwap(false, true) {
 		w.logger.Warn("sync already running, skipping")
 		return nil
@@ -111,41 +115,139 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	defer span.End()
 
 	start := time.Now()
-
-	// Record sync start in sync_status table per D-26.
 	statusID, err := RecordSyncStart(ctx, w.db, start)
 	if err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "failed to record sync start",
-			slog.Any("error", err),
-		)
-		// Non-fatal: continue with sync.
+			slog.Any("error", err))
 	}
 
-	// Disable FK constraints for bulk sync. PeeringDB data contains dangling
-	// references (e.g., facilities referencing deleted campuses).
-	if _, err := w.db.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
-		w.recordFailure(ctx, statusID, start, fmt.Errorf("disable FK checks: %w", err))
-		return fmt.Errorf("disable FK checks: %w", err)
-	}
-	defer w.db.ExecContext(ctx, "PRAGMA foreign_keys = ON") //nolint:errcheck // best-effort re-enable
-
-	// Begin transaction per D-19.
 	tx, err := w.entClient.Tx(ctx)
 	if err != nil {
 		w.recordFailure(ctx, statusID, start, fmt.Errorf("begin sync transaction: %w", err))
 		return fmt.Errorf("begin sync transaction: %w", err)
 	}
 
-	objectCounts := make(map[string]int)
-	totalCount := 0
-	cursorUpdates := make(map[string]time.Time) // type -> generated timestamp
+	// Per-tx deferred FK enforcement replaces the old connection-level
+	// PRAGMA bracket on w.db (silently non-functional because ent tx may
+	// pick a different pool connection than w.db). See the syncFetchPass
+	// docstring for the full rationale.
+	// Regression-locked by TestSync_DeferredFKSameTx.
+	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
+		_ = tx.Rollback()
+		syncErr := fmt.Errorf("defer FK checks: %w", err)
+		w.recordFailure(ctx, statusID, start, syncErr)
+		return syncErr
+	}
 
+	// Phase-A / Phase-B seam (Commit B): fetch still happens INSIDE the tx;
+	// syncFetchPass absorbs the old loop verbatim. Plan 54-02 Commit D will
+	// move fetching out of the tx and populate syncUpsertPass.
+	objectCounts, remoteIDsByType, cursorUpdates, err := w.syncFetchPass(ctx, tx, mode, start)
+	if err != nil {
+		w.rollbackAndRecord(ctx, tx, statusID, start, err)
+		return err
+	}
+	if _, _, err := w.syncUpsertPass(ctx, tx, nil); err != nil {
+		w.rollbackAndRecord(ctx, tx, statusID, start, err)
+		return err
+	}
+	if err := w.syncDeletePass(ctx, tx, remoteIDsByType); err != nil {
+		w.rollbackAndRecord(ctx, tx, statusID, start, err)
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		syncErr := fmt.Errorf("commit sync transaction: %w", err)
+		w.recordFailure(ctx, statusID, start, syncErr)
+		return syncErr
+	}
+
+	w.recordSuccess(ctx, mode, statusID, start, objectCounts, cursorUpdates)
+	return nil
+}
+
+// rollbackAndRecord rolls back the tx and records the failure in one place
+// so Worker.Sync's error paths stay a one-liner each (REFAC-03 line budget).
+// Logs the rollback error at ERROR level — a failing rollback inside a
+// failing sync is worth surfacing in the error stream.
+func (w *Worker) rollbackAndRecord(ctx context.Context, tx *ent.Tx, statusID int64, start time.Time, syncErr error) {
+	if rbErr := tx.Rollback(); rbErr != nil {
+		w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
+			slog.Any("error", rbErr))
+	}
+	w.recordFailure(ctx, statusID, start, syncErr)
+}
+
+// recordSuccess runs all post-commit bookkeeping: per-type cursor updates,
+// sync-level metrics, sync_status row update, first-success flag, and the
+// OnSyncComplete callback. Extracted from Sync so the orchestrator body
+// stays under the REFAC-03 line budget.
+func (w *Worker) recordSuccess(
+	ctx context.Context,
+	mode config.SyncMode,
+	statusID int64,
+	start time.Time,
+	objectCounts map[string]int,
+	cursorUpdates map[string]time.Time,
+) {
+	for typeName, generated := range cursorUpdates {
+		if err := UpsertCursor(ctx, w.db, typeName, generated, "success"); err != nil {
+			w.logger.LogAttrs(ctx, slog.LevelError, "failed to update cursor",
+				slog.String("type", typeName), slog.Any("error", err))
+		}
+	}
+	elapsed := time.Since(start)
+	statusAttr := metric.WithAttributes(attribute.String("status", "success"))
+	pdbotel.SyncDuration.Record(ctx, elapsed.Seconds(), statusAttr)
+	pdbotel.SyncOperations.Add(ctx, 1, statusAttr)
+	w.logger.LogAttrs(ctx, slog.LevelInfo, "sync complete",
+		slog.String("mode", string(mode)),
+		slog.Duration("duration", elapsed),
+		slog.Int("total_objects", sumCounts(objectCounts)))
+	if statusID > 0 {
+		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
+			LastSyncAt:   time.Now(),
+			Duration:     elapsed,
+			ObjectCounts: objectCounts,
+			Status:       "success",
+		})
+	}
+	w.synced.Store(true)
+	if w.config.OnSyncComplete != nil {
+		w.config.OnSyncComplete(objectCounts)
+	}
+}
+
+// sumCounts returns the sum of all values in a per-type count map.
+func sumCounts(m map[string]int) int {
+	total := 0
+	for _, v := range m {
+		total += v
+	}
+	return total
+}
+
+// syncFetchPass runs the per-type fetch+upsert loop in FK parent-first order.
+// Returns per-type object counts, the remoteIDs map for the later delete
+// pass, and cursor updates keyed by type name.
+//
+// Commit B NOTE: fetch still happens inside the ent tx because this helper is
+// called from inside the tx's scope. Plan 54-02 Commit D (PERF-05) will split
+// this into a real fetch-outside-tx pass + an upsert-only pass, at which
+// point syncUpsertPass becomes populated and this helper shrinks.
+// Do not rewrite to decode-into-tx: PERF-05 option (b) requires the batch
+// materialised before the tx opens.
+func (w *Worker) syncFetchPass(ctx context.Context, tx *ent.Tx, mode config.SyncMode, start time.Time) (
+	objectCounts map[string]int,
+	remoteIDsByType map[string][]int,
+	cursorUpdates map[string]time.Time,
+	err error,
+) {
 	steps := w.syncSteps()
+	objectCounts = make(map[string]int, len(steps))
+	remoteIDsByType = make(map[string][]int, len(steps))
+	cursorUpdates = make(map[string]time.Time, len(steps))
 
-	// remoteIDsByType collects IDs from the upsert pass for the delete pass.
-	remoteIDsByType := make(map[string][]int, len(steps))
-
-	// Pass 1: Fetch and upsert in parent-first FK order.
 	for _, step := range steps {
 		w.logger.LogAttrs(ctx, slog.LevelInfo, "syncing",
 			slog.String("type", step.name),
@@ -218,15 +320,9 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 			// Record per-type duration even on failure.
 			pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
 
-			// Rollback transaction per D-21.
-			if rbErr := tx.Rollback(); rbErr != nil {
-				w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
-					slog.Any("error", rbErr),
-				)
-			}
-			syncErr := fmt.Errorf("sync %s: %w", step.name, stepErr)
-			w.recordFailure(ctx, statusID, start, syncErr)
-			return syncErr
+			// Return the wrapped per-type error — the orchestrator handles
+			// rollback + recordFailure.
+			return nil, nil, nil, fmt.Errorf("sync %s: %w", step.name, stepErr)
 		}
 
 		// Record per-type upsert metrics per D-07.
@@ -234,15 +330,37 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
 
 		objectCounts[step.name] = count
-		totalCount += count
 
 		w.logger.LogAttrs(ctx, slog.LevelInfo, "upserted",
 			slog.String("type", step.name),
 			slog.Int("count", count),
 		)
 	}
+	return objectCounts, remoteIDsByType, cursorUpdates, nil
+}
 
-	// Pass 2: Delete stale records in child-first (reverse FK) order.
+// syncUpsertPass is the Commit B placeholder for Plan 54-02 Commit D's
+// fetch/upsert split. It currently does nothing because fetch+upsert both
+// happen inside syncFetchPass. The function exists so that (a) the
+// three-pass structure is already in place when reviewers see Commit B, and
+// (b) Plan 54-02 Commit D's diff is a small, reviewable change that just
+// populates this function with the real upsert-only logic after fetch moves
+// outside the tx.
+//
+// The `batches` parameter is typed `any` deliberately: Plan 54-02 will
+// change its shape (to something like `map[string][]json.RawMessage`) and
+// we do not want to prematurely lock the signature. This intentional
+// looseness is scoped to this single function and will be tightened in
+// Plan 54-02.
+func (w *Worker) syncUpsertPass(_ context.Context, _ *ent.Tx, _ any) (map[string]int, map[string][]int, error) {
+	return nil, nil, nil
+}
+
+// syncDeletePass runs the per-type delete loop in child-first (reverse FK)
+// order, skipping types that have no remoteIDs (incremental sync succeeded).
+// The orchestrator handles rollback + recordFailure on error.
+func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType map[string][]int) error {
+	steps := w.syncSteps()
 	for i := len(steps) - 1; i >= 0; i-- {
 		step := steps[i]
 		remoteIDs, ok := remoteIDsByType[step.name]
@@ -262,15 +380,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 
 		if stepErr != nil {
 			pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
-
-			if rbErr := tx.Rollback(); rbErr != nil {
-				w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
-					slog.Any("error", rbErr),
-				)
-			}
-			syncErr := fmt.Errorf("delete stale %s: %w", step.name, stepErr)
-			w.recordFailure(ctx, statusID, start, syncErr)
-			return syncErr
+			return fmt.Errorf("delete stale %s: %w", step.name, stepErr)
 		}
 
 		// Record per-type delete metrics per D-08.
@@ -283,55 +393,6 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 			)
 		}
 	}
-
-	// Commit transaction.
-	if err := tx.Commit(); err != nil {
-		syncErr := fmt.Errorf("commit sync transaction: %w", err)
-		w.recordFailure(ctx, statusID, start, syncErr)
-		return syncErr
-	}
-
-	// Update per-type cursors AFTER successful commit.
-	for typeName, generated := range cursorUpdates {
-		if err := UpsertCursor(ctx, w.db, typeName, generated, "success"); err != nil {
-			w.logger.LogAttrs(ctx, slog.LevelError, "failed to update cursor",
-				slog.String("type", typeName),
-				slog.Any("error", err),
-			)
-		}
-	}
-
-	elapsed := time.Since(start)
-
-	// Record sync-level metrics per D-06.
-	statusAttr := metric.WithAttributes(attribute.String("status", "success"))
-	pdbotel.SyncDuration.Record(ctx, elapsed.Seconds(), statusAttr)
-	pdbotel.SyncOperations.Add(ctx, 1, statusAttr)
-
-	w.logger.LogAttrs(ctx, slog.LevelInfo, "sync complete",
-		slog.String("mode", string(mode)),
-		slog.Duration("duration", elapsed),
-		slog.Int("total_objects", totalCount),
-	)
-
-	// Record success in sync_status table.
-	if statusID > 0 {
-		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
-			LastSyncAt:   time.Now(),
-			Duration:     elapsed,
-			ObjectCounts: objectCounts,
-			Status:       "success",
-		})
-	}
-
-	// Mark first successful sync per D-30.
-	w.synced.Store(true)
-
-	// Notify listeners (e.g. cached metrics gauge) with per-type object counts.
-	if w.config.OnSyncComplete != nil {
-		w.config.OnSyncComplete(objectCounts)
-	}
-
 	return nil
 }
 

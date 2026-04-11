@@ -4,11 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -19,11 +21,31 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"golang.org/x/time/rate"
 
+	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/ent/campus"
+	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
+	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/facility"
+	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
+	"github.com/dotwaffle/peeringdb-plus/ent/network"
+	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/organization"
+	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
+
+// updateGolden enables golden-file regeneration via `go test -update`. When
+// set, TestSync_RefactorParity writes its dump to the golden path instead of
+// comparing. Run ONCE against the pre-refactor Sync to capture the baseline,
+// then run without -update to verify the refactor preserved behavior.
+var updateGolden = flag.Bool("update", false, "update golden files")
 
 // TestMain initializes OTel metrics once before any tests run, preventing
 // race conditions on global metric variables between parallel tests.
@@ -1427,4 +1449,459 @@ func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 	if elapsed > 2500*time.Millisecond {
 		t.Errorf("expected early abort on demotion, took %v", elapsed)
 	}
+}
+
+// ----------------------------------------------------------------------------
+// Phase 54-01 Commit B tests
+//
+// TestSync_DeferredFKSameTx    — regression-locks the FK pragma switch.
+// TestSync_RefactorParity      — byte-identical DB state before/after refactor.
+// TestWorkerSync_LineBudget    — enforces the REFAC-03 line budget on Sync.
+// ----------------------------------------------------------------------------
+
+// TestSync_DeferredFKSameTx verifies that the refactor's per-tx
+// `PRAGMA defer_foreign_keys = ON` correctly defers FK enforcement until
+// commit time, allowing temporarily-dangling FKs inside the transaction.
+//
+// Test shape:
+//
+//  1. Open an ent.Tx.
+//  2. Set `PRAGMA defer_foreign_keys = ON` via the generated tx.ExecContext
+//     (sql/execquery feature enabled in ent/entc.go).
+//  3. Insert a Facility referencing Organization 999 which does NOT yet exist.
+//  4. Insert Organization 999 BEFORE commit.
+//  5. Commit. Asserts no FK error.
+//
+// Without the pragma, SQLite's default immediate FK enforcement would reject
+// step 3 on insert. With the pragma, FK checks are deferred to commit time;
+// at commit time the FK is resolved because step 4 ran first.
+func TestSync_DeferredFKSameTx(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	client, _ := testutil.SetupClientWithDB(t)
+
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		t.Fatalf("begin tx: %v", err)
+	}
+	t.Cleanup(func() {
+		// Rollback is a no-op after Commit.
+		_ = tx.Rollback()
+	})
+
+	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
+		t.Fatalf("set defer_foreign_keys: %v", err)
+	}
+
+	// Insert a facility referencing org_id=999 which does not yet exist.
+	// Without defer_foreign_keys this would fail at insert time.
+	_, err = tx.Facility.Create().
+		SetID(12345).
+		SetName("dangling-fk-fac").
+		SetOrgID(999).
+		SetCity("Testville").
+		SetCountry("DE").
+		SetCreated(time.Now()).
+		SetUpdated(time.Now()).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("insert facility with temporarily-dangling FK: %v", err)
+	}
+
+	// Now insert the parent org BEFORE commit — this resolves the FK.
+	_, err = tx.Organization.Create().
+		SetID(999).
+		SetName("dangling-fk-resolver").
+		SetCity("Testville").
+		SetCountry("DE").
+		SetCreated(time.Now()).
+		SetUpdated(time.Now()).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("insert parent org: %v", err)
+	}
+
+	// Commit MUST succeed — the FK is resolved and deferred enforcement passes.
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit with resolved deferred FK: %v", err)
+	}
+
+	// Sanity: both rows are present on a fresh query.
+	gotFac, err := client.Facility.Get(ctx, 12345)
+	if err != nil {
+		t.Fatalf("get facility after commit: %v", err)
+	}
+	if gotFac.Name != "dangling-fk-fac" {
+		t.Errorf("facility name: got %q, want %q", gotFac.Name, "dangling-fk-fac")
+	}
+	gotOrg, err := client.Organization.Get(ctx, 999)
+	if err != nil {
+		t.Fatalf("get org after commit: %v", err)
+	}
+	if gotOrg.Name != "dangling-fk-resolver" {
+		t.Errorf("org name: got %q, want %q", gotOrg.Name, "dangling-fk-resolver")
+	}
+}
+
+// parityFixtureServer is a minimal httptest server serving the project
+// testdata/fixtures/*.json files at /api/{type} for TestSync_RefactorParity.
+// Co-located in worker_test.go (package sync) rather than integration_test.go
+// (package sync_test) because the parity dump walks internal ent entity
+// types and needs direct access.
+type parityFixtureServer struct {
+	server   *httptest.Server
+	fixtures map[string]json.RawMessage
+}
+
+// parityFixtureTypeMap locks the mapping from PeeringDB URL path to fixture
+// filename, matching internal/sync/integration_test.go#fixtureTypeMap. Kept
+// local so the parity test remains hermetic and does not cross package
+// boundaries.
+var parityFixtureTypeMap = map[string]string{
+	peeringdb.TypeOrg:        "org.json",
+	peeringdb.TypeNet:        "net.json",
+	peeringdb.TypeFac:        "fac.json",
+	peeringdb.TypeIX:         "ix.json",
+	peeringdb.TypePoc:        "poc.json",
+	peeringdb.TypeIXLan:      "ixlan.json",
+	peeringdb.TypeIXPfx:      "ixpfx.json",
+	peeringdb.TypeNetIXLan:   "netixlan.json",
+	peeringdb.TypeNetFac:     "netfac.json",
+	peeringdb.TypeIXFac:      "ixfac.json",
+	peeringdb.TypeCarrier:    "carrier.json",
+	peeringdb.TypeCarrierFac: "carrierfac.json",
+	peeringdb.TypeCampus:     "campus.json",
+}
+
+func newParityFixtureServer(t *testing.T) *parityFixtureServer {
+	t.Helper()
+	fs := &parityFixtureServer{
+		fixtures: make(map[string]json.RawMessage, len(parityFixtureTypeMap)),
+	}
+
+	for apiType, filename := range parityFixtureTypeMap {
+		raw, err := os.ReadFile(filepath.Join("..", "..", "testdata", "fixtures", filename))
+		if err != nil {
+			t.Fatalf("load fixture %s: %v", filename, err)
+		}
+		var resp struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(raw, &resp); err != nil {
+			t.Fatalf("parse fixture %s: %v", filename, err)
+		}
+		fs.fixtures[apiType] = resp.Data
+	}
+
+	fs.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/api/")
+		objType := strings.Split(path, "?")[0]
+
+		// Terminate pagination: empty data for any skip>0.
+		if skip := r.URL.Query().Get("skip"); skip != "" && skip != "0" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+		data, ok := fs.fixtures[objType]
+		if !ok {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"meta":{},"data":`))
+		_, _ = w.Write(data)
+		_, _ = w.Write([]byte(`}`))
+	}))
+	t.Cleanup(func() { fs.server.Close() })
+	return fs
+}
+
+// parityDump is the canonical JSON shape for TestSync_RefactorParity. Field
+// ordering is locked by Go's json.Marshal struct field order; all 13 entity
+// types are represented and rows are sorted by ID for deterministic output.
+type parityDump struct {
+	Organizations     []*ent.Organization     `json:"organizations"`
+	Campuses          []*ent.Campus           `json:"campuses"`
+	Facilities        []*ent.Facility         `json:"facilities"`
+	Carriers          []*ent.Carrier          `json:"carriers"`
+	CarrierFacilities []*ent.CarrierFacility  `json:"carrier_facilities"`
+	InternetExchanges []*ent.InternetExchange `json:"internet_exchanges"`
+	IxLans            []*ent.IxLan            `json:"ix_lans"`
+	IxPrefixes        []*ent.IxPrefix         `json:"ix_prefixes"`
+	IxFacilities      []*ent.IxFacility       `json:"ix_facilities"`
+	Networks          []*ent.Network          `json:"networks"`
+	Pocs              []*ent.Poc              `json:"pocs"`
+	NetworkFacilities []*ent.NetworkFacility  `json:"network_facilities"`
+	NetworkIxLans     []*ent.NetworkIxLan     `json:"network_ix_lans"`
+}
+
+// dumpAllTables returns a canonical parityDump of all 13 ent tables sorted
+// by ID. This is the source of truth for TestSync_RefactorParity.
+func dumpAllTables(ctx context.Context, t *testing.T, client *ent.Client) *parityDump {
+	t.Helper()
+	d := &parityDump{}
+	var err error
+
+	d.Organizations, err = client.Organization.Query().Order(ent.Asc(organization.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump organizations: %v", err)
+	}
+	d.Campuses, err = client.Campus.Query().Order(ent.Asc(campus.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump campuses: %v", err)
+	}
+	d.Facilities, err = client.Facility.Query().Order(ent.Asc(facility.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump facilities: %v", err)
+	}
+	d.Carriers, err = client.Carrier.Query().Order(ent.Asc(carrier.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump carriers: %v", err)
+	}
+	d.CarrierFacilities, err = client.CarrierFacility.Query().Order(ent.Asc(carrierfacility.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump carrier_facilities: %v", err)
+	}
+	d.InternetExchanges, err = client.InternetExchange.Query().Order(ent.Asc(internetexchange.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump internet_exchanges: %v", err)
+	}
+	d.IxLans, err = client.IxLan.Query().Order(ent.Asc(ixlan.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump ix_lans: %v", err)
+	}
+	d.IxPrefixes, err = client.IxPrefix.Query().Order(ent.Asc(ixprefix.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump ix_prefixes: %v", err)
+	}
+	d.IxFacilities, err = client.IxFacility.Query().Order(ent.Asc(ixfacility.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump ix_facilities: %v", err)
+	}
+	d.Networks, err = client.Network.Query().Order(ent.Asc(network.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump networks: %v", err)
+	}
+	d.Pocs, err = client.Poc.Query().Order(ent.Asc(poc.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump pocs: %v", err)
+	}
+	d.NetworkFacilities, err = client.NetworkFacility.Query().Order(ent.Asc(networkfacility.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump network_facilities: %v", err)
+	}
+	d.NetworkIxLans, err = client.NetworkIxLan.Query().Order(ent.Asc(networkixlan.FieldID)).All(ctx)
+	if err != nil {
+		t.Fatalf("dump network_ix_lans: %v", err)
+	}
+	return d
+}
+
+// TestSync_RefactorParity locks the behavior of Worker.Sync against a golden
+// dump so the Commit B extract-method refactor cannot silently drift.
+//
+// Order of operations (REFAC-03 protocol):
+//  1. This test was first authored BEFORE the refactor was applied.
+//  2. Run `go test -update ./internal/sync/... -run TestSync_RefactorParity`
+//     ONCE against the pre-refactor Worker.Sync. This writes the golden file.
+//  3. Commit the golden file alongside the refactor (atomic Commit B).
+//  4. Subsequent runs (without -update) MUST match byte-for-byte. Any drift
+//     is a regression — reviewer investigates before merge.
+//
+// To intentionally update the golden (e.g. after a deliberate data-path
+// change in a later plan), rerun with -update and carefully review the diff.
+func TestSync_RefactorParity(t *testing.T) {
+	// Not parallel: we write to a single golden file; concurrent runs would
+	// race. Also, `go test -update` mutations must be observable to reviewers.
+	fs := newParityFixtureServer(t)
+	client, db := testutil.SetupClientWithDB(t)
+
+	pdbClient := peeringdb.NewClient(fs.server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+
+	ctx := t.Context()
+	if err := InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	w := NewWorker(pdbClient, client, db, WorkerConfig{
+		IncludeDeleted: false,
+	}, slog.Default())
+
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("sync failed: %v", err)
+	}
+
+	dump := dumpAllTables(ctx, t, client)
+	got, err := json.MarshalIndent(dump, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal parity dump: %v", err)
+	}
+	// Trailing newline for POSIX text-file convention.
+	got = append(got, '\n')
+
+	goldenPath := filepath.Join("testdata", "refactor_parity.golden.json")
+
+	if *updateGolden {
+		if err := os.WriteFile(goldenPath, got, 0o644); err != nil {
+			t.Fatalf("write golden: %v", err)
+		}
+		t.Logf("updated golden: %s (%d bytes)", goldenPath, len(got))
+		return
+	}
+
+	want, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatalf("read golden (run with -update to create): %v", err)
+	}
+	if !bytesEqual(got, want) {
+		t.Fatalf("parity drift: sync produced output that differs from golden file %s.\n"+
+			"Run `go test -update ./internal/sync/... -run TestSync_RefactorParity` to regenerate.\n"+
+			"got %d bytes, want %d bytes", goldenPath, len(got), len(want))
+	}
+}
+
+// bytesEqual avoids pulling in bytes package for a single comparison.
+func bytesEqual(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// TestWorkerSync_LineBudget enforces the REFAC-03 line budget on Worker.Sync.
+// The body (opening brace through matching closing brace) must be <= 100
+// lines. This is a structural guardrail so future edits cannot silently
+// bloat Sync again.
+//
+// Implementation: read worker.go, locate `func (w *Worker) Sync(`, walk the
+// source counting braces until depth returns to 0, assert line count <= 100.
+func TestWorkerSync_LineBudget(t *testing.T) {
+	t.Parallel()
+
+	const maxLines = 100
+
+	src, err := os.ReadFile("worker.go")
+	if err != nil {
+		t.Fatalf("read worker.go: %v", err)
+	}
+
+	needle := "func (w *Worker) Sync("
+	idx := strings.Index(string(src), needle)
+	if idx < 0 {
+		t.Fatalf("did not find %q in worker.go", needle)
+	}
+
+	// Walk forward from idx to the opening brace of the function body.
+	body := string(src)[idx:]
+	openIdx := strings.Index(body, "{")
+	if openIdx < 0 {
+		t.Fatalf("did not find opening brace of Sync body")
+	}
+
+	// Walk the body counting braces to find the matching close.
+	depth := 0
+	lineCount := 1
+	closeIdx := -1
+	inString := false
+	inRune := false
+	inLineComment := false
+	inBlockComment := false
+	// Iterate rune-by-rune from the opening brace onward.
+	for i := openIdx; i < len(body); i++ {
+		c := body[i]
+		next := byte(0)
+		if i+1 < len(body) {
+			next = body[i+1]
+		}
+		switch {
+		case inLineComment:
+			if c == '\n' {
+				inLineComment = false
+				lineCount++
+			}
+			continue
+		case inBlockComment:
+			if c == '*' && next == '/' {
+				inBlockComment = false
+				i++
+			} else if c == '\n' {
+				lineCount++
+			}
+			continue
+		case inString:
+			if c == '\\' && next != 0 {
+				i++ // skip escaped char
+				continue
+			}
+			switch c {
+			case '"':
+				inString = false
+			case '\n':
+				lineCount++
+			}
+			continue
+		case inRune:
+			if c == '\\' && next != 0 {
+				i++
+				continue
+			}
+			if c == '\'' {
+				inRune = false
+			}
+			continue
+		}
+
+		if c == '/' && next == '/' {
+			inLineComment = true
+			i++
+			continue
+		}
+		if c == '/' && next == '*' {
+			inBlockComment = true
+			i++
+			continue
+		}
+		if c == '"' {
+			inString = true
+			continue
+		}
+		if c == '\'' {
+			inRune = true
+			continue
+		}
+		if c == '\n' {
+			lineCount++
+			continue
+		}
+		if c == '{' {
+			depth++
+			continue
+		}
+		if c == '}' {
+			depth--
+			if depth == 0 {
+				closeIdx = i
+				break
+			}
+			continue
+		}
+	}
+
+	if closeIdx < 0 {
+		t.Fatalf("did not find matching close brace for Sync")
+	}
+	if lineCount > maxLines {
+		t.Fatalf("Worker.Sync body is %d lines; REFAC-03 budget is %d lines.\n"+
+			"Future refactors must keep Sync an orchestrator, not a doer.", lineCount, maxLines)
+	}
+	t.Logf("Worker.Sync body: %d lines (budget: %d)", lineCount, maxLines)
 }
