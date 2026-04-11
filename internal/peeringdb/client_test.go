@@ -545,9 +545,9 @@ func TestFetchAllCreatesSpanHierarchy(t *testing.T) {
 	spans := exporter.GetSpans()
 
 	// Verify parent span exists.
-	fetchSpan := findSpanByName(spans, "peeringdb.fetch/net")
+	fetchSpan := findSpanByName(spans, "peeringdb.stream/net")
 	if fetchSpan == nil {
-		t.Fatal("expected peeringdb.fetch/net span, not found")
+		t.Fatal("expected peeringdb.stream/net span, not found")
 	}
 
 	// Verify at least one request span exists.
@@ -559,7 +559,7 @@ func TestFetchAllCreatesSpanHierarchy(t *testing.T) {
 	// Verify request spans are children of the fetch span.
 	for _, rs := range requestSpans {
 		if rs.Parent.SpanID() != fetchSpan.SpanContext.SpanID() {
-			t.Errorf("peeringdb.request span parent=%s, want %s (peeringdb.fetch/net)",
+			t.Errorf("peeringdb.request span parent=%s, want %s (peeringdb.stream/net)",
 				rs.Parent.SpanID(), fetchSpan.SpanContext.SpanID())
 		}
 	}
@@ -609,34 +609,34 @@ func TestFetchAllRecordsPageEvents(t *testing.T) {
 	}
 
 	spans := exporter.GetSpans()
-	fetchSpan := findSpanByName(spans, "peeringdb.fetch/org")
+	fetchSpan := findSpanByName(spans, "peeringdb.stream/org")
 	if fetchSpan == nil {
-		t.Fatal("expected peeringdb.fetch/org span, not found")
+		t.Fatal("expected peeringdb.stream/org span, not found")
 	}
 
-	// Count page.fetched events.
+	// Count page.streamed events.
 	var pageFetchedCount int
 	for _, evt := range fetchSpan.Events {
-		if evt.Name == "page.fetched" {
+		if evt.Name == "page.streamed" {
 			pageFetchedCount++
 		}
 	}
 	if pageFetchedCount < 2 {
-		t.Fatalf("expected at least 2 page.fetched events, got %d", pageFetchedCount)
+		t.Fatalf("expected at least 2 page.streamed events, got %d", pageFetchedCount)
 	}
 
 	// Verify first page event attributes.
 	firstEvt := fetchSpan.Events[0]
-	if firstEvt.Name != "page.fetched" {
-		t.Fatalf("first event name=%q, want page.fetched", firstEvt.Name)
+	if firstEvt.Name != "page.streamed" {
+		t.Fatalf("first event name=%q, want page.streamed", firstEvt.Name)
 	}
 	assertEventAttr(t, firstEvt.Attributes, "page", attribute.IntValue(0))
 	assertEventAttr(t, firstEvt.Attributes, "count", attribute.IntValue(250))
 
 	// Verify second page event attributes.
 	secondEvt := fetchSpan.Events[1]
-	if secondEvt.Name != "page.fetched" {
-		t.Fatalf("second event name=%q, want page.fetched", secondEvt.Name)
+	if secondEvt.Name != "page.streamed" {
+		t.Fatalf("second event name=%q, want page.streamed", secondEvt.Name)
 	}
 	assertEventAttr(t, secondEvt.Attributes, "page", attribute.IntValue(1))
 	assertEventAttr(t, secondEvt.Attributes, "count", attribute.IntValue(50))

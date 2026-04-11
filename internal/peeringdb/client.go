@@ -118,138 +118,50 @@ func parseMeta(raw json.RawMessage) time.Time {
 	return time.Unix(int64(meta.Generated), 0)
 }
 
-// FetchAll pages through all objects of the given type, returning each
-// as a json.RawMessage inside a FetchResult. It loops until the API
-// returns an empty data array. Each request is rate-limited and retried
-// on transient errors.
+// FetchAll pages through all objects of the given type, collecting each
+// element as a json.RawMessage in a FetchResult. It is a thin wrapper
+// over StreamAll — new callers should prefer StreamAll directly to avoid
+// the allocation of a full []json.RawMessage slice. FetchAll exists for
+// the pdbcompat-check CLI and the conformance test, which consume the
+// full result set as a batch.
+//
+// The handler clones each raw message because json.Decoder reuses its
+// internal buffer across Decode calls — without the clone, every slice
+// entry would alias the same memory.
 func (c *Client) FetchAll(ctx context.Context, objectType string, opts ...FetchOption) (FetchResult, error) {
-	var cfg fetchConfig
-	for _, opt := range opts {
-		opt(&cfg)
+	var data []json.RawMessage
+	handler := func(raw json.RawMessage) error {
+		clone := make(json.RawMessage, len(raw))
+		copy(clone, raw)
+		data = append(data, clone)
+		return nil
 	}
-
-	tracer := otel.Tracer("peeringdb")
-	ctx, span := tracer.Start(ctx, "peeringdb.fetch/"+objectType)
-	defer span.End()
-
-	// Full sync (no since): fetch entire dataset in one request without
-	// limit/skip. PeeringDB returns the full cached dataset, avoiding
-	// dozens of paginated requests and rate-limit pressure.
-	if cfg.since.IsZero() {
-		url := fmt.Sprintf("%s/api/%s?depth=0", c.baseURL, objectType)
-
-		resp, err := c.doWithRetry(ctx, url)
-		if err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("fetch %s: %w", objectType, err)
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		if err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("read %s body: %w", objectType, err)
-		}
-
-		var apiResp Response[json.RawMessage]
-		if err := json.Unmarshal(body, &apiResp); err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("decode %s response: %w", objectType, err)
-		}
-
-		generated := parseMeta(apiResp.Meta)
-
-		span.AddEvent("fetched",
-			trace.WithAttributes(
-				attribute.Int("count", len(apiResp.Data)),
-			),
-		)
-
-		c.logger.LogAttrs(ctx, slog.LevelDebug, "fetched all",
-			slog.String("type", objectType),
-			slog.Int("count", len(apiResp.Data)),
-		)
-
-		return FetchResult{Data: apiResp.Data, Meta: FetchMeta{Generated: generated}}, nil
+	meta, err := c.StreamAll(ctx, objectType, handler, opts...)
+	if err != nil {
+		return FetchResult{}, err
 	}
-
-	// Incremental sync (with since): paginate through delta results.
-	var all []json.RawMessage
-	var earliestGenerated time.Time
-
-	for skip := 0; ; skip += pageSize {
-		page := skip / pageSize
-		url := fmt.Sprintf("%s/api/%s?limit=%d&skip=%d&depth=0&since=%d",
-			c.baseURL, objectType, pageSize, skip, cfg.since.Unix())
-
-		resp, err := c.doWithRetry(ctx, url)
-		if err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("fetch %s page %d: %w", objectType, page, err)
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		if err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("read %s page %d body: %w", objectType, page, err)
-		}
-
-		var apiResp Response[json.RawMessage]
-		if err := json.Unmarshal(body, &apiResp); err != nil {
-			span.RecordError(err)
-			return FetchResult{}, fmt.Errorf("decode %s page %d response: %w", objectType, page, err)
-		}
-
-		pageGenerated := parseMeta(apiResp.Meta)
-		if !pageGenerated.IsZero() && (earliestGenerated.IsZero() || pageGenerated.Before(earliestGenerated)) {
-			earliestGenerated = pageGenerated
-		}
-
-		if len(apiResp.Data) == 0 {
-			break
-		}
-
-		all = append(all, apiResp.Data...)
-
-		span.AddEvent("page.fetched",
-			trace.WithAttributes(
-				attribute.Int("page", page),
-				attribute.Int("count", len(apiResp.Data)),
-				attribute.Int("running_total", len(all)),
-			),
-		)
-
-		c.logger.LogAttrs(ctx, slog.LevelDebug, "fetched page",
-			slog.String("type", objectType),
-			slog.Int("page", page),
-			slog.Int("count", len(apiResp.Data)),
-			slog.Int("total", len(all)),
-		)
-	}
-
-	return FetchResult{Data: all, Meta: FetchMeta{Generated: earliestGenerated}}, nil
+	return FetchResult{Data: data, Meta: meta}, nil
 }
 
-// FetchType pages through all objects of the given type and unmarshals
-// each into the concrete type T. Unknown JSON fields are silently
-// ignored per D-08. This is a package-level function because Go does
-// not allow type parameters on methods.
+// FetchType streams objects of the given type and unmarshals each directly
+// into the concrete type T. Unknown JSON fields are silently ignored per
+// D-08. This is a package-level function because Go does not allow type
+// parameters on methods. Unlike FetchAll, FetchType does not clone the
+// raw bytes — each element is decoded into a fresh T immediately and the
+// underlying decoder buffer can be reused for the next element.
 func FetchType[T any](ctx context.Context, c *Client, objectType string, opts ...FetchOption) ([]T, error) {
-	result, err := c.FetchAll(ctx, objectType, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]T, 0, len(result.Data))
-	for i, item := range result.Data {
+	var items []T
+	handler := func(raw json.RawMessage) error {
 		var v T
-		if err := json.Unmarshal(item, &v); err != nil {
-			return nil, fmt.Errorf("unmarshal %s item %d: %w", objectType, i, err)
+		if err := json.Unmarshal(raw, &v); err != nil {
+			return fmt.Errorf("unmarshal %s item %d: %w", objectType, len(items), err)
 		}
 		items = append(items, v)
+		return nil
 	}
-
+	if _, err := c.StreamAll(ctx, objectType, handler, opts...); err != nil {
+		return nil, err
+	}
 	return items, nil
 }
 
