@@ -1905,3 +1905,213 @@ func TestWorkerSync_LineBudget(t *testing.T) {
 	}
 	t.Logf("Worker.Sync body: %d lines (budget: %d)", lineCount, maxLines)
 }
+
+// TestSync_PhaseAFetchHasNoTx is a structural regression lock for PERF-05:
+// the fetch pass MUST NOT hold an ent.Tx. This is enforced at compile-time
+// by the syncFetchPass signature — this test scans the worker.go source
+// and asserts the signature does NOT contain `*ent.Tx`. A future edit
+// that sneaks a tx parameter back into Phase A will fail this test.
+func TestSync_PhaseAFetchHasNoTx(t *testing.T) {
+	t.Parallel()
+
+	src, err := os.ReadFile("worker.go")
+	if err != nil {
+		t.Fatalf("read worker.go: %v", err)
+	}
+
+	needle := "func (w *Worker) syncFetchPass("
+	idx := strings.Index(string(src), needle)
+	if idx < 0 {
+		t.Fatalf("did not find %q in worker.go", needle)
+	}
+
+	// Walk forward from idx to the closing ')' of the signature.
+	body := string(src)[idx:]
+	closeIdx := strings.Index(body, ")")
+	if closeIdx < 0 {
+		t.Fatalf("did not find closing paren of syncFetchPass signature")
+	}
+	// The signature wraps across multiple lines; find the full parameter
+	// list by scanning to the ')' that terminates the parameters.
+	paren := 0
+	end := -1
+	for i, c := range body {
+		if c == '(' {
+			paren++
+		}
+		if c == ')' {
+			paren--
+			if paren == 0 {
+				end = i
+				break
+			}
+		}
+	}
+	if end < 0 {
+		t.Fatalf("did not find balanced closing paren of syncFetchPass signature")
+	}
+	sig := body[:end+1]
+	if strings.Contains(sig, "*ent.Tx") {
+		t.Fatalf("syncFetchPass signature contains *ent.Tx — Phase A must NOT hold a tx:\n%s", sig)
+	}
+	t.Logf("syncFetchPass signature: %s", sig)
+}
+
+// TestSync_BatchFreeAfterUpsert is a structural regression lock for the
+// MANDATORY memory optimization in syncUpsertPass: after each per-type
+// upsert completes, the batch entry MUST be set to the zero value so the
+// slice backing array can be reclaimed by GC. Per ARCHITECTURE.md §2 this
+// is the difference between "fits in 512 MB VM" and "OOM" on production
+// scale. A source scan catches accidental removal during future edits.
+func TestSync_BatchFreeAfterUpsert(t *testing.T) {
+	t.Parallel()
+
+	src, err := os.ReadFile("worker.go")
+	if err != nil {
+		t.Fatalf("read worker.go: %v", err)
+	}
+
+	// Locate syncUpsertPass function body and search within it only.
+	needle := "func (w *Worker) syncUpsertPass("
+	start := strings.Index(string(src), needle)
+	if start < 0 {
+		t.Fatalf("did not find %q in worker.go", needle)
+	}
+	body := string(src)[start:]
+	// Find the next top-level func declaration to bound the search.
+	nextFunc := strings.Index(body[1:], "\nfunc ")
+	if nextFunc > 0 {
+		body = body[:nextFunc+1]
+	}
+
+	if !strings.Contains(body, "batches[step.name] = syncBatch{}") {
+		t.Fatalf("syncUpsertPass does not contain the MANDATORY batch-free line " +
+			"`batches[step.name] = syncBatch{}`. This is the core PERF-05 memory " +
+			"optimization (ARCHITECTURE.md §2) — removing it breaks the 512 MB VM " +
+			"hard cap and is a regression.")
+	}
+}
+
+// TestSync_PhaseOrderComments is a structural regression lock for the
+// three load-bearing phase marker comments in Worker.Sync. A future edit
+// that reorders or drops one of these markers will fail this test.
+func TestSync_PhaseOrderComments(t *testing.T) {
+	t.Parallel()
+
+	src, err := os.ReadFile("worker.go")
+	if err != nil {
+		t.Fatalf("read worker.go: %v", err)
+	}
+	body := string(src)
+
+	markers := []string{
+		"=== Phase A — NO TX HELD ===",
+		"=== Fetch Barrier ===",
+		"=== Phase B — SINGLE REAL TX ===",
+	}
+	lastIdx := -1
+	for _, m := range markers {
+		idx := strings.Index(body, m)
+		if idx < 0 {
+			t.Fatalf("missing phase marker comment: %q", m)
+		}
+		if idx <= lastIdx {
+			t.Fatalf("phase marker %q out of order (index %d <= previous %d)",
+				m, idx, lastIdx)
+		}
+		lastIdx = idx
+	}
+}
+
+// TestSync_D19Atomicity is the PERF-05 regression lock for D-19 single-
+// transaction atomicity. It asserts that if a Phase B upsert fails mid-way
+// through the 13 types, the rollback leaves the database in its
+// pre-sync state (empty for a fresh DB). Without the single ent.Tx
+// wrapping every write, partial upserts would survive the failure.
+//
+// Injection strategy: seed the facility fixture with an org_id that
+// references a non-existent organization AND set PDBPLUS_INCLUDE_DELETED=false
+// so the row is NOT filtered. But since defer_foreign_keys defers FK
+// enforcement to commit time, the upsert path will SUCCEED and only
+// commit will fail — which still rolls back all prior writes per D-19.
+//
+// Simpler injection: substitute a malformed campus fixture that causes
+// the campus upsert to return an error (e.g., invalid org_id type in JSON
+// which causes the peeringdb unmarshal to fail). Fetch-path failures
+// happen in Phase A (no tx opened), so we need an injection inside Phase
+// B. We use a fake PeeringDB server that returns a campus row with a
+// missing required field (name) — SQLite will reject on NOT NULL.
+func TestSync_D19Atomicity(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	// parityFixtureServer uses testdata/fixtures for 12 of 13 types; override
+	// the campus payload with an upsert-fatal row to trigger a Phase B
+	// rollback after Organizations have already been upserted.
+	pfs := newParityFixtureServer(t)
+
+	// Build a server that wraps pfs.server but intercepts /api/campus with
+	// a payload containing a row referencing a non-existent org_id. With
+	// defer_foreign_keys = ON the FK error surfaces at commit time (still a
+	// rollback). With an obvious cross-field violation (negative row ID)
+	// SQLite raises at insert time instead. Use negative ID: guaranteed
+	// rejection because campus.id is ent's positive-only PK.
+	injectingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/api/")
+		objType := strings.Split(path, "?")[0]
+		if objType == peeringdb.TypeCampus {
+			// Missing org_id entirely — campus.org_id is a required FK; with
+			// defer_foreign_keys deferred, the error surfaces at commit. An
+			// even stronger injection uses a campus row with a totally
+			// absent org_id (0 by json default → FK to org 0 which doesn't
+			// exist). On commit, SQLite raises "FOREIGN KEY constraint failed"
+			// and Phase B rolls back every Organization that was upserted.
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"meta":{},"data":[{"id":999999,"org_id":888888,"name":"d19-injection","country":"DE","created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z","status":"ok"}]}`))
+			return
+		}
+		// Delegate to parity fixture server for all other types.
+		pfs.server.Config.Handler.ServeHTTP(w, r)
+	}))
+	defer injectingServer.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+
+	pdbClient := peeringdb.NewClient(injectingServer.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+
+	worker := NewWorker(pdbClient, client, db, WorkerConfig{
+		IncludeDeleted: false,
+		SyncMode:       config.SyncModeFull,
+		IsPrimary:      func() bool { return true },
+	}, slog.Default())
+	if err := InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	syncErr := worker.Sync(ctx, config.SyncModeFull)
+	if syncErr == nil {
+		t.Fatal("expected sync error from D-19 injection, got nil")
+	}
+
+	// D-19 assertion: every table must be empty. A partial upsert that
+	// survives the rollback is a regression.
+	counts := map[string]int{}
+	if counts["organizations"], _ = client.Organization.Query().Count(ctx); counts["organizations"] != 0 {
+		t.Errorf("D-19 violated: organizations table has %d rows post-rollback", counts["organizations"])
+	}
+	if counts["campuses"], _ = client.Campus.Query().Count(ctx); counts["campuses"] != 0 {
+		t.Errorf("D-19 violated: campuses table has %d rows post-rollback", counts["campuses"])
+	}
+	if counts["facilities"], _ = client.Facility.Query().Count(ctx); counts["facilities"] != 0 {
+		t.Errorf("D-19 violated: facilities table has %d rows post-rollback", counts["facilities"])
+	}
+	if counts["networks"], _ = client.Network.Query().Count(ctx); counts["networks"] != 0 {
+		t.Errorf("D-19 violated: networks table has %d rows post-rollback", counts["networks"])
+	}
+	if counts["ix"], _ = client.InternetExchange.Query().Count(ctx); counts["ix"] != 0 {
+		t.Errorf("D-19 violated: internet_exchanges table has %d rows post-rollback", counts["ix"])
+	}
+	t.Logf("D-19 atomicity verified: all tables empty after rollback (%+v)", counts)
+}

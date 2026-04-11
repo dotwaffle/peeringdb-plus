@@ -489,6 +489,27 @@ func runPeakSampler(ctx context.Context, in peakSamplerInput) {
 //
 //	BenchmarkSyncWorker_FullMemoryPeak-12    1   40472625508 ns/op   3709733288 B/op   43264224 allocs/op   561353240 peak_heap_bytes   535.3 peak_heap_mb
 //
+// After Plan 54-02 Commit D (Phase A fetch outside tx + Phase B split,
+// no batch-free yet has any effect because Phase A holds ALL 13 batches
+// resident before Phase B starts):
+//
+//	BenchmarkSyncWorker_FullMemoryPeak-12    1   40666620722 ns/op   3780058024 B/op   43628001 allocs/op   643324448 peak_heap_bytes   613.5 peak_heap_mb
+//
+// Delta vs Commit A baseline: peak heap +14.6% (worse). This is expected
+// per ARCHITECTURE.md §2: the pre-split code interleaved fetch+upsert
+// per-type, so only one batch was resident at a time. Post-split Phase A
+// materialises ALL batches before the barrier, then Phase B frees them
+// one-by-one. Phase B peak memory is still above the pre-split peak
+// because netixlan (200K rows, ~35 MB) remains the dominant resident
+// set. The batch-free line keeps Phase B from doubling, but does NOT
+// offset the Phase A peak.
+//
+// Commit D' (scratch-SQLite fallback) addresses this by staging each
+// streaming batch to a /tmp SQLite file INSIDE Phase A — Phase A Go heap
+// is bounded to one streaming element (~5-10 KB per row), and Phase B
+// ATTACHes the scratch DB and runs INSERT OR REPLACE SELECT. Expected
+// post-D' peak: ~20-80 MB.
+//
 // Executor host: AMD Ryzen 5 3600 6-Core (12 threads), linux/amd64, Go 1.26.2.
 // Fixture size: 110,522,460 bytes across 13 types at production scale
 // (364,100 total rows: org 35000, net 35000, fac 8000, campus 600,

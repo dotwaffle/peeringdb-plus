@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -68,42 +67,53 @@ func (w *Worker) SetRetryBackoffs(backoffs []time.Duration) {
 
 // syncStep defines a single step in the sync process. Upserts run in
 // parent-first FK order; deletes run in reverse (child-first) order.
+//
+// After PERF-05 (Plan 54-02 Commit D), the fetch and upsert paths dispatch
+// via fetchOneTypeFull / fetchOneTypeIncremental / upsertOneType type
+// switches on step.name — the old upsertFn/incrementalFn fields were
+// removed because fetch now runs outside the tx. Only deleteFn survives
+// because deletes still go through per-type methods inside the tx.
 type syncStep struct {
-	name          string
-	upsertFn      func(ctx context.Context, tx *ent.Tx) (count int, remoteIDs []int, err error)
-	deleteFn      func(ctx context.Context, tx *ent.Tx, remoteIDs []int) (deleted int, err error)
-	incrementalFn func(ctx context.Context, tx *ent.Tx, since time.Time) (count int, generated time.Time, err error)
+	name     string
+	deleteFn func(ctx context.Context, tx *ent.Tx, remoteIDs []int) (deleted int, err error)
 }
 
 // syncSteps returns the ordered list of sync steps in FK dependency order per D-06.
 // Upserts are processed in this order (parents first); deletes in reverse (children first).
 func (w *Worker) syncSteps() []syncStep {
 	return []syncStep{
-		{"org", w.fetchAndUpsertOrganizations, deleteStaleOrganizations, w.syncOrganizationsIncremental},
-		{"campus", w.fetchAndUpsertCampuses, deleteStaleCampuses, w.syncCampusesIncremental},
-		{"fac", w.fetchAndUpsertFacilities, deleteStaleFacilities, w.syncFacilitiesIncremental},
-		{"carrier", w.fetchAndUpsertCarriers, deleteStaleCarriers, w.syncCarriersIncremental},
-		{"carrierfac", w.fetchAndUpsertCarrierFacilities, deleteStaleCarrierFacilities, w.syncCarrierFacilitiesIncremental},
-		{"ix", w.fetchAndUpsertInternetExchanges, deleteStaleInternetExchanges, w.syncInternetExchangesIncremental},
-		{"ixlan", w.fetchAndUpsertIxLans, deleteStaleIxLans, w.syncIxLansIncremental},
-		{"ixpfx", w.fetchAndUpsertIxPrefixes, deleteStaleIxPrefixes, w.syncIxPrefixesIncremental},
-		{"ixfac", w.fetchAndUpsertIxFacilities, deleteStaleIxFacilities, w.syncIxFacilitiesIncremental},
-		{"net", w.fetchAndUpsertNetworks, deleteStaleNetworks, w.syncNetworksIncremental},
-		{"poc", w.fetchAndUpsertPocs, deleteStalePocs, w.syncPocsIncremental},
-		{"netfac", w.fetchAndUpsertNetworkFacilities, deleteStaleNetworkFacilities, w.syncNetworkFacilitiesIncremental},
-		{"netixlan", w.fetchAndUpsertNetworkIxLans, deleteStaleNetworkIxLans, w.syncNetworkIxLansIncremental},
+		{"org", deleteStaleOrganizations},
+		{"campus", deleteStaleCampuses},
+		{"fac", deleteStaleFacilities},
+		{"carrier", deleteStaleCarriers},
+		{"carrierfac", deleteStaleCarrierFacilities},
+		{"ix", deleteStaleInternetExchanges},
+		{"ixlan", deleteStaleIxLans},
+		{"ixpfx", deleteStaleIxPrefixes},
+		{"ixfac", deleteStaleIxFacilities},
+		{"net", deleteStaleNetworks},
+		{"poc", deleteStalePocs},
+		{"netfac", deleteStaleNetworkFacilities},
+		{"netixlan", deleteStaleNetworkIxLans},
 	}
 }
 
 // Sync executes a synchronization from PeeringDB to the local database.
-// It acquires a mutex to prevent concurrent runs and wraps all changes in
-// a single database transaction per D-19.
+// It acquires a mutex to prevent concurrent runs and wraps all database
+// writes in a single transaction per D-19.
 //
-// Sync is an orchestrator: the three extracted helpers (syncFetchPass,
-// syncUpsertPass, syncDeletePass) do the actual work. REFAC-03 line budget
-// is <= 100 — enforced by TestWorkerSync_LineBudget. Plan 54-02 will split
-// syncFetchPass into a real fetch-outside-tx pass and populate
-// syncUpsertPass with the inside-tx upsert logic (PERF-05 option b).
+// Sync is an orchestrator. PERF-05 splits it into three phases:
+//
+//  1. Phase A (NO TX HELD): HTTP fetch + JSON decode + filter happen
+//     against in-memory batches. No database lock is held — PeeringDB I/O
+//     and decode cost is ~30-60s of the sync.
+//  2. Fetch Barrier: all 13 per-type batches resident in memory. Open the
+//     real LiteFS tx now.
+//  3. Phase B (SINGLE REAL TX): upsert each batch (freeing memory as each
+//     type finishes) then delete stale rows. Commit. D-19 preserved: one
+//     ent.Tx wraps every write.
+//
+// REFAC-03 line budget is <= 100 — enforced by TestWorkerSync_LineBudget.
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	if !w.running.CompareAndSwap(false, true) {
 		w.logger.Warn("sync already running, skipping")
@@ -121,33 +131,28 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 			slog.Any("error", err))
 	}
 
+	// === Phase A — NO TX HELD ===
+	// HTTP + JSON decode + filter happen against in-memory batches only.
+	batches, cursorUpdates, err := w.syncFetchPass(ctx, mode, start)
+	if err != nil {
+		w.recordFailure(ctx, statusID, start, err)
+		return err
+	}
+	// === Fetch Barrier ===
+	// All 13 batches resident in memory. Open the real LiteFS tx now.
 	tx, err := w.entClient.Tx(ctx)
 	if err != nil {
 		w.recordFailure(ctx, statusID, start, fmt.Errorf("begin sync transaction: %w", err))
 		return fmt.Errorf("begin sync transaction: %w", err)
 	}
-
-	// Per-tx deferred FK enforcement replaces the old connection-level
-	// PRAGMA bracket on w.db (silently non-functional because ent tx may
-	// pick a different pool connection than w.db). See the syncFetchPass
-	// docstring for the full rationale.
-	// Regression-locked by TestSync_DeferredFKSameTx.
 	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
-		_ = tx.Rollback()
-		syncErr := fmt.Errorf("defer FK checks: %w", err)
-		w.recordFailure(ctx, statusID, start, syncErr)
-		return syncErr
+		w.rollbackAndRecord(ctx, tx, statusID, start, fmt.Errorf("defer FK checks: %w", err))
+		return fmt.Errorf("defer FK checks: %w", err)
 	}
 
-	// Phase-A / Phase-B seam (Commit B): fetch still happens INSIDE the tx;
-	// syncFetchPass absorbs the old loop verbatim. Plan 54-02 Commit D will
-	// move fetching out of the tx and populate syncUpsertPass.
-	objectCounts, remoteIDsByType, cursorUpdates, err := w.syncFetchPass(ctx, tx, mode, start)
+	// === Phase B — SINGLE REAL TX ===
+	objectCounts, remoteIDsByType, err := w.syncUpsertPass(ctx, tx, batches)
 	if err != nil {
-		w.rollbackAndRecord(ctx, tx, statusID, start, err)
-		return err
-	}
-	if _, _, err := w.syncUpsertPass(ctx, tx, nil); err != nil {
 		w.rollbackAndRecord(ctx, tx, statusID, start, err)
 		return err
 	}
@@ -155,7 +160,6 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		w.rollbackAndRecord(ctx, tx, statusID, start, err)
 		return err
 	}
-
 	if err := tx.Commit(); err != nil {
 		syncErr := fmt.Errorf("commit sync transaction: %w", err)
 		w.recordFailure(ctx, statusID, start, syncErr)
@@ -227,38 +231,76 @@ func sumCounts(m map[string]int) int {
 	return total
 }
 
-// syncFetchPass runs the per-type fetch+upsert loop in FK parent-first order.
-// Returns per-type object counts, the remoteIDs map for the later delete
-// pass, and cursor updates keyed by type name.
+// syncBatch holds the fetched + filtered data for a single PeeringDB type
+// during Phase A of a sync. The concrete type varies per entity, so the
+// struct has one optional slice per type; exactly one is non-nil, matching
+// the step.name. A type switch in syncUpsertPass dispatches to the correct
+// upsert function — the 13 entity types are closed-set and compile-time
+// known, so a type switch is simpler and more reviewable than a generic
+// interface.
 //
-// Commit B NOTE: fetch still happens inside the ent tx because this helper is
-// called from inside the tx's scope. Plan 54-02 Commit D (PERF-05) will split
-// this into a real fetch-outside-tx pass + an upsert-only pass, at which
-// point syncUpsertPass becomes populated and this helper shrinks.
-// Do not rewrite to decode-into-tx: PERF-05 option (b) requires the batch
-// materialised before the tx opens.
-func (w *Worker) syncFetchPass(ctx context.Context, tx *ent.Tx, mode config.SyncMode, start time.Time) (
-	objectCounts map[string]int,
-	remoteIDsByType map[string][]int,
+// Phase A populates this; Phase B drains and nils each entry after the
+// per-type upsert completes to release memory before the next batch begins.
+//
+// fromIncremental distinguishes incremental fetches (which skip the delete
+// pass — deletes only apply to full syncs) from full fetches. generated
+// carries the PeeringDB meta.generated timestamp for cursor advancement on
+// incremental success.
+type syncBatch struct {
+	// Exactly one of these is non-nil, matching the step.name.
+	orgs        []peeringdb.Organization
+	campuses    []peeringdb.Campus
+	facilities  []peeringdb.Facility
+	carriers    []peeringdb.Carrier
+	carrierFacs []peeringdb.CarrierFacility
+	ixes        []peeringdb.InternetExchange
+	ixlans      []peeringdb.IxLan
+	ixpfxs      []peeringdb.IxPrefix
+	ixfacs      []peeringdb.IxFacility
+	networks    []peeringdb.Network
+	pocs        []peeringdb.Poc
+	netfacs     []peeringdb.NetworkFacility
+	netixlans   []peeringdb.NetworkIxLan
+
+	// fromIncremental is true when the batch came from an incremental fetch;
+	// syncUpsertPass skips the delete pass for such batches (incremental
+	// sync does not compute a full remote-ID set, only a delta).
+	fromIncremental bool
+	// generated is the PeeringDB meta.generated timestamp, used to advance
+	// the per-type cursor on successful incremental commit.
+	generated time.Time
+}
+
+// syncFetchPass runs Phase A: fetch all 13 types from PeeringDB, decode
+// into typed slices, filter deleted rows, and return batches keyed by
+// step.name. No ent.Tx is held during Phase A — HTTP and JSON decode
+// happen against the live PeeringDB API with zero database locks.
+//
+// Returns the batches map and per-type cursor update timestamps. On error,
+// no tx has been opened yet; the caller records failure and returns
+// without touching the database. The absence of *ent.Tx from the
+// signature is a compile-time guard against accidental tx-in-fetch drift.
+//
+// PERF-05 option (b): this helper is the fetch-outside-tx pass that splits
+// fetch from upsert. Do NOT rewrite to decode-into-tx — the Commit D' scratch
+// SQLite fallback depends on the fetch being materialised before the tx opens.
+func (w *Worker) syncFetchPass(ctx context.Context, mode config.SyncMode, start time.Time) (
+	batches map[string]syncBatch,
 	cursorUpdates map[string]time.Time,
 	err error,
 ) {
 	steps := w.syncSteps()
-	objectCounts = make(map[string]int, len(steps))
-	remoteIDsByType = make(map[string][]int, len(steps))
+	batches = make(map[string]syncBatch, len(steps))
 	cursorUpdates = make(map[string]time.Time, len(steps))
 
 	for _, step := range steps {
-		w.logger.LogAttrs(ctx, slog.LevelInfo, "syncing",
+		w.logger.LogAttrs(ctx, slog.LevelInfo, "fetching",
 			slog.String("type", step.name),
 			slog.String("mode", string(mode)),
 		)
 
 		stepStart := time.Now()
-		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-upsert-"+step.name)
-
-		var count int
-		var stepErr error
+		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-fetch-"+step.name)
 
 		cursor, cursorErr := GetCursor(ctx, w.db, step.name)
 		if cursorErr != nil {
@@ -268,92 +310,469 @@ func (w *Worker) syncFetchPass(ctx context.Context, tx *ent.Tx, mode config.Sync
 			)
 		}
 
-		if mode == config.SyncModeIncremental && !cursor.IsZero() {
-			// Incremental: try with since cursor (no deletes).
-			var generated time.Time
-			count, generated, stepErr = step.incrementalFn(ctx, tx, cursor)
-			if stepErr != nil {
-				// Fallback to full for this type.
-				typeAttr := metric.WithAttributes(attribute.String("type", step.name))
-				pdbotel.SyncTypeFallback.Add(ctx, 1, typeAttr)
-				stepSpan.AddEvent("incremental.fallback",
-					trace.WithAttributes(
-						attribute.String("type", step.name),
-						attribute.String("error", stepErr.Error()),
-					),
-				)
-				w.logger.LogAttrs(ctx, slog.LevelWarn, "incremental sync failed, falling back to full",
-					slog.String("type", step.name),
-					slog.Any("error", stepErr),
-				)
-				var remoteIDs []int
-				count, remoteIDs, stepErr = step.upsertFn(ctx, tx)
-				if stepErr == nil {
-					remoteIDsByType[step.name] = remoteIDs
-					cursorUpdates[step.name] = start
-				}
-			} else {
-				cursorUpdates[step.name] = generated
-			}
-		} else {
-			// Full sync (default, first sync, or no cursor).
-			var remoteIDs []int
-			count, remoteIDs, stepErr = step.upsertFn(ctx, tx)
-			if stepErr == nil {
-				remoteIDsByType[step.name] = remoteIDs
-				cursorUpdates[step.name] = start
-			}
-		}
+		batch, cursorUpdate, stepErr := w.fetchOneType(ctx, step.name, mode, cursor, start, stepSpan)
 
 		stepSpan.End()
-
 		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
+		pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
 
 		if stepErr != nil {
-			// Record per-type error metric per D-10.
-			if strings.HasPrefix(stepErr.Error(), "fetch ") {
-				pdbotel.SyncTypeFetchErrors.Add(ctx, 1, typeAttr)
-			} else {
-				pdbotel.SyncTypeUpsertErrors.Add(ctx, 1, typeAttr)
-			}
-
-			// Record per-type duration even on failure.
-			pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
-
-			// Return the wrapped per-type error — the orchestrator handles
-			// rollback + recordFailure.
-			return nil, nil, nil, fmt.Errorf("sync %s: %w", step.name, stepErr)
+			pdbotel.SyncTypeFetchErrors.Add(ctx, 1, typeAttr)
+			return nil, nil, fmt.Errorf("fetch %s: %w", step.name, stepErr)
 		}
 
-		// Record per-type upsert metrics per D-07.
-		pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
-		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
+		batches[step.name] = batch
+		cursorUpdates[step.name] = cursorUpdate
+	}
 
+	return batches, cursorUpdates, nil
+}
+
+// fetchOneType fetches a single PeeringDB type, applies the per-type
+// deleted-status filter (if configured), and returns a populated syncBatch
+// with its cursor update timestamp. Handles incremental mode with
+// fallback-to-full-for-this-type on incremental error (matching the
+// pre-PERF-05 behavior that the refactor parity golden file locks).
+//
+// The type switch over step.name mirrors syncSteps() — adding a new
+// PeeringDB type requires updating both this switch and the upsertOneType
+// companion below. REFAC-04 (Plan 54-03) will collapse this into a generic
+// helper; until then, keep the 13 arms explicit so the diff reads cleanly.
+func (w *Worker) fetchOneType(ctx context.Context, name string, mode config.SyncMode, cursor time.Time, start time.Time, stepSpan trace.Span) (syncBatch, time.Time, error) {
+	// Incremental attempt with fallback to full on error.
+	if mode == config.SyncModeIncremental && !cursor.IsZero() {
+		batch, generated, incErr := w.fetchOneTypeIncremental(ctx, name, cursor)
+		if incErr == nil {
+			batch.fromIncremental = true
+			batch.generated = generated
+			return batch, generated, nil
+		}
+		typeAttr := metric.WithAttributes(attribute.String("type", name))
+		pdbotel.SyncTypeFallback.Add(ctx, 1, typeAttr)
+		stepSpan.AddEvent("incremental.fallback",
+			trace.WithAttributes(
+				attribute.String("type", name),
+				attribute.String("error", incErr.Error()),
+			),
+		)
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "incremental sync failed, falling back to full",
+			slog.String("type", name),
+			slog.Any("error", incErr),
+		)
+	}
+	// Full sync (default, first sync, no cursor, or incremental-fallback).
+	batch, err := w.fetchOneTypeFull(ctx, name)
+	if err != nil {
+		return syncBatch{}, time.Time{}, err
+	}
+	return batch, start, nil
+}
+
+// fetchOneTypeFull runs the full-sync fetch path for a single type: pull
+// the entire dataset via FetchType[T] (which now streams), then apply the
+// deleted-status filter unless IncludeDeleted is set. Caller fills in
+// fromIncremental = false (the zero value) so the delete pass runs.
+func (w *Worker) fetchOneTypeFull(ctx context.Context, name string) (syncBatch, error) {
+	switch name {
+	case "org":
+		items, err := peeringdb.FetchType[peeringdb.Organization](ctx, w.pdbClient, peeringdb.TypeOrg)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterOrgsByStatus(items)
+		}
+		return syncBatch{orgs: items}, nil
+	case "campus":
+		items, err := peeringdb.FetchType[peeringdb.Campus](ctx, w.pdbClient, peeringdb.TypeCampus)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterCampusesByStatus(items)
+		}
+		return syncBatch{campuses: items}, nil
+	case "fac":
+		items, err := peeringdb.FetchType[peeringdb.Facility](ctx, w.pdbClient, peeringdb.TypeFac)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterFacilitiesByStatus(items)
+		}
+		return syncBatch{facilities: items}, nil
+	case "carrier":
+		items, err := peeringdb.FetchType[peeringdb.Carrier](ctx, w.pdbClient, peeringdb.TypeCarrier)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterCarriersByStatus(items)
+		}
+		return syncBatch{carriers: items}, nil
+	case "carrierfac":
+		items, err := peeringdb.FetchType[peeringdb.CarrierFacility](ctx, w.pdbClient, peeringdb.TypeCarrierFac)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterCarrierFacilitiesByStatus(items)
+		}
+		return syncBatch{carrierFacs: items}, nil
+	case "ix":
+		items, err := peeringdb.FetchType[peeringdb.InternetExchange](ctx, w.pdbClient, peeringdb.TypeIX)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterInternetExchangesByStatus(items)
+		}
+		return syncBatch{ixes: items}, nil
+	case "ixlan":
+		items, err := peeringdb.FetchType[peeringdb.IxLan](ctx, w.pdbClient, peeringdb.TypeIXLan)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterIxLansByStatus(items)
+		}
+		return syncBatch{ixlans: items}, nil
+	case "ixpfx":
+		items, err := peeringdb.FetchType[peeringdb.IxPrefix](ctx, w.pdbClient, peeringdb.TypeIXPfx)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterIxPrefixesByStatus(items)
+		}
+		return syncBatch{ixpfxs: items}, nil
+	case "ixfac":
+		items, err := peeringdb.FetchType[peeringdb.IxFacility](ctx, w.pdbClient, peeringdb.TypeIXFac)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterIxFacilitiesByStatus(items)
+		}
+		return syncBatch{ixfacs: items}, nil
+	case "net":
+		items, err := peeringdb.FetchType[peeringdb.Network](ctx, w.pdbClient, peeringdb.TypeNet)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterNetworksByStatus(items)
+		}
+		return syncBatch{networks: items}, nil
+	case "poc":
+		items, err := peeringdb.FetchType[peeringdb.Poc](ctx, w.pdbClient, peeringdb.TypePoc)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterPocsByStatus(items)
+		}
+		return syncBatch{pocs: items}, nil
+	case "netfac":
+		items, err := peeringdb.FetchType[peeringdb.NetworkFacility](ctx, w.pdbClient, peeringdb.TypeNetFac)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterNetworkFacilitiesByStatus(items)
+		}
+		return syncBatch{netfacs: items}, nil
+	case "netixlan":
+		items, err := peeringdb.FetchType[peeringdb.NetworkIxLan](ctx, w.pdbClient, peeringdb.TypeNetIXLan)
+		if err != nil {
+			return syncBatch{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterNetworkIxLansByStatus(items)
+		}
+		return syncBatch{netixlans: items}, nil
+	}
+	return syncBatch{}, fmt.Errorf("unknown sync type: %s", name)
+}
+
+// fetchOneTypeIncremental runs the incremental-sync fetch path for a
+// single type. Uses fetchIncremental[T] + per-type status filter. Returns
+// the populated batch and the meta.generated timestamp from the response.
+func (w *Worker) fetchOneTypeIncremental(ctx context.Context, name string, cursor time.Time) (syncBatch, time.Time, error) {
+	switch name {
+	case "org":
+		items, generated, err := fetchIncremental[peeringdb.Organization](ctx, w.pdbClient, peeringdb.TypeOrg, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterOrgsByStatus(items)
+		}
+		return syncBatch{orgs: items}, generated, nil
+	case "campus":
+		items, generated, err := fetchIncremental[peeringdb.Campus](ctx, w.pdbClient, peeringdb.TypeCampus, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterCampusesByStatus(items)
+		}
+		return syncBatch{campuses: items}, generated, nil
+	case "fac":
+		items, generated, err := fetchIncremental[peeringdb.Facility](ctx, w.pdbClient, peeringdb.TypeFac, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterFacilitiesByStatus(items)
+		}
+		return syncBatch{facilities: items}, generated, nil
+	case "carrier":
+		items, generated, err := fetchIncremental[peeringdb.Carrier](ctx, w.pdbClient, peeringdb.TypeCarrier, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterCarriersByStatus(items)
+		}
+		return syncBatch{carriers: items}, generated, nil
+	case "carrierfac":
+		items, generated, err := fetchIncremental[peeringdb.CarrierFacility](ctx, w.pdbClient, peeringdb.TypeCarrierFac, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterCarrierFacilitiesByStatus(items)
+		}
+		return syncBatch{carrierFacs: items}, generated, nil
+	case "ix":
+		items, generated, err := fetchIncremental[peeringdb.InternetExchange](ctx, w.pdbClient, peeringdb.TypeIX, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterInternetExchangesByStatus(items)
+		}
+		return syncBatch{ixes: items}, generated, nil
+	case "ixlan":
+		items, generated, err := fetchIncremental[peeringdb.IxLan](ctx, w.pdbClient, peeringdb.TypeIXLan, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterIxLansByStatus(items)
+		}
+		return syncBatch{ixlans: items}, generated, nil
+	case "ixpfx":
+		items, generated, err := fetchIncremental[peeringdb.IxPrefix](ctx, w.pdbClient, peeringdb.TypeIXPfx, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterIxPrefixesByStatus(items)
+		}
+		return syncBatch{ixpfxs: items}, generated, nil
+	case "ixfac":
+		items, generated, err := fetchIncremental[peeringdb.IxFacility](ctx, w.pdbClient, peeringdb.TypeIXFac, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterIxFacilitiesByStatus(items)
+		}
+		return syncBatch{ixfacs: items}, generated, nil
+	case "net":
+		items, generated, err := fetchIncremental[peeringdb.Network](ctx, w.pdbClient, peeringdb.TypeNet, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterNetworksByStatus(items)
+		}
+		return syncBatch{networks: items}, generated, nil
+	case "poc":
+		items, generated, err := fetchIncremental[peeringdb.Poc](ctx, w.pdbClient, peeringdb.TypePoc, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterPocsByStatus(items)
+		}
+		return syncBatch{pocs: items}, generated, nil
+	case "netfac":
+		items, generated, err := fetchIncremental[peeringdb.NetworkFacility](ctx, w.pdbClient, peeringdb.TypeNetFac, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterNetworkFacilitiesByStatus(items)
+		}
+		return syncBatch{netfacs: items}, generated, nil
+	case "netixlan":
+		items, generated, err := fetchIncremental[peeringdb.NetworkIxLan](ctx, w.pdbClient, peeringdb.TypeNetIXLan, cursor)
+		if err != nil {
+			return syncBatch{}, time.Time{}, err
+		}
+		if !w.config.IncludeDeleted {
+			items = filterNetworkIxLansByStatus(items)
+		}
+		return syncBatch{netixlans: items}, generated, nil
+	}
+	return syncBatch{}, time.Time{}, fmt.Errorf("unknown sync type: %s", name)
+}
+
+// syncUpsertPass runs Phase B upserts inside the single tx. It drains the
+// batches map in FK parent-first order, upserting each type and then
+// IMMEDIATELY setting batches[step.name] = syncBatch{} to release the slice
+// backing array so the next GC cycle can reclaim it. This is the core
+// memory optimization for PERF-05 — without it, Phase B peak memory is
+// ~295 MB; with it, peak drops to ~220 MB (ARCHITECTURE.md §2). DO NOT
+// remove the batch-free line — it is the difference between "fits in 512
+// MB VM" and "OOM".
+//
+// Returns per-type object counts and the remote-ID map for the later
+// delete pass. Incremental batches are omitted from remoteIDsByType so
+// the delete pass skips them (incremental sync does not compute a full
+// remote-ID set). D-19 atomicity is preserved: all writes run inside the
+// same ent.Tx.
+func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, batches map[string]syncBatch) (
+	objectCounts map[string]int,
+	remoteIDsByType map[string][]int,
+	err error,
+) {
+	steps := w.syncSteps()
+	objectCounts = make(map[string]int, len(steps))
+	remoteIDsByType = make(map[string][]int, len(steps))
+
+	for _, step := range steps {
+		batch, ok := batches[step.name]
+		if !ok {
+			continue
+		}
+
+		stepStart := time.Now()
+		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-upsert-"+step.name)
+
+		count, remoteIDs, stepErr := w.upsertOneType(ctx, tx, step.name, batch)
+
+		stepSpan.End()
+		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
+		pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
+
+		if stepErr != nil {
+			pdbotel.SyncTypeUpsertErrors.Add(ctx, 1, typeAttr)
+			return nil, nil, fmt.Errorf("upsert %s: %w", step.name, stepErr)
+		}
+
+		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
 		objectCounts[step.name] = count
+		// Full-sync batches contribute a complete remote-ID set used by the
+		// delete pass. Incremental batches are a delta only — skip delete.
+		if !batch.fromIncremental {
+			remoteIDsByType[step.name] = remoteIDs
+		}
+
+		// MANDATORY memory optimization: free the batch backing array now
+		// that upsert succeeded for this type. Drops Phase B peak memory
+		// from ~295 MB to ~220 MB (ARCHITECTURE.md §2). DO NOT remove this
+		// line — it is the difference between "fits in 512 MB VM" and "OOM".
+		batches[step.name] = syncBatch{}
 
 		w.logger.LogAttrs(ctx, slog.LevelInfo, "upserted",
 			slog.String("type", step.name),
 			slog.Int("count", count),
 		)
 	}
-	return objectCounts, remoteIDsByType, cursorUpdates, nil
+
+	return objectCounts, remoteIDsByType, nil
 }
 
-// syncUpsertPass is the Commit B placeholder for Plan 54-02 Commit D's
-// fetch/upsert split. It currently does nothing because fetch+upsert both
-// happen inside syncFetchPass. The function exists so that (a) the
-// three-pass structure is already in place when reviewers see Commit B, and
-// (b) Plan 54-02 Commit D's diff is a small, reviewable change that just
-// populates this function with the real upsert-only logic after fetch moves
-// outside the tx.
-//
-// The `batches` parameter is typed `any` deliberately: Plan 54-02 will
-// change its shape (to something like `map[string][]json.RawMessage`) and
-// we do not want to prematurely lock the signature. This intentional
-// looseness is scoped to this single function and will be tightened in
-// Plan 54-02.
-func (w *Worker) syncUpsertPass(_ context.Context, _ *ent.Tx, _ any) (map[string]int, map[string][]int, error) {
-	return nil, nil, nil
+// upsertOneType dispatches the batch to the correct per-type upsert
+// function. Mirrors syncSteps()'s closed-set layout and fetchOneTypeFull.
+// Returns (count, remoteIDs, err). Adding a new PeeringDB type requires
+// updating this switch in lockstep with fetchOneTypeFull / fetchOneTypeIncremental.
+func (w *Worker) upsertOneType(ctx context.Context, tx *ent.Tx, name string, batch syncBatch) (int, []int, error) {
+	switch name {
+	case "org":
+		ids, err := upsertOrganizations(ctx, tx, batch.orgs)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.orgs), ids, nil
+	case "campus":
+		ids, err := upsertCampuses(ctx, tx, batch.campuses)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.campuses), ids, nil
+	case "fac":
+		ids, err := upsertFacilities(ctx, tx, batch.facilities)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.facilities), ids, nil
+	case "carrier":
+		ids, err := upsertCarriers(ctx, tx, batch.carriers)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.carriers), ids, nil
+	case "carrierfac":
+		ids, err := upsertCarrierFacilities(ctx, tx, batch.carrierFacs)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.carrierFacs), ids, nil
+	case "ix":
+		ids, err := upsertInternetExchanges(ctx, tx, batch.ixes)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.ixes), ids, nil
+	case "ixlan":
+		ids, err := upsertIxLans(ctx, tx, batch.ixlans)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.ixlans), ids, nil
+	case "ixpfx":
+		ids, err := upsertIxPrefixes(ctx, tx, batch.ixpfxs)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.ixpfxs), ids, nil
+	case "ixfac":
+		ids, err := upsertIxFacilities(ctx, tx, batch.ixfacs)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.ixfacs), ids, nil
+	case "net":
+		ids, err := upsertNetworks(ctx, tx, batch.networks)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.networks), ids, nil
+	case "poc":
+		ids, err := upsertPocs(ctx, tx, batch.pocs)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.pocs), ids, nil
+	case "netfac":
+		ids, err := upsertNetworkFacilities(ctx, tx, batch.netfacs)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.netfacs), ids, nil
+	case "netixlan":
+		ids, err := upsertNetworkIxLans(ctx, tx, batch.netixlans)
+		if err != nil {
+			return 0, nil, err
+		}
+		return len(batch.netixlans), ids, nil
+	}
+	return 0, nil, fmt.Errorf("unknown sync type: %s", name)
 }
 
 // syncDeletePass runs the per-type delete loop in child-first (reverse FK)
@@ -579,410 +998,34 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 	}
 }
 
-// Per-type fetch+upsert methods. Each fetches from PeeringDB, filters deleted,
-// upserts, and returns the remote IDs for the later delete pass.
-
-func (w *Worker) fetchAndUpsertOrganizations(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Organization](ctx, w.pdbClient, peeringdb.TypeOrg)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch organizations: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterOrgsByStatus(items)
-	}
-	ids, err := upsertOrganizations(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertCampuses(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Campus](ctx, w.pdbClient, peeringdb.TypeCampus)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch campuses: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCampusesByStatus(items)
-	}
-	ids, err := upsertCampuses(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertFacilities(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Facility](ctx, w.pdbClient, peeringdb.TypeFac)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterFacilitiesByStatus(items)
-	}
-	ids, err := upsertFacilities(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertCarriers(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Carrier](ctx, w.pdbClient, peeringdb.TypeCarrier)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch carriers: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCarriersByStatus(items)
-	}
-	ids, err := upsertCarriers(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertCarrierFacilities(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.CarrierFacility](ctx, w.pdbClient, peeringdb.TypeCarrierFac)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch carrier facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCarrierFacilitiesByStatus(items)
-	}
-	ids, err := upsertCarrierFacilities(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertInternetExchanges(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.InternetExchange](ctx, w.pdbClient, peeringdb.TypeIX)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch internet exchanges: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterInternetExchangesByStatus(items)
-	}
-	ids, err := upsertInternetExchanges(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertIxLans(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.IxLan](ctx, w.pdbClient, peeringdb.TypeIXLan)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch ix lans: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxLansByStatus(items)
-	}
-	ids, err := upsertIxLans(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertIxPrefixes(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.IxPrefix](ctx, w.pdbClient, peeringdb.TypeIXPfx)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch ix prefixes: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxPrefixesByStatus(items)
-	}
-	ids, err := upsertIxPrefixes(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertIxFacilities(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.IxFacility](ctx, w.pdbClient, peeringdb.TypeIXFac)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch ix facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxFacilitiesByStatus(items)
-	}
-	ids, err := upsertIxFacilities(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertNetworks(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Network](ctx, w.pdbClient, peeringdb.TypeNet)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch networks: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworksByStatus(items)
-	}
-	ids, err := upsertNetworks(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertPocs(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.Poc](ctx, w.pdbClient, peeringdb.TypePoc)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch pocs: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterPocsByStatus(items)
-	}
-	ids, err := upsertPocs(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertNetworkFacilities(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.NetworkFacility](ctx, w.pdbClient, peeringdb.TypeNetFac)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch network facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworkFacilitiesByStatus(items)
-	}
-	ids, err := upsertNetworkFacilities(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-func (w *Worker) fetchAndUpsertNetworkIxLans(ctx context.Context, tx *ent.Tx) (int, []int, error) {
-	items, err := peeringdb.FetchType[peeringdb.NetworkIxLan](ctx, w.pdbClient, peeringdb.TypeNetIXLan)
-	if err != nil {
-		return 0, nil, fmt.Errorf("fetch network ix lans: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworkIxLansByStatus(items)
-	}
-	ids, err := upsertNetworkIxLans(ctx, tx, items)
-	if err != nil {
-		return 0, nil, err
-	}
-	return len(items), ids, nil
-}
-
-// fetchIncremental is a generic helper that fetches objects with a since cursor
-// and returns items along with the generated timestamp from the API response.
+// fetchIncremental is a generic helper that streams objects of the given
+// type with a ?since= cursor and returns items plus the earliest
+// meta.generated timestamp across all pages. It uses StreamAll directly
+// (bypassing the FetchType wrapper) so the per-page meta is captured.
+// Decoding happens inside the stream callback — the transient []byte
+// buffer from json.Decoder is unmarshalled into a fresh T immediately
+// and can be reused for the next element.
 func fetchIncremental[T any](ctx context.Context, c *peeringdb.Client, objectType string, since time.Time) ([]T, time.Time, error) {
-	result, err := c.FetchAll(ctx, objectType, peeringdb.WithSince(since))
+	var items []T
+	handler := func(raw json.RawMessage) error {
+		var v T
+		if err := json.Unmarshal(raw, &v); err != nil {
+			return fmt.Errorf("unmarshal %s item %d: %w", objectType, len(items), err)
+		}
+		items = append(items, v)
+		return nil
+	}
+	meta, err := c.StreamAll(ctx, objectType, handler, peeringdb.WithSince(since))
 	if err != nil {
 		return nil, time.Time{}, err
 	}
 
-	items := make([]T, 0, len(result.Data))
-	for i, raw := range result.Data {
-		var v T
-		if err := json.Unmarshal(raw, &v); err != nil {
-			return nil, time.Time{}, fmt.Errorf("unmarshal %s item %d: %w", objectType, i, err)
-		}
-		items = append(items, v)
-	}
-
-	generated := result.Meta.Generated
+	generated := meta.Generated
 	if generated.IsZero() {
+		// Conservative cursor fallback when the server omits meta.generated:
+		// rewind 5 minutes so the next sync doesn't miss objects modified
+		// between the last successful fetch and clock drift.
 		generated = time.Now().Add(-5 * time.Minute)
 	}
-
 	return items, generated, nil
-}
-
-// Per-type incremental sync methods. Each fetches with WithSince, upserts
-// (no delete stale), and returns count + generated timestamp.
-
-func (w *Worker) syncOrganizationsIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Organization](ctx, w.pdbClient, peeringdb.TypeOrg, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch organizations: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterOrgsByStatus(items)
-	}
-	if _, err := upsertOrganizations(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncCampusesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Campus](ctx, w.pdbClient, peeringdb.TypeCampus, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch campuses: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCampusesByStatus(items)
-	}
-	if _, err := upsertCampuses(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncFacilitiesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Facility](ctx, w.pdbClient, peeringdb.TypeFac, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterFacilitiesByStatus(items)
-	}
-	if _, err := upsertFacilities(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncCarriersIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Carrier](ctx, w.pdbClient, peeringdb.TypeCarrier, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch carriers: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCarriersByStatus(items)
-	}
-	if _, err := upsertCarriers(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncCarrierFacilitiesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.CarrierFacility](ctx, w.pdbClient, peeringdb.TypeCarrierFac, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch carrier facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterCarrierFacilitiesByStatus(items)
-	}
-	if _, err := upsertCarrierFacilities(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncInternetExchangesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.InternetExchange](ctx, w.pdbClient, peeringdb.TypeIX, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch internet exchanges: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterInternetExchangesByStatus(items)
-	}
-	if _, err := upsertInternetExchanges(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncIxLansIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.IxLan](ctx, w.pdbClient, peeringdb.TypeIXLan, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch ix lans: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxLansByStatus(items)
-	}
-	if _, err := upsertIxLans(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncIxPrefixesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.IxPrefix](ctx, w.pdbClient, peeringdb.TypeIXPfx, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch ix prefixes: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxPrefixesByStatus(items)
-	}
-	if _, err := upsertIxPrefixes(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncIxFacilitiesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.IxFacility](ctx, w.pdbClient, peeringdb.TypeIXFac, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch ix facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterIxFacilitiesByStatus(items)
-	}
-	if _, err := upsertIxFacilities(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncNetworksIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Network](ctx, w.pdbClient, peeringdb.TypeNet, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch networks: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworksByStatus(items)
-	}
-	if _, err := upsertNetworks(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncPocsIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.Poc](ctx, w.pdbClient, peeringdb.TypePoc, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch pocs: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterPocsByStatus(items)
-	}
-	if _, err := upsertPocs(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncNetworkFacilitiesIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.NetworkFacility](ctx, w.pdbClient, peeringdb.TypeNetFac, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch network facilities: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworkFacilitiesByStatus(items)
-	}
-	if _, err := upsertNetworkFacilities(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
-}
-
-func (w *Worker) syncNetworkIxLansIncremental(ctx context.Context, tx *ent.Tx, since time.Time) (int, time.Time, error) {
-	items, generated, err := fetchIncremental[peeringdb.NetworkIxLan](ctx, w.pdbClient, peeringdb.TypeNetIXLan, since)
-	if err != nil {
-		return 0, time.Time{}, fmt.Errorf("fetch network ix lans: %w", err)
-	}
-	if !w.config.IncludeDeleted {
-		items = filterNetworkIxLansByStatus(items)
-	}
-	if _, err := upsertNetworkIxLans(ctx, tx, items); err != nil {
-		return 0, time.Time{}, err
-	}
-	return len(items), generated, nil
 }
