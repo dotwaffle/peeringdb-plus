@@ -1,6 +1,7 @@
 package termrender
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"strconv"
@@ -72,11 +73,7 @@ func (r *Renderer) whoisNetwork(w io.Writer, data templates.NetworkDetail) error
 
 	writeWHOISField(&buf, "aut-num", fmt.Sprintf("AS%d", data.ASN))
 	writeWHOISField(&buf, "as-name", data.Name)
-	descr := data.NameLong
-	if descr == "" {
-		descr = data.Name
-	}
-	writeWHOISField(&buf, "descr", descr)
+	writeWHOISField(&buf, "descr", cmp.Or(data.NameLong, data.Name))
 	writeWHOISField(&buf, "org", data.OrgName)
 	writeWHOISField(&buf, "website", data.Website)
 	writeWHOISField(&buf, "irr-as-set", data.IRRAsSet)
@@ -126,11 +123,7 @@ func (r *Renderer) whoisIX(w io.Writer, data templates.IXDetail) error {
 
 	writeWHOISField(&buf, "ix", strconv.Itoa(data.ID))
 	writeWHOISField(&buf, "ix-name", data.Name)
-	descr := data.NameLong
-	if descr == "" {
-		descr = data.Name
-	}
-	writeWHOISField(&buf, "descr", descr)
+	writeWHOISField(&buf, "descr", cmp.Or(data.NameLong, data.Name))
 	writeWHOISField(&buf, "org", data.OrgName)
 	writeWHOISField(&buf, "website", data.Website)
 	writeWHOISField(&buf, "city", data.City)
@@ -181,11 +174,7 @@ func (r *Renderer) whoisFacility(w io.Writer, data templates.FacilityDetail) err
 
 	writeWHOISField(&buf, "site", strconv.Itoa(data.ID))
 	writeWHOISField(&buf, "site-name", data.Name)
-	descr := data.NameLong
-	if descr == "" {
-		descr = data.Name
-	}
-	writeWHOISField(&buf, "descr", descr)
+	writeWHOISField(&buf, "descr", cmp.Or(data.NameLong, data.Name))
 	writeWHOISField(&buf, "org", data.OrgName)
 
 	// Address as multi-value lines.

@@ -226,8 +226,7 @@ func TestStreamingDecoder_TruncatedInput(t *testing.T) {
 			}
 
 			// Must unwrap to either io.ErrUnexpectedEOF or a *json.SyntaxError.
-			var syntaxErr *json.SyntaxError
-			if !errors.Is(err, io.ErrUnexpectedEOF) && !errors.As(err, &syntaxErr) {
+			if _, ok := errors.AsType[*json.SyntaxError](err); !errors.Is(err, io.ErrUnexpectedEOF) && !ok {
 				t.Errorf("error does not unwrap to io.ErrUnexpectedEOF or *json.SyntaxError: %v", err)
 			}
 		})

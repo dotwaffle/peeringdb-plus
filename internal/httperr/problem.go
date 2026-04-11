@@ -6,6 +6,7 @@
 package httperr
 
 import (
+	"cmp"
 	"encoding/json"
 	"net/http"
 )
@@ -46,13 +47,9 @@ func WriteProblem(w http.ResponseWriter, input WriteProblemInput) {
 // without writing an HTTP response. This is useful for embedding problem
 // details inside other JSON response structures (e.g., terminal JSON mode).
 func NewProblemDetail(input WriteProblemInput) ProblemDetail {
-	title := input.Title
-	if title == "" {
-		title = http.StatusText(input.Status)
-	}
 	return ProblemDetail{
 		Type:     "about:blank",
-		Title:    title,
+		Title:    cmp.Or(input.Title, http.StatusText(input.Status)),
 		Status:   input.Status,
 		Detail:   input.Detail,
 		Instance: input.Instance,

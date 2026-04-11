@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"database/sql"
 	"fmt"
 	"log/slog"
@@ -256,10 +257,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 		return
 	}
 
-	viewMode := r.URL.Query().Get("view")
-	if viewMode == "" {
-		viewMode = "shared"
-	}
+	viewMode := cmp.Or(r.URL.Query().Get("view"), "shared")
 
 	data, err := h.comparer.Compare(r.Context(), CompareInput{
 		ASN1:     int(asn1),

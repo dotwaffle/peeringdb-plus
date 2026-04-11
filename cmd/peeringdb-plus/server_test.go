@@ -199,6 +199,6 @@ func isServerClose(err error) bool {
 		return true
 	}
 	// Some platforms surface ECONNRESET as a *net.OpError wrapping syscall.Errno.
-	var opErr *net.OpError
-	return errors.As(err, &opErr)
+	_, ok := errors.AsType[*net.OpError](err)
+	return ok
 }
