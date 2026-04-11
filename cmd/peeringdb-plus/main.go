@@ -393,7 +393,13 @@ func main() {
 	})
 
 	// Build middleware stack (outermost first):
-	// Recovery -> CORS -> OTel HTTP -> Logging -> Readiness -> CSP -> Caching -> Gzip -> mux
+	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> Readiness -> CSP -> Caching -> Gzip -> mux
+	//
+	// MaxBytesBody caps every non-gRPC request body at maxRequestBodySize (1 MB)
+	// per SEC-09. Per-route http.MaxBytesReader wraps at /sync and /graphql stay
+	// as belt-and-suspenders — innermost wins, so they remain effective and the
+	// redundancy is intentional. ConnectRPC/gRPC paths bypass via the middleware's
+	// hardcoded skip list; streaming RPCs would break if the body were capped.
 	compressionMiddleware := middleware.Compression()
 	handler := compressionMiddleware(mux)
 	cachingMiddleware := middleware.Caching(middleware.CachingInput{
@@ -413,6 +419,7 @@ func main() {
 	handler = middleware.Logging(logger)(handler)
 	handler = otelhttp.NewMiddleware("peeringdb-plus")(handler)
 	handler = middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})(handler)
+	handler = middleware.MaxBytesBody(middleware.MaxBytesBodyInput{MaxBytes: maxRequestBodySize})(handler)
 	handler = middleware.Recovery(logger)(handler)
 
 	// Enable HTTP/1.1 + h2c (HTTP/2 cleartext) for gRPC support.
