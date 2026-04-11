@@ -188,7 +188,12 @@ func main() {
 	// sync_status row so warm restarts serve cacheable GETs immediately;
 	// cold starts leave the pointer nil (Middleware skips caching headers
 	// until the first sync completes, matching pre-PERF-07 behavior).
-	cachingState := middleware.NewCachingState(cfg.SyncInterval)
+	//
+	// /ui/about is opted out of caching because it renders wall-clock-
+	// relative text ("N minutes ago") that would freeze at cache-creation
+	// time under the sync-time-keyed ETag. See internal/web/about.go and
+	// internal/web/templates/about.templ.
+	cachingState := middleware.NewCachingState(cfg.SyncInterval, "/ui/about")
 	if t, err := pdbsync.GetLastSuccessfulSyncTime(ctx, db); err == nil && !t.IsZero() {
 		cachingState.UpdateETag(t)
 	}

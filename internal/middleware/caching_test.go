@@ -443,3 +443,70 @@ func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 		t.Errorf("reader observed unexpected ETag = %q (not etag1=%q and not etag2=%q)", bad, etag1, etag2)
 	}
 }
+
+// TestCaching_SkipPath verifies that paths passed to NewCachingState via the
+// variadic skipPaths argument bypass the sync-time-keyed ETag entirely:
+// they must receive Cache-Control: no-store, must NOT emit an ETag header,
+// must reach the inner handler on every GET, and must NOT short-circuit to
+// 304 even when the client sends If-None-Match: *.
+//
+// The regression this locks in: /ui/about contains wall-clock-relative
+// rendering ("N minutes ago") that would freeze at cache-creation time
+// under the sync-time ETag, misleading users for up to a full sync interval.
+func TestCaching_SkipPath(t *testing.T) {
+	t.Parallel()
+
+	state := middleware.NewCachingState(time.Hour, "/ui/about")
+	state.UpdateETag(time.Date(2026, 4, 11, 12, 27, 46, 0, time.UTC))
+
+	var called atomic.Bool
+	mw := state.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		called.Store(true)
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	// 1. GET on skipped path: no ETag, Cache-Control: no-store, handler runs.
+	called.Store(false)
+	rec := httptest.NewRecorder()
+	mw.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/ui/about", nil))
+	if !called.Load() {
+		t.Error("inner handler not called on skipped path")
+	}
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", rec.Code)
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "no-store" {
+		t.Errorf("Cache-Control = %q, want %q", got, "no-store")
+	}
+	if got := rec.Header().Get("ETag"); got != "" {
+		t.Errorf("ETag = %q, want empty on skipped path", got)
+	}
+
+	// 2. Skipped path must NOT 304 even with If-None-Match: * (the wildcard
+	//    that matches any ETag). This is the core semantic: the skip list
+	//    overrides the 304 short-circuit.
+	called.Store(false)
+	req := httptest.NewRequest(http.MethodGet, "/ui/about", nil)
+	req.Header.Set("If-None-Match", "*")
+	rec2 := httptest.NewRecorder()
+	mw.ServeHTTP(rec2, req)
+	if rec2.Code != http.StatusOK {
+		t.Errorf("status with If-None-Match:* = %d, want 200 on skipped path", rec2.Code)
+	}
+	if !called.Load() {
+		t.Error("inner handler not called on skipped path with If-None-Match: *")
+	}
+
+	// 3. A non-skipped path on the same middleware still receives the normal
+	//    ETag + Cache-Control treatment — the skip list is path-specific, not
+	//    a global kill switch.
+	called.Store(false)
+	rec3 := httptest.NewRecorder()
+	mw.ServeHTTP(rec3, httptest.NewRequest(http.MethodGet, "/ui/asn/13335", nil))
+	if got := rec3.Header().Get("ETag"); got == "" {
+		t.Error("non-skipped path: ETag header missing, want non-empty")
+	}
+	if got := rec3.Header().Get("Cache-Control"); got != "public, max-age=3720" {
+		t.Errorf("non-skipped path: Cache-Control = %q, want %q", got, "public, max-age=3720")
+	}
+}

@@ -1,42 +1,24 @@
 package termrender
 
 import (
-	"fmt"
 	"time"
 )
 
 // FormatFreshness formats a sync timestamp as a styled footer line for terminal
-// responses. Returns "Data: {RFC3339} ({relative})" with leading and trailing
-// newlines for visual separation. Returns "" for zero time (footer omitted).
-// (DIF-02, D-13, D-14, D-15)
+// responses. Returns "Data: {RFC3339}" with leading and trailing newlines for
+// visual separation. Returns "" for zero time (footer omitted). (DIF-02, D-13,
+// D-14, D-15)
+//
+// The output is intentionally free of wall-clock-relative phrasing ("N minutes
+// ago"). The terminal footer is rendered into responses that are cached by
+// the sync-time-keyed HTTP caching middleware, and any relative text would
+// freeze at cache-creation time and mislead readers for up to a full sync
+// interval. Readers who want a relative age can compute it locally from the
+// absolute RFC3339 timestamp.
 func FormatFreshness(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
-
-	age := time.Since(t)
-	ageStr := formatRelativeAge(age)
-	line := fmt.Sprintf("Data: %s (%s)", t.UTC().Format(time.RFC3339), ageStr)
-
+	line := "Data: " + t.UTC().Format(time.RFC3339)
 	return "\n" + StyleMuted.Render(line) + "\n"
-}
-
-// formatRelativeAge converts a duration to a human-readable relative string.
-func formatRelativeAge(d time.Duration) string {
-	switch {
-	case d < time.Minute:
-		return "just now"
-	case d < 2*time.Minute:
-		return "1 minute ago"
-	case d < time.Hour:
-		return fmt.Sprintf("%d minutes ago", int(d.Minutes()))
-	case d < 2*time.Hour:
-		return "1 hour ago"
-	case d < 24*time.Hour:
-		return fmt.Sprintf("%d hours ago", int(d.Hours()))
-	case d < 48*time.Hour:
-		return "1 day ago"
-	default:
-		return fmt.Sprintf("%d days ago", int(d.Hours()/24))
-	}
 }

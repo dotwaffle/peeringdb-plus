@@ -35,11 +35,24 @@ func TestRenderHelp_RichMode(t *testing.T) {
 		"completions/zsh",
 		"pdb()",
 		"Data last synced:",
+		"2026-01-15 12:00:00 UTC",
 	}
 
 	for _, want := range checks {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q", want)
+		}
+	}
+
+	// Cache-safety regression lock: the help page is served through the
+	// sync-time-keyed HTTP caching middleware. Any wall-clock-relative text
+	// in the "Data last synced:" footer would freeze at cache-creation time
+	// and mislead readers for up to a full sync interval, so it must not
+	// appear in the rendered output.
+	forbidden := []string{"ago", "just now"}
+	for _, bad := range forbidden {
+		if strings.Contains(out, bad) {
+			t.Errorf("output contains forbidden relative-time phrase %q (cache would serve stale text)", bad)
 		}
 	}
 

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -33,13 +34,31 @@ type CachingState struct {
 	// Used to calculate Cache-Control max-age (interval + 120s buffer). Captured
 	// once at construction; immutable thereafter.
 	syncInterval time.Duration
+
+	// skipPaths is the list of request paths (exact r.URL.Path match) that
+	// must not be cached by the sync-time-keyed ETag. Intended for pages
+	// containing wall-clock-relative text (e.g. "5 minutes ago") that goes
+	// stale at wall-clock cadence rather than sync cadence. Captured once
+	// at construction via NewCachingState; the Middleware closure snapshots
+	// it so per-request reads never touch the CachingState struct.
+	skipPaths []string
 }
 
 // NewCachingState returns a CachingState with a nil ETag pointer (pre-sync)
 // and the given sync interval. Call UpdateETag once the first sync completes;
 // until then, Middleware skips caching headers.
-func NewCachingState(syncInterval time.Duration) *CachingState {
-	return &CachingState{syncInterval: syncInterval}
+//
+// Any additional skipPaths are treated as exact-match r.URL.Path opt-outs:
+// matching requests receive Cache-Control: no-store, bypass the 304
+// short-circuit, and always reach the inner handler. Use for pages that
+// contain wall-clock-relative rendering (e.g. "5 minutes ago") which would
+// freeze at cache-creation time under the sync-time-keyed ETag and mislead
+// users for up to a full sync interval.
+func NewCachingState(syncInterval time.Duration, skipPaths ...string) *CachingState {
+	return &CachingState{
+		syncInterval: syncInterval,
+		skipPaths:    slices.Clone(skipPaths),
+	}
 }
 
 // UpdateETag computes a fresh weak ETag from syncTime and stores it atomically.
@@ -62,6 +81,10 @@ func (s *CachingState) UpdateETag(syncTime time.Time) {
 // Only GET and HEAD requests receive caching treatment; mutation methods pass
 // through untouched. Conditional requests with a matching If-None-Match (or
 // the "*" wildcard) return 304 Not Modified with an empty body.
+//
+// Paths registered via NewCachingState's skipPaths argument are opted out
+// entirely: they receive Cache-Control: no-store, bypass the 304 short-circuit,
+// and always reach the inner handler.
 func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 	// Cache-Control value is immutable across the process lifetime because
 	// syncInterval is locked at construction. Format once to avoid a
@@ -69,9 +92,25 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 	maxAge := int(s.syncInterval.Seconds()) + 120
 	cacheCtrl := fmt.Sprintf("public, max-age=%d", maxAge)
 
+	// Snapshot the skip paths into the closure so the request path
+	// never touches the CachingState struct.
+	skipPaths := slices.Clone(s.skipPaths)
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != http.MethodGet && r.Method != http.MethodHead {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Opt-out list: pages with wall-clock-relative rendering
+			// (e.g. /ui/about's "5 minutes ago") must never be cached
+			// by the sync-time-keyed ETag, or the relative text freezes
+			// at cache-creation time and misleads users for up to a
+			// full sync interval. Exact path match is sufficient for
+			// current use — prefix matching can be added if needed.
+			if slices.Contains(skipPaths, r.URL.Path) {
+				w.Header().Set("Cache-Control", "no-store")
 				next.ServeHTTP(w, r)
 				return
 			}

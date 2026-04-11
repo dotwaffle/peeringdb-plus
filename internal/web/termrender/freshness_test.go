@@ -6,34 +6,52 @@ import (
 	"time"
 )
 
-func TestFormatFreshness_Recent(t *testing.T) {
+// TestFormatFreshness_AbsoluteTimestamp verifies the footer contains the
+// absolute UTC timestamp with the "Data: " prefix and contains NO wall-clock-
+// relative phrases. The cached HTTP response body includes this footer, so
+// any relative text ("N minutes ago", "just now") would freeze at cache-
+// creation time and mislead readers for up to a full sync interval.
+func TestFormatFreshness_AbsoluteTimestamp(t *testing.T) {
 	t.Parallel()
 
-	ts := time.Now().Add(-12 * time.Minute)
+	ts := time.Date(2026, 4, 11, 12, 27, 46, 0, time.UTC)
 	got := FormatFreshness(ts)
 
-	if !strings.Contains(got, "12 minutes ago") {
-		t.Errorf("FormatFreshness(-12m) should contain '12 minutes ago', got: %q", got)
+	if !strings.Contains(got, "Data: ") {
+		t.Errorf("output missing 'Data: ' prefix, got: %q", got)
 	}
-	if !strings.Contains(got, ts.UTC().Format(time.RFC3339)) {
-		t.Errorf("FormatFreshness(-12m) should contain RFC3339 timestamp, got: %q", got)
+	if want := ts.Format(time.RFC3339); !strings.Contains(got, want) {
+		t.Errorf("output missing RFC3339 timestamp %q, got: %q", want, got)
 	}
-	if !strings.Contains(got, "Data:") {
-		t.Errorf("FormatFreshness(-12m) should contain 'Data:' prefix, got: %q", got)
+
+	// Cache-safety regression lock: no wall-clock-relative phrasing.
+	forbidden := []string{"ago", "just now", "minute", "hour", " day"}
+	for _, bad := range forbidden {
+		if strings.Contains(got, bad) {
+			t.Errorf("output contains forbidden relative-time phrase %q (cache would serve stale text), got: %q", bad, got)
+		}
 	}
 }
 
-func TestFormatFreshness_Hours(t *testing.T) {
+// TestFormatFreshness_Deterministic asserts the output is byte-identical
+// across two calls with the same input but separated in wall-clock time.
+// This is the stronger proof that no relative-time computation leaks into
+// the rendered output: if any time.Since-style expression remained, the two
+// renders would diverge and this test would fail.
+func TestFormatFreshness_Deterministic(t *testing.T) {
 	t.Parallel()
 
-	ts := time.Now().Add(-3 * time.Hour)
-	got := FormatFreshness(ts)
-
-	if !strings.Contains(got, "3 hours ago") {
-		t.Errorf("FormatFreshness(-3h) should contain '3 hours ago', got: %q", got)
+	ts := time.Date(2026, 4, 11, 12, 27, 46, 0, time.UTC)
+	first := FormatFreshness(ts)
+	time.Sleep(15 * time.Millisecond)
+	second := FormatFreshness(ts)
+	if first != second {
+		t.Errorf("FormatFreshness output changed between calls:\n first=%q\nsecond=%q", first, second)
 	}
 }
 
+// TestFormatFreshness_Zero verifies zero-time returns an empty footer so
+// pre-sync responses don't render a misleading "Data: 0001-01-01..." line.
 func TestFormatFreshness_Zero(t *testing.T) {
 	t.Parallel()
 
@@ -43,32 +61,13 @@ func TestFormatFreshness_Zero(t *testing.T) {
 	}
 }
 
-func TestFormatFreshness_JustNow(t *testing.T) {
-	t.Parallel()
-
-	ts := time.Now().Add(-30 * time.Second)
-	got := FormatFreshness(ts)
-
-	if !strings.Contains(got, "just now") {
-		t.Errorf("FormatFreshness(-30s) should contain 'just now', got: %q", got)
-	}
-}
-
-func TestFormatFreshness_Days(t *testing.T) {
-	t.Parallel()
-
-	ts := time.Now().Add(-48 * time.Hour)
-	got := FormatFreshness(ts)
-
-	if !strings.Contains(got, "2 days ago") {
-		t.Errorf("FormatFreshness(-48h) should contain '2 days ago', got: %q", got)
-	}
-}
-
+// TestFormatFreshness_HasNewlines locks in the leading/trailing newline
+// padding so callers that concatenate the footer directly onto rendered
+// content don't have to insert their own whitespace.
 func TestFormatFreshness_HasNewlines(t *testing.T) {
 	t.Parallel()
 
-	ts := time.Now().Add(-5 * time.Minute)
+	ts := time.Date(2026, 4, 11, 12, 27, 46, 0, time.UTC)
 	got := FormatFreshness(ts)
 
 	if !strings.HasPrefix(got, "\n") {
@@ -76,27 +75,5 @@ func TestFormatFreshness_HasNewlines(t *testing.T) {
 	}
 	if !strings.HasSuffix(got, "\n") {
 		t.Errorf("FormatFreshness should end with trailing newline, got: %q", got)
-	}
-}
-
-func TestFormatFreshness_SingleMinute(t *testing.T) {
-	t.Parallel()
-
-	ts := time.Now().Add(-1 * time.Minute)
-	got := FormatFreshness(ts)
-
-	if !strings.Contains(got, "1 minute ago") {
-		t.Errorf("FormatFreshness(-1m) should contain '1 minute ago', got: %q", got)
-	}
-}
-
-func TestFormatFreshness_SingleHour(t *testing.T) {
-	t.Parallel()
-
-	ts := time.Now().Add(-1 * time.Hour)
-	got := FormatFreshness(ts)
-
-	if !strings.Contains(got, "1 hour ago") {
-		t.Errorf("FormatFreshness(-1h) should contain '1 hour ago', got: %q", got)
 	}
 }

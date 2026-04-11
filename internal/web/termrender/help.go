@@ -81,9 +81,14 @@ func (r *Renderer) RenderHelp(w io.Writer, freshness time.Time) error {
 	buf.WriteString("\n")
 
 	// Data freshness footer.
+	//
+	// Renders only the absolute UTC timestamp; no "(N ago)" wall-clock-relative
+	// phrasing. The help page is served through the sync-time-keyed HTTP caching
+	// middleware, so a relative age string would freeze at cache-creation time
+	// and mislead readers for up to a full sync interval. Readers who want a
+	// relative age can compute it locally from the absolute timestamp.
 	if !freshness.IsZero() {
-		age := time.Since(freshness).Truncate(time.Second)
-		buf.WriteString(StyleMuted.Render(fmt.Sprintf("Data last synced: %s (%s ago)", freshness.Format("2006-01-02 15:04:05 UTC"), age)))
+		buf.WriteString(StyleMuted.Render("Data last synced: " + freshness.UTC().Format("2006-01-02 15:04:05 UTC")))
 		buf.WriteString("\n")
 	}
 
