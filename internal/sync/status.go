@@ -82,6 +82,41 @@ func UpsertCursor(ctx context.Context, db *sql.DB, objType string, lastSyncAt ti
 	return nil
 }
 
+// ReapStaleRunningRows transitions any sync_status rows stuck in "running"
+// state to "failed" with an explanatory error message. Call from startup
+// on the primary machine — a row can get stuck in "running" if a previous
+// process was killed mid-sync (e.g. rolling deploy terminated the primary
+// before the sync commit/rollback path ran). The Worker.running atomic
+// is reset on process start, so no future sync is blocked by these rows;
+// the transition is purely cosmetic so /ui/about and /readyz queries
+// stop seeing phantom "running" syncs that will never complete.
+//
+// Safe to call concurrently with live sync workers because the Consul
+// lease guarantees only one primary at a time. A legitimate in-flight
+// "running" row would be replaced by its own RecordSyncComplete call
+// (latest write wins); in practice the reap runs BEFORE the first
+// sync worker tick so there's no real overlap window.
+//
+// Returns the number of rows transitioned.
+func ReapStaleRunningRows(ctx context.Context, db *sql.DB) (int, error) {
+	result, err := db.ExecContext(ctx,
+		`UPDATE sync_status
+		 SET status = 'failed',
+		     completed_at = ?,
+		     error_message = 'startup reap: process restarted before sync completed'
+		 WHERE status = 'running'`,
+		time.Now(),
+	)
+	if err != nil {
+		return 0, fmt.Errorf("reap stale running rows: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("reap stale running rows affected count: %w", err)
+	}
+	return int(affected), nil
+}
+
 // RecordSyncStart inserts a new running sync status row and returns its ID.
 func RecordSyncStart(ctx context.Context, db *sql.DB, startedAt time.Time) (int64, error) {
 	result, err := db.ExecContext(ctx,
