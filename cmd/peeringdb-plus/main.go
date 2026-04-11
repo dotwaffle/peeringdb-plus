@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"crypto/subtle"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -114,6 +115,34 @@ func main() {
 			logger.Error("failed to migrate schema", slog.Any("error", err))
 			os.Exit(1)
 		}
+	}
+
+	// One-shot truncate (2026-04-11): drop all ent-managed entity data so the
+	// next sync re-populates from a clean PeeringDB snapshot. Motivation: 46
+	// FK violations accumulated in the production DB under the pre-v1.13
+	// `PRAGMA foreign_keys = OFF` sync worker behavior (2 networks, 1 carrier,
+	// many carrier_facilities with _id=0 placeholders, 13 netixlans with
+	// dangling ixlan_id=673). Phase 54 switched to per-tx `defer_foreign_keys
+	// = ON` which enforces FK checks at commit over ALL rows in the affected
+	// tables — the commit failed repeatedly against the accumulated orphans.
+	// This truncate wipes the legacy data so the next sync lands a consistent
+	// snapshot from PeeringDB's current state.
+	//
+	// Runs inside a single tx with `defer_foreign_keys = ON` so SQLite allows
+	// us to delete children before parents without per-row FK failures; the
+	// commit-time FK check is trivially satisfied because every table is
+	// empty. Delete order is child-first (reverse of sync upsert order) per
+	// D-06 FK dependency graph.
+	//
+	// One-shot: REMOVE this block once the prod primary has applied it.
+	if isPrimary {
+		truncateCtx, truncateCancel := context.WithTimeout(ctx, 30*time.Second)
+		if err := truncateAllEntTables(truncateCtx, db, logger); err != nil {
+			truncateCancel()
+			logger.Error("failed to truncate ent tables", slog.Any("error", err))
+			os.Exit(1)
+		}
+		truncateCancel()
 	}
 
 	// Initialize sync_status table on primary (raw SQL, outside ent schema management).
@@ -692,4 +721,72 @@ func newSyncHandler(appCtx context.Context, in SyncHandlerInput) http.HandlerFun
 		w.WriteHeader(http.StatusAccepted)
 		fmt.Fprint(w, `{"status":"accepted"}`)
 	}
+}
+
+// truncateAllEntTables wipes all ent-managed entity tables inside a single
+// transaction, logging the row count cleared per table. It is a one-shot
+// operator tool used to reset the mirror to an empty state after legacy FK
+// orphans accumulated under pre-v1.13 sync worker behavior. The caller
+// removes this block (and the helper below) once the production primary
+// has applied it.
+//
+// Delete order is child-first (reverse of the sync upsert order in
+// internal/sync/worker.go syncSteps). `PRAGMA defer_foreign_keys = ON` is
+// set on the tx so per-row FK checks are postponed to commit — at which
+// point every table is empty, so the commit-time check is trivially
+// satisfied regardless of legacy orphans.
+func truncateAllEntTables(ctx context.Context, db *sql.DB, logger *slog.Logger) error {
+	// Acquire a dedicated connection for the tx so the pragma sticks.
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("acquire truncate conn: %w", err)
+	}
+	defer conn.Close()
+
+	tx, err := conn.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin truncate tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
+		return fmt.Errorf("defer FK checks: %w", err)
+	}
+
+	// Child-first order (reverse of worker.go syncSteps FK dependency order).
+	// See internal/sync/worker.go#syncSteps for the authoritative dependency
+	// list; this mirror must stay in sync with it.
+	tables := []string{
+		"network_ix_lans",
+		"network_facilities",
+		"pocs",
+		"networks",
+		"ix_facilities",
+		"ix_prefixes",
+		"ix_lans",
+		"internet_exchanges",
+		"carrier_facilities",
+		"carriers",
+		"facilities",
+		"campuses",
+		"organizations",
+	}
+	for _, table := range tables {
+		//nolint:gosec // table names come from a hardcoded constant list above, no injection
+		res, err := tx.ExecContext(ctx, "DELETE FROM "+table)
+		if err != nil {
+			return fmt.Errorf("truncate %s: %w", table, err)
+		}
+		affected, _ := res.RowsAffected()
+		logger.LogAttrs(ctx, slog.LevelInfo, "truncated ent table",
+			slog.String("table", table),
+			slog.Int64("rows_deleted", affected),
+		)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit truncate tx: %w", err)
+	}
+	logger.LogAttrs(ctx, slog.LevelInfo, "truncate complete — all 13 ent entity tables empty; next sync will repopulate")
+	return nil
 }
