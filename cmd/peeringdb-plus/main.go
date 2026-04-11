@@ -122,6 +122,17 @@ func main() {
 			logger.Error("failed to init sync_status table", slog.Any("error", err))
 			os.Exit(1)
 		}
+		// Transition any stale "running" rows to "failed" so /ui/about
+		// and /readyz stop reporting phantom in-flight syncs left behind
+		// by a previous process that was killed mid-cycle (typically
+		// during rolling deploys). Non-fatal on error — it's cosmetic.
+		if reaped, err := pdbsync.ReapStaleRunningRows(ctx, db); err != nil {
+			logger.LogAttrs(ctx, slog.LevelError, "failed to reap stale running rows",
+				slog.Any("error", err))
+		} else if reaped > 0 {
+			logger.LogAttrs(ctx, slog.LevelInfo, "reaped stale running rows",
+				slog.Int("count", reaped))
+		}
 	}
 
 	// Initialize sync freshness gauge per D-09.

@@ -268,3 +268,101 @@ func TestGetLastStatus_DBError(t *testing.T) {
 		t.Errorf("error = %q, want substring %q", err.Error(), "get last sync status")
 	}
 }
+
+func TestReapStaleRunningRows(t *testing.T) {
+	t.Parallel()
+	_, db := testutil.SetupClientWithDB(t)
+	ctx := t.Context()
+
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("InitStatusTable: %v", err)
+	}
+
+	// Seed three rows: one running (stale), one success, one failed.
+	// Only the running row should be transitioned by the reap.
+	now := time.Now()
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO sync_status (started_at, status) VALUES (?, 'running')`,
+		now.Add(-2*time.Hour),
+	); err != nil {
+		t.Fatalf("seed running row: %v", err)
+	}
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO sync_status (started_at, completed_at, duration_ms, status) VALUES (?, ?, ?, 'success')`,
+		now.Add(-1*time.Hour), now.Add(-59*time.Minute), 60000,
+	); err != nil {
+		t.Fatalf("seed success row: %v", err)
+	}
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO sync_status (started_at, completed_at, duration_ms, status, error_message) VALUES (?, ?, ?, 'failed', ?)`,
+		now.Add(-30*time.Minute), now.Add(-29*time.Minute), 60000, "boom",
+	); err != nil {
+		t.Fatalf("seed failed row: %v", err)
+	}
+
+	reaped, err := sync.ReapStaleRunningRows(ctx, db)
+	if err != nil {
+		t.Fatalf("ReapStaleRunningRows: %v", err)
+	}
+	if reaped != 1 {
+		t.Errorf("reaped = %d, want 1", reaped)
+	}
+
+	// Verify: zero running rows left, one newly-failed row with the reap message.
+	var runningCount int
+	if err := db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM sync_status WHERE status = 'running'`,
+	).Scan(&runningCount); err != nil {
+		t.Fatalf("count running: %v", err)
+	}
+	if runningCount != 0 {
+		t.Errorf("running rows after reap = %d, want 0", runningCount)
+	}
+
+	var reapMsgCount int
+	if err := db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM sync_status WHERE status = 'failed' AND error_message LIKE 'startup reap%'`,
+	).Scan(&reapMsgCount); err != nil {
+		t.Fatalf("count reap-marked: %v", err)
+	}
+	if reapMsgCount != 1 {
+		t.Errorf("reap-marked rows = %d, want 1", reapMsgCount)
+	}
+
+	// Verify: pre-existing "success" and "failed" rows were NOT touched.
+	var successCount, originalFailedCount int
+	if err := db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM sync_status WHERE status = 'success'`,
+	).Scan(&successCount); err != nil {
+		t.Fatalf("count success: %v", err)
+	}
+	if successCount != 1 {
+		t.Errorf("success rows after reap = %d, want 1 (unchanged)", successCount)
+	}
+	if err := db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM sync_status WHERE status = 'failed' AND error_message = 'boom'`,
+	).Scan(&originalFailedCount); err != nil {
+		t.Fatalf("count original failed: %v", err)
+	}
+	if originalFailedCount != 1 {
+		t.Errorf("original failed rows = %d, want 1 (unchanged)", originalFailedCount)
+	}
+}
+
+func TestReapStaleRunningRows_NoOp(t *testing.T) {
+	t.Parallel()
+	_, db := testutil.SetupClientWithDB(t)
+	ctx := t.Context()
+
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("InitStatusTable: %v", err)
+	}
+
+	reaped, err := sync.ReapStaleRunningRows(ctx, db)
+	if err != nil {
+		t.Fatalf("ReapStaleRunningRows: %v", err)
+	}
+	if reaped != 0 {
+		t.Errorf("reaped = %d, want 0 for empty table", reaped)
+	}
+}
