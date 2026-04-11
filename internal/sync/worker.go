@@ -1247,82 +1247,126 @@ func (w *Worker) runSyncCycle(ctx context.Context, mode config.SyncMode) {
 
 // StartScheduler runs the sync scheduler on all instances per D-22.
 // On primary nodes it executes sync cycles; on replicas it waits for promotion.
-// Role changes are detected dynamically each tick via w.config.IsPrimary().
-// The scheduler stops when ctx is cancelled per CC-2.
+// Role changes are detected dynamically at each scheduler wakeup via
+// w.config.IsPrimary(). The scheduler stops when ctx is cancelled per CC-2.
+//
+// Scheduling anchor: the next sync is scheduled at lastCompletion + interval,
+// not at processStart + N*interval. This matters across restarts — a rolling
+// deploy mid-interval would otherwise delay the next sync by up to a full
+// interval (the ticker would re-anchor on process start). Concretely:
+//
+//   - Fresh DB (no prior successful sync) on a primary: run a full sync
+//     immediately, then schedule the next at now+interval.
+//   - Warm start on a primary with a recent lastSync: wait until
+//     lastSync+interval; if that is already in the past, the first
+//     iteration fires immediately.
+//   - Replica: wake every interval to check for promotion. Matches the
+//     heartbeat cadence of the pre-rewrite ticker-based design.
+//
+// After each cycle — success or failure — the next sync is scheduled at
+// time.Now()+interval. A slower-than-expected sync therefore does NOT
+// shorten the following window, and a failed sync gives PeeringDB a full
+// interval to recover before the next external-facing retry.
 func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 	mode := cmp.Or(w.config.SyncMode, config.SyncModeFull)
 
-	wasPrimary := false
+	lastSync, err := GetLastSuccessfulSyncTime(ctx, w.db)
+	if err != nil {
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to get last sync time",
+			slog.Any("error", err),
+		)
+	}
+	if !lastSync.IsZero() {
+		// Prior data exists (either from our own sync history or from
+		// LiteFS replication) — serve requests immediately.
+		w.synced.Store(true)
+	}
 
-	// Initial check: determine role and act accordingly.
-	if w.config.IsPrimary() {
-		wasPrimary = true
-		lastSync, err := GetLastSuccessfulSyncTime(ctx, w.db)
-		if err != nil {
-			w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to get last sync time",
-				slog.Any("error", err),
-			)
-		}
-		if lastSync.IsZero() {
-			// No prior successful sync -- database is empty, do a full sync now.
-			w.runSyncCycle(ctx, config.SyncModeFull)
-		} else {
-			// Data exists from a prior sync -- serve requests immediately.
-			w.synced.Store(true)
-			if time.Since(lastSync) >= interval {
-				w.runSyncCycle(ctx, mode)
-			}
-		}
-	} else {
-		// Replica: check if data exists from replication.
-		lastSync, _ := GetLastSuccessfulSyncTime(ctx, w.db)
-		if !lastSync.IsZero() {
-			w.synced.Store(true)
-		}
+	wasPrimary := w.config.IsPrimary()
+
+	// Fresh-DB fast path: a primary with no prior successful sync must run
+	// a full sync before entering the wait loop. Forced to SyncModeFull
+	// regardless of the configured mode because there is no cursor data
+	// for an incremental run to resume from.
+	if wasPrimary && lastSync.IsZero() {
+		w.runSyncCycle(ctx, config.SyncModeFull)
+	}
+
+	// Compute the initial wakeup time.
+	var nextAt time.Time
+	switch {
+	case wasPrimary && lastSync.IsZero():
+		// Just ran the fresh-DB sync above — schedule the next one a
+		// full interval from now.
+		nextAt = time.Now().Add(interval)
+	case wasPrimary:
+		// Warm start: anchor at lastSync+interval. If that is already
+		// in the past, the first loop iteration will fire immediately;
+		// otherwise we wait exactly until the anchor.
+		nextAt = lastSync.Add(interval)
+	default:
+		// Replica: wake every interval to check for promotion.
+		nextAt = time.Now().Add(interval)
 		w.logger.LogAttrs(ctx, slog.LevelDebug, "starting scheduler as replica")
 	}
 
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
 	for {
+		wait := max(time.Until(nextAt), 0)
+
+		// time.NewTimer (not time.After) so ctx-cancellation can Stop()
+		// the timer and release it to the GC immediately instead of
+		// waiting the full interval for the fire.
+		timer := time.NewTimer(wait)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return
-		case <-ticker.C:
-			isPrimary := w.config.IsPrimary()
-
-			// Detect role transitions.
-			if isPrimary && !wasPrimary {
-				w.logger.LogAttrs(ctx, slog.LevelInfo, "promoted to primary, checking sync status")
-				pdbotel.RoleTransitions.Add(ctx, 1,
-					metric.WithAttributes(attribute.String("direction", "promoted")),
-				)
-				lastSync, _ := GetLastSuccessfulSyncTime(ctx, w.db)
-				wasPrimary = true
-				if lastSync.IsZero() || time.Since(lastSync) >= interval {
-					w.runSyncCycle(ctx, mode)
-				}
-				continue
-			}
-			if !isPrimary && wasPrimary {
-				w.logger.LogAttrs(ctx, slog.LevelInfo, "demoted to replica")
-				pdbotel.RoleTransitions.Add(ctx, 1,
-					metric.WithAttributes(attribute.String("direction", "demoted")),
-				)
-				wasPrimary = false
-				continue
-			}
-
-			wasPrimary = isPrimary
-
-			if !isPrimary {
-				w.logger.LogAttrs(ctx, slog.LevelDebug, "not primary, skipping sync")
-				continue
-			}
-
-			w.runSyncCycle(ctx, mode)
+		case <-timer.C:
 		}
+
+		isPrimary := w.config.IsPrimary()
+
+		// Role transitions.
+		if isPrimary && !wasPrimary {
+			w.logger.LogAttrs(ctx, slog.LevelInfo, "promoted to primary, checking sync status")
+			pdbotel.RoleTransitions.Add(ctx, 1,
+				metric.WithAttributes(attribute.String("direction", "promoted")),
+			)
+			wasPrimary = true
+			// Re-read from the DB: replication may have advanced the
+			// last-sync timestamp while we were a replica.
+			ls, _ := GetLastSuccessfulSyncTime(ctx, w.db)
+			if ls.IsZero() || time.Since(ls) >= interval {
+				w.runSyncCycle(ctx, mode)
+				nextAt = time.Now().Add(interval)
+			} else {
+				nextAt = ls.Add(interval)
+			}
+			continue
+		}
+		if !isPrimary && wasPrimary {
+			w.logger.LogAttrs(ctx, slog.LevelInfo, "demoted to replica")
+			pdbotel.RoleTransitions.Add(ctx, 1,
+				metric.WithAttributes(attribute.String("direction", "demoted")),
+			)
+			wasPrimary = false
+			nextAt = time.Now().Add(interval)
+			continue
+		}
+		wasPrimary = isPrimary
+
+		if !isPrimary {
+			// Still a replica — heartbeat for the next role check.
+			w.logger.LogAttrs(ctx, slog.LevelDebug, "not primary, skipping sync")
+			nextAt = time.Now().Add(interval)
+			continue
+		}
+
+		// Primary and the scheduled time has arrived — run the cycle
+		// and anchor the next run at now+interval (a slow sync does
+		// NOT shorten the next window).
+		w.runSyncCycle(ctx, mode)
+		nextAt = time.Now().Add(interval)
 	}
 }
 
