@@ -45,17 +45,21 @@ func TestMiddlewareChain_Order(t *testing.T) {
 	// wantOrder is innermost-first (the order lines are wrapped in the
 	// code). The runtime order a request traverses is the reverse:
 	// Recovery runs first, Gzip runs last.
+	//
+	// Each entry includes the trailing "(" so that the match is guaranteed
+	// to be a call site, not a substring of a type name (e.g. "middleware.CSP"
+	// would otherwise match "middleware.CSPInput{}").
 	wantOrder := []string{
-		"middleware.Compression",
-		"middleware.Caching",
-		"middleware.CSP",
-		"middleware.SecurityHeaders",
-		"readinessMiddleware",
-		"middleware.Logging",
-		"otelhttp.NewMiddleware",
-		"middleware.CORS",
-		"middleware.MaxBytesBody",
-		"middleware.Recovery",
+		"middleware.Compression(",
+		"middleware.Caching(",
+		"middleware.CSP(",
+		"middleware.SecurityHeaders(",
+		"readinessMiddleware(",
+		"middleware.Logging(",
+		"otelhttp.NewMiddleware(",
+		"middleware.CORS(",
+		"middleware.MaxBytesBody(",
+		"middleware.Recovery(",
 	}
 
 	type hit struct {
