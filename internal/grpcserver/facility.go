@@ -22,6 +22,142 @@ type FacilityService struct {
 	StreamTimeout time.Duration
 }
 
+// facilityListFilters is the generic filter table consumed by
+// applyFacilityListFilters. Entries run in slice order. See
+// internal/grpcserver/filter.go for the filterFn[REQ] contract and the
+// reusable predicate builders.
+var facilityListFilters = []filterFn[pb.ListFacilitiesRequest]{
+	validatingFilter("id",
+		func(r *pb.ListFacilitiesRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(facility.FieldID)),
+	validatingFilter("org_id",
+		func(r *pb.ListFacilitiesRequest) *int64 { return r.OrgId },
+		positiveInt64(), fieldEQInt(facility.FieldOrgID)),
+	validatingFilter("campus_id",
+		func(r *pb.ListFacilitiesRequest) *int64 { return r.CampusId },
+		positiveInt64(), fieldEQInt(facility.FieldCampusID)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Name },
+		fieldContainsFold(facility.FieldName)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Aka },
+		fieldContainsFold(facility.FieldAka)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.NameLong },
+		fieldContainsFold(facility.FieldNameLong)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Country },
+		fieldEQString(facility.FieldCountry)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.City },
+		fieldContainsFold(facility.FieldCity)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Status },
+		fieldEQString(facility.FieldStatus)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Website },
+		fieldEQString(facility.FieldWebsite)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Clli },
+		fieldEQString(facility.FieldClli)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Rencode },
+		fieldEQString(facility.FieldRencode)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Npanxx },
+		fieldEQString(facility.FieldNpanxx)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.TechEmail },
+		fieldEQString(facility.FieldTechEmail)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.TechPhone },
+		fieldEQString(facility.FieldTechPhone)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.SalesEmail },
+		fieldEQString(facility.FieldSalesEmail)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.SalesPhone },
+		fieldEQString(facility.FieldSalesPhone)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Property },
+		fieldEQString(facility.FieldProperty)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *bool { return r.DiverseServingSubstations },
+		fieldEQBool(facility.FieldDiverseServingSubstations)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Notes },
+		fieldEQString(facility.FieldNotes)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.RegionContinent },
+		fieldEQString(facility.FieldRegionContinent)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.StatusDashboard },
+		fieldEQString(facility.FieldStatusDashboard)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Logo },
+		fieldEQString(facility.FieldLogo)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Address1 },
+		fieldEQString(facility.FieldAddress1)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Address2 },
+		fieldEQString(facility.FieldAddress2)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.State },
+		fieldEQString(facility.FieldState)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Zipcode },
+		fieldEQString(facility.FieldZipcode)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Suite },
+		fieldEQString(facility.FieldSuite)),
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.Floor },
+		fieldEQString(facility.FieldFloor)),
+	// org_name filter -- stored as denormalized field on entity.
+	eqFilter(func(r *pb.ListFacilitiesRequest) *string { return r.OrgName },
+		fieldEQString(facility.FieldOrgName)),
+}
+
+// facilityStreamFilters mirrors facilityListFilters but omits the id entry —
+// Stream uses SinceID handled by generic.StreamEntities.
+var facilityStreamFilters = []filterFn[pb.StreamFacilitiesRequest]{
+	validatingFilter("org_id",
+		func(r *pb.StreamFacilitiesRequest) *int64 { return r.OrgId },
+		positiveInt64(), fieldEQInt(facility.FieldOrgID)),
+	validatingFilter("campus_id",
+		func(r *pb.StreamFacilitiesRequest) *int64 { return r.CampusId },
+		positiveInt64(), fieldEQInt(facility.FieldCampusID)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Name },
+		fieldContainsFold(facility.FieldName)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Aka },
+		fieldContainsFold(facility.FieldAka)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.NameLong },
+		fieldContainsFold(facility.FieldNameLong)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Country },
+		fieldEQString(facility.FieldCountry)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.City },
+		fieldContainsFold(facility.FieldCity)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Status },
+		fieldEQString(facility.FieldStatus)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Website },
+		fieldEQString(facility.FieldWebsite)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Clli },
+		fieldEQString(facility.FieldClli)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Rencode },
+		fieldEQString(facility.FieldRencode)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Npanxx },
+		fieldEQString(facility.FieldNpanxx)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.TechEmail },
+		fieldEQString(facility.FieldTechEmail)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.TechPhone },
+		fieldEQString(facility.FieldTechPhone)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.SalesEmail },
+		fieldEQString(facility.FieldSalesEmail)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.SalesPhone },
+		fieldEQString(facility.FieldSalesPhone)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Property },
+		fieldEQString(facility.FieldProperty)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *bool { return r.DiverseServingSubstations },
+		fieldEQBool(facility.FieldDiverseServingSubstations)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Notes },
+		fieldEQString(facility.FieldNotes)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.RegionContinent },
+		fieldEQString(facility.FieldRegionContinent)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.StatusDashboard },
+		fieldEQString(facility.FieldStatusDashboard)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Logo },
+		fieldEQString(facility.FieldLogo)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Address1 },
+		fieldEQString(facility.FieldAddress1)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Address2 },
+		fieldEQString(facility.FieldAddress2)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.State },
+		fieldEQString(facility.FieldState)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Zipcode },
+		fieldEQString(facility.FieldZipcode)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Suite },
+		fieldEQString(facility.FieldSuite)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.Floor },
+		fieldEQString(facility.FieldFloor)),
+	eqFilter(func(r *pb.StreamFacilitiesRequest) *string { return r.OrgName },
+		fieldEQString(facility.FieldOrgName)),
+}
+
 // GetFacility returns a single facility by ID. Returns NOT_FOUND if the
 // facility does not exist.
 func (s *FacilityService) GetFacility(ctx context.Context, req *pb.GetFacilityRequest) (*pb.GetFacilityResponse, error) {
@@ -35,207 +171,16 @@ func (s *FacilityService) GetFacility(ctx context.Context, req *pb.GetFacilityRe
 	return &pb.GetFacilityResponse{Facility: facilityToProto(f)}, nil
 }
 
+// applyFacilityListFilters builds filter predicates from the generic filter
+// table. See facilityListFilters and internal/grpcserver/filter.go.
 func applyFacilityListFilters(req *pb.ListFacilitiesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(facility.FieldID, int(*req.Id)))
-	}
-	if req.OrgId != nil {
-		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(facility.FieldOrgID, int(*req.OrgId)))
-	}
-	if req.CampusId != nil {
-		if *req.CampusId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: campus_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(facility.FieldCampusID, int(*req.CampusId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(facility.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(facility.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(facility.FieldNameLong, *req.NameLong))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(facility.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldStatus, *req.Status))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldWebsite, *req.Website))
-	}
-	if req.Clli != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldClli, *req.Clli))
-	}
-	if req.Rencode != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldRencode, *req.Rencode))
-	}
-	if req.Npanxx != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldNpanxx, *req.Npanxx))
-	}
-	if req.TechEmail != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldTechEmail, *req.TechEmail))
-	}
-	if req.TechPhone != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldTechPhone, *req.TechPhone))
-	}
-	if req.SalesEmail != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldSalesEmail, *req.SalesEmail))
-	}
-	if req.SalesPhone != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldSalesPhone, *req.SalesPhone))
-	}
-	if req.Property != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldProperty, *req.Property))
-	}
-	if req.DiverseServingSubstations != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldDiverseServingSubstations, *req.DiverseServingSubstations))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldNotes, *req.Notes))
-	}
-	if req.RegionContinent != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldRegionContinent, *req.RegionContinent))
-	}
-	if req.StatusDashboard != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldStatusDashboard, *req.StatusDashboard))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldLogo, *req.Logo))
-	}
-	if req.Address1 != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldAddress1, *req.Address1))
-	}
-	if req.Address2 != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldAddress2, *req.Address2))
-	}
-	if req.State != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldState, *req.State))
-	}
-	if req.Zipcode != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldZipcode, *req.Zipcode))
-	}
-	if req.Suite != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldSuite, *req.Suite))
-	}
-	if req.Floor != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldFloor, *req.Floor))
-	}
-	// org_name filter -- stored as denormalized field on entity.
-	if req.OrgName != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldOrgName, *req.OrgName))
-	}
-	return preds, nil
+	return applyFilters(req, facilityListFilters)
 }
 
+// applyFacilityStreamFilters builds filter predicates from the generic filter
+// table. See facilityStreamFilters and internal/grpcserver/filter.go.
 func applyFacilityStreamFilters(req *pb.StreamFacilitiesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.OrgId != nil {
-		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(facility.FieldOrgID, int(*req.OrgId)))
-	}
-	if req.CampusId != nil {
-		if *req.CampusId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: campus_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(facility.FieldCampusID, int(*req.CampusId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(facility.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(facility.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(facility.FieldNameLong, *req.NameLong))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(facility.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldStatus, *req.Status))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldWebsite, *req.Website))
-	}
-	if req.Clli != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldClli, *req.Clli))
-	}
-	if req.Rencode != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldRencode, *req.Rencode))
-	}
-	if req.Npanxx != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldNpanxx, *req.Npanxx))
-	}
-	if req.TechEmail != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldTechEmail, *req.TechEmail))
-	}
-	if req.TechPhone != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldTechPhone, *req.TechPhone))
-	}
-	if req.SalesEmail != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldSalesEmail, *req.SalesEmail))
-	}
-	if req.SalesPhone != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldSalesPhone, *req.SalesPhone))
-	}
-	if req.Property != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldProperty, *req.Property))
-	}
-	if req.DiverseServingSubstations != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldDiverseServingSubstations, *req.DiverseServingSubstations))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldNotes, *req.Notes))
-	}
-	if req.RegionContinent != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldRegionContinent, *req.RegionContinent))
-	}
-	if req.StatusDashboard != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldStatusDashboard, *req.StatusDashboard))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldLogo, *req.Logo))
-	}
-	if req.Address1 != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldAddress1, *req.Address1))
-	}
-	if req.Address2 != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldAddress2, *req.Address2))
-	}
-	if req.State != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldState, *req.State))
-	}
-	if req.Zipcode != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldZipcode, *req.Zipcode))
-	}
-	if req.Suite != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldSuite, *req.Suite))
-	}
-	if req.Floor != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldFloor, *req.Floor))
-	}
-	if req.OrgName != nil {
-		preds = append(preds, sql.FieldEQ(facility.FieldOrgName, *req.OrgName))
-	}
-	return preds, nil
+	return applyFilters(req, facilityStreamFilters)
 }
 
 // ListFacilities returns a paginated list of facilities ordered by ID ascending.

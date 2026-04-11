@@ -21,6 +21,65 @@ type IxLanService struct {
 	StreamTimeout time.Duration
 }
 
+// ixLanListFilters is the generic filter table consumed by
+// applyIxLanListFilters. Entries run in slice order. See
+// internal/grpcserver/filter.go for the filterFn[REQ] contract and the
+// reusable predicate builders.
+var ixLanListFilters = []filterFn[pb.ListIxLansRequest]{
+	validatingFilter("id",
+		func(r *pb.ListIxLansRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(ixlan.FieldID)),
+	validatingFilter("ix_id",
+		func(r *pb.ListIxLansRequest) *int64 { return r.IxId },
+		positiveInt64(), fieldEQInt(ixlan.FieldIxID)),
+	eqFilter(func(r *pb.ListIxLansRequest) *string { return r.Name },
+		fieldContainsFold(ixlan.FieldName)),
+	eqFilter(func(r *pb.ListIxLansRequest) *string { return r.Status },
+		fieldEQString(ixlan.FieldStatus)),
+	eqFilter(func(r *pb.ListIxLansRequest) *string { return r.Descr },
+		fieldEQString(ixlan.FieldDescr)),
+	eqFilter(func(r *pb.ListIxLansRequest) *int64 { return r.Mtu },
+		fieldEQInt(ixlan.FieldMtu)),
+	eqFilter(func(r *pb.ListIxLansRequest) *bool { return r.Dot1QSupport },
+		fieldEQBool(ixlan.FieldDot1qSupport)),
+	validatingFilter("rs_asn",
+		func(r *pb.ListIxLansRequest) *int64 { return r.RsAsn },
+		positiveInt64(), fieldEQInt(ixlan.FieldRsAsn)),
+	eqFilter(func(r *pb.ListIxLansRequest) *string { return r.ArpSponge },
+		fieldEQString(ixlan.FieldArpSponge)),
+	eqFilter(func(r *pb.ListIxLansRequest) *string { return r.IxfIxpMemberListUrlVisible },
+		fieldEQString(ixlan.FieldIxfIxpMemberListURLVisible)),
+	eqFilter(func(r *pb.ListIxLansRequest) *bool { return r.IxfIxpImportEnabled },
+		fieldEQBool(ixlan.FieldIxfIxpImportEnabled)),
+}
+
+// ixLanStreamFilters mirrors ixLanListFilters but omits the id entry —
+// Stream uses SinceID handled by generic.StreamEntities.
+var ixLanStreamFilters = []filterFn[pb.StreamIxLansRequest]{
+	validatingFilter("ix_id",
+		func(r *pb.StreamIxLansRequest) *int64 { return r.IxId },
+		positiveInt64(), fieldEQInt(ixlan.FieldIxID)),
+	eqFilter(func(r *pb.StreamIxLansRequest) *string { return r.Name },
+		fieldContainsFold(ixlan.FieldName)),
+	eqFilter(func(r *pb.StreamIxLansRequest) *string { return r.Status },
+		fieldEQString(ixlan.FieldStatus)),
+	eqFilter(func(r *pb.StreamIxLansRequest) *string { return r.Descr },
+		fieldEQString(ixlan.FieldDescr)),
+	eqFilter(func(r *pb.StreamIxLansRequest) *int64 { return r.Mtu },
+		fieldEQInt(ixlan.FieldMtu)),
+	eqFilter(func(r *pb.StreamIxLansRequest) *bool { return r.Dot1QSupport },
+		fieldEQBool(ixlan.FieldDot1qSupport)),
+	validatingFilter("rs_asn",
+		func(r *pb.StreamIxLansRequest) *int64 { return r.RsAsn },
+		positiveInt64(), fieldEQInt(ixlan.FieldRsAsn)),
+	eqFilter(func(r *pb.StreamIxLansRequest) *string { return r.ArpSponge },
+		fieldEQString(ixlan.FieldArpSponge)),
+	eqFilter(func(r *pb.StreamIxLansRequest) *string { return r.IxfIxpMemberListUrlVisible },
+		fieldEQString(ixlan.FieldIxfIxpMemberListURLVisible)),
+	eqFilter(func(r *pb.StreamIxLansRequest) *bool { return r.IxfIxpImportEnabled },
+		fieldEQBool(ixlan.FieldIxfIxpImportEnabled)),
+}
+
 // GetIxLan returns a single IX LAN by ID.
 func (s *IxLanService) GetIxLan(ctx context.Context, req *pb.GetIxLanRequest) (*pb.GetIxLanResponse, error) {
 	il, err := s.Client.IxLan.Get(ctx, int(req.GetId()))
@@ -33,92 +92,16 @@ func (s *IxLanService) GetIxLan(ctx context.Context, req *pb.GetIxLanRequest) (*
 	return &pb.GetIxLanResponse{IxLan: ixLanToProto(il)}, nil
 }
 
+// applyIxLanListFilters builds filter predicates from the generic filter
+// table. See ixLanListFilters and internal/grpcserver/filter.go.
 func applyIxLanListFilters(req *pb.ListIxLansRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixlan.FieldID, int(*req.Id)))
-	}
-	if req.IxId != nil {
-		if *req.IxId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixlan.FieldIxID, int(*req.IxId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(ixlan.FieldName, *req.Name))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldStatus, *req.Status))
-	}
-	if req.Descr != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldDescr, *req.Descr))
-	}
-	if req.Mtu != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldMtu, int(*req.Mtu)))
-	}
-	if req.Dot1QSupport != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldDot1qSupport, *req.Dot1QSupport))
-	}
-	if req.RsAsn != nil {
-		if *req.RsAsn <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: rs_asn must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixlan.FieldRsAsn, int(*req.RsAsn)))
-	}
-	if req.ArpSponge != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldArpSponge, *req.ArpSponge))
-	}
-	if req.IxfIxpMemberListUrlVisible != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldIxfIxpMemberListURLVisible, *req.IxfIxpMemberListUrlVisible))
-	}
-	if req.IxfIxpImportEnabled != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldIxfIxpImportEnabled, *req.IxfIxpImportEnabled))
-	}
-	return preds, nil
+	return applyFilters(req, ixLanListFilters)
 }
 
+// applyIxLanStreamFilters builds filter predicates from the generic filter
+// table. See ixLanStreamFilters and internal/grpcserver/filter.go.
 func applyIxLanStreamFilters(req *pb.StreamIxLansRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.IxId != nil {
-		if *req.IxId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: ix_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixlan.FieldIxID, int(*req.IxId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(ixlan.FieldName, *req.Name))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldStatus, *req.Status))
-	}
-	if req.Descr != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldDescr, *req.Descr))
-	}
-	if req.Mtu != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldMtu, int(*req.Mtu)))
-	}
-	if req.Dot1QSupport != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldDot1qSupport, *req.Dot1QSupport))
-	}
-	if req.RsAsn != nil {
-		if *req.RsAsn <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: rs_asn must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(ixlan.FieldRsAsn, int(*req.RsAsn)))
-	}
-	if req.ArpSponge != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldArpSponge, *req.ArpSponge))
-	}
-	if req.IxfIxpMemberListUrlVisible != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldIxfIxpMemberListURLVisible, *req.IxfIxpMemberListUrlVisible))
-	}
-	if req.IxfIxpImportEnabled != nil {
-		preds = append(preds, sql.FieldEQ(ixlan.FieldIxfIxpImportEnabled, *req.IxfIxpImportEnabled))
-	}
-	return preds, nil
+	return applyFilters(req, ixLanStreamFilters)
 }
 
 // ListIxLans returns a paginated list of IX LANs.

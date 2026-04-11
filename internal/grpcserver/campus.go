@@ -22,6 +22,76 @@ type CampusService struct {
 	StreamTimeout time.Duration
 }
 
+// campusListFilters is the generic filter table consumed by
+// applyCampusListFilters. Entries run in slice order. See
+// internal/grpcserver/filter.go for the filterFn[REQ] contract and the
+// reusable predicate builders.
+var campusListFilters = []filterFn[pb.ListCampusesRequest]{
+	validatingFilter("id",
+		func(r *pb.ListCampusesRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(campus.FieldID)),
+	validatingFilter("org_id",
+		func(r *pb.ListCampusesRequest) *int64 { return r.OrgId },
+		positiveInt64(), fieldEQInt(campus.FieldOrgID)),
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.Name },
+		fieldContainsFold(campus.FieldName)),
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.Aka },
+		fieldContainsFold(campus.FieldAka)),
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.NameLong },
+		fieldContainsFold(campus.FieldNameLong)),
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.Country },
+		fieldEQString(campus.FieldCountry)),
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.City },
+		fieldContainsFold(campus.FieldCity)),
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.Status },
+		fieldEQString(campus.FieldStatus)),
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.Website },
+		fieldEQString(campus.FieldWebsite)),
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.Notes },
+		fieldEQString(campus.FieldNotes)),
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.State },
+		fieldEQString(campus.FieldState)),
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.Zipcode },
+		fieldEQString(campus.FieldZipcode)),
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.Logo },
+		fieldEQString(campus.FieldLogo)),
+	// org_name filter -- stored as denormalized field on entity.
+	eqFilter(func(r *pb.ListCampusesRequest) *string { return r.OrgName },
+		fieldEQString(campus.FieldOrgName)),
+}
+
+// campusStreamFilters mirrors campusListFilters but omits the id entry —
+// Stream uses SinceID handled by generic.StreamEntities.
+var campusStreamFilters = []filterFn[pb.StreamCampusesRequest]{
+	validatingFilter("org_id",
+		func(r *pb.StreamCampusesRequest) *int64 { return r.OrgId },
+		positiveInt64(), fieldEQInt(campus.FieldOrgID)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.Name },
+		fieldContainsFold(campus.FieldName)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.Aka },
+		fieldContainsFold(campus.FieldAka)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.NameLong },
+		fieldContainsFold(campus.FieldNameLong)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.Country },
+		fieldEQString(campus.FieldCountry)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.City },
+		fieldContainsFold(campus.FieldCity)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.Status },
+		fieldEQString(campus.FieldStatus)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.Website },
+		fieldEQString(campus.FieldWebsite)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.Notes },
+		fieldEQString(campus.FieldNotes)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.State },
+		fieldEQString(campus.FieldState)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.Zipcode },
+		fieldEQString(campus.FieldZipcode)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.Logo },
+		fieldEQString(campus.FieldLogo)),
+	eqFilter(func(r *pb.StreamCampusesRequest) *string { return r.OrgName },
+		fieldEQString(campus.FieldOrgName)),
+}
+
 // GetCampus returns a single campus by ID. Returns NOT_FOUND if the campus
 // does not exist.
 func (s *CampusService) GetCampus(ctx context.Context, req *pb.GetCampusRequest) (*pb.GetCampusResponse, error) {
@@ -35,105 +105,16 @@ func (s *CampusService) GetCampus(ctx context.Context, req *pb.GetCampusRequest)
 	return &pb.GetCampusResponse{Campus: campusToProto(c)}, nil
 }
 
+// applyCampusListFilters builds filter predicates from the generic filter
+// table. See campusListFilters and internal/grpcserver/filter.go.
 func applyCampusListFilters(req *pb.ListCampusesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(campus.FieldID, int(*req.Id)))
-	}
-	if req.OrgId != nil {
-		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(campus.FieldOrgID, int(*req.OrgId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(campus.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(campus.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(campus.FieldNameLong, *req.NameLong))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(campus.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldStatus, *req.Status))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldWebsite, *req.Website))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldNotes, *req.Notes))
-	}
-	if req.State != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldState, *req.State))
-	}
-	if req.Zipcode != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldZipcode, *req.Zipcode))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldLogo, *req.Logo))
-	}
-	// org_name filter -- stored as denormalized field on entity.
-	if req.OrgName != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldOrgName, *req.OrgName))
-	}
-	return preds, nil
+	return applyFilters(req, campusListFilters)
 }
 
+// applyCampusStreamFilters builds filter predicates from the generic filter
+// table. See campusStreamFilters and internal/grpcserver/filter.go.
 func applyCampusStreamFilters(req *pb.StreamCampusesRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.OrgId != nil {
-		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(campus.FieldOrgID, int(*req.OrgId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(campus.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(campus.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(campus.FieldNameLong, *req.NameLong))
-	}
-	if req.Country != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldCountry, *req.Country))
-	}
-	if req.City != nil {
-		preds = append(preds, sql.FieldContainsFold(campus.FieldCity, *req.City))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldStatus, *req.Status))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldWebsite, *req.Website))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldNotes, *req.Notes))
-	}
-	if req.State != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldState, *req.State))
-	}
-	if req.Zipcode != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldZipcode, *req.Zipcode))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldLogo, *req.Logo))
-	}
-	if req.OrgName != nil {
-		preds = append(preds, sql.FieldEQ(campus.FieldOrgName, *req.OrgName))
-	}
-	return preds, nil
+	return applyFilters(req, campusStreamFilters)
 }
 
 // ListCampuses returns a paginated list of campuses ordered by ID ascending.

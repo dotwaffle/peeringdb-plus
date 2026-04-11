@@ -22,6 +22,147 @@ type NetworkService struct {
 	StreamTimeout time.Duration
 }
 
+// networkListFilters is the generic filter table consumed by
+// applyNetworkListFilters. Entries run in slice order. Each entry extracts
+// an optional field (nil pointer skipped), optionally validates the
+// dereferenced value, and emits a sql.Selector predicate.
+//
+// See internal/grpcserver/filter.go for the filterFn[REQ] contract.
+var networkListFilters = []filterFn[pb.ListNetworksRequest]{
+	validatingFilter("id",
+		func(r *pb.ListNetworksRequest) *int64 { return r.Id },
+		positiveInt64(), fieldEQInt(network.FieldID)),
+	validatingFilter("asn",
+		func(r *pb.ListNetworksRequest) *int64 { return r.Asn },
+		positiveInt64(), fieldEQInt(network.FieldAsn)),
+	validatingFilter("org_id",
+		func(r *pb.ListNetworksRequest) *int64 { return r.OrgId },
+		positiveInt64(), fieldEQInt(network.FieldOrgID)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.Name },
+		fieldContainsFold(network.FieldName)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.Aka },
+		fieldContainsFold(network.FieldAka)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.NameLong },
+		fieldContainsFold(network.FieldNameLong)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.Status },
+		fieldEQString(network.FieldStatus)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.Website },
+		fieldEQString(network.FieldWebsite)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.LookingGlass },
+		fieldEQString(network.FieldLookingGlass)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.RouteServer },
+		fieldEQString(network.FieldRouteServer)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.IrrAsSet },
+		fieldEQString(network.FieldIrrAsSet)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.InfoType },
+		fieldEQString(network.FieldInfoType)),
+	eqFilter(func(r *pb.ListNetworksRequest) *int64 { return r.InfoPrefixes4 },
+		fieldEQInt(network.FieldInfoPrefixes4)),
+	eqFilter(func(r *pb.ListNetworksRequest) *int64 { return r.InfoPrefixes6 },
+		fieldEQInt(network.FieldInfoPrefixes6)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.InfoTraffic },
+		fieldEQString(network.FieldInfoTraffic)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.InfoRatio },
+		fieldEQString(network.FieldInfoRatio)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.InfoScope },
+		fieldEQString(network.FieldInfoScope)),
+	eqFilter(func(r *pb.ListNetworksRequest) *bool { return r.InfoUnicast },
+		fieldEQBool(network.FieldInfoUnicast)),
+	eqFilter(func(r *pb.ListNetworksRequest) *bool { return r.InfoMulticast },
+		fieldEQBool(network.FieldInfoMulticast)),
+	eqFilter(func(r *pb.ListNetworksRequest) *bool { return r.InfoIpv6 },
+		fieldEQBool(network.FieldInfoIpv6)),
+	eqFilter(func(r *pb.ListNetworksRequest) *bool { return r.InfoNeverViaRouteServers },
+		fieldEQBool(network.FieldInfoNeverViaRouteServers)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.Notes },
+		fieldEQString(network.FieldNotes)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.PolicyUrl },
+		fieldEQString(network.FieldPolicyURL)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.PolicyGeneral },
+		fieldEQString(network.FieldPolicyGeneral)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.PolicyLocations },
+		fieldEQString(network.FieldPolicyLocations)),
+	eqFilter(func(r *pb.ListNetworksRequest) *bool { return r.PolicyRatio },
+		fieldEQBool(network.FieldPolicyRatio)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.PolicyContracts },
+		fieldEQString(network.FieldPolicyContracts)),
+	eqFilter(func(r *pb.ListNetworksRequest) *bool { return r.AllowIxpUpdate },
+		fieldEQBool(network.FieldAllowIxpUpdate)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.StatusDashboard },
+		fieldEQString(network.FieldStatusDashboard)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.RirStatus },
+		fieldEQString(network.FieldRirStatus)),
+	eqFilter(func(r *pb.ListNetworksRequest) *string { return r.Logo },
+		fieldEQString(network.FieldLogo)),
+}
+
+// networkStreamFilters mirrors networkListFilters but omits the id entry —
+// Stream uses SinceID handled by generic.StreamEntities.
+var networkStreamFilters = []filterFn[pb.StreamNetworksRequest]{
+	validatingFilter("asn",
+		func(r *pb.StreamNetworksRequest) *int64 { return r.Asn },
+		positiveInt64(), fieldEQInt(network.FieldAsn)),
+	validatingFilter("org_id",
+		func(r *pb.StreamNetworksRequest) *int64 { return r.OrgId },
+		positiveInt64(), fieldEQInt(network.FieldOrgID)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.Name },
+		fieldContainsFold(network.FieldName)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.Aka },
+		fieldContainsFold(network.FieldAka)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.NameLong },
+		fieldContainsFold(network.FieldNameLong)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.Status },
+		fieldEQString(network.FieldStatus)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.Website },
+		fieldEQString(network.FieldWebsite)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.LookingGlass },
+		fieldEQString(network.FieldLookingGlass)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.RouteServer },
+		fieldEQString(network.FieldRouteServer)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.IrrAsSet },
+		fieldEQString(network.FieldIrrAsSet)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.InfoType },
+		fieldEQString(network.FieldInfoType)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *int64 { return r.InfoPrefixes4 },
+		fieldEQInt(network.FieldInfoPrefixes4)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *int64 { return r.InfoPrefixes6 },
+		fieldEQInt(network.FieldInfoPrefixes6)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.InfoTraffic },
+		fieldEQString(network.FieldInfoTraffic)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.InfoRatio },
+		fieldEQString(network.FieldInfoRatio)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.InfoScope },
+		fieldEQString(network.FieldInfoScope)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *bool { return r.InfoUnicast },
+		fieldEQBool(network.FieldInfoUnicast)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *bool { return r.InfoMulticast },
+		fieldEQBool(network.FieldInfoMulticast)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *bool { return r.InfoIpv6 },
+		fieldEQBool(network.FieldInfoIpv6)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *bool { return r.InfoNeverViaRouteServers },
+		fieldEQBool(network.FieldInfoNeverViaRouteServers)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.Notes },
+		fieldEQString(network.FieldNotes)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.PolicyUrl },
+		fieldEQString(network.FieldPolicyURL)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.PolicyGeneral },
+		fieldEQString(network.FieldPolicyGeneral)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.PolicyLocations },
+		fieldEQString(network.FieldPolicyLocations)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *bool { return r.PolicyRatio },
+		fieldEQBool(network.FieldPolicyRatio)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.PolicyContracts },
+		fieldEQString(network.FieldPolicyContracts)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *bool { return r.AllowIxpUpdate },
+		fieldEQBool(network.FieldAllowIxpUpdate)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.StatusDashboard },
+		fieldEQString(network.FieldStatusDashboard)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.RirStatus },
+		fieldEQString(network.FieldRirStatus)),
+	eqFilter(func(r *pb.StreamNetworksRequest) *string { return r.Logo },
+		fieldEQString(network.FieldLogo)),
+}
+
 // GetNetwork returns a single network by ID. Returns NOT_FOUND if the network
 // does not exist.
 func (s *NetworkService) GetNetwork(ctx context.Context, req *pb.GetNetworkRequest) (*pb.GetNetworkResponse, error) {
@@ -35,217 +176,16 @@ func (s *NetworkService) GetNetwork(ctx context.Context, req *pb.GetNetworkReque
 	return &pb.GetNetworkResponse{Network: networkToProto(n)}, nil
 }
 
-// applyNetworkListFilters builds filter predicates from ListNetworksRequest
-// optional fields. Covers all pdbcompat Registry fields for networks.
+// applyNetworkListFilters builds filter predicates from the generic filter
+// table. See networkListFilters and internal/grpcserver/filter.go.
 func applyNetworkListFilters(req *pb.ListNetworksRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Id != nil {
-		if *req.Id <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(network.FieldID, int(*req.Id)))
-	}
-	if req.Asn != nil {
-		if *req.Asn <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: asn must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(network.FieldAsn, int(*req.Asn)))
-	}
-	if req.OrgId != nil {
-		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(network.FieldOrgID, int(*req.OrgId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(network.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(network.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(network.FieldNameLong, *req.NameLong))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldStatus, *req.Status))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldWebsite, *req.Website))
-	}
-	if req.LookingGlass != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldLookingGlass, *req.LookingGlass))
-	}
-	if req.RouteServer != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldRouteServer, *req.RouteServer))
-	}
-	if req.IrrAsSet != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldIrrAsSet, *req.IrrAsSet))
-	}
-	if req.InfoType != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoType, *req.InfoType))
-	}
-	if req.InfoPrefixes4 != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoPrefixes4, int(*req.InfoPrefixes4)))
-	}
-	if req.InfoPrefixes6 != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoPrefixes6, int(*req.InfoPrefixes6)))
-	}
-	if req.InfoTraffic != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoTraffic, *req.InfoTraffic))
-	}
-	if req.InfoRatio != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoRatio, *req.InfoRatio))
-	}
-	if req.InfoScope != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoScope, *req.InfoScope))
-	}
-	if req.InfoUnicast != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoUnicast, *req.InfoUnicast))
-	}
-	if req.InfoMulticast != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoMulticast, *req.InfoMulticast))
-	}
-	if req.InfoIpv6 != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoIpv6, *req.InfoIpv6))
-	}
-	if req.InfoNeverViaRouteServers != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoNeverViaRouteServers, *req.InfoNeverViaRouteServers))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldNotes, *req.Notes))
-	}
-	if req.PolicyUrl != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldPolicyURL, *req.PolicyUrl))
-	}
-	if req.PolicyGeneral != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldPolicyGeneral, *req.PolicyGeneral))
-	}
-	if req.PolicyLocations != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldPolicyLocations, *req.PolicyLocations))
-	}
-	if req.PolicyRatio != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldPolicyRatio, *req.PolicyRatio))
-	}
-	if req.PolicyContracts != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldPolicyContracts, *req.PolicyContracts))
-	}
-	if req.AllowIxpUpdate != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldAllowIxpUpdate, *req.AllowIxpUpdate))
-	}
-	if req.StatusDashboard != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldStatusDashboard, *req.StatusDashboard))
-	}
-	if req.RirStatus != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldRirStatus, *req.RirStatus))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldLogo, *req.Logo))
-	}
-	return preds, nil
+	return applyFilters(req, networkListFilters)
 }
 
-// applyNetworkStreamFilters builds filter predicates from StreamNetworksRequest
-// optional fields. Same filters as List minus id. SinceID and UpdatedSince are
-// handled by the generic StreamEntities helper.
+// applyNetworkStreamFilters builds filter predicates from the generic filter
+// table. See networkStreamFilters and internal/grpcserver/filter.go.
 func applyNetworkStreamFilters(req *pb.StreamNetworksRequest) ([]func(*sql.Selector), error) {
-	var preds []func(*sql.Selector)
-	if req.Asn != nil {
-		if *req.Asn <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: asn must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(network.FieldAsn, int(*req.Asn)))
-	}
-	if req.OrgId != nil {
-		if *req.OrgId <= 0 {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filter: org_id must be positive"))
-		}
-		preds = append(preds, sql.FieldEQ(network.FieldOrgID, int(*req.OrgId)))
-	}
-	if req.Name != nil {
-		preds = append(preds, sql.FieldContainsFold(network.FieldName, *req.Name))
-	}
-	if req.Aka != nil {
-		preds = append(preds, sql.FieldContainsFold(network.FieldAka, *req.Aka))
-	}
-	if req.NameLong != nil {
-		preds = append(preds, sql.FieldContainsFold(network.FieldNameLong, *req.NameLong))
-	}
-	if req.Status != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldStatus, *req.Status))
-	}
-	if req.Website != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldWebsite, *req.Website))
-	}
-	if req.LookingGlass != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldLookingGlass, *req.LookingGlass))
-	}
-	if req.RouteServer != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldRouteServer, *req.RouteServer))
-	}
-	if req.IrrAsSet != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldIrrAsSet, *req.IrrAsSet))
-	}
-	if req.InfoType != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoType, *req.InfoType))
-	}
-	if req.InfoPrefixes4 != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoPrefixes4, int(*req.InfoPrefixes4)))
-	}
-	if req.InfoPrefixes6 != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoPrefixes6, int(*req.InfoPrefixes6)))
-	}
-	if req.InfoTraffic != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoTraffic, *req.InfoTraffic))
-	}
-	if req.InfoRatio != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoRatio, *req.InfoRatio))
-	}
-	if req.InfoScope != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoScope, *req.InfoScope))
-	}
-	if req.InfoUnicast != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoUnicast, *req.InfoUnicast))
-	}
-	if req.InfoMulticast != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoMulticast, *req.InfoMulticast))
-	}
-	if req.InfoIpv6 != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoIpv6, *req.InfoIpv6))
-	}
-	if req.InfoNeverViaRouteServers != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldInfoNeverViaRouteServers, *req.InfoNeverViaRouteServers))
-	}
-	if req.Notes != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldNotes, *req.Notes))
-	}
-	if req.PolicyUrl != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldPolicyURL, *req.PolicyUrl))
-	}
-	if req.PolicyGeneral != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldPolicyGeneral, *req.PolicyGeneral))
-	}
-	if req.PolicyLocations != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldPolicyLocations, *req.PolicyLocations))
-	}
-	if req.PolicyRatio != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldPolicyRatio, *req.PolicyRatio))
-	}
-	if req.PolicyContracts != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldPolicyContracts, *req.PolicyContracts))
-	}
-	if req.AllowIxpUpdate != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldAllowIxpUpdate, *req.AllowIxpUpdate))
-	}
-	if req.StatusDashboard != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldStatusDashboard, *req.StatusDashboard))
-	}
-	if req.RirStatus != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldRirStatus, *req.RirStatus))
-	}
-	if req.Logo != nil {
-		preds = append(preds, sql.FieldEQ(network.FieldLogo, *req.Logo))
-	}
-	return preds, nil
+	return applyFilters(req, networkStreamFilters)
 }
 
 // ListNetworks returns a paginated list of networks ordered by ID ascending.
