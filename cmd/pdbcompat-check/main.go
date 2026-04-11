@@ -165,12 +165,7 @@ func checkType(ctx context.Context, client *http.Client, baseURL, goldenDir, typ
 
 // isValidType reports whether the given name is a known PeeringDB type.
 func isValidType(name string) bool {
-	for _, t := range allTypes {
-		if t == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(allTypes, name)
 }
 
 // findGoldenDir attempts to locate the golden file directory relative to the

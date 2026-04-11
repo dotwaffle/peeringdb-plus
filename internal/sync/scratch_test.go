@@ -203,7 +203,7 @@ func TestScratchDB_DrainChunkPagination(t *testing.T) {
 	// Drain in chunks of 3: expect 3, 3, 3, 1, 0.
 	var chunks [][]scratchRow
 	afterID := 0
-	for i := 0; i < 20; i++ { // safety bound
+	for range 20 { // safety bound
 		rows, lastID, err := s.drainChunk(ctx, peeringdb.TypeOrg, afterID, 3)
 		if err != nil {
 			t.Fatalf("drainChunk: %v", err)
@@ -226,4 +226,3 @@ func TestScratchDB_DrainChunkPagination(t *testing.T) {
 			len(chunks[0]), len(chunks[1]), len(chunks[2]), len(chunks[3]))
 	}
 }
-

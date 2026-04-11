@@ -586,7 +586,6 @@ func TestAllFilterFieldsExercised(t *testing.T) {
 	t.Parallel()
 
 	for _, spec := range allEntityFilterSpecs() {
-		spec := spec // capture for subtest closure
 		t.Run(spec.name, func(t *testing.T) {
 			t.Parallel()
 			wantList := countFilterableFields(spec.listReq)

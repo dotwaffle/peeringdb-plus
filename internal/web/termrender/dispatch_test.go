@@ -101,8 +101,7 @@ func TestRegisterCustomType(t *testing.T) {
 	})
 	t.Cleanup(func() {
 		// Remove the test registration to avoid polluting other tests.
-		var zero customData
-		delete(renderers, reflect.TypeOf(zero))
+		delete(renderers, reflect.TypeFor[customData]())
 	})
 
 	r := NewRenderer(ModePlain, true)

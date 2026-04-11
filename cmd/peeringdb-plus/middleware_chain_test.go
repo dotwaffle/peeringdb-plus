@@ -36,11 +36,11 @@ func TestMiddlewareChain_Order(t *testing.T) {
 	}
 	// The function body ends at the closing `return h` statement.
 	tail := src[start:]
-	end := bytes.Index(tail, []byte("return h"))
-	if end < 0 {
+	before, _, ok := bytes.Cut(tail, []byte("return h"))
+	if !ok {
 		t.Fatalf("%q not found in buildMiddlewareChain", "return h")
 	}
-	body := string(tail[:end])
+	body := string(before)
 
 	// wantOrder is innermost-first (the order lines are wrapped in the
 	// code). The runtime order a request traverses is the reverse:

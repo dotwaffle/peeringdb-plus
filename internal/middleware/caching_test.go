@@ -285,7 +285,7 @@ func TestCaching_ETagStableBetweenSyncs(t *testing.T) {
 
 	var first string
 	const iterations = 100
-	for i := 0; i < iterations; i++ {
+	for i := range iterations {
 		rec := httptest.NewRecorder()
 		mw.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/net", nil))
 		got := rec.Header().Get("ETag")
@@ -390,9 +390,7 @@ func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 	stop := make(chan struct{})
 
 	// Writer goroutine: flips between time1 and time2 as fast as it can.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		flip := true
 		for {
 			select {
@@ -407,16 +405,14 @@ func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 			}
 			flip = !flip
 		}
-	}()
+	})
 
 	// Reader goroutines: hammer the middleware and check the observed ETag
 	// is always one of the two known values.
 	const readers = 8
 	readErrs := make(chan string, readers)
-	for i := 0; i < readers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range readers {
+		wg.Go(func() {
 			for {
 				select {
 				case <-stop:
@@ -434,7 +430,7 @@ func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 					return
 				}
 			}
-		}()
+		})
 	}
 
 	// Run for 100ms then signal stop.

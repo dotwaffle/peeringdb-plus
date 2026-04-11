@@ -612,7 +612,7 @@ func BenchmarkSyncWorker_FullMemoryPeak(b *testing.B) {
 			b.Fatalf("open raw sql.DB: %v", err)
 		}
 
-		ctx := context.Background()
+		ctx := b.Context()
 		if err := InitStatusTable(ctx, db); err != nil {
 			_ = db.Close()
 			client.Close()

@@ -14,8 +14,7 @@ var renderers = map[reflect.Type]func(any, io.Writer, *Renderer) error{}
 // Register associates a data type T with a render function for terminal output.
 // Registered functions are called by RenderPage when the data argument matches type T.
 func Register[T any](fn func(T, io.Writer, *Renderer) error) {
-	var zero T
-	renderers[reflect.TypeOf(zero)] = func(v any, w io.Writer, r *Renderer) error {
+	renderers[reflect.TypeFor[T]()] = func(v any, w io.Writer, r *Renderer) error {
 		return fn(v.(T), w, r)
 	}
 }

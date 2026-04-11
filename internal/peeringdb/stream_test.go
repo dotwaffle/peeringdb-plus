@@ -73,7 +73,6 @@ func TestStreamingDecoder_FixtureRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	for _, ft := range fixtureTypes {
-		ft := ft
 		t.Run(ft.objectType, func(t *testing.T) {
 			t.Parallel()
 
@@ -207,7 +206,6 @@ func TestStreamingDecoder_TruncatedInput(t *testing.T) {
 	}
 
 	for _, off := range offsets {
-		off := off
 		t.Run(fmt.Sprintf("truncate_%d", off), func(t *testing.T) {
 			t.Parallel()
 
@@ -244,7 +242,6 @@ func TestFetchAll_WrapperParity(t *testing.T) {
 	t.Parallel()
 
 	for _, ft := range fixtureTypes {
-		ft := ft
 		t.Run(ft.objectType, func(t *testing.T) {
 			t.Parallel()
 

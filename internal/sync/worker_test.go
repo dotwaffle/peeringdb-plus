@@ -158,7 +158,7 @@ func makeFac(id, orgID int, name, status string) map[string]any {
 		"clli": "", "rencode": "", "npanxx": "", "tech_email": "",
 		"tech_phone": "", "sales_email": "", "sales_phone": "",
 		"available_voltage_services": []any{},
-		"notes": "", "net_count": 0, "ix_count": 0, "carrier_count": 0,
+		"notes":                      "", "net_count": 0, "ix_count": 0, "carrier_count": 0,
 		"address1": "", "address2": "", "city": "", "state": "",
 		"country": "", "zipcode": "", "suite": "", "floor": "",
 		"created": "2024-01-01T00:00:00Z", "updated": "2024-01-01T00:00:00Z",
@@ -637,8 +637,8 @@ func TestSyncWithRetryShortCircuitsOnRateLimit(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error from rate-limit short-circuit, got nil")
 	}
-	var rlErr *peeringdb.RateLimitError
-	if !errors.As(err, &rlErr) {
+	rlErr, ok := errors.AsType[*peeringdb.RateLimitError](err)
+	if !ok {
 		t.Fatalf("expected *peeringdb.RateLimitError, got %T: %v", err, err)
 	}
 	if rlErr.RetryAfter != 2200*time.Second {
@@ -865,13 +865,13 @@ type fixtureWithMeta struct {
 func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
 	t.Helper()
 	f := &fixtureWithMeta{
-		responses:     make(map[string]any),
-		failTypes:     make(map[string]bool),
-		failOnce:      make(map[string]bool),
+		responses:       make(map[string]any),
+		failTypes:       make(map[string]bool),
+		failOnce:        make(map[string]bool),
 		failIncremental: make(map[string]bool),
-		callCounts:    make(map[string]*atomic.Int64),
-		sinceSeen:     make(map[string]*atomic.Bool),
-		generated:     generatedEpoch,
+		callCounts:      make(map[string]*atomic.Int64),
+		sinceSeen:       make(map[string]*atomic.Bool),
+		generated:       generatedEpoch,
 	}
 	f.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "?")
@@ -2001,8 +2001,8 @@ func TestSync_PhaseAFetchHasNoTx(t *testing.T) {
 
 	// Walk forward from idx to the closing ')' of the signature.
 	body := string(src)[idx:]
-	closeIdx := strings.Index(body, ")")
-	if closeIdx < 0 {
+	found := strings.Contains(body, ")")
+	if !found {
 		t.Fatalf("did not find closing paren of syncFetchPass signature")
 	}
 	// The signature wraps across multiple lines; find the full parameter

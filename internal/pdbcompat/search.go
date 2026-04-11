@@ -111,7 +111,7 @@ func itemToMap(item any) (map[string]any, bool) {
 		return m, true
 	}
 	v := reflect.ValueOf(item)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return nil, false
 		}

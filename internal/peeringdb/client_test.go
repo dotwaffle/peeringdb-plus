@@ -23,7 +23,7 @@ import (
 // makeOrgPage creates a JSON response with n Organization objects starting at the given ID offset.
 func makeOrgPage(startID, count int) []byte {
 	var items []json.RawMessage
-	for i := 0; i < count; i++ {
+	for i := range count {
 		raw, _ := json.Marshal(map[string]any{
 			"id":      startID + i,
 			"name":    fmt.Sprintf("Org %d", startID+i),
@@ -116,8 +116,8 @@ func TestFetchAllShortCircuitsOn429(t *testing.T) {
 		t.Fatal("expected error from 429 short-circuit, got nil")
 	}
 
-	var rlErr *RateLimitError
-	if !errors.As(err, &rlErr) {
+	rlErr, ok := errors.AsType[*RateLimitError](err)
+	if !ok {
 		t.Fatalf("expected *RateLimitError, got %T: %v", err, err)
 	}
 	if rlErr.Status != http.StatusTooManyRequests {
@@ -188,8 +188,8 @@ func TestFetchAllShortCircuitsOn429NoHeader(t *testing.T) {
 	client.retryBaseDelay = 1 * time.Millisecond
 
 	_, err := client.FetchAll(t.Context(), TypeOrg)
-	var rlErr *RateLimitError
-	if !errors.As(err, &rlErr) {
+	rlErr, ok := errors.AsType[*RateLimitError](err)
+	if !ok {
 		t.Fatalf("expected *RateLimitError, got %T: %v", err, err)
 	}
 	if rlErr.RetryAfter != 0 {
@@ -956,7 +956,7 @@ func TestNewClientBackwardCompatible(t *testing.T) {
 // makeOrgPageWithMeta creates a JSON response with n Organization objects and a meta.generated epoch.
 func makeOrgPageWithMeta(startID, count int, generated float64) []byte {
 	var items []json.RawMessage
-	for i := 0; i < count; i++ {
+	for i := range count {
 		raw, _ := json.Marshal(map[string]any{
 			"id":      startID + i,
 			"name":    fmt.Sprintf("Org %d", startID+i),
