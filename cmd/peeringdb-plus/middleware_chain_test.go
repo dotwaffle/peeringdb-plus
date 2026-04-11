@@ -49,9 +49,14 @@ func TestMiddlewareChain_Order(t *testing.T) {
 	// Each entry includes the trailing "(" so that the match is guaranteed
 	// to be a call site, not a substring of a type name (e.g. "middleware.CSP"
 	// would otherwise match "middleware.CSPInput{}").
+	//
+	// PERF-07 (Plan 55-02): the caching middleware is now wrapped via
+	// `cc.CachingState.Middleware()(h)` instead of `middleware.Caching(...)(h)`
+	// because the ETag cache moved to an atomic.Pointer that is updated
+	// from OnSyncComplete — the call-site pattern changed accordingly.
 	wantOrder := []string{
 		"middleware.Compression(",
-		"middleware.Caching(",
+		"cc.CachingState.Middleware(",
 		"middleware.CSP(",
 		"middleware.SecurityHeaders(",
 		"readinessMiddleware(",

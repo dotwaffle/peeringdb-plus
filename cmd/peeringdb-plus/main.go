@@ -171,17 +171,32 @@ func main() {
 
 	pdbClient := peeringdb.NewClient(cfg.PeeringDBBaseURL, logger, clientOpts...)
 
+	// PERF-07: Caching middleware holds the current ETag behind an atomic
+	// pointer. Constructed once here so the OnSyncComplete callback below
+	// can capture it. The initial ETag is seeded from any existing
+	// sync_status row so warm restarts serve cacheable GETs immediately;
+	// cold starts leave the pointer nil (Middleware skips caching headers
+	// until the first sync completes, matching pre-PERF-07 behavior).
+	cachingState := middleware.NewCachingState(cfg.SyncInterval)
+	if t, err := pdbsync.GetLastSuccessfulSyncTime(ctx, db); err == nil && !t.IsZero() {
+		cachingState.UpdateETag(t)
+	}
+
 	// Create sync worker.
 	syncWorker := pdbsync.NewWorker(pdbClient, entClient, db, pdbsync.WorkerConfig{
 		IncludeDeleted: cfg.IncludeDeleted,
 		IsPrimary:      isPrimaryFn,
 		SyncMode:       cfg.SyncMode,
-		OnSyncComplete: func(counts map[string]int) {
+		OnSyncComplete: func(counts map[string]int, syncTime time.Time) {
 			m := make(map[string]int64, len(counts))
 			for k, v := range counts {
 				m[k] = int64(v)
 			}
 			objectCountCache.Store(&m)
+			// PERF-07: swap the cached ETag using the exact completion
+			// timestamp the worker persisted to sync_status. One SHA-256
+			// per sync, zero per request.
+			cachingState.UpdateETag(syncTime)
 		},
 		SyncMemoryLimit: cfg.SyncMemoryLimit,
 	}, logger)
@@ -414,13 +429,7 @@ func main() {
 			GraphQLPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'",
 			EnforcingMode: cfg.CSPEnforce,
 		},
-		CachingInput: middleware.CachingInput{
-			SyncTimeFn: func() time.Time {
-				t, _ := pdbsync.GetLastSuccessfulSyncTime(context.Background(), db)
-				return t
-			},
-			SyncInterval: cfg.SyncInterval,
-		},
+		CachingState: cachingState,
 		SyncWorker:   syncWorker,
 		MaxBodyBytes: maxRequestBodySize,
 		HSTSMaxAge:   180 * 24 * time.Hour,
@@ -543,7 +552,7 @@ type chainConfig struct {
 	Logger       *slog.Logger
 	CORSOrigins  string // comma-separated list of allowed CORS origins
 	CSPInput     middleware.CSPInput
-	CachingInput middleware.CachingInput
+	CachingState *middleware.CachingState
 	SyncWorker   syncReadiness
 	MaxBodyBytes int64
 	HSTSMaxAge   time.Duration
@@ -567,7 +576,7 @@ type chainConfig struct {
 // without touching this helper.
 func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 	h := middleware.Compression()(inner)
-	h = middleware.Caching(cc.CachingInput)(h)
+	h = cc.CachingState.Middleware()(h)
 	h = middleware.CSP(cc.CSPInput)(h)
 	h = middleware.SecurityHeaders(middleware.SecurityHeadersInput{
 		HSTSMaxAge:            cc.HSTSMaxAge,

@@ -42,9 +42,15 @@ var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 
 // WorkerConfig holds configuration for the sync worker.
 type WorkerConfig struct {
 	IncludeDeleted bool
-	IsPrimary      func() bool              // live primary detection; nil defaults to always-primary
+	IsPrimary      func() bool // live primary detection; nil defaults to always-primary
 	SyncMode       config.SyncMode
-	OnSyncComplete func(counts map[string]int) // called after successful sync with per-type object counts
+	// OnSyncComplete is called after a successful sync with per-type object
+	// counts and the completion timestamp. The timestamp is the same
+	// value persisted into the sync_status row by recordSuccess, so
+	// downstream consumers (e.g. the caching middleware ETag setter wired
+	// in cmd/peeringdb-plus/main.go for PERF-07) stay in lock-step with
+	// the database without an extra round-trip.
+	OnSyncComplete func(counts map[string]int, syncTime time.Time)
 
 	// SyncMemoryLimit is the peak Go heap ceiling (bytes) checked
 	// after Phase A fetch completes and before the ent.Tx opens. If
@@ -334,9 +340,14 @@ func (w *Worker) recordSuccess(
 		slog.String("mode", string(mode)),
 		slog.Duration("duration", elapsed),
 		slog.Int("total_objects", sumCounts(objectCounts)))
+	// Capture completion timestamp once so the sync_status row AND the
+	// OnSyncComplete callback (PERF-07: caching middleware ETag setter)
+	// see the exact same value. A drift here would mean the atomic ETag
+	// pointer and the DB-backed sync time could disagree.
+	completedAt := time.Now()
 	if statusID > 0 {
 		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
-			LastSyncAt:   time.Now(),
+			LastSyncAt:   completedAt,
 			Duration:     elapsed,
 			ObjectCounts: objectCounts,
 			Status:       "success",
@@ -344,7 +355,7 @@ func (w *Worker) recordSuccess(
 	}
 	w.synced.Store(true)
 	if w.config.OnSyncComplete != nil {
-		w.config.OnSyncComplete(objectCounts)
+		w.config.OnSyncComplete(objectCounts, completedAt)
 	}
 }
 
