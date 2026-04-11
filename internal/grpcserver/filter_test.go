@@ -10,6 +10,9 @@ import (
 	"connectrpc.com/connect"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"google.golang.org/protobuf/reflect/protoreflect"
+
+	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
 )
 
 // testReq is a synthetic proto-shaped request used exclusively by the
@@ -414,5 +417,207 @@ func TestNonEmptyString(t *testing.T) {
 
 	if err := v("x"); err != nil {
 		t.Errorf("nonEmptyString(\"x\") = %v, want nil", err)
+	}
+}
+
+// =======================================================================
+// TestAllFilterFieldsExercised — reflection-based coverage gate
+//
+// Reflects over every ListXRequest / StreamXRequest proto message
+// descriptor and asserts that the per-entity filter slice has an entry
+// count equal to the number of optional filterable fields on the proto
+// descriptor (after excluding the canonical pagination/metadata fields).
+//
+// This is a count-only check: closures cannot be introspected to prove
+// they extract the CORRECT field. The per-entity behavior tests in
+// grpcserver_test.go (TestListXFilters etc.) exercise every field
+// individually — the combination catches both missing entries (count
+// drift) and wrong extractors (behavior test failure).
+//
+// Wave 2 gating: Plan 56-02 migrated only 6 of 13 entities. Subtests for
+// the 7 unmigrated entities (network, facility, internetexchange, ixlan,
+// campus, organization, networkixlan) are skipped. Plan 56-03 will
+// delete the migratedEntities map and the skip branch once the remaining
+// 7 entities are migrated, flipping the gate to enforce full 13/13
+// coverage.
+// =======================================================================
+
+// paginationFields are excluded from per-entity filter coverage. page_size
+// and page_token are non-optional int32/string on ListX requests (they do
+// not satisfy HasOptionalKeyword, but the explicit exclusion is defensive).
+// since_id and updated_since are declared optional on StreamX requests but
+// are handled by generic.StreamEntities at generic.go:99-104, not by the
+// per-entity filter tables. request_id is reserved for future use.
+var paginationFields = map[string]struct{}{
+	"page_size":     {},
+	"page_token":    {},
+	"since_id":      {},
+	"updated_since": {},
+	"request_id":    {},
+}
+
+// migratedEntities gates TestAllFilterFieldsExercised during Plan 56-02.
+// Only the 6 migrated entities are enforced. Plan 56-03 will delete this
+// map and the skip branch below, enforcing full 13-entity coverage.
+var migratedEntities = map[string]bool{
+	"carrierfacility": true,
+	"ixprefix":        true,
+	"ixfacility":      true,
+	"poc":             true,
+	"networkfacility": true,
+	"carrier":         true,
+}
+
+// entityFilterSpec couples a proto request type with the (possibly
+// migrated) filter-slice length that should match its descriptor count.
+type entityFilterSpec struct {
+	name          string
+	listReq       protoreflect.Message
+	streamReq     protoreflect.Message
+	listFilters   int // len of the migrated xListFilters slice, or -1 if not migrated
+	streamFilters int // len of the migrated xStreamFilters slice, or -1 if not migrated
+}
+
+func allEntityFilterSpecs() []entityFilterSpec {
+	return []entityFilterSpec{
+		{
+			name:          "network",
+			listReq:       (&pb.ListNetworksRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamNetworksRequest{}).ProtoReflect(),
+			listFilters:   -1, // not migrated yet (Plan 56-03)
+			streamFilters: -1,
+		},
+		{
+			name:          "facility",
+			listReq:       (&pb.ListFacilitiesRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamFacilitiesRequest{}).ProtoReflect(),
+			listFilters:   -1,
+			streamFilters: -1,
+		},
+		{
+			name:          "internetexchange",
+			listReq:       (&pb.ListInternetExchangesRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamInternetExchangesRequest{}).ProtoReflect(),
+			listFilters:   -1,
+			streamFilters: -1,
+		},
+		{
+			name:          "ixfacility",
+			listReq:       (&pb.ListIxFacilitiesRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamIxFacilitiesRequest{}).ProtoReflect(),
+			listFilters:   len(ixFacilityListFilters),
+			streamFilters: len(ixFacilityStreamFilters),
+		},
+		{
+			name:          "ixlan",
+			listReq:       (&pb.ListIxLansRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamIxLansRequest{}).ProtoReflect(),
+			listFilters:   -1,
+			streamFilters: -1,
+		},
+		{
+			name:          "ixprefix",
+			listReq:       (&pb.ListIxPrefixesRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamIxPrefixesRequest{}).ProtoReflect(),
+			listFilters:   len(ixPrefixListFilters),
+			streamFilters: len(ixPrefixStreamFilters),
+		},
+		{
+			name:          "networkfacility",
+			listReq:       (&pb.ListNetworkFacilitiesRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamNetworkFacilitiesRequest{}).ProtoReflect(),
+			listFilters:   len(networkFacilityListFilters),
+			streamFilters: len(networkFacilityStreamFilters),
+		},
+		{
+			name:          "networkixlan",
+			listReq:       (&pb.ListNetworkIxLansRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamNetworkIxLansRequest{}).ProtoReflect(),
+			listFilters:   -1,
+			streamFilters: -1,
+		},
+		{
+			name:          "carrier",
+			listReq:       (&pb.ListCarriersRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamCarriersRequest{}).ProtoReflect(),
+			listFilters:   len(carrierListFilters),
+			streamFilters: len(carrierStreamFilters),
+		},
+		{
+			name:          "carrierfacility",
+			listReq:       (&pb.ListCarrierFacilitiesRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamCarrierFacilitiesRequest{}).ProtoReflect(),
+			listFilters:   len(carrierFacilityListFilters),
+			streamFilters: len(carrierFacilityStreamFilters),
+		},
+		{
+			name:          "campus",
+			listReq:       (&pb.ListCampusesRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamCampusesRequest{}).ProtoReflect(),
+			listFilters:   -1,
+			streamFilters: -1,
+		},
+		{
+			name:          "organization",
+			listReq:       (&pb.ListOrganizationsRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamOrganizationsRequest{}).ProtoReflect(),
+			listFilters:   -1,
+			streamFilters: -1,
+		},
+		{
+			name:          "poc",
+			listReq:       (&pb.ListPocsRequest{}).ProtoReflect(),
+			streamReq:     (&pb.StreamPocsRequest{}).ProtoReflect(),
+			listFilters:   len(pocListFilters),
+			streamFilters: len(pocStreamFilters),
+		},
+	}
+}
+
+// countFilterableFields returns the number of proto fields on the given
+// message descriptor that are filter candidates — optional scalar fields
+// that are not pagination/metadata.
+func countFilterableFields(msg protoreflect.Message) int {
+	desc := msg.Descriptor()
+	fields := desc.Fields()
+	n := 0
+	for i := 0; i < fields.Len(); i++ {
+		fd := fields.Get(i)
+		if _, skip := paginationFields[string(fd.Name())]; skip {
+			continue
+		}
+		// HasOptionalKeyword catches proto3 `optional` fields. Non-optional
+		// scalars on ListX/StreamX requests do not exist in the current
+		// proto surface, but the check is defensive against future proto
+		// additions that might use repeated fields or non-optional scalars.
+		if !fd.HasOptionalKeyword() {
+			continue
+		}
+		n++
+	}
+	return n
+}
+
+func TestAllFilterFieldsExercised(t *testing.T) {
+	t.Parallel()
+
+	for _, spec := range allEntityFilterSpecs() {
+		spec := spec // capture for subtest closure
+		t.Run(spec.name, func(t *testing.T) {
+			t.Parallel()
+			if !migratedEntities[spec.name] {
+				t.Skipf("%s not yet migrated to filterFn tables; Plan 56-03 will enable coverage assertion", spec.name)
+			}
+			wantList := countFilterableFields(spec.listReq)
+			if spec.listFilters != wantList {
+				t.Errorf("%sListFilters: got %d entries, want %d (reflected from %s ListRequest proto descriptor); a new field was likely added without a filter table entry",
+					spec.name, spec.listFilters, wantList, spec.name)
+			}
+			wantStream := countFilterableFields(spec.streamReq)
+			if spec.streamFilters != wantStream {
+				t.Errorf("%sStreamFilters: got %d entries, want %d (reflected from %s StreamRequest proto descriptor); a new field was likely added without a filter table entry",
+					spec.name, spec.streamFilters, wantStream, spec.name)
+			}
+		})
 	}
 }
