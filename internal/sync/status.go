@@ -141,7 +141,29 @@ func GetLastStatus(ctx context.Context, db *sql.DB) (*Status, error) {
 	row := db.QueryRowContext(ctx,
 		`SELECT started_at, completed_at, duration_ms, object_counts, status, error_message FROM sync_status ORDER BY id DESC LIMIT 1`,
 	)
+	return scanStatusRow(row, "get last sync status")
+}
 
+// GetLastCompletedStatus returns the most recent non-running sync status row
+// (either "success" or "failed"). Used by callers that want to display the
+// last *completed* sync even when a newer "running" row is in flight — this
+// is the right answer for UI surfaces (about page data freshness) and for
+// /readyz when the latest row is mid-sync. Returns nil if no completed sync
+// has ever been recorded.
+func GetLastCompletedStatus(ctx context.Context, db *sql.DB) (*Status, error) {
+	row := db.QueryRowContext(ctx,
+		`SELECT started_at, completed_at, duration_ms, object_counts, status, error_message
+		 FROM sync_status
+		 WHERE status != 'running'
+		 ORDER BY id DESC LIMIT 1`,
+	)
+	return scanStatusRow(row, "get last completed sync status")
+}
+
+// scanStatusRow decodes a sync_status row into a *Status. Returns (nil, nil)
+// when the row is empty (sql.ErrNoRows). errContext is used as the error
+// message prefix so callers can tell which query failed.
+func scanStatusRow(row *sql.Row, errContext string) (*Status, error) {
 	var (
 		startedAt    time.Time
 		completedAt  sql.NullTime
@@ -155,7 +177,7 @@ func GetLastStatus(ctx context.Context, db *sql.DB) (*Status, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get last sync status: %w", err)
+		return nil, fmt.Errorf("%s: %w", errContext, err)
 	}
 
 	s := &Status{

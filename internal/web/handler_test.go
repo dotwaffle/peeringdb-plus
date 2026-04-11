@@ -10,6 +10,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
@@ -759,6 +760,68 @@ func TestAboutPage_NoSync(t *testing.T) {
 	body := rec.Body.String()
 	if !strings.Contains(body, "Sync status unavailable") {
 		t.Error("about page with nil db should show 'Sync status unavailable'")
+	}
+}
+
+// TestAboutPage_RunningFallback verifies that when the latest sync_status
+// row is "running" (a sync is in flight), the about page still shows
+// freshness from the most recent successfully-completed sync via the
+// GetLastCompletedStatus fallback. This prevents a naive "Sync status
+// unavailable" display whenever a sync happens to be mid-flight.
+func TestAboutPage_RunningFallback(t *testing.T) {
+	t.Parallel()
+	client, db := testutil.SetupClientWithDB(t)
+
+	if err := pdbsync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init sync_status: %v", err)
+	}
+
+	// Insert a successful sync row first (an hour ago), then insert a
+	// newer "running" row to simulate a mid-flight sync. Without the
+	// fallback, the about page would see only the running row and show
+	// "Sync status unavailable".
+	successTime := time.Date(2026, 4, 11, 10, 0, 0, 0, time.UTC)
+	successID, err := pdbsync.RecordSyncStart(t.Context(), db, successTime)
+	if err != nil {
+		t.Fatalf("record sync start (success): %v", err)
+	}
+	if err := pdbsync.RecordSyncComplete(t.Context(), db, successID, pdbsync.Status{
+		LastSyncAt: successTime.Add(30 * time.Second),
+		Duration:   30 * time.Second,
+		Status:     "success",
+	}); err != nil {
+		t.Fatalf("record sync complete (success): %v", err)
+	}
+
+	runningTime := successTime.Add(time.Hour)
+	if _, err := pdbsync.RecordSyncStart(t.Context(), db, runningTime); err != nil {
+		t.Fatalf("record sync start (running): %v", err)
+	}
+
+	h := NewHandler(client, db)
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/about", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	if strings.Contains(body, "Sync status unavailable") {
+		t.Error("about page with running-latest + completed-previous should NOT show 'Sync status unavailable'")
+	}
+	if !strings.Contains(body, "Last synced:") {
+		t.Error("about page with running-latest + completed-previous should show 'Last synced:' from the fallback row")
+	}
+	// The completed_at for the success row is successTime + 30s; the
+	// about template renders it as UTC YYYY-MM-DD HH:MM:SS.
+	wantTime := successTime.Add(30 * time.Second).Format("2006-01-02 15:04:05")
+	if !strings.Contains(body, wantTime) {
+		t.Errorf("about page missing fallback last-sync timestamp %q", wantTime)
 	}
 }
 

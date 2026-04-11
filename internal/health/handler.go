@@ -14,8 +14,6 @@ package health
 import (
 	"context"
 	"database/sql"
-	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -135,8 +133,9 @@ func checkSync(ctx context.Context, db *sql.DB, staleThreshold time.Duration, lo
 
 	case "running":
 		// A currently-running sync; fall back to the most recent completed
-		// sync. If there isn't one, report unhealthy.
-		lastCompleted, lookupErr := getLastCompletedSync(ctx, db)
+		// sync via the shared internal/sync helper. If there isn't one,
+		// report unhealthy.
+		lastCompleted, lookupErr := sync.GetLastCompletedStatus(ctx, db)
 		if lookupErr != nil {
 			logger.LogAttrs(ctx, slog.LevelError,
 				"readyz sync lookup failed",
@@ -190,45 +189,3 @@ func evaluateSyncAge(ctx context.Context, lastSyncAt time.Time, staleThreshold t
 	return true
 }
 
-// getLastCompletedSync returns the most recent non-running sync status.
-// This is used when the latest row is "running" to find the previous sync
-// result.
-func getLastCompletedSync(ctx context.Context, db *sql.DB) (*sync.Status, error) {
-	row := db.QueryRowContext(ctx,
-		`SELECT started_at, completed_at, duration_ms, object_counts, status, error_message
-		 FROM sync_status
-		 WHERE status != 'running'
-		 ORDER BY id DESC LIMIT 1`,
-	)
-
-	var (
-		startedAt    time.Time
-		completedAt  sql.NullTime
-		durationMs   sql.NullInt64
-		countsStr    sql.NullString
-		statusStr    string
-		errorMessage sql.NullString
-	)
-	err := row.Scan(&startedAt, &completedAt, &durationMs, &countsStr, &statusStr, &errorMessage)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("get last completed sync: %w", err)
-	}
-
-	s := &sync.Status{
-		LastSyncAt: startedAt,
-		Status:     statusStr,
-	}
-	if completedAt.Valid {
-		s.LastSyncAt = completedAt.Time
-	}
-	if durationMs.Valid {
-		s.Duration = time.Duration(durationMs.Int64) * time.Millisecond
-	}
-	if errorMessage.Valid {
-		s.ErrorMessage = errorMessage.String
-	}
-	return s, nil
-}
