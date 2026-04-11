@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"runtime"
@@ -22,6 +23,19 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
+// ErrSyncMemoryLimitExceeded is returned by Worker.Sync when
+// runtime.ReadMemStats reports HeapAlloc above WorkerConfig.SyncMemoryLimit
+// after the Phase A fetch pass completes. The sync aborts without
+// opening the ent transaction; the running mutex is released on
+// return and the next scheduled retry proceeds normally after the
+// Phase A scratch batches are reclaimed by GC.
+//
+// Commit F (Plan 54-03) defense-in-depth against PeeringDB data growth
+// that exceeds the 400 MB bench harness baseline at runtime (e.g. if
+// netixlan doubles between benchmarks and production). Callers detect
+// the sentinel via errors.Is per GO-ERR-2.
+var ErrSyncMemoryLimitExceeded = errors.New("sync aborted: memory limit exceeded")
+
 // defaultRetryBackoffs defines the backoff durations for sync-level retries per D-21.
 var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 * time.Minute}
 
@@ -31,6 +45,14 @@ type WorkerConfig struct {
 	IsPrimary      func() bool              // live primary detection; nil defaults to always-primary
 	SyncMode       config.SyncMode
 	OnSyncComplete func(counts map[string]int) // called after successful sync with per-type object counts
+
+	// SyncMemoryLimit is the peak Go heap ceiling (bytes) checked
+	// after Phase A fetch completes and before the ent.Tx opens. If
+	// runtime.MemStats.HeapAlloc exceeds this value, Sync aborts with
+	// ErrSyncMemoryLimitExceeded. Zero disables the guardrail. Wired
+	// from config.Config.SyncMemoryLimit by main.go. Commit F default
+	// is 400 MB (matches the DEBT-03 bench regression gate).
+	SyncMemoryLimit int64
 }
 
 // Worker orchestrates PeeringDB data synchronization.
@@ -122,6 +144,13 @@ func (w *Worker) syncSteps() []syncStep {
 // (535 MiB) and Commit D baseline (613 MiB) both exceeded the 400 MiB
 // gate on production-scale fixtures.
 //
+// Commit F (Plan 54-03): between the Phase A fetch barrier and the
+// ent.Tx open, Sync calls w.checkMemoryLimit with the current
+// runtime.MemStats.HeapAlloc reading. If SyncMemoryLimit is set and
+// the heap exceeds it, Sync aborts with ErrSyncMemoryLimitExceeded
+// before opening the tx — defense-in-depth against PeeringDB data
+// growth that exceeds the benchmark baseline at runtime.
+//
 // REFAC-03 line budget is <= 100 — enforced by TestWorkerSync_LineBudget.
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	if !w.running.CompareAndSwap(false, true) {
@@ -172,6 +201,13 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		w.recordFailure(ctx, statusID, start, err)
 		return err
 	}
+	// Commit F guardrail: see checkMemoryLimit godoc (defense-in-depth).
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	if memErr := w.checkMemoryLimit(ctx, ms.HeapAlloc, w.config.SyncMemoryLimit, len(fromIncremental)); memErr != nil {
+		w.recordFailure(ctx, statusID, start, memErr)
+		return memErr
+	}
 	// === Fetch Barrier ===
 	// Scratch DB fully populated. Open the real LiteFS tx now.
 	tx, err := w.entClient.Tx(ctx)
@@ -202,6 +238,50 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 
 	w.recordSuccess(ctx, mode, statusID, start, objectCounts, cursorUpdates)
 	return nil
+}
+
+// checkMemoryLimit reads the current Go heap allocation and returns
+// ErrSyncMemoryLimitExceeded if it exceeds the configured limit. If
+// limit is 0 (or negative), the guardrail is disabled and the function
+// returns nil immediately.
+//
+// Commit F defense-in-depth (Plan 54-03): called from Worker.Sync
+// between the Phase A fetch return and the ent.Tx open so that the
+// abort happens BEFORE any database lock is taken. Extracted into a
+// helper so Worker.Sync's call site stays within the REFAC-03 100-line
+// budget (TestWorkerSync_LineBudget). DO NOT inline this into Sync —
+// the helper extraction is load-bearing for the line budget.
+//
+// The batchCount argument is diagnostic only: it does NOT influence
+// the limit decision; it is logged on breach so operators can see how
+// many types had been fetched when the abort fired.
+//
+// heapAlloc comparison: runtime.MemStats.HeapAlloc is uint64 but the
+// configured limit is int64 to match the Config struct's env var
+// parser. A uint64 >= 2^63 would overflow int64, but in practice the
+// Go heap cannot approach that value (it would require >9 EiB of RAM),
+// so the comparison is safe. The explicit cap below keeps gosec happy
+// without adding runtime cost.
+func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit int64, batchCount int) error {
+	if limit <= 0 {
+		return nil
+	}
+	// Cap the conversion at MaxInt64 to silence gosec G115; real heaps
+	// never get close so the cap is unreachable in practice.
+	const maxInt64 = uint64(1<<63 - 1)
+	heapInt64 := int64(maxInt64)
+	if heapAlloc < maxInt64 {
+		heapInt64 = int64(heapAlloc)
+	}
+	if heapInt64 <= limit {
+		return nil
+	}
+	w.logger.LogAttrs(ctx, slog.LevelWarn, "sync aborted: memory limit exceeded",
+		slog.Int64("heap_alloc", heapInt64),
+		slog.Int64("limit", limit),
+		slog.Int("batches", batchCount),
+	)
+	return ErrSyncMemoryLimitExceeded
 }
 
 // rollbackAndRecord rolls back the tx and records the failure in one place

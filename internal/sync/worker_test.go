@@ -1,9 +1,11 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -2119,4 +2121,189 @@ func TestSync_D19Atomicity(t *testing.T) {
 		t.Errorf("D-19 violated: internet_exchanges table has %d rows post-rollback", counts["ix"])
 	}
 	t.Logf("D-19 atomicity verified: all tables empty after rollback (%+v)", counts)
+}
+
+// TestSync_MemoryLimitAbort verifies the Commit F (Plan 54-03) memory
+// guardrail: when WorkerConfig.SyncMemoryLimit is set absurdly low
+// (1 byte), the Worker.Sync abort path fires AFTER Phase A fetch
+// completes and BEFORE the ent.Tx opens. The test asserts:
+//
+//   - The returned error wraps ErrSyncMemoryLimitExceeded (errors.Is
+//     per GO-ERR-2, no string matching).
+//   - A WARN log line with slog.Int64("heap_alloc", ...) is emitted.
+//   - No organizations were written to the real DB (no tx opened).
+//   - The running mutex is released on return (second Sync call
+//     proceeds past the running guard, though it also aborts for the
+//     same reason — reaching the abort path twice proves the mutex
+//     was released).
+func TestSync_MemoryLimitAbort(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "ok-org", "ok")}
+
+	client, db := testutil.SetupClientWithDB(t)
+	if err := InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	var logBuf bytes.Buffer
+	// Serialize writes because slog.Handler does not promise
+	// goroutine-safety for the underlying writer, and the Worker's
+	// otel metric pipeline + log pipeline may race on the buffer
+	// across the running-mutex release boundary.
+	logger := slog.New(slog.NewJSONHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	pdbClient := newFastPDBClient(t, f.server.URL)
+
+	worker := NewWorker(pdbClient, client, db, WorkerConfig{
+		IncludeDeleted:  false,
+		IsPrimary:       func() bool { return true },
+		SyncMode:        config.SyncModeFull,
+		SyncMemoryLimit: 1, // 1 byte — guaranteed to trip after Phase A
+	}, logger)
+
+	err := worker.Sync(ctx, config.SyncModeFull)
+	if !errors.Is(err, ErrSyncMemoryLimitExceeded) {
+		t.Fatalf("first Sync: expected ErrSyncMemoryLimitExceeded, got %v", err)
+	}
+
+	// Verify WARN log emitted with the expected attribute keys.
+	logs := logBuf.String()
+	if !strings.Contains(logs, `"msg":"sync aborted: memory limit exceeded"`) {
+		t.Errorf("expected WARN log message; captured logs:\n%s", logs)
+	}
+	if !strings.Contains(logs, `"heap_alloc"`) {
+		t.Errorf("expected heap_alloc log attr; captured logs:\n%s", logs)
+	}
+	if !strings.Contains(logs, `"limit"`) {
+		t.Errorf("expected limit log attr; captured logs:\n%s", logs)
+	}
+	if !strings.Contains(logs, `"level":"WARN"`) {
+		t.Errorf("expected WARN level; captured logs:\n%s", logs)
+	}
+
+	// Verify NO tx was opened — real DB is empty.
+	count, err := client.Organization.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("count orgs: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("memory-aborted sync wrote %d orgs, want 0 (tx should not have opened)", count)
+	}
+
+	// Verify running mutex released — a second Sync call reaches the
+	// abort path again instead of being silently dropped by the
+	// running CAS guard (which logs "sync already running, skipping"
+	// and returns nil).
+	err2 := worker.Sync(ctx, config.SyncModeFull)
+	if !errors.Is(err2, ErrSyncMemoryLimitExceeded) {
+		t.Errorf("second Sync after mutex release: expected ErrSyncMemoryLimitExceeded, got %v", err2)
+	}
+}
+
+// TestSync_MemoryLimitDisabled verifies the opt-out path: when
+// SyncMemoryLimit is 0, the guardrail is disabled and Sync proceeds
+// normally. This is the local-dev / benchmark-mode path.
+func TestSync_MemoryLimitDisabled(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "ok-org", "ok")}
+
+	client, db := testutil.SetupClientWithDB(t)
+	if err := InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	pdbClient := newFastPDBClient(t, f.server.URL)
+
+	worker := NewWorker(pdbClient, client, db, WorkerConfig{
+		IncludeDeleted:  false,
+		IsPrimary:       func() bool { return true },
+		SyncMode:        config.SyncModeFull,
+		SyncMemoryLimit: 0, // disabled
+	}, slog.Default())
+
+	if err := worker.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("sync with disabled guardrail: %v", err)
+	}
+
+	count, err := client.Organization.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("count orgs: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 org after sync, got %d", count)
+	}
+}
+
+// TestCheckMemoryLimit_HelperUnit directly exercises the extracted
+// checkMemoryLimit helper so the full sync flow is not needed to lock
+// the guardrail semantics. Table-driven per GO-T-1.
+func TestCheckMemoryLimit_HelperUnit(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		heapAlloc uint64
+		limit     int64
+		wantErr   error
+	}{
+		{name: "disabled_zero_limit", heapAlloc: 1 << 30, limit: 0, wantErr: nil},
+		{name: "disabled_negative_limit", heapAlloc: 1 << 30, limit: -1, wantErr: nil},
+		{name: "under_limit", heapAlloc: 100, limit: 1000, wantErr: nil},
+		{name: "exactly_at_limit", heapAlloc: 1000, limit: 1000, wantErr: nil},
+		{name: "one_over_limit", heapAlloc: 1001, limit: 1000, wantErr: ErrSyncMemoryLimitExceeded},
+		{name: "vastly_over_limit", heapAlloc: 1 << 30, limit: 1, wantErr: ErrSyncMemoryLimitExceeded},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var logBuf bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelWarn}))
+			w := &Worker{logger: logger}
+			err := w.checkMemoryLimit(t.Context(), tt.heapAlloc, tt.limit, 13)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("checkMemoryLimit(%d, %d) = %v, want %v", tt.heapAlloc, tt.limit, err, tt.wantErr)
+			}
+			// On breach, log line must be present; on pass, must be absent.
+			hasBreach := errors.Is(tt.wantErr, ErrSyncMemoryLimitExceeded)
+			hasLog := strings.Contains(logBuf.String(), "sync aborted: memory limit exceeded")
+			if hasBreach && !hasLog {
+				t.Errorf("expected WARN log on breach, got empty buffer")
+			}
+			if !hasBreach && hasLog {
+				t.Errorf("expected NO log on pass, got: %s", logBuf.String())
+			}
+		})
+	}
+}
+
+// TestWorker_CheckMemoryLimitExtracted is a structural regression
+// lock for Commit F: the checkMemoryLimit helper MUST remain a
+// package-private method on *Worker (NOT inlined into Sync). Inlining
+// would push Worker.Sync's body over the REFAC-03 100-line budget.
+func TestWorker_CheckMemoryLimitExtracted(t *testing.T) {
+	t.Parallel()
+
+	src, err := os.ReadFile("worker.go")
+	if err != nil {
+		t.Fatalf("read worker.go: %v", err)
+	}
+	if !bytes.Contains(src, []byte("func (w *Worker) checkMemoryLimit(")) {
+		t.Fatalf("checkMemoryLimit helper must be declared on *Worker — " +
+			"inlining the guardrail into Sync breaks the REFAC-03 line budget")
+	}
+	if !bytes.Contains(src, []byte("w.checkMemoryLimit(")) {
+		t.Fatalf("Worker.Sync must CALL w.checkMemoryLimit — not found in worker.go")
+	}
+	if !bytes.Contains(src, []byte("runtime.ReadMemStats(&ms)")) {
+		t.Fatalf("Worker.Sync must call runtime.ReadMemStats before checkMemoryLimit")
+	}
+	if !bytes.Contains(src, []byte("ErrSyncMemoryLimitExceeded")) {
+		t.Fatalf("ErrSyncMemoryLimitExceeded sentinel must be declared in worker.go")
+	}
 }

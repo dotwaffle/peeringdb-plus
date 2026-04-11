@@ -183,6 +183,7 @@ func main() {
 			}
 			objectCountCache.Store(&m)
 		},
+		SyncMemoryLimit: cfg.SyncMemoryLimit,
 	}, logger)
 
 	// Start scheduler on all instances per D-22, D-29.

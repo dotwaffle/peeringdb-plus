@@ -99,6 +99,24 @@ type Config struct {
 	// header (false). Configured via PDBPLUS_CSP_ENFORCE. Default is false per SEC-07
 	// rollout strategy — enforcement is opt-in per deploy through v1.13.
 	CSPEnforce bool
+
+	// SyncMemoryLimit is the peak Go heap ceiling (bytes) checked after
+	// the sync worker's Phase A fetch pass completes and before the
+	// database transaction opens. If runtime.ReadMemStats reports
+	// HeapAlloc above this value, the sync aborts with a WARN log and
+	// returns sync.ErrSyncMemoryLimitExceeded. The next scheduled sync
+	// retries normally after the current batches are reclaimed by GC.
+	//
+	// Configured via PDBPLUS_SYNC_MEMORY_LIMIT. Default is 400MB —
+	// matches the DEBT-03 regression gate in BenchmarkSyncWorker_FullMemoryPeak
+	// and leaves 112 MB headroom under the 512 MB Fly.io VM cap per
+	// v1.13 hard constraint. Set to 0 to disable the guardrail (local
+	// dev only; guardrail is defense-in-depth against runtime memory
+	// spikes that exceed what the benchmark harness measured).
+	//
+	// Unit suffix is required (KB/MB/GB/TB, base 1024); bare numbers
+	// are rejected for unambiguous operator configuration.
+	SyncMemoryLimit int64
 }
 
 // Load reads configuration from environment variables, applies defaults,
@@ -168,6 +186,12 @@ func Load() (*Config, error) {
 	}
 	cfg.CSPEnforce = cspEnforce
 
+	syncMemoryLimit, err := parseByteSize("PDBPLUS_SYNC_MEMORY_LIMIT", 400*1024*1024)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_SYNC_MEMORY_LIMIT: %w", err)
+	}
+	cfg.SyncMemoryLimit = syncMemoryLimit
+
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
 	}
@@ -193,6 +217,9 @@ func (c *Config) validate() error {
 	}
 	if c.DrainTimeout <= 0 {
 		return errors.New("PDBPLUS_DRAIN_TIMEOUT must be greater than 0")
+	}
+	if c.SyncMemoryLimit < 0 {
+		return errors.New("PDBPLUS_SYNC_MEMORY_LIMIT must be non-negative (0 = disabled)")
 	}
 	return nil
 }
@@ -314,4 +341,64 @@ func parseSyncMode(key string, defaultVal SyncMode) (SyncMode, error) {
 	default:
 		return "", fmt.Errorf("invalid sync mode %q for %s: must be 'full' or 'incremental'", v, key)
 	}
+}
+
+// parseByteSize parses an env var as a byte count with a MANDATORY unit
+// suffix (KB, MB, GB, TB — base 1024). An empty env var falls back to
+// defaultVal. The literal "0" is accepted as an explicit disable value.
+// A bare number without a unit is REJECTED to eliminate ambiguity in
+// operator configuration (PERF-05 ergonomics) — was the 500 meant as
+// 500 bytes, 500 KB, or 500 MB? Force the operator to be explicit.
+//
+// Accepted forms: "0", "100KB", "400MB", "2GB", "1TB" (case-insensitive
+// suffix). The short forms "K", "M", "G", "T" are accepted as aliases
+// for "KB", "MB", "GB", "TB" respectively.
+//
+// Examples: "400MB" -> 400 * 1024 * 1024; "1GB" -> 1024^3; "0" -> 0
+// (guardrail disabled).
+func parseByteSize(key string, defaultVal int64) (int64, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultVal, nil
+	}
+	// Allow literal "0" as an explicit disable value.
+	if v == "0" {
+		return 0, nil
+	}
+	// Locate the first unit-suffix rune. Accept upper- and lower-case.
+	idx := strings.IndexFunc(v, func(r rune) bool {
+		switch r {
+		case 'K', 'M', 'G', 'T', 'k', 'm', 'g', 't':
+			return true
+		}
+		return false
+	})
+	if idx < 0 {
+		return 0, fmt.Errorf("invalid byte size %q for %s: missing unit (KB/MB/GB/TB)", v, key)
+	}
+	if idx == 0 {
+		return 0, fmt.Errorf("invalid byte size %q for %s: missing numeric prefix", v, key)
+	}
+	num, err := strconv.ParseInt(v[:idx], 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid byte size %q for %s: %w", v, key, err)
+	}
+	if num < 0 {
+		return 0, fmt.Errorf("invalid byte size %q for %s: must be non-negative", v, key)
+	}
+	unit := strings.ToUpper(v[idx:])
+	var mult int64
+	switch unit {
+	case "K", "KB":
+		mult = 1024
+	case "M", "MB":
+		mult = 1024 * 1024
+	case "G", "GB":
+		mult = 1024 * 1024 * 1024
+	case "T", "TB":
+		mult = 1024 * 1024 * 1024 * 1024
+	default:
+		return 0, fmt.Errorf("invalid byte size %q for %s: unknown unit %q (want KB/MB/GB/TB)", v, key, unit)
+	}
+	return num * mult, nil
 }
