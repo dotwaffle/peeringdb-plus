@@ -59,61 +59,61 @@ type CreateCampusParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateCampusParams) ApplyInputs(builder *ent.CampusCreate) *ent.CampusCreate {
+func (c *CreateCampusParams) ApplyInputs(_builder *ent.CampusCreate) *ent.CampusCreate {
 	if c.OrgID != nil {
-		builder.SetOrgID(*c.OrgID)
+		_builder.SetOrgID(*c.OrgID)
 	}
 	if c.Aka != nil {
-		builder.SetAka(*c.Aka)
+		_builder.SetAka(*c.Aka)
 	}
 	if c.City != nil {
-		builder.SetCity(*c.City)
+		_builder.SetCity(*c.City)
 	}
 	if c.Country != nil {
-		builder.SetCountry(*c.Country)
+		_builder.SetCountry(*c.Country)
 	}
 	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
+		_builder.SetLogo(*c.Logo)
 	}
-	builder.SetName(c.Name)
+	_builder.SetName(c.Name)
 	if c.NameLong != nil {
-		builder.SetNameLong(*c.NameLong)
+		_builder.SetNameLong(*c.NameLong)
 	}
 	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
+		_builder.SetNotes(*c.Notes)
 	}
 	if c.SocialMedia != nil {
-		builder.SetSocialMedia(c.SocialMedia)
+		_builder.SetSocialMedia(c.SocialMedia)
 	}
 	if c.State != nil {
-		builder.SetState(*c.State)
+		_builder.SetState(*c.State)
 	}
 	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
+		_builder.SetWebsite(*c.Website)
 	}
 	if c.Zipcode != nil {
-		builder.SetZipcode(*c.Zipcode)
+		_builder.SetZipcode(*c.Zipcode)
 	}
 	if c.OrgName != nil {
-		builder.SetOrgName(*c.OrgName)
+		_builder.SetOrgName(*c.OrgName)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateCampusParams) Exec(ctx context.Context, builder *ent.CampusCreate, query *ent.CampusQuery) (*ent.Campus, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateCampusParams) Exec(ctx context.Context, _builder *ent.CampusCreate, _query *ent.CampusQuery) (*ent.Campus, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadCampus(query.Where(campus.ID(result.ID))).Only(ctx)
+	return EagerLoadCampus(_query.Where(campus.ID(_result.ID))).Only(ctx)
 }
 
 // CreateCarrierParams defines parameters for creating a Carrier via a POST request.
@@ -146,52 +146,52 @@ type CreateCarrierParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateCarrierParams) ApplyInputs(builder *ent.CarrierCreate) *ent.CarrierCreate {
+func (c *CreateCarrierParams) ApplyInputs(_builder *ent.CarrierCreate) *ent.CarrierCreate {
 	if c.OrgID != nil {
-		builder.SetOrgID(*c.OrgID)
+		_builder.SetOrgID(*c.OrgID)
 	}
 	if c.Aka != nil {
-		builder.SetAka(*c.Aka)
+		_builder.SetAka(*c.Aka)
 	}
 	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
+		_builder.SetLogo(*c.Logo)
 	}
-	builder.SetName(c.Name)
+	_builder.SetName(c.Name)
 	if c.NameLong != nil {
-		builder.SetNameLong(*c.NameLong)
+		_builder.SetNameLong(*c.NameLong)
 	}
 	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
+		_builder.SetNotes(*c.Notes)
 	}
 	if c.SocialMedia != nil {
-		builder.SetSocialMedia(c.SocialMedia)
+		_builder.SetSocialMedia(c.SocialMedia)
 	}
 	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
+		_builder.SetWebsite(*c.Website)
 	}
 	if c.OrgName != nil {
-		builder.SetOrgName(*c.OrgName)
+		_builder.SetOrgName(*c.OrgName)
 	}
 	if c.FacCount != nil {
-		builder.SetFacCount(*c.FacCount)
+		_builder.SetFacCount(*c.FacCount)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateCarrierParams) Exec(ctx context.Context, builder *ent.CarrierCreate, query *ent.CarrierQuery) (*ent.Carrier, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateCarrierParams) Exec(ctx context.Context, _builder *ent.CarrierCreate, _query *ent.CarrierQuery) (*ent.Carrier, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadCarrier(query.Where(carrier.ID(result.ID))).Only(ctx)
+	return EagerLoadCarrier(_query.Where(carrier.ID(_result.ID))).Only(ctx)
 }
 
 // CreateCarrierFacilityParams defines parameters for creating a CarrierFacility via a POST request.
@@ -210,33 +210,33 @@ type CreateCarrierFacilityParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateCarrierFacilityParams) ApplyInputs(builder *ent.CarrierFacilityCreate) *ent.CarrierFacilityCreate {
+func (c *CreateCarrierFacilityParams) ApplyInputs(_builder *ent.CarrierFacilityCreate) *ent.CarrierFacilityCreate {
 	if c.CarrierID != nil {
-		builder.SetCarrierID(*c.CarrierID)
+		_builder.SetCarrierID(*c.CarrierID)
 	}
 	if c.FacID != nil {
-		builder.SetFacID(*c.FacID)
+		_builder.SetFacID(*c.FacID)
 	}
 	if c.Name != nil {
-		builder.SetName(*c.Name)
+		_builder.SetName(*c.Name)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateCarrierFacilityParams) Exec(ctx context.Context, builder *ent.CarrierFacilityCreate, query *ent.CarrierFacilityQuery) (*ent.CarrierFacility, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateCarrierFacilityParams) Exec(ctx context.Context, _builder *ent.CarrierFacilityCreate, _query *ent.CarrierFacilityQuery) (*ent.CarrierFacility, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadCarrierFacility(query.Where(carrierfacility.ID(result.ID))).Only(ctx)
+	return EagerLoadCarrierFacility(_query.Where(carrierfacility.ID(_result.ID))).Only(ctx)
 }
 
 // CreateFacilityParams defines parameters for creating a Facility via a POST request.
@@ -319,127 +319,127 @@ type CreateFacilityParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateFacilityParams) ApplyInputs(builder *ent.FacilityCreate) *ent.FacilityCreate {
+func (c *CreateFacilityParams) ApplyInputs(_builder *ent.FacilityCreate) *ent.FacilityCreate {
 	if c.CampusID != nil {
-		builder.SetCampusID(*c.CampusID)
+		_builder.SetCampusID(*c.CampusID)
 	}
 	if c.OrgID != nil {
-		builder.SetOrgID(*c.OrgID)
+		_builder.SetOrgID(*c.OrgID)
 	}
 	if c.Address1 != nil {
-		builder.SetAddress1(*c.Address1)
+		_builder.SetAddress1(*c.Address1)
 	}
 	if c.Address2 != nil {
-		builder.SetAddress2(*c.Address2)
+		_builder.SetAddress2(*c.Address2)
 	}
 	if c.Aka != nil {
-		builder.SetAka(*c.Aka)
+		_builder.SetAka(*c.Aka)
 	}
 	if c.AvailableVoltageServices != nil {
-		builder.SetAvailableVoltageServices(c.AvailableVoltageServices)
+		_builder.SetAvailableVoltageServices(c.AvailableVoltageServices)
 	}
 	if c.City != nil {
-		builder.SetCity(*c.City)
+		_builder.SetCity(*c.City)
 	}
 	if c.Clli != nil {
-		builder.SetClli(*c.Clli)
+		_builder.SetClli(*c.Clli)
 	}
 	if c.Country != nil {
-		builder.SetCountry(*c.Country)
+		_builder.SetCountry(*c.Country)
 	}
 	if c.DiverseServingSubstations != nil {
-		builder.SetDiverseServingSubstations(*c.DiverseServingSubstations)
+		_builder.SetDiverseServingSubstations(*c.DiverseServingSubstations)
 	}
 	if c.Floor != nil {
-		builder.SetFloor(*c.Floor)
+		_builder.SetFloor(*c.Floor)
 	}
 	if c.Latitude != nil {
-		builder.SetLatitude(*c.Latitude)
+		_builder.SetLatitude(*c.Latitude)
 	}
 	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
+		_builder.SetLogo(*c.Logo)
 	}
 	if c.Longitude != nil {
-		builder.SetLongitude(*c.Longitude)
+		_builder.SetLongitude(*c.Longitude)
 	}
-	builder.SetName(c.Name)
+	_builder.SetName(c.Name)
 	if c.NameLong != nil {
-		builder.SetNameLong(*c.NameLong)
+		_builder.SetNameLong(*c.NameLong)
 	}
 	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
+		_builder.SetNotes(*c.Notes)
 	}
 	if c.Npanxx != nil {
-		builder.SetNpanxx(*c.Npanxx)
+		_builder.SetNpanxx(*c.Npanxx)
 	}
 	if c.Property != nil {
-		builder.SetProperty(*c.Property)
+		_builder.SetProperty(*c.Property)
 	}
 	if c.RegionContinent != nil {
-		builder.SetRegionContinent(*c.RegionContinent)
+		_builder.SetRegionContinent(*c.RegionContinent)
 	}
 	if c.Rencode != nil {
-		builder.SetRencode(*c.Rencode)
+		_builder.SetRencode(*c.Rencode)
 	}
 	if c.SalesEmail != nil {
-		builder.SetSalesEmail(*c.SalesEmail)
+		_builder.SetSalesEmail(*c.SalesEmail)
 	}
 	if c.SalesPhone != nil {
-		builder.SetSalesPhone(*c.SalesPhone)
+		_builder.SetSalesPhone(*c.SalesPhone)
 	}
 	if c.SocialMedia != nil {
-		builder.SetSocialMedia(c.SocialMedia)
+		_builder.SetSocialMedia(c.SocialMedia)
 	}
 	if c.State != nil {
-		builder.SetState(*c.State)
+		_builder.SetState(*c.State)
 	}
 	if c.StatusDashboard != nil {
-		builder.SetStatusDashboard(*c.StatusDashboard)
+		_builder.SetStatusDashboard(*c.StatusDashboard)
 	}
 	if c.Suite != nil {
-		builder.SetSuite(*c.Suite)
+		_builder.SetSuite(*c.Suite)
 	}
 	if c.TechEmail != nil {
-		builder.SetTechEmail(*c.TechEmail)
+		_builder.SetTechEmail(*c.TechEmail)
 	}
 	if c.TechPhone != nil {
-		builder.SetTechPhone(*c.TechPhone)
+		_builder.SetTechPhone(*c.TechPhone)
 	}
 	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
+		_builder.SetWebsite(*c.Website)
 	}
 	if c.Zipcode != nil {
-		builder.SetZipcode(*c.Zipcode)
+		_builder.SetZipcode(*c.Zipcode)
 	}
 	if c.OrgName != nil {
-		builder.SetOrgName(*c.OrgName)
+		_builder.SetOrgName(*c.OrgName)
 	}
 	if c.NetCount != nil {
-		builder.SetNetCount(*c.NetCount)
+		_builder.SetNetCount(*c.NetCount)
 	}
 	if c.IxCount != nil {
-		builder.SetIxCount(*c.IxCount)
+		_builder.SetIxCount(*c.IxCount)
 	}
 	if c.CarrierCount != nil {
-		builder.SetCarrierCount(*c.CarrierCount)
+		_builder.SetCarrierCount(*c.CarrierCount)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateFacilityParams) Exec(ctx context.Context, builder *ent.FacilityCreate, query *ent.FacilityQuery) (*ent.Facility, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateFacilityParams) Exec(ctx context.Context, _builder *ent.FacilityCreate, _query *ent.FacilityQuery) (*ent.Facility, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadFacility(query.Where(facility.ID(result.ID))).Only(ctx)
+	return EagerLoadFacility(_query.Where(facility.ID(_result.ID))).Only(ctx)
 }
 
 // CreateInternetExchangeParams defines parameters for creating a InternetExchange via a POST request.
@@ -514,115 +514,115 @@ type CreateInternetExchangeParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateInternetExchangeParams) ApplyInputs(builder *ent.InternetExchangeCreate) *ent.InternetExchangeCreate {
+func (c *CreateInternetExchangeParams) ApplyInputs(_builder *ent.InternetExchangeCreate) *ent.InternetExchangeCreate {
 	if c.OrgID != nil {
-		builder.SetOrgID(*c.OrgID)
+		_builder.SetOrgID(*c.OrgID)
 	}
 	if c.Aka != nil {
-		builder.SetAka(*c.Aka)
+		_builder.SetAka(*c.Aka)
 	}
 	if c.City != nil {
-		builder.SetCity(*c.City)
+		_builder.SetCity(*c.City)
 	}
 	if c.Country != nil {
-		builder.SetCountry(*c.Country)
+		_builder.SetCountry(*c.Country)
 	}
 	if c.IxfLastImport != nil {
-		builder.SetIxfLastImport(*c.IxfLastImport)
+		_builder.SetIxfLastImport(*c.IxfLastImport)
 	}
 	if c.IxfNetCount != nil {
-		builder.SetIxfNetCount(*c.IxfNetCount)
+		_builder.SetIxfNetCount(*c.IxfNetCount)
 	}
 	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
+		_builder.SetLogo(*c.Logo)
 	}
 	if c.Media != nil {
-		builder.SetMedia(*c.Media)
+		_builder.SetMedia(*c.Media)
 	}
-	builder.SetName(c.Name)
+	_builder.SetName(c.Name)
 	if c.NameLong != nil {
-		builder.SetNameLong(*c.NameLong)
+		_builder.SetNameLong(*c.NameLong)
 	}
 	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
+		_builder.SetNotes(*c.Notes)
 	}
 	if c.PolicyEmail != nil {
-		builder.SetPolicyEmail(*c.PolicyEmail)
+		_builder.SetPolicyEmail(*c.PolicyEmail)
 	}
 	if c.PolicyPhone != nil {
-		builder.SetPolicyPhone(*c.PolicyPhone)
+		_builder.SetPolicyPhone(*c.PolicyPhone)
 	}
 	if c.ProtoIpv6 != nil {
-		builder.SetProtoIpv6(*c.ProtoIpv6)
+		_builder.SetProtoIpv6(*c.ProtoIpv6)
 	}
 	if c.ProtoMulticast != nil {
-		builder.SetProtoMulticast(*c.ProtoMulticast)
+		_builder.SetProtoMulticast(*c.ProtoMulticast)
 	}
 	if c.ProtoUnicast != nil {
-		builder.SetProtoUnicast(*c.ProtoUnicast)
+		_builder.SetProtoUnicast(*c.ProtoUnicast)
 	}
 	if c.RegionContinent != nil {
-		builder.SetRegionContinent(*c.RegionContinent)
+		_builder.SetRegionContinent(*c.RegionContinent)
 	}
 	if c.SalesEmail != nil {
-		builder.SetSalesEmail(*c.SalesEmail)
+		_builder.SetSalesEmail(*c.SalesEmail)
 	}
 	if c.SalesPhone != nil {
-		builder.SetSalesPhone(*c.SalesPhone)
+		_builder.SetSalesPhone(*c.SalesPhone)
 	}
 	if c.ServiceLevel != nil {
-		builder.SetServiceLevel(*c.ServiceLevel)
+		_builder.SetServiceLevel(*c.ServiceLevel)
 	}
 	if c.SocialMedia != nil {
-		builder.SetSocialMedia(c.SocialMedia)
+		_builder.SetSocialMedia(c.SocialMedia)
 	}
 	if c.StatusDashboard != nil {
-		builder.SetStatusDashboard(*c.StatusDashboard)
+		_builder.SetStatusDashboard(*c.StatusDashboard)
 	}
 	if c.TechEmail != nil {
-		builder.SetTechEmail(*c.TechEmail)
+		_builder.SetTechEmail(*c.TechEmail)
 	}
 	if c.TechPhone != nil {
-		builder.SetTechPhone(*c.TechPhone)
+		_builder.SetTechPhone(*c.TechPhone)
 	}
 	if c.Terms != nil {
-		builder.SetTerms(*c.Terms)
+		_builder.SetTerms(*c.Terms)
 	}
 	if c.URLStats != nil {
-		builder.SetURLStats(*c.URLStats)
+		_builder.SetURLStats(*c.URLStats)
 	}
 	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
+		_builder.SetWebsite(*c.Website)
 	}
 	if c.NetCount != nil {
-		builder.SetNetCount(*c.NetCount)
+		_builder.SetNetCount(*c.NetCount)
 	}
 	if c.FacCount != nil {
-		builder.SetFacCount(*c.FacCount)
+		_builder.SetFacCount(*c.FacCount)
 	}
 	if c.IxfImportRequest != nil {
-		builder.SetIxfImportRequest(*c.IxfImportRequest)
+		_builder.SetIxfImportRequest(*c.IxfImportRequest)
 	}
 	if c.IxfImportRequestStatus != nil {
-		builder.SetIxfImportRequestStatus(*c.IxfImportRequestStatus)
+		_builder.SetIxfImportRequestStatus(*c.IxfImportRequestStatus)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateInternetExchangeParams) Exec(ctx context.Context, builder *ent.InternetExchangeCreate, query *ent.InternetExchangeQuery) (*ent.InternetExchange, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateInternetExchangeParams) Exec(ctx context.Context, _builder *ent.InternetExchangeCreate, _query *ent.InternetExchangeQuery) (*ent.InternetExchange, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadInternetExchange(query.Where(internetexchange.ID(result.ID))).Only(ctx)
+	return EagerLoadInternetExchange(_query.Where(internetexchange.ID(_result.ID))).Only(ctx)
 }
 
 // CreateIxFacilityParams defines parameters for creating a IxFacility via a POST request.
@@ -645,39 +645,39 @@ type CreateIxFacilityParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateIxFacilityParams) ApplyInputs(builder *ent.IxFacilityCreate) *ent.IxFacilityCreate {
+func (c *CreateIxFacilityParams) ApplyInputs(_builder *ent.IxFacilityCreate) *ent.IxFacilityCreate {
 	if c.FacID != nil {
-		builder.SetFacID(*c.FacID)
+		_builder.SetFacID(*c.FacID)
 	}
 	if c.IxID != nil {
-		builder.SetIxID(*c.IxID)
+		_builder.SetIxID(*c.IxID)
 	}
 	if c.Name != nil {
-		builder.SetName(*c.Name)
+		_builder.SetName(*c.Name)
 	}
 	if c.City != nil {
-		builder.SetCity(*c.City)
+		_builder.SetCity(*c.City)
 	}
 	if c.Country != nil {
-		builder.SetCountry(*c.Country)
+		_builder.SetCountry(*c.Country)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateIxFacilityParams) Exec(ctx context.Context, builder *ent.IxFacilityCreate, query *ent.IxFacilityQuery) (*ent.IxFacility, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateIxFacilityParams) Exec(ctx context.Context, _builder *ent.IxFacilityCreate, _query *ent.IxFacilityQuery) (*ent.IxFacility, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadIxFacility(query.Where(ixfacility.ID(result.ID))).Only(ctx)
+	return EagerLoadIxFacility(_query.Where(ixfacility.ID(_result.ID))).Only(ctx)
 }
 
 // CreateIxLanParams defines parameters for creating a IxLan via a POST request.
@@ -708,51 +708,51 @@ type CreateIxLanParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateIxLanParams) ApplyInputs(builder *ent.IxLanCreate) *ent.IxLanCreate {
+func (c *CreateIxLanParams) ApplyInputs(_builder *ent.IxLanCreate) *ent.IxLanCreate {
 	if c.IxID != nil {
-		builder.SetIxID(*c.IxID)
+		_builder.SetIxID(*c.IxID)
 	}
 	if c.ArpSponge != nil {
-		builder.SetArpSponge(*c.ArpSponge)
+		_builder.SetArpSponge(*c.ArpSponge)
 	}
 	if c.Descr != nil {
-		builder.SetDescr(*c.Descr)
+		_builder.SetDescr(*c.Descr)
 	}
 	if c.Dot1qSupport != nil {
-		builder.SetDot1qSupport(*c.Dot1qSupport)
+		_builder.SetDot1qSupport(*c.Dot1qSupport)
 	}
 	if c.IxfIxpImportEnabled != nil {
-		builder.SetIxfIxpImportEnabled(*c.IxfIxpImportEnabled)
+		_builder.SetIxfIxpImportEnabled(*c.IxfIxpImportEnabled)
 	}
 	if c.IxfIxpMemberListURLVisible != nil {
-		builder.SetIxfIxpMemberListURLVisible(*c.IxfIxpMemberListURLVisible)
+		_builder.SetIxfIxpMemberListURLVisible(*c.IxfIxpMemberListURLVisible)
 	}
 	if c.Mtu != nil {
-		builder.SetMtu(*c.Mtu)
+		_builder.SetMtu(*c.Mtu)
 	}
 	if c.Name != nil {
-		builder.SetName(*c.Name)
+		_builder.SetName(*c.Name)
 	}
 	if c.RsAsn != nil {
-		builder.SetRsAsn(*c.RsAsn)
+		_builder.SetRsAsn(*c.RsAsn)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateIxLanParams) Exec(ctx context.Context, builder *ent.IxLanCreate, query *ent.IxLanQuery) (*ent.IxLan, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateIxLanParams) Exec(ctx context.Context, _builder *ent.IxLanCreate, _query *ent.IxLanQuery) (*ent.IxLan, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadIxLan(query.Where(ixlan.ID(result.ID))).Only(ctx)
+	return EagerLoadIxLan(_query.Where(ixlan.ID(_result.ID))).Only(ctx)
 }
 
 // CreateIxPrefixParams defines parameters for creating a IxPrefix via a POST request.
@@ -775,37 +775,37 @@ type CreateIxPrefixParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateIxPrefixParams) ApplyInputs(builder *ent.IxPrefixCreate) *ent.IxPrefixCreate {
+func (c *CreateIxPrefixParams) ApplyInputs(_builder *ent.IxPrefixCreate) *ent.IxPrefixCreate {
 	if c.IxlanID != nil {
-		builder.SetIxlanID(*c.IxlanID)
+		_builder.SetIxlanID(*c.IxlanID)
 	}
 	if c.InDfz != nil {
-		builder.SetInDfz(*c.InDfz)
+		_builder.SetInDfz(*c.InDfz)
 	}
 	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
+		_builder.SetNotes(*c.Notes)
 	}
-	builder.SetPrefix(c.Prefix)
+	_builder.SetPrefix(c.Prefix)
 	if c.Protocol != nil {
-		builder.SetProtocol(*c.Protocol)
+		_builder.SetProtocol(*c.Protocol)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateIxPrefixParams) Exec(ctx context.Context, builder *ent.IxPrefixCreate, query *ent.IxPrefixQuery) (*ent.IxPrefix, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateIxPrefixParams) Exec(ctx context.Context, _builder *ent.IxPrefixCreate, _query *ent.IxPrefixQuery) (*ent.IxPrefix, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadIxPrefix(query.Where(ixprefix.ID(result.ID))).Only(ctx)
+	return EagerLoadIxPrefix(_query.Where(ixprefix.ID(_result.ID))).Only(ctx)
 }
 
 // CreateNetworkParams defines parameters for creating a Network via a POST request.
@@ -892,131 +892,131 @@ type CreateNetworkParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateNetworkParams) ApplyInputs(builder *ent.NetworkCreate) *ent.NetworkCreate {
+func (c *CreateNetworkParams) ApplyInputs(_builder *ent.NetworkCreate) *ent.NetworkCreate {
 	if c.OrgID != nil {
-		builder.SetOrgID(*c.OrgID)
+		_builder.SetOrgID(*c.OrgID)
 	}
 	if c.Aka != nil {
-		builder.SetAka(*c.Aka)
+		_builder.SetAka(*c.Aka)
 	}
 	if c.AllowIxpUpdate != nil {
-		builder.SetAllowIxpUpdate(*c.AllowIxpUpdate)
+		_builder.SetAllowIxpUpdate(*c.AllowIxpUpdate)
 	}
-	builder.SetAsn(c.Asn)
+	_builder.SetAsn(c.Asn)
 	if c.InfoIpv6 != nil {
-		builder.SetInfoIpv6(*c.InfoIpv6)
+		_builder.SetInfoIpv6(*c.InfoIpv6)
 	}
 	if c.InfoMulticast != nil {
-		builder.SetInfoMulticast(*c.InfoMulticast)
+		_builder.SetInfoMulticast(*c.InfoMulticast)
 	}
 	if c.InfoNeverViaRouteServers != nil {
-		builder.SetInfoNeverViaRouteServers(*c.InfoNeverViaRouteServers)
+		_builder.SetInfoNeverViaRouteServers(*c.InfoNeverViaRouteServers)
 	}
 	if c.InfoPrefixes4 != nil {
-		builder.SetInfoPrefixes4(*c.InfoPrefixes4)
+		_builder.SetInfoPrefixes4(*c.InfoPrefixes4)
 	}
 	if c.InfoPrefixes6 != nil {
-		builder.SetInfoPrefixes6(*c.InfoPrefixes6)
+		_builder.SetInfoPrefixes6(*c.InfoPrefixes6)
 	}
 	if c.InfoRatio != nil {
-		builder.SetInfoRatio(*c.InfoRatio)
+		_builder.SetInfoRatio(*c.InfoRatio)
 	}
 	if c.InfoScope != nil {
-		builder.SetInfoScope(*c.InfoScope)
+		_builder.SetInfoScope(*c.InfoScope)
 	}
 	if c.InfoTraffic != nil {
-		builder.SetInfoTraffic(*c.InfoTraffic)
+		_builder.SetInfoTraffic(*c.InfoTraffic)
 	}
 	if c.InfoType != nil {
-		builder.SetInfoType(*c.InfoType)
+		_builder.SetInfoType(*c.InfoType)
 	}
 	if c.InfoTypes != nil {
-		builder.SetInfoTypes(c.InfoTypes)
+		_builder.SetInfoTypes(c.InfoTypes)
 	}
 	if c.InfoUnicast != nil {
-		builder.SetInfoUnicast(*c.InfoUnicast)
+		_builder.SetInfoUnicast(*c.InfoUnicast)
 	}
 	if c.IrrAsSet != nil {
-		builder.SetIrrAsSet(*c.IrrAsSet)
+		_builder.SetIrrAsSet(*c.IrrAsSet)
 	}
 	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
+		_builder.SetLogo(*c.Logo)
 	}
 	if c.LookingGlass != nil {
-		builder.SetLookingGlass(*c.LookingGlass)
+		_builder.SetLookingGlass(*c.LookingGlass)
 	}
-	builder.SetName(c.Name)
+	_builder.SetName(c.Name)
 	if c.NameLong != nil {
-		builder.SetNameLong(*c.NameLong)
+		_builder.SetNameLong(*c.NameLong)
 	}
 	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
+		_builder.SetNotes(*c.Notes)
 	}
 	if c.PolicyContracts != nil {
-		builder.SetPolicyContracts(*c.PolicyContracts)
+		_builder.SetPolicyContracts(*c.PolicyContracts)
 	}
 	if c.PolicyGeneral != nil {
-		builder.SetPolicyGeneral(*c.PolicyGeneral)
+		_builder.SetPolicyGeneral(*c.PolicyGeneral)
 	}
 	if c.PolicyLocations != nil {
-		builder.SetPolicyLocations(*c.PolicyLocations)
+		_builder.SetPolicyLocations(*c.PolicyLocations)
 	}
 	if c.PolicyRatio != nil {
-		builder.SetPolicyRatio(*c.PolicyRatio)
+		_builder.SetPolicyRatio(*c.PolicyRatio)
 	}
 	if c.PolicyURL != nil {
-		builder.SetPolicyURL(*c.PolicyURL)
+		_builder.SetPolicyURL(*c.PolicyURL)
 	}
 	if c.RirStatus != nil {
-		builder.SetRirStatus(*c.RirStatus)
+		_builder.SetRirStatus(*c.RirStatus)
 	}
 	if c.RirStatusUpdated != nil {
-		builder.SetRirStatusUpdated(*c.RirStatusUpdated)
+		_builder.SetRirStatusUpdated(*c.RirStatusUpdated)
 	}
 	if c.RouteServer != nil {
-		builder.SetRouteServer(*c.RouteServer)
+		_builder.SetRouteServer(*c.RouteServer)
 	}
 	if c.SocialMedia != nil {
-		builder.SetSocialMedia(c.SocialMedia)
+		_builder.SetSocialMedia(c.SocialMedia)
 	}
 	if c.StatusDashboard != nil {
-		builder.SetStatusDashboard(*c.StatusDashboard)
+		_builder.SetStatusDashboard(*c.StatusDashboard)
 	}
 	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
+		_builder.SetWebsite(*c.Website)
 	}
 	if c.IxCount != nil {
-		builder.SetIxCount(*c.IxCount)
+		_builder.SetIxCount(*c.IxCount)
 	}
 	if c.FacCount != nil {
-		builder.SetFacCount(*c.FacCount)
+		_builder.SetFacCount(*c.FacCount)
 	}
 	if c.NetixlanUpdated != nil {
-		builder.SetNetixlanUpdated(*c.NetixlanUpdated)
+		_builder.SetNetixlanUpdated(*c.NetixlanUpdated)
 	}
 	if c.NetfacUpdated != nil {
-		builder.SetNetfacUpdated(*c.NetfacUpdated)
+		_builder.SetNetfacUpdated(*c.NetfacUpdated)
 	}
 	if c.PocUpdated != nil {
-		builder.SetPocUpdated(*c.PocUpdated)
+		_builder.SetPocUpdated(*c.PocUpdated)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateNetworkParams) Exec(ctx context.Context, builder *ent.NetworkCreate, query *ent.NetworkQuery) (*ent.Network, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateNetworkParams) Exec(ctx context.Context, _builder *ent.NetworkCreate, _query *ent.NetworkQuery) (*ent.Network, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadNetwork(query.Where(network.ID(result.ID))).Only(ctx)
+	return EagerLoadNetwork(_query.Where(network.ID(_result.ID))).Only(ctx)
 }
 
 // CreateNetworkFacilityParams defines parameters for creating a NetworkFacility via a POST request.
@@ -1041,40 +1041,40 @@ type CreateNetworkFacilityParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateNetworkFacilityParams) ApplyInputs(builder *ent.NetworkFacilityCreate) *ent.NetworkFacilityCreate {
+func (c *CreateNetworkFacilityParams) ApplyInputs(_builder *ent.NetworkFacilityCreate) *ent.NetworkFacilityCreate {
 	if c.FacID != nil {
-		builder.SetFacID(*c.FacID)
+		_builder.SetFacID(*c.FacID)
 	}
 	if c.NetID != nil {
-		builder.SetNetID(*c.NetID)
+		_builder.SetNetID(*c.NetID)
 	}
-	builder.SetLocalAsn(c.LocalAsn)
+	_builder.SetLocalAsn(c.LocalAsn)
 	if c.Name != nil {
-		builder.SetName(*c.Name)
+		_builder.SetName(*c.Name)
 	}
 	if c.City != nil {
-		builder.SetCity(*c.City)
+		_builder.SetCity(*c.City)
 	}
 	if c.Country != nil {
-		builder.SetCountry(*c.Country)
+		_builder.SetCountry(*c.Country)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateNetworkFacilityParams) Exec(ctx context.Context, builder *ent.NetworkFacilityCreate, query *ent.NetworkFacilityQuery) (*ent.NetworkFacility, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateNetworkFacilityParams) Exec(ctx context.Context, _builder *ent.NetworkFacilityCreate, _query *ent.NetworkFacilityQuery) (*ent.NetworkFacility, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadNetworkFacility(query.Where(networkfacility.ID(result.ID))).Only(ctx)
+	return EagerLoadNetworkFacility(_query.Where(networkfacility.ID(_result.ID))).Only(ctx)
 }
 
 // CreateNetworkIxLanParams defines parameters for creating a NetworkIxLan via a POST request.
@@ -1115,62 +1115,62 @@ type CreateNetworkIxLanParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateNetworkIxLanParams) ApplyInputs(builder *ent.NetworkIxLanCreate) *ent.NetworkIxLanCreate {
+func (c *CreateNetworkIxLanParams) ApplyInputs(_builder *ent.NetworkIxLanCreate) *ent.NetworkIxLanCreate {
 	if c.IxSideID != nil {
-		builder.SetIxSideID(*c.IxSideID)
+		_builder.SetIxSideID(*c.IxSideID)
 	}
 	if c.IxlanID != nil {
-		builder.SetIxlanID(*c.IxlanID)
+		_builder.SetIxlanID(*c.IxlanID)
 	}
 	if c.NetID != nil {
-		builder.SetNetID(*c.NetID)
+		_builder.SetNetID(*c.NetID)
 	}
 	if c.NetSideID != nil {
-		builder.SetNetSideID(*c.NetSideID)
+		_builder.SetNetSideID(*c.NetSideID)
 	}
-	builder.SetAsn(c.Asn)
+	_builder.SetAsn(c.Asn)
 	if c.BfdSupport != nil {
-		builder.SetBfdSupport(*c.BfdSupport)
+		_builder.SetBfdSupport(*c.BfdSupport)
 	}
 	if c.Ipaddr4 != nil {
-		builder.SetIpaddr4(*c.Ipaddr4)
+		_builder.SetIpaddr4(*c.Ipaddr4)
 	}
 	if c.Ipaddr6 != nil {
-		builder.SetIpaddr6(*c.Ipaddr6)
+		_builder.SetIpaddr6(*c.Ipaddr6)
 	}
 	if c.IsRsPeer != nil {
-		builder.SetIsRsPeer(*c.IsRsPeer)
+		_builder.SetIsRsPeer(*c.IsRsPeer)
 	}
 	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
+		_builder.SetNotes(*c.Notes)
 	}
 	if c.Operational != nil {
-		builder.SetOperational(*c.Operational)
+		_builder.SetOperational(*c.Operational)
 	}
-	builder.SetSpeed(c.Speed)
+	_builder.SetSpeed(c.Speed)
 	if c.IxID != nil {
-		builder.SetIxID(*c.IxID)
+		_builder.SetIxID(*c.IxID)
 	}
 	if c.Name != nil {
-		builder.SetName(*c.Name)
+		_builder.SetName(*c.Name)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateNetworkIxLanParams) Exec(ctx context.Context, builder *ent.NetworkIxLanCreate, query *ent.NetworkIxLanQuery) (*ent.NetworkIxLan, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateNetworkIxLanParams) Exec(ctx context.Context, _builder *ent.NetworkIxLanCreate, _query *ent.NetworkIxLanQuery) (*ent.NetworkIxLan, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadNetworkIxLan(query.Where(networkixlan.ID(result.ID))).Only(ctx)
+	return EagerLoadNetworkIxLan(_query.Where(networkixlan.ID(_result.ID))).Only(ctx)
 }
 
 // CreateOrganizationParams defines parameters for creating a Organization via a POST request.
@@ -1221,79 +1221,79 @@ type CreateOrganizationParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreateOrganizationParams) ApplyInputs(builder *ent.OrganizationCreate) *ent.OrganizationCreate {
+func (c *CreateOrganizationParams) ApplyInputs(_builder *ent.OrganizationCreate) *ent.OrganizationCreate {
 	if c.Address1 != nil {
-		builder.SetAddress1(*c.Address1)
+		_builder.SetAddress1(*c.Address1)
 	}
 	if c.Address2 != nil {
-		builder.SetAddress2(*c.Address2)
+		_builder.SetAddress2(*c.Address2)
 	}
 	if c.Aka != nil {
-		builder.SetAka(*c.Aka)
+		_builder.SetAka(*c.Aka)
 	}
 	if c.City != nil {
-		builder.SetCity(*c.City)
+		_builder.SetCity(*c.City)
 	}
 	if c.Country != nil {
-		builder.SetCountry(*c.Country)
+		_builder.SetCountry(*c.Country)
 	}
 	if c.Floor != nil {
-		builder.SetFloor(*c.Floor)
+		_builder.SetFloor(*c.Floor)
 	}
 	if c.Latitude != nil {
-		builder.SetLatitude(*c.Latitude)
+		_builder.SetLatitude(*c.Latitude)
 	}
 	if c.Logo != nil {
-		builder.SetLogo(*c.Logo)
+		_builder.SetLogo(*c.Logo)
 	}
 	if c.Longitude != nil {
-		builder.SetLongitude(*c.Longitude)
+		_builder.SetLongitude(*c.Longitude)
 	}
-	builder.SetName(c.Name)
+	_builder.SetName(c.Name)
 	if c.NameLong != nil {
-		builder.SetNameLong(*c.NameLong)
+		_builder.SetNameLong(*c.NameLong)
 	}
 	if c.Notes != nil {
-		builder.SetNotes(*c.Notes)
+		_builder.SetNotes(*c.Notes)
 	}
 	if c.SocialMedia != nil {
-		builder.SetSocialMedia(c.SocialMedia)
+		_builder.SetSocialMedia(c.SocialMedia)
 	}
 	if c.State != nil {
-		builder.SetState(*c.State)
+		_builder.SetState(*c.State)
 	}
 	if c.Suite != nil {
-		builder.SetSuite(*c.Suite)
+		_builder.SetSuite(*c.Suite)
 	}
 	if c.Website != nil {
-		builder.SetWebsite(*c.Website)
+		_builder.SetWebsite(*c.Website)
 	}
 	if c.Zipcode != nil {
-		builder.SetZipcode(*c.Zipcode)
+		_builder.SetZipcode(*c.Zipcode)
 	}
 	if c.NetCount != nil {
-		builder.SetNetCount(*c.NetCount)
+		_builder.SetNetCount(*c.NetCount)
 	}
 	if c.FacCount != nil {
-		builder.SetFacCount(*c.FacCount)
+		_builder.SetFacCount(*c.FacCount)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreateOrganizationParams) Exec(ctx context.Context, builder *ent.OrganizationCreate, query *ent.OrganizationQuery) (*ent.Organization, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreateOrganizationParams) Exec(ctx context.Context, _builder *ent.OrganizationCreate, _query *ent.OrganizationQuery) (*ent.Organization, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadOrganization(query.Where(organization.ID(result.ID))).Only(ctx)
+	return EagerLoadOrganization(_query.Where(organization.ID(_result.ID))).Only(ctx)
 }
 
 // CreatePocParams defines parameters for creating a Poc via a POST request.
@@ -1320,41 +1320,41 @@ type CreatePocParams struct {
 	Status *string `json:"status"`
 }
 
-func (c *CreatePocParams) ApplyInputs(builder *ent.PocCreate) *ent.PocCreate {
+func (c *CreatePocParams) ApplyInputs(_builder *ent.PocCreate) *ent.PocCreate {
 	if c.NetID != nil {
-		builder.SetNetID(*c.NetID)
+		_builder.SetNetID(*c.NetID)
 	}
 	if c.Email != nil {
-		builder.SetEmail(*c.Email)
+		_builder.SetEmail(*c.Email)
 	}
 	if c.Name != nil {
-		builder.SetName(*c.Name)
+		_builder.SetName(*c.Name)
 	}
 	if c.Phone != nil {
-		builder.SetPhone(*c.Phone)
+		_builder.SetPhone(*c.Phone)
 	}
-	builder.SetRole(c.Role)
+	_builder.SetRole(c.Role)
 	if c.URL != nil {
-		builder.SetURL(*c.URL)
+		_builder.SetURL(*c.URL)
 	}
 	if c.Visible != nil {
-		builder.SetVisible(*c.Visible)
+		_builder.SetVisible(*c.Visible)
 	}
-	builder.SetCreated(c.Created)
-	builder.SetUpdated(c.Updated)
+	_builder.SetCreated(c.Created)
+	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
-		builder.SetStatus(*c.Status)
+		_builder.SetStatus(*c.Status)
 	}
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the builder), creates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *CreatePocParams) Exec(ctx context.Context, builder *ent.PocCreate, query *ent.PocQuery) (*ent.Poc, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *CreatePocParams) Exec(ctx context.Context, _builder *ent.PocCreate, _query *ent.PocQuery) (*ent.Poc, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadPoc(query.Where(poc.ID(result.ID))).Only(ctx)
+	return EagerLoadPoc(_query.Where(poc.ID(_result.ID))).Only(ctx)
 }

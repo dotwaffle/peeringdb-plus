@@ -57,81 +57,81 @@ type UpdateCampusParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateCampusParams) ApplyInputs(builder *ent.CampusUpdateOne) *ent.CampusUpdateOne {
+func (u *UpdateCampusParams) ApplyInputs(_builder *ent.CampusUpdateOne) *ent.CampusUpdateOne {
 	if v, ok := u.OrgID.Get(); ok {
 		if v != nil {
-			builder.SetOrgID(*v)
+			_builder.SetOrgID(*v)
 		} else {
-			builder.ClearOrgID()
+			_builder.ClearOrgID()
 		}
 	}
 	if v, ok := u.Aka.Get(); ok {
 		if v != nil {
-			builder.SetAka(*v)
+			_builder.SetAka(*v)
 		} else {
-			builder.ClearAka()
+			_builder.ClearAka()
 		}
 	}
 	if v, ok := u.City.Get(); ok {
-		builder.SetCity(v)
+		_builder.SetCity(v)
 	}
 	if v, ok := u.Country.Get(); ok {
-		builder.SetCountry(v)
+		_builder.SetCountry(v)
 	}
 	if v, ok := u.Logo.Get(); ok {
 		if v != nil {
-			builder.SetLogo(*v)
+			_builder.SetLogo(*v)
 		} else {
-			builder.ClearLogo()
+			_builder.ClearLogo()
 		}
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.NameLong.Get(); ok {
 		if v != nil {
-			builder.SetNameLong(*v)
+			_builder.SetNameLong(*v)
 		} else {
-			builder.ClearNameLong()
+			_builder.ClearNameLong()
 		}
 	}
 	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
+		_builder.SetNotes(v)
 	}
 	if v, ok := u.SocialMedia.Get(); ok {
-		builder.SetSocialMedia(v)
+		_builder.SetSocialMedia(v)
 	}
 	if v, ok := u.State.Get(); ok {
-		builder.SetState(v)
+		_builder.SetState(v)
 	}
 	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
+		_builder.SetWebsite(v)
 	}
 	if v, ok := u.Zipcode.Get(); ok {
-		builder.SetZipcode(v)
+		_builder.SetZipcode(v)
 	}
 	if v, ok := u.OrgName.Get(); ok {
-		builder.SetOrgName(v)
+		_builder.SetOrgName(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateCampusParams) Exec(ctx context.Context, builder *ent.CampusUpdateOne, query *ent.CampusQuery) (*ent.Campus, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateCampusParams) Exec(ctx context.Context, _builder *ent.CampusUpdateOne, _query *ent.CampusQuery) (*ent.Campus, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadCampus(query.Where(campus.ID(result.ID))).Only(ctx)
+	return EagerLoadCampus(_query.Where(campus.ID(_result.ID))).Only(ctx)
 }
 
 // UpdateCarrierParams defines parameters for updating a Carrier via a PATCH request.
@@ -162,64 +162,64 @@ type UpdateCarrierParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateCarrierParams) ApplyInputs(builder *ent.CarrierUpdateOne) *ent.CarrierUpdateOne {
+func (u *UpdateCarrierParams) ApplyInputs(_builder *ent.CarrierUpdateOne) *ent.CarrierUpdateOne {
 	if v, ok := u.OrgID.Get(); ok {
 		if v != nil {
-			builder.SetOrgID(*v)
+			_builder.SetOrgID(*v)
 		} else {
-			builder.ClearOrgID()
+			_builder.ClearOrgID()
 		}
 	}
 	if v, ok := u.Aka.Get(); ok {
-		builder.SetAka(v)
+		_builder.SetAka(v)
 	}
 	if v, ok := u.Logo.Get(); ok {
 		if v != nil {
-			builder.SetLogo(*v)
+			_builder.SetLogo(*v)
 		} else {
-			builder.ClearLogo()
+			_builder.ClearLogo()
 		}
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.NameLong.Get(); ok {
-		builder.SetNameLong(v)
+		_builder.SetNameLong(v)
 	}
 	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
+		_builder.SetNotes(v)
 	}
 	if v, ok := u.SocialMedia.Get(); ok {
-		builder.SetSocialMedia(v)
+		_builder.SetSocialMedia(v)
 	}
 	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
+		_builder.SetWebsite(v)
 	}
 	if v, ok := u.OrgName.Get(); ok {
-		builder.SetOrgName(v)
+		_builder.SetOrgName(v)
 	}
 	if v, ok := u.FacCount.Get(); ok {
-		builder.SetFacCount(v)
+		_builder.SetFacCount(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateCarrierParams) Exec(ctx context.Context, builder *ent.CarrierUpdateOne, query *ent.CarrierQuery) (*ent.Carrier, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateCarrierParams) Exec(ctx context.Context, _builder *ent.CarrierUpdateOne, _query *ent.CarrierQuery) (*ent.Carrier, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadCarrier(query.Where(carrier.ID(result.ID))).Only(ctx)
+	return EagerLoadCarrier(_query.Where(carrier.ID(_result.ID))).Only(ctx)
 }
 
 // UpdateCarrierFacilityParams defines parameters for updating a CarrierFacility via a PATCH request.
@@ -236,43 +236,43 @@ type UpdateCarrierFacilityParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateCarrierFacilityParams) ApplyInputs(builder *ent.CarrierFacilityUpdateOne) *ent.CarrierFacilityUpdateOne {
+func (u *UpdateCarrierFacilityParams) ApplyInputs(_builder *ent.CarrierFacilityUpdateOne) *ent.CarrierFacilityUpdateOne {
 	if v, ok := u.CarrierID.Get(); ok {
 		if v != nil {
-			builder.SetCarrierID(*v)
+			_builder.SetCarrierID(*v)
 		} else {
-			builder.ClearCarrierID()
+			_builder.ClearCarrierID()
 		}
 	}
 	if v, ok := u.FacID.Get(); ok {
 		if v != nil {
-			builder.SetFacID(*v)
+			_builder.SetFacID(*v)
 		} else {
-			builder.ClearFacID()
+			_builder.ClearFacID()
 		}
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateCarrierFacilityParams) Exec(ctx context.Context, builder *ent.CarrierFacilityUpdateOne, query *ent.CarrierFacilityQuery) (*ent.CarrierFacility, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateCarrierFacilityParams) Exec(ctx context.Context, _builder *ent.CarrierFacilityUpdateOne, _query *ent.CarrierFacilityQuery) (*ent.CarrierFacility, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadCarrierFacility(query.Where(carrierfacility.ID(result.ID))).Only(ctx)
+	return EagerLoadCarrierFacility(_query.Where(carrierfacility.ID(_result.ID))).Only(ctx)
 }
 
 // UpdateFacilityParams defines parameters for updating a Facility via a PATCH request.
@@ -353,167 +353,167 @@ type UpdateFacilityParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateFacilityParams) ApplyInputs(builder *ent.FacilityUpdateOne) *ent.FacilityUpdateOne {
+func (u *UpdateFacilityParams) ApplyInputs(_builder *ent.FacilityUpdateOne) *ent.FacilityUpdateOne {
 	if v, ok := u.CampusID.Get(); ok {
 		if v != nil {
-			builder.SetCampusID(*v)
+			_builder.SetCampusID(*v)
 		} else {
-			builder.ClearCampusID()
+			_builder.ClearCampusID()
 		}
 	}
 	if v, ok := u.OrgID.Get(); ok {
 		if v != nil {
-			builder.SetOrgID(*v)
+			_builder.SetOrgID(*v)
 		} else {
-			builder.ClearOrgID()
+			_builder.ClearOrgID()
 		}
 	}
 	if v, ok := u.Address1.Get(); ok {
-		builder.SetAddress1(v)
+		_builder.SetAddress1(v)
 	}
 	if v, ok := u.Address2.Get(); ok {
-		builder.SetAddress2(v)
+		_builder.SetAddress2(v)
 	}
 	if v, ok := u.Aka.Get(); ok {
-		builder.SetAka(v)
+		_builder.SetAka(v)
 	}
 	if v, ok := u.AvailableVoltageServices.Get(); ok {
-		builder.SetAvailableVoltageServices(v)
+		_builder.SetAvailableVoltageServices(v)
 	}
 	if v, ok := u.City.Get(); ok {
-		builder.SetCity(v)
+		_builder.SetCity(v)
 	}
 	if v, ok := u.Clli.Get(); ok {
-		builder.SetClli(v)
+		_builder.SetClli(v)
 	}
 	if v, ok := u.Country.Get(); ok {
-		builder.SetCountry(v)
+		_builder.SetCountry(v)
 	}
 	if v, ok := u.DiverseServingSubstations.Get(); ok {
 		if v != nil {
-			builder.SetDiverseServingSubstations(*v)
+			_builder.SetDiverseServingSubstations(*v)
 		} else {
-			builder.ClearDiverseServingSubstations()
+			_builder.ClearDiverseServingSubstations()
 		}
 	}
 	if v, ok := u.Floor.Get(); ok {
-		builder.SetFloor(v)
+		_builder.SetFloor(v)
 	}
 	if v, ok := u.Latitude.Get(); ok {
 		if v != nil {
-			builder.SetLatitude(*v)
+			_builder.SetLatitude(*v)
 		} else {
-			builder.ClearLatitude()
+			_builder.ClearLatitude()
 		}
 	}
 	if v, ok := u.Logo.Get(); ok {
 		if v != nil {
-			builder.SetLogo(*v)
+			_builder.SetLogo(*v)
 		} else {
-			builder.ClearLogo()
+			_builder.ClearLogo()
 		}
 	}
 	if v, ok := u.Longitude.Get(); ok {
 		if v != nil {
-			builder.SetLongitude(*v)
+			_builder.SetLongitude(*v)
 		} else {
-			builder.ClearLongitude()
+			_builder.ClearLongitude()
 		}
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.NameLong.Get(); ok {
-		builder.SetNameLong(v)
+		_builder.SetNameLong(v)
 	}
 	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
+		_builder.SetNotes(v)
 	}
 	if v, ok := u.Npanxx.Get(); ok {
-		builder.SetNpanxx(v)
+		_builder.SetNpanxx(v)
 	}
 	if v, ok := u.Property.Get(); ok {
 		if v != nil {
-			builder.SetProperty(*v)
+			_builder.SetProperty(*v)
 		} else {
-			builder.ClearProperty()
+			_builder.ClearProperty()
 		}
 	}
 	if v, ok := u.RegionContinent.Get(); ok {
 		if v != nil {
-			builder.SetRegionContinent(*v)
+			_builder.SetRegionContinent(*v)
 		} else {
-			builder.ClearRegionContinent()
+			_builder.ClearRegionContinent()
 		}
 	}
 	if v, ok := u.Rencode.Get(); ok {
-		builder.SetRencode(v)
+		_builder.SetRencode(v)
 	}
 	if v, ok := u.SalesEmail.Get(); ok {
-		builder.SetSalesEmail(v)
+		_builder.SetSalesEmail(v)
 	}
 	if v, ok := u.SalesPhone.Get(); ok {
-		builder.SetSalesPhone(v)
+		_builder.SetSalesPhone(v)
 	}
 	if v, ok := u.SocialMedia.Get(); ok {
-		builder.SetSocialMedia(v)
+		_builder.SetSocialMedia(v)
 	}
 	if v, ok := u.State.Get(); ok {
-		builder.SetState(v)
+		_builder.SetState(v)
 	}
 	if v, ok := u.StatusDashboard.Get(); ok {
 		if v != nil {
-			builder.SetStatusDashboard(*v)
+			_builder.SetStatusDashboard(*v)
 		} else {
-			builder.ClearStatusDashboard()
+			_builder.ClearStatusDashboard()
 		}
 	}
 	if v, ok := u.Suite.Get(); ok {
-		builder.SetSuite(v)
+		_builder.SetSuite(v)
 	}
 	if v, ok := u.TechEmail.Get(); ok {
-		builder.SetTechEmail(v)
+		_builder.SetTechEmail(v)
 	}
 	if v, ok := u.TechPhone.Get(); ok {
-		builder.SetTechPhone(v)
+		_builder.SetTechPhone(v)
 	}
 	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
+		_builder.SetWebsite(v)
 	}
 	if v, ok := u.Zipcode.Get(); ok {
-		builder.SetZipcode(v)
+		_builder.SetZipcode(v)
 	}
 	if v, ok := u.OrgName.Get(); ok {
-		builder.SetOrgName(v)
+		_builder.SetOrgName(v)
 	}
 	if v, ok := u.NetCount.Get(); ok {
-		builder.SetNetCount(v)
+		_builder.SetNetCount(v)
 	}
 	if v, ok := u.IxCount.Get(); ok {
-		builder.SetIxCount(v)
+		_builder.SetIxCount(v)
 	}
 	if v, ok := u.CarrierCount.Get(); ok {
-		builder.SetCarrierCount(v)
+		_builder.SetCarrierCount(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateFacilityParams) Exec(ctx context.Context, builder *ent.FacilityUpdateOne, query *ent.FacilityQuery) (*ent.Facility, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateFacilityParams) Exec(ctx context.Context, _builder *ent.FacilityUpdateOne, _query *ent.FacilityQuery) (*ent.Facility, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadFacility(query.Where(facility.ID(result.ID))).Only(ctx)
+	return EagerLoadFacility(_query.Where(facility.ID(_result.ID))).Only(ctx)
 }
 
 // UpdateInternetExchangeParams defines parameters for updating a InternetExchange via a PATCH request.
@@ -586,139 +586,139 @@ type UpdateInternetExchangeParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateInternetExchangeParams) ApplyInputs(builder *ent.InternetExchangeUpdateOne) *ent.InternetExchangeUpdateOne {
+func (u *UpdateInternetExchangeParams) ApplyInputs(_builder *ent.InternetExchangeUpdateOne) *ent.InternetExchangeUpdateOne {
 	if v, ok := u.OrgID.Get(); ok {
 		if v != nil {
-			builder.SetOrgID(*v)
+			_builder.SetOrgID(*v)
 		} else {
-			builder.ClearOrgID()
+			_builder.ClearOrgID()
 		}
 	}
 	if v, ok := u.Aka.Get(); ok {
-		builder.SetAka(v)
+		_builder.SetAka(v)
 	}
 	if v, ok := u.City.Get(); ok {
-		builder.SetCity(v)
+		_builder.SetCity(v)
 	}
 	if v, ok := u.Country.Get(); ok {
-		builder.SetCountry(v)
+		_builder.SetCountry(v)
 	}
 	if v, ok := u.IxfLastImport.Get(); ok {
 		if v != nil {
-			builder.SetIxfLastImport(*v)
+			_builder.SetIxfLastImport(*v)
 		} else {
-			builder.ClearIxfLastImport()
+			_builder.ClearIxfLastImport()
 		}
 	}
 	if v, ok := u.IxfNetCount.Get(); ok {
-		builder.SetIxfNetCount(v)
+		_builder.SetIxfNetCount(v)
 	}
 	if v, ok := u.Logo.Get(); ok {
 		if v != nil {
-			builder.SetLogo(*v)
+			_builder.SetLogo(*v)
 		} else {
-			builder.ClearLogo()
+			_builder.ClearLogo()
 		}
 	}
 	if v, ok := u.Media.Get(); ok {
-		builder.SetMedia(v)
+		_builder.SetMedia(v)
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.NameLong.Get(); ok {
-		builder.SetNameLong(v)
+		_builder.SetNameLong(v)
 	}
 	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
+		_builder.SetNotes(v)
 	}
 	if v, ok := u.PolicyEmail.Get(); ok {
-		builder.SetPolicyEmail(v)
+		_builder.SetPolicyEmail(v)
 	}
 	if v, ok := u.PolicyPhone.Get(); ok {
-		builder.SetPolicyPhone(v)
+		_builder.SetPolicyPhone(v)
 	}
 	if v, ok := u.ProtoIpv6.Get(); ok {
-		builder.SetProtoIpv6(v)
+		_builder.SetProtoIpv6(v)
 	}
 	if v, ok := u.ProtoMulticast.Get(); ok {
-		builder.SetProtoMulticast(v)
+		_builder.SetProtoMulticast(v)
 	}
 	if v, ok := u.ProtoUnicast.Get(); ok {
-		builder.SetProtoUnicast(v)
+		_builder.SetProtoUnicast(v)
 	}
 	if v, ok := u.RegionContinent.Get(); ok {
-		builder.SetRegionContinent(v)
+		_builder.SetRegionContinent(v)
 	}
 	if v, ok := u.SalesEmail.Get(); ok {
-		builder.SetSalesEmail(v)
+		_builder.SetSalesEmail(v)
 	}
 	if v, ok := u.SalesPhone.Get(); ok {
-		builder.SetSalesPhone(v)
+		_builder.SetSalesPhone(v)
 	}
 	if v, ok := u.ServiceLevel.Get(); ok {
-		builder.SetServiceLevel(v)
+		_builder.SetServiceLevel(v)
 	}
 	if v, ok := u.SocialMedia.Get(); ok {
-		builder.SetSocialMedia(v)
+		_builder.SetSocialMedia(v)
 	}
 	if v, ok := u.StatusDashboard.Get(); ok {
 		if v != nil {
-			builder.SetStatusDashboard(*v)
+			_builder.SetStatusDashboard(*v)
 		} else {
-			builder.ClearStatusDashboard()
+			_builder.ClearStatusDashboard()
 		}
 	}
 	if v, ok := u.TechEmail.Get(); ok {
-		builder.SetTechEmail(v)
+		_builder.SetTechEmail(v)
 	}
 	if v, ok := u.TechPhone.Get(); ok {
-		builder.SetTechPhone(v)
+		_builder.SetTechPhone(v)
 	}
 	if v, ok := u.Terms.Get(); ok {
-		builder.SetTerms(v)
+		_builder.SetTerms(v)
 	}
 	if v, ok := u.URLStats.Get(); ok {
-		builder.SetURLStats(v)
+		_builder.SetURLStats(v)
 	}
 	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
+		_builder.SetWebsite(v)
 	}
 	if v, ok := u.NetCount.Get(); ok {
-		builder.SetNetCount(v)
+		_builder.SetNetCount(v)
 	}
 	if v, ok := u.FacCount.Get(); ok {
-		builder.SetFacCount(v)
+		_builder.SetFacCount(v)
 	}
 	if v, ok := u.IxfImportRequest.Get(); ok {
 		if v != nil {
-			builder.SetIxfImportRequest(*v)
+			_builder.SetIxfImportRequest(*v)
 		} else {
-			builder.ClearIxfImportRequest()
+			_builder.ClearIxfImportRequest()
 		}
 	}
 	if v, ok := u.IxfImportRequestStatus.Get(); ok {
-		builder.SetIxfImportRequestStatus(v)
+		_builder.SetIxfImportRequestStatus(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateInternetExchangeParams) Exec(ctx context.Context, builder *ent.InternetExchangeUpdateOne, query *ent.InternetExchangeQuery) (*ent.InternetExchange, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateInternetExchangeParams) Exec(ctx context.Context, _builder *ent.InternetExchangeUpdateOne, _query *ent.InternetExchangeQuery) (*ent.InternetExchange, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadInternetExchange(query.Where(internetexchange.ID(result.ID))).Only(ctx)
+	return EagerLoadInternetExchange(_query.Where(internetexchange.ID(_result.ID))).Only(ctx)
 }
 
 // UpdateIxFacilityParams defines parameters for updating a IxFacility via a PATCH request.
@@ -739,49 +739,49 @@ type UpdateIxFacilityParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateIxFacilityParams) ApplyInputs(builder *ent.IxFacilityUpdateOne) *ent.IxFacilityUpdateOne {
+func (u *UpdateIxFacilityParams) ApplyInputs(_builder *ent.IxFacilityUpdateOne) *ent.IxFacilityUpdateOne {
 	if v, ok := u.FacID.Get(); ok {
 		if v != nil {
-			builder.SetFacID(*v)
+			_builder.SetFacID(*v)
 		} else {
-			builder.ClearFacID()
+			_builder.ClearFacID()
 		}
 	}
 	if v, ok := u.IxID.Get(); ok {
 		if v != nil {
-			builder.SetIxID(*v)
+			_builder.SetIxID(*v)
 		} else {
-			builder.ClearIxID()
+			_builder.ClearIxID()
 		}
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.City.Get(); ok {
-		builder.SetCity(v)
+		_builder.SetCity(v)
 	}
 	if v, ok := u.Country.Get(); ok {
-		builder.SetCountry(v)
+		_builder.SetCountry(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateIxFacilityParams) Exec(ctx context.Context, builder *ent.IxFacilityUpdateOne, query *ent.IxFacilityQuery) (*ent.IxFacility, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateIxFacilityParams) Exec(ctx context.Context, _builder *ent.IxFacilityUpdateOne, _query *ent.IxFacilityQuery) (*ent.IxFacility, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadIxFacility(query.Where(ixfacility.ID(result.ID))).Only(ctx)
+	return EagerLoadIxFacility(_query.Where(ixfacility.ID(_result.ID))).Only(ctx)
 }
 
 // UpdateIxLanParams defines parameters for updating a IxLan via a PATCH request.
@@ -810,65 +810,65 @@ type UpdateIxLanParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateIxLanParams) ApplyInputs(builder *ent.IxLanUpdateOne) *ent.IxLanUpdateOne {
+func (u *UpdateIxLanParams) ApplyInputs(_builder *ent.IxLanUpdateOne) *ent.IxLanUpdateOne {
 	if v, ok := u.IxID.Get(); ok {
 		if v != nil {
-			builder.SetIxID(*v)
+			_builder.SetIxID(*v)
 		} else {
-			builder.ClearIxID()
+			_builder.ClearIxID()
 		}
 	}
 	if v, ok := u.ArpSponge.Get(); ok {
 		if v != nil {
-			builder.SetArpSponge(*v)
+			_builder.SetArpSponge(*v)
 		} else {
-			builder.ClearArpSponge()
+			_builder.ClearArpSponge()
 		}
 	}
 	if v, ok := u.Descr.Get(); ok {
-		builder.SetDescr(v)
+		_builder.SetDescr(v)
 	}
 	if v, ok := u.Dot1qSupport.Get(); ok {
-		builder.SetDot1qSupport(v)
+		_builder.SetDot1qSupport(v)
 	}
 	if v, ok := u.IxfIxpImportEnabled.Get(); ok {
-		builder.SetIxfIxpImportEnabled(v)
+		_builder.SetIxfIxpImportEnabled(v)
 	}
 	if v, ok := u.IxfIxpMemberListURLVisible.Get(); ok {
-		builder.SetIxfIxpMemberListURLVisible(v)
+		_builder.SetIxfIxpMemberListURLVisible(v)
 	}
 	if v, ok := u.Mtu.Get(); ok {
-		builder.SetMtu(v)
+		_builder.SetMtu(v)
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.RsAsn.Get(); ok {
 		if v != nil {
-			builder.SetRsAsn(*v)
+			_builder.SetRsAsn(*v)
 		} else {
-			builder.ClearRsAsn()
+			_builder.ClearRsAsn()
 		}
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateIxLanParams) Exec(ctx context.Context, builder *ent.IxLanUpdateOne, query *ent.IxLanQuery) (*ent.IxLan, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateIxLanParams) Exec(ctx context.Context, _builder *ent.IxLanUpdateOne, _query *ent.IxLanQuery) (*ent.IxLan, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadIxLan(query.Where(ixlan.ID(result.ID))).Only(ctx)
+	return EagerLoadIxLan(_query.Where(ixlan.ID(_result.ID))).Only(ctx)
 }
 
 // UpdateIxPrefixParams defines parameters for updating a IxPrefix via a PATCH request.
@@ -889,45 +889,45 @@ type UpdateIxPrefixParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateIxPrefixParams) ApplyInputs(builder *ent.IxPrefixUpdateOne) *ent.IxPrefixUpdateOne {
+func (u *UpdateIxPrefixParams) ApplyInputs(_builder *ent.IxPrefixUpdateOne) *ent.IxPrefixUpdateOne {
 	if v, ok := u.IxlanID.Get(); ok {
 		if v != nil {
-			builder.SetIxlanID(*v)
+			_builder.SetIxlanID(*v)
 		} else {
-			builder.ClearIxlanID()
+			_builder.ClearIxlanID()
 		}
 	}
 	if v, ok := u.InDfz.Get(); ok {
-		builder.SetInDfz(v)
+		_builder.SetInDfz(v)
 	}
 	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
+		_builder.SetNotes(v)
 	}
 	if v, ok := u.Prefix.Get(); ok {
-		builder.SetPrefix(v)
+		_builder.SetPrefix(v)
 	}
 	if v, ok := u.Protocol.Get(); ok {
-		builder.SetProtocol(v)
+		_builder.SetProtocol(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateIxPrefixParams) Exec(ctx context.Context, builder *ent.IxPrefixUpdateOne, query *ent.IxPrefixQuery) (*ent.IxPrefix, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateIxPrefixParams) Exec(ctx context.Context, _builder *ent.IxPrefixUpdateOne, _query *ent.IxPrefixQuery) (*ent.IxPrefix, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadIxPrefix(query.Where(ixprefix.ID(result.ID))).Only(ctx)
+	return EagerLoadIxPrefix(_query.Where(ixprefix.ID(_result.ID))).Only(ctx)
 }
 
 // UpdateNetworkParams defines parameters for updating a Network via a PATCH request.
@@ -1012,177 +1012,177 @@ type UpdateNetworkParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateNetworkParams) ApplyInputs(builder *ent.NetworkUpdateOne) *ent.NetworkUpdateOne {
+func (u *UpdateNetworkParams) ApplyInputs(_builder *ent.NetworkUpdateOne) *ent.NetworkUpdateOne {
 	if v, ok := u.OrgID.Get(); ok {
 		if v != nil {
-			builder.SetOrgID(*v)
+			_builder.SetOrgID(*v)
 		} else {
-			builder.ClearOrgID()
+			_builder.ClearOrgID()
 		}
 	}
 	if v, ok := u.Aka.Get(); ok {
-		builder.SetAka(v)
+		_builder.SetAka(v)
 	}
 	if v, ok := u.AllowIxpUpdate.Get(); ok {
-		builder.SetAllowIxpUpdate(v)
+		_builder.SetAllowIxpUpdate(v)
 	}
 	if v, ok := u.Asn.Get(); ok {
-		builder.SetAsn(v)
+		_builder.SetAsn(v)
 	}
 	if v, ok := u.InfoIpv6.Get(); ok {
-		builder.SetInfoIpv6(v)
+		_builder.SetInfoIpv6(v)
 	}
 	if v, ok := u.InfoMulticast.Get(); ok {
-		builder.SetInfoMulticast(v)
+		_builder.SetInfoMulticast(v)
 	}
 	if v, ok := u.InfoNeverViaRouteServers.Get(); ok {
-		builder.SetInfoNeverViaRouteServers(v)
+		_builder.SetInfoNeverViaRouteServers(v)
 	}
 	if v, ok := u.InfoPrefixes4.Get(); ok {
 		if v != nil {
-			builder.SetInfoPrefixes4(*v)
+			_builder.SetInfoPrefixes4(*v)
 		} else {
-			builder.ClearInfoPrefixes4()
+			_builder.ClearInfoPrefixes4()
 		}
 	}
 	if v, ok := u.InfoPrefixes6.Get(); ok {
 		if v != nil {
-			builder.SetInfoPrefixes6(*v)
+			_builder.SetInfoPrefixes6(*v)
 		} else {
-			builder.ClearInfoPrefixes6()
+			_builder.ClearInfoPrefixes6()
 		}
 	}
 	if v, ok := u.InfoRatio.Get(); ok {
-		builder.SetInfoRatio(v)
+		_builder.SetInfoRatio(v)
 	}
 	if v, ok := u.InfoScope.Get(); ok {
-		builder.SetInfoScope(v)
+		_builder.SetInfoScope(v)
 	}
 	if v, ok := u.InfoTraffic.Get(); ok {
-		builder.SetInfoTraffic(v)
+		_builder.SetInfoTraffic(v)
 	}
 	if v, ok := u.InfoType.Get(); ok {
-		builder.SetInfoType(v)
+		_builder.SetInfoType(v)
 	}
 	if v, ok := u.InfoTypes.Get(); ok {
-		builder.SetInfoTypes(v)
+		_builder.SetInfoTypes(v)
 	}
 	if v, ok := u.InfoUnicast.Get(); ok {
-		builder.SetInfoUnicast(v)
+		_builder.SetInfoUnicast(v)
 	}
 	if v, ok := u.IrrAsSet.Get(); ok {
-		builder.SetIrrAsSet(v)
+		_builder.SetIrrAsSet(v)
 	}
 	if v, ok := u.Logo.Get(); ok {
 		if v != nil {
-			builder.SetLogo(*v)
+			_builder.SetLogo(*v)
 		} else {
-			builder.ClearLogo()
+			_builder.ClearLogo()
 		}
 	}
 	if v, ok := u.LookingGlass.Get(); ok {
-		builder.SetLookingGlass(v)
+		_builder.SetLookingGlass(v)
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.NameLong.Get(); ok {
-		builder.SetNameLong(v)
+		_builder.SetNameLong(v)
 	}
 	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
+		_builder.SetNotes(v)
 	}
 	if v, ok := u.PolicyContracts.Get(); ok {
-		builder.SetPolicyContracts(v)
+		_builder.SetPolicyContracts(v)
 	}
 	if v, ok := u.PolicyGeneral.Get(); ok {
-		builder.SetPolicyGeneral(v)
+		_builder.SetPolicyGeneral(v)
 	}
 	if v, ok := u.PolicyLocations.Get(); ok {
-		builder.SetPolicyLocations(v)
+		_builder.SetPolicyLocations(v)
 	}
 	if v, ok := u.PolicyRatio.Get(); ok {
-		builder.SetPolicyRatio(v)
+		_builder.SetPolicyRatio(v)
 	}
 	if v, ok := u.PolicyURL.Get(); ok {
-		builder.SetPolicyURL(v)
+		_builder.SetPolicyURL(v)
 	}
 	if v, ok := u.RirStatus.Get(); ok {
 		if v != nil {
-			builder.SetRirStatus(*v)
+			_builder.SetRirStatus(*v)
 		} else {
-			builder.ClearRirStatus()
+			_builder.ClearRirStatus()
 		}
 	}
 	if v, ok := u.RirStatusUpdated.Get(); ok {
 		if v != nil {
-			builder.SetRirStatusUpdated(*v)
+			_builder.SetRirStatusUpdated(*v)
 		} else {
-			builder.ClearRirStatusUpdated()
+			_builder.ClearRirStatusUpdated()
 		}
 	}
 	if v, ok := u.RouteServer.Get(); ok {
-		builder.SetRouteServer(v)
+		_builder.SetRouteServer(v)
 	}
 	if v, ok := u.SocialMedia.Get(); ok {
-		builder.SetSocialMedia(v)
+		_builder.SetSocialMedia(v)
 	}
 	if v, ok := u.StatusDashboard.Get(); ok {
 		if v != nil {
-			builder.SetStatusDashboard(*v)
+			_builder.SetStatusDashboard(*v)
 		} else {
-			builder.ClearStatusDashboard()
+			_builder.ClearStatusDashboard()
 		}
 	}
 	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
+		_builder.SetWebsite(v)
 	}
 	if v, ok := u.IxCount.Get(); ok {
-		builder.SetIxCount(v)
+		_builder.SetIxCount(v)
 	}
 	if v, ok := u.FacCount.Get(); ok {
-		builder.SetFacCount(v)
+		_builder.SetFacCount(v)
 	}
 	if v, ok := u.NetixlanUpdated.Get(); ok {
 		if v != nil {
-			builder.SetNetixlanUpdated(*v)
+			_builder.SetNetixlanUpdated(*v)
 		} else {
-			builder.ClearNetixlanUpdated()
+			_builder.ClearNetixlanUpdated()
 		}
 	}
 	if v, ok := u.NetfacUpdated.Get(); ok {
 		if v != nil {
-			builder.SetNetfacUpdated(*v)
+			_builder.SetNetfacUpdated(*v)
 		} else {
-			builder.ClearNetfacUpdated()
+			_builder.ClearNetfacUpdated()
 		}
 	}
 	if v, ok := u.PocUpdated.Get(); ok {
 		if v != nil {
-			builder.SetPocUpdated(*v)
+			_builder.SetPocUpdated(*v)
 		} else {
-			builder.ClearPocUpdated()
+			_builder.ClearPocUpdated()
 		}
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateNetworkParams) Exec(ctx context.Context, builder *ent.NetworkUpdateOne, query *ent.NetworkQuery) (*ent.Network, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateNetworkParams) Exec(ctx context.Context, _builder *ent.NetworkUpdateOne, _query *ent.NetworkQuery) (*ent.Network, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadNetwork(query.Where(network.ID(result.ID))).Only(ctx)
+	return EagerLoadNetwork(_query.Where(network.ID(_result.ID))).Only(ctx)
 }
 
 // UpdateNetworkFacilityParams defines parameters for updating a NetworkFacility via a PATCH request.
@@ -1205,52 +1205,52 @@ type UpdateNetworkFacilityParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateNetworkFacilityParams) ApplyInputs(builder *ent.NetworkFacilityUpdateOne) *ent.NetworkFacilityUpdateOne {
+func (u *UpdateNetworkFacilityParams) ApplyInputs(_builder *ent.NetworkFacilityUpdateOne) *ent.NetworkFacilityUpdateOne {
 	if v, ok := u.FacID.Get(); ok {
 		if v != nil {
-			builder.SetFacID(*v)
+			_builder.SetFacID(*v)
 		} else {
-			builder.ClearFacID()
+			_builder.ClearFacID()
 		}
 	}
 	if v, ok := u.NetID.Get(); ok {
 		if v != nil {
-			builder.SetNetID(*v)
+			_builder.SetNetID(*v)
 		} else {
-			builder.ClearNetID()
+			_builder.ClearNetID()
 		}
 	}
 	if v, ok := u.LocalAsn.Get(); ok {
-		builder.SetLocalAsn(v)
+		_builder.SetLocalAsn(v)
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.City.Get(); ok {
-		builder.SetCity(v)
+		_builder.SetCity(v)
 	}
 	if v, ok := u.Country.Get(); ok {
-		builder.SetCountry(v)
+		_builder.SetCountry(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateNetworkFacilityParams) Exec(ctx context.Context, builder *ent.NetworkFacilityUpdateOne, query *ent.NetworkFacilityQuery) (*ent.NetworkFacility, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateNetworkFacilityParams) Exec(ctx context.Context, _builder *ent.NetworkFacilityUpdateOne, _query *ent.NetworkFacilityQuery) (*ent.NetworkFacility, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadNetworkFacility(query.Where(networkfacility.ID(result.ID))).Only(ctx)
+	return EagerLoadNetworkFacility(_query.Where(networkfacility.ID(_result.ID))).Only(ctx)
 }
 
 // UpdateNetworkIxLanParams defines parameters for updating a NetworkIxLan via a PATCH request.
@@ -1289,92 +1289,92 @@ type UpdateNetworkIxLanParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateNetworkIxLanParams) ApplyInputs(builder *ent.NetworkIxLanUpdateOne) *ent.NetworkIxLanUpdateOne {
+func (u *UpdateNetworkIxLanParams) ApplyInputs(_builder *ent.NetworkIxLanUpdateOne) *ent.NetworkIxLanUpdateOne {
 	if v, ok := u.IxSideID.Get(); ok {
 		if v != nil {
-			builder.SetIxSideID(*v)
+			_builder.SetIxSideID(*v)
 		} else {
-			builder.ClearIxSideID()
+			_builder.ClearIxSideID()
 		}
 	}
 	if v, ok := u.IxlanID.Get(); ok {
 		if v != nil {
-			builder.SetIxlanID(*v)
+			_builder.SetIxlanID(*v)
 		} else {
-			builder.ClearIxlanID()
+			_builder.ClearIxlanID()
 		}
 	}
 	if v, ok := u.NetID.Get(); ok {
 		if v != nil {
-			builder.SetNetID(*v)
+			_builder.SetNetID(*v)
 		} else {
-			builder.ClearNetID()
+			_builder.ClearNetID()
 		}
 	}
 	if v, ok := u.NetSideID.Get(); ok {
 		if v != nil {
-			builder.SetNetSideID(*v)
+			_builder.SetNetSideID(*v)
 		} else {
-			builder.ClearNetSideID()
+			_builder.ClearNetSideID()
 		}
 	}
 	if v, ok := u.Asn.Get(); ok {
-		builder.SetAsn(v)
+		_builder.SetAsn(v)
 	}
 	if v, ok := u.BfdSupport.Get(); ok {
-		builder.SetBfdSupport(v)
+		_builder.SetBfdSupport(v)
 	}
 	if v, ok := u.Ipaddr4.Get(); ok {
 		if v != nil {
-			builder.SetIpaddr4(*v)
+			_builder.SetIpaddr4(*v)
 		} else {
-			builder.ClearIpaddr4()
+			_builder.ClearIpaddr4()
 		}
 	}
 	if v, ok := u.Ipaddr6.Get(); ok {
 		if v != nil {
-			builder.SetIpaddr6(*v)
+			_builder.SetIpaddr6(*v)
 		} else {
-			builder.ClearIpaddr6()
+			_builder.ClearIpaddr6()
 		}
 	}
 	if v, ok := u.IsRsPeer.Get(); ok {
-		builder.SetIsRsPeer(v)
+		_builder.SetIsRsPeer(v)
 	}
 	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
+		_builder.SetNotes(v)
 	}
 	if v, ok := u.Operational.Get(); ok {
-		builder.SetOperational(v)
+		_builder.SetOperational(v)
 	}
 	if v, ok := u.Speed.Get(); ok {
-		builder.SetSpeed(v)
+		_builder.SetSpeed(v)
 	}
 	if v, ok := u.IxID.Get(); ok {
-		builder.SetIxID(v)
+		_builder.SetIxID(v)
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateNetworkIxLanParams) Exec(ctx context.Context, builder *ent.NetworkIxLanUpdateOne, query *ent.NetworkIxLanQuery) (*ent.NetworkIxLan, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateNetworkIxLanParams) Exec(ctx context.Context, _builder *ent.NetworkIxLanUpdateOne, _query *ent.NetworkIxLanQuery) (*ent.NetworkIxLan, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadNetworkIxLan(query.Where(networkixlan.ID(result.ID))).Only(ctx)
+	return EagerLoadNetworkIxLan(_query.Where(networkixlan.ID(_result.ID))).Only(ctx)
 }
 
 // UpdateOrganizationParams defines parameters for updating a Organization via a PATCH request.
@@ -1423,95 +1423,95 @@ type UpdateOrganizationParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdateOrganizationParams) ApplyInputs(builder *ent.OrganizationUpdateOne) *ent.OrganizationUpdateOne {
+func (u *UpdateOrganizationParams) ApplyInputs(_builder *ent.OrganizationUpdateOne) *ent.OrganizationUpdateOne {
 	if v, ok := u.Address1.Get(); ok {
-		builder.SetAddress1(v)
+		_builder.SetAddress1(v)
 	}
 	if v, ok := u.Address2.Get(); ok {
-		builder.SetAddress2(v)
+		_builder.SetAddress2(v)
 	}
 	if v, ok := u.Aka.Get(); ok {
-		builder.SetAka(v)
+		_builder.SetAka(v)
 	}
 	if v, ok := u.City.Get(); ok {
-		builder.SetCity(v)
+		_builder.SetCity(v)
 	}
 	if v, ok := u.Country.Get(); ok {
-		builder.SetCountry(v)
+		_builder.SetCountry(v)
 	}
 	if v, ok := u.Floor.Get(); ok {
-		builder.SetFloor(v)
+		_builder.SetFloor(v)
 	}
 	if v, ok := u.Latitude.Get(); ok {
 		if v != nil {
-			builder.SetLatitude(*v)
+			_builder.SetLatitude(*v)
 		} else {
-			builder.ClearLatitude()
+			_builder.ClearLatitude()
 		}
 	}
 	if v, ok := u.Logo.Get(); ok {
 		if v != nil {
-			builder.SetLogo(*v)
+			_builder.SetLogo(*v)
 		} else {
-			builder.ClearLogo()
+			_builder.ClearLogo()
 		}
 	}
 	if v, ok := u.Longitude.Get(); ok {
 		if v != nil {
-			builder.SetLongitude(*v)
+			_builder.SetLongitude(*v)
 		} else {
-			builder.ClearLongitude()
+			_builder.ClearLongitude()
 		}
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.NameLong.Get(); ok {
-		builder.SetNameLong(v)
+		_builder.SetNameLong(v)
 	}
 	if v, ok := u.Notes.Get(); ok {
-		builder.SetNotes(v)
+		_builder.SetNotes(v)
 	}
 	if v, ok := u.SocialMedia.Get(); ok {
-		builder.SetSocialMedia(v)
+		_builder.SetSocialMedia(v)
 	}
 	if v, ok := u.State.Get(); ok {
-		builder.SetState(v)
+		_builder.SetState(v)
 	}
 	if v, ok := u.Suite.Get(); ok {
-		builder.SetSuite(v)
+		_builder.SetSuite(v)
 	}
 	if v, ok := u.Website.Get(); ok {
-		builder.SetWebsite(v)
+		_builder.SetWebsite(v)
 	}
 	if v, ok := u.Zipcode.Get(); ok {
-		builder.SetZipcode(v)
+		_builder.SetZipcode(v)
 	}
 	if v, ok := u.NetCount.Get(); ok {
-		builder.SetNetCount(v)
+		_builder.SetNetCount(v)
 	}
 	if v, ok := u.FacCount.Get(); ok {
-		builder.SetFacCount(v)
+		_builder.SetFacCount(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdateOrganizationParams) Exec(ctx context.Context, builder *ent.OrganizationUpdateOne, query *ent.OrganizationQuery) (*ent.Organization, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdateOrganizationParams) Exec(ctx context.Context, _builder *ent.OrganizationUpdateOne, _query *ent.OrganizationQuery) (*ent.Organization, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadOrganization(query.Where(organization.ID(result.ID))).Only(ctx)
+	return EagerLoadOrganization(_query.Where(organization.ID(_result.ID))).Only(ctx)
 }
 
 // UpdatePocParams defines parameters for updating a Poc via a PATCH request.
@@ -1536,49 +1536,49 @@ type UpdatePocParams struct {
 	Status Option[string] `json:"status"`
 }
 
-func (u *UpdatePocParams) ApplyInputs(builder *ent.PocUpdateOne) *ent.PocUpdateOne {
+func (u *UpdatePocParams) ApplyInputs(_builder *ent.PocUpdateOne) *ent.PocUpdateOne {
 	if v, ok := u.NetID.Get(); ok {
 		if v != nil {
-			builder.SetNetID(*v)
+			_builder.SetNetID(*v)
 		} else {
-			builder.ClearNetID()
+			_builder.ClearNetID()
 		}
 	}
 	if v, ok := u.Email.Get(); ok {
-		builder.SetEmail(v)
+		_builder.SetEmail(v)
 	}
 	if v, ok := u.Name.Get(); ok {
-		builder.SetName(v)
+		_builder.SetName(v)
 	}
 	if v, ok := u.Phone.Get(); ok {
-		builder.SetPhone(v)
+		_builder.SetPhone(v)
 	}
 	if v, ok := u.Role.Get(); ok {
-		builder.SetRole(v)
+		_builder.SetRole(v)
 	}
 	if v, ok := u.URL.Get(); ok {
-		builder.SetURL(v)
+		_builder.SetURL(v)
 	}
 	if v, ok := u.Visible.Get(); ok {
-		builder.SetVisible(v)
+		_builder.SetVisible(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
-		builder.SetUpdated(v)
+		_builder.SetUpdated(v)
 	}
 	if v, ok := u.Status.Get(); ok {
-		builder.SetStatus(v)
+		_builder.SetStatus(v)
 	}
 
-	return builder
+	return _builder
 }
 
 // Exec wraps all logic (mapping all provided values to the build), updates the entity,
 // and does another query (using provided query as base) to get the entity, with all eager
 // loaded edges.
-func (c *UpdatePocParams) Exec(ctx context.Context, builder *ent.PocUpdateOne, query *ent.PocQuery) (*ent.Poc, error) {
-	result, err := c.ApplyInputs(builder).Save(ctx)
+func (c *UpdatePocParams) Exec(ctx context.Context, _builder *ent.PocUpdateOne, _query *ent.PocQuery) (*ent.Poc, error) {
+	_result, err := c.ApplyInputs(_builder).Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return EagerLoadPoc(query.Where(poc.ID(result.ID))).Only(ctx)
+	return EagerLoadPoc(_query.Where(poc.ID(_result.ID))).Only(ctx)
 }
