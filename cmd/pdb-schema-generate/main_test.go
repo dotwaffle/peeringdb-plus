@@ -123,7 +123,11 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 					"name": {
 						Type:     "string",
 						Required: true,
-						Unique:   true,
+						// Unique deliberately false: PeeringDB introduced
+						// duplicate org display names 2026-04-04. Generator
+						// must still emit entgql.OrderField("NAME") despite
+						// the dropped uniqueness.
+						Unique:   false,
 						HelpText: "Organization name",
 					},
 					"notes": {
@@ -178,9 +182,10 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		apiPath   string
-		wantParts []string
+		name         string
+		apiPath      string
+		wantParts    []string
+		notWantParts []string
 	}{
 		{
 			name:    "Organization",
@@ -188,14 +193,25 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 			wantParts: []string{
 				`field.Int("id")`,
 				`field.String("name")`,
-				`Unique()`,
 				`entgql.QueryField()`,
 				`entgql.RelayConnection()`,
 				`entrest.WithIncludeOperations`,
 				`entrest.WithEagerLoad(true)`,
 				`edge.To("networks"`,
 				`otelMutationHook("Organization")`,
+				// GraphQL OrderField is emitted for "name" fields whether
+				// or not the column is UNIQUE — see generator fieldAnnotations.
+				// organizations.name is deliberately non-unique because PeeringDB
+				// began serving duplicate display names 2026-04-04 onward.
 				`entgql.OrderField("NAME")`,
+			},
+			notWantParts: []string{
+				// organizations.name must NOT be UNIQUE (see schema/peeringdb.json
+				// org.name.unique = false). This is a regression guard against
+				// accidentally re-adding .Unique() to the field.
+				`field.String("name").
+			NotEmpty().
+			Unique()`,
 			},
 		},
 		{
@@ -236,6 +252,12 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 			for _, part := range tt.wantParts {
 				if !strings.Contains(src, part) {
 					t.Errorf("generated code missing %q\n\nCode:\n%s", part, src)
+				}
+			}
+			// Verify forbidden patterns are absent (regression guards).
+			for _, part := range tt.notWantParts {
+				if strings.Contains(src, part) {
+					t.Errorf("generated code must NOT contain %q\n\nCode:\n%s", part, src)
 				}
 			}
 		})

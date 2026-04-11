@@ -11437,7 +11437,7 @@
                         "nullable": true
                     },
                     "name": {
-                        "description": "Organization name (not unique — PeeringDB permits duplicates)",
+                        "description": "Organization name (not unique — PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)",
                         "type": "string"
                     },
                     "name_long": {

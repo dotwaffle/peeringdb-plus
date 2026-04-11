@@ -1193,7 +1193,7 @@ type CreateOrganizationParams struct {
 	Logo *string `json:"logo,omitempty"`
 	// Longitude
 	Longitude *float64 `json:"longitude,omitempty"`
-	// Organization name (not unique — PeeringDB permits duplicates)
+	// Organization name (not unique — PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)
 	Name string `json:"name"`
 	// Long name
 	NameLong *string `json:"name_long,omitempty"`

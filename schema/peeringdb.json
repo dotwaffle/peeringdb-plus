@@ -12,11 +12,11 @@
           "type": "string",
           "max_length": 255,
           "required": true,
-          "unique": true,
+          "unique": false,
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Organization name",
+          "help_text": "Organization name (not unique — PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)",
           "default": null
         },
         "aka": {

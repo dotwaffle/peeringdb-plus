@@ -1397,7 +1397,7 @@ type UpdateOrganizationParams struct {
 	Logo Option[*string] `json:"logo,omitempty"`
 	// Longitude
 	Longitude Option[*float64] `json:"longitude,omitempty"`
-	// Organization name (not unique — PeeringDB permits duplicates)
+	// Organization name (not unique — PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)
 	Name Option[string] `json:"name"`
 	// Long name
 	NameLong Option[string] `json:"name_long,omitempty"`
