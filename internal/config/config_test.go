@@ -238,7 +238,7 @@ func TestLoad_IncludeDeleted(t *testing.T) {
 		wantErr bool
 		wantMsg string
 	}{
-		{name: "default is false", envVal: "", want: false},
+		{name: "default is true", envVal: "", want: true},
 		{name: "explicit true", envVal: "true", want: true},
 		{name: "explicit false", envVal: "false", want: false},
 		{name: "invalid bool", envVal: "maybe", wantErr: true, wantMsg: "PDBPLUS_INCLUDE_DELETED"},

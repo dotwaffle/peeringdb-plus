@@ -83,7 +83,7 @@ LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-
 | `PDBPLUS_SYNC_MODE` | `full` | Sync strategy: `full` or `incremental` |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | `24h` | Max age of sync data before health reports degraded |
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | `400MB` | Peak Go heap ceiling checked after Phase A fetch; unit suffix required (KB/MB/GB/TB); `0` disables guardrail |
-| `PDBPLUS_INCLUDE_DELETED` | `false` | Include objects with status=deleted |
+| `PDBPLUS_INCLUDE_DELETED` | `true` | Include objects with status=deleted (matches PeeringDB API which returns deleted rows in default fetches; set `false` to filter them out client-side) |
 | `PDBPLUS_CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
 | `PDBPLUS_CSP_ENFORCE` | `false` | When `true`, serve enforcing `Content-Security-Policy` on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only`. |
 | `PDBPLUS_DRAIN_TIMEOUT` | `10s` | Graceful shutdown drain timeout |

@@ -145,7 +145,7 @@ func Load() (*Config, error) {
 	}
 	cfg.SyncInterval = syncInterval
 
-	includeDeleted, err := parseBool("PDBPLUS_INCLUDE_DELETED", false)
+	includeDeleted, err := parseBool("PDBPLUS_INCLUDE_DELETED", true)
 	if err != nil {
 		return nil, fmt.Errorf("parsing PDBPLUS_INCLUDE_DELETED: %w", err)
 	}
