@@ -502,7 +502,6 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 			slog.String("mode", string(mode)),
 		)
 
-		stepStart := time.Now()
 		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-fetch-"+step.name)
 
 		cursor, cursorErr := GetCursor(ctx, w.db, step.name)
@@ -517,7 +516,6 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 
 		stepSpan.End()
 		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
-		pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
 
 		if stepErr != nil {
 			pdbotel.SyncTypeFetchErrors.Add(ctx, 1, typeAttr)
@@ -605,14 +603,12 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 	batches := make(map[string]syncBatch, 1)
 
 	for _, step := range steps {
-		stepStart := time.Now()
 		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-upsert-"+step.name)
 
 		count, stepErr := w.drainAndUpsertType(ctx, tx, scratch, step.name, batches)
 
 		stepSpan.End()
 		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
-		pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
 
 		if stepErr != nil {
 			pdbotel.SyncTypeUpsertErrors.Add(ctx, 1, typeAttr)
@@ -1088,7 +1084,6 @@ func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType
 			continue
 		}
 
-		stepStart := time.Now()
 		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-delete-"+step.name)
 
 		deleted, stepErr := step.deleteFn(ctx, tx, remoteIDs)
@@ -1098,7 +1093,6 @@ func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType
 		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
 
 		if stepErr != nil {
-			pdbotel.SyncTypeDuration.Record(ctx, time.Since(stepStart).Seconds(), typeAttr)
 			return fmt.Errorf("delete stale %s: %w", step.name, stepErr)
 		}
 
