@@ -163,6 +163,56 @@ func TestBuildResource_IncludesServiceVersion(t *testing.T) {
 	}
 }
 
+// TestBuildMetricResource_OmitsFlyMachineID locks in the metric resource's
+// per-VM cardinality reduction: fly.machine_id must NOT appear on metric
+// resource attributes so the backend aggregates across VMs rather than
+// fanning out per series.
+func TestBuildMetricResource_OmitsFlyMachineID(t *testing.T) {
+	t.Setenv("FLY_MACHINE_ID", "abc123")
+
+	ctx := t.Context()
+	res := buildMetricResource(ctx, "test-service")
+
+	for _, attr := range res.Attributes() {
+		if string(attr.Key) == "fly.machine_id" {
+			t.Errorf("metric resource must not contain fly.machine_id; found %v", attr.Value.AsString())
+		}
+	}
+
+	// Sanity: service.name must still be present so the metric is attributed.
+	foundServiceName := false
+	for _, attr := range res.Attributes() {
+		if string(attr.Key) == "service.name" && attr.Value.AsString() == "test-service" {
+			foundServiceName = true
+			break
+		}
+	}
+	if !foundServiceName {
+		t.Errorf("metric resource missing service.name=test-service; got %v", res.Attributes())
+	}
+}
+
+// TestBuildResource_IncludesFlyMachineID locks in the trace/log resource's
+// per-VM debuggability: fly.machine_id MUST remain on buildResource so a
+// future refactor cannot accidentally strip it from traces and logs.
+func TestBuildResource_IncludesFlyMachineID(t *testing.T) {
+	t.Setenv("FLY_MACHINE_ID", "abc123")
+
+	ctx := t.Context()
+	res := buildResource(ctx, "test-service")
+
+	found := false
+	for _, attr := range res.Attributes() {
+		if string(attr.Key) == "fly.machine_id" && attr.Value.AsString() == "abc123" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("trace/log resource attributes %v must contain fly.machine_id=abc123", res.Attributes())
+	}
+}
+
 func TestSetup_RuntimeMetrics(t *testing.T) {
 	t.Setenv("OTEL_TRACES_EXPORTER", "none")
 	t.Setenv("OTEL_METRICS_EXPORTER", "none")

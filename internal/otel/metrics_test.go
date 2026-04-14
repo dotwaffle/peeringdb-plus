@@ -79,7 +79,6 @@ func TestInitMetrics_PerTypeInstruments(t *testing.T) {
 		name  string
 		value any
 	}{
-		{"SyncTypeDuration", SyncTypeDuration},
 		{"SyncTypeObjects", SyncTypeObjects},
 		{"SyncTypeDeleted", SyncTypeDeleted},
 		{"SyncTypeFetchErrors", SyncTypeFetchErrors},
@@ -102,7 +101,6 @@ func TestInitMetrics_PerTypeRecordDoesNotPanic(t *testing.T) {
 	ctx := t.Context()
 	typeAttr := metric.WithAttributes(attribute.String("type", "org"))
 
-	SyncTypeDuration.Record(ctx, 1.5, typeAttr)
 	SyncTypeObjects.Add(ctx, 10, typeAttr)
 	SyncTypeDeleted.Add(ctx, 2, typeAttr)
 	SyncTypeFetchErrors.Add(ctx, 1, typeAttr)
@@ -168,18 +166,12 @@ func TestInitMetrics_RecordsValues(t *testing.T) {
 	ctx := t.Context()
 	typeAttr := metric.WithAttributes(attribute.String("type", "org"))
 
-	SyncTypeDuration.Record(ctx, 2.5, typeAttr)
 	SyncTypeObjects.Add(ctx, 42, typeAttr)
 	SyncTypeDeleted.Add(ctx, 3, typeAttr)
 
 	var rm metricdata.ResourceMetrics
 	if err := reader.Collect(ctx, &rm); err != nil {
 		t.Fatalf("Collect: %v", err)
-	}
-
-	found := findMetric(rm, "pdbplus.sync.type.duration")
-	if found == nil {
-		t.Fatal("expected pdbplus.sync.type.duration metric, not found")
 	}
 
 	foundObjs := findMetric(rm, "pdbplus.sync.type.objects")

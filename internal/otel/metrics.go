@@ -16,9 +16,6 @@ var SyncDuration metric.Float64Histogram
 // SyncOperations counts sync operations by status (success/failed).
 var SyncOperations metric.Int64Counter
 
-// SyncTypeDuration records per-type sync step duration in seconds.
-var SyncTypeDuration metric.Float64Histogram
-
 // SyncTypeObjects counts objects synced per type.
 var SyncTypeObjects metric.Int64Counter
 
@@ -58,15 +55,6 @@ func InitMetrics() error {
 	)
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.sync.operations counter: %w", err)
-	}
-
-	SyncTypeDuration, err = meter.Float64Histogram("pdbplus.sync.type.duration",
-		metric.WithDescription("Duration of sync per PeeringDB object type"),
-		metric.WithUnit("s"),
-		metric.WithExplicitBucketBoundaries(0.5, 1, 2, 5, 10, 30, 60),
-	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.type.duration histogram: %w", err)
 	}
 
 	SyncTypeObjects, err = meter.Int64Counter("pdbplus.sync.type.objects",

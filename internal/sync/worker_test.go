@@ -778,12 +778,6 @@ func TestSyncRecordsMetrics(t *testing.T) {
 		t.Errorf("expected operations sum = 1, got %d", opsSum.DataPoints[0].Value)
 	}
 
-	// Verify per-type duration metric.
-	typeDur := findMetric(rm, "pdbplus.sync.type.duration")
-	if typeDur == nil {
-		t.Fatal("expected pdbplus.sync.type.duration metric, not found")
-	}
-
 	// Verify per-type objects counter.
 	typeObjs := findMetric(rm, "pdbplus.sync.type.objects")
 	if typeObjs == nil {
