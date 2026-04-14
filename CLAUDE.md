@@ -130,7 +130,7 @@ Standard `OTEL_*` env vars also apply (autoexport).
 ## Architecture
 
 ### API Surfaces (5)
-- **Web UI**: `/ui/` — templ + htmx + Tailwind CSS (search, detail pages, ASN comparison)
+- **Web UI**: `/ui/` — templ + htmx + Tailwind CSS (search, detail pages, ASN comparison). Content-negotiates: browsers get HTML, plain User-Agents (curl, wget, scripts) get ANSI-styled terminal text via `internal/web/termrender`. To smoke-test with curl, either send `-H 'User-Agent: Mozilla/5.0'` or strip ANSI: `sed 's/\x1b\[[0-9;]*[mGKH]//g'`.
 - **GraphQL**: `/graphql` — gqlgen via entgql, interactive playground
 - **REST**: `/rest/v1/` — entrest, OpenAPI-compliant
 - **PeeringDB Compat**: `/api/` — drop-in replacement for PeeringDB API
