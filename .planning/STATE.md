@@ -4,7 +4,7 @@ milestone: v1.13
 milestone_name: Security & Sync Hardening
 status: shipped
 stopped_at: v1.13 shipped 2026-04-11
-last_updated: "2026-04-14T01:59:12Z"
+last_updated: "2026-04-14T21:10:00Z"
 last_activity: 2026-04-14
 progress:
   total_phases: 6
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 Milestone: v1.13 Security & Sync Hardening (shipped 2026-04-11)
 Phase: all 6 complete (51-56)
 Status: idle
-Last activity: 2026-04-14 - Completed quick task 260414-2rc: Reduce OTel metric cardinality per plan ethereal-petting-pelican.md
+Last activity: 2026-04-14 - Quick task 260414-2rc (OTel metric cardinality, PR #11); search ASN-literal fix (99ce22b); generated 8 canonical docs under docs/ + CONTRIBUTING.md (ac6e330); CLAUDE.md now points at the new docs and documents the /ui/ ANSI curl gotcha
 
 Progress (v1.13): [██████████] 100%
 Cumulative shipped: 56 phases across v1.0-v1.13.
@@ -46,6 +46,9 @@ Cumulative shipped: 56 phases across v1.0-v1.13.
 Post-milestone follow-ups already merged into main:
 - #9 Go 1.26 modernization pass (2026-04-11)
 - #10 fix(sync): reap stale running rows on primary startup (2026-04-11)
+- #11 feat(otel): reduce metric cardinality ~30-55% (2026-04-14, quick task 260414-2rc)
+- 99ce22b fix(search): match networks by ASN literal in /ui and /api/net (2026-04-14, direct to main)
+- ac6e330 docs: generate 8 canonical docs (ARCHITECTURE/CONFIGURATION/GETTING-STARTED/DEVELOPMENT/TESTING/API/DEPLOYMENT/CONTRIBUTING) via /gsd-docs-update — 228/229 claims verified against the live codebase (2026-04-14)
 
 ## Outstanding Human Verification
 
@@ -79,6 +82,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-11
-Stopped at: v1.13 shipped — no active work
+Last session: 2026-04-14
+Stopped at: v1.13 shipped — no active milestone work; post-ship polish continues directly to main (search fix, doc generation, CLAUDE.md upkeep)
 Resume file: None
