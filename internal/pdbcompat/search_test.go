@@ -231,3 +231,44 @@ func TestFieldMapCaching(t *testing.T) {
 		}
 	}
 }
+
+func TestParseASNQuery(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		in     string
+		wantN  int64
+		wantOK bool
+	}{
+		{"8075", 8075, true},
+		{"AS8075", 8075, true},
+		{"as8075", 8075, true},
+		{"aS8075", 8075, true},
+		{"  8075  ", 8075, true},
+		{"1", 1, true},
+		{"4294967295", 4294967295, true},
+		{"0", 0, false},
+		{"-5", 0, false},
+		{"AS0", 0, false},
+		{"4294967296", 0, false},
+		{"", 0, false},
+		{"   ", 0, false},
+		{"AS", 0, false},
+		{"as", 0, false},
+		{"abc", 0, false},
+		{"8075abc", 0, false},
+		{"AS8075x", 0, false},
+		{"cloudflare", 0, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.in, func(t *testing.T) {
+			t.Parallel()
+			n, ok := parseASNQuery(tc.in)
+			if ok != tc.wantOK {
+				t.Fatalf("parseASNQuery(%q) ok = %v, want %v", tc.in, ok, tc.wantOK)
+			}
+			if n != tc.wantN {
+				t.Errorf("parseASNQuery(%q) n = %d, want %d", tc.in, n, tc.wantN)
+			}
+		})
+	}
+}

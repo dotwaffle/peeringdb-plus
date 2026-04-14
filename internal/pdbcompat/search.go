@@ -2,6 +2,7 @@ package pdbcompat
 
 import (
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -21,6 +22,48 @@ func buildSearchPredicate(search string, searchFields []string) func(*sql.Select
 		var ors []*sql.Predicate
 		for _, f := range searchFields {
 			ors = append(ors, sql.ContainsFold(f, search))
+		}
+		if len(ors) > 0 {
+			s.Where(sql.Or(ors...))
+		}
+	}
+}
+
+// parseASNQuery returns (asn, true) if q looks like an ASN literal: optional
+// leading "AS"/"as" prefix followed by digits, parsed as a positive 32-bit
+// value. Otherwise returns (0, false). Callers use this to OR an exact asn
+// equality into an otherwise text-only search predicate.
+func parseASNQuery(q string) (int64, bool) {
+	s := strings.TrimSpace(q)
+	if len(s) >= 2 && (s[0] == 'A' || s[0] == 'a') && (s[1] == 'S' || s[1] == 's') {
+		s = s[2:]
+	}
+	if s == "" {
+		return 0, false
+	}
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil || n <= 0 || n > 0xFFFFFFFF {
+		return 0, false
+	}
+	return n, true
+}
+
+// buildNetworkSearchPredicate builds a search predicate for the Network type
+// that ORs text-field ContainsFold matches with an exact asn equality when
+// the query parses as an ASN literal. Returns nil if search is empty.
+func buildNetworkSearchPredicate(search string, searchFields []string) func(*sql.Selector) {
+	search = strings.TrimSpace(search)
+	if search == "" {
+		return nil
+	}
+	asnVal, hasASN := parseASNQuery(search)
+	return func(s *sql.Selector) {
+		var ors []*sql.Predicate
+		for _, f := range searchFields {
+			ors = append(ors, sql.ContainsFold(f, search))
+		}
+		if hasASN {
+			ors = append(ors, sql.EQ("asn", asnVal))
 		}
 		if len(ors) > 0 {
 			s.Where(sql.Or(ors...))

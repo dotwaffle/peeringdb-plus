@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"sort"
 	"testing"
 	"time"
@@ -683,4 +684,63 @@ func itoa(n int) string {
 		result = "-" + result
 	}
 	return result
+}
+
+func TestSearchNetworkByASN(t *testing.T) {
+	t.Parallel()
+	_, mux := setupTestHandler(t)
+
+	// Seed has CloudNet=13335, EdgeProvider=64496, CloudySkies=65000.
+	// Text fields contain no digits, so these queries exercise the asn=?
+	// equality branch exclusively.
+	cases := []struct {
+		name    string
+		query   string
+		wantIDs []int64 // expected ASN values in response
+	}{
+		{"digits only finds AS13335", "13335", []int64{13335}},
+		{"AS prefix finds AS13335", "AS13335", []int64{13335}},
+		{"as prefix finds AS13335", "as13335", []int64{13335}},
+		{"AS prefix finds AS64496", "AS64496", []int64{64496}},
+		{"prefix-of-asn does not match", "1333", nil},
+		{"unknown ASN", "AS1", nil},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/api/net?q="+tc.query, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+			}
+			var env testEnvelope
+			if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			var objs []map[string]any
+			if err := json.Unmarshal(env.Data, &objs); err != nil {
+				t.Fatalf("unmarshal data: %v", err)
+			}
+			if len(objs) != len(tc.wantIDs) {
+				t.Fatalf("q=%q: expected %d hits, got %d (body=%s)",
+					tc.query, len(tc.wantIDs), len(objs), rec.Body.String())
+			}
+			got := make([]int64, 0, len(objs))
+			for _, o := range objs {
+				asn, ok := o["asn"].(float64)
+				if !ok {
+					t.Fatalf("q=%q: missing asn field in %+v", tc.query, o)
+				}
+				got = append(got, int64(asn))
+			}
+			slices.Sort(got)
+			slices.Sort(tc.wantIDs)
+			for i := range got {
+				if got[i] != tc.wantIDs[i] {
+					t.Errorf("q=%q: ASN[%d] = %d, want %d", tc.query, i, got[i], tc.wantIDs[i])
+				}
+			}
+		})
+	}
 }

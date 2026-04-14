@@ -9,8 +9,11 @@ import (
 	"strconv"
 	"strings"
 
+	"entgo.io/ent/dialect/sql"
+
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
+	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
 // Handler serves PeeringDB-compatible API endpoints.
@@ -149,7 +152,13 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 
 	// Parse search (?q=) per D-13.
 	if q := params.Get("q"); q != "" {
-		if sp := buildSearchPredicate(q, tc.SearchFields); sp != nil {
+		var sp func(*sql.Selector)
+		if tc.Name == peeringdb.TypeNet {
+			sp = buildNetworkSearchPredicate(q, tc.SearchFields)
+		} else {
+			sp = buildSearchPredicate(q, tc.SearchFields)
+		}
+		if sp != nil {
 			filters = append(filters, sp)
 		}
 	}

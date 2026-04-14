@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"entgo.io/ent/dialect/sql"
@@ -54,6 +55,10 @@ type searchTypeConfig struct {
 
 // searchTypes defines the 6 searchable PeeringDB entity types in display order.
 // Order: Networks, IXPs, Facilities, Organizations, Campuses, Carriers.
+//
+// Networks additionally match on the asn column when the query parses as an
+// ASN literal (see queryNetworks + parseASNQuery). The fields slice here lists
+// only the text columns ORed via ContainsFold.
 var searchTypes = []searchTypeConfig{
 	{typeName: "Networks", typeSlug: "net", accentColor: "emerald", fields: []string{"name", "aka", "name_long", "irr_as_set"}},
 	{typeName: "IXPs", typeSlug: "ix", accentColor: "sky", fields: []string{"name", "aka", "name_long", "city", "country"}},
@@ -118,18 +123,28 @@ func (s *SearchService) Search(ctx context.Context, query string) ([]TypeResult,
 // populates the corresponding results slot.
 func (s *SearchService) typeQueryFunc(ctx context.Context, idx int, cfg searchTypeConfig, query string, results []TypeResult) func() error {
 	return func() error {
+		var hits []SearchHit
+		var hasMore bool
+		var err error
+
+		// Networks own their own predicate construction so they can OR in an
+		// exact asn match when the query parses as an ASN literal.
+		if cfg.typeSlug == "net" {
+			hits, hasMore, err = s.queryNetworks(ctx, query, cfg.fields)
+			if err != nil {
+				return fmt.Errorf("query %s: %w", cfg.typeSlug, err)
+			}
+			results[idx].Results = hits
+			results[idx].HasMore = hasMore
+			return nil
+		}
+
 		pred := buildSearchPredicate(query, cfg.fields)
 		if pred == nil {
 			return nil
 		}
 
-		var hits []SearchHit
-		var hasMore bool
-		var err error
-
 		switch cfg.typeSlug {
-		case "net":
-			hits, hasMore, err = s.queryNetworks(ctx, pred)
 		case "ix":
 			hits, hasMore, err = s.queryIXPs(ctx, pred)
 		case "fac":
@@ -152,7 +167,24 @@ func (s *SearchService) typeQueryFunc(ctx context.Context, idx int, cfg searchTy
 	}
 }
 
-func (s *SearchService) queryNetworks(ctx context.Context, pred func(*sql.Selector)) ([]SearchHit, bool, error) {
+func (s *SearchService) queryNetworks(ctx context.Context, query string, textFields []string) ([]SearchHit, bool, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil, false, nil
+	}
+	asnVal, hasASN := parseASNQuery(query)
+	pred := func(sel *sql.Selector) {
+		var ors []*sql.Predicate
+		for _, f := range textFields {
+			ors = append(ors, sql.ContainsFold(f, query))
+		}
+		if hasASN {
+			ors = append(ors, sql.EQ("asn", asnVal))
+		}
+		if len(ors) > 0 {
+			sel.Where(sql.Or(ors...))
+		}
+	}
 	items, err := s.client.Network.Query().Where(pred).Limit(displayLimit + 1).All(ctx)
 	if err != nil {
 		return nil, false, fmt.Errorf("fetch networks: %w", err)
@@ -279,6 +311,25 @@ func (s *SearchService) queryCarriers(ctx context.Context, pred func(*sql.Select
 		}
 	}
 	return hits, hasMore, nil
+}
+
+// parseASNQuery returns (asn, true) if q looks like an ASN literal: optional
+// leading "AS"/"as" prefix followed by digits, parsed as a positive 32-bit
+// value. Otherwise returns (0, false). Callers use this to OR an exact asn
+// equality into an otherwise text-only search predicate.
+func parseASNQuery(q string) (int64, bool) {
+	s := strings.TrimSpace(q)
+	if len(s) >= 2 && (s[0] == 'A' || s[0] == 'a') && (s[1] == 'S' || s[1] == 's') {
+		s = s[2:]
+	}
+	if s == "" {
+		return 0, false
+	}
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil || n <= 0 || n > 0xFFFFFFFF {
+		return 0, false
+	}
+	return n, true
 }
 
 // buildSearchPredicate creates a sql.Selector predicate that ORs together

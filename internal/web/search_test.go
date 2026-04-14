@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -647,5 +648,124 @@ func TestSearchService_DBError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "search") {
 		t.Errorf("error = %q, want substring %q", err.Error(), "search")
+	}
+}
+
+func TestSearchNetworkByASN(t *testing.T) {
+	t.Parallel()
+	svc := seedSearchData(t)
+	ctx := t.Context()
+
+	// The seeded network has Asn=13335 and name="Cloudflare" with no digits
+	// in its text fields, so these queries exercise the asn-equality branch.
+	cases := []struct {
+		name     string
+		query    string
+		wantHit  bool
+		wantASN  int
+		wantName string
+	}{
+		{"digits only", "13335", true, 13335, "Cloudflare"},
+		{"uppercase AS prefix", "AS13335", true, 13335, "Cloudflare"},
+		{"lowercase as prefix", "as13335", true, 13335, "Cloudflare"},
+		{"mixed case aS prefix", "aS13335", true, 13335, "Cloudflare"},
+		{"prefix-of-asn must not match", "1333", false, 0, ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			results, err := svc.Search(ctx, tc.query)
+			if err != nil {
+				t.Fatalf("Search(%q): %v", tc.query, err)
+			}
+			var nets []SearchHit
+			for _, r := range results {
+				if r.TypeSlug == "net" {
+					nets = r.Results
+					break
+				}
+			}
+			if !tc.wantHit {
+				if len(nets) != 0 {
+					t.Fatalf("Search(%q) expected no network hits, got %d", tc.query, len(nets))
+				}
+				return
+			}
+			if len(nets) != 1 {
+				t.Fatalf("Search(%q) expected 1 network hit, got %d", tc.query, len(nets))
+			}
+			hit := nets[0]
+			if hit.ASN != tc.wantASN {
+				t.Errorf("Search(%q) ASN = %d, want %d", tc.query, hit.ASN, tc.wantASN)
+			}
+			if hit.Name != tc.wantName {
+				t.Errorf("Search(%q) Name = %q, want %q", tc.query, hit.Name, tc.wantName)
+			}
+			if hit.DetailURL != fmt.Sprintf("/ui/asn/%d", tc.wantASN) {
+				t.Errorf("Search(%q) DetailURL = %q, want /ui/asn/%d", tc.query, hit.DetailURL, tc.wantASN)
+			}
+		})
+	}
+}
+
+func TestSearchTextStillWorks(t *testing.T) {
+	t.Parallel()
+	svc := seedSearchData(t)
+	ctx := t.Context()
+
+	// Regression: non-numeric queries must still hit the text-field predicate.
+	results, err := svc.Search(ctx, "cloudflare")
+	if err != nil {
+		t.Fatalf("Search: %v", err)
+	}
+	var found bool
+	for _, r := range results {
+		if r.TypeSlug == "net" && len(r.Results) == 1 && r.Results[0].ASN == 13335 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("regression: text search for 'cloudflare' no longer finds AS13335")
+	}
+}
+
+func TestParseASNQuery(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		in      string
+		wantN   int64
+		wantOK  bool
+	}{
+		{"8075", 8075, true},
+		{"AS8075", 8075, true},
+		{"as8075", 8075, true},
+		{"aS8075", 8075, true},
+		{"  8075  ", 8075, true},
+		{"1", 1, true},
+		{"4294967295", 4294967295, true},
+		{"0", 0, false},
+		{"-5", 0, false},
+		{"AS0", 0, false},
+		{"4294967296", 0, false},
+		{"", 0, false},
+		{"   ", 0, false},
+		{"AS", 0, false},
+		{"as", 0, false},
+		{"abc", 0, false},
+		{"8075abc", 0, false},
+		{"AS8075x", 0, false},
+		{"cloudflare", 0, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.in, func(t *testing.T) {
+			n, ok := parseASNQuery(tc.in)
+			if ok != tc.wantOK {
+				t.Fatalf("parseASNQuery(%q) ok = %v, want %v", tc.in, ok, tc.wantOK)
+			}
+			if n != tc.wantN {
+				t.Errorf("parseASNQuery(%q) n = %d, want %d", tc.in, n, tc.wantN)
+			}
+		})
 	}
 }
