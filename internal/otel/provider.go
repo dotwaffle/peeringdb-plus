@@ -45,6 +45,7 @@ type SetupOutput struct {
 // Individual signals can be disabled via OTEL_*_EXPORTER=none per D-04.
 func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	res := buildResource(ctx, in.ServiceName)
+	metricRes := buildMetricResource(ctx, in.ServiceName)
 
 	// TracerProvider with configurable sampling per D-02.
 	spanExporter, err := autoexport.NewSpanExporter(ctx)
@@ -58,14 +59,39 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	)
 	otel.SetTracerProvider(tp)
 
-	// MeterProvider for metrics.
+	// MeterProvider for metrics. Views drop HTTP body-size instruments (low
+	// debugging value, high cardinality) and override rpc.server.duration
+	// bucket boundaries to a 5-boundary set. Metric resource omits
+	// fly.machine_id to prevent per-VM metric fan-out; traces and logs keep
+	// it for per-VM debugging.
 	metricReader, err := autoexport.NewMetricReader(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating metric reader: %w", err)
 	}
 	mp := sdkmetric.NewMeterProvider(
-		sdkmetric.WithResource(res),
+		sdkmetric.WithResource(metricRes),
 		sdkmetric.WithReader(metricReader),
+		sdkmetric.WithView(
+			sdkmetric.NewView(
+				sdkmetric.Instrument{Name: "http.server.request.body.size"},
+				sdkmetric.Stream{Aggregation: sdkmetric.AggregationDrop{}},
+			),
+		),
+		sdkmetric.WithView(
+			sdkmetric.NewView(
+				sdkmetric.Instrument{Name: "http.server.response.body.size"},
+				sdkmetric.Stream{Aggregation: sdkmetric.AggregationDrop{}},
+			),
+		),
+		sdkmetric.WithView(
+			sdkmetric.NewView(
+				sdkmetric.Instrument{Name: "rpc.server.duration"},
+				sdkmetric.Stream{Aggregation: sdkmetric.AggregationExplicitBucketHistogram{
+					Boundaries: []float64{0.01, 0.05, 0.25, 1, 5},
+					NoMinMax:   false,
+				}},
+			),
+		),
 	)
 	otel.SetMeterProvider(mp)
 
@@ -104,8 +130,25 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 }
 
 // buildResource creates an OTel resource with service name, version from
-// build info per D-08, and Fly.io environment attributes per D-10.
-func buildResource(_ context.Context, serviceName string) *resource.Resource {
+// build info per D-08, and Fly.io environment attributes per D-10. Used
+// by TracerProvider and LoggerProvider so traces and logs keep per-VM
+// attribution via fly.machine_id.
+func buildResource(ctx context.Context, serviceName string) *resource.Resource {
+	return buildResourceFiltered(ctx, serviceName, true)
+}
+
+// buildMetricResource is like buildResource but omits fly.machine_id to
+// prevent per-VM metric fan-out. Use for MeterProvider only;
+// TracerProvider/LoggerProvider keep the full resource for per-VM
+// debugging.
+func buildMetricResource(ctx context.Context, serviceName string) *resource.Resource {
+	return buildResourceFiltered(ctx, serviceName, false)
+}
+
+// buildResourceFiltered builds the OTel resource, optionally including
+// the fly.machine_id attribute. Shared implementation backing
+// buildResource (trace/log) and buildMetricResource (metrics).
+func buildResourceFiltered(_ context.Context, serviceName string, includeMachineID bool) *resource.Resource {
 	version := "unknown"
 	if info, ok := debug.ReadBuildInfo(); ok {
 		version = info.Main.Version
@@ -134,6 +177,9 @@ func buildResource(_ context.Context, serviceName string) *resource.Resource {
 		{"FLY_MACHINE_ID", "fly.machine_id"},
 		{"FLY_APP_NAME", "fly.app_name"},
 	} {
+		if !includeMachineID && env.attr == "fly.machine_id" {
+			continue
+		}
 		if v := os.Getenv(env.key); v != "" {
 			attrs = append(attrs, attribute.String(env.attr, v))
 		}
