@@ -4,8 +4,8 @@ milestone: v1.13
 milestone_name: Security & Sync Hardening
 status: shipped
 stopped_at: v1.13 shipped 2026-04-11
-last_updated: "2026-04-11T00:00:00Z"
-last_activity: 2026-04-11
+last_updated: "2026-04-14T01:59:12Z"
+last_activity: 2026-04-14
 progress:
   total_phases: 6
   completed_phases: 6
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 Milestone: v1.13 Security & Sync Hardening (shipped 2026-04-11)
 Phase: all 6 complete (51-56)
 Status: idle
-Last activity: 2026-04-11
+Last activity: 2026-04-14 - Completed quick task 260414-2rc: Reduce OTel metric cardinality per plan ethereal-petting-pelican.md
 
 Progress (v1.13): [██████████] 100%
 Cumulative shipped: 56 phases across v1.0-v1.13.
@@ -75,6 +75,7 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260331-cxk | Move maps to bottom of pages and add fold-out arrows to collapsibles | 2026-03-31 | eefa79b | [260331-cxk-move-maps-to-bottom-of-pages-and-add-fol](./quick/260331-cxk-move-maps-to-bottom-of-pages-and-add-fol/) |
+| 260414-2rc | Reduce OTel metric cardinality per plan ethereal-petting-pelican.md | 2026-04-14 | fc7e366 | [260414-2rc-reduce-otel-metric-cardinality-per-plan-](./quick/260414-2rc-reduce-otel-metric-cardinality-per-plan-/) |
 
 ## Session Continuity
 
