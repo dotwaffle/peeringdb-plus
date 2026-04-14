@@ -17,6 +17,10 @@ A high-performance, globally distributed, read-only mirror of PeeringDB data. It
 - **Data fidelity**: Must handle PeeringDB's actual API responses, not their documented spec
 <!-- GSD:project-end -->
 
+## Documentation
+- Canonical user/operator/contributor docs live in `docs/` (`ARCHITECTURE.md`, `CONFIGURATION.md`, `GETTING-STARTED.md`, `DEVELOPMENT.md`, `TESTING.md`, `API.md`, `DEPLOYMENT.md`) and `CONTRIBUTING.md` at the root. Read the relevant doc before re-deriving information from code or duplicating content into a response.
+- `CLAUDE.md` is Claude's project memory, not user-facing docs. Do not regenerate it via `/gsd-docs-update` or similar — exclude it explicitly when running doc workflows. Update it via `/claude-md-management:revise-claude-md` only.
+
 ## Commands
 
 ```bash
