@@ -112,7 +112,9 @@ func (s *State) PendingTuples() []Tuple {
 // a wrapped json error on parse failure, and an error for unsupported
 // versions.
 func LoadState(path string) (*State, error) {
-	data, err := os.ReadFile(path)
+	// path is an operator-supplied checkpoint location (-state flag or
+	// DefaultStatePath). Permitted by design — this is a CLI tool.
+	data, err := os.ReadFile(path) //nolint:gosec // G304: path is a deliberate CLI input.
 	if err != nil {
 		// os.ReadFile already wraps errors appropriately for errors.Is(err, os.ErrNotExist).
 		return nil, err
