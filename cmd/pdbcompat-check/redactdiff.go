@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/visbaseline"
@@ -34,13 +33,25 @@ func runRedact(cfg runConfig, logger *slog.Logger) error {
 	//     pdbcompat-check -redact -in=/tmp/beta-raw/auth
 	//                     -out=testdata/visibility-baseline/beta/auth
 	// → anon dir = testdata/visibility-baseline/beta/anon
+	//
+	// Use filepath.Dir/filepath.Base rather than filepath.Split: Split leaves
+	// a trailing separator on the parent, and Clean already strips trailing
+	// separators so a TrimRight dance is redundant. Base returns the final
+	// path component and Dir returns everything before it.
 	outClean := filepath.Clean(cfg.outDir)
-	outParent, outLeaf := filepath.Split(outClean)
-	outLeaf = strings.TrimRight(outLeaf, string(filepath.Separator))
+	outParent := filepath.Dir(outClean)
+	outLeaf := filepath.Base(outClean)
 	if outLeaf != "auth" {
 		return fmt.Errorf("-redact: -out %q must end in a /auth/ component so anon pair can be derived", cfg.outDir)
 	}
-	anonDir := filepath.Join(filepath.Clean(outParent), "anon")
+	// Reject degenerate paths where -out has no meaningful parent directory.
+	// filepath.Dir("auth") returns ".", and filepath.Dir("/auth") returns "/".
+	// Both cases would write the anon sibling into the CWD or the filesystem
+	// root — almost certainly an operator mistake.
+	if outParent == "." || outParent == string(filepath.Separator) {
+		return fmt.Errorf("-redact: -out %q must have a parent directory holding the anon/ sibling (e.g. testdata/visibility-baseline/beta/auth)", cfg.outDir)
+	}
+	anonDir := filepath.Join(outParent, "anon")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
