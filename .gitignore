@@ -45,3 +45,12 @@ Thumbs.db
 .gitconfig
 .gitmodules
 .ripgreprc
+
+# Visibility baseline capture (phase 57)
+# Raw auth bytes and checkpoint state MUST NEVER be committed — they contain
+# unredacted PII (emails, phones, names, addresses). The Redact function in
+# internal/visbaseline/ produces the safe-to-commit form; raw bytes go to
+# /tmp or an explicit .raw-auth/ staging directory.
+/tmp/pdb-vis-capture-*
+testdata/visibility-baseline/**/.raw-auth/
+testdata/visibility-baseline/**/.raw-auth
