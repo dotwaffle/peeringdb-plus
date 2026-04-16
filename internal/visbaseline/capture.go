@@ -181,6 +181,15 @@ func (c *Capture) resolveState(ctx context.Context) (*State, error) {
 		c.cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "restarting capture (discarding checkpoint)",
 			slog.String("state_path", c.cfg.StatePath),
 		)
+		// WR-05: Restart discards the checkpoint but the State does not know
+		// where the previous run's raw-auth /tmp dir lived. Warn the operator
+		// so they can clean it up manually. State intentionally carries no
+		// PII, so recording the prior rawAuthDir in State would widen T-57-04
+		// exposure; a log line is the right trade-off.
+		c.cfg.Logger.LogAttrs(ctx, slog.LevelWarn,
+			"restart discards checkpoint; prior /tmp/pdb-vis-capture-* dir (if any) must be cleaned manually",
+			slog.String("state_path", c.cfg.StatePath),
+		)
 		// Fall through to fresh enumeration.
 	case errors.Is(err, os.ErrNotExist):
 		// No checkpoint — fresh run.
