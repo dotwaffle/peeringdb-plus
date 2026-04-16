@@ -36,8 +36,8 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 **Phases:**
 
 - [x] **Phase 57: Visibility baseline capture** - Empirically capture unauth + auth PeeringDB responses for all 13 types and emit a structural diff (completed 2026-04-16)
-- [ ] **Phase 58: Visibility schema alignment** - Confirm `poc.visible` and add fields for any other auth-gated data identified in Phase 57
-- [ ] **Phase 59: ent Privacy policy + sync bypass** - Wire `entgo.io/ent/privacy` query policy that filters non-`Public` rows from anonymous reads, with sync-write bypass and `PDBPLUS_PUBLIC_TIER` override
+- [x] **Phase 58: Visibility schema alignment** - Confirm `poc.visible` and add fields for any other auth-gated data identified in Phase 57
+- [ ] **Phase 59: ent Privacy policy + sync bypass** - Wire `entgo.io/ent/privacy` query policy that filters non-`Public` rows from anonymous reads, with sync-write bypass and `PDBPLUS_PUBLIC_TIER` override (completed 2026-04-16)
 - [ ] **Phase 60: Surface integration + tests** - Verify privacy policy fires through all 5 read surfaces and pdbcompat anonymous shape matches upstream
 - [ ] **Phase 61: Operator-facing observability** - Startup log classification, `/about` rendering, `pdbplus.privacy.tier` OTel attribute on read spans
 - [ ] **Phase 62: API key default & docs** - Set Fly.io secret, document authenticated deployment as recommended path (manual verification + docs)
@@ -156,7 +156,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 57. Visibility baseline capture | 4/4 | Complete   | 2026-04-16 |
+| 57. Visibility baseline capture | 4/4 | Complete    | 2026-04-16 |
 | 58. Visibility schema alignment | 0/0 | Not started | - |
 | 59. ent Privacy policy + sync bypass | 0/0 | Not started | - |
 | 60. Surface integration + tests | 0/0 | Not started | - |
