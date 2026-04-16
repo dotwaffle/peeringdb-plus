@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "generated": "2026-04-16T12:34:56Z",
+  "targets": [
+    "beta"
+  ],
+  "types": {
+    "poc": {
+      "anon_row_count": 2,
+      "auth_row_count": 2,
+      "auth_only_row_count": 0,
+      "visible_values_anon": [
+        "Public"
+      ],
+      "visible_values_auth": [
+        "Public"
+      ],
+      "fields": [
+        {
+          "name": "email",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 2,
+          "is_pii": true
+        },
+        {
+          "name": "phone",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 2,
+          "is_pii": true
+        }
+      ]
+    }
+  }
+}
