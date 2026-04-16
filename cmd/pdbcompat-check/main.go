@@ -32,6 +32,16 @@ type runConfig struct {
 	goldenDir string
 	timeout   time.Duration
 	apiKey    string
+
+	// Phase 57 capture mode fields. Activated by -capture; the existing
+	// default path is untouched when -capture is not passed.
+	capture   bool
+	target    string
+	mode      string
+	outDir    string
+	types     string
+	prodAuth  bool
+	statePath string
 }
 
 func main() {
@@ -41,6 +51,16 @@ func main() {
 	flag.StringVar(&cfg.goldenDir, "golden-dir", "", "path to golden file directory (default: auto-detect)")
 	flag.DurationVar(&cfg.timeout, "timeout", 30*time.Second, "HTTP request timeout")
 	flag.StringVar(&cfg.apiKey, "api-key", "", "PeeringDB API key (overrides PDBPLUS_PEERINGDB_API_KEY env var)")
+
+	// Phase 57 capture mode flags.
+	flag.BoolVar(&cfg.capture, "capture", false, "capture visibility baseline instead of running the structural check")
+	flag.StringVar(&cfg.target, "target", "beta", "capture target: beta | prod")
+	flag.StringVar(&cfg.mode, "mode", "both", "capture mode: anon | auth | both")
+	flag.StringVar(&cfg.outDir, "out", "", "output dir for anon fixtures (default: testdata/visibility-baseline/<target>)")
+	flag.StringVar(&cfg.types, "types", "", "comma-separated types to capture (default: 13 for beta, poc,org,net for prod)")
+	flag.BoolVar(&cfg.prodAuth, "prod-auth", false, "allow auth mode against prod target (requires API key; default false)")
+	flag.StringVar(&cfg.statePath, "state", "", "checkpoint file path (default: /tmp/pdb-vis-capture-state.json)")
+
 	flag.Parse()
 
 	if cfg.apiKey == "" {
@@ -58,6 +78,9 @@ func main() {
 }
 
 func run(cfg runConfig, logger *slog.Logger) error {
+	if cfg.capture {
+		return runCapture(cfg, logger)
+	}
 	client := &http.Client{Timeout: cfg.timeout}
 
 	types := allTypes
