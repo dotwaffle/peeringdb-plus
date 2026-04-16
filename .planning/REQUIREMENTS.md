@@ -1,87 +1,75 @@
 # Requirements: PeeringDB Plus
 
-**Defined:** 2026-04-02
+**Defined:** 2026-04-16
 **Core Value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-## v1.12 Requirements
+## v1.14 Requirements
 
-Requirements for the Hardening & Tech Debt milestone. Each maps to roadmap phases.
+Requirements for the Authenticated Sync & Visibility Layer milestone. Each maps to roadmap phases 57-62.
 
-### Server Hardening
+### Visibility (VIS)
 
-- [ ] **SRVR-01**: Server sets ReadHeaderTimeout (10s) and IdleTimeout (120s) to prevent connection exhaustion
-- [ ] **SRVR-02**: SQLite connection pool configured with MaxOpenConns, MaxIdleConns, and ConnMaxLifetime
-- [ ] **SRVR-03**: Config validates ListenAddr format, PeeringDBBaseURL as valid URL, and DrainTimeout > 0 at startup
-- [ ] **SRVR-04**: POST endpoints enforce request body size limits via http.MaxBytesReader
+- [ ] **VIS-01**: System captures both unauthenticated and authenticated PeeringDB API responses for all 13 types as committed baseline fixtures (`testdata/visibility-baseline/beta/` plus a confirmation pass against `www.peeringdb.com` for poc/org/net under `testdata/visibility-baseline/prod/`)
+- [ ] **VIS-02**: System emits a structural diff report from the captured fixtures listing every field/row that differs between unauth and auth responses, with a per-type table that's reviewable in code review
+- [ ] **VIS-03**: ent schemas have visibility-bearing fields for every auth-gated entity identified by VIS-02 (`poc.visible` already exists; add others as the diff surfaces them and regenerate ent)
+- [ ] **VIS-04**: ent Privacy query policy filters non-`Public` rows from anonymous responses on POC and any other types from VIS-03; policy is loaded via `entgo.io/ent/privacy` and wired in `ent/entc.go`
+- [ ] **VIS-05**: Sync worker bypasses the privacy policy via `privacy.DecisionContext(ctx, privacy.Allow)` so it can read/write the full dataset; tests assert the bypass is in effect for sync-context goroutines and absent everywhere else
+- [ ] **VIS-06**: All 5 read surfaces (`/ui/`, `/graphql`, `/rest/v1/`, `/api/`, `/peeringdb.v1.*`) honour the privacy policy; per-surface integration tests assert no `visible=Users` row leaks on an anonymous request
+- [ ] **VIS-07**: pdbcompat `/api/poc` (and embedded `poc_set`) anonymous response shape matches upstream anonymous shape — rows absent, not redacted; verified by replaying the VIS-01 fixtures against our endpoint with an empty diff
 
-### Security
+### Sync Configuration (SYNC)
 
-- [ ] **SEC-01**: ASN input validated to 0 < ASN < 4294967296 range in all web handlers
-- [ ] **SEC-02**: Width query parameter (?w=) bounded to a reasonable maximum
-- [ ] **SEC-03**: Content-Security-Policy-Report-Only header served with CDN allowlist on web UI responses
+- [ ] **SYNC-01**: Authenticated sync becomes the recommended deployment configuration; documented in `docs/CONFIGURATION.md`/`docs/DEPLOYMENT.md` and the production Fly.io app has `PDBPLUS_PEERINGDB_API_KEY` set as a fly secret
+- [ ] **SYNC-02**: Unauthenticated sync remains a first-class supported configuration — omit the API key, worker syncs the upstream anonymous payload only, no `Users`-tier rows ever land in the DB; verified by an integration test
+- [ ] **SYNC-03**: `PDBPLUS_PUBLIC_TIER` env var (default `public`, accepts `users`) elevates all anonymous callers to Users-tier for private-instance deployments; tests cover both values
+- [ ] **SYNC-04**: Startup logs a WARN line when `PDBPLUS_PUBLIC_TIER=users` is in effect, so the elevated default is never silent
 
-### Performance
+### Observability (OBS)
 
-- [ ] **PERF-01**: HTTP responses compressed via gzip middleware, excluding gRPC content types
-- [ ] **PERF-02**: Metrics type count gauge reads cached values computed at sync time, not per-scrape COUNT queries
-- [ ] **PERF-03**: GraphQL error presenter classifies errors via ent.IsNotFound / errors.Is instead of string matching
+- [ ] **OBS-01**: Startup log line classifies sync as "anonymous, public-only" or "authenticated, full" based on `PDBPLUS_PEERINGDB_API_KEY` presence
+- [ ] **OBS-02**: `/about` (HTML) and `/ui/about` (terminal) render the current sync mode and effective privacy tier
+- [ ] **OBS-03**: OTel attribute `pdbplus.privacy.tier` (values `public` or `users`) set on read spans; usable as a Grafana dashboard filter
 
-### Quality
+### Documentation (DOC)
 
-- [x] **QUAL-01**: internal/graphql/handler.go has test coverage for error classification and complexity limits
-- [x] **QUAL-02**: internal/database/database.go has test coverage for Open() pragmas and error paths
-- [ ] **QUAL-03**: golangci-lint config enables exhaustive, contextcheck, and gosec linters with clean pass
-- [ ] **QUAL-04**: CI pipeline builds both Dockerfiles and fails on build errors
-
-### Refactoring
-
-- [ ] **REFAC-01**: internal/web/detail.go split into focused per-entity query helpers
-- [ ] **REFAC-02**: internal/sync/upsert.go duplication reduced via generic bulk upsert pattern
-
-### Tech Debt
-
-- [x] **DEBT-01**: /ui/about renders properly for terminal clients (no stub fallthrough)
-- [x] **DEBT-02**: seed.Minimal and seed.Networks consolidated (unused exports removed)
+- [ ] **DOC-01**: `docs/CONFIGURATION.md` documents `PDBPLUS_PEERINGDB_API_KEY`, `PDBPLUS_PUBLIC_TIER`, and the privacy guarantees they provide
+- [ ] **DOC-02**: `docs/DEPLOYMENT.md` documents the recommended authenticated deployment + Fly.io secret setup
+- [ ] **DOC-03**: `docs/ARCHITECTURE.md` describes the ent Privacy layer and how each of the 5 surfaces honours it
 
 ## Future Requirements
 
-Deferred to future milestones.
+Deferred to v1.15 (or later).
 
-### Server-Side Sorting
+### OAuth Identity (AUTH)
 
-- **SSORT-01**: Server-side table sorting via htmx for paginated datasets exceeding client-side limits
+- **AUTH-01**: User can log in via PeeringDB OAuth (`auth.peeringdb.com`) using the authorization code flow with `profile`+`networks` scopes
+- **AUTH-02**: An OAuth-identified caller's request context carries `tier=Users`, causing the ent Privacy policy to admit `Users`-visibility rows for that caller
+- **AUTH-03**: Session/JWT mechanism plumbs OAuth identity from the OAuth callback through middleware into the ent context
+- **AUTH-04**: `/about` shows the logged-in user (when authenticated) and which `networks` they administer per the OAuth `networks` scope
 
-### Map Enhancements
+### Domain Extensions (Carried from v1.13 deferred list)
 
-- **MAPE-01**: Map on search results page showing locations of results
-- **MAPE-02**: Drawing tools / measurement on map for distance calculation
+- **BGP-01**: Per-ASN BGP summary from bgp.tools (prefix counts, RPKI coverage)
+- **IRR-01**: IRR/AS-SET membership from WHOIS source
+- **PFX-01**: IP prefix lookup with origin ASN, RPKI status
 
-### Cross-Surface Consistency
+### Operational Verification (Carried)
 
-- **XSURF-01**: Same entity returns identical data across GraphQL, REST, PeeringDB compat, and gRPC surfaces
-- **XSURF-02**: Golden file tests for gRPC responses (after filter coverage is complete)
-
-### CDN Security
-
-- **CDNS-01**: Subresource Integrity (SRI) attributes on all CDN-loaded assets with pinned versions
-
-### Operational Verification
-
-- **OPVR-01**: fly_region Grafana template variable verified against live multi-region deployment
+- **OPVR-01**: `fly_region` Grafana template variable verified against live multi-region deployment
 - **OPVR-02**: Go runtime metric names verified against live Grafana Cloud
 - **OPVR-03**: CI coverage pipeline verified on actual GitHub Actions run
+- **OPVR-04**: v1.13 phase 52 CSP enforcement smoke test (Chrome devtools) and phase 53 header smoke tests (curl HSTS/XFO/XCTO, slowloris)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| SRI on CDN assets | Tailwind browser CDN may not support SRI; pin versions first in future milestone |
-| Dockerfile HEALTHCHECK | Fly.io handles health checks via fly.toml; Docker-only adds minimal value |
-| Grafana variable verification | Requires live multi-region deployment; defer to operational validation |
-| CI coverage pipeline verification | Requires live GitHub Actions run; not automatable in this milestone |
-| WriteTimeout on http.Server | Kills streaming RPCs; ReadHeaderTimeout + IdleTimeout sufficient |
-| CORS preflight caching | Already implemented (MaxAge: 86400) |
-| Rate limiting middleware | Fly.io proxy provides connection-level limits; app-level adds complexity without clear need |
+| Per-user PeeringDB API key issuance for downstream callers | Out of scope at the project level — server-side config only |
+| OAuth in v1.14 | Deferred to v1.15 — privacy floor must ship first to avoid coupling concerns |
+| Field-level redaction of non-`Public` rows in responses | We mirror upstream behaviour: rows are absent from anonymous responses, not present-with-redacted-fields |
+| Two-way OAuth (we don't act as an OAuth provider) | Mirror is read-only; OAuth use is consumer-only against `auth.peeringdb.com` |
+| Detecting whether an OAuth user has org membership for arbitrary records | PeeringDB OAuth `networks` scope is per-network only; we admit any OAuth-authenticated caller to Users-tier (matches what an authenticated PeeringDB API request would see) |
+| Real-time visibility-change propagation | Visibility changes ride the existing sync interval — no push channel from upstream exists |
 
 ## Traceability
 
@@ -89,30 +77,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SRVR-01 | Phase 47 | Pending |
-| SRVR-02 | Phase 47 | Pending |
-| SRVR-03 | Phase 47 | Pending |
-| SRVR-04 | Phase 47 | Pending |
-| SEC-01 | Phase 47 | Pending |
-| SEC-02 | Phase 47 | Pending |
-| SEC-03 | Phase 48 | Pending |
-| PERF-01 | Phase 48 | Pending |
-| PERF-02 | Phase 48 | Pending |
-| PERF-03 | Phase 48 | Pending |
-| QUAL-01 | Phase 49 | Complete |
-| QUAL-02 | Phase 49 | Complete |
-| QUAL-03 | Phase 50 | Pending |
-| QUAL-04 | Phase 50 | Pending |
-| REFAC-01 | Phase 49 | Pending |
-| REFAC-02 | Phase 49 | Pending |
-| DEBT-01 | Phase 49 | Complete |
-| DEBT-02 | Phase 49 | Complete |
+| (filled by gsd-roadmapper) | | |
 
 **Coverage:**
-- v1.12 requirements: 18 total
-- Mapped to phases: 18
-- Unmapped: 0
+- v1.14 requirements: 17 total
+- Mapped to phases: (pending roadmap)
+- Unmapped: (pending roadmap)
 
 ---
-*Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after roadmap creation*
+*Requirements defined: 2026-04-16*
+*Last updated: 2026-04-16*
