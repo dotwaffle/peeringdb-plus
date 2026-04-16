@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "generated": "2026-04-16T23:45:08.779288192Z",
+  "targets": [
+    "beta"
+  ],
+  "types": {
+    "beta/campus": {
+      "anon_row_count": 74,
+      "auth_row_count": 74,
+      "auth_only_row_count": 0,
+      "fields": []
+    },
+    "beta/carrier": {
+      "anon_row_count": 276,
+      "auth_row_count": 276,
+      "auth_only_row_count": 0,
+      "fields": []
+    },
+    "beta/carrierfac": {
+      "anon_row_count": 500,
+      "auth_row_count": 500,
+      "auth_only_row_count": 0,
+      "fields": []
+    },
+    "beta/fac": {
+      "anon_row_count": 500,
+      "auth_row_count": 500,
+      "auth_only_row_count": 0,
+      "fields": []
+    },
+    "beta/ix": {
+      "anon_row_count": 500,
+      "auth_row_count": 500,
+      "auth_only_row_count": 0,
+      "fields": []
+    },
+    "beta/ixfac": {
+      "anon_row_count": 500,
+      "auth_row_count": 500,
+      "auth_only_row_count": 0,
+      "fields": []
+    },
+    "beta/ixlan": {
+      "anon_row_count": 500,
+      "auth_row_count": 500,
+      "auth_only_row_count": 0,
+      "fields": [
+        {
+          "name": "ixf_ixp_member_list_url",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 18
+        }
+      ]
+    },
+    "beta/ixpfx": {
+      "anon_row_count": 500,
+      "auth_row_count": 500,
+      "auth_only_row_count": 0,
+      "fields": []
+    },
+    "beta/net": {
+      "anon_row_count": 500,
+      "auth_row_count": 500,
+      "auth_only_row_count": 0,
+      "fields": []
+    },
+    "beta/netfac": {
+      "anon_row_count": 500,
+      "auth_row_count": 500,
+      "auth_only_row_count": 0,
+      "fields": []
+    },
+    "beta/netixlan": {
+      "anon_row_count": 500,
+      "auth_row_count": 500,
+      "auth_only_row_count": 0,
+      "fields": []
+    },
+    "beta/org": {
+      "anon_row_count": 500,
+      "auth_row_count": 500,
+      "auth_only_row_count": 0,
+      "fields": []
+    },
+    "beta/poc": {
+      "anon_row_count": 40,
+      "auth_row_count": 500,
+      "auth_only_row_count": 460,
+      "visible_values_anon": [
+        "Public"
+      ],
+      "visible_values_auth": [
+        "Public",
+        "Users"
+      ],
+      "fields": [
+        {
+          "name": "created",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 460
+        },
+        {
+          "name": "email",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 460,
+          "is_pii": true
+        },
+        {
+          "name": "id",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 460
+        },
+        {
+          "name": "name",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 460,
+          "is_pii": true
+        },
+        {
+          "name": "net_id",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 460
+        },
+        {
+          "name": "phone",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 460,
+          "is_pii": true
+        },
+        {
+          "name": "role",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 460
+        },
+        {
+          "name": "status",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 460
+        },
+        {
+          "name": "updated",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 460
+        },
+        {
+          "name": "url",
+          "auth_only": true,
+          "placeholder": "<auth-only:string>",
+          "rows_added": 460
+        },
+        {
+          "name": "visible",
+          "auth_only": false,
+          "value_set_drift": true
+        }
+      ]
+    }
+  }
+}

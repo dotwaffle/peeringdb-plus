@@ -1,0 +1,2505 @@
+{
+  "meta": {},
+  "data": [
+    {
+      "created": "2013-03-27T00:00:00Z",
+      "id": 407,
+      "in_dfz": true,
+      "ixlan_id": 33,
+      "prefix": "2001:7f8:1c:24a::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-04-09T00:00:00Z",
+      "id": 408,
+      "in_dfz": true,
+      "ixlan_id": 577,
+      "prefix": "103.247.139.0/25",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-04-09T00:00:00Z",
+      "id": 409,
+      "in_dfz": true,
+      "ixlan_id": 577,
+      "prefix": "2001:df0:296::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-04-17T00:00:00Z",
+      "id": 410,
+      "in_dfz": true,
+      "ixlan_id": 62,
+      "prefix": "2001:7f8:2a::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-04-19T00:00:00Z",
+      "id": 411,
+      "in_dfz": true,
+      "ixlan_id": 429,
+      "prefix": "103.16.102.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-05-02T00:00:00Z",
+      "id": 413,
+      "in_dfz": true,
+      "ixlan_id": 691,
+      "prefix": "218.100.54.0/25",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-05-02T00:00:00Z",
+      "id": 414,
+      "in_dfz": true,
+      "ixlan_id": 691,
+      "prefix": "2001:7fa:11:3::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-05-05T00:00:00Z",
+      "id": 415,
+      "in_dfz": true,
+      "ixlan_id": 676,
+      "prefix": "62.69.146.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-05-05T00:00:00Z",
+      "id": 416,
+      "in_dfz": true,
+      "ixlan_id": 676,
+      "prefix": "2001:7f8:8:20::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-05-12T00:00:00Z",
+      "id": 419,
+      "in_dfz": true,
+      "ixlan_id": 274,
+      "prefix": "2001:4300:96::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-05-12T00:00:00Z",
+      "id": 420,
+      "in_dfz": true,
+      "ixlan_id": 274,
+      "prefix": "81.21.96.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-05-12T00:00:00Z",
+      "id": 421,
+      "in_dfz": true,
+      "ixlan_id": 313,
+      "prefix": "91.194.218.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-05-12T00:00:00Z",
+      "id": 422,
+      "in_dfz": true,
+      "ixlan_id": 366,
+      "prefix": "200.0.20.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-05-12T00:00:00Z",
+      "id": 423,
+      "in_dfz": true,
+      "ixlan_id": 366,
+      "prefix": "2001:13c7:6004::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-05-20T00:00:00Z",
+      "id": 424,
+      "in_dfz": true,
+      "ixlan_id": 69,
+      "prefix": "77.95.71.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-05-20T00:00:00Z",
+      "id": 425,
+      "in_dfz": true,
+      "ixlan_id": 69,
+      "prefix": "2001:7f8:47:47::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-01T00:00:00Z",
+      "id": 427,
+      "in_dfz": true,
+      "ixlan_id": 446,
+      "prefix": "206.108.255.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-01T00:00:00Z",
+      "id": 428,
+      "in_dfz": true,
+      "ixlan_id": 446,
+      "prefix": "2001:504:27::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-06T00:00:00Z",
+      "id": 429,
+      "in_dfz": true,
+      "ixlan_id": 683,
+      "prefix": "91.203.127.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-06T00:00:00Z",
+      "id": 430,
+      "in_dfz": true,
+      "ixlan_id": 683,
+      "prefix": "2001:7f8:77::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-15T00:00:00Z",
+      "id": 431,
+      "in_dfz": true,
+      "ixlan_id": 176,
+      "prefix": "200.219.139.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-15T00:00:00Z",
+      "id": 432,
+      "in_dfz": true,
+      "ixlan_id": 176,
+      "prefix": "2001:12f8:0:3::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-15T00:00:00Z",
+      "id": 433,
+      "in_dfz": true,
+      "ixlan_id": 4862,
+      "prefix": "200.192.110.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2025-10-24T14:05:41Z"
+    },
+    {
+      "created": "2013-06-15T00:00:00Z",
+      "id": 434,
+      "in_dfz": true,
+      "ixlan_id": 178,
+      "prefix": "2001:12f8:0:13::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-15T00:00:00Z",
+      "id": 435,
+      "in_dfz": true,
+      "ixlan_id": 603,
+      "prefix": "200.192.109.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-15T00:00:00Z",
+      "id": 436,
+      "in_dfz": true,
+      "ixlan_id": 603,
+      "prefix": "2001:12f8:0:12::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 438,
+      "in_dfz": true,
+      "ixlan_id": 171,
+      "prefix": "2001:12f8::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 439,
+      "in_dfz": true,
+      "ixlan_id": 4159,
+      "prefix": "200.219.143.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2023-04-25T14:00:27Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 440,
+      "in_dfz": true,
+      "ixlan_id": 173,
+      "prefix": "2001:12f8:0:6::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 441,
+      "in_dfz": true,
+      "ixlan_id": 4587,
+      "prefix": "200.219.140.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2024-11-08T15:49:31Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 442,
+      "in_dfz": true,
+      "ixlan_id": 174,
+      "prefix": "2001:12f8:0:4::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 443,
+      "in_dfz": true,
+      "ixlan_id": 175,
+      "prefix": "200.219.141.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 444,
+      "in_dfz": true,
+      "ixlan_id": 175,
+      "prefix": "2001:12f8:0:5::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 446,
+      "in_dfz": true,
+      "ixlan_id": 177,
+      "prefix": "2001:12f8:0:2::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 447,
+      "in_dfz": true,
+      "ixlan_id": 314,
+      "prefix": "200.219.144.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 448,
+      "in_dfz": true,
+      "ixlan_id": 314,
+      "prefix": "2001:12f8:0:7::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 449,
+      "in_dfz": true,
+      "ixlan_id": 415,
+      "prefix": "200.192.108.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 450,
+      "in_dfz": true,
+      "ixlan_id": 415,
+      "prefix": "2001:12f8:0:11::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 451,
+      "in_dfz": true,
+      "ixlan_id": 556,
+      "prefix": "200.219.145.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 452,
+      "in_dfz": true,
+      "ixlan_id": 556,
+      "prefix": "2001:12f8:0:8::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 453,
+      "in_dfz": true,
+      "ixlan_id": 558,
+      "prefix": "187.16.197.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 454,
+      "in_dfz": true,
+      "ixlan_id": 558,
+      "prefix": "2001:12f8:0:20::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 455,
+      "in_dfz": true,
+      "ixlan_id": 575,
+      "prefix": "200.192.111.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 456,
+      "in_dfz": true,
+      "ixlan_id": 575,
+      "prefix": "2001:12f8:0:14::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 459,
+      "in_dfz": true,
+      "ixlan_id": 705,
+      "prefix": "200.219.147.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 460,
+      "in_dfz": true,
+      "ixlan_id": 705,
+      "prefix": "2001:12f8:0:10::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 461,
+      "in_dfz": true,
+      "ixlan_id": 706,
+      "prefix": "187.16.194.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 462,
+      "in_dfz": true,
+      "ixlan_id": 706,
+      "prefix": "2001:12f8:0:17::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 463,
+      "in_dfz": true,
+      "ixlan_id": 707,
+      "prefix": "187.16.198.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 464,
+      "in_dfz": true,
+      "ixlan_id": 707,
+      "prefix": "2001:12f8:0:21::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 465,
+      "in_dfz": true,
+      "ixlan_id": 708,
+      "prefix": "187.16.196.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 466,
+      "in_dfz": true,
+      "ixlan_id": 708,
+      "prefix": "2001:12f8:0:19::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 467,
+      "in_dfz": true,
+      "ixlan_id": 709,
+      "prefix": "187.16.199.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 468,
+      "in_dfz": true,
+      "ixlan_id": 709,
+      "prefix": "2001:12f8:0:22::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 470,
+      "in_dfz": true,
+      "ixlan_id": 710,
+      "prefix": "2001:12f8:0:9::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 471,
+      "in_dfz": true,
+      "ixlan_id": 711,
+      "prefix": "187.16.195.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-16T00:00:00Z",
+      "id": 472,
+      "in_dfz": true,
+      "ixlan_id": 711,
+      "prefix": "2001:12f8:0:18::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-25T00:00:00Z",
+      "id": 473,
+      "in_dfz": true,
+      "ixlan_id": 716,
+      "prefix": "218.100.52.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-06-25T00:00:00Z",
+      "id": 474,
+      "in_dfz": true,
+      "ixlan_id": 716,
+      "prefix": "2001:7fa:11:4::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-07-02T00:00:00Z",
+      "id": 475,
+      "in_dfz": true,
+      "ixlan_id": 21,
+      "prefix": "2001:7fa:11::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-07-02T00:00:00Z",
+      "id": 476,
+      "in_dfz": true,
+      "ixlan_id": 576,
+      "prefix": "218.100.76.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-07-02T00:00:00Z",
+      "id": 477,
+      "in_dfz": true,
+      "ixlan_id": 576,
+      "prefix": "2001:7fa:11:2::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-07-02T00:00:00Z",
+      "id": 479,
+      "in_dfz": true,
+      "ixlan_id": 699,
+      "prefix": "2001:67c:29f0::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-08-12T00:00:00Z",
+      "id": 481,
+      "in_dfz": true,
+      "ixlan_id": 359,
+      "prefix": "37.49.236.0/22",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-09-01T00:00:00Z",
+      "id": 483,
+      "in_dfz": true,
+      "ixlan_id": 745,
+      "prefix": "195.66.246.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-09-11T00:00:00Z",
+      "id": 484,
+      "in_dfz": true,
+      "ixlan_id": 260,
+      "prefix": "200.0.22.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-09-11T00:00:00Z",
+      "id": 485,
+      "in_dfz": true,
+      "ixlan_id": 260,
+      "prefix": "2001:13c7:6002::/48",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-09-16T00:00:00Z",
+      "id": 486,
+      "in_dfz": true,
+      "ixlan_id": 762,
+      "prefix": "185.1.18.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-09-16T00:00:00Z",
+      "id": 487,
+      "in_dfz": true,
+      "ixlan_id": 762,
+      "prefix": "2001:67c:2b9c::/48",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-09-18T00:00:00Z",
+      "id": 488,
+      "in_dfz": true,
+      "ixlan_id": 745,
+      "prefix": "2001:7f8:4:3::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-10-06T00:00:00Z",
+      "id": 489,
+      "in_dfz": true,
+      "ixlan_id": 776,
+      "prefix": "206.126.109.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-10-06T00:00:00Z",
+      "id": 490,
+      "in_dfz": true,
+      "ixlan_id": 776,
+      "prefix": "2001:504:2c::/116",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-11-12T00:00:00Z",
+      "id": 491,
+      "in_dfz": true,
+      "ixlan_id": 155,
+      "prefix": "2001:504:30::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-12-06T00:00:00Z",
+      "id": 498,
+      "in_dfz": true,
+      "ixlan_id": 809,
+      "prefix": "2001:504:33::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-12-19T00:00:00Z",
+      "id": 499,
+      "in_dfz": true,
+      "ixlan_id": 780,
+      "prefix": "103.26.68.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2013-12-19T00:00:00Z",
+      "id": 500,
+      "in_dfz": true,
+      "ixlan_id": 780,
+      "prefix": "2001:dea:0:10::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-01-02T00:00:00Z",
+      "id": 501,
+      "in_dfz": true,
+      "ixlan_id": 355,
+      "prefix": "198.179.18.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-01-12T00:00:00Z",
+      "id": 502,
+      "in_dfz": true,
+      "ixlan_id": 777,
+      "prefix": "206.55.196.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-01-12T00:00:00Z",
+      "id": 503,
+      "in_dfz": true,
+      "ixlan_id": 777,
+      "prefix": "2001:504:31::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-01-26T00:00:00Z",
+      "id": 506,
+      "in_dfz": true,
+      "ixlan_id": 496,
+      "prefix": "206.130.61.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-01-29T00:00:00Z",
+      "id": 508,
+      "in_dfz": true,
+      "ixlan_id": 804,
+      "prefix": "206.82.104.0/22",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-01-29T00:00:00Z",
+      "id": 509,
+      "in_dfz": true,
+      "ixlan_id": 804,
+      "prefix": "2001:504:36::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-02-11T00:00:00Z",
+      "id": 514,
+      "in_dfz": true,
+      "ixlan_id": 512,
+      "prefix": "2001:7f8:82::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-03-05T00:00:00Z",
+      "id": 517,
+      "in_dfz": true,
+      "ixlan_id": 142,
+      "prefix": "206.72.210.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-03-20T00:00:00Z",
+      "id": 518,
+      "in_dfz": true,
+      "ixlan_id": 833,
+      "prefix": "206.108.114.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-03-30T00:00:00Z",
+      "id": 519,
+      "in_dfz": true,
+      "ixlan_id": 24,
+      "prefix": "2001:504:1a::34:0/111",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-05-15T00:00:00Z",
+      "id": 520,
+      "in_dfz": true,
+      "ixlan_id": 170,
+      "prefix": "2001:7f8:3a:e201::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-05-15T00:00:00Z",
+      "id": 521,
+      "in_dfz": true,
+      "ixlan_id": 866,
+      "prefix": "185.1.15.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-05-15T00:00:00Z",
+      "id": 522,
+      "in_dfz": true,
+      "ixlan_id": 866,
+      "prefix": "2001:7f8:7a::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-06-17T00:00:00Z",
+      "id": 529,
+      "in_dfz": true,
+      "ixlan_id": 662,
+      "prefix": "206.41.105.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-06-17T00:00:00Z",
+      "id": 530,
+      "in_dfz": true,
+      "ixlan_id": 662,
+      "prefix": "2001:504:3b::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-06-24T00:00:00Z",
+      "id": 532,
+      "in_dfz": true,
+      "ixlan_id": 4640,
+      "prefix": "178.18.230.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2025-01-23T21:27:44Z"
+    },
+    {
+      "created": "2014-06-24T00:00:00Z",
+      "id": 534,
+      "in_dfz": true,
+      "ixlan_id": 358,
+      "prefix": "178.18.233.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-06-24T00:00:00Z",
+      "id": 535,
+      "in_dfz": true,
+      "ixlan_id": 358,
+      "prefix": "2a03:5f80:4::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-06-24T00:00:00Z",
+      "id": 536,
+      "in_dfz": true,
+      "ixlan_id": 358,
+      "prefix": "2a03:5f80:4:1::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-06-24T00:00:00Z",
+      "id": 537,
+      "in_dfz": true,
+      "ixlan_id": 358,
+      "prefix": "2a03:5f80:4:2::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-06-24T00:00:00Z",
+      "id": 538,
+      "in_dfz": true,
+      "ixlan_id": 4640,
+      "prefix": "2a03:5f80:7::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2025-01-24T05:37:56Z"
+    },
+    {
+      "created": "2014-07-02T00:00:00Z",
+      "id": 539,
+      "in_dfz": true,
+      "ixlan_id": 639,
+      "prefix": "206.126.225.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-07-02T00:00:00Z",
+      "id": 540,
+      "in_dfz": true,
+      "ixlan_id": 639,
+      "prefix": "2001:504:2f::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-08-02T00:00:00Z",
+      "id": 542,
+      "in_dfz": true,
+      "ixlan_id": 779,
+      "prefix": "103.26.71.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-08-02T00:00:00Z",
+      "id": 543,
+      "in_dfz": true,
+      "ixlan_id": 779,
+      "prefix": "2001:dea:0:30::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-08-02T00:00:00Z",
+      "id": 544,
+      "in_dfz": true,
+      "ixlan_id": 781,
+      "prefix": "103.26.70.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-08-02T00:00:00Z",
+      "id": 545,
+      "in_dfz": true,
+      "ixlan_id": 781,
+      "prefix": "2001:dea:0:20::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-09-16T00:00:00Z",
+      "id": 546,
+      "in_dfz": true,
+      "ixlan_id": 326,
+      "prefix": "185.1.30.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-09-16T00:00:00Z",
+      "id": 547,
+      "in_dfz": true,
+      "ixlan_id": 326,
+      "prefix": "2001:7f8:8e:4::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2026-02-05T21:24:54Z"
+    },
+    {
+      "created": "2014-09-29T00:00:00Z",
+      "id": 548,
+      "in_dfz": true,
+      "ixlan_id": 270,
+      "prefix": "86.104.125.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-10-08T00:00:00Z",
+      "id": 551,
+      "in_dfz": true,
+      "ixlan_id": 954,
+      "prefix": "206.41.108.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-10-08T00:00:00Z",
+      "id": 552,
+      "in_dfz": true,
+      "ixlan_id": 954,
+      "prefix": "2001:504:40:108::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-10-11T00:00:00Z",
+      "id": 553,
+      "in_dfz": true,
+      "ixlan_id": 823,
+      "prefix": "203.163.222.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2025-08-13T10:49:30Z"
+    },
+    {
+      "created": "2014-10-11T00:00:00Z",
+      "id": 554,
+      "in_dfz": true,
+      "ixlan_id": 823,
+      "prefix": "2406:d400:1:133:203:163:222:0/111",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2025-08-13T10:49:29Z"
+    },
+    {
+      "created": "2014-10-16T00:00:00Z",
+      "id": 555,
+      "in_dfz": true,
+      "ixlan_id": 26,
+      "prefix": "80.249.208.0/21",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-10-18T00:00:00Z",
+      "id": 556,
+      "in_dfz": true,
+      "ixlan_id": 239,
+      "prefix": "206.41.110.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-10-22T00:00:00Z",
+      "id": 558,
+      "in_dfz": true,
+      "ixlan_id": 957,
+      "prefix": "198.78.5.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-10-22T00:00:00Z",
+      "id": 559,
+      "in_dfz": true,
+      "ixlan_id": 957,
+      "prefix": "2607:fe60:aaaa::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 561,
+      "in_dfz": true,
+      "ixlan_id": 236,
+      "prefix": "196.223.21.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 562,
+      "in_dfz": true,
+      "ixlan_id": 236,
+      "prefix": "2001:43f8:60:1::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 563,
+      "in_dfz": true,
+      "ixlan_id": 288,
+      "prefix": "218.100.59.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 564,
+      "in_dfz": true,
+      "ixlan_id": 288,
+      "prefix": "2001:de8:9::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 565,
+      "in_dfz": true,
+      "ixlan_id": 422,
+      "prefix": "196.223.25.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 566,
+      "in_dfz": true,
+      "ixlan_id": 422,
+      "prefix": "2001:43f8:130::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 567,
+      "in_dfz": true,
+      "ixlan_id": 565,
+      "prefix": "2001:504:24:1::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 568,
+      "in_dfz": true,
+      "ixlan_id": 703,
+      "prefix": "206.72.208.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 569,
+      "in_dfz": true,
+      "ixlan_id": 703,
+      "prefix": "2001:504:26::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 570,
+      "in_dfz": true,
+      "ixlan_id": 880,
+      "prefix": "37.49.232.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 571,
+      "in_dfz": true,
+      "ixlan_id": 909,
+      "prefix": "103.231.152.0/22",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 572,
+      "in_dfz": true,
+      "ixlan_id": 909,
+      "prefix": "2001:df5:b800:bb00::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 575,
+      "in_dfz": true,
+      "ixlan_id": 967,
+      "prefix": "196.223.38.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 577,
+      "in_dfz": true,
+      "ixlan_id": 976,
+      "prefix": "218.100.54.128/25",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 578,
+      "in_dfz": true,
+      "ixlan_id": 976,
+      "prefix": "2001:7fa:11:5::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 579,
+      "in_dfz": true,
+      "ixlan_id": 977,
+      "prefix": "43.243.21.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-12T00:00:00Z",
+      "id": 580,
+      "in_dfz": true,
+      "ixlan_id": 977,
+      "prefix": "2001:7fa:11:6::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-26T00:00:00Z",
+      "id": 582,
+      "in_dfz": true,
+      "ixlan_id": 984,
+      "prefix": "43.243.22.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-26T00:00:00Z",
+      "id": 583,
+      "in_dfz": true,
+      "ixlan_id": 984,
+      "prefix": "2001:dea:0:40::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-28T00:00:00Z",
+      "id": 585,
+      "in_dfz": true,
+      "ixlan_id": 597,
+      "prefix": "2001:43f8:6d1::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-28T00:00:00Z",
+      "id": 586,
+      "in_dfz": true,
+      "ixlan_id": 969,
+      "prefix": "196.10.141.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-11-28T00:00:00Z",
+      "id": 587,
+      "in_dfz": true,
+      "ixlan_id": 969,
+      "prefix": "2001:43f8:6d2::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-12-08T00:00:00Z",
+      "id": 590,
+      "in_dfz": true,
+      "ixlan_id": 592,
+      "prefix": "2001:43f8:6d0::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-12-16T00:00:00Z",
+      "id": 591,
+      "in_dfz": true,
+      "ixlan_id": 672,
+      "prefix": "198.32.130.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-12-16T00:00:00Z",
+      "id": 592,
+      "in_dfz": true,
+      "ixlan_id": 672,
+      "prefix": "2001:478:130::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-12-16T00:00:00Z",
+      "id": 595,
+      "in_dfz": true,
+      "ixlan_id": 760,
+      "prefix": "198.32.98.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2014-12-16T00:00:00Z",
+      "id": 596,
+      "in_dfz": true,
+      "ixlan_id": 760,
+      "prefix": "2001:478:98::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-01-06T00:00:00Z",
+      "id": 597,
+      "in_dfz": true,
+      "ixlan_id": 971,
+      "prefix": "103.25.228.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-01-06T00:00:00Z",
+      "id": 598,
+      "in_dfz": true,
+      "ixlan_id": 971,
+      "prefix": "2001:dec:0:1::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-01-12T00:00:00Z",
+      "id": 599,
+      "in_dfz": true,
+      "ixlan_id": 1006,
+      "prefix": "209.124.52.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-01-12T00:00:00Z",
+      "id": 600,
+      "in_dfz": true,
+      "ixlan_id": 1006,
+      "prefix": "2607:f790:100::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-01-12T00:00:00Z",
+      "id": 601,
+      "in_dfz": true,
+      "ixlan_id": 1007,
+      "prefix": "196.11.234.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-01-12T00:00:00Z",
+      "id": 602,
+      "in_dfz": true,
+      "ixlan_id": 1007,
+      "prefix": "2001:43f8:9d0::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-01-13T00:00:00Z",
+      "id": 603,
+      "in_dfz": true,
+      "ixlan_id": 1009,
+      "prefix": "185.1.31.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-01-13T00:00:00Z",
+      "id": 604,
+      "in_dfz": true,
+      "ixlan_id": 1009,
+      "prefix": "2001:7f8:8d::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-01-29T00:00:00Z",
+      "id": 605,
+      "in_dfz": true,
+      "ixlan_id": 239,
+      "prefix": "2001:504:41:110::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-02-22T00:00:00Z",
+      "id": 606,
+      "in_dfz": true,
+      "ixlan_id": 59,
+      "prefix": "2001:7f8:26::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-02-22T00:00:00Z",
+      "id": 608,
+      "in_dfz": true,
+      "ixlan_id": 84,
+      "prefix": "192.108.148.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-02-22T00:00:00Z",
+      "id": 609,
+      "in_dfz": true,
+      "ixlan_id": 84,
+      "prefix": "2001:7f8:2f::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-02-22T00:00:00Z",
+      "id": 610,
+      "in_dfz": true,
+      "ixlan_id": 559,
+      "prefix": "192.108.145.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-03-02T00:00:00Z",
+      "id": 611,
+      "in_dfz": true,
+      "ixlan_id": 1032,
+      "prefix": "2001:43f8:150::/48",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-03-02T00:00:00Z",
+      "id": 612,
+      "in_dfz": true,
+      "ixlan_id": 1032,
+      "prefix": "196.223.12.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-03-12T00:00:00Z",
+      "id": 615,
+      "in_dfz": true,
+      "ixlan_id": 965,
+      "prefix": "103.41.12.0/22",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-03-12T00:00:00Z",
+      "id": 616,
+      "in_dfz": true,
+      "ixlan_id": 965,
+      "prefix": "2001:ded::/48",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-03-13T00:00:00Z",
+      "id": 619,
+      "in_dfz": true,
+      "ixlan_id": 986,
+      "prefix": "2001:504:45:f3e8::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-03-13T00:00:00Z",
+      "id": 620,
+      "in_dfz": true,
+      "ixlan_id": 986,
+      "prefix": "206.53.139.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-03-20T00:00:00Z",
+      "id": 621,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.0.17.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:37Z"
+    },
+    {
+      "created": "2015-03-20T00:00:00Z",
+      "id": 622,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "2001:13c7:6001::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:38Z"
+    },
+    {
+      "created": "2015-03-31T00:00:00Z",
+      "id": 623,
+      "in_dfz": true,
+      "ixlan_id": 796,
+      "prefix": "185.1.35.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-03-31T00:00:00Z",
+      "id": 624,
+      "in_dfz": true,
+      "ixlan_id": 796,
+      "prefix": "2001:7f8:92::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-04-06T00:00:00Z",
+      "id": 625,
+      "in_dfz": true,
+      "ixlan_id": 299,
+      "prefix": "194.30.187.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-04-06T00:00:00Z",
+      "id": 626,
+      "in_dfz": true,
+      "ixlan_id": 299,
+      "prefix": "2001:7f8:91::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 627,
+      "in_dfz": true,
+      "ixlan_id": 184,
+      "prefix": "2001:7f8:5d::/116",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 628,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.115.81.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:39Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 629,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.115.83.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:40Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 630,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.0.19.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:41Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 631,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.13.83.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:43Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 632,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.14.37.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:44Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 633,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.14.75.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:45Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 634,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.14.39.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:46Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 635,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.115.82.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:47Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 636,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.14.38.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:48Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 637,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.115.84.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:49Z"
+    },
+    {
+      "created": "2015-04-16T00:00:00Z",
+      "id": 638,
+      "in_dfz": true,
+      "ixlan_id": 3788,
+      "prefix": "200.14.74.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-04-22T00:20:50Z"
+    },
+    {
+      "created": "2015-04-23T00:00:00Z",
+      "id": 639,
+      "in_dfz": true,
+      "ixlan_id": 119,
+      "prefix": "2001:504:0:7::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-05-12T00:00:00Z",
+      "id": 640,
+      "in_dfz": true,
+      "ixlan_id": 1086,
+      "prefix": "206.53.143.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-05-12T00:00:00Z",
+      "id": 641,
+      "in_dfz": true,
+      "ixlan_id": 1086,
+      "prefix": "2001:504:47::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-05-20T00:00:00Z",
+      "id": 642,
+      "in_dfz": true,
+      "ixlan_id": 1088,
+      "prefix": "109.239.136.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-05-20T00:00:00Z",
+      "id": 643,
+      "in_dfz": true,
+      "ixlan_id": 1088,
+      "prefix": "2001:b28:3ff::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-06-06T00:00:00Z",
+      "id": 644,
+      "in_dfz": true,
+      "ixlan_id": 42,
+      "prefix": "123.255.88.0/21",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-07-12T00:00:00Z",
+      "id": 645,
+      "in_dfz": true,
+      "ixlan_id": 95,
+      "prefix": "210.173.176.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-07-12T00:00:00Z",
+      "id": 646,
+      "in_dfz": true,
+      "ixlan_id": 95,
+      "prefix": "2001:7fa:7:1::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-07-12T00:00:00Z",
+      "id": 649,
+      "in_dfz": true,
+      "ixlan_id": 880,
+      "prefix": "2001:7f8:54:5::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-07-12T00:00:00Z",
+      "id": 650,
+      "in_dfz": true,
+      "ixlan_id": 1073,
+      "prefix": "2001:7f8:11::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-07-12T00:00:00Z",
+      "id": 651,
+      "in_dfz": true,
+      "ixlan_id": 1073,
+      "prefix": "185.1.43.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-07-30T00:00:00Z",
+      "id": 652,
+      "in_dfz": true,
+      "ixlan_id": 1094,
+      "prefix": "80.94.94.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-07-30T00:00:00Z",
+      "id": 653,
+      "in_dfz": true,
+      "ixlan_id": 1094,
+      "prefix": "2a06:2340::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-08-12T00:00:00Z",
+      "id": 654,
+      "in_dfz": true,
+      "ixlan_id": 1095,
+      "prefix": "103.54.2.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-11-18T04:40:27Z"
+    },
+    {
+      "created": "2015-08-20T00:00:00Z",
+      "id": 656,
+      "in_dfz": true,
+      "ixlan_id": 145,
+      "prefix": "2001:7fa:7:2::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-08-26T00:00:00Z",
+      "id": 657,
+      "in_dfz": true,
+      "ixlan_id": 491,
+      "prefix": "178.216.40.0/21",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-08-26T00:00:00Z",
+      "id": 658,
+      "in_dfz": true,
+      "ixlan_id": 491,
+      "prefix": "2001:7f8:5b::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-09-09T00:00:00Z",
+      "id": 659,
+      "in_dfz": true,
+      "ixlan_id": 328,
+      "prefix": "195.140.192.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-09-09T00:00:00Z",
+      "id": 660,
+      "in_dfz": true,
+      "ixlan_id": 328,
+      "prefix": "2001:7f8:1d:4::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-10-01T00:00:00Z",
+      "id": 661,
+      "in_dfz": true,
+      "ixlan_id": 1025,
+      "prefix": "203.159.68.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-10-03T00:00:00Z",
+      "id": 663,
+      "in_dfz": true,
+      "ixlan_id": 1127,
+      "prefix": "194.254.208.128/27",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-11-02T00:00:00Z",
+      "id": 664,
+      "in_dfz": true,
+      "ixlan_id": 1658,
+      "prefix": "198.32.231.128/25",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-11-02T00:00:00Z",
+      "id": 665,
+      "in_dfz": true,
+      "ixlan_id": 241,
+      "prefix": "198.32.231.0/25",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-11-02T00:00:00Z",
+      "id": 666,
+      "in_dfz": true,
+      "ixlan_id": 241,
+      "prefix": "2404:2c00:ffff:e::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-11-02T00:00:00Z",
+      "id": 667,
+      "in_dfz": true,
+      "ixlan_id": 1658,
+      "prefix": "2404:2c00:ffff:f::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-11-02T00:00:00Z",
+      "id": 668,
+      "in_dfz": true,
+      "ixlan_id": 1169,
+      "prefix": "206.53.140.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-11-02T00:00:00Z",
+      "id": 669,
+      "in_dfz": true,
+      "ixlan_id": 1169,
+      "prefix": "2001:504:46::/48",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-11-04T00:00:00Z",
+      "id": 670,
+      "in_dfz": true,
+      "ixlan_id": 1171,
+      "prefix": "185.1.45.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-11-04T00:00:00Z",
+      "id": 671,
+      "in_dfz": true,
+      "ixlan_id": 1171,
+      "prefix": "2001:7f8:2e::/48",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-11-11T00:00:00Z",
+      "id": 672,
+      "in_dfz": true,
+      "ixlan_id": 372,
+      "prefix": "80.97.248.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-11-11T00:00:00Z",
+      "id": 673,
+      "in_dfz": true,
+      "ixlan_id": 372,
+      "prefix": "2a02:d10:80::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-06T00:00:00Z",
+      "id": 674,
+      "in_dfz": true,
+      "ixlan_id": 1160,
+      "prefix": "213.162.194.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-06T00:00:00Z",
+      "id": 675,
+      "in_dfz": true,
+      "ixlan_id": 1160,
+      "prefix": "2a02:23a0:1111:9999::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-06T00:00:00Z",
+      "id": 676,
+      "in_dfz": true,
+      "ixlan_id": 1172,
+      "prefix": "106.48.34.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-07T00:00:00Z",
+      "id": 677,
+      "in_dfz": true,
+      "ixlan_id": 230,
+      "prefix": "185.1.4.0/22",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-07T00:00:00Z",
+      "id": 678,
+      "in_dfz": true,
+      "ixlan_id": 230,
+      "prefix": "2001:7f8:4b::/48",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-16T00:00:00Z",
+      "id": 679,
+      "in_dfz": true,
+      "ixlan_id": 1174,
+      "prefix": "206.53.171.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-16T00:00:00Z",
+      "id": 680,
+      "in_dfz": true,
+      "ixlan_id": 1174,
+      "prefix": "2606:a980:0:4::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-16T00:00:00Z",
+      "id": 681,
+      "in_dfz": true,
+      "ixlan_id": 1175,
+      "prefix": "206.53.172.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-16T00:00:00Z",
+      "id": 682,
+      "in_dfz": true,
+      "ixlan_id": 1175,
+      "prefix": "2606:a980:0:5::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-16T00:00:00Z",
+      "id": 684,
+      "in_dfz": true,
+      "ixlan_id": 4318,
+      "prefix": "2606:a980:0:2::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2024-01-16T06:42:28Z"
+    },
+    {
+      "created": "2015-12-16T00:00:00Z",
+      "id": 687,
+      "in_dfz": true,
+      "ixlan_id": 1178,
+      "prefix": "206.53.170.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-16T00:00:00Z",
+      "id": 688,
+      "in_dfz": true,
+      "ixlan_id": 1178,
+      "prefix": "2606:a980:0:3::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-16T00:00:00Z",
+      "id": 689,
+      "in_dfz": true,
+      "ixlan_id": 1180,
+      "prefix": "206.53.174.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-16T00:00:00Z",
+      "id": 690,
+      "in_dfz": true,
+      "ixlan_id": 1180,
+      "prefix": "2606:a980:0:7::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-16T00:00:00Z",
+      "id": 691,
+      "in_dfz": true,
+      "ixlan_id": 1187,
+      "prefix": "103.14.9.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2015-12-16T00:00:00Z",
+      "id": 692,
+      "in_dfz": true,
+      "ixlan_id": 1187,
+      "prefix": "2400:6280:2::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-01-05T00:00:00Z",
+      "id": 693,
+      "in_dfz": true,
+      "ixlan_id": 228,
+      "prefix": "195.130.211.0/26",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-01-05T00:00:00Z",
+      "id": 694,
+      "in_dfz": true,
+      "ixlan_id": 228,
+      "prefix": "2001:7f8:48::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-01-12T00:00:00Z",
+      "id": 695,
+      "in_dfz": true,
+      "ixlan_id": 83,
+      "prefix": "2001:7f8:12:1::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-01-12T00:00:00Z",
+      "id": 696,
+      "in_dfz": true,
+      "ixlan_id": 1207,
+      "prefix": "206.53.175.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-01-12T00:00:00Z",
+      "id": 697,
+      "in_dfz": true,
+      "ixlan_id": 1207,
+      "prefix": "2001:504:58::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-01-22T00:00:00Z",
+      "id": 698,
+      "in_dfz": true,
+      "ixlan_id": 298,
+      "prefix": "2001:7f8:12:2::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-01-26T00:00:00Z",
+      "id": 699,
+      "in_dfz": true,
+      "ixlan_id": 1212,
+      "prefix": "206.53.200.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-01-30T00:00:00Z",
+      "id": 700,
+      "in_dfz": true,
+      "ixlan_id": 4018,
+      "prefix": "185.1.58.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2022-11-01T12:00:02Z"
+    },
+    {
+      "created": "2016-01-30T00:00:00Z",
+      "id": 701,
+      "in_dfz": true,
+      "ixlan_id": 1214,
+      "prefix": "2001:7f8:9e::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-01-31T00:00:00Z",
+      "id": 702,
+      "in_dfz": true,
+      "ixlan_id": 1172,
+      "prefix": "2405:3b00::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-02-05T00:00:00Z",
+      "id": 703,
+      "in_dfz": true,
+      "ixlan_id": 810,
+      "prefix": "196.223.4.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-02-16T00:00:00Z",
+      "id": 704,
+      "in_dfz": true,
+      "ixlan_id": 158,
+      "prefix": "27.111.228.0/22",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-02-27T00:00:00Z",
+      "id": 707,
+      "in_dfz": true,
+      "ixlan_id": 100,
+      "prefix": "195.208.208.0/21",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-02-27T00:00:00Z",
+      "id": 708,
+      "in_dfz": true,
+      "ixlan_id": 1212,
+      "prefix": "2001:504:59::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-03-09T00:00:00Z",
+      "id": 709,
+      "in_dfz": true,
+      "ixlan_id": 364,
+      "prefix": "195.246.227.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-03-09T00:00:00Z",
+      "id": 710,
+      "in_dfz": true,
+      "ixlan_id": 364,
+      "prefix": "2001:7f8:16::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-03-12T00:00:00Z",
+      "id": 711,
+      "in_dfz": true,
+      "ixlan_id": 52,
+      "prefix": "139.150.100.0/23",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2024-09-10T08:05:42Z"
+    },
+    {
+      "created": "2016-03-12T00:00:00Z",
+      "id": 712,
+      "in_dfz": true,
+      "ixlan_id": 52,
+      "prefix": "2001:7fa:8::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-03-15T14:21:34Z",
+      "id": 713,
+      "in_dfz": true,
+      "ixlan_id": 1019,
+      "prefix": "185.1.2.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-03-15T14:21:57Z",
+      "id": 714,
+      "in_dfz": true,
+      "ixlan_id": 1019,
+      "prefix": "2001:7f8:81::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-03-17T07:54:24Z",
+      "id": 718,
+      "in_dfz": true,
+      "ixlan_id": 1285,
+      "prefix": "2001:504:16:1::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-03-22T09:50:29Z",
+      "id": 723,
+      "in_dfz": true,
+      "ixlan_id": 1242,
+      "prefix": "2a00:1b30::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-03-22T15:41:02Z",
+      "id": 724,
+      "in_dfz": true,
+      "ixlan_id": 1249,
+      "prefix": "206.53.202.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-03-22T15:42:03Z",
+      "id": 725,
+      "in_dfz": true,
+      "ixlan_id": 1249,
+      "prefix": "2001:504:61::/64",
+      "protocol": "IPv6",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    },
+    {
+      "created": "2016-03-22T17:36:22Z",
+      "id": 726,
+      "in_dfz": true,
+      "ixlan_id": 135,
+      "prefix": "195.85.217.0/24",
+      "protocol": "IPv4",
+      "status": "ok",
+      "updated": "2020-08-26T05:23:09Z"
+    }
+  ]
+}

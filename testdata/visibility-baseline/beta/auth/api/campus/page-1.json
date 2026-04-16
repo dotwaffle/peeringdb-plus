@@ -1,0 +1,1735 @@
+{
+  "meta": {},
+  "data": [
+    {
+      "aka": "Retelit Digital Services",
+      "city": "<auth-only:string>",
+      "country": "IT",
+      "created": "2023-02-22T09:08:20Z",
+      "id": 1,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 3172,
+      "org_name": "Retelit S.p.A.",
+      "social_media": [
+        {
+          "identifier": "https://avaloncampus.it/en/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-01T20:16:01Z",
+      "website": "https://avaloncampus.it/en/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "ID",
+      "created": "2023-02-24T04:20:52Z",
+      "id": 4,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 23644,
+      "org_name": "DCI Indonesia",
+      "social_media": [
+        {
+          "identifier": "https://dci-indonesia.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-11T19:56:51Z",
+      "website": "https://dci-indonesia.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "ID",
+      "created": "2023-02-24T04:21:05Z",
+      "id": 5,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 23644,
+      "org_name": "DCI Indonesia",
+      "social_media": [
+        {
+          "identifier": "https://dci-indonesia.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-10T01:36:48Z",
+      "website": "https://dci-indonesia.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-02-28T18:03:31Z",
+      "id": 6,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 34,
+      "org_name": "CoreSite",
+      "social_media": [
+        {
+          "identifier": "http://www.coresite.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-07T14:28:50Z",
+      "website": "http://www.coresite.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-02-28T18:03:53Z",
+      "id": 7,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 34,
+      "org_name": "CoreSite",
+      "social_media": [
+        {
+          "identifier": "http://www.coresite.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-07T22:55:45Z",
+      "website": "http://www.coresite.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-02-28T18:04:13Z",
+      "id": 8,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 34,
+      "org_name": "CoreSite",
+      "social_media": [
+        {
+          "identifier": "http://www.coresite.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-01-28T04:57:28Z",
+      "website": "http://www.coresite.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-02-28T18:04:31Z",
+      "id": 9,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 34,
+      "org_name": "CoreSite",
+      "social_media": [
+        {
+          "identifier": "http://www.coresite.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-04T16:25:27Z",
+      "website": "http://www.coresite.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-02-28T18:04:56Z",
+      "id": 10,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 34,
+      "org_name": "CoreSite",
+      "social_media": [
+        {
+          "identifier": "http://www.coresite.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-24T08:55:58Z",
+      "website": "http://www.coresite.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-02-28T18:05:12Z",
+      "id": 11,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 34,
+      "org_name": "CoreSite",
+      "social_media": [
+        {
+          "identifier": "http://www.coresite.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-04T00:13:17Z",
+      "website": "http://www.coresite.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-02-28T18:05:30Z",
+      "id": 12,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 34,
+      "org_name": "CoreSite",
+      "social_media": [
+        {
+          "identifier": "http://www.coresite.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-02-18T03:00:21Z",
+      "website": "http://www.coresite.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-02-28T18:05:43Z",
+      "id": 13,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 34,
+      "org_name": "CoreSite",
+      "social_media": [
+        {
+          "identifier": "http://www.coresite.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-06T20:13:44Z",
+      "website": "http://www.coresite.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-02-28T21:26:47Z",
+      "id": 14,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-13T19:09:08Z",
+      "website": "http://www.equinix.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "GB",
+      "created": "2023-02-28T21:28:06Z",
+      "id": 15,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/united-kingdom-colocation/london-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-13T19:09:16Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/united-kingdom-colocation/london-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "GB",
+      "created": "2023-02-28T21:29:59Z",
+      "id": 16,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/united-kingdom-colocation/manchester-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-15T13:13:15Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/united-kingdom-colocation/manchester-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "NL",
+      "created": "2023-02-28T21:32:03Z",
+      "id": 17,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/netherlands-colocation/amsterdam-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-06T20:13:43Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/netherlands-colocation/amsterdam-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "NL",
+      "created": "2023-02-28T21:32:14Z",
+      "id": 18,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/netherlands-colocation/amsterdam-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-14T17:31:55Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/netherlands-colocation/amsterdam-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "FI",
+      "created": "2023-02-28T21:33:41Z",
+      "id": 19,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/finland-colocation/helsinki-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-10T11:19:14Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/finland-colocation/helsinki-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "FR",
+      "created": "2023-02-28T21:34:32Z",
+      "id": 20,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/france-colocation/paris-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-06T20:13:43Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/france-colocation/paris-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "FR",
+      "created": "2023-02-28T21:34:44Z",
+      "id": 21,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/france-colocation/paris-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-07T22:55:44Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/france-colocation/paris-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "DE",
+      "created": "2023-02-28T21:36:36Z",
+      "id": 22,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/germany-colocation/frankfurt-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-13T19:09:12Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/germany-colocation/frankfurt-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "IE",
+      "created": "2023-02-28T21:37:34Z",
+      "id": 23,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/ireland-colocation/dublin-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-24T16:52:22Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/ireland-colocation/dublin-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "CH",
+      "created": "2023-02-28T21:38:58Z",
+      "id": 24,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/switzerland-colocation/zurich-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-13T14:53:30Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/switzerland-colocation/zurich-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "AQ",
+      "created": "2023-03-03T00:46:44Z",
+      "id": 25,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 25554,
+      "org_name": "PeeringDB Example Organization",
+      "social_media": [
+        {
+          "identifier": "https://www.example.org",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-04T18:56:03Z",
+      "website": "https://www.example.org",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "NUV Datacenter",
+      "city": "<auth-only:string>",
+      "country": "BR",
+      "created": "2023-03-06T17:12:35Z",
+      "id": 27,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 26818,
+      "org_name": "NUV BRASIL",
+      "social_media": [
+        {
+          "identifier": "https://nuvdatacenter.com.br/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-02-09T12:47:24Z",
+      "website": "https://nuvdatacenter.com.br/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-04-12T20:21:11Z",
+      "id": 35,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 8959,
+      "org_name": "Iron Mountain Data Centers",
+      "social_media": [
+        {
+          "identifier": "https://www.ironmountain.com/data-centers/locations/virginia-data-center",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-01-28T04:57:47Z",
+      "website": "https://www.ironmountain.com/data-centers/locations/virginia-data-center",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-04-12T20:31:08Z",
+      "id": 36,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 8959,
+      "org_name": "Iron Mountain Data Centers",
+      "social_media": [
+        {
+          "identifier": "https://www.ironmountain.com/data-centers/locations/phoenix-data-center",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-30T20:12:43Z",
+      "website": "https://www.ironmountain.com/data-centers/locations/phoenix-data-center",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "IN",
+      "created": "2023-04-12T20:31:41Z",
+      "id": 37,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 8959,
+      "org_name": "Iron Mountain Data Centers",
+      "social_media": [
+        {
+          "identifier": "https://www.ironmountain.com/data-centers/locations/mumbai-data-center",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-08T08:22:43Z",
+      "website": "https://www.ironmountain.com/data-centers/locations/mumbai-data-center",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "Gemenii Network",
+      "city": "<auth-only:string>",
+      "country": "RO",
+      "created": "2023-04-13T02:28:19Z",
+      "id": 38,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 8630,
+      "org_name": "Phoenix Telecom & Media Services SRL",
+      "social_media": [
+        {
+          "identifier": "http://www.gemenii.ro",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-01-28T04:57:37Z",
+      "website": "http://www.gemenii.ro",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "JP",
+      "created": "2023-04-18T08:34:33Z",
+      "id": 40,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "Digital Edge Tokyo data centers are interconnected with our Cross Link (tm) product, providing high-speed, high-density, low-cost SDN driven metro connectivity service among Digital Edge data centers and other strategic locations within the same metro, creating a seamless digital fabric that ties together ecosystems for our partners and customers. Connectivity options are at the heart of what we do, and we strive to provide the most efficient and cost-effective data center interconnect service to our colocation customers. Moreover, it creates a smooth and economical path for customers who need to expand into multiple Digital Edge data centers in the same metro.\n\nIn addition to the Downtown campus, we also have a POP at the Marunouchi Direct Access ODA2 data center for access to the Ohtemachi area",
+      "org_id": 29677,
+      "org_name": "Digital Edge DC",
+      "social_media": [
+        {
+          "identifier": "https://www.digitaledgedc.com/products/datacenters/japan",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-07T07:43:26Z",
+      "website": "https://www.digitaledgedc.com/products/datacenters/japan",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "FI",
+      "created": "2023-04-25T19:12:58Z",
+      "id": 42,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 2698,
+      "org_name": "Glesys AB",
+      "social_media": [
+        {
+          "identifier": "http://www.glesys.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-02-10T21:01:46Z",
+      "website": "http://www.glesys.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-05-18T19:04:44Z",
+      "id": 44,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 8735,
+      "org_name": "EdgeConneX Inc.",
+      "social_media": [
+        {
+          "identifier": "http://www.edgeconnex.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-02-09T17:41:07Z",
+      "website": "http://www.edgeconnex.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "CL",
+      "created": "2023-05-18T19:17:07Z",
+      "id": 45,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 8735,
+      "org_name": "EdgeConneX Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.edgeconnex.com/locations/south-america/santiago/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-14T21:03:10Z",
+      "website": "https://www.edgeconnex.com/locations/south-america/santiago/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2023-05-18T19:18:18Z",
+      "id": 47,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 8735,
+      "org_name": "EdgeConneX Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.edgeconnex.com/locations/north-america/portland-or/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-01-28T04:57:30Z",
+      "website": "https://www.edgeconnex.com/locations/north-america/portland-or/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "CH",
+      "created": "2023-06-23T08:11:08Z",
+      "id": 51,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "This campus is in the area of Basel, Switzerland",
+      "org_id": 11130,
+      "org_name": "NorthC Schweiz AG",
+      "social_media": [
+        {
+          "identifier": "https://www.northcdatacenters.com/ch-de/northc-datacenters/schweiz/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-01-28T04:58:06Z",
+      "website": "https://www.northcdatacenters.com/ch-de/northc-datacenters/schweiz/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "IN",
+      "created": "2023-06-26T10:52:22Z",
+      "id": 52,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 6417,
+      "org_name": "CtrlS Datacenters Ltd",
+      "social_media": [],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-02-24T17:06:09Z",
+      "website": "https://www.ctrls.in/data-center-services.php",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "IN",
+      "created": "2023-06-26T10:52:31Z",
+      "id": 53,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 6417,
+      "org_name": "CtrlS Datacenters Ltd",
+      "social_media": [
+        {
+          "identifier": "https://www.ctrls.com/datacenters-in-india/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-07T04:49:07Z",
+      "website": "https://www.ctrls.com/datacenters-in-india/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "NL",
+      "created": "2023-06-30T11:41:23Z",
+      "id": 54,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "This campus is in the area of Groningen, Netherlands",
+      "org_id": 4570,
+      "org_name": "NorthC Datacenters",
+      "social_media": [],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-09T11:49:03Z",
+      "website": "https://www.northcdatacenters.com/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "NL",
+      "created": "2023-06-30T11:41:44Z",
+      "id": 55,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "This campus is in the area of Rotterdam, Netherlands",
+      "org_id": 4570,
+      "org_name": "NorthC Datacenters",
+      "social_media": [],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-01-28T04:58:09Z",
+      "website": "https://www.northcdatacenters.com/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "LU",
+      "created": "2023-08-04T07:28:42Z",
+      "id": 58,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 35949,
+      "org_name": "LuxConnect S.A.",
+      "social_media": [
+        {
+          "identifier": "100058136515681",
+          "service": "facebook"
+        },
+        {
+          "identifier": "https://www.luxconnect.lu/infrastructure/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-10T11:22:46Z",
+      "website": "https://www.luxconnect.lu/infrastructure/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "icolo",
+      "city": "<auth-only:string>",
+      "country": "KE",
+      "created": "2023-10-15T04:21:03Z",
+      "id": 67,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "Icolo.io Karen Campus",
+      "notes": "This is a multi building 23 Megawatt campus supplied by 66kV. Two buildings exist with room for one more in the future.",
+      "org_id": 17852,
+      "org_name": "icolo",
+      "social_media": [
+        {
+          "identifier": "https://www.icolo.io",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-28T16:09:13Z",
+      "website": "https://www.icolo.io",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "IN",
+      "created": "2023-12-15T23:54:55Z",
+      "id": 72,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 6417,
+      "org_name": "CtrlS Datacenters Ltd",
+      "social_media": [],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-11T03:14:47Z",
+      "website": "https://www.ctrls.in/data-center-services.php",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "CN",
+      "created": "2023-12-16T22:30:00Z",
+      "id": 73,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2025-09-26T23:03:47Z",
+      "website": "http://www.equinix.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "SG1 & SG3",
+      "city": "<auth-only:string>",
+      "country": "SG",
+      "created": "2023-12-18T18:31:01Z",
+      "id": 74,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/asia-pacific-colocation/singapore-colocation/singapore-data-center",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-14T09:37:50Z",
+      "website": "https://www.equinix.com/data-centers/asia-pacific-colocation/singapore-colocation/singapore-data-center",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "HK",
+      "created": "2023-12-18T18:33:36Z",
+      "id": 75,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/asia-pacific-colocation/hong-kong-colocation/hong-kong-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-15T12:40:58Z",
+      "website": "https://www.equinix.com/data-centers/asia-pacific-colocation/hong-kong-colocation/hong-kong-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2024-01-24T19:35:54Z",
+      "id": 81,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 15757,
+      "org_name": "NOCIX, LLC",
+      "social_media": [
+        {
+          "identifier": "http://www.nocix.net",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-12T15:15:38Z",
+      "website": "http://www.nocix.net",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "CDC",
+      "city": "<auth-only:string>",
+      "country": "AU",
+      "created": "2024-02-20T03:05:08Z",
+      "id": 82,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "CDC Data Centres Pty Ltd",
+      "notes": "",
+      "org_id": 32729,
+      "org_name": "CDC Data Centres",
+      "social_media": [
+        {
+          "identifier": "https://www.cdc.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-02-13T01:15:38Z",
+      "website": "https://www.cdc.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "AU",
+      "created": "2024-02-20T03:07:04Z",
+      "id": 83,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 32729,
+      "org_name": "CDC Data Centres",
+      "social_media": [],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-01-28T04:58:05Z",
+      "website": "https://www.cdc.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "CDC",
+      "city": "<auth-only:string>",
+      "country": "AU",
+      "created": "2024-02-20T03:08:54Z",
+      "id": 84,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "CDC Data Centres Pty Ltd",
+      "notes": "",
+      "org_id": 32729,
+      "org_name": "CDC Data Centres",
+      "social_media": [
+        {
+          "identifier": "https://www.cdc.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-01-28T04:58:04Z",
+      "website": "https://www.cdc.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "NL",
+      "created": "2024-03-07T08:58:35Z",
+      "id": 89,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 22568,
+      "org_name": "Greenhouse Datacenters B.V.",
+      "social_media": [
+        {
+          "identifier": "https://www.greenhousedatacenters.nl/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-31T15:23:39Z",
+      "website": "https://www.greenhousedatacenters.nl/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "CH",
+      "created": "2024-03-22T16:23:59Z",
+      "id": 91,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/switzerland-colocation/geneva-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-02-10T14:31:49Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/switzerland-colocation/geneva-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "CO",
+      "created": "2024-04-10T16:30:46Z",
+      "id": 92,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/americas-colocation/colombia-colocation/bogota-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-14T06:07:27Z",
+      "website": "https://www.equinix.com/data-centers/americas-colocation/colombia-colocation/bogota-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "ES",
+      "created": "2024-04-11T16:44:50Z",
+      "id": 93,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 136,
+      "org_name": "Asociación ESpanix",
+      "social_media": [
+        {
+          "identifier": "https://www.acciona.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-18T15:06:16Z",
+      "website": "https://www.acciona.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "SE",
+      "created": "2024-04-18T13:05:11Z",
+      "id": 96,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-13T12:26:33Z",
+      "website": "https://www.equinix.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "ES",
+      "created": "2024-04-29T16:00:47Z",
+      "id": 100,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 8592,
+      "org_name": "Digital Realty",
+      "social_media": [
+        {
+          "identifier": "https://www.digitalrealty.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-15T11:42:02Z",
+      "website": "https://www.digitalrealty.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2024-04-29T16:12:37Z",
+      "id": 101,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 8592,
+      "org_name": "Digital Realty",
+      "social_media": [
+        {
+          "identifier": "https://www.boston.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-01T21:36:48Z",
+      "website": "https://www.boston.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "CDC",
+      "city": "<auth-only:string>",
+      "country": "AU",
+      "created": "2024-06-05T22:51:23Z",
+      "id": 106,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "CDC Data Centres Pty Ltd",
+      "notes": "",
+      "org_id": 32729,
+      "org_name": "CDC Data Centres",
+      "social_media": [
+        {
+          "identifier": "https://www.cdc.com",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-02-13T01:15:25Z",
+      "website": "https://www.cdc.com",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "IN",
+      "created": "2024-08-08T07:28:41Z",
+      "id": 112,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 10364,
+      "org_name": "NTTCINS",
+      "social_media": [],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-26T12:09:43Z",
+      "website": "https://services.global.ntt/en-us/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "AE",
+      "created": "2024-09-20T11:49:07Z",
+      "id": 117,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "An Equinix campus with diverse, sub-10km [Campus Cross Connects] (https://www.equinix.com/resources/data-sheets/cross-connects/) available between all IBXs:\n\n[Dubai DX1] (https://www.peeringdb.com/fac/1355)\n\n[Dubai DX3] (https://www.peeringdb.com/fac/14653)",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/united-arab-emirates-colocation/dubai-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-02-21T08:02:51Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/united-arab-emirates-colocation/dubai-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "JP",
+      "created": "2024-10-07T13:16:58Z",
+      "id": 121,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/asia-pacific-colocation/japan-colocation/tokyo-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-14T09:37:54Z",
+      "website": "https://www.equinix.com/data-centers/asia-pacific-colocation/japan-colocation/tokyo-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "TR",
+      "created": "2024-10-24T13:32:29Z",
+      "id": 123,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/turkey-colocation/istanbul-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-02-05T06:11:42Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/turkey-colocation/istanbul-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "PT",
+      "created": "2024-10-30T13:30:30Z",
+      "id": 125,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 36924,
+      "org_name": "Start Campus",
+      "social_media": [],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-01-28T04:58:12Z",
+      "website": "http://www.startcampus.pt",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "PL",
+      "created": "2025-01-08T10:41:14Z",
+      "id": 131,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 19760,
+      "org_name": "Artnet Spolka z ograniczona odpowiedzialnoscia",
+      "social_media": [
+        {
+          "identifier": "https://www.artnet.pl",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-22T12:33:09Z",
+      "website": "https://www.artnet.pl",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "RU",
+      "created": "2025-02-03T08:16:44Z",
+      "id": 135,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 7092,
+      "org_name": "IXcellerate LLC",
+      "social_media": [
+        {
+          "identifier": "https://www.ixcellerate.com/data-centers/moscow-north-campus/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-02-17T21:16:54Z",
+      "website": "https://www.ixcellerate.com/data-centers/moscow-north-campus/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "RU",
+      "created": "2025-02-03T08:17:26Z",
+      "id": 136,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 7092,
+      "org_name": "IXcellerate LLC",
+      "social_media": [
+        {
+          "identifier": "https://www.ixcellerate.com/data-centers/moscow-south-campus/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-08T11:52:10Z",
+      "website": "https://www.ixcellerate.com/data-centers/moscow-south-campus/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2025-05-06T18:15:27Z",
+      "id": 155,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 14515,
+      "org_name": "H5 Data Centers",
+      "social_media": [],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2025-09-26T23:08:49Z",
+      "website": "http://h5datacenters.com/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "SG2 & SG5",
+      "city": "<auth-only:string>",
+      "country": "SG",
+      "created": "2025-06-13T13:51:24Z",
+      "id": 160,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/asia-pacific-colocation/singapore-colocation/singapore-data-center",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-24T01:47:32Z",
+      "website": "https://www.equinix.com/data-centers/asia-pacific-colocation/singapore-colocation/singapore-data-center",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "BG",
+      "created": "2025-09-03T11:44:59Z",
+      "id": 169,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 1120,
+      "org_name": "Neterra Ltd.",
+      "social_media": [
+        {
+          "identifier": "https://sdc.bg/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-01-28T04:58:04Z",
+      "website": "https://sdc.bg/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "CO",
+      "created": "2025-12-16T15:01:13Z",
+      "id": 185,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 42376,
+      "org_name": "Tecto Data Centers",
+      "social_media": [
+        {
+          "identifier": "https://tecto.com/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-07T21:28:10Z",
+      "website": "https://tecto.com/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "BR",
+      "created": "2025-12-16T15:05:17Z",
+      "id": 186,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 42376,
+      "org_name": "Tecto Data Centers",
+      "social_media": [
+        {
+          "identifier": "https://tecto.com/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-14T22:34:13Z",
+      "website": "https://tecto.com/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2026-01-09T17:01:24Z",
+      "id": 187,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/americas-colocation/united-states-colocation/new-york-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-06T20:13:44Z",
+      "website": "https://www.equinix.com/data-centers/americas-colocation/united-states-colocation/new-york-data-centers",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": "",
+      "city": "<auth-only:string>",
+      "country": "JP",
+      "created": "2026-01-14T08:34:13Z",
+      "id": 188,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": "",
+      "notes": "",
+      "org_id": 1209,
+      "org_name": "AT TOKYO Corporation",
+      "social_media": [
+        {
+          "identifier": "http://www.attokyo.com/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-13T04:15:01Z",
+      "website": "http://www.attokyo.com/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2026-01-14T21:29:49Z",
+      "id": 189,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2541,
+      "org_name": "Patmos Hosting, INC",
+      "social_media": [
+        {
+          "identifier": "https://patmos.tech/",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-01-14T21:30:25Z",
+      "website": "https://patmos.tech/",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "US",
+      "created": "2026-03-02T23:06:05Z",
+      "id": 194,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 14515,
+      "org_name": "H5 Data Centers",
+      "social_media": [
+        {
+          "identifier": "https://h5datacenters.com/virginia-colocation.html",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-03-02T23:06:46Z",
+      "website": "https://h5datacenters.com/virginia-colocation.html",
+      "zipcode": "<auth-only:string>"
+    },
+    {
+      "aka": null,
+      "city": "<auth-only:string>",
+      "country": "PT",
+      "created": "2026-03-04T17:06:56Z",
+      "id": 195,
+      "logo": null,
+      "name": "<auth-only:string>",
+      "name_long": null,
+      "notes": "",
+      "org_id": 2,
+      "org_name": "Equinix, Inc.",
+      "social_media": [
+        {
+          "identifier": "https://www.equinix.com/data-centers/europe-colocation/portugal-colocation/lisbon-data-centers",
+          "service": "website"
+        }
+      ],
+      "state": "<auth-only:string>",
+      "status": "ok",
+      "updated": "2026-04-10T11:22:58Z",
+      "website": "https://www.equinix.com/data-centers/europe-colocation/portugal-colocation/lisbon-data-centers",
+      "zipcode": "<auth-only:string>"
+    }
+  ]
+}
