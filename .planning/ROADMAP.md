@@ -58,7 +58,11 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. `testdata/visibility-baseline/prod/` contains a confirmation pass against `www.peeringdb.com` for poc, org, and net (high-signal types).
   4. A structural diff report (committed alongside the fixtures) lists every field and row that differs between unauth and auth responses, organised as a per-type table reviewable in code review.
 
-**Plans**: TBD
+**Plans:** 4 plans
+- [ ] 57-01-PLAN.md — PII allow-list + pure-function redactor + .gitignore guards (Wave 1)
+- [ ] 57-02-PLAN.md — Checkpoint + capture loop + FetchRawPage + -capture CLI flag (Wave 2)
+- [ ] 57-03-PLAN.md — Structural differ + Markdown/JSON emitters + committed-fixture PII guard test (Wave 2)
+- [ ] 57-04-PLAN.md — Operator-run beta+prod capture + redact + diff commit (Wave 3, autonomous: false)
 
 **Wall-clock note**: Walking all 13 types under both auth modes against beta with rate-limit-honouring sleeps will take ≥ 1 hour wall-clock. This is intrinsic to the rate ceiling, not a planning estimate to be compressed.
 
