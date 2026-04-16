@@ -58,10 +58,10 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. `testdata/visibility-baseline/prod/` contains a confirmation pass against `www.peeringdb.com` for poc, org, and net (high-signal types).
   4. A structural diff report (committed alongside the fixtures) lists every field and row that differs between unauth and auth responses, organised as a per-type table reviewable in code review.
 
-**Plans:** 1/4 plans executed
+**Plans:** 3/4 plans executed
 - [x] 57-01-PLAN.md — PII allow-list + pure-function redactor + .gitignore guards (Wave 1)
-- [ ] 57-02-PLAN.md — Checkpoint + capture loop + FetchRawPage + -capture CLI flag (Wave 2)
-- [ ] 57-03-PLAN.md — Structural differ + Markdown/JSON emitters + committed-fixture PII guard test (Wave 2)
+- [x] 57-02-PLAN.md — Checkpoint + capture loop + FetchRawPage + -capture CLI flag (Wave 2)
+- [x] 57-03-PLAN.md — Structural differ + Markdown/JSON emitters + committed-fixture PII guard test (Wave 2)
 - [ ] 57-04-PLAN.md — Operator-run beta+prod capture + redact + diff commit (Wave 3, autonomous: false)
 
 **Wall-clock note**: Walking all 13 types under both auth modes against beta with rate-limit-honouring sleeps will take ≥ 1 hour wall-clock. This is intrinsic to the rate ceiling, not a planning estimate to be compressed.
@@ -156,7 +156,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 57. Visibility baseline capture | 1/4 | In Progress|  |
+| 57. Visibility baseline capture | 3/4 | In Progress|  |
 | 58. Visibility schema alignment | 0/0 | Not started | - |
 | 59. ent Privacy policy + sync bypass | 0/0 | Not started | - |
 | 60. Surface integration + tests | 0/0 | Not started | - |
