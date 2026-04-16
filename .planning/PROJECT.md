@@ -84,6 +84,27 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] /ui/about terminal rendering with rich output — v1.12
 - [x] seed.Minimal/Networks unexported (seed.Full is sole public API) — v1.12
 
+## Current Milestone: v1.14 Authenticated Sync & Visibility Layer
+
+**Goal:** Make it safe to run the sync with a PeeringDB API key by honouring upstream visibility on all read paths — defaulting anonymous reads to `Public`-only.
+
+**Target features:**
+- Empirical visibility baseline: `pdbcompat-check` capture mode pulls unauth + auth fixtures (beta first, prod confirmation) and emits a structural diff identifying every auth-gated field/row across all 13 types
+- Schema audit: confirm `poc.visible` covers POCs; add fields for any other auth-gated data the diff surfaces; document findings as Key Decisions
+- Read-path enforcement via ent Privacy: a query policy filters `visible="Users"` rows from anonymous responses across all 5 surfaces (`/ui/`, `/graphql`, `/rest/v1/`, `/api/`, `/peeringdb.v1.*`)
+- Sync-write bypass via `privacy.DecisionContext(ctx, privacy.Allow)` so the worker keeps full read/write access
+- Private-instance override `PDBPLUS_PUBLIC_TIER=users` (default `public`) treats anonymous callers as Users-tier for internal deployments; logged with WARN at startup
+- No-key sync remains a first-class supported configuration (worker syncs anonymous payload only, privacy filter is a no-op since no `Users` rows are stored)
+- pdbcompat parity: anonymous `/api/poc` and embedded `poc_set` shapes match upstream anonymous shape (rows absent, not redacted)
+- Operator visibility: startup log line and `/about` rendering classify sync mode + privacy tier; OTel attribute `pdbplus.privacy.tier` on read spans
+
+**Key context:**
+- v1.3 already wired `PDBPLUS_PEERINGDB_API_KEY` and `Authorization: Api-Key …`. Today, enabling the key would write `Users`-visibility POCs to the DB and serve them publicly — this milestone closes that hole before we flip the switch in production.
+- PeeringDB visibility for POCs is two-tier: `Public`/`Users`. `Private` was removed in 2.30.0 (Sep 2021). Per-field visibility for non-POC fields (social media, notes, billing/legal address, `policy_general`) is undocumented for the API — phase 57's empirical capture is the only way to scope the filter correctly.
+- PeeringDB OAuth is identity-only (it doesn't change `/api/*` results). OAuth integration is **deferred to v1.15** as a clean follow-on milestone — once the privacy floor exists, OAuth just sets `tier=Users` on the request context.
+- After v1.14, authenticated sync becomes the recommended deployment (production Fly.io will set the key as a fly secret).
+- Phases continue at **57+** (v1.13 ended at 56). No `--reset-phase-numbers`.
+
 ### Active
 
 ### Deferred
@@ -204,4 +225,4 @@ Shipped v1.12 with 50 phases across 13 milestones (v1.0-v1.12). Server hardened 
 - detail.go still 775 lines (handlers + shared helpers remain bundled)
 
 ---
-*Last updated: 2026-04-02 after v1.12 milestone completion (Hardening & Tech Debt)*
+*Last updated: 2026-04-16 — milestone v1.14 Authenticated Sync & Visibility Layer started (v1.13 Security & Sync Hardening shipped 2026-04-11)*

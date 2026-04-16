@@ -1,36 +1,37 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.13
-milestone_name: Security & Sync Hardening
-status: shipped
-stopped_at: v1.13 shipped 2026-04-11
-last_updated: "2026-04-14T21:10:00Z"
-last_activity: 2026-04-14
+milestone: v1.14
+milestone_name: Authenticated Sync & Visibility Layer
+status: defining_requirements
+stopped_at: ""
+last_updated: "2026-04-16T00:00:00Z"
+last_activity: 2026-04-16
 progress:
   total_phases: 6
-  completed_phases: 6
-  total_plans: 16
-  completed_plans: 16
-  percent: 100
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-26)
+See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** None — v1.13 shipped. Run `/gsd-new-milestone` to begin the next cycle.
+**Current focus:** v1.14 Authenticated Sync & Visibility Layer — close the privacy hole that would otherwise leak `Users`-tier POCs once an API key is enabled, then make authenticated sync the recommended deployment.
 
 ## Current Position
 
-Milestone: v1.13 Security & Sync Hardening (shipped 2026-04-11)
-Phase: all 6 complete (51-56)
-Status: idle
-Last activity: 2026-04-14 - Quick task 260414-2rc (OTel metric cardinality, PR #11); search ASN-literal fix (99ce22b); generated 8 canonical docs under docs/ + CONTRIBUTING.md (ac6e330); CLAUDE.md now points at the new docs and documents the /ui/ ANSI curl gotcha
+Milestone: v1.14 Authenticated Sync & Visibility Layer
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-16 — Milestone v1.14 started via `/gsd-new-milestone`
 
-Progress (v1.13): [██████████] 100%
+Progress (v1.14): [          ] 0%
 Cumulative shipped: 56 phases across v1.0-v1.13.
 
 ## Recently Shipped
@@ -65,6 +66,13 @@ See `memory/project_human_verification.md` for the full backlog across v1.6, v1.
 
 All decisions archived in PROJECT.md Key Decisions table (42+ decisions across 13 milestones).
 
+v1.14 scope decisions captured during `/gsd-new-milestone` (will move to PROJECT.md Key Decisions as phases land):
+- OAuth deferred to v1.15 — PeeringDB OAuth is identity-only and a clean follow-on milestone after the privacy floor exists
+- Phase 57 baseline capture: beta first, prod confirmation for high-signal types (poc, org, net)
+- Authenticated sync becomes the recommended deployment after v1.14 ships
+- New env var `PDBPLUS_PUBLIC_TIER` (default `public`) — when set to `users`, anonymous callers are treated as Users-tier (private-instance escape hatch); WARN at startup
+- No-key sync remains a first-class supported configuration
+
 ### Pending Todos
 
 None on main. Check `.planning/HANDOFF.json` and `memory/` for parked ideas.
@@ -82,6 +90,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-14
-Stopped at: v1.13 shipped — no active milestone work; post-ship polish continues directly to main (search fix, doc generation, CLAUDE.md upkeep)
+Last session: 2026-04-16
+Stopped at: Milestone v1.14 just initialised; awaiting roadmap approval, then `/gsd-discuss-phase 57`
 Resume file: None
