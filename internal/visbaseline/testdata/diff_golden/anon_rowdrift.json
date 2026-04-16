@@ -1,0 +1,8 @@
+{
+  "meta": {},
+  "data": [
+    {"id": 10, "name_long": "Alpha", "visible": "Public", "status": "ok"},
+    {"id": 11, "name_long": "Bravo", "visible": "Public", "status": "ok"},
+    {"id": 12, "name_long": "Charlie", "visible": "Public", "status": "ok"}
+  ]
+}
