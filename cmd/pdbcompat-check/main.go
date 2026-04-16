@@ -42,6 +42,24 @@ type runConfig struct {
 	types     string
 	prodAuth  bool
 	statePath string
+
+	// Phase 57 plan 04 post-capture CLI modes.
+	//
+	//   -redact : read raw auth bytes under -in, pair with anon fixtures
+	//             under the path derived from -out (…/auth → …/anon), run
+	//             Redact on each page, and write the redacted form under
+	//             -out. Never writes raw auth anywhere on-repo.
+	//
+	//   -diff   : walk -out as a visibility-baseline root (either a single
+	//             target dir with anon/+auth/ or a parent dir of per-target
+	//             subdirs), run Diff per type, and emit DIFF.md + diff.json
+	//             (plus per-target DIFF-{target}.md in multi-target mode).
+	//
+	// The two flags are mutually exclusive and mutually exclusive with
+	// -capture — `run` enforces this.
+	redact bool
+	diff   bool
+	inDir  string
 }
 
 func main() {
@@ -56,10 +74,15 @@ func main() {
 	flag.BoolVar(&cfg.capture, "capture", false, "capture visibility baseline instead of running the structural check")
 	flag.StringVar(&cfg.target, "target", "beta", "capture target: beta | prod")
 	flag.StringVar(&cfg.mode, "mode", "both", "capture mode: anon | auth | both")
-	flag.StringVar(&cfg.outDir, "out", "", "output dir for anon fixtures (default: testdata/visibility-baseline/<target>)")
+	flag.StringVar(&cfg.outDir, "out", "", "output dir: capture=anon fixtures root, redact=redacted auth dst, diff=baseline root")
 	flag.StringVar(&cfg.types, "types", "", "comma-separated types to capture (default: 13 for beta, poc,org,net for prod)")
 	flag.BoolVar(&cfg.prodAuth, "prod-auth", false, "allow auth mode against prod target (requires API key; default false)")
 	flag.StringVar(&cfg.statePath, "state", "", "checkpoint file path (default: /tmp/pdb-vis-capture-state.json)")
+
+	// Phase 57 plan 04 post-capture flags.
+	flag.BoolVar(&cfg.redact, "redact", false, "redact raw auth bytes under -in and write the redacted form under -out")
+	flag.BoolVar(&cfg.diff, "diff", false, "build DIFF.md + diff.json from the baseline tree rooted at -out")
+	flag.StringVar(&cfg.inDir, "in", "", "input dir: redact=raw auth staging dir (e.g. /tmp/pdb-vis-capture-xxx/auth)")
 
 	flag.Parse()
 
@@ -78,8 +101,29 @@ func main() {
 }
 
 func run(cfg runConfig, logger *slog.Logger) error {
+	// Phase 57 mode dispatch. At most one of -capture / -redact / -diff may
+	// be set; combining them is a user error.
+	modeCount := 0
+	if cfg.capture {
+		modeCount++
+	}
+	if cfg.redact {
+		modeCount++
+	}
+	if cfg.diff {
+		modeCount++
+	}
+	if modeCount > 1 {
+		return fmt.Errorf("at most one of -capture, -redact, -diff may be set")
+	}
 	if cfg.capture {
 		return runCapture(cfg, logger)
+	}
+	if cfg.redact {
+		return runRedact(cfg, logger)
+	}
+	if cfg.diff {
+		return runDiff(cfg, logger)
 	}
 	client := &http.Client{Timeout: cfg.timeout}
 
