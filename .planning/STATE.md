@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Authenticated Sync & Visibility Layer
-status: paused (operator gate)
-stopped_at: Phase 57 complete (code-only); live capture pending operator
-last_updated: "2026-04-16T22:45:00Z"
-last_activity: 2026-04-16 — Phase 57 code-only execution complete; 4 live-capture items deferred to operator
+status: ready to resume
+stopped_at: Phase 57 fully complete (code + live fixtures + PII guard PASS)
+last_updated: "2026-04-16T23:55:00Z"
+last_activity: 2026-04-17 — Operator committed live beta+prod fixtures and DIFF artifacts; Phase 57 fully resolved
 progress:
   total_phases: 6
   completed_phases: 1
@@ -21,18 +21,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** v1.14 Authenticated Sync & Visibility Layer — Phase 57 complete pending operator live capture; next phase 58 (schema alignment)
+**Current focus:** v1.14 Authenticated Sync & Visibility Layer — Phase 57 fully complete; Phase 58 (visibility schema alignment) ready to start
 
 ## Current Position
 
 Milestone: v1.14 Authenticated Sync & Visibility Layer
-Phase: 57 ✅ code-only complete → 58 ready to start
+Phase: 57 ✅ FULLY COMPLETE → 58 ready to start
 Plan: Not started (Phase 58)
-Status: Paused awaiting operator live PeeringDB capture (Phase 57 Plan 04 Tasks 2-3 + Checkpoints 1-3)
-Last activity: 2026-04-16 — `/gsd-autonomous` executed Phase 57 Waves 1–3 code-only; user selected "Validate now" for human UAT items
+Status: Ready to resume autonomous (next: `/gsd-autonomous --from 58`)
+Last activity: 2026-04-17 — Operator committed live fixtures (commit 088e2bb); PII guard `TestCommittedFixturesHaveNoPII` passes on committed tree
 
 Progress (v1.14): [█░░░░░░░░░] 17% (1/6 phases complete)
-Cumulative shipped: 56 phases across v1.0-v1.13 + Phase 57 code-only.
+Cumulative shipped: 56 phases across v1.0-v1.13 + Phase 57.
 
 ## Phase 57 Execution Summary
 
@@ -42,38 +42,24 @@ Cumulative shipped: 56 phases across v1.0-v1.13 + Phase 57 code-only.
 - **Code review:** 0 critical, 5 warnings, 8 info — all 5 warnings auto-fixed (WR-01 through WR-05)
 - **Verification:** `status: human_needed`, 12/15 must-haves verified; 3 pending operator (live beta fixtures, live prod fixtures, DIFF.md artifact)
 
-## Operator Resume Commands (Phase 57 Plan 04 Tasks 2–3)
+## Phase 57 Live Capture (2026-04-17)
 
-```bash
-# 1. Live beta walk (~1h wall-clock, rate-limit bound)
-pdbcompat-check -capture -target=beta -mode=both \
-  -out=testdata/visibility-baseline/beta \
-  -api-key="$PDBPLUS_PEERINGDB_API_KEY"
+Operator completed all 4 UAT items. Committed artifacts:
 
-# 2. Redact + diff beta ($RAW_AUTH_DIR from step 1 stdout)
-pdbcompat-check -redact -in="$RAW_AUTH_DIR/auth" -out=testdata/visibility-baseline/beta/auth
-pdbcompat-check -diff -out=testdata/visibility-baseline/
+- `testdata/visibility-baseline/beta/anon/api/` — 26 raw anon pages (13 types × 2 pages)
+- `testdata/visibility-baseline/beta/auth/api/` — 26 redacted auth pages (PII → `<auth-only:TYPE>` placeholders)
+- `testdata/visibility-baseline/prod/anon/api/{poc,org,net}/` — 6 anon-only prod pages (ROADMAP SC #3; resume signal: prod-anon-only)
+- `testdata/visibility-baseline/DIFF.md`, `DIFF-beta.md`, `diff.json` — per-type structural deltas
 
-# 3. Prod confirmation for poc/org/net (ROADMAP SC #3; anon-only if no prod key)
-pdbcompat-check -capture -target=prod -mode=anon \
-  -out=testdata/visibility-baseline/prod -types=poc,org,net
-pdbcompat-check -diff -out=testdata/visibility-baseline/
-
-# 4. Verify PII guard flips SKIP → PASS
-go test -race -run TestCommittedFixturesHaveNoPII ./internal/visbaseline/
-```
-
-Full UAT items tracked in `.planning/phases/57-visibility-baseline-capture/57-HUMAN-UAT.md`.
+PII guard `TestCommittedFixturesHaveNoPII` PASS on committed tree. HUMAN-UAT marked `status: resolved`.
 
 ## To Resume Autonomous
-
-After the operator live-capture items above land on main:
 
 ```bash
 /gsd-autonomous --from 58
 ```
 
-Phase 58 (schema alignment) depends on the beta DIFF.md to drive ent schema decisions, so the operator work should complete before 58 starts.
+Phase 58 (schema alignment) will consume `diff.json` + `DIFF.md` to drive ent schema decisions.
 
 ## Recently Shipped
 
@@ -92,9 +78,10 @@ Deferred items tracked for manual confirmation:
 
 - **Phase 52 (v1.13):** Chrome devtools CSP check on `/ui/`, `/ui/asn/13335`, `/ui/compare`
 - **Phase 53 (v1.13):** curl HSTS / X-Frame-Options / X-Content-Type-Options headers, 2 MB body-cap REST vs gRPC skip-list, slowloris TCP smoke test
-- **Phase 57 (v1.14):** 4 items — live beta capture, redact+diff, prod confirmation for poc/org/net, PII guard flip (see `57-HUMAN-UAT.md`)
 
-See `memory/project_human_verification.md` for the full backlog across v1.6, v1.7, v1.11, v1.13, v1.14.
+Phase 57 (v1.14) items all resolved 2026-04-17 — see `57-HUMAN-UAT.md` (`status: resolved`).
+
+See `memory/project_human_verification.md` for the full backlog across v1.6, v1.7, v1.11, v1.13.
 
 ## Accumulated Context
 
@@ -131,7 +118,7 @@ None on main. Check `.planning/HANDOFF.json` and `memory/` for parked ideas.
 
 ### Blockers/Concerns
 
-- **Operator gate:** Phase 57 cannot be declared fully complete until the live beta + prod capture runs and DIFF.md lands. This gates Phase 58 (schema alignment uses DIFF.md as input).
+None. Phase 58 can proceed.
 
 ### Quick Tasks Completed
 
@@ -142,7 +129,7 @@ None on main. Check `.planning/HANDOFF.json` and `memory/` for parked ideas.
 
 ## Session Continuity
 
-Last session: 2026-04-16T22:45:00Z
-Stopped at: Phase 57 code-only complete; operator gate for live capture
-Resume file: .planning/phases/57-visibility-baseline-capture/57-HUMAN-UAT.md
-Resume command: `/gsd-autonomous --from 58` (after operator completes UAT items)
+Last session: 2026-04-17T00:00:00Z
+Stopped at: Phase 57 FULLY COMPLETE (code + live fixtures + PII guard PASS)
+Resume file: .planning/ROADMAP.md (Phase 58)
+Resume command: `/gsd-autonomous --from 58`
