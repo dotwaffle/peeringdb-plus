@@ -2,7 +2,7 @@
 gsd_state_version: 1.0
 milestone: v1.14
 milestone_name: Authenticated Sync & Visibility Layer
-status: defining_requirements
+status: roadmap_defined
 stopped_at: ""
 last_updated: "2026-04-16T00:00:00Z"
 last_activity: 2026-04-16
@@ -26,12 +26,12 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Milestone: v1.14 Authenticated Sync & Visibility Layer
-Phase: Not started (defining requirements)
+Phase: 57 (not yet started — roadmap defined, awaiting `/gsd-discuss-phase 57`)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-16 — Milestone v1.14 started via `/gsd-new-milestone`
+Status: Roadmap defined
+Last activity: 2026-04-16 — ROADMAP.md created mapping 17 requirements to 6 phases (57-62)
 
-Progress (v1.14): [          ] 0%
+Progress (v1.14): [          ] 0% (0/6 phases complete)
 Cumulative shipped: 56 phases across v1.0-v1.13.
 
 ## Recently Shipped
@@ -73,6 +73,12 @@ v1.14 scope decisions captured during `/gsd-new-milestone` (will move to PROJECT
 - New env var `PDBPLUS_PUBLIC_TIER` (default `public`) — when set to `users`, anonymous callers are treated as Users-tier (private-instance escape hatch); WARN at startup
 - No-key sync remains a first-class supported configuration
 
+v1.14 roadmap decisions (2026-04-16):
+- 6 phases (57-62), serial dependency chain except Phases 60 and 61 which can run in parallel after Phase 59 lands (60 = test files per surface, 61 = startup/about/OTel — no file overlap)
+- Phase 57 is rate-limit-bound (≥ 1 hour wall-clock) — explicit sleeps + resumability mandatory; not a planning artifact to be compressed
+- Phase 59 is the gate for everything visible to users — VIS-04, VIS-05, SYNC-03 land together so the policy + sync bypass + tier override come up as one coherent surface
+- Phase 62 is intentionally minimal-code (fly secret + 3 doc edits + manual verification) — flagged in roadmap to prevent over-planning
+
 ### Pending Todos
 
 None on main. Check `.planning/HANDOFF.json` and `memory/` for parked ideas.
@@ -91,5 +97,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-16
-Stopped at: Milestone v1.14 just initialised; awaiting roadmap approval, then `/gsd-discuss-phase 57`
+Stopped at: ROADMAP.md created (6 phases, 17 requirements mapped 17/17); awaiting user approval, then `/gsd-discuss-phase 57`
 Resume file: None

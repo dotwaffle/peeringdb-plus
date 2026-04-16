@@ -77,13 +77,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (filled by gsd-roadmapper) | | |
+| VIS-01 | Phase 57 | Pending |
+| VIS-02 | Phase 57 | Pending |
+| VIS-03 | Phase 58 | Pending |
+| VIS-04 | Phase 59 | Pending |
+| VIS-05 | Phase 59 | Pending |
+| VIS-06 | Phase 60 | Pending |
+| VIS-07 | Phase 60 | Pending |
+| SYNC-01 | Phase 62 | Pending |
+| SYNC-02 | Phase 60 | Pending |
+| SYNC-03 | Phase 59 | Pending |
+| SYNC-04 | Phase 61 | Pending |
+| OBS-01 | Phase 61 | Pending |
+| OBS-02 | Phase 61 | Pending |
+| OBS-03 | Phase 61 | Pending |
+| DOC-01 | Phase 62 | Pending |
+| DOC-02 | Phase 62 | Pending |
+| DOC-03 | Phase 62 | Pending |
 
 **Coverage:**
 - v1.14 requirements: 17 total
-- Mapped to phases: (pending roadmap)
-- Unmapped: (pending roadmap)
+- Mapped to phases: 17
+- Unmapped: 0
+
+**Per-phase counts:**
+- Phase 57: 2 requirements (VIS-01, VIS-02)
+- Phase 58: 1 requirement (VIS-03)
+- Phase 59: 3 requirements (VIS-04, VIS-05, SYNC-03)
+- Phase 60: 3 requirements (VIS-06, VIS-07, SYNC-02)
+- Phase 61: 4 requirements (SYNC-04, OBS-01, OBS-02, OBS-03)
+- Phase 62: 4 requirements (SYNC-01, DOC-01, DOC-02, DOC-03)
 
 ---
 *Requirements defined: 2026-04-16*
-*Last updated: 2026-04-16*
+*Last updated: 2026-04-16 — traceability filled by gsd-roadmapper*
