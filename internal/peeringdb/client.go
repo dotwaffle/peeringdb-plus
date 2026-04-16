@@ -224,6 +224,39 @@ func FetchType[T any](ctx context.Context, c *Client, objectType string, opts ..
 	return items, nil
 }
 
+// FetchRawPage fetches a single page of objects for the given type and
+// returns the raw response bytes verbatim. Unlike FetchAll (which pages
+// internally and parses), this is intended for callers that write
+// byte-for-byte fixtures — see internal/visbaseline.
+//
+// page is 1-based. Page 1 -> skip=0, page 2 -> skip=250, etc.
+//
+// FetchRawPage reuses the client's rate limiter, API key, and 429
+// short-circuit from doWithRetry. On 429, callers get a *RateLimitError
+// back; they MUST sleep for RetryAfter before re-calling. Do not retry
+// inside this method — the short-circuit at client.go:312-327 is
+// intentional to avoid burning quota on failed retries.
+func (c *Client) FetchRawPage(ctx context.Context, objectType string, page int) ([]byte, error) {
+	if page < 1 {
+		return nil, fmt.Errorf("FetchRawPage: page must be >= 1, got %d", page)
+	}
+	skip := (page - 1) * pageSize
+	url := fmt.Sprintf("%s/api/%s?limit=%d&skip=%d&depth=0",
+		c.baseURL, objectType, pageSize, skip)
+
+	resp, err := c.doWithRetry(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read %s page %d body: %w", objectType, page, err)
+	}
+	return body, nil
+}
+
 // doWithRetry executes an HTTP GET with rate limiting and exponential
 // backoff retry on transient errors (429, 500, 502, 503, 504).
 // Non-retryable 4xx errors return immediately.
