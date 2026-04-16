@@ -360,6 +360,17 @@ func loadConcatenatedPages(dir string) ([]byte, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no page-N.json files in %s", dir)
 	}
+	// Reject duplicate page numbers. After the WR-03 strict filename parse
+	// this should be impossible for well-formed capture output, but a
+	// defensive check catches operator mistakes (e.g. renaming a file
+	// page-1.json in parallel with the real one) before they silently
+	// double-count rows in Diff's aggregates.
+	for i := 1; i < len(files); i++ {
+		if files[i].page == files[i-1].page {
+			return nil, fmt.Errorf("duplicate page %d: %s and %s",
+				files[i].page, files[i-1].path, files[i].path)
+		}
+	}
 
 	merged := struct {
 		Meta any              `json:"meta"`
