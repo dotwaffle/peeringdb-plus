@@ -525,22 +525,27 @@ func Redact(anonBytes, authBytes []byte) ([]byte, error) { … }
 | A6 | `json.Marshal` on the redacted result produces stable byte-for-byte output across Go toolchain versions | Example 4 | Low — `encoding/json` sorts map keys in `MarshalIndent` since Go 1.12. Using `json.MarshalIndent` with sorted keys (automatic) makes the output deterministic. |
 | A7 | Operators running `--capture` accept a ≥1-hour wall clock | ROADMAP.md + this phase | Low — explicit in STATE.md and ROADMAP.md. |
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+All three open questions were resolved during phase 57 planning. See the `RESOLVED:` line under each for the specific artifact that carries the decision.
 
 1. **Should we commit the diff.json before or after DIFF.md in the same PR?**
    - What we know: Both are outputs of the same run; they must agree.
    - What's unclear: Whether downstream phase 60 test should load diff.json or parse DIFF.md.
    - Recommendation: Commit both together (atomic artifact pair); phase 60 loads `diff.json`. This is already implicit in D-08.
+   - **RESOLVED:** by D-08 (CONTEXT.md) — both artifacts are committed in the same commit by plan 57-04 via `runDiff` which writes both files in a single function call. Downstream phase 60 consumes `diff.json`.
 
 2. **What goes in a "prod" auth capture when we don't have a prod-tier API key?**
    - What we know: D-04 says "run against prod for poc/org/net". An anonymous prod walk is always possible; an authenticated prod walk requires `PDBPLUS_PEERINGDB_API_KEY` aimed at prod.
    - What's unclear: Whether operators have a prod key at hand.
    - Recommendation: Make the `-target=prod` auth mode opt-in via `-prod-auth`. Default to anon-only on prod; if operator passes `-prod-auth` and an api key, do the auth pass. Plan should surface this as a graceful degradation.
+   - **RESOLVED:** by the `-prod-auth` flag implemented in plan 57-02 task 3 (`cmd/pdbcompat-check/capture.go:parseModes` + gating logic in `runCapture`). Plan 57-04 Checkpoint 3 codifies the minimum bar: anon-mode prod capture for poc/org/net is mandatory and always reachable (no API key needed); auth-mode prod is opt-in and strictly additive.
 
 3. **Should the Markdown table be one table per type, or a single matrix table?**
    - What we know: D-08 says "per-type Markdown table".
    - What's unclear: Whether "per-type" means one table per type (13 tables) or one table with type as a column.
    - Recommendation: 13 small tables, one per type, with a top-of-file TOC. Easier code review.
+   - **RESOLVED:** by plan 57-03 task 2 — `WriteMarkdown` emits a top-of-file `## Table of Contents` section followed by one `### {type}` section per type with its own table. The tests `TestWriteMarkdownHasTOC` and `TestWriteMarkdownPerTypeTables` enforce this structure.
 
 ## Environment Availability
 
