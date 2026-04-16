@@ -84,6 +84,14 @@ func runCapture(cfg runConfig, logger *slog.Logger) error {
 	}()
 
 	rawAuthDir, err := capt.Run(ctx)
+	// Surface the raw auth staging dir on BOTH success and failure so operators
+	// can `rm -rf` a leaked dir or resume. On errors the path may contain a
+	// partial set of auth pages — still useful for cleanup or resume.
+	if rawAuthDir != "" {
+		logger.LogAttrs(ctx, slog.LevelInfo, "raw auth staging dir",
+			slog.String("path", rawAuthDir),
+		)
+	}
 	if err != nil {
 		return fmt.Errorf("capture run: %w", err)
 	}
