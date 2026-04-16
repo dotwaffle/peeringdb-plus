@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -141,6 +142,13 @@ func RedactDir(ctx context.Context, cfg RedactDirConfig) error {
 
 // parsePagePath extracts (type, page) from a path ending in
 // ".../{type}/page-N.json". Returns (_, _, false) if the path does not match.
+//
+// Strict parsing: the page number must be composed exclusively of ASCII
+// digits, with no sign, whitespace, or trailing garbage. fmt.Sscanf("%d")
+// is too permissive — it accepts leading whitespace, signed values, and
+// stops at the first non-matching byte without caring about trailing
+// content (so "1abc" would parse as page 1, causing stray files like
+// "page-1_backup.json" to collide with real captures).
 func parsePagePath(path string) (string, int, bool) {
 	base := filepath.Base(path)
 	dir := filepath.Base(filepath.Dir(path))
@@ -148,8 +156,19 @@ func parsePagePath(path string) (string, int, bool) {
 		return "", 0, false
 	}
 	numStr := strings.TrimSuffix(strings.TrimPrefix(base, "page-"), ".json")
-	var n int
-	if _, err := fmt.Sscanf(numStr, "%d", &n); err != nil || n < 1 {
+	// Reject anything that is not a pure run of ASCII digits before handing
+	// to strconv.Atoi. strconv.Atoi already rejects "+5" / " 5" / "1abc"
+	// but belt-and-braces guards against a future Go that relaxes Atoi.
+	if numStr == "" {
+		return "", 0, false
+	}
+	for i := 0; i < len(numStr); i++ {
+		if numStr[i] < '0' || numStr[i] > '9' {
+			return "", 0, false
+		}
+	}
+	n, err := strconv.Atoi(numStr)
+	if err != nil || n < 1 {
 		return "", 0, false
 	}
 	if dir == "" || dir == "." || dir == string(filepath.Separator) {
