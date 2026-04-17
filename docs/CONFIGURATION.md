@@ -24,7 +24,8 @@ documented in their own sections below.
 | `PDBPLUS_PORT` | No | (unset) | string | Convenience override. When non-empty, the listener is forced to `:${PDBPLUS_PORT}`, ignoring `PDBPLUS_LISTEN_ADDR`. |
 | `PDBPLUS_DB_PATH` | No | `./peeringdb-plus.db` | path | SQLite database file path. Empty string is rejected at startup. In production (Fly.io) this is set to `/litefs/peeringdb-plus.db` via `fly.toml`. |
 | `PDBPLUS_PEERINGDB_URL` | No | `https://api.peeringdb.com` | URL | PeeringDB API base URL. Must use `https://`, or `http://` against loopback (`localhost`, `127.0.0.1`, `::1`) or RFC 1918 private ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). Other `http://` hosts and any non-http(s) scheme are rejected at startup. |
-| `PDBPLUS_PEERINGDB_API_KEY` | No | (empty) | secret | Optional PeeringDB API key. Empty value means unauthenticated requests. Also read directly by the `pdbcompat-check` CLI and the live conformance / client tests. |
+| `PDBPLUS_PEERINGDB_API_KEY` | No | (empty) | secret | **Recommended.** Optional PeeringDB API key. Empty value means unauthenticated requests. Also read directly by the `pdbcompat-check` CLI and the live conformance / client tests. See [Privacy & Tiers](#privacy--tiers) for the operational implication. |
+| `PDBPLUS_PUBLIC_TIER` | No | `public` | enum | Effective privacy tier for anonymous callers. Accepted values: `public` (default — anonymous callers see only rows with `visible="Public"`), `users` (private-instance escape hatch — anonymous callers are treated as Users-tier and see `visible="Users"` rows too; logged with WARN at startup). See [Privacy & Tiers](#privacy--tiers). |
 | `PDBPLUS_CORS_ORIGINS` | No | `*` | string | Comma-separated list of allowed CORS origins. |
 | `PDBPLUS_CSP_ENFORCE` | No | `false` | bool | When `true`, serve the enforcing `Content-Security-Policy` header on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only` — enforcement is opt-in per deploy through v1.13 (SEC-07 rollout). |
 | `PDBPLUS_DRAIN_TIMEOUT` | No | `10s` | duration | Graceful shutdown drain timeout. Must be greater than 0. |
@@ -111,6 +112,43 @@ regardless of exporter selection:
   `[0.01, 0.05, 0.25, 1, 5]` seconds.
 - Go runtime metrics (goroutines, heap, GC) are started unconditionally via
   `runtime.Start(runtime.WithMeterProvider(mp))`.
+
+## Privacy & Tiers
+
+PeeringDB tags per-row visibility on some entities (most notably `poc.visible`
+with values `Public`, `Users`, `Private`). PeeringDB Plus honours this upstream
+visibility via an [ent Privacy policy](./ARCHITECTURE.md#privacy-layer) on the
+read path. Two environment variables control the resulting behaviour.
+
+### Default behaviour — anonymous callers see Public only
+
+With `PDBPLUS_PUBLIC_TIER=public` (the default), anonymous callers receive only
+rows whose upstream visibility is `Public`. `Users`-tier rows are absent from
+the response, not present-with-redacted-fields — this matches upstream's own
+anonymous API shape.
+
+### Authenticated sync — Users-tier rows present in DB, filtered on read
+
+When `PDBPLUS_PEERINGDB_API_KEY` is set, the sync worker fetches both `Public`
+and `Users`-tier rows from PeeringDB and writes them into the local database.
+The sync worker bypasses the privacy policy (via
+`privacy.DecisionContext(ctx, privacy.Allow)`), so all rows land in the DB.
+On the read path the policy still filters `Users`-tier rows out of anonymous
+responses, so the anonymous API surface remains `Public`-only. This is the
+recommended production configuration (see
+[DEPLOYMENT.md](./DEPLOYMENT.md#authenticated-peeringdb-sync-recommended)).
+
+### `PDBPLUS_PUBLIC_TIER=users` — private-instance override
+
+Setting `PDBPLUS_PUBLIC_TIER=users` elevates anonymous callers to Users-tier
+for private-instance deployments where the mirror is not reachable from the
+public internet. In this mode the privacy policy admits `Users`-tier rows for
+anonymous callers. Startup logs a WARN line naming the override so the
+elevated default is never silent; the OTel attribute
+`pdbplus.privacy.tier=users` also appears on read spans.
+
+Only use this for deployments you would not want indexed by a search engine.
+It does not affect the sync worker (which has always had full access).
 
 ## Configuration File Format
 
