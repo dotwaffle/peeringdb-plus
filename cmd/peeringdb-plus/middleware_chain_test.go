@@ -60,6 +60,7 @@ func TestMiddlewareChain_Order(t *testing.T) {
 		"middleware.CSP(",
 		"middleware.SecurityHeaders(",
 		"readinessMiddleware(",
+		"middleware.PrivacyTier(",
 		"middleware.Logging(",
 		"otelhttp.NewMiddleware(",
 		"middleware.CORS(",

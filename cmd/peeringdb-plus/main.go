@@ -38,6 +38,7 @@ import (
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/web"
 	webtemplates "github.com/dotwaffle/peeringdb-plus/internal/web/templates"
@@ -425,7 +426,7 @@ func main() {
 	})
 
 	// Build middleware stack (outermost first):
-	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> mux
+	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> mux
 	//
 	// MaxBytesBody caps every non-gRPC request body at maxRequestBodySize (1 MB)
 	// per SEC-09. Per-route http.MaxBytesReader wraps at /sync and /graphql stay
@@ -449,6 +450,7 @@ func main() {
 		SyncWorker:   syncWorker,
 		MaxBodyBytes: maxRequestBodySize,
 		HSTSMaxAge:   180 * 24 * time.Hour,
+		DefaultTier:  cfg.PublicTier,
 	})
 
 	// Enable HTTP/1.1 + h2c (HTTP/2 cleartext) for gRPC support.
@@ -572,13 +574,20 @@ type chainConfig struct {
 	SyncWorker   syncReadiness
 	MaxBodyBytes int64
 	HSTSMaxAge   time.Duration
+	// DefaultTier is the resolved PDBPLUS_PUBLIC_TIER value stamped on
+	// every inbound request context by middleware.PrivacyTier. Consumed
+	// downstream by the ent privacy policies on visibility-bearing
+	// entities (see ent/schema/poc.go). Zero value is TierPublic — the
+	// safest default if unset.
+	DefaultTier privctx.Tier
 }
 
 // buildMiddlewareChain wraps the innermost handler in the full production
 // middleware stack, returning the outermost handler. The chain order is:
 //
-//	Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> Readiness ->
-//	SecurityHeaders -> CSP -> Caching -> Gzip -> innermost
+//	Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging ->
+//	PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching ->
+//	Gzip -> innermost
 //
 // The code below wraps innermost-first (Gzip is wrapped first so it sits
 // closest to the handler; Recovery is wrapped last so it sits outermost).
@@ -590,6 +599,13 @@ type chainConfig struct {
 // stays scoped to browser paths via middleware.isBrowserPath. The 180-day
 // HSTSMaxAge is passed through chainConfig so v1.14 can flip the default
 // without touching this helper.
+//
+// PrivacyTier (phase 59, D-05) sits between Logging and Readiness in
+// request flow so every request ctx — including the Readiness 503 path —
+// carries the resolved PDBPLUS_PUBLIC_TIER before any handler or ent
+// query reads it. Placing it inside Logging (rather than outside) keeps
+// Recovery/Logging free of tier coupling while still stamping the ctx
+// before any downstream observation of the request.
 func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 	h := middleware.Compression()(inner)
 	h = cc.CachingState.Middleware()(h)
@@ -601,6 +617,7 @@ func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 		ContentTypeOptions:    true,
 	})(h)
 	h = readinessMiddleware(cc.SyncWorker, h)
+	h = middleware.PrivacyTier(middleware.PrivacyTierInput{DefaultTier: cc.DefaultTier})(h)
 	h = middleware.Logging(cc.Logger)(h)
 	h = otelhttp.NewMiddleware("peeringdb-plus")(h)
 	h = middleware.CORS(middleware.CORSInput{AllowedOrigins: cc.CORSOrigins})(h)

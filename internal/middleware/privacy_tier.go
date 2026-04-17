@@ -12,8 +12,8 @@
 // pre-ready path still sees the tier — without polluting the outer
 // Recovery/Logging layers that handle the process-level error envelope.
 //
-// Per D-07 this middleware does NOT call privacy.DecisionContext —
-// that path is reserved for the sync worker's bypass (internal/sync/
+// Per D-07 this middleware does NOT call the ent privacy-decision
+// bypass — that path is reserved for the sync worker (internal/sync/
 // worker.go). The typed-tier abstraction lets v1.15 OAuth replace this
 // middleware with an identity-aware version that sets TierUsers only
 // when a valid session is present, without touching the ent policy.
