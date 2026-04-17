@@ -27,7 +27,7 @@ v1.14 shipped authenticated sync on 2026-04-17. DB now holds full PeeringDB data
 Every sync cycle (`PDBPLUS_SYNC_INTERVAL`, default 1h) does a full re-fetch of all 13 PeeringDB types. Post-rollout:
 - Rate budget: ~100 req/cycle × 24 cycles/day vs 57,600/day authenticated ceiling ≈ 4% utilised
 - Bandwidth: few MB per sync, negligible on Fly
-- Memory: v1.13 work got full sync to 380 MiB peak under the 512 MB hard cap; auth payload is larger
+- Memory (observed 2026-04-17, 512 MB VMs): primary peak VmHWM **~84 MB**; 7 replicas steady ~58-59 MB. ~4.5× headroom below the 380 MiB flip trigger. v1.13's 380 MiB was Go runtime heap; OS-level RSS is lower.
 
 ## Why keep full for now
 
