@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
 func TestLoad_OTelSampleRate(t *testing.T) {
@@ -623,6 +625,82 @@ func TestLoad_SyncMemoryLimit_Parse(t *testing.T) {
 			}
 			if cfg.SyncMemoryLimit != tt.want {
 				t.Errorf("SyncMemoryLimit = %d, want %d", cfg.SyncMemoryLimit, tt.want)
+			}
+		})
+	}
+}
+
+// TestLoad_PublicTierDefault asserts that an unset or empty
+// PDBPLUS_PUBLIC_TIER resolves to the safe default privctx.TierPublic
+// (D-04, D-11, 59-c). Fail-safe-closed: un-stamped contexts default to
+// the most restrictive tier.
+func TestLoad_PublicTierDefault(t *testing.T) {
+	// Do NOT Setenv — the env var must be entirely absent to exercise the
+	// default branch. t.Setenv would still set it to the empty string,
+	// which is also valid input; both paths are covered by this single
+	// sub-test because parsePublicTier treats unset and "" identically.
+	t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.PublicTier != privctx.TierPublic {
+		t.Errorf("PublicTier = %v, want %v (TierPublic)", cfg.PublicTier, privctx.TierPublic)
+	}
+}
+
+// TestLoad_PublicTierPublicExplicit asserts that the literal "public"
+// resolves to privctx.TierPublic (D-11).
+func TestLoad_PublicTierPublicExplicit(t *testing.T) {
+	t.Setenv("PDBPLUS_PUBLIC_TIER", "public")
+	t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.PublicTier != privctx.TierPublic {
+		t.Errorf("PublicTier = %v, want %v (TierPublic)", cfg.PublicTier, privctx.TierPublic)
+	}
+}
+
+// TestLoad_PublicTierUsers asserts that "users" resolves to
+// privctx.TierUsers for private-instance deployments (D-11, SYNC-03, 59-d).
+func TestLoad_PublicTierUsers(t *testing.T) {
+	t.Setenv("PDBPLUS_PUBLIC_TIER", "users")
+	t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.PublicTier != privctx.TierUsers {
+		t.Errorf("PublicTier = %v, want %v (TierUsers)", cfg.PublicTier, privctx.TierUsers)
+	}
+}
+
+// TestLoad_PublicTierInvalid asserts fail-fast on invalid values,
+// including case variants ("Users", "PUBLIC"), whitespace-adjacent
+// ("public "), and unsupported tiers ("admin", "anon"). Per D-12 only
+// lowercase "public" / "users" are accepted. Error message must name
+// the env var and enumerate valid values so operators can self-diagnose
+// (GO-CFG-1, 59-e).
+func TestLoad_PublicTierInvalid(t *testing.T) {
+	for _, v := range []string{"Users", "admin", "public ", "PUBLIC", "anon"} {
+		t.Run(v, func(t *testing.T) {
+			t.Setenv("PDBPLUS_PUBLIC_TIER", v)
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			_, err := Load()
+			if err == nil {
+				t.Fatalf("expected error for PDBPLUS_PUBLIC_TIER=%q, got nil", v)
+			}
+			if !strings.Contains(err.Error(), "PDBPLUS_PUBLIC_TIER") {
+				t.Errorf("error should mention env var name: %v", err)
+			}
+			if !strings.Contains(err.Error(), "must be 'public' or 'users'") {
+				t.Errorf("error should list valid values: %v", err)
 			}
 		})
 	}
