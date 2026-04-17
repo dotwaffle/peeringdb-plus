@@ -19,6 +19,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/ent/privacy"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
@@ -240,7 +241,23 @@ func (w *Worker) syncSteps() []syncStep {
 // growth that exceeds the benchmark baseline at runtime.
 //
 // REFAC-03 line budget is <= 100 — enforced by TestWorkerSync_LineBudget.
+//
+// Plan 59-05 (VIS-05, D-08/D-09): Sync is the SOLE production call site
+// for privacy.DecisionContext(ctx, privacy.Allow). The bypass is stamped
+// on ctx before any other work — before the w.running CAS, before any
+// otel span Start, before any ent call — so every downstream ent read,
+// upsert, and child goroutine (e.g. runSyncCycle's demotion monitor)
+// inherits allow-all via standard context.WithValue parent-chain lookup.
+// The ent rule-dispatch loop short-circuits at the stored decision, so
+// no per-rule predicate mutation runs on bypass ctx.
+//
+// TestSyncBypass_SingleCallSite enforces "exactly one production call
+// site" — do NOT add the bypass in SyncWithRetry, runSyncCycle, any
+// upsert helper, or any HTTP path. Tier elevation for non-sync callers
+// goes through internal/privctx.WithTier (TierUsers), a different
+// mechanism.
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
+	ctx = privacy.DecisionContext(ctx, privacy.Allow) // VIS-05 bypass — sole call site (D-08/D-09)
 	if !w.running.CompareAndSwap(false, true) {
 		w.logger.Warn("sync already running, skipping")
 		return nil
