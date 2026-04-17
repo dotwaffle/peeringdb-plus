@@ -177,5 +177,5 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 | 58. Visibility schema alignment | 1/1 | Complete    | 2026-04-17 |
 | 59. ent Privacy policy + sync bypass | 6/6 | Complete    | 2026-04-17 |
 | 60. Surface integration + tests | 5/5 | Complete    | 2026-04-17 |
-| 61. Operator-facing observability | 3/3 | Complete   | 2026-04-17 |
+| 61. Operator-facing observability | 3/3 | Complete    | 2026-04-17 |
 | 62. API key default & docs | 0/0 | Not started | - |
