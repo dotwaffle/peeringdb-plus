@@ -11,6 +11,15 @@
 // legitimately seed Users-tier rows via the bypass so they can assert
 // the policy filters correctly (see internal/sync/policy_test.go,
 // internal/sync/worker_test.go).
+//
+// The `internal/testutil/` subtree is also exempt: it is test-only
+// infrastructure (no non-test Go file imports it — enforced by the
+// `TestTestutilIsTestOnly` guard below) that mirrors the runtime
+// sync-writer's bypass when seeding visible="Users" rows so downstream
+// phase 60 surface tests can exercise the policy's filter behaviour.
+// See internal/testutil/seed/seed.go for the call site and
+// .planning/phases/60-surface-integration-tests/60-01-PLAN.md for the
+// decision.
 package sync
 
 import (
@@ -117,6 +126,14 @@ func TestSyncBypass_SingleCallSite(t *testing.T) {
 			if strings.HasSuffix(path, string(os.PathSeparator)+"graph"+string(os.PathSeparator)+"generated.go") {
 				return nil
 			}
+			// Skip the internal/testutil/ subtree. It is test-only
+			// infrastructure that never ships in production binaries
+			// (enforced by TestTestutilIsTestOnly below) and legitimately
+			// mirrors the sync-writer bypass when seeding visible="Users"
+			// rows for phase 60 surface tests. See package godoc.
+			if strings.Contains(path, string(os.PathSeparator)+"internal"+string(os.PathSeparator)+"testutil"+string(os.PathSeparator)) {
+				return nil
+			}
 			b, err := os.ReadFile(path)
 			if err != nil {
 				return err
@@ -198,6 +215,83 @@ func TestSyncBypass_SingleCallSite(t *testing.T) {
 			"single-audit-point invariant (D-09, WR-01). Non-sync tier elevation must use\n"+
 			"internal/privctx.WithTier instead.",
 	)
+}
+
+// TestTestutilIsTestOnly enforces the invariant that justifies the
+// `internal/testutil/` exemption in TestSyncBypass_SingleCallSite: no
+// non-test Go file may import any package under `internal/testutil/`.
+//
+// Without this guard, a maintainer could route around the bypass audit
+// by calling into testutil from a production code path. The guard walks
+// `internal/`, `cmd/`, `ent/schema/`, and `graph/` (mirroring the
+// bypass audit's scan roots) and fails if any non-`_test.go` file
+// imports a testutil subpackage.
+func TestTestutilIsTestOnly(t *testing.T) {
+	t.Parallel()
+
+	root, err := findRepoRoot()
+	if err != nil {
+		t.Fatalf("finding repo root: %v", err)
+	}
+
+	importRE := regexp.MustCompile(`"github\.com/dotwaffle/peeringdb-plus/internal/testutil(?:/[^"]*)?"`)
+
+	type hit struct {
+		path string
+		line int
+	}
+	var hits []hit
+
+	scanDirs := []string{"internal", "cmd", "ent/schema", "graph"}
+	for _, d := range scanDirs {
+		base := filepath.Join(root, d)
+		err := filepath.WalkDir(base, func(path string, ent fs.DirEntry, werr error) error {
+			if werr != nil {
+				return werr
+			}
+			if ent.IsDir() {
+				return nil
+			}
+			if !strings.HasSuffix(path, ".go") {
+				return nil
+			}
+			if strings.HasSuffix(path, "_test.go") {
+				return nil
+			}
+			b, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			stripped := stripGoComments(string(b))
+			for _, m := range importRE.FindAllStringIndex(stripped, -1) {
+				lineNo := 1 + strings.Count(stripped[:m[0]], "\n")
+				hits = append(hits, hit{path: path, line: lineNo})
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("walking %s: %v", base, err)
+		}
+	}
+
+	if len(hits) > 0 {
+		var msg strings.Builder
+		msg.WriteString("internal/testutil/ must never be imported from non-test code; found:\n")
+		for _, h := range hits {
+			rel, relErr := filepath.Rel(root, h.path)
+			if relErr != nil {
+				rel = h.path
+			}
+			msg.WriteString("  ")
+			msg.WriteString(filepath.ToSlash(rel))
+			msg.WriteString(":")
+			msg.WriteString(strconv.Itoa(h.line))
+			msg.WriteString("\n")
+		}
+		msg.WriteString("testutil/ is the exemption boundary for the bypass audit (see package godoc).\n")
+		msg.WriteString("If a production package needs this helper, extract the non-test-only bits first.")
+		t.Fatal(msg.String())
+	}
 }
 
 // findRepoRoot walks up from the current working directory looking for

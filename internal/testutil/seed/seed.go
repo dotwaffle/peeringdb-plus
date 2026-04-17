@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/ent/privacy"
 )
 
 // Timestamp is the deterministic timestamp used for all seed entity
@@ -33,7 +34,18 @@ type Result struct {
 	IxFacility      *ent.IxFacility
 	CarrierFacility *ent.CarrierFacility
 	Poc             *ent.Poc
-	AllNetworks     []*ent.Network // all created networks (for Networks())
+	// UsersPoc is a visible="Users" POC attached to r.Network. Created via
+	// privacy.DecisionContext(Allow) because ent Policy() admits writes
+	// identically to reads — future mutation policies could reject it.
+	// ID 9000 (reserved band 9000-9099 for Users-tier seed rows).
+	UsersPoc *ent.Poc
+	// UsersPoc2 is a visible="Users" POC attached to r.Network2. ID 9001.
+	UsersPoc2 *ent.Poc
+	// AllPocs exposes every POC created (Public + Users) in deterministic
+	// order: r.Poc, r.UsersPoc, r.UsersPoc2. Consumers that iterate POCs
+	// for assertions (list-count tests) should use this slice.
+	AllPocs     []*ent.Poc
+	AllNetworks []*ent.Network // all created networks (for Networks())
 }
 
 // Full creates one entity of each of the 13 PeeringDB types plus a second
@@ -220,6 +232,45 @@ func Full(tb testing.TB, client *ent.Client) *Result {
 	if err != nil {
 		tb.Fatalf("seed: create Poc: %v", err)
 	}
+
+	// Users-tier POCs created via privacy bypass. These exercise the
+	// phase 59 ent Privacy policy: anonymous reads MUST filter these
+	// rows; TierUsers / sync-bypass reads MUST admit them.
+	// IDs 9000+ keep these greppable and segregated from Public POC
+	// IDs (< 1000) so Plan 02 assertions can target them precisely.
+	//
+	// The bypass audit (internal/sync/bypass_audit_test.go) exempts
+	// the internal/testutil subtree — testutil is test-only infrastructure
+	// that never ships in production binaries (nothing outside *_test.go
+	// imports it), and this seed mirrors the runtime sync-writer's
+	// bypass pattern so Plan 02-05 assertions exercise a realistic mix.
+	bypass := privacy.DecisionContext(ctx, privacy.Allow)
+
+	r.UsersPoc, err = client.Poc.Create().
+		SetID(9000).
+		SetNetID(r.Network.ID).SetNetwork(r.Network).
+		SetName("Users-Tier NOC").SetRole("NOC").
+		SetEmail("users-noc@example.invalid").
+		SetVisible("Users").
+		SetCreated(Timestamp).SetUpdated(Timestamp).
+		Save(bypass)
+	if err != nil {
+		tb.Fatalf("seed: create UsersPoc: %v", err)
+	}
+
+	r.UsersPoc2, err = client.Poc.Create().
+		SetID(9001).
+		SetNetID(r.Network2.ID).SetNetwork(r.Network2).
+		SetName("Users-Tier Policy").SetRole("Policy").
+		SetEmail("users-policy@example.invalid").
+		SetVisible("Users").
+		SetCreated(Timestamp).SetUpdated(Timestamp).
+		Save(bypass)
+	if err != nil {
+		tb.Fatalf("seed: create UsersPoc2: %v", err)
+	}
+
+	r.AllPocs = []*ent.Poc{r.Poc, r.UsersPoc, r.UsersPoc2}
 
 	return r
 }
