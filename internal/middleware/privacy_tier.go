@@ -27,6 +27,9 @@ package middleware
 import (
 	"net/http"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
@@ -42,19 +45,61 @@ type PrivacyTierInput struct {
 }
 
 // PrivacyTier returns middleware that stamps every inbound request
-// context with the configured tier via privctx.WithTier. The tier is
-// resolved once at construction — there is zero per-request env read
-// and the only per-request allocation is context.WithValue's envelope.
+// context with the configured tier via privctx.WithTier AND emits an
+// OTel attribute pdbplus.privacy.tier on the current span (the inbound
+// HTTP server span created by otelhttp.NewMiddleware, which sits just
+// outside this middleware in the chain).
+//
+// The tier and its string form are resolved once at construction;
+// there is zero per-request env read, zero per-request string alloc,
+// and the only per-request cost is context.WithValue + SetAttributes
+// on the active span. When the chain does not carry an active span
+// (unit tests without a tracer), trace.SpanFromContext returns a
+// noop span and SetAttributes is a zero-cost no-op — fail-safe-closed.
+//
+// Per 61-CONTEXT.md D-07/D-08/D-09 (OBS-03):
+//   - attribute key is the literal "pdbplus.privacy.tier" (pdbplus.*
+//     namespace, matches pdbplus.sync.*, pdbplus.data.*).
+//   - cardinality is 2: "public" or "users". A future TierAdmin
+//     addition must force a compile error here (exhaustive switch
+//     with no default) before shipping.
+//
+// Downstream ent/sql spans inherit the attribute via parent-span
+// context propagation — there is intentionally no redundant stamping
+// further down the chain.
 //
 // The returned middleware does not modify the response (headers, status,
 // body) — it is a pure context stamper. Callers composing chains can
 // assume it has no effect on output.
 func PrivacyTier(in PrivacyTierInput) func(http.Handler) http.Handler {
 	tier := in.DefaultTier
+	tierAttr := attribute.String("pdbplus.privacy.tier", tierString(tier))
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := privctx.WithTier(r.Context(), tier)
+			ctx := r.Context()
+			trace.SpanFromContext(ctx).SetAttributes(tierAttr)
+			ctx = privctx.WithTier(ctx, tier)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// tierString maps a privctx.Tier to its canonical OBS-03 attribute
+// value. The switch is exhaustive by design — a future Tier addition
+// will fail compilation here (caught by golangci-lint's exhaustive
+// checker) and force a coordinated update to the Grafana dashboard
+// cardinality model before the new value can ship.
+//
+// Unknown tiers panic rather than silently emitting "unknown": a
+// silent dashboard outlier would mask the actual config drift, and
+// the only way this code path runs today is via a programming error
+// (new enum value added without updating this switch).
+func tierString(t privctx.Tier) string {
+	switch t { //nolint:exhaustive // panic fallback covers future Tier additions at runtime; the exhaustive compile-time check is the intended design per 61-CONTEXT.md D-09.
+	case privctx.TierPublic:
+		return "public"
+	case privctx.TierUsers:
+		return "users"
+	}
+	panic("privacy_tier: unknown tier value — add case above before shipping")
 }
