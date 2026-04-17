@@ -16,7 +16,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/facility"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // CampusUpdate is the builder for updating Campus entities.
@@ -187,13 +187,13 @@ func (_u *CampusUpdate) ClearNotes() *CampusUpdate {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *CampusUpdate) SetSocialMedia(v []schema.SocialMedia) *CampusUpdate {
+func (_u *CampusUpdate) SetSocialMedia(v []schematypes.SocialMedia) *CampusUpdate {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *CampusUpdate) AppendSocialMedia(v []schema.SocialMedia) *CampusUpdate {
+func (_u *CampusUpdate) AppendSocialMedia(v []schematypes.SocialMedia) *CampusUpdate {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }
@@ -756,13 +756,13 @@ func (_u *CampusUpdateOne) ClearNotes() *CampusUpdateOne {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *CampusUpdateOne) SetSocialMedia(v []schema.SocialMedia) *CampusUpdateOne {
+func (_u *CampusUpdateOne) SetSocialMedia(v []schematypes.SocialMedia) *CampusUpdateOne {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *CampusUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *CampusUpdateOne {
+func (_u *CampusUpdateOne) AppendSocialMedia(v []schematypes.SocialMedia) *CampusUpdateOne {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }

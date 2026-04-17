@@ -375,7 +375,7 @@ func TestGenerateFieldCode(t *testing.T) {
 				Type: "json_array",
 			},
 			wantSub: []string{
-				`field.JSON("social_media", []SocialMedia{})`,
+				`field.JSON("social_media", []schematypes.SocialMedia{})`,
 				`Optional()`,
 				`socialMediaSchema()`,
 			},

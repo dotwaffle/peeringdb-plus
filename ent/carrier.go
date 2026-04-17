@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // Carrier is the model entity for the Carrier schema.
@@ -34,7 +34,7 @@ type Carrier struct {
 	// Notes
 	Notes string `json:"notes"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media"`
+	SocialMedia []schematypes.SocialMedia `json:"social_media"`
 	// Carrier website URL
 	Website string `json:"website"`
 	// Org Name (computed)

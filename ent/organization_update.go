@@ -19,7 +19,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // OrganizationUpdate is the builder for updating Organization entities.
@@ -284,13 +284,13 @@ func (_u *OrganizationUpdate) ClearNotes() *OrganizationUpdate {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *OrganizationUpdate) SetSocialMedia(v []schema.SocialMedia) *OrganizationUpdate {
+func (_u *OrganizationUpdate) SetSocialMedia(v []schematypes.SocialMedia) *OrganizationUpdate {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *OrganizationUpdate) AppendSocialMedia(v []schema.SocialMedia) *OrganizationUpdate {
+func (_u *OrganizationUpdate) AppendSocialMedia(v []schematypes.SocialMedia) *OrganizationUpdate {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }
@@ -1325,13 +1325,13 @@ func (_u *OrganizationUpdateOne) ClearNotes() *OrganizationUpdateOne {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *OrganizationUpdateOne) SetSocialMedia(v []schema.SocialMedia) *OrganizationUpdateOne {
+func (_u *OrganizationUpdateOne) SetSocialMedia(v []schematypes.SocialMedia) *OrganizationUpdateOne {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *OrganizationUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *OrganizationUpdateOne {
+func (_u *OrganizationUpdateOne) AppendSocialMedia(v []schematypes.SocialMedia) *OrganizationUpdateOne {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // OrganizationCreate is the builder for creating a Organization entity.
@@ -189,7 +189,7 @@ func (_c *OrganizationCreate) SetNillableNotes(v *string) *OrganizationCreate {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_c *OrganizationCreate) SetSocialMedia(v []schema.SocialMedia) *OrganizationCreate {
+func (_c *OrganizationCreate) SetSocialMedia(v []schematypes.SocialMedia) *OrganizationCreate {
 	_c.mutation.SetSocialMedia(v)
 	return _c
 }
@@ -985,7 +985,7 @@ func (u *OrganizationUpsert) ClearNotes() *OrganizationUpsert {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *OrganizationUpsert) SetSocialMedia(v []schema.SocialMedia) *OrganizationUpsert {
+func (u *OrganizationUpsert) SetSocialMedia(v []schematypes.SocialMedia) *OrganizationUpsert {
 	u.Set(organization.FieldSocialMedia, v)
 	return u
 }
@@ -1457,7 +1457,7 @@ func (u *OrganizationUpsertOne) ClearNotes() *OrganizationUpsertOne {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *OrganizationUpsertOne) SetSocialMedia(v []schema.SocialMedia) *OrganizationUpsertOne {
+func (u *OrganizationUpsertOne) SetSocialMedia(v []schematypes.SocialMedia) *OrganizationUpsertOne {
 	return u.Update(func(s *OrganizationUpsert) {
 		s.SetSocialMedia(v)
 	})
@@ -2122,7 +2122,7 @@ func (u *OrganizationUpsertBulk) ClearNotes() *OrganizationUpsertBulk {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *OrganizationUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *OrganizationUpsertBulk {
+func (u *OrganizationUpsertBulk) SetSocialMedia(v []schematypes.SocialMedia) *OrganizationUpsertBulk {
 	return u.Update(func(s *OrganizationUpsert) {
 		s.SetSocialMedia(v)
 	})

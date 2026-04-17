@@ -17,7 +17,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // InternetExchangeUpdate is the builder for updating InternetExchange entities.
@@ -417,13 +417,13 @@ func (_u *InternetExchangeUpdate) ClearServiceLevel() *InternetExchangeUpdate {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *InternetExchangeUpdate) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdate {
+func (_u *InternetExchangeUpdate) SetSocialMedia(v []schematypes.SocialMedia) *InternetExchangeUpdate {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *InternetExchangeUpdate) AppendSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdate {
+func (_u *InternetExchangeUpdate) AppendSocialMedia(v []schematypes.SocialMedia) *InternetExchangeUpdate {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }
@@ -1538,13 +1538,13 @@ func (_u *InternetExchangeUpdateOne) ClearServiceLevel() *InternetExchangeUpdate
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *InternetExchangeUpdateOne) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdateOne {
+func (_u *InternetExchangeUpdateOne) SetSocialMedia(v []schematypes.SocialMedia) *InternetExchangeUpdateOne {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *InternetExchangeUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *InternetExchangeUpdateOne {
+func (_u *InternetExchangeUpdateOne) AppendSocialMedia(v []schematypes.SocialMedia) *InternetExchangeUpdateOne {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }

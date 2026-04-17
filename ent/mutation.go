@@ -25,7 +25,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 const (
@@ -65,8 +65,8 @@ type CampusMutation struct {
 	name                *string
 	name_long           *string
 	notes               *string
-	social_media        *[]schema.SocialMedia
-	appendsocial_media  []schema.SocialMedia
+	social_media        *[]schematypes.SocialMedia
+	appendsocial_media  []schematypes.SocialMedia
 	state               *string
 	website             *string
 	zipcode             *string
@@ -569,13 +569,13 @@ func (m *CampusMutation) ResetNotes() {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (m *CampusMutation) SetSocialMedia(sm []schema.SocialMedia) {
+func (m *CampusMutation) SetSocialMedia(sm []schematypes.SocialMedia) {
 	m.social_media = &sm
 	m.appendsocial_media = nil
 }
 
 // SocialMedia returns the value of the "social_media" field in the mutation.
-func (m *CampusMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
+func (m *CampusMutation) SocialMedia() (r []schematypes.SocialMedia, exists bool) {
 	v := m.social_media
 	if v == nil {
 		return
@@ -586,7 +586,7 @@ func (m *CampusMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
 // OldSocialMedia returns the old "social_media" field's value of the Campus entity.
 // If the Campus object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CampusMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
+func (m *CampusMutation) OldSocialMedia(ctx context.Context) (v []schematypes.SocialMedia, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
 	}
@@ -601,12 +601,12 @@ func (m *CampusMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialM
 }
 
 // AppendSocialMedia adds sm to the "social_media" field.
-func (m *CampusMutation) AppendSocialMedia(sm []schema.SocialMedia) {
+func (m *CampusMutation) AppendSocialMedia(sm []schematypes.SocialMedia) {
 	m.appendsocial_media = append(m.appendsocial_media, sm...)
 }
 
 // AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
-func (m *CampusMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
+func (m *CampusMutation) AppendedSocialMedia() ([]schematypes.SocialMedia, bool) {
 	if len(m.appendsocial_media) == 0 {
 		return nil, false
 	}
@@ -1261,7 +1261,7 @@ func (m *CampusMutation) SetField(name string, value ent.Value) error {
 		m.SetNotes(v)
 		return nil
 	case campus.FieldSocialMedia:
-		v, ok := value.([]schema.SocialMedia)
+		v, ok := value.([]schematypes.SocialMedia)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -1608,8 +1608,8 @@ type CarrierMutation struct {
 	name                      *string
 	name_long                 *string
 	notes                     *string
-	social_media              *[]schema.SocialMedia
-	appendsocial_media        []schema.SocialMedia
+	social_media              *[]schematypes.SocialMedia
+	appendsocial_media        []schematypes.SocialMedia
 	website                   *string
 	org_name                  *string
 	fac_count                 *int
@@ -2014,13 +2014,13 @@ func (m *CarrierMutation) ResetNotes() {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (m *CarrierMutation) SetSocialMedia(sm []schema.SocialMedia) {
+func (m *CarrierMutation) SetSocialMedia(sm []schematypes.SocialMedia) {
 	m.social_media = &sm
 	m.appendsocial_media = nil
 }
 
 // SocialMedia returns the value of the "social_media" field in the mutation.
-func (m *CarrierMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
+func (m *CarrierMutation) SocialMedia() (r []schematypes.SocialMedia, exists bool) {
 	v := m.social_media
 	if v == nil {
 		return
@@ -2031,7 +2031,7 @@ func (m *CarrierMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
 // OldSocialMedia returns the old "social_media" field's value of the Carrier entity.
 // If the Carrier object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CarrierMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
+func (m *CarrierMutation) OldSocialMedia(ctx context.Context) (v []schematypes.SocialMedia, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
 	}
@@ -2046,12 +2046,12 @@ func (m *CarrierMutation) OldSocialMedia(ctx context.Context) (v []schema.Social
 }
 
 // AppendSocialMedia adds sm to the "social_media" field.
-func (m *CarrierMutation) AppendSocialMedia(sm []schema.SocialMedia) {
+func (m *CarrierMutation) AppendSocialMedia(sm []schematypes.SocialMedia) {
 	m.appendsocial_media = append(m.appendsocial_media, sm...)
 }
 
 // AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
-func (m *CarrierMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
+func (m *CarrierMutation) AppendedSocialMedia() ([]schematypes.SocialMedia, bool) {
 	if len(m.appendsocial_media) == 0 {
 		return nil, false
 	}
@@ -2643,7 +2643,7 @@ func (m *CarrierMutation) SetField(name string, value ent.Value) error {
 		m.SetNotes(v)
 		return nil
 	case carrier.FieldSocialMedia:
-		v, ok := value.([]schema.SocialMedia)
+		v, ok := value.([]schematypes.SocialMedia)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -3765,8 +3765,8 @@ type FacilityMutation struct {
 	rencode                          *string
 	sales_email                      *string
 	sales_phone                      *string
-	social_media                     *[]schema.SocialMedia
-	appendsocial_media               []schema.SocialMedia
+	social_media                     *[]schematypes.SocialMedia
+	appendsocial_media               []schematypes.SocialMedia
 	state                            *string
 	status_dashboard                 *string
 	suite                            *string
@@ -5080,13 +5080,13 @@ func (m *FacilityMutation) ResetSalesPhone() {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (m *FacilityMutation) SetSocialMedia(sm []schema.SocialMedia) {
+func (m *FacilityMutation) SetSocialMedia(sm []schematypes.SocialMedia) {
 	m.social_media = &sm
 	m.appendsocial_media = nil
 }
 
 // SocialMedia returns the value of the "social_media" field in the mutation.
-func (m *FacilityMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
+func (m *FacilityMutation) SocialMedia() (r []schematypes.SocialMedia, exists bool) {
 	v := m.social_media
 	if v == nil {
 		return
@@ -5097,7 +5097,7 @@ func (m *FacilityMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
 // OldSocialMedia returns the old "social_media" field's value of the Facility entity.
 // If the Facility object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FacilityMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
+func (m *FacilityMutation) OldSocialMedia(ctx context.Context) (v []schematypes.SocialMedia, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
 	}
@@ -5112,12 +5112,12 @@ func (m *FacilityMutation) OldSocialMedia(ctx context.Context) (v []schema.Socia
 }
 
 // AppendSocialMedia adds sm to the "social_media" field.
-func (m *FacilityMutation) AppendSocialMedia(sm []schema.SocialMedia) {
+func (m *FacilityMutation) AppendSocialMedia(sm []schematypes.SocialMedia) {
 	m.appendsocial_media = append(m.appendsocial_media, sm...)
 }
 
 // AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
-func (m *FacilityMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
+func (m *FacilityMutation) AppendedSocialMedia() ([]schematypes.SocialMedia, bool) {
 	if len(m.appendsocial_media) == 0 {
 		return nil, false
 	}
@@ -6572,7 +6572,7 @@ func (m *FacilityMutation) SetField(name string, value ent.Value) error {
 		m.SetSalesPhone(v)
 		return nil
 	case facility.FieldSocialMedia:
-		v, ok := value.([]schema.SocialMedia)
+		v, ok := value.([]schematypes.SocialMedia)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -7311,8 +7311,8 @@ type InternetExchangeMutation struct {
 	sales_email               *string
 	sales_phone               *string
 	service_level             *string
-	social_media              *[]schema.SocialMedia
-	appendsocial_media        []schema.SocialMedia
+	social_media              *[]schematypes.SocialMedia
+	appendsocial_media        []schematypes.SocialMedia
 	status_dashboard          *string
 	tech_email                *string
 	tech_phone                *string
@@ -8396,13 +8396,13 @@ func (m *InternetExchangeMutation) ResetServiceLevel() {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (m *InternetExchangeMutation) SetSocialMedia(sm []schema.SocialMedia) {
+func (m *InternetExchangeMutation) SetSocialMedia(sm []schematypes.SocialMedia) {
 	m.social_media = &sm
 	m.appendsocial_media = nil
 }
 
 // SocialMedia returns the value of the "social_media" field in the mutation.
-func (m *InternetExchangeMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
+func (m *InternetExchangeMutation) SocialMedia() (r []schematypes.SocialMedia, exists bool) {
 	v := m.social_media
 	if v == nil {
 		return
@@ -8413,7 +8413,7 @@ func (m *InternetExchangeMutation) SocialMedia() (r []schema.SocialMedia, exists
 // OldSocialMedia returns the old "social_media" field's value of the InternetExchange entity.
 // If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InternetExchangeMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
+func (m *InternetExchangeMutation) OldSocialMedia(ctx context.Context) (v []schematypes.SocialMedia, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
 	}
@@ -8428,12 +8428,12 @@ func (m *InternetExchangeMutation) OldSocialMedia(ctx context.Context) (v []sche
 }
 
 // AppendSocialMedia adds sm to the "social_media" field.
-func (m *InternetExchangeMutation) AppendSocialMedia(sm []schema.SocialMedia) {
+func (m *InternetExchangeMutation) AppendSocialMedia(sm []schematypes.SocialMedia) {
 	m.appendsocial_media = append(m.appendsocial_media, sm...)
 }
 
 // AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
-func (m *InternetExchangeMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
+func (m *InternetExchangeMutation) AppendedSocialMedia() ([]schematypes.SocialMedia, bool) {
 	if len(m.appendsocial_media) == 0 {
 		return nil, false
 	}
@@ -9688,7 +9688,7 @@ func (m *InternetExchangeMutation) SetField(name string, value ent.Value) error 
 		m.SetServiceLevel(v)
 		return nil
 	case internetexchange.FieldSocialMedia:
-		v, ok := value.([]schema.SocialMedia)
+		v, ok := value.([]schematypes.SocialMedia)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -13455,8 +13455,8 @@ type NetworkMutation struct {
 	rir_status                   *string
 	rir_status_updated           *time.Time
 	route_server                 *string
-	social_media                 *[]schema.SocialMedia
-	appendsocial_media           []schema.SocialMedia
+	social_media                 *[]schematypes.SocialMedia
+	appendsocial_media           []schematypes.SocialMedia
 	status_dashboard             *string
 	website                      *string
 	ix_count                     *int
@@ -14986,13 +14986,13 @@ func (m *NetworkMutation) ResetRouteServer() {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (m *NetworkMutation) SetSocialMedia(sm []schema.SocialMedia) {
+func (m *NetworkMutation) SetSocialMedia(sm []schematypes.SocialMedia) {
 	m.social_media = &sm
 	m.appendsocial_media = nil
 }
 
 // SocialMedia returns the value of the "social_media" field in the mutation.
-func (m *NetworkMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
+func (m *NetworkMutation) SocialMedia() (r []schematypes.SocialMedia, exists bool) {
 	v := m.social_media
 	if v == nil {
 		return
@@ -15003,7 +15003,7 @@ func (m *NetworkMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
 // OldSocialMedia returns the old "social_media" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
+func (m *NetworkMutation) OldSocialMedia(ctx context.Context) (v []schematypes.SocialMedia, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
 	}
@@ -15018,12 +15018,12 @@ func (m *NetworkMutation) OldSocialMedia(ctx context.Context) (v []schema.Social
 }
 
 // AppendSocialMedia adds sm to the "social_media" field.
-func (m *NetworkMutation) AppendSocialMedia(sm []schema.SocialMedia) {
+func (m *NetworkMutation) AppendSocialMedia(sm []schematypes.SocialMedia) {
 	m.appendsocial_media = append(m.appendsocial_media, sm...)
 }
 
 // AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
-func (m *NetworkMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
+func (m *NetworkMutation) AppendedSocialMedia() ([]schematypes.SocialMedia, bool) {
 	if len(m.appendsocial_media) == 0 {
 		return nil, false
 	}
@@ -16290,7 +16290,7 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		m.SetRouteServer(v)
 		return nil
 	case network.FieldSocialMedia:
-		v, ok := value.([]schema.SocialMedia)
+		v, ok := value.([]schematypes.SocialMedia)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -19644,8 +19644,8 @@ type OrganizationMutation struct {
 	name                      *string
 	name_long                 *string
 	notes                     *string
-	social_media              *[]schema.SocialMedia
-	appendsocial_media        []schema.SocialMedia
+	social_media              *[]schematypes.SocialMedia
+	appendsocial_media        []schematypes.SocialMedia
 	state                     *string
 	suite                     *string
 	website                   *string
@@ -20400,13 +20400,13 @@ func (m *OrganizationMutation) ResetNotes() {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (m *OrganizationMutation) SetSocialMedia(sm []schema.SocialMedia) {
+func (m *OrganizationMutation) SetSocialMedia(sm []schematypes.SocialMedia) {
 	m.social_media = &sm
 	m.appendsocial_media = nil
 }
 
 // SocialMedia returns the value of the "social_media" field in the mutation.
-func (m *OrganizationMutation) SocialMedia() (r []schema.SocialMedia, exists bool) {
+func (m *OrganizationMutation) SocialMedia() (r []schematypes.SocialMedia, exists bool) {
 	v := m.social_media
 	if v == nil {
 		return
@@ -20417,7 +20417,7 @@ func (m *OrganizationMutation) SocialMedia() (r []schema.SocialMedia, exists boo
 // OldSocialMedia returns the old "social_media" field's value of the Organization entity.
 // If the Organization object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldSocialMedia(ctx context.Context) (v []schema.SocialMedia, err error) {
+func (m *OrganizationMutation) OldSocialMedia(ctx context.Context) (v []schematypes.SocialMedia, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldSocialMedia is only allowed on UpdateOne operations")
 	}
@@ -20432,12 +20432,12 @@ func (m *OrganizationMutation) OldSocialMedia(ctx context.Context) (v []schema.S
 }
 
 // AppendSocialMedia adds sm to the "social_media" field.
-func (m *OrganizationMutation) AppendSocialMedia(sm []schema.SocialMedia) {
+func (m *OrganizationMutation) AppendSocialMedia(sm []schematypes.SocialMedia) {
 	m.appendsocial_media = append(m.appendsocial_media, sm...)
 }
 
 // AppendedSocialMedia returns the list of values that were appended to the "social_media" field in this mutation.
-func (m *OrganizationMutation) AppendedSocialMedia() ([]schema.SocialMedia, bool) {
+func (m *OrganizationMutation) AppendedSocialMedia() ([]schematypes.SocialMedia, bool) {
 	if len(m.appendsocial_media) == 0 {
 		return nil, false
 	}
@@ -21478,7 +21478,7 @@ func (m *OrganizationMutation) SetField(name string, value ent.Value) error {
 		m.SetNotes(v)
 		return nil
 	case organization.FieldSocialMedia:
-		v, ok := value.([]schema.SocialMedia)
+		v, ok := value.([]schematypes.SocialMedia)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

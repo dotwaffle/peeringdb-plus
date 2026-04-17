@@ -16,7 +16,7 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
 	"github.com/dotwaffle/peeringdb-plus/ent"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 	"github.com/dotwaffle/peeringdb-plus/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -4291,7 +4291,7 @@ func (ec *executionContext) _Campus_socialMedia(ctx context.Context, field graph
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschemaᚐSocialMediaᚄ,
+		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
 		true,
 		false,
 	)
@@ -5139,7 +5139,7 @@ func (ec *executionContext) _Carrier_socialMedia(ctx context.Context, field grap
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschemaᚐSocialMediaᚄ,
+		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
 		true,
 		false,
 	)
@@ -6941,7 +6941,7 @@ func (ec *executionContext) _Facility_socialMedia(ctx context.Context, field gra
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschemaᚐSocialMediaᚄ,
+		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
 		true,
 		false,
 	)
@@ -8555,7 +8555,7 @@ func (ec *executionContext) _InternetExchange_socialMedia(ctx context.Context, f
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschemaᚐSocialMediaᚄ,
+		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
 		true,
 		false,
 	)
@@ -12259,7 +12259,7 @@ func (ec *executionContext) _Network_socialMedia(ctx context.Context, field grap
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschemaᚐSocialMediaᚄ,
+		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
 		true,
 		false,
 	)
@@ -15108,7 +15108,7 @@ func (ec *executionContext) _Organization_socialMedia(ctx context.Context, field
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschemaᚐSocialMediaᚄ,
+		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
 		true,
 		false,
 	)
@@ -18955,7 +18955,7 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _SocialMedia_service(ctx context.Context, field graphql.CollectedField, obj *schema.SocialMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _SocialMedia_service(ctx context.Context, field graphql.CollectedField, obj *schematypes.SocialMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18984,7 +18984,7 @@ func (ec *executionContext) fieldContext_SocialMedia_service(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _SocialMedia_identifier(ctx context.Context, field graphql.CollectedField, obj *schema.SocialMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _SocialMedia_identifier(ctx context.Context, field graphql.CollectedField, obj *schematypes.SocialMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -45290,7 +45290,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var socialMediaImplementors = []string{"SocialMedia"}
 
-func (ec *executionContext) _SocialMedia(ctx context.Context, sel ast.SelectionSet, obj *schema.SocialMedia) graphql.Marshaler {
+func (ec *executionContext) _SocialMedia(ctx context.Context, sel ast.SelectionSet, obj *schematypes.SocialMedia) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, socialMediaImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -46554,7 +46554,7 @@ func (ec *executionContext) unmarshalNPocWhereInput2ᚖgithubᚗcomᚋdotwaffle�
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNSocialMedia2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschemaᚐSocialMedia(ctx context.Context, sel ast.SelectionSet, v schema.SocialMedia) graphql.Marshaler {
+func (ec *executionContext) marshalNSocialMedia2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMedia(ctx context.Context, sel ast.SelectionSet, v schematypes.SocialMedia) graphql.Marshaler {
 	return ec._SocialMedia(ctx, sel, &v)
 }
 
@@ -47940,14 +47940,14 @@ func (ec *executionContext) unmarshalOPocWhereInput2ᚖgithubᚗcomᚋdotwaffle�
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschemaᚐSocialMediaᚄ(ctx context.Context, sel ast.SelectionSet, v []schema.SocialMedia) graphql.Marshaler {
+func (ec *executionContext) marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ(ctx context.Context, sel ast.SelectionSet, v []schematypes.SocialMedia) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
 		fc := graphql.GetFieldContext(ctx)
 		fc.Result = &v[i]
-		return ec.marshalNSocialMedia2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschemaᚐSocialMedia(ctx, sel, v[i])
+		return ec.marshalNSocialMedia2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMedia(ctx, sel, v[i])
 	})
 
 	for _, e := range ret {

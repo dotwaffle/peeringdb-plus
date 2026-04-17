@@ -16,7 +16,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // CarrierUpdate is the builder for updating Carrier entities.
@@ -147,13 +147,13 @@ func (_u *CarrierUpdate) ClearNotes() *CarrierUpdate {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *CarrierUpdate) SetSocialMedia(v []schema.SocialMedia) *CarrierUpdate {
+func (_u *CarrierUpdate) SetSocialMedia(v []schematypes.SocialMedia) *CarrierUpdate {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *CarrierUpdate) AppendSocialMedia(v []schema.SocialMedia) *CarrierUpdate {
+func (_u *CarrierUpdate) AppendSocialMedia(v []schematypes.SocialMedia) *CarrierUpdate {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }
@@ -648,13 +648,13 @@ func (_u *CarrierUpdateOne) ClearNotes() *CarrierUpdateOne {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *CarrierUpdateOne) SetSocialMedia(v []schema.SocialMedia) *CarrierUpdateOne {
+func (_u *CarrierUpdateOne) SetSocialMedia(v []schematypes.SocialMedia) *CarrierUpdateOne {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *CarrierUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *CarrierUpdateOne {
+func (_u *CarrierUpdateOne) AppendSocialMedia(v []schematypes.SocialMedia) *CarrierUpdateOne {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }

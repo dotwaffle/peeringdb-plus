@@ -2,7 +2,7 @@ package pdbcompat
 
 import (
 	"github.com/dotwaffle/peeringdb-plus/ent"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
@@ -16,7 +16,7 @@ func derefInt(p *int) int {
 
 // socialMediaFromSchema converts ent schema SocialMedia to peeringdb
 // SocialMedia. Both types have identical fields but are in different packages.
-func socialMediaFromSchema(sm []schema.SocialMedia) []peeringdb.SocialMedia {
+func socialMediaFromSchema(sm []schematypes.SocialMedia) []peeringdb.SocialMedia {
 	if sm == nil {
 		return []peeringdb.SocialMedia{}
 	}

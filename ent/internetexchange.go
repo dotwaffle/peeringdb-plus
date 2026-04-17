@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // InternetExchange is the model entity for the InternetExchange schema.
@@ -62,7 +62,7 @@ type InternetExchange struct {
 	// Service level
 	ServiceLevel string `json:"service_level"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media"`
+	SocialMedia []schematypes.SocialMedia `json:"social_media"`
 	// Status dashboard URL
 	StatusDashboard *string `json:"status_dashboard"`
 	// Technical email

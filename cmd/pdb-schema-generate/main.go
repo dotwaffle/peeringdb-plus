@@ -394,7 +394,9 @@ func generateFieldCode(name string, fd FieldDef) string {
 
 	case "json_array":
 		if name == "social_media" {
-			fmt.Fprintf(&b, "field.JSON(%q, []SocialMedia{})", name)
+			// SocialMedia value type lives in ent/schematypes (Phase 59-04)
+			// to avoid an import cycle from ent/schema's Policy() methods.
+			fmt.Fprintf(&b, "field.JSON(%q, []schematypes.SocialMedia{})", name)
 		} else {
 			fmt.Fprintf(&b, "field.JSON(%q, []string{})", name)
 		}
@@ -588,12 +590,10 @@ package schema
 
 import "github.com/ogen-go/ogen"
 
-// SocialMedia represents a social media link from PeeringDB.
-// Used by Organization, Network, Facility, InternetExchange, Carrier, and Campus schemas.
-type SocialMedia struct {
-	Service    string ` + "`json:\"service\"`" + `
-	Identifier string ` + "`json:\"identifier\"`" + `
-}
+// The SocialMedia value type moved to ent/schematypes (Phase 59-04) to
+// break an import cycle introduced when poc.go's Policy() started
+// importing ent/poc for generated where-predicates. See
+// ent/schematypes/schematypes.go for the full rationale.
 
 // socialMediaSchema returns the OpenAPI schema for the social_media JSON field.
 // Required because entrest cannot auto-infer the schema for custom struct types.
@@ -623,6 +623,10 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/lrstanley/entrest"
+	{{- if .HasSocialMedia}}
+
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
+	{{- end}}
 )
 
 // {{.ModelName}} holds the schema definition for the {{.ModelName}} entity.

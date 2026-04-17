@@ -8,6 +8,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/lrstanley/entrest"
+
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // InternetExchange holds the schema definition for the InternetExchange entity.
@@ -108,7 +110,7 @@ func (InternetExchange) Fields() []ent.Field {
 			Optional().
 			Default("").
 			Comment("Service level"),
-		field.JSON("social_media", []SocialMedia{}).
+		field.JSON("social_media", []schematypes.SocialMedia{}).
 			Optional().
 			Annotations(entrest.WithSchema(socialMediaSchema())).
 			Comment("Social media links"),

@@ -20,7 +20,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
-	schema "github.com/dotwaffle/peeringdb-plus/ent/schema"
+	schematypes "github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // CreateCampusParams defines parameters for creating a Campus via a POST request.
@@ -42,7 +42,7 @@ type CreateCampusParams struct {
 	// Notes
 	Notes *string `json:"notes,omitempty"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	SocialMedia []schematypes.SocialMedia `json:"social_media,omitempty"`
 	// State or province
 	State *string `json:"state,omitempty"`
 	// Campus website URL
@@ -131,7 +131,7 @@ type CreateCarrierParams struct {
 	// Notes
 	Notes *string `json:"notes,omitempty"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	SocialMedia []schematypes.SocialMedia `json:"social_media,omitempty"`
 	// Carrier website URL
 	Website *string `json:"website,omitempty"`
 	// Org Name (computed)
@@ -288,7 +288,7 @@ type CreateFacilityParams struct {
 	// Sales phone
 	SalesPhone *string `json:"sales_phone,omitempty"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	SocialMedia []schematypes.SocialMedia `json:"social_media,omitempty"`
 	// State or province
 	State *string `json:"state,omitempty"`
 	// Status dashboard URL
@@ -485,7 +485,7 @@ type CreateInternetExchangeParams struct {
 	// Service level
 	ServiceLevel *string `json:"service_level,omitempty"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	SocialMedia []schematypes.SocialMedia `json:"social_media,omitempty"`
 	// Status dashboard URL
 	StatusDashboard *string `json:"status_dashboard,omitempty"`
 	// Technical email
@@ -869,7 +869,7 @@ type CreateNetworkParams struct {
 	// Route server URL
 	RouteServer *string `json:"route_server,omitempty"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	SocialMedia []schematypes.SocialMedia `json:"social_media,omitempty"`
 	// Status dashboard URL
 	StatusDashboard *string `json:"status_dashboard,omitempty"`
 	// Network website URL
@@ -1200,7 +1200,7 @@ type CreateOrganizationParams struct {
 	// Notes
 	Notes *string `json:"notes,omitempty"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media,omitempty"`
+	SocialMedia []schematypes.SocialMedia `json:"social_media,omitempty"`
 	// State or province
 	State *string `json:"state,omitempty"`
 	// Suite number

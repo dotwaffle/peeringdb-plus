@@ -15,7 +15,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // InternetExchangeCreate is the builder for creating a InternetExchange entity.
@@ -299,7 +299,7 @@ func (_c *InternetExchangeCreate) SetNillableServiceLevel(v *string) *InternetEx
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_c *InternetExchangeCreate) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeCreate {
+func (_c *InternetExchangeCreate) SetSocialMedia(v []schematypes.SocialMedia) *InternetExchangeCreate {
 	_c.mutation.SetSocialMedia(v)
 	return _c
 }
@@ -1307,7 +1307,7 @@ func (u *InternetExchangeUpsert) ClearServiceLevel() *InternetExchangeUpsert {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *InternetExchangeUpsert) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpsert {
+func (u *InternetExchangeUpsert) SetSocialMedia(v []schematypes.SocialMedia) *InternetExchangeUpsert {
 	u.Set(internetexchange.FieldSocialMedia, v)
 	return u
 }
@@ -1991,7 +1991,7 @@ func (u *InternetExchangeUpsertOne) ClearServiceLevel() *InternetExchangeUpsertO
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *InternetExchangeUpsertOne) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpsertOne {
+func (u *InternetExchangeUpsertOne) SetSocialMedia(v []schematypes.SocialMedia) *InternetExchangeUpsertOne {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.SetSocialMedia(v)
 	})
@@ -2880,7 +2880,7 @@ func (u *InternetExchangeUpsertBulk) ClearServiceLevel() *InternetExchangeUpsert
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *InternetExchangeUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *InternetExchangeUpsertBulk {
+func (u *InternetExchangeUpsertBulk) SetSocialMedia(v []schematypes.SocialMedia) *InternetExchangeUpsertBulk {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.SetSocialMedia(v)
 	})

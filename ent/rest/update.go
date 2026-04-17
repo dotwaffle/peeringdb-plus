@@ -20,7 +20,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
-	schema "github.com/dotwaffle/peeringdb-plus/ent/schema"
+	schematypes "github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // UpdateCampusParams defines parameters for updating a Campus via a PATCH request.
@@ -42,7 +42,7 @@ type UpdateCampusParams struct {
 	// Notes
 	Notes Option[string] `json:"notes,omitempty"`
 	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	SocialMedia Option[[]schematypes.SocialMedia] `json:"social_media,omitempty"`
 	// State or province
 	State Option[string] `json:"state,omitempty"`
 	// Campus website URL
@@ -149,7 +149,7 @@ type UpdateCarrierParams struct {
 	// Notes
 	Notes Option[string] `json:"notes,omitempty"`
 	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	SocialMedia Option[[]schematypes.SocialMedia] `json:"social_media,omitempty"`
 	// Carrier website URL
 	Website Option[string] `json:"website,omitempty"`
 	// Org Name (computed)
@@ -324,7 +324,7 @@ type UpdateFacilityParams struct {
 	// Sales phone
 	SalesPhone Option[string] `json:"sales_phone,omitempty"`
 	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	SocialMedia Option[[]schematypes.SocialMedia] `json:"social_media,omitempty"`
 	// State or province
 	State Option[string] `json:"state,omitempty"`
 	// Status dashboard URL
@@ -559,7 +559,7 @@ type UpdateInternetExchangeParams struct {
 	// Service level
 	ServiceLevel Option[string] `json:"service_level,omitempty"`
 	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	SocialMedia Option[[]schematypes.SocialMedia] `json:"social_media,omitempty"`
 	// Status dashboard URL
 	StatusDashboard Option[*string] `json:"status_dashboard,omitempty"`
 	// Technical email
@@ -991,7 +991,7 @@ type UpdateNetworkParams struct {
 	// Route server URL
 	RouteServer Option[string] `json:"route_server,omitempty"`
 	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	SocialMedia Option[[]schematypes.SocialMedia] `json:"social_media,omitempty"`
 	// Status dashboard URL
 	StatusDashboard Option[*string] `json:"status_dashboard,omitempty"`
 	// Network website URL
@@ -1404,7 +1404,7 @@ type UpdateOrganizationParams struct {
 	// Notes
 	Notes Option[string] `json:"notes,omitempty"`
 	// Social media links
-	SocialMedia Option[[]schema.SocialMedia] `json:"social_media,omitempty"`
+	SocialMedia Option[[]schematypes.SocialMedia] `json:"social_media,omitempty"`
 	// State or province
 	State Option[string] `json:"state,omitempty"`
 	// Suite number

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
@@ -26,7 +26,7 @@ func TestOrganizationCRUD(t *testing.T) {
 		country    string
 		latitude   *float64
 		longitude  *float64
-		social     []schema.SocialMedia
+		social     []schematypes.SocialMedia
 		wantStatus string
 	}{
 		{
@@ -51,7 +51,7 @@ func TestOrganizationCRUD(t *testing.T) {
 			name:    "organization with social media",
 			id:      3,
 			orgName: "Social Org",
-			social: []schema.SocialMedia{
+			social: []schematypes.SocialMedia{
 				{Service: "twitter", Identifier: "@socialorg"},
 				{Service: "github", Identifier: "socialorg"},
 			},

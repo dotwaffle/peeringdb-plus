@@ -8,6 +8,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/lrstanley/entrest"
+
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // Facility holds the schema definition for the Facility entity.
@@ -123,7 +125,7 @@ func (Facility) Fields() []ent.Field {
 			Optional().
 			Default("").
 			Comment("Sales phone"),
-		field.JSON("social_media", []SocialMedia{}).
+		field.JSON("social_media", []schematypes.SocialMedia{}).
 			Optional().
 			Annotations(entrest.WithSchema(socialMediaSchema())).
 			Comment("Social media links"),

@@ -13,7 +13,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
 	"github.com/dotwaffle/peeringdb-plus/ent/facility"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // Facility is the model entity for the Facility schema.
@@ -69,7 +69,7 @@ type Facility struct {
 	// Sales phone
 	SalesPhone string `json:"sales_phone"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media"`
+	SocialMedia []schematypes.SocialMedia `json:"social_media"`
 	// State or province
 	State string `json:"state"`
 	// Status dashboard URL

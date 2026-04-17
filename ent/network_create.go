@@ -16,7 +16,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // NetworkCreate is the builder for creating a Network entity.
@@ -410,7 +410,7 @@ func (_c *NetworkCreate) SetNillableRouteServer(v *string) *NetworkCreate {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_c *NetworkCreate) SetSocialMedia(v []schema.SocialMedia) *NetworkCreate {
+func (_c *NetworkCreate) SetSocialMedia(v []schematypes.SocialMedia) *NetworkCreate {
 	_c.mutation.SetSocialMedia(v)
 	return _c
 }
@@ -1594,7 +1594,7 @@ func (u *NetworkUpsert) ClearRouteServer() *NetworkUpsert {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *NetworkUpsert) SetSocialMedia(v []schema.SocialMedia) *NetworkUpsert {
+func (u *NetworkUpsert) SetSocialMedia(v []schematypes.SocialMedia) *NetworkUpsert {
 	u.Set(network.FieldSocialMedia, v)
 	return u
 }
@@ -2399,7 +2399,7 @@ func (u *NetworkUpsertOne) ClearRouteServer() *NetworkUpsertOne {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *NetworkUpsertOne) SetSocialMedia(v []schema.SocialMedia) *NetworkUpsertOne {
+func (u *NetworkUpsertOne) SetSocialMedia(v []schematypes.SocialMedia) *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
 		s.SetSocialMedia(v)
 	})
@@ -3400,7 +3400,7 @@ func (u *NetworkUpsertBulk) ClearRouteServer() *NetworkUpsertBulk {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *NetworkUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *NetworkUpsertBulk {
+func (u *NetworkUpsertBulk) SetSocialMedia(v []schematypes.SocialMedia) *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
 		s.SetSocialMedia(v)
 	})

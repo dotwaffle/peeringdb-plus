@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // Campus is the model entity for the Campus schema.
@@ -38,7 +38,7 @@ type Campus struct {
 	// Notes
 	Notes string `json:"notes"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media"`
+	SocialMedia []schematypes.SocialMedia `json:"social_media"`
 	// State or province
 	State string `json:"state"`
 	// Campus website URL

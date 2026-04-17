@@ -14,7 +14,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
 	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // CarrierCreate is the builder for creating a Carrier entity.
@@ -102,7 +102,7 @@ func (_c *CarrierCreate) SetNillableNotes(v *string) *CarrierCreate {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_c *CarrierCreate) SetSocialMedia(v []schema.SocialMedia) *CarrierCreate {
+func (_c *CarrierCreate) SetSocialMedia(v []schematypes.SocialMedia) *CarrierCreate {
 	_c.mutation.SetSocialMedia(v)
 	return _c
 }
@@ -576,7 +576,7 @@ func (u *CarrierUpsert) ClearNotes() *CarrierUpsert {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *CarrierUpsert) SetSocialMedia(v []schema.SocialMedia) *CarrierUpsert {
+func (u *CarrierUpsert) SetSocialMedia(v []schematypes.SocialMedia) *CarrierUpsert {
 	u.Set(carrier.FieldSocialMedia, v)
 	return u
 }
@@ -848,7 +848,7 @@ func (u *CarrierUpsertOne) ClearNotes() *CarrierUpsertOne {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *CarrierUpsertOne) SetSocialMedia(v []schema.SocialMedia) *CarrierUpsertOne {
+func (u *CarrierUpsertOne) SetSocialMedia(v []schematypes.SocialMedia) *CarrierUpsertOne {
 	return u.Update(func(s *CarrierUpsert) {
 		s.SetSocialMedia(v)
 	})
@@ -1303,7 +1303,7 @@ func (u *CarrierUpsertBulk) ClearNotes() *CarrierUpsertBulk {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *CarrierUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *CarrierUpsertBulk {
+func (u *CarrierUpsertBulk) SetSocialMedia(v []schematypes.SocialMedia) *CarrierUpsertBulk {
 	return u.Update(func(s *CarrierUpsert) {
 		s.SetSocialMedia(v)
 	})

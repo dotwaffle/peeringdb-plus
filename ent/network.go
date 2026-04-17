@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // Network is the model entity for the Network schema.
@@ -80,7 +80,7 @@ type Network struct {
 	// Route server URL
 	RouteServer string `json:"route_server"`
 	// Social media links
-	SocialMedia []schema.SocialMedia `json:"social_media"`
+	SocialMedia []schematypes.SocialMedia `json:"social_media"`
 	// Status dashboard URL
 	StatusDashboard *string `json:"status_dashboard"`
 	// Network website URL

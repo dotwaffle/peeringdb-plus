@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
@@ -32,7 +32,7 @@ func TestSerializerNetworkFromEnt(t *testing.T) {
 		Aka:                     "Cloudflare",
 		NameLong:                "Cloudflare, Inc. - Global Network",
 		Website:                 "https://cloudflare.com",
-		SocialMedia:             []schema.SocialMedia{{Service: "twitter", Identifier: "@cloudflare"}},
+		SocialMedia:             []schematypes.SocialMedia{{Service: "twitter", Identifier: "@cloudflare"}},
 		Asn:                     13335,
 		LookingGlass:            "https://lg.cloudflare.com",
 		RouteServer:             "",
@@ -152,7 +152,7 @@ func TestSerializerOrganizationFromEnt(t *testing.T) {
 		Aka:         "TO",
 		NameLong:    "Test Organization LLC",
 		Website:     "https://testorg.com",
-		SocialMedia: []schema.SocialMedia{},
+		SocialMedia: []schematypes.SocialMedia{},
 		Notes:       "",
 		Logo:        nil,
 		Address1:    "123 Main St",
@@ -316,14 +316,16 @@ func TestSerializerAllTypesCompile(t *testing.T) {
 	_ = campusesFromEnt(nil)
 }
 
-// TestSerializerSocialMediaConversion verifies schema.SocialMedia to
-// peeringdb.SocialMedia conversion.
+// TestSerializerSocialMediaConversion verifies schematypes.SocialMedia to
+// peeringdb.SocialMedia conversion. Phase 59-04 moved the value type from
+// ent/schema to ent/schematypes to break an import cycle introduced by
+// the Poc Policy(); the conversion itself is unchanged.
 func TestSerializerSocialMediaConversion(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name  string
-		input []schema.SocialMedia
+		input []schematypes.SocialMedia
 		want  []peeringdb.SocialMedia
 	}{
 		{
@@ -333,12 +335,12 @@ func TestSerializerSocialMediaConversion(t *testing.T) {
 		},
 		{
 			name:  "empty slice returns empty slice",
-			input: []schema.SocialMedia{},
+			input: []schematypes.SocialMedia{},
 			want:  []peeringdb.SocialMedia{},
 		},
 		{
 			name: "single entry",
-			input: []schema.SocialMedia{
+			input: []schematypes.SocialMedia{
 				{Service: "twitter", Identifier: "@test"},
 			},
 			want: []peeringdb.SocialMedia{

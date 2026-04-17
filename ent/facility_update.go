@@ -19,7 +19,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // FacilityUpdate is the builder for updating Facility entities.
@@ -502,13 +502,13 @@ func (_u *FacilityUpdate) ClearSalesPhone() *FacilityUpdate {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *FacilityUpdate) SetSocialMedia(v []schema.SocialMedia) *FacilityUpdate {
+func (_u *FacilityUpdate) SetSocialMedia(v []schematypes.SocialMedia) *FacilityUpdate {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *FacilityUpdate) AppendSocialMedia(v []schema.SocialMedia) *FacilityUpdate {
+func (_u *FacilityUpdate) AppendSocialMedia(v []schematypes.SocialMedia) *FacilityUpdate {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }
@@ -1892,13 +1892,13 @@ func (_u *FacilityUpdateOne) ClearSalesPhone() *FacilityUpdateOne {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *FacilityUpdateOne) SetSocialMedia(v []schema.SocialMedia) *FacilityUpdateOne {
+func (_u *FacilityUpdateOne) SetSocialMedia(v []schematypes.SocialMedia) *FacilityUpdateOne {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *FacilityUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *FacilityUpdateOne {
+func (_u *FacilityUpdateOne) AppendSocialMedia(v []schematypes.SocialMedia) *FacilityUpdateOne {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }

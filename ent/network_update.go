@@ -18,7 +18,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // NetworkUpdate is the builder for updating Network entities.
@@ -586,13 +586,13 @@ func (_u *NetworkUpdate) ClearRouteServer() *NetworkUpdate {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *NetworkUpdate) SetSocialMedia(v []schema.SocialMedia) *NetworkUpdate {
+func (_u *NetworkUpdate) SetSocialMedia(v []schematypes.SocialMedia) *NetworkUpdate {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *NetworkUpdate) AppendSocialMedia(v []schema.SocialMedia) *NetworkUpdate {
+func (_u *NetworkUpdate) AppendSocialMedia(v []schematypes.SocialMedia) *NetworkUpdate {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }
@@ -1936,13 +1936,13 @@ func (_u *NetworkUpdateOne) ClearRouteServer() *NetworkUpdateOne {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_u *NetworkUpdateOne) SetSocialMedia(v []schema.SocialMedia) *NetworkUpdateOne {
+func (_u *NetworkUpdateOne) SetSocialMedia(v []schematypes.SocialMedia) *NetworkUpdateOne {
 	_u.mutation.SetSocialMedia(v)
 	return _u
 }
 
 // AppendSocialMedia appends value to the "social_media" field.
-func (_u *NetworkUpdateOne) AppendSocialMedia(v []schema.SocialMedia) *NetworkUpdateOne {
+func (_u *NetworkUpdateOne) AppendSocialMedia(v []schematypes.SocialMedia) *NetworkUpdateOne {
 	_u.mutation.AppendSocialMedia(v)
 	return _u
 }

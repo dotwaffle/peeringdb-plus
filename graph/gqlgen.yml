@@ -14,6 +14,7 @@ resolver:
 autobind:
   - github.com/dotwaffle/peeringdb-plus/ent
   - github.com/dotwaffle/peeringdb-plus/ent/schema
+  - github.com/dotwaffle/peeringdb-plus/ent/schematypes
   - github.com/dotwaffle/peeringdb-plus/graph/model
 
 models:

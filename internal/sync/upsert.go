@@ -20,7 +20,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
-	entschema "github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
@@ -55,13 +55,13 @@ func upsertBatch[Item any, Builder any](
 }
 
 // convertSocialMedia converts PeeringDB social media structs to ent schema types.
-func convertSocialMedia(sm []peeringdb.SocialMedia) []entschema.SocialMedia {
+func convertSocialMedia(sm []peeringdb.SocialMedia) []schematypes.SocialMedia {
 	if sm == nil {
 		return nil
 	}
-	result := make([]entschema.SocialMedia, len(sm))
+	result := make([]schematypes.SocialMedia, len(sm))
 	for i, s := range sm {
-		result[i] = entschema.SocialMedia{
+		result[i] = schematypes.SocialMedia{
 			Service:    s.Service,
 			Identifier: s.Identifier,
 		}

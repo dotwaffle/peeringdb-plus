@@ -17,7 +17,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 )
 
 // FacilityCreate is the builder for creating a Facility entity.
@@ -335,7 +335,7 @@ func (_c *FacilityCreate) SetNillableSalesPhone(v *string) *FacilityCreate {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (_c *FacilityCreate) SetSocialMedia(v []schema.SocialMedia) *FacilityCreate {
+func (_c *FacilityCreate) SetSocialMedia(v []schematypes.SocialMedia) *FacilityCreate {
 	_c.mutation.SetSocialMedia(v)
 	return _c
 }
@@ -1487,7 +1487,7 @@ func (u *FacilityUpsert) ClearSalesPhone() *FacilityUpsert {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *FacilityUpsert) SetSocialMedia(v []schema.SocialMedia) *FacilityUpsert {
+func (u *FacilityUpsert) SetSocialMedia(v []schematypes.SocialMedia) *FacilityUpsert {
 	u.Set(facility.FieldSocialMedia, v)
 	return u
 }
@@ -2286,7 +2286,7 @@ func (u *FacilityUpsertOne) ClearSalesPhone() *FacilityUpsertOne {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *FacilityUpsertOne) SetSocialMedia(v []schema.SocialMedia) *FacilityUpsertOne {
+func (u *FacilityUpsertOne) SetSocialMedia(v []schematypes.SocialMedia) *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
 		s.SetSocialMedia(v)
 	})
@@ -3294,7 +3294,7 @@ func (u *FacilityUpsertBulk) ClearSalesPhone() *FacilityUpsertBulk {
 }
 
 // SetSocialMedia sets the "social_media" field.
-func (u *FacilityUpsertBulk) SetSocialMedia(v []schema.SocialMedia) *FacilityUpsertBulk {
+func (u *FacilityUpsertBulk) SetSocialMedia(v []schematypes.SocialMedia) *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
 		s.SetSocialMedia(v)
 	})
