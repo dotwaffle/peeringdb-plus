@@ -58,7 +58,7 @@ func seedCompletionData(t *testing.T) *http.ServeMux {
 		t.Fatalf("creating internet exchange: %v", err)
 	}
 
-	h := NewHandler(client, nil)
+	h := NewHandler(NewHandlerInput{Client: client})
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return mux

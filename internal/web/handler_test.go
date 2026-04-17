@@ -11,6 +11,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
@@ -30,7 +31,7 @@ func renderComponent(t *testing.T, c templ.Component) string {
 func newTestMux(t *testing.T) *http.ServeMux {
 	t.Helper()
 	client := testutil.SetupClient(t)
-	h := NewHandler(client, nil)
+	h := NewHandler(NewHandlerInput{Client: client})
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return mux
@@ -350,7 +351,7 @@ func TestSearchEndpoint_MinLength(t *testing.T) {
 		t.Fatalf("creating network: %v", err)
 	}
 
-	h := NewHandler(client, nil)
+	h := NewHandler(NewHandlerInput{Client: client})
 	mux := http.NewServeMux()
 	h.Register(mux)
 
@@ -400,7 +401,7 @@ func TestSearchEndpoint_WithResults(t *testing.T) {
 		t.Fatalf("creating ix: %v", err)
 	}
 
-	h := NewHandler(client, nil)
+	h := NewHandler(NewHandlerInput{Client: client})
 	mux := http.NewServeMux()
 	h.Register(mux)
 
@@ -445,7 +446,7 @@ func TestSearchEndpoint_HtmxFragment(t *testing.T) {
 		t.Fatalf("creating network: %v", err)
 	}
 
-	h := NewHandler(client, nil)
+	h := NewHandler(NewHandlerInput{Client: client})
 	mux := http.NewServeMux()
 	h.Register(mux)
 
@@ -520,7 +521,7 @@ func TestHomeWithQuery_PreRendered(t *testing.T) {
 		t.Fatalf("creating network: %v", err)
 	}
 
-	h := NewHandler(client, nil)
+	h := NewHandler(NewHandlerInput{Client: client})
 	mux := http.NewServeMux()
 	h.Register(mux)
 
@@ -574,7 +575,7 @@ func setupCompareMux(t *testing.T) *http.ServeMux {
 	t.Helper()
 	client := testutil.SetupClient(t)
 	seedCompareHandlerTestData(t, client)
-	h := NewHandler(client, nil)
+	h := NewHandler(NewHandlerInput{Client: client})
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return mux
@@ -860,7 +861,7 @@ func TestAboutPage_FallbackToLastSuccess(t *testing.T) {
 
 			tt.extraRows(t, db, successTime)
 
-			h := NewHandler(client, db)
+			h := NewHandler(NewHandlerInput{Client: client, DB: db})
 			mux := http.NewServeMux()
 			h.Register(mux)
 
@@ -883,6 +884,75 @@ func TestAboutPage_FallbackToLastSuccess(t *testing.T) {
 				wantTime := successTime.Add(30 * time.Second).Format("2006-01-02 15:04:05")
 				if !strings.Contains(body, wantTime) {
 					t.Errorf("%s: missing fallback timestamp %q", tt.name, wantTime)
+				}
+			}
+		})
+	}
+}
+
+// TestHandleAbout_PrivacySync asserts the Phase 61 OBS-02 Privacy & Sync
+// section renders the right values for each (auth mode, public tier) combo,
+// and that the amber "Override active" badge appears iff PublicTier == users.
+// D-04/D-05/D-06 + threat T-61-05 (tampering / badge suppression).
+func TestHandleAbout_PrivacySync(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name         string
+		authMode     string
+		tier         privctx.Tier
+		wantAuthText string
+		wantTierText string
+		wantBadge    bool
+	}{
+		{"anon_public", "anonymous", privctx.TierPublic, "Anonymous (no key)", "public", false},
+		{"auth_public", "authenticated", privctx.TierPublic, "Authenticated with PeeringDB API key", "public", false},
+		{"anon_users", "anonymous", privctx.TierUsers, "Anonymous (no key)", "users", true},
+		{"auth_users", "authenticated", privctx.TierUsers, "Authenticated with PeeringDB API key", "users", true},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			client := testutil.SetupClient(t)
+			h := NewHandler(NewHandlerInput{
+				Client:     client,
+				DB:         nil,
+				AuthMode:   tc.authMode,
+				PublicTier: tc.tier,
+			})
+			mux := http.NewServeMux()
+			h.Register(mux)
+
+			req := httptest.NewRequest(http.MethodGet, "/ui/about", nil)
+			// Force HTML negotiation (browser UA + Accept: text/html).
+			req.Header.Set("User-Agent", "Mozilla/5.0")
+			req.Header.Set("Accept", "text/html")
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200; body=%s", rec.Code, rec.Body.String())
+			}
+			body := rec.Body.String()
+
+			// Section heading must be present (templ escapes "&" to "&amp;").
+			if !strings.Contains(body, "Privacy &amp; Sync") && !strings.Contains(body, "Privacy & Sync") {
+				t.Errorf("HTML body missing 'Privacy & Sync' section heading")
+			}
+			if !strings.Contains(body, tc.wantAuthText) {
+				t.Errorf("HTML body missing auth text %q", tc.wantAuthText)
+			}
+			if !strings.Contains(body, tc.wantTierText) {
+				t.Errorf("HTML body missing tier text %q", tc.wantTierText)
+			}
+			if tc.wantBadge {
+				if !strings.Contains(body, "Override active") {
+					t.Errorf("HTML body missing 'Override active' badge when OverrideActive=true")
+				}
+			} else {
+				if strings.Contains(body, "Override active") {
+					t.Errorf("HTML body unexpectedly contains 'Override active' badge when OverrideActive=false")
 				}
 			}
 		})
@@ -1341,7 +1411,7 @@ func TestKeyboardNav_Integration(t *testing.T) {
 		t.Fatalf("creating network: %v", err)
 	}
 
-	h := NewHandler(client, nil)
+	h := NewHandler(NewHandlerInput{Client: client})
 	mux := http.NewServeMux()
 	h.Register(mux)
 
@@ -1445,7 +1515,7 @@ func TestMaxTerminalWidthConstant(t *testing.T) {
 func TestHandleServerError(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
-	h := NewHandler(client, nil)
+	h := NewHandler(NewHandlerInput{Client: client})
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/ui/500", nil)

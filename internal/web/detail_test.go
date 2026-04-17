@@ -215,7 +215,7 @@ func setupAllTestMux(t *testing.T) *http.ServeMux {
 	t.Helper()
 	client := testutil.SetupClient(t)
 	seedAllTestData(t, client)
-	h := NewHandler(client, nil)
+	h := NewHandler(NewHandlerInput{Client: client})
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return mux
@@ -704,7 +704,7 @@ func TestGetFreshness_WithSyncRecord(t *testing.T) {
 		t.Fatalf("record sync complete: %v", err)
 	}
 
-	h := NewHandler(client, db)
+	h := NewHandler(NewHandlerInput{Client: client, DB: db})
 	freshness := h.getFreshness(ctx)
 
 	if freshness.IsZero() {
@@ -721,7 +721,7 @@ func TestGetFreshness_EmptyTable(t *testing.T) {
 		t.Fatalf("init status table: %v", err)
 	}
 
-	h := NewHandler(client, db)
+	h := NewHandler(NewHandlerInput{Client: client, DB: db})
 	freshness := h.getFreshness(ctx)
 
 	if !freshness.IsZero() {
