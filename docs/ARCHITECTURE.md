@@ -257,6 +257,92 @@ same ent client:
   server. The health check is held in `NOT_SERVING` until the first sync completes, then flips to
   `SERVING` for the root service and every registered service name.
 
+## Privacy layer
+
+PeeringDB tags per-row visibility (`visible="Public" | "Users" | "Private"`
+on POCs; see [CONFIGURATION.md §Privacy & Tiers](./CONFIGURATION.md#privacy--tiers)
+for the end-to-end model). PeeringDB Plus honours this upstream visibility
+through an ent Privacy policy wired in `ent/entc.go`. The inversion is the
+non-obvious part: **the sync worker writes the full dataset (bypass); every
+read path applies the filter (policy).**
+
+The pieces:
+
+1. **Request context stamping** (`internal/privctx/` — `privctx.Tier`,
+   `privctx.WithTier`, `privctx.TierFrom`). A dedicated HTTP middleware
+   (`internal/middleware/` privacy-tier middleware) inspects the incoming
+   request, reads `PDBPLUS_PUBLIC_TIER` from config, and stamps a
+   `privctx.Tier` value on the request context. The middleware sits in the
+   chain before any handler dispatch, so every one of the five API surfaces
+   inherits the tier via `r.Context()`.
+2. **ent Privacy policy** (`entgo.io/ent/privacy`, feature `privacy` enabled
+   in `ent/entc.go`). The POC entity (`ent/schema/networkcontact.go`) has a
+   `Policy()` method whose query rule rejects rows with
+   `visible != "Public"` unless the context carries a Users-tier marker.
+   The policy is evaluated on every ent query; the five read surfaces
+   (`/ui/`, `/graphql`, `/rest/v1/`, `/api/`, `/peeringdb.v1.*`) all flow
+   through the same `ent.Client`, so there is exactly one filter, not five.
+3. **Sync-worker bypass** (`internal/sync/worker.go`,
+   `internal/sync/upsert.go`). The sync worker wraps its ent client calls
+   in `privacy.DecisionContext(syncCtx, privacy.Allow)`. This marker
+   short-circuits the policy so writes land the full dataset —
+   `Users`-tier rows go into the DB — regardless of the caller tier that
+   would otherwise apply. A single-call-site audit test (phase 59) keeps
+   the bypass scoped to the worker.
+4. **Observability** (phase 61). Startup logs a `sync.classification` line
+   (`auth=authenticated|anonymous`). A WARN line
+   (`privacy.override.active`) fires whenever `PDBPLUS_PUBLIC_TIER=users`.
+   Read-path spans carry an OTel attribute `pdbplus.privacy.tier` with
+   value `public` or `users`, usable as a Grafana dashboard filter.
+
+### Sync write vs anonymous read — sequence diagram
+
+```mermaid
+sequenceDiagram
+    participant Upstream as PeeringDB API
+    participant Worker as Sync Worker
+    participant Policy as ent Privacy Policy
+    participant DB as SQLite (LiteFS)
+    participant Client as Anonymous HTTP client
+    participant Surface as Read Surface (/ui, /graphql, /rest, /api, /rpc)
+
+    Note over Worker: sync cycle (every PDBPLUS_SYNC_INTERVAL)
+    Worker->>Upstream: GET /api/poc?... (with API key)
+    Upstream-->>Worker: Public + Users rows
+    Worker->>Worker: privacy.DecisionContext(ctx, privacy.Allow)
+    Worker->>Policy: upsert rows (bypass marker set)
+    Policy-->>Worker: allow (bypass)
+    Worker->>DB: INSERT/UPDATE (full dataset)
+
+    Note over Client,Surface: anonymous read
+    Client->>Surface: GET /api/poc
+    Surface->>Surface: middleware stamps privctx.Tier=public
+    Surface->>Policy: ent.POC.Query().All(ctx)
+    Policy->>Policy: ctx lacks Users marker → filter visible != "Public"
+    Policy->>DB: SELECT ... WHERE visible = "Public"
+    DB-->>Policy: Public rows only
+    Policy-->>Surface: Public rows only
+    Surface-->>Client: JSON (Public rows only — Users absent, not redacted)
+```
+
+All five read surfaces share this flow. Custom per-surface logic is not
+needed: the middleware stamps the tier once, and ent's policy enforcement
+fires on every generated query, so adding or removing a surface has no
+effect on the privacy boundary.
+
+Operator control surface:
+
+- `PDBPLUS_PEERINGDB_API_KEY` — set to enable authenticated sync; absence
+  is still supported (no `Users`-tier rows reach the DB, the filter is a
+  no-op).
+- `PDBPLUS_PUBLIC_TIER=users` — elevate anonymous callers to Users-tier for
+  private-instance deployments. Logged with WARN at startup;
+  `pdbplus.privacy.tier=users` on read spans.
+
+See [CONFIGURATION.md](./CONFIGURATION.md#privacy--tiers) and
+[DEPLOYMENT.md](./DEPLOYMENT.md#authenticated-peeringdb-sync-recommended)
+for the operator-facing rollout.
+
 ## LiteFS primary/replica detection
 
 LiteFS uses an *inverted* lease file: the presence of `/litefs/.primary` indicates a *replica*
