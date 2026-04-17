@@ -98,12 +98,12 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. `PDBPLUS_PUBLIC_TIER` env var is parsed in `internal/config/config.go` (default `public`, accepts `users`); when set to `users`, anonymous request contexts are stamped with the Users-tier marker so the policy admits Users-visibility rows.
   4. Unit tests cover both `PDBPLUS_PUBLIC_TIER` values and the sync-context bypass behaviour.
 
-**Plans:** 4/6 plans executed
+**Plans:** 5/6 plans executed
 - [x] 59-01-PLAN.md — internal/privctx package (Tier type, WithTier, TierFrom) (Wave 1)
 - [x] 59-02-PLAN.md — PDBPLUS_PUBLIC_TIER env parser + Config field + validator (Wave 2)
 - [x] 59-03-PLAN.md — PrivacyTier HTTP middleware + chain wiring + chain-order regression test (Wave 3)
 - [x] 59-04-PLAN.md — FeaturePrivacy codegen + POC Policy() + VIS-04 behaviour tests (Wave 4)
-- [ ] 59-05-PLAN.md — sync-worker bypass + single-call-site audit test (Wave 5)
+- [x] 59-05-PLAN.md — sync-worker bypass + single-call-site audit test (Wave 5)
 - [ ] 59-06-PLAN.md — D-15 end-to-end test: all 5 surfaces × both tiers (Wave 6)
 
 ### Phase 60: Surface integration + tests
@@ -166,7 +166,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 |-------|----------------|--------|-----------|
 | 57. Visibility baseline capture | 4/4 | Complete    | 2026-04-16 |
 | 58. Visibility schema alignment | 1/1 | Complete    | 2026-04-17 |
-| 59. ent Privacy policy + sync bypass | 4/6 | In Progress|  |
+| 59. ent Privacy policy + sync bypass | 5/6 | In Progress|  |
 | 60. Surface integration + tests | 0/0 | Not started | - |
 | 61. Operator-facing observability | 0/0 | Not started | - |
 | 62. API key default & docs | 0/0 | Not started | - |
