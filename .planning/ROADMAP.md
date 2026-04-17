@@ -80,7 +80,9 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. `go generate ./...` regenerates ent cleanly with the new field(s); committed `ent/` files are byte-identical with what the generator produces.
   4. Findings are documented in PROJECT.md Key Decisions so future maintainers can trace why each field exists.
 
-**Plans**: TBD
+**Plans:** 1 plan
+
+- [ ] 58-01-PLAN.md — Schema-alignment regression test + PROJECT.md/CLAUDE.md documentation + go generate drift check (Wave 1, autonomous)
 
 ### Phase 59: ent Privacy policy + sync bypass
 
@@ -157,7 +159,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 57. Visibility baseline capture | 4/4 | Complete    | 2026-04-16 |
-| 58. Visibility schema alignment | 0/0 | Not started | - |
+| 58. Visibility schema alignment | 0/1 | Not started | - |
 | 59. ent Privacy policy + sync bypass | 0/0 | Not started | - |
 | 60. Surface integration + tests | 0/0 | Not started | - |
 | 61. Operator-facing observability | 0/0 | Not started | - |
