@@ -4,14 +4,14 @@ milestone: v1.14
 milestone_name: Authenticated Sync & Visibility Layer
 status: executing
 stopped_at: Phase 57 FULLY COMPLETE (code + live fixtures + PII guard PASS)
-last_updated: "2026-04-17T03:11:46.805Z"
-last_activity: 2026-04-17
+last_updated: "2026-04-17T03:24:59.632Z"
+last_activity: 2026-04-17 -- Phase 60 execution started
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 11
+  total_plans: 16
   completed_plans: 11
-  percent: 100
+  percent: 69
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 59 — ent Privacy policy + sync bypass
+**Current focus:** Phase 60 — Surface integration + tests
 
 ## Current Position
 
 Milestone: v1.14 Authenticated Sync & Visibility Layer
-Phase: 60
-Plan: Not started
-Status: Executing Phase 59
-Last activity: 2026-04-17
+Phase: 60 (Surface integration + tests) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 60
+Last activity: 2026-04-17 -- Phase 60 execution started
 
 Progress (v1.14): [█░░░░░░░░░] 17% (1/6 phases complete)
 Cumulative shipped: 56 phases across v1.0-v1.13 + Phase 57.
