@@ -43,17 +43,17 @@ created: 2026-04-17
 | 59-c | 02 | 2 | SYNC-03 | T-59-05 | `PDBPLUS_PUBLIC_TIER=""` → TierPublic | unit | `go test -race -run TestLoad_PublicTierDefault ./internal/config/` | ❌ W0 | ⬜ pending |
 | 59-d | 02 | 2 | SYNC-03 | T-59-05 | `PDBPLUS_PUBLIC_TIER="users"` → TierUsers | unit | `go test -race -run TestLoad_PublicTierUsers ./internal/config/` | ❌ W0 | ⬜ pending |
 | 59-e | 02 | 2 | SYNC-03 | T-59-05 | Invalid value (`"Users"`, `"admin"`) → config.Load() error (fail-fast) | unit | `go test -race -run TestLoad_PublicTierInvalid ./internal/config/` | ❌ W0 | ⬜ pending |
-| 59-f | 03 | 2 | SYNC-03 | T-59-01 | Middleware stamps TierPublic when configured | unit | `go test -race -run TestPrivacyTier_StampsDefault ./internal/middleware/` | ❌ W0 | ⬜ pending |
-| 59-g | 03 | 2 | SYNC-03 | T-59-01 | Middleware stamps TierUsers when configured | unit | same file | ❌ W0 | ⬜ pending |
-| 59-h | 03 | 2 | SYNC-03 | T-59-01 | `TestMiddlewareChain_Order` includes `PrivacyTier` between Logging and SecurityHeaders | unit (source-scan) | `go test -race -run TestMiddlewareChain_Order ./internal/middleware/` | ✅ modify | ⬜ pending |
-| 59-i | 04 | 3 | VIS-04 | T-59-03 | `PocQueryRuleFunc` filters Users-tier rows for TierPublic ctx | unit | `go test -race -run TestPocPolicy_FiltersUsersTier ./internal/sync/` (or ./ent/) | ❌ W0 | ⬜ pending |
-| 59-j | 04 | 3 | VIS-04 | T-59-03 | Public rows visible to TierPublic | unit | same file | ❌ W0 | ⬜ pending |
-| 59-k | 04 | 3 | VIS-04 | T-59-03 | Users rows visible to TierUsers ctx | unit | same file | ❌ W0 | ⬜ pending |
-| 59-l | 04 | 3 | VIS-04 | T-59-04 | NULL `visible` rows admitted by TierPublic (defence-in-depth) | unit | same file | ❌ W0 | ⬜ pending |
-| 59-m | 04 | 3 | VIS-04 | T-59-03 | Edge traversal `network.QueryPocs()` filters for TierPublic | unit | `go test -race -run TestPocPolicy_EdgeTraversalFilters` | ❌ W0 | ⬜ pending |
-| 59-n | 05 | 3 | VIS-05 | T-59-02 | Sync worker's wrapped ctx sees every row regardless of visibility | unit | `go test -race -run TestWorkerSync_BypassesPrivacy ./internal/sync/` | ❌ W0 | ⬜ pending |
-| 59-o | 05 | 3 | VIS-05 | T-59-02 | Exactly one `privacy.DecisionContext(*, privacy.Allow)` call site (grep-based audit) | unit | `go test -race -run TestSyncBypass_SingleCallSite ./internal/sync/` | ❌ W0 | ⬜ pending |
-| 59-p | 06 | 4 | VIS-04, VIS-05, SYNC-03 | T-59-01,02,03,04 | D-15 end-to-end: seed Users POC via bypass, anon HTTP request, row absent from all 5 surfaces | integration | `go test -race -run TestE2E_AnonymousCannotSeeUsersPoc ./cmd/peeringdb-plus/` | ❌ W0 | ⬜ pending |
+| 59-f | 03 | 3 | SYNC-03 | T-59-01 | Middleware stamps TierPublic when configured | unit | `go test -race -run TestPrivacyTier_StampsDefault ./internal/middleware/` | ❌ W0 | ⬜ pending |
+| 59-g | 03 | 3 | SYNC-03 | T-59-01 | Middleware stamps TierUsers when configured | unit | same file | ❌ W0 | ⬜ pending |
+| 59-h | 03 | 3 | SYNC-03 | T-59-01 | `TestMiddlewareChain_Order` includes `PrivacyTier` between Logging and Readiness | unit (source-scan) | `go test -race -run TestMiddlewareChain_Order ./internal/middleware/` | ✅ modify | ⬜ pending |
+| 59-i | 04 | 4 | VIS-04 | T-59-03 | `PocQueryRuleFunc` filters Users-tier rows for TierPublic ctx | unit | `go test -race -run TestPocPolicy_FiltersUsersTier ./internal/sync/` (or ./ent/) | ❌ W0 | ⬜ pending |
+| 59-j | 04 | 4 | VIS-04 | T-59-03 | Public rows visible to TierPublic | unit | same file | ❌ W0 | ⬜ pending |
+| 59-k | 04 | 4 | VIS-04 | T-59-03 | Users rows visible to TierUsers ctx | unit | same file | ❌ W0 | ⬜ pending |
+| 59-l | 04 | 4 | VIS-04 | T-59-04 | NULL `visible` rows admitted by TierPublic (defence-in-depth) | unit | same file | ❌ W0 | ⬜ pending |
+| 59-m | 04 | 4 | VIS-04 | T-59-03 | Edge traversal `network.QueryPocs()` filters for TierPublic | unit | `go test -race -run TestPocPolicy_EdgeTraversalFilters` | ❌ W0 | ⬜ pending |
+| 59-n | 05 | 5 | VIS-05 | T-59-02 | Sync worker's wrapped ctx sees every row regardless of visibility | unit | `go test -race -run TestWorkerSync_BypassesPrivacy ./internal/sync/` | ❌ W0 | ⬜ pending |
+| 59-o | 05 | 5 | VIS-05 | T-59-02 | Exactly one `privacy.DecisionContext(*, privacy.Allow)` call site (grep-based audit) | unit | `go test -race -run TestSyncBypass_SingleCallSite ./internal/sync/` | ❌ W0 | ⬜ pending |
+| 59-p | 06 | 6 | VIS-04, VIS-05, SYNC-03 | T-59-01,02,03,04 | D-15 end-to-end: seed Users POC via bypass, anon HTTP request, row absent from all 5 surfaces | integration | `go test -race -run TestE2E_AnonymousCannotSeeUsersPoc ./cmd/peeringdb-plus/` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
