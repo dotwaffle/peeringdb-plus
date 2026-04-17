@@ -75,6 +75,59 @@ Example:
 fly secrets set PDBPLUS_PEERINGDB_API_KEY=... PDBPLUS_SYNC_TOKEN=...
 ```
 
+### Authenticated PeeringDB Sync (Recommended)
+
+Running the sync with a PeeringDB API key is the recommended production
+configuration. The sync worker then fetches both `Public`- and `Users`-tier
+rows from PeeringDB; anonymous API callers still see `Public`-only thanks to
+the [privacy policy](./ARCHITECTURE.md#privacy-layer) on the read path.
+
+1. **Obtain a PeeringDB API key.** Sign in at
+   <https://www.peeringdb.com/profile> and generate a key under the
+   "API Keys" tab. The key is a long-lived bearer token scoped to your
+   PeeringDB user.
+2. **Set the key as a Fly secret.** The secret is applied to the app and
+   triggers a rolling deploy so the sync worker picks it up on the next
+   machine start:
+
+   ```bash
+   fly secrets set PDBPLUS_PEERINGDB_API_KEY=<key> --app peeringdb-plus
+   ```
+
+3. **Confirm rollout.** Tail the logs for the classification line emitted at
+   startup. With the key set, it reports `auth=authenticated`:
+
+   ```bash
+   fly logs --app peeringdb-plus | grep -m1 sync.classification
+   ```
+
+   `fly secrets list --app peeringdb-plus` should also show
+   `PDBPLUS_PEERINGDB_API_KEY` in the output (value is masked, only the
+   digest is visible — this is expected).
+4. **Operational implication.** `Users`-tier rows are now present in the
+   local SQLite database. They are filtered out of anonymous HTTP responses
+   by the ent privacy policy on every read path (see
+   [ARCHITECTURE.md](./ARCHITECTURE.md#privacy-layer)). No response format
+   or schema change is visible to anonymous callers; the mirror's anonymous
+   API shape continues to match upstream's.
+
+### Private/Internal Deployments
+
+Deployments that are not reachable from the public internet (internal tools,
+CI sidecars, pre-production mirrors) can elevate anonymous callers to
+Users-tier so the privacy filter becomes a no-op:
+
+```bash
+fly secrets set PDBPLUS_PUBLIC_TIER=users --app peeringdb-plus
+```
+
+Startup then emits a WARN log (`privacy.override.active`) naming the override
+every time the app boots. This is intentional — the elevated default must
+never be silent. Use this only for deployments you would not want indexed by
+a search engine. See
+[CONFIGURATION.md §Privacy & Tiers](./CONFIGURATION.md#privacy--tiers) for
+the full state matrix.
+
 Non-secret configuration lives in `fly.toml`'s `[env]` block:
 
 - `PDBPLUS_LISTEN_ADDR=:8080` — the app listens on 8080 directly (the
