@@ -37,7 +37,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 
 - [x] **Phase 57: Visibility baseline capture** - Empirically capture unauth + auth PeeringDB responses for all 13 types and emit a structural diff (completed 2026-04-16)
 - [x] **Phase 58: Visibility schema alignment** - Confirm `poc.visible` and add fields for any other auth-gated data identified in Phase 57
-- [ ] **Phase 59: ent Privacy policy + sync bypass** - Wire `entgo.io/ent/privacy` query policy that filters non-`Public` rows from anonymous reads, with sync-write bypass and `PDBPLUS_PUBLIC_TIER` override (completed 2026-04-16)
+- [x] **Phase 59: ent Privacy policy + sync bypass** - Wire `entgo.io/ent/privacy` query policy that filters non-`Public` rows from anonymous reads, with sync-write bypass and `PDBPLUS_PUBLIC_TIER` override (completed 2026-04-16) (completed 2026-04-17)
 - [ ] **Phase 60: Surface integration + tests** - Verify privacy policy fires through all 5 read surfaces and pdbcompat anonymous shape matches upstream
 - [ ] **Phase 61: Operator-facing observability** - Startup log classification, `/about` rendering, `pdbplus.privacy.tier` OTel attribute on read spans
 - [ ] **Phase 62: API key default & docs** - Set Fly.io secret, document authenticated deployment as recommended path (manual verification + docs)
@@ -98,13 +98,13 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. `PDBPLUS_PUBLIC_TIER` env var is parsed in `internal/config/config.go` (default `public`, accepts `users`); when set to `users`, anonymous request contexts are stamped with the Users-tier marker so the policy admits Users-visibility rows.
   4. Unit tests cover both `PDBPLUS_PUBLIC_TIER` values and the sync-context bypass behaviour.
 
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete
 - [x] 59-01-PLAN.md — internal/privctx package (Tier type, WithTier, TierFrom) (Wave 1)
 - [x] 59-02-PLAN.md — PDBPLUS_PUBLIC_TIER env parser + Config field + validator (Wave 2)
 - [x] 59-03-PLAN.md — PrivacyTier HTTP middleware + chain wiring + chain-order regression test (Wave 3)
 - [x] 59-04-PLAN.md — FeaturePrivacy codegen + POC Policy() + VIS-04 behaviour tests (Wave 4)
 - [x] 59-05-PLAN.md — sync-worker bypass + single-call-site audit test (Wave 5)
-- [ ] 59-06-PLAN.md — D-15 end-to-end test: all 5 surfaces × both tiers (Wave 6)
+- [x] 59-06-PLAN.md — D-15 end-to-end test: all 5 surfaces × both tiers (Wave 6)
 
 ### Phase 60: Surface integration + tests
 
@@ -166,7 +166,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 |-------|----------------|--------|-----------|
 | 57. Visibility baseline capture | 4/4 | Complete    | 2026-04-16 |
 | 58. Visibility schema alignment | 1/1 | Complete    | 2026-04-17 |
-| 59. ent Privacy policy + sync bypass | 5/6 | In Progress|  |
+| 59. ent Privacy policy + sync bypass | 6/6 | Complete   | 2026-04-17 |
 | 60. Surface integration + tests | 0/0 | Not started | - |
 | 61. Operator-facing observability | 0/0 | Not started | - |
 | 62. API key default & docs | 0/0 | Not started | - |
