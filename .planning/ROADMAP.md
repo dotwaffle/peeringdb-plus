@@ -39,7 +39,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 - [x] **Phase 58: Visibility schema alignment** - Confirm `poc.visible` and add fields for any other auth-gated data identified in Phase 57
 - [x] **Phase 59: ent Privacy policy + sync bypass** - Wire `entgo.io/ent/privacy` query policy that filters non-`Public` rows from anonymous reads, with sync-write bypass and `PDBPLUS_PUBLIC_TIER` override (completed 2026-04-16) (completed 2026-04-17)
 - [x] **Phase 60: Surface integration + tests** - Verify privacy policy fires through all 5 read surfaces and pdbcompat anonymous shape matches upstream (completed 2026-04-17)
-- [ ] **Phase 61: Operator-facing observability** - Startup log classification, `/about` rendering, `pdbplus.privacy.tier` OTel attribute on read spans
+- [x] **Phase 61: Operator-facing observability** - Startup log classification, `/about` rendering, `pdbplus.privacy.tier` OTel attribute on read spans (completed 2026-04-17)
 - [ ] **Phase 62: API key default & docs** - Set Fly.io secret, document authenticated deployment as recommended path (manual verification + docs)
 
 ## Phase Details
@@ -141,10 +141,10 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. Both `/about` (HTML) and `/ui/about` (terminal) render the current sync mode and effective privacy tier.
   4. Read-path spans carry an OTel attribute `pdbplus.privacy.tier` with value `public` or `users`, usable as a Grafana dashboard filter.
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 - [x] 61-01-PLAN.md — Startup classification log + WARN on PDBPLUS_PUBLIC_TIER=users (Wave 1, SYNC-04, OBS-01)
-- [ ] 61-02-PLAN.md — /about + /ui/about Privacy & Sync section with override badge (Wave 1, OBS-02)
+- [x] 61-02-PLAN.md — /about + /ui/about Privacy & Sync section with override badge (Wave 1, OBS-02)
 - [x] 61-03-PLAN.md — OTel attribute pdbplus.privacy.tier on HTTP server span (Wave 1, OBS-03)
 
 **UI hint**: yes
@@ -177,5 +177,5 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 | 58. Visibility schema alignment | 1/1 | Complete    | 2026-04-17 |
 | 59. ent Privacy policy + sync bypass | 6/6 | Complete    | 2026-04-17 |
 | 60. Surface integration + tests | 5/5 | Complete    | 2026-04-17 |
-| 61. Operator-facing observability | 2/3 | In Progress|  |
+| 61. Operator-facing observability | 3/3 | Complete   | 2026-04-17 |
 | 62. API key default & docs | 0/0 | Not started | - |
