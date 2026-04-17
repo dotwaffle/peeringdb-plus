@@ -117,7 +117,6 @@ func TestPrivacyTier_UpstreamCtxValuesPreserved(t *testing.T) {
 	}))
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	//nolint:staticcheck,revive // test-only: upstreamKey is a typed, unexported struct{} — no collision risk.
 	req = req.WithContext(context.WithValue(req.Context(), upstreamKey{}, sentinel))
 
 	h.ServeHTTP(httptest.NewRecorder(), req)
