@@ -299,7 +299,7 @@ func (r *queryResolver) CampusesList(ctx context.Context, offset *int, limit *in
 }
 
 // ObjectCounts is the resolver for the objectCounts field.
-func (r *syncStatusResolver) ObjectCounts(ctx context.Context, obj *model.SyncStatus) (map[string]any, error) {
+func (r *syncStatusResolver) ObjectCounts(_ context.Context, obj *model.SyncStatus) (map[string]any, error) {
 	if obj.ObjectCounts == nil {
 		return nil, nil
 	}

@@ -72,6 +72,8 @@ func BuildReport(ctx context.Context, cfg BuildReportConfig) error {
 		return buildSingleTargetReport(ctx, cfg, logger, generatedAt)
 	case shapeMulti:
 		return buildMultiTargetReport(ctx, cfg, logger, generatedAt, targets)
+	case shapeUnknown:
+		return fmt.Errorf("BuildReport: shape not detected in %q", cfg.BaselineRoot)
 	default:
 		return fmt.Errorf("BuildReport: unreachable shape %v", shape)
 	}
@@ -384,7 +386,7 @@ func loadConcatenatedPages(dir string) ([]byte, error) {
 		// pf.path is composed from dir (BuildReportConfig caller path) +
 		// vetted page-N.json basename; CLI tool by design reads caller-
 		// supplied paths.
-		raw, err := os.ReadFile(pf.path) //nolint:gosec // G304: path derived from CLI caller.
+		raw, err := os.ReadFile(pf.path)
 		if err != nil {
 			return nil, fmt.Errorf("read %s: %w", pf.path, err)
 		}
@@ -419,7 +421,9 @@ func writeReportArtifacts(outDir, mdName, jsonName string, rep Report) error {
 		return err
 	}
 	jsonPath := filepath.Join(outDir, jsonName)
-	f, err := os.OpenFile(jsonPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	// jsonPath is derived from outDir (CLI caller path) + validated basename;
+	// this tool is operator-driven.
+	f, err := os.OpenFile(jsonPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // G304: path derived from CLI caller.
 	if err != nil {
 		return fmt.Errorf("open %s: %w", jsonPath, err)
 	}
@@ -433,7 +437,9 @@ func writeReportArtifacts(outDir, mdName, jsonName string, rep Report) error {
 // writeMarkdownOnly writes a DIFF-style Markdown to outDir/name.
 func writeMarkdownOnly(outDir, name string, rep Report) error {
 	p := filepath.Join(outDir, name)
-	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	// p is derived from outDir (CLI caller path) + validated basename;
+	// this tool is operator-driven.
+	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // G304: path derived from CLI caller.
 	if err != nil {
 		return fmt.Errorf("open %s: %w", p, err)
 	}

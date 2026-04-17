@@ -95,7 +95,7 @@ func PrivacyTier(in PrivacyTierInput) func(http.Handler) http.Handler {
 // the only way this code path runs today is via a programming error
 // (new enum value added without updating this switch).
 func tierString(t privctx.Tier) string {
-	switch t { //nolint:exhaustive // panic fallback covers future Tier additions at runtime; the exhaustive compile-time check is the intended design per 61-CONTEXT.md D-09.
+	switch t {
 	case privctx.TierPublic:
 		return "public"
 	case privctx.TierUsers:

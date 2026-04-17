@@ -94,7 +94,9 @@ func RedactDir(ctx context.Context, cfg RedactDirConfig) error {
 		}
 
 		anonPath := filepath.Join(cfg.AnonDir, "api", typeName, fmt.Sprintf("page-%d.json", page))
-		anonBytes, err := os.ReadFile(anonPath)
+		// anonPath is derived from cfg.AnonDir (CLI caller path) joined with a
+		// vetted {type}/page-N.json basename; this tool is operator-driven.
+		anonBytes, err := os.ReadFile(anonPath) //nolint:gosec // G304: path derived from CLI caller.
 		if err != nil {
 			return fmt.Errorf("read anon %s/%d: %w", typeName, page, err)
 		}
