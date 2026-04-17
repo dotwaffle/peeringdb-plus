@@ -40,7 +40,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 - [x] **Phase 59: ent Privacy policy + sync bypass** - Wire `entgo.io/ent/privacy` query policy that filters non-`Public` rows from anonymous reads, with sync-write bypass and `PDBPLUS_PUBLIC_TIER` override (completed 2026-04-16) (completed 2026-04-17)
 - [x] **Phase 60: Surface integration + tests** - Verify privacy policy fires through all 5 read surfaces and pdbcompat anonymous shape matches upstream (completed 2026-04-17)
 - [x] **Phase 61: Operator-facing observability** - Startup log classification, `/about` rendering, `pdbplus.privacy.tier` OTel attribute on read spans (completed 2026-04-17)
-- [ ] **Phase 62: API key default & docs** - Set Fly.io secret, document authenticated deployment as recommended path (manual verification + docs)
+- [x] **Phase 62: API key default & docs** - Set Fly.io secret, document authenticated deployment as recommended path (manual verification + docs) (completed 2026-04-17)
 
 ## Phase Details
 
@@ -165,9 +165,9 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. `docs/DEPLOYMENT.md` documents the recommended authenticated deployment, including the `fly secrets set` command and the operational implication (Users-tier rows present in DB, filtered on anonymous reads).
   4. `docs/ARCHITECTURE.md` describes the ent Privacy layer and how each of the 5 surfaces honours it, including the sync-write bypass.
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 - [x] 62-01-PLAN.md — Doc updates: CONFIGURATION/DEPLOYMENT/ARCHITECTURE + CLAUDE.md env table (Wave 1, autonomous, DOC-01/02/03)
-- [ ] 62-02-PLAN.md — Operator fly secret rollout + smoke test (Wave 2, autonomous: false, SYNC-01)
+- [x] 62-02-PLAN.md — Operator fly secret rollout + smoke test (Wave 2, autonomous: false, SYNC-01)
 
 **Scope note**: This phase is intentionally minimal-code. Output is fly secret + three doc edits + manual verification against the deployed instance. Resist over-planning.
 
@@ -180,4 +180,4 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 | 59. ent Privacy policy + sync bypass | 6/6 | Complete    | 2026-04-17 |
 | 60. Surface integration + tests | 5/5 | Complete    | 2026-04-17 |
 | 61. Operator-facing observability | 3/3 | Complete    | 2026-04-17 |
-| 62. API key default & docs | 1/2 | In Progress|  |
+| 62. API key default & docs | 2/2 | Complete    | 2026-04-17 |
