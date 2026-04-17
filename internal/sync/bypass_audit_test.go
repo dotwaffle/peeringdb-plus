@@ -39,13 +39,39 @@ import (
 //     that mentions the pattern is not counted as a call site.
 var bypassCallRE = regexp.MustCompile(`(?s)privacy\.DecisionContext\([^;]*?privacy\.Allow\b`)
 
+// bypassRefRE matches ANY reference to `privacy.Allow` — not just inside
+// a DecisionContext(...) call. This catches aliasing evasions like:
+//
+//	allow := privacy.Allow
+//	ctx = privacy.DecisionContext(ctx, allow)
+//
+// or package-level:
+//
+//	var bypass = privacy.Allow
+//
+// which `bypassCallRE` alone would miss (WR-01 from Phase 59 review).
+// `\b` prevents matching `privacy.AllowAll` or similar future identifiers.
+var bypassRefRE = regexp.MustCompile(`privacy\.Allow\b`)
+
 // TestSyncBypass_SingleCallSite enforces D-09: exactly one production
 // call site for the privacy bypass, located in internal/sync/worker.go.
 //
-// Scans `internal/`, `cmd/`, and `ent/schema/` — the three directories
-// that hold hand-written Go code. Skips `*_test.go` (seeds use the
-// bypass legitimately) and skips generated code under `ent/` (except
-// the hand-maintained `ent/schema/`).
+// Scans `internal/`, `cmd/`, `ent/schema/`, and `graph/` — the four
+// directories that hold hand-written Go code. Skips `*_test.go` (seeds
+// use the bypass legitimately), skips generated code under `ent/`
+// (except the hand-maintained `ent/schema/`), and skips `graph/generated.go`
+// (gqlgen output — unlikely to contain privacy.Allow, but guarded).
+//
+// Two regexes run against the stripped source:
+//
+//   - `bypassCallRE` — the canonical `privacy.DecisionContext(..., privacy.Allow)`
+//     shape. Exactly ONE hit expected in `internal/sync/worker.go`.
+//   - `bypassRefRE` — ANY `privacy.Allow` reference (including aliasing
+//     evasions like `allow := privacy.Allow`). Exactly ONE hit expected
+//     in `internal/sync/worker.go`. This closes the WR-01 evasion channel
+//     where a maintainer hoists `privacy.Allow` to a local/package
+//     variable and calls `DecisionContext(ctx, bypass)` to slip past the
+//     narrower `bypassCallRE`.
 //
 // Comments are stripped before matching so prose that mentions the
 // pattern is not counted as a call site (see ent/schema/poc.go godoc).
@@ -62,9 +88,10 @@ func TestSyncBypass_SingleCallSite(t *testing.T) {
 		line int
 		text string
 	}
-	var hits []hit
+	var callHits []hit
+	var refHits []hit
 
-	scanDirs := []string{"internal", "cmd", "ent/schema"}
+	scanDirs := []string{"internal", "cmd", "ent/schema", "graph"}
 	for _, d := range scanDirs {
 		base := filepath.Join(root, d)
 		err := filepath.WalkDir(base, func(path string, ent fs.DirEntry, werr error) error {
@@ -86,23 +113,33 @@ func TestSyncBypass_SingleCallSite(t *testing.T) {
 				!strings.Contains(path, string(os.PathSeparator)+"ent"+string(os.PathSeparator)+"schema"+string(os.PathSeparator)) {
 				return nil
 			}
+			// Skip gqlgen-generated graph/generated.go — not hand-written.
+			if strings.HasSuffix(path, string(os.PathSeparator)+"graph"+string(os.PathSeparator)+"generated.go") {
+				return nil
+			}
 			b, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
 			stripped := stripGoComments(string(b))
-			for _, m := range bypassCallRE.FindAllStringIndex(stripped, -1) {
+			recordHit := func(dst *[]hit, m []int) {
 				lineNo := 1 + strings.Count(stripped[:m[0]], "\n")
 				// Extract the first line of the match for the error message.
 				text := stripped[m[0]:m[1]]
 				if nl := strings.IndexByte(text, '\n'); nl >= 0 {
 					text = text[:nl]
 				}
-				hits = append(hits, hit{
+				*dst = append(*dst, hit{
 					path: path,
 					line: lineNo,
 					text: strings.TrimSpace(text),
 				})
+			}
+			for _, m := range bypassCallRE.FindAllStringIndex(stripped, -1) {
+				recordHit(&callHits, m)
+			}
+			for _, m := range bypassRefRE.FindAllStringIndex(stripped, -1) {
+				recordHit(&refHits, m)
 			}
 			return nil
 		})
@@ -112,35 +149,55 @@ func TestSyncBypass_SingleCallSite(t *testing.T) {
 	}
 
 	const wantRelPath = "internal/sync/worker.go"
-	switch {
-	case len(hits) == 0:
-		t.Fatalf("expected exactly 1 call to privacy.DecisionContext(ctx, privacy.Allow) in production code; found 0. Did Plan 59-05 Task 1 run?")
-	case len(hits) > 1:
-		var msg strings.Builder
-		msg.WriteString("expected exactly 1 bypass call site per D-09; found multiple:\n")
-		for _, h := range hits {
-			msg.WriteString("  ")
-			msg.WriteString(h.path)
-			msg.WriteString(":")
-			msg.WriteString(strconv.Itoa(h.line))
-			msg.WriteString("  ")
-			msg.WriteString(h.text)
-			msg.WriteString("\n")
+
+	assertSingleHit := func(kind string, hits []hit, help string) {
+		t.Helper()
+		switch {
+		case len(hits) == 0:
+			t.Fatalf("expected exactly 1 %s in production code; found 0. Did Plan 59-05 Task 1 run?", kind)
+		case len(hits) > 1:
+			var msg strings.Builder
+			msg.WriteString("expected exactly 1 ")
+			msg.WriteString(kind)
+			msg.WriteString(" per D-09; found multiple:\n")
+			for _, h := range hits {
+				msg.WriteString("  ")
+				msg.WriteString(h.path)
+				msg.WriteString(":")
+				msg.WriteString(strconv.Itoa(h.line))
+				msg.WriteString("  ")
+				msg.WriteString(h.text)
+				msg.WriteString("\n")
+			}
+			msg.WriteString(help)
+			t.Fatal(msg.String())
 		}
-		msg.WriteString("Only internal/sync/worker.go may call privacy.DecisionContext(ctx, privacy.Allow).\n")
-		msg.WriteString("Non-sync tier elevation must use internal/privctx.WithTier instead.")
-		t.Fatal(msg.String())
+
+		rel, err := filepath.Rel(root, hits[0].path)
+		if err != nil {
+			t.Fatalf("filepath.Rel(%q, %q): %v", root, hits[0].path, err)
+		}
+		// Normalise to forward-slash for cross-platform comparison.
+		rel = filepath.ToSlash(rel)
+		if rel != wantRelPath {
+			t.Fatalf("%s must be in %s; found in %s:%d", kind, wantRelPath, rel, hits[0].line)
+		}
 	}
 
-	rel, err := filepath.Rel(root, hits[0].path)
-	if err != nil {
-		t.Fatalf("filepath.Rel(%q, %q): %v", root, hits[0].path, err)
-	}
-	// Normalise to forward-slash for cross-platform comparison.
-	rel = filepath.ToSlash(rel)
-	if rel != wantRelPath {
-		t.Fatalf("bypass call must be in %s; found in %s:%d", wantRelPath, rel, hits[0].line)
-	}
+	assertSingleHit(
+		"privacy.DecisionContext(ctx, privacy.Allow) call site",
+		callHits,
+		"Only internal/sync/worker.go may call privacy.DecisionContext(ctx, privacy.Allow).\n"+
+			"Non-sync tier elevation must use internal/privctx.WithTier instead.",
+	)
+	assertSingleHit(
+		"privacy.Allow reference",
+		refHits,
+		"Only internal/sync/worker.go may reference privacy.Allow.\n"+
+			"Aliasing it to a local/package variable (e.g. `allow := privacy.Allow`) defeats the\n"+
+			"single-audit-point invariant (D-09, WR-01). Non-sync tier elevation must use\n"+
+			"internal/privctx.WithTier instead.",
+	)
 }
 
 // findRepoRoot walks up from the current working directory looking for
