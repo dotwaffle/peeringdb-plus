@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
-// handleAbout renders the about page with live data freshness.
+// handleAbout renders the about page with live data freshness and the
+// Phase 61 OBS-02 Privacy & Sync section.
 //
 // Freshness lookup strategy: the about page wants to show "when was the
 // last known-good data?", so we go straight to GetLastSuccessfulStatus
@@ -25,6 +27,12 @@ import (
 // Note: /readyz uses GetLastCompletedStatus instead because a health check
 // wants to report "most recent outcome, success or failure" — the two
 // surfaces have different semantics by design.
+//
+// PrivacySync is built from the handler's captured startup fields
+// (h.authMode, h.publicTier) — never re-read from env vars at request
+// time. This matches the rest of the /about surface: the page is a
+// diagnostic snapshot of how the process was configured, not a live
+// probe.
 func (h *Handler) handleAbout(w http.ResponseWriter, r *http.Request) {
 	var freshness templates.DataFreshness
 	if h.db != nil {
@@ -40,8 +48,36 @@ func (h *Handler) handleAbout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	page := PageContent{Title: "About", Content: templates.AboutPage(freshness), Data: freshness}
+	privacy := buildPrivacySync(h.authMode, h.publicTier)
+
+	page := PageContent{
+		Title:   "About",
+		Content: templates.AboutPage(freshness, privacy),
+		Data:    templates.AboutPageData{Freshness: freshness, Privacy: privacy},
+	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		h.handleServerError(w, r)
 	}
+}
+
+// buildPrivacySync maps captured startup values to the Privacy & Sync
+// payload consumed by both renderers. Kept standalone (no *Handler
+// receiver) so the termrender package-level test and the handler-level
+// test exercise identical wording without re-stating strings.
+func buildPrivacySync(authMode string, tier privctx.Tier) templates.PrivacySync {
+	p := templates.PrivacySync{
+		AuthMode:   "Anonymous (no key)",
+		PublicTier: "public",
+	}
+	if authMode == "authenticated" {
+		p.AuthMode = "Authenticated with PeeringDB API key"
+	}
+	if tier == privctx.TierUsers {
+		p.PublicTier = "users"
+		p.OverrideActive = true
+		p.PublicTierExplanation = "Anonymous callers see Users-tier data (internal/private deployment — override active)."
+	} else {
+		p.PublicTierExplanation = "Anonymous callers see Public-only data (default)."
+	}
+	return p
 }

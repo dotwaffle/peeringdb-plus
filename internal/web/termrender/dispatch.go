@@ -44,7 +44,10 @@ func init() {
 	Register(func(d *templates.CompareData, w io.Writer, r *Renderer) error {
 		return r.RenderCompare(w, d)
 	})
-	Register(func(d templates.DataFreshness, w io.Writer, r *Renderer) error {
-		return r.RenderAboutPage(w, d)
+	// /ui/about dispatches via the AboutPageData bundle so both the
+	// freshness and the Phase 61 Privacy & Sync payload reach the
+	// terminal renderer in a single registered type.
+	Register(func(d templates.AboutPageData, w io.Writer, r *Renderer) error {
+		return r.RenderAboutPage(w, d.Freshness, d.Privacy)
 	})
 }

@@ -22,8 +22,9 @@ func formatAge(d time.Duration) string {
 	return fmt.Sprintf("%d hours, %d minutes", int(d.Hours()), int(d.Minutes())%60)
 }
 
-// AboutPage renders the about page with project information and data freshness.
-func AboutPage(freshness DataFreshness) templ.Component {
+// AboutPage renders the about page with project information, data freshness,
+// and the Phase 61 OBS-02 Privacy & Sync section (D-04/D-05/D-06).
+func AboutPage(freshness DataFreshness, privacy PrivacySync) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -56,7 +57,7 @@ func AboutPage(freshness DataFreshness) templ.Component {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(freshness.LastSyncAt.UTC().Format("2006-01-02 15:04:05 UTC"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `about.templ`, Line: 29, Col: 121}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `about.templ`, Line: 30, Col: 121}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -69,7 +70,7 @@ func AboutPage(freshness DataFreshness) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(formatAge(freshness.Age))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `about.templ`, Line: 31, Col: 93}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `about.templ`, Line: 32, Col: 93}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -85,7 +86,56 @@ func AboutPage(freshness DataFreshness) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-8 mb-4 font-mono\">API Surfaces</h2><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><a href=\"/graphql\" class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">GraphQL Playground</h3><p class=\"text-neutral-500 dark:text-neutral-400 text-sm\">Interactive query builder with schema exploration</p></a> <a href=\"/rest/v1/\" class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">REST API</h3><p class=\"text-neutral-500 dark:text-neutral-400 text-sm\">OpenAPI-compliant endpoints with auto-generated docs</p></a><div class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">ConnectRPC / gRPC</h3><p class=\"text-neutral-500 dark:text-neutral-400 text-sm\">Get and List RPCs for all 13 PeeringDB types with typed filtering, reflection, and health checking. Supports Connect, gRPC, and gRPC-Web protocols.</p></div><a href=\"/api/\" class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">PeeringDB Compatible</h3><p class=\"text-neutral-500 dark:text-neutral-400 text-sm\">Drop-in replacement for PeeringDB API integrations</p></a></div><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-8 mb-4 font-mono\">Links</h2><ul class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><li><a href=\"https://github.com/dotwaffle/peeringdb-plus\" class=\"text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository</a></li><li><a href=\"https://www.peeringdb.com\" class=\"text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">PeeringDB Official</a></li></ul></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><div class=\"mt-6 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Privacy &amp; Sync</h2><dl class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-32\">Sync mode:</dt><dd>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var4 string
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(privacy.AuthMode)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `about.templ`, Line: 42, Col: 27}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</dd></div><div class=\"flex flex-col sm:flex-row sm:gap-2 sm:items-center\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-32\">Public tier:</dt><dd class=\"flex items-center gap-2\"><span class=\"font-mono\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var5 string
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(privacy.PublicTier)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `about.templ`, Line: 47, Col: 50}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</span> ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if privacy.OverrideActive {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<span class=\"inline-block px-2 py-0.5 text-xs font-mono rounded border border-amber-500 bg-amber-500/20 text-amber-700 dark:text-amber-400\">Override active</span>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</dd></div></dl><p class=\"text-sm text-neutral-500 dark:text-neutral-400 mt-3\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var6 string
+		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(privacy.PublicTierExplanation)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `about.templ`, Line: 54, Col: 97}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</p></div><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-8 mb-4 font-mono\">API Surfaces</h2><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><a href=\"/graphql\" class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">GraphQL Playground</h3><p class=\"text-neutral-500 dark:text-neutral-400 text-sm\">Interactive query builder with schema exploration</p></a> <a href=\"/rest/v1/\" class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">REST API</h3><p class=\"text-neutral-500 dark:text-neutral-400 text-sm\">OpenAPI-compliant endpoints with auto-generated docs</p></a><div class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">ConnectRPC / gRPC</h3><p class=\"text-neutral-500 dark:text-neutral-400 text-sm\">Get and List RPCs for all 13 PeeringDB types with typed filtering, reflection, and health checking. Supports Connect, gRPC, and gRPC-Web protocols.</p></div><a href=\"/api/\" class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">PeeringDB Compatible</h3><p class=\"text-neutral-500 dark:text-neutral-400 text-sm\">Drop-in replacement for PeeringDB API integrations</p></a></div><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-8 mb-4 font-mono\">Links</h2><ul class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><li><a href=\"https://github.com/dotwaffle/peeringdb-plus\" class=\"text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository</a></li><li><a href=\"https://www.peeringdb.com\" class=\"text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">PeeringDB Official</a></li></ul></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -297,7 +297,19 @@ func main() {
 	logger.Info("PeeringDB compat API mounted", slog.String("prefix", "/api/"))
 
 	// Mount web UI at /ui/ and /static/ prefixes.
-	webHandler := web.NewHandler(entClient, db)
+	// authMode is captured here (not re-read by the handler) so /ui/about
+	// reflects the process-start configuration, matching the "diagnostic
+	// snapshot" semantics of the rest of the page (Phase 61 OBS-02).
+	authMode := "anonymous"
+	if cfg.PeeringDBAPIKey != "" {
+		authMode = "authenticated"
+	}
+	webHandler := web.NewHandler(web.NewHandlerInput{
+		Client:     entClient,
+		DB:         db,
+		AuthMode:   authMode,
+		PublicTier: cfg.PublicTier,
+	})
 	webHandler.Register(mux)
 	logger.Info("Web UI mounted", slog.String("prefix", "/ui/"))
 

@@ -12,6 +12,7 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
@@ -29,19 +30,39 @@ func parseASN(s string) (uint32, bool) {
 
 // Handler serves web UI pages.
 type Handler struct {
-	client   *ent.Client
-	db       *sql.DB
-	searcher *SearchService
-	comparer *CompareService
+	client     *ent.Client
+	db         *sql.DB
+	searcher   *SearchService
+	comparer   *CompareService
+	authMode   string       // "authenticated" | "anonymous" (Phase 61 OBS-02)
+	publicTier privctx.Tier // captured from config.Config.PublicTier at startup
 }
 
-// NewHandler creates a web UI handler with integrated search and compare services.
-func NewHandler(client *ent.Client, db *sql.DB) *Handler {
+// NewHandlerInput configures a web Handler. Client is required; DB may be
+// nil for tests that do not exercise the sync-status table. AuthMode and
+// PublicTier feed the /ui/about Privacy & Sync section (Phase 61 OBS-02
+// D-04/D-05/D-06). When AuthMode is empty, the renderer falls back to
+// "anonymous"; when PublicTier is the zero value (TierPublic), no
+// override flag is shown.
+type NewHandlerInput struct {
+	Client     *ent.Client
+	DB         *sql.DB
+	AuthMode   string
+	PublicTier privctx.Tier
+}
+
+// NewHandler creates a web UI handler with integrated search and compare
+// services. AuthMode and PublicTier are captured at construction and
+// surface on /ui/about (Phase 61 OBS-02). Per threat T-61-06 the input
+// uses named fields so callers cannot transpose them.
+func NewHandler(in NewHandlerInput) *Handler {
 	return &Handler{
-		client:   client,
-		db:       db,
-		searcher: NewSearchService(client),
-		comparer: NewCompareService(client),
+		client:     in.Client,
+		db:         in.DB,
+		searcher:   NewSearchService(in.Client),
+		comparer:   NewCompareService(in.Client),
+		authMode:   in.AuthMode,
+		publicTier: in.PublicTier,
 	}
 }
 

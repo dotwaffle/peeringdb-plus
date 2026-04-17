@@ -145,7 +145,7 @@ func buildPrivacySurfacesFixture(t *testing.T) *surfacesFixture {
 	compatHandler.Register(mux)
 
 	// Web UI (/ui/ and /static/, plus /favicon.ico).
-	webHandler := web.NewHandler(client, rawDB)
+	webHandler := web.NewHandler(web.NewHandlerInput{Client: client, DB: rawDB})
 	webHandler.Register(mux)
 
 	// ConnectRPC PocService. Only the Poc service — this plan's scope
