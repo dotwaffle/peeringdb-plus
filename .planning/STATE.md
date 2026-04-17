@@ -1,13 +1,13 @@
 ---
 gsd_state_version: 1.0
-milestone: none
-milestone_name: ""
-status: milestone complete
-stopped_at: v1.14 archived
+milestone: v1.15
+milestone_name: "Infrastructure Polish & Schema Hygiene"
+status: Roadmap defined
+stopped_at: Roadmap defined for v1.15
 last_updated: "2026-04-17T00:00:00Z"
-last_activity: "2026-04-17 — v1.14 Authenticated Sync & Visibility Layer shipped"
+last_activity: "2026-04-17 — v1.15 roadmap created"
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,7 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** None — v1.14 shipped. Run `/gsd-new-milestone` to start the next cycle.
+**Current focus:** v1.15 Infrastructure Polish & Schema Hygiene — 4 phases (63-66), 11 requirements. No new user-facing features. See `.planning/ROADMAP.md`.
+
+## Current Position
+
+**Milestone:** v1.15 Infrastructure Polish & Schema Hygiene
+**Phase:** none started — roadmap just defined
+**Next action:** pick a phase (63, 64, 65, or 66) and run `/gsd-discuss-phase` or `/gsd-plan-phase`.
+
+**Phases (63-66):**
+
+- **Phase 63** — Schema hygiene: drop 3 vestigial ent fields (`ixprefix.notes`, `organization.fac_count`, `organization.net_count`). Also resolves v1.14-deferred `ixpfx.notes` pdbcompat divergence. Requirements: HYGIENE-01, HYGIENE-02, HYGIENE-03. ~1 plan.
+- **Phase 64** — Field-level privacy: add `ixlan.ixf_ixp_member_list_url` URL data field across struct + schema + sync + serializer; establish serializer-layer field-level redaction pattern across 5 surfaces. Requirements: VIS-08, VIS-09. ~2-3 plans.
+- **Phase 65** — Asymmetric Fly fleet: activate SEED-002. Process groups + ephemeral replicas. Requirements: INFRA-01, INFRA-02, INFRA-03. ~2-3 plans.
+- **Phase 66** — Observability + sqlite3 tooling: prod `sqlite3` binary, heap-threshold monitoring, Grafana heap panel, SEED-001 escalation docs. Requirements: OBS-04, OBS-05, DOC-04. ~1-2 plans.
+
+**Parallelism:** Phases 65 and 66 can run in parallel with 63/64 (no file overlap). Phase 64 is trivially sequenced after Phase 63 (same codegen pipeline).
 
 ## Recently Shipped
 
@@ -34,26 +49,11 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 - **Requirements archive:** [`.planning/milestones/v1.14-REQUIREMENTS.md`](./milestones/v1.14-REQUIREMENTS.md)
 - **Audit:** [`.planning/v1.14-MILESTONE-AUDIT.md`](./v1.14-MILESTONE-AUDIT.md)
 
-Execution summary:
+Post-v1.14 follow-ups surfaced in v1.15:
 
-- **Phase 57** — Empirical visibility baseline captured (fixtures + diff committed; PII guard PASS)
-- **Phase 58** — Schema alignment regression test against diff.json; no new ent fields needed
-- **Phase 59** — ent Privacy policy + sync bypass (FeaturePrivacy, poc.Policy() with NULL defense, single-call-site bypass, PDBPLUS_PUBLIC_TIER env var, internal/privctx package, PrivacyTier middleware, D-15 E2E across 5 surfaces; introduced ent/schematypes to break import cycle)
-- **Phase 60** — Surface integration tests (seed.Full mixed visibility; per-surface leak tests; pdbcompat anon parity via 13-type fixture replay; conformance anon-vs-anon; no-key sync test)
-- **Phase 61** — Operator observability (startup sync-mode slog + WARN on override; /about Privacy & Sync section; OTel pdbplus.privacy.tier attr)
-- **Phase 62** — API key default & docs (4 docs updated; fly secret rollout + smoke test verified on production)
-
-Post-milestone follow-ups: none yet. Next milestone: TBD (v1.15 OAuth is the canonical successor per v1.14 scope decisions).
-
-**v1.13 Security & Sync Hardening** — 6 phases, 16 plans, 16 requirements. Merged via PR #8 (commit 18d3735) on 2026-04-11.
-
-Post-v1.13 follow-ups merged into main:
-
-- #9 Go 1.26 modernization pass
-- #10 fix(sync): reap stale running rows on primary startup
-- #11 feat(otel): reduce metric cardinality ~30-55%
-- 99ce22b fix(search): match networks by ASN literal
-- ac6e330 docs: generate 8 canonical docs
+- `ixpfx.notes` pdbcompat divergence → resolved by Phase 63 (drop the field).
+- Missing `ixlan.ixf_ixp_member_list_url` URL data field → closed by Phase 64.
+- Peak-heap watch story tied to SEED-001 → Phase 66 makes the trigger observable and documents the escalation path.
 
 ## Outstanding Human Verification
 
@@ -74,13 +74,24 @@ All decisions archived in PROJECT.md Key Decisions table (46+ decisions across 1
 
 v1.14 decisions captured in PROJECT.md rows added during Phase 58 (schema sufficiency, `<field>_visible` naming, NULL-as-schema-default, regression test locks empirical assumption).
 
+v1.15 decisions pending — to be logged at phase transitions. Likely candidates:
+
+- Field-level redaction substrate location (package choice: `internal/privfield` vs extend `internal/privctx` vs per-serializer helpers)
+- Asymmetric Fly fleet process-group names (`primary` / `replica` chosen per SEED-002)
+- Heap-threshold surfacing mechanism (`/readyz` degraded signal vs OTel span attribute — TBD in Phase 66 plan)
+
+### Seeds
+
+- **SEED-001** — incremental sync evaluation. Dormant. No trigger fired (peak heap ~84 MB vs 380 MiB). Phase 66 wires the trigger observability.
+- **SEED-002** — asymmetric Fly fleet. **Activated** 2026-04-17 for v1.15 Phase 65. Moves to `.planning/seeds/consumed/` when Phase 65 ships.
+
 ### Pending Todos
 
 None. Check `.planning/HANDOFF.json` and `memory/` for parked ideas.
 
 ### Blockers/Concerns
 
-None. Awaiting next milestone selection.
+None. All 4 phases have clear scope, requirements, and success criteria.
 
 ### Quick Tasks Completed
 
@@ -93,5 +104,5 @@ None. Awaiting next milestone selection.
 ## Session Continuity
 
 Last session: 2026-04-17
-Stopped at: v1.14 archived
-Resume: run `/gsd-new-milestone` to start the next milestone cycle.
+Stopped at: Roadmap defined for v1.15
+Resume: pick a phase (63-66) and run `/gsd-discuss-phase` or `/gsd-plan-phase`.

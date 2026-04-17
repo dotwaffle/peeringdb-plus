@@ -4,7 +4,9 @@ slug: fly-asymmetric-fleet
 planted: 2026-04-17
 planted_after: v1.14
 surface_at: v1.15+
-status: dormant
+status: activated
+activated: 2026-04-17
+consumed_by: v1.15-phase-65
 priority: opportunistic
 triggers:
   - name: infra_cost_reduction_pass

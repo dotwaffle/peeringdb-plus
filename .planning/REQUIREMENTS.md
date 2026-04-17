@@ -1,0 +1,101 @@
+# Requirements: PeeringDB Plus — v1.15
+
+**Defined:** 2026-04-17
+**Core Value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
+**Theme:** Infrastructure Polish & Schema Hygiene — tidy-up after v1.14 ships. No new user-facing features. Reduce ops cost, close known schema gaps, complete one Phase 58 follow-up.
+
+## v1.15 Requirements
+
+Requirements for the Infrastructure Polish & Schema Hygiene milestone. Each maps to roadmap phases 63-66.
+
+### Schema Hygiene (HYGIENE)
+
+- [ ] **HYGIENE-01**: Drop `ixprefix.notes` ent schema field — upstream never emits it; our schema, `peeringdb.IxPrefix` struct, and pdbcompat serializer all reference a field that is always empty in the prod DB. Audit confirmed vestigial across the full pipeline (schema → peeringdb struct → sync upsert → serializer → `/api/*` beta response).
+- [ ] **HYGIENE-02**: Drop `organization.fac_count` ent schema field — pure vestigial; NOT present in `peeringdb.Organization` struct, NOT referenced in sync, NOT emitted by the pdbcompat serializer. ent auto-migrate drops the column on next startup.
+- [ ] **HYGIENE-03**: Drop `organization.net_count` ent schema field — pure vestigial; same evidence as HYGIENE-02. ent auto-migrate drops the column on next startup.
+
+### Visibility (VIS)
+
+- [ ] **VIS-08**: Field-level visibility gate pattern established — ent's built-in privacy package operates at query (row) level, not field level. v1.15 introduces a serializer-layer redaction helper (`internal/privfield` or equivalent) that checks a `<field>_visible` companion against the caller's `privctx.TierFrom(ctx)` and clears/omits the field when the tier is below the field's gate. Pattern must apply uniformly across all 5 surfaces (Web UI, GraphQL, REST, pdbcompat, ConnectRPC) and carry a test that mirrors the Phase 59 D-15 E2E shape.
+- [ ] **VIS-09**: `ixlan.ixf_ixp_member_list_url` exposed to authenticated callers only — field added to `peeringdb.IxLan`, `ent/schema/ixlan.go`, `internal/sync/upsert.go` (SetIxfIxpMemberListURL), and the pdbcompat ixlan serializer. The URL is absent from anonymous responses across all 5 surfaces and present for Users-tier callers, gated via the VIS-08 pattern keyed on the pre-existing `ixf_ixp_member_list_url_visible` companion.
+
+### Infrastructure (INFRA)
+
+- [ ] **INFRA-01**: Fly.io process groups introduced — `fly.toml` gains `[processes]` with `primary` and `replica` entries and two `[[vm]]` blocks scoped via `processes = [...]` (primary: `shared-cpu-2x` / 512 MB; replica: `shared-cpu-1x` / 256 MB). LiteFS region-gated candidacy (`candidate: ${FLY_REGION == PRIMARY_REGION}`) is verified unchanged.
+- [ ] **INFRA-02**: Replicas are ephemeral — `[[mounts]]` scoped to `processes = ["primary"]` only; replica machines have no persistent volume and cold-sync the DB from primary via LiteFS HTTP replication. `/readyz` gates traffic during hydration. Rollout is staged (single test replica, observation window, then full fleet).
+- [ ] **INFRA-03**: Operational docs updated — `docs/DEPLOYMENT.md` + `CLAUDE.md` describe the volume-only-on-primary contract, the replica destroy-and-recreate recovery story, and the hydration-latency expectation. SEED-002 moved to `.planning/seeds/consumed/` once Phase 65 lands.
+
+### Observability (OBS)
+
+- [ ] **OBS-04**: `sqlite3` binary available in production image — prod `Dockerfile` copies the Chainguard static `sqlite3` binary (~1 MB) so operators can run incident-response queries via `fly ssh console` without pulling an image layer. No runtime dependency; stays zero-CGo.
+- [ ] **OBS-05**: Heap-threshold monitoring hooked up — one of (a) `/readyz`-compatible heap-threshold check OR (b) OTel span attribute flagging when peak heap crosses a configurable threshold (default 380 MiB, the SEED-001 trigger). Grafana dashboard gains or verifies a heap-gauge panel filtering by `pdbplus.privacy.tier` (v1.14 Phase 61 attribute).
+
+### Documentation (DOC)
+
+- [ ] **DOC-04**: Peak-heap watching expectation documented — `CLAUDE.md` + `docs/DEPLOYMENT.md` explicitly state: "if heap sustained >380 MiB, SEED-001 trigger fired — revisit incremental sync." Ties the operator runbook to the dormant SEED-001 so the incremental-sync decision has a concrete escalation path.
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| HYGIENE-01 | Phase 63 | Pending |
+| HYGIENE-02 | Phase 63 | Pending |
+| HYGIENE-03 | Phase 63 | Pending |
+| VIS-08 | Phase 64 | Pending |
+| VIS-09 | Phase 64 | Pending |
+| INFRA-01 | Phase 65 | Pending |
+| INFRA-02 | Phase 65 | Pending |
+| INFRA-03 | Phase 65 | Pending |
+| OBS-04 | Phase 66 | Pending |
+| OBS-05 | Phase 66 | Pending |
+| DOC-04 | Phase 66 | Pending |
+
+**Coverage:**
+- v1.15 requirements: 11 total
+- Mapped to phases: 11
+- Unmapped: 0
+
+**Per-phase counts:**
+- Phase 63: 3 requirements (HYGIENE-01, HYGIENE-02, HYGIENE-03)
+- Phase 64: 2 requirements (VIS-08, VIS-09)
+- Phase 65: 3 requirements (INFRA-01, INFRA-02, INFRA-03)
+- Phase 66: 3 requirements (OBS-04, OBS-05, DOC-04)
+
+## Deferred (Out of v1.15 Scope)
+
+Tracked for future milestones. Explicitly NOT in v1.15.
+
+### Incremental sync
+
+- **SEED-001** (incremental sync evaluation) — no trigger fired. Observed peak heap ~84 MB vs 380 MiB threshold = 4.5× headroom. Bandwidth and rate budget both well under ceiling. Remains dormant in `.planning/seeds/`. OBS-05 + DOC-04 exist to make the trigger observable and the escalation path explicit.
+
+### OAuth identity (carried from v1.14 deferred list)
+
+- **AUTH-01..04** — PeeringDB OAuth (`auth.peeringdb.com`) with `profile`+`networks` scopes. Scoped for v1.16+. The field-level gate pattern introduced in VIS-08 is the enabling substrate — once OAuth plumbs `tier=Users` onto the request context, the same redaction helper admits gated fields for OAuth-authenticated callers.
+
+### RPKI / BGP features (carried)
+
+- **BGP-01** — Per-ASN BGP summary from bgp.tools (prefix counts, RPKI coverage). Larger milestone; needs design.
+- **IRR-01** — IRR/AS-SET membership from WHOIS source. Needs design.
+- **PFX-01** — IP prefix lookup with origin ASN, RPKI status. Needs design.
+
+### Operational verification (carried from v1.13 / v1.14)
+
+- **OPVR-01** — `fly_region` Grafana template variable verified against live multi-region deployment
+- **OPVR-02** — Go runtime metric names verified against live Grafana Cloud
+- **OPVR-03** — CI coverage pipeline verified on actual GitHub Actions run
+- **OPVR-04** — v1.13 phase 52 CSP enforcement smoke test (Chrome devtools) and phase 53 header smoke tests (curl HSTS/XFO/XCTO, slowloris)
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Fuzzy search / richer UI filtering | No user demand yet — v1.15 is non-user-facing by design |
+| New entity types or fields beyond VIS-09 | Schema hygiene milestone — drop vestigial, not expand |
+| Incremental sync implementation | SEED-001 trigger has not fired; current full sync has 4.5× headroom |
+| OAuth identity plumbing | Deferred to v1.16+; VIS-08 establishes the substrate but wiring stays separate |
+| Fly.io regional pinning changes beyond process groups | v1.15 changes fleet topology, not region selection (LHR remains primary-candidate) |
+| Multi-primary LiteFS / HA recovery automation | Manual LHR restart remains the recovery path; no HA change in v1.15 |
+
+---
+*Requirements defined: 2026-04-17 — v1.15 roadmap created.*

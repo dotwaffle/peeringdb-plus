@@ -84,9 +84,27 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] /ui/about terminal rendering with rich output — v1.12
 - [x] seed.Minimal/Networks unexported (seed.Full is sole public API) — v1.12
 
-## Current Milestone: None
+## Current Milestone: v1.15 Infrastructure Polish & Schema Hygiene
 
-_No active milestone. v1.14 shipped 2026-04-17. Run `/gsd-new-milestone` to start the next cycle._
+**Defined:** 2026-04-17
+**Status:** Roadmap defined — 4 phases (63-66), 11 requirements, ~6-9 plans.
+**Theme:** Tidy-up after v1.14 ships. No new user-facing features. Reduce ops cost, close known schema gaps, complete one Phase 58 follow-up.
+
+**Scope:**
+
+- **Phase 63 — Schema hygiene**: drop 3 vestigial ent fields (`ixprefix.notes`, `organization.fac_count`, `organization.net_count`). Also resolves the v1.14-deferred `ixpfx.notes` pdbcompat divergence.
+- **Phase 64 — Field-level privacy**: close the Phase 58 gap for `ixlan.ixf_ixp_member_list_url` (the URL data field itself — `_visible` companion already exists). Establish a reusable serializer-layer field-level redaction pattern across all 5 API surfaces. Substrate for future OAuth field gates.
+- **Phase 65 — Asymmetric Fly fleet**: activate SEED-002. Transition from 8 uniform machines to 1 primary (LHR, `shared-cpu-2x`/512 MB, volume) + 7 ephemeral replicas (`shared-cpu-1x`/256 MB, no volume). ~$36/mo (~63%) savings; main win is simplified volume management.
+- **Phase 66 — Observability + sqlite3 tooling**: `sqlite3` in prod image for `fly ssh console` debugging; heap-threshold monitoring tied to SEED-001 trigger (default 380 MiB); Grafana heap panel filterable by `pdbplus.privacy.tier`; operator docs link trigger to SEED-001 escalation.
+
+See [`.planning/ROADMAP.md`](./ROADMAP.md) for phase detail and [`.planning/REQUIREMENTS.md`](./REQUIREMENTS.md) for the 11 requirements with traceability.
+
+### Deferred (explicit v1.15 exclusions)
+
+- **SEED-001 (incremental sync)** — no trigger fired; peak heap ~84 MB vs 380 MiB threshold = 4.5× headroom. Remains dormant. Phase 66 makes the trigger observable.
+- **OAuth identity integration** — scoped for v1.16+. VIS-08 establishes the field-level gate substrate; OAuth wiring stays a separate milestone.
+- **RPKI / BGP features (BGP-01, IRR-01, PFX-01)** — scoped for v1.16+ (larger milestone; needs design).
+- **Fuzzy search / richer UI filtering** — no user demand yet.
 
 ### Recently Shipped: v1.14 Authenticated Sync & Visibility Layer
 
