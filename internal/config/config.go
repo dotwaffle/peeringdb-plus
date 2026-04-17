@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
 // SyncMode controls the sync strategy.
@@ -86,6 +88,14 @@ type Config struct {
 	// SyncMode controls whether sync uses full re-fetch or incremental delta fetch.
 	// Configured via PDBPLUS_SYNC_MODE. Default is "full".
 	SyncMode SyncMode
+
+	// PublicTier is the resolved visibility tier for anonymous HTTP callers.
+	// Configured via PDBPLUS_PUBLIC_TIER. Default TierPublic admits only
+	// visible="Public" rows. Setting PDBPLUS_PUBLIC_TIER=users elevates
+	// anonymous callers to TierUsers for private-instance deployments
+	// (D-11, SYNC-03). Parsed case-sensitive lowercase only (D-12); any
+	// other value is a fail-fast startup error per GO-CFG-1.
+	PublicTier privctx.Tier
 
 	// PeeringDBAPIKey is the optional PeeringDB API key for authenticated access.
 	// Configured via PDBPLUS_PEERINGDB_API_KEY. Empty string means unauthenticated.
@@ -174,6 +184,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing PDBPLUS_SYNC_MODE: %w", err)
 	}
 	cfg.SyncMode = syncMode
+
+	publicTier, err := parsePublicTier("PDBPLUS_PUBLIC_TIER", privctx.TierPublic)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_PUBLIC_TIER: %w", err)
+	}
+	cfg.PublicTier = publicTier
 
 	streamTimeout, err := parseDuration("PDBPLUS_STREAM_TIMEOUT", 60*time.Second)
 	if err != nil {
@@ -341,6 +357,30 @@ func parseSyncMode(key string, defaultVal SyncMode) (SyncMode, error) {
 		return SyncMode(v), nil
 	default:
 		return "", fmt.Errorf("invalid sync mode %q for %s: must be 'full' or 'incremental'", v, key)
+	}
+}
+
+// parsePublicTier reads key from the environment and maps its value to a
+// privctx.Tier. Empty / unset → defaultVal. Only the lowercase strings
+// "public" and "users" are accepted (D-12). Any other value — including
+// case variants ("Users", "PUBLIC") and whitespace-adjacent forms
+// ("public ") — is a hard error so the process fails fast at startup per
+// GO-CFG-1. Mirrors parseSyncMode verbatim.
+//
+// The strict switch (not strings.ToLower + parse) is a deliberate fail-
+// safe-closed choice: a typo like PDBPLUS_PUBLIC_TIER=Users must not
+// silently default to either tier (T-59-05 threat mitigation).
+func parsePublicTier(key string, defaultVal privctx.Tier) (privctx.Tier, error) {
+	v := os.Getenv(key)
+	switch v {
+	case "":
+		return defaultVal, nil
+	case "public":
+		return privctx.TierPublic, nil
+	case "users":
+		return privctx.TierUsers, nil
+	default:
+		return 0, fmt.Errorf("invalid value %q for %s: must be 'public' or 'users'", v, key)
 	}
 }
 
