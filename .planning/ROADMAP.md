@@ -159,7 +159,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 57. Visibility baseline capture | 4/4 | Complete    | 2026-04-16 |
-| 58. Visibility schema alignment | 1/1 | Complete   | 2026-04-17 |
+| 58. Visibility schema alignment | 1/1 | Complete    | 2026-04-17 |
 | 59. ent Privacy policy + sync bypass | 0/0 | Not started | - |
 | 60. Surface integration + tests | 0/0 | Not started | - |
 | 61. Operator-facing observability | 0/0 | Not started | - |
