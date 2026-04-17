@@ -92,7 +92,13 @@ func main() {
 		// SAME connection as the writes (the previous connection-level
 		// `PRAGMA foreign_keys = OFF` was silently non-functional because
 		// the ent tx pulled a fresh pool connection). See Phase 54-01 Commit B.
-		entc.FeatureNames("sql/upsert", "sql/execquery"),
+		//
+		// "privacy" enables ent's privacy package (see entgo.io/docs/privacy):
+		// per-schema Policy() methods + DecisionContext bypass. Required for
+		// Phase 59 VIS-04/VIS-05. Do NOT add "entql" — the typed
+		// PocQueryRuleFunc adapter is sufficient; EntQL dynamic filters are
+		// not required for our row-level visibility rule.
+		entc.FeatureNames("sql/upsert", "sql/execquery", "privacy"),
 	}
 
 	if err := entc.Generate("./schema", &gen.Config{}, opts...); err != nil {

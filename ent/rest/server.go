@@ -32,6 +32,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
+	"github.com/dotwaffle/peeringdb-plus/ent/privacy"
 	"github.com/go-playground/form/v4"
 )
 
@@ -494,6 +495,8 @@ func (s *Server) DefaultErrorHandler(w http.ResponseWriter, r *http.Request, _op
 		_resp.Code = http.StatusBadRequest
 	case IsInvalidID(err):
 		_resp.Code = http.StatusBadRequest
+	case errors.Is(err, privacy.Deny):
+		_resp.Code = http.StatusForbidden
 	case ent.IsNotFound(err):
 		_resp.Code = http.StatusNotFound
 	case ent.IsConstraintError(err), ent.IsNotSingular(err):
