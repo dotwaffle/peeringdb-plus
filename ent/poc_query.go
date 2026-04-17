@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 
@@ -364,6 +365,12 @@ func (_q *PocQuery) prepareQuery(ctx context.Context) error {
 			return err
 		}
 		_q.sql = prev
+	}
+	if poc.Policy == nil {
+		return errors.New("ent: uninitialized poc.Policy (forgotten import ent/runtime?)")
+	}
+	if err := poc.Policy.EvalQuery(ctx, _q); err != nil {
+		return err
 	}
 	return nil
 }

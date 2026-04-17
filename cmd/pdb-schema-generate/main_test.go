@@ -462,14 +462,26 @@ func TestGenerateTypesFile(t *testing.T) {
 	}
 
 	src := string(code)
+	// Phase 59-04: SocialMedia moved to ent/schematypes to break an
+	// import cycle. types.go now only holds socialMediaSchema() (ogen)
+	// and a pointer comment; the value type is verified by
+	// ent/schematypes compile-time presence, not by string-matching
+	// here.
 	for _, want := range []string{
-		"SocialMedia",
-		`json:"service"`,
 		"socialMediaSchema()",
 		"ogen.NewSchema()",
+		"ent/schematypes",
 	} {
 		if !strings.Contains(src, want) {
 			t.Errorf("types.go missing %q", want)
+		}
+	}
+	for _, unwanted := range []string{
+		"type SocialMedia",
+		`json:"service"`,
+	} {
+		if strings.Contains(src, unwanted) {
+			t.Errorf("types.go should no longer contain %q (moved to ent/schematypes)", unwanted)
 		}
 	}
 

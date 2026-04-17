@@ -20,6 +20,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/enttest"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
 	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
@@ -577,7 +578,13 @@ func TestListOrganizationsFilters(t *testing.T) {
 
 func TestListPocsFilters(t *testing.T) {
 	t.Parallel()
-	ctx := t.Context()
+	// Test exercises filter operators across all seeded rows including a
+	// Users-visibility POC. Phase 59-04 enabled the ent privacy Policy
+	// on Poc, which would filter the Users row from a TierPublic ctx.
+	// Elevate to TierUsers so the assertions (which pre-date the policy)
+	// continue to see every seeded row — the filter-operator coverage is
+	// orthogonal to visibility gating.
+	ctx := privctx.WithTier(t.Context(), privctx.TierUsers)
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
@@ -4948,16 +4955,34 @@ func setupPocStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.P
 	svc := &PocService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
 	mux.Handle(peeringdbv1connect.NewPocServiceHandler(svc))
-	srv := httptest.NewUnstartedServer(mux)
+	// Phase 59-04: stamp TierUsers so the handler's ent queries admit
+	// the Users-visibility POC rows seeded by TestStreamPocs. Real
+	// deployments do this via the PDBPLUS_PUBLIC_TIER=users middleware
+	// (internal/middleware.PrivacyTier); tests opt-in directly.
+	handler := http.Handler(mux)
+	handler = elevatePrivacyTierHandler(handler)
+	srv := httptest.NewUnstartedServer(handler)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
 	return peeringdbv1connect.NewPocServiceClient(srv.Client(), srv.URL)
 }
 
+// elevatePrivacyTierHandler wraps h so every inbound request's context
+// is stamped with privctx.TierUsers. Used by Poc-streaming tests that
+// seed Users-visibility rows (Phase 59-04); the production equivalent
+// is internal/middleware.PrivacyTier driven by PDBPLUS_PUBLIC_TIER.
+func elevatePrivacyTierHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r.WithContext(privctx.WithTier(r.Context(), privctx.TierUsers)))
+	})
+}
+
 func TestStreamPocs(t *testing.T) {
 	t.Parallel()
-	ctx := t.Context()
+	// Phase 59-04: elevate to TierUsers so the Users-visibility seeded POC
+	// is visible to the filter-operator assertions. See TestListPocsFilters.
+	ctx := privctx.WithTier(t.Context(), privctx.TierUsers)
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 

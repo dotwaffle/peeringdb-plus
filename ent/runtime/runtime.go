@@ -3,6 +3,8 @@
 package runtime
 
 import (
+	"context"
+
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
 	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
 	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
@@ -17,6 +19,9 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+
+	"entgo.io/ent"
+	"entgo.io/ent/privacy"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -679,8 +684,18 @@ func init() {
 	organizationDescID := organizationFields[0].Descriptor()
 	// organization.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	organization.IDValidator = organizationDescID.Validators[0].(func(int) error)
+	poc.Policy = privacy.NewPolicies(schema.Poc{})
+	poc.Hooks[0] = func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+			if err := poc.Policy.EvalMutation(ctx, m); err != nil {
+				return nil, err
+			}
+			return next.Mutate(ctx, m)
+		})
+	}
 	pocHooks := schema.Poc{}.Hooks()
-	poc.Hooks[0] = pocHooks[0]
+
+	poc.Hooks[1] = pocHooks[0]
 	pocFields := schema.Poc{}.Fields()
 	_ = pocFields
 	// pocDescEmail is the schema descriptor for email field.

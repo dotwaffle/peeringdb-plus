@@ -185,11 +185,16 @@ func restTestServer(t *testing.T) *httptest.Server {
 		SetOrganization(org).
 		SaveX(ctx)
 
-	// Seed Poc.
+	// Seed Poc. Phase 59-04 enabled an ent privacy Policy on Poc that
+	// filters non-Public rows from anonymous (TierPublic) callers. This
+	// REST test hits HTTP endpoints without the PrivacyTier middleware,
+	// so the seeded row's visibility must be "Public" (the default) for
+	// /pocs to include it in the anonymous listing. Visibility filtering
+	// behaviour is exercised in internal/sync/policy_test.go.
 	client.Poc.Create().
 		SetID(1).
 		SetRole("Abuse").
-		SetVisible("Users").
+		SetVisible("Public").
 		SetCreated(now).
 		SetUpdated(now).
 		SetStatus("ok").
