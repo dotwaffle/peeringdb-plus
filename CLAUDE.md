@@ -92,7 +92,7 @@ When a future Phase 57 re-capture surfaces a new auth-gated field (the `internal
 | `PDBPLUS_LISTEN_ADDR` | `:8080` | HTTP listen address (overridden by `PDBPLUS_PORT` if set) |
 | `PDBPLUS_DB_PATH` | `./peeringdb-plus.db` | SQLite database file path |
 | `PDBPLUS_PEERINGDB_URL` | `https://api.peeringdb.com` | PeeringDB API base URL |
-| `PDBPLUS_PEERINGDB_API_KEY` | (empty) | Optional PeeringDB API key; empty = unauthenticated |
+| `PDBPLUS_PEERINGDB_API_KEY` | (empty) | Optional PeeringDB API key; empty = unauthenticated (recommended: set this for production) |
 | `PDBPLUS_SYNC_TOKEN` | (empty) | Shared secret for on-demand sync trigger; empty = disabled |
 | `PDBPLUS_SYNC_INTERVAL` | `1h` | Duration between automatic syncs |
 | `PDBPLUS_SYNC_MODE` | `full` | Sync strategy: `full` or `incremental` |
@@ -105,6 +105,7 @@ When a future Phase 57 re-capture surfaces a new auth-gated field (the `internal
 | `PDBPLUS_OTEL_SAMPLE_RATE` | `1.0` | Trace sampling ratio 0.0-1.0 |
 | `PDBPLUS_STREAM_TIMEOUT` | `60s` | Max duration for a streaming RPC |
 | `PDBPLUS_IS_PRIMARY` | `true` | Fallback primary detection when LiteFS not present |
+| `PDBPLUS_PUBLIC_TIER` | `public` | Effective privacy tier for anonymous callers. `public` (default) = Public-only rows; `users` = treat anonymous as Users-tier (private deployments only, WARN at startup). |
 
 Standard `OTEL_*` env vars also apply (autoexport).
 
