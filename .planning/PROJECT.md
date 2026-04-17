@@ -194,6 +194,10 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 | RPSL aut-num class for WHOIS format | RFC 2622 aut-num for networks; custom ix:/site:/organisation:/campus:/carrier: for other types | ✓ Validated Phase 30 |
 | Renderer struct fields for per-request state | Sections/Width as exported fields set before RenderPage — avoids signature explosion (CS-5) | ✓ Validated Phase 31 |
 | Server-side completion search returning IDs only | Prevents shell injection from entity names containing special characters | ✓ Validated Phase 31 |
+| Phase 58 schema alignment: existing ent fields sufficient | Phase 57 empirical diff surfaced only two auth-gated surfaces — poc row-level visibility (already covered by poc.visible per D-01/D-02) and ixlan.ixf_ixp_member_list_url (already covered by ixlan.ixf_ixp_member_list_url_visible). All other 11 types show zero field-level deltas. No new ent fields required | ✓ Validated Phase 58 |
+| <field>_visible naming convention for per-field visibility | Established by ixlan.ixf_ixp_member_list_url_visible (pre-existing) and confirmed in Phase 58 as the canonical pattern for any future auth-gated field additions. field.String (not Enum) per D-02 — avoids entgql/entrest/entproto codegen churn; validation happens in the privacy policy layer | ✓ Validated Phase 58 |
+| Privacy policy treats NULL <field>_visible as schema default | D-07: ent auto-migrate adds new *_visible columns with declared defaults, but existing rows synced before the column existed will have NULL until the next sync rewrites them. The Phase 59 privacy policy MUST treat NULL as the column default (`Public` per the upstream-default rule) rather than as `Users`, to prevent a post-upgrade flood of suddenly-hidden rows | ✓ Validated Phase 58 |
+| Phase 58 regression test guards the empirical assumption | internal/visbaseline/schema_alignment_test.go asserts diff.json contains only the two known auth-gated surfaces. If a future Phase 57 re-capture surfaces a new auth-gated field, the test fails and forces Phase 58 to be re-opened before Phase 59's privacy policy ships against a stale assumption | ✓ Validated Phase 58 |
 
 ## Evolution
 
@@ -225,4 +229,4 @@ Shipped v1.12 with 50 phases across 13 milestones (v1.0-v1.12). Server hardened 
 - detail.go still 775 lines (handlers + shared helpers remain bundled)
 
 ---
-*Last updated: 2026-04-16 — milestone v1.14 Authenticated Sync & Visibility Layer started (v1.13 Security & Sync Hardening shipped 2026-04-11)*
+*Last updated: 2026-04-16 — Phase 58 visibility schema alignment validated existing schema sufficient (v1.14 in progress, v1.13 shipped 2026-04-11)*
