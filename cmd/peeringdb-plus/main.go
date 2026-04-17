@@ -181,6 +181,12 @@ func main() {
 			slog.String("action", "set PDBPLUS_SYNC_TOKEN"))
 	}
 
+	// Phase 61 (SYNC-04, OBS-01): classify sync mode + public tier at startup.
+	// Emitted after config parse / OTel init / dual-logger install, before any
+	// handler registration, so a failure to start the server does not swallow
+	// the classification record.
+	logStartupClassification(logger, cfg)
+
 	pdbClient := peeringdb.NewClient(cfg.PeeringDBBaseURL, logger, clientOpts...)
 
 	// PERF-07: Caching middleware holds the current ETag behind an atomic
@@ -626,6 +632,43 @@ func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 	return h
 }
 
+// logStartupClassification emits the v1.14 Phase 61 sync-mode classification
+// lines (SYNC-04, OBS-01). Called once from main() after config parse and
+// after slog.SetDefault, before the HTTP listener starts.
+//
+//   - slog.Info "sync mode" (always): auth = "authenticated" | "anonymous",
+//     public_tier = "public" | "users". Exactly those two attrs, in that order.
+//   - slog.Warn "public tier override active" (only when tier == TierUsers):
+//     public_tier = "users", env = "PDBPLUS_PUBLIC_TIER". Exactly those two attrs.
+//
+// Attribute shapes are a wire contract — Grafana Loki filters and external
+// parsers key off the literal strings. Do not rename without a coordinated
+// dashboard update.
+//
+// Per 61-CONTEXT.md D-10/D-11 the tests in startup_logging_test.go capture
+// slog records and assert the attrs directly; changing attr keys or values
+// is a breaking change to the operator contract.
+func logStartupClassification(logger *slog.Logger, cfg *config.Config) {
+	auth := "anonymous"
+	if cfg.PeeringDBAPIKey != "" {
+		auth = "authenticated"
+	}
+	publicTier := "public"
+	if cfg.PublicTier == privctx.TierUsers {
+		publicTier = "users"
+	}
+	logger.Info("sync mode",
+		slog.String("auth", auth),
+		slog.String("public_tier", publicTier),
+	)
+	if cfg.PublicTier == privctx.TierUsers {
+		logger.Warn("public tier override active",
+			slog.String("public_tier", "users"),
+			slog.String("env", "PDBPLUS_PUBLIC_TIER"),
+		)
+	}
+}
+
 // readinessMiddleware returns 503 for all routes except infrastructure paths
 // until the first sync has completed per D-30.
 // Browser requests receive a styled HTML syncing page instead of JSON.
@@ -726,4 +769,3 @@ func newSyncHandler(appCtx context.Context, in SyncHandlerInput) http.HandlerFun
 		fmt.Fprint(w, `{"status":"accepted"}`)
 	}
 }
-
