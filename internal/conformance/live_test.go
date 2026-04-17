@@ -22,22 +22,18 @@ var allTypes = []string{
 	"ixlan", "ixpfx", "net", "netfac", "netixlan", "org", "poc",
 }
 
-// TestLiveConformance fetches responses from beta.peeringdb.com and compares
-// their structure against golden files. This test is gated by the
-// -peeringdb-live flag and skipped during normal test runs.
+// TestLiveConformance fetches anonymous responses from beta.peeringdb.com and
+// compares them structurally against our locally-captured anonymous baseline
+// (VIS-01 fixtures) for all 13 PeeringDB types. This is the single conformance
+// comparison mode per phase 60 D-10; the authenticated mode was removed per
+// D-11 because CI does not hold an API key secret. Gated by -peeringdb-live.
 func TestLiveConformance(t *testing.T) {
 	if !*peeringdbLive {
 		t.Skip("skipping live conformance test (use -peeringdb-live to enable)")
 	}
 
-	apiKey := os.Getenv("PDBPLUS_PEERINGDB_API_KEY")
 	sleepDuration := 3 * time.Second
-	if apiKey != "" {
-		sleepDuration = 1 * time.Second
-		t.Log("using API key for authenticated access (1s sleep)")
-	} else {
-		t.Log("no API key configured, using unauthenticated access (3s sleep)")
-	}
+	t.Log("anon-vs-anon live conformance; 3s inter-request sleep honours the ≤20 anon/min rate ceiling")
 
 	// NOT parallel: sequential to respect PeeringDB rate limits.
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -52,16 +48,13 @@ func TestLiveConformance(t *testing.T) {
 			// NOT parallel: sequential to respect rate limits.
 			ctx := t.Context()
 
-			// Fetch from beta.peeringdb.com.
+			// Fetch from beta.peeringdb.com anonymously — no Authorization header.
 			url := fmt.Sprintf("https://beta.peeringdb.com/api/%s?limit=1", typeName)
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 			if err != nil {
 				t.Fatalf("create request for %s: %v", typeName, err)
 			}
 			req.Header.Set("User-Agent", "pdbcompat-check-test/1.0")
-			if apiKey != "" {
-				req.Header.Set("Authorization", "Api-Key "+apiKey)
-			}
 
 			resp, err := client.Do(req)
 			if err != nil {
