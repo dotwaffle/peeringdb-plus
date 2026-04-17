@@ -12,11 +12,17 @@ updated: 2026-04-17T22:15:00Z
 
 ## Tests
 
+### 0. Deploy the v1.14 code
+expected: `peeringdb-plus` app runs a binary that contains Phase 59/60/61 code (ent privacy policy, PrivacyTier middleware, `sync mode` startup log, `/about` Privacy & Sync section). Currently-deployed binary predates v1.14 and would ignore the secret in step 1.
+result: [pending]
+command: `fly deploy` (from project root)
+prerequisite: working tree is on main at or after commit `68be5e5` (Phase 62 Plan 01 docs landed).
+
 ### 1. Set the Fly secret
-expected: `PDBPLUS_PEERINGDB_API_KEY` secret landed on `peeringdb-plus` app; Fly triggers a rolling deploy
+expected: `PDBPLUS_PEERINGDB_API_KEY` secret landed on `peeringdb-plus` app; Fly triggers a second rolling deploy to re-inject the env var into the v1.14 image.
 result: [pending]
 command: `fly secrets set PDBPLUS_PEERINGDB_API_KEY=<key> --app peeringdb-plus`
-prerequisite: obtain a PeeringDB API key from https://www.peeringdb.com/profile (API Keys tab)
+prerequisite: step 0 complete; obtain a PeeringDB API key from https://www.peeringdb.com/profile (API Keys tab).
 
 ### 2. Confirm secret listed
 expected: `fly secrets list --app peeringdb-plus` output includes a row for `PDBPLUS_PEERINGDB_API_KEY` with a masked digest
@@ -40,10 +46,10 @@ command: `curl -H 'User-Agent: Mozilla/5.0' https://peeringdb-plus.fly.dev/ui/ab
 
 ## Summary
 
-total: 5
+total: 6
 passed: 0
 issues: 0
-pending: 5
+pending: 6
 skipped: 0
 blocked: 0
 
