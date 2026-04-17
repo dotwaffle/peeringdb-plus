@@ -120,7 +120,12 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. Integration test for unauthenticated sync mode confirms: with no `PDBPLUS_PEERINGDB_API_KEY` set, the worker syncs only the upstream anonymous payload, no Users-tier rows ever land in the DB, and the privacy filter is correctly a no-op.
   4. `internal/conformance/` is updated so the live conformance comparison contrasts our anonymous shape against upstream's anonymous shape.
 
-**Plans**: TBD
+**Plans:** 5 plans
+- [ ] 60-01-PLAN.md — Extend seed.Full with mixed-visibility POCs + lock-in regression tests (Wave 1, autonomous, VIS-06)
+- [ ] 60-02-PLAN.md — Per-surface anonymous-leak list-count tests across all 5 surfaces (Wave 2, autonomous, VIS-06)
+- [ ] 60-03-PLAN.md — pdbcompat anon parity via fixture replay (13 types, empty structural diff) (Wave 3, autonomous, VIS-07)
+- [ ] 60-04-PLAN.md — Conformance live test flipped to anon-vs-anon only (Wave 2, autonomous, VIS-07)
+- [ ] 60-05-PLAN.md — No-key sync integration test with fake upstream + surface read (Wave 2, autonomous, SYNC-02)
 
 ### Phase 61: Operator-facing observability
 
@@ -167,6 +172,6 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 | 57. Visibility baseline capture | 4/4 | Complete    | 2026-04-16 |
 | 58. Visibility schema alignment | 1/1 | Complete    | 2026-04-17 |
 | 59. ent Privacy policy + sync bypass | 6/6 | Complete    | 2026-04-17 |
-| 60. Surface integration + tests | 0/0 | Not started | - |
+| 60. Surface integration + tests | 0/5 | In progress | -          |
 | 61. Operator-facing observability | 0/0 | Not started | - |
 | 62. API key default & docs | 0/0 | Not started | - |
