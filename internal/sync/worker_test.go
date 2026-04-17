@@ -37,6 +37,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
+	"github.com/dotwaffle/peeringdb-plus/ent/privacy"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
@@ -2365,5 +2366,179 @@ func TestWorker_CheckMemoryLimitExtracted(t *testing.T) {
 	}
 	if !bytes.Contains(src, []byte("ErrSyncMemoryLimitExceeded")) {
 		t.Fatalf("ErrSyncMemoryLimitExceeded sentinel must be declared in worker.go")
+	}
+}
+
+// ----------------------------------------------------------------------------
+// Plan 59-05: VIS-05 sync-worker privacy bypass tests
+//
+// TestWorkerSync_HasBypassCall              — structural lock on worker.go
+// TestWorkerSync_BypassesPrivacy            — bypass ctx admits Users rows
+// TestWorkerSync_BypassDoesNotLeak          — fresh ctx does not inherit bypass
+// TestWorkerSync_ChildGoroutineInheritsBypass — goroutines derived from
+//                                               bypass ctx keep the decision
+// ----------------------------------------------------------------------------
+
+// TestWorkerSync_HasBypassCall is the source-level RED gate for VIS-05:
+// it reads worker.go and asserts that `Sync` rebinds `ctx` with the
+// privacy bypass BEFORE the `w.running.CompareAndSwap` guard. This is
+// the structural invariant — removing the bypass line (or placing it
+// after any other work) fails CI.
+//
+// This test is in addition to TestSyncBypass_SingleCallSite, which
+// enforces "exactly one bypass call site in the tree". The two tests
+// serve different invariants: this one pins the location within
+// worker.go; the other pins the cardinality across the tree.
+func TestWorkerSync_HasBypassCall(t *testing.T) {
+	t.Parallel()
+
+	src, err := os.ReadFile("worker.go")
+	if err != nil {
+		t.Fatalf("read worker.go: %v", err)
+	}
+	content := string(src)
+
+	// Locate the Sync function body.
+	needle := "func (w *Worker) Sync("
+	idx := strings.Index(content, needle)
+	if idx < 0 {
+		t.Fatalf("did not find %q in worker.go", needle)
+	}
+	body := content[idx:]
+
+	bypassLine := "ctx = privacy.DecisionContext(ctx, privacy.Allow)"
+	bypassIdx := strings.Index(body, bypassLine)
+	if bypassIdx < 0 {
+		t.Fatalf("Worker.Sync missing VIS-05 bypass line %q — D-08/D-09 requires it at function entry", bypassLine)
+	}
+
+	casLine := "w.running.CompareAndSwap"
+	casIdx := strings.Index(body, casLine)
+	if casIdx < 0 {
+		t.Fatalf("did not find %q in worker.go (post-refactor signature changed?)", casLine)
+	}
+	if bypassIdx >= casIdx {
+		t.Fatalf("VIS-05 bypass line must appear BEFORE %q; got bypass@%d vs CAS@%d",
+			casLine, bypassIdx, casIdx)
+	}
+
+	// Also lock the import so linters do not drop it.
+	if !strings.Contains(content, `"github.com/dotwaffle/peeringdb-plus/ent/privacy"`) {
+		t.Fatalf("worker.go missing ent/privacy import required for VIS-05 bypass")
+	}
+}
+
+// TestWorkerSync_BypassesPrivacy asserts that a ctx carrying
+// privacy.DecisionContext(_, privacy.Allow) admits a Users-visibility
+// Poc row — i.e. the exact construction Sync installs at entry lets
+// the sync worker read every row regardless of visibility.
+func TestWorkerSync_BypassesPrivacy(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+
+	bypassCtx := privacy.DecisionContext(context.Background(), privacy.Allow)
+	ts := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	want, err := client.Poc.Create().
+		SetID(3001).
+		SetRole("NOC").
+		SetVisible("Users").
+		SetCreated(ts).
+		SetUpdated(ts).
+		Save(bypassCtx)
+	if err != nil {
+		t.Fatalf("bypass ctx should admit Users-tier insert, got %v", err)
+	}
+
+	got, err := client.Poc.Get(bypassCtx, want.ID)
+	if err != nil {
+		t.Fatalf("bypass ctx should admit Users-tier Get, got %v", err)
+	}
+	if got.Visible != "Users" {
+		t.Errorf("got visible=%q, want %q", got.Visible, "Users")
+	}
+}
+
+// TestWorkerSync_BypassDoesNotLeak verifies that the bypass is
+// context-scoped, not process-scoped: a fresh context.Background() (no
+// DecisionContext, no TierUsers) does NOT see a Users-tier row even
+// though a sibling ctx already did. Catches the failure mode where a
+// developer accidentally stamps the bypass on a shared request ctx.
+func TestWorkerSync_BypassDoesNotLeak(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+
+	bypassCtx := privacy.DecisionContext(context.Background(), privacy.Allow)
+	ts := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	want, err := client.Poc.Create().
+		SetID(3002).
+		SetRole("NOC").
+		SetVisible("Users").
+		SetCreated(ts).
+		SetUpdated(ts).
+		Save(bypassCtx)
+	if err != nil {
+		t.Fatalf("seed via bypass: %v", err)
+	}
+
+	_, err = client.Poc.Get(context.Background(), want.ID)
+	if !ent.IsNotFound(err) {
+		t.Fatalf("fresh ctx must not inherit bypass decision; Get(Users-row) = %v, want NotFound", err)
+	}
+}
+
+// TestWorkerSync_ChildGoroutineInheritsBypass verifies the propagation
+// guarantee: a goroutine derived from the bypass ctx (via
+// context.WithCancel, mirroring the runSyncCycle demotion-monitor
+// pattern around worker.go:1209) keeps the Allow decision. This is the
+// context.WithValue parent-chain walk — standard Go semantics — but the
+// test pins it so a future ctx refactor cannot silently break it.
+func TestWorkerSync_ChildGoroutineInheritsBypass(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+
+	parent := privacy.DecisionContext(context.Background(), privacy.Allow)
+	ts := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	want, err := client.Poc.Create().
+		SetID(3003).
+		SetRole("NOC").
+		SetVisible("Users").
+		SetCreated(ts).
+		SetUpdated(ts).
+		Save(parent)
+	if err != nil {
+		t.Fatalf("seed via bypass: %v", err)
+	}
+
+	// Derive a child ctx the way runSyncCycle does for the demotion monitor.
+	childCtx, cancel := context.WithCancel(parent)
+	defer cancel()
+
+	type result struct {
+		id  int
+		err error
+	}
+	ch := make(chan result, 1)
+	go func() {
+		got, err := client.Poc.Get(childCtx, want.ID)
+		if err != nil {
+			ch <- result{err: err}
+			return
+		}
+		ch <- result{id: got.ID}
+	}()
+
+	select {
+	case r := <-ch:
+		if r.err != nil {
+			t.Fatalf("child goroutine failed Get under inherited bypass ctx: %v", r.err)
+		}
+		if r.id != want.ID {
+			t.Errorf("child got id=%d, want %d", r.id, want.ID)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("child goroutine did not complete within 5s")
 	}
 }
