@@ -141,11 +141,11 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. Both `/about` (HTML) and `/ui/about` (terminal) render the current sync mode and effective privacy tier.
   4. Read-path spans carry an OTel attribute `pdbplus.privacy.tier` with value `public` or `users`, usable as a Grafana dashboard filter.
 
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
-- [ ] 61-01-PLAN.md — Startup classification log + WARN on PDBPLUS_PUBLIC_TIER=users (Wave 1, SYNC-04, OBS-01)
+- [x] 61-01-PLAN.md — Startup classification log + WARN on PDBPLUS_PUBLIC_TIER=users (Wave 1, SYNC-04, OBS-01)
 - [ ] 61-02-PLAN.md — /about + /ui/about Privacy & Sync section with override badge (Wave 1, OBS-02)
-- [ ] 61-03-PLAN.md — OTel attribute pdbplus.privacy.tier on HTTP server span (Wave 1, OBS-03)
+- [x] 61-03-PLAN.md — OTel attribute pdbplus.privacy.tier on HTTP server span (Wave 1, OBS-03)
 
 **UI hint**: yes
 
@@ -177,5 +177,5 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 | 58. Visibility schema alignment | 1/1 | Complete    | 2026-04-17 |
 | 59. ent Privacy policy + sync bypass | 6/6 | Complete    | 2026-04-17 |
 | 60. Surface integration + tests | 5/5 | Complete    | 2026-04-17 |
-| 61. Operator-facing observability | 0/3 | Not started | - |
+| 61. Operator-facing observability | 2/3 | In Progress|  |
 | 62. API key default & docs | 0/0 | Not started | - |
