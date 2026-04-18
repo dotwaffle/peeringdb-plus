@@ -90,8 +90,12 @@ Plans:
 
 **Depends on:** Nothing (can run in parallel with Phase 63/64 — infrastructure change, no code overlap)
 **Requirements:** INFRA-01, INFRA-02, INFRA-03
-**Plans estimate:** 2-3
+**Plans:** 2 plans
 **Reference:** SEED-002 (activated; marked `consumed_by: v1.15-phase-65`; moves to `.planning/seeds/consumed/` when Phase 65 ships)
+
+Plans:
+- [ ] 65-01-config-and-docs-PLAN.md — Land fly.toml + docs sweep (DEPLOYMENT/ARCHITECTURE/CLAUDE/PROJECT) + consume SEED-002 (INFRA-01 config declaration + INFRA-03 docs)
+- [ ] 65-02-live-migration-PLAN.md — Execute production migration: pre-tag machines, fly deploy, 15-min /readyz monitoring window, destroy 7 orphaned replica volumes with jq safeguard (INFRA-01 + INFRA-02 + INFRA-03 evidence)
 
 **Scope:** See SEED-002 for the full analysis. Summary:
 - Single app `peeringdb-plus`, two Fly process groups (`primary`, `replica`), asymmetric `[[vm]]` sizing, `[[mounts]]` scoped to primary only.
@@ -148,7 +152,7 @@ Plans:
 |-------|--------|-------|--------------|---------|
 | 63 — Schema hygiene | Pending | 1/1 | Complete   | 2026-04-18 |
 | 64 — Field-level privacy | Pending | 3/3 | Complete   | 2026-04-18 |
-| 65 — Asymmetric Fly fleet | Pending | 0/2-3 | INFRA-01, INFRA-02, INFRA-03 | — (parallelizable) |
+| 65 — Asymmetric Fly fleet | Pending | 0/2   | INFRA-01, INFRA-02, INFRA-03 | — (parallelizable) |
 | 66 — Observability + sqlite3 | Pending | 0/1-2 | OBS-04, OBS-05, DOC-04 | — (parallelizable) |
 
 **Totals:** 0/4 phases complete, 0/~6-9 plans, 0/11 requirements satisfied.
