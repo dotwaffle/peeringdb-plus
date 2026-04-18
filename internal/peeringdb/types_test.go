@@ -275,3 +275,103 @@ func TestTypeConstants(t *testing.T) {
 		})
 	}
 }
+
+// TestIxLan_URLField_JSONRoundTrip locks the Phase 64 (VIS-09) contract for
+// the ixf_ixp_member_list_url field on peeringdb.IxLan:
+//   - decoding upstream JSON populates IXFIXPMemberListURL when the key is
+//     present,
+//   - encoding with a populated value emits the key,
+//   - encoding with an empty value OMITS the key entirely (,omitempty) to
+//     match upstream anon parity — see Phase 64 RESEARCH.md §Pitfall 2.
+func TestIxLan_URLField_JSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	t.Run("decode populates URL when key present", func(t *testing.T) {
+		t.Parallel()
+		raw := `{"id":1,"name":"test","ixf_ixp_member_list_url":"https://example.test/members.json"}`
+		var il IxLan
+		if err := json.Unmarshal([]byte(raw), &il); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if got, want := il.IXFIXPMemberListURL, "https://example.test/members.json"; got != want {
+			t.Fatalf("IXFIXPMemberListURL = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("decode leaves URL empty when key absent", func(t *testing.T) {
+		t.Parallel()
+		raw := `{"id":1,"name":"test"}`
+		var il IxLan
+		if err := json.Unmarshal([]byte(raw), &il); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if il.IXFIXPMemberListURL != "" {
+			t.Fatalf("IXFIXPMemberListURL = %q, want empty", il.IXFIXPMemberListURL)
+		}
+	})
+
+	t.Run("encode emits key when URL non-empty", func(t *testing.T) {
+		t.Parallel()
+		il := IxLan{ID: 1, IXFIXPMemberListURL: "https://example.test/m.json"}
+		b, err := json.Marshal(il)
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		if !contains(string(b), `"ixf_ixp_member_list_url":"https://example.test/m.json"`) {
+			t.Fatalf("marshal output missing populated URL: %s", string(b))
+		}
+	})
+
+	t.Run("encode omits key when URL empty (omitempty)", func(t *testing.T) {
+		t.Parallel()
+		il := IxLan{ID: 1, IXFIXPMemberListURL: ""}
+		b, err := json.Marshal(il)
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		if contains(string(b), `"ixf_ixp_member_list_url"`) && !contains(string(b), `"ixf_ixp_member_list_url_visible"`) {
+			t.Fatalf("marshal output unexpectedly includes ixf_ixp_member_list_url key: %s", string(b))
+		}
+		// Double-check: the ONLY ixf_ixp_member_list_url* key in the output
+		// should be the _visible companion (which has no omitempty).
+		if countSubstr(string(b), `"ixf_ixp_member_list_url"`) != 0 {
+			t.Fatalf("expected zero occurrences of bare ixf_ixp_member_list_url key; got: %s", string(b))
+		}
+	})
+}
+
+// contains is a small helper to avoid importing strings just for this test.
+func contains(s, sub string) bool {
+	for i := 0; i+len(sub) <= len(s); i++ {
+		if s[i:i+len(sub)] == sub {
+			return true
+		}
+	}
+	return false
+}
+
+// countSubstr counts non-overlapping occurrences of sub in s. For the
+// omitempty assertion we need to distinguish "ixf_ixp_member_list_url" from
+// its "_visible" suffix companion; a simple contains() match conflates them.
+func countSubstr(s, sub string) int {
+	if sub == "" {
+		return 0
+	}
+	n := 0
+	for i := 0; i+len(sub) <= len(s); {
+		if s[i:i+len(sub)] == sub {
+			// Ensure this match is not a prefix of a longer key like
+			// "ixf_ixp_member_list_url_visible" — the next char after the
+			// match must not be an underscore.
+			if i+len(sub) < len(s) && s[i+len(sub)] == '_' {
+				i++
+				continue
+			}
+			n++
+			i += len(sub)
+			continue
+		}
+		i++
+	}
+	return n
+}
