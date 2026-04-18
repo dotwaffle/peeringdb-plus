@@ -36,7 +36,7 @@ must_haves:
     - "`go generate ./ent` produces a clean working tree (CI drift check passes)."
     - "Proto generated: `proto/peeringdb/v1/v1.proto` gains `google.protobuf.StringValue ixf_ixp_member_list_url = 14;` at the END of the IxLan message; fields 1-13 are byte-identical to pre-change."
     - "Sync upsert in `internal/sync/upsert.go` wires `SetIxfIxpMemberListURL(il.IXFIXPMemberListURL)` for ixlan rows."
-    - "`internal/testutil/seed/seed.go` Full(tb, client) seeds at least one ixlan row with the URL populated and its companion _visible field set to `\"Users\"`, so downstream tests have a gated row to exercise."
+    - "`internal/testutil/seed/seed.go` Full(tb, client) seeds BOTH (a) the primary ixlan row (id=100) with the URL populated and `_visible=\"Users\"`, AND (b) a second ixlan row (id=101) with the URL populated and `_visible=\"Public\"`. Plan 64-03's E2E test in task 5 asserts both the Public-admit case and the Users-gated case against real seed rows."
     - "Sync JSON decoder picks up `ixf_ixp_member_list_url` from the upstream response — confirmed via an integration test that decodes the Phase 57 auth fixture and asserts the value round-trips."
   artifacts:
     - path: internal/peeringdb/types.go
@@ -49,7 +49,7 @@ must_haves:
       provides: "upsertIxLans wires SetIxfIxpMemberListURL."
       contains: "SetIxfIxpMemberListURL"
     - path: internal/testutil/seed/seed.go
-      provides: "Full() seeds the primary ixlan row with a populated gated URL + Users-visible companion."
+      provides: "Full() seeds TWO ixlan rows — id=100 with Users-gated URL and id=101 with Public URL."
       contains: "SetIxfIxpMemberListURL"
     - path: proto/peeringdb/v1/v1.proto
       provides: "Auto-regenerated — IxLan message gains field number 14."
@@ -78,11 +78,11 @@ Output:
 - New string field on `peeringdb.IxLan` with `omitempty`.
 - New ent field APPENDED to `ent/schema/ixlan.go`. Position matters: append at the END of the `Fields()` slice so proto field number is 14 (see Pitfall 1 in RESEARCH).
 - Wired into `internal/sync/upsert.go` alongside `SetIxfIxpMemberListURLVisible`.
-- `seed.Full` helper populates it so downstream tests have a concrete row to exercise.
+- `seed.Full` helper populates TWO ixlan rows — id=100 Users-gated and id=101 Public-visible — so Plan 64-03 can exercise both the redact and the always-admit paths against real seed data.
 - All codegen regenerated and committed: ent, proto, gqlgen, entrest.
 - `internal/sync/testdata/refactor_parity.golden.json` regenerated / hand-updated for new field.
 
-This plan does NOT add serializer redaction. That is Plan 64-03 — which DEPENDS on this plan's outputs (ent field, proto field number 14, peeringdb struct field, seed row) and on Plan 64-01 (the privfield helper).
+This plan does NOT add serializer redaction. That is Plan 64-03 — which DEPENDS on this plan's outputs (ent field, proto field number 14, peeringdb struct field, BOTH seed rows) and on Plan 64-01 (the privfield helper).
 
 Zero file overlap with Plan 64-01 → both can run in Wave 1 in parallel.
 </objective>
@@ -338,25 +338,25 @@ Any integration test that loads these fixtures must not assume all rows have a U
 </task>
 
 <task type="auto" tdd="true">
-  <name>Task 3: Wire sync upsert + seed helper + regenerate sync golden fixture</name>
+  <name>Task 3: Wire sync upsert + seed TWO ixlan rows (Users-gated + Public) + regenerate sync golden fixture</name>
   <files>internal/sync/upsert.go, internal/testutil/seed/seed.go, internal/sync/testdata/refactor_parity.golden.json, internal/sync/integration_test.go (if needed)</files>
 
   <read_first>
     1. `internal/sync/upsert.go` lines 310-340 — full upsertIxLans body. The new `SetIxfIxpMemberListURL` call goes adjacent to `SetIxfIxpMemberListURLVisible` (~line 326).
-    2. `internal/testutil/seed/seed.go` lines 130-138 — the current IxLan seed. Executor must update it to populate the URL + visibility on the seed row so Plan 64-03's E2E test has data to gate on.
+    2. `internal/testutil/seed/seed.go` lines 130-138 — the current IxLan seed. Executor MUST both (a) update the primary row (id=100) to populate the URL + `_visible="Users"` AND (b) add a NEW second row (id=101) with URL + `_visible="Public"`. Plan 64-03 E2E in task 5 asserts both cases.
     3. `internal/sync/testdata/refactor_parity.golden.json` — look for existing IxLan entries; understand how the golden was constructed. If it's a canonical snapshot of the sync output for fixtures, it may need the new field populated wherever an ixlan row appears.
     4. RESEARCH.md §"Pitfall 5: Test fixtures miss the URL field" — the seed.Full update is mandatory or Plan 64-03's E2E test is trivially green.
     5. `internal/sync/integration_test.go` — find the ixlan integration test (`grep -n "ixlan\|IxLan" internal/sync/integration_test.go`). Confirm how it uses fixtures. If there's a fixture-based test that decodes from `testdata/fixtures/*.json`, it may need the fixture to include the new field OR the assertion may need updating.
     6. `testdata/fixtures/` — check if there's an `ixlan.json` fixture. If so, DO NOT mutate the canonical fixture; rely on `testdata/visibility-baseline/beta/auth/api/ixlan/page-{1,2}.json` for the round-trip test below.
+    7. BEFORE editing seed.Full, run `grep -rn "IxfIxpMemberListURLVisible\|client.IxLan.Query().Count\|seed.Full" internal/ cmd/ graph/` to find every caller that asserts seed shape. Any test asserting `client.IxLan.Query().Count(ctx) == 1` must be updated to expect `== 2`. Any test asserting the primary row's `_visible` is `"Private"` (the schema default) must be updated to expect `"Users"`, OR that test must be documented as intentionally independent (rare).
   </read_first>
 
   <behavior>
     - `internal/sync/upsert.go` `upsertIxLans` func sets the URL via `SetIxfIxpMemberListURL(il.IXFIXPMemberListURL)` adjacent to the existing `SetIxfIxpMemberListURLVisible` call.
-    - `internal/testutil/seed/seed.go` `Full()` populates the primary IxLan (id=100) with:
-      - `SetIxfIxpMemberListURL("https://example.test/ix/100/members.json")`
-      - `SetIxfIxpMemberListURLVisible("Users")`
-      so anon callers MUST NOT see the URL and Users-tier callers MUST see it.
-    - OPTIONAL: extend seed.Full with a second ixlan row (id=101) with `_visible=Public` and a URL, so Plan 64-03 tests can assert the "always admit Public" rule on a real seed row. If you add this row, wire its FK to the same IX and ensure no downstream tests fail because they expect `client.IxLan.Query().Count(ctx) == 1` — grep for that expectation first.
+    - `internal/testutil/seed/seed.go` `Full()` populates TWO ixlan rows, MANDATORY (not one-or-the-other):
+      - **Row 1 (primary, existing id=100)**: set `SetIxfIxpMemberListURL("https://example.test/ix/100/members.json")` and `SetIxfIxpMemberListURLVisible("Users")`. This is the Users-gated case — Plan 64-03 E2E asserts anon tier does NOT see the URL and Users tier DOES.
+      - **Row 2 (new, id=101)**: create a fresh IxLan bound to the same IX, with `SetIxfIxpMemberListURL("https://example.test/ix/101/members.json")` and `SetIxfIxpMemberListURLVisible("Public")`. This is the always-admit case — Plan 64-03 E2E asserts BOTH tiers see the URL. Without this row, the E2E cannot prove the helper does not over-redact.
+    - BOTH rows are required. Downstream E2E tests in Plan 64-03 task 5 reference `e2eGatedIxlanID = 100` (Users-gated) AND `e2ePublicIxlanID = 101` (Public). Omitting either row leaves half the contract unverified.
     - The sync golden file (`refactor_parity.golden.json`) is regenerated OR manually patched to include the new field on any ixlan entry. If regeneration is scripted, run the regen script; otherwise hand-patch (prefer hand-patching to avoid surprising diffs elsewhere).
     - An integration test decodes one ixlan row from `testdata/visibility-baseline/beta/auth/api/ixlan/page-1.json` and asserts `peeringdb.IxLan.IXFIXPMemberListURL` is populated for a row that has the URL in the fixture. This proves the JSON decoder picks up the field (matching RESEARCH.md Finding #5: no client changes needed beyond the struct tag).
   </behavior>
@@ -384,21 +384,46 @@ Any integration test that loads these fixtures must not assume all rows have a U
 
     The setter name is `SetIxfIxpMemberListURL` — `ent` generates `SetIxf` + camelcase from the snake-case schema field. Verify post-regen (from Task 2) that this setter exists: `grep "func (iuo \\*IxLanCreate) SetIxfIxpMemberListURL" ent/ixlan_create.go`.
 
-    2. **Edit `internal/testutil/seed/seed.go`**. In `Full()` (~line 130-138), update the primary IxLan seed to populate the new field AND set the companion visible to `"Users"`:
+    2. **Edit `internal/testutil/seed/seed.go`**. Make TWO mandatory changes in `Full()` (~line 130-138):
+
+    **2a. Update the primary row (id=100) — the Users-gated case.**
 
     ```go
     r.IxLan, err = client.IxLan.Create().
         SetID(100).
         SetIxID(r.IX.ID).SetInternetExchange(r.IX).
-        SetIxfIxpMemberListURL("https://example.test/ix/100/members.json"). // PHASE 64 (VIS-09) — seed a gated URL
+        SetIxfIxpMemberListURL("https://example.test/ix/100/members.json"). // PHASE 64 (VIS-09) — Users-gated URL
         SetIxfIxpMemberListURLVisible("Users").                             // PHASE 64 (VIS-09) — gate the URL as Users-tier
         SetCreated(Timestamp).SetUpdated(Timestamp).
         Save(ctx)
+    if err != nil {
+        return nil, fmt.Errorf("create IxLan id=100: %w", err)
+    }
     ```
 
-    Executor MUST NOT blindly change `_visible` to `"Users"` if `seed.Full` is imported by tests that assume a different value. Run `grep -rn "IxfIxpMemberListURLVisible" internal/ cmd/ graph/` BEFORE making the change. If any test asserts the seed's `_visible` is `"Private"` (the schema default), either:
-      - (a) Update that test's assertion to `"Users"` alongside (if the test is semantically about "whatever seed.Full sets"), OR
-      - (b) Keep seed.Full's `_visible` as-is and add the URL + visibility on a NEW second ixlan row (id=101). Prefer option (b) if more than one test asserts the current value.
+    **2b. Add a NEW second row (id=101) — the always-admit Public case.** Add this immediately after the primary row's error check:
+
+    ```go
+    r.IxLanPublic, err = client.IxLan.Create().
+        SetID(101).
+        SetIxID(r.IX.ID).SetInternetExchange(r.IX).
+        SetIxfIxpMemberListURL("https://example.test/ix/101/members.json"). // PHASE 64 (VIS-09) — Public URL
+        SetIxfIxpMemberListURLVisible("Public").                            // PHASE 64 (VIS-09) — always-admit case
+        SetCreated(Timestamp).SetUpdated(Timestamp).
+        Save(ctx)
+    if err != nil {
+        return nil, fmt.Errorf("create IxLan id=101: %w", err)
+    }
+    ```
+
+    Add `IxLanPublic *ent.IxLan` to the seed result struct (type the executor must locate — sibling of the existing `IxLan` field on `r`). If the struct is unexported and not extensible without cascading to callers, export the new id=101 row as `IxLanPublicID = 101` constant alongside any existing `e2eGatedIxlanID` constant in seed/seed.go — Plan 64-03 imports these IDs.
+
+    **2c. Callsite audit.** Before saving, run `grep -rn "IxfIxpMemberListURLVisible\|client.IxLan.Query().Count" internal/ cmd/ graph/`. For EVERY match:
+      - If the test asserts the primary row's `_visible` is `"Private"` → update to `"Users"`.
+      - If the test asserts `client.IxLan.Query().Count(ctx) == 1` → update to `== 2`.
+      - If the test asserts the primary row's URL is empty → update to the seeded URL OR ignore the URL field.
+
+    Do NOT skip the second-row addition; option-(b)-only from the pre-revision plan is retired. Both rows are mandatory.
 
     If `seed_mixed_visibility_test.go` exists (confirmed by earlier ls output), read it first — it likely already tests the mixed-visibility pattern and may require your change to compose cleanly.
 
@@ -470,13 +495,16 @@ Any integration test that loads these fixtures must not assume all rows have a U
     <automated>TMPDIR=/tmp/claude-1000 go test -race -count=1 ./internal/sync/... ./internal/peeringdb/... ./internal/testutil/...</automated>
     Also:
     - `grep -n "SetIxfIxpMemberListURL(il.IXFIXPMemberListURL)" internal/sync/upsert.go` returns exactly one line.
-    - `grep -n "SetIxfIxpMemberListURL" internal/testutil/seed/seed.go` returns at least one line.
+    - `grep -c "SetIxfIxpMemberListURL" internal/testutil/seed/seed.go` returns 2 (one call per seeded ixlan row).
+    - `grep -c "SetIxfIxpMemberListURLVisible" internal/testutil/seed/seed.go` returns 2 (Users and Public).
+    - `grep -n "SetID(101)" internal/testutil/seed/seed.go` returns at least one line (the new Public ixlan row).
     - New ixlan fixture test passes (captured by the test run above).
   </verify>
 
   <done>
     - Sync upsert writes the URL to the DB for every ixlan row during sync.
-    - `seed.Full` populates the primary ixlan (or a new row) with a gated URL so Plan 64-03's E2E has a realistic seed.
+    - `seed.Full` seeds BOTH required rows: id=100 with Users-gated URL and id=101 with Public URL. Both are mandatory for Plan 64-03 E2E coverage.
+    - All callers of seed.Full that depended on the pre-Phase-64 shape (single-row, default visibility) are updated.
     - The golden file is up-to-date; no CI drift.
     - Fixture round-trip test locks the JSON decoder behaviour.
     - `go test -race ./internal/sync/... ./internal/peeringdb/... ./internal/testutil/...` passes.
@@ -519,6 +547,9 @@ Any integration test that loads these fixtures must not assume all rows have a U
 - sync JSON decoder populates `IXFIXPMemberListURL` from `ixf_ixp_member_list_url` key (unit test via fixture round-trip).
 - upsert writes the URL to SQLite (integration test in `internal/sync/`).
 
+**Seed coverage:**
+- seed.Full seeds TWO ixlan rows: id=100 Users-gated, id=101 Public. Both required for downstream E2E.
+
 **Tests:**
 - `go test -race ./internal/sync/... ./internal/peeringdb/... ./internal/testutil/...` passes.
 - `go test -race ./ent/...` passes.
@@ -528,7 +559,7 @@ Any integration test that loads these fixtures must not assume all rows have a U
 <success_criteria>
 - VIS-09 ingestion path complete: upstream JSON → peeringdb struct → ent schema → SQLite column, all wired.
 - Codegen artefacts regenerated and committed: ent, proto, gqlgen, entrest.
-- `seed.Full` populates the primary ixlan with a gated URL + Users-visibility so Plan 64-03 E2E has a realistic seed.
+- `seed.Full` populates BOTH the primary ixlan (Users-gated URL) AND a second row (Public URL) so Plan 64-03 E2E has real data for both the redact and always-admit paths.
 - Golden file up-to-date.
 - No regression on existing tests.
 - Plan 64-03 can reference `ent.IxLan.IxfIxpMemberListURL`, `pb.IxLan.IxfIxpMemberListUrl` (*wrapperspb.StringValue), and the new GraphQL field without any further codegen.
@@ -539,7 +570,8 @@ After completion, create `.planning/phases/64-field-level-privacy/64-02-SUMMARY.
 - Exact line numbers of the edits in ent/schema/ixlan.go, peeringdb/types.go, sync/upsert.go, testutil/seed/seed.go.
 - Proto field number (MUST be 14; document which field numbers existed pre-change for audit).
 - Full diff of `proto/peeringdb/v1/v1.proto` (new line only).
-- Whether seed.Full modified the primary row or added a new row (option a vs b).
+- Confirmation that BOTH ixlan rows (id=100 Users-gated AND id=101 Public) are seeded; include the seed/seed.go diff for both Create() blocks.
+- Any seed.Full callers that required updates; list the file+line for each.
 - Paste of `git status --short` after `go generate ./ent` so the plan-checker can audit the regen file set.
 - Paste of the sync/peeringdb test output.
 </output>

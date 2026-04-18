@@ -34,8 +34,9 @@ must_haves:
     - "Users-tier callers (via `PDBPLUS_PUBLIC_TIER=users` or a test fixture that stamps TierUsers on ctx) see the URL for rows with `_visible=Users` or `_visible=Public`."
     - "Private-visible rows NEVER emit the URL regardless of tier (matches upstream — the URL is never exposed when `_visible=Private`)."
     - "E2E test `TestE2E_FieldLevel_IxlanURL_*` exercises all 5 surfaces at both tiers and fails if any surface leaks the URL when it shouldn't, or hides it when it shouldn't."
-    - "Fail-closed verification: with a handler bypassing `middleware.PrivacyTier` (unstamped ctx), the URL is redacted — matching privfield.Redact's fail-closed default."
+    - "Fail-closed verification: with a handler bypassing `middleware.PrivacyTier` (unstamped ctx), the URL is redacted — matching privfield.Redact's fail-closed default. This is asserted at the ConnectRPC surface via a dedicated `fail-closed-bypass-middleware` sub-test in task 5."
     - "The pre-existing `ixf_ixp_member_list_url_visible` field is STILL emitted in anon responses (matches upstream — D-05)."
+    - "The entrest list-wrapper JSON key is CONFIRMED by grepping `ent/rest/` before implementing the middleware; the middleware code uses the actual key, not an assumed one."
   artifacts:
     - path: internal/pdbcompat/serializer.go
       provides: "ixLanFromEnt(ctx, l) applies privfield.Redact to the URL."
@@ -50,10 +51,10 @@ must_haves:
       provides: "IxLanResolver.IxfIxpMemberListURL(ctx, obj) calls privfield.Redact; returns nil when omit."
       contains: "IxfIxpMemberListURL"
     - path: cmd/peeringdb-plus/main.go
-      provides: "restFieldRedactMiddleware registered in the /rest/v1 chain; mutates JSON body of /rest/v1/ix-lans* responses."
+      provides: "restFieldRedactMiddleware registered in the /rest/v1 chain; mutates JSON body of /rest/v1/ix-lans* responses using the entrest-confirmed list-wrapper key."
       contains: "restFieldRedact"
     - path: cmd/peeringdb-plus/field_privacy_e2e_test.go
-      provides: "5-surface E2E test mirroring Phase 59 D-15 pattern (D-10 in CONTEXT.md)."
+      provides: "5-surface E2E test mirroring Phase 59 D-15 pattern (D-10 in CONTEXT.md), including a fail-closed-bypass-middleware sub-test."
       contains: "TestE2E_FieldLevel_IxlanURL"
     - path: CLAUDE.md
       provides: "§Schema & Visibility updated — replaces 'the privacy policy nulls the value field' with the serializer-layer privfield.Redact reality. Also documents: any new <field>_visible companion must add a privfield.Redact call at all 5 surfaces."
@@ -73,7 +74,7 @@ must_haves:
       pattern: "privfield\\.Redact"
     - from: cmd/peeringdb-plus/main.go
       to: internal/privfield/privfield.go
-      via: "restFieldRedactMiddleware body rewriter → privfield.Redact for each `data` entry"
+      via: "restFieldRedactMiddleware body rewriter → privfield.Redact for each list entry (using entrest-confirmed wrapper key)"
       pattern: "privfield\\.Redact"
     - from: cmd/peeringdb-plus/field_privacy_e2e_test.go
       to: cmd/peeringdb-plus/e2e_privacy_test.go
@@ -90,11 +91,11 @@ Output:
 - pdbcompat `ixLanFromEnt` takes ctx; calls `privfield.Redact`; empty result combined with `omitempty` tag → key omitted.
 - ConnectRPC `ixLanToProto` takes ctx; leaves `IxfIxpMemberListUrl` as nil when redacted.
 - GraphQL opt-in via `gqlgen.yml` + resolver in `graph/custom.resolvers.go` returning `*string` (nil when redacted).
-- REST: new `restFieldRedactMiddleware` wraps entrest for `/rest/v1/ix-lans*` prefixes. Mirrors `restErrorMiddleware` pattern at main.go:527-569.
-- E2E test: `TestE2E_FieldLevel_IxlanURL_RedactedAnon` + `TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier` covering all 5 surfaces.
+- REST: new `restFieldRedactMiddleware` wraps entrest for `/rest/v1/ix-lans*` prefixes. Mirrors `restErrorMiddleware` pattern at main.go:527-569. The list-wrapper JSON key is confirmed against `ent/rest/` before implementation — NOT assumed.
+- E2E test: `TestE2E_FieldLevel_IxlanURL_RedactedAnon` (with an explicit `fail-closed-bypass-middleware` sub-test) + `TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier` covering all 5 surfaces.
 - CLAUDE.md §"Schema & Visibility" updated to reflect serializer-layer reality.
 
-This plan runs in Wave 2; depends on Plan 64-01 (privfield package) and Plan 64-02 (ent + proto + gqlgen regen + seed row). File overlap with 64-02 on `graph/generated.go` (gqlgen regenerates when gqlgen.yml changes) forces this to a later wave.
+This plan runs in Wave 2; depends on Plan 64-01 (privfield package) and Plan 64-02 (ent + proto + gqlgen regen + BOTH seed rows id=100 Users-gated and id=101 Public). File overlap with 64-02 on `graph/generated.go` (gqlgen regenerates when gqlgen.yml changes) forces this to a later wave.
 </objective>
 
 <execution_context>
@@ -157,6 +158,10 @@ type IxLan struct {
 }
 ```
 
+From internal/testutil/seed/seed.go (Plan 64-02): TWO ixlan rows seeded by Full():
+- id=100 with URL "https://example.test/ix/100/members.json" and _visible="Users"
+- id=101 with URL "https://example.test/ix/101/members.json" and _visible="Public"
+
 From internal/pdbcompat/serializer.go (current — this plan changes it):
 ```go
 // ixLanFromEnt maps an ent IxLan to a peeringdb IxLan.
@@ -194,11 +199,7 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
     // handlers + URLs.  Used by both RedactedAnon and VisibleToUsersTier.
 }
 ```
-The Phase 64 test reuses this. The existing fixture seeds a POC but not an ixlan with a gated URL — either:
-  (a) Extend buildE2EFixture to also seed a gated ixlan, OR
-  (b) Build a sibling `buildFieldPrivacyFixture` in the new e2e test file, reusing the Server construction code via a shared helper extracted from Phase 59.
-
-Option (a) is cleanest but perturbs Phase 59 test file. Option (b) duplicates setup. RESEARCH.md §Wave 0 recommends option (b) — sibling file `field_privacy_e2e_test.go` with its own fixture. Go with (b); extract a shared "server construction" helper only if the duplication is egregious.
+The Phase 64 test reuses this. Plan 64-02's seed.Full now seeds the two required ixlan rows (id=100 Users-gated + id=101 Public), so buildE2EFixture inherits them automatically — no fixture extension needed for the ixlan rows themselves.
 
 From graph/gqlgen.yml current state:
 ```yaml
@@ -239,6 +240,7 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
     - When `privfield.Redact(ctx, l.IxfIxpMemberListURLVisible, l.IxfIxpMemberListURL)` returns `(value, false)`, the returned `peeringdb.IxLan.IXFIXPMemberListURL` = value; JSON marshal emits the key.
     - When Redact returns `("", true)`, the returned struct's field is `""`; the `,omitempty` tag (from Plan 64-02) causes json.Marshal to omit the key entirely.
     - For the seed row (id=100, visible=Users, URL=…), anon ctx → key absent from JSON output; Users ctx → key present.
+    - For the seed row (id=101, visible=Public, URL=…), BOTH tiers → key present with the URL value.
     - `ixLansFromEnt` takes ctx and passes it through to each ixLanFromEnt call.
     - The `IXFIXPMemberListURLVisible` field is STILL emitted (D-05) — no change to that line.
     - Existing pdbcompat anon parity test in `internal/pdbcompat/anon_parity_test.go` (or similar) still passes.
@@ -562,9 +564,25 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
     3. CLAUDE.md §"Middleware" — the ResponseWriter wrapper must implement `http.Flusher` (delegate to underlying writer) AND `Unwrap()` method. RESEARCH.md §"Pitfall 4" — REST is non-streaming so Flusher is a non-issue in practice, but implementing it costs 3 lines and keeps the middleware contract consistent.
     4. RESEARCH.md §"entrest response middleware (new — mirrors restErrorMiddleware)" — the full middleware sketch lives in the research doc.
     5. RESEARCH.md §"Open Question 3" — Content-Length handling. Solution: after rewriting, clear `Content-Length` header so Go's http server writes chunked encoding OR computes a fresh length.
-    6. Entrest REST output shapes:
+    6. **MANDATORY: Confirm the entrest list-wrapper JSON key BEFORE writing the middleware code.** Do NOT assume `content`; grep the generated entrest code:
+
+    ```bash
+    grep -rn 'json:"\(content\|data\|items\|results\)"' ent/rest/
+    ```
+
+    This returns the exact JSON tag entrest emits for its paginated list-response struct. Record the actual key (likely one of `content`, `data`, `items`, `results`) in the SUMMARY. Whatever key `ent/rest/` actually uses, that is the key the middleware MUST reference in `redactIxlanJSON`. If the key is NOT `content`, update the code skeleton in step 1 below accordingly — do NOT ship middleware that assumes `content` without this verification.
+
+    Additional safety check: also grep for the list-response struct definition to understand its full shape:
+
+    ```bash
+    grep -rn "type .*PageResponse\|type .*ListResponse\|type .*Paged" ent/rest/ | head -10
+    ```
+
+    Record the struct name and its wrapper-field tag in the SUMMARY for the plan-checker's audit.
+
+    7. Entrest REST output shapes (to be confirmed via step 6):
        - Detail: `GET /rest/v1/ix-lans/{id}` → a single JSON object of the ixlan.
-       - List: `GET /rest/v1/ix-lans` → `{"content": [...]}` paginated wrapper (verify by querying the running app or by grepping generated entrest code for the response wrapper type).
+       - List: `GET /rest/v1/ix-lans` → a paginated wrapper with the confirmed key from step 6.
        Both cases MUST redact the URL key. Test BOTH in the E2E test (Task 5).
   </read_first>
 
@@ -577,11 +595,12 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
     - Non-JSON responses (error bodies with `application/problem+json`, empty bodies, binary) are passed through unchanged.
     - `Content-Length` header is recomputed or cleared after body rewrite to match the new body length.
     - Middleware wrapper implements `Unwrap() http.ResponseWriter` and `http.Flusher` per CLAUDE.md §Middleware.
+    - The list-wrapper JSON key used by the middleware MATCHES the actual key emitted by entrest (confirmed in `<read_first>` step 6). If `ent/rest/` emits e.g. `json:"data"` and the middleware references `detail["content"]`, list responses silently bypass redaction — a privacy leak.
     - `go test -race ./cmd/peeringdb-plus/...` passes including the E2E test in Task 5.
   </behavior>
 
   <action>
-    1. **Edit `cmd/peeringdb-plus/main.go`**. Add the new middleware implementation BELOW `restErrorMiddleware` (~after line 569). Full skeleton:
+    1. **Edit `cmd/peeringdb-plus/main.go`**. Add the new middleware implementation BELOW `restErrorMiddleware` (~after line 569). The list-wrapper key used below (`content`) is a PLACEHOLDER — replace with the actual key discovered in `<read_first>` step 6 before compiling:
 
     ```go
     // restFieldRedactMiddleware removes the `ixf_ixp_member_list_url` key
@@ -598,7 +617,13 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
     // Scope: only /rest/v1/ix-lans and /rest/v1/ix-lans/{id} (prefix match).
     // Other REST paths pass through untouched. Non-JSON responses pass through.
     //
+    // The list-wrapper JSON key MUST match the key emitted by entrest's
+    // generated code in ent/rest/. Confirmed via `grep -rn 'json:"..."'
+    // ent/rest/` during planning; see SUMMARY for the exact key.
+    //
     // Phase 64 VIS-08 / VIS-09.
+    const restListWrapperKey = "content" // ← REPLACE with the actual key discovered via grep in read_first step 6
+
     func restFieldRedactMiddleware(next http.Handler) http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             if !strings.HasPrefix(r.URL.Path, "/rest/v1/ix-lans") {
@@ -658,7 +683,7 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
 
         // Attempt JSON rewrite. Two shapes supported:
         //   - Detail:  top-level object with `ixf_ixp_member_list_url` + `ixf_ixp_member_list_url_visible`
-        //   - List:    wrapper with "content": [ { ... }, ... ]
+        //   - List:    wrapper with restListWrapperKey: [ { ... }, ... ] (key confirmed via grep of ent/rest/)
         rewritten, err := redactIxlanJSON(ctx, body)
         if err != nil {
             // Fail-closed: if we can't parse the body, pass through
@@ -679,15 +704,17 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
     // redactIxlanJSON parses body as JSON, walks any ixlan objects it finds,
     // and drops the `ixf_ixp_member_list_url` key when privfield.Redact
     // says omit. Returns the re-encoded body.
+    //
+    // The list-wrapper key is restListWrapperKey (confirmed via grep of ent/rest/).
     func redactIxlanJSON(ctx context.Context, body []byte) ([]byte, error) {
         // Try detail shape first.
         var detail map[string]any
         if err := json.Unmarshal(body, &detail); err != nil {
             return nil, err
         }
-        // If the top-level has a "content" key (list), walk each entry.
-        if content, ok := detail["content"].([]any); ok {
-            for _, entry := range content {
+        // If the top-level has the entrest list-wrapper key, walk each entry.
+        if wrapped, ok := detail[restListWrapperKey].([]any); ok {
+            for _, entry := range wrapped {
                 obj, ok := entry.(map[string]any)
                 if !ok {
                     continue
@@ -714,7 +741,7 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
 
     Add imports at top of main.go: `"bytes"`, `"encoding/json"`, `"strings"` (if not already), `"github.com/dotwaffle/peeringdb-plus/internal/privfield"`.
 
-    The list-wrapper key is assumed to be `content` (entrest default). Verify by hitting `/rest/v1/ix-lans?limit=1` on a running test server OR by reading the entrest-generated response type in `ent/rest/`. If the wrapper key is different (e.g., `data`), adjust.
+    **CRITICAL:** Before compiling, replace the `restListWrapperKey` constant value with the actual key discovered in `<read_first>` step 6. Do NOT ship the placeholder `"content"` without confirmation.
 
     2. **Wire the middleware into the chain**. Change line 304:
 
@@ -750,12 +777,14 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
     - `grep -c "restFieldRedactMiddleware" cmd/peeringdb-plus/main.go` = 2 (definition + wiring).
     - `grep -c "restFieldRedactWriter" cmd/peeringdb-plus/main.go` = 1 type + several method receivers ≥ 5.
     - `grep "Unwrap()" cmd/peeringdb-plus/main.go | grep restFieldRedact` ≥ 1 (CLAUDE.md §Middleware requirement).
+    - **Wrapper-key confirmation:** `grep -n "restListWrapperKey" cmd/peeringdb-plus/main.go` shows the constant defined with a value that MATCHES the key found by `grep -rn 'json:"..."' ent/rest/` in `<read_first>` step 6. Executor MUST include both greps' output in the SUMMARY for audit.
     - Existing Phase 59 privacy tests still pass: `go test -race -run TestE2E_AnonymousCannotSeeUsersPoc ./cmd/peeringdb-plus/...`.
   </verify>
 
   <done>
     - `restFieldRedactMiddleware` implemented, wired into the /rest/v1 chain INSIDE errorMiddleware.
     - Wrapper writer implements `Unwrap()` and `Flush()`.
+    - The `restListWrapperKey` constant value matches the actual JSON tag emitted by `ent/rest/` (grep-confirmed; documented in SUMMARY).
     - Non-ixlan paths pass through untouched.
     - Non-JSON bodies pass through untouched.
     - Failed-parse falls back to unchanged body (fail-closed for correctness, not for privacy — a follow-up Task 5 E2E test will catch privacy failures).
@@ -764,7 +793,7 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
 </task>
 
 <task type="auto" tdd="true">
-  <name>Task 5: Write 5-surface E2E test mirroring Phase 59's D-15 pattern + update CLAUDE.md</name>
+  <name>Task 5: Write 5-surface E2E test mirroring Phase 59's D-15 pattern + fail-closed bypass sub-test + update CLAUDE.md</name>
   <files>cmd/peeringdb-plus/field_privacy_e2e_test.go, CLAUDE.md</files>
 
   <read_first>
@@ -773,11 +802,12 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
        - The nested `t.Run` structure covering all 5 surfaces.
        - How the tier is stamped (via `middleware.PrivacyTier` OR via `PDBPLUS_PUBLIC_TIER` env var).
        - The POC seed IDs (e2eUsersPocID etc.) — this is the row that was seeded as `visible=Users`.
-    2. `internal/testutil/seed/seed.go` — confirm Plan 64-02 seeded the primary IxLan (id=100) with `_visible=Users` and a URL. If it instead added a new row (id=101), adjust the test to target that row.
+    2. `internal/testutil/seed/seed.go` — confirm Plan 64-02 seeded BOTH the primary IxLan (id=100, `_visible=Users`) AND the new id=101 (`_visible=Public`). The E2E in this task asserts both cases.
     3. `CLAUDE.md` §"Schema & Visibility" — the current wording says "the privacy policy nulls the value field when the visibility field is not Public." This is aspirational / not yet true; Phase 64 makes it real via the serializer layer. Update wording per RESEARCH.md §"Project Constraints".
     4. CONTEXT.md D-10 — "Mirror Phase 59's D-15 E2E test pattern. New `TestE2E_FieldLevel_IxlanURL_RedactedAnon` (and companion `_VisibleToUsersTier`) spanning all 5 surfaces."
-    5. RESEARCH.md §"Phase Requirements → Test Map" — the complete list of assertions required.
-    6. Quality-gate criterion: "E2E test mirrors Phase 59's TestE2E_AnonymousCannotSeeUsersPoc pattern (D-10)".
+    5. CONTEXT.md D-03 — fail-closed on unstamped ctx. Unit-level coverage lives in Plan 64-01; this task adds a surface-level assertion (`fail-closed-bypass-middleware` sub-test) that bypasses the PrivacyTier middleware entirely and confirms the URL is still redacted at the ConnectRPC handler.
+    6. RESEARCH.md §"Phase Requirements → Test Map" — the complete list of assertions required.
+    7. Quality-gate criterion: "E2E test mirrors Phase 59's TestE2E_AnonymousCannotSeeUsersPoc pattern (D-10)".
   </read_first>
 
   <behavior>
@@ -785,21 +815,21 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
     - `TestE2E_FieldLevel_IxlanURL_RedactedAnon` — builds fixture at TierPublic, asserts:
       - `GET /api/ixlan/100` (pdbcompat detail) → JSON has NO `ixf_ixp_member_list_url` key.
       - `GET /api/ixlan?id=100` (pdbcompat list) → each entry has NO `ixf_ixp_member_list_url` key.
+      - `GET /api/ixlan/101` (pdbcompat detail, Public row) → JSON HAS the `ixf_ixp_member_list_url` key with the seeded URL (locks always-admit behaviour).
       - `GET /rest/v1/ix-lans/100` (entrest detail) → JSON has NO `ixf_ixp_member_list_url` key.
-      - `GET /rest/v1/ix-lans` (entrest list) → each entry has NO `ixf_ixp_member_list_url` key.
+      - `GET /rest/v1/ix-lans` (entrest list) → entry for id=100 has NO `ixf_ixp_member_list_url` key; entry for id=101 HAS the key with the Public URL.
       - ConnectRPC `GetIxLan(id=100)` → response.IxLan.IxfIxpMemberListUrl is nil.
-      - ConnectRPC `ListIxLans` → response items have nil IxfIxpMemberListUrl.
-      - GraphQL `{ ixLansList { edges { node { id ixfIxpMemberListURL ixfIxpMemberListURLVisible } } } }` → ixfIxpMemberListURL is null (JSON null, not omitted); ixfIxpMemberListURLVisible is `"Users"` (still emitted per D-05).
-      - Web UI `/ui/ixlan/100` (if it exists) — SKIP with a TODO comment (UI currently doesn't render the URL per RESEARCH.md; re-enable if the UI ever adds it).
+      - ConnectRPC `GetIxLan(id=101)` → response.IxLan.IxfIxpMemberListUrl is NOT nil and holds the seeded Public URL.
+      - ConnectRPC `ListIxLans` → response item for id=100 has nil IxfIxpMemberListUrl; item for id=101 has non-nil.
+      - GraphQL `{ ixLans(where:{id:100}) { edges { node { id ixfIxpMemberListURL ixfIxpMemberListURLVisible } } } }` → ixfIxpMemberListURL is null (JSON null, not omitted); ixfIxpMemberListURLVisible is `"Users"` (still emitted per D-05).
+      - GraphQL for id=101 → ixfIxpMemberListURL is the seeded URL; ixfIxpMemberListURLVisible is `"Public"`.
+      - Web UI `/ui/ixlan/100` — SKIP with a TODO comment (UI currently doesn't render the URL per RESEARCH.md; re-enable if the UI ever adds it).
+      - **Fail-closed sub-test (`fail-closed-bypass-middleware`) — MANDATORY.** Constructs an httptest request directly against the ConnectRPC handler, bypassing the PrivacyTier middleware; calls the handler with a bare `context.Background()` (no tier stamp); asserts the URL is nil on the response for id=100. This directly exercises D-03 at the surface level — proves that if some future code path forgets to route through the middleware, privfield.Redact STILL blanks the URL. Unit-level coverage in 64-01 is insufficient; this sub-test catches the integration-level regression where the handler never sees a stamped ctx.
       - ALL surfaces STILL emit `ixf_ixp_member_list_url_visible` on each ixlan row (locks D-05).
     - `TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier` — builds fixture at TierUsers, asserts:
-      - Same surfaces above — ixfIxpMemberListURL is present with value `https://example.test/ix/100/members.json` (or whatever seed.Full uses).
+      - Same surface matrix above — ixfIxpMemberListURL is present with value `https://example.test/ix/100/members.json` for id=100 (Users-gated admitted at Users tier) and `https://example.test/ix/101/members.json` for id=101 (Public admitted at any tier).
 
     Each top-level test uses `t.Parallel()`. Each surface is a sub-test via `t.Run(surfaceName, ...)`.
-
-    Test also asserts that when `_visible=Public` (for any public-seeded row), BOTH tiers emit the URL. Add a second seeded ixlan with `_visible=Public` if seed.Full doesn't already have one (or create it inline in the fixture).
-
-    Plus: one test asserts fail-closed behaviour — call `ixLanFromEnt(context.Background(), seedRow)` directly (unit-level) and confirm URL is redacted. Wait — that's Plan 64-01 unit coverage. At E2E level, simulate by constructing an httptest request that does NOT go through `middleware.PrivacyTier` (e.g., call the ConnectRPC handler directly with a bare ctx) and assert URL is nil. This catches regressions where some surface forgets to route through the middleware.
   </behavior>
 
   <action>
@@ -816,13 +846,15 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
     //     key in responses for rows with _visible="Users" or "Private".
     //   - Users-tier callers DO get the URL for _visible="Users" or
     //     _visible="Public" rows.
+    //   - Public-visible rows (id=101) ALWAYS emit the URL regardless of tier.
     //   - The companion _visible field is ALWAYS emitted regardless of
     //     tier (D-05 — upstream parity).
+    //   - Fail-closed (D-03): bypassing PrivacyTier middleware at the
+    //     ConnectRPC handler STILL redacts for id=100 (Users-gated).
     //
     // The test uses the same buildE2EFixture(t, tier) helper as Phase 59;
-    // if that helper doesn't already seed a gated ixlan, we either
-    // extend it or seed inline here (Plan 64-02's seed.Full should have
-    // pre-seeded the primary ixlan with _visible=Users + URL populated).
+    // Plan 64-02's seed.Full seeds the two required ixlan rows automatically
+    // (id=100 Users-gated + id=101 Public).
     package main
 
     import (
@@ -839,52 +871,79 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
         "github.com/dotwaffle/peeringdb-plus/internal/privctx"
     )
 
-    // Phase 64 uses the Plan 64-02 seed — primary IxLan id=100 with
-    // _visible="Users" and URL "https://example.test/ix/100/members.json".
-    const e2eGatedIxlanID = 100
-    const e2eGatedIxlanURL = "https://example.test/ix/100/members.json"
+    // Phase 64 uses the Plan 64-02 seed: two ixlan rows.
+    const (
+        e2eGatedIxlanID   = 100 // _visible=Users, URL gated behind tier
+        e2eGatedIxlanURL  = "https://example.test/ix/100/members.json"
+        e2ePublicIxlanID  = 101 // _visible=Public, URL always admitted
+        e2ePublicIxlanURL = "https://example.test/ix/101/members.json"
+    )
 
     func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
         t.Parallel()
         fix := buildE2EFixture(t, privctx.TierPublic)
 
-        t.Run("pdbcompat/detail", func(t *testing.T) {
+        t.Run("pdbcompat/detail/gated", func(t *testing.T) {
             body := fetchJSON(t, fix.serverURL+fmt.Sprintf("/api/ixlan/%d", e2eGatedIxlanID))
             assertHasKey(t, body, "ixf_ixp_member_list_url_visible") // D-05
             assertLacksKey(t, body, "ixf_ixp_member_list_url")       // VIS-09
         })
 
+        t.Run("pdbcompat/detail/public", func(t *testing.T) {
+            body := fetchJSON(t, fix.serverURL+fmt.Sprintf("/api/ixlan/%d", e2ePublicIxlanID))
+            assertHasKey(t, body, "ixf_ixp_member_list_url_visible")
+            assertValue(t, body, "ixf_ixp_member_list_url", e2ePublicIxlanURL)
+        })
+
         t.Run("pdbcompat/list", func(t *testing.T) {
-            body := fetchJSON(t, fix.serverURL+fmt.Sprintf("/api/ixlan?id=%d", e2eGatedIxlanID))
+            body := fetchJSON(t, fix.serverURL+"/api/ixlan")
             entries := extractListEntries(t, body)
-            if len(entries) == 0 {
-                t.Fatal("expected at least one ixlan entry")
+            if len(entries) < 2 {
+                t.Fatalf("expected at least two ixlan entries, got %d", len(entries))
             }
             for _, e := range entries {
+                id, _ := e["id"].(float64)
                 assertHasKey(t, e, "ixf_ixp_member_list_url_visible")
-                assertLacksKey(t, e, "ixf_ixp_member_list_url")
+                switch int(id) {
+                case e2eGatedIxlanID:
+                    assertLacksKey(t, e, "ixf_ixp_member_list_url")
+                case e2ePublicIxlanID:
+                    assertValue(t, e, "ixf_ixp_member_list_url", e2ePublicIxlanURL)
+                }
             }
         })
 
-        t.Run("entrest/detail", func(t *testing.T) {
+        t.Run("entrest/detail/gated", func(t *testing.T) {
             body := fetchJSON(t, fix.serverURL+fmt.Sprintf("/rest/v1/ix-lans/%d", e2eGatedIxlanID))
             assertHasKey(t, body, "ixf_ixp_member_list_url_visible")
             assertLacksKey(t, body, "ixf_ixp_member_list_url")
         })
 
+        t.Run("entrest/detail/public", func(t *testing.T) {
+            body := fetchJSON(t, fix.serverURL+fmt.Sprintf("/rest/v1/ix-lans/%d", e2ePublicIxlanID))
+            assertHasKey(t, body, "ixf_ixp_member_list_url_visible")
+            assertValue(t, body, "ixf_ixp_member_list_url", e2ePublicIxlanURL)
+        })
+
         t.Run("entrest/list", func(t *testing.T) {
             body := fetchJSON(t, fix.serverURL+"/rest/v1/ix-lans")
             entries := extractRESTContent(t, body)
-            if len(entries) == 0 {
-                t.Fatal("expected at least one ixlan entry")
+            if len(entries) < 2 {
+                t.Fatalf("expected at least two ixlan entries, got %d", len(entries))
             }
             for _, e := range entries {
+                id, _ := e["id"].(float64)
                 assertHasKey(t, e, "ixf_ixp_member_list_url_visible")
-                assertLacksKey(t, e, "ixf_ixp_member_list_url")
+                switch int(id) {
+                case e2eGatedIxlanID:
+                    assertLacksKey(t, e, "ixf_ixp_member_list_url")
+                case e2ePublicIxlanID:
+                    assertValue(t, e, "ixf_ixp_member_list_url", e2ePublicIxlanURL)
+                }
             }
         })
 
-        t.Run("connectrpc/get", func(t *testing.T) {
+        t.Run("connectrpc/get/gated", func(t *testing.T) {
             resp, err := fix.ixLanClient.GetIxLan(context.Background(), connect.NewRequest(&pbv1.GetIxLanRequest{Id: e2eGatedIxlanID}))
             if err != nil {
                 t.Fatalf("GetIxLan: %v", err)
@@ -897,19 +956,82 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
             }
         })
 
+        t.Run("connectrpc/get/public", func(t *testing.T) {
+            resp, err := fix.ixLanClient.GetIxLan(context.Background(), connect.NewRequest(&pbv1.GetIxLanRequest{Id: e2ePublicIxlanID}))
+            if err != nil {
+                t.Fatalf("GetIxLan public: %v", err)
+            }
+            if resp.Msg.IxLan.IxfIxpMemberListUrl == nil {
+                t.Fatal("Public-visible row must always admit url")
+            }
+            if got := resp.Msg.IxLan.IxfIxpMemberListUrl.GetValue(); got != e2ePublicIxlanURL {
+                t.Errorf("public url = %q, want %q", got, e2ePublicIxlanURL)
+            }
+        })
+
         t.Run("connectrpc/list", func(t *testing.T) {
             resp, err := fix.ixLanClient.ListIxLans(context.Background(), connect.NewRequest(&pbv1.ListIxLansRequest{}))
             if err != nil {
                 t.Fatalf("ListIxLans: %v", err)
             }
             for _, il := range resp.Msg.Items {
-                if il.Id == e2eGatedIxlanID && il.IxfIxpMemberListUrl != nil {
-                    t.Errorf("anon tier list received url for gated row")
+                switch il.Id {
+                case int64(e2eGatedIxlanID):
+                    if il.IxfIxpMemberListUrl != nil {
+                        t.Errorf("anon tier list received url for gated row id=%d", il.Id)
+                    }
+                case int64(e2ePublicIxlanID):
+                    if il.IxfIxpMemberListUrl == nil {
+                        t.Errorf("public-visible row id=%d must admit url for all tiers", il.Id)
+                    }
                 }
             }
         })
 
-        t.Run("graphql", func(t *testing.T) {
+        // D-03: surface-level fail-closed. Plan 64-01 covers the unit level;
+        // this sub-test exercises the integration boundary by constructing
+        // an httptest request against the ConnectRPC handler WITHOUT going
+        // through the middleware chain. The ctx handed to the handler has
+        // no tier stamp, so privfield.Redact must still blank the URL.
+        t.Run("fail-closed-bypass-middleware", func(t *testing.T) {
+            // Access the raw ConnectRPC handler (not the server URL, which
+            // runs through the full middleware chain). The fixture exposes
+            // this as fix.ixLanHandler (or equivalent); if not, construct
+            // via connectrpc.NewClient pointed directly at the handler's
+            // ServeHTTP method with no intervening middleware.
+            //
+            // If fix.ixLanHandler is not exposed, add it to the fixture OR
+            // use httptest.NewRecorder + fix.rawIxLanHandler.ServeHTTP to
+            // exercise the handler directly.
+            rec := httptest.NewRecorder()
+            req := httptest.NewRequest(http.MethodPost,
+                "/peeringdb.v1.IxLanService/GetIxLan",
+                strings.NewReader(`{"id":100}`)).WithContext(context.Background())
+            req.Header.Set("Content-Type", "application/json")
+            fix.rawIxLanHandler.ServeHTTP(rec, req) // no PrivacyTier middleware in this chain
+
+            if rec.Code != http.StatusOK {
+                t.Fatalf("handler status = %d, want 200 (fail-closed must still return the row, just without the URL)", rec.Code)
+            }
+            var resp struct {
+                IxLan struct {
+                    IxfIxpMemberListUrl        *string `json:"ixf_ixp_member_list_url"`
+                    IxfIxpMemberListUrlVisible string  `json:"ixf_ixp_member_list_url_visible"`
+                } `json:"ix_lan"`
+            }
+            if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+                t.Fatalf("decode: %v", err)
+            }
+            if resp.IxLan.IxfIxpMemberListUrl != nil {
+                t.Errorf("unstamped ctx leaked url = %v; fail-closed violated", *resp.IxLan.IxfIxpMemberListUrl)
+            }
+            // _visible companion still populated per D-05.
+            if resp.IxLan.IxfIxpMemberListUrlVisible == "" {
+                t.Error("_visible companion missing; D-05 regression")
+            }
+        })
+
+        t.Run("graphql/gated", func(t *testing.T) {
             query := `{ ixLans(where:{id:` + fmt.Sprintf("%d", e2eGatedIxlanID) + `}) { edges { node { id ixfIxpMemberListURL ixfIxpMemberListURLVisible } } } }`
             result := fetchGraphQL(t, fix.serverURL+"/graphql", query)
             node := extractFirstEdgeNode(t, result, "ixLans")
@@ -918,6 +1040,16 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
             }
             if v, _ := node["ixfIxpMemberListURLVisible"].(string); v == "" {
                 t.Error("expected visible companion to remain populated")
+            }
+        })
+
+        t.Run("graphql/public", func(t *testing.T) {
+            query := `{ ixLans(where:{id:` + fmt.Sprintf("%d", e2ePublicIxlanID) + `}) { edges { node { id ixfIxpMemberListURL ixfIxpMemberListURLVisible } } } }`
+            result := fetchGraphQL(t, fix.serverURL+"/graphql", query)
+            node := extractFirstEdgeNode(t, result, "ixLans")
+            got, _ := node["ixfIxpMemberListURL"].(string)
+            if got != e2ePublicIxlanURL {
+                t.Errorf("public URL = %q, want %q", got, e2ePublicIxlanURL)
             }
         })
 
@@ -935,26 +1067,34 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
         fix := buildE2EFixture(t, privctx.TierUsers)
 
         // Mirror the structure above but assert the URL IS present on all
-        // 5 surfaces. For ConnectRPC, assert the *wrapperspb.StringValue
-        // is non-nil and its GetValue() == e2eGatedIxlanURL. For GraphQL,
-        // assert node["ixfIxpMemberListURL"] == e2eGatedIxlanURL.
-        // For pdbcompat + entrest detail/list, assert `.ixf_ixp_member_list_url == e2eGatedIxlanURL`.
-        // For webui, Skip.
+        // 5 surfaces for BOTH id=100 (Users-gated, now admitted) and id=101
+        // (Public, always admitted). No fail-closed sub-test in this path —
+        // it's redundant with the anon-tier RedactedAnon test.
+        //
+        // Expected values:
+        //   - id=100: IxfIxpMemberListUrl == e2eGatedIxlanURL (wrapperspb non-nil for ConnectRPC)
+        //   - id=101: IxfIxpMemberListUrl == e2ePublicIxlanURL
+        //   - GraphQL: node["ixfIxpMemberListURL"] == matching URL string (non-null)
+        //   - webui: Skip (same reason)
     }
 
-    // Helper functions (fetchJSON, assertHasKey, assertLacksKey,
+    // Helper functions (fetchJSON, assertHasKey, assertLacksKey, assertValue,
     // extractListEntries, extractRESTContent, extractFirstEdgeNode,
     // fetchGraphQL) — implement inline or extract from e2e_privacy_test.go.
     // If e2e_privacy_test.go already defines these, reuse (same package).
     ```
 
+    **Fixture-access note:** The fail-closed sub-test depends on `fix.rawIxLanHandler` — a field exposing the ConnectRPC handler BEFORE the middleware chain. Phase 59's `buildE2EFixture` may not already expose this. If it doesn't:
+      - Extend `buildE2EFixture` to set `fix.rawIxLanHandler = h` where `h` is the result of `peeringdbv1connect.NewIxLanServiceHandler(...)` (the raw handler from the ConnectRPC generator, with no middleware wrapped around it).
+      - This is a small additive extension — does not perturb Phase 59 assertions.
+      - Phase 59's server URL (`fix.serverURL`) continues to route through the full middleware chain for all non-bypass tests.
+
     Implementation notes:
-    - `buildE2EFixture` signature may need extension. Read it first. If it already builds + exposes all 5 surface clients (`fix.ixLanClient` etc.), great. If it's POC-focused only, extend it or create a parallel `buildFieldPrivacyFixture` function in the new test file. Prefer extension if cheap; duplication if extension perturbs Phase 59 tests.
     - The ConnectRPC client path requires a gRPC handle on the test server. Phase 59's fixture already builds it — check the `ixLanClient` field or equivalent. If missing, add.
     - GraphQL POST format: `{"query":"..."}`. Helper `fetchGraphQL` should handle that.
     - For the Users-tier test, `buildE2EFixture(t, TierUsers)` presumably stamps the tier via `middleware.PrivacyTier` + `PDBPLUS_PUBLIC_TIER=users` test override. Confirm Phase 59's fixture does this.
 
-    **DO NOT hardcode expected string values** that depend on seed.Full details — import the seed's exported constants if available, or define the constants in this test file mirroring seed.Full.
+    **DO NOT hardcode expected string values** that conflict with seed.Full's actual URLs — the constants above MUST match Plan 64-02's seed values exactly. If seed.Full uses different strings, update the constants in this test file.
 
     2. **Update CLAUDE.md §"Schema & Visibility"** (existing section, a couple paragraphs long). Current text says:
 
@@ -968,34 +1108,38 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
 
     > **Adding a new `<field>_visible` companion** (future OAuth fields, etc.): in addition to the existing ent schema edit, add a `privfield.Redact` call at each of the 5 serializer surfaces (`internal/pdbcompat/serializer.go`, `internal/grpcserver/{entity}.go`, `graph/custom.resolvers.go`, the `restFieldRedactMiddleware` path-scope filter in `cmd/peeringdb-plus/main.go`, and the web UI render path if applicable). Add a corresponding E2E assertion in `cmd/peeringdb-plus/field_privacy_e2e_test.go` patterned on Phase 64's `TestE2E_FieldLevel_IxlanURL_*`.
 
-    3. Run the full test suite:
+    3. Run the phase-scoped test suite:
 
     ```bash
-    TMPDIR=/tmp/claude-1000 go test -race -count=1 ./...
+    TMPDIR=/tmp/claude-1000 go test -race -count=1 -run TestE2E_FieldLevel_IxlanURL ./cmd/peeringdb-plus/...
     ```
 
-    Expect every surface's sub-test to pass. If any fails, the failure message MUST point at which surface is leaking (sub-test name identifies it directly).
+    Every sub-test MUST pass: the two top-level tests plus the nested surfaces including `fail-closed-bypass-middleware`. Failure messages point at the surface via sub-test name.
 
-    4. Run `golangci-lint run` and `govulncheck ./...` per project CI gates.
+    **Full-tree run (`go test -race ./...`) is NOT required per-task.** It belongs at the phase-merge gate, after all three plans (64-01, 64-02, 64-03) have landed and Wave 2 closes. The wave-close hooks invoke the full-tree run; per-task execution keeps feedback under 10 s.
+
+    4. Run `golangci-lint run` and `govulncheck ./...` on the touched packages per project CI gates (scoped, not full-tree — again, the phase gate owns full-tree coverage).
   </action>
 
   <verify>
-    <automated>TMPDIR=/tmp/claude-1000 go test -race -count=1 -run TestE2E_FieldLevel_IxlanURL ./cmd/peeringdb-plus/... &amp;&amp; TMPDIR=/tmp/claude-1000 go test -race -count=1 ./...</automated>
+    <automated>TMPDIR=/tmp/claude-1000 go test -race -count=1 -run TestE2E_FieldLevel_IxlanURL ./cmd/peeringdb-plus/...</automated>
     Also:
     - `grep -c "TestE2E_FieldLevel_IxlanURL_RedactedAnon" cmd/peeringdb-plus/field_privacy_e2e_test.go` = 1.
     - `grep -c "TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier" cmd/peeringdb-plus/field_privacy_e2e_test.go` = 1.
-    - `grep -c "t.Run(" cmd/peeringdb-plus/field_privacy_e2e_test.go` ≥ 14 (7 surfaces × 2 test fns, including skipped webui).
+    - `grep -c "fail-closed-bypass-middleware" cmd/peeringdb-plus/field_privacy_e2e_test.go` = 1.
+    - `grep -c "t.Run(" cmd/peeringdb-plus/field_privacy_e2e_test.go` ≥ 18 (surfaces × tiers + fail-closed + public rows + webui skip; exact count depends on VisibleToUsersTier implementation).
     - `grep -c "privfield.Redact" CLAUDE.md` ≥ 1 (updated text refers to the helper).
-    - Phase 59 TestE2E_AnonymousCannotSeeUsersPoc still passes (regression guard).
+    - Phase 59 TestE2E_AnonymousCannotSeeUsersPoc still passes (regression guard): `go test -race -run TestE2E_AnonymousCannotSeeUsersPoc ./cmd/peeringdb-plus/...`.
+
+    **Phase-merge gate (not per-task):** `go test -race ./...`, `golangci-lint run`, and `govulncheck ./...` run as part of Wave 2's close, not here. Document this in SUMMARY.
   </verify>
 
   <done>
-    - `cmd/peeringdb-plus/field_privacy_e2e_test.go` exists; both test functions implemented; all 5 surfaces covered (webui skipped with clear TODO).
+    - `cmd/peeringdb-plus/field_privacy_e2e_test.go` exists; both test functions implemented; all 5 surfaces covered (webui skipped with clear TODO); fail-closed-bypass-middleware sub-test present and passing.
     - CLAUDE.md §"Schema & Visibility" updated to reflect serializer-layer reality + new-field checklist.
-    - `go test -race ./...` passes.
-    - golangci-lint clean.
-    - govulncheck clean.
-    - Plan-checker can confirm every surface has a dedicated assertion.
+    - Targeted E2E run `go test -race -run TestE2E_FieldLevel_IxlanURL ./cmd/peeringdb-plus/...` passes.
+    - Phase-merge gate (full-tree + lint + vuln) documented as Wave 2's wave-close responsibility, not per-task.
+    - Plan-checker can confirm every surface has a dedicated assertion AND the bypass sub-test exists.
   </done>
 </task>
 
@@ -1009,20 +1153,22 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
 | HTTP request → middleware chain | Untrusted tier inference; PrivacyTier middleware owns stamping. Redaction surfaces downstream read ctx — fail-closed on absence. |
 | entrest response → restFieldRedactMiddleware | Middleware rewrites JSON bodies for ixlan paths. Must not corrupt non-ixlan bodies. Scoped by path prefix + content-type. |
 | ent row → serializer | Row data is trusted (from sync); serializer MUST redact based on `_visible` companion, not silently trust the URL. |
+| Direct handler invocation (bypassing middleware) | Code paths that call the ConnectRPC handler without the PrivacyTier middleware must still redact — locked by Task 5 fail-closed-bypass-middleware sub-test. |
 
 ## STRIDE Threat Register
 
 | Threat ID | Category | Component | Disposition | Mitigation Plan |
 |-----------|----------|-----------|-------------|-----------------|
 | T-64-08 | Information Disclosure | pdbcompat serializer | mitigate | `ixLanFromEnt` calls `privfield.Redact` unconditionally; `,omitempty` tag omits the key. Test in Task 1 + E2E in Task 5. |
-| T-64-09 | Information Disclosure | ConnectRPC serializer | mitigate | `ixLanToProto` calls `privfield.Redact`; proto wrapper nil → wire omission. Test in Task 2 + E2E in Task 5. |
+| T-64-09 | Information Disclosure | ConnectRPC serializer | mitigate | `ixLanToProto` calls `privfield.Redact`; proto wrapper nil → wire omission. Test in Task 2 + E2E in Task 5 (including bypass-middleware sub-test). |
 | T-64-10 | Information Disclosure | GraphQL autobind bypass | mitigate | gqlgen `models:` opt-in forces the resolver; gqlgen generates the interface; cannot be silently skipped. E2E in Task 5 asserts null. |
-| T-64-11 | Information Disclosure | entrest JSON body rewrite | mitigate | `restFieldRedactMiddleware` rewrites body; path-scoped to `/rest/v1/ix-lans*`. Task 5 E2E asserts absence on both detail + list. |
+| T-64-11 | Information Disclosure | entrest JSON body rewrite | mitigate | `restFieldRedactMiddleware` rewrites body; path-scoped to `/rest/v1/ix-lans*`; list-wrapper key confirmed against ent/rest/ before implementation. Task 5 E2E asserts absence on both detail + list. |
 | T-64-12 | Tampering | body-rewrite Content-Length | mitigate | Middleware clears Content-Length before writing rewritten body; Go http server either computes fresh length or chunked encoding. RESEARCH §Open Question 3. |
 | T-64-13 | Denial of Service | REST middleware buffers body | accept | `/rest/v1/ix-lans*` responses are bounded (pagination caps); RESEARCH §Pitfall 4 confirms REST is non-streaming. No DoS vector. |
 | T-64-14 | Information Disclosure | _visible companion field | accept | D-05: `_visible` is STILL emitted for anon callers (matches upstream; minor side-channel). Accepted per user decision. |
-| T-64-15 | Elevation of Privilege | fail-open on unstamped ctx | mitigate | `privfield.Redact` fail-closes via `privctx.TierFrom` (which defaults to TierPublic when unstamped). Locked by Plan 64-01 unit test. Verified at E2E level by Task 5's webui/bypass sub-cases. |
+| T-64-15 | Elevation of Privilege | fail-open on unstamped ctx | mitigate | `privfield.Redact` fail-closes via `privctx.TierFrom` (which defaults to TierPublic when unstamped). Locked by Plan 64-01 unit test AND Task 5's `fail-closed-bypass-middleware` surface-level sub-test. |
 | T-64-16 | Spoofing | client forges tier | accept | Tier is derived server-side from `PDBPLUS_PUBLIC_TIER` (Phase 61) or future OAuth middleware — never from client-supplied data. Not a new attack surface. |
+| T-64-17 | Information Disclosure | entrest list-wrapper key mismatch | mitigate | List-wrapper JSON key confirmed by `grep 'json:"..."' ent/rest/` before implementation; otherwise middleware would silently bypass redaction on list responses. Recorded in SUMMARY for audit. |
 </threat_model>
 
 <verification>
@@ -1030,15 +1176,17 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
 - `internal/pdbcompat/serializer.go` + `depth.go` — all `ixLanFromEnt` call sites pass ctx; `privfield.Redact` called once per row.
 - `internal/grpcserver/ixlan.go` — `ixLanToProto` takes ctx; proto wrapper nil on redact; pagination helper Convert field type untouched.
 - `graph/gqlgen.yml` + `graph/custom.resolvers.go` — IxLan.ixfIxpMemberListURL routed through custom resolver returning `*string`.
-- `cmd/peeringdb-plus/main.go` — `restFieldRedactMiddleware` defined; wired inside `restErrorMiddleware`.
-- `cmd/peeringdb-plus/field_privacy_e2e_test.go` — both test functions present; 5 surfaces covered (webui skipped).
+- `cmd/peeringdb-plus/main.go` — `restFieldRedactMiddleware` defined; wired inside `restErrorMiddleware`; `restListWrapperKey` matches ent/rest/ (grep evidence in SUMMARY).
+- `cmd/peeringdb-plus/field_privacy_e2e_test.go` — both test functions present; 5 surfaces covered (webui skipped); fail-closed-bypass-middleware sub-test explicit.
 - `CLAUDE.md` — §"Schema & Visibility" reflects serializer-layer reality.
 
-**Tests:**
-- `TestE2E_FieldLevel_IxlanURL_RedactedAnon` passes; each sub-test asserts URL absent + `_visible` present.
+**Tests (per-task scope):**
+- `TestE2E_FieldLevel_IxlanURL_RedactedAnon` passes; each sub-test asserts URL absent + `_visible` present; `fail-closed-bypass-middleware` sub-test explicitly exercises D-03.
 - `TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier` passes; each sub-test asserts URL present with expected value.
 - Existing `TestE2E_AnonymousCannotSeeUsersPoc` (Phase 59) still passes.
 - Existing pdbcompat anon parity test passes.
+
+**Phase-merge gate (Wave 2 close, not per-task):**
 - `go test -race ./...` clean.
 - `golangci-lint run` clean.
 - `govulncheck ./...` clean.
@@ -1050,12 +1198,14 @@ Middleware order: errorMiddleware OUTSIDE redactMiddleware so error responses (w
 
 <success_criteria>
 - Every one of the 5 API surfaces redacts `ixf_ixp_member_list_url` based on `_visible` + ctx tier via a single helper call (`privfield.Redact`).
-- E2E test locks all 5 surfaces at both tiers; a regression in any surface fails a named sub-test.
-- Fail-closed semantics: unstamped ctx at any surface → URL absent (provable at unit level via Plan 64-01 tests; surface-level provable by bypassing PrivacyTier middleware).
+- E2E test locks all 5 surfaces at both tiers AND includes an explicit fail-closed bypass-middleware sub-test; a regression in any surface or the bypass path fails a named sub-test.
+- Fail-closed semantics: unstamped ctx at any surface → URL absent (provable at unit level via Plan 64-01 tests AND at surface level via Task 5 bypass sub-test).
 - `_visible` companion emitted at anon tier (D-05 locked).
 - `_visible=Private` rows NEVER emit URL (locks upstream parity).
+- `_visible=Public` rows ALWAYS emit URL regardless of tier (locks always-admit case via id=101 seed row).
+- entrest list-wrapper key is the grep-confirmed key from ent/rest/, not an assumption.
 - CLAUDE.md updated to reflect post-Phase-64 truth + guidance for future gated fields.
-- CI gates pass: build, test, lint, vuln.
+- CI gates pass at Wave 2 close: build, test, lint, vuln.
 - VIS-08 and VIS-09 requirements complete.
 </success_criteria>
 
@@ -1064,9 +1214,11 @@ After completion, create `.planning/phases/64-field-level-privacy/64-03-SUMMARY.
 - Exact call sites updated in pdbcompat/depth.go, serializer.go, grpcserver/ixlan.go.
 - gqlgen regen diff (IxLanResolver interface + stub).
 - restFieldRedactMiddleware wrapper methods (Unwrap, Flush, Write, WriteHeader — line numbers in main.go).
-- E2E test — paste the `go test -race -v -run TestE2E_FieldLevel_IxlanURL ./cmd/peeringdb-plus/...` output showing every sub-test PASS.
+- **entrest list-wrapper key confirmation:** paste the `grep -rn 'json:"..."' ent/rest/` output that informed the `restListWrapperKey` constant value.
+- E2E test — paste the `go test -race -v -run TestE2E_FieldLevel_IxlanURL ./cmd/peeringdb-plus/...` output showing every sub-test PASS, including `fail-closed-bypass-middleware`.
 - Phase 59 regression guard — paste the `go test -race -run TestE2E_AnonymousCannotSeeUsersPoc` output.
 - CLAUDE.md diff (the §"Schema & Visibility" update).
-- Note if `buildE2EFixture` needed extension — what was added.
+- Note if `buildE2EFixture` needed extension — what was added (likely `rawIxLanHandler` field for the bypass sub-test).
+- Phase-merge gate status: who owns the full-tree `go test -race ./...` run (answer: Wave 2 close, not per-task).
 - Any deviations from RESEARCH.md code examples (expect: the closure-adapter pattern for Convert: ixLanToProto call sites, which RESEARCH didn't explicitly cover).
 </output>
