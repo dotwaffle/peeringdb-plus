@@ -13,8 +13,8 @@ FROM cgr.dev/chainguard/glibc-dynamic:latest-dev
 
 USER root
 
-# Install LiteFS dependencies
-RUN apk add --no-cache fuse3
+# Install LiteFS dependencies and sqlite3 CLI (for Phase 65 fleet ops / incident response)
+RUN apk add --no-cache fuse3 sqlite
 
 # Copy LiteFS binary
 COPY --from=flyio/litefs:0.5 /usr/local/bin/litefs /usr/local/bin/litefs
