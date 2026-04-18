@@ -1,44 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.15
-milestone_name: — Infrastructure Polish & Schema Hygiene
-status: v1.15 milestone complete
-stopped_at: /gsd-autonomous running — pre-phase quick task done, about to start Phase 63.
-last_updated: "2026-04-18T11:39:44.982Z"
+milestone: v1.16
+milestone_name: — Django-compat Correctness
+status: defining requirements
+stopped_at: milestone kickoff — REQUIREMENTS.md next
+last_updated: "2026-04-18T12:00:00.000Z"
 last_activity: 2026-04-18
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-17)
+See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 66 — Observability + sqlite3 tooling
+**Current focus:** v1.16 Django-compat Correctness — align `pdbcompat` with upstream Django semantics (validated against `peeringdb/peeringdb@99e92c72`); memory-safe response paths on 256 MB replicas.
 
 ## Current Position
 
-Phase: 66 (Observability + sqlite3 tooling) — EXECUTING
-Plan: 1 of 3
-**Milestone:** v1.15 Infrastructure Polish & Schema Hygiene
-**Phase:** none started — roadmap just defined
-**Next action:** pick a phase (63, 64, 65, or 66) and run `/gsd-discuss-phase` or `/gsd-plan-phase`.
-
-**Phases (63-66):**
-
-- **Phase 63** — Schema hygiene: drop 3 vestigial ent fields (`ixprefix.notes`, `organization.fac_count`, `organization.net_count`). Also resolves v1.14-deferred `ixpfx.notes` pdbcompat divergence. Requirements: HYGIENE-01, HYGIENE-02, HYGIENE-03. ~1 plan.
-- **Phase 64** — Field-level privacy: add `ixlan.ixf_ixp_member_list_url` URL data field across struct + schema + sync + serializer; establish serializer-layer field-level redaction pattern across 5 surfaces. Requirements: VIS-08, VIS-09. ~2-3 plans.
-- **Phase 65** — Asymmetric Fly fleet: activate SEED-002. Process groups + ephemeral replicas. Requirements: INFRA-01, INFRA-02, INFRA-03. ~2-3 plans.
-- **Phase 66** — Observability + sqlite3 tooling: prod `sqlite3` binary, heap-threshold monitoring, Grafana heap panel, SEED-001 escalation docs. Requirements: OBS-04, OBS-05, DOC-04. ~1-2 plans.
-
-**Parallelism:** Phases 65 and 66 can run in parallel with 63/64 (no file overlap). Phase 64 is trivially sequenced after Phase 63 (same codegen pipeline).
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-18 — Milestone v1.16 started
 
 ## Recently Shipped
 

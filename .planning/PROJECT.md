@@ -84,29 +84,46 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] /ui/about terminal rendering with rich output — v1.12
 - [x] seed.Minimal/Networks unexported (seed.Full is sole public API) — v1.12
 
-## Current Milestone: v1.15 Infrastructure Polish & Schema Hygiene
+## Current Milestone: v1.16 Django-compat Correctness
 
-**Defined:** 2026-04-17
-**Status:** Roadmap defined — 4 phases (63-66), 11 requirements, ~6-9 plans.
-**Theme:** Tidy-up after v1.14 ships. No new user-facing features. Reduce ops cost, close known schema gaps, complete one Phase 58 follow-up.
+**Defined:** 2026-04-18
+**Status:** Requirements being defined — phases to start at 67.
+**Theme:** Align `pdbcompat` (the `/api/` surface) with upstream PeeringDB Django semantics based on validated source-code analysis of `peeringdb/peeringdb@99e92c72` and `django-peeringdb`. Close real divergences; avoid chasing invalid ones. Memory-safe response paths on 256 MB replicas are a first-class constraint, not an afterthought.
 
-**Scope:**
+**Goal:** Make `pdbcompat` a faithful drop-in for upstream Django semantics — including the ordering, filter-traversal, status-filter, and Unicode-normalisation behaviours that clients silently rely on — without regressing replica memory headroom.
 
-- **Phase 63 — Schema hygiene**: drop 3 vestigial ent fields (`ixprefix.notes`, `organization.fac_count`, `organization.net_count`). Also resolves the v1.14-deferred `ixpfx.notes` pdbcompat divergence.
-- **Phase 64 — Field-level privacy**: close the Phase 58 gap for `ixlan.ixf_ixp_member_list_url` (the URL data field itself — `_visible` companion already exists). Establish a reusable serializer-layer field-level redaction pattern across all 5 API surfaces. Substrate for future OAuth field gates.
-- **Phase 65 — Asymmetric Fly fleet**: activate SEED-002. Transition from 8 uniform machines to 1 primary (LHR, `shared-cpu-2x`/512 MB, volume) + 7 ephemeral replicas (`shared-cpu-1x`/256 MB, no volume). ~$36/mo (~63%) savings; main win is simplified volume management.
-- **Phase 66 — Observability + sqlite3 tooling**: `sqlite3` in prod image for `fly ssh console` debugging; heap-threshold monitoring tied to SEED-001 trigger (default 380 MiB); Grafana heap panel filterable by `pdbplus.privacy.tier`; operator docs link trigger to SEED-001 escalation.
+**Target features:**
 
-See [`.planning/ROADMAP.md`](./ROADMAP.md) for phase detail and [`.planning/REQUIREMENTS.md`](./REQUIREMENTS.md) for the 11 requirements with traceability.
+- Default list ordering flip from `ORDER BY id ASC` to `(-updated, -created)` — matches `django-handleref` base `Meta.ordering`; applied across `pdbcompat` + `grpcserver` + `entrest` list paths.
+- `status=ok` / `pending` / `deleted` × `since` × (list vs detail) matrix per `rest.py:694-727`: no-since → `status=ok` for list and `status in (ok, pending)` for single-object; since>0 → `status in (ok, deleted)` (+`pending` for campus).
+- `limit=0` = unlimited (not count-only — pdbfe's documented claim was wrong; upstream `rest.py:494-497` proves it means "no limit").
+- `__in` robustness against SQLite's 999-variable limit: rewrite to `WHERE id IN (SELECT value FROM json_each(?))` so arbitrarily-large IN lists work with a single bind.
+- `unidecode`-equivalent pre-filter applied to filter VALUES before SQL, matching `rest.py:576` — the actual upstream Unicode-folding mechanism (NOT MySQL collation, NOT shadow columns).
+- Cross-entity `__` traversal: replicate BOTH Path A (per-serializer `prepare_query` allowlists, 11 distinct lists) AND Path B (auto `queryable_relations()` minus `FILTER_EXCLUDE`), with 2-hop support (`fac?ixlan__ix__fac_count__gt=0` is in the upstream test suite).
+- Operator coercion: `__contains` → `__icontains`, `__startswith` → `__istartswith` per `rest.py:638-641`.
+- Memory-safe response paths for large / unlimited / depth=2 responses on 256 MB replicas: streaming JSON serialisation where possible, bounded buffers, per-response ceilings, and heap/RSS telemetry reused from v1.15 Phase 66.
 
-### Deferred (explicit v1.15 exclusions)
+**Reference mapping (invalid pdbfe claims we're NOT implementing):**
 
-- **SEED-001 (incremental sync)** — no trigger fired; peak heap ~84 MB vs 380 MiB threshold = 4.5× headroom. Remains dormant. Phase 66 makes the trigger observable.
-- **OAuth identity integration** — scoped for v1.16+. VIS-08 establishes the field-level gate substrate; OAuth wiring stays a separate milestone.
-- **RPKI / BGP features (BGP-01, IRR-01, PFX-01)** — scoped for v1.16+ (larger milestone; needs design).
-- **Fuzzy search / richer UI filtering** — no user demand yet.
+- `net?country=NL` as a direct filter — upstream doesn't support it either; the correct form is `net?org__country=NL`, which Path B traversal will give us for free.
+- `limit=0` as count-only — upstream returns all rows, not a count envelope. We match that.
+- "MySQL collation does the Unicode folding" — it's Python `unidecode`. We port the equivalent.
+- Default `ORDER BY id ASC` — upstream is `(-updated, -created)`. We flip to match.
 
-### Recently Shipped: v1.14 Authenticated Sync & Visibility Layer
+### Deferred (explicit v1.16 exclusions)
+
+- **SEED-001 (incremental sync)** — sync-path trigger still dormant (peak sync heap ~84 MB vs 380 MiB). Response-path heap observability is folded into v1.16 but the sync-mode flip itself remains a future milestone.
+- **SEED-003 (primary HA hot-standby)** — dormant; no trigger fired.
+- **OAuth identity integration** — VIS-08 substrate shipped in v1.15 Phase 64; OAuth wiring stays a separate milestone.
+- **RPKI / BGP features (BGP-01, IRR-01, PFX-01)** — scoped for v1.17+ (larger milestone; needs design).
+- **GraphQL / ConnectRPC semantic changes** — v1.16 scope is pdbcompat-first; grpcserver ordering flip rides along, but filter-traversal work is pdbcompat-only.
+
+### Recently Shipped: v1.15 Infrastructure Polish & Schema Hygiene
+
+**Shipped:** 2026-04-18 (4 phases 63-66, 11 requirements)
+**Archive:** [`.planning/milestones/v1.15-ROADMAP.md`](./milestones/v1.15-ROADMAP.md)
+
+### Previously Shipped: v1.14 Authenticated Sync & Visibility Layer
 
 **Shipped:** 2026-04-17 (6 phases, 21 plans, 17/17 requirements, audit PASSED)
 **Archive:** [`.planning/milestones/v1.14-ROADMAP.md`](./milestones/v1.14-ROADMAP.md)
@@ -252,4 +269,4 @@ Shipped v1.14 with 62 phases across 15 milestones (v1.0-v1.14). Read-path privac
 - `ixpfx.notes` pdbcompat divergence — allow-listed in anon_parity_test.go; operator sign-off on drop-vs-accept deferred to a follow-up compat-layer plan
 
 ---
-*Last updated: 2026-04-17 — v1.14 Authenticated Sync & Visibility Layer shipped (62 phases across v1.0-v1.14)*
+*Last updated: 2026-04-18 — v1.16 Django-compat Correctness milestone opened (v1.15 shipped 2026-04-18, 66 phases across v1.0-v1.15)*
