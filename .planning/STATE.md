@@ -84,14 +84,19 @@ v1.15 decisions pending — to be logged at phase transitions. Likely candidates
 
 - **SEED-001** — incremental sync evaluation. Dormant. No trigger fired (peak heap ~84 MB vs 380 MiB). Phase 66 wires the trigger observability.
 - **SEED-002** — asymmetric Fly fleet. **Activated** 2026-04-17 for v1.15 Phase 65. Moves to `.planning/seeds/consumed/` when Phase 65 ships.
+- **SEED-003** — primary HA hot-standby. Dormant. Planted 2026-04-17 when the v1.15 decision was made to keep LHR as sole primary candidate. Triggers: LHR extended outage, maintenance burden, compliance, Fly capacity pressure.
+
+### Pre-phase quick task (do this BEFORE Phase 65)
+
+- **sqlite3 in prod image** — one-line Dockerfile.prod change (add Chainguard sqlite package or `apk add sqlite`) + deploy + verify `fly ssh console -C 'sqlite3 /litefs/peeringdb-plus.db ".tables"'` works. User explicitly chose to run this as a standalone quick task *before* Phase 65 so the tool is available during the fleet migration. Owner: next session (/gsd-autonomous will pick it up as the first item). ~10 min.
 
 ### Pending Todos
 
-None. Check `.planning/HANDOFF.json` and `memory/` for parked ideas.
+None beyond the sqlite3 pre-phase task above.
 
 ### Blockers/Concerns
 
-None. All 4 phases have clear scope, requirements, and success criteria.
+None. All 4 phases have locked CONTEXT.md with full discuss-phase decisions captured (commit `e1fa426`) — `/gsd-autonomous` or `/gsd-plan-phase` can proceed straight to planning without re-asking grey areas.
 
 ### Quick Tasks Completed
 
@@ -103,6 +108,22 @@ None. All 4 phases have clear scope, requirements, and success criteria.
 
 ## Session Continuity
 
-Last session: 2026-04-17
-Stopped at: Roadmap defined for v1.15
-Resume: pick a phase (63-66) and run `/gsd-discuss-phase` or `/gsd-plan-phase`.
+Last session: 2026-04-18
+Stopped at: v1.15 roadmap + all 4 CONTEXT.md files locked with comprehensive discuss-phase decisions (commit `e1fa426`).
+
+**Resume via `/gsd-autonomous`:**
+
+Each phase has `has_context: true` so the autonomous workflow skips discuss-phase and goes straight to plan → execute for each of phases 63-66. Execution order and key locked decisions:
+
+1. **Pre-phase quick task — sqlite3 in prod image.** Run this FIRST before Phase 65 touches the fleet (see "Pre-phase quick task" section above). One-line Dockerfile.prod change + deploy + verify.
+2. **Phase 63 — Schema hygiene.** Drop 3 vestigial fields (full removal). Planner MUST read entgo.io/docs/migrate/ to verify whether `schema.WithDropColumn(true)` flag is needed for ent to emit `ALTER TABLE DROP COLUMN` (D-04 in 63-CONTEXT.md).
+3. **Phase 64 — Field-level privacy.** New `internal/privfield` package with fail-closed default. Serializer-layer redaction across 5 surfaces. Omit key entirely for anon. Leave `_visible` companion exposed.
+4. **Phase 65 — Asymmetric Fly fleet.** Big-bang rollout; sqlite3 MUST be in the image before starting. Scripted volume cleanup inline in SUMMARY. Primary HA stays LHR-only (SEED-003 captures future work).
+5. **Phase 66 — Observability + sqlite3.** Both OTel attrs + slog.Warn on heap threshold. Defaults: `PDBPLUS_HEAP_WARN_MIB=400`, `PDBPLUS_RSS_WARN_MIB=384`. In-repo grafana/pdbplus-overview.json update.
+
+**Fleet memory baseline for reference (observed 2026-04-17, do not re-gather):**
+- Primary (LHR): RSS 68.8 MB, peak VmHWM 83.8 MB
+- Replicas (7 regions): ~58-59 MB steady
+- DB size: 88 MB
+
+**Autonomous entry command:** `/gsd-autonomous` — no flags needed; it'll discover Phase 63 as next incomplete and walk through.
