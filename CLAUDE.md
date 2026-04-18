@@ -74,6 +74,15 @@ When a future Phase 57 re-capture surfaces a new auth-gated field (the `internal
 
 **NULL handling:** ent auto-migrate adds `*_visible` columns with their declared defaults, but rows synced before the column existed will have NULL until the next sync rewrites them. The privacy policy treats NULL as the column default (`Public` for upstream-public fields), never as `Users`. This prevents a post-upgrade flood of suddenly-hidden rows.
 
+**Schema hygiene drops (v1.15 Phase 63).** Three ent fields were removed as audit-confirmed vestigial:
+
+- `ixprefix.notes` — always empty from upstream; v1.14-era pdbcompat divergence now resolved.
+- `organization.fac_count` and `organization.net_count` — schema-only, never upserted or serialized.
+
+The runtime migrate call in `cmd/peeringdb-plus/main.go` now passes `migrate.WithDropColumn(true)` and `migrate.WithDropIndex(true)` to `entClient.Schema.Create`. Both flags stay on permanently so future hygiene drops follow the same pattern: edit `schema/peeringdb.json` + `ent/schema/*.go`, regenerate with `go generate ./ent` (do NOT use `go generate ./...` — it hits `./schema` which strips the hand-added `Policy()` on `ent/schema/poc.go`), remove hand-written references (`internal/peeringdb/types.go`, `internal/pdbcompat/*`, `internal/grpcserver/*`, `internal/sync/upsert.go`), regenerate goldens (`go test -update ./internal/pdbcompat -run TestGoldenFiles` and `go test -update ./internal/sync -run TestSync_RefactorParity`), deploy. The primary emits `ALTER TABLE DROP COLUMN` on next startup; LiteFS replicates the schema change to replicas.
+
+Proto is frozen since v1.6 (`entproto.SkipGenFile` in `ent/entc.go`), so dropped ent fields whose proto wrappers still exist (e.g. `IxPrefix.notes`, `Organization.{fac,net}_count`) remain declared in `proto/peeringdb/v1/v1.proto` but are no longer populated by the server — they serialize as zero-value pointers (absent on the wire). Server-side filter tables in `internal/grpcserver/*` exempt such fields via `deprecatedFilterFields` in `filter_test.go`.
+
 ### Middleware
 - Response writer wrappers MUST implement `http.Flusher` (delegate to underlying writer) — gRPC streaming requires it.
 - Add `Unwrap() http.ResponseWriter` for middleware-aware interface detection.
