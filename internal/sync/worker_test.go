@@ -18,9 +18,13 @@ import (
 	"testing"
 	"time"
 
+	"runtime"
+
 	"go.opentelemetry.io/otel"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"golang.org/x/time/rate"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
@@ -2540,5 +2544,82 @@ func TestWorkerSync_ChildGoroutineInheritsBypass(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("child goroutine did not complete within 5s")
+	}
+}
+
+// TestEmitMemoryTelemetry_Attrs asserts that emitMemoryTelemetry attaches
+// pdbplus.sync.peak_heap_mib to the current span on every call, attaches
+// pdbplus.sync.peak_rss_mib on Linux, and fires the "heap threshold
+// crossed" slog.Warn only when at least one threshold is breached
+// (OBS-05 / D-02 / D-03 / D-09).
+func TestEmitMemoryTelemetry_Attrs(t *testing.T) {
+	// Imports are already in this file (context, bytes, strings, log/slog,
+	// testing, runtime). We add span-capture via the OTel SDK tracetest
+	// helpers below, scoped to this test.
+	tests := []struct {
+		name     string
+		heapWarn int64
+		rssWarn  int64
+		wantWarn bool
+	}{
+		{name: "below_threshold", heapWarn: 1 << 40, rssWarn: 1 << 40, wantWarn: false},
+		{name: "heap_over", heapWarn: 1, rssWarn: 1 << 40, wantWarn: true},
+		{name: "both_disabled", heapWarn: 0, rssWarn: 0, wantWarn: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&buf, nil))
+			w := &Worker{logger: logger}
+
+			sr := tracetest.NewSpanRecorder()
+			tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
+			ctx, span := tp.Tracer("t").Start(context.Background(), "sync-test")
+			w.emitMemoryTelemetry(ctx, tt.heapWarn, tt.rssWarn)
+			span.End()
+
+			spans := sr.Ended()
+			if len(spans) != 1 {
+				t.Fatalf("want 1 span, got %d", len(spans))
+			}
+			attrs := spans[0].Attributes()
+			haveHeap := false
+			haveRSS := false
+			for _, a := range attrs {
+				switch string(a.Key) {
+				case "pdbplus.sync.peak_heap_mib":
+					haveHeap = true
+				case "pdbplus.sync.peak_rss_mib":
+					haveRSS = true
+				}
+			}
+			if !haveHeap {
+				t.Errorf("missing span attr pdbplus.sync.peak_heap_mib (attrs=%v)", attrs)
+			}
+			if runtime.GOOS == "linux" && !haveRSS {
+				t.Errorf("on Linux expected pdbplus.sync.peak_rss_mib attr (attrs=%v)", attrs)
+			}
+			warned := strings.Contains(buf.String(), "heap threshold crossed")
+			if warned != tt.wantWarn {
+				t.Errorf("warn=%v want %v; log=%s", warned, tt.wantWarn, buf.String())
+			}
+		})
+	}
+}
+
+// TestReadLinuxVmHWM asserts that on Linux, the helper returns a positive
+// byte count and ok=true. Skipped on non-Linux since /proc/self/status
+// does not exist. This guards against silent regression of the VmHWM
+// parse path under test harness changes.
+func TestReadLinuxVmHWM(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skipf("skipping on %s (no /proc/self/status)", runtime.GOOS)
+	}
+	b, ok := readLinuxVMHWM()
+	if !ok {
+		t.Fatal("readLinuxVMHWM returned ok=false on Linux")
+	}
+	if b <= 0 {
+		t.Errorf("readLinuxVMHWM returned %d bytes, want > 0", b)
 	}
 }

@@ -8,8 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
+	"os"
 	"runtime"
 	"runtime/debug"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -61,6 +65,23 @@ type WorkerConfig struct {
 	// from config.Config.SyncMemoryLimit by main.go. Commit F default
 	// is 400 MB (matches the DEBT-03 bench regression gate).
 	SyncMemoryLimit int64
+
+	// HeapWarnBytes is the peak Go heap threshold (bytes) above which
+	// the end-of-sync-cycle emitter fires slog.Warn("heap threshold
+	// crossed", ...). The OTel span attr pdbplus.sync.peak_heap_mib is
+	// attached regardless. Zero disables only the Warn (not the attr).
+	// Wired from config.Config.HeapWarnBytes by main.go.
+	//
+	// SEED-001 escalation signal: sustained breach triggers the
+	// incremental-sync evaluation path documented in
+	// .planning/seeds/SEED-001-incremental-sync-evaluation.md.
+	HeapWarnBytes int64
+
+	// RSSWarnBytes is the peak OS RSS threshold (bytes) above which
+	// the emitter fires slog.Warn. Read from /proc/self/status VmHWM on
+	// Linux; skipped on other OSes (the RSS attr is then omitted — it
+	// is not set to zero). Zero disables only the Warn.
+	RSSWarnBytes int64
 }
 
 // Worker orchestrates PeeringDB data synchronization.
@@ -401,11 +422,116 @@ func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit i
 	return ErrSyncMemoryLimitExceeded
 }
 
+// emitMemoryTelemetry samples the Go runtime heap and (on Linux) the
+// OS RSS high-water mark at the end of a sync cycle, attaches them as
+// OTel attributes to the current sync-cycle span, and emits
+// slog.Warn("heap threshold crossed") when either value exceeds its
+// configured threshold.
+//
+// Attribute naming follows the pdbplus.* convention established in
+// Phase 61 (pdbplus.privacy.tier): pdbplus.sync.peak_heap_mib and
+// pdbplus.sync.peak_rss_mib. Units are MiB so dashboards can plot them
+// directly without a divisor.
+//
+// On non-Linux the RSS attr is OMITTED entirely — zero is a valid
+// metric value and would produce misleading flat lines on dashboards.
+//
+// heapWarnBytes == 0 disables the heap Warn (attr still fires);
+// rssWarnBytes == 0 likewise. Attribute emission is unconditional so
+// dashboards retain timeseries even when alerting is disabled.
+//
+// D-09: sampling frequency is sync cycle frequency (default 1h via
+// PDBPLUS_SYNC_INTERVAL). No periodic background sampler.
+func (w *Worker) emitMemoryTelemetry(ctx context.Context, heapWarnBytes, rssWarnBytes int64) {
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	const maxInt64 = uint64(1<<63 - 1)
+	heapBytes := int64(maxInt64)
+	if ms.HeapInuse < maxInt64 {
+		heapBytes = int64(ms.HeapInuse)
+	}
+	heapMiB := heapBytes / (1024 * 1024)
+
+	rssBytes, rssOK := readLinuxVMHWM()
+
+	span := trace.SpanFromContext(ctx)
+	attrs := []attribute.KeyValue{
+		attribute.Int64("pdbplus.sync.peak_heap_mib", heapMiB),
+	}
+	var rssMiB int64
+	if rssOK {
+		rssMiB = rssBytes / (1024 * 1024)
+		attrs = append(attrs, attribute.Int64("pdbplus.sync.peak_rss_mib", rssMiB))
+	}
+	span.SetAttributes(attrs...)
+
+	heapOver := heapWarnBytes > 0 && heapBytes > heapWarnBytes
+	rssOver := rssOK && rssWarnBytes > 0 && rssBytes > rssWarnBytes
+	if !heapOver && !rssOver {
+		return
+	}
+	logAttrs := []slog.Attr{
+		slog.Int64("peak_heap_mib", heapMiB),
+		slog.Int64("heap_warn_mib", heapWarnBytes/(1024*1024)),
+	}
+	if rssOK {
+		logAttrs = append(logAttrs,
+			slog.Int64("peak_rss_mib", rssMiB),
+			slog.Int64("rss_warn_mib", rssWarnBytes/(1024*1024)),
+		)
+	}
+	logAttrs = append(logAttrs,
+		slog.Bool("heap_over", heapOver),
+		slog.Bool("rss_over", rssOver),
+	)
+	w.logger.LogAttrs(ctx, slog.LevelWarn, "heap threshold crossed", logAttrs...)
+}
+
+// readLinuxVMHWM reads /proc/self/status and returns the VmHWM
+// (peak resident set size high-water mark) in bytes. The second
+// return is false on non-Linux or when the file is absent/unreadable
+// — callers MUST treat this as "RSS not available" rather than zero.
+//
+// VmHWM format: "VmHWM:\t  345216 kB" — tab/space-separated, value in
+// kB (base 1024 on Linux). Multiply by 1024 to get bytes.
+//
+// VmHWM is the peak-RSS high-water mark, not the instantaneous RSS;
+// it only decreases when an operator resets it via
+// `echo 5 > /proc/self/clear_refs` or the process restarts. This is
+// the correct signal for SEED-001 escalation — a single burst is what
+// matters, not the steady-state value.
+func readLinuxVMHWM() (int64, bool) {
+	data, err := os.ReadFile("/proc/self/status")
+	if err != nil {
+		return 0, false
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if !strings.HasPrefix(line, "VmHWM:") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			return 0, false
+		}
+		kb, parseErr := strconv.ParseInt(fields[1], 10, 64)
+		if parseErr != nil {
+			return 0, false
+		}
+		if kb < 0 || kb > math.MaxInt64/1024 {
+			return 0, false
+		}
+		return kb * 1024, true
+	}
+	return 0, false
+}
+
 // rollbackAndRecord rolls back the tx and records the failure in one place
 // so Worker.Sync's error paths stay a one-liner each (REFAC-03 line budget).
 // Logs the rollback error at ERROR level — a failing rollback inside a
 // failing sync is worth surfacing in the error stream.
 func (w *Worker) rollbackAndRecord(ctx context.Context, tx *ent.Tx, statusID int64, start time.Time, syncErr error) {
+	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
+	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
 	if rbErr := tx.Rollback(); rbErr != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
 			slog.Any("error", rbErr))
@@ -425,6 +551,8 @@ func (w *Worker) recordSuccess(
 	objectCounts map[string]int,
 	cursorUpdates map[string]time.Time,
 ) {
+	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
+	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
 	for typeName, generated := range cursorUpdates {
 		if err := UpsertCursor(ctx, w.db, typeName, generated, "success"); err != nil {
 			w.logger.LogAttrs(ctx, slog.LevelError, "failed to update cursor",
@@ -1128,6 +1256,9 @@ func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType
 
 // recordFailure records a failed sync in the sync_status table and metrics.
 func (w *Worker) recordFailure(ctx context.Context, statusID int64, start time.Time, syncErr error) {
+	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
+	// Called even on failure — memory pressure is interesting regardless of sync outcome.
+	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
 	// Record sync-level failure metrics per D-06.
 	failedAttr := metric.WithAttributes(attribute.String("status", "failed"))
 	pdbotel.SyncDuration.Record(ctx, time.Since(start).Seconds(), failedAttr)

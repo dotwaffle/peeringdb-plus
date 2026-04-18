@@ -239,6 +239,8 @@ func main() {
 			cachingState.UpdateETag(syncTime)
 		},
 		SyncMemoryLimit: cfg.SyncMemoryLimit,
+		HeapWarnBytes:   cfg.HeapWarnBytes,
+		RSSWarnBytes:    cfg.RSSWarnBytes,
 	}, logger)
 
 	// Start scheduler on all instances per D-22, D-29.
