@@ -23,6 +23,7 @@ import (
 	"github.com/KimMachineGun/automemlimit/memlimit"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
+	"github.com/dotwaffle/peeringdb-plus/ent/migrate"
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
 	_ "github.com/dotwaffle/peeringdb-plus/ent/runtime" // register schema hooks (OTel mutation tracing)
 	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
@@ -110,8 +111,21 @@ func main() {
 	}
 
 	// Auto-migrate schema on primary per D-43.
+	//
+	// WithDropColumn(true): enables ALTER TABLE DROP COLUMN for v1.15 Phase 63
+	// schema cleanup (ixpfx.notes, organization.fac_count, organization.net_count)
+	// and any future hygiene drops. Per D-04. ent defaults to additive-only
+	// migrations for safety; this flag opts in to destructive DDL.
+	//
+	// WithDropIndex(true): symmetric handling of stale indexes per the ent
+	// docs recommendation. None of the Phase 63 target columns are indexed,
+	// but enabling both together is idiomatic.
 	if isPrimary {
-		if err := entClient.Schema.Create(ctx); err != nil {
+		if err := entClient.Schema.Create(
+			ctx,
+			migrate.WithDropColumn(true),
+			migrate.WithDropIndex(true),
+		); err != nil {
 			logger.Error("failed to migrate schema", slog.Any("error", err))
 			os.Exit(1)
 		}
