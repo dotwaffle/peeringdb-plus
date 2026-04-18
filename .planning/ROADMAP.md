@@ -124,12 +124,12 @@ Plans:
 
 **Depends on:** Nothing (can run in parallel with Phase 63/64/65)
 **Requirements:** OBS-04, OBS-05, DOC-04
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 66-01-heap-rss-monitor-PLAN.md — Config env vars (PDBPLUS_HEAP_WARN_MIB / PDBPLUS_RSS_WARN_MIB) + end-of-sync-cycle runtime.MemStats heap + /proc/self/status RSS sampler with OTel span attrs and slog.Warn on threshold cross (OBS-05)
-- [ ] 66-02-grafana-panels-PLAN.md — Three new panels in deploy/grafana/dashboards/pdbplus-overview.json (Peak Heap, Peak RSS, Peak Heap by Process Group) under a new "Sync Memory (SEED-001 watch)" row (OBS-05)
-- [ ] 66-03-docs-escalation-PLAN.md — CLAUDE.md Sync observability section + env-var table rows, docs/DEPLOYMENT.md SEED-001 escalation subsection + sqlite3 OBS-04 reference, PROJECT.md Key Decisions row (OBS-04, DOC-04)
+- [x] 66-01-heap-rss-monitor-PLAN.md — Config env vars (PDBPLUS_HEAP_WARN_MIB / PDBPLUS_RSS_WARN_MIB) + end-of-sync-cycle runtime.MemStats heap + /proc/self/status RSS sampler with OTel span attrs and slog.Warn on threshold cross (OBS-05)
+- [x] 66-02-grafana-panels-PLAN.md — Three new panels in deploy/grafana/dashboards/pdbplus-overview.json (Peak Heap, Peak RSS, Peak Heap by Process Group) under a new "Sync Memory (SEED-001 watch)" row (OBS-05)
+- [x] 66-03-docs-escalation-PLAN.md — CLAUDE.md Sync observability section + env-var table rows, docs/DEPLOYMENT.md SEED-001 escalation subsection + sqlite3 OBS-04 reference, PROJECT.md Key Decisions row (OBS-04, DOC-04)
 
 **Scope:**
 - `sqlite3` static binary in prod image for `fly ssh console` debugging.
@@ -158,7 +158,7 @@ Plans:
 | 63 — Schema hygiene | Pending | 1/1 | Complete   | 2026-04-18 |
 | 64 — Field-level privacy | Pending | 3/3 | Complete   | 2026-04-18 |
 | 65 — Asymmetric Fly fleet | Pending | 2/2 | Complete   | 2026-04-18 |
-| 66 — Observability + sqlite3 | Pending | 0/3   | OBS-04, OBS-05, DOC-04 | — (parallelizable) |
+| 66 — Observability + sqlite3 | Pending | 3/3 | Complete   | 2026-04-18 |
 
 **Totals:** 0/4 phases complete, 0/9 plans, 0/11 requirements satisfied.
 
