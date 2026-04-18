@@ -7518,23 +7518,6 @@ type IxPrefixWhereInput struct {
 	InDfz    *bool `json:"inDfz,omitempty"`
 	InDfzNEQ *bool `json:"inDfzNEQ,omitempty"`
 
-	// "notes" field predicates.
-	Notes             *string  `json:"notes,omitempty"`
-	NotesNEQ          *string  `json:"notesNEQ,omitempty"`
-	NotesIn           []string `json:"notesIn,omitempty"`
-	NotesNotIn        []string `json:"notesNotIn,omitempty"`
-	NotesGT           *string  `json:"notesGT,omitempty"`
-	NotesGTE          *string  `json:"notesGTE,omitempty"`
-	NotesLT           *string  `json:"notesLT,omitempty"`
-	NotesLTE          *string  `json:"notesLTE,omitempty"`
-	NotesContains     *string  `json:"notesContains,omitempty"`
-	NotesHasPrefix    *string  `json:"notesHasPrefix,omitempty"`
-	NotesHasSuffix    *string  `json:"notesHasSuffix,omitempty"`
-	NotesIsNil        bool     `json:"notesIsNil,omitempty"`
-	NotesNotNil       bool     `json:"notesNotNil,omitempty"`
-	NotesEqualFold    *string  `json:"notesEqualFold,omitempty"`
-	NotesContainsFold *string  `json:"notesContainsFold,omitempty"`
-
 	// "prefix" field predicates.
 	Prefix             *string  `json:"prefix,omitempty"`
 	PrefixNEQ          *string  `json:"prefixNEQ,omitempty"`
@@ -7725,51 +7708,6 @@ func (i *IxPrefixWhereInput) P() (predicate.IxPrefix, error) {
 	}
 	if i.InDfzNEQ != nil {
 		predicates = append(predicates, ixprefix.InDfzNEQ(*i.InDfzNEQ))
-	}
-	if i.Notes != nil {
-		predicates = append(predicates, ixprefix.NotesEQ(*i.Notes))
-	}
-	if i.NotesNEQ != nil {
-		predicates = append(predicates, ixprefix.NotesNEQ(*i.NotesNEQ))
-	}
-	if len(i.NotesIn) > 0 {
-		predicates = append(predicates, ixprefix.NotesIn(i.NotesIn...))
-	}
-	if len(i.NotesNotIn) > 0 {
-		predicates = append(predicates, ixprefix.NotesNotIn(i.NotesNotIn...))
-	}
-	if i.NotesGT != nil {
-		predicates = append(predicates, ixprefix.NotesGT(*i.NotesGT))
-	}
-	if i.NotesGTE != nil {
-		predicates = append(predicates, ixprefix.NotesGTE(*i.NotesGTE))
-	}
-	if i.NotesLT != nil {
-		predicates = append(predicates, ixprefix.NotesLT(*i.NotesLT))
-	}
-	if i.NotesLTE != nil {
-		predicates = append(predicates, ixprefix.NotesLTE(*i.NotesLTE))
-	}
-	if i.NotesContains != nil {
-		predicates = append(predicates, ixprefix.NotesContains(*i.NotesContains))
-	}
-	if i.NotesHasPrefix != nil {
-		predicates = append(predicates, ixprefix.NotesHasPrefix(*i.NotesHasPrefix))
-	}
-	if i.NotesHasSuffix != nil {
-		predicates = append(predicates, ixprefix.NotesHasSuffix(*i.NotesHasSuffix))
-	}
-	if i.NotesIsNil {
-		predicates = append(predicates, ixprefix.NotesIsNil())
-	}
-	if i.NotesNotNil {
-		predicates = append(predicates, ixprefix.NotesNotNil())
-	}
-	if i.NotesEqualFold != nil {
-		predicates = append(predicates, ixprefix.NotesEqualFold(*i.NotesEqualFold))
-	}
-	if i.NotesContainsFold != nil {
-		predicates = append(predicates, ixprefix.NotesContainsFold(*i.NotesContainsFold))
 	}
 	if i.Prefix != nil {
 		predicates = append(predicates, ixprefix.PrefixEQ(*i.Prefix))
@@ -11584,30 +11522,6 @@ type OrganizationWhereInput struct {
 	ZipcodeEqualFold    *string  `json:"zipcodeEqualFold,omitempty"`
 	ZipcodeContainsFold *string  `json:"zipcodeContainsFold,omitempty"`
 
-	// "net_count" field predicates.
-	NetCount       *int  `json:"netCount,omitempty"`
-	NetCountNEQ    *int  `json:"netCountNEQ,omitempty"`
-	NetCountIn     []int `json:"netCountIn,omitempty"`
-	NetCountNotIn  []int `json:"netCountNotIn,omitempty"`
-	NetCountGT     *int  `json:"netCountGT,omitempty"`
-	NetCountGTE    *int  `json:"netCountGTE,omitempty"`
-	NetCountLT     *int  `json:"netCountLT,omitempty"`
-	NetCountLTE    *int  `json:"netCountLTE,omitempty"`
-	NetCountIsNil  bool  `json:"netCountIsNil,omitempty"`
-	NetCountNotNil bool  `json:"netCountNotNil,omitempty"`
-
-	// "fac_count" field predicates.
-	FacCount       *int  `json:"facCount,omitempty"`
-	FacCountNEQ    *int  `json:"facCountNEQ,omitempty"`
-	FacCountIn     []int `json:"facCountIn,omitempty"`
-	FacCountNotIn  []int `json:"facCountNotIn,omitempty"`
-	FacCountGT     *int  `json:"facCountGT,omitempty"`
-	FacCountGTE    *int  `json:"facCountGTE,omitempty"`
-	FacCountLT     *int  `json:"facCountLT,omitempty"`
-	FacCountLTE    *int  `json:"facCountLTE,omitempty"`
-	FacCountIsNil  bool  `json:"facCountIsNil,omitempty"`
-	FacCountNotNil bool  `json:"facCountNotNil,omitempty"`
-
 	// "created" field predicates.
 	Created      *time.Time  `json:"created,omitempty"`
 	CreatedNEQ   *time.Time  `json:"createdNEQ,omitempty"`
@@ -12442,66 +12356,6 @@ func (i *OrganizationWhereInput) P() (predicate.Organization, error) {
 	}
 	if i.ZipcodeContainsFold != nil {
 		predicates = append(predicates, organization.ZipcodeContainsFold(*i.ZipcodeContainsFold))
-	}
-	if i.NetCount != nil {
-		predicates = append(predicates, organization.NetCountEQ(*i.NetCount))
-	}
-	if i.NetCountNEQ != nil {
-		predicates = append(predicates, organization.NetCountNEQ(*i.NetCountNEQ))
-	}
-	if len(i.NetCountIn) > 0 {
-		predicates = append(predicates, organization.NetCountIn(i.NetCountIn...))
-	}
-	if len(i.NetCountNotIn) > 0 {
-		predicates = append(predicates, organization.NetCountNotIn(i.NetCountNotIn...))
-	}
-	if i.NetCountGT != nil {
-		predicates = append(predicates, organization.NetCountGT(*i.NetCountGT))
-	}
-	if i.NetCountGTE != nil {
-		predicates = append(predicates, organization.NetCountGTE(*i.NetCountGTE))
-	}
-	if i.NetCountLT != nil {
-		predicates = append(predicates, organization.NetCountLT(*i.NetCountLT))
-	}
-	if i.NetCountLTE != nil {
-		predicates = append(predicates, organization.NetCountLTE(*i.NetCountLTE))
-	}
-	if i.NetCountIsNil {
-		predicates = append(predicates, organization.NetCountIsNil())
-	}
-	if i.NetCountNotNil {
-		predicates = append(predicates, organization.NetCountNotNil())
-	}
-	if i.FacCount != nil {
-		predicates = append(predicates, organization.FacCountEQ(*i.FacCount))
-	}
-	if i.FacCountNEQ != nil {
-		predicates = append(predicates, organization.FacCountNEQ(*i.FacCountNEQ))
-	}
-	if len(i.FacCountIn) > 0 {
-		predicates = append(predicates, organization.FacCountIn(i.FacCountIn...))
-	}
-	if len(i.FacCountNotIn) > 0 {
-		predicates = append(predicates, organization.FacCountNotIn(i.FacCountNotIn...))
-	}
-	if i.FacCountGT != nil {
-		predicates = append(predicates, organization.FacCountGT(*i.FacCountGT))
-	}
-	if i.FacCountGTE != nil {
-		predicates = append(predicates, organization.FacCountGTE(*i.FacCountGTE))
-	}
-	if i.FacCountLT != nil {
-		predicates = append(predicates, organization.FacCountLT(*i.FacCountLT))
-	}
-	if i.FacCountLTE != nil {
-		predicates = append(predicates, organization.FacCountLTE(*i.FacCountLTE))
-	}
-	if i.FacCountIsNil {
-		predicates = append(predicates, organization.FacCountIsNil())
-	}
-	if i.FacCountNotNil {
-		predicates = append(predicates, organization.FacCountNotNil())
 	}
 	if i.Created != nil {
 		predicates = append(predicates, organization.CreatedEQ(*i.Created))

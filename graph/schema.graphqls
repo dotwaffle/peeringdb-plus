@@ -2959,10 +2959,6 @@ type IxPrefix implements Node {
   """
   inDfz: Boolean!
   """
-  Notes
-  """
-  notes: String
-  """
   IP prefix (not unique — PeeringDB permits duplicates)
   """
   prefix: String!
@@ -3047,24 +3043,6 @@ input IxPrefixWhereInput {
   """
   inDfz: Boolean
   inDfzNEQ: Boolean
-  """
-  notes field predicates
-  """
-  notes: String
-  notesNEQ: String
-  notesIn: [String!]
-  notesNotIn: [String!]
-  notesGT: String
-  notesGTE: String
-  notesLT: String
-  notesLTE: String
-  notesContains: String
-  notesHasPrefix: String
-  notesHasSuffix: String
-  notesIsNil: Boolean
-  notesNotNil: Boolean
-  notesEqualFold: String
-  notesContainsFold: String
   """
   prefix field predicates
   """
@@ -4596,14 +4574,6 @@ type Organization implements Node {
   """
   zipcode: String
   """
-  Net Count (computed)
-  """
-  netCount: Int
-  """
-  Fac Count (computed)
-  """
-  facCount: Int
-  """
   PeeringDB creation timestamp
   """
   created: Time!
@@ -4965,32 +4935,6 @@ input OrganizationWhereInput {
   zipcodeNotNil: Boolean
   zipcodeEqualFold: String
   zipcodeContainsFold: String
-  """
-  net_count field predicates
-  """
-  netCount: Int
-  netCountNEQ: Int
-  netCountIn: [Int!]
-  netCountNotIn: [Int!]
-  netCountGT: Int
-  netCountGTE: Int
-  netCountLT: Int
-  netCountLTE: Int
-  netCountIsNil: Boolean
-  netCountNotNil: Boolean
-  """
-  fac_count field predicates
-  """
-  facCount: Int
-  facCountNEQ: Int
-  facCountIn: [Int!]
-  facCountNotIn: [Int!]
-  facCountGT: Int
-  facCountGTE: Int
-  facCountLT: Int
-  facCountLTE: Int
-  facCountIsNil: Boolean
-  facCountNotNil: Boolean
   """
   created field predicates
   """

@@ -135,16 +135,6 @@ func Zipcode(v string) predicate.Organization {
 	return predicate.Organization(sql.FieldEQ(FieldZipcode, v))
 }
 
-// NetCount applies equality check predicate on the "net_count" field. It's identical to NetCountEQ.
-func NetCount(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldEQ(FieldNetCount, v))
-}
-
-// FacCount applies equality check predicate on the "fac_count" field. It's identical to FacCountEQ.
-func FacCount(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldEQ(FieldFacCount, v))
-}
-
 // Created applies equality check predicate on the "created" field. It's identical to CreatedEQ.
 func Created(v time.Time) predicate.Organization {
 	return predicate.Organization(sql.FieldEQ(FieldCreated, v))
@@ -1308,106 +1298,6 @@ func ZipcodeEqualFold(v string) predicate.Organization {
 // ZipcodeContainsFold applies the ContainsFold predicate on the "zipcode" field.
 func ZipcodeContainsFold(v string) predicate.Organization {
 	return predicate.Organization(sql.FieldContainsFold(FieldZipcode, v))
-}
-
-// NetCountEQ applies the EQ predicate on the "net_count" field.
-func NetCountEQ(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldEQ(FieldNetCount, v))
-}
-
-// NetCountNEQ applies the NEQ predicate on the "net_count" field.
-func NetCountNEQ(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldNEQ(FieldNetCount, v))
-}
-
-// NetCountIn applies the In predicate on the "net_count" field.
-func NetCountIn(vs ...int) predicate.Organization {
-	return predicate.Organization(sql.FieldIn(FieldNetCount, vs...))
-}
-
-// NetCountNotIn applies the NotIn predicate on the "net_count" field.
-func NetCountNotIn(vs ...int) predicate.Organization {
-	return predicate.Organization(sql.FieldNotIn(FieldNetCount, vs...))
-}
-
-// NetCountGT applies the GT predicate on the "net_count" field.
-func NetCountGT(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldGT(FieldNetCount, v))
-}
-
-// NetCountGTE applies the GTE predicate on the "net_count" field.
-func NetCountGTE(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldGTE(FieldNetCount, v))
-}
-
-// NetCountLT applies the LT predicate on the "net_count" field.
-func NetCountLT(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldLT(FieldNetCount, v))
-}
-
-// NetCountLTE applies the LTE predicate on the "net_count" field.
-func NetCountLTE(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldLTE(FieldNetCount, v))
-}
-
-// NetCountIsNil applies the IsNil predicate on the "net_count" field.
-func NetCountIsNil() predicate.Organization {
-	return predicate.Organization(sql.FieldIsNull(FieldNetCount))
-}
-
-// NetCountNotNil applies the NotNil predicate on the "net_count" field.
-func NetCountNotNil() predicate.Organization {
-	return predicate.Organization(sql.FieldNotNull(FieldNetCount))
-}
-
-// FacCountEQ applies the EQ predicate on the "fac_count" field.
-func FacCountEQ(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldEQ(FieldFacCount, v))
-}
-
-// FacCountNEQ applies the NEQ predicate on the "fac_count" field.
-func FacCountNEQ(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldNEQ(FieldFacCount, v))
-}
-
-// FacCountIn applies the In predicate on the "fac_count" field.
-func FacCountIn(vs ...int) predicate.Organization {
-	return predicate.Organization(sql.FieldIn(FieldFacCount, vs...))
-}
-
-// FacCountNotIn applies the NotIn predicate on the "fac_count" field.
-func FacCountNotIn(vs ...int) predicate.Organization {
-	return predicate.Organization(sql.FieldNotIn(FieldFacCount, vs...))
-}
-
-// FacCountGT applies the GT predicate on the "fac_count" field.
-func FacCountGT(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldGT(FieldFacCount, v))
-}
-
-// FacCountGTE applies the GTE predicate on the "fac_count" field.
-func FacCountGTE(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldGTE(FieldFacCount, v))
-}
-
-// FacCountLT applies the LT predicate on the "fac_count" field.
-func FacCountLT(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldLT(FieldFacCount, v))
-}
-
-// FacCountLTE applies the LTE predicate on the "fac_count" field.
-func FacCountLTE(v int) predicate.Organization {
-	return predicate.Organization(sql.FieldLTE(FieldFacCount, v))
-}
-
-// FacCountIsNil applies the IsNil predicate on the "fac_count" field.
-func FacCountIsNil() predicate.Organization {
-	return predicate.Organization(sql.FieldIsNull(FieldFacCount))
-}
-
-// FacCountNotNil applies the NotNil predicate on the "fac_count" field.
-func FacCountNotNil() predicate.Organization {
-	return predicate.Organization(sql.FieldNotNull(FieldFacCount))
 }
 
 // CreatedEQ applies the EQ predicate on the "created" field.

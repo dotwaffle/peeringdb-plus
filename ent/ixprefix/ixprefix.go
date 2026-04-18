@@ -17,8 +17,6 @@ const (
 	FieldIxlanID = "ixlan_id"
 	// FieldInDfz holds the string denoting the in_dfz field in the database.
 	FieldInDfz = "in_dfz"
-	// FieldNotes holds the string denoting the notes field in the database.
-	FieldNotes = "notes"
 	// FieldPrefix holds the string denoting the prefix field in the database.
 	FieldPrefix = "prefix"
 	// FieldProtocol holds the string denoting the protocol field in the database.
@@ -47,7 +45,6 @@ var Columns = []string{
 	FieldID,
 	FieldIxlanID,
 	FieldInDfz,
-	FieldNotes,
 	FieldPrefix,
 	FieldProtocol,
 	FieldCreated,
@@ -74,8 +71,6 @@ var (
 	Hooks [1]ent.Hook
 	// DefaultInDfz holds the default value on creation for the "in_dfz" field.
 	DefaultInDfz bool
-	// DefaultNotes holds the default value on creation for the "notes" field.
-	DefaultNotes string
 	// PrefixValidator is a validator for the "prefix" field. It is called by the builders before save.
 	PrefixValidator func(string) error
 	// DefaultProtocol holds the default value on creation for the "protocol" field.
@@ -102,11 +97,6 @@ func ByIxlanID(opts ...sql.OrderTermOption) OrderOption {
 // ByInDfz orders the results by the in_dfz field.
 func ByInDfz(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInDfz, opts...).ToFunc()
-}
-
-// ByNotes orders the results by the notes field.
-func ByNotes(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNotes, opts...).ToFunc()
 }
 
 // ByPrefix orders the results by the prefix field.

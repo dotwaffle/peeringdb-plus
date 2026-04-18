@@ -1492,11 +1492,6 @@ func (_q *IxPrefixQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				selectedFields = append(selectedFields, ixprefix.FieldInDfz)
 				fieldSeen[ixprefix.FieldInDfz] = struct{}{}
 			}
-		case "notes":
-			if _, ok := fieldSeen[ixprefix.FieldNotes]; !ok {
-				selectedFields = append(selectedFields, ixprefix.FieldNotes)
-				fieldSeen[ixprefix.FieldNotes] = struct{}{}
-			}
 		case "prefix":
 			if _, ok := fieldSeen[ixprefix.FieldPrefix]; !ok {
 				selectedFields = append(selectedFields, ixprefix.FieldPrefix)
@@ -2385,16 +2380,6 @@ func (_q *OrganizationQuery) collectField(ctx context.Context, oneNode bool, opC
 			if _, ok := fieldSeen[organization.FieldZipcode]; !ok {
 				selectedFields = append(selectedFields, organization.FieldZipcode)
 				fieldSeen[organization.FieldZipcode] = struct{}{}
-			}
-		case "netCount":
-			if _, ok := fieldSeen[organization.FieldNetCount]; !ok {
-				selectedFields = append(selectedFields, organization.FieldNetCount)
-				fieldSeen[organization.FieldNetCount] = struct{}{}
-			}
-		case "facCount":
-			if _, ok := fieldSeen[organization.FieldFacCount]; !ok {
-				selectedFields = append(selectedFields, organization.FieldFacCount)
-				fieldSeen[organization.FieldFacCount] = struct{}{}
 			}
 		case "created":
 			if _, ok := fieldSeen[organization.FieldCreated]; !ok {

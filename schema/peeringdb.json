@@ -176,10 +176,7 @@
           "default": null
         }
       },
-      "computed_fields": [
-        "net_count",
-        "fac_count"
-      ],
+      "computed_fields": [],
       "relationships": {
         "networks": {
           "target": "net",
@@ -1324,16 +1321,6 @@
           "deprecated": false,
           "help_text": "In default-free zone",
           "default": false
-        },
-        "notes": {
-          "type": "string",
-          "max_length": 255,
-          "required": false,
-          "nullable": false,
-          "read_only": false,
-          "deprecated": false,
-          "help_text": "Notes",
-          "default": ""
         }
       },
       "computed_fields": [],

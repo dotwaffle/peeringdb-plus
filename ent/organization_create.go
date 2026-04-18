@@ -250,34 +250,6 @@ func (_c *OrganizationCreate) SetNillableZipcode(v *string) *OrganizationCreate 
 	return _c
 }
 
-// SetNetCount sets the "net_count" field.
-func (_c *OrganizationCreate) SetNetCount(v int) *OrganizationCreate {
-	_c.mutation.SetNetCount(v)
-	return _c
-}
-
-// SetNillableNetCount sets the "net_count" field if the given value is not nil.
-func (_c *OrganizationCreate) SetNillableNetCount(v *int) *OrganizationCreate {
-	if v != nil {
-		_c.SetNetCount(*v)
-	}
-	return _c
-}
-
-// SetFacCount sets the "fac_count" field.
-func (_c *OrganizationCreate) SetFacCount(v int) *OrganizationCreate {
-	_c.mutation.SetFacCount(v)
-	return _c
-}
-
-// SetNillableFacCount sets the "fac_count" field if the given value is not nil.
-func (_c *OrganizationCreate) SetNillableFacCount(v *int) *OrganizationCreate {
-	if v != nil {
-		_c.SetFacCount(*v)
-	}
-	return _c
-}
-
 // SetCreated sets the "created" field.
 func (_c *OrganizationCreate) SetCreated(v time.Time) *OrganizationCreate {
 	_c.mutation.SetCreated(v)
@@ -470,14 +442,6 @@ func (_c *OrganizationCreate) defaults() error {
 		v := organization.DefaultZipcode
 		_c.mutation.SetZipcode(v)
 	}
-	if _, ok := _c.mutation.NetCount(); !ok {
-		v := organization.DefaultNetCount
-		_c.mutation.SetNetCount(v)
-	}
-	if _, ok := _c.mutation.FacCount(); !ok {
-		v := organization.DefaultFacCount
-		_c.mutation.SetFacCount(v)
-	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := organization.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -609,14 +573,6 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Zipcode(); ok {
 		_spec.SetField(organization.FieldZipcode, field.TypeString, value)
 		_node.Zipcode = value
-	}
-	if value, ok := _c.mutation.NetCount(); ok {
-		_spec.SetField(organization.FieldNetCount, field.TypeInt, value)
-		_node.NetCount = value
-	}
-	if value, ok := _c.mutation.FacCount(); ok {
-		_spec.SetField(organization.FieldFacCount, field.TypeInt, value)
-		_node.FacCount = value
 	}
 	if value, ok := _c.mutation.Created(); ok {
 		_spec.SetField(organization.FieldCreated, field.TypeTime, value)
@@ -1074,54 +1030,6 @@ func (u *OrganizationUpsert) ClearZipcode() *OrganizationUpsert {
 	return u
 }
 
-// SetNetCount sets the "net_count" field.
-func (u *OrganizationUpsert) SetNetCount(v int) *OrganizationUpsert {
-	u.Set(organization.FieldNetCount, v)
-	return u
-}
-
-// UpdateNetCount sets the "net_count" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateNetCount() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldNetCount)
-	return u
-}
-
-// AddNetCount adds v to the "net_count" field.
-func (u *OrganizationUpsert) AddNetCount(v int) *OrganizationUpsert {
-	u.Add(organization.FieldNetCount, v)
-	return u
-}
-
-// ClearNetCount clears the value of the "net_count" field.
-func (u *OrganizationUpsert) ClearNetCount() *OrganizationUpsert {
-	u.SetNull(organization.FieldNetCount)
-	return u
-}
-
-// SetFacCount sets the "fac_count" field.
-func (u *OrganizationUpsert) SetFacCount(v int) *OrganizationUpsert {
-	u.Set(organization.FieldFacCount, v)
-	return u
-}
-
-// UpdateFacCount sets the "fac_count" field to the value that was provided on create.
-func (u *OrganizationUpsert) UpdateFacCount() *OrganizationUpsert {
-	u.SetExcluded(organization.FieldFacCount)
-	return u
-}
-
-// AddFacCount adds v to the "fac_count" field.
-func (u *OrganizationUpsert) AddFacCount(v int) *OrganizationUpsert {
-	u.Add(organization.FieldFacCount, v)
-	return u
-}
-
-// ClearFacCount clears the value of the "fac_count" field.
-func (u *OrganizationUpsert) ClearFacCount() *OrganizationUpsert {
-	u.SetNull(organization.FieldFacCount)
-	return u
-}
-
 // SetUpdated sets the "updated" field.
 func (u *OrganizationUpsert) SetUpdated(v time.Time) *OrganizationUpsert {
 	u.Set(organization.FieldUpdated, v)
@@ -1558,62 +1466,6 @@ func (u *OrganizationUpsertOne) UpdateZipcode() *OrganizationUpsertOne {
 func (u *OrganizationUpsertOne) ClearZipcode() *OrganizationUpsertOne {
 	return u.Update(func(s *OrganizationUpsert) {
 		s.ClearZipcode()
-	})
-}
-
-// SetNetCount sets the "net_count" field.
-func (u *OrganizationUpsertOne) SetNetCount(v int) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetNetCount(v)
-	})
-}
-
-// AddNetCount adds v to the "net_count" field.
-func (u *OrganizationUpsertOne) AddNetCount(v int) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.AddNetCount(v)
-	})
-}
-
-// UpdateNetCount sets the "net_count" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateNetCount() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateNetCount()
-	})
-}
-
-// ClearNetCount clears the value of the "net_count" field.
-func (u *OrganizationUpsertOne) ClearNetCount() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearNetCount()
-	})
-}
-
-// SetFacCount sets the "fac_count" field.
-func (u *OrganizationUpsertOne) SetFacCount(v int) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetFacCount(v)
-	})
-}
-
-// AddFacCount adds v to the "fac_count" field.
-func (u *OrganizationUpsertOne) AddFacCount(v int) *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.AddFacCount(v)
-	})
-}
-
-// UpdateFacCount sets the "fac_count" field to the value that was provided on create.
-func (u *OrganizationUpsertOne) UpdateFacCount() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateFacCount()
-	})
-}
-
-// ClearFacCount clears the value of the "fac_count" field.
-func (u *OrganizationUpsertOne) ClearFacCount() *OrganizationUpsertOne {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearFacCount()
 	})
 }
 
@@ -2223,62 +2075,6 @@ func (u *OrganizationUpsertBulk) UpdateZipcode() *OrganizationUpsertBulk {
 func (u *OrganizationUpsertBulk) ClearZipcode() *OrganizationUpsertBulk {
 	return u.Update(func(s *OrganizationUpsert) {
 		s.ClearZipcode()
-	})
-}
-
-// SetNetCount sets the "net_count" field.
-func (u *OrganizationUpsertBulk) SetNetCount(v int) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetNetCount(v)
-	})
-}
-
-// AddNetCount adds v to the "net_count" field.
-func (u *OrganizationUpsertBulk) AddNetCount(v int) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.AddNetCount(v)
-	})
-}
-
-// UpdateNetCount sets the "net_count" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateNetCount() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateNetCount()
-	})
-}
-
-// ClearNetCount clears the value of the "net_count" field.
-func (u *OrganizationUpsertBulk) ClearNetCount() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearNetCount()
-	})
-}
-
-// SetFacCount sets the "fac_count" field.
-func (u *OrganizationUpsertBulk) SetFacCount(v int) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.SetFacCount(v)
-	})
-}
-
-// AddFacCount adds v to the "fac_count" field.
-func (u *OrganizationUpsertBulk) AddFacCount(v int) *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.AddFacCount(v)
-	})
-}
-
-// UpdateFacCount sets the "fac_count" field to the value that was provided on create.
-func (u *OrganizationUpsertBulk) UpdateFacCount() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.UpdateFacCount()
-	})
-}
-
-// ClearFacCount clears the value of the "fac_count" field.
-func (u *OrganizationUpsertBulk) ClearFacCount() *OrganizationUpsertBulk {
-	return u.Update(func(s *OrganizationUpsert) {
-		s.ClearFacCount()
 	})
 }
 

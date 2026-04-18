@@ -877,8 +877,6 @@ type UpdateIxPrefixParams struct {
 	IxlanID Option[*int] `json:"ixlan_id,omitempty"`
 	// In default-free zone
 	InDfz Option[bool] `json:"in_dfz"`
-	// Notes
-	Notes Option[string] `json:"notes,omitempty"`
 	// IP prefix (not unique — PeeringDB permits duplicates)
 	Prefix Option[string] `json:"prefix"`
 	// Protocol (IPv4/IPv6)
@@ -899,9 +897,6 @@ func (u *UpdateIxPrefixParams) ApplyInputs(_builder *ent.IxPrefixUpdateOne) *ent
 	}
 	if v, ok := u.InDfz.Get(); ok {
 		_builder.SetInDfz(v)
-	}
-	if v, ok := u.Notes.Get(); ok {
-		_builder.SetNotes(v)
 	}
 	if v, ok := u.Prefix.Get(); ok {
 		_builder.SetPrefix(v)
@@ -1413,10 +1408,6 @@ type UpdateOrganizationParams struct {
 	Website Option[string] `json:"website,omitempty"`
 	// Postal / ZIP code
 	Zipcode Option[string] `json:"zipcode,omitempty"`
-	// Net Count (computed)
-	NetCount Option[int] `json:"net_count,omitempty"`
-	// Fac Count (computed)
-	FacCount Option[int] `json:"fac_count,omitempty"`
 	// PeeringDB last update timestamp
 	Updated Option[time.Time] `json:"updated"`
 	// Record status
@@ -1486,12 +1477,6 @@ func (u *UpdateOrganizationParams) ApplyInputs(_builder *ent.OrganizationUpdateO
 	}
 	if v, ok := u.Zipcode.Get(); ok {
 		_builder.SetZipcode(v)
-	}
-	if v, ok := u.NetCount.Get(); ok {
-		_builder.SetNetCount(v)
-	}
-	if v, ok := u.FacCount.Get(); ok {
-		_builder.SetFacCount(v)
 	}
 	if v, ok := u.Updated.Get(); ok {
 		_builder.SetUpdated(v)

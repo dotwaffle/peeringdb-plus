@@ -761,8 +761,6 @@ type CreateIxPrefixParams struct {
 	IxlanID *int `json:"ixlan_id,omitempty"`
 	// In default-free zone
 	InDfz *bool `json:"in_dfz"`
-	// Notes
-	Notes *string `json:"notes,omitempty"`
 	// IP prefix (not unique — PeeringDB permits duplicates)
 	Prefix string `json:"prefix"`
 	// Protocol (IPv4/IPv6)
@@ -781,9 +779,6 @@ func (c *CreateIxPrefixParams) ApplyInputs(_builder *ent.IxPrefixCreate) *ent.Ix
 	}
 	if c.InDfz != nil {
 		_builder.SetInDfz(*c.InDfz)
-	}
-	if c.Notes != nil {
-		_builder.SetNotes(*c.Notes)
 	}
 	_builder.SetPrefix(c.Prefix)
 	if c.Protocol != nil {
@@ -1209,10 +1204,6 @@ type CreateOrganizationParams struct {
 	Website *string `json:"website,omitempty"`
 	// Postal / ZIP code
 	Zipcode *string `json:"zipcode,omitempty"`
-	// Net Count (computed)
-	NetCount *int `json:"net_count,omitempty"`
-	// Fac Count (computed)
-	FacCount *int `json:"fac_count,omitempty"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -1270,12 +1261,6 @@ func (c *CreateOrganizationParams) ApplyInputs(_builder *ent.OrganizationCreate)
 	}
 	if c.Zipcode != nil {
 		_builder.SetZipcode(*c.Zipcode)
-	}
-	if c.NetCount != nil {
-		_builder.SetNetCount(*c.NetCount)
-	}
-	if c.FacCount != nil {
-		_builder.SetFacCount(*c.FacCount)
 	}
 	_builder.SetCreated(c.Created)
 	_builder.SetUpdated(c.Updated)

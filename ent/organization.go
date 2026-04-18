@@ -54,10 +54,6 @@ type Organization struct {
 	Website string `json:"website"`
 	// Postal / ZIP code
 	Zipcode string `json:"zipcode"`
-	// Net Count (computed)
-	NetCount int `json:"net_count"`
-	// Fac Count (computed)
-	FacCount int `json:"fac_count"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
@@ -149,7 +145,7 @@ func (*Organization) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case organization.FieldLatitude, organization.FieldLongitude:
 			values[i] = new(sql.NullFloat64)
-		case organization.FieldID, organization.FieldNetCount, organization.FieldFacCount:
+		case organization.FieldID:
 			values[i] = new(sql.NullInt64)
 		case organization.FieldAddress1, organization.FieldAddress2, organization.FieldAka, organization.FieldCity, organization.FieldCountry, organization.FieldFloor, organization.FieldLogo, organization.FieldName, organization.FieldNameLong, organization.FieldNotes, organization.FieldState, organization.FieldSuite, organization.FieldWebsite, organization.FieldZipcode, organization.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -282,18 +278,6 @@ func (_m *Organization) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field zipcode", values[i])
 			} else if value.Valid {
 				_m.Zipcode = value.String
-			}
-		case organization.FieldNetCount:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field net_count", values[i])
-			} else if value.Valid {
-				_m.NetCount = int(value.Int64)
-			}
-		case organization.FieldFacCount:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field fac_count", values[i])
-			} else if value.Valid {
-				_m.FacCount = int(value.Int64)
 			}
 		case organization.FieldCreated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -430,12 +414,6 @@ func (_m *Organization) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("zipcode=")
 	builder.WriteString(_m.Zipcode)
-	builder.WriteString(", ")
-	builder.WriteString("net_count=")
-	builder.WriteString(fmt.Sprintf("%v", _m.NetCount))
-	builder.WriteString(", ")
-	builder.WriteString("fac_count=")
-	builder.WriteString(fmt.Sprintf("%v", _m.FacCount))
 	builder.WriteString(", ")
 	builder.WriteString("created=")
 	builder.WriteString(_m.Created.Format(time.ANSIC))

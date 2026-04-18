@@ -102,16 +102,6 @@ func (Organization) Fields() []ent.Field {
 			Default("").
 			Comment("Postal / ZIP code"),
 
-		// Computed fields (from serializer, stored per D-40)
-		field.Int("net_count").
-			Optional().
-			Default(0).
-			Comment("Net Count (computed)"),
-		field.Int("fac_count").
-			Optional().
-			Default(0).
-			Comment("Fac Count (computed)"),
-
 		// HandleRefModel common fields
 		field.Time("created").
 			Immutable().

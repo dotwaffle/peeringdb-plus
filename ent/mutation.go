@@ -12584,7 +12584,6 @@ type IxPrefixMutation struct {
 	typ           string
 	id            *int
 	in_dfz        *bool
-	notes         *string
 	prefix        *string
 	protocol      *string
 	created       *time.Time
@@ -12785,55 +12784,6 @@ func (m *IxPrefixMutation) OldInDfz(ctx context.Context) (v bool, err error) {
 // ResetInDfz resets all changes to the "in_dfz" field.
 func (m *IxPrefixMutation) ResetInDfz() {
 	m.in_dfz = nil
-}
-
-// SetNotes sets the "notes" field.
-func (m *IxPrefixMutation) SetNotes(s string) {
-	m.notes = &s
-}
-
-// Notes returns the value of the "notes" field in the mutation.
-func (m *IxPrefixMutation) Notes() (r string, exists bool) {
-	v := m.notes
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldNotes returns the old "notes" field's value of the IxPrefix entity.
-// If the IxPrefix object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *IxPrefixMutation) OldNotes(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNotes requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
-	}
-	return oldValue.Notes, nil
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (m *IxPrefixMutation) ClearNotes() {
-	m.notes = nil
-	m.clearedFields[ixprefix.FieldNotes] = struct{}{}
-}
-
-// NotesCleared returns if the "notes" field was cleared in this mutation.
-func (m *IxPrefixMutation) NotesCleared() bool {
-	_, ok := m.clearedFields[ixprefix.FieldNotes]
-	return ok
-}
-
-// ResetNotes resets all changes to the "notes" field.
-func (m *IxPrefixMutation) ResetNotes() {
-	m.notes = nil
-	delete(m.clearedFields, ixprefix.FieldNotes)
 }
 
 // SetPrefix sets the "prefix" field.
@@ -13103,15 +13053,12 @@ func (m *IxPrefixMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *IxPrefixMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 7)
 	if m.ix_lan != nil {
 		fields = append(fields, ixprefix.FieldIxlanID)
 	}
 	if m.in_dfz != nil {
 		fields = append(fields, ixprefix.FieldInDfz)
-	}
-	if m.notes != nil {
-		fields = append(fields, ixprefix.FieldNotes)
 	}
 	if m.prefix != nil {
 		fields = append(fields, ixprefix.FieldPrefix)
@@ -13140,8 +13087,6 @@ func (m *IxPrefixMutation) Field(name string) (ent.Value, bool) {
 		return m.IxlanID()
 	case ixprefix.FieldInDfz:
 		return m.InDfz()
-	case ixprefix.FieldNotes:
-		return m.Notes()
 	case ixprefix.FieldPrefix:
 		return m.Prefix()
 	case ixprefix.FieldProtocol:
@@ -13165,8 +13110,6 @@ func (m *IxPrefixMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldIxlanID(ctx)
 	case ixprefix.FieldInDfz:
 		return m.OldInDfz(ctx)
-	case ixprefix.FieldNotes:
-		return m.OldNotes(ctx)
 	case ixprefix.FieldPrefix:
 		return m.OldPrefix(ctx)
 	case ixprefix.FieldProtocol:
@@ -13199,13 +13142,6 @@ func (m *IxPrefixMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetInDfz(v)
-		return nil
-	case ixprefix.FieldNotes:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetNotes(v)
 		return nil
 	case ixprefix.FieldPrefix:
 		v, ok := value.(string)
@@ -13278,9 +13214,6 @@ func (m *IxPrefixMutation) ClearedFields() []string {
 	if m.FieldCleared(ixprefix.FieldIxlanID) {
 		fields = append(fields, ixprefix.FieldIxlanID)
 	}
-	if m.FieldCleared(ixprefix.FieldNotes) {
-		fields = append(fields, ixprefix.FieldNotes)
-	}
 	if m.FieldCleared(ixprefix.FieldProtocol) {
 		fields = append(fields, ixprefix.FieldProtocol)
 	}
@@ -13301,9 +13234,6 @@ func (m *IxPrefixMutation) ClearField(name string) error {
 	case ixprefix.FieldIxlanID:
 		m.ClearIxlanID()
 		return nil
-	case ixprefix.FieldNotes:
-		m.ClearNotes()
-		return nil
 	case ixprefix.FieldProtocol:
 		m.ClearProtocol()
 		return nil
@@ -13320,9 +13250,6 @@ func (m *IxPrefixMutation) ResetField(name string) error {
 		return nil
 	case ixprefix.FieldInDfz:
 		m.ResetInDfz()
-		return nil
-	case ixprefix.FieldNotes:
-		m.ResetNotes()
 		return nil
 	case ixprefix.FieldPrefix:
 		m.ResetPrefix()
@@ -19650,10 +19577,6 @@ type OrganizationMutation struct {
 	suite                     *string
 	website                   *string
 	zipcode                   *string
-	net_count                 *int
-	addnet_count              *int
-	fac_count                 *int
-	addfac_count              *int
 	created                   *time.Time
 	updated                   *time.Time
 	status                    *string
@@ -20660,146 +20583,6 @@ func (m *OrganizationMutation) ResetZipcode() {
 	delete(m.clearedFields, organization.FieldZipcode)
 }
 
-// SetNetCount sets the "net_count" field.
-func (m *OrganizationMutation) SetNetCount(i int) {
-	m.net_count = &i
-	m.addnet_count = nil
-}
-
-// NetCount returns the value of the "net_count" field in the mutation.
-func (m *OrganizationMutation) NetCount() (r int, exists bool) {
-	v := m.net_count
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldNetCount returns the old "net_count" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldNetCount(ctx context.Context) (v int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNetCount is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNetCount requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNetCount: %w", err)
-	}
-	return oldValue.NetCount, nil
-}
-
-// AddNetCount adds i to the "net_count" field.
-func (m *OrganizationMutation) AddNetCount(i int) {
-	if m.addnet_count != nil {
-		*m.addnet_count += i
-	} else {
-		m.addnet_count = &i
-	}
-}
-
-// AddedNetCount returns the value that was added to the "net_count" field in this mutation.
-func (m *OrganizationMutation) AddedNetCount() (r int, exists bool) {
-	v := m.addnet_count
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearNetCount clears the value of the "net_count" field.
-func (m *OrganizationMutation) ClearNetCount() {
-	m.net_count = nil
-	m.addnet_count = nil
-	m.clearedFields[organization.FieldNetCount] = struct{}{}
-}
-
-// NetCountCleared returns if the "net_count" field was cleared in this mutation.
-func (m *OrganizationMutation) NetCountCleared() bool {
-	_, ok := m.clearedFields[organization.FieldNetCount]
-	return ok
-}
-
-// ResetNetCount resets all changes to the "net_count" field.
-func (m *OrganizationMutation) ResetNetCount() {
-	m.net_count = nil
-	m.addnet_count = nil
-	delete(m.clearedFields, organization.FieldNetCount)
-}
-
-// SetFacCount sets the "fac_count" field.
-func (m *OrganizationMutation) SetFacCount(i int) {
-	m.fac_count = &i
-	m.addfac_count = nil
-}
-
-// FacCount returns the value of the "fac_count" field in the mutation.
-func (m *OrganizationMutation) FacCount() (r int, exists bool) {
-	v := m.fac_count
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldFacCount returns the old "fac_count" field's value of the Organization entity.
-// If the Organization object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OrganizationMutation) OldFacCount(ctx context.Context) (v int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldFacCount is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldFacCount requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldFacCount: %w", err)
-	}
-	return oldValue.FacCount, nil
-}
-
-// AddFacCount adds i to the "fac_count" field.
-func (m *OrganizationMutation) AddFacCount(i int) {
-	if m.addfac_count != nil {
-		*m.addfac_count += i
-	} else {
-		m.addfac_count = &i
-	}
-}
-
-// AddedFacCount returns the value that was added to the "fac_count" field in this mutation.
-func (m *OrganizationMutation) AddedFacCount() (r int, exists bool) {
-	v := m.addfac_count
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearFacCount clears the value of the "fac_count" field.
-func (m *OrganizationMutation) ClearFacCount() {
-	m.fac_count = nil
-	m.addfac_count = nil
-	m.clearedFields[organization.FieldFacCount] = struct{}{}
-}
-
-// FacCountCleared returns if the "fac_count" field was cleared in this mutation.
-func (m *OrganizationMutation) FacCountCleared() bool {
-	_, ok := m.clearedFields[organization.FieldFacCount]
-	return ok
-}
-
-// ResetFacCount resets all changes to the "fac_count" field.
-func (m *OrganizationMutation) ResetFacCount() {
-	m.fac_count = nil
-	m.addfac_count = nil
-	delete(m.clearedFields, organization.FieldFacCount)
-}
-
 // SetCreated sets the "created" field.
 func (m *OrganizationMutation) SetCreated(t time.Time) {
 	m.created = &t
@@ -21212,7 +20995,7 @@ func (m *OrganizationMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OrganizationMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 20)
 	if m.address1 != nil {
 		fields = append(fields, organization.FieldAddress1)
 	}
@@ -21263,12 +21046,6 @@ func (m *OrganizationMutation) Fields() []string {
 	}
 	if m.zipcode != nil {
 		fields = append(fields, organization.FieldZipcode)
-	}
-	if m.net_count != nil {
-		fields = append(fields, organization.FieldNetCount)
-	}
-	if m.fac_count != nil {
-		fields = append(fields, organization.FieldFacCount)
 	}
 	if m.created != nil {
 		fields = append(fields, organization.FieldCreated)
@@ -21321,10 +21098,6 @@ func (m *OrganizationMutation) Field(name string) (ent.Value, bool) {
 		return m.Website()
 	case organization.FieldZipcode:
 		return m.Zipcode()
-	case organization.FieldNetCount:
-		return m.NetCount()
-	case organization.FieldFacCount:
-		return m.FacCount()
 	case organization.FieldCreated:
 		return m.Created()
 	case organization.FieldUpdated:
@@ -21374,10 +21147,6 @@ func (m *OrganizationMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldWebsite(ctx)
 	case organization.FieldZipcode:
 		return m.OldZipcode(ctx)
-	case organization.FieldNetCount:
-		return m.OldNetCount(ctx)
-	case organization.FieldFacCount:
-		return m.OldFacCount(ctx)
 	case organization.FieldCreated:
 		return m.OldCreated(ctx)
 	case organization.FieldUpdated:
@@ -21512,20 +21281,6 @@ func (m *OrganizationMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetZipcode(v)
 		return nil
-	case organization.FieldNetCount:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetNetCount(v)
-		return nil
-	case organization.FieldFacCount:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetFacCount(v)
-		return nil
 	case organization.FieldCreated:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -21561,12 +21316,6 @@ func (m *OrganizationMutation) AddedFields() []string {
 	if m.addlongitude != nil {
 		fields = append(fields, organization.FieldLongitude)
 	}
-	if m.addnet_count != nil {
-		fields = append(fields, organization.FieldNetCount)
-	}
-	if m.addfac_count != nil {
-		fields = append(fields, organization.FieldFacCount)
-	}
 	return fields
 }
 
@@ -21579,10 +21328,6 @@ func (m *OrganizationMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedLatitude()
 	case organization.FieldLongitude:
 		return m.AddedLongitude()
-	case organization.FieldNetCount:
-		return m.AddedNetCount()
-	case organization.FieldFacCount:
-		return m.AddedFacCount()
 	}
 	return nil, false
 }
@@ -21605,20 +21350,6 @@ func (m *OrganizationMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddLongitude(v)
-		return nil
-	case organization.FieldNetCount:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddNetCount(v)
-		return nil
-	case organization.FieldFacCount:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddFacCount(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Organization numeric field %s", name)
@@ -21675,12 +21406,6 @@ func (m *OrganizationMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(organization.FieldZipcode) {
 		fields = append(fields, organization.FieldZipcode)
-	}
-	if m.FieldCleared(organization.FieldNetCount) {
-		fields = append(fields, organization.FieldNetCount)
-	}
-	if m.FieldCleared(organization.FieldFacCount) {
-		fields = append(fields, organization.FieldFacCount)
 	}
 	return fields
 }
@@ -21744,12 +21469,6 @@ func (m *OrganizationMutation) ClearField(name string) error {
 	case organization.FieldZipcode:
 		m.ClearZipcode()
 		return nil
-	case organization.FieldNetCount:
-		m.ClearNetCount()
-		return nil
-	case organization.FieldFacCount:
-		m.ClearFacCount()
-		return nil
 	}
 	return fmt.Errorf("unknown Organization nullable field %s", name)
 }
@@ -21808,12 +21527,6 @@ func (m *OrganizationMutation) ResetField(name string) error {
 		return nil
 	case organization.FieldZipcode:
 		m.ResetZipcode()
-		return nil
-	case organization.FieldNetCount:
-		m.ResetNetCount()
-		return nil
-	case organization.FieldFacCount:
-		m.ResetFacCount()
 		return nil
 	case organization.FieldCreated:
 		m.ResetCreated()

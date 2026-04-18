@@ -47,10 +47,6 @@ const (
 	FieldWebsite = "website"
 	// FieldZipcode holds the string denoting the zipcode field in the database.
 	FieldZipcode = "zipcode"
-	// FieldNetCount holds the string denoting the net_count field in the database.
-	FieldNetCount = "net_count"
-	// FieldFacCount holds the string denoting the fac_count field in the database.
-	FieldFacCount = "fac_count"
 	// FieldCreated holds the string denoting the created field in the database.
 	FieldCreated = "created"
 	// FieldUpdated holds the string denoting the updated field in the database.
@@ -126,8 +122,6 @@ var Columns = []string{
 	FieldSuite,
 	FieldWebsite,
 	FieldZipcode,
-	FieldNetCount,
-	FieldFacCount,
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
@@ -176,10 +170,6 @@ var (
 	DefaultWebsite string
 	// DefaultZipcode holds the default value on creation for the "zipcode" field.
 	DefaultZipcode string
-	// DefaultNetCount holds the default value on creation for the "net_count" field.
-	DefaultNetCount int
-	// DefaultFacCount holds the default value on creation for the "fac_count" field.
-	DefaultFacCount int
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -272,16 +262,6 @@ func ByWebsite(opts ...sql.OrderTermOption) OrderOption {
 // ByZipcode orders the results by the zipcode field.
 func ByZipcode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldZipcode, opts...).ToFunc()
-}
-
-// ByNetCount orders the results by the net_count field.
-func ByNetCount(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNetCount, opts...).ToFunc()
-}
-
-// ByFacCount orders the results by the fac_count field.
-func ByFacCount(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFacCount, opts...).ToFunc()
 }
 
 // ByCreated orders the results by the created field.

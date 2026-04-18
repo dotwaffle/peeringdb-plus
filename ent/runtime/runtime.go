@@ -420,20 +420,16 @@ func init() {
 	ixprefixDescInDfz := ixprefixFields[2].Descriptor()
 	// ixprefix.DefaultInDfz holds the default value on creation for the in_dfz field.
 	ixprefix.DefaultInDfz = ixprefixDescInDfz.Default.(bool)
-	// ixprefixDescNotes is the schema descriptor for notes field.
-	ixprefixDescNotes := ixprefixFields[3].Descriptor()
-	// ixprefix.DefaultNotes holds the default value on creation for the notes field.
-	ixprefix.DefaultNotes = ixprefixDescNotes.Default.(string)
 	// ixprefixDescPrefix is the schema descriptor for prefix field.
-	ixprefixDescPrefix := ixprefixFields[4].Descriptor()
+	ixprefixDescPrefix := ixprefixFields[3].Descriptor()
 	// ixprefix.PrefixValidator is a validator for the "prefix" field. It is called by the builders before save.
 	ixprefix.PrefixValidator = ixprefixDescPrefix.Validators[0].(func(string) error)
 	// ixprefixDescProtocol is the schema descriptor for protocol field.
-	ixprefixDescProtocol := ixprefixFields[5].Descriptor()
+	ixprefixDescProtocol := ixprefixFields[4].Descriptor()
 	// ixprefix.DefaultProtocol holds the default value on creation for the protocol field.
 	ixprefix.DefaultProtocol = ixprefixDescProtocol.Default.(string)
 	// ixprefixDescStatus is the schema descriptor for status field.
-	ixprefixDescStatus := ixprefixFields[8].Descriptor()
+	ixprefixDescStatus := ixprefixFields[7].Descriptor()
 	// ixprefix.DefaultStatus holds the default value on creation for the status field.
 	ixprefix.DefaultStatus = ixprefixDescStatus.Default.(string)
 	// ixprefixDescID is the schema descriptor for id field.
@@ -668,16 +664,8 @@ func init() {
 	organizationDescZipcode := organizationFields[17].Descriptor()
 	// organization.DefaultZipcode holds the default value on creation for the zipcode field.
 	organization.DefaultZipcode = organizationDescZipcode.Default.(string)
-	// organizationDescNetCount is the schema descriptor for net_count field.
-	organizationDescNetCount := organizationFields[18].Descriptor()
-	// organization.DefaultNetCount holds the default value on creation for the net_count field.
-	organization.DefaultNetCount = organizationDescNetCount.Default.(int)
-	// organizationDescFacCount is the schema descriptor for fac_count field.
-	organizationDescFacCount := organizationFields[19].Descriptor()
-	// organization.DefaultFacCount holds the default value on creation for the fac_count field.
-	organization.DefaultFacCount = organizationDescFacCount.Default.(int)
 	// organizationDescStatus is the schema descriptor for status field.
-	organizationDescStatus := organizationFields[22].Descriptor()
+	organizationDescStatus := organizationFields[20].Descriptor()
 	// organization.DefaultStatus holds the default value on creation for the status field.
 	organization.DefaultStatus = organizationDescStatus.Default.(string)
 	// organizationDescID is the schema descriptor for id field.

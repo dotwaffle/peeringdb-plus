@@ -51,20 +51,6 @@ func (_c *IxPrefixCreate) SetNillableInDfz(v *bool) *IxPrefixCreate {
 	return _c
 }
 
-// SetNotes sets the "notes" field.
-func (_c *IxPrefixCreate) SetNotes(v string) *IxPrefixCreate {
-	_c.mutation.SetNotes(v)
-	return _c
-}
-
-// SetNillableNotes sets the "notes" field if the given value is not nil.
-func (_c *IxPrefixCreate) SetNillableNotes(v *string) *IxPrefixCreate {
-	if v != nil {
-		_c.SetNotes(*v)
-	}
-	return _c
-}
-
 // SetPrefix sets the "prefix" field.
 func (_c *IxPrefixCreate) SetPrefix(v string) *IxPrefixCreate {
 	_c.mutation.SetPrefix(v)
@@ -177,10 +163,6 @@ func (_c *IxPrefixCreate) defaults() error {
 		v := ixprefix.DefaultInDfz
 		_c.mutation.SetInDfz(v)
 	}
-	if _, ok := _c.mutation.Notes(); !ok {
-		v := ixprefix.DefaultNotes
-		_c.mutation.SetNotes(v)
-	}
 	if _, ok := _c.mutation.Protocol(); !ok {
 		v := ixprefix.DefaultProtocol
 		_c.mutation.SetProtocol(v)
@@ -255,10 +237,6 @@ func (_c *IxPrefixCreate) createSpec() (*IxPrefix, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.InDfz(); ok {
 		_spec.SetField(ixprefix.FieldInDfz, field.TypeBool, value)
 		_node.InDfz = value
-	}
-	if value, ok := _c.mutation.Notes(); ok {
-		_spec.SetField(ixprefix.FieldNotes, field.TypeString, value)
-		_node.Notes = value
 	}
 	if value, ok := _c.mutation.Prefix(); ok {
 		_spec.SetField(ixprefix.FieldPrefix, field.TypeString, value)
@@ -376,24 +354,6 @@ func (u *IxPrefixUpsert) SetInDfz(v bool) *IxPrefixUpsert {
 // UpdateInDfz sets the "in_dfz" field to the value that was provided on create.
 func (u *IxPrefixUpsert) UpdateInDfz() *IxPrefixUpsert {
 	u.SetExcluded(ixprefix.FieldInDfz)
-	return u
-}
-
-// SetNotes sets the "notes" field.
-func (u *IxPrefixUpsert) SetNotes(v string) *IxPrefixUpsert {
-	u.Set(ixprefix.FieldNotes, v)
-	return u
-}
-
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *IxPrefixUpsert) UpdateNotes() *IxPrefixUpsert {
-	u.SetExcluded(ixprefix.FieldNotes)
-	return u
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (u *IxPrefixUpsert) ClearNotes() *IxPrefixUpsert {
-	u.SetNull(ixprefix.FieldNotes)
 	return u
 }
 
@@ -534,27 +494,6 @@ func (u *IxPrefixUpsertOne) SetInDfz(v bool) *IxPrefixUpsertOne {
 func (u *IxPrefixUpsertOne) UpdateInDfz() *IxPrefixUpsertOne {
 	return u.Update(func(s *IxPrefixUpsert) {
 		s.UpdateInDfz()
-	})
-}
-
-// SetNotes sets the "notes" field.
-func (u *IxPrefixUpsertOne) SetNotes(v string) *IxPrefixUpsertOne {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.SetNotes(v)
-	})
-}
-
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *IxPrefixUpsertOne) UpdateNotes() *IxPrefixUpsertOne {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.UpdateNotes()
-	})
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (u *IxPrefixUpsertOne) ClearNotes() *IxPrefixUpsertOne {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.ClearNotes()
 	})
 }
 
@@ -870,27 +809,6 @@ func (u *IxPrefixUpsertBulk) SetInDfz(v bool) *IxPrefixUpsertBulk {
 func (u *IxPrefixUpsertBulk) UpdateInDfz() *IxPrefixUpsertBulk {
 	return u.Update(func(s *IxPrefixUpsert) {
 		s.UpdateInDfz()
-	})
-}
-
-// SetNotes sets the "notes" field.
-func (u *IxPrefixUpsertBulk) SetNotes(v string) *IxPrefixUpsertBulk {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.SetNotes(v)
-	})
-}
-
-// UpdateNotes sets the "notes" field to the value that was provided on create.
-func (u *IxPrefixUpsertBulk) UpdateNotes() *IxPrefixUpsertBulk {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.UpdateNotes()
-	})
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (u *IxPrefixUpsertBulk) ClearNotes() *IxPrefixUpsertBulk {
-	return u.Update(func(s *IxPrefixUpsert) {
-		s.ClearNotes()
 	})
 }
 

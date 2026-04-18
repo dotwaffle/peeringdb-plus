@@ -63,26 +63,6 @@ func (_u *IxPrefixUpdate) SetNillableInDfz(v *bool) *IxPrefixUpdate {
 	return _u
 }
 
-// SetNotes sets the "notes" field.
-func (_u *IxPrefixUpdate) SetNotes(v string) *IxPrefixUpdate {
-	_u.mutation.SetNotes(v)
-	return _u
-}
-
-// SetNillableNotes sets the "notes" field if the given value is not nil.
-func (_u *IxPrefixUpdate) SetNillableNotes(v *string) *IxPrefixUpdate {
-	if v != nil {
-		_u.SetNotes(*v)
-	}
-	return _u
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (_u *IxPrefixUpdate) ClearNotes() *IxPrefixUpdate {
-	_u.mutation.ClearNotes()
-	return _u
-}
-
 // SetPrefix sets the "prefix" field.
 func (_u *IxPrefixUpdate) SetPrefix(v string) *IxPrefixUpdate {
 	_u.mutation.SetPrefix(v)
@@ -227,12 +207,6 @@ func (_u *IxPrefixUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.InDfz(); ok {
 		_spec.SetField(ixprefix.FieldInDfz, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.Notes(); ok {
-		_spec.SetField(ixprefix.FieldNotes, field.TypeString, value)
-	}
-	if _u.mutation.NotesCleared() {
-		_spec.ClearField(ixprefix.FieldNotes, field.TypeString)
-	}
 	if value, ok := _u.mutation.Prefix(); ok {
 		_spec.SetField(ixprefix.FieldPrefix, field.TypeString, value)
 	}
@@ -328,26 +302,6 @@ func (_u *IxPrefixUpdateOne) SetNillableInDfz(v *bool) *IxPrefixUpdateOne {
 	if v != nil {
 		_u.SetInDfz(*v)
 	}
-	return _u
-}
-
-// SetNotes sets the "notes" field.
-func (_u *IxPrefixUpdateOne) SetNotes(v string) *IxPrefixUpdateOne {
-	_u.mutation.SetNotes(v)
-	return _u
-}
-
-// SetNillableNotes sets the "notes" field if the given value is not nil.
-func (_u *IxPrefixUpdateOne) SetNillableNotes(v *string) *IxPrefixUpdateOne {
-	if v != nil {
-		_u.SetNotes(*v)
-	}
-	return _u
-}
-
-// ClearNotes clears the value of the "notes" field.
-func (_u *IxPrefixUpdateOne) ClearNotes() *IxPrefixUpdateOne {
-	_u.mutation.ClearNotes()
 	return _u
 }
 
@@ -524,12 +478,6 @@ func (_u *IxPrefixUpdateOne) sqlSave(ctx context.Context) (_node *IxPrefix, err 
 	}
 	if value, ok := _u.mutation.InDfz(); ok {
 		_spec.SetField(ixprefix.FieldInDfz, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.Notes(); ok {
-		_spec.SetField(ixprefix.FieldNotes, field.TypeString, value)
-	}
-	if _u.mutation.NotesCleared() {
-		_spec.ClearField(ixprefix.FieldNotes, field.TypeString)
 	}
 	if value, ok := _u.mutation.Prefix(); ok {
 		_spec.SetField(ixprefix.FieldPrefix, field.TypeString, value)

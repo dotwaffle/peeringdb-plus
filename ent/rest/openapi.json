@@ -10647,11 +10647,6 @@
                         "type": "boolean",
                         "default": false
                     },
-                    "notes": {
-                        "description": "Notes",
-                        "type": "string",
-                        "default": ""
-                    },
                     "prefix": {
                         "description": "IP prefix (not unique — PeeringDB permits duplicates)",
                         "type": "string"
@@ -11488,16 +11483,6 @@
                         "description": "Postal / ZIP code",
                         "type": "string",
                         "default": ""
-                    },
-                    "net_count": {
-                        "description": "Net Count (computed)",
-                        "type": "integer",
-                        "default": 0
-                    },
-                    "fac_count": {
-                        "description": "Fac Count (computed)",
-                        "type": "integer",
-                        "default": 0
                     },
                     "created": {
                         "description": "PeeringDB creation timestamp",

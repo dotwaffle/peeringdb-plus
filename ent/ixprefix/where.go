@@ -65,11 +65,6 @@ func InDfz(v bool) predicate.IxPrefix {
 	return predicate.IxPrefix(sql.FieldEQ(FieldInDfz, v))
 }
 
-// Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
-func Notes(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldEQ(FieldNotes, v))
-}
-
 // Prefix applies equality check predicate on the "prefix" field. It's identical to PrefixEQ.
 func Prefix(v string) predicate.IxPrefix {
 	return predicate.IxPrefix(sql.FieldEQ(FieldPrefix, v))
@@ -133,81 +128,6 @@ func InDfzEQ(v bool) predicate.IxPrefix {
 // InDfzNEQ applies the NEQ predicate on the "in_dfz" field.
 func InDfzNEQ(v bool) predicate.IxPrefix {
 	return predicate.IxPrefix(sql.FieldNEQ(FieldInDfz, v))
-}
-
-// NotesEQ applies the EQ predicate on the "notes" field.
-func NotesEQ(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldEQ(FieldNotes, v))
-}
-
-// NotesNEQ applies the NEQ predicate on the "notes" field.
-func NotesNEQ(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldNEQ(FieldNotes, v))
-}
-
-// NotesIn applies the In predicate on the "notes" field.
-func NotesIn(vs ...string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldIn(FieldNotes, vs...))
-}
-
-// NotesNotIn applies the NotIn predicate on the "notes" field.
-func NotesNotIn(vs ...string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldNotIn(FieldNotes, vs...))
-}
-
-// NotesGT applies the GT predicate on the "notes" field.
-func NotesGT(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldGT(FieldNotes, v))
-}
-
-// NotesGTE applies the GTE predicate on the "notes" field.
-func NotesGTE(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldGTE(FieldNotes, v))
-}
-
-// NotesLT applies the LT predicate on the "notes" field.
-func NotesLT(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldLT(FieldNotes, v))
-}
-
-// NotesLTE applies the LTE predicate on the "notes" field.
-func NotesLTE(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldLTE(FieldNotes, v))
-}
-
-// NotesContains applies the Contains predicate on the "notes" field.
-func NotesContains(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldContains(FieldNotes, v))
-}
-
-// NotesHasPrefix applies the HasPrefix predicate on the "notes" field.
-func NotesHasPrefix(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldHasPrefix(FieldNotes, v))
-}
-
-// NotesHasSuffix applies the HasSuffix predicate on the "notes" field.
-func NotesHasSuffix(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldHasSuffix(FieldNotes, v))
-}
-
-// NotesIsNil applies the IsNil predicate on the "notes" field.
-func NotesIsNil() predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldIsNull(FieldNotes))
-}
-
-// NotesNotNil applies the NotNil predicate on the "notes" field.
-func NotesNotNil() predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldNotNull(FieldNotes))
-}
-
-// NotesEqualFold applies the EqualFold predicate on the "notes" field.
-func NotesEqualFold(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldEqualFold(FieldNotes, v))
-}
-
-// NotesContainsFold applies the ContainsFold predicate on the "notes" field.
-func NotesContainsFold(v string) predicate.IxPrefix {
-	return predicate.IxPrefix(sql.FieldContainsFold(FieldNotes, v))
 }
 
 // PrefixEQ applies the EQ predicate on the "prefix" field.

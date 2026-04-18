@@ -23,8 +23,6 @@ type IxPrefix struct {
 	IxlanID *int `json:"ixlan_id"`
 	// In default-free zone
 	InDfz bool `json:"in_dfz"`
-	// Notes
-	Notes string `json:"notes"`
 	// IP prefix (not unique — PeeringDB permits duplicates)
 	Prefix string `json:"prefix"`
 	// Protocol (IPv4/IPv6)
@@ -72,7 +70,7 @@ func (*IxPrefix) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case ixprefix.FieldID, ixprefix.FieldIxlanID:
 			values[i] = new(sql.NullInt64)
-		case ixprefix.FieldNotes, ixprefix.FieldPrefix, ixprefix.FieldProtocol, ixprefix.FieldStatus:
+		case ixprefix.FieldPrefix, ixprefix.FieldProtocol, ixprefix.FieldStatus:
 			values[i] = new(sql.NullString)
 		case ixprefix.FieldCreated, ixprefix.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -109,12 +107,6 @@ func (_m *IxPrefix) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field in_dfz", values[i])
 			} else if value.Valid {
 				_m.InDfz = value.Bool
-			}
-		case ixprefix.FieldNotes:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field notes", values[i])
-			} else if value.Valid {
-				_m.Notes = value.String
 			}
 		case ixprefix.FieldPrefix:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -194,9 +186,6 @@ func (_m *IxPrefix) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("in_dfz=")
 	builder.WriteString(fmt.Sprintf("%v", _m.InDfz))
-	builder.WriteString(", ")
-	builder.WriteString("notes=")
-	builder.WriteString(_m.Notes)
 	builder.WriteString(", ")
 	builder.WriteString("prefix=")
 	builder.WriteString(_m.Prefix)

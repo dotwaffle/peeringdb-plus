@@ -407,7 +407,6 @@ var (
 	IxPrefixesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "in_dfz", Type: field.TypeBool, Default: false},
-		{Name: "notes", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "prefix", Type: field.TypeString},
 		{Name: "protocol", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "created", Type: field.TypeTime},
@@ -423,7 +422,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ix_prefixes_ix_lans_ix_prefixes",
-				Columns:    []*schema.Column{IxPrefixesColumns[8]},
+				Columns:    []*schema.Column{IxPrefixesColumns[7]},
 				RefColumns: []*schema.Column{IxLansColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -432,17 +431,17 @@ var (
 			{
 				Name:    "ixprefix_ixlan_id",
 				Unique:  false,
-				Columns: []*schema.Column{IxPrefixesColumns[8]},
+				Columns: []*schema.Column{IxPrefixesColumns[7]},
 			},
 			{
 				Name:    "ixprefix_prefix",
 				Unique:  false,
-				Columns: []*schema.Column{IxPrefixesColumns[3]},
+				Columns: []*schema.Column{IxPrefixesColumns[2]},
 			},
 			{
 				Name:    "ixprefix_status",
 				Unique:  false,
-				Columns: []*schema.Column{IxPrefixesColumns[7]},
+				Columns: []*schema.Column{IxPrefixesColumns[6]},
 			},
 		},
 	}
@@ -664,8 +663,6 @@ var (
 		{Name: "suite", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "website", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "zipcode", Type: field.TypeString, Nullable: true, Default: ""},
-		{Name: "net_count", Type: field.TypeInt, Nullable: true, Default: 0},
-		{Name: "fac_count", Type: field.TypeInt, Nullable: true, Default: 0},
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
@@ -684,7 +681,7 @@ var (
 			{
 				Name:    "organization_status",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationsColumns[22]},
+				Columns: []*schema.Column{OrganizationsColumns[20]},
 			},
 		},
 	}

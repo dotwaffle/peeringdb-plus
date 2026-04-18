@@ -381,60 +381,6 @@ func (_u *OrganizationUpdate) ClearZipcode() *OrganizationUpdate {
 	return _u
 }
 
-// SetNetCount sets the "net_count" field.
-func (_u *OrganizationUpdate) SetNetCount(v int) *OrganizationUpdate {
-	_u.mutation.ResetNetCount()
-	_u.mutation.SetNetCount(v)
-	return _u
-}
-
-// SetNillableNetCount sets the "net_count" field if the given value is not nil.
-func (_u *OrganizationUpdate) SetNillableNetCount(v *int) *OrganizationUpdate {
-	if v != nil {
-		_u.SetNetCount(*v)
-	}
-	return _u
-}
-
-// AddNetCount adds value to the "net_count" field.
-func (_u *OrganizationUpdate) AddNetCount(v int) *OrganizationUpdate {
-	_u.mutation.AddNetCount(v)
-	return _u
-}
-
-// ClearNetCount clears the value of the "net_count" field.
-func (_u *OrganizationUpdate) ClearNetCount() *OrganizationUpdate {
-	_u.mutation.ClearNetCount()
-	return _u
-}
-
-// SetFacCount sets the "fac_count" field.
-func (_u *OrganizationUpdate) SetFacCount(v int) *OrganizationUpdate {
-	_u.mutation.ResetFacCount()
-	_u.mutation.SetFacCount(v)
-	return _u
-}
-
-// SetNillableFacCount sets the "fac_count" field if the given value is not nil.
-func (_u *OrganizationUpdate) SetNillableFacCount(v *int) *OrganizationUpdate {
-	if v != nil {
-		_u.SetFacCount(*v)
-	}
-	return _u
-}
-
-// AddFacCount adds value to the "fac_count" field.
-func (_u *OrganizationUpdate) AddFacCount(v int) *OrganizationUpdate {
-	_u.mutation.AddFacCount(v)
-	return _u
-}
-
-// ClearFacCount clears the value of the "fac_count" field.
-func (_u *OrganizationUpdate) ClearFacCount() *OrganizationUpdate {
-	_u.mutation.ClearFacCount()
-	return _u
-}
-
 // SetUpdated sets the "updated" field.
 func (_u *OrganizationUpdate) SetUpdated(v time.Time) *OrganizationUpdate {
 	_u.mutation.SetUpdated(v)
@@ -806,24 +752,6 @@ func (_u *OrganizationUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.ZipcodeCleared() {
 		_spec.ClearField(organization.FieldZipcode, field.TypeString)
-	}
-	if value, ok := _u.mutation.NetCount(); ok {
-		_spec.SetField(organization.FieldNetCount, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedNetCount(); ok {
-		_spec.AddField(organization.FieldNetCount, field.TypeInt, value)
-	}
-	if _u.mutation.NetCountCleared() {
-		_spec.ClearField(organization.FieldNetCount, field.TypeInt)
-	}
-	if value, ok := _u.mutation.FacCount(); ok {
-		_spec.SetField(organization.FieldFacCount, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedFacCount(); ok {
-		_spec.AddField(organization.FieldFacCount, field.TypeInt, value)
-	}
-	if _u.mutation.FacCountCleared() {
-		_spec.ClearField(organization.FieldFacCount, field.TypeInt)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(organization.FieldUpdated, field.TypeTime, value)
@@ -1422,60 +1350,6 @@ func (_u *OrganizationUpdateOne) ClearZipcode() *OrganizationUpdateOne {
 	return _u
 }
 
-// SetNetCount sets the "net_count" field.
-func (_u *OrganizationUpdateOne) SetNetCount(v int) *OrganizationUpdateOne {
-	_u.mutation.ResetNetCount()
-	_u.mutation.SetNetCount(v)
-	return _u
-}
-
-// SetNillableNetCount sets the "net_count" field if the given value is not nil.
-func (_u *OrganizationUpdateOne) SetNillableNetCount(v *int) *OrganizationUpdateOne {
-	if v != nil {
-		_u.SetNetCount(*v)
-	}
-	return _u
-}
-
-// AddNetCount adds value to the "net_count" field.
-func (_u *OrganizationUpdateOne) AddNetCount(v int) *OrganizationUpdateOne {
-	_u.mutation.AddNetCount(v)
-	return _u
-}
-
-// ClearNetCount clears the value of the "net_count" field.
-func (_u *OrganizationUpdateOne) ClearNetCount() *OrganizationUpdateOne {
-	_u.mutation.ClearNetCount()
-	return _u
-}
-
-// SetFacCount sets the "fac_count" field.
-func (_u *OrganizationUpdateOne) SetFacCount(v int) *OrganizationUpdateOne {
-	_u.mutation.ResetFacCount()
-	_u.mutation.SetFacCount(v)
-	return _u
-}
-
-// SetNillableFacCount sets the "fac_count" field if the given value is not nil.
-func (_u *OrganizationUpdateOne) SetNillableFacCount(v *int) *OrganizationUpdateOne {
-	if v != nil {
-		_u.SetFacCount(*v)
-	}
-	return _u
-}
-
-// AddFacCount adds value to the "fac_count" field.
-func (_u *OrganizationUpdateOne) AddFacCount(v int) *OrganizationUpdateOne {
-	_u.mutation.AddFacCount(v)
-	return _u
-}
-
-// ClearFacCount clears the value of the "fac_count" field.
-func (_u *OrganizationUpdateOne) ClearFacCount() *OrganizationUpdateOne {
-	_u.mutation.ClearFacCount()
-	return _u
-}
-
 // SetUpdated sets the "updated" field.
 func (_u *OrganizationUpdateOne) SetUpdated(v time.Time) *OrganizationUpdateOne {
 	_u.mutation.SetUpdated(v)
@@ -1877,24 +1751,6 @@ func (_u *OrganizationUpdateOne) sqlSave(ctx context.Context) (_node *Organizati
 	}
 	if _u.mutation.ZipcodeCleared() {
 		_spec.ClearField(organization.FieldZipcode, field.TypeString)
-	}
-	if value, ok := _u.mutation.NetCount(); ok {
-		_spec.SetField(organization.FieldNetCount, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedNetCount(); ok {
-		_spec.AddField(organization.FieldNetCount, field.TypeInt, value)
-	}
-	if _u.mutation.NetCountCleared() {
-		_spec.ClearField(organization.FieldNetCount, field.TypeInt)
-	}
-	if value, ok := _u.mutation.FacCount(); ok {
-		_spec.SetField(organization.FieldFacCount, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedFacCount(); ok {
-		_spec.AddField(organization.FieldFacCount, field.TypeInt, value)
-	}
-	if _u.mutation.FacCountCleared() {
-		_spec.ClearField(organization.FieldFacCount, field.TypeInt)
 	}
 	if value, ok := _u.mutation.Updated(); ok {
 		_spec.SetField(organization.FieldUpdated, field.TypeTime, value)

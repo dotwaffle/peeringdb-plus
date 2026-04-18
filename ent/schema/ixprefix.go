@@ -31,10 +31,6 @@ func (IxPrefix) Fields() []ent.Field {
 		field.Bool("in_dfz").
 			Default(false).
 			Comment("In default-free zone"),
-		field.String("notes").
-			Optional().
-			Default("").
-			Comment("Notes"),
 		field.String("prefix").
 			NotEmpty().
 			Comment("IP prefix (not unique — PeeringDB permits duplicates)"),
