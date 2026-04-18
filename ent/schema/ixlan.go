@@ -42,6 +42,10 @@ func (IxLan) Fields() []ent.Field {
 		field.Bool("ixf_ixp_import_enabled").
 			Default(false).
 			Comment("IXF import enabled"),
+		field.String("ixf_ixp_member_list_url").
+			Optional().
+			Default("").
+			Comment("IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)"),
 		field.String("ixf_ixp_member_list_url_visible").
 			Optional().
 			Default("Private").
@@ -73,17 +77,6 @@ func (IxLan) Fields() []ent.Field {
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
-		// Phase 64 (VIS-09): auth-gated URL data field. Field-level privacy
-		// is enforced at the serializer layer via internal/privfield.Redact
-		// (Plan 64-03), not by an ent Policy — ent privacy is row-level only.
-		// This field MUST remain the LAST entry in Fields() so the generated
-		// proto field number is 14; inserting it mid-slice would shift
-		// numbers 8-13 and break proto wire compatibility. See Phase 64
-		// RESEARCH.md §"Pitfall 1".
-		field.String("ixf_ixp_member_list_url").
-			Optional().
-			Default("").
-			Comment("IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)"),
 	}
 }
 

@@ -119,6 +119,26 @@ func (_u *IxLanUpdate) SetNillableIxfIxpImportEnabled(v *bool) *IxLanUpdate {
 	return _u
 }
 
+// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
+func (_u *IxLanUpdate) SetIxfIxpMemberListURL(v string) *IxLanUpdate {
+	_u.mutation.SetIxfIxpMemberListURL(v)
+	return _u
+}
+
+// SetNillableIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field if the given value is not nil.
+func (_u *IxLanUpdate) SetNillableIxfIxpMemberListURL(v *string) *IxLanUpdate {
+	if v != nil {
+		_u.SetIxfIxpMemberListURL(*v)
+	}
+	return _u
+}
+
+// ClearIxfIxpMemberListURL clears the value of the "ixf_ixp_member_list_url" field.
+func (_u *IxLanUpdate) ClearIxfIxpMemberListURL() *IxLanUpdate {
+	_u.mutation.ClearIxfIxpMemberListURL()
+	return _u
+}
+
 // SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
 func (_u *IxLanUpdate) SetIxfIxpMemberListURLVisible(v string) *IxLanUpdate {
 	_u.mutation.SetIxfIxpMemberListURLVisible(v)
@@ -238,26 +258,6 @@ func (_u *IxLanUpdate) SetNillableStatus(v *string) *IxLanUpdate {
 	if v != nil {
 		_u.SetStatus(*v)
 	}
-	return _u
-}
-
-// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
-func (_u *IxLanUpdate) SetIxfIxpMemberListURL(v string) *IxLanUpdate {
-	_u.mutation.SetIxfIxpMemberListURL(v)
-	return _u
-}
-
-// SetNillableIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field if the given value is not nil.
-func (_u *IxLanUpdate) SetNillableIxfIxpMemberListURL(v *string) *IxLanUpdate {
-	if v != nil {
-		_u.SetIxfIxpMemberListURL(*v)
-	}
-	return _u
-}
-
-// ClearIxfIxpMemberListURL clears the value of the "ixf_ixp_member_list_url" field.
-func (_u *IxLanUpdate) ClearIxfIxpMemberListURL() *IxLanUpdate {
-	_u.mutation.ClearIxfIxpMemberListURL()
 	return _u
 }
 
@@ -417,6 +417,12 @@ func (_u *IxLanUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.IxfIxpImportEnabled(); ok {
 		_spec.SetField(ixlan.FieldIxfIxpImportEnabled, field.TypeBool, value)
 	}
+	if value, ok := _u.mutation.IxfIxpMemberListURL(); ok {
+		_spec.SetField(ixlan.FieldIxfIxpMemberListURL, field.TypeString, value)
+	}
+	if _u.mutation.IxfIxpMemberListURLCleared() {
+		_spec.ClearField(ixlan.FieldIxfIxpMemberListURL, field.TypeString)
+	}
 	if value, ok := _u.mutation.IxfIxpMemberListURLVisible(); ok {
 		_spec.SetField(ixlan.FieldIxfIxpMemberListURLVisible, field.TypeString, value)
 	}
@@ -452,12 +458,6 @@ func (_u *IxLanUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(ixlan.FieldStatus, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.IxfIxpMemberListURL(); ok {
-		_spec.SetField(ixlan.FieldIxfIxpMemberListURL, field.TypeString, value)
-	}
-	if _u.mutation.IxfIxpMemberListURLCleared() {
-		_spec.ClearField(ixlan.FieldIxfIxpMemberListURL, field.TypeString)
 	}
 	if _u.mutation.InternetExchangeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -686,6 +686,26 @@ func (_u *IxLanUpdateOne) SetNillableIxfIxpImportEnabled(v *bool) *IxLanUpdateOn
 	return _u
 }
 
+// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
+func (_u *IxLanUpdateOne) SetIxfIxpMemberListURL(v string) *IxLanUpdateOne {
+	_u.mutation.SetIxfIxpMemberListURL(v)
+	return _u
+}
+
+// SetNillableIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field if the given value is not nil.
+func (_u *IxLanUpdateOne) SetNillableIxfIxpMemberListURL(v *string) *IxLanUpdateOne {
+	if v != nil {
+		_u.SetIxfIxpMemberListURL(*v)
+	}
+	return _u
+}
+
+// ClearIxfIxpMemberListURL clears the value of the "ixf_ixp_member_list_url" field.
+func (_u *IxLanUpdateOne) ClearIxfIxpMemberListURL() *IxLanUpdateOne {
+	_u.mutation.ClearIxfIxpMemberListURL()
+	return _u
+}
+
 // SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
 func (_u *IxLanUpdateOne) SetIxfIxpMemberListURLVisible(v string) *IxLanUpdateOne {
 	_u.mutation.SetIxfIxpMemberListURLVisible(v)
@@ -805,26 +825,6 @@ func (_u *IxLanUpdateOne) SetNillableStatus(v *string) *IxLanUpdateOne {
 	if v != nil {
 		_u.SetStatus(*v)
 	}
-	return _u
-}
-
-// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
-func (_u *IxLanUpdateOne) SetIxfIxpMemberListURL(v string) *IxLanUpdateOne {
-	_u.mutation.SetIxfIxpMemberListURL(v)
-	return _u
-}
-
-// SetNillableIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field if the given value is not nil.
-func (_u *IxLanUpdateOne) SetNillableIxfIxpMemberListURL(v *string) *IxLanUpdateOne {
-	if v != nil {
-		_u.SetIxfIxpMemberListURL(*v)
-	}
-	return _u
-}
-
-// ClearIxfIxpMemberListURL clears the value of the "ixf_ixp_member_list_url" field.
-func (_u *IxLanUpdateOne) ClearIxfIxpMemberListURL() *IxLanUpdateOne {
-	_u.mutation.ClearIxfIxpMemberListURL()
 	return _u
 }
 
@@ -1014,6 +1014,12 @@ func (_u *IxLanUpdateOne) sqlSave(ctx context.Context) (_node *IxLan, err error)
 	if value, ok := _u.mutation.IxfIxpImportEnabled(); ok {
 		_spec.SetField(ixlan.FieldIxfIxpImportEnabled, field.TypeBool, value)
 	}
+	if value, ok := _u.mutation.IxfIxpMemberListURL(); ok {
+		_spec.SetField(ixlan.FieldIxfIxpMemberListURL, field.TypeString, value)
+	}
+	if _u.mutation.IxfIxpMemberListURLCleared() {
+		_spec.ClearField(ixlan.FieldIxfIxpMemberListURL, field.TypeString)
+	}
 	if value, ok := _u.mutation.IxfIxpMemberListURLVisible(); ok {
 		_spec.SetField(ixlan.FieldIxfIxpMemberListURLVisible, field.TypeString, value)
 	}
@@ -1049,12 +1055,6 @@ func (_u *IxLanUpdateOne) sqlSave(ctx context.Context) (_node *IxLan, err error)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(ixlan.FieldStatus, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.IxfIxpMemberListURL(); ok {
-		_spec.SetField(ixlan.FieldIxfIxpMemberListURL, field.TypeString, value)
-	}
-	if _u.mutation.IxfIxpMemberListURLCleared() {
-		_spec.ClearField(ixlan.FieldIxfIxpMemberListURL, field.TypeString)
 	}
 	if _u.mutation.InternetExchangeCleared() {
 		edge := &sqlgraph.EdgeSpec{

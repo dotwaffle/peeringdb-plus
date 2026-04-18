@@ -95,6 +95,20 @@ func (_c *IxLanCreate) SetNillableIxfIxpImportEnabled(v *bool) *IxLanCreate {
 	return _c
 }
 
+// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
+func (_c *IxLanCreate) SetIxfIxpMemberListURL(v string) *IxLanCreate {
+	_c.mutation.SetIxfIxpMemberListURL(v)
+	return _c
+}
+
+// SetNillableIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field if the given value is not nil.
+func (_c *IxLanCreate) SetNillableIxfIxpMemberListURL(v *string) *IxLanCreate {
+	if v != nil {
+		_c.SetIxfIxpMemberListURL(*v)
+	}
+	return _c
+}
+
 // SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
 func (_c *IxLanCreate) SetIxfIxpMemberListURLVisible(v string) *IxLanCreate {
 	_c.mutation.SetIxfIxpMemberListURLVisible(v)
@@ -173,20 +187,6 @@ func (_c *IxLanCreate) SetStatus(v string) *IxLanCreate {
 func (_c *IxLanCreate) SetNillableStatus(v *string) *IxLanCreate {
 	if v != nil {
 		_c.SetStatus(*v)
-	}
-	return _c
-}
-
-// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
-func (_c *IxLanCreate) SetIxfIxpMemberListURL(v string) *IxLanCreate {
-	_c.mutation.SetIxfIxpMemberListURL(v)
-	return _c
-}
-
-// SetNillableIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field if the given value is not nil.
-func (_c *IxLanCreate) SetNillableIxfIxpMemberListURL(v *string) *IxLanCreate {
-	if v != nil {
-		_c.SetIxfIxpMemberListURL(*v)
 	}
 	return _c
 }
@@ -295,6 +295,10 @@ func (_c *IxLanCreate) defaults() error {
 		v := ixlan.DefaultIxfIxpImportEnabled
 		_c.mutation.SetIxfIxpImportEnabled(v)
 	}
+	if _, ok := _c.mutation.IxfIxpMemberListURL(); !ok {
+		v := ixlan.DefaultIxfIxpMemberListURL
+		_c.mutation.SetIxfIxpMemberListURL(v)
+	}
 	if _, ok := _c.mutation.IxfIxpMemberListURLVisible(); !ok {
 		v := ixlan.DefaultIxfIxpMemberListURLVisible
 		_c.mutation.SetIxfIxpMemberListURLVisible(v)
@@ -314,10 +318,6 @@ func (_c *IxLanCreate) defaults() error {
 	if _, ok := _c.mutation.Status(); !ok {
 		v := ixlan.DefaultStatus
 		_c.mutation.SetStatus(v)
-	}
-	if _, ok := _c.mutation.IxfIxpMemberListURL(); !ok {
-		v := ixlan.DefaultIxfIxpMemberListURL
-		_c.mutation.SetIxfIxpMemberListURL(v)
 	}
 	return nil
 }
@@ -393,6 +393,10 @@ func (_c *IxLanCreate) createSpec() (*IxLan, *sqlgraph.CreateSpec) {
 		_spec.SetField(ixlan.FieldIxfIxpImportEnabled, field.TypeBool, value)
 		_node.IxfIxpImportEnabled = value
 	}
+	if value, ok := _c.mutation.IxfIxpMemberListURL(); ok {
+		_spec.SetField(ixlan.FieldIxfIxpMemberListURL, field.TypeString, value)
+		_node.IxfIxpMemberListURL = value
+	}
 	if value, ok := _c.mutation.IxfIxpMemberListURLVisible(); ok {
 		_spec.SetField(ixlan.FieldIxfIxpMemberListURLVisible, field.TypeString, value)
 		_node.IxfIxpMemberListURLVisible = value
@@ -420,10 +424,6 @@ func (_c *IxLanCreate) createSpec() (*IxLan, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(ixlan.FieldStatus, field.TypeString, value)
 		_node.Status = value
-	}
-	if value, ok := _c.mutation.IxfIxpMemberListURL(); ok {
-		_spec.SetField(ixlan.FieldIxfIxpMemberListURL, field.TypeString, value)
-		_node.IxfIxpMemberListURL = value
 	}
 	if nodes := _c.mutation.InternetExchangeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -604,6 +604,24 @@ func (u *IxLanUpsert) UpdateIxfIxpImportEnabled() *IxLanUpsert {
 	return u
 }
 
+// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
+func (u *IxLanUpsert) SetIxfIxpMemberListURL(v string) *IxLanUpsert {
+	u.Set(ixlan.FieldIxfIxpMemberListURL, v)
+	return u
+}
+
+// UpdateIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field to the value that was provided on create.
+func (u *IxLanUpsert) UpdateIxfIxpMemberListURL() *IxLanUpsert {
+	u.SetExcluded(ixlan.FieldIxfIxpMemberListURL)
+	return u
+}
+
+// ClearIxfIxpMemberListURL clears the value of the "ixf_ixp_member_list_url" field.
+func (u *IxLanUpsert) ClearIxfIxpMemberListURL() *IxLanUpsert {
+	u.SetNull(ixlan.FieldIxfIxpMemberListURL)
+	return u
+}
+
 // SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
 func (u *IxLanUpsert) SetIxfIxpMemberListURLVisible(v string) *IxLanUpsert {
 	u.Set(ixlan.FieldIxfIxpMemberListURLVisible, v)
@@ -709,24 +727,6 @@ func (u *IxLanUpsert) SetStatus(v string) *IxLanUpsert {
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *IxLanUpsert) UpdateStatus() *IxLanUpsert {
 	u.SetExcluded(ixlan.FieldStatus)
-	return u
-}
-
-// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
-func (u *IxLanUpsert) SetIxfIxpMemberListURL(v string) *IxLanUpsert {
-	u.Set(ixlan.FieldIxfIxpMemberListURL, v)
-	return u
-}
-
-// UpdateIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field to the value that was provided on create.
-func (u *IxLanUpsert) UpdateIxfIxpMemberListURL() *IxLanUpsert {
-	u.SetExcluded(ixlan.FieldIxfIxpMemberListURL)
-	return u
-}
-
-// ClearIxfIxpMemberListURL clears the value of the "ixf_ixp_member_list_url" field.
-func (u *IxLanUpsert) ClearIxfIxpMemberListURL() *IxLanUpsert {
-	u.SetNull(ixlan.FieldIxfIxpMemberListURL)
 	return u
 }
 
@@ -872,6 +872,27 @@ func (u *IxLanUpsertOne) UpdateIxfIxpImportEnabled() *IxLanUpsertOne {
 	})
 }
 
+// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
+func (u *IxLanUpsertOne) SetIxfIxpMemberListURL(v string) *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.SetIxfIxpMemberListURL(v)
+	})
+}
+
+// UpdateIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field to the value that was provided on create.
+func (u *IxLanUpsertOne) UpdateIxfIxpMemberListURL() *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.UpdateIxfIxpMemberListURL()
+	})
+}
+
+// ClearIxfIxpMemberListURL clears the value of the "ixf_ixp_member_list_url" field.
+func (u *IxLanUpsertOne) ClearIxfIxpMemberListURL() *IxLanUpsertOne {
+	return u.Update(func(s *IxLanUpsert) {
+		s.ClearIxfIxpMemberListURL()
+	})
+}
+
 // SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
 func (u *IxLanUpsertOne) SetIxfIxpMemberListURLVisible(v string) *IxLanUpsertOne {
 	return u.Update(func(s *IxLanUpsert) {
@@ -995,27 +1016,6 @@ func (u *IxLanUpsertOne) SetStatus(v string) *IxLanUpsertOne {
 func (u *IxLanUpsertOne) UpdateStatus() *IxLanUpsertOne {
 	return u.Update(func(s *IxLanUpsert) {
 		s.UpdateStatus()
-	})
-}
-
-// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
-func (u *IxLanUpsertOne) SetIxfIxpMemberListURL(v string) *IxLanUpsertOne {
-	return u.Update(func(s *IxLanUpsert) {
-		s.SetIxfIxpMemberListURL(v)
-	})
-}
-
-// UpdateIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field to the value that was provided on create.
-func (u *IxLanUpsertOne) UpdateIxfIxpMemberListURL() *IxLanUpsertOne {
-	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateIxfIxpMemberListURL()
-	})
-}
-
-// ClearIxfIxpMemberListURL clears the value of the "ixf_ixp_member_list_url" field.
-func (u *IxLanUpsertOne) ClearIxfIxpMemberListURL() *IxLanUpsertOne {
-	return u.Update(func(s *IxLanUpsert) {
-		s.ClearIxfIxpMemberListURL()
 	})
 }
 
@@ -1327,6 +1327,27 @@ func (u *IxLanUpsertBulk) UpdateIxfIxpImportEnabled() *IxLanUpsertBulk {
 	})
 }
 
+// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
+func (u *IxLanUpsertBulk) SetIxfIxpMemberListURL(v string) *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.SetIxfIxpMemberListURL(v)
+	})
+}
+
+// UpdateIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field to the value that was provided on create.
+func (u *IxLanUpsertBulk) UpdateIxfIxpMemberListURL() *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.UpdateIxfIxpMemberListURL()
+	})
+}
+
+// ClearIxfIxpMemberListURL clears the value of the "ixf_ixp_member_list_url" field.
+func (u *IxLanUpsertBulk) ClearIxfIxpMemberListURL() *IxLanUpsertBulk {
+	return u.Update(func(s *IxLanUpsert) {
+		s.ClearIxfIxpMemberListURL()
+	})
+}
+
 // SetIxfIxpMemberListURLVisible sets the "ixf_ixp_member_list_url_visible" field.
 func (u *IxLanUpsertBulk) SetIxfIxpMemberListURLVisible(v string) *IxLanUpsertBulk {
 	return u.Update(func(s *IxLanUpsert) {
@@ -1450,27 +1471,6 @@ func (u *IxLanUpsertBulk) SetStatus(v string) *IxLanUpsertBulk {
 func (u *IxLanUpsertBulk) UpdateStatus() *IxLanUpsertBulk {
 	return u.Update(func(s *IxLanUpsert) {
 		s.UpdateStatus()
-	})
-}
-
-// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
-func (u *IxLanUpsertBulk) SetIxfIxpMemberListURL(v string) *IxLanUpsertBulk {
-	return u.Update(func(s *IxLanUpsert) {
-		s.SetIxfIxpMemberListURL(v)
-	})
-}
-
-// UpdateIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field to the value that was provided on create.
-func (u *IxLanUpsertBulk) UpdateIxfIxpMemberListURL() *IxLanUpsertBulk {
-	return u.Update(func(s *IxLanUpsert) {
-		s.UpdateIxfIxpMemberListURL()
-	})
-}
-
-// ClearIxfIxpMemberListURL clears the value of the "ixf_ixp_member_list_url" field.
-func (u *IxLanUpsertBulk) ClearIxfIxpMemberListURL() *IxLanUpsertBulk {
-	return u.Update(func(s *IxLanUpsert) {
-		s.ClearIxfIxpMemberListURL()
 	})
 }
 

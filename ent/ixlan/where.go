@@ -80,6 +80,11 @@ func IxfIxpImportEnabled(v bool) predicate.IxLan {
 	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpImportEnabled, v))
 }
 
+// IxfIxpMemberListURL applies equality check predicate on the "ixf_ixp_member_list_url" field. It's identical to IxfIxpMemberListURLEQ.
+func IxfIxpMemberListURL(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpMemberListURL, v))
+}
+
 // IxfIxpMemberListURLVisible applies equality check predicate on the "ixf_ixp_member_list_url_visible" field. It's identical to IxfIxpMemberListURLVisibleEQ.
 func IxfIxpMemberListURLVisible(v string) predicate.IxLan {
 	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpMemberListURLVisible, v))
@@ -113,11 +118,6 @@ func Updated(v time.Time) predicate.IxLan {
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
 func Status(v string) predicate.IxLan {
 	return predicate.IxLan(sql.FieldEQ(FieldStatus, v))
-}
-
-// IxfIxpMemberListURL applies equality check predicate on the "ixf_ixp_member_list_url" field. It's identical to IxfIxpMemberListURLEQ.
-func IxfIxpMemberListURL(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpMemberListURL, v))
 }
 
 // IxIDEQ applies the EQ predicate on the "ix_id" field.
@@ -318,6 +318,81 @@ func IxfIxpImportEnabledEQ(v bool) predicate.IxLan {
 // IxfIxpImportEnabledNEQ applies the NEQ predicate on the "ixf_ixp_import_enabled" field.
 func IxfIxpImportEnabledNEQ(v bool) predicate.IxLan {
 	return predicate.IxLan(sql.FieldNEQ(FieldIxfIxpImportEnabled, v))
+}
+
+// IxfIxpMemberListURLEQ applies the EQ predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLEQ(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpMemberListURL, v))
+}
+
+// IxfIxpMemberListURLNEQ applies the NEQ predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLNEQ(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNEQ(FieldIxfIxpMemberListURL, v))
+}
+
+// IxfIxpMemberListURLIn applies the In predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLIn(vs ...string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldIn(FieldIxfIxpMemberListURL, vs...))
+}
+
+// IxfIxpMemberListURLNotIn applies the NotIn predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLNotIn(vs ...string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldNotIn(FieldIxfIxpMemberListURL, vs...))
+}
+
+// IxfIxpMemberListURLGT applies the GT predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLGT(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldGT(FieldIxfIxpMemberListURL, v))
+}
+
+// IxfIxpMemberListURLGTE applies the GTE predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLGTE(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldGTE(FieldIxfIxpMemberListURL, v))
+}
+
+// IxfIxpMemberListURLLT applies the LT predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLLT(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldLT(FieldIxfIxpMemberListURL, v))
+}
+
+// IxfIxpMemberListURLLTE applies the LTE predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLLTE(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldLTE(FieldIxfIxpMemberListURL, v))
+}
+
+// IxfIxpMemberListURLContains applies the Contains predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLContains(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldContains(FieldIxfIxpMemberListURL, v))
+}
+
+// IxfIxpMemberListURLHasPrefix applies the HasPrefix predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLHasPrefix(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldHasPrefix(FieldIxfIxpMemberListURL, v))
+}
+
+// IxfIxpMemberListURLHasSuffix applies the HasSuffix predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLHasSuffix(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldHasSuffix(FieldIxfIxpMemberListURL, v))
+}
+
+// IxfIxpMemberListURLIsNil applies the IsNil predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLIsNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldIsNull(FieldIxfIxpMemberListURL))
+}
+
+// IxfIxpMemberListURLNotNil applies the NotNil predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLNotNil() predicate.IxLan {
+	return predicate.IxLan(sql.FieldNotNull(FieldIxfIxpMemberListURL))
+}
+
+// IxfIxpMemberListURLEqualFold applies the EqualFold predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLEqualFold(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldEqualFold(FieldIxfIxpMemberListURL, v))
+}
+
+// IxfIxpMemberListURLContainsFold applies the ContainsFold predicate on the "ixf_ixp_member_list_url" field.
+func IxfIxpMemberListURLContainsFold(v string) predicate.IxLan {
+	return predicate.IxLan(sql.FieldContainsFold(FieldIxfIxpMemberListURL, v))
 }
 
 // IxfIxpMemberListURLVisibleEQ applies the EQ predicate on the "ixf_ixp_member_list_url_visible" field.
@@ -713,81 +788,6 @@ func StatusEqualFold(v string) predicate.IxLan {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.IxLan {
 	return predicate.IxLan(sql.FieldContainsFold(FieldStatus, v))
-}
-
-// IxfIxpMemberListURLEQ applies the EQ predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLEQ(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEQ(FieldIxfIxpMemberListURL, v))
-}
-
-// IxfIxpMemberListURLNEQ applies the NEQ predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLNEQ(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNEQ(FieldIxfIxpMemberListURL, v))
-}
-
-// IxfIxpMemberListURLIn applies the In predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLIn(vs ...string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldIn(FieldIxfIxpMemberListURL, vs...))
-}
-
-// IxfIxpMemberListURLNotIn applies the NotIn predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLNotIn(vs ...string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldNotIn(FieldIxfIxpMemberListURL, vs...))
-}
-
-// IxfIxpMemberListURLGT applies the GT predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLGT(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldGT(FieldIxfIxpMemberListURL, v))
-}
-
-// IxfIxpMemberListURLGTE applies the GTE predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLGTE(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldGTE(FieldIxfIxpMemberListURL, v))
-}
-
-// IxfIxpMemberListURLLT applies the LT predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLLT(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldLT(FieldIxfIxpMemberListURL, v))
-}
-
-// IxfIxpMemberListURLLTE applies the LTE predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLLTE(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldLTE(FieldIxfIxpMemberListURL, v))
-}
-
-// IxfIxpMemberListURLContains applies the Contains predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLContains(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldContains(FieldIxfIxpMemberListURL, v))
-}
-
-// IxfIxpMemberListURLHasPrefix applies the HasPrefix predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLHasPrefix(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldHasPrefix(FieldIxfIxpMemberListURL, v))
-}
-
-// IxfIxpMemberListURLHasSuffix applies the HasSuffix predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLHasSuffix(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldHasSuffix(FieldIxfIxpMemberListURL, v))
-}
-
-// IxfIxpMemberListURLIsNil applies the IsNil predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLIsNil() predicate.IxLan {
-	return predicate.IxLan(sql.FieldIsNull(FieldIxfIxpMemberListURL))
-}
-
-// IxfIxpMemberListURLNotNil applies the NotNil predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLNotNil() predicate.IxLan {
-	return predicate.IxLan(sql.FieldNotNull(FieldIxfIxpMemberListURL))
-}
-
-// IxfIxpMemberListURLEqualFold applies the EqualFold predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLEqualFold(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldEqualFold(FieldIxfIxpMemberListURL, v))
-}
-
-// IxfIxpMemberListURLContainsFold applies the ContainsFold predicate on the "ixf_ixp_member_list_url" field.
-func IxfIxpMemberListURLContainsFold(v string) predicate.IxLan {
-	return predicate.IxLan(sql.FieldContainsFold(FieldIxfIxpMemberListURL, v))
 }
 
 // HasInternetExchange applies the HasEdge predicate on the "internet_exchange" edge.

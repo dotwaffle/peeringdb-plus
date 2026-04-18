@@ -363,6 +363,7 @@ var (
 		{Name: "descr", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "dot1q_support", Type: field.TypeBool, Default: false},
 		{Name: "ixf_ixp_import_enabled", Type: field.TypeBool, Default: false},
+		{Name: "ixf_ixp_member_list_url", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "ixf_ixp_member_list_url_visible", Type: field.TypeString, Nullable: true, Default: "Private"},
 		{Name: "mtu", Type: field.TypeInt, Nullable: true, Default: 1500},
 		{Name: "name", Type: field.TypeString, Nullable: true, Default: ""},
@@ -370,7 +371,6 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
-		{Name: "ixf_ixp_member_list_url", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "ix_id", Type: field.TypeInt, Nullable: true},
 	}
 	// IxLansTable holds the schema information for the "ix_lans" table.
@@ -395,12 +395,12 @@ var (
 			{
 				Name:    "ixlan_name",
 				Unique:  false,
-				Columns: []*schema.Column{IxLansColumns[7]},
+				Columns: []*schema.Column{IxLansColumns[8]},
 			},
 			{
 				Name:    "ixlan_status",
 				Unique:  false,
-				Columns: []*schema.Column{IxLansColumns[11]},
+				Columns: []*schema.Column{IxLansColumns[12]},
 			},
 		},
 	}

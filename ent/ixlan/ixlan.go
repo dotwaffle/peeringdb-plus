@@ -23,6 +23,8 @@ const (
 	FieldDot1qSupport = "dot1q_support"
 	// FieldIxfIxpImportEnabled holds the string denoting the ixf_ixp_import_enabled field in the database.
 	FieldIxfIxpImportEnabled = "ixf_ixp_import_enabled"
+	// FieldIxfIxpMemberListURL holds the string denoting the ixf_ixp_member_list_url field in the database.
+	FieldIxfIxpMemberListURL = "ixf_ixp_member_list_url"
 	// FieldIxfIxpMemberListURLVisible holds the string denoting the ixf_ixp_member_list_url_visible field in the database.
 	FieldIxfIxpMemberListURLVisible = "ixf_ixp_member_list_url_visible"
 	// FieldMtu holds the string denoting the mtu field in the database.
@@ -37,8 +39,6 @@ const (
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// FieldIxfIxpMemberListURL holds the string denoting the ixf_ixp_member_list_url field in the database.
-	FieldIxfIxpMemberListURL = "ixf_ixp_member_list_url"
 	// EdgeInternetExchange holds the string denoting the internet_exchange edge name in mutations.
 	EdgeInternetExchange = "internet_exchange"
 	// EdgeIxPrefixes holds the string denoting the ix_prefixes edge name in mutations.
@@ -78,6 +78,7 @@ var Columns = []string{
 	FieldDescr,
 	FieldDot1qSupport,
 	FieldIxfIxpImportEnabled,
+	FieldIxfIxpMemberListURL,
 	FieldIxfIxpMemberListURLVisible,
 	FieldMtu,
 	FieldName,
@@ -85,7 +86,6 @@ var Columns = []string{
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
-	FieldIxfIxpMemberListURL,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -111,6 +111,8 @@ var (
 	DefaultDot1qSupport bool
 	// DefaultIxfIxpImportEnabled holds the default value on creation for the "ixf_ixp_import_enabled" field.
 	DefaultIxfIxpImportEnabled bool
+	// DefaultIxfIxpMemberListURL holds the default value on creation for the "ixf_ixp_member_list_url" field.
+	DefaultIxfIxpMemberListURL string
 	// DefaultIxfIxpMemberListURLVisible holds the default value on creation for the "ixf_ixp_member_list_url_visible" field.
 	DefaultIxfIxpMemberListURLVisible string
 	// DefaultMtu holds the default value on creation for the "mtu" field.
@@ -121,8 +123,6 @@ var (
 	DefaultRsAsn int
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// DefaultIxfIxpMemberListURL holds the default value on creation for the "ixf_ixp_member_list_url" field.
-	DefaultIxfIxpMemberListURL string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )
@@ -160,6 +160,11 @@ func ByIxfIxpImportEnabled(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIxfIxpImportEnabled, opts...).ToFunc()
 }
 
+// ByIxfIxpMemberListURL orders the results by the ixf_ixp_member_list_url field.
+func ByIxfIxpMemberListURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIxfIxpMemberListURL, opts...).ToFunc()
+}
+
 // ByIxfIxpMemberListURLVisible orders the results by the ixf_ixp_member_list_url_visible field.
 func ByIxfIxpMemberListURLVisible(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIxfIxpMemberListURLVisible, opts...).ToFunc()
@@ -193,11 +198,6 @@ func ByUpdated(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
-}
-
-// ByIxfIxpMemberListURL orders the results by the ixf_ixp_member_list_url field.
-func ByIxfIxpMemberListURL(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIxfIxpMemberListURL, opts...).ToFunc()
 }
 
 // ByInternetExchangeField orders the results by internet_exchange field.

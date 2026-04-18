@@ -1247,6 +1247,16 @@
           "help_text": "IXF member list URL visibility",
           "default": "Private"
         },
+        "ixf_ixp_member_list_url": {
+          "type": "string",
+          "max_length": 255,
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)",
+          "default": ""
+        },
         "ixf_ixp_import_enabled": {
           "type": "boolean",
           "required": false,

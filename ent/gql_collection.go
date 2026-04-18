@@ -1370,6 +1370,11 @@ func (_q *IxLanQuery) collectField(ctx context.Context, oneNode bool, opCtx *gra
 				selectedFields = append(selectedFields, ixlan.FieldIxfIxpImportEnabled)
 				fieldSeen[ixlan.FieldIxfIxpImportEnabled] = struct{}{}
 			}
+		case "ixfIxpMemberListURL":
+			if _, ok := fieldSeen[ixlan.FieldIxfIxpMemberListURL]; !ok {
+				selectedFields = append(selectedFields, ixlan.FieldIxfIxpMemberListURL)
+				fieldSeen[ixlan.FieldIxfIxpMemberListURL] = struct{}{}
+			}
 		case "ixfIxpMemberListURLVisible":
 			if _, ok := fieldSeen[ixlan.FieldIxfIxpMemberListURLVisible]; !ok {
 				selectedFields = append(selectedFields, ixlan.FieldIxfIxpMemberListURLVisible)
@@ -1404,11 +1409,6 @@ func (_q *IxLanQuery) collectField(ctx context.Context, oneNode bool, opCtx *gra
 			if _, ok := fieldSeen[ixlan.FieldStatus]; !ok {
 				selectedFields = append(selectedFields, ixlan.FieldStatus)
 				fieldSeen[ixlan.FieldStatus] = struct{}{}
-			}
-		case "ixfIxpMemberListURL":
-			if _, ok := fieldSeen[ixlan.FieldIxfIxpMemberListURL]; !ok {
-				selectedFields = append(selectedFields, ixlan.FieldIxfIxpMemberListURL)
-				fieldSeen[ixlan.FieldIxfIxpMemberListURL] = struct{}{}
 			}
 		case "id":
 		case "__typename":

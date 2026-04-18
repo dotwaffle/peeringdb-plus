@@ -29,6 +29,8 @@ type IxLan struct {
 	Dot1qSupport bool `json:"dot1q_support"`
 	// IXF import enabled
 	IxfIxpImportEnabled bool `json:"ixf_ixp_import_enabled"`
+	// IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)
+	IxfIxpMemberListURL string `json:"ixf_ixp_member_list_url"`
 	// IXF member list URL visibility
 	IxfIxpMemberListURLVisible string `json:"ixf_ixp_member_list_url_visible"`
 	// MTU size
@@ -43,8 +45,6 @@ type IxLan struct {
 	Updated time.Time `json:"updated"`
 	// Record status
 	Status string `json:"status"`
-	// IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)
-	IxfIxpMemberListURL string `json:"ixf_ixp_member_list_url"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the IxLanQuery when eager-loading is set.
 	Edges        IxLanEdges `json:"edges"`
@@ -107,7 +107,7 @@ func (*IxLan) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case ixlan.FieldID, ixlan.FieldIxID, ixlan.FieldMtu, ixlan.FieldRsAsn:
 			values[i] = new(sql.NullInt64)
-		case ixlan.FieldArpSponge, ixlan.FieldDescr, ixlan.FieldIxfIxpMemberListURLVisible, ixlan.FieldName, ixlan.FieldStatus, ixlan.FieldIxfIxpMemberListURL:
+		case ixlan.FieldArpSponge, ixlan.FieldDescr, ixlan.FieldIxfIxpMemberListURL, ixlan.FieldIxfIxpMemberListURLVisible, ixlan.FieldName, ixlan.FieldStatus:
 			values[i] = new(sql.NullString)
 		case ixlan.FieldCreated, ixlan.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -164,6 +164,12 @@ func (_m *IxLan) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.IxfIxpImportEnabled = value.Bool
 			}
+		case ixlan.FieldIxfIxpMemberListURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ixf_ixp_member_list_url", values[i])
+			} else if value.Valid {
+				_m.IxfIxpMemberListURL = value.String
+			}
 		case ixlan.FieldIxfIxpMemberListURLVisible:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field ixf_ixp_member_list_url_visible", values[i])
@@ -206,12 +212,6 @@ func (_m *IxLan) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = value.String
-			}
-		case ixlan.FieldIxfIxpMemberListURL:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field ixf_ixp_member_list_url", values[i])
-			} else if value.Valid {
-				_m.IxfIxpMemberListURL = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -283,6 +283,9 @@ func (_m *IxLan) String() string {
 	builder.WriteString("ixf_ixp_import_enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IxfIxpImportEnabled))
 	builder.WriteString(", ")
+	builder.WriteString("ixf_ixp_member_list_url=")
+	builder.WriteString(_m.IxfIxpMemberListURL)
+	builder.WriteString(", ")
 	builder.WriteString("ixf_ixp_member_list_url_visible=")
 	builder.WriteString(_m.IxfIxpMemberListURLVisible)
 	builder.WriteString(", ")
@@ -305,9 +308,6 @@ func (_m *IxLan) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
-	builder.WriteString(", ")
-	builder.WriteString("ixf_ixp_member_list_url=")
-	builder.WriteString(_m.IxfIxpMemberListURL)
 	builder.WriteByte(')')
 	return builder.String()
 }

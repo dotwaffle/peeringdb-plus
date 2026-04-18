@@ -388,30 +388,30 @@ func init() {
 	ixlanDescIxfIxpImportEnabled := ixlanFields[5].Descriptor()
 	// ixlan.DefaultIxfIxpImportEnabled holds the default value on creation for the ixf_ixp_import_enabled field.
 	ixlan.DefaultIxfIxpImportEnabled = ixlanDescIxfIxpImportEnabled.Default.(bool)
+	// ixlanDescIxfIxpMemberListURL is the schema descriptor for ixf_ixp_member_list_url field.
+	ixlanDescIxfIxpMemberListURL := ixlanFields[6].Descriptor()
+	// ixlan.DefaultIxfIxpMemberListURL holds the default value on creation for the ixf_ixp_member_list_url field.
+	ixlan.DefaultIxfIxpMemberListURL = ixlanDescIxfIxpMemberListURL.Default.(string)
 	// ixlanDescIxfIxpMemberListURLVisible is the schema descriptor for ixf_ixp_member_list_url_visible field.
-	ixlanDescIxfIxpMemberListURLVisible := ixlanFields[6].Descriptor()
+	ixlanDescIxfIxpMemberListURLVisible := ixlanFields[7].Descriptor()
 	// ixlan.DefaultIxfIxpMemberListURLVisible holds the default value on creation for the ixf_ixp_member_list_url_visible field.
 	ixlan.DefaultIxfIxpMemberListURLVisible = ixlanDescIxfIxpMemberListURLVisible.Default.(string)
 	// ixlanDescMtu is the schema descriptor for mtu field.
-	ixlanDescMtu := ixlanFields[7].Descriptor()
+	ixlanDescMtu := ixlanFields[8].Descriptor()
 	// ixlan.DefaultMtu holds the default value on creation for the mtu field.
 	ixlan.DefaultMtu = ixlanDescMtu.Default.(int)
 	// ixlanDescName is the schema descriptor for name field.
-	ixlanDescName := ixlanFields[8].Descriptor()
+	ixlanDescName := ixlanFields[9].Descriptor()
 	// ixlan.DefaultName holds the default value on creation for the name field.
 	ixlan.DefaultName = ixlanDescName.Default.(string)
 	// ixlanDescRsAsn is the schema descriptor for rs_asn field.
-	ixlanDescRsAsn := ixlanFields[9].Descriptor()
+	ixlanDescRsAsn := ixlanFields[10].Descriptor()
 	// ixlan.DefaultRsAsn holds the default value on creation for the rs_asn field.
 	ixlan.DefaultRsAsn = ixlanDescRsAsn.Default.(int)
 	// ixlanDescStatus is the schema descriptor for status field.
-	ixlanDescStatus := ixlanFields[12].Descriptor()
+	ixlanDescStatus := ixlanFields[13].Descriptor()
 	// ixlan.DefaultStatus holds the default value on creation for the status field.
 	ixlan.DefaultStatus = ixlanDescStatus.Default.(string)
-	// ixlanDescIxfIxpMemberListURL is the schema descriptor for ixf_ixp_member_list_url field.
-	ixlanDescIxfIxpMemberListURL := ixlanFields[13].Descriptor()
-	// ixlan.DefaultIxfIxpMemberListURL holds the default value on creation for the ixf_ixp_member_list_url field.
-	ixlan.DefaultIxfIxpMemberListURL = ixlanDescIxfIxpMemberListURL.Default.(string)
 	// ixlanDescID is the schema descriptor for id field.
 	ixlanDescID := ixlanFields[0].Descriptor()
 	// ixlan.IDValidator is a validator for the "id" field. It is called by the builders before save.
