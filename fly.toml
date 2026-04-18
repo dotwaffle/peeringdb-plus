@@ -1,5 +1,6 @@
 # Fly.io deployment configuration for PeeringDB Plus
 # Deploy with: fly deploy (per D-22, manual deploy)
+# Phase 65: asymmetric fleet — primary (LHR, persistent) + replica (7 regions, ephemeral)
 
 app = "peeringdb-plus"
 primary_region = "lhr"
@@ -10,41 +11,53 @@ kill_timeout = 30
 
 [deploy]
   strategy = "rolling"
-  # Parallelise rolling deploys to ~4-at-a-time (half the 9-machine fleet).
+  # Parallelise rolling deploys to ~4-at-a-time (half the 8-machine fleet).
   # Trades ~55% worst-moment capacity for ~3-4x faster rollouts.
   # Bluegreen is NOT an option here: parallel fleets fight LiteFS +
   # Consul primary election.
   max_unavailable = 0.5
 
 [env]
-  # App listens on 8080 directly (LiteFS proxy removed for h2c/gRPC support)
   PDBPLUS_LISTEN_ADDR = ":8080"
-  # Database path on LiteFS FUSE mount
   PDBPLUS_DB_PATH = "/litefs/peeringdb-plus.db"
-  # Primary region for LiteFS lease candidate evaluation
   PRIMARY_REGION = "lhr"
 
 # Consul is required for LiteFS leader election.
 [consul]
   enable = true
 
-# Persistent volume for LiteFS replication state
-[mounts]
+# Two process groups: primary (1 machine, LHR) and replica (7 machines).
+# Both run `litefs mount` (the container ENTRYPOINT) — no separate binary.
+# The command string here is informational; the image ENTRYPOINT wins at runtime.
+# Fly docs state the command is passed to the Dockerfile entrypoint; since our
+# ENTRYPOINT is ["litefs", "mount"] (Dockerfile.prod:35), the effective command
+# is unchanged from today. Both groups share identical image + entrypoint.
+[processes]
+  primary = ""
+  replica = ""
+
+# Persistent volume attached to the primary group ONLY.
+# Replica machines get no mount — LiteFS cold-syncs the DB to ephemeral rootfs.
+[[mounts]]
   source = "litefs_data"
   destination = "/var/lib/litefs"
+  processes = ["primary"]
   initial_size = "1GB"
   scheduled_snapshots = false
   auto_extend_size_threshold = 80
   auto_extend_size_increment = "1G"
   auto_extend_size_limit = "10G"
 
-# HTTP service configuration
+# HTTP service serves traffic from BOTH groups (routed by Fly Proxy per region).
+# Without `processes = [...]`, the service applies to all groups — explicit here
+# for documentation.
 [http_service]
   internal_port = 8080
   force_https = true
   auto_stop_machines = "off"
   auto_start_machines = true
   min_machines_running = 1
+  processes = ["primary", "replica"]
 
   [http_service.http_options]
     h2_backend = true
@@ -60,7 +73,15 @@ kill_timeout = 30
     timeout = "5s"
     path = "/healthz"
 
-# Machine size
+# Primary group VM: unchanged from today (shared-cpu-2x / 512 MB).
 [[vm]]
   size = "shared-cpu-2x"
   memory = "512mb"
+  processes = ["primary"]
+
+# Replica group VM: downsized to shared-cpu-1x / 256 MB.
+# Observed replica RSS 58-59 MB → 256 MB gives ~4× headroom + hydration spike budget.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  processes = ["replica"]
