@@ -10,7 +10,24 @@ import (
 
 	"entgo.io/contrib/entgql"
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/privfield"
 )
+
+// IxfIxpMemberListURL is the Phase 64 VIS-09 field-level privacy resolver
+// for ixlan.ixf_ixp_member_list_url. It redacts the URL via
+// internal/privfield.Redact against the caller's ctx tier; returns nil
+// (GraphQL null) when the tier doesn't admit the field.
+//
+// The accompanying `ixfIxpMemberListURLVisible` field is served by the
+// autobind (ent's IxfIxpMemberListURLVisible accessor) so it remains
+// emitted at any tier (D-05 upstream parity).
+func (r *ixLanResolver) IxfIxpMemberListURL(ctx context.Context, obj *ent.IxLan) (*string, error) {
+	url, omit := privfield.Redact(ctx, obj.IxfIxpMemberListURLVisible, obj.IxfIxpMemberListURL)
+	if omit {
+		return nil, nil
+	}
+	return &url, nil
+}
 
 // Node is the resolver for the node field.
 func (r *queryResolver) Node(ctx context.Context, id int) (ent.Noder, error) {
@@ -171,7 +188,11 @@ func (r *queryResolver) Pocs(ctx context.Context, after *entgql.Cursor[int], fir
 		)
 }
 
+// IxLan returns IxLanResolver implementation.
+func (r *Resolver) IxLan() IxLanResolver { return &ixLanResolver{r} }
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+type ixLanResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

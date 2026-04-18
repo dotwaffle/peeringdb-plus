@@ -24,3 +24,12 @@ models:
   Node:
     model:
       - github.com/dotwaffle/peeringdb-plus/ent.Noder
+  # Phase 64 (VIS-08/VIS-09): field-level privacy via custom resolver.
+  # The autobind above maps IxLan → *ent.IxLan; we opt-in one field
+  # to have a user-written resolver so it can call
+  # internal/privfield.Redact against the caller's ctx tier. See
+  # graph/custom.resolvers.go for the implementation.
+  IxLan:
+    fields:
+      ixfIxpMemberListURL:
+        resolver: true
