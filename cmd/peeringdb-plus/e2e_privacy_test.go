@@ -78,6 +78,22 @@ const e2eUsersNetworkID = 900001
 // network.org_id is a non-optional FK.
 const e2eUsersOrgID = 900001
 
+// e2eIxID is the fixed ID of the parent InternetExchange seeded by the
+// fixture for the Phase 64 ixlan rows (ixlan.ix_id FK). Chosen above
+// seed.Full's range to avoid accidental collision.
+const e2eIxID = 900002
+
+// Phase 64 (VIS-09) ixlan rows seeded by buildE2EFixture. Shapes mirror
+// internal/testutil/seed.Full's Plan 64-02 seeds: id=100 gated, id=101
+// Public. Keeping the exact seed-range IDs lets Plan 64-03's E2E test
+// reuse the Plan-64-02 constants verbatim (see field_privacy_e2e_test.go).
+const (
+	e2eGatedIxlanID   = 100
+	e2eGatedIxlanURL  = "https://example.test/ix/100/members.json"
+	e2ePublicIxlanID  = 101
+	e2ePublicIxlanURL = "https://example.test/ix/101/members.json"
+)
+
 // e2eAlwaysReady is the readiness bypass used by the test fixture. The
 // production readinessMiddleware 503s every non-infrastructure path until
 // HasCompletedSync() returns true. The E2E test is about privacy, not
@@ -99,6 +115,19 @@ type e2eFixture struct {
 	pocID   int
 	netID   int
 	pocName string
+
+	// Phase 64 VIS-09 — IxLan rows seeded by buildE2EFixture.
+	//   gatedIxLanID  (100) has _visible=Users, URL gated behind tier.
+	//   publicIxLanID (101) has _visible=Public, URL always admitted.
+	gatedIxLanID  int
+	publicIxLanID int
+	gatedIxLanURL string
+
+	// rawIxLanHandler is the ConnectRPC IxLanService handler BEFORE any
+	// middleware — exposes the fail-closed path for Plan 64-03's
+	// bypass-middleware sub-test (D-03 at integration level).
+	rawIxLanHandler http.Handler
+	rawIxLanPath    string
 }
 
 // buildE2EFixture constructs a fresh in-memory ent client with one
@@ -178,6 +207,38 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 		SetStatus("ok").
 		SaveX(bypass)
 
+	// Phase 64 VIS-09: seed two ixlan rows matching the shape that
+	// internal/testutil/seed.Full uses (id=100 gated, id=101 Public).
+	// Plan 64-03's field_privacy_e2e_test.go asserts the URL is
+	// redacted vs admitted per tier + _visible across all 5 surfaces.
+	// The parent InternetExchange is required by the ixlan.ix_id FK.
+	ix := client.InternetExchange.Create().
+		SetID(e2eIxID).
+		SetName("E2E Privacy IX").
+		SetOrganization(org).
+		SetCreated(now).
+		SetUpdated(now).
+		SetStatus("ok").
+		SaveX(ctx)
+	client.IxLan.Create().
+		SetID(e2eGatedIxlanID).
+		SetInternetExchange(ix).
+		SetIxfIxpMemberListURL(e2eGatedIxlanURL).
+		SetIxfIxpMemberListURLVisible("Users").
+		SetCreated(now).
+		SetUpdated(now).
+		SetStatus("ok").
+		SaveX(ctx)
+	client.IxLan.Create().
+		SetID(e2ePublicIxlanID).
+		SetInternetExchange(ix).
+		SetIxfIxpMemberListURL(e2ePublicIxlanURL).
+		SetIxfIxpMemberListURLVisible("Public").
+		SetCreated(now).
+		SetUpdated(now).
+		SetStatus("ok").
+		SaveX(ctx)
+
 	// Wire every production surface onto a fresh mux. This mirrors the
 	// registration order in cmd/peeringdb-plus/main.go (main()) but
 	// omits /sync, /healthz, /readyz, /{$}, and the OTel setup — none
@@ -198,7 +259,10 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 		t.Fatalf("create REST server: %v", err)
 	}
 	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: "*"})
-	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restSrv.Handler())))
+	// Phase 64 wires the field-redact middleware INSIDE restErrorMiddleware
+	// so problem+json error responses pass through untouched. Matches
+	// main.go's production chain order.
+	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restFieldRedactMiddleware(restSrv.Handler()))))
 
 	// pdbcompat (/api/). Registers /api/{rest...} internally.
 	compatHandler := pdbcompat.NewHandler(client)
@@ -224,6 +288,17 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 		handlerOpts,
 	)
 	mux.Handle(pocPath, pocHandler)
+
+	// Phase 64 VIS-09: register IxLanService so Plan 64-03's E2E can
+	// exercise GetIxLan / ListIxLans. rawIxLanHandler + rawIxLanPath are
+	// exposed so the fail-closed-bypass-middleware sub-test can hit the
+	// handler WITHOUT going through the middleware chain — proving that
+	// privfield.Redact fail-closes even on an un-stamped ctx (D-03).
+	ixLanPath, ixLanHandler := peeringdbv1connect.NewIxLanServiceHandler(
+		&grpcserver.IxLanService{Client: client, StreamTimeout: 60 * time.Second},
+		handlerOpts,
+	)
+	mux.Handle(ixLanPath, ixLanHandler)
 
 	// Build the full production middleware chain. DefaultTier is the
 	// lever we're testing: flipping it between TierPublic and TierUsers
@@ -253,11 +328,16 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 	t.Cleanup(srv.Close)
 
 	return &e2eFixture{
-		server:  srv,
-		client:  client,
-		pocID:   e2eUsersPocID,
-		netID:   e2eUsersNetworkID,
-		pocName: pocName,
+		server:          srv,
+		client:          client,
+		pocID:           e2eUsersPocID,
+		netID:           e2eUsersNetworkID,
+		pocName:         pocName,
+		gatedIxLanID:    e2eGatedIxlanID,
+		publicIxLanID:   e2ePublicIxlanID,
+		gatedIxLanURL:   e2eGatedIxlanURL,
+		rawIxLanHandler: ixLanHandler,
+		rawIxLanPath:    ixLanPath,
 	}
 }
 

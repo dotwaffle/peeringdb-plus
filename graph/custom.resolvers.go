@@ -299,6 +299,8 @@ func (r *queryResolver) CampusesList(ctx context.Context, offset *int, limit *in
 }
 
 // ObjectCounts is the resolver for the objectCounts field.
+//
+//nolint:revive // gqlgen regenerates this signature with ctx; field-level privacy is not needed here.
 func (r *syncStatusResolver) ObjectCounts(ctx context.Context, obj *model.SyncStatus) (map[string]any, error) {
 	if obj.ObjectCounts == nil {
 		return nil, nil

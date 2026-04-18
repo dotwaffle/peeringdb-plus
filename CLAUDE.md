@@ -68,7 +68,26 @@ LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-
 Two ent fields carry upstream PeeringDB visibility signals (Phase 58):
 
 - `poc.visible` (`ent/schema/poc.go`) — row-level: `Public` or `Users`. Rows with non-`Public` values are filtered from anonymous responses by the ent Privacy policy. This is the only entity where a whole row can be hidden.
-- `ixlan.ixf_ixp_member_list_url_visible` (`ent/schema/ixlan.go`) — per-field: `Public`, `Users`, or `Private`. Gates the sibling `ixf_ixp_member_list_url` field; the privacy policy nulls the value field when the visibility field is not `Public`.
+- `ixlan.ixf_ixp_member_list_url_visible` (`ent/schema/ixlan.go`) — per-field: `Public`, `Users`, or `Private`. Gates the sibling `ixf_ixp_member_list_url` field; `internal/privfield.Redact` nulls/omits the value field at the serializer layer across all 5 API surfaces (pdbcompat `/api`, entrest `/rest/v1`, ConnectRPC `/peeringdb.v1.*`, GraphQL `/graphql`, Web UI `/ui`). ent's built-in Privacy package operates at query/row level only — field-level redaction is a serializer-layer concern per Phase 64 decision D-01.
+
+### Field-level privacy (Phase 64)
+
+`internal/privfield.Redact(ctx, visible, value) (out string, omit bool)` is the single source of truth. Every API serializer calls it for each gated field; `privctx.TierFrom(ctx)` reads the tier stamped by `middleware.PrivacyTier`, and unstamped contexts fail-closed to `TierPublic`. Serializer surfaces that must call `Redact` today:
+
+- **pdbcompat** — `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)`; the json struct tag `,omitempty` handles absence on the wire (D-04).
+- **ConnectRPC** — `internal/grpcserver/ixlan.go` `ixLanToProto(ctx, il)`; nil `*wrapperspb.StringValue` → wire omission. Convert closures at `ListIxLans` / `StreamIxLans` capture `ctx` via an adapter so the generic pagination helper's `Convert func(*E) *P` signature stays intact.
+- **GraphQL** — `graph/gqlgen.yml` opts `IxLan.ixfIxpMemberListURL` into a custom resolver; `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns `nil` (GraphQL `null`) when `omit=true`.
+- **entrest** — `cmd/peeringdb-plus/main.go` `restFieldRedactMiddleware` buffers `/rest/v1/ix-lans*` responses and deletes the JSON key in-place when `omit=true`. Wraps INSIDE `restErrorMiddleware` so `application/problem+json` error bodies pass through untouched.
+- **Web UI** — no current render path for the URL; when/if one is added, call `privfield.Redact` in the template data preparation step.
+
+**Adding a new `<field>_visible` companion** (future OAuth-gated fields, etc.):
+
+1. Add the ent schema fields (`field.String` for the `_visible` column, plus the value field with `,omitempty` json tag on the peeringdb-plus Go types).
+2. Call `privfield.Redact` at EACH of the 5 surfaces above. Missing any surface = a privacy leak.
+3. Update `internal/testutil/seed.Full` to seed BOTH a gated (e.g. `_visible=Users`) AND a Public row so the E2E can assert the helper doesn't over-redact.
+4. Extend `cmd/peeringdb-plus/field_privacy_e2e_test.go` with matching `Redacted{Anon,UsersTier}` sub-tests plus a `fail-closed-bypass-middleware` assertion on the ConnectRPC handler.
+
+**`_visible` companion emission:** The `_visible` field itself is STILL emitted for anonymous callers (Phase 64 D-05 — matches upstream PeeringDB's behaviour of always returning the visibility marker even when redacting the gated value). Changing that would break upstream API parity.
 
 When a future Phase 57 re-capture surfaces a new auth-gated field (the `internal/visbaseline/schema_alignment_test.go` regression test will flag this), add a sibling `<field>_visible` field using `field.String` (not `Enum` — avoids entgql/entrest/entproto codegen churn per the v1.14 Key Decision). Default to the upstream default when known; default to `"Public"` otherwise and document the assumption in the Key Decisions table.
 
