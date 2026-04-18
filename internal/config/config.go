@@ -128,6 +128,27 @@ type Config struct {
 	// Unit suffix is required (KB/MB/GB/TB, base 1024); bare numbers
 	// are rejected for unambiguous operator configuration.
 	SyncMemoryLimit int64
+
+	// HeapWarnBytes is the peak Go heap threshold (bytes) above which the
+	// sync worker emits slog.Warn("heap threshold crossed", ...) at the
+	// end of each sync cycle. The OTel span attribute
+	// pdbplus.sync.peak_heap_mib is emitted regardless; only the Warn is
+	// threshold-gated. Configured via PDBPLUS_HEAP_WARN_MIB (integer MiB,
+	// no unit suffix). Default 400 MiB matches the Fly 512 MB VM cap minus
+	// a 112 MB safety margin (D-04). Zero disables the warn (attr still
+	// emitted so dashboards retain timeseries).
+	//
+	// SEED-001: sustained breach is the escalation signal for considering
+	// PDBPLUS_SYNC_MODE=incremental.
+	HeapWarnBytes int64
+
+	// RSSWarnBytes is the peak OS RSS threshold (bytes) above which the
+	// sync worker emits slog.Warn at the end of each sync cycle. Read from
+	// /proc/self/status VmHWM on Linux; skipped on other OSes (the RSS
+	// attr is then omitted — it is not set to zero). Configured via
+	// PDBPLUS_RSS_WARN_MIB (integer MiB, no unit suffix). Default 384 MiB.
+	// Zero disables the warn.
+	RSSWarnBytes int64
 }
 
 // Load reads configuration from environment variables, applies defaults,
@@ -209,6 +230,18 @@ func Load() (*Config, error) {
 	}
 	cfg.SyncMemoryLimit = syncMemoryLimit
 
+	heapWarn, err := parseMiB("PDBPLUS_HEAP_WARN_MIB", 400)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_HEAP_WARN_MIB: %w", err)
+	}
+	cfg.HeapWarnBytes = heapWarn
+
+	rssWarn, err := parseMiB("PDBPLUS_RSS_WARN_MIB", 384)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_RSS_WARN_MIB: %w", err)
+	}
+	cfg.RSSWarnBytes = rssWarn
+
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
 	}
@@ -237,6 +270,12 @@ func (c *Config) validate() error {
 	}
 	if c.SyncMemoryLimit < 0 {
 		return errors.New("PDBPLUS_SYNC_MEMORY_LIMIT must be non-negative (0 = disabled)")
+	}
+	if c.HeapWarnBytes < 0 {
+		return errors.New("PDBPLUS_HEAP_WARN_MIB must be non-negative (0 = disabled)")
+	}
+	if c.RSSWarnBytes < 0 {
+		return errors.New("PDBPLUS_RSS_WARN_MIB must be non-negative (0 = disabled)")
 	}
 	return nil
 }
@@ -397,6 +436,37 @@ func parsePublicTier(key string, defaultVal privctx.Tier) (privctx.Tier, error) 
 //
 // Examples: "400MB" -> 400 * 1024 * 1024; "1GB" -> 1024^3; "0" -> 0
 // (guardrail disabled).
+//
+// parseMiB parses an env var as a non-negative integer count of MiB
+// (mebibytes; 1 MiB = 1024*1024 bytes). Returns the value in BYTES
+// so callers can compare directly against runtime.MemStats fields.
+//
+// Unlike parseByteSize, no unit suffix is accepted — the variable name
+// encodes the unit (PDBPLUS_HEAP_WARN_MIB, PDBPLUS_RSS_WARN_MIB).
+// Operators attempting "400MB" get a clear error rather than silent
+// coercion.
+//
+// Accepted: "", "0", "400", "16" (bare non-negative integers).
+// Rejected: "-5", "abc", "400MB", "1.5" — all fail-fast per GO-CFG-1.
+func parseMiB(key string, defaultMiB int64) (int64, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultMiB * 1024 * 1024, nil
+	}
+	mib, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid MiB value %q for %s: must be a non-negative integer (no unit suffix)", v, key)
+	}
+	if mib < 0 {
+		return 0, fmt.Errorf("invalid MiB value %q for %s: must be non-negative", v, key)
+	}
+	const bytesPerMiB = int64(1024 * 1024)
+	if mib > math.MaxInt64/bytesPerMiB {
+		return 0, fmt.Errorf("invalid MiB value %q for %s: overflows int64", v, key)
+	}
+	return mib * bytesPerMiB, nil
+}
+
 func parseByteSize(key string, defaultVal int64) (int64, error) {
 	v := os.Getenv(key)
 	if v == "" {

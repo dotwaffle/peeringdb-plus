@@ -705,3 +705,91 @@ func TestLoad_PublicTierInvalid(t *testing.T) {
 		})
 	}
 }
+
+// TestLoad_HeapWarnMiB_Parse covers all branches of the parseMiB helper
+// for PDBPLUS_HEAP_WARN_MIB: default-on-unset, explicit zero disable,
+// custom bare integers, and the REJECTED forms (negative, unit suffix,
+// non-numeric, float). Table-driven per GO-T-1.
+func TestLoad_HeapWarnMiB_Parse(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    int64
+		wantErr bool
+	}{
+		{name: "default_unset", envVal: "", want: 400 * 1024 * 1024},
+		{name: "explicit_zero_disable", envVal: "0", want: 0},
+		{name: "custom_300", envVal: "300", want: 300 * 1024 * 1024},
+		{name: "custom_500", envVal: "500", want: 500 * 1024 * 1024},
+		{name: "bare_negative_rejected", envVal: "-100", wantErr: true},
+		{name: "unit_suffix_rejected", envVal: "400MB", wantErr: true},
+		{name: "non_numeric_rejected", envVal: "abc", wantErr: true},
+		{name: "float_rejected", envVal: "1.5", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("PDBPLUS_HEAP_WARN_MIB", tt.envVal)
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_HEAP_WARN_MIB=%q, got nil", tt.envVal)
+				}
+				if !strings.Contains(err.Error(), "PDBPLUS_HEAP_WARN_MIB") {
+					t.Errorf("error must name env var; got %q", err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.HeapWarnBytes != tt.want {
+				t.Errorf("HeapWarnBytes = %d, want %d", cfg.HeapWarnBytes, tt.want)
+			}
+		})
+	}
+}
+
+// TestLoad_RSSWarnMiB_Parse is identical in shape to
+// TestLoad_HeapWarnMiB_Parse but for PDBPLUS_RSS_WARN_MIB (default 384).
+func TestLoad_RSSWarnMiB_Parse(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    int64
+		wantErr bool
+	}{
+		{name: "default_unset", envVal: "", want: 384 * 1024 * 1024},
+		{name: "explicit_zero_disable", envVal: "0", want: 0},
+		{name: "custom_256", envVal: "256", want: 256 * 1024 * 1024},
+		{name: "custom_500", envVal: "500", want: 500 * 1024 * 1024},
+		{name: "bare_negative_rejected", envVal: "-100", wantErr: true},
+		{name: "unit_suffix_rejected", envVal: "384MB", wantErr: true},
+		{name: "non_numeric_rejected", envVal: "abc", wantErr: true},
+		{name: "float_rejected", envVal: "1.5", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("PDBPLUS_RSS_WARN_MIB", tt.envVal)
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_RSS_WARN_MIB=%q, got nil", tt.envVal)
+				}
+				if !strings.Contains(err.Error(), "PDBPLUS_RSS_WARN_MIB") {
+					t.Errorf("error must name env var; got %q", err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.RSSWarnBytes != tt.want {
+				t.Errorf("RSSWarnBytes = %d, want %d", cfg.RSSWarnBytes, tt.want)
+			}
+		})
+	}
+}
