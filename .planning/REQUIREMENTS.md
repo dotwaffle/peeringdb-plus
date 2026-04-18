@@ -85,32 +85,32 @@ Deferred from v1.16 scope:
 
 ## Traceability
 
-To be filled by the roadmap phase mapping. Each REQ-ID will map to exactly one phase.
+Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% coverage.
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| ORDER-01 | TBD | pending |
-| ORDER-02 | TBD | pending |
-| ORDER-03 | TBD | pending |
-| STATUS-01 | TBD | pending |
-| STATUS-02 | TBD | pending |
-| STATUS-03 | TBD | pending |
-| STATUS-04 | TBD | pending |
-| STATUS-05 | TBD | pending |
-| LIMIT-01 | TBD | pending |
-| LIMIT-02 | TBD | pending |
-| IN-01 | TBD | pending |
-| IN-02 | TBD | pending |
-| UNICODE-01 | TBD | pending |
-| UNICODE-02 | TBD | pending |
-| UNICODE-03 | TBD | pending |
-| TRAVERSAL-01 | TBD | pending |
-| TRAVERSAL-02 | TBD | pending |
-| TRAVERSAL-03 | TBD | pending |
-| TRAVERSAL-04 | TBD | pending |
-| MEMORY-01 | TBD | pending |
-| MEMORY-02 | TBD | pending |
-| MEMORY-03 | TBD | pending |
-| MEMORY-04 | TBD | pending |
-| PARITY-01 | TBD | pending |
-| PARITY-02 | TBD | pending |
+| ORDER-01 | 67 | pending |
+| ORDER-02 | 67 | pending |
+| ORDER-03 | 67 | pending |
+| STATUS-01 | 68 | pending |
+| STATUS-02 | 68 | pending |
+| STATUS-03 | 68 | pending |
+| STATUS-04 | 68 | pending |
+| STATUS-05 | 68 | pending |
+| LIMIT-01 | 68 | pending |
+| LIMIT-02 | 68 | pending |
+| IN-01 | 69 | pending |
+| IN-02 | 69 | pending |
+| UNICODE-01 | 69 | pending |
+| UNICODE-02 | 69 | pending |
+| UNICODE-03 | 69 | pending |
+| TRAVERSAL-01 | 70 | pending |
+| TRAVERSAL-02 | 70 | pending |
+| TRAVERSAL-03 | 70 | pending |
+| TRAVERSAL-04 | 70 | pending |
+| MEMORY-01 | 71 | pending |
+| MEMORY-02 | 71 | pending |
+| MEMORY-03 | 71 | pending |
+| MEMORY-04 | 71 | pending |
+| PARITY-01 | 72 | pending |
+| PARITY-02 | 72 | pending |

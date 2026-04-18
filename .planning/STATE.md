@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.16
 milestone_name: — Django-compat Correctness
-status: defining requirements
-stopped_at: milestone kickoff — REQUIREMENTS.md next
-last_updated: "2026-04-18T12:00:00.000Z"
+status: roadmap defined
+stopped_at: roadmap defined — ready for /gsd-plan-phase 67
+last_updated: "2026-04-18T13:00:00.000Z"
 last_activity: 2026-04-18
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -25,12 +25,29 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 67 — not started (roadmap defined, awaiting plan)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-18 — Milestone v1.16 started
+Status: Roadmap defined; 25/25 v1.16 requirements mapped; awaiting `/gsd-plan-phase 67`
+Last activity: 2026-04-18 — v1.16 roadmap created (Phases 67-72)
+
+## v1.16 Phase Map
+
+Phases 67-72 cover 25 REQ-IDs across 8 categories (ORDER, STATUS, LIMIT, IN, UNICODE, TRAVERSAL, MEMORY, PARITY). All dependencies are strictly serial — no phases run in parallel in this milestone.
+
+| Phase | Goal | Requirements | Depends on |
+|-------|------|--------------|------------|
+| 67 | Default ordering flip to `(-updated, -created)` across pdbcompat + grpcserver + entrest | ORDER-01, ORDER-02, ORDER-03 | — |
+| 68 | Status × since matrix + `limit=0` unlimited semantics in pdbcompat | STATUS-01..05, LIMIT-01, LIMIT-02 | 67 |
+| 69 | Unicode folding, operator coercion, `__in` robustness in pdbcompat filter layer | IN-01, IN-02, UNICODE-01, UNICODE-02, UNICODE-03 | 68 |
+| 70 | Cross-entity `__` traversal: Path A allowlists + Path B introspection + 2-hop | TRAVERSAL-01..04 | 69 |
+| 71 | Memory-safe response paths on 256 MB replicas (streaming JSON, per-response ceiling, telemetry, docs) | MEMORY-01..04 | 67, 68, 69, 70 |
+| 72 | Upstream parity regression tests ported from `pdb_api_test.py` + divergence docs | PARITY-01, PARITY-02 | 67, 68, 69, 70, 71 |
+
+Dependency chain: `67 → 68 → 69 → 70 → 71 → 72` (fully sequential). Phases 68 and 69 both touch `internal/pdbcompat/filter.go`, so serialising avoids merge conflicts; Phase 71 is deliberately staged after 67-70 so the memory ceiling can be sized against the real worst-case response shapes those phases enable; Phase 72 closes the milestone by locking the new semantics in regression tests.
 
 ## Recently Shipped
+
+**v1.15 Infrastructure Polish & Schema Hygiene** — shipped 2026-04-18. 4 phases (63-66), 11 requirements. Archive: [`.planning/milestones/v1.15-ROADMAP.md`](./milestones/v1.15-ROADMAP.md).
 
 **v1.14 Authenticated Sync & Visibility Layer** — 6 phases (57-62), 21 plans, 17/17 requirements, audit PASSED.
 
@@ -66,21 +83,21 @@ All decisions archived in PROJECT.md Key Decisions table (46+ decisions across 1
 
 v1.14 decisions captured in PROJECT.md rows added during Phase 58 (schema sufficiency, `<field>_visible` naming, NULL-as-schema-default, regression test locks empirical assumption).
 
-v1.15 decisions pending — to be logged at phase transitions. Likely candidates:
+v1.15 decisions captured in PROJECT.md rows — schema hygiene drops (Phase 63), asymmetric Fly fleet (Phase 65), sync observability hybrid (Phase 66).
 
-- Field-level redaction substrate location (package choice: `internal/privfield` vs extend `internal/privctx` vs per-serializer helpers)
-- Asymmetric Fly fleet process-group names (`primary` / `replica` chosen per SEED-002)
-- Heap-threshold surfacing mechanism (`/readyz` degraded signal vs OTel span attribute — TBD in Phase 66 plan)
+v1.16 decisions pending — to be logged at phase transitions. Likely candidates:
+
+- Path A (`prepare_query` allowlist) representation — per-entity map, code-generated table, or declarative struct literals (Phase 70 discuss)
+- Path B FK-introspection source — ent schema graph walker vs hand-maintained registry (Phase 70 discuss)
+- Unicode-folding library — third-party `rainycape/unidecode` vs stdlib `golang.org/x/text/unicode/norm` + fold table (Phase 69 discuss)
+- Streaming JSON encoder choice for large responses — `encoding/json.NewEncoder` with rollout chunking vs a custom tokeniser (Phase 71 discuss)
+- Response memory ceiling surfacing — RFC 9457 problem-detail 413 vs truncation sentinel in envelope (Phase 71 discuss)
 
 ### Seeds
 
-- **SEED-001** — incremental sync evaluation. Dormant. No trigger fired (peak heap ~84 MB vs 380 MiB). Phase 66 wires the trigger observability.
-- **SEED-002** — asymmetric Fly fleet. **Activated** 2026-04-17 for v1.15 Phase 65. Moves to `.planning/seeds/consumed/` when Phase 65 ships.
+- **SEED-001** — incremental sync evaluation. Dormant. No trigger fired (peak heap ~84 MB vs 380 MiB). v1.15 Phase 66 wired the trigger observability; v1.16 Phase 71 extends the harness to response paths.
+- **SEED-002** — asymmetric Fly fleet. **Consumed** by v1.15 Phase 65.
 - **SEED-003** — primary HA hot-standby. Dormant. Planted 2026-04-17 when the v1.15 decision was made to keep LHR as sole primary candidate. Triggers: LHR extended outage, maintenance burden, compliance, Fly capacity pressure.
-
-### Pre-phase quick task (do this BEFORE Phase 65)
-
-- **sqlite3 in prod image** — ✅ **Done 2026-04-18 (quick task `260418-1cn`, commit `4dfc52a`).** `Dockerfile.prod` now installs `sqlite` alongside `fuse3`; deployed to all 8 machines; verified `sqlite3 /litefs/peeringdb-plus.db ".tables"` on LHR primary + NRT replica. Phase 65 fleet migration is unblocked.
 
 ### Pending Todos
 
@@ -88,7 +105,7 @@ None.
 
 ### Blockers/Concerns
 
-None. All 4 phases have locked CONTEXT.md with full discuss-phase decisions captured (commit `e1fa426`) — `/gsd-autonomous` or `/gsd-plan-phase` can proceed straight to planning without re-asking grey areas.
+None. All 25 v1.16 REQ-IDs mapped to the 6 phases; 100% coverage validated. No orphans.
 
 ### Quick Tasks Completed
 
@@ -104,22 +121,23 @@ None. All 4 phases have locked CONTEXT.md with full discuss-phase decisions capt
 
 Last session: 2026-04-18
 Last activity: 2026-04-18
-Stopped at: /gsd-autonomous running — pre-phase quick task done, about to start Phase 63.
+Stopped at: v1.16 roadmap defined. Next: `/gsd-plan-phase 67` to begin Phase 67 (default ordering flip).
 
-**Resume via `/gsd-autonomous`:**
+**Resume via `/gsd-plan-phase 67` or `/gsd-autonomous`:**
 
-Each phase has `has_context: true` so the autonomous workflow skips discuss-phase and goes straight to plan → execute for each of phases 63-66. Execution order and key locked decisions:
+Each of phases 67-72 needs its own CONTEXT.md (discuss-phase) before planning. Key strategic guidance already in ROADMAP.md:
 
-1. ~~Pre-phase quick task — sqlite3 in prod image~~ ✅ done (quick task `260418-1cn`, commit `4dfc52a`).
-2. **Phase 63 — Schema hygiene.** Drop 3 vestigial fields (full removal). Planner MUST read entgo.io/docs/migrate/ to verify whether `schema.WithDropColumn(true)` flag is needed for ent to emit `ALTER TABLE DROP COLUMN` (D-04 in 63-CONTEXT.md).
-3. **Phase 64 — Field-level privacy.** New `internal/privfield` package with fail-closed default. Serializer-layer redaction across 5 surfaces. Omit key entirely for anon. Leave `_visible` companion exposed.
-4. **Phase 65 — Asymmetric Fly fleet.** Big-bang rollout; sqlite3 now in the image. Scripted volume cleanup inline in SUMMARY. Primary HA stays LHR-only (SEED-003 captures future work).
-5. **Phase 66 — Observability + sqlite3.** Both OTel attrs + slog.Warn on heap threshold. Defaults: `PDBPLUS_HEAP_WARN_MIB=400`, `PDBPLUS_RSS_WARN_MIB=384`. In-repo grafana/pdbplus-overview.json update.
+1. **Phase 67 — Ordering flip.** Broadest touch (3 surfaces: pdbcompat + grpcserver + entrest) but thinnest behavioural change. Land first so 68/69 rebase cleanly.
+2. **Phase 68 — Status + limit.** Pdbcompat-only. Shares list-path code with 67 — sequence after it.
+3. **Phase 69 — Unicode + operators + __in.** Shares `internal/pdbcompat/filter.go` with 70 — serialise 69 → 70 to avoid merge pain.
+4. **Phase 70 — Traversal.** Largest phase, likely multi-plan. Path A (allowlists) + Path B (introspection) + 2-hop + silent-ignore-unknown-fields.
+5. **Phase 71 — Memory-safe response paths.** Deliberately staged last-before-parity so the ceiling can be sized against real worst-case shapes from 67-70. Reuses Phase 66 `runtime.MemStats` harness.
+6. **Phase 72 — Parity regression.** Ports ground-truth assertions from `pdb_api_test.py`. Locks 67-71 semantics; documents intentional divergences in `docs/API.md`.
 
-**Fleet memory baseline for reference (observed 2026-04-17, do not re-gather):**
+**Memory budget reminder (from v1.15 Phase 65):**
 
-- Primary (LHR): RSS 68.8 MB, peak VmHWM 83.8 MB
-- Replicas (7 regions): ~58-59 MB steady
-- DB size: 88 MB
+- Primary (LHR, shared-cpu-2x/512 MB): peak VmHWM 83.8 MB; plenty of headroom
+- Replicas (7 regions, shared-cpu-1x/256 MB): ~58-59 MB steady; this is the constraining envelope for Phase 71
+- DB size: 88 MB (on LiteFS)
 
-**Autonomous entry command:** `/gsd-autonomous` — no flags needed; it'll discover Phase 63 as next incomplete and walk through.
+**Autonomous entry command:** `/gsd-autonomous` — picks up at Phase 67 (next incomplete) and walks through.
