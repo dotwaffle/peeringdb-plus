@@ -141,7 +141,7 @@ All 11 requirements (HYGIENE-01..03, VIS-08, VIS-09, INFRA-01..03, OBS-04, OBS-0
 
 | Phase | Status | Plans | Requirements | Blocker |
 |-------|--------|-------|--------------|---------|
-| 63 — Schema hygiene | Pending | 0/1 | HYGIENE-01, HYGIENE-02, HYGIENE-03 | — |
+| 63 — Schema hygiene | Pending | 1/1 | Complete   | 2026-04-18 |
 | 64 — Field-level privacy | Pending | 0/2-3 | VIS-08, VIS-09 | Phase 63 (trivial — same codegen pass) |
 | 65 — Asymmetric Fly fleet | Pending | 0/2-3 | INFRA-01, INFRA-02, INFRA-03 | — (parallelizable) |
 | 66 — Observability + sqlite3 | Pending | 0/1-2 | OBS-04, OBS-05, DOC-04 | — (parallelizable) |
