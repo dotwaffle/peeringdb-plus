@@ -126,6 +126,8 @@ Proto is frozen since v1.6 (`entproto.SkipGenFile` in `ent/entc.go`), so dropped
 | `PDBPLUS_SYNC_MODE` | `full` | Sync strategy: `full` or `incremental` |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | `24h` | Max age of sync data before health reports degraded |
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | `400MB` | Peak Go heap ceiling checked after Phase A fetch; unit suffix required (KB/MB/GB/TB); `0` disables guardrail |
+| `PDBPLUS_HEAP_WARN_MIB` | `400` | Peak Go heap (MiB) threshold. End-of-sync-cycle `slog.Warn("heap threshold crossed", ...)` fires when `runtime.MemStats.HeapInuse` exceeds this; OTel span attr `pdbplus.sync.peak_heap_mib` emits on every cycle regardless. `0` disables the warn. Sustained breach = SEED-001 trigger fired. |
+| `PDBPLUS_RSS_WARN_MIB` | `384` | Peak OS RSS (MiB) threshold from `/proc/self/status` VmHWM (Linux only). OTel span attr `pdbplus.sync.peak_rss_mib`. `0` disables the warn. Attr omitted on non-Linux (RSS not available). |
 | `PDBPLUS_INCLUDE_DELETED` | `true` | Include objects with status=deleted (matches PeeringDB API which returns deleted rows in default fetches; set `false` to filter them out client-side) |
 | `PDBPLUS_CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
 | `PDBPLUS_CSP_ENFORCE` | `false` | When `true`, serve enforcing `Content-Security-Policy` on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only`. |
@@ -179,6 +181,26 @@ Standard `OTEL_*` env vars also apply (autoexport).
 - **Volume-only-on-primary.** `[[mounts]]` in `fly.toml` is scoped to
   `processes = ["primary"]`. Never re-introduce a mount on the replica
   group — the architecture assumes replicas are cattle.
+
+### Sync observability
+
+End-of-sync-cycle memory telemetry surfaces SEED-001's incremental-sync-consideration trigger. Implementation: `internal/sync/worker.go` function `emitMemoryTelemetry`, called from `recordSuccess`, `rollbackAndRecord`, and `recordFailure` (three terminal paths of `Worker.Sync`).
+
+OTel span attributes attached to the `sync-full` / `sync-incremental` cycle span:
+- `pdbplus.sync.peak_heap_mib` — `runtime.MemStats.HeapInuse` in MiB
+- `pdbplus.sync.peak_rss_mib` — `/proc/self/status` VmHWM in MiB (Linux only — attr omitted on other OSes)
+
+Same values are exported as Prometheus gauges via `internal/otel.InitMemoryGauges`: `pdbplus_sync_peak_heap_mib` and `pdbplus_sync_peak_rss_mib`. Zero-valued observations are suppressed so dashboards don't plot misleading flat lines before the first sync.
+
+**Log signal.** When either threshold is breached, the worker calls `slog.Warn("heap threshold crossed", ...)` with typed attrs `peak_heap_mib`, `heap_warn_mib`, `peak_rss_mib`, `rss_warn_mib`, `heap_over`, `rss_over`.
+
+**Thresholds** via env vars (see table above): `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB` (default 384). Defaults sit under the Fly 512 MB VM cap with margin so the order under pressure is: log → app crash → Fly OOM-kill.
+
+**SEED-001 escalation.** If peak heap is sustained above `PDBPLUS_HEAP_WARN_MIB` across multiple sync cycles, SEED-001 (`.planning/seeds/SEED-001-incremental-sync-evaluation.md`) trigger has fired — surface at the next milestone and revisit `PDBPLUS_SYNC_MODE=incremental` after the deletion-conformance prerequisite work. Observed baseline 2026-04-17: primary peak 83.8 MiB, replicas 58-59 MiB — ~4.5× headroom.
+
+**Dashboard.** `deploy/grafana/dashboards/pdbplus-overview.json` has a "Sync Memory (SEED-001 watch)" row with three panels — "Peak Heap (MiB)", "Peak RSS (MiB)", and "Peak Heap by Process Group" (primary vs replica, post-Phase-65 asymmetric fleet).
+
+**Incident-response debugging (OBS-04).** Prod image ships with `sqlite3` (added via quick task 260418-1cn pre-Phase-65). Use `fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'` for interactive DB inspection on the primary; replicas expose the same FUSE path read-only.
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->

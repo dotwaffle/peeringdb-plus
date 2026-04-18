@@ -290,6 +290,26 @@ A Grafana dashboard is provided in `deploy/grafana/dashboards/pdbplus-overview.j
 with a provisioning manifest at `deploy/grafana/provisioning/dashboards.yaml`
 for self-hosted Grafana instances.
 
+### Sync memory watch (SEED-001)
+
+Every sync cycle, the worker samples `runtime.MemStats.HeapInuse` and (on Linux) `/proc/self/status` VmHWM, attaches both as OTel span attrs (`pdbplus.sync.peak_heap_mib`, `pdbplus.sync.peak_rss_mib`) on the `sync-full` / `sync-incremental` span, and fires `slog.Warn("heap threshold crossed", ...)` when either breaches its configured threshold. The same values are also exported as Prometheus gauges (`pdbplus_sync_peak_heap_mib`, `pdbplus_sync_peak_rss_mib`) for dashboard timeseries.
+
+Thresholds via `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB` (default 384). Zero disables the warn for that metric (attrs still fire).
+
+**Dashboard.** The `Sync Memory (SEED-001 watch)` row in `deploy/grafana/dashboards/pdbplus-overview.json` contains three panels:
+
+- `Peak Heap (MiB)` — threshold line at 400
+- `Peak RSS (MiB)` — threshold line at 384
+- `Peak Heap by Process Group` — primary vs replica breakdown (post-Phase-65 asymmetric fleet)
+
+**SEED-001 escalation.** If peak heap is sustained above `PDBPLUS_HEAP_WARN_MIB` across multiple sync cycles, SEED-001 (`.planning/seeds/SEED-001-incremental-sync-evaluation.md`) trigger has fired — revisit `PDBPLUS_SYNC_MODE=incremental` after the deletion-conformance prerequisite work documented in the seed. Observed baseline (2026-04-17): primary peak 83.8 MiB, replicas 58-59 MiB.
+
+**Incident-response debug shell (OBS-04).** The prod image ships with the `sqlite3` binary (added 2026-04-18, quick task `260418-1cn`). Run interactive queries via:
+
+    fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'
+
+on the LHR primary. Replicas present the same FUSE path read-only (LiteFS rejects writes away from the leader).
+
 The specific OTLP collector, metrics backend, and dashboard host used in
 production are deployment-specific and must be configured via Fly secrets
 (`fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=... OTEL_EXPORTER_OTLP_HEADERS=...`).
