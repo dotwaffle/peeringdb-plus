@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: — Infrastructure Polish & Schema Hygiene
-status: Ready to execute
+status: Executing Phase 64
 stopped_at: /gsd-autonomous running — pre-phase quick task done, about to start Phase 63.
-last_updated: "2026-04-18T03:36:41.000Z"
+last_updated: "2026-04-18T03:37:08.169Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 5
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
-**Current focus:** Phase 63 — Schema hygiene — drop vestigial columns
+**Current focus:** Phase 64 — Field-level privacy — ixlan.ixf_ixp_member_list_url
 
 ## Current Position
 
-Phase: 63 (Schema hygiene — drop vestigial columns) — EXECUTING
-Plan: 1 of 1
+Phase: 64 (Field-level privacy — ixlan.ixf_ixp_member_list_url) — EXECUTING
+Plan: 1 of 3
 **Milestone:** v1.15 Infrastructure Polish & Schema Hygiene
 **Phase:** none started — roadmap just defined
 **Next action:** pick a phase (63, 64, 65, or 66) and run `/gsd-discuss-phase` or `/gsd-plan-phase`.
