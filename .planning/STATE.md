@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.15
 milestone_name: "Infrastructure Polish & Schema Hygiene"
-status: Roadmap defined
-stopped_at: Roadmap defined for v1.15
-last_updated: "2026-04-17T00:00:00Z"
-last_activity: "2026-04-17 — v1.15 roadmap created"
+status: In progress
+stopped_at: /gsd-autonomous — pre-phase sqlite3 quick task complete, Phase 63 next
+last_updated: "2026-04-18T01:10:00Z"
+last_activity: "2026-04-18 — completed quick task 260418-1cn (sqlite3 in prod image)"
 progress:
   total_phases: 4
   completed_phases: 0
@@ -88,11 +88,11 @@ v1.15 decisions pending — to be logged at phase transitions. Likely candidates
 
 ### Pre-phase quick task (do this BEFORE Phase 65)
 
-- **sqlite3 in prod image** — one-line Dockerfile.prod change (add Chainguard sqlite package or `apk add sqlite`) + deploy + verify `fly ssh console -C 'sqlite3 /litefs/peeringdb-plus.db ".tables"'` works. User explicitly chose to run this as a standalone quick task *before* Phase 65 so the tool is available during the fleet migration. Owner: next session (/gsd-autonomous will pick it up as the first item). ~10 min.
+- **sqlite3 in prod image** — ✅ **Done 2026-04-18 (quick task `260418-1cn`, commit `4dfc52a`).** `Dockerfile.prod` now installs `sqlite` alongside `fuse3`; deployed to all 8 machines; verified `sqlite3 /litefs/peeringdb-plus.db ".tables"` on LHR primary + NRT replica. Phase 65 fleet migration is unblocked.
 
 ### Pending Todos
 
-None beyond the sqlite3 pre-phase task above.
+None.
 
 ### Blockers/Concerns
 
@@ -105,20 +105,22 @@ None. All 4 phases have locked CONTEXT.md with full discuss-phase decisions capt
 | 260331-cxk | Move maps to bottom of pages and add fold-out arrows to collapsibles | 2026-03-31 | eefa79b | [260331-cxk-move-maps-to-bottom-of-pages-and-add-fol](./quick/260331-cxk-move-maps-to-bottom-of-pages-and-add-fol/) |
 | 260414-2rc | Reduce OTel metric cardinality per plan ethereal-petting-pelican.md | 2026-04-14 | 3e0e56b (PR #11) | [260414-2rc-reduce-otel-metric-cardinality-per-plan-](./quick/260414-2rc-reduce-otel-metric-cardinality-per-plan-/) |
 | 20260417-v114-lint-cleanup | Clear 7 golangci-lint findings post-v1.14 (gosec/exhaustive/nolintlint/revive); resolves Phase 58 deferred-items.md | 2026-04-17 | d15dd02 | [20260417-v114-lint-cleanup](./quick/20260417-v114-lint-cleanup/) |
+| 260418-1cn | Add sqlite3 to Dockerfile.prod + fly deploy + verify on primary & replica (pre-Phase-65 prep) | 2026-04-18 | 4dfc52a | [260418-1cn-add-sqlite3-binary-to-dockerfile-prod-de](./quick/260418-1cn-add-sqlite3-binary-to-dockerfile-prod-de/) |
 
 ## Session Continuity
 
 Last session: 2026-04-18
-Stopped at: v1.15 roadmap + all 4 CONTEXT.md files locked with comprehensive discuss-phase decisions (commit `e1fa426`).
+Last activity: 2026-04-18 — completed quick task 260418-1cn (sqlite3 in prod image)
+Stopped at: /gsd-autonomous running — pre-phase quick task done, about to start Phase 63.
 
 **Resume via `/gsd-autonomous`:**
 
 Each phase has `has_context: true` so the autonomous workflow skips discuss-phase and goes straight to plan → execute for each of phases 63-66. Execution order and key locked decisions:
 
-1. **Pre-phase quick task — sqlite3 in prod image.** Run this FIRST before Phase 65 touches the fleet (see "Pre-phase quick task" section above). One-line Dockerfile.prod change + deploy + verify.
+1. ~~Pre-phase quick task — sqlite3 in prod image~~ ✅ done (quick task `260418-1cn`, commit `4dfc52a`).
 2. **Phase 63 — Schema hygiene.** Drop 3 vestigial fields (full removal). Planner MUST read entgo.io/docs/migrate/ to verify whether `schema.WithDropColumn(true)` flag is needed for ent to emit `ALTER TABLE DROP COLUMN` (D-04 in 63-CONTEXT.md).
 3. **Phase 64 — Field-level privacy.** New `internal/privfield` package with fail-closed default. Serializer-layer redaction across 5 surfaces. Omit key entirely for anon. Leave `_visible` companion exposed.
-4. **Phase 65 — Asymmetric Fly fleet.** Big-bang rollout; sqlite3 MUST be in the image before starting. Scripted volume cleanup inline in SUMMARY. Primary HA stays LHR-only (SEED-003 captures future work).
+4. **Phase 65 — Asymmetric Fly fleet.** Big-bang rollout; sqlite3 now in the image. Scripted volume cleanup inline in SUMMARY. Primary HA stays LHR-only (SEED-003 captures future work).
 5. **Phase 66 — Observability + sqlite3.** Both OTel attrs + slog.Warn on heap threshold. Defaults: `PDBPLUS_HEAP_WARN_MIB=400`, `PDBPLUS_RSS_WARN_MIB=384`. In-repo grafana/pdbplus-overview.json update.
 
 **Fleet memory baseline for reference (observed 2026-04-17, do not re-gather):**
