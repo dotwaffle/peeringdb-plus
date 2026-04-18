@@ -465,6 +465,12 @@ func (w *Worker) emitMemoryTelemetry(ctx context.Context, heapWarnBytes, rssWarn
 	}
 	span.SetAttributes(attrs...)
 
+	// Publish to the ObservableGauges so Prometheus / Grafana pick them up.
+	pdbotel.SyncPeakHeapMiB.Store(heapMiB)
+	if rssOK {
+		pdbotel.SyncPeakRSSMiB.Store(rssMiB)
+	}
+
 	heapOver := heapWarnBytes > 0 && heapBytes > heapWarnBytes
 	rssOver := rssOK && rssWarnBytes > 0 && rssBytes > rssWarnBytes
 	if !heapOver && !rssOver {

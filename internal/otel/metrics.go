@@ -3,12 +3,25 @@ package otel
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
+
+// SyncPeakHeapMiB holds the most-recent end-of-sync-cycle Go runtime
+// HeapInuse in MiB. Exposed via pdbplus.sync.peak_heap_mib ObservableGauge
+// for Grafana / Prometheus dashboards to plot over time. Zero means
+// "no sync has completed yet" — the gauge suppresses observation until
+// the first store.
+var SyncPeakHeapMiB atomic.Int64
+
+// SyncPeakRSSMiB holds the most-recent end-of-sync-cycle /proc/self/status
+// VmHWM in MiB (Linux only). Zero means "not Linux" or "no sync yet" —
+// the gauge suppresses observation when zero.
+var SyncPeakRSSMiB atomic.Int64
 
 // SyncDuration records the duration of sync operations in seconds.
 var SyncDuration metric.Float64Histogram
@@ -127,6 +140,43 @@ func InitFreshnessGauge(lastSyncFn func(ctx context.Context) (time.Time, bool)) 
 	)
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.sync.freshness gauge: %w", err)
+	}
+	return nil
+}
+
+// InitMemoryGauges registers observable gauges that report the most-recent
+// end-of-sync-cycle peak heap and RSS (MiB) for SEED-001 dashboard watch.
+// Values are updated by internal/sync.(*Worker).emitMemoryTelemetry via the
+// SyncPeakHeapMiB / SyncPeakRSSMiB atomics. A zero value suppresses the
+// observation (no sync yet, or non-Linux for RSS) so dashboards don't plot
+// misleading zeros.
+func InitMemoryGauges() error {
+	meter := otel.Meter("peeringdb-plus")
+	_, err := meter.Int64ObservableGauge("pdbplus.sync.peak_heap_mib",
+		metric.WithDescription("Peak Go heap (HeapInuse) at end of last sync cycle, in MiB"),
+		metric.WithUnit("MiB"),
+		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
+			if v := SyncPeakHeapMiB.Load(); v > 0 {
+				o.Observe(v)
+			}
+			return nil
+		}),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.sync.peak_heap_mib gauge: %w", err)
+	}
+	_, err = meter.Int64ObservableGauge("pdbplus.sync.peak_rss_mib",
+		metric.WithDescription("Peak OS RSS (/proc/self/status VmHWM) at end of last sync cycle, in MiB"),
+		metric.WithUnit("MiB"),
+		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
+			if v := SyncPeakRSSMiB.Load(); v > 0 {
+				o.Observe(v)
+			}
+			return nil
+		}),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.sync.peak_rss_mib gauge: %w", err)
 	}
 	return nil
 }

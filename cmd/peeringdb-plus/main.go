@@ -97,6 +97,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Phase 66 (OBS-05): peak heap / RSS observable gauges for SEED-001 watch.
+	if err := pdbotel.InitMemoryGauges(); err != nil {
+		logger.Error("failed to init memory gauges", slog.Any("error", err))
+		os.Exit(1)
+	}
+
 	// Open database per D-28, D-34.
 	entClient, db, err := database.Open(cfg.DBPath)
 	if err != nil {
