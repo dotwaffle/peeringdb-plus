@@ -4,8 +4,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/subtle"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -40,6 +42,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
+	"github.com/dotwaffle/peeringdb-plus/internal/privfield"
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/web"
 	webtemplates "github.com/dotwaffle/peeringdb-plus/internal/web/templates"
@@ -301,7 +304,7 @@ func main() {
 		os.Exit(1)
 	}
 	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})
-	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restSrv.Handler())))
+	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restFieldRedactMiddleware(restSrv.Handler()))))
 	logger.Info("REST API mounted", slog.String("prefix", "/rest/v1/"))
 
 	// Mount PeeringDB compatibility API at /api/ per D-27, D-28.
@@ -566,6 +569,154 @@ func (w *restErrorWriter) Write(b []byte) (int, error) {
 // Unwrap returns the underlying ResponseWriter for middleware-aware interface detection.
 func (w *restErrorWriter) Unwrap() http.ResponseWriter {
 	return w.ResponseWriter
+}
+
+// restListWrapperKey is the JSON key under which entrest's PagedResponse
+// serialises the items slice. Confirmed at planning time by grepping:
+//
+//	$ grep -rn 'json:"content"' ent/rest/
+//	ent/rest/list.go:153:    Content    []*T `json:"content"`      // Paged data.
+//
+// If a future entrest upgrade changes this tag, this constant MUST move
+// in lock-step or restFieldRedactMiddleware silently stops redacting list
+// responses — a privacy leak. The wave-2 E2E list sub-test catches the
+// regression.
+const restListWrapperKey = "content"
+
+// restFieldRedactMiddleware removes the `ixf_ixp_member_list_url` key
+// from /rest/v1/ix-lans* JSON responses when the caller's ctx tier
+// does not admit the field (per internal/privfield.Redact).
+//
+// entrest has no native per-field conditional-omission hook (verified
+// against lrstanley/entrest annotation reference, Phase 64 RESEARCH.md
+// Finding #1). This middleware is the workaround: it buffers the
+// response body on the ixlan paths, parses the JSON, walks the ixlan
+// object(s), and re-emits with the field deleted when privfield.Redact
+// says omit.
+//
+// Scope: only /rest/v1/ix-lans (prefix match). Detail responses are
+// single objects; list responses wrap entries in {restListWrapperKey:[…]}.
+// Non-ixlan REST paths and non-JSON bodies pass through unchanged.
+//
+// Ordering: this middleware MUST be wrapped INSIDE restErrorMiddleware
+// so that problem+json error bodies pass through without being mis-parsed
+// as data payloads.
+//
+// Phase 64 VIS-08 / VIS-09.
+func restFieldRedactMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.URL.Path, "/rest/v1/ix-lans") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		rw := &restFieldRedactWriter{ResponseWriter: w, ctx: r.Context()}
+		next.ServeHTTP(rw, r)
+		rw.flush()
+	})
+}
+
+// restFieldRedactWriter buffers an ixlan REST response so that the body
+// can be parsed + rewritten before reaching the client. Implements
+// http.Flusher and Unwrap() per CLAUDE.md §Middleware.
+type restFieldRedactWriter struct {
+	http.ResponseWriter
+	ctx    context.Context
+	status int
+	buf    bytes.Buffer
+}
+
+// WriteHeader captures the status code — the real header write is
+// deferred until flush() after body rewrite.
+func (w *restFieldRedactWriter) WriteHeader(code int) {
+	w.status = code
+}
+
+// Write buffers the body so we can rewrite the JSON before flushing.
+func (w *restFieldRedactWriter) Write(b []byte) (int, error) {
+	return w.buf.Write(b)
+}
+
+// Unwrap returns the underlying ResponseWriter for middleware-aware
+// interface detection (matches restErrorWriter pattern).
+func (w *restFieldRedactWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+
+// Flush is a no-op during buffering; real flushing happens in flush().
+// Required for CLAUDE.md §Middleware Flusher contract — REST is
+// non-streaming so this never fires mid-response in practice.
+func (w *restFieldRedactWriter) Flush() {}
+
+// flush writes the buffered body to the underlying ResponseWriter,
+// rewriting ixlan JSON payloads to drop the URL key when the caller's
+// tier does not admit it.
+func (w *restFieldRedactWriter) flush() {
+	status := w.status
+	if status == 0 {
+		status = http.StatusOK
+	}
+	body := w.buf.Bytes()
+	contentType := w.Header().Get("Content-Type")
+
+	// Pass through non-JSON (e.g. application/problem+json error bodies
+	// from restErrorMiddleware when wrapped inside-out, or empty 204s).
+	if !strings.HasPrefix(contentType, "application/json") || len(body) == 0 {
+		w.ResponseWriter.WriteHeader(status)
+		_, _ = w.ResponseWriter.Write(body)
+		return
+	}
+
+	rewritten, err := redactIxlanJSON(w.ctx, body)
+	if err != nil {
+		// Parse failed — pass through unchanged. A legitimate parse
+		// error shouldn't happen on a 2xx entrest response; if it does,
+		// corrupting the body would be worse than letting it through.
+		// The E2E test in Plan 64-03 Task 5 will catch any real leak.
+		w.ResponseWriter.Header().Del("Content-Length")
+		w.ResponseWriter.WriteHeader(status)
+		_, _ = w.ResponseWriter.Write(body)
+		return
+	}
+
+	// Clear Content-Length — Go's http server will compute a fresh
+	// length or use chunked encoding as appropriate.
+	w.ResponseWriter.Header().Del("Content-Length")
+	w.ResponseWriter.WriteHeader(status)
+	_, _ = w.ResponseWriter.Write(rewritten)
+}
+
+// redactIxlanJSON parses body as JSON and applies Redact to any ixlan
+// object (detail shape) or list of ixlan objects (under restListWrapperKey).
+// Returns the re-encoded body.
+func redactIxlanJSON(ctx context.Context, body []byte) ([]byte, error) {
+	var top map[string]any
+	if err := json.Unmarshal(body, &top); err != nil {
+		return nil, err
+	}
+	// List shape: {page, total_count, last_page, is_last_page, content:[…]}
+	if wrapped, ok := top[restListWrapperKey].([]any); ok {
+		for _, entry := range wrapped {
+			obj, ok := entry.(map[string]any)
+			if !ok {
+				continue
+			}
+			redactIxlanObject(ctx, obj)
+		}
+		return json.Marshal(top)
+	}
+	// Detail shape: single ixlan object at the top level.
+	redactIxlanObject(ctx, top)
+	return json.Marshal(top)
+}
+
+// redactIxlanObject drops the ixf_ixp_member_list_url key in-place when
+// privfield.Redact says omit. The _visible companion is left alone
+// (D-05: always emitted).
+func redactIxlanObject(ctx context.Context, obj map[string]any) {
+	visible, _ := obj["ixf_ixp_member_list_url_visible"].(string)
+	url, _ := obj["ixf_ixp_member_list_url"].(string)
+	_, omit := privfield.Redact(ctx, visible, url)
+	if omit {
+		delete(obj, "ixf_ixp_member_list_url")
+	}
 }
 
 // buildServer constructs the production http.Server with all timeouts
