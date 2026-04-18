@@ -1,6 +1,8 @@
 package pdbcompat
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -8,6 +10,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
 func TestSerializerNetworkFromEnt(t *testing.T) {
@@ -352,7 +355,7 @@ func TestSerializerAllTypesCompile(t *testing.T) {
 	_ = facilityFromEnt(&ent.Facility{Created: now, Updated: now})
 	_ = internetExchangeFromEnt(&ent.InternetExchange{Created: now, Updated: now})
 	_ = pocFromEnt(&ent.Poc{Created: now, Updated: now})
-	_ = ixLanFromEnt(&ent.IxLan{Created: now, Updated: now})
+	_ = ixLanFromEnt(context.Background(), &ent.IxLan{Created: now, Updated: now})
 	_ = ixPrefixFromEnt(&ent.IxPrefix{Created: now, Updated: now})
 	_ = networkIxLanFromEnt(&ent.NetworkIxLan{Created: now, Updated: now})
 	_ = networkFacilityFromEnt(&ent.NetworkFacility{Created: now, Updated: now})
@@ -367,7 +370,7 @@ func TestSerializerAllTypesCompile(t *testing.T) {
 	_ = facilitiesFromEnt(nil)
 	_ = internetExchangesFromEnt(nil)
 	_ = pocsFromEnt(nil)
-	_ = ixLansFromEnt(nil)
+	_ = ixLansFromEnt(context.Background(), nil)
 	_ = ixPrefixesFromEnt(nil)
 	_ = networkIxLansFromEnt(nil)
 	_ = networkFacilitiesFromEnt(nil)
@@ -424,5 +427,74 @@ func TestSerializerSocialMediaConversion(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestIxLanFromEnt_FieldPrivacy is the unit-level VIS-09 contract for the
+// pdbcompat serializer. Phase 64 pushes field-level redaction of
+// ixf_ixp_member_list_url into the per-surface serializers (D-01); this
+// test locks the pdbcompat surface.
+//
+// The full 5-surface E2E lives in cmd/peeringdb-plus/field_privacy_e2e_test.go
+// (TestE2E_FieldLevel_IxlanURL_*); this test is the fast per-package gate.
+func TestIxLanFromEnt_FieldPrivacy(t *testing.T) {
+	t.Parallel()
+
+	const url = "https://example.test/ix/100/members.json"
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	usersGated := &ent.IxLan{
+		ID:                         100,
+		IxfIxpMemberListURLVisible: "Users",
+		IxfIxpMemberListURL:        url,
+		Created:                    now,
+		Updated:                    now,
+	}
+	publicRow := &ent.IxLan{
+		ID:                         101,
+		IxfIxpMemberListURLVisible: "Public",
+		IxfIxpMemberListURL:        url,
+		Created:                    now,
+		Updated:                    now,
+	}
+
+	anon := context.Background() // un-stamped → TierPublic (fail-closed)
+	users := privctx.WithTier(context.Background(), privctx.TierUsers)
+
+	// Users-gated row at TierPublic → URL redacted (empty).
+	if got := ixLanFromEnt(anon, usersGated); got.IXFIXPMemberListURL != "" {
+		t.Errorf("anon tier, _visible=Users: URL = %q, want empty", got.IXFIXPMemberListURL)
+	}
+	// Verify the _visible companion is STILL emitted (D-05 upstream parity).
+	if got := ixLanFromEnt(anon, usersGated); got.IXFIXPMemberListURLVisible != "Users" {
+		t.Errorf("anon tier, _visible=Users: visible companion = %q, want %q", got.IXFIXPMemberListURLVisible, "Users")
+	}
+
+	// Users-gated row at TierUsers → URL admitted.
+	if got := ixLanFromEnt(users, usersGated); got.IXFIXPMemberListURL != url {
+		t.Errorf("users tier, _visible=Users: URL = %q, want %q", got.IXFIXPMemberListURL, url)
+	}
+
+	// Public row at either tier → always admitted.
+	for _, ctx := range []context.Context{anon, users} {
+		if got := ixLanFromEnt(ctx, publicRow); got.IXFIXPMemberListURL != url {
+			t.Errorf("any tier, _visible=Public: URL = %q, want %q", got.IXFIXPMemberListURL, url)
+		}
+	}
+
+	// JSON wire shape: with the value blanked, the json:"...,omitempty" tag
+	// MUST cause the key to be absent (Phase 64 D-04). This is the wire-level
+	// correctness the entire plan hinges on.
+	out := ixLanFromEnt(anon, usersGated)
+	b, err := json.Marshal(out)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if bytes.Contains(b, []byte(`"ixf_ixp_member_list_url"`)) {
+		t.Errorf("anon tier JSON MUST omit key, got body=%s", b)
+	}
+	// Companion visible key MUST still be present.
+	if !bytes.Contains(b, []byte(`"ixf_ixp_member_list_url_visible"`)) {
+		t.Errorf("anon tier JSON MUST still emit _visible key (D-05), got body=%s", b)
 	}
 }

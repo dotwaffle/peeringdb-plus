@@ -169,7 +169,7 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 		if ix.Edges.Organization != nil {
 			m["org"] = organizationFromEnt(ix.Edges.Organization)
 		}
-		m["ixlan_set"] = orEmptySlice(ixLansFromEnt(ix.Edges.IxLans))
+		m["ixlan_set"] = orEmptySlice(ixLansFromEnt(ctx, ix.Edges.IxLans))
 		m["ixfac_set"] = orEmptySlice(ixFacilitiesFromEnt(ix.Edges.IxFacilities))
 		return m, nil
 	}
@@ -194,7 +194,7 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		if err != nil {
 			return nil, fmt.Errorf("get ixlan %d: %w", id, err)
 		}
-		base := ixLanFromEnt(l)
+		base := ixLanFromEnt(ctx, l)
 		m := toMap(base)
 		if l.Edges.InternetExchange != nil {
 			m["ix"] = internetExchangeFromEnt(l.Edges.InternetExchange)
@@ -208,7 +208,7 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 	if err != nil {
 		return nil, fmt.Errorf("get ixlan %d: %w", id, err)
 	}
-	return ixLanFromEnt(l), nil
+	return ixLanFromEnt(ctx, l), nil
 }
 
 // getCarrierWithDepth fetches a carrier by ID with optional depth expansion.
@@ -318,7 +318,7 @@ func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int
 			m["net"] = networkFromEnt(nixl.Edges.Network)
 		}
 		if nixl.Edges.IxLan != nil {
-			m["ixlan"] = ixLanFromEnt(nixl.Edges.IxLan)
+			m["ixlan"] = ixLanFromEnt(ctx, nixl.Edges.IxLan)
 		}
 		return m, nil
 	}
@@ -429,7 +429,7 @@ func getIXPfxWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		base := ixPrefixFromEnt(p)
 		m := toMap(base)
 		if p.Edges.IxLan != nil {
-			m["ixlan"] = ixLanFromEnt(p.Edges.IxLan)
+			m["ixlan"] = ixLanFromEnt(ctx, p.Edges.IxLan)
 		}
 		return m, nil
 	}

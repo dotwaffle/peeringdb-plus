@@ -204,7 +204,7 @@ func wireIXLanFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list ixlans: %w", err)
 			}
-			result := ixLansFromEnt(lans)
+			result := ixLansFromEnt(ctx, lans)
 			out := make([]any, len(result))
 			for i, v := range result {
 				out[i] = v

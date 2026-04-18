@@ -1,9 +1,12 @@
 package pdbcompat
 
 import (
+	"context"
+
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
+	"github.com/dotwaffle/peeringdb-plus/internal/privfield"
 )
 
 // derefInt returns the value pointed to by p, or 0 if p is nil.
@@ -255,8 +258,20 @@ func pocsFromEnt(pocs []*ent.Poc) []peeringdb.Poc {
 	return out
 }
 
-// ixLanFromEnt maps an ent IxLan to a peeringdb IxLan.
-func ixLanFromEnt(l *ent.IxLan) peeringdb.IxLan {
+// ixLanFromEnt maps an ent IxLan to a peeringdb IxLan, applying Phase 64
+// (VIS-08/VIS-09) serializer-layer field-level privacy redaction for the
+// ixf_ixp_member_list_url field via internal/privfield.Redact.
+//
+// The caller MUST pass a context that has the privacy tier stamped by
+// middleware.PrivacyTier; unstamped contexts default to TierPublic
+// (fail-closed) per privfield.Redact semantics (Phase 64 D-03).
+//
+// The discarded omit return (underscore) is intentional: the peeringdb.IxLan
+// struct declares `json:"ixf_ixp_member_list_url,omitempty"` so assigning
+// the zero string value makes json.Marshal omit the key — matching upstream
+// PeeringDB's "absent key when unauthenticated" behaviour (Phase 64 D-04).
+func ixLanFromEnt(ctx context.Context, l *ent.IxLan) peeringdb.IxLan {
+	url, _ := privfield.Redact(ctx, l.IxfIxpMemberListURLVisible, l.IxfIxpMemberListURL)
 	return peeringdb.IxLan{
 		ID:                         l.ID,
 		IXID:                       derefInt(l.IxID),
@@ -266,7 +281,8 @@ func ixLanFromEnt(l *ent.IxLan) peeringdb.IxLan {
 		Dot1QSupport:               l.Dot1qSupport,
 		RSASN:                      l.RsAsn,
 		ARPSponge:                  l.ArpSponge,
-		IXFIXPMemberListURLVisible: l.IxfIxpMemberListURLVisible,
+		IXFIXPMemberListURLVisible: l.IxfIxpMemberListURLVisible, // D-05: always emitted
+		IXFIXPMemberListURL:        url,
 		IXFIXPImportEnabled:        l.IxfIxpImportEnabled,
 		Created:                    l.Created,
 		Updated:                    l.Updated,
@@ -274,11 +290,13 @@ func ixLanFromEnt(l *ent.IxLan) peeringdb.IxLan {
 	}
 }
 
-// ixLansFromEnt maps a slice of ent IxLans to peeringdb IxLans.
-func ixLansFromEnt(lans []*ent.IxLan) []peeringdb.IxLan {
+// ixLansFromEnt maps a slice of ent IxLans to peeringdb IxLans, threading
+// ctx so each row's ixf_ixp_member_list_url is redacted per the caller's
+// tier (see ixLanFromEnt godoc).
+func ixLansFromEnt(ctx context.Context, lans []*ent.IxLan) []peeringdb.IxLan {
 	out := make([]peeringdb.IxLan, len(lans))
 	for i, l := range lans {
-		out[i] = ixLanFromEnt(l)
+		out[i] = ixLanFromEnt(ctx, l)
 	}
 	return out
 }
