@@ -323,6 +323,7 @@ func upsertIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.IxLan) ([]i
 				SetDot1qSupport(il.Dot1QSupport).
 				SetNillableRsAsn(il.RSASN).
 				SetNillableArpSponge(il.ARPSponge).
+				SetIxfIxpMemberListURL(il.IXFIXPMemberListURL). // PHASE 64 (VIS-09)
 				SetIxfIxpMemberListURLVisible(il.IXFIXPMemberListURLVisible).
 				SetIxfIxpImportEnabled(il.IXFIXPImportEnabled).
 				SetCreated(il.Created).

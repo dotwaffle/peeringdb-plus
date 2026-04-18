@@ -328,6 +328,7 @@
       "created": "2024-01-25T09:30:00Z",
       "updated": "2024-08-15T14:00:00Z",
       "status": "ok",
+      "ixf_ixp_member_list_url": "",
       "edges": {}
     },
     {
@@ -344,6 +345,7 @@
       "created": "2024-03-15T10:30:00Z",
       "updated": "2024-09-01T16:00:00Z",
       "status": "ok",
+      "ixf_ixp_member_list_url": "",
       "edges": {}
     }
   ],

@@ -17,6 +17,20 @@ import (
 // created/updated fields.
 var Timestamp = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 
+// Phase 64 (VIS-09) Plan 02: deterministic ixlan IDs for the
+// field-level privacy seed fixture. Plan 03's E2E imports these
+// constants to target the gated vs always-admit rows precisely.
+const (
+	// IxLanGatedID is the ixlan row with ixf_ixp_member_list_url_visible
+	// set to "Users" (URL populated). Anon callers must NOT see the URL;
+	// Users-tier callers MUST see it.
+	IxLanGatedID = 100
+	// IxLanPublicID is the ixlan row with ixf_ixp_member_list_url_visible
+	// set to "Public" (URL populated). All callers (Public and Users
+	// tiers) MUST see the URL — proves the helper does not over-redact.
+	IxLanPublicID = 101
+)
+
 // Result holds typed references to all entities created by seed functions.
 type Result struct {
 	Org             *ent.Organization
@@ -28,6 +42,12 @@ type Result struct {
 	Campus          *ent.Campus
 	Carrier         *ent.Carrier
 	IxLan           *ent.IxLan
+	// IxLanPublic is the second ixlan (id=101) seeded by Full: URL
+	// populated with ixf_ixp_member_list_url_visible="Public". Phase 64
+	// (VIS-09) Plan 02 revision mandates two rows so Plan 03's E2E
+	// coverage can exercise both the always-admit (Public) path and the
+	// gated (Users) path against real seed data.
+	IxLanPublic     *ent.IxLan
 	IxPrefix        *ent.IxPrefix
 	NetworkIxLan    *ent.NetworkIxLan
 	NetworkFacility *ent.NetworkFacility
@@ -128,13 +148,34 @@ func Full(tb testing.TB, client *ent.Client) *Result {
 	}
 
 	// IxLan (depends on IX).
+	//
+	// Phase 64 (VIS-09) Plan 02: this primary row is the Users-gated case.
+	// Plan 03's E2E will assert that an anon caller does NOT see the URL
+	// and a Users-tier caller DOES. Constant IxLanGatedID = 100.
 	r.IxLan, err = client.IxLan.Create().
-		SetID(100).
+		SetID(IxLanGatedID).
 		SetIxID(r.IX.ID).SetInternetExchange(r.IX).
+		SetIxfIxpMemberListURL("https://example.test/ix/100/members.json").
+		SetIxfIxpMemberListURLVisible("Users").
 		SetCreated(Timestamp).SetUpdated(Timestamp).
 		Save(ctx)
 	if err != nil {
 		tb.Fatalf("seed: create IxLan: %v", err)
+	}
+
+	// Phase 64 (VIS-09) Plan 02: second ixlan row for the always-admit
+	// Public case. Plan 03's E2E will assert BOTH tiers see this URL,
+	// proving the privfield helper does not over-redact.
+	// Constant IxLanPublicID = 101.
+	r.IxLanPublic, err = client.IxLan.Create().
+		SetID(IxLanPublicID).
+		SetIxID(r.IX.ID).SetInternetExchange(r.IX).
+		SetIxfIxpMemberListURL("https://example.test/ix/101/members.json").
+		SetIxfIxpMemberListURLVisible("Public").
+		SetCreated(Timestamp).SetUpdated(Timestamp).
+		Save(ctx)
+	if err != nil {
+		tb.Fatalf("seed: create IxLanPublic: %v", err)
 	}
 
 	// Network (depends on Org).

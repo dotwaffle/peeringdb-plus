@@ -25,6 +25,7 @@ func TestFull(t *testing.T) {
 		{"Campus", r.Campus != nil},
 		{"Carrier", r.Carrier != nil},
 		{"IxLan", r.IxLan != nil},
+		{"IxLanPublic", r.IxLanPublic != nil}, // Phase 64 VIS-09
 		{"IxPrefix", r.IxPrefix != nil},
 		{"NetworkIxLan", r.NetworkIxLan != nil},
 		{"NetworkFacility", r.NetworkFacility != nil},
@@ -53,6 +54,7 @@ func TestFull(t *testing.T) {
 		{"Campus", r.Campus.ID, 40},
 		{"Carrier", r.Carrier.ID, 50},
 		{"IxLan", r.IxLan.ID, 100},
+		{"IxLanPublic", r.IxLanPublic.ID, 101}, // Phase 64 VIS-09
 		{"IxPrefix", r.IxPrefix.ID, 700},
 		{"NetworkIxLan", r.NetworkIxLan.ID, 200},
 		{"NetworkFacility", r.NetworkFacility.ID, 300},
@@ -105,7 +107,7 @@ func TestFull_EntityCounts(t *testing.T) {
 		{"Facility", must(client.Facility.Query().Count(ctx)), 2},
 		{"Campus", must(client.Campus.Query().Count(ctx)), 1},
 		{"Carrier", must(client.Carrier.Query().Count(ctx)), 1},
-		{"IxLan", must(client.IxLan.Query().Count(ctx)), 1},
+		{"IxLan", must(client.IxLan.Query().Count(ctx)), 2}, // Phase 64 VIS-09: seed.Full seeds two ixlans (IxLanGatedID, IxLanPublicID)
 		{"IxPrefix", must(client.IxPrefix.Query().Count(ctx)), 1},
 		{"NetworkIxLan", must(client.NetworkIxLan.Query().Count(ctx)), 1},
 		{"NetworkFacility", must(client.NetworkFacility.Query().Count(ctx)), 1},
