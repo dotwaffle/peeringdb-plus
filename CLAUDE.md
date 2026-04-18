@@ -168,6 +168,17 @@ Standard `OTEL_*` env vars also apply (autoexport).
 ### Deployment
 - `fly deploy` from project root. App: peeringdb-plus. Primary region: lhr.
 - LiteFS FUSE mount takes a moment — "not listening" warnings during rolling deploy are normal.
+- **Asymmetric fleet (v1.15+).** Fly app `peeringdb-plus` runs two
+  process groups: `primary` (1 machine, LHR, `shared-cpu-2x`/512 MB,
+  persistent `litefs_data` volume) and `replica` (7 machines in other
+  regions, `shared-cpu-1x`/256 MB, ephemeral rootfs). Replicas cold-sync
+  the 88 MB DB from primary over LiteFS HTTP on boot (5-45s per region);
+  `/readyz` fail-closes during hydration so Fly Proxy excludes them
+  until ready. Replica recovery = destroy-and-recreate (no volume
+  management). See `docs/DEPLOYMENT.md` § Asymmetric fleet.
+- **Volume-only-on-primary.** `[[mounts]]` in `fly.toml` is scoped to
+  `processes = ["primary"]`. Never re-introduce a mount on the replica
+  group — the architecture assumes replicas are cattle.
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->

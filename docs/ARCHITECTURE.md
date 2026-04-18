@@ -372,6 +372,18 @@ The app listens directly on `:8080` with h2c enabled and does **not** sit behind
 because the proxy does not handle HTTP/2 streaming RPCs. LiteFS runs as a separate FUSE process
 whose mount point is inspected by the detection code above.
 
+### Fleet topology (v1.15+)
+
+The app runs under two Fly process groups — `primary` (1 machine,
+LHR, persistent volume) and `replica` (7 machines, other regions,
+ephemeral rootfs). The process-group split reinforces but does not
+replace the region-gated LiteFS candidacy: `litefs.yml`'s
+`lease.candidate: ${FLY_REGION == PRIMARY_REGION}` remains the sole
+source of truth for "which machine may become primary". The process
+groups exist to scope `[[vm]]` sizing and `[[mounts]]` to the
+primary-only tier. See `docs/DEPLOYMENT.md` § Asymmetric fleet for
+operator runbook.
+
 ## OpenTelemetry instrumentation
 
 OTel is set up once at startup in `internal/otel/provider.go` (`Setup`). Three signal providers

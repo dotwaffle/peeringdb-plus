@@ -199,6 +199,53 @@ of nine in the tuned production topology). Blue-green deploys are not
 usable here because running two parallel fleets would conflict with the
 LiteFS + Consul primary election.
 
+## Asymmetric fleet
+
+As of v1.15 (Phase 65), the fleet is split into two Fly process groups
+with different VM sizing and mount policies:
+
+- **`primary` group** — 1 machine in `lhr`, `shared-cpu-2x` / 512 MB,
+  persistent `litefs_data` volume mounted at `/var/lib/litefs`. Runs the
+  sync worker, holds the LiteFS Consul lease, source of LiteFS HTTP
+  replication.
+- **`replica` group** — 7 machines (iad, nrt, syd, lax, jnb, sin, gru),
+  `shared-cpu-1x` / 256 MB, **no persistent volume** (ephemeral rootfs).
+  On boot, LiteFS cold-syncs the 88 MB database from the primary via
+  HTTP. Typical hydration window is 5-45 seconds per region; `/readyz`
+  returns 503 during this window so Fly Proxy routes around the machine
+  until it is ready.
+
+**Volume-only-on-primary contract:** `[[mounts]]` in `fly.toml` is
+scoped to `processes = ["primary"]`. Only the LHR primary machine has a
+mount. Replica machines are cattle — a damaged replica is recovered by
+`fly machine destroy --force <id>`; the replacement machine that Fly
+schedules has no volume concern, cold-syncs from the primary, and
+becomes live when `/readyz` flips to 200.
+
+**Replica cold-sync expectations:**
+
+| Region | Expected hydration | Notes |
+|--------|--------------------|-------|
+| iad, lax | 5-15s | Low-latency path to LHR |
+| nrt, sin | 15-30s | Transpacific |
+| syd, gru, jnb | 30-45s | Furthest edges; long-haul to LHR |
+
+If a replica stays on 503 >5 minutes with logs showing successful DB
+pings, the `sync_status` row (replicated from the primary via LiteFS
+cold-sync) is likely stale. Remediation: `POST /sync` with the
+`PDBPLUS_SYNC_TOKEN` to force a fresh primary sync; replicas pick up
+the updated `sync_status` within seconds via LTX replication.
+
+**Sizing rationale:** Observed replica RSS is 58-59 MB steady-state;
+`shared-cpu-1x` / 256 MB gives ~4× memory headroom and budget for
+LiteFS LTX replay spikes. The primary keeps `shared-cpu-2x` / 512 MB —
+it runs the sync worker whose memory profile was characterised in v1.13
+and v1.14.
+
+**Cost:** Asymmetric fleet is ~$20.75/mo vs the previous uniform
+~$57.20/mo — saves ~$36/mo. Real win is operational simplicity (no
+replica-volume orphans, destroy-and-recreate recovery in seconds).
+
 ## Regional rollout
 
 The primary region is `lhr`; every additional region hosts read-only
