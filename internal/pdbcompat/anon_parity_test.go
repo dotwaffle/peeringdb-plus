@@ -52,22 +52,11 @@ const anonFixtureRoot = "../../testdata/visibility-baseline/beta/anon/api"
 //
 // The intent of this test is to catch shape drift, not launder it. Entries
 // here require operator sign-off recorded in the plan SUMMARY.
-var knownDivergences = map[string]struct{}{
-	// ixpfx|data[0].notes|extra_field
-	//
-	// Root cause: ent/schema/ixprefix.go declares a `notes` field on
-	// IxPrefix (added to match upstream's documented schema), but
-	// PeeringDB's live anonymous /api/ixpfx response omits `notes` from
-	// every row (confirmed: zero "notes" occurrences in the phase-57 anon
-	// fixture testdata/visibility-baseline/beta/anon/api/ixpfx/page-1.json).
-	// Not a privacy leak — the field is present on other types upstream
-	// and is not auth-gated in phase-57's diff.json (fields: []).
-	// Flagged in 60-03-SUMMARY.md for operator sign-off; resolution is
-	// either (a) drop the field from pdbcompat's ixpfx projection, or
-	// (b) confirm upstream emits it on a different code path. Either
-	// way, not introduced by phase 60 and not in scope for this plan.
-	"ixpfx|data[0].notes|extra_field": {},
-}
+//
+// v1.15 Phase 63 (D-03): removed the "ixpfx|data[0].notes|extra_field"
+// entry after dropping the ent schema field and the peeringdb.IxPrefix
+// struct field — the divergence is now resolved at the source.
+var knownDivergences = map[string]struct{}{}
 
 // TestAnonParityFixtures replays each committed anonymous VIS-01 fixture
 // against a local httptest.Server wrapping the pdbcompat handler with an

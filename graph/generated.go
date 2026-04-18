@@ -297,7 +297,6 @@ type ComplexityRoot struct {
 		InDfz    func(childComplexity int) int
 		IxLan    func(childComplexity int) int
 		IxlanID  func(childComplexity int) int
-		Notes    func(childComplexity int) int
 		Prefix   func(childComplexity int) int
 		Protocol func(childComplexity int) int
 		Status   func(childComplexity int) int
@@ -443,7 +442,6 @@ type ComplexityRoot struct {
 		City              func(childComplexity int) int
 		Country           func(childComplexity int) int
 		Created           func(childComplexity int) int
-		FacCount          func(childComplexity int) int
 		Facilities        func(childComplexity int) int
 		Floor             func(childComplexity int) int
 		ID                func(childComplexity int) int
@@ -453,7 +451,6 @@ type ComplexityRoot struct {
 		Longitude         func(childComplexity int) int
 		Name              func(childComplexity int) int
 		NameLong          func(childComplexity int) int
-		NetCount          func(childComplexity int) int
 		Networks          func(childComplexity int) int
 		Notes             func(childComplexity int) int
 		SocialMedia       func(childComplexity int) int
@@ -1785,12 +1782,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.IxPrefix.IxlanID(childComplexity), true
-	case "IxPrefix.notes":
-		if e.ComplexityRoot.IxPrefix.Notes == nil {
-			break
-		}
-
-		return e.ComplexityRoot.IxPrefix.Notes(childComplexity), true
 	case "IxPrefix.prefix":
 		if e.ComplexityRoot.IxPrefix.Prefix == nil {
 			break
@@ -2457,12 +2448,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Organization.Created(childComplexity), true
-	case "Organization.facCount":
-		if e.ComplexityRoot.Organization.FacCount == nil {
-			break
-		}
-
-		return e.ComplexityRoot.Organization.FacCount(childComplexity), true
 	case "Organization.facilities":
 		if e.ComplexityRoot.Organization.Facilities == nil {
 			break
@@ -2517,12 +2502,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Organization.NameLong(childComplexity), true
-	case "Organization.netCount":
-		if e.ComplexityRoot.Organization.NetCount == nil {
-			break
-		}
-
-		return e.ComplexityRoot.Organization.NetCount(childComplexity), true
 	case "Organization.networks":
 		if e.ComplexityRoot.Organization.Networks == nil {
 			break
@@ -4698,10 +4677,6 @@ func (ec *executionContext) fieldContext_Campus_organization(_ context.Context, 
 				return ec.fieldContext_Organization_website(ctx, field)
 			case "zipcode":
 				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Organization_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Organization_facCount(ctx, field)
 			case "created":
 				return ec.fieldContext_Organization_created(ctx, field)
 			case "updated":
@@ -5447,10 +5422,6 @@ func (ec *executionContext) fieldContext_Carrier_organization(_ context.Context,
 				return ec.fieldContext_Organization_website(ctx, field)
 			case "zipcode":
 				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Organization_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Organization_facCount(ctx, field)
 			case "created":
 				return ec.fieldContext_Organization_created(ctx, field)
 			case "updated":
@@ -7658,10 +7629,6 @@ func (ec *executionContext) fieldContext_Facility_organization(_ context.Context
 				return ec.fieldContext_Organization_website(ctx, field)
 			case "zipcode":
 				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Organization_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Organization_facCount(ctx, field)
 			case "created":
 				return ec.fieldContext_Organization_created(ctx, field)
 			case "updated":
@@ -9133,10 +9100,6 @@ func (ec *executionContext) fieldContext_InternetExchange_organization(_ context
 				return ec.fieldContext_Organization_website(ctx, field)
 			case "zipcode":
 				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Organization_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Organization_facCount(ctx, field)
 			case "created":
 				return ec.fieldContext_Organization_created(ctx, field)
 			case "updated":
@@ -10585,8 +10548,6 @@ func (ec *executionContext) fieldContext_IxLan_ixPrefixes(_ context.Context, fie
 				return ec.fieldContext_IxPrefix_ixlanID(ctx, field)
 			case "inDfz":
 				return ec.fieldContext_IxPrefix_inDfz(ctx, field)
-			case "notes":
-				return ec.fieldContext_IxPrefix_notes(ctx, field)
 			case "prefix":
 				return ec.fieldContext_IxPrefix_prefix(ctx, field)
 			case "protocol":
@@ -10959,35 +10920,6 @@ func (ec *executionContext) fieldContext_IxPrefix_inDfz(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _IxPrefix_notes(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefix) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_IxPrefix_notes,
-		func(ctx context.Context) (any, error) {
-			return obj.Notes, nil
-		},
-		nil,
-		ec.marshalOString2string,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_IxPrefix_notes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxPrefix",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _IxPrefix_prefix(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefix) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -11329,8 +11261,6 @@ func (ec *executionContext) fieldContext_IxPrefixEdge_node(_ context.Context, fi
 				return ec.fieldContext_IxPrefix_ixlanID(ctx, field)
 			case "inDfz":
 				return ec.fieldContext_IxPrefix_inDfz(ctx, field)
-			case "notes":
-				return ec.fieldContext_IxPrefix_notes(ctx, field)
 			case "prefix":
 				return ec.fieldContext_IxPrefix_prefix(ctx, field)
 			case "protocol":
@@ -12760,10 +12690,6 @@ func (ec *executionContext) fieldContext_Network_organization(_ context.Context,
 				return ec.fieldContext_Organization_website(ctx, field)
 			case "zipcode":
 				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Organization_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Organization_facCount(ctx, field)
 			case "created":
 				return ec.fieldContext_Organization_created(ctx, field)
 			case "updated":
@@ -15249,64 +15175,6 @@ func (ec *executionContext) fieldContext_Organization_zipcode(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Organization_netCount(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Organization_netCount,
-		func(ctx context.Context) (any, error) {
-			return obj.NetCount, nil
-		},
-		nil,
-		ec.marshalOInt2int,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Organization_netCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Organization_facCount(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Organization_facCount,
-		func(ctx context.Context) (any, error) {
-			return obj.FacCount, nil
-		},
-		nil,
-		ec.marshalOInt2int,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Organization_facCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Organization_created(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -16036,10 +15904,6 @@ func (ec *executionContext) fieldContext_OrganizationEdge_node(_ context.Context
 				return ec.fieldContext_Organization_website(ctx, field)
 			case "zipcode":
 				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Organization_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Organization_facCount(ctx, field)
 			case "created":
 				return ec.fieldContext_Organization_created(ctx, field)
 			case "updated":
@@ -17789,10 +17653,6 @@ func (ec *executionContext) fieldContext_Query_organizationsList(ctx context.Con
 				return ec.fieldContext_Organization_website(ctx, field)
 			case "zipcode":
 				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Organization_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Organization_facCount(ctx, field)
 			case "created":
 				return ec.fieldContext_Organization_created(ctx, field)
 			case "updated":
@@ -18383,8 +18243,6 @@ func (ec *executionContext) fieldContext_Query_ixPrefixesList(ctx context.Contex
 				return ec.fieldContext_IxPrefix_ixlanID(ctx, field)
 			case "inDfz":
 				return ec.fieldContext_IxPrefix_inDfz(ctx, field)
-			case "notes":
-				return ec.fieldContext_IxPrefix_notes(ctx, field)
 			case "prefix":
 				return ec.fieldContext_IxPrefix_prefix(ctx, field)
 			case "protocol":
@@ -32133,7 +31991,7 @@ func (ec *executionContext) unmarshalInputIxPrefixWhereInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "ixlanID", "ixlanIDNEQ", "ixlanIDIn", "ixlanIDNotIn", "ixlanIDIsNil", "ixlanIDNotNil", "inDfz", "inDfzNEQ", "notes", "notesNEQ", "notesIn", "notesNotIn", "notesGT", "notesGTE", "notesLT", "notesLTE", "notesContains", "notesHasPrefix", "notesHasSuffix", "notesIsNil", "notesNotNil", "notesEqualFold", "notesContainsFold", "prefix", "prefixNEQ", "prefixIn", "prefixNotIn", "prefixGT", "prefixGTE", "prefixLT", "prefixLTE", "prefixContains", "prefixHasPrefix", "prefixHasSuffix", "prefixEqualFold", "prefixContainsFold", "protocol", "protocolNEQ", "protocolIn", "protocolNotIn", "protocolGT", "protocolGTE", "protocolLT", "protocolLTE", "protocolContains", "protocolHasPrefix", "protocolHasSuffix", "protocolIsNil", "protocolNotNil", "protocolEqualFold", "protocolContainsFold", "created", "createdNEQ", "createdIn", "createdNotIn", "createdGT", "createdGTE", "createdLT", "createdLTE", "updated", "updatedNEQ", "updatedIn", "updatedNotIn", "updatedGT", "updatedGTE", "updatedLT", "updatedLTE", "status", "statusNEQ", "statusIn", "statusNotIn", "statusGT", "statusGTE", "statusLT", "statusLTE", "statusContains", "statusHasPrefix", "statusHasSuffix", "statusEqualFold", "statusContainsFold", "hasIxLan", "hasIxLanWith"}
+	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "ixlanID", "ixlanIDNEQ", "ixlanIDIn", "ixlanIDNotIn", "ixlanIDIsNil", "ixlanIDNotNil", "inDfz", "inDfzNEQ", "prefix", "prefixNEQ", "prefixIn", "prefixNotIn", "prefixGT", "prefixGTE", "prefixLT", "prefixLTE", "prefixContains", "prefixHasPrefix", "prefixHasSuffix", "prefixEqualFold", "prefixContainsFold", "protocol", "protocolNEQ", "protocolIn", "protocolNotIn", "protocolGT", "protocolGTE", "protocolLT", "protocolLTE", "protocolContains", "protocolHasPrefix", "protocolHasSuffix", "protocolIsNil", "protocolNotNil", "protocolEqualFold", "protocolContainsFold", "created", "createdNEQ", "createdIn", "createdNotIn", "createdGT", "createdGTE", "createdLT", "createdLTE", "updated", "updatedNEQ", "updatedIn", "updatedNotIn", "updatedGT", "updatedGTE", "updatedLT", "updatedLTE", "status", "statusNEQ", "statusIn", "statusNotIn", "statusGT", "statusGTE", "statusLT", "statusLTE", "statusContains", "statusHasPrefix", "statusHasSuffix", "statusEqualFold", "statusContainsFold", "hasIxLan", "hasIxLanWith"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -32273,111 +32131,6 @@ func (ec *executionContext) unmarshalInputIxPrefixWhereInput(ctx context.Context
 				return it, err
 			}
 			it.InDfzNEQ = data
-		case "notes":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notes"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Notes = data
-		case "notesNEQ":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesNEQ"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesNEQ = data
-		case "notesIn":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesIn"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesIn = data
-		case "notesNotIn":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesNotIn"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesNotIn = data
-		case "notesGT":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesGT"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesGT = data
-		case "notesGTE":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesGTE"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesGTE = data
-		case "notesLT":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesLT"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesLT = data
-		case "notesLTE":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesLTE"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesLTE = data
-		case "notesContains":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesContains"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesContains = data
-		case "notesHasPrefix":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesHasPrefix"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesHasPrefix = data
-		case "notesHasSuffix":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesHasSuffix"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesHasSuffix = data
-		case "notesIsNil":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesIsNil"))
-			data, err := ec.unmarshalOBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesIsNil = data
-		case "notesNotNil":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesNotNil"))
-			data, err := ec.unmarshalOBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesNotNil = data
-		case "notesEqualFold":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesEqualFold"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesEqualFold = data
-		case "notesContainsFold":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notesContainsFold"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NotesContainsFold = data
 		case "prefix":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("prefix"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -37956,7 +37709,7 @@ func (ec *executionContext) unmarshalInputOrganizationWhereInput(ctx context.Con
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "address1", "address1NEQ", "address1In", "address1NotIn", "address1GT", "address1GTE", "address1LT", "address1LTE", "address1Contains", "address1HasPrefix", "address1HasSuffix", "address1IsNil", "address1NotNil", "address1EqualFold", "address1ContainsFold", "address2", "address2NEQ", "address2In", "address2NotIn", "address2GT", "address2GTE", "address2LT", "address2LTE", "address2Contains", "address2HasPrefix", "address2HasSuffix", "address2IsNil", "address2NotNil", "address2EqualFold", "address2ContainsFold", "aka", "akaNEQ", "akaIn", "akaNotIn", "akaGT", "akaGTE", "akaLT", "akaLTE", "akaContains", "akaHasPrefix", "akaHasSuffix", "akaIsNil", "akaNotNil", "akaEqualFold", "akaContainsFold", "city", "cityNEQ", "cityIn", "cityNotIn", "cityGT", "cityGTE", "cityLT", "cityLTE", "cityContains", "cityHasPrefix", "cityHasSuffix", "cityIsNil", "cityNotNil", "cityEqualFold", "cityContainsFold", "country", "countryNEQ", "countryIn", "countryNotIn", "countryGT", "countryGTE", "countryLT", "countryLTE", "countryContains", "countryHasPrefix", "countryHasSuffix", "countryIsNil", "countryNotNil", "countryEqualFold", "countryContainsFold", "floor", "floorNEQ", "floorIn", "floorNotIn", "floorGT", "floorGTE", "floorLT", "floorLTE", "floorContains", "floorHasPrefix", "floorHasSuffix", "floorIsNil", "floorNotNil", "floorEqualFold", "floorContainsFold", "latitude", "latitudeNEQ", "latitudeIn", "latitudeNotIn", "latitudeGT", "latitudeGTE", "latitudeLT", "latitudeLTE", "latitudeIsNil", "latitudeNotNil", "logo", "logoNEQ", "logoIn", "logoNotIn", "logoGT", "logoGTE", "logoLT", "logoLTE", "logoContains", "logoHasPrefix", "logoHasSuffix", "logoIsNil", "logoNotNil", "logoEqualFold", "logoContainsFold", "longitude", "longitudeNEQ", "longitudeIn", "longitudeNotIn", "longitudeGT", "longitudeGTE", "longitudeLT", "longitudeLTE", "longitudeIsNil", "longitudeNotNil", "name", "nameNEQ", "nameIn", "nameNotIn", "nameGT", "nameGTE", "nameLT", "nameLTE", "nameContains", "nameHasPrefix", "nameHasSuffix", "nameEqualFold", "nameContainsFold", "nameLong", "nameLongNEQ", "nameLongIn", "nameLongNotIn", "nameLongGT", "nameLongGTE", "nameLongLT", "nameLongLTE", "nameLongContains", "nameLongHasPrefix", "nameLongHasSuffix", "nameLongIsNil", "nameLongNotNil", "nameLongEqualFold", "nameLongContainsFold", "notes", "notesNEQ", "notesIn", "notesNotIn", "notesGT", "notesGTE", "notesLT", "notesLTE", "notesContains", "notesHasPrefix", "notesHasSuffix", "notesIsNil", "notesNotNil", "notesEqualFold", "notesContainsFold", "state", "stateNEQ", "stateIn", "stateNotIn", "stateGT", "stateGTE", "stateLT", "stateLTE", "stateContains", "stateHasPrefix", "stateHasSuffix", "stateIsNil", "stateNotNil", "stateEqualFold", "stateContainsFold", "suite", "suiteNEQ", "suiteIn", "suiteNotIn", "suiteGT", "suiteGTE", "suiteLT", "suiteLTE", "suiteContains", "suiteHasPrefix", "suiteHasSuffix", "suiteIsNil", "suiteNotNil", "suiteEqualFold", "suiteContainsFold", "website", "websiteNEQ", "websiteIn", "websiteNotIn", "websiteGT", "websiteGTE", "websiteLT", "websiteLTE", "websiteContains", "websiteHasPrefix", "websiteHasSuffix", "websiteIsNil", "websiteNotNil", "websiteEqualFold", "websiteContainsFold", "zipcode", "zipcodeNEQ", "zipcodeIn", "zipcodeNotIn", "zipcodeGT", "zipcodeGTE", "zipcodeLT", "zipcodeLTE", "zipcodeContains", "zipcodeHasPrefix", "zipcodeHasSuffix", "zipcodeIsNil", "zipcodeNotNil", "zipcodeEqualFold", "zipcodeContainsFold", "netCount", "netCountNEQ", "netCountIn", "netCountNotIn", "netCountGT", "netCountGTE", "netCountLT", "netCountLTE", "netCountIsNil", "netCountNotNil", "facCount", "facCountNEQ", "facCountIn", "facCountNotIn", "facCountGT", "facCountGTE", "facCountLT", "facCountLTE", "facCountIsNil", "facCountNotNil", "created", "createdNEQ", "createdIn", "createdNotIn", "createdGT", "createdGTE", "createdLT", "createdLTE", "updated", "updatedNEQ", "updatedIn", "updatedNotIn", "updatedGT", "updatedGTE", "updatedLT", "updatedLTE", "status", "statusNEQ", "statusIn", "statusNotIn", "statusGT", "statusGTE", "statusLT", "statusLTE", "statusContains", "statusHasPrefix", "statusHasSuffix", "statusEqualFold", "statusContainsFold", "hasCampuses", "hasCampusesWith", "hasCarriers", "hasCarriersWith", "hasFacilities", "hasFacilitiesWith", "hasInternetExchanges", "hasInternetExchangesWith", "hasNetworks", "hasNetworksWith"}
+	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "address1", "address1NEQ", "address1In", "address1NotIn", "address1GT", "address1GTE", "address1LT", "address1LTE", "address1Contains", "address1HasPrefix", "address1HasSuffix", "address1IsNil", "address1NotNil", "address1EqualFold", "address1ContainsFold", "address2", "address2NEQ", "address2In", "address2NotIn", "address2GT", "address2GTE", "address2LT", "address2LTE", "address2Contains", "address2HasPrefix", "address2HasSuffix", "address2IsNil", "address2NotNil", "address2EqualFold", "address2ContainsFold", "aka", "akaNEQ", "akaIn", "akaNotIn", "akaGT", "akaGTE", "akaLT", "akaLTE", "akaContains", "akaHasPrefix", "akaHasSuffix", "akaIsNil", "akaNotNil", "akaEqualFold", "akaContainsFold", "city", "cityNEQ", "cityIn", "cityNotIn", "cityGT", "cityGTE", "cityLT", "cityLTE", "cityContains", "cityHasPrefix", "cityHasSuffix", "cityIsNil", "cityNotNil", "cityEqualFold", "cityContainsFold", "country", "countryNEQ", "countryIn", "countryNotIn", "countryGT", "countryGTE", "countryLT", "countryLTE", "countryContains", "countryHasPrefix", "countryHasSuffix", "countryIsNil", "countryNotNil", "countryEqualFold", "countryContainsFold", "floor", "floorNEQ", "floorIn", "floorNotIn", "floorGT", "floorGTE", "floorLT", "floorLTE", "floorContains", "floorHasPrefix", "floorHasSuffix", "floorIsNil", "floorNotNil", "floorEqualFold", "floorContainsFold", "latitude", "latitudeNEQ", "latitudeIn", "latitudeNotIn", "latitudeGT", "latitudeGTE", "latitudeLT", "latitudeLTE", "latitudeIsNil", "latitudeNotNil", "logo", "logoNEQ", "logoIn", "logoNotIn", "logoGT", "logoGTE", "logoLT", "logoLTE", "logoContains", "logoHasPrefix", "logoHasSuffix", "logoIsNil", "logoNotNil", "logoEqualFold", "logoContainsFold", "longitude", "longitudeNEQ", "longitudeIn", "longitudeNotIn", "longitudeGT", "longitudeGTE", "longitudeLT", "longitudeLTE", "longitudeIsNil", "longitudeNotNil", "name", "nameNEQ", "nameIn", "nameNotIn", "nameGT", "nameGTE", "nameLT", "nameLTE", "nameContains", "nameHasPrefix", "nameHasSuffix", "nameEqualFold", "nameContainsFold", "nameLong", "nameLongNEQ", "nameLongIn", "nameLongNotIn", "nameLongGT", "nameLongGTE", "nameLongLT", "nameLongLTE", "nameLongContains", "nameLongHasPrefix", "nameLongHasSuffix", "nameLongIsNil", "nameLongNotNil", "nameLongEqualFold", "nameLongContainsFold", "notes", "notesNEQ", "notesIn", "notesNotIn", "notesGT", "notesGTE", "notesLT", "notesLTE", "notesContains", "notesHasPrefix", "notesHasSuffix", "notesIsNil", "notesNotNil", "notesEqualFold", "notesContainsFold", "state", "stateNEQ", "stateIn", "stateNotIn", "stateGT", "stateGTE", "stateLT", "stateLTE", "stateContains", "stateHasPrefix", "stateHasSuffix", "stateIsNil", "stateNotNil", "stateEqualFold", "stateContainsFold", "suite", "suiteNEQ", "suiteIn", "suiteNotIn", "suiteGT", "suiteGTE", "suiteLT", "suiteLTE", "suiteContains", "suiteHasPrefix", "suiteHasSuffix", "suiteIsNil", "suiteNotNil", "suiteEqualFold", "suiteContainsFold", "website", "websiteNEQ", "websiteIn", "websiteNotIn", "websiteGT", "websiteGTE", "websiteLT", "websiteLTE", "websiteContains", "websiteHasPrefix", "websiteHasSuffix", "websiteIsNil", "websiteNotNil", "websiteEqualFold", "websiteContainsFold", "zipcode", "zipcodeNEQ", "zipcodeIn", "zipcodeNotIn", "zipcodeGT", "zipcodeGTE", "zipcodeLT", "zipcodeLTE", "zipcodeContains", "zipcodeHasPrefix", "zipcodeHasSuffix", "zipcodeIsNil", "zipcodeNotNil", "zipcodeEqualFold", "zipcodeContainsFold", "created", "createdNEQ", "createdIn", "createdNotIn", "createdGT", "createdGTE", "createdLT", "createdLTE", "updated", "updatedNEQ", "updatedIn", "updatedNotIn", "updatedGT", "updatedGTE", "updatedLT", "updatedLTE", "status", "statusNEQ", "statusIn", "statusNotIn", "statusGT", "statusGTE", "statusLT", "statusLTE", "statusContains", "statusHasPrefix", "statusHasSuffix", "statusEqualFold", "statusContainsFold", "hasCampuses", "hasCampusesWith", "hasCarriers", "hasCarriersWith", "hasFacilities", "hasFacilitiesWith", "hasInternetExchanges", "hasInternetExchangesWith", "hasNetworks", "hasNetworksWith"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -39636,146 +39389,6 @@ func (ec *executionContext) unmarshalInputOrganizationWhereInput(ctx context.Con
 				return it, err
 			}
 			it.ZipcodeContainsFold = data
-		case "netCount":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("netCount"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NetCount = data
-		case "netCountNEQ":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("netCountNEQ"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NetCountNEQ = data
-		case "netCountIn":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("netCountIn"))
-			data, err := ec.unmarshalOInt2ᚕintᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NetCountIn = data
-		case "netCountNotIn":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("netCountNotIn"))
-			data, err := ec.unmarshalOInt2ᚕintᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NetCountNotIn = data
-		case "netCountGT":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("netCountGT"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NetCountGT = data
-		case "netCountGTE":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("netCountGTE"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NetCountGTE = data
-		case "netCountLT":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("netCountLT"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NetCountLT = data
-		case "netCountLTE":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("netCountLTE"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NetCountLTE = data
-		case "netCountIsNil":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("netCountIsNil"))
-			data, err := ec.unmarshalOBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NetCountIsNil = data
-		case "netCountNotNil":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("netCountNotNil"))
-			data, err := ec.unmarshalOBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.NetCountNotNil = data
-		case "facCount":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("facCount"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.FacCount = data
-		case "facCountNEQ":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("facCountNEQ"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.FacCountNEQ = data
-		case "facCountIn":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("facCountIn"))
-			data, err := ec.unmarshalOInt2ᚕintᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.FacCountIn = data
-		case "facCountNotIn":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("facCountNotIn"))
-			data, err := ec.unmarshalOInt2ᚕintᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.FacCountNotIn = data
-		case "facCountGT":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("facCountGT"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.FacCountGT = data
-		case "facCountGTE":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("facCountGTE"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.FacCountGTE = data
-		case "facCountLT":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("facCountLT"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.FacCountLT = data
-		case "facCountLTE":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("facCountLTE"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.FacCountLTE = data
-		case "facCountIsNil":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("facCountIsNil"))
-			data, err := ec.unmarshalOBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.FacCountIsNil = data
-		case "facCountNotNil":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("facCountNotNil"))
-			data, err := ec.unmarshalOBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.FacCountNotNil = data
 		case "created":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("created"))
 			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
@@ -42991,8 +42604,6 @@ func (ec *executionContext) _IxPrefix(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
-		case "notes":
-			out.Values[i] = ec._IxPrefix_notes(ctx, field, obj)
 		case "prefix":
 			out.Values[i] = ec._IxPrefix_prefix(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -44054,10 +43665,6 @@ func (ec *executionContext) _Organization(ctx context.Context, sel ast.Selection
 			out.Values[i] = ec._Organization_website(ctx, field, obj)
 		case "zipcode":
 			out.Values[i] = ec._Organization_zipcode(ctx, field, obj)
-		case "netCount":
-			out.Values[i] = ec._Organization_netCount(ctx, field, obj)
-		case "facCount":
-			out.Values[i] = ec._Organization_facCount(ctx, field, obj)
 		case "created":
 			out.Values[i] = ec._Organization_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

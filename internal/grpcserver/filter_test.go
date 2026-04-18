@@ -452,6 +452,27 @@ var paginationFields = map[string]struct{}{
 	"request_id":    {},
 }
 
+// deprecatedFilterFields are proto fields that remain on the wire for
+// backward compatibility but are NOT wired into the server-side filter
+// tables — and therefore are legitimately missing from the per-entity
+// filter slices. The reflection invariant subtracts these from the
+// expected filter count so the test still catches newly added fields
+// that are missing from the filter table.
+//
+// Keyed by "{entity}/{field_name}". Add entries here only when a field
+// is intentionally dropped from the filter surface (e.g. ent schema no
+// longer declares it) but proto cannot be renumbered without breaking
+// wire compatibility. Each entry should cite the plan/phase that made
+// the decision.
+//
+// v1.15 Phase 63 (D-01): ixpfx.notes dropped from ent schema, so
+// ixprefix ListNotes / StreamNotes filter wiring was removed. Proto
+// retains the field because proto/peeringdb/v1/v1.proto is frozen
+// since v1.6 (entproto.SkipGenFile in ent/entc.go).
+var deprecatedFilterFields = map[string]struct{}{
+	"ixprefix/notes": {},
+}
+
 // entityFilterSpec couples a proto request type with the filter-slice
 // length that should match its descriptor count.
 type entityFilterSpec struct {
@@ -560,14 +581,21 @@ func allEntityFilterSpecs() []entityFilterSpec {
 
 // countFilterableFields returns the number of proto fields on the given
 // message descriptor that are filter candidates — optional scalar fields
-// that are not pagination/metadata.
-func countFilterableFields(msg protoreflect.Message) int {
+// that are not pagination/metadata and not listed as deprecated for the
+// given entity. entityName keys into deprecatedFilterFields so that
+// intentionally-unwired proto fields (e.g. dropped ent schema fields on
+// a frozen proto surface) are subtracted from the expected count.
+func countFilterableFields(entityName string, msg protoreflect.Message) int {
 	desc := msg.Descriptor()
 	fields := desc.Fields()
 	n := 0
 	for i := 0; i < fields.Len(); i++ {
 		fd := fields.Get(i)
-		if _, skip := paginationFields[string(fd.Name())]; skip {
+		name := string(fd.Name())
+		if _, skip := paginationFields[name]; skip {
+			continue
+		}
+		if _, skip := deprecatedFilterFields[entityName+"/"+name]; skip {
 			continue
 		}
 		// HasOptionalKeyword catches proto3 `optional` fields. Non-optional
@@ -588,12 +616,12 @@ func TestAllFilterFieldsExercised(t *testing.T) {
 	for _, spec := range allEntityFilterSpecs() {
 		t.Run(spec.name, func(t *testing.T) {
 			t.Parallel()
-			wantList := countFilterableFields(spec.listReq)
+			wantList := countFilterableFields(spec.name, spec.listReq)
 			if spec.listFilters != wantList {
 				t.Errorf("%sListFilters: got %d entries, want %d (reflected from %s ListRequest proto descriptor); a new field was likely added without a filter table entry",
 					spec.name, spec.listFilters, wantList, spec.name)
 			}
-			wantStream := countFilterableFields(spec.streamReq)
+			wantStream := countFilterableFields(spec.name, spec.streamReq)
 			if spec.streamFilters != wantStream {
 				t.Errorf("%sStreamFilters: got %d entries, want %d (reflected from %s StreamRequest proto descriptor); a new field was likely added without a filter table entry",
 					spec.name, spec.streamFilters, wantStream, spec.name)

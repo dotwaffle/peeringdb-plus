@@ -223,13 +223,15 @@ type IxLan struct {
 }
 
 // IxPrefix represents a PeeringDB IX prefix (ixpfx).
+//
+// Phase 63 (D-01): dropped the "notes" field to match upstream PeeringDB's
+// live /api/ixpfx response, which omits "notes" from every row.
 type IxPrefix struct {
 	ID       int       `json:"id"`
 	IXLanID  int       `json:"ixlan_id"`
 	Protocol string    `json:"protocol"`
 	Prefix   string    `json:"prefix"`
 	InDFZ    bool      `json:"in_dfz"`
-	Notes    string    `json:"notes"`
 	Created  time.Time `json:"created"`
 	Updated  time.Time `json:"updated"`
 	Status   string    `json:"status"`

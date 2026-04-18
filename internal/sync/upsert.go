@@ -350,7 +350,6 @@ func upsertIxPrefixes(ctx context.Context, tx *ent.Tx, items []peeringdb.IxPrefi
 				SetProtocol(ip.Protocol).
 				SetPrefix(ip.Prefix).
 				SetInDfz(ip.InDFZ).
-				SetNotes(ip.Notes).
 				SetCreated(ip.Created).
 				SetUpdated(ip.Updated).
 				SetStatus(ip.Status)

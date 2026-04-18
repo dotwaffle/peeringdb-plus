@@ -278,6 +278,67 @@ func TestSerializerNetworkJSON_OrgIDFieldName(t *testing.T) {
 	}
 }
 
+// TestIxPrefixFromEnt_NoNotesKey asserts that the serialized IxPrefix wire
+// shape does NOT contain a "notes" key — Phase 63 (D-01) drops the field
+// from the ent schema AND from the peeringdb.IxPrefix wire struct to match
+// upstream PeeringDB's /api/ixpfx response shape exactly. See
+// .planning/phases/63-schema-hygiene/63-CONTEXT.md D-01.
+//
+// The test marshals the peeringdb.IxPrefix wire struct (zero value) and
+// confirms the emitted JSON has no "notes" key. This is the output path
+// that the pdbcompat handler funnels through, so a green test here means
+// the /api/ixpfx response is shape-parity with upstream.
+func TestIxPrefixFromEnt_NoNotesKey(t *testing.T) {
+	t.Parallel()
+
+	got := peeringdb.IxPrefix{}
+	data, err := json.Marshal(got)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(data, &m); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
+	if _, ok := m["notes"]; ok {
+		t.Errorf("peeringdb.IxPrefix JSON output must NOT contain \"notes\" key (Phase 63 D-01); got keys=%v", keys(m))
+	}
+}
+
+// TestOrganizationJSON_NoCountKeys asserts that the peeringdb.Organization
+// wire shape does NOT contain "fac_count" or "net_count" keys — Phase 63
+// (D-02) drops these ent schema fields as schema-only vestigials that were
+// never in the wire struct (already clean; this test regression-locks that
+// state so a future re-add of those keys would fail loudly).
+func TestOrganizationJSON_NoCountKeys(t *testing.T) {
+	t.Parallel()
+
+	got := peeringdb.Organization{}
+	data, err := json.Marshal(got)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(data, &m); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
+	for _, forbidden := range []string{"fac_count", "net_count"} {
+		if _, ok := m[forbidden]; ok {
+			t.Errorf("peeringdb.Organization JSON output must NOT contain %q key (Phase 63 D-02); got keys=%v", forbidden, keys(m))
+		}
+	}
+}
+
+// keys returns the sorted key set of a JSON-decoded map, useful for
+// diagnostic output in failing assertions.
+func keys(m map[string]json.RawMessage) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
+}
+
 // TestSerializerAllTypesCompile ensures all 13 serializer functions compile
 // and are callable.
 func TestSerializerAllTypesCompile(t *testing.T) {

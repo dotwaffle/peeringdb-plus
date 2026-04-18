@@ -703,10 +703,10 @@ func TestListIxPrefixesFilters(t *testing.T) {
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
-	// Seed 3 prefixes with different protocols, prefixes, in_dfz, and notes.
+	// Seed 3 prefixes with different protocols, prefixes, and in_dfz.
+	// Phase 63 (D-01): ixprefix.notes dropped — no SetNotes on this chain.
 	client.IxPrefix.Create().
 		SetID(1).SetPrefix("192.0.2.0/24").SetProtocol("IPv4").SetInDfz(true).
-		SetNotes("primary v4").
 		SetCreated(now).SetUpdated(now).SetStatus("ok").
 		SaveX(ctx)
 	client.IxPrefix.Create().
@@ -751,11 +751,11 @@ func TestListIxPrefixesFilters(t *testing.T) {
 			req:     &pb.ListIxPrefixesRequest{InDfz: new(false)},
 			wantLen: 1,
 		},
-		{
-			name:    "filter by notes",
-			req:     &pb.ListIxPrefixesRequest{Notes: new("primary v4")},
-			wantLen: 1,
-		},
+		// Phase 63 (D-01): "filter by notes" removed — ixprefix.notes
+		// dropped from ent schema, so the filter wiring is gone from
+		// internal/grpcserver/ixprefix.go. The proto IxPrefix.Notes
+		// field is still present (proto is frozen since v1.6) but the
+		// server ignores it.
 		{
 			name:    "invalid ixlan_id zero",
 			req:     &pb.ListIxPrefixesRequest{IxlanId: proto.Int64(0)},
@@ -4747,7 +4747,6 @@ func TestStreamIxPrefixes(t *testing.T) {
 
 	client.IxPrefix.Create().
 		SetID(1).SetProtocol("IPv4").SetPrefix("192.0.2.0/24").SetInDfz(true).
-		SetNotes("primary v4").
 		SetCreated(now).SetUpdated(now).SetStatus("ok").
 		SaveX(ctx)
 	client.IxPrefix.Create().
@@ -4787,11 +4786,8 @@ func TestStreamIxPrefixes(t *testing.T) {
 			req:     &pb.StreamIxPrefixesRequest{InDfz: new(true)},
 			wantLen: 1,
 		},
-		{
-			name:    "filter by notes",
-			req:     &pb.StreamIxPrefixesRequest{Notes: new("primary v4")},
-			wantLen: 1,
-		},
+		// Phase 63 (D-01): "filter by notes" removed — see the matching
+		// comment in the List test; ixprefix.notes dropped.
 	}
 
 	for _, tt := range tests {

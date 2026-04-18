@@ -266,7 +266,6 @@ var Registry = map[string]TypeConfig{
 			"protocol": FieldString,
 			"prefix":   FieldString,
 			"in_dfz":   FieldBool,
-			"notes":    FieldString,
 			"created":  FieldTime,
 			"updated":  FieldTime,
 			"status":   FieldString,

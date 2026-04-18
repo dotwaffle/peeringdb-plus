@@ -38,8 +38,6 @@ var ixPrefixListFilters = []filterFn[pb.ListIxPrefixesRequest]{
 		fieldEQString(ixprefix.FieldPrefix)),
 	eqFilter(func(r *pb.ListIxPrefixesRequest) *bool { return r.InDfz },
 		fieldEQBool(ixprefix.FieldInDfz)),
-	eqFilter(func(r *pb.ListIxPrefixesRequest) *string { return r.Notes },
-		fieldEQString(ixprefix.FieldNotes)),
 }
 
 // ixPrefixStreamFilters mirrors ixPrefixListFilters but omits the id entry —
@@ -56,8 +54,6 @@ var ixPrefixStreamFilters = []filterFn[pb.StreamIxPrefixesRequest]{
 		fieldEQString(ixprefix.FieldPrefix)),
 	eqFilter(func(r *pb.StreamIxPrefixesRequest) *bool { return r.InDfz },
 		fieldEQBool(ixprefix.FieldInDfz)),
-	eqFilter(func(r *pb.StreamIxPrefixesRequest) *string { return r.Notes },
-		fieldEQString(ixprefix.FieldNotes)),
 }
 
 // GetIxPrefix returns a single IX prefix by ID.
@@ -142,12 +138,17 @@ func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIx
 
 // ixPrefixToProto converts an ent IxPrefix entity to a protobuf IxPrefix
 // message.
+//
+// Phase 63 (D-01): Notes is no longer emitted — the ent schema dropped the
+// field. The protobuf message still carries an unpopulated Notes field
+// (proto file is frozen since v1.6 per entc.go SkipGenFile), so it is
+// serialized as the zero-value pointer (nil *wrappers.StringValue), which
+// wire-encodes as absent.
 func ixPrefixToProto(ixp *ent.IxPrefix) *pb.IxPrefix {
 	return &pb.IxPrefix{
 		Id:       int64(ixp.ID),
 		IxlanId:  int64PtrVal(ixp.IxlanID),
 		InDfz:    ixp.InDfz,
-		Notes:    stringVal(ixp.Notes),
 		Prefix:   ixp.Prefix,
 		Protocol: stringVal(ixp.Protocol),
 		Created:  timestampVal(ixp.Created),

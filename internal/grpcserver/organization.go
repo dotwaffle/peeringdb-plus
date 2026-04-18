@@ -203,8 +203,10 @@ func organizationToProto(o *ent.Organization) *pb.Organization {
 		Suite:     stringVal(o.Suite),
 		Website:   stringVal(o.Website),
 		Zipcode:   stringVal(o.Zipcode),
-		NetCount:  int64Val(o.NetCount),
-		FacCount:  int64Val(o.FacCount),
+		// Phase 63 (D-02): NetCount / FacCount were dropped from the ent
+		// Organization schema. The protobuf message still carries the
+		// fields (proto is frozen since v1.6); they serialize as the
+		// zero-value pointer (absent on the wire).
 		Created:   timestampVal(o.Created),
 		Updated:   timestampVal(o.Updated),
 		Status:    o.Status,

@@ -284,9 +284,10 @@ func ixLansFromEnt(lans []*ent.IxLan) []peeringdb.IxLan {
 }
 
 // ixPrefixFromEnt maps an ent IxPrefix to a peeringdb IxPrefix.
-// Note: PeeringDB's live API omits "notes" from ixpfx list responses,
-// but our compat layer includes it (ent serializes all schema fields).
-// Extra fields don't break API consumers — this is a known divergence.
+//
+// Matches upstream: PeeringDB's live API omits "notes" from ixpfx responses,
+// and as of v1.15 Phase 63 the field is dropped from our ent schema too
+// (per D-01). See .planning/phases/63-schema-hygiene/63-CONTEXT.md.
 func ixPrefixFromEnt(p *ent.IxPrefix) peeringdb.IxPrefix {
 	return peeringdb.IxPrefix{
 		ID:       p.ID,
@@ -294,7 +295,6 @@ func ixPrefixFromEnt(p *ent.IxPrefix) peeringdb.IxPrefix {
 		Protocol: p.Protocol,
 		Prefix:   p.Prefix,
 		InDFZ:    p.InDfz,
-		Notes:    p.Notes,
 		Created:  p.Created,
 		Updated:  p.Updated,
 		Status:   p.Status,
