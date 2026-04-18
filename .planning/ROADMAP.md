@@ -25,11 +25,4 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 
 ## Backlog
 
-### Phase 999.1: Harden pdb-schema-generate — preserve hand-added Policy() on poc.go (BACKLOG)
-
-**Goal:** Fix `cmd/pdb-schema-generate` so it preserves hand-edited `ent/schema/poc.go` `Policy()` (or move `Policy()` out of the generated schema file) — so `go generate ./...` is safe to run again. Current workaround is `go generate ./ent` only, documented in CLAUDE.md. Surfaced as Phase 63 executor deviation #1 (low priority — workaround is stable).
-**Requirements:** TBD
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+_No parked 999.x phases._
