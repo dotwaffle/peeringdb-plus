@@ -1,5 +1,19 @@
 # Milestones
 
+## v1.15 Infrastructure Polish & Schema Hygiene (Shipped: 2026-04-18)
+
+**Phases completed:** 5 phases, 9 plans, 11 tasks
+
+**Key accomplishments:**
+
+- Dropped three ent schema fields (ixprefix.notes, organization.fac_count, organization.net_count) across all layers (schema, ent codegen, pdbcompat, grpcserver, sync upsert, goldens, proto-converter), wired migrate.WithDropColumn(true) + WithDropIndex(true) at the Schema.Create call site, and closed the v1.14 pdbcompat ixpfx.notes divergence by resolving it at source.
+- Serializer-layer field-level privacy primitive — `privfield.Redact(ctx, visible, value)` — composing `privctx.TierFrom` with per-field `_visible` companions, fail-closed by default, with 11 admission-matrix unit tests.
+- One-liner:
+- One-liner:
+- The flyctl guardrail wall.
+
+---
+
 ## v1.13 Security & Sync Hardening (Shipped: 2026-04-11)
 
 **Phases completed:** 6 phases (51-56), 16 plans
