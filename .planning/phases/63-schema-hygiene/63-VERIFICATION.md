@@ -1,19 +1,26 @@
 ---
 phase: 63-schema-hygiene
 verified: 2026-04-18T09:20:00Z
-status: human_needed
-score: 12/12 must-haves verified
+resolved: 2026-04-18T01:50:00Z
+status: passed
+score: 12/12 must-haves verified (3 human items: 2 resolved, 1 deferred)
 overrides_applied: 0
 human_verification:
   - test: "Post-deploy schema drop confirmation on LHR primary"
     expected: ".schema ix_prefixes organizations shows no notes/fac_count/net_count columns after next primary startup"
     why_human: "Requires fly ssh console against production LiteFS primary; outside automated verification scope. sqlite3 already shipped in prod image per quick task 260418-1cn."
+    status: resolved
+    evidence: "2026-04-18 — fly deploy run after Phase 63 merge; `fly ssh console --machine 48e1ddea215398 -C 'sqlite3 /litefs/peeringdb-plus.db \".schema ix_prefixes\"'` confirmed ix_prefixes columns = id, in_dfz, prefix, protocol, created, updated, status, ixlan_id (no `notes`); same for organizations (no `fac_count`, no `net_count`). migrate.WithDropColumn DDL emitted on primary startup as designed."
   - test: "Post-deploy LiteFS replica propagation"
     expected: "Same .schema output on a non-primary replica confirms WAL replication propagated the DROP COLUMN DDL"
     why_human: "Requires fly ssh console with region pin against a replica machine; no automated access."
+    status: resolved
+    evidence: "2026-04-18 — `fly ssh console --machine 1850d57a514668 -C 'sqlite3 /litefs/peeringdb-plus.db \".schema ix_prefixes\"'` on NRT replica returned identical column set to LHR primary. WAL replication propagated the ALTER TABLE DROP COLUMN across the fleet."
   - test: "Deferred follow-up: pdb-schema-generate Policy()-stripping bug"
     expected: "Future task fixes cmd/pdb-schema-generate to preserve hand-added ent/schema/poc.go Policy() so `go generate ./...` can be used safely without the ./ent workaround"
     why_human: "Out of scope for Phase 63 per SUMMARY deviation #1. Documented in CLAUDE.md. Needs product/tooling decision on whether to fix the generator or move Policy() to a separate non-generated file."
+    status: deferred
+    deferred_owner: "Future task (v1.16+ or standalone quick task) — track in backlog"
 ---
 
 # Phase 63: Schema hygiene — drop vestigial columns — Verification Report
