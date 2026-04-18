@@ -7,11 +7,13 @@ import (
 
 	"connectrpc.com/connect"
 	"entgo.io/ent/dialect/sql"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/internal/privfield"
 )
 
 // IxLanService implements the peeringdb.v1.IxLanService ConnectRPC handler
@@ -89,7 +91,7 @@ func (s *IxLanService) GetIxLan(ctx context.Context, req *pb.GetIxLanRequest) (*
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get ixlan %d: %w", req.GetId(), err))
 	}
-	return &pb.GetIxLanResponse{IxLan: ixLanToProto(il)}, nil
+	return &pb.GetIxLanResponse{IxLan: ixLanToProto(ctx, il)}, nil
 }
 
 // applyIxLanListFilters builds filter predicates from the generic filter
@@ -122,7 +124,12 @@ func (s *IxLanService) ListIxLans(ctx context.Context, req *pb.ListIxLansRequest
 			}
 			return q.All(ctx)
 		},
-		Convert: ixLanToProto,
+		// Phase 64: closure adapter so ixLanToProto can receive ctx without
+		// altering the generic pagination helper's Convert field type
+		// (changing to func(ctx, *E) *P would cascade to all 13 entity
+		// types). The enclosing handler's ctx is captured by reference and
+		// carries the caller's tier via middleware.PrivacyTier.
+		Convert: func(il *ent.IxLan) *pb.IxLan { return ixLanToProto(ctx, il) },
 	})
 	if err != nil {
 		return nil, err
@@ -157,13 +164,30 @@ func (s *IxLanService) StreamIxLans(ctx context.Context, req *pb.StreamIxLansReq
 			}
 			return q.All(ctx)
 		},
-		Convert: ixLanToProto,
+		// Phase 64: closure adapter (see ListIxLans for rationale).
+		Convert: func(il *ent.IxLan) *pb.IxLan { return ixLanToProto(ctx, il) },
 		GetID:   func(il *ent.IxLan) int { return il.ID },
 	}, stream)
 }
 
-// ixLanToProto converts an ent IxLan entity to a protobuf IxLan message.
-func ixLanToProto(il *ent.IxLan) *pb.IxLan {
+// ixLanToProto converts an ent IxLan entity to a protobuf IxLan message,
+// applying Phase 64 VIS-09 field-level redaction for the
+// ixf_ixp_member_list_url field via internal/privfield.Redact.
+//
+// ctx MUST carry the caller's privacy tier (stamped by the PrivacyTier HTTP
+// middleware). Unstamped ctx fail-closes to TierPublic per privfield.Redact
+// semantics (Phase 64 D-03).
+//
+// Proto3 wrapper field semantics: a nil *wrapperspb.StringValue is omitted
+// on the wire (matches upstream behaviour of omitting the JSON key for
+// un-authenticated callers, D-04). The _visible companion is always
+// emitted via stringVal (D-05 upstream parity).
+func ixLanToProto(ctx context.Context, il *ent.IxLan) *pb.IxLan {
+	url, omit := privfield.Redact(ctx, il.IxfIxpMemberListURLVisible, il.IxfIxpMemberListURL)
+	var urlProto *wrapperspb.StringValue
+	if !omit && url != "" {
+		urlProto = wrapperspb.String(url)
+	}
 	return &pb.IxLan{
 		Id:                         int64(il.ID),
 		IxId:                       int64PtrVal(il.IxID),
@@ -172,6 +196,7 @@ func ixLanToProto(il *ent.IxLan) *pb.IxLan {
 		Dot1QSupport:               il.Dot1qSupport,
 		IxfIxpImportEnabled:        il.IxfIxpImportEnabled,
 		IxfIxpMemberListUrlVisible: stringVal(il.IxfIxpMemberListURLVisible),
+		IxfIxpMemberListUrl:        urlProto,
 		Mtu:                        int64Val(il.Mtu),
 		Name:                       stringVal(il.Name),
 		RsAsn:                      int64PtrVal(il.RsAsn),
