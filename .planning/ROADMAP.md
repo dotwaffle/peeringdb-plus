@@ -53,7 +53,7 @@ All 11 requirements (HYGIENE-01..03, VIS-08, VIS-09, INFRA-01..03, OBS-04, OBS-0
 
 **Depends on:** Phase 63 (trivial — schema edits land in same codegen pipeline)
 **Requirements:** VIS-08, VIS-09
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 **Scope:**
 - Add the URL data field to `peeringdb.IxLan`, `ent/schema/ixlan.go`, sync upsert, and pdbcompat serializer.
@@ -71,9 +71,9 @@ All 11 requirements (HYGIENE-01..03, VIS-08, VIS-09, INFRA-01..03, OBS-04, OBS-0
 8. Update testdata baseline if needed (expected: redacted/absent in anon fixtures).
 
 Plans:
-- [ ] 64-01-privfield-helper-PLAN.md — Build internal/privfield.Redact helper + unit tests (VIS-08 substrate; fail-closed semantics)
-- [ ] 64-02-schema-sync-wiring-PLAN.md — Append ent field to IxLan.Fields() (proto #14), wire peeringdb struct + sync upsert + seed + regen ent/proto/gqlgen/entrest (VIS-09 ingestion path)
-- [ ] 64-03-serializer-redaction-e2e-PLAN.md — Apply privfield.Redact across 5 serializer surfaces (pdbcompat, ConnectRPC, GraphQL resolver, REST middleware) + 5-surface E2E test + CLAUDE.md update (VIS-08 + VIS-09 enforcement)
+- [x] 64-01-privfield-helper-PLAN.md — Build internal/privfield.Redact helper + unit tests (VIS-08 substrate; fail-closed semantics)
+- [x] 64-02-schema-sync-wiring-PLAN.md — Append ent field to IxLan.Fields() (proto #14), wire peeringdb struct + sync upsert + seed + regen ent/proto/gqlgen/entrest (VIS-09 ingestion path)
+- [x] 64-03-serializer-redaction-e2e-PLAN.md — Apply privfield.Redact across 5 serializer surfaces (pdbcompat, ConnectRPC, GraphQL resolver, REST middleware) + 5-surface E2E test + CLAUDE.md update (VIS-08 + VIS-09 enforcement)
 
 **Success criteria:**
 - URL present in DB for authenticated-sync deployments (Users-tier upstream rows).
@@ -147,7 +147,7 @@ Plans:
 | Phase | Status | Plans | Requirements | Blocker |
 |-------|--------|-------|--------------|---------|
 | 63 — Schema hygiene | Pending | 1/1 | Complete   | 2026-04-18 |
-| 64 — Field-level privacy | Pending | 0/3 | VIS-08, VIS-09 | Phase 63 (trivial — same codegen pass) |
+| 64 — Field-level privacy | Pending | 3/3 | Complete   | 2026-04-18 |
 | 65 — Asymmetric Fly fleet | Pending | 0/2-3 | INFRA-01, INFRA-02, INFRA-03 | — (parallelizable) |
 | 66 — Observability + sqlite3 | Pending | 0/1-2 | OBS-04, OBS-05, DOC-04 | — (parallelizable) |
 
