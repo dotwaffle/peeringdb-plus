@@ -2721,6 +2721,10 @@ type IxLan implements Node {
   Record status
   """
   status: String!
+  """
+  IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)
+  """
+  ixfIxpMemberListURL: String
   internetExchange: InternetExchange
   ixPrefixes: [IxPrefix!]
   networkIxLans: [NetworkIxLan!]
@@ -2929,6 +2933,24 @@ input IxLanWhereInput {
   statusHasSuffix: String
   statusEqualFold: String
   statusContainsFold: String
+  """
+  ixf_ixp_member_list_url field predicates
+  """
+  ixfIxpMemberListURL: String
+  ixfIxpMemberListURLNEQ: String
+  ixfIxpMemberListURLIn: [String!]
+  ixfIxpMemberListURLNotIn: [String!]
+  ixfIxpMemberListURLGT: String
+  ixfIxpMemberListURLGTE: String
+  ixfIxpMemberListURLLT: String
+  ixfIxpMemberListURLLTE: String
+  ixfIxpMemberListURLContains: String
+  ixfIxpMemberListURLHasPrefix: String
+  ixfIxpMemberListURLHasSuffix: String
+  ixfIxpMemberListURLIsNil: Boolean
+  ixfIxpMemberListURLNotNil: Boolean
+  ixfIxpMemberListURLEqualFold: String
+  ixfIxpMemberListURLContainsFold: String
   """
   internet_exchange edge predicates
   """

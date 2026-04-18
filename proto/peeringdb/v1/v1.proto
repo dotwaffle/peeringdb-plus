@@ -281,6 +281,16 @@ message IxLan {
   google.protobuf.Timestamp updated = 12;
 
   string status = 13;
+
+  // Phase 64 (VIS-09): auth-gated data field. Field-level privacy is
+  // enforced at the serializer layer (internal/privfield) before the
+  // *wrapperspb.StringValue is set — nil on the wire when redacted.
+  // Appended at field number 14 to preserve proto wire compat for
+  // fields 1-13; the proto file is frozen since v1.6 so this edit is
+  // applied by hand (entproto.SkipGenFile + no entproto annotations
+  // on ent schemas means proto/ is not auto-regenerated). Do NOT
+  // renumber.
+  google.protobuf.StringValue ixf_ixp_member_list_url = 14;
 }
 
 message IxPrefix {

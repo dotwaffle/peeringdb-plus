@@ -370,6 +370,7 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
+		{Name: "ixf_ixp_member_list_url", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "ix_id", Type: field.TypeInt, Nullable: true},
 	}
 	// IxLansTable holds the schema information for the "ix_lans" table.
@@ -380,7 +381,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ix_lans_internet_exchanges_ix_lans",
-				Columns:    []*schema.Column{IxLansColumns[12]},
+				Columns:    []*schema.Column{IxLansColumns[13]},
 				RefColumns: []*schema.Column{InternetExchangesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -389,7 +390,7 @@ var (
 			{
 				Name:    "ixlan_ix_id",
 				Unique:  false,
-				Columns: []*schema.Column{IxLansColumns[12]},
+				Columns: []*schema.Column{IxLansColumns[13]},
 			},
 			{
 				Name:    "ixlan_name",

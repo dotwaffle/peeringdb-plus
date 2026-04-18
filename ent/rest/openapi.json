@@ -10526,6 +10526,11 @@
                         "description": "Record status",
                         "type": "string",
                         "default": "ok"
+                    },
+                    "ixf_ixp_member_list_url": {
+                        "description": "IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)",
+                        "type": "string",
+                        "default": ""
                     }
                 },
                 "required": [

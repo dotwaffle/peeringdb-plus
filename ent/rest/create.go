@@ -706,6 +706,8 @@ type CreateIxLanParams struct {
 	Updated time.Time `json:"updated"`
 	// Record status
 	Status *string `json:"status"`
+	// IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)
+	IxfIxpMemberListURL *string `json:"ixf_ixp_member_list_url,omitempty"`
 }
 
 func (c *CreateIxLanParams) ApplyInputs(_builder *ent.IxLanCreate) *ent.IxLanCreate {
@@ -740,6 +742,9 @@ func (c *CreateIxLanParams) ApplyInputs(_builder *ent.IxLanCreate) *ent.IxLanCre
 	_builder.SetUpdated(c.Updated)
 	if c.Status != nil {
 		_builder.SetStatus(*c.Status)
+	}
+	if c.IxfIxpMemberListURL != nil {
+		_builder.SetIxfIxpMemberListURL(*c.IxfIxpMemberListURL)
 	}
 	return _builder
 }

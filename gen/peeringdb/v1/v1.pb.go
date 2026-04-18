@@ -1192,8 +1192,17 @@ type IxLan struct {
 	Created                    *timestamppb.Timestamp  `protobuf:"bytes,11,opt,name=created,proto3" json:"created,omitempty"`
 	Updated                    *timestamppb.Timestamp  `protobuf:"bytes,12,opt,name=updated,proto3" json:"updated,omitempty"`
 	Status                     string                  `protobuf:"bytes,13,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	// Phase 64 (VIS-09): auth-gated data field. Field-level privacy is
+	// enforced at the serializer layer (internal/privfield) before the
+	// *wrapperspb.StringValue is set — nil on the wire when redacted.
+	// Appended at field number 14 to preserve proto wire compat for
+	// fields 1-13; the proto file is frozen since v1.6 so this edit is
+	// applied by hand (entproto.SkipGenFile + no entproto annotations
+	// on ent schemas means proto/ is not auto-regenerated). Do NOT
+	// renumber.
+	IxfIxpMemberListUrl *wrapperspb.StringValue `protobuf:"bytes,14,opt,name=ixf_ixp_member_list_url,json=ixfIxpMemberListUrl,proto3" json:"ixf_ixp_member_list_url,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *IxLan) Reset() {
@@ -1315,6 +1324,13 @@ func (x *IxLan) GetStatus() string {
 		return x.Status
 	}
 	return ""
+}
+
+func (x *IxLan) GetIxfIxpMemberListUrl() *wrapperspb.StringValue {
+	if x != nil {
+		return x.IxfIxpMemberListUrl
+	}
+	return nil
 }
 
 type IxPrefix struct {
@@ -2555,7 +2571,7 @@ const file_peeringdb_v1_v1_proto_rawDesc = "" +
 	"\acountry\x18\x06 \x01(\v2\x1c.google.protobuf.StringValueR\acountry\x124\n" +
 	"\acreated\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\acreated\x124\n" +
 	"\aupdated\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\aupdated\x12\x16\n" +
-	"\x06status\x18\t \x01(\tR\x06status\"\x90\x05\n" +
+	"\x06status\x18\t \x01(\tR\x06status\"\xe4\x05\n" +
 	"\x05IxLan\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x120\n" +
 	"\x05ix_id\x18\x02 \x01(\v2\x1b.google.protobuf.Int64ValueR\x04ixId\x12;\n" +
@@ -2571,7 +2587,8 @@ const file_peeringdb_v1_v1_proto_rawDesc = "" +
 	" \x01(\v2\x1b.google.protobuf.Int64ValueR\x05rsAsn\x124\n" +
 	"\acreated\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\acreated\x124\n" +
 	"\aupdated\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\aupdated\x12\x16\n" +
-	"\x06status\x18\r \x01(\tR\x06status\"\xf3\x02\n" +
+	"\x06status\x18\r \x01(\tR\x06status\x12R\n" +
+	"\x17ixf_ixp_member_list_url\x18\x0e \x01(\v2\x1c.google.protobuf.StringValueR\x13ixfIxpMemberListUrl\"\xf3\x02\n" +
 	"\bIxPrefix\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x126\n" +
 	"\bixlan_id\x18\x02 \x01(\v2\x1b.google.protobuf.Int64ValueR\aixlanId\x12\x15\n" +
@@ -2845,90 +2862,91 @@ var file_peeringdb_v1_v1_proto_depIdxs = []int32{
 	13,  // 103: peeringdb.v1.IxLan.rs_asn:type_name -> google.protobuf.Int64Value
 	15,  // 104: peeringdb.v1.IxLan.created:type_name -> google.protobuf.Timestamp
 	15,  // 105: peeringdb.v1.IxLan.updated:type_name -> google.protobuf.Timestamp
-	13,  // 106: peeringdb.v1.IxPrefix.ixlan_id:type_name -> google.protobuf.Int64Value
-	14,  // 107: peeringdb.v1.IxPrefix.notes:type_name -> google.protobuf.StringValue
-	14,  // 108: peeringdb.v1.IxPrefix.protocol:type_name -> google.protobuf.StringValue
-	15,  // 109: peeringdb.v1.IxPrefix.created:type_name -> google.protobuf.Timestamp
-	15,  // 110: peeringdb.v1.IxPrefix.updated:type_name -> google.protobuf.Timestamp
-	13,  // 111: peeringdb.v1.Network.org_id:type_name -> google.protobuf.Int64Value
-	14,  // 112: peeringdb.v1.Network.aka:type_name -> google.protobuf.StringValue
-	13,  // 113: peeringdb.v1.Network.info_prefixes4:type_name -> google.protobuf.Int64Value
-	13,  // 114: peeringdb.v1.Network.info_prefixes6:type_name -> google.protobuf.Int64Value
-	14,  // 115: peeringdb.v1.Network.info_ratio:type_name -> google.protobuf.StringValue
-	14,  // 116: peeringdb.v1.Network.info_scope:type_name -> google.protobuf.StringValue
-	14,  // 117: peeringdb.v1.Network.info_traffic:type_name -> google.protobuf.StringValue
-	14,  // 118: peeringdb.v1.Network.info_type:type_name -> google.protobuf.StringValue
-	14,  // 119: peeringdb.v1.Network.irr_as_set:type_name -> google.protobuf.StringValue
-	14,  // 120: peeringdb.v1.Network.logo:type_name -> google.protobuf.StringValue
-	14,  // 121: peeringdb.v1.Network.looking_glass:type_name -> google.protobuf.StringValue
-	14,  // 122: peeringdb.v1.Network.name_long:type_name -> google.protobuf.StringValue
-	14,  // 123: peeringdb.v1.Network.notes:type_name -> google.protobuf.StringValue
-	14,  // 124: peeringdb.v1.Network.policy_contracts:type_name -> google.protobuf.StringValue
-	14,  // 125: peeringdb.v1.Network.policy_general:type_name -> google.protobuf.StringValue
-	14,  // 126: peeringdb.v1.Network.policy_locations:type_name -> google.protobuf.StringValue
-	14,  // 127: peeringdb.v1.Network.policy_url:type_name -> google.protobuf.StringValue
-	14,  // 128: peeringdb.v1.Network.rir_status:type_name -> google.protobuf.StringValue
-	15,  // 129: peeringdb.v1.Network.rir_status_updated:type_name -> google.protobuf.Timestamp
-	14,  // 130: peeringdb.v1.Network.route_server:type_name -> google.protobuf.StringValue
-	14,  // 131: peeringdb.v1.Network.status_dashboard:type_name -> google.protobuf.StringValue
-	14,  // 132: peeringdb.v1.Network.website:type_name -> google.protobuf.StringValue
-	13,  // 133: peeringdb.v1.Network.ix_count:type_name -> google.protobuf.Int64Value
-	13,  // 134: peeringdb.v1.Network.fac_count:type_name -> google.protobuf.Int64Value
-	15,  // 135: peeringdb.v1.Network.netixlan_updated:type_name -> google.protobuf.Timestamp
-	15,  // 136: peeringdb.v1.Network.netfac_updated:type_name -> google.protobuf.Timestamp
-	15,  // 137: peeringdb.v1.Network.poc_updated:type_name -> google.protobuf.Timestamp
-	15,  // 138: peeringdb.v1.Network.created:type_name -> google.protobuf.Timestamp
-	15,  // 139: peeringdb.v1.Network.updated:type_name -> google.protobuf.Timestamp
-	13,  // 140: peeringdb.v1.NetworkFacility.fac_id:type_name -> google.protobuf.Int64Value
-	13,  // 141: peeringdb.v1.NetworkFacility.net_id:type_name -> google.protobuf.Int64Value
-	14,  // 142: peeringdb.v1.NetworkFacility.name:type_name -> google.protobuf.StringValue
-	14,  // 143: peeringdb.v1.NetworkFacility.city:type_name -> google.protobuf.StringValue
-	14,  // 144: peeringdb.v1.NetworkFacility.country:type_name -> google.protobuf.StringValue
-	15,  // 145: peeringdb.v1.NetworkFacility.created:type_name -> google.protobuf.Timestamp
-	15,  // 146: peeringdb.v1.NetworkFacility.updated:type_name -> google.protobuf.Timestamp
-	13,  // 147: peeringdb.v1.NetworkIxLan.ix_side_id:type_name -> google.protobuf.Int64Value
-	13,  // 148: peeringdb.v1.NetworkIxLan.ixlan_id:type_name -> google.protobuf.Int64Value
-	13,  // 149: peeringdb.v1.NetworkIxLan.net_id:type_name -> google.protobuf.Int64Value
-	13,  // 150: peeringdb.v1.NetworkIxLan.net_side_id:type_name -> google.protobuf.Int64Value
-	14,  // 151: peeringdb.v1.NetworkIxLan.ipaddr4:type_name -> google.protobuf.StringValue
-	14,  // 152: peeringdb.v1.NetworkIxLan.ipaddr6:type_name -> google.protobuf.StringValue
-	14,  // 153: peeringdb.v1.NetworkIxLan.notes:type_name -> google.protobuf.StringValue
-	13,  // 154: peeringdb.v1.NetworkIxLan.ix_id:type_name -> google.protobuf.Int64Value
-	14,  // 155: peeringdb.v1.NetworkIxLan.name:type_name -> google.protobuf.StringValue
-	15,  // 156: peeringdb.v1.NetworkIxLan.created:type_name -> google.protobuf.Timestamp
-	15,  // 157: peeringdb.v1.NetworkIxLan.updated:type_name -> google.protobuf.Timestamp
-	14,  // 158: peeringdb.v1.Organization.address1:type_name -> google.protobuf.StringValue
-	14,  // 159: peeringdb.v1.Organization.address2:type_name -> google.protobuf.StringValue
-	14,  // 160: peeringdb.v1.Organization.aka:type_name -> google.protobuf.StringValue
-	14,  // 161: peeringdb.v1.Organization.city:type_name -> google.protobuf.StringValue
-	14,  // 162: peeringdb.v1.Organization.country:type_name -> google.protobuf.StringValue
-	14,  // 163: peeringdb.v1.Organization.floor:type_name -> google.protobuf.StringValue
-	17,  // 164: peeringdb.v1.Organization.latitude:type_name -> google.protobuf.DoubleValue
-	14,  // 165: peeringdb.v1.Organization.logo:type_name -> google.protobuf.StringValue
-	17,  // 166: peeringdb.v1.Organization.longitude:type_name -> google.protobuf.DoubleValue
-	14,  // 167: peeringdb.v1.Organization.name_long:type_name -> google.protobuf.StringValue
-	14,  // 168: peeringdb.v1.Organization.notes:type_name -> google.protobuf.StringValue
-	14,  // 169: peeringdb.v1.Organization.state:type_name -> google.protobuf.StringValue
-	14,  // 170: peeringdb.v1.Organization.suite:type_name -> google.protobuf.StringValue
-	14,  // 171: peeringdb.v1.Organization.website:type_name -> google.protobuf.StringValue
-	14,  // 172: peeringdb.v1.Organization.zipcode:type_name -> google.protobuf.StringValue
-	13,  // 173: peeringdb.v1.Organization.net_count:type_name -> google.protobuf.Int64Value
-	13,  // 174: peeringdb.v1.Organization.fac_count:type_name -> google.protobuf.Int64Value
-	15,  // 175: peeringdb.v1.Organization.created:type_name -> google.protobuf.Timestamp
-	15,  // 176: peeringdb.v1.Organization.updated:type_name -> google.protobuf.Timestamp
-	13,  // 177: peeringdb.v1.Poc.net_id:type_name -> google.protobuf.Int64Value
-	14,  // 178: peeringdb.v1.Poc.email:type_name -> google.protobuf.StringValue
-	14,  // 179: peeringdb.v1.Poc.name:type_name -> google.protobuf.StringValue
-	14,  // 180: peeringdb.v1.Poc.phone:type_name -> google.protobuf.StringValue
-	14,  // 181: peeringdb.v1.Poc.url:type_name -> google.protobuf.StringValue
-	14,  // 182: peeringdb.v1.Poc.visible:type_name -> google.protobuf.StringValue
-	15,  // 183: peeringdb.v1.Poc.created:type_name -> google.protobuf.Timestamp
-	15,  // 184: peeringdb.v1.Poc.updated:type_name -> google.protobuf.Timestamp
-	185, // [185:185] is the sub-list for method output_type
-	185, // [185:185] is the sub-list for method input_type
-	185, // [185:185] is the sub-list for extension type_name
-	185, // [185:185] is the sub-list for extension extendee
-	0,   // [0:185] is the sub-list for field type_name
+	14,  // 106: peeringdb.v1.IxLan.ixf_ixp_member_list_url:type_name -> google.protobuf.StringValue
+	13,  // 107: peeringdb.v1.IxPrefix.ixlan_id:type_name -> google.protobuf.Int64Value
+	14,  // 108: peeringdb.v1.IxPrefix.notes:type_name -> google.protobuf.StringValue
+	14,  // 109: peeringdb.v1.IxPrefix.protocol:type_name -> google.protobuf.StringValue
+	15,  // 110: peeringdb.v1.IxPrefix.created:type_name -> google.protobuf.Timestamp
+	15,  // 111: peeringdb.v1.IxPrefix.updated:type_name -> google.protobuf.Timestamp
+	13,  // 112: peeringdb.v1.Network.org_id:type_name -> google.protobuf.Int64Value
+	14,  // 113: peeringdb.v1.Network.aka:type_name -> google.protobuf.StringValue
+	13,  // 114: peeringdb.v1.Network.info_prefixes4:type_name -> google.protobuf.Int64Value
+	13,  // 115: peeringdb.v1.Network.info_prefixes6:type_name -> google.protobuf.Int64Value
+	14,  // 116: peeringdb.v1.Network.info_ratio:type_name -> google.protobuf.StringValue
+	14,  // 117: peeringdb.v1.Network.info_scope:type_name -> google.protobuf.StringValue
+	14,  // 118: peeringdb.v1.Network.info_traffic:type_name -> google.protobuf.StringValue
+	14,  // 119: peeringdb.v1.Network.info_type:type_name -> google.protobuf.StringValue
+	14,  // 120: peeringdb.v1.Network.irr_as_set:type_name -> google.protobuf.StringValue
+	14,  // 121: peeringdb.v1.Network.logo:type_name -> google.protobuf.StringValue
+	14,  // 122: peeringdb.v1.Network.looking_glass:type_name -> google.protobuf.StringValue
+	14,  // 123: peeringdb.v1.Network.name_long:type_name -> google.protobuf.StringValue
+	14,  // 124: peeringdb.v1.Network.notes:type_name -> google.protobuf.StringValue
+	14,  // 125: peeringdb.v1.Network.policy_contracts:type_name -> google.protobuf.StringValue
+	14,  // 126: peeringdb.v1.Network.policy_general:type_name -> google.protobuf.StringValue
+	14,  // 127: peeringdb.v1.Network.policy_locations:type_name -> google.protobuf.StringValue
+	14,  // 128: peeringdb.v1.Network.policy_url:type_name -> google.protobuf.StringValue
+	14,  // 129: peeringdb.v1.Network.rir_status:type_name -> google.protobuf.StringValue
+	15,  // 130: peeringdb.v1.Network.rir_status_updated:type_name -> google.protobuf.Timestamp
+	14,  // 131: peeringdb.v1.Network.route_server:type_name -> google.protobuf.StringValue
+	14,  // 132: peeringdb.v1.Network.status_dashboard:type_name -> google.protobuf.StringValue
+	14,  // 133: peeringdb.v1.Network.website:type_name -> google.protobuf.StringValue
+	13,  // 134: peeringdb.v1.Network.ix_count:type_name -> google.protobuf.Int64Value
+	13,  // 135: peeringdb.v1.Network.fac_count:type_name -> google.protobuf.Int64Value
+	15,  // 136: peeringdb.v1.Network.netixlan_updated:type_name -> google.protobuf.Timestamp
+	15,  // 137: peeringdb.v1.Network.netfac_updated:type_name -> google.protobuf.Timestamp
+	15,  // 138: peeringdb.v1.Network.poc_updated:type_name -> google.protobuf.Timestamp
+	15,  // 139: peeringdb.v1.Network.created:type_name -> google.protobuf.Timestamp
+	15,  // 140: peeringdb.v1.Network.updated:type_name -> google.protobuf.Timestamp
+	13,  // 141: peeringdb.v1.NetworkFacility.fac_id:type_name -> google.protobuf.Int64Value
+	13,  // 142: peeringdb.v1.NetworkFacility.net_id:type_name -> google.protobuf.Int64Value
+	14,  // 143: peeringdb.v1.NetworkFacility.name:type_name -> google.protobuf.StringValue
+	14,  // 144: peeringdb.v1.NetworkFacility.city:type_name -> google.protobuf.StringValue
+	14,  // 145: peeringdb.v1.NetworkFacility.country:type_name -> google.protobuf.StringValue
+	15,  // 146: peeringdb.v1.NetworkFacility.created:type_name -> google.protobuf.Timestamp
+	15,  // 147: peeringdb.v1.NetworkFacility.updated:type_name -> google.protobuf.Timestamp
+	13,  // 148: peeringdb.v1.NetworkIxLan.ix_side_id:type_name -> google.protobuf.Int64Value
+	13,  // 149: peeringdb.v1.NetworkIxLan.ixlan_id:type_name -> google.protobuf.Int64Value
+	13,  // 150: peeringdb.v1.NetworkIxLan.net_id:type_name -> google.protobuf.Int64Value
+	13,  // 151: peeringdb.v1.NetworkIxLan.net_side_id:type_name -> google.protobuf.Int64Value
+	14,  // 152: peeringdb.v1.NetworkIxLan.ipaddr4:type_name -> google.protobuf.StringValue
+	14,  // 153: peeringdb.v1.NetworkIxLan.ipaddr6:type_name -> google.protobuf.StringValue
+	14,  // 154: peeringdb.v1.NetworkIxLan.notes:type_name -> google.protobuf.StringValue
+	13,  // 155: peeringdb.v1.NetworkIxLan.ix_id:type_name -> google.protobuf.Int64Value
+	14,  // 156: peeringdb.v1.NetworkIxLan.name:type_name -> google.protobuf.StringValue
+	15,  // 157: peeringdb.v1.NetworkIxLan.created:type_name -> google.protobuf.Timestamp
+	15,  // 158: peeringdb.v1.NetworkIxLan.updated:type_name -> google.protobuf.Timestamp
+	14,  // 159: peeringdb.v1.Organization.address1:type_name -> google.protobuf.StringValue
+	14,  // 160: peeringdb.v1.Organization.address2:type_name -> google.protobuf.StringValue
+	14,  // 161: peeringdb.v1.Organization.aka:type_name -> google.protobuf.StringValue
+	14,  // 162: peeringdb.v1.Organization.city:type_name -> google.protobuf.StringValue
+	14,  // 163: peeringdb.v1.Organization.country:type_name -> google.protobuf.StringValue
+	14,  // 164: peeringdb.v1.Organization.floor:type_name -> google.protobuf.StringValue
+	17,  // 165: peeringdb.v1.Organization.latitude:type_name -> google.protobuf.DoubleValue
+	14,  // 166: peeringdb.v1.Organization.logo:type_name -> google.protobuf.StringValue
+	17,  // 167: peeringdb.v1.Organization.longitude:type_name -> google.protobuf.DoubleValue
+	14,  // 168: peeringdb.v1.Organization.name_long:type_name -> google.protobuf.StringValue
+	14,  // 169: peeringdb.v1.Organization.notes:type_name -> google.protobuf.StringValue
+	14,  // 170: peeringdb.v1.Organization.state:type_name -> google.protobuf.StringValue
+	14,  // 171: peeringdb.v1.Organization.suite:type_name -> google.protobuf.StringValue
+	14,  // 172: peeringdb.v1.Organization.website:type_name -> google.protobuf.StringValue
+	14,  // 173: peeringdb.v1.Organization.zipcode:type_name -> google.protobuf.StringValue
+	13,  // 174: peeringdb.v1.Organization.net_count:type_name -> google.protobuf.Int64Value
+	13,  // 175: peeringdb.v1.Organization.fac_count:type_name -> google.protobuf.Int64Value
+	15,  // 176: peeringdb.v1.Organization.created:type_name -> google.protobuf.Timestamp
+	15,  // 177: peeringdb.v1.Organization.updated:type_name -> google.protobuf.Timestamp
+	13,  // 178: peeringdb.v1.Poc.net_id:type_name -> google.protobuf.Int64Value
+	14,  // 179: peeringdb.v1.Poc.email:type_name -> google.protobuf.StringValue
+	14,  // 180: peeringdb.v1.Poc.name:type_name -> google.protobuf.StringValue
+	14,  // 181: peeringdb.v1.Poc.phone:type_name -> google.protobuf.StringValue
+	14,  // 182: peeringdb.v1.Poc.url:type_name -> google.protobuf.StringValue
+	14,  // 183: peeringdb.v1.Poc.visible:type_name -> google.protobuf.StringValue
+	15,  // 184: peeringdb.v1.Poc.created:type_name -> google.protobuf.Timestamp
+	15,  // 185: peeringdb.v1.Poc.updated:type_name -> google.protobuf.Timestamp
+	186, // [186:186] is the sub-list for method output_type
+	186, // [186:186] is the sub-list for method input_type
+	186, // [186:186] is the sub-list for extension type_name
+	186, // [186:186] is the sub-list for extension extendee
+	0,   // [0:186] is the sub-list for field type_name
 }
 
 func init() { file_peeringdb_v1_v1_proto_init() }

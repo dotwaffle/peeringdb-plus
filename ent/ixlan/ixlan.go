@@ -37,6 +37,8 @@ const (
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldIxfIxpMemberListURL holds the string denoting the ixf_ixp_member_list_url field in the database.
+	FieldIxfIxpMemberListURL = "ixf_ixp_member_list_url"
 	// EdgeInternetExchange holds the string denoting the internet_exchange edge name in mutations.
 	EdgeInternetExchange = "internet_exchange"
 	// EdgeIxPrefixes holds the string denoting the ix_prefixes edge name in mutations.
@@ -83,6 +85,7 @@ var Columns = []string{
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
+	FieldIxfIxpMemberListURL,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -118,6 +121,8 @@ var (
 	DefaultRsAsn int
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
+	// DefaultIxfIxpMemberListURL holds the default value on creation for the "ixf_ixp_member_list_url" field.
+	DefaultIxfIxpMemberListURL string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )
@@ -188,6 +193,11 @@ func ByUpdated(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByIxfIxpMemberListURL orders the results by the ixf_ixp_member_list_url field.
+func ByIxfIxpMemberListURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIxfIxpMemberListURL, opts...).ToFunc()
 }
 
 // ByInternetExchangeField orders the results by internet_exchange field.

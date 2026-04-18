@@ -1405,6 +1405,11 @@ func (_q *IxLanQuery) collectField(ctx context.Context, oneNode bool, opCtx *gra
 				selectedFields = append(selectedFields, ixlan.FieldStatus)
 				fieldSeen[ixlan.FieldStatus] = struct{}{}
 			}
+		case "ixfIxpMemberListURL":
+			if _, ok := fieldSeen[ixlan.FieldIxfIxpMemberListURL]; !ok {
+				selectedFields = append(selectedFields, ixlan.FieldIxfIxpMemberListURL)
+				fieldSeen[ixlan.FieldIxfIxpMemberListURL] = struct{}{}
+			}
 		case "id":
 		case "__typename":
 		default:

@@ -6959,6 +6959,23 @@ type IxLanWhereInput struct {
 	StatusEqualFold    *string  `json:"statusEqualFold,omitempty"`
 	StatusContainsFold *string  `json:"statusContainsFold,omitempty"`
 
+	// "ixf_ixp_member_list_url" field predicates.
+	IxfIxpMemberListURL             *string  `json:"ixfIxpMemberListURL,omitempty"`
+	IxfIxpMemberListURLNEQ          *string  `json:"ixfIxpMemberListURLNEQ,omitempty"`
+	IxfIxpMemberListURLIn           []string `json:"ixfIxpMemberListURLIn,omitempty"`
+	IxfIxpMemberListURLNotIn        []string `json:"ixfIxpMemberListURLNotIn,omitempty"`
+	IxfIxpMemberListURLGT           *string  `json:"ixfIxpMemberListURLGT,omitempty"`
+	IxfIxpMemberListURLGTE          *string  `json:"ixfIxpMemberListURLGTE,omitempty"`
+	IxfIxpMemberListURLLT           *string  `json:"ixfIxpMemberListURLLT,omitempty"`
+	IxfIxpMemberListURLLTE          *string  `json:"ixfIxpMemberListURLLTE,omitempty"`
+	IxfIxpMemberListURLContains     *string  `json:"ixfIxpMemberListURLContains,omitempty"`
+	IxfIxpMemberListURLHasPrefix    *string  `json:"ixfIxpMemberListURLHasPrefix,omitempty"`
+	IxfIxpMemberListURLHasSuffix    *string  `json:"ixfIxpMemberListURLHasSuffix,omitempty"`
+	IxfIxpMemberListURLIsNil        bool     `json:"ixfIxpMemberListURLIsNil,omitempty"`
+	IxfIxpMemberListURLNotNil       bool     `json:"ixfIxpMemberListURLNotNil,omitempty"`
+	IxfIxpMemberListURLEqualFold    *string  `json:"ixfIxpMemberListURLEqualFold,omitempty"`
+	IxfIxpMemberListURLContainsFold *string  `json:"ixfIxpMemberListURLContainsFold,omitempty"`
+
 	// "internet_exchange" edge predicates.
 	HasInternetExchange     *bool                         `json:"hasInternetExchange,omitempty"`
 	HasInternetExchangeWith []*InternetExchangeWhereInput `json:"hasInternetExchangeWith,omitempty"`
@@ -7423,6 +7440,51 @@ func (i *IxLanWhereInput) P() (predicate.IxLan, error) {
 	}
 	if i.StatusContainsFold != nil {
 		predicates = append(predicates, ixlan.StatusContainsFold(*i.StatusContainsFold))
+	}
+	if i.IxfIxpMemberListURL != nil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLEQ(*i.IxfIxpMemberListURL))
+	}
+	if i.IxfIxpMemberListURLNEQ != nil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLNEQ(*i.IxfIxpMemberListURLNEQ))
+	}
+	if len(i.IxfIxpMemberListURLIn) > 0 {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLIn(i.IxfIxpMemberListURLIn...))
+	}
+	if len(i.IxfIxpMemberListURLNotIn) > 0 {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLNotIn(i.IxfIxpMemberListURLNotIn...))
+	}
+	if i.IxfIxpMemberListURLGT != nil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLGT(*i.IxfIxpMemberListURLGT))
+	}
+	if i.IxfIxpMemberListURLGTE != nil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLGTE(*i.IxfIxpMemberListURLGTE))
+	}
+	if i.IxfIxpMemberListURLLT != nil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLLT(*i.IxfIxpMemberListURLLT))
+	}
+	if i.IxfIxpMemberListURLLTE != nil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLLTE(*i.IxfIxpMemberListURLLTE))
+	}
+	if i.IxfIxpMemberListURLContains != nil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLContains(*i.IxfIxpMemberListURLContains))
+	}
+	if i.IxfIxpMemberListURLHasPrefix != nil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLHasPrefix(*i.IxfIxpMemberListURLHasPrefix))
+	}
+	if i.IxfIxpMemberListURLHasSuffix != nil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLHasSuffix(*i.IxfIxpMemberListURLHasSuffix))
+	}
+	if i.IxfIxpMemberListURLIsNil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLIsNil())
+	}
+	if i.IxfIxpMemberListURLNotNil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLNotNil())
+	}
+	if i.IxfIxpMemberListURLEqualFold != nil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLEqualFold(*i.IxfIxpMemberListURLEqualFold))
+	}
+	if i.IxfIxpMemberListURLContainsFold != nil {
+		predicates = append(predicates, ixlan.IxfIxpMemberListURLContainsFold(*i.IxfIxpMemberListURLContainsFold))
 	}
 
 	if i.HasInternetExchange != nil {

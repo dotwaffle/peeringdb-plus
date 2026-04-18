@@ -11228,6 +11228,7 @@ type IxLanMutation struct {
 	created                         *time.Time
 	updated                         *time.Time
 	status                          *string
+	ixf_ixp_member_list_url         *string
 	clearedFields                   map[string]struct{}
 	internet_exchange               *int
 	clearedinternet_exchange        bool
@@ -11911,6 +11912,55 @@ func (m *IxLanMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetIxfIxpMemberListURL sets the "ixf_ixp_member_list_url" field.
+func (m *IxLanMutation) SetIxfIxpMemberListURL(s string) {
+	m.ixf_ixp_member_list_url = &s
+}
+
+// IxfIxpMemberListURL returns the value of the "ixf_ixp_member_list_url" field in the mutation.
+func (m *IxLanMutation) IxfIxpMemberListURL() (r string, exists bool) {
+	v := m.ixf_ixp_member_list_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIxfIxpMemberListURL returns the old "ixf_ixp_member_list_url" field's value of the IxLan entity.
+// If the IxLan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IxLanMutation) OldIxfIxpMemberListURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIxfIxpMemberListURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIxfIxpMemberListURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIxfIxpMemberListURL: %w", err)
+	}
+	return oldValue.IxfIxpMemberListURL, nil
+}
+
+// ClearIxfIxpMemberListURL clears the value of the "ixf_ixp_member_list_url" field.
+func (m *IxLanMutation) ClearIxfIxpMemberListURL() {
+	m.ixf_ixp_member_list_url = nil
+	m.clearedFields[ixlan.FieldIxfIxpMemberListURL] = struct{}{}
+}
+
+// IxfIxpMemberListURLCleared returns if the "ixf_ixp_member_list_url" field was cleared in this mutation.
+func (m *IxLanMutation) IxfIxpMemberListURLCleared() bool {
+	_, ok := m.clearedFields[ixlan.FieldIxfIxpMemberListURL]
+	return ok
+}
+
+// ResetIxfIxpMemberListURL resets all changes to the "ixf_ixp_member_list_url" field.
+func (m *IxLanMutation) ResetIxfIxpMemberListURL() {
+	m.ixf_ixp_member_list_url = nil
+	delete(m.clearedFields, ixlan.FieldIxfIxpMemberListURL)
+}
+
 // SetInternetExchangeID sets the "internet_exchange" edge to the InternetExchange entity by id.
 func (m *IxLanMutation) SetInternetExchangeID(id int) {
 	m.internet_exchange = &id
@@ -12093,7 +12143,7 @@ func (m *IxLanMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *IxLanMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.internet_exchange != nil {
 		fields = append(fields, ixlan.FieldIxID)
 	}
@@ -12130,6 +12180,9 @@ func (m *IxLanMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, ixlan.FieldStatus)
 	}
+	if m.ixf_ixp_member_list_url != nil {
+		fields = append(fields, ixlan.FieldIxfIxpMemberListURL)
+	}
 	return fields
 }
 
@@ -12162,6 +12215,8 @@ func (m *IxLanMutation) Field(name string) (ent.Value, bool) {
 		return m.Updated()
 	case ixlan.FieldStatus:
 		return m.Status()
+	case ixlan.FieldIxfIxpMemberListURL:
+		return m.IxfIxpMemberListURL()
 	}
 	return nil, false
 }
@@ -12195,6 +12250,8 @@ func (m *IxLanMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldUpdated(ctx)
 	case ixlan.FieldStatus:
 		return m.OldStatus(ctx)
+	case ixlan.FieldIxfIxpMemberListURL:
+		return m.OldIxfIxpMemberListURL(ctx)
 	}
 	return nil, fmt.Errorf("unknown IxLan field %s", name)
 }
@@ -12288,6 +12345,13 @@ func (m *IxLanMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatus(v)
 		return nil
+	case ixlan.FieldIxfIxpMemberListURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIxfIxpMemberListURL(v)
+		return nil
 	}
 	return fmt.Errorf("unknown IxLan field %s", name)
 }
@@ -12366,6 +12430,9 @@ func (m *IxLanMutation) ClearedFields() []string {
 	if m.FieldCleared(ixlan.FieldRsAsn) {
 		fields = append(fields, ixlan.FieldRsAsn)
 	}
+	if m.FieldCleared(ixlan.FieldIxfIxpMemberListURL) {
+		fields = append(fields, ixlan.FieldIxfIxpMemberListURL)
+	}
 	return fields
 }
 
@@ -12400,6 +12467,9 @@ func (m *IxLanMutation) ClearField(name string) error {
 		return nil
 	case ixlan.FieldRsAsn:
 		m.ClearRsAsn()
+		return nil
+	case ixlan.FieldIxfIxpMemberListURL:
+		m.ClearIxfIxpMemberListURL()
 		return nil
 	}
 	return fmt.Errorf("unknown IxLan nullable field %s", name)
@@ -12444,6 +12514,9 @@ func (m *IxLanMutation) ResetField(name string) error {
 		return nil
 	case ixlan.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case ixlan.FieldIxfIxpMemberListURL:
+		m.ResetIxfIxpMemberListURL()
 		return nil
 	}
 	return fmt.Errorf("unknown IxLan field %s", name)

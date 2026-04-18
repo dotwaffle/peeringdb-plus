@@ -408,6 +408,10 @@ func init() {
 	ixlanDescStatus := ixlanFields[12].Descriptor()
 	// ixlan.DefaultStatus holds the default value on creation for the status field.
 	ixlan.DefaultStatus = ixlanDescStatus.Default.(string)
+	// ixlanDescIxfIxpMemberListURL is the schema descriptor for ixf_ixp_member_list_url field.
+	ixlanDescIxfIxpMemberListURL := ixlanFields[13].Descriptor()
+	// ixlan.DefaultIxfIxpMemberListURL holds the default value on creation for the ixf_ixp_member_list_url field.
+	ixlan.DefaultIxfIxpMemberListURL = ixlanDescIxfIxpMemberListURL.Default.(string)
 	// ixlanDescID is the schema descriptor for id field.
 	ixlanDescID := ixlanFields[0].Descriptor()
 	// ixlan.IDValidator is a validator for the "id" field. It is called by the builders before save.
