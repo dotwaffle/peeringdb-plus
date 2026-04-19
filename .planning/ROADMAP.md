@@ -120,7 +120,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 - [ ] 71-02-PLAN.md — internal/pdbcompat/rowsize.go typical_row_bytes map + bench_row_size_test.go calibration (Wave 2; human checkpoint for calibration)
 - [ ] 71-03-PLAN.md — Config.ResponseMemoryLimit (default 128 MiB) + internal/pdbcompat/budget.go CheckBudget + WriteBudgetProblem (Wave 3)
 - [x] 71-04-PLAN.md — pdbcompat registry CountFunc sibling + serveList pre-flight budget check + StreamListResponse wiring; 2 commits (27ba127 registry refactor + 28408e1 handler wiring); 4 new integration tests; 13 list-path goldens regenerated for D-07 trailing-newline divergence; MEMORY-01 + MEMORY-02 shipped
-- [ ] 71-05-PLAN.md — internal/pdbcompat/telemetry.go recordResponseHeapDelta + OTel span attr + Prometheus histogram + Grafana panel (Wave 5)
+- [x] 71-05-PLAN.md — internal/pdbcompat/telemetry.go recordResponseHeapDelta + OTel span attr + Prometheus histogram + Grafana panel (Wave 5); 2 commits (c2304ae metric registration + 292e758 sampler + handler wire + dashboard); 5 new pdbcompat tests + 3 new otel tests; panel id 36 at y=33 with p50/p95/p99 by endpoint; MEMORY-03 shipped
 - [ ] 71-06-PLAN.md — docs/ARCHITECTURE.md § Response Memory Envelope + CHANGELOG + CLAUDE.md + REQ traceability (Wave 6)
 
 ### Phase 72: Upstream parity regression + divergence docs
