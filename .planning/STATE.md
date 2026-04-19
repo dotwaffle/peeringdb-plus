@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 68-02 (soft-delete flip: 13 deleteStale* -> markStaleDeleted* with cycleStart plumbed through syncStep.deleteFn; TestSync_SoftDeleteMarksRows 2-cycle round-trip locked). Plan 68-03 (pdbcompat status matrix) is next.
-last_updated: "2026-04-19T14:28:00Z"
+stopped_at: Completed 68-03 (pdbcompat status matrix + limit=0 semantics: applyStatusMatrix helper in filter.go; 13 list closures emit applyStatusMatrix + conditional .Limit gate; 13 Fields maps with status removed per D-07; 26 StatusIn("ok","pending") inserts across 13 pk-lookup functions in depth.go; ParsePaginationParams treats limit=0 as unlimited; serveList LIMIT-02 guardrail silently ignores ?depth=; TestEntLimitZeroProbe locks empirical ent behaviour; TestStatusMatrix 9-subtest E2E locks STATUS-01/02/04 + LIMIT-01/02). Plan 68-04 (CHANGELOG + docs/API.md Known Divergences + REQ-ID audit) is next.
+last_updated: "2026-04-19T15:15:00Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 10
-  completed_plans: 8
-  percent: 80
+  completed_plans: 9
+  percent: 90
 ---
 
 # Project State
@@ -26,10 +26,10 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 ## Current Position
 
-Phase: 68 (status-since-matrix) — IN PROGRESS (2/4 plans shipped)
-Plan: 2 of 4 (68-01 + 68-02 done; 68-03 next)
+Phase: 68 (status-since-matrix) — IN PROGRESS (3/4 plans shipped)
+Plan: 3 of 4 (68-01 + 68-02 + 68-03 done; 68-04 next)
 Status: Executing Phase 68 plans
-Next action: `/gsd-execute-phase 68-03` to run the pdbcompat status-matrix + limit=0 plan
+Next action: `/gsd-execute-phase 68-04` to run the CHANGELOG + docs + REQ-ID audit plan
 Last activity: 2026-04-19
 
 ## v1.16 Phase Map
@@ -156,6 +156,7 @@ All decisions archived in PROJECT.md Key Decisions table (46+ decisions across 1
 - **Phase 67 Plan 05 D-03**: Three pre-existing tests (`TestStreamCarrierFacilities`, `TestStreamNetworkIxLans`, `TestStreamPocs`) had weak "first-message=id=1" assertions. Fixed in-task by spreading seed timestamps (id=1 gets updated+=1h) so id=1 still sorts first under the new order — preserves the existing assertion intent without semantic rewrite.
 - **Phase 67 Plan 06**: Cross-surface E2E (`cmd/peeringdb-plus/ordering_cross_surface_e2e_test.go`) and `docs/ARCHITECTURE.md` § Ordering landed. Clarification: entrest does NOT accept `?depth=N` — nested eager-loaded edges are schema-declarative (`entrest.WithEagerLoad(true)`). The plan's "depth=2" phrasing is a codename for "depth ≥ 1 eager-loaded edge"; assertion path is `content[0].edges.network_ix_lans[]` on `/rest/v1/networks`. D-04 clarification locked in via `TestEntrestNestedSetOrder/depth2`.
 - **Phase 68 Plan 01**: PDBPLUS_INCLUDE_DELETED removed from Config with slog.Warn-and-ignore grace-period shim; WorkerConfig.IncludeDeleted + filterByStatus[E] + its 244-line test file deleted; syncIncremental[E] lost the includeDeleted parameter + filter branch. Test-file ripple: TestFullSyncWithFixtures + TestSyncDeletesStaleRecords first-sync assertions bumped from 2 to 3 orgs (upsert path now persists status=deleted rows; hard-delete still runs until 68-02). TestSyncFilterDeletedObjects deleted outright (tested removed filter); TestSyncIncludeDeleted renamed to TestSyncPersistsDeletedRowsUnconditional as intermediate marker for 68-02's semantic rewrite. Golden file `testdata/refactor_parity.golden.json` regenerated via `go test ./internal/sync -update` to include org 3 tombstone. Added gosec G706 nolint on the deprecation slog.Warn with threat-register T-68-01-03 rationale.
+- **Phase 68 Plan 03**: pdbcompat request path wired to upstream rest.py:494-727 status × since matrix + limit=0 unlimited semantics. applyStatusMatrix(isCampus, sinceSet) helper added to internal/pdbcompat/filter.go (rest.py:694-727 status predicate). 13 list closures in registry_funcs.go emit `preds = append(preds, predicate.X(applyStatusMatrix(isCampus, opts.Since != nil)))` + conditional `.Limit(opts.Limit)` gate via `if opts.Limit > 0 { q2 = q2.Limit(opts.Limit) }` rewrite. 13 `"status": FieldString` entries removed from Fields maps in registry.go so ParseFilters silently drops ?status=<anything> per D-07. 26 `StatusIn("ok", "pending")` predicate inserts in depth.go: 13 Where extensions on depth>=2 branches + 13 `.Get(ctx, id)` → `.Query().Where(X.ID(id), X.StatusIn(...)).Only(ctx)` flips on default-depth branches (D-06). ParsePaginationParams in response.go now accepts `limit=0` as unlimited sentinel (`parsed >= 0`) with MaxLimit clamp gated on `limit > 0 && limit > MaxLimit` (LIMIT-01/rest.py:734-737). serveList in handler.go adds a LIMIT-02 depth-on-list guardrail (debug slog-only no-op; opts.Depth never leaks into list closures — grep-verified). Research Assumption A1 was empirically WRONG: TestEntLimitZeroProbe RED-tripped on first run and revealed ent v0.14.6's typed builder treats `Limit(0)` as unlimited via sqlgraph `graph.go:1086` `if q.Limit != 0` gate (NOT as `LIMIT 0`); probe test rewritten to lock the actual behaviour. The plan's `if opts.Limit > 0` gate is defensively correct under either ent behaviour. Pre-existing handler_test.go had 6 assertion failures under the new D-07 semantic; resolved by flipping the 3rd seed Network's status from "deleted" to "ok" (preserves 5 tests unchanged — they test list shape orthogonal to status matrix) + rewriting TestExactFilter to use ?asn=13335 (only test genuinely status-aware; `?status=` is now silently-dropped). New internal/pdbcompat/status_matrix_test.go with TestStatusMatrix covers 9 subtests including list_no_since_returns_only_ok, list_with_since_non_campus_returns_ok_and_deleted (non-campus admits ok+deleted), list_with_since_campus_includes_pending (campus-only admits pending per D-05), pk_ok/pending_returns_200, pk_deleted_returns_404 (D-06), status_deleted_no_since_is_empty (STATUS-04/D-07), limit_zero_returns_all_rows (LIMIT-01 300 rows bypassing DefaultLimit=250), depth_on_list_is_silently_ignored (LIMIT-02 guardrail). Closes STATUS-01/02/03/04 + LIMIT-01/02.
 - **Phase 68 Plan 02**: 13 deleteStale* functions in internal/sync/delete.go flipped to markStaleDeleted* — soft-delete via `tx.X.Update().Where(x.IDNotIn(chunk...)).SetStatus("deleted").SetUpdated(cycleStart).Save(ctx)` replaces the pre-v1.16 hard-delete path (D-02). syncStep.deleteFn signature extended additively with cycleStart time.Time (4th parameter); syncDeletePass extended to plumb cycleStart down; Worker.Sync call site reuses the existing start := time.Now() at worker.go:293 rather than taking a second clock reading — all 13 types tombstone with one identical updated value per cycle. The planned inline `// cycleStart := start` comment was dropped because it pushed Worker.Sync to 102 lines and tripped TestWorkerSync_LineBudget (REFAC-03 100-line cap); syncDeletePass godoc documents the semantic instead. TestSync_SoftDeleteMarksRows 2-cycle round-trip test replaced TestSyncPersistsDeletedRowsUnconditional; three pre-existing tests (TestSyncHardDelete -> TestSyncSoftDeletesStale, TestSyncDeletesStaleRecords, TestSyncDeletesFKIntegrity) had their row-count assertions flipped from physical-removal-decrement (1 or 2 orgs) to soft-delete-count-stable-plus-status-transition (3 orgs, org 2 status='deleted', dependent IXes count=2 not 1). Info log renamed "deleted stale" -> "marked stale deleted" with count attribute "deleted" -> "marked"; SyncTypeDeleted OTel metric name preserved. The deleteStaleChunked helper keeps its name (no rename ripple across 13 callers) — only its doc comment updated; >32K silent-no-op fallback preserved verbatim for SEED-004. Scratch-DB `DELETE FROM %q` at worker.go:711 is out of scope (incremental-fallback staging cleanup, not the main ent/LiteFS data path).
 
 ### Seeds
@@ -187,11 +188,11 @@ One **coordination note** for executor: do NOT ship Phase 68 to prod before Phas
 
 ## Session Continuity
 
-Last session: 2026-04-19T14:28:00Z
+Last session: 2026-04-19T15:15:00Z
 Last activity: 2026-04-19
-Stopped at: Completed 68-02 (13 deleteStale* -> markStaleDeleted* soft-delete flip with cycleStart plumbed through syncStep.deleteFn; TestSync_SoftDeleteMarksRows 2-cycle round-trip test locked; TestSyncHardDelete renamed to TestSyncSoftDeletesStale; full sync test suite green). Plan 68-03 (pdbcompat status matrix + limit=0) is next.
+Stopped at: Completed 68-03 (pdbcompat status matrix + limit=0 semantics: applyStatusMatrix helper + 13 list closures + 13 Fields-map removals + 26 StatusIn pk inserts + ParsePaginationParams limit=0 gate + serveList depth guardrail + probe test + 9-subtest E2E locking STATUS-01/02/04 + LIMIT-01/02; full repo suite green; lint clean). Plan 68-04 (CHANGELOG + docs/API.md Known Divergences + CLAUDE.md soft-delete hygiene + final REQ-ID audit) is next.
 
-### Resume via `/gsd-execute-phase 68-03` or `/gsd-autonomous`
+### Resume via `/gsd-execute-phase 68-04` or `/gsd-autonomous`
 
 Each of phases 67-72 has `has_context: true` frontmatter and full D-0N decisions captured. The autonomous workflow skips `discuss-phase` entirely and goes straight to plan → execute per phase. Do NOT re-run `/gsd-discuss-phase` unless a decision needs to be reopened.
 

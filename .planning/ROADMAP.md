@@ -65,7 +65,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 **Plans:** 4 plans
 - [x] 68-01-PLAN.md — Remove PDBPLUS_INCLUDE_DELETED from Config + WorkerConfig + syncIncremental; delete filterByStatus helper; strip test fixtures
 - [x] 68-02-PLAN.md — Soft-delete flip: rename 13 deleteStale* → markStaleDeleted*; plumb cycleStart through syncStep.deleteFn; add TestSync_SoftDeleteMarksRows
-- [ ] 68-03-PLAN.md — pdbcompat status matrix helper + 13 list-closure edits + 26 depth.go StatusIn predicates + limit=0 gate fix + list-depth guardrail + status_matrix_test.go
+- [x] 68-03-PLAN.md — pdbcompat status matrix helper + 13 list-closure edits + 26 depth.go StatusIn predicates + limit=0 gate fix + list-depth guardrail + status_matrix_test.go
 - [ ] 68-04-PLAN.md — CHANGELOG.md bootstrap + docs/API.md Known Divergences + CLAUDE.md soft-delete hygiene note + final REQ-ID coverage audit
 
 ### Phase 69: Filter-value Unicode folding, operator coercion, `__in` robustness

@@ -25,16 +25,16 @@ All requirements below cite upstream code by path and line. The canonical refere
 
 ### Status × Since Matrix (STATUS)
 
-- [ ] **STATUS-01**: `pdbcompat` list requests without `?since` return only rows where `status=ok` (matches `rest.py:694-727`)
-- [ ] **STATUS-02**: `pdbcompat` single-object requests (by pk) include rows where `status IN (ok, pending)`
-- [ ] **STATUS-03**: `pdbcompat` list requests with `?since>0` include rows where `status IN (ok, deleted)`, with `pending` additionally included for the `campus` type
-- [ ] **STATUS-04**: Explicit `?status=deleted` without `?since` returns an empty set (upstream applies the final `status=ok` filter unconditionally on list requests)
+- [x] **STATUS-01**: `pdbcompat` list requests without `?since` return only rows where `status=ok` (matches `rest.py:694-727`) **(delivered by Phase 68 Plan 03 — applyStatusMatrix helper + 13 list-closure edits + Fields-map `status` removals per D-07.)**
+- [x] **STATUS-02**: `pdbcompat` single-object requests (by pk) include rows where `status IN (ok, pending)` **(delivered by Phase 68 Plan 03 — 26 `StatusIn("ok","pending")` inserts across 13 `getXWithDepth` functions in depth.go per D-06.)**
+- [x] **STATUS-03**: `pdbcompat` list requests with `?since>0` include rows where `status IN (ok, deleted)`, with `pending` additionally included for the `campus` type **(data prereq delivered by Phase 68 Plan 02 soft-delete flip; pdbcompat surface delivered by Phase 68 Plan 03 — applyStatusMatrix(isCampus, sinceSet=true) emits the allowed status slice with pending appended only for campus per D-05.)**
+- [x] **STATUS-04**: Explicit `?status=deleted` without `?since` returns an empty set (upstream applies the final `status=ok` filter unconditionally on list requests) **(delivered by Phase 68 Plan 03 — Fields-map removal causes ParseFilters to silently drop `?status=<anything>`; applyStatusMatrix still emits `status=ok` unconditionally when `sinceSet=false` per D-07.)**
 - [x] **STATUS-05**: The `PDBPLUS_INCLUDE_DELETED` config gate is re-scoped: it controls *what sync persists*, not *what pdbcompat serves* — status-matrix filtering becomes pdbcompat's responsibility **(delivered by Phase 68 Plan 01 via D-01 removal — the gate is gone entirely; sync unconditionally persists deleted rows starting with Plan 68-02's soft-delete flip.)**
 
 ### Limit Semantics (LIMIT)
 
-- [ ] **LIMIT-01**: `pdbcompat` `?limit=0` returns all matching rows with no upper bound (matches `rest.py:494-497`); count-only semantics are NOT implemented (pdbfe claim confirmed wrong)
-- [ ] **LIMIT-02**: Depth>0 list responses continue to respect the implicit `API_DEPTH_ROW_LIMIT=250` cap per `rest.py:744-748`
+- [x] **LIMIT-01**: `pdbcompat` `?limit=0` returns all matching rows with no upper bound (matches `rest.py:494-497`); count-only semantics are NOT implemented (pdbfe claim confirmed wrong) **(delivered by Phase 68 Plan 03 — ParsePaginationParams treats `limit=0` as unlimited sentinel with MaxLimit clamp gated on `limit > 0`; 13 list closures apply `.Limit(opts.Limit)` only when `opts.Limit > 0`. Empirical probe test locks ent v0.14.6 `.Limit(0)` = unlimited behaviour via sqlgraph `graph.go:1086` `if q.Limit != 0` gate.)**
+- [x] **LIMIT-02**: Depth>0 list responses continue to respect the implicit `API_DEPTH_ROW_LIMIT=250` cap per `rest.py:744-748` **(delivered by Phase 68 Plan 03 as a serveList depth-on-list guardrail — `?depth=` on list endpoints is silently ignored with a `slog.DebugContext` paper trail; opts.Depth never leaks into list closures. Phase 71 will own the memory-safe functional list+depth implementation.)**
 
 ### __in Robustness (IN)
 
@@ -92,13 +92,13 @@ Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% covera
 | ORDER-01 | 67 | Complete |
 | ORDER-02 | 67 | Complete |
 | ORDER-03 | 67 | Complete |
-| STATUS-01 | 68 | pending |
-| STATUS-02 | 68 | pending |
-| STATUS-03 | 68 | data prereq delivered (68-02 soft-delete flip); pdbcompat surface pending (68-03) |
-| STATUS-04 | 68 | pending |
+| STATUS-01 | 68 | complete (68-03) |
+| STATUS-02 | 68 | complete (68-03) |
+| STATUS-03 | 68 | complete (68-02 data prereq + 68-03 pdbcompat surface) |
+| STATUS-04 | 68 | complete (68-03) |
 | STATUS-05 | 68 | complete (68-01) |
-| LIMIT-01 | 68 | pending |
-| LIMIT-02 | 68 | pending |
+| LIMIT-01 | 68 | complete (68-03) |
+| LIMIT-02 | 68 | complete (68-03 guardrail; functional list+depth deferred to Phase 71) |
 | IN-01 | 69 | pending |
 | IN-02 | 69 | pending |
 | UNICODE-01 | 69 | pending |
