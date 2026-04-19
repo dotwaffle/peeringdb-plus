@@ -160,7 +160,7 @@ Notes on parallelism:
 | 68. Status × since matrix + limit=0 | 1/4 | In progress | - |
 | 69. Unicode + operator + __in | 3/6 | In progress | - |
 | 70. Cross-entity __ traversal | 8/8 | Complete | 2026-04-19 |
-| 71. Memory-safe response paths | 0/? | Not started | - |
+| 71. Memory-safe response paths | 3/6 | In progress | - |
 | 72. Upstream parity regression | 0/? | Not started | - |
 
 ## Backlog
