@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.16
-milestone_name: — Django-compat Correctness
-status: all-phases-context-locked
-stopped_at: 6/6 CONTEXT.md locked — ready for /gsd-plan-phase 67 or /gsd-autonomous
-last_updated: "2026-04-19T00:00:00.000Z"
+milestone: v1.0
+milestone_name: milestone
+status: executing
+stopped_at: All 6 v1.16 phase CONTEXT.md files locked. SEED-004 planted. Ready for planning.
+last_updated: "2026-04-19T12:22:38.211Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 6
+  completed_plans: 2
+  percent: 33
 ---
 
 # Project State
@@ -22,15 +22,15 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** v1.16 Django-compat Correctness — align `pdbcompat` with upstream Django semantics (validated against `peeringdb/peeringdb@99e92c72`); memory-safe response paths on 256 MB replicas.
+**Current focus:** Phase 67 — default-ordering-flip
 
 ## Current Position
 
-Phase: 67 — not started (CONTEXT locked, awaiting plan)
-Plan: —
-Status: All 6 phase CONTEXT.md files locked (`has_context: true`). 25/25 v1.16 requirements mapped. 19 D-0N decisions captured across phases. Ready to plan.
+Phase: 67 (default-ordering-flip) — EXECUTING
+Plan: 2 of 6
+Status: Ready to execute
 Next action: `/gsd-plan-phase 67` OR `/gsd-autonomous` (walks 67 → 72)
-Last activity: 2026-04-19 — discuss-phase questions completed for all 6 phases; CONTEXT files + SEED-004 committed at `b9ef238`
+Last activity: 2026-04-19
 
 ## v1.16 Phase Map
 
@@ -149,6 +149,7 @@ All decisions archived in PROJECT.md Key Decisions table (46+ decisions across 1
 - **v1.14 decisions** captured in PROJECT.md (Phase 58 schema sufficiency, `<field>_visible` naming, NULL-as-schema-default, regression test locks empirical assumption)
 - **v1.15 decisions** captured in PROJECT.md (schema hygiene drops Phase 63, asymmetric Fly fleet Phase 65, sync observability hybrid Phase 66)
 - **v1.16 decisions** — 19 D-0N locked in phase CONTEXT.md files above. Will be promoted into PROJECT.md Key Decisions table at each phase transition via `/gsd:transition`.
+- **Phase 67 Plan 02**: D-67-02-01 — entrest template override wired via custom entc.Option rather than entc.TemplateDir. The latter cannot resolve entrest-provided template funcs (getAnnotation, getSortableFields) because gen.NewTemplate does not register entrest's funcmap by default. Fix: local helper `entrestSortingOverride()` in `ent/entc.go` that calls `gen.NewTemplate(...).Funcs(entrest.FuncMaps())` before ParseDir.
 
 ### Seeds
 
@@ -179,7 +180,7 @@ One **coordination note** for executor: do NOT ship Phase 68 to prod before Phas
 
 ## Session Continuity
 
-Last session: 2026-04-19
+Last session: 2026-04-19T12:22:38.206Z
 Last activity: 2026-04-19
 Stopped at: All 6 v1.16 phase CONTEXT.md files locked. SEED-004 planted. Ready for planning.
 
