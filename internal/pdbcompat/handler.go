@@ -3,6 +3,7 @@ package pdbcompat
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"maps"
 	"net/http"
 	"slices"
@@ -124,6 +125,21 @@ func (h *Handler) serveIndex(w http.ResponseWriter) {
 // serveList handles list requests for the given type.
 func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
+
+	// Phase 68 LIMIT-02 guardrail (research Open Question 1, recommendation b):
+	// list + ?depth= is not supported in Phase 68. Phase 71 owns the memory-safe
+	// list+depth implementation. Silently ignore the param here so callers get
+	// normal list behaviour rather than a 400 (matches upstream rest.py:
+	// unsupported request shapes fall through to default list semantics).
+	// opts.Depth is never populated on list requests, so there is no leak —
+	// list closures never see a non-zero depth. The debug slog documents the
+	// no-op for operators who enable DEBUG logging.
+	if params.Get("depth") != "" {
+		slog.DebugContext(r.Context(), "pdbcompat list: ignoring unsupported ?depth= param (Phase 68 LIMIT-02 guardrail; Phase 71 will add list+depth)",
+			slog.String("path", r.URL.Path),
+			slog.String("type", tc.Name),
+		)
+	}
 
 	// Parse pagination per D-16.
 	limit, skip := ParsePaginationParams(params)

@@ -60,10 +60,18 @@ func setupTestHandler(t *testing.T) (*Handler, *http.ServeMux) {
 		t.Fatalf("create network 2: %v", err)
 	}
 
+	// Phase 68 Plan 68-03: network 3 flipped from status="deleted" to
+	// status="ok". Under STATUS-01 (D-07) a list without ?since filters
+	// unconditionally to status=ok, so a seeded deleted row would no
+	// longer appear in default list responses — the pre-existing
+	// assertions (3 items, 2 cloud matches, sorted [3,2,1], etc.) all
+	// target list-visibility behaviour that is orthogonal to the status
+	// field. The dedicated status × since matrix coverage lives in
+	// status_matrix_test.go which seeds its own mixed-status fixtures.
 	_, err = client.Network.Create().
 		SetName("CloudySkies Corp").
 		SetAsn(65000).
-		SetStatus("deleted").
+		SetStatus("ok").
 		SetCreated(future).
 		SetUpdated(future).
 		Save(ctx)
@@ -376,8 +384,15 @@ func TestExactFilter(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)
 
-	// status=ok should match 2 networks.
-	req := httptest.NewRequest(http.MethodGet, "/api/net?status=ok", nil)
+	// Phase 68 D-07: ?status= is no longer in the Fields map for any of
+	// the 13 types, so ParseFilters silently drops it. The status matrix
+	// (applyStatusMatrix) applies unconditionally: list without ?since
+	// returns only status=ok rows regardless of what ?status= was passed.
+	// All 3 seed networks are now status=ok, so this returns 3 items.
+	// Dedicated status × since matrix coverage lives in
+	// status_matrix_test.go. This test now asserts the intended exact-
+	// filter behaviour on a still-filterable field (asn).
+	req := httptest.NewRequest(http.MethodGet, "/api/net?asn=13335", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -393,8 +408,8 @@ func TestExactFilter(t *testing.T) {
 	if err := json.Unmarshal(env.Data, &data); err != nil {
 		t.Fatalf("unmarshal data: %v", err)
 	}
-	if len(data) != 2 {
-		t.Errorf("expected 2 items with status=ok, got %d", len(data))
+	if len(data) != 1 {
+		t.Errorf("expected 1 item with asn=13335, got %d", len(data))
 	}
 }
 

@@ -60,12 +60,18 @@ func wireOrgFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Organization(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.Organization(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.Organization.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count organizations: %w", err)
 			}
-			orgs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			orgs, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list organizations: %w", err)
 			}
@@ -87,12 +93,18 @@ func wireNetFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Network(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.Network(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.Network.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count networks: %w", err)
 			}
-			nets, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			nets, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list networks: %w", err)
 			}
@@ -114,12 +126,18 @@ func wireFacFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Facility(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.Facility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.Facility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count facilities: %w", err)
 			}
-			facs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			facs, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list facilities: %w", err)
 			}
@@ -141,12 +159,18 @@ func wireIXFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.InternetExchange(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.InternetExchange(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.InternetExchange.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count internet exchanges: %w", err)
 			}
-			ixes, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			ixes, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list internet exchanges: %w", err)
 			}
@@ -168,12 +192,18 @@ func wirePocFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Poc(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.Poc(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.Poc.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count pocs: %w", err)
 			}
-			pocs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			pocs, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list pocs: %w", err)
 			}
@@ -195,12 +225,18 @@ func wireIXLanFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.IxLan(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.IxLan(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.IxLan.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count ixlans: %w", err)
 			}
-			lans, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			lans, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list ixlans: %w", err)
 			}
@@ -222,12 +258,18 @@ func wireIXPfxFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.IxPrefix(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.IxPrefix(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.IxPrefix.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count ixprefixes: %w", err)
 			}
-			pfxs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			pfxs, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list ixprefixes: %w", err)
 			}
@@ -249,12 +291,18 @@ func wireNetIXLanFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.NetworkIxLan(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.NetworkIxLan(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.NetworkIxLan.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count networkixlans: %w", err)
 			}
-			nixls, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			nixls, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list networkixlans: %w", err)
 			}
@@ -276,12 +324,18 @@ func wireNetFacFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.NetworkFacility(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.NetworkFacility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.NetworkFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count networkfacilities: %w", err)
 			}
-			nfacs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			nfacs, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list networkfacilities: %w", err)
 			}
@@ -303,12 +357,18 @@ func wireIXFacFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.IxFacility(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.IxFacility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.IxFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count ixfacilities: %w", err)
 			}
-			ixfacs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			ixfacs, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list ixfacilities: %w", err)
 			}
@@ -330,12 +390,18 @@ func wireCarrierFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Carrier(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.Carrier(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.Carrier.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count carriers: %w", err)
 			}
-			carriers, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			carriers, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list carriers: %w", err)
 			}
@@ -357,12 +423,18 @@ func wireCarrierFacFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.CarrierFacility(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			preds = append(preds, predicate.CarrierFacility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 			q := client.CarrierFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count carrierfacilities: %w", err)
 			}
-			cfs, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			cfs, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list carrierfacilities: %w", err)
 			}
@@ -384,12 +456,19 @@ func wireCampusFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Campus(s))
 			}
+			// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+			// Campus is the only type that admits status=pending on list+since (rest.py:721).
+			preds = append(preds, predicate.Campus(applyStatusMatrix(true /*isCampus*/, opts.Since != nil)))
 			q := client.Campus.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count campuses: %w", err)
 			}
-			campuses, err := q.Limit(opts.Limit).Offset(opts.Skip).All(ctx)
+			q2 := q.Offset(opts.Skip)
+			if opts.Limit > 0 {
+				q2 = q2.Limit(opts.Limit)
+			}
+			campuses, err := q2.All(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("list campuses: %w", err)
 			}

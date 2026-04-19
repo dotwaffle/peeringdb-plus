@@ -50,14 +50,22 @@ func WriteProblem(w http.ResponseWriter, input httperr.WriteProblemInput) {
 
 // ParsePaginationParams extracts limit and skip from query parameters with
 // defaults and bounds per D-16, D-21.
+//
+// Phase 68 LIMIT-01: limit=0 is a sentinel meaning "no upper bound" and
+// matches upstream rest.py:734-737 semantics. MaxLimit=1000 clamps only
+// positive limits; limit=0 is passed through to the list closures
+// unchanged and their `if opts.Limit > 0 { .Limit(...) }` gate omits the
+// SQL LIMIT clause entirely. Phase 71 will land the per-response memory
+// budget that is the real DoS safeguard — do NOT deploy Phase 68 to prod
+// without Phase 71 per CONTEXT.md D-04.
 func ParsePaginationParams(params url.Values) (limit, skip int) {
 	limit = DefaultLimit
 	if v := params.Get("limit"); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
 			limit = parsed
 		}
 	}
-	if limit > MaxLimit {
+	if limit > 0 && limit > MaxLimit {
 		limit = MaxLimit
 	}
 
