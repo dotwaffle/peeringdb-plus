@@ -49,10 +49,10 @@ All requirements below cite upstream code by path and line. The canonical refere
 
 ### Cross-Entity `__` Traversal (TRAVERSAL)
 
-- [ ] **TRAVERSAL-01**: `pdbcompat` implements per-serializer `prepare_query` allowlists for all 13 entity types, mirroring upstream `serializers.py` (11 distinct allowlist shapes verified in the validation audit)
-- [ ] **TRAVERSAL-02**: `pdbcompat` implements automatic `<fk>__<field>` traversal via ent relationship introspection minus a documented `FILTER_EXCLUDE` list — matches upstream `queryable_relations()` (Path B)
-- [ ] **TRAVERSAL-03**: 2-hop traversal is supported (e.g. `/api/fac?ixlan__ix__fac_count__gt=0` resolves through netixlan → ix → fac_count as in upstream `pdb_api_test.py:2340,2348`)
-- [ ] **TRAVERSAL-04**: Unknown filter fields are silently ignored rather than rejected with HTTP 400 (matches upstream `rest.py:544-662` behaviour; breaking strictness would regress existing integrations)
+- [x] **TRAVERSAL-01**: `pdbcompat` implements per-serializer `prepare_query` allowlists for all 13 entity types, mirroring upstream `serializers.py` (11 distinct allowlist shapes verified in the validation audit)
+- [x] **TRAVERSAL-02**: `pdbcompat` implements automatic `<fk>__<field>` traversal via ent relationship introspection minus a documented `FILTER_EXCLUDE` list — matches upstream `queryable_relations()` (Path B)
+- [x] **TRAVERSAL-03**: 2-hop traversal is supported (e.g. `/api/fac?ixlan__ix__fac_count__gt=0` resolves through netixlan → ix → fac_count as in upstream `pdb_api_test.py:2340,2348`)
+- [x] **TRAVERSAL-04**: Unknown filter fields are silently ignored rather than rejected with HTTP 400 (matches upstream `rest.py:544-662` behaviour; breaking strictness would regress existing integrations)
 
 ### Memory-Safe Response Paths (MEMORY)
 
