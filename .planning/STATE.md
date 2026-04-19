@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 67-06 (Wave 5 — cross-surface ordering parity E2E + docs) — Phase 67 COMPLETE
-last_updated: "2026-04-19T13:15:00Z"
+stopped_at: Completed 68-01 (sync-side rescope of PDBPLUS_INCLUDE_DELETED; filterByStatus deleted; grace-period WARN shipped). Plan 68-02 (soft-delete flip) is next.
+last_updated: "2026-04-19T14:10:00Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_plans: 10
+  completed_plans: 7
+  percent: 70
 ---
 
 # Project State
@@ -26,10 +26,10 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 ## Current Position
 
-Phase: 67 (default-ordering-flip) — COMPLETE (6/6 plans shipped)
-Plan: 6 of 6 (Phase 67 done)
-Status: Ready to transition to Phase 68
-Next action: `/gsd-plan-phase 68` OR `/gsd-autonomous` (walks 68 → 72)
+Phase: 68 (status-since-matrix) — IN PROGRESS (1/4 plans shipped)
+Plan: 1 of 4 (68-01 done; 68-02 next)
+Status: Executing Phase 68 plans
+Next action: `/gsd-execute-phase 68-02` to run the soft-delete flip plan (rename 13 `deleteStale*` → `markStaleDeleted*`)
 Last activity: 2026-04-19
 
 ## v1.16 Phase Map
@@ -155,6 +155,7 @@ All decisions archived in PROJECT.md Key Decisions table (46+ decisions across 1
 - **Phase 67 Plan 05 D-02**: SinceID no longer seeds the StreamEntities cursor tracker. Under compound keyset, SinceID is a pure predicate (applied in the predicates slice before Order per D-05); seeding the cursor would skip valid rows with `updated > start` under the new DESC order. Removed the `lastID = int(*params.SinceID)` seed line.
 - **Phase 67 Plan 05 D-03**: Three pre-existing tests (`TestStreamCarrierFacilities`, `TestStreamNetworkIxLans`, `TestStreamPocs`) had weak "first-message=id=1" assertions. Fixed in-task by spreading seed timestamps (id=1 gets updated+=1h) so id=1 still sorts first under the new order — preserves the existing assertion intent without semantic rewrite.
 - **Phase 67 Plan 06**: Cross-surface E2E (`cmd/peeringdb-plus/ordering_cross_surface_e2e_test.go`) and `docs/ARCHITECTURE.md` § Ordering landed. Clarification: entrest does NOT accept `?depth=N` — nested eager-loaded edges are schema-declarative (`entrest.WithEagerLoad(true)`). The plan's "depth=2" phrasing is a codename for "depth ≥ 1 eager-loaded edge"; assertion path is `content[0].edges.network_ix_lans[]` on `/rest/v1/networks`. D-04 clarification locked in via `TestEntrestNestedSetOrder/depth2`.
+- **Phase 68 Plan 01**: PDBPLUS_INCLUDE_DELETED removed from Config with slog.Warn-and-ignore grace-period shim; WorkerConfig.IncludeDeleted + filterByStatus[E] + its 244-line test file deleted; syncIncremental[E] lost the includeDeleted parameter + filter branch. Test-file ripple: TestFullSyncWithFixtures + TestSyncDeletesStaleRecords first-sync assertions bumped from 2 to 3 orgs (upsert path now persists status=deleted rows; hard-delete still runs until 68-02). TestSyncFilterDeletedObjects deleted outright (tested removed filter); TestSyncIncludeDeleted renamed to TestSyncPersistsDeletedRowsUnconditional as intermediate marker for 68-02's semantic rewrite. Golden file `testdata/refactor_parity.golden.json` regenerated via `go test ./internal/sync -update` to include org 3 tombstone. Added gosec G706 nolint on the deprecation slog.Warn with threat-register T-68-01-03 rationale.
 
 ### Seeds
 
@@ -185,11 +186,11 @@ One **coordination note** for executor: do NOT ship Phase 68 to prod before Phas
 
 ## Session Continuity
 
-Last session: 2026-04-19T13:15:00Z
+Last session: 2026-04-19T14:10:00Z
 Last activity: 2026-04-19
-Stopped at: Completed 67-06 (Wave 5 — cross-surface ordering parity E2E + docs) — Phase 67 COMPLETE
+Stopped at: Completed 68-01 (PDBPLUS_INCLUDE_DELETED rescoped to sync-side grace-period WARN; filterByStatus helper deleted; tests + docs + golden updated). Plan 68-02 (soft-delete flip) is next.
 
-### Resume via `/gsd-plan-phase 68` or `/gsd-autonomous`
+### Resume via `/gsd-execute-phase 68-02` or `/gsd-autonomous`
 
 Each of phases 67-72 has `has_context: true` frontmatter and full D-0N decisions captured. The autonomous workflow skips `discuss-phase` entirely and goes straight to plan → execute per phase. Do NOT re-run `/gsd-discuss-phase` unless a decision needs to be reopened.
 

@@ -29,7 +29,7 @@ All requirements below cite upstream code by path and line. The canonical refere
 - [ ] **STATUS-02**: `pdbcompat` single-object requests (by pk) include rows where `status IN (ok, pending)`
 - [ ] **STATUS-03**: `pdbcompat` list requests with `?since>0` include rows where `status IN (ok, deleted)`, with `pending` additionally included for the `campus` type
 - [ ] **STATUS-04**: Explicit `?status=deleted` without `?since` returns an empty set (upstream applies the final `status=ok` filter unconditionally on list requests)
-- [ ] **STATUS-05**: The `PDBPLUS_INCLUDE_DELETED` config gate is re-scoped: it controls *what sync persists*, not *what pdbcompat serves* — status-matrix filtering becomes pdbcompat's responsibility
+- [x] **STATUS-05**: The `PDBPLUS_INCLUDE_DELETED` config gate is re-scoped: it controls *what sync persists*, not *what pdbcompat serves* — status-matrix filtering becomes pdbcompat's responsibility **(delivered by Phase 68 Plan 01 via D-01 removal — the gate is gone entirely; sync unconditionally persists deleted rows starting with Plan 68-02's soft-delete flip.)**
 
 ### Limit Semantics (LIMIT)
 
@@ -96,7 +96,7 @@ Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% covera
 | STATUS-02 | 68 | pending |
 | STATUS-03 | 68 | pending |
 | STATUS-04 | 68 | pending |
-| STATUS-05 | 68 | pending |
+| STATUS-05 | 68 | complete (68-01) |
 | LIMIT-01 | 68 | pending |
 | LIMIT-02 | 68 | pending |
 | IN-01 | 69 | pending |
