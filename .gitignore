@@ -2,6 +2,8 @@
 /peeringdb-plus
 /pdb-schema-extract
 /pdb-schema-generate
+/pdb-compat-allowlist
+/pdbcompat-check
 *.exe
 *.dll
 *.so
