@@ -195,9 +195,11 @@ func TestAllFixtures_NoDuplicateIDsWithinCategory(t *testing.T) {
 }
 
 // TestAllFixtures_UpstreamCitationPresent asserts Plan 72-02 Task 2
-// Test 6: every entry across all three slices has a non-empty
-// Upstream citation. Required by threat T-72-02-02 (repudiation
-// mitigation: every fixture must trace back to upstream source).
+// Test 6: every entry across all six slices has a non-empty Upstream
+// citation. Required by threat T-72-02-02 (repudiation mitigation:
+// every fixture must trace back to upstream source). Plan 72-03
+// extends this to include UnicodeFixtures + InFixtures +
+// TraversalFixtures.
 func TestAllFixtures_UpstreamCitationPresent(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -207,8 +209,12 @@ func TestAllFixtures_UpstreamCitationPresent(t *testing.T) {
 		{"ordering", OrderingFixtures},
 		{"status", StatusFixtures},
 		{"limit", LimitFixtures},
+		{"unicode", UnicodeFixtures},
+		{"in", InFixtures},
+		{"traversal", TraversalFixtures},
 	}
 	for _, tc := range cases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			for i, f := range tc.fixtures {
@@ -218,6 +224,129 @@ func TestAllFixtures_UpstreamCitationPresent(t *testing.T) {
 				if f.Entity == "" {
 					t.Errorf("%s[%d] missing Entity (Upstream=%q)", tc.name, i, f.Upstream)
 				}
+			}
+		})
+	}
+}
+
+// TestUnicodeFixtures_Sanity asserts Plan 72-03 Task 2 Test 1:
+// UnicodeFixtures must contain ≥32 entries with at least 2 distinct
+// non-ASCII inputs (one diacritic + one CJK). Lower-bound 32 = 6
+// entities × 4 fields × ≥1 sample minimum, well below the synth
+// target of ~216 (6 × 4 × 9).
+func TestUnicodeFixtures_Sanity(t *testing.T) {
+	t.Parallel()
+	const minEntries = 32
+	if got := len(UnicodeFixtures); got < minEntries {
+		t.Fatalf("UnicodeFixtures has %d entries, want ≥%d", got, minEntries)
+	}
+	var diacritic, cjk bool
+	for _, f := range UnicodeFixtures {
+		for _, v := range f.Fields {
+			s := unquote(v)
+			for _, r := range s {
+				if r >= 0x4E00 && r <= 0x9FFF {
+					cjk = true
+				}
+				if r == 'ü' || r == 'ö' || r == 'é' || r == 'ñ' {
+					diacritic = true
+				}
+			}
+		}
+	}
+	if !diacritic {
+		t.Error("UnicodeFixtures has no diacritic sample (ü/ö/é/ñ)")
+	}
+	if !cjk {
+		t.Error("UnicodeFixtures has no CJK sample (U+4E00..U+9FFF)")
+	}
+}
+
+// TestInFixtures_LargeContiguousBlock asserts Plan 72-03 Task 2
+// Test 2: InFixtures must contain a contiguous Entity="network"
+// block at IDs 100000..105000 (exactly 5001 entries) + the sentinel
+// at ID=999999 for the empty-__in test.
+func TestInFixtures_LargeContiguousBlock(t *testing.T) {
+	t.Parallel()
+	byID := map[int]bool{}
+	var hasSentinel bool
+	for _, f := range InFixtures {
+		if f.Entity != "net" {
+			continue
+		}
+		byID[f.ID] = true
+		if f.ID == 999999 {
+			hasSentinel = true
+		}
+	}
+	if !hasSentinel {
+		t.Error("InFixtures missing empty-__in sentinel (ID=999999)")
+	}
+	const lo, hi = 100000, 105000
+	missing := 0
+	for id := lo; id <= hi; id++ {
+		if !byID[id] {
+			missing++
+			if missing <= 5 {
+				t.Errorf("InFixtures missing network fixture ID %d", id)
+			}
+		}
+	}
+	if missing > 5 {
+		t.Errorf("InFixtures missing %d total IDs in [%d..%d]", missing, lo, hi)
+	}
+}
+
+// TestTraversalFixtures_RingAndSilentIgnore asserts Plan 72-03 Task
+// 2 Test 3: TraversalFixtures contains ≥1 fixture with __hop="2"
+// (verifying Path A or Path B 2-hop coverage) AND ≥1 silent-ignore
+// fixture (TRAVERSAL-04 — Phase 70 D-04 hard-2-hop cap silently
+// ignores 3+-segment chains).
+func TestTraversalFixtures_RingAndSilentIgnore(t *testing.T) {
+	t.Parallel()
+	var twoHop, silentIgnore bool
+	for _, f := range TraversalFixtures {
+		if h, ok := f.Fields["__hop"]; ok && unquote(h) == "2" {
+			twoHop = true
+		}
+		if o, ok := f.Fields["__expected_outcome"]; ok && unquote(o) == "silent-ignore" {
+			silentIgnore = true
+		}
+	}
+	if !twoHop {
+		t.Error("TraversalFixtures has no 2-hop fixture (__hop=\"2\")")
+	}
+	if !silentIgnore {
+		t.Error("TraversalFixtures has no silent-ignore fixture (TRAVERSAL-04)")
+	}
+}
+
+// TestAllFixtures_NoDuplicateIDsWithinCategoryAllSix extends the
+// 72-02 within-category dedup test to include the 3 new category
+// slices. Cross-category collisions are allowed by design (each
+// category seeds into its own ent client at test runtime).
+func TestAllFixtures_NoDuplicateIDsWithinCategoryAllSix(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name     string
+		fixtures []Fixture
+	}{
+		{"unicode", UnicodeFixtures},
+		{"in", InFixtures},
+		{"traversal", TraversalFixtures},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			seen := map[string]int{}
+			for i, f := range tc.fixtures {
+				key := fmt.Sprintf("%s|%d", f.Entity, f.ID)
+				if prev, ok := seen[key]; ok {
+					t.Errorf("duplicate (Entity=%q, ID=%d) in %s: indices %d and %d", f.Entity, f.ID, tc.name, prev, i)
+					continue
+				}
+				seen[key] = i
 			}
 		})
 	}
