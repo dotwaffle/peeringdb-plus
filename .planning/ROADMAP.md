@@ -78,7 +78,13 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. `GET /api/net?id__in=` (empty list) returns an empty result set, matching Django ORM semantics
   4. The `ParseFilters` fuzz corpus includes non-ASCII inputs (diacritics, CJK, combining marks, ZWJ); a fresh fuzz run produces zero panics
   5. Behaviour for ASCII-only inputs is unchanged — existing golden files and conformance tests pass without regeneration
-**Plans**: TBD
+**Plans:** 6 plans
+- [ ] 69-01-PLAN.md — internal/unifold package (Fold + NFKD + hand-rolled fold map + unit tests)
+- [ ] 69-02-PLAN.md — 16 field.String("*_fold") across 6 ent schemas + go generate ./...
+- [ ] 69-03-PLAN.md — 6 upsertX funcs populate _fold columns via unifold.Fold; 7 unaffected upserts untouched
+- [ ] 69-04-PLAN.md — filter.go: coerceToCaseInsensitive + shadow-column routing + json_each __in + empty-__in sentinel
+- [ ] 69-05-PLAN.md — fuzz corpus extension (500k exec) + bench_test + shadow-index decision
+- [ ] 69-06-PLAN.md — CHANGELOG + docs/API.md divergence + CLAUDE.md convention + REQ-ID audit
 
 ### Phase 70: Cross-entity `__` traversal (Path A + Path B + 2-hop)
 **Goal**: Pdbcompat resolves `<fk>__<field>` and `<fk>__<fk>__<field>` filter paths the way upstream does — per-serializer `prepare_query` allowlists (Path A) AND automatic relation introspection minus a `FILTER_EXCLUDE` list (Path B), with 2-hop support.
@@ -138,7 +144,7 @@ Notes on parallelism:
 |-------|----------------|--------|-----------|
 | 67. Default ordering flip | 6/6 | Complete | 2026-04-19 |
 | 68. Status × since matrix + limit=0 | 1/4 | In progress | - |
-| 69. Unicode + operator + __in | 0/? | Not started | - |
+| 69. Unicode + operator + __in | 0/6 | Planned | - |
 | 70. Cross-entity __ traversal | 0/? | Not started | - |
 | 71. Memory-safe response paths | 0/? | Not started | - |
 | 72. Upstream parity regression | 0/? | Not started | - |
