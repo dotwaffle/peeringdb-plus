@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 67-05 (Wave 4 — grpcserver default ordering + compound keyset cursor)
-last_updated: "2026-04-19T12:50:08Z"
+stopped_at: Completed 67-06 (Wave 5 — cross-surface ordering parity E2E + docs) — Phase 67 COMPLETE
+last_updated: "2026-04-19T13:15:00Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
-  completed_plans: 4
-  percent: 67
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -22,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 67 — default-ordering-flip
+**Current focus:** Phase 67 — default-ordering-flip (COMPLETE); next is Phase 68 — status × since matrix + limit=0
 
 ## Current Position
 
-Phase: 67 (default-ordering-flip) — EXECUTING
-Plan: 3 of 6
-Status: Ready to execute
-Next action: `/gsd-plan-phase 67` OR `/gsd-autonomous` (walks 67 → 72)
+Phase: 67 (default-ordering-flip) — COMPLETE (6/6 plans shipped)
+Plan: 6 of 6 (Phase 67 done)
+Status: Ready to transition to Phase 68
+Next action: `/gsd-plan-phase 68` OR `/gsd-autonomous` (walks 68 → 72)
 Last activity: 2026-04-19
 
 ## v1.16 Phase Map
@@ -154,6 +154,7 @@ All decisions archived in PROJECT.md Key Decisions table (46+ decisions across 1
 - **Phase 67 Plan 05 D-01**: Shared `keysetCursorPredicate(cursor) func(*sql.Selector)` helper in `internal/grpcserver/generic.go` — single source of truth for the compound keyset predicate shape. Used by all 13 per-entity QueryBatch closures via `predicate.<Type>(keysetCursorPredicate(cursor))` downcast (works because ent's generated predicate types are `~func(*sql.Selector)`).
 - **Phase 67 Plan 05 D-02**: SinceID no longer seeds the StreamEntities cursor tracker. Under compound keyset, SinceID is a pure predicate (applied in the predicates slice before Order per D-05); seeding the cursor would skip valid rows with `updated > start` under the new DESC order. Removed the `lastID = int(*params.SinceID)` seed line.
 - **Phase 67 Plan 05 D-03**: Three pre-existing tests (`TestStreamCarrierFacilities`, `TestStreamNetworkIxLans`, `TestStreamPocs`) had weak "first-message=id=1" assertions. Fixed in-task by spreading seed timestamps (id=1 gets updated+=1h) so id=1 still sorts first under the new order — preserves the existing assertion intent without semantic rewrite.
+- **Phase 67 Plan 06**: Cross-surface E2E (`cmd/peeringdb-plus/ordering_cross_surface_e2e_test.go`) and `docs/ARCHITECTURE.md` § Ordering landed. Clarification: entrest does NOT accept `?depth=N` — nested eager-loaded edges are schema-declarative (`entrest.WithEagerLoad(true)`). The plan's "depth=2" phrasing is a codename for "depth ≥ 1 eager-loaded edge"; assertion path is `content[0].edges.network_ix_lans[]` on `/rest/v1/networks`. D-04 clarification locked in via `TestEntrestNestedSetOrder/depth2`.
 
 ### Seeds
 
@@ -184,11 +185,11 @@ One **coordination note** for executor: do NOT ship Phase 68 to prod before Phas
 
 ## Session Continuity
 
-Last session: 2026-04-19T12:50:08Z
+Last session: 2026-04-19T13:15:00Z
 Last activity: 2026-04-19
-Stopped at: Completed 67-05 (Wave 4 — grpcserver default ordering + compound keyset cursor)
+Stopped at: Completed 67-06 (Wave 5 — cross-surface ordering parity E2E + docs) — Phase 67 COMPLETE
 
-### Resume via `/gsd-plan-phase 67` or `/gsd-autonomous`
+### Resume via `/gsd-plan-phase 68` or `/gsd-autonomous`
 
 Each of phases 67-72 has `has_context: true` frontmatter and full D-0N decisions captured. The autonomous workflow skips `discuss-phase` entirely and goes straight to plan → execute per phase. Do NOT re-run `/gsd-discuss-phase` unless a decision needs to be reopened.
 

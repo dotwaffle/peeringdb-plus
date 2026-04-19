@@ -10,7 +10,7 @@
 
 **v1.16 — Django-compat Correctness (current)**
 
-- [ ] **Phase 67: Default ordering flip** — Pdbcompat, grpcserver, entrest list paths return rows in upstream `(-updated, -created)` order
+- [x] **Phase 67: Default ordering flip** — Pdbcompat, grpcserver, entrest list paths return rows in upstream `(-updated, -created)` order
 - [ ] **Phase 68: Status × since matrix + limit=0 semantics** — Pdbcompat applies upstream status-filter rules and treats `limit=0` as unlimited
 - [ ] **Phase 69: Filter-value Unicode folding, operator coercion, `__in` robustness** — Pdbcompat filter layer matches upstream `rest.py:544-662` value handling
 - [ ] **Phase 70: Cross-entity `__` traversal (Path A + Path B + 2-hop)** — Pdbcompat resolves filter paths across FKs like upstream serializers
@@ -44,13 +44,13 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   2. `ListNetworks` / `StreamNetworks` and analogous ConnectRPC List/Stream RPCs for all 13 types return rows in the same `(-updated, -created)` order; cursor pagination remains stable across pages
   3. `/rest/v1/*` list endpoints default to `(-updated, -created)` while still honouring explicit `?sort=` overrides for non-default orderings
   4. Existing streaming RPC cursor-resume semantics (`since_id`, `updated_since`) continue to work under the new default order
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans executed
 - [x] 67-01-PLAN.md — Add `index.Fields("updated")` + `entrest.WithDefaultSort/Order` + `WithSortable(true)` to all 13 ent schemas + lock-step generator template (D-02, D-08)
 - [x] 67-02-PLAN.md — `entc.TemplateDir` override for compound `(-updated, -created, -id)` entrest default (D-07) — embeds exact upstream sorting.tmpl variables
 - [x] 67-03-PLAN.md — Flip 13 pdbcompat `.Order()` calls to compound + regenerate 39 goldens + new TestDefaultOrdering_Pdbcompat
 - [x] 67-04-PLAN.md — Add `streamCursor` type + encode/decode helpers in grpcserver/pagination.go (Plan 05 dep)
 - [x] 67-05-PLAN.md — Flip 26 grpcserver order sites + StreamParams signature + 13 QueryBatch keyset closures + tests
-- [ ] 67-06-PLAN.md — Cross-surface E2E test (pdbcompat + entrest + grpcserver parity + nested _set per D-04 clarification) + docs/ARCHITECTURE.md § Ordering
+- [x] 67-06-PLAN.md — Cross-surface E2E test (pdbcompat + entrest + grpcserver parity + nested _set per D-04 clarification) + docs/ARCHITECTURE.md § Ordering
 
 ### Phase 68: Status × since matrix + limit=0 semantics
 **Goal**: Pdbcompat response filtering matches the upstream `rest.py:494-727` rules for `?status`, `?since`, and `?limit`, and the `PDBPLUS_INCLUDE_DELETED` gate is re-scoped as a sync-side knob only.
@@ -132,7 +132,7 @@ Notes on parallelism:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 67. Default ordering flip | 3/6 | In Progress|  |
+| 67. Default ordering flip | 6/6 | Complete | 2026-04-19 |
 | 68. Status × since matrix + limit=0 | 0/? | Not started | - |
 | 69. Unicode + operator + __in | 0/? | Not started | - |
 | 70. Cross-entity __ traversal | 0/? | Not started | - |
