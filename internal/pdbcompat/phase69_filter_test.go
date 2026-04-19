@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -363,13 +364,28 @@ func TestPhase68StatusMatrix_Phase69Layering(t *testing.T) {
 	srv := httptest.NewServer(newPhase69Mux(client))
 	t.Cleanup(srv.Close)
 
-	// ?status=deleted is silently dropped by Fields map (Phase 68). Only
-	// status=ok rows are returned by the status matrix. The name__contains
-	// is coerced/folded and matches both Foo rows.
-	ids := phase69FetchIDs(t, srv.URL+"/api/net?status=deleted&name__contains=foo")
-	if !sameIDs(ids, []int{1}) {
-		t.Errorf("status+name__contains: got ids %v, want [1] — status=deleted dropped, name filter returns ok row only", ids)
-	}
+	t.Run("without_since_ok_only", func(t *testing.T) {
+		// ?status=deleted is silently dropped by Fields map (Phase 68). Only
+		// status=ok rows are returned by the status matrix. The name__contains
+		// is coerced/folded and matches both Foo rows, but the status matrix
+		// restricts the result set to status='ok'.
+		ids := phase69FetchIDs(t, srv.URL+"/api/net?status=deleted&name__contains=foo")
+		if !sameIDs(ids, []int{1}) {
+			t.Errorf("status+name__contains: got ids %v, want [1] — status=deleted dropped, name filter returns ok row only", ids)
+		}
+	})
+
+	t.Run("with_since_ok_and_deleted", func(t *testing.T) {
+		// Phase 68 D-07 / rest.py:694-727: when `?since=N` is present, the
+		// status matrix expands to `status IN ('ok','deleted')` so tombstones
+		// from the since-window are returned. The Phase 69 name__contains
+		// layer must still fold against the shadow column on BOTH branches.
+		since := strconv.FormatInt(now.Add(-time.Hour).Unix(), 10)
+		ids := phase69FetchIDs(t, srv.URL+"/api/net?since="+since+"&name__contains=foo")
+		if !sameIDs(ids, []int{1, 2}) {
+			t.Errorf("since+name__contains: got ids %v, want [1 2] — since-branch must return ok+deleted through shadow-routed filter", ids)
+		}
+	})
 }
 
 // sameIDs reports whether two int slices contain the same elements (order
