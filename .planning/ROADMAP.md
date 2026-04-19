@@ -131,7 +131,15 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   1. A regression test suite ported from `pdb_api_test.py` asserts: default ordering (Phase 67), status × since matrix (Phase 68), `limit=0` unlimited semantics (Phase 68), `__in` behaviour for both large and empty lists (Phase 69), and the six 1-hop + 2-hop traversal cases cited in the validation audit (Phase 70) — all passing in CI
   2. Every intentional divergence from upstream discovered during Phase 67-71 execution is enumerated in `docs/API.md` with a rationale, so future conformance audits can distinguish intentional-divergence from regression
   3. A follow-up conformance run against `beta.peeringdb.com` (or recorded fixtures) shows zero unexpected diffs — any new diffs surfacing are either codified in `docs/API.md` or flagged as bugs
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 72-01-PLAN.md — cmd/pdb-fixture-port/ tool scaffold + PoC ordering-category fixture emission into internal/testutil/parity/fixtures.go (SHA-pinned header)
+- [ ] 72-02-PLAN.md — Extend pdb-fixture-port to STATUS + LIMIT category fixtures (STATUS-01..05 matrix + LIMIT-01 unbounded + LIMIT-02 depth-on-list guardrail)
+- [ ] 72-03-PLAN.md — Extend pdb-fixture-port to UNICODE + IN + TRAVERSAL fixtures; `--category all` emits the full 6-category file deterministically
+- [ ] 72-04-PLAN.md — internal/pdbcompat/parity/ — 6 category-split regression test files + shared harness.go locking ORDER/STATUS/LIMIT/UNICODE/IN/TRAVERSAL semantics (PARITY-01)
+- [ ] 72-05-PLAN.md — internal/pdbcompat/parity/bench_test.go — 3 b.Loop()-style benchmarks (2-hop traversal, limit=0 streaming, 5001-element __in) per D-07
+- [ ] 72-06-PLAN.md — docs/API.md § Known Divergences extension + NEW § Validation Notes (5 invalid-pdbfe-claims with upstream SHA refs) + CLAUDE.md convention + CHANGELOG v1.16 close + REQ-ID audit + ROADMAP flip (PARITY-02)
 
 ## Phase Dependency Graph
 
@@ -161,7 +169,7 @@ Notes on parallelism:
 | 69. Unicode + operator + __in | 3/6 | In progress | - |
 | 70. Cross-entity __ traversal | 8/8 | Complete | 2026-04-19 |
 | 71. Memory-safe response paths | 6/6 | Complete | 2026-04-19 |
-| 72. Upstream parity regression | 0/? | Not started | - |
+| 72. Upstream parity regression | 0/6 | Not started | - |
 
 ## Backlog
 
