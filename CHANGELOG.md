@@ -54,6 +54,36 @@ memory-safe response paths that bound that behaviour land in Phase 71.
   RPCs, and GraphQL list queries. Single-object lookups and nested
   `_set` fields are unchanged.
 
+- **pdbcompat Unicode folding** for diacritic-insensitive matching on
+  searchable text fields. `?name__contains=Zurich` now matches a DB
+  row where `name="Zürich"`. Implementation uses shadow columns
+  (`<field>_fold`) populated at sync time by a new `internal/unifold`
+  package (NFKD decomposition + a small hand-rolled ligature map for
+  `ß`/`æ`/`ø`/`ł`/`þ`/`đ`). 16 shadow columns across 6 entity types
+  (network, facility, internetexchange, organization, campus,
+  carrier). Matches upstream `peeringdb_server/rest.py:576`
+  (`unidecode.unidecode(v)`). Closes UNICODE-01.
+
+- **pdbcompat operator coercion**: `__contains` is now equivalent to
+  `__icontains` (case-insensitive) and `__startswith` is equivalent
+  to `__istartswith`, per upstream `rest.py:638-641`. All other
+  operators (`__exact`, `__iexact`, `__gt`, `__lt`, `__gte`, `__lte`,
+  `__in`) are unchanged. Closes UNICODE-02.
+
+- **pdbcompat `__in` large-list support**: `?<field>__in=` now accepts
+  arbitrarily-large comma-separated lists via a SQLite `json_each`
+  single-bind rewrite, bypassing the 999-variable parameter limit.
+  Empty `__in` (e.g. `?asn__in=`) returns `{"data":[],"meta":{"count":0}}`
+  with no SQL executed, matching Django ORM `Model.objects.filter(id__in=[])`
+  semantics. Closes IN-01 and IN-02.
+
+- **pdbcompat fuzz corpus** extended with 21 non-ASCII and `__in`
+  edge-case seeds (diacritics, CJK, RTL, RLO/LRO overrides, ZWJ,
+  combining marks, null bytes, 70 KB literals, 1201-element `__in`,
+  empty `__in`, all-empty `__in` parts). Local 60s run on a Ryzen 5
+  3600 logged 469k executions / 65 new interesting / zero panics.
+  Closes UNICODE-03.
+
 ### Changed
 
 - **Sync now soft-deletes** instead of hard-deleting. The 13
@@ -75,6 +105,19 @@ memory-safe response paths that bound that behaviour land in Phase 71.
 - `?limit=0` on pdbcompat list endpoints previously fell back to
   `DefaultLimit=250`. Now returns all rows up to any other filter,
   matching upstream behaviour (`rest.py:734-737`).
+
+### Known issues
+
+- **One-time ASCII-only window for diacritic-insensitive matching.**
+  Between v1.16 deploy and the first post-deploy sync cycle (≤1h with
+  the default `PDBPLUS_SYNC_INTERVAL=1h`), rows synced before the
+  upgrade have `<field>_fold = ''` and return no match for non-ASCII
+  queries against `__contains` / `__startswith` on searchable text
+  fields. ASCII queries continue to work via the existing non-folded
+  columns throughout the window. No manual backfill is required — the
+  next standard sync cycle rewrites every affected row via the
+  `OnConflict().UpdateNewValues()` path. See
+  [`docs/API.md` § Known Divergences](./docs/API.md#known-divergences).
 
 ---
 

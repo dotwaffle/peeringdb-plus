@@ -128,6 +128,57 @@ Related convention: `PDBPLUS_INCLUDE_DELETED` was removed in v1.16 Phase 68 D-01
 
 Tombstone GC is [SEED-004](./.planning/seeds/SEED-004-tombstone-gc.md) (dormant as of 2026-04-19). Triggers: storage growth >5% MoM, tombstone ratio >10%, or operator request. The existing `deleteStaleChunked` fallback silently no-ops when `len(remoteIDs) > 32766` (SQLite variable limit) — this edge case is also tracked under SEED-004 and should be folded into any future GC work rather than patched in-situ.
 
+### Shadow-column folding (Phase 69)
+
+`internal/unifold` is the single source of truth for diacritic-insensitive folding (`Fold(s string) string` — NFKD normalisation via `golang.org/x/text/unicode/norm` + a hand-rolled ligature map for `ß→ss`, `æ→ae`, `ø→o`, `ł→l`, `þ→th`, `đ→d`, etc.). This mirrors upstream PeeringDB's `unidecode.unidecode(v)` (`peeringdb_server/rest.py:576`) without taking a third-party dep.
+
+**16 `<field>_fold` shadow columns live across 6 entities:**
+
+| Entity | Folded fields |
+|---|---|
+| `organization` | `name`, `aka`, `city` |
+| `network` | `name`, `aka`, `name_long` |
+| `facility` | `name`, `aka`, `city` |
+| `internetexchange` | `name`, `aka`, `name_long`, `city` |
+| `carrier` | `name`, `aka` |
+| `campus` | `name` |
+
+Each `_fold` column is declared with `entgql.Skip(SkipAll)` + `entrest.WithSkip(true)` annotations so it never leaks onto the GraphQL / REST / proto wire surfaces — these columns are server-side plumbing only. The 7 entity types without folded fields (`poc`, `ixlan`, `ixpfx`, `netixlan`, `netfac`, `ixfac`, `carrierfac`) leave `TypeConfig.FoldedFields` nil; nil-map reads in `ParseFilters` return `false` without a nil-check.
+
+**Sync-side populate pattern (`internal/sync/upsert.go`):** every upsert in the 6 affected entity functions chains `.SetNameFold(unifold.Fold(x.Name))` (and analogous `SetAkaFold` / `SetNameLongFold` / `SetCityFold` setters) onto the create builder. The `OnConflict().UpdateNewValues()` path rewrites `_fold` columns on every re-sync — no one-shot backfill script needed, the next sync cycle covers all rows.
+
+```go
+b := tx.Network.Create().
+    SetID(n.ID).
+    SetName(n.Name).
+    SetAka(n.Aka).
+    SetNameLong(n.NameLong).
+    SetStatus(n.Status).
+    SetNameFold(unifold.Fold(n.Name)).         // _fold setters as a trailing
+    SetAkaFold(unifold.Fold(n.Aka)).           // grep-able block per entity
+    SetNameLongFold(unifold.Fold(n.NameLong)). //
+    // ... rest of chain
+```
+
+**pdbcompat filter-side routing pattern (`internal/pdbcompat/filter.go`):** `ParseFilters` reads `tc.FoldedFields[field]` (nil-safe) and threads `folded bool` into `buildPredicate`. When `folded == true`, `buildContains` / `buildStartsWith` route to `<field>_fold` with `unifold.Fold(value)` on the RHS via `sql.FieldContainsFold(field+"_fold", unifold.Fold(value))` (or `FieldHasPrefixFold` for `__startswith`). `__contains` and `__startswith` are coerced to their case-insensitive variants by `coerceToCaseInsensitive` per `rest.py:638-641`.
+
+**Adding a NEW searchable text field on one of the 6 folded entities** (e.g. a future `network.tagline_fold`):
+
+1. Add `field.String("tagline_fold").Optional().Default("").Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true))` to `ent/schema/network.go`. The skip annotations are NOT optional — omitting them leaks `tagline_fold` onto every wire surface as a meaningless filterable field.
+2. Run `go generate ./ent/... ./internal/web/templates/...` (NOT `go generate ./...` — the latter recursively runs `schema/generate.go` which strips entgql/entrest annotations per the Code Generation convention above).
+3. Extend `internal/sync/upsert.go` `upsertNetworks` builder chain with `.SetTaglineFold(unifold.Fold(n.Tagline))`. Place the new setter in the trailing `_fold` block per the existing convention.
+4. Add `"tagline": true` to `network`'s `FoldedFields` map in `internal/pdbcompat/registry.go`. The filter layer reads this map to decide whether to route to the shadow column.
+5. Extend `internal/pdbcompat/phase69_filter_test.go` with a round-trip test proving `?tagline__contains=<ascii>` matches a `tagline="<diacritic>"` row.
+
+**Adding shadow columns on a 7th entity** (e.g. future ixlan `descr_fold`): steps 1-5 above plus add the entity's `FoldedFields` map in `registry.go`. The other 6 upsert functions stay untouched — per-entity surgery is the convention.
+
+**Do NOT:**
+- Run `go generate ./schema` after adding `_fold` fields — `cmd/pdb-schema-generate` strips entproto/entgql/entrest annotations and the shadow columns would leak. Use scoped codegen.
+- Use `_fold` columns in non-pdbcompat surfaces — entrest/entgql/grpcserver already use ent-level `FieldContainsFold` / NOCASE semantics and do not need shadow columns for their current scope. If a new surface needs diacritic folding, route through `internal/unifold.Fold` rather than re-inventing it.
+- Drop the `entgql.Skip` / `entrest.WithSkip` annotations to "expose `_fold` for filtering" — the production path filters via `<field>_fold` automatically when the bare `<field>` filter is supplied; exposing the shadow as a separate filterable surface is meaningless to callers.
+
+**Index decision (Phase 69 Plan 05):** `index.Fields("*_fold")` annotations were considered and DEFERRED based on benchstat evidence — at 10k rows, shadow path was 99.22% of direct (statistically indistinguishable, `p=0.065`, n=6). See `.planning/phases/69-unicode-operator-in-robustness/69-05-SUMMARY.md` for the benchmark output. Re-evaluation trigger: if a future benchmark with a >100k-row corpus shows shadow regression >10%, add indexes at that point with fresh benchmark evidence.
+
 ### Middleware
 - Response writer wrappers MUST implement `http.Flusher` (delegate to underlying writer) — gRPC streaming requires it.
 - Add `Unwrap() http.ResponseWriter` for middleware-aware interface detection.
