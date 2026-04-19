@@ -9,12 +9,17 @@ import (
 func TestParseFieldOp(t *testing.T) {
 	t.Parallel()
 
+	// Phase 70 D-06: parseFieldOp returns (relationSegments, finalField, op).
+	// Max len(relationSegments) == 2 (caller enforces D-04 cap via
+	// len>2 rejection — parser returns the raw split so caller sees it).
 	tests := []struct {
-		name      string
-		input     string
-		wantField string
-		wantOp    string
+		name         string
+		input        string
+		wantRelSegs  []string
+		wantField    string
+		wantOp       string
 	}{
+		// Pre-Phase-70 cases (no traversal).
 		{
 			name:      "field with contains operator",
 			input:     "name__contains",
@@ -51,20 +56,98 @@ func TestParseFieldOp(t *testing.T) {
 			wantField: "info_prefixes4",
 			wantOp:    "gt",
 		},
+		// Phase 70 traversal cases.
+		{
+			name:        "1-hop no op",
+			input:       "org__name",
+			wantRelSegs: []string{"org"},
+			wantField:   "name",
+			wantOp:      "",
+		},
+		{
+			name:        "1-hop with contains",
+			input:       "org__name__contains",
+			wantRelSegs: []string{"org"},
+			wantField:   "name",
+			wantOp:      "contains",
+		},
+		{
+			name:        "2-hop no op",
+			input:       "ixlan__ix__fac_count",
+			wantRelSegs: []string{"ixlan", "ix"},
+			wantField:   "fac_count",
+			wantOp:      "",
+		},
+		{
+			name:        "2-hop with gt",
+			input:       "ixlan__ix__fac_count__gt",
+			wantRelSegs: []string{"ixlan", "ix"},
+			wantField:   "fac_count",
+			wantOp:      "gt",
+		},
+		{
+			name:        "3-hop (caller rejects len>2) no op",
+			input:       "a__b__c__d",
+			wantRelSegs: []string{"a", "b", "c"},
+			wantField:   "d",
+			wantOp:      "",
+		},
+		{
+			name:        "4-hop",
+			input:       "a__b__c__d__e",
+			wantRelSegs: []string{"a", "b", "c", "d"},
+			wantField:   "e",
+			wantOp:      "",
+		},
+		{
+			name:      "leading sep malformed",
+			input:     "__foo",
+			wantField: "foo",
+			// leading "__" produces [""] before "foo"; relSegs becomes [""]
+			// — length 1 so caller will still enter traversal path, but
+			// edge lookup on "" fails and key goes to unknown.
+			wantRelSegs: []string{""},
+			wantOp:      "",
+		},
+		{
+			name:        "trailing sep empty final field",
+			input:       "foo__",
+			wantRelSegs: []string{"foo"},
+			wantField:   "",
+			wantOp:      "",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			field, op := parseFieldOp(tt.input)
+			relSegs, field, op := parseFieldOp(tt.input)
 			if field != tt.wantField {
 				t.Errorf("parseFieldOp(%q) field = %q, want %q", tt.input, field, tt.wantField)
 			}
 			if op != tt.wantOp {
 				t.Errorf("parseFieldOp(%q) op = %q, want %q", tt.input, op, tt.wantOp)
 			}
+			if !slicesEqual(relSegs, tt.wantRelSegs) {
+				t.Errorf("parseFieldOp(%q) relSegs = %#v, want %#v", tt.input, relSegs, tt.wantRelSegs)
+			}
 		})
 	}
+}
+
+// slicesEqual compares two string slices for equality, treating nil and
+// zero-length slices as equal (matches how the rest of the test suite
+// handles the "no relation segments" case).
+func slicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func TestParseFilters(t *testing.T) {
@@ -172,10 +255,16 @@ func TestParseFilters(t *testing.T) {
 			wantCount: 0,
 		},
 		{
-			name:      "unsupported operator returns error",
+			// Phase 70 D-04/D-05 semantic change: unknown operator suffix
+			// means the last segment ("regex") is treated as the final
+			// field and the preceding segment ("name") as a relation
+			// traversal. Since "name" is not an edge on this TypeConfig,
+			// the key is silently ignored — no error, no predicate.
+			// (Previously: parseFieldOp recognised ANY suffix as an op,
+			// so buildPredicate rejected "regex" with an error.)
+			name:      "unsupported operator silently ignored per TRAVERSAL-04",
 			params:    url.Values{"name__regex": {".*cloud.*"}},
 			wantCount: 0,
-			wantErr:   true,
 		},
 		{
 			name:      "multiple filters produce multiple predicates",

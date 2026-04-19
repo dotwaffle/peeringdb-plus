@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"entgo.io/ent/dialect/sql"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
@@ -147,7 +149,14 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// Parse filters per D-09, D-11. Phase 69 Plan 04 adds the emptyResult
 	// short-circuit for ?field__in= (IN-02) and threads TypeConfig so that
 	// shadow-column routing (UNICODE-01) can consult tc.FoldedFields.
-	filters, emptyResult, err := ParseFilters(params, tc)
+	//
+	// Phase 70 D-05 / TRAVERSAL-04: thread the ctx through an unknown-field
+	// accumulator so operators can observe silently-ignored filter keys via
+	// slog DEBUG + OTel span attribute. ParseFiltersCtx writes to the
+	// accumulator; we emit the diagnostics AFTER it returns so the request
+	// path sees zero behavioural change (HTTP 200, no 400).
+	ctx := WithUnknownFields(r.Context())
+	filters, emptyResult, err := ParseFiltersCtx(ctx, params, tc)
 	if err != nil {
 		WriteProblem(w, httperr.WriteProblemInput{
 			Status:   http.StatusBadRequest,
@@ -155,6 +164,21 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			Instance: r.URL.Path,
 		})
 		return
+	}
+	if unknown := UnknownFieldsFromCtx(ctx); len(unknown) > 0 {
+		csv := strings.Join(unknown, ",")
+		slog.DebugContext(ctx, "pdbcompat: unknown filter fields silently ignored (Phase 70 TRAVERSAL-04)",
+			slog.String("endpoint", r.URL.Path),
+			slog.String("type", tc.Name),
+			slog.String("unknown_fields", csv),
+		)
+		// OTel span attribute — no-op when no active span (OTel not
+		// configured in tests) because SpanFromContext returns a noop
+		// span whose SetAttributes is safe and SpanContext().IsValid()
+		// is false.
+		if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
+			span.SetAttributes(attribute.String("pdbplus.filter.unknown_fields", csv))
+		}
 	}
 
 	// Parse since per D-15.

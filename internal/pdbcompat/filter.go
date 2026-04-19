@@ -1,10 +1,12 @@
 package pdbcompat
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -19,15 +21,60 @@ import (
 // whole request via QueryOptions.EmptyResult (Phase 69 D-06, IN-02).
 var errEmptyIn = errors.New("empty __in")
 
-// parseFieldOp splits a query parameter key on the last "__" separator into
-// field name and operator. If no separator is found, the operator is empty
-// (meaning exact match).
-func parseFieldOp(key string) (field, op string) {
-	idx := strings.LastIndex(key, "__")
-	if idx < 0 {
-		return key, ""
+// parseFieldOp splits a filter parameter key into relation segments, final
+// field name, and operator. Syntax:
+//
+//	[<relation>__]* <field> [__<op>]
+//
+// Returns the full split (never truncates); the caller is responsible for
+// enforcing the 2-hop cap per Phase 70 D-04. A len(relationSegments) > 2
+// return value is a signal that the key is too deep to traverse — caller
+// MUST treat as unknown per D-04/D-05.
+//
+// The operator suffix is detected by matching the LAST segment against a
+// fixed set of known operators (isKnownOperator). Segments that look like
+// field names with an embedded operator-like suffix (e.g. "info_prefixes4"
+// ending in a number) still work because no "in"/"gt"/... alias collides.
+//
+// Empty field name or malformed input (leading "__", consecutive "__"
+// producing empty segments) returns the best-effort split; callers
+// validate finalField != "" and reject otherwise.
+func parseFieldOp(key string) (relationSegments []string, finalField string, op string) {
+	parts := strings.Split(key, "__")
+	// If the last segment is a recognised operator AND there's at least
+	// one preceding segment to act as the field name, strip it.
+	if len(parts) >= 2 && isKnownOperator(parts[len(parts)-1]) {
+		op = parts[len(parts)-1]
+		parts = parts[:len(parts)-1]
 	}
-	return key[:idx], key[idx+2:]
+	if len(parts) == 0 {
+		return nil, "", op
+	}
+	finalField = parts[len(parts)-1]
+	if len(parts) == 1 {
+		return nil, finalField, op
+	}
+	relationSegments = parts[:len(parts)-1]
+	return relationSegments, finalField, op
+}
+
+// isKnownOperator reports whether suffix matches an operator supported by
+// buildPredicate. Used by parseFieldOp to disambiguate "<field>__<op>" from
+// a field name whose underlying identifier itself contains a trailing
+// segment after "__" (e.g. parent column names like "info_prefixes4").
+//
+// The list mirrors the operator switch in buildPredicate plus the case-
+// insensitive variants produced by coerceToCaseInsensitive (Phase 69).
+func isKnownOperator(suffix string) bool {
+	switch suffix {
+	case "contains", "icontains",
+		"startswith", "istartswith",
+		"iexact",
+		"in",
+		"lt", "gt", "lte", "gte":
+		return true
+	}
+	return false
 }
 
 // applyStatusMatrix returns the upstream rest.py:694-727 status predicate
@@ -66,9 +113,50 @@ func coerceToCaseInsensitive(op string) string {
 	return op
 }
 
+// unknownFieldsCtxKey is an unexported context key used by ParseFiltersCtx
+// to record filter params whose fields don't resolve (per Phase 70 D-05).
+// Retrieved via UnknownFieldsFromCtx at the handler layer for OTel span
+// attribute + slog.DebugContext emission.
+type unknownFieldsCtxKey struct{}
+
+// WithUnknownFields returns a new context carrying an empty unknown-fields
+// accumulator. Handler creates this before calling ParseFiltersCtx; the
+// parser appends to the accumulator as it encounters unknown keys.
+//
+// Ctx threading (rather than a return slice) keeps ParseFilters' existing
+// return signature stable and avoids churning every call site that passes
+// params straight through to ent (Phase 70 D-05).
+func WithUnknownFields(ctx context.Context) context.Context {
+	return context.WithValue(ctx, unknownFieldsCtxKey{}, &[]string{})
+}
+
+// UnknownFieldsFromCtx returns the current accumulator (possibly nil when
+// no accumulator was attached). Callers emit slog.DebugContext + OTel
+// span attribute from the returned slice after ParseFiltersCtx returns.
+func UnknownFieldsFromCtx(ctx context.Context) []string {
+	v, _ := ctx.Value(unknownFieldsCtxKey{}).(*[]string)
+	if v == nil {
+		return nil
+	}
+	return *v
+}
+
+// appendUnknown records key on the ctx's accumulator when one is present.
+// No-op when ctx has no accumulator (e.g. tests using ParseFilters shim).
+func appendUnknown(ctx context.Context, key string) {
+	v, _ := ctx.Value(unknownFieldsCtxKey{}).(*[]string)
+	if v != nil {
+		*v = append(*v, key)
+	}
+}
+
 // ParseFilters translates Django-style query parameters into ent sql.Selector
 // predicates. Reserved parameters (limit, skip, etc.) are skipped. Unknown
-// fields are silently ignored per D-20.
+// fields are silently ignored per D-20 + Phase 70 D-05 / TRAVERSAL-04.
+//
+// Calls ParseFiltersCtx with context.Background — unknown fields are
+// discarded rather than surfaced. Production handlers MUST use
+// ParseFiltersCtx with a ctx from WithUnknownFields to emit diagnostics.
 //
 // Return values:
 //   - preds: the predicate slice to pass to ent as Where arguments
@@ -77,6 +165,25 @@ func coerceToCaseInsensitive(op string) string {
 //     without running SQL (Phase 69 D-06, IN-02)
 //   - err: set only for known fields with invalid values / operators
 func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool, error) {
+	return ParseFiltersCtx(context.Background(), params, tc)
+}
+
+// ParseFiltersCtx is the context-aware filter parser introduced by Phase 70
+// D-05. Unknown filter fields (including over-cap traversal keys per D-04)
+// are silently ignored for the HTTP response AND appended to the ctx-attached
+// accumulator so operators can observe them via slog.DebugContext + OTel.
+//
+// Traversal resolution order (1-hop and 2-hop, len(relSegs) <= 2):
+//  1. Path A: Allowlists[tc.Name].Direct or .Via exact match
+//  2. Path B: LookupEdge + TargetFields introspection
+//
+// Keys with len(relSegs) > 2 are silently rejected per D-04.
+//
+// Phase 68 (status matrix) and Phase 69 (_fold routing, empty __in) invariants
+// are preserved: traversal predicates wrap around buildPredicate which still
+// consults FoldedFields on the target TypeConfig, and the empty-__in
+// emptyResult sentinel bubbles back up from subquery construction.
+func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool, error) {
 	var predicates []func(*sql.Selector)
 	for key, vals := range params {
 		if len(vals) == 0 {
@@ -86,31 +193,233 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 		if reservedParams[key] {
 			continue
 		}
-		field, op := parseFieldOp(key)
-		// Also check if the raw key (before splitting) is reserved,
-		// e.g. "fields" won't have an operator but should be skipped.
-		if reservedParams[field] {
+		relSegs, field, op := parseFieldOp(key)
+		// Also check if the raw final field is a reserved name
+		// (e.g. "fields" on a top-level single-segment key).
+		if len(relSegs) == 0 && reservedParams[field] {
 			continue
 		}
-		ft, ok := tc.Fields[field]
-		if !ok {
-			// Unknown field: silently ignore per D-20.
+		// D-04 hard cap: >2 relation segments is silently rejected.
+		if len(relSegs) > 2 {
+			appendUnknown(ctx, key)
 			continue
 		}
-		// Nil-map read is safe — returns false.
-		folded := tc.FoldedFields[field]
-		p, err := buildPredicate(field, op, vals[0], ft, folded)
-		if err != nil {
-			if errors.Is(err, errEmptyIn) {
-				// An empty __in AND'd with anything is still empty.
-				// Short-circuit the whole request.
+		// Malformed split (empty final field, empty leading segment)
+		// falls through to unknown-field handling.
+		if field == "" {
+			appendUnknown(ctx, key)
+			continue
+		}
+
+		if len(relSegs) == 0 {
+			// Direct local field path — pre-Phase-70 behaviour.
+			p, emptyResult, ok, err := buildLocalPredicate(field, op, vals[0], tc)
+			if err != nil {
+				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			}
+			if emptyResult {
 				return nil, true, nil
 			}
+			if !ok {
+				appendUnknown(ctx, key)
+				continue
+			}
+			predicates = append(predicates, p)
+			continue
+		}
+
+		// Traversal path (1-hop or 2-hop).
+		p, ok, emptyResult, err := buildTraversalPredicate(tc, relSegs, field, op, vals[0])
+		if err != nil {
 			return nil, false, fmt.Errorf("filter %s: %w", key, err)
+		}
+		if emptyResult {
+			return nil, true, nil
+		}
+		if !ok {
+			appendUnknown(ctx, key)
+			continue
 		}
 		predicates = append(predicates, p)
 	}
 	return predicates, false, nil
+}
+
+// buildLocalPredicate extracts the pre-Phase-70 local-field behaviour into a
+// helper returning a uniform (predicate, emptyResult, ok, err) shape so
+// ParseFiltersCtx can treat local and traversal paths symmetrically.
+//
+// ok=false => the field is unknown on tc; caller silently ignores.
+// emptyResult=true => empty __in sentinel; caller short-circuits.
+func buildLocalPredicate(field, op, value string, tc TypeConfig) (func(*sql.Selector), bool, bool, error) {
+	ft, exists := tc.Fields[field]
+	if !exists {
+		return nil, false, false, nil
+	}
+	folded := tc.FoldedFields[field]
+	p, err := buildPredicate(field, op, value, ft, folded)
+	if err != nil {
+		if errors.Is(err, errEmptyIn) {
+			return nil, true, false, nil
+		}
+		return nil, false, false, err
+	}
+	return p, false, true, nil
+}
+
+// buildTraversalPredicate resolves a 1-hop or 2-hop cross-entity filter.
+// relSegs has len 1 or 2 (caller enforced D-04 cap). Resolution order is
+// Path A (Allowlists) first, then Path B (LookupEdge introspection).
+//
+// Return shape mirrors buildLocalPredicate:
+//   - predicate, true, false, nil on a resolved key
+//   - nil, false, false, nil on an unknown key (silent ignore)
+//   - nil, false, true, nil on an empty __in sentinel bubbling up from the
+//     target-side buildPredicate
+//   - nil, false, false, err on conversion errors (int, bool, etc.)
+func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value string) (func(*sql.Selector), bool, bool, error) {
+	// Reconstruct the allowlist key (without operator suffix): matches the
+	// shape emitted by cmd/pdb-compat-allowlist for Allowlists entries.
+	fullKey := strings.Join(relSegs, "__") + "__" + field
+
+	// Path A: consult Allowlists[tc.Name] first.
+	entry, hasAllowlist := Allowlists[tc.Name]
+	if hasAllowlist {
+		if len(relSegs) == 1 {
+			if slices.Contains(entry.Direct, fullKey) {
+				return buildSinglHop(tc.Name, relSegs[0], field, op, value)
+			}
+		} else {
+			// 2-hop: Via[<first-hop>] contains "<second-hop>__<field>".
+			if tails, okVia := entry.Via[relSegs[0]]; okVia {
+				tailKey := relSegs[1] + "__" + field
+				if slices.Contains(tails, tailKey) {
+					return buildTwoHop(tc.Name, relSegs[0], relSegs[1], field, op, value)
+				}
+			}
+		}
+	}
+
+	// Path B: introspection via LookupEdge + TargetFields.
+	edge, okEdge := LookupEdge(tc.Name, relSegs[0])
+	if !okEdge {
+		return nil, false, false, nil
+	}
+	if len(relSegs) == 1 {
+		if _, hasField := TargetFields(edge.TargetType)[field]; !hasField {
+			return nil, false, false, nil
+		}
+		return buildSinglHop(tc.Name, relSegs[0], field, op, value)
+	}
+	// 2-hop Path B: second hop edge must exist on the intermediate target.
+	edge2, okEdge2 := LookupEdge(edge.TargetType, relSegs[1])
+	if !okEdge2 {
+		return nil, false, false, nil
+	}
+	if _, hasField := TargetFields(edge2.TargetType)[field]; !hasField {
+		return nil, false, false, nil
+	}
+	return buildTwoHop(tc.Name, relSegs[0], relSegs[1], field, op, value)
+}
+
+// buildSinglHop emits a 1-hop traversal predicate:
+//
+//	parent.<ParentFKColumn> IN (
+//	    SELECT target.<TargetIDColumn> FROM <TargetTable> WHERE <inner>
+//	)
+//
+// All SQL identifiers come from the codegen-emitted EdgeMetadata (Plan 70-04)
+// — never from user input. The inner predicate is produced by the existing
+// buildPredicate path on the target TypeConfig, so Phase 69 _fold routing
+// and Phase 69 empty-__in sentinels apply at the target entity.
+func buildSinglHop(entityType, fk, field, op, value string) (func(*sql.Selector), bool, bool, error) {
+	edge, ok := LookupEdge(entityType, fk)
+	if !ok {
+		return nil, false, false, nil
+	}
+	targetTC, hasTarget := Registry[edge.TargetType]
+	if !hasTarget {
+		return nil, false, false, nil
+	}
+	ft, hasField := targetTC.Fields[field]
+	if !hasField {
+		return nil, false, false, nil
+	}
+	folded := targetTC.FoldedFields[field]
+	innerPred, err := buildPredicate(field, op, value, ft, folded)
+	if err != nil {
+		if errors.Is(err, errEmptyIn) {
+			return nil, false, true, nil
+		}
+		return nil, false, false, err
+	}
+	parentFK := edge.ParentFKColumn
+	targetTable := edge.TargetTable
+	targetID := edge.TargetIDColumn
+	return func(s *sql.Selector) {
+		t := sql.Table(targetTable)
+		innerSel := sql.Select(t.C(targetID)).From(t)
+		// innerPred references columns by bare name via sql.FieldEQ /
+		// sql.FieldContainsFold / sql.ExprP(s.C(...), ...); when invoked
+		// with innerSel as the selector, those helpers resolve against
+		// the inner table scope.
+		innerPred(innerSel)
+		s.Where(sql.In(s.C(parentFK), innerSel))
+	}, true, false, nil
+}
+
+// buildTwoHop emits a 2-hop traversal predicate with two nested subqueries:
+//
+//	parent.<fk1> IN (
+//	    SELECT mid.<mid_id> FROM <mid_table> WHERE mid.<fk2> IN (
+//	        SELECT leaf.<leaf_id> FROM <leaf_table> WHERE <inner>
+//	    )
+//	)
+//
+// Hard-capped at 2 hops per D-04. Identifiers from two EdgeMetadata lookups;
+// values bind via the innermost buildPredicate.
+func buildTwoHop(entityType, fk1, fk2, field, op, value string) (func(*sql.Selector), bool, bool, error) {
+	edge1, ok := LookupEdge(entityType, fk1)
+	if !ok {
+		return nil, false, false, nil
+	}
+	edge2, ok := LookupEdge(edge1.TargetType, fk2)
+	if !ok {
+		return nil, false, false, nil
+	}
+	leafTC, hasLeaf := Registry[edge2.TargetType]
+	if !hasLeaf {
+		return nil, false, false, nil
+	}
+	ft, hasField := leafTC.Fields[field]
+	if !hasField {
+		return nil, false, false, nil
+	}
+	folded := leafTC.FoldedFields[field]
+	innerPred, err := buildPredicate(field, op, value, ft, folded)
+	if err != nil {
+		if errors.Is(err, errEmptyIn) {
+			return nil, false, true, nil
+		}
+		return nil, false, false, err
+	}
+	fk1Col := edge1.ParentFKColumn
+	midTable := edge1.TargetTable
+	midIDCol := edge1.TargetIDColumn
+	fk2Col := edge2.ParentFKColumn
+	leafTable := edge2.TargetTable
+	leafIDCol := edge2.TargetIDColumn
+	return func(s *sql.Selector) {
+		leafT := sql.Table(leafTable)
+		leafSel := sql.Select(leafT.C(leafIDCol)).From(leafT)
+		innerPred(leafSel)
+
+		midT := sql.Table(midTable)
+		midSel := sql.Select(midT.C(midIDCol)).From(midT).
+			Where(sql.In(midT.C(fk2Col), leafSel))
+
+		s.Where(sql.In(s.C(fk1Col), midSel))
+	}, true, false, nil
 }
 
 // buildPredicate maps a field, operator, raw value, and field type to an ent
