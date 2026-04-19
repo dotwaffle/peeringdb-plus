@@ -91,6 +91,11 @@ type EdgeMapEntry struct {
 //   - ParentFKColumn = edge.Rel.Column()   (O2O/O2M/M2O; edge is skipped if Columns is empty)
 //   - TargetTable    = edge.Type.Table()
 //   - TargetIDColumn = edge.Type.ID.StorageKey() (typically "id")
+//   - OwnFK          = (edge.Rel.Type == gen.M2O); true when ParentFKColumn
+//                      lives on the PARENT table, false when it lives on
+//                      the CHILD table. Used by the runtime subquery
+//                      builder to pick the correct WHERE/IN pairing.
+//                      See Phase 70 REVIEW CR-01.
 //
 // Per Phase 70 D-02 amended: this map is emitted once at `go generate`
 // time and read-only at runtime. No sync.Once, no init-order coupling.
@@ -102,6 +107,7 @@ type EdgeMapRow struct {
 	ParentFKColumn string
 	TargetTable    string
 	TargetIDColumn string
+	OwnFK          bool
 }
 
 func main() {
@@ -297,6 +303,14 @@ func extractEdges(node *gen.Type) *EdgeMapEntry {
 			ParentFKColumn: parentFK,
 			TargetTable:    targetTable,
 			TargetIDColumn: targetID,
+			// OwnFK: true for M2O edges where the FK column lives on
+			// THIS (parent) table; false for O2M/O2O-from-edge where
+			// the FK column lives on the target (child) table. Drives
+			// the runtime subquery WHERE/IN pairing in buildSinglHop /
+			// buildTwoHop (Phase 70 REVIEW CR-01). M2M edges are not
+			// used in this schema, but if one existed the slice has
+			// two FK columns and this flag no longer applies.
+			OwnFK: e.Rel.Type == gen.M2O,
 		})
 	}
 	if len(entry.Edges) == 0 {
@@ -433,7 +447,7 @@ var Edges = map[string][]EdgeMetadata{
 {{- range .EdgeEntries }}
 	{{ printf "%q" .PDBType }}: {
 {{- range .Edges }}
-		{Name: {{ printf "%q" .Name }}, TargetType: {{ printf "%q" .TargetType }}, TraversalKey: {{ printf "%q" .TraversalKey }}, Excluded: {{ .Excluded }}, ParentFKColumn: {{ printf "%q" .ParentFKColumn }}, TargetTable: {{ printf "%q" .TargetTable }}, TargetIDColumn: {{ printf "%q" .TargetIDColumn }}},
+		{Name: {{ printf "%q" .Name }}, TargetType: {{ printf "%q" .TargetType }}, TraversalKey: {{ printf "%q" .TraversalKey }}, Excluded: {{ .Excluded }}, ParentFKColumn: {{ printf "%q" .ParentFKColumn }}, TargetTable: {{ printf "%q" .TargetTable }}, TargetIDColumn: {{ printf "%q" .TargetIDColumn }}, OwnFK: {{ .OwnFK }}},
 {{- end }}
 	},
 {{- end }}

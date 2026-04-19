@@ -8,6 +8,9 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
+	"github.com/dotwaffle/peeringdb-plus/ent/campus"
+	"github.com/dotwaffle/peeringdb-plus/ent/facility"
+	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
@@ -347,5 +350,218 @@ func TestBuildTraversal_FoldRouting_Preserved(t *testing.T) {
 	}
 	if count != 1 {
 		t.Errorf("expected 1 org with name_fold contains 'zurich', got %d", count)
+	}
+}
+
+// TestBuildTraversal_SingleHop_O2M_Integration exercises the O2M branch
+// of buildSinglHop — FK on the CHILD table, not the parent. Phase 70
+// REVIEW CR-01 regression guard: without the OwnFK branching, these
+// queries would emit `parent.<fk> IN (SELECT child.id ...)` referencing
+// a non-existent column on the parent table and bubble up as HTTP 500.
+//
+// One sub-test per O2M edge category covers every parent/child table
+// that uses an O2M relationship today:
+//   - net → pocs             (parent=networks, child=pocs)
+//   - ix → ix_lans           (parent=internet_exchanges, child=ix_lans)
+//   - fac → network_facilities (parent=facilities, child=network_facilities)
+//   - org → networks         (parent=organizations, child=networks)
+//   - campus → facilities    (parent=campus, child=facilities)
+//
+// All rely on seed.Full — no fresh fixture rows. Each asserts (a) the
+// generated SQL actually executes (no "no such column" error), and
+// (b) the filter returns the seeded matching row only.
+func TestBuildTraversal_SingleHop_O2M_Integration(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	_ = seed.Full(t, client)
+
+	tests := []struct {
+		name  string
+		run   func(t *testing.T)
+		cases string
+	}{
+		{
+			name:  "net filtered by poc name (O2M child=pocs)",
+			cases: "net?poc__name=NOC",
+			run: func(t *testing.T) {
+				// Seed Poc(id=500) is "NOC Contact" on Network(id=10); the
+				// second Public-tier poc on Network2 (id=11) does not exist
+				// — UsersPoc2 is Users-gated so the ent Privacy filter + our
+				// status filter conspire to exclude it from an anonymous
+				// caller. But this test runs in-context with no tier, so
+				// the raw edges apply. Use an exact match to keep the
+				// assertion deterministic regardless of fold-column priming.
+				preds, _, err := ParseFiltersCtx(WithUnknownFields(ctx), url.Values{
+					"poc__name": {"NOC Contact"},
+				}, Registry[peeringdb.TypeNet])
+				if err != nil {
+					t.Fatalf("ParseFiltersCtx: %v", err)
+				}
+				if len(preds) != 1 {
+					t.Fatalf("preds count = %d, want 1", len(preds))
+				}
+				nets, err := client.Network.Query().Where(func(s *sql.Selector) {
+					for _, p := range preds {
+						p(s)
+					}
+				}).Where(network.StatusEQ("ok")).All(ctx)
+				if err != nil {
+					t.Fatalf("Network.Query: %v (CR-01 regression: O2M subquery emits invalid SQL)", err)
+				}
+				if len(nets) != 1 {
+					t.Errorf("expected 1 network with poc.name='NOC Contact', got %d", len(nets))
+					return
+				}
+				if nets[0].ID != 10 {
+					t.Errorf("expected Network(id=10), got id=%d", nets[0].ID)
+				}
+			},
+		},
+		{
+			name:  "ix filtered by ixlan name (O2M child=ix_lans)",
+			cases: "ix?ixlan__name=",
+			run: func(t *testing.T) {
+				// Seed IxLans (id=100, 101) both live under IX(id=20) and
+				// carry the default empty name. Use id filter via ix_id
+				// (see below) pattern — but since ixlan.name defaults to "",
+				// a ?ixlan__name= with empty value is problematic. Use a
+				// different strategy: seed.Full is referenced elsewhere
+				// (T_SingleHop_Integration) with a more direct expectation.
+				// Here, set a distinct name on IxLan(100) via a side update.
+				_, err := client.IxLan.UpdateOneID(100).SetName("TEST-LAN-100").Save(ctx)
+				if err != nil {
+					t.Fatalf("prep: update IxLan.name: %v", err)
+				}
+				preds, _, err := ParseFiltersCtx(WithUnknownFields(ctx), url.Values{
+					"ixlan__name": {"TEST-LAN-100"},
+				}, Registry[peeringdb.TypeIX])
+				if err != nil {
+					t.Fatalf("ParseFiltersCtx: %v", err)
+				}
+				if len(preds) != 1 {
+					t.Fatalf("preds count = %d, want 1", len(preds))
+				}
+				ixs, err := client.InternetExchange.Query().Where(func(s *sql.Selector) {
+					for _, p := range preds {
+						p(s)
+					}
+				}).Where(internetexchange.StatusEQ("ok")).All(ctx)
+				if err != nil {
+					t.Fatalf("InternetExchange.Query: %v (CR-01 regression: O2M subquery emits invalid SQL)", err)
+				}
+				if len(ixs) != 1 {
+					t.Errorf("expected 1 ix via ixlan.name=TEST-LAN-100, got %d", len(ixs))
+					return
+				}
+				if ixs[0].ID != 20 {
+					t.Errorf("expected IX(id=20), got id=%d", ixs[0].ID)
+				}
+			},
+		},
+		{
+			name:  "fac filtered by netfac via fac (O2M child=network_facilities)",
+			cases: "fac?netfac__name=<fac_name>",
+			run: func(t *testing.T) {
+				// Path B lookup: fac → netfac is O2M (FK fac_id lives on
+				// network_facilities). netfac has no "name" field of its
+				// own, but it has "net_id" — validate the join via net id.
+				// Actually netfac does carry fields; use "local_asn" instead
+				// to keep this purely a network-facilities match.
+				// Simpler: assert that `fac?netfac__id=<id>` matches the
+				// parent facility of the seeded netfac. Seed NetworkFacility
+				// (id=300) hangs off Facility (id=30).
+				preds, _, err := ParseFiltersCtx(WithUnknownFields(ctx), url.Values{
+					"netfac__id": {"300"},
+				}, Registry[peeringdb.TypeFac])
+				if err != nil {
+					t.Fatalf("ParseFiltersCtx: %v", err)
+				}
+				if len(preds) != 1 {
+					t.Fatalf("preds count = %d, want 1 (Path B should resolve)", len(preds))
+				}
+				facs, err := client.Facility.Query().Where(func(s *sql.Selector) {
+					for _, p := range preds {
+						p(s)
+					}
+				}).Where(facility.StatusEQ("ok")).All(ctx)
+				if err != nil {
+					t.Fatalf("Facility.Query: %v (CR-01 regression: O2M subquery emits invalid SQL)", err)
+				}
+				if len(facs) != 1 {
+					t.Errorf("expected 1 fac via netfac.id=300, got %d", len(facs))
+					return
+				}
+				if facs[0].ID != 30 {
+					t.Errorf("expected Facility(id=30), got id=%d", facs[0].ID)
+				}
+			},
+		},
+		{
+			name:  "org filtered by network asn (O2M child=networks)",
+			cases: "org?net__asn=13335",
+			run: func(t *testing.T) {
+				// seed.Full creates Network(id=10, asn=13335) on Org(id=1).
+				preds, _, err := ParseFiltersCtx(WithUnknownFields(ctx), url.Values{
+					"net__asn": {"13335"},
+				}, Registry[peeringdb.TypeOrg])
+				if err != nil {
+					t.Fatalf("ParseFiltersCtx: %v", err)
+				}
+				if len(preds) != 1 {
+					t.Fatalf("preds count = %d, want 1", len(preds))
+				}
+				orgs, err := client.Organization.Query().Where(func(s *sql.Selector) {
+					for _, p := range preds {
+						p(s)
+					}
+				}).Where(organization.StatusEQ("ok")).All(ctx)
+				if err != nil {
+					t.Fatalf("Organization.Query: %v (CR-01 regression: O2M subquery emits invalid SQL)", err)
+				}
+				if len(orgs) != 1 {
+					t.Errorf("expected 1 org via net.asn=13335, got %d", len(orgs))
+					return
+				}
+				if orgs[0].ID != 1 {
+					t.Errorf("expected Org(id=1), got id=%d", orgs[0].ID)
+				}
+			},
+		},
+		{
+			name:  "campus filtered by facility id (O2M child=facilities)",
+			cases: "campus?fac__id=31",
+			run: func(t *testing.T) {
+				// seed.Full creates Facility2(id=31) on Campus(id=40).
+				preds, _, err := ParseFiltersCtx(WithUnknownFields(ctx), url.Values{
+					"fac__id": {"31"},
+				}, Registry[peeringdb.TypeCampus])
+				if err != nil {
+					t.Fatalf("ParseFiltersCtx: %v", err)
+				}
+				if len(preds) != 1 {
+					t.Fatalf("preds count = %d, want 1", len(preds))
+				}
+				camps, err := client.Campus.Query().Where(func(s *sql.Selector) {
+					for _, p := range preds {
+						p(s)
+					}
+				}).Where(campus.StatusEQ("ok")).All(ctx)
+				if err != nil {
+					t.Fatalf("Campus.Query: %v (CR-01 regression: O2M subquery emits invalid SQL)", err)
+				}
+				if len(camps) != 1 {
+					t.Errorf("expected 1 campus via fac.id=31, got %d", len(camps))
+					return
+				}
+				if camps[0].ID != 40 {
+					t.Errorf("expected Campus(id=40), got id=%d", camps[0].ID)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, tt.run)
 	}
 }

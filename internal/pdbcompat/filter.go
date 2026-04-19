@@ -322,16 +322,28 @@ func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value s
 	return buildTwoHop(tc.Name, relSegs[0], relSegs[1], field, op, value)
 }
 
-// buildSinglHop emits a 1-hop traversal predicate:
+// buildSinglHop emits a 1-hop traversal predicate. The SQL shape depends
+// on which side of the join owns the foreign-key column (edge.OwnFK):
+//
+// M2O (OwnFK == true — FK on parent, e.g. networks.org_id → organizations.id):
 //
 //	parent.<ParentFKColumn> IN (
 //	    SELECT target.<TargetIDColumn> FROM <TargetTable> WHERE <inner>
+//	)
+//
+// O2M (OwnFK == false — FK on child, e.g. pocs.net_id → networks.id):
+//
+//	parent.id IN (
+//	    SELECT child.<ParentFKColumn> FROM <TargetTable> WHERE <inner>
 //	)
 //
 // All SQL identifiers come from the codegen-emitted EdgeMetadata (Plan 70-04)
 // — never from user input. The inner predicate is produced by the existing
 // buildPredicate path on the target TypeConfig, so Phase 69 _fold routing
 // and Phase 69 empty-__in sentinels apply at the target entity.
+//
+// Parent-side PK is always "id" for every PeeringDB entity — an invariant
+// baked into the schema generator; no entity overrides its ID column.
 func buildSinglHop(entityType, fk, field, op, value string) (func(*sql.Selector), bool, bool, error) {
 	edge, ok := LookupEdge(entityType, fk)
 	if !ok {
@@ -353,31 +365,71 @@ func buildSinglHop(entityType, fk, field, op, value string) (func(*sql.Selector)
 		}
 		return nil, false, false, err
 	}
-	parentFK := edge.ParentFKColumn
+	fkCol := edge.ParentFKColumn
 	targetTable := edge.TargetTable
 	targetID := edge.TargetIDColumn
+	ownFK := edge.OwnFK
 	return func(s *sql.Selector) {
 		t := sql.Table(targetTable)
-		innerSel := sql.Select(t.C(targetID)).From(t)
-		// innerPred references columns by bare name via sql.FieldEQ /
-		// sql.FieldContainsFold / sql.ExprP(s.C(...), ...); when invoked
-		// with innerSel as the selector, those helpers resolve against
-		// the inner table scope.
+		if ownFK {
+			// M2O: FK on parent. Select target.<id>, filter parent.<fk>.
+			innerSel := sql.Select(t.C(targetID)).From(t)
+			innerPred(innerSel)
+			s.Where(sql.In(s.C(fkCol), innerSel))
+			return
+		}
+		// O2M: FK on child. Select child.<fk>, filter parent.<id>.
+		innerSel := sql.Select(t.C(fkCol)).From(t)
 		innerPred(innerSel)
-		s.Where(sql.In(s.C(parentFK), innerSel))
+		s.Where(sql.In(s.C(parentPKColumn), innerSel))
 	}, true, false, nil
 }
 
-// buildTwoHop emits a 2-hop traversal predicate with two nested subqueries:
+// parentPKColumn is the primary-key column name for every PeeringDB
+// entity in this schema. Hard-coded "id" rather than plumbed through
+// Registry because the schema generator guarantees this invariant and
+// inlining avoids an extra lookup on the request-time hot path.
+const parentPKColumn = "id"
+
+// buildTwoHop emits a 2-hop traversal predicate with two nested subqueries.
+// Each hop independently branches on its edge's OwnFK flag (M2O vs O2M),
+// producing one of four possible shapes:
+//
+// hop1 M2O, hop2 M2O (e.g. ixpfx → ixlan → ix):
 //
 //	parent.<fk1> IN (
-//	    SELECT mid.<mid_id> FROM <mid_table> WHERE mid.<fk2> IN (
-//	        SELECT leaf.<leaf_id> FROM <leaf_table> WHERE <inner>
+//	    SELECT mid.<mid_id> FROM <mid> WHERE mid.<fk2> IN (
+//	        SELECT leaf.<leaf_id> FROM <leaf> WHERE <inner>
+//	    )
+//	)
+//
+// hop1 O2M, hop2 M2O (e.g. org → networks → poc):
+//
+//	parent.id IN (
+//	    SELECT mid.<fk1> FROM <mid> WHERE mid.<fk2> IN (
+//	        SELECT leaf.<leaf_id> FROM <leaf> WHERE <inner>
+//	    )
+//	)
+//
+// hop1 M2O, hop2 O2M (e.g. netfac → network → pocs):
+//
+//	parent.<fk1> IN (
+//	    SELECT mid.<mid_id> FROM <mid> WHERE mid.id IN (
+//	        SELECT leaf.<fk2> FROM <leaf> WHERE <inner>
+//	    )
+//	)
+//
+// hop1 O2M, hop2 O2M:
+//
+//	parent.id IN (
+//	    SELECT mid.<fk1> FROM <mid> WHERE mid.id IN (
+//	        SELECT leaf.<fk2> FROM <leaf> WHERE <inner>
 //	    )
 //	)
 //
 // Hard-capped at 2 hops per D-04. Identifiers from two EdgeMetadata lookups;
-// values bind via the innermost buildPredicate.
+// values bind via the innermost buildPredicate. Parent PK is always "id"
+// (see parentPKColumn — schema generator invariant).
 func buildTwoHop(entityType, fk1, fk2, field, op, value string) (func(*sql.Selector), bool, bool, error) {
 	edge1, ok := LookupEdge(entityType, fk1)
 	if !ok {
@@ -406,19 +458,48 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string) (func(*sql.Selec
 	fk1Col := edge1.ParentFKColumn
 	midTable := edge1.TargetTable
 	midIDCol := edge1.TargetIDColumn
+	ownFK1 := edge1.OwnFK
 	fk2Col := edge2.ParentFKColumn
 	leafTable := edge2.TargetTable
 	leafIDCol := edge2.TargetIDColumn
+	ownFK2 := edge2.OwnFK
 	return func(s *sql.Selector) {
 		leafT := sql.Table(leafTable)
-		leafSel := sql.Select(leafT.C(leafIDCol)).From(leafT)
+		// Inner (leaf) subquery: column depends on hop-2 direction.
+		//   M2O: SELECT leaf.<leaf_id>  (filter mid's FK column against it)
+		//   O2M: SELECT leaf.<fk2>      (filter mid.id against it)
+		var leafSel *sql.Selector
+		if ownFK2 {
+			leafSel = sql.Select(leafT.C(leafIDCol)).From(leafT)
+		} else {
+			leafSel = sql.Select(leafT.C(fk2Col)).From(leafT)
+		}
 		innerPred(leafSel)
 
+		// Middle subquery: which mid column joins to the leaf subquery
+		// is chosen by hop-2 direction; which mid column is SELECTed
+		// (to feed the outer filter) is chosen by hop-1 direction.
 		midT := sql.Table(midTable)
-		midSel := sql.Select(midT.C(midIDCol)).From(midT).
-			Where(sql.In(midT.C(fk2Col), leafSel))
+		var midJoin func(*sql.Selector)
+		if ownFK2 {
+			midJoin = func(ms *sql.Selector) { ms.Where(sql.In(ms.C(fk2Col), leafSel)) }
+		} else {
+			midJoin = func(ms *sql.Selector) { ms.Where(sql.In(ms.C(parentPKColumn), leafSel)) }
+		}
+		var midSel *sql.Selector
+		if ownFK1 {
+			midSel = sql.Select(midT.C(midIDCol)).From(midT)
+		} else {
+			midSel = sql.Select(midT.C(fk1Col)).From(midT)
+		}
+		midJoin(midSel)
 
-		s.Where(sql.In(s.C(fk1Col), midSel))
+		// Outer filter: parent's FK column (M2O) or parent's PK (O2M).
+		if ownFK1 {
+			s.Where(sql.In(s.C(fk1Col), midSel))
+		} else {
+			s.Where(sql.In(s.C(parentPKColumn), midSel))
+		}
 	}, true, false, nil
 }
 

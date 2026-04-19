@@ -24,8 +24,18 @@ package pdbcompat
 //     gen.Relation.Column() at codegen time. For M2O edges (edge.From
 //     with Ref().Field()) the column lives on the parent table
 //     (networks.org_id); for O2M edges (edge.To) the column lives on
-//     the child table (netfac.network_id). Plan 70-05 decides the
-//     subquery shape based on edge direction.
+//     the child table (pocs.net_id). The subquery shape depends on
+//     which side of the join owns the column — see OwnFK below.
+//   - OwnFK: true when ParentFKColumn lives on the PARENT table (M2O /
+//     O2O-from-inverse); false when it lives on the CHILD / target
+//     table (O2M / O2O-from-edge). Populated at codegen time from
+//     gen.Edge.Rel.Type (M2O → true; O2M → false). Used by
+//     buildSinglHop / buildTwoHop to decide whether to filter the
+//     parent's PK against a `SELECT child.<fk>` subquery (O2M) or the
+//     parent's FK column against a `SELECT target.<id>` subquery (M2O).
+//     Without this flag, O2M edges like net→pocs produce invalid SQL
+//     referencing a non-existent networks.net_id column — see Phase 70
+//     REVIEW CR-01 regression.
 //   - TargetTable: SQL table name on the target side (e.g. "organizations").
 //   - TargetIDColumn: typically "id"; emitted explicitly so the codegen
 //     output is self-contained and doesn't rely on a convention.
@@ -37,6 +47,7 @@ type EdgeMetadata struct {
 	ParentFKColumn string
 	TargetTable    string
 	TargetIDColumn string
+	OwnFK          bool
 }
 
 // LookupEdge returns the edge metadata for a single hop from entityType
