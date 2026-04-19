@@ -38,13 +38,13 @@ All requirements below cite upstream code by path and line. The canonical refere
 
 ### __in Robustness (IN)
 
-- [ ] **IN-01**: `pdbcompat` `?<field>__in=` accepts arbitrarily-large comma-separated lists without hitting SQLite's 999-variable limit (implementation path: rewrite to `WHERE <field> IN (SELECT value FROM json_each(?))` using a single bind parameter)
-- [ ] **IN-02**: Empty `?<field>__in=` returns an empty result set (matches Django ORM semantics)
+- [x] **IN-01**: `pdbcompat` `?<field>__in=` accepts arbitrarily-large comma-separated lists without hitting SQLite's 999-variable limit (implementation path: rewrite to `WHERE <field> IN (SELECT value FROM json_each(?))` using a single bind parameter)
+- [x] **IN-02**: Empty `?<field>__in=` returns an empty result set (matches Django ORM semantics)
 
 ### Unicode Folding + Operator Coercion (UNICODE)
 
-- [ ] **UNICODE-01**: Filter values passed to `__contains` / `__startswith` / `__iexact` are Unicode-folded before reaching SQL, matching `rest.py:576` (`unidecode.unidecode(v)`); `?name__contains=Zürich` matches rows containing `zurich`
-- [ ] **UNICODE-02**: `__contains` operator coerced to `__icontains` behaviour at the query layer; `__startswith` coerced to `__istartswith` (matches `rest.py:638-641`)
+- [x] **UNICODE-01**: Filter values passed to `__contains` / `__startswith` / `__iexact` are Unicode-folded before reaching SQL, matching `rest.py:576` (`unidecode.unidecode(v)`); `?name__contains=Zürich` matches rows containing `zurich`
+- [x] **UNICODE-02**: `__contains` operator coerced to `__icontains` behaviour at the query layer; `__startswith` coerced to `__istartswith` (matches `rest.py:638-641`)
 - [ ] **UNICODE-03**: `ParseFilters` fuzz corpus extended to cover non-ASCII inputs (diacritics, CJK, combining marks, zero-width joiners); zero panics under fuzz
 
 ### Cross-Entity `__` Traversal (TRAVERSAL)
@@ -99,10 +99,10 @@ Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% covera
 | STATUS-05 | 68 | complete (68-01) |
 | LIMIT-01 | 68 | complete (68-03) |
 | LIMIT-02 | 68 | complete (68-03 guardrail; functional list+depth deferred to Phase 71) |
-| IN-01 | 69 | pending |
-| IN-02 | 69 | pending |
-| UNICODE-01 | 69 | in progress (data path complete 69-03; filter routing pending 69-04) |
-| UNICODE-02 | 69 | pending |
+| IN-01 | 69 | complete (69-04; json_each(?) single-bind in internal/pdbcompat/filter.go:264, EXPLAIN QUERY PLAN test in phase69_filter_test.go) |
+| IN-02 | 69 | complete (69-04; errEmptyIn sentinel + QueryOptions.EmptyResult flag + 13 closure guards) |
+| UNICODE-01 | 69 | complete (69-04; 16 fields across 6 TypeConfigs route via <field>_fold with unifold.Fold on RHS) |
+| UNICODE-02 | 69 | complete (69-04; coerceToCaseInsensitive in filter.go maps __contains → __icontains, __startswith → __istartswith) |
 | UNICODE-03 | 69 | pending |
 | TRAVERSAL-01 | 70 | pending |
 | TRAVERSAL-02 | 70 | pending |

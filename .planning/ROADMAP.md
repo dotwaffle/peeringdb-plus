@@ -82,7 +82,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 - [x] 69-01-PLAN.md — internal/unifold package (Fold + NFKD + hand-rolled fold map + unit tests)
 - [x] 69-02-PLAN.md — 16 field.String("*_fold") across 6 ent schemas + scoped ent regen (entgql.Skip+entrest.WithSkip annotations keep _fold off all wire surfaces; commit 9e408de)
 - [x] 69-03-PLAN.md — 6 upsertX funcs populate _fold columns via unifold.Fold (16 calls wired); 7 unaffected upserts byte-identical; golang.org/x/text promoted to direct dep; commits 8ce16ab+cdad023
-- [ ] 69-04-PLAN.md — filter.go: coerceToCaseInsensitive + shadow-column routing + json_each __in + empty-__in sentinel
+- [x] 69-04-PLAN.md — filter.go: coerceToCaseInsensitive + shadow-column routing + json_each __in + empty-__in sentinel; 16 folded fields across 6 TypeConfigs; 13 EmptyResult guards in list closures; commits 9839273 (RED) + 9aa661d (GREEN)
 - [ ] 69-05-PLAN.md — fuzz corpus extension (500k exec) + bench_test + shadow-index decision
 - [ ] 69-06-PLAN.md — CHANGELOG + docs/API.md divergence + CLAUDE.md convention + REQ-ID audit
 
