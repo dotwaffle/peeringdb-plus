@@ -46,7 +46,11 @@ const poCCap = 12
 // allCategoryOrder is the ordered list of (varName, parser) tuples
 // emitted by `--category all`. Order is alphabetical-by-var-name to
 // keep the on-disk file stable across category additions.
-var allCategoryOrder = []string{"limit", "ordering", "status"}
+//
+// As Go identifiers, the var names sort: In, Limit, Ordering,
+// Status, Traversal, Unicode. The category strings below match that
+// ordering after titleCase rewrites them.
+var allCategoryOrder = []string{"in", "limit", "ordering", "status", "traversal", "unicode"}
 
 // Fixture mirrors internal/testutil/parity.Fixture. Declared locally
 // to avoid importing the target package from the codegen tool (keeps
@@ -281,8 +285,9 @@ func sortFixtures(fxs []Fixture) {
 
 // buildSections expands --category into the list of (varName,
 // fixtures, comment) sections to emit. For singular categories
-// (`ordering`/`status`/`limit`) returns one section; for `all`
-// returns three sections in alphabetical-by-var-name order.
+// (`ordering`/`status`/`limit`/`unicode`/`in`/`traversal`) returns
+// one section; for `all` returns six sections in
+// alphabetical-by-var-name order.
 func buildSections(srcBytes []byte, category string) ([]section, error) {
 	switch category {
 	case "ordering":
@@ -291,6 +296,12 @@ func buildSections(srcBytes []byte, category string) ([]section, error) {
 		return []section{newSection("status", parseStatus(srcBytes))}, nil
 	case "limit":
 		return []section{newSection("limit", parseLimit(srcBytes))}, nil
+	case "unicode":
+		return []section{newSection("unicode", parseUnicode(srcBytes))}, nil
+	case "in":
+		return []section{newSection("in", parseIn(srcBytes))}, nil
+	case "traversal":
+		return []section{newSection("traversal", parseTraversal(srcBytes))}, nil
 	case "all":
 		out := make([]section, 0, len(allCategoryOrder))
 		for _, cat := range allCategoryOrder {
@@ -302,7 +313,7 @@ func buildSections(srcBytes []byte, category string) ([]section, error) {
 		}
 		return out, nil
 	default:
-		return nil, fmt.Errorf("unknown category %q (supported: ordering|status|limit|all)", category)
+		return nil, fmt.Errorf("unknown category %q (supported: ordering|status|limit|unicode|in|traversal|all)", category)
 	}
 }
 
@@ -315,12 +326,31 @@ func newSection(category string, fixtures []Fixture) section {
 		Title:    titleCase(category),
 		Fixtures: fixtures,
 	}
-	if category == "limit" {
+	switch category {
+	case "limit":
 		// Plan 72-02 D-02 path: limit bulk Network rows are
 		// synthesised because upstream pdb_api_test.py does not
 		// include a literal 260-row block. The provenance
 		// preamble points at the authoritative behaviour citation.
 		s.Preamble = "// synthesised per Plan 72-02 D-02: covers LIMIT-01 unlimited boundary at upstream rest.py:494-497"
+	case "unicode":
+		// Plan 72-03 synthesis path: 6 entities × 4 folded fields ×
+		// 9 sample inputs matrix targets the Phase 69 unifold pipeline.
+		// Per-entry citations point at upstream substring matches when
+		// available; rest.py:576 (unidecode call site) is the
+		// authoritative behaviour anchor.
+		s.Preamble = "// synthesised per Plan 72-03: covers UNICODE-01/02 fold matrix at upstream rest.py:576"
+	case "in":
+		// Plan 72-03 synthesis path: 5001 contiguous Network rows
+		// (IDs 100000..105000) for IN-01 large-list boundary +
+		// sentinel for IN-02 empty-__in path.
+		s.Preamble = "// synthesised per Plan 72-03: covers IN-01 large-list boundary + IN-02 empty-__in sentinel at upstream rest.py:IN-01-json_each"
+	case "traversal":
+		// Plan 72-03 synthesis path: ring topology rooted at one
+		// Organization (id=200001). 1-hop + 2-hop fixtures cite
+		// pdb_api_test.py:5081 / :2340 respectively. Silent-ignore
+		// fixture (TRAVERSAL-04) covers the 3+-hop cap.
+		s.Preamble = "// synthesised per Plan 72-03: ring topology covers TRAVERSAL-01..04 at upstream pdb_api_test.py:5081 (1-hop) + :2340 (2-hop)"
 	}
 	return s
 }

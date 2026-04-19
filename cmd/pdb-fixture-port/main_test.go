@@ -673,13 +673,19 @@ func TestFixturePort_TraversalCategory(t *testing.T) {
 	if !strings.Contains(string(body), "var TraversalFixtures = []Fixture{") {
 		t.Errorf("output missing TraversalFixtures slice declaration; got %s", body)
 	}
-	// 2-hop marker (Fields stays map[string]string per byte-identical
-	// preservation constraint, so the marker is "2" not the int 2).
-	if !strings.Contains(string(body), `"__hop": "2"`) {
-		t.Errorf("TraversalFixtures missing 2-hop marker (\"__hop\": \"2\"); got %s", body)
+	// 2-hop marker. Fields stays map[string]string (byte-identical
+	// preservation across plans 72-01/02/03), so the marker value is
+	// the verbatim Python-source form `"2"` — which the renderer
+	// Go-quotes to `"\"2\""`. gofmt aligns the value column with
+	// variable whitespace, so check for the value substring rather
+	// than a fixed-spacing key:value pair.
+	if !strings.Contains(string(body), `"__hop":`) || !strings.Contains(string(body), `"\"2\""`) {
+		t.Errorf("TraversalFixtures missing 2-hop marker; got %s", body)
 	}
-	// Silent-ignore fixture (TRAVERSAL-04).
-	if !strings.Contains(string(body), `"__expected_outcome": "silent-ignore"`) {
+	// Silent-ignore fixture (TRAVERSAL-04). Same gofmt-spacing
+	// caveat — assert key + value substrings independently.
+	if !strings.Contains(string(body), `"__expected_outcome":`) ||
+		!strings.Contains(string(body), `"\"silent-ignore\""`) {
 		t.Errorf("TraversalFixtures missing silent-ignore fixture; got %s", body)
 	}
 }
@@ -725,7 +731,7 @@ func TestFixturePort_CategoryAll_AllSixVars(t *testing.T) {
 	idxStatus := strings.Index(string(body), "var StatusFixtures")
 	idxTrav := strings.Index(string(body), "var TraversalFixtures")
 	idxUni := strings.Index(string(body), "var UnicodeFixtures")
-	if !(idxIn < idxLimit && idxLimit < idxOrder && idxOrder < idxStatus && idxStatus < idxTrav && idxTrav < idxUni) {
+	if idxIn >= idxLimit || idxLimit >= idxOrder || idxOrder >= idxStatus || idxStatus >= idxTrav || idxTrav >= idxUni {
 		t.Errorf("vars not alphabetical: in=%d limit=%d order=%d status=%d trav=%d uni=%d",
 			idxIn, idxLimit, idxOrder, idxStatus, idxTrav, idxUni)
 	}

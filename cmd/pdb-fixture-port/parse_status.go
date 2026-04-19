@@ -197,6 +197,24 @@ func findAssertionLine(srcBytes []byte, needle string) int {
 	return statusSynthFallbackLine
 }
 
+// findFirstSubstringLine is a generic line-locator used by per-
+// category parsers that need an upstream citation for a specific
+// substring (e.g. parseUnicode citing the first line containing
+// "Zürich"). Returns 1 (sentinel) when not found so emitted
+// citations stay non-empty per T-72-02-02.
+func findFirstSubstringLine(srcBytes []byte, needle string) int {
+	scanner := bufio.NewScanner(bytes.NewReader(srcBytes))
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+	lineNum := 0
+	for scanner.Scan() {
+		lineNum++
+		if strings.Contains(scanner.Text(), needle) {
+			return lineNum
+		}
+	}
+	return statusSynthFallbackLine
+}
+
 // statusValueTracked reports whether v (the verbatim Python-source
 // form of a `status=` kwarg, including outer quotes) is exactly one
 // of the three statuses parity tests track. With extractFieldsSharp
