@@ -1,0 +1,104 @@
+name: Nightly Bench
+
+# Phase 70 D-07 traversal bench. Advisory-only: a regressed run produces
+# a workflow warning but does NOT gate the main CI (.github/workflows/
+# ci.yml). The nightly cron is the primary trigger; workflow_dispatch
+# supports manual investigation of a suspected regression.
+#
+# Race detector is explicitly OFF -- it adds 2-10x overhead and distorts
+# the 50ms D-07 ceiling. Production `go test -race ./...` remains the
+# correctness gate.
+
+on:
+  schedule:
+    # 03:00 UTC nightly -- after main-branch activity settles.
+    - cron: '0 3 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bench-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  traversal-bench:
+    name: Phase 70 traversal bench (D-07 gate, advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Match shared-cpu-1x / shared-cpu-2x replica class so the 50ms
+      # ceiling reflects deployed hardware, not the CI runner's larger
+      # CPU complement. See docs/DEPLOYMENT.md Asymmetric fleet.
+      GOMAXPROCS: '2'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Run bench (n=6, benchtime=3s)
+        run: |
+          mkdir -p /tmp/bench
+          go test \
+            -tags=bench \
+            -bench='BenchmarkTraversal' \
+            -benchtime=3s \
+            -count=6 \
+            -run='^$' \
+            -benchmem \
+            -timeout=20m \
+            ./internal/pdbcompat/ \
+            | tee /tmp/bench/current.txt
+
+      - name: Enforce D-07 50ms ceiling (ceiling test)
+        # The test variant TestBenchTraversal_D07_Ceiling is the
+        # deterministic gate -- it fails the job if 2-hop on 10k rows
+        # exceeds 50ms. Separate invocation so benchstat output above
+        # remains clean.
+        run: |
+          go test \
+            -tags=bench \
+            -run='^TestBenchTraversal_D07_Ceiling$' \
+            -v \
+            -timeout=5m \
+            ./internal/pdbcompat/
+
+      - name: Install benchstat
+        run: go install golang.org/x/perf/cmd/benchstat@latest
+
+      - name: Compare against baseline (advisory)
+        id: benchstat
+        run: |
+          baseline=.planning/phases/70-cross-entity-traversal/bench-baseline.txt
+          if [ -f "$baseline" ]; then
+            ~/go/bin/benchstat "$baseline" /tmp/bench/current.txt | tee /tmp/bench/delta.txt
+            # Regression detection: any line showing >=20% slowdown
+            # is a warning, not a failure. Release coordinators decide
+            # whether to investigate.
+            if grep -qE '^\s*\+[2-9][0-9]\.[0-9]+%|\+[1-9][0-9]{2,}\.[0-9]+%' /tmp/bench/delta.txt; then
+              echo "::warning::Phase 70 bench shows a >=20% regression vs baseline -- investigate before v1.17 ships."
+            else
+              echo "::notice::Phase 70 bench within 20% of baseline -- no regression detected."
+            fi
+          else
+            echo "::warning::No baseline at $baseline -- run manually on a clean tree and commit the output."
+            cp /tmp/bench/current.txt /tmp/bench/baseline-suggested.txt
+          fi
+
+      - name: Upload bench artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traversal-bench-${{ github.run_id }}
+          path: |
+            /tmp/bench/current.txt
+            /tmp/bench/delta.txt
+            /tmp/bench/baseline-suggested.txt
+          if-no-files-found: ignore
+          retention-days: 30

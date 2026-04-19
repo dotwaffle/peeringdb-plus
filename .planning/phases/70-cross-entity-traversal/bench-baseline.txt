@@ -1,0 +1,43 @@
+# Phase 70 D-07 traversal bench baseline.
+#
+# Captured:   2026-04-19 on AMD Ryzen 5 3600 6-core @ ~3.6GHz, Linux 6.12
+# Build tag:  -tags=bench
+# Invocation: go test -tags=bench -bench='BenchmarkTraversal' -benchtime=3s \
+#               -count=6 -run='^$' -benchmem -timeout=20m ./internal/pdbcompat/
+# Seed:       testdata.Default10k() -- 10k nets / 20k facs / 1k ixes
+# D-07 gate:  50ms/op at 10k rows; current baseline ~0.004ms/op (12,500x headroom)
+#
+# CI compares against this baseline nightly via benchstat. A >=20%
+# regression raises a ::warning:: (advisory, non-blocking). The
+# TestBenchTraversal_D07_Ceiling companion test is the deterministic
+# gate: it fails the job if 2-hop on 10k rows exceeds 50ms.
+#
+# Hardware note: CI runs on GitHub ubuntu-latest with GOMAXPROCS=2 to
+# match the shared-cpu-1x / shared-cpu-2x replica class. Absolute
+# ns/op numbers will differ from this dev-machine baseline; relative
+# benchstat delta is hardware-agnostic to first order and is the
+# signal we monitor.
+goos: linux
+goarch: amd64
+pkg: github.com/dotwaffle/peeringdb-plus/internal/pdbcompat
+cpu: AMD Ryzen 5 3600 6-Core Processor
+BenchmarkTraversal_1Hop_Direct-12              	  895918	      3904 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_1Hop_Direct-12              	  895726	      4098 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_1Hop_Direct-12              	  993831	      3889 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_1Hop_Direct-12              	 1000000	      4077 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_1Hop_Direct-12              	 1000000	      3907 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_1Hop_Direct-12              	  963471	      3904 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_UpstreamParity-12      	  942247	      3947 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_UpstreamParity-12      	  878662	      3776 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_UpstreamParity-12      	  876336	      3942 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_UpstreamParity-12      	  948025	      3762 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_UpstreamParity-12      	  972375	      3820 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_UpstreamParity-12      	  998859	      3918 ns/op	    6659 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_WithLimitAndSkip-12    	  931203	      4000 ns/op	    6707 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_WithLimitAndSkip-12    	  932642	      3817 ns/op	    6707 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_WithLimitAndSkip-12    	  935204	      4127 ns/op	    6707 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_WithLimitAndSkip-12    	  929185	      3954 ns/op	    6707 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_WithLimitAndSkip-12    	  962150	      4017 ns/op	    6707 B/op	      19 allocs/op
+BenchmarkTraversal_2Hop_WithLimitAndSkip-12    	  976838	      3799 ns/op	    6707 B/op	      19 allocs/op
+PASS
+ok  	github.com/dotwaffle/peeringdb-plus/internal/pdbcompat	976.350s
