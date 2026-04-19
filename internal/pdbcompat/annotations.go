@@ -1,63 +1,41 @@
 package pdbcompat
 
-// PrepareQueryAllowAnnotation is the ent schema.Annotation form of
-// upstream PeeringDB's per-serializer prepare_query allowlist (Phase 70 D-01).
-// Attached to a schema (node-level), its Fields slice enumerates the
-// filter keys that the pdbcompat parser will resolve via Path A. The
-// codegen tool cmd/pdb-compat-allowlist reads this annotation at
-// gen.Graph walk time and emits internal/pdbcompat/allowlist_gen.go.
-//
-// Fields are stored verbatim (e.g. "org__name", "ixlan__ix__fac_count")
-// — the codegen tool splits on "__" when populating AllowlistEntry.Via.
-type PrepareQueryAllowAnnotation struct {
-	Fields []string
-}
+import (
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
+)
 
-// Name returns the stable annotation name consulted by the codegen tool
-// when walking gen.Graph. Do NOT rename — grep-ability across ent
-// schema files, cmd/pdb-compat-allowlist, and generated output is
-// load-bearing.
-func (PrepareQueryAllowAnnotation) Name() string { return "PrepareQueryAllow" }
-
-// WithPrepareQueryAllow is the ent-schema-facing constructor. Use in
-// schema Annotations() slices, e.g.
+// The ent schema annotation types live in the leaf sub-package
+// internal/pdbcompat/schemaannot to avoid an import cycle:
 //
-//	func (Network) Annotations() []schema.Annotation {
-//	    return []schema.Annotation{
-//	        pdbcompat.WithPrepareQueryAllow(
-//	            "org__name",       // upstream serializers.py:2732
-//	            "ixlan__ix__fac_count",
-//	        ),
-//	        // ...existing annotations...
-//	    }
-//	}
+//	pdbcompat → ent (registry.go)
+//	ent/runtime → ent/schema (generated)
+//	ent/schema → pdbcompat  ← this edge, if added, closes the cycle at
+//	                          test-compile time via ent/enttest.
+//
+// ent/schema imports the sub-package directly; this file re-exports the
+// types and constructors so existing in-package callers (allowlist_gen.go,
+// annotations_test.go, Plan 70-05 parser) keep compiling unchanged.
+
+// PrepareQueryAllowAnnotation aliases schemaannot.PrepareQueryAllowAnnotation.
+// See the schemaannot package for full docs.
+type PrepareQueryAllowAnnotation = schemaannot.PrepareQueryAllowAnnotation
+
+// FilterExcludeFromTraversalAnnotation aliases
+// schemaannot.FilterExcludeFromTraversalAnnotation.
+type FilterExcludeFromTraversalAnnotation = schemaannot.FilterExcludeFromTraversalAnnotation
+
+// WithPrepareQueryAllow is the pdbcompat-package-level constructor for
+// Path A allowlist annotations (Phase 70 D-01). Re-exports
+// schemaannot.WithPrepareQueryAllow so pdbcompat's existing API surface is
+// unchanged. New ent/schema call sites should import the schemaannot
+// sub-package directly to avoid the import cycle documented above.
 func WithPrepareQueryAllow(fields ...string) PrepareQueryAllowAnnotation {
-	// Copy to avoid aliasing the caller's slice.
-	out := make([]string, len(fields))
-	copy(out, fields)
-	return PrepareQueryAllowAnnotation{Fields: out}
+	return schemaannot.WithPrepareQueryAllow(fields...)
 }
 
-// FilterExcludeFromTraversalAnnotation is the ent-edge-level form of
-// upstream serializers.py:128-157's FILTER_EXCLUDE list (Phase 70 D-03).
-// Attached to an edge (e.g. network.social_media), it signals the
-// codegen tool to mark the edge as un-traversable — Path B
-// introspection will skip it regardless of whether it matches the
-// <fk>__<field> shape.
-//
-// No fields: presence is the signal.
-type FilterExcludeFromTraversalAnnotation struct{}
-
-// Name returns the stable annotation name. Do NOT rename.
-func (FilterExcludeFromTraversalAnnotation) Name() string {
-	return "FilterExcludeFromTraversal"
-}
-
-// WithFilterExcludeFromTraversal is the ent-schema-facing constructor.
-// Attach to an edge to exclude it from Path B traversal, e.g.
-//
-//	edge.To("pocs", Poc.Type).
-//	    Annotations(pdbcompat.WithFilterExcludeFromTraversal()),
+// WithFilterExcludeFromTraversal is the pdbcompat-package-level
+// constructor for FILTER_EXCLUDE annotations (Phase 70 D-03). Re-exports
+// schemaannot.WithFilterExcludeFromTraversal.
 //
 // Initial expected call sites (Plan 70-03):
 //   - Any edge that materialises as a JSON field (none today — placeholder)
@@ -65,7 +43,7 @@ func (FilterExcludeFromTraversalAnnotation) Name() string {
 //     introspection rather than explicit annotation; the tool detects
 //     them by name).
 func WithFilterExcludeFromTraversal() FilterExcludeFromTraversalAnnotation {
-	return FilterExcludeFromTraversalAnnotation{}
+	return schemaannot.WithFilterExcludeFromTraversal()
 }
 
 // AllowlistEntry is the per-entity allowlist shape emitted into

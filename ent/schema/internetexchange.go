@@ -10,6 +10,7 @@ import (
 	"github.com/lrstanley/entrest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // InternetExchange holds the schema definition for the InternetExchange entity.
@@ -231,6 +232,23 @@ func (InternetExchange) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
+		// peeringdb_server/serializers.py:3622 InternetExchangeSerializer.prepare_query.
+		// get_relation_filters seeds ["ixlan", "ixfac", "fac", "net", ...] plus
+		// org__* derived from select_related("org"). ixpfx__prefix exposed as
+		// PDB-surface alias resolving through ix_lans.ix_prefixes (1-hop
+		// via reverse FK).
+		// DROP: capacity — special aggregator filter (Model.filter_capacity
+		// line 3665), not a relation field.
+		schemaannot.WithPrepareQueryAllow(
+			"org__name",
+			"ixlan__name",
+			"ixpfx__prefix",
+			"net__name",
+			"net__asn",
+			"fac__name",
+			"fac__country",
+		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

@@ -8,6 +8,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/lrstanley/entrest"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // NetworkIxLan holds the schema definition for the NetworkIxLan entity.
@@ -132,6 +134,18 @@ func (NetworkIxLan) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
+		// peeringdb_server/serializers.py:2573 NetworkIXLanSerializer.prepare_query.
+		// get_relation_filters seed ["ix_id", "ix", "name"]; upstream rewrites
+		// "name" to "ix__name" at line 2579. net__* filters derive from the
+		// eager-load chain select_related("network", "network__org").
+		schemaannot.WithPrepareQueryAllow(
+			"net__name",
+			"net__asn",
+			"ix__name",
+			"ix__id",
+			"ixlan__name",
+		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

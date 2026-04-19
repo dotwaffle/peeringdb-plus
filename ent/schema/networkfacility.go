@@ -8,6 +8,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/lrstanley/entrest"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // NetworkFacility holds the schema definition for the NetworkFacility entity.
@@ -102,6 +104,18 @@ func (NetworkFacility) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
+		// peeringdb_server/serializers.py:2732
+		// NetworkFacilitySerializer.prepare_query. get_relation_filters seed
+		// ["name", "country", "city"] is rewritten to facility__<field> at
+		// line 2737; net__* filters derive from the eager-load chain
+		// select_related("network", "network__org").
+		schemaannot.WithPrepareQueryAllow(
+			"net__name",
+			"net__asn",
+			"fac__name",
+			"fac__country",
+		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

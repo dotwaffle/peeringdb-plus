@@ -10,6 +10,7 @@ import (
 	"github.com/lrstanley/entrest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // Campus holds the schema definition for the Campus entity.
@@ -146,6 +147,18 @@ func (Campus) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
+		// peeringdb_server/serializers.py:3925 CampusSerializer.prepare_query.
+		// get_relation_filters seed ["facility"] is rewritten to "fac_set__..."
+		// at line 3936 (Django reverse-accessor). Translated to PDB-surface
+		// alias fac__* which resolves through our forward edge
+		// campus.facilities.* at parse time (Plan 70-05). org__name derived
+		// from select_related("org").
+		schemaannot.WithPrepareQueryAllow(
+			"org__name",
+			"fac__name",
+			"fac__country",
+		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

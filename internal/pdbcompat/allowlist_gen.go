@@ -11,7 +11,127 @@ package pdbcompat
 // Allowlists maps a PeeringDB type name (e.g. "net") to its Path A
 // allowlist — the set of <fk>__<field> and <fk>__<fk>__<field> keys
 // that mirror upstream serializers.py get_relation_filters(...) lists.
-var Allowlists = map[string]AllowlistEntry{}
+var Allowlists = map[string]AllowlistEntry{
+	"campus": {
+		Direct: []string{
+			"fac__country",
+			"fac__name",
+			"org__name",
+		},
+	},
+	"carrier": {
+		Direct: []string{
+			"fac__country",
+			"fac__name",
+			"org__name",
+		},
+	},
+	"carrierfac": {
+		Direct: []string{
+			"carrier__name",
+			"fac__country",
+			"fac__name",
+		},
+	},
+	"fac": {
+		Direct: []string{
+			"campus__name",
+			"ix__id",
+			"ix__name",
+			"net__asn",
+			"net__name",
+			"org__name",
+		},
+		Via: map[string][]string{
+			"ixlan": {
+				"ix__fac_count",
+			},
+		},
+	},
+	"ix": {
+		Direct: []string{
+			"fac__country",
+			"fac__name",
+			"ixlan__name",
+			"ixpfx__prefix",
+			"net__asn",
+			"net__name",
+			"org__name",
+		},
+	},
+	"ixfac": {
+		Direct: []string{
+			"fac__city",
+			"fac__country",
+			"fac__name",
+			"ix__name",
+		},
+	},
+	"ixlan": {
+		Direct: []string{
+			"ix__id",
+			"ix__name",
+			"ixpfx__prefix",
+		},
+	},
+	"ixpfx": {
+		Direct: []string{
+			"ixlan__name",
+		},
+		Via: map[string][]string{
+			"ixlan": {
+				"ix__id",
+				"ix__name",
+			},
+		},
+	},
+	"net": {
+		Direct: []string{
+			"fac__name",
+			"ix__name",
+			"ixlan__name",
+			"org__id",
+			"org__name",
+		},
+		Via: map[string][]string{
+			"network_facilities": {
+				"facility__name",
+			},
+		},
+	},
+	"netfac": {
+		Direct: []string{
+			"fac__country",
+			"fac__name",
+			"net__asn",
+			"net__name",
+		},
+	},
+	"netixlan": {
+		Direct: []string{
+			"ix__id",
+			"ix__name",
+			"ixlan__name",
+			"net__asn",
+			"net__name",
+		},
+	},
+	"org": {
+		Direct: []string{
+			"fac__country",
+			"fac__name",
+			"ix__name",
+			"net__asn",
+			"net__name",
+		},
+	},
+	"poc": {
+		Direct: []string{
+			"net__asn",
+			"net__name",
+		},
+	},
+}
 
 // FilterExcludes mirrors upstream serializers.py:128-157 FILTER_EXCLUDE.
 // Outer key: entity Go name (e.g. "Network"). Inner key: edge name

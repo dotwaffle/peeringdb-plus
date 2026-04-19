@@ -10,6 +10,7 @@ import (
 	"github.com/lrstanley/entrest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // Carrier holds the schema definition for the Carrier entity.
@@ -136,6 +137,17 @@ func (Carrier) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
+		// peeringdb_server/serializers.py:2244 CarrierSerializer.prepare_query.
+		// Upstream seed is the reverse-accessor "carrierfac_set__facility_id";
+		// we translate to PDB-surface aliases fac__name / fac__country that
+		// resolve through the local forward edges
+		// carrier.carrier_facilities.facility at parse time (Plan 70-05).
+		schemaannot.WithPrepareQueryAllow(
+			"org__name",
+			"fac__name",
+			"fac__country",
+		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

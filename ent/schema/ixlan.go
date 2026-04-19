@@ -8,6 +8,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/lrstanley/entrest"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // IxLan holds the schema definition for the IxLan entity.
@@ -113,6 +115,18 @@ func (IxLan) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
+		// peeringdb_server/serializers.py:3451 IXLanSerializer.prepare_query.
+		// Upstream returns (qset.select_related("ix", "ix__org"), {}) with no
+		// get_relation_filters call; client-facing ix__* filters derive from
+		// Meta.related_fields = ["ix"] (serializers.py:3444). ixpfx__prefix is
+		// a reverse-FK filter commonly used to locate IxLans by the prefix
+		// they contain (upstream queryable_relations auto-exposure equivalent).
+		schemaannot.WithPrepareQueryAllow(
+			"ix__name",
+			"ix__id",
+			"ixpfx__prefix",
+		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

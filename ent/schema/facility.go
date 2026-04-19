@@ -10,6 +10,7 @@ import (
 	"github.com/lrstanley/entrest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // Facility holds the schema definition for the Facility entity.
@@ -254,6 +255,20 @@ func (Facility) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
+		// peeringdb_server/serializers.py:1823 FacilitySerializer.prepare_query.
+		// Concrete <fk>__<field> keys derived from the get_relation_filters
+		// seed list ("net", "ix", "org_name", ...) plus the ixlan__ix__fac_count
+		// 2-hop test case from pdb_api_test.py:5047,5081.
+		schemaannot.WithPrepareQueryAllow(
+			"org__name",
+			"campus__name",
+			"net__name",
+			"net__asn",
+			"ix__name",
+			"ix__id",
+			"ixlan__ix__fac_count",
+		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

@@ -10,6 +10,7 @@ import (
 	"github.com/lrstanley/entrest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // Organization holds the schema definition for the Organization entity.
@@ -171,6 +172,21 @@ func (Organization) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
+		// peeringdb_server/serializers.py:4041 OrganizationSerializer.prepare_query.
+		// Upstream does NOT call get_relation_filters; it only special-cases
+		// the asn kwarg as net_set__asn=X (line 4053). Relation-filter surface
+		// derives from queryable_relations auto-introspection (Path B). We
+		// enumerate the commonly-used reverse-FK aliases.
+		// DROP: distance — spatial search (convert_to_spatial_search line 4056),
+		// out of Phase 70 scope.
+		schemaannot.WithPrepareQueryAllow(
+			"net__name",
+			"net__asn",
+			"ix__name",
+			"fac__name",
+			"fac__country",
+		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

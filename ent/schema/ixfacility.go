@@ -8,6 +8,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/lrstanley/entrest"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // IxFacility holds the schema definition for the IxFacility entity.
@@ -100,6 +102,17 @@ func (IxFacility) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
+		// peeringdb_server/serializers.py:2361
+		// InternetExchangeFacilitySerializer.prepare_query. Upstream seed
+		// ["name", "country", "city"] is rewritten to facility__<field> at
+		// line 2366; we expose the PDB-surface aliases directly.
+		schemaannot.WithPrepareQueryAllow(
+			"fac__name",
+			"fac__country",
+			"fac__city",
+			"ix__name",
+		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

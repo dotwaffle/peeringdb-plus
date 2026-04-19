@@ -10,6 +10,7 @@ import (
 	"github.com/lrstanley/entrest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // Network holds the schema definition for the Network entity.
@@ -248,6 +249,22 @@ func (Network) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
+		// peeringdb_server/serializers.py:2947 NetworkSerializer.prepare_query
+		// (secondary cite: serializers.py:2995
+		// NetworkSerializer.finalize_query_params — legacy info_type → info_types
+		// rewrite). get_relation_filters seeds ["ixlan", "ix", "netixlan",
+		// "netfac", "fac", ...] plus org__* derived from select_related("org").
+		// Translated from Django "netfac_set" reverse-accessor to our forward
+		// edge "network_facilities" (ent/schema/network.go Edges()).
+		schemaannot.WithPrepareQueryAllow(
+			"org__name",
+			"org__id",
+			"ix__name",
+			"ixlan__name",
+			"fac__name",
+			"network_facilities__facility__name",
+		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),
