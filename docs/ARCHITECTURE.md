@@ -456,3 +456,152 @@ Standard runtime metrics are collected via `go.opentelemetry.io/contrib/instrume
 (wired through `internal/otel/provider.go`). All providers are shut down on SIGINT/SIGTERM via the
 `SetupOutput.Shutdown` closure, which runs inside the drain window
 (`PDBPLUS_DRAIN_TIMEOUT`, default `10s`).
+
+## Response Memory Envelope
+
+v1.16 Phase 71 — pdbcompat list responses are gated by a per-request
+memory budget so the 256 MB Fly replicas never OOM under `limit=0`,
+depth=2, or 2-hop traversal responses enabled by Phases 68 + 70. The
+ceiling is enforced by a pre-flight `SELECT COUNT(*) × typical_row_bytes`
+heuristic that returns RFC 9457 `application/problem+json` 413 BEFORE
+any row data is fetched, and bytes are streamed through the response
+writer once the budget check passes.
+
+### The envelope
+
+```
+256 MB replica total
+  − 80 MB Go runtime baseline (observed v1.15 Phase 66 telemetry)
+  − 48 MB slack (other in-flight requests + GC overhead)
+  = 128 MiB PDBPLUS_RESPONSE_MEMORY_LIMIT default
+```
+
+Operators tune via the `PDBPLUS_RESPONSE_MEMORY_LIMIT` env var
+(`docs/CONFIGURATION.md`). A unit suffix is mandatory (`KB`/`MB`/`GB`/`TB`);
+the literal value `0` disables the check (local development only — do
+NOT disable in prod). The default sits under the 256 MB replica cap
+with margin so the order under pressure is: 413 → dashboard alert →
+operator action, never OOM-kill.
+
+### The three moving parts
+
+| File | Responsibility |
+|---|---|
+| `internal/pdbcompat/stream.go` | Hand-rolled JSON token writer. `StreamListResponse(ctx, w, meta, rowsIter)` emits `{"meta":…,"data":[…]}` with per-row `json.Marshal` and periodic `http.Flusher.Flush()` (every 100 rows). No full-result `[]any` materialisation on the wire. |
+| `internal/pdbcompat/rowsize.go` | Hardcoded `map[string]RowSize{Depth0, Depth2}` calibrated from `bench_row_size_test.go` then doubled per D-03. Conservative by design — false-positive 413s are preferred over OOM. Recalibrated every major milestone; drift >20% triggers a refresh plan. |
+| `internal/pdbcompat/budget.go` | `CheckBudget(count, entity, depth, budgetBytes) (BudgetExceeded, bool)` multiplies `count × TypicalRowBytes(entity, depth)`. Over-budget requests get 413 via `WriteBudgetProblem` BEFORE the row data is fetched; the RFC 9457 body carries `max_rows = budget / per_row` and `budget_bytes` so clients can re-slice their request. |
+
+### Per-entity worst-case sizing
+
+Values are the DOUBLED figure from `BenchmarkRowSize_*` (Plan 02
+calibration, 2026-04-19), rounded up to 64 bytes. At the 128 MiB
+default budget, the `max_rows` column shows the row count at which the
+pre-flight check trips. Unknown entities fall back to
+`defaultRowSize = 4096` (fail-closed).
+
+| Entity | Depth=0 bytes/row | Max rows @ 128 MiB (D=0) | Depth=2 bytes/row | Max rows @ 128 MiB (D=2) |
+|---|---:|---:|---:|---:|
+| org | 640 | 209,715 | 8,576 | 15,650 |
+| net | 1,600 | 83,886 | 2,368 | 56,679 |
+| fac | 1,344 | 99,864 | 2,624 | 51,150 |
+| ix | 1,280 | 104,857 | 2,496 | 53,773 |
+| poc | 384 | 349,525 | 1,984 | 67,650 |
+| ixlan | 576 | 233,016 | 1,856 | 72,315 |
+| ixpfx | 384 | 349,525 | 896 | 149,796 |
+| netixlan | 640 | 209,715 | 2,752 | 48,770 |
+| netfac | 384 | 349,525 | 3,264 | 41,120 |
+| ixfac | 384 | 349,525 | 3,008 | 44,620 |
+| carrier | 512 | 262,144 | 1,472 | 91,180 |
+| carrierfac | 320 | 419,430 | 2,112 | 63,550 |
+| campus | 576 | 233,016 | 2,560 | 52,428 |
+
+`org` at depth=2 is the envelope's worst case (Depth2 row expands every
+`net_set` / `fac_set` / `ix_set` / `carrier_set` / `campus_set` at ~8.6 KiB/row)
+and still admits ~15k rows under the default budget — comfortably above
+the ~35 live organisations that currently carry populated child sets in
+production. Full table lives in `internal/pdbcompat/rowsize.go`.
+
+### Request lifecycle
+
+1. Client sends `GET /api/<type>?<filters>&limit=0` (or any other
+   combination that could produce a large response).
+2. Handler parses filters, `?since`, and pagination (unchanged from v1.6
+   baseline).
+3. **Pre-flight count:** handler runs `tc.CountFunc(ctx, client, opts)` —
+   a filtered `SELECT COUNT(*)` using the same predicate chain as the
+   upcoming `tc.ListFunc` call. The per-entity `CountFunc` sibling was
+   added in Plan 71-04; it shares a `<entity>Predicates` local helper
+   with its List sibling so the budget check and the served response
+   can never disagree on filter semantics.
+4. **Budget check:** `CheckBudget(count, tc.Name, 0, cfg.ResponseMemoryLimit)`.
+   - Under budget → step 5.
+   - Over budget → `WriteBudgetProblem(w, r.URL.Path, info)` emits 413
+     `application/problem+json` with `max_rows`, `budget_bytes`, and a
+     human-readable `detail` string. NO row data is fetched; no
+     `Retry-After` header (413 is request-shape, not transient).
+5. `tc.ListFunc` materialises the result slice.
+6. `StreamListResponse` emits the envelope token-by-token with
+   `http.Flusher.Flush()` every 100 rows, bounding intermediate
+   allocations.
+
+### Telemetry (MEMORY-03)
+
+- **OTel span attribute** `pdbplus.response.heap_delta_kib` — per-request
+  `runtime.MemStats.HeapInuse` delta, sampled once at handler entry
+  and once via `defer` at exit. `ReadMemStats` is STW (~µs at our heap
+  size); D-06 permits ONE sample per request but NEVER per row. The
+  sampler lives in `internal/pdbcompat/telemetry.go`
+  (`memStatsHeapInuseKiB` + `recordResponseHeapDelta`) and is called
+  via `defer` at the top of `serveList` so every terminal path (200
+  success, 413 budget-exceeded, 400 filter-error, 500 query-error)
+  fires exactly once.
+- **Prometheus histogram** `pdbplus_response_heap_delta_kib{endpoint,entity}` —
+  buckets 0.5, 1, 4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144,
+  524288 KiB (near-zero through 512 MiB, with the 128 MiB default
+  budget sitting at the 9th bucket boundary). Registered via
+  `pdbotel.InitResponseHeapHistogram()` in `internal/otel/metrics.go`.
+- **Grafana** — panel id 36 "Response Heap Delta (KiB) — p50/p95/p99
+  by endpoint" at the bottom of the SEED-001 watch row in
+  `deploy/grafana/dashboards/pdbplus-overview.json`. Companion to the
+  v1.15 Phase 66 sync-cycle peak heap/RSS panels; two visual tiers now
+  read "per-cycle peaks" (top) and "per-request deltas" (bottom).
+
+### Out of scope
+
+Streaming + budget apply to **pdbcompat only** (D-07). Other surfaces
+have their own memory stories:
+
+- **grpcserver** already streams via batched keyset pagination
+  (500-row chunks) through `StreamEntities`; no slice materialisation.
+- **entrest** uses ent-generated handlers that do not buffer unbounded
+  results; REST `/rest/v1/*` paths page via the entrest cursor model.
+- **GraphQL** has its own depth/complexity limits from v1.12.
+- **Web UI** renders on the server with bounded htmx fragments; the
+  terminal renderer buffers per-response but is already gated by the
+  `/ui/` middleware body cap.
+
+If a future phase extends streaming/budget to any of these surfaces,
+start from the pdbcompat shape documented above rather than redesigning
+from scratch.
+
+### Extending
+
+Adding a new entity type requires:
+
+1. `internal/pdbcompat/rowsize.go` — add a `typicalRowBytes` entry with
+   `Depth0` + `Depth2` (run `go test -run=NONE -bench=BenchmarkRowSize
+   ./internal/pdbcompat -benchtime=20x -count=3` against a seeded
+   fixture, double the measured mean, round UP to the nearest 64
+   bytes). Follow the procedure in the `typicalRowBytes` godoc.
+2. `internal/pdbcompat/registry_funcs.go` — pair a `ListFunc` closure
+   with a sibling `CountFunc` closure via a shared
+   `<entity>Predicates` local helper (preserves Phase 68
+   `applyStatusMatrix` and Phase 69 `EmptyResult` invariants; never
+   let the two closures diverge).
+3. New row in the per-entity sizing table above.
+4. Extend `cmd/peeringdb-plus/…_e2e_test.go` with an under-budget
+   smoke case and an over-budget 413 assertion mirroring
+   `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
+
+See `internal/pdbcompat/stream.go`, `rowsize.go`, `budget.go`, and
+`telemetry.go` for the reference implementation.
