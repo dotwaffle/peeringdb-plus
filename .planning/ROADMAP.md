@@ -44,12 +44,12 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   2. `ListNetworks` / `StreamNetworks` and analogous ConnectRPC List/Stream RPCs for all 13 types return rows in the same `(-updated, -created)` order; cursor pagination remains stable across pages
   3. `/rest/v1/*` list endpoints default to `(-updated, -created)` while still honouring explicit `?sort=` overrides for non-default orderings
   4. Existing streaming RPC cursor-resume semantics (`since_id`, `updated_since`) continue to work under the new default order
-**Plans:** 3/6 plans executed
+**Plans:** 5/6 plans executed
 - [x] 67-01-PLAN.md — Add `index.Fields("updated")` + `entrest.WithDefaultSort/Order` + `WithSortable(true)` to all 13 ent schemas + lock-step generator template (D-02, D-08)
 - [x] 67-02-PLAN.md — `entc.TemplateDir` override for compound `(-updated, -created, -id)` entrest default (D-07) — embeds exact upstream sorting.tmpl variables
-- [ ] 67-03-PLAN.md — Flip 13 pdbcompat `.Order()` calls to compound + regenerate 39 goldens + new TestDefaultOrdering_Pdbcompat
+- [x] 67-03-PLAN.md — Flip 13 pdbcompat `.Order()` calls to compound + regenerate 39 goldens + new TestDefaultOrdering_Pdbcompat
 - [x] 67-04-PLAN.md — Add `streamCursor` type + encode/decode helpers in grpcserver/pagination.go (Plan 05 dep)
-- [ ] 67-05-PLAN.md — Flip 26 grpcserver order sites + StreamParams signature + 13 QueryBatch keyset closures + tests
+- [x] 67-05-PLAN.md — Flip 26 grpcserver order sites + StreamParams signature + 13 QueryBatch keyset closures + tests
 - [ ] 67-06-PLAN.md — Cross-surface E2E test (pdbcompat + entrest + grpcserver parity + nested _set per D-04 clarification) + docs/ARCHITECTURE.md § Ordering
 
 ### Phase 68: Status × since matrix + limit=0 semantics

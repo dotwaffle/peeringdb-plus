@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 67-04 (Wave 3, parallel with 67-03)
-last_updated: "2026-04-19T12:30:04.729Z"
+stopped_at: Completed 67-05 (Wave 4 — grpcserver default ordering + compound keyset cursor)
+last_updated: "2026-04-19T12:50:08Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 6
-  completed_plans: 3
-  percent: 50
+  completed_plans: 4
+  percent: 67
 ---
 
 # Project State
@@ -150,7 +150,10 @@ All decisions archived in PROJECT.md Key Decisions table (46+ decisions across 1
 - **v1.15 decisions** captured in PROJECT.md (schema hygiene drops Phase 63, asymmetric Fly fleet Phase 65, sync observability hybrid Phase 66)
 - **v1.16 decisions** — 19 D-0N locked in phase CONTEXT.md files above. Will be promoted into PROJECT.md Key Decisions table at each phase transition via `/gsd:transition`.
 - **Phase 67 Plan 02**: D-67-02-01 — entrest template override wired via custom entc.Option rather than entc.TemplateDir. The latter cannot resolve entrest-provided template funcs (getAnnotation, getSortableFields) because gen.NewTemplate does not register entrest's funcmap by default. Fix: local helper `entrestSortingOverride()` in `ent/entc.go` that calls `gen.NewTemplate(...).Funcs(entrest.FuncMaps())` before ParseDir.
-- [Phase ?]: Compound streamCursor (RFC3339Nano:id) helpers added to grpcserver/pagination.go; offset helpers retained for List* RPCs per Plan 67-04
+- [Phase 67 Plan 04]: Compound streamCursor (RFC3339Nano:id) helpers added to grpcserver/pagination.go; offset helpers retained for List* RPCs per Plan 67-04.
+- **Phase 67 Plan 05 D-01**: Shared `keysetCursorPredicate(cursor) func(*sql.Selector)` helper in `internal/grpcserver/generic.go` — single source of truth for the compound keyset predicate shape. Used by all 13 per-entity QueryBatch closures via `predicate.<Type>(keysetCursorPredicate(cursor))` downcast (works because ent's generated predicate types are `~func(*sql.Selector)`).
+- **Phase 67 Plan 05 D-02**: SinceID no longer seeds the StreamEntities cursor tracker. Under compound keyset, SinceID is a pure predicate (applied in the predicates slice before Order per D-05); seeding the cursor would skip valid rows with `updated > start` under the new DESC order. Removed the `lastID = int(*params.SinceID)` seed line.
+- **Phase 67 Plan 05 D-03**: Three pre-existing tests (`TestStreamCarrierFacilities`, `TestStreamNetworkIxLans`, `TestStreamPocs`) had weak "first-message=id=1" assertions. Fixed in-task by spreading seed timestamps (id=1 gets updated+=1h) so id=1 still sorts first under the new order — preserves the existing assertion intent without semantic rewrite.
 
 ### Seeds
 
@@ -181,9 +184,9 @@ One **coordination note** for executor: do NOT ship Phase 68 to prod before Phas
 
 ## Session Continuity
 
-Last session: 2026-04-19T12:30:01.258Z
+Last session: 2026-04-19T12:50:08Z
 Last activity: 2026-04-19
-Stopped at: Completed 67-04 (Wave 3, parallel with 67-03)
+Stopped at: Completed 67-05 (Wave 4 — grpcserver default ordering + compound keyset cursor)
 
 ### Resume via `/gsd-plan-phase 67` or `/gsd-autonomous`
 
