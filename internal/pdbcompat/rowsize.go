@@ -52,7 +52,7 @@ var typicalRowBytes = map[string]RowSize{
 	// Calibrated 2026-04-19 from seed.Full at benchtime=20x × count=3.
 	// Values = ceil(2 × measured_bytes_per_op / 64) * 64.
 	// Raw measurements preserved in .planning/phases/71-memory-safe-response-paths/71-02-SUMMARY.md.
-	peeringdb.TypeOrg:        {Depth0: 640, Depth2: 8576}, // org (Depth2 expands net/fac/ix/carrier/campus sets → largest row in the table)
+	peeringdb.TypeOrg:        {Depth0: 704, Depth2: 8576}, // org (Depth2 expands net/fac/ix/carrier/campus sets → largest row in the table). Depth0 bumped from 640 → 704 (Phase 71 WR-02 — seed.Full mean is 325 bytes vs bench's single-row 317, so 2× rounds up one 64-byte bucket higher).
 	peeringdb.TypeNet:        {Depth0: 1600, Depth2: 2368},
 	peeringdb.TypeFac:        {Depth0: 1344, Depth2: 2624},
 	peeringdb.TypeIX:         {Depth0: 1280, Depth2: 2496},
