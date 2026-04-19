@@ -282,19 +282,36 @@ func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value s
 	// shape emitted by cmd/pdb-compat-allowlist for Allowlists entries.
 	fullKey := strings.Join(relSegs, "__") + "__" + field
 
-	// Path A: consult Allowlists[tc.Name] first.
+	// Path A: consult Allowlists[tc.Name] first. A hit here commits to
+	// the Path A construction UNLESS the downstream buildSinglHop /
+	// buildTwoHop reports ok=false with no emptyResult/err (e.g. the
+	// edge or target Registry entry is missing). In that soft-miss case
+	// we fall through to Path B rather than short-circuit the key to
+	// silent-ignore — otherwise an allowlist entry whose first segment
+	// happens to also be a valid Path B TraversalKey on a different
+	// schema could suppress a resolution that would have worked
+	// (Phase 70 REVIEW WR-03). Hard errors (emptyResult, conversion
+	// err) still propagate immediately.
 	entry, hasAllowlist := Allowlists[tc.Name]
 	if hasAllowlist {
 		if len(relSegs) == 1 {
 			if slices.Contains(entry.Direct, fullKey) {
-				return buildSinglHop(tc.Name, relSegs[0], field, op, value)
+				p, ok, empty, err := buildSinglHop(tc.Name, relSegs[0], field, op, value)
+				if err != nil || empty || ok {
+					return p, ok, empty, err
+				}
+				// ok=false, no err, no empty — soft miss, fall through.
 			}
 		} else {
 			// 2-hop: Via[<first-hop>] contains "<second-hop>__<field>".
 			if tails, okVia := entry.Via[relSegs[0]]; okVia {
 				tailKey := relSegs[1] + "__" + field
 				if slices.Contains(tails, tailKey) {
-					return buildTwoHop(tc.Name, relSegs[0], relSegs[1], field, op, value)
+					p, ok, empty, err := buildTwoHop(tc.Name, relSegs[0], relSegs[1], field, op, value)
+					if err != nil || empty || ok {
+						return p, ok, empty, err
+					}
+					// Soft miss — fall through to Path B.
 				}
 			}
 		}
