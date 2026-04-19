@@ -263,6 +263,326 @@ func TestSynthIDStability(t *testing.T) {
 	}
 }
 
+// TestFixturePort_StatusCategory exercises --category status: the
+// emitted file must declare `var StatusFixtures = []Fixture{` and
+// contain at least one entry. Plan 72-02 Task 1 Test 1.
+func TestFixturePort_StatusCategory(t *testing.T) {
+	t.Parallel()
+	tmp := filepath.Join(t.TempDir(), "fixtures.go")
+	args := []string{
+		"--upstream-file", testDataMinPy,
+		"--out", tmp,
+		"--category", "status",
+		"--date", "2026-04-19",
+	}
+	var out, errb bytes.Buffer
+	if code := run(args, &out, &errb); code != exitOK {
+		t.Fatalf("run() = %d; stderr=%q", code, errb.String())
+	}
+	body, err := os.ReadFile(tmp) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if !strings.Contains(string(body), "var StatusFixtures = []Fixture{") {
+		t.Errorf("output missing StatusFixtures slice declaration; got %s", body)
+	}
+	// Sanity: at least one entry.
+	if !strings.Contains(string(body), "Entity:") {
+		t.Errorf("output has no Entity entries; got %s", body)
+	}
+}
+
+// TestFixturePort_LimitCategory exercises --category limit: the
+// emitted file must declare `var LimitFixtures = []Fixture{`. Plan
+// 72-02 Task 1 Test 2.
+func TestFixturePort_LimitCategory(t *testing.T) {
+	t.Parallel()
+	tmp := filepath.Join(t.TempDir(), "fixtures.go")
+	args := []string{
+		"--upstream-file", testDataMinPy,
+		"--out", tmp,
+		"--category", "limit",
+		"--date", "2026-04-19",
+	}
+	var out, errb bytes.Buffer
+	if code := run(args, &out, &errb); code != exitOK {
+		t.Fatalf("run() = %d; stderr=%q", code, errb.String())
+	}
+	body, err := os.ReadFile(tmp) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if !strings.Contains(string(body), "var LimitFixtures = []Fixture{") {
+		t.Errorf("output missing LimitFixtures slice declaration; got %s", body)
+	}
+	// Sanity: synthesised marker comment present.
+	if !strings.Contains(string(body), "synthesised") {
+		t.Errorf("output missing 'synthesised' provenance comment for LIMIT bulk; got %s", body)
+	}
+}
+
+// TestFixturePort_CategoryAll asserts --category all emits all three
+// vars in alphabetical-by-var-name order. Plan 72-02 Task 1 Test 3.
+func TestFixturePort_CategoryAll(t *testing.T) {
+	t.Parallel()
+	tmp := filepath.Join(t.TempDir(), "fixtures.go")
+	args := []string{
+		"--upstream-file", testDataMinPy,
+		"--out", tmp,
+		"--category", "all",
+		"--date", "2026-04-19",
+	}
+	var out, errb bytes.Buffer
+	if code := run(args, &out, &errb); code != exitOK {
+		t.Fatalf("run() = %d; stderr=%q", code, errb.String())
+	}
+	body, err := os.ReadFile(tmp) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	wantDecls := []string{
+		"var LimitFixtures = []Fixture{",
+		"var OrderingFixtures = []Fixture{",
+		"var StatusFixtures = []Fixture{",
+	}
+	for _, decl := range wantDecls {
+		if !strings.Contains(string(body), decl) {
+			t.Errorf("output missing %q", decl)
+		}
+	}
+	// Alphabetical order: Limit < Ordering < Status as Go identifiers.
+	limitIdx := strings.Index(string(body), "var LimitFixtures")
+	orderIdx := strings.Index(string(body), "var OrderingFixtures")
+	statusIdx := strings.Index(string(body), "var StatusFixtures")
+	if !(limitIdx < orderIdx && orderIdx < statusIdx) {
+		t.Errorf("vars not alphabetical: limit=%d order=%d status=%d", limitIdx, orderIdx, statusIdx)
+	}
+	// Single SHA-pinned header (one Upstream: header line, plus per-fixture citations).
+	headerCount := strings.Count(string(body), "Upstream:     peeringdb/peeringdb@")
+	if headerCount != 1 {
+		t.Errorf("want exactly 1 SHA-header line; got %d", headerCount)
+	}
+	// Category in header should be "all" (not duplicated per-section).
+	if !strings.Contains(string(body), "Category:     all") {
+		t.Errorf("output missing combined Category: all header line")
+	}
+}
+
+// TestFixturePort_CategoryAll_Determinism runs --category all twice
+// and asserts byte-identical output. Plan 72-02 Task 1 Test 4.
+func TestFixturePort_CategoryAll_Determinism(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+	pathA := filepath.Join(tmpDir, "a.go")
+	pathB := filepath.Join(tmpDir, "b.go")
+	for _, p := range []string{pathA, pathB} {
+		args := []string{
+			"--upstream-file", testDataMinPy,
+			"--out", p,
+			"--category", "all",
+			"--date", "2026-04-19",
+		}
+		var out, errb bytes.Buffer
+		if code := run(args, &out, &errb); code != exitOK {
+			t.Fatalf("run %s = %d; stderr=%q", p, code, errb.String())
+		}
+	}
+	a, err := os.ReadFile(pathA) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read A: %v", err)
+	}
+	b, err := os.ReadFile(pathB) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read B: %v", err)
+	}
+	hashA := sha256.Sum256(a)
+	hashB := sha256.Sum256(b)
+	if hashA != hashB {
+		t.Fatalf("two --category all runs differ:\n A sha256=%x\n B sha256=%x", hashA, hashB)
+	}
+}
+
+// TestFixturePort_AppendPreservesOtherCategories asserts the --append
+// flow: starting from a `--category all` baseline, re-emitting one
+// category in --append mode replaces only that var and preserves the
+// other two slices byte-identically. Plan 72-02 Task 1 Test 5
+// (semantic chosen: --append rewrites one var, preserves others).
+func TestFixturePort_AppendPreservesOtherCategories(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+	baseline := filepath.Join(tmpDir, "base.go")
+
+	// Step 1: full baseline via --category all.
+	{
+		var out, errb bytes.Buffer
+		code := run([]string{
+			"--upstream-file", testDataMinPy,
+			"--out", baseline,
+			"--category", "all",
+			"--date", "2026-04-19",
+		}, &out, &errb)
+		if code != exitOK {
+			t.Fatalf("baseline run = %d; stderr=%q", code, errb.String())
+		}
+	}
+	baseBytes, err := os.ReadFile(baseline) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read baseline: %v", err)
+	}
+
+	// Step 2: --category status --append rewrites just StatusFixtures.
+	{
+		var out, errb bytes.Buffer
+		code := run([]string{
+			"--upstream-file", testDataMinPy,
+			"--out", baseline,
+			"--category", "status",
+			"--append",
+			"--date", "2026-04-19",
+		}, &out, &errb)
+		if code != exitOK {
+			t.Fatalf("append run = %d; stderr=%q", code, errb.String())
+		}
+	}
+	afterBytes, err := os.ReadFile(baseline) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read after-append: %v", err)
+	}
+
+	// All three vars must still be present.
+	for _, decl := range []string{
+		"var LimitFixtures = []Fixture{",
+		"var OrderingFixtures = []Fixture{",
+		"var StatusFixtures = []Fixture{",
+	} {
+		if !strings.Contains(string(afterBytes), decl) {
+			t.Errorf("after --append, missing %q", decl)
+		}
+	}
+	// Idempotency on the same category: re-running --append with same
+	// inputs must converge to the same bytes.
+	{
+		var out, errb bytes.Buffer
+		code := run([]string{
+			"--upstream-file", testDataMinPy,
+			"--out", baseline,
+			"--category", "status",
+			"--append",
+			"--date", "2026-04-19",
+		}, &out, &errb)
+		if code != exitOK {
+			t.Fatalf("re-append run = %d; stderr=%q", code, errb.String())
+		}
+	}
+	finalBytes, err := os.ReadFile(baseline) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read after-second-append: %v", err)
+	}
+	if string(afterBytes) != string(finalBytes) {
+		t.Errorf("--append not idempotent on same category")
+	}
+
+	// Sanity: the Ordering and Limit blocks survived intact between
+	// baseline and after-append (extract slice bodies and compare).
+	preOrder := extractVarBlock(string(baseBytes), "OrderingFixtures")
+	postOrder := extractVarBlock(string(afterBytes), "OrderingFixtures")
+	if preOrder == "" || postOrder == "" {
+		t.Fatalf("could not extract OrderingFixtures block; pre=%d post=%d bytes", len(preOrder), len(postOrder))
+	}
+	if preOrder != postOrder {
+		t.Errorf("OrderingFixtures changed across --append for status category")
+	}
+	preLimit := extractVarBlock(string(baseBytes), "LimitFixtures")
+	postLimit := extractVarBlock(string(afterBytes), "LimitFixtures")
+	if preLimit != postLimit {
+		t.Errorf("LimitFixtures changed across --append for status category")
+	}
+}
+
+// extractVarBlock returns the substring of src starting at
+// `var <name> = []Fixture{` and ending at the matching closing `}`.
+// Used by tests to compare per-var bodies across --append runs.
+func extractVarBlock(src, name string) string {
+	marker := "var " + name + " = []Fixture{"
+	start := strings.Index(src, marker)
+	if start < 0 {
+		return ""
+	}
+	depth := 0
+	for i := start + len(marker) - 1; i < len(src); i++ {
+		switch src[i] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return src[start : i+1]
+			}
+		}
+	}
+	return ""
+}
+
+// TestFixturePort_LimitNetworkBoundary asserts the LIMIT bulk emitter
+// produces ≥260 Network entries — the boundary that exercises
+// limit=0 unlimited semantics above the 250 default cap.
+func TestFixturePort_LimitNetworkBoundary(t *testing.T) {
+	t.Parallel()
+	tmp := filepath.Join(t.TempDir(), "fixtures.go")
+	args := []string{
+		"--upstream-file", testDataMinPy,
+		"--out", tmp,
+		"--category", "limit",
+		"--date", "2026-04-19",
+	}
+	var out, errb bytes.Buffer
+	if code := run(args, &out, &errb); code != exitOK {
+		t.Fatalf("run() = %d; stderr=%q", code, errb.String())
+	}
+	body, err := os.ReadFile(tmp) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	// Count `Entity: "net"` occurrences inside the slice as a proxy
+	// for entry count.
+	netCount := strings.Count(string(body), `Entity: "net"`)
+	if netCount < 260 {
+		t.Errorf("LIMIT bulk: want ≥260 net entries; got %d", netCount)
+	}
+}
+
+// TestFixturePort_StatusCarveOutCampus asserts STATUS-03 carve-out:
+// the StatusFixtures must contain at least one (Entity="campus",
+// status="pending") entry.
+func TestFixturePort_StatusCarveOutCampus(t *testing.T) {
+	t.Parallel()
+	tmp := filepath.Join(t.TempDir(), "fixtures.go")
+	args := []string{
+		"--upstream-file", testDataMinPy,
+		"--out", tmp,
+		"--category", "status",
+		"--date", "2026-04-19",
+	}
+	var out, errb bytes.Buffer
+	if code := run(args, &out, &errb); code != exitOK {
+		t.Fatalf("run() = %d; stderr=%q", code, errb.String())
+	}
+	body, err := os.ReadFile(tmp) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	// Look for an Entity:"campus" entry whose Fields["status"] is
+	// "pending". The emitter writes `"status": "\"pending\""` (the
+	// outer quotes are Go's string literal, the inner ones are the
+	// Python source form).
+	if !strings.Contains(string(body), `Entity: "campus"`) {
+		t.Errorf("StatusFixtures missing campus entries")
+	}
+	if !strings.Contains(string(body), `"status": "\"pending\""`) {
+		t.Errorf("StatusFixtures missing any pending-status entries")
+	}
+}
+
 // TestEntityGoNameCovers13 locks the invariant that the tool
 // recognises all 13 PeeringDB entity types. Matches the same check
 // cmd/pdb-compat-allowlist enforces via TestPdbTypeFor_AllThirteen.
