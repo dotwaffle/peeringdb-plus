@@ -29,7 +29,10 @@ import (
 // budget=0 disables the Phase 71 pre-flight CheckBudget gate; tests
 // that exercise the 413 path pass a non-zero budget explicitly via
 // newTestServerWithBudget.
-func newTestServer(t *testing.T, c *ent.Client) *httptest.Server {
+//
+// Accepts testing.TB so bench_test.go can reuse the same server setup;
+// *testing.T and *testing.B both satisfy the interface.
+func newTestServer(t testing.TB, c *ent.Client) *httptest.Server {
 	t.Helper()
 	return newTestServerWithBudget(t, c, 0)
 }
@@ -37,7 +40,7 @@ func newTestServer(t *testing.T, c *ent.Client) *httptest.Server {
 // newTestServerWithBudget mirrors newTestServer but exposes the
 // per-response memory budget knob. Used by limit_test.go to drive the
 // CheckBudget 413 path with a deliberately tiny budget.
-func newTestServerWithBudget(t *testing.T, c *ent.Client, budget int64) *httptest.Server {
+func newTestServerWithBudget(t testing.TB, c *ent.Client, budget int64) *httptest.Server {
 	t.Helper()
 	h := pdbcompat.NewHandler(c, budget)
 	mux := http.NewServeMux()
@@ -50,7 +53,7 @@ func newTestServerWithBudget(t *testing.T, c *ent.Client, budget int64) *httptes
 // httpGet does a GET against srv and returns (status, body). Transport
 // errors fail the test via t.Fatal — they indicate harness/server
 // breakage, not behavioural regression.
-func httpGet(t *testing.T, srv *httptest.Server, path string) (int, []byte) {
+func httpGet(t testing.TB, srv *httptest.Server, path string) (int, []byte) {
 	t.Helper()
 	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+path, nil)
 	if err != nil {
@@ -79,7 +82,7 @@ type envelope struct {
 // objects. Each element is a generic map so individual subtests can
 // pluck out the field they care about (id, name, asn, ...) without
 // per-test struct definitions.
-func decodeDataArray(t *testing.T, body []byte) []map[string]any {
+func decodeDataArray(t testing.TB, body []byte) []map[string]any {
 	t.Helper()
 	var env envelope
 	if err := json.Unmarshal(body, &env); err != nil {
@@ -99,7 +102,7 @@ func decodeDataArray(t *testing.T, body []byte) []map[string]any {
 // extractIDs decodes data[].id as ints. Missing or non-numeric ids
 // fail the test — they indicate a broken serializer, which is itself
 // a regression worth catching.
-func extractIDs(t *testing.T, body []byte) []int {
+func extractIDs(t testing.TB, body []byte) []int {
 	t.Helper()
 	rows := decodeDataArray(t, body)
 	ids := make([]int, 0, len(rows))
@@ -133,7 +136,7 @@ type problem struct {
 // mustDecodeProblem decodes an application/problem+json body. Used by
 // limit_test's 413 case. Failure to decode is a hard error — it
 // signals a serializer regression, not a behavioural one.
-func mustDecodeProblem(t *testing.T, body []byte) problem {
+func mustDecodeProblem(t testing.TB, body []byte) problem {
 	t.Helper()
 	var p problem
 	if err := json.Unmarshal(body, &p); err != nil {
@@ -196,7 +199,7 @@ func fkRefs(raw string) map[string]int {
 // path that controls timestamps explicitly, so this helper's defaults
 // are only material to status_test.go's STATUS-01..05 subtests where
 // the matrix outcome is independent of relative timestamps.
-func seedFixtures(t *testing.T, c *ent.Client, fixtures []parityfix.Fixture) {
+func seedFixtures(t testing.TB, c *ent.Client, fixtures []parityfix.Fixture) {
 	t.Helper()
 	ctx := t.Context()
 	t0 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
@@ -241,7 +244,7 @@ func seedFixtures(t *testing.T, c *ent.Client, fixtures []parityfix.Fixture) {
 // clean rows present in their fixture slice.
 func persistFixture(
 	ctx context.Context,
-	t *testing.T,
+	t testing.TB,
 	c *ent.Client,
 	fx parityfix.Fixture,
 	idMap map[string]map[int]int,
@@ -495,7 +498,7 @@ const fixtureOrgParentID = 909001
 // as "skip this fixture" up the persist chain).
 func ensureFixtureOrgParent(
 	ctx context.Context,
-	t *testing.T,
+	t testing.TB,
 	c *ent.Client,
 	idMap map[string]map[int]int,
 	t0 time.Time,

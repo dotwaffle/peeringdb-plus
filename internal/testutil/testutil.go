@@ -24,7 +24,10 @@ var dbCounter atomic.Int64
 // SetupClient creates an in-memory SQLite-backed ent client for testing.
 // Each call gets an isolated database so parallel tests do not conflict.
 // The client is automatically closed when the test completes via t.Cleanup.
-func SetupClient(t *testing.T) *ent.Client {
+//
+// Accepts testing.TB so benchmarks can reuse the same setup as tests; any
+// *testing.T or *testing.B value satisfies the interface.
+func SetupClient(t testing.TB) *ent.Client {
 	t.Helper()
 	client, _ := SetupClientWithDB(t)
 	return client
@@ -35,7 +38,9 @@ func SetupClient(t *testing.T) *ent.Client {
 // sync_status table). Each call gets an isolated database so parallel tests
 // do not conflict. Both the client and the DB are automatically closed via
 // t.Cleanup.
-func SetupClientWithDB(t *testing.T) (*ent.Client, *sql.DB) {
+//
+// Accepts testing.TB for the same reason as SetupClient above.
+func SetupClientWithDB(t testing.TB) (*ent.Client, *sql.DB) {
 	t.Helper()
 	id := dbCounter.Add(1)
 	dsn := fmt.Sprintf("file:test_%d?mode=memory&cache=shared&_pragma=foreign_keys(1)", id)
