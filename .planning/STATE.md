@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: "Completed 71-05 — per-request heap-delta telemetry for pdbcompat list handlers. 2 atomic commits: c2304ae registers ResponseHeapDeltaKiB Int64Histogram (buckets 0.5..524288 KiB) + InitResponseHeapHistogram in internal/otel/metrics.go, wired next to InitMemoryGauges in cmd/peeringdb-plus/main.go; 292e758 lands internal/pdbcompat/telemetry.go (memStatsHeapInuseKiB single-call-site sampler + recordResponseHeapDelta nil-guarded emitter) + defer wiring at top of serveList (ONCE per request, every terminal path 200/413/400/500). 5 new unit tests (span attr, histogram, fires-once FRP, nil-safe, sanity); pdbotel tests gain 3 (init-no-error, record-no-panic, records-with-reader). Grafana panel id 36 'Response Heap Delta (KiB) — p50/p95/p99 by endpoint' added at y=33 (full-width, 24 cols) below the SEED-001 watch row. MEMORY-03 requirement shipped. Zero per-row ReadMemStats calls (grep-verified: 1 call site in telemetry.go, 2 invocations per request via inline-at-entry + deferred-at-exit). serveDetail untouched per D-07 list-only scope. Full -race suite green; golangci-lint 0 issues. Next: Plan 71-06 — docs close on § Response Memory Envelope."
-last_updated: "2026-04-19T21:30:00.000Z"
+stopped_at: "Completed 71-06 — Phase 71 CLOSED. Docs-only close: docs/ARCHITECTURE.md § Response Memory Envelope with per-entity max_rows @ 128 MiB table (org@D2 worst-case 8.6 KiB/row → 15,650 max rows; org live ~35 → 450× headroom); CHANGELOG v1.16 [Unreleased] Phase 71 Added bullets + coordinated-release ready-to-deploy blockquote; CLAUDE.md § Response memory envelope (Phase 71) convention + PDBPLUS_RESPONSE_MEMORY_LIMIT env-var row; REQUIREMENTS.md MEMORY-04 flipped complete (MEMORY-01..04 all grep-verifiable now); ROADMAP.md Phase 71 [x], 6/6 plans, Progress row Complete 2026-04-19. 2 atomic commits: 9ddc8a6 (ARCHITECTURE) + 6e9ea3a (traceability close). Zero code changes (go build + go test -short clean). Zero fly deploy imperatives in any Phase 71 plan (3 instructional refs in plans only, 0 in CHANGELOG). v1.16 phases 67-71 now READY TO DEPLOY as a coordinated bundle; Phase 72 (parity regression lock-in) ships independently. Next: Phase 72 — upstream parity regression tests."
+last_updated: "2026-04-19T22:00:00.000Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 30
-  completed_plans: 24
-  percent: 80
+  completed_plans: 30
+  percent: 83
 ---
 
 # Project State
@@ -22,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 71 in progress (5/6 plans shipped: 71-01 streaming token writer, 71-02 rowsize map, 71-03 budget math + config + 413 writer, 71-04 serveList wiring, 71-05 per-request heap-delta telemetry). Plan 71-06 next: docs close on § Response Memory Envelope.
+**Current focus:** Phase 71 CLOSED (6/6 plans shipped). v1.16 phases 67-71 now ready to deploy as a coordinated bundle. Phase 72 (upstream parity regression tests) ships independently as regression lock-in — next starting point.
 
 ## Current Position
 
-Phase: 71 (memory-safe-response-paths) — IN PROGRESS (5/6 plans: 71-01 stream.go StreamListResponse, 71-02 rowsize.go TypicalRowBytes map calibrated from BenchmarkRowSize, 71-03 budget.go CheckBudget + WriteBudgetProblem + Config.ResponseMemoryLimit, 71-04 handler.go pre-flight budget + streaming wired, 71-05 OTel + Prometheus per-request heap-delta telemetry)
-Plan: Last completed 71-05 (per-request heap-delta telemetry). 2 atomic commits: c2304ae registers ResponseHeapDeltaKiB Int64Histogram + InitResponseHeapHistogram in internal/otel/metrics.go and wires it into main.go; 292e758 lands internal/pdbcompat/telemetry.go (memStatsHeapInuseKiB single-call-site sampler + recordResponseHeapDelta nil-guarded emitter) + defer at top of serveList firing on every terminal path (200/413/400/500). 5 new pdbcompat tests (span attr, histogram, fires-once FRP, nil-safe, sanity); 3 new otel tests. Grafana panel id 36 "Response Heap Delta (KiB) — p50/p95/p99 by endpoint" at y=33 full-width in SEED-001 watch row with 3 histogram_quantile targets. MEMORY-03 requirement shipped. serveDetail untouched per D-07. Grep invariants: runtime.ReadMemStats count = 1 in telemetry.go, defer recordResponseHeapDelta count = 1 in handler.go.
-Status: Plan 71-05 complete. Full -race suite green across all packages; golangci-lint 0 issues on touched packages. Remaining Phase 71 work: 71-06 (docs close on § Response Memory Envelope).
-Next action: `/gsd-execute-phase 71` or `/gsd-execute-plan 71-06` — close Phase 71 with docs/ARCHITECTURE.md § Response Memory Envelope table using the live telemetry histogram shipped in 71-05.
+Phase: 71 (memory-safe-response-paths) — COMPLETE (6/6 plans: 71-01 stream.go StreamListResponse, 71-02 rowsize.go TypicalRowBytes map calibrated from BenchmarkRowSize, 71-03 budget.go CheckBudget + WriteBudgetProblem + Config.ResponseMemoryLimit, 71-04 handler.go pre-flight budget + streaming wired, 71-05 OTel + Prometheus per-request heap-delta telemetry, 71-06 docs close)
+Plan: Last completed 71-06 (docs close). 2 atomic commits: 9ddc8a6 adds docs/ARCHITECTURE.md § Response Memory Envelope (envelope derivation 256 MB − 80 MB − 48 MB slack = 128 MiB default; 3 moving parts table stream.go/rowsize.go/budget.go; 13-row per-entity max_rows @ 128 MiB table with org@D2 worst-case 15,650 rows vs ~35 live = 450× headroom; request lifecycle 6 steps; telemetry wire-up; D-07 out-of-scope for grpcserver/entrest/GraphQL/WebUI; extending-checklist); 6e9ea3a closes Phase 71 with CHANGELOG v1.16 Phase 71 Added bullets + coordinated-release ready-to-deploy blockquote, CLAUDE.md § Response memory envelope (Phase 71) convention subsection + PDBPLUS_RESPONSE_MEMORY_LIMIT env-var row, REQUIREMENTS.md MEMORY-04 flipped complete with multi-artefact pointer set (MEMORY-01..04 all grep-verifiable via `grep -cE "MEMORY-0[1234] \| 71 \| complete"` = 4), ROADMAP.md Phase 71 [x] + 6/6 plans executed + Progress row 6/6 Complete 2026-04-19. Zero code changes (go build + go test -short clean on all packages). Zero fly deploy imperatives anywhere in Phase 71 plans (3 instructional refs only, 0 in CHANGELOG).
+Status: Phase 71 CLOSED. v1.16 phases 67-71 ready to deploy as a coordinated bundle — Phase 68's limit=0 unbounded semantics are safe in prod only with the Phase 71 memory budget in place. Phase 72 (parity regression test lock-in) ships independently.
+Next action: `/gsd-execute-phase 72` — ports upstream pdb_api_test.py ground-truth assertions into internal/pdbcompat/parity/ as category-split tests, populates docs/API.md § Known Divergences + Validation Notes, and locks v1.16 semantics against future regressions. CONTEXT.md locked with 7 decisions.
 Last activity: 2026-04-19
 
 ## v1.16 Phase Map
