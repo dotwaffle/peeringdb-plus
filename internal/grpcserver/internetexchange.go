@@ -164,7 +164,8 @@ func applyInternetExchangeStreamFilters(req *pb.StreamInternetExchangesRequest) 
 	return applyFilters(req, internetExchangeStreamFilters)
 }
 
-// ListInternetExchanges returns a paginated list of internet exchanges.
+// ListInternetExchanges returns a paginated list of internet exchanges under
+// the compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
 func (s *InternetExchangeService) ListInternetExchanges(ctx context.Context, req *pb.ListInternetExchangesRequest) (*pb.ListInternetExchangesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.InternetExchange, pb.InternetExchange]{
 		EntityName: "internetexchanges",
@@ -175,7 +176,7 @@ func (s *InternetExchangeService) ListInternetExchanges(ctx context.Context, req
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.InternetExchange, error) {
 			q := s.Client.InternetExchange.Query().
-				Order(ent.Asc(internetexchange.FieldID)).
+				Order(ent.Desc(internetexchange.FieldUpdated), ent.Desc(internetexchange.FieldCreated), ent.Desc(internetexchange.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(internetexchange.And(castPredicates[predicate.InternetExchange](preds)...))
@@ -190,7 +191,8 @@ func (s *InternetExchangeService) ListInternetExchanges(ctx context.Context, req
 	return &pb.ListInternetExchangesResponse{InternetExchanges: items, NextPageToken: nextToken}, nil
 }
 
-// StreamInternetExchanges streams all matching internet exchanges.
+// StreamInternetExchanges streams all matching internet exchanges via compound
+// (updated, id) keyset pagination under the (-updated, -created, -id) order.
 func (s *InternetExchangeService) StreamInternetExchanges(ctx context.Context, req *pb.StreamInternetExchangesRequest, stream *connect.ServerStream[pb.InternetExchange]) error {
 	return StreamEntities(ctx, StreamParams[ent.InternetExchange, pb.InternetExchange]{
 		EntityName:   "internet exchanges",
@@ -207,18 +209,21 @@ func (s *InternetExchangeService) StreamInternetExchanges(ctx context.Context, r
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.InternetExchange, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.InternetExchange, error) {
 			q := s.Client.InternetExchange.Query().
-				Where(internetexchange.IDGT(afterID)).
-				Order(ent.Asc(internetexchange.FieldID)).
+				Order(ent.Desc(internetexchange.FieldUpdated), ent.Desc(internetexchange.FieldCreated), ent.Desc(internetexchange.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.InternetExchange(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(internetexchange.And(castPredicates[predicate.InternetExchange](preds)...))
 			}
 			return q.All(ctx)
 		},
-		Convert: internetExchangeToProto,
-		GetID:   func(ix *ent.InternetExchange) int { return ix.ID },
+		Convert:    internetExchangeToProto,
+		GetID:      func(ix *ent.InternetExchange) int { return ix.ID },
+		GetUpdated: func(ix *ent.InternetExchange) time.Time { return ix.Updated },
 	}, stream)
 }
 

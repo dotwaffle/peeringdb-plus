@@ -132,7 +132,8 @@ func applyNetworkIxLanStreamFilters(req *pb.StreamNetworkIxLansRequest) ([]func(
 	return applyFilters(req, networkIxLanStreamFilters)
 }
 
-// ListNetworkIxLans returns a paginated list of network IX LANs.
+// ListNetworkIxLans returns a paginated list of network IX LANs under the
+// compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
 func (s *NetworkIxLanService) ListNetworkIxLans(ctx context.Context, req *pb.ListNetworkIxLansRequest) (*pb.ListNetworkIxLansResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.NetworkIxLan, pb.NetworkIxLan]{
 		EntityName: "networkixlans",
@@ -143,7 +144,7 @@ func (s *NetworkIxLanService) ListNetworkIxLans(ctx context.Context, req *pb.Lis
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.NetworkIxLan, error) {
 			q := s.Client.NetworkIxLan.Query().
-				Order(ent.Asc(networkixlan.FieldID)).
+				Order(ent.Desc(networkixlan.FieldUpdated), ent.Desc(networkixlan.FieldCreated), ent.Desc(networkixlan.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(networkixlan.And(castPredicates[predicate.NetworkIxLan](preds)...))
@@ -158,7 +159,8 @@ func (s *NetworkIxLanService) ListNetworkIxLans(ctx context.Context, req *pb.Lis
 	return &pb.ListNetworkIxLansResponse{NetworkIxLans: items, NextPageToken: nextToken}, nil
 }
 
-// StreamNetworkIxLans streams all matching network IX LANs.
+// StreamNetworkIxLans streams all matching network IX LANs via compound
+// (updated, id) keyset pagination under the (-updated, -created, -id) order.
 func (s *NetworkIxLanService) StreamNetworkIxLans(ctx context.Context, req *pb.StreamNetworkIxLansRequest, stream *connect.ServerStream[pb.NetworkIxLan]) error {
 	return StreamEntities(ctx, StreamParams[ent.NetworkIxLan, pb.NetworkIxLan]{
 		EntityName:   "networkixlans",
@@ -175,18 +177,21 @@ func (s *NetworkIxLanService) StreamNetworkIxLans(ctx context.Context, req *pb.S
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.NetworkIxLan, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.NetworkIxLan, error) {
 			q := s.Client.NetworkIxLan.Query().
-				Where(networkixlan.IDGT(afterID)).
-				Order(ent.Asc(networkixlan.FieldID)).
+				Order(ent.Desc(networkixlan.FieldUpdated), ent.Desc(networkixlan.FieldCreated), ent.Desc(networkixlan.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.NetworkIxLan(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(networkixlan.And(castPredicates[predicate.NetworkIxLan](preds)...))
 			}
 			return q.All(ctx)
 		},
-		Convert: networkIxLanToProto,
-		GetID:   func(nixl *ent.NetworkIxLan) int { return nixl.ID },
+		Convert:    networkIxLanToProto,
+		GetID:      func(nixl *ent.NetworkIxLan) int { return nixl.ID },
+		GetUpdated: func(nixl *ent.NetworkIxLan) time.Time { return nixl.Updated },
 	}, stream)
 }
 

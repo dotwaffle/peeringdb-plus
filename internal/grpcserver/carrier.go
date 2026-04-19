@@ -97,7 +97,8 @@ func applyCarrierStreamFilters(req *pb.StreamCarriersRequest) ([]func(*sql.Selec
 	return applyFilters(req, carrierStreamFilters)
 }
 
-// ListCarriers returns a paginated list of carriers ordered by ID ascending.
+// ListCarriers returns a paginated list of carriers under the compound
+// default order (-updated, -created, -id) per Phase 67 ORDER-02.
 func (s *CarrierService) ListCarriers(ctx context.Context, req *pb.ListCarriersRequest) (*pb.ListCarriersResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.Carrier, pb.Carrier]{
 		EntityName: "carriers",
@@ -108,7 +109,7 @@ func (s *CarrierService) ListCarriers(ctx context.Context, req *pb.ListCarriersR
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.Carrier, error) {
 			q := s.Client.Carrier.Query().
-				Order(ent.Asc(carrier.FieldID)).
+				Order(ent.Desc(carrier.FieldUpdated), ent.Desc(carrier.FieldCreated), ent.Desc(carrier.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(carrier.And(castPredicates[predicate.Carrier](preds)...))
@@ -123,7 +124,8 @@ func (s *CarrierService) ListCarriers(ctx context.Context, req *pb.ListCarriersR
 	return &pb.ListCarriersResponse{Carriers: items, NextPageToken: nextToken}, nil
 }
 
-// StreamCarriers streams all matching carriers one message at a time.
+// StreamCarriers streams all matching carriers via compound (updated, id)
+// keyset pagination under the (-updated, -created, -id) default order.
 func (s *CarrierService) StreamCarriers(ctx context.Context, req *pb.StreamCarriersRequest, stream *connect.ServerStream[pb.Carrier]) error {
 	return StreamEntities(ctx, StreamParams[ent.Carrier, pb.Carrier]{
 		EntityName:   "carriers",
@@ -140,18 +142,21 @@ func (s *CarrierService) StreamCarriers(ctx context.Context, req *pb.StreamCarri
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.Carrier, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.Carrier, error) {
 			q := s.Client.Carrier.Query().
-				Where(carrier.IDGT(afterID)).
-				Order(ent.Asc(carrier.FieldID)).
+				Order(ent.Desc(carrier.FieldUpdated), ent.Desc(carrier.FieldCreated), ent.Desc(carrier.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.Carrier(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(carrier.And(castPredicates[predicate.Carrier](preds)...))
 			}
 			return q.All(ctx)
 		},
-		Convert: carrierToProto,
-		GetID:   func(c *ent.Carrier) int { return c.ID },
+		Convert:    carrierToProto,
+		GetID:      func(c *ent.Carrier) int { return c.ID },
+		GetUpdated: func(c *ent.Carrier) time.Time { return c.Updated },
 	}, stream)
 }
 

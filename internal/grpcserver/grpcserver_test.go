@@ -4717,9 +4717,12 @@ func TestStreamCarrierFacilities(t *testing.T) {
 		SetCreated(now).SetUpdated(now).SetStatus("ok").
 		SaveX(ctx)
 
+	// Phase 67: id=1 gets updated=now+1h so it sorts first under the
+	// (-updated, -created, -id) default order. Preserves the existing
+	// first-message=id=1 assertion intent.
 	client.CarrierFacility.Create().
 		SetID(1).SetCarrierID(10).SetName("CF-A").
-		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SetCreated(now).SetUpdated(now.Add(time.Hour)).SetStatus("ok").
 		SaveX(ctx)
 	client.CarrierFacility.Create().
 		SetID(2).SetCarrierID(10).SetName("CF-B").
@@ -4891,12 +4894,15 @@ func TestStreamNetworkIxLans(t *testing.T) {
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
+	// Phase 67: id=1 gets updated=now+1h so it sorts first under the
+	// (-updated, -created, -id) default order, preserving the existing
+	// first-message-Asn=65001 assertion.
 	client.NetworkIxLan.Create().
 		SetID(1).SetAsn(65001).SetName("NIXL-A").SetSpeed(10000).
 		SetIpaddr4("192.0.2.1").SetIpaddr6("2001:db8::1").
 		SetIsRsPeer(true).SetBfdSupport(false).SetOperational(true).
 		SetNotes("primary").
-		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SetCreated(now).SetUpdated(now.Add(time.Hour)).SetStatus("ok").
 		SaveX(ctx)
 	client.NetworkIxLan.Create().
 		SetID(2).SetAsn(65002).SetName("NIXL-B").SetSpeed(1000).
@@ -5043,11 +5049,14 @@ func TestStreamPocs(t *testing.T) {
 		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).
 		SaveX(ctx)
 
+	// Phase 67: id=1 gets updated=now+1h so it sorts first under the
+	// (-updated, -created, -id) default order, preserving the existing
+	// first-message-Role="Abuse" assertion.
 	client.Poc.Create().
 		SetID(1).SetNetID(100).SetRole("Abuse").SetName("Abuse Contact").
 		SetVisible("Users").SetPhone("+1-555-0100").SetEmail("abuse@example.com").
 		SetURL("https://example.com/abuse").
-		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		SetCreated(now).SetUpdated(now.Add(time.Hour)).SetStatus("ok").
 		SaveX(ctx)
 	client.Poc.Create().
 		SetID(2).SetNetID(100).SetRole("Technical").SetName("Tech Contact").

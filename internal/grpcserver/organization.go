@@ -122,8 +122,9 @@ func applyOrganizationStreamFilters(req *pb.StreamOrganizationsRequest) ([]func(
 	return applyFilters(req, organizationStreamFilters)
 }
 
-// ListOrganizations returns a paginated list of organizations ordered by ID
-// ascending. Supports all pdbcompat-parity filter fields with AND logic.
+// ListOrganizations returns a paginated list of organizations under the
+// compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// Supports all pdbcompat-parity filter fields with AND logic.
 func (s *OrganizationService) ListOrganizations(ctx context.Context, req *pb.ListOrganizationsRequest) (*pb.ListOrganizationsResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.Organization, pb.Organization]{
 		EntityName: "organizations",
@@ -134,7 +135,7 @@ func (s *OrganizationService) ListOrganizations(ctx context.Context, req *pb.Lis
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.Organization, error) {
 			q := s.Client.Organization.Query().
-				Order(ent.Asc(organization.FieldID)).
+				Order(ent.Desc(organization.FieldUpdated), ent.Desc(organization.FieldCreated), ent.Desc(organization.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(organization.And(castPredicates[predicate.Organization](preds)...))
@@ -149,8 +150,8 @@ func (s *OrganizationService) ListOrganizations(ctx context.Context, req *pb.Lis
 	return &pb.ListOrganizationsResponse{Organizations: items, NextPageToken: nextToken}, nil
 }
 
-// StreamOrganizations streams all matching organizations one message at a time
-// using batched keyset pagination.
+// StreamOrganizations streams all matching organizations via compound
+// (updated, id) keyset pagination under the (-updated, -created, -id) order.
 func (s *OrganizationService) StreamOrganizations(ctx context.Context, req *pb.StreamOrganizationsRequest, stream *connect.ServerStream[pb.Organization]) error {
 	return StreamEntities(ctx, StreamParams[ent.Organization, pb.Organization]{
 		EntityName:   "organizations",
@@ -167,18 +168,21 @@ func (s *OrganizationService) StreamOrganizations(ctx context.Context, req *pb.S
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.Organization, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.Organization, error) {
 			q := s.Client.Organization.Query().
-				Where(organization.IDGT(afterID)).
-				Order(ent.Asc(organization.FieldID)).
+				Order(ent.Desc(organization.FieldUpdated), ent.Desc(organization.FieldCreated), ent.Desc(organization.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.Organization(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(organization.And(castPredicates[predicate.Organization](preds)...))
 			}
 			return q.All(ctx)
 		},
-		Convert: organizationToProto,
-		GetID:   func(o *ent.Organization) int { return o.ID },
+		Convert:    organizationToProto,
+		GetID:      func(o *ent.Organization) int { return o.ID },
+		GetUpdated: func(o *ent.Organization) time.Time { return o.Updated },
 	}, stream)
 }
 

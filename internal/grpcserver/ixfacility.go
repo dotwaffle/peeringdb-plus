@@ -84,7 +84,8 @@ func applyIxFacilityStreamFilters(req *pb.StreamIxFacilitiesRequest) ([]func(*sq
 	return applyFilters(req, ixFacilityStreamFilters)
 }
 
-// ListIxFacilities returns a paginated list of IX facilities.
+// ListIxFacilities returns a paginated list of IX facilities under the
+// compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
 func (s *IxFacilityService) ListIxFacilities(ctx context.Context, req *pb.ListIxFacilitiesRequest) (*pb.ListIxFacilitiesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.IxFacility, pb.IxFacility]{
 		EntityName: "ixfacilities",
@@ -95,7 +96,7 @@ func (s *IxFacilityService) ListIxFacilities(ctx context.Context, req *pb.ListIx
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.IxFacility, error) {
 			q := s.Client.IxFacility.Query().
-				Order(ent.Asc(ixfacility.FieldID)).
+				Order(ent.Desc(ixfacility.FieldUpdated), ent.Desc(ixfacility.FieldCreated), ent.Desc(ixfacility.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(ixfacility.And(castPredicates[predicate.IxFacility](preds)...))
@@ -110,7 +111,8 @@ func (s *IxFacilityService) ListIxFacilities(ctx context.Context, req *pb.ListIx
 	return &pb.ListIxFacilitiesResponse{IxFacilities: items, NextPageToken: nextToken}, nil
 }
 
-// StreamIxFacilities streams all matching IX facilities.
+// StreamIxFacilities streams all matching IX facilities via compound
+// (updated, id) keyset pagination under the (-updated, -created, -id) order.
 func (s *IxFacilityService) StreamIxFacilities(ctx context.Context, req *pb.StreamIxFacilitiesRequest, stream *connect.ServerStream[pb.IxFacility]) error {
 	return StreamEntities(ctx, StreamParams[ent.IxFacility, pb.IxFacility]{
 		EntityName:   "ixfacilities",
@@ -127,18 +129,21 @@ func (s *IxFacilityService) StreamIxFacilities(ctx context.Context, req *pb.Stre
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.IxFacility, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.IxFacility, error) {
 			q := s.Client.IxFacility.Query().
-				Where(ixfacility.IDGT(afterID)).
-				Order(ent.Asc(ixfacility.FieldID)).
+				Order(ent.Desc(ixfacility.FieldUpdated), ent.Desc(ixfacility.FieldCreated), ent.Desc(ixfacility.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.IxFacility(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(ixfacility.And(castPredicates[predicate.IxFacility](preds)...))
 			}
 			return q.All(ctx)
 		},
-		Convert: ixFacilityToProto,
-		GetID:   func(ixf *ent.IxFacility) int { return ixf.ID },
+		Convert:    ixFacilityToProto,
+		GetID:      func(ixf *ent.IxFacility) int { return ixf.ID },
+		GetUpdated: func(ixf *ent.IxFacility) time.Time { return ixf.Updated },
 	}, stream)
 }
 

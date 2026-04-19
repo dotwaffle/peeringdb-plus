@@ -117,7 +117,8 @@ func applyCampusStreamFilters(req *pb.StreamCampusesRequest) ([]func(*sql.Select
 	return applyFilters(req, campusStreamFilters)
 }
 
-// ListCampuses returns a paginated list of campuses ordered by ID ascending.
+// ListCampuses returns a paginated list of campuses under the compound
+// default order (-updated, -created, -id) per Phase 67 ORDER-02.
 func (s *CampusService) ListCampuses(ctx context.Context, req *pb.ListCampusesRequest) (*pb.ListCampusesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.Campus, pb.Campus]{
 		EntityName: "campuses",
@@ -128,7 +129,7 @@ func (s *CampusService) ListCampuses(ctx context.Context, req *pb.ListCampusesRe
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.Campus, error) {
 			q := s.Client.Campus.Query().
-				Order(ent.Asc(campus.FieldID)).
+				Order(ent.Desc(campus.FieldUpdated), ent.Desc(campus.FieldCreated), ent.Desc(campus.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(campus.And(castPredicates[predicate.Campus](preds)...))
@@ -143,7 +144,8 @@ func (s *CampusService) ListCampuses(ctx context.Context, req *pb.ListCampusesRe
 	return &pb.ListCampusesResponse{Campuses: items, NextPageToken: nextToken}, nil
 }
 
-// StreamCampuses streams all matching campuses one message at a time.
+// StreamCampuses streams all matching campuses via compound (updated, id)
+// keyset pagination under the (-updated, -created, -id) default order.
 func (s *CampusService) StreamCampuses(ctx context.Context, req *pb.StreamCampusesRequest, stream *connect.ServerStream[pb.Campus]) error {
 	return StreamEntities(ctx, StreamParams[ent.Campus, pb.Campus]{
 		EntityName:   "campuses",
@@ -160,18 +162,21 @@ func (s *CampusService) StreamCampuses(ctx context.Context, req *pb.StreamCampus
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.Campus, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.Campus, error) {
 			q := s.Client.Campus.Query().
-				Where(campus.IDGT(afterID)).
-				Order(ent.Asc(campus.FieldID)).
+				Order(ent.Desc(campus.FieldUpdated), ent.Desc(campus.FieldCreated), ent.Desc(campus.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.Campus(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(campus.And(castPredicates[predicate.Campus](preds)...))
 			}
 			return q.All(ctx)
 		},
-		Convert: campusToProto,
-		GetID:   func(c *ent.Campus) int { return c.ID },
+		Convert:    campusToProto,
+		GetID:      func(c *ent.Campus) int { return c.ID },
+		GetUpdated: func(c *ent.Campus) time.Time { return c.Updated },
 	}, stream)
 }
 

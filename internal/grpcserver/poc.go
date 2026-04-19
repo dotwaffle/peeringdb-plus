@@ -90,7 +90,8 @@ func applyPocStreamFilters(req *pb.StreamPocsRequest) ([]func(*sql.Selector), er
 	return applyFilters(req, pocStreamFilters)
 }
 
-// ListPocs returns a paginated list of points of contact.
+// ListPocs returns a paginated list of points of contact under the compound
+// default order (-updated, -created, -id) per Phase 67 ORDER-02.
 func (s *PocService) ListPocs(ctx context.Context, req *pb.ListPocsRequest) (*pb.ListPocsResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.Poc, pb.Poc]{
 		EntityName: "pocs",
@@ -101,7 +102,7 @@ func (s *PocService) ListPocs(ctx context.Context, req *pb.ListPocsRequest) (*pb
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.Poc, error) {
 			q := s.Client.Poc.Query().
-				Order(ent.Asc(poc.FieldID)).
+				Order(ent.Desc(poc.FieldUpdated), ent.Desc(poc.FieldCreated), ent.Desc(poc.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(poc.And(castPredicates[predicate.Poc](preds)...))
@@ -116,7 +117,8 @@ func (s *PocService) ListPocs(ctx context.Context, req *pb.ListPocsRequest) (*pb
 	return &pb.ListPocsResponse{Pocs: items, NextPageToken: nextToken}, nil
 }
 
-// StreamPocs streams all matching points of contact.
+// StreamPocs streams all matching points of contact via compound (updated, id)
+// keyset pagination under the (-updated, -created, -id) default order.
 func (s *PocService) StreamPocs(ctx context.Context, req *pb.StreamPocsRequest, stream *connect.ServerStream[pb.Poc]) error {
 	return StreamEntities(ctx, StreamParams[ent.Poc, pb.Poc]{
 		EntityName:   "pocs",
@@ -133,18 +135,21 @@ func (s *PocService) StreamPocs(ctx context.Context, req *pb.StreamPocsRequest, 
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.Poc, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.Poc, error) {
 			q := s.Client.Poc.Query().
-				Where(poc.IDGT(afterID)).
-				Order(ent.Asc(poc.FieldID)).
+				Order(ent.Desc(poc.FieldUpdated), ent.Desc(poc.FieldCreated), ent.Desc(poc.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.Poc(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(poc.And(castPredicates[predicate.Poc](preds)...))
 			}
 			return q.All(ctx)
 		},
-		Convert: pocToProto,
-		GetID:   func(p *ent.Poc) int { return p.ID },
+		Convert:    pocToProto,
+		GetID:      func(p *ent.Poc) int { return p.ID },
+		GetUpdated: func(p *ent.Poc) time.Time { return p.Updated },
 	}, stream)
 }
 

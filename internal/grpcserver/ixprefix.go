@@ -78,7 +78,8 @@ func applyIxPrefixStreamFilters(req *pb.StreamIxPrefixesRequest) ([]func(*sql.Se
 	return applyFilters(req, ixPrefixStreamFilters)
 }
 
-// ListIxPrefixes returns a paginated list of IX prefixes.
+// ListIxPrefixes returns a paginated list of IX prefixes under the compound
+// default order (-updated, -created, -id) per Phase 67 ORDER-02.
 func (s *IxPrefixService) ListIxPrefixes(ctx context.Context, req *pb.ListIxPrefixesRequest) (*pb.ListIxPrefixesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.IxPrefix, pb.IxPrefix]{
 		EntityName: "ixprefixes",
@@ -89,7 +90,7 @@ func (s *IxPrefixService) ListIxPrefixes(ctx context.Context, req *pb.ListIxPref
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.IxPrefix, error) {
 			q := s.Client.IxPrefix.Query().
-				Order(ent.Asc(ixprefix.FieldID)).
+				Order(ent.Desc(ixprefix.FieldUpdated), ent.Desc(ixprefix.FieldCreated), ent.Desc(ixprefix.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(ixprefix.And(castPredicates[predicate.IxPrefix](preds)...))
@@ -104,7 +105,8 @@ func (s *IxPrefixService) ListIxPrefixes(ctx context.Context, req *pb.ListIxPref
 	return &pb.ListIxPrefixesResponse{IxPrefixes: items, NextPageToken: nextToken}, nil
 }
 
-// StreamIxPrefixes streams all matching IX prefixes.
+// StreamIxPrefixes streams all matching IX prefixes via compound (updated, id)
+// keyset pagination under the (-updated, -created, -id) default order.
 func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIxPrefixesRequest, stream *connect.ServerStream[pb.IxPrefix]) error {
 	return StreamEntities(ctx, StreamParams[ent.IxPrefix, pb.IxPrefix]{
 		EntityName:   "ix prefixes",
@@ -121,18 +123,21 @@ func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIx
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.IxPrefix, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.IxPrefix, error) {
 			q := s.Client.IxPrefix.Query().
-				Where(ixprefix.IDGT(afterID)).
-				Order(ent.Asc(ixprefix.FieldID)).
+				Order(ent.Desc(ixprefix.FieldUpdated), ent.Desc(ixprefix.FieldCreated), ent.Desc(ixprefix.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.IxPrefix(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(ixprefix.And(castPredicates[predicate.IxPrefix](preds)...))
 			}
 			return q.All(ctx)
 		},
-		Convert: ixPrefixToProto,
-		GetID:   func(ixp *ent.IxPrefix) int { return ixp.ID },
+		Convert:    ixPrefixToProto,
+		GetID:      func(ixp *ent.IxPrefix) int { return ixp.ID },
+		GetUpdated: func(ixp *ent.IxPrefix) time.Time { return ixp.Updated },
 	}, stream)
 }
 

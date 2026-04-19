@@ -188,7 +188,8 @@ func applyNetworkStreamFilters(req *pb.StreamNetworksRequest) ([]func(*sql.Selec
 	return applyFilters(req, networkStreamFilters)
 }
 
-// ListNetworks returns a paginated list of networks ordered by ID ascending.
+// ListNetworks returns a paginated list of networks ordered by the compound
+// default order (-updated, -created, -id) per Phase 67 ORDER-02.
 // Supports all pdbcompat-parity filter fields with AND logic.
 func (s *NetworkService) ListNetworks(ctx context.Context, req *pb.ListNetworksRequest) (*pb.ListNetworksResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.Network, pb.Network]{
@@ -200,7 +201,7 @@ func (s *NetworkService) ListNetworks(ctx context.Context, req *pb.ListNetworksR
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.Network, error) {
 			q := s.Client.Network.Query().
-				Order(ent.Asc(network.FieldID)).
+				Order(ent.Desc(network.FieldUpdated), ent.Desc(network.FieldCreated), ent.Desc(network.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(network.And(castPredicates[predicate.Network](preds)...))
@@ -216,7 +217,9 @@ func (s *NetworkService) ListNetworks(ctx context.Context, req *pb.ListNetworksR
 }
 
 // StreamNetworks streams all matching networks one message at a time using
-// batched keyset pagination. Supports all pdbcompat-parity filter fields.
+// batched compound (updated, id) keyset pagination under the
+// (-updated, -created, -id) default order. Supports all pdbcompat-parity
+// filter fields.
 func (s *NetworkService) StreamNetworks(ctx context.Context, req *pb.StreamNetworksRequest, stream *connect.ServerStream[pb.Network]) error {
 	return StreamEntities(ctx, StreamParams[ent.Network, pb.Network]{
 		EntityName:   "networks",
@@ -233,18 +236,21 @@ func (s *NetworkService) StreamNetworks(ctx context.Context, req *pb.StreamNetwo
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.Network, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.Network, error) {
 			q := s.Client.Network.Query().
-				Where(network.IDGT(afterID)).
-				Order(ent.Asc(network.FieldID)).
+				Order(ent.Desc(network.FieldUpdated), ent.Desc(network.FieldCreated), ent.Desc(network.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.Network(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(network.And(castPredicates[predicate.Network](preds)...))
 			}
 			return q.All(ctx)
 		},
-		Convert: networkToProto,
-		GetID:   func(n *ent.Network) int { return n.ID },
+		Convert:    networkToProto,
+		GetID:      func(n *ent.Network) int { return n.ID },
+		GetUpdated: func(n *ent.Network) time.Time { return n.Updated },
 	}, stream)
 }
 

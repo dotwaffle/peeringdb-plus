@@ -90,7 +90,8 @@ func applyNetworkFacilityStreamFilters(req *pb.StreamNetworkFacilitiesRequest) (
 	return applyFilters(req, networkFacilityStreamFilters)
 }
 
-// ListNetworkFacilities returns a paginated list of network facilities.
+// ListNetworkFacilities returns a paginated list of network facilities under
+// the compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
 func (s *NetworkFacilityService) ListNetworkFacilities(ctx context.Context, req *pb.ListNetworkFacilitiesRequest) (*pb.ListNetworkFacilitiesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.NetworkFacility, pb.NetworkFacility]{
 		EntityName: "networkfacilities",
@@ -101,7 +102,7 @@ func (s *NetworkFacilityService) ListNetworkFacilities(ctx context.Context, req 
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.NetworkFacility, error) {
 			q := s.Client.NetworkFacility.Query().
-				Order(ent.Asc(networkfacility.FieldID)).
+				Order(ent.Desc(networkfacility.FieldUpdated), ent.Desc(networkfacility.FieldCreated), ent.Desc(networkfacility.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(networkfacility.And(castPredicates[predicate.NetworkFacility](preds)...))
@@ -116,7 +117,8 @@ func (s *NetworkFacilityService) ListNetworkFacilities(ctx context.Context, req 
 	return &pb.ListNetworkFacilitiesResponse{NetworkFacilities: items, NextPageToken: nextToken}, nil
 }
 
-// StreamNetworkFacilities streams all matching network facilities.
+// StreamNetworkFacilities streams all matching network facilities via compound
+// (updated, id) keyset pagination under the (-updated, -created, -id) order.
 func (s *NetworkFacilityService) StreamNetworkFacilities(ctx context.Context, req *pb.StreamNetworkFacilitiesRequest, stream *connect.ServerStream[pb.NetworkFacility]) error {
 	return StreamEntities(ctx, StreamParams[ent.NetworkFacility, pb.NetworkFacility]{
 		EntityName:   "network facilities",
@@ -133,18 +135,21 @@ func (s *NetworkFacilityService) StreamNetworkFacilities(ctx context.Context, re
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.NetworkFacility, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.NetworkFacility, error) {
 			q := s.Client.NetworkFacility.Query().
-				Where(networkfacility.IDGT(afterID)).
-				Order(ent.Asc(networkfacility.FieldID)).
+				Order(ent.Desc(networkfacility.FieldUpdated), ent.Desc(networkfacility.FieldCreated), ent.Desc(networkfacility.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.NetworkFacility(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(networkfacility.And(castPredicates[predicate.NetworkFacility](preds)...))
 			}
 			return q.All(ctx)
 		},
-		Convert: networkFacilityToProto,
-		GetID:   func(nf *ent.NetworkFacility) int { return nf.ID },
+		Convert:    networkFacilityToProto,
+		GetID:      func(nf *ent.NetworkFacility) int { return nf.ID },
+		GetUpdated: func(nf *ent.NetworkFacility) time.Time { return nf.Updated },
 	}, stream)
 }
 

@@ -66,10 +66,19 @@ type StreamParams[E any, P any] struct {
 	UpdatedSince *timestamppb.Timestamp
 	ApplyFilters func() ([]func(*sql.Selector), error)
 	Count        func(ctx context.Context, predicates []func(*sql.Selector)) (int, error)
-	// TODO(phase-67 plan 05): replace afterID with streamCursor for compound keyset pagination.
-	QueryBatch func(ctx context.Context, predicates []func(*sql.Selector), afterID, limit int) ([]*E, error)
-	Convert      func(*E) *P
-	GetID        func(*E) int
+	// QueryBatch fetches the next batch under compound keyset pagination. When
+	// cursor.empty() the query runs without a cursor predicate; otherwise the
+	// handler emits the compound keyset predicate
+	//   WHERE (updated < cursor.Updated) OR (updated = cursor.Updated AND id < cursor.ID)
+	// under the `(-updated, -created, -id)` default order (Phase 67, CONTEXT.md
+	// D-01 / D-05).
+	QueryBatch func(ctx context.Context, predicates []func(*sql.Selector), cursor streamCursor, limit int) ([]*E, error)
+	Convert    func(*E) *P
+	GetID      func(*E) int
+	// GetUpdated extracts the `updated` timestamp from an entity for the
+	// compound cursor's primary key. Required by StreamEntities to emit the
+	// next-batch cursor after each batch drains.
+	GetUpdated func(*E) time.Time
 }
 
 // StreamEntities streams all matching entities using batched keyset pagination.
@@ -116,20 +125,21 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 		stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
 	}
 
-	// Stream records in batches using keyset pagination.
-	lastID := 0
-	if params.SinceID != nil {
-		lastID = int(*params.SinceID)
-	}
+	// Stream records in batches under compound (updated, id) keyset
+	// pagination. The cursor starts empty (full table scan) and advances to
+	// the last emitted row at the end of each batch. D-05: SinceID /
+	// UpdatedSince are predicates already applied via the predicates slice
+	// above; they do NOT seed the keyset cursor.
+	var cursor streamCursor
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
-		batch, err := params.QueryBatch(ctx, predicates, lastID, streamBatchSize)
+		batch, err := params.QueryBatch(ctx, predicates, cursor, streamBatchSize)
 		if err != nil {
 			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream %s batch after id %d: %w", params.EntityName, lastID, err))
+				fmt.Errorf("stream %s batch after cursor %+v: %w", params.EntityName, cursor, err))
 		}
 		if len(batch) == 0 {
 			return nil
@@ -141,7 +151,11 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 			}
 		}
 
-		lastID = params.GetID(batch[len(batch)-1])
+		last := batch[len(batch)-1]
+		cursor = streamCursor{
+			Updated: params.GetUpdated(last),
+			ID:      params.GetID(last),
+		}
 		if len(batch) < streamBatchSize {
 			return nil
 		}
@@ -155,4 +169,26 @@ func castPredicates[T ~func(*sql.Selector)](preds []func(*sql.Selector)) []T {
 		out[i] = T(f)
 	}
 	return out
+}
+
+// keysetCursorPredicate returns the compound keyset predicate used by every
+// Stream* RPC's QueryBatch closure under the `(-updated, -created, -id)`
+// default ordering (Phase 67 ORDER-02). Caller must check `cursor.empty()`
+// first — an empty cursor means "no resume predicate".
+//
+//	WHERE (updated < cursor.Updated) OR (updated = cursor.Updated AND id < cursor.ID)
+//
+// The predicate matches the DESC ordering: each row strictly-less-than the
+// cursor is emitted. The id tiebreaker guarantees monotonic progress even
+// when multiple rows share a timestamp (CONTEXT.md D-01). Built with ent's
+// canonical variadic predicate composers (sql.AndPredicates / sql.OrPredicates
+// — see ent/network/where.go:2452,2457).
+func keysetCursorPredicate(cursor streamCursor) func(*sql.Selector) {
+	return sql.OrPredicates(
+		sql.FieldLT("updated", cursor.Updated),
+		sql.AndPredicates(
+			sql.FieldEQ("updated", cursor.Updated),
+			sql.FieldLT("id", cursor.ID),
+		),
+	)
 }

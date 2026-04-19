@@ -106,7 +106,8 @@ func applyIxLanStreamFilters(req *pb.StreamIxLansRequest) ([]func(*sql.Selector)
 	return applyFilters(req, ixLanStreamFilters)
 }
 
-// ListIxLans returns a paginated list of IX LANs.
+// ListIxLans returns a paginated list of IX LANs under the compound default
+// order (-updated, -created, -id) per Phase 67 ORDER-02.
 func (s *IxLanService) ListIxLans(ctx context.Context, req *pb.ListIxLansRequest) (*pb.ListIxLansResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.IxLan, pb.IxLan]{
 		EntityName: "ixlans",
@@ -117,7 +118,7 @@ func (s *IxLanService) ListIxLans(ctx context.Context, req *pb.ListIxLansRequest
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.IxLan, error) {
 			q := s.Client.IxLan.Query().
-				Order(ent.Asc(ixlan.FieldID)).
+				Order(ent.Desc(ixlan.FieldUpdated), ent.Desc(ixlan.FieldCreated), ent.Desc(ixlan.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(ixlan.And(castPredicates[predicate.IxLan](preds)...))
@@ -137,7 +138,8 @@ func (s *IxLanService) ListIxLans(ctx context.Context, req *pb.ListIxLansRequest
 	return &pb.ListIxLansResponse{IxLans: items, NextPageToken: nextToken}, nil
 }
 
-// StreamIxLans streams all matching IX LANs.
+// StreamIxLans streams all matching IX LANs via compound (updated, id) keyset
+// pagination under the (-updated, -created, -id) default order.
 func (s *IxLanService) StreamIxLans(ctx context.Context, req *pb.StreamIxLansRequest, stream *connect.ServerStream[pb.IxLan]) error {
 	return StreamEntities(ctx, StreamParams[ent.IxLan, pb.IxLan]{
 		EntityName:   "ixlans",
@@ -154,19 +156,22 @@ func (s *IxLanService) StreamIxLans(ctx context.Context, req *pb.StreamIxLansReq
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.IxLan, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.IxLan, error) {
 			q := s.Client.IxLan.Query().
-				Where(ixlan.IDGT(afterID)).
-				Order(ent.Asc(ixlan.FieldID)).
+				Order(ent.Desc(ixlan.FieldUpdated), ent.Desc(ixlan.FieldCreated), ent.Desc(ixlan.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.IxLan(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(ixlan.And(castPredicates[predicate.IxLan](preds)...))
 			}
 			return q.All(ctx)
 		},
 		// Phase 64: closure adapter (see ListIxLans for rationale).
-		Convert: func(il *ent.IxLan) *pb.IxLan { return ixLanToProto(ctx, il) },
-		GetID:   func(il *ent.IxLan) int { return il.ID },
+		Convert:    func(il *ent.IxLan) *pb.IxLan { return ixLanToProto(ctx, il) },
+		GetID:      func(il *ent.IxLan) int { return il.ID },
+		GetUpdated: func(il *ent.IxLan) time.Time { return il.Updated },
 	}, stream)
 }
 

@@ -80,7 +80,8 @@ func applyCarrierFacilityStreamFilters(req *pb.StreamCarrierFacilitiesRequest) (
 	return applyFilters(req, carrierFacilityStreamFilters)
 }
 
-// ListCarrierFacilities returns a paginated list of carrier facilities.
+// ListCarrierFacilities returns a paginated list of carrier facilities under
+// the compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
 func (s *CarrierFacilityService) ListCarrierFacilities(ctx context.Context, req *pb.ListCarrierFacilitiesRequest) (*pb.ListCarrierFacilitiesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.CarrierFacility, pb.CarrierFacility]{
 		EntityName: "carrierfacilities",
@@ -91,7 +92,7 @@ func (s *CarrierFacilityService) ListCarrierFacilities(ctx context.Context, req 
 		},
 		Query: func(ctx context.Context, preds []func(*sql.Selector), limit, offset int) ([]*ent.CarrierFacility, error) {
 			q := s.Client.CarrierFacility.Query().
-				Order(ent.Asc(carrierfacility.FieldID)).
+				Order(ent.Desc(carrierfacility.FieldUpdated), ent.Desc(carrierfacility.FieldCreated), ent.Desc(carrierfacility.FieldID)).
 				Limit(limit).Offset(offset)
 			if len(preds) > 0 {
 				q = q.Where(carrierfacility.And(castPredicates[predicate.CarrierFacility](preds)...))
@@ -106,7 +107,8 @@ func (s *CarrierFacilityService) ListCarrierFacilities(ctx context.Context, req 
 	return &pb.ListCarrierFacilitiesResponse{CarrierFacilities: items, NextPageToken: nextToken}, nil
 }
 
-// StreamCarrierFacilities streams all matching carrier facilities.
+// StreamCarrierFacilities streams all matching carrier facilities via compound
+// (updated, id) keyset pagination under the (-updated, -created, -id) order.
 func (s *CarrierFacilityService) StreamCarrierFacilities(ctx context.Context, req *pb.StreamCarrierFacilitiesRequest, stream *connect.ServerStream[pb.CarrierFacility]) error {
 	return StreamEntities(ctx, StreamParams[ent.CarrierFacility, pb.CarrierFacility]{
 		EntityName:   "carrier facilities",
@@ -123,18 +125,21 @@ func (s *CarrierFacilityService) StreamCarrierFacilities(ctx context.Context, re
 			}
 			return q.Count(ctx)
 		},
-		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), afterID, limit int) ([]*ent.CarrierFacility, error) {
+		QueryBatch: func(ctx context.Context, preds []func(*sql.Selector), cursor streamCursor, limit int) ([]*ent.CarrierFacility, error) {
 			q := s.Client.CarrierFacility.Query().
-				Where(carrierfacility.IDGT(afterID)).
-				Order(ent.Asc(carrierfacility.FieldID)).
+				Order(ent.Desc(carrierfacility.FieldUpdated), ent.Desc(carrierfacility.FieldCreated), ent.Desc(carrierfacility.FieldID)).
 				Limit(limit)
+			if !cursor.empty() {
+				q = q.Where(predicate.CarrierFacility(keysetCursorPredicate(cursor)))
+			}
 			if len(preds) > 0 {
 				q = q.Where(carrierfacility.And(castPredicates[predicate.CarrierFacility](preds)...))
 			}
 			return q.All(ctx)
 		},
-		Convert: carrierFacilityToProto,
-		GetID:   func(cf *ent.CarrierFacility) int { return cf.ID },
+		Convert:    carrierFacilityToProto,
+		GetID:      func(cf *ent.CarrierFacility) int { return cf.ID },
+		GetUpdated: func(cf *ent.CarrierFacility) time.Time { return cf.Updated },
 	}, stream)
 }
 
