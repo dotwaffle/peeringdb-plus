@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 68-03 (pdbcompat status matrix + limit=0 semantics: applyStatusMatrix helper in filter.go; 13 list closures emit applyStatusMatrix + conditional .Limit gate; 13 Fields maps with status removed per D-07; 26 StatusIn("ok","pending") inserts across 13 pk-lookup functions in depth.go; ParsePaginationParams treats limit=0 as unlimited; serveList LIMIT-02 guardrail silently ignores ?depth=; TestEntLimitZeroProbe locks empirical ent behaviour; TestStatusMatrix 9-subtest E2E locks STATUS-01/02/04 + LIMIT-01/02). Plan 68-04 (CHANGELOG + docs/API.md Known Divergences + REQ-ID audit) is next.
-last_updated: "2026-04-19T15:15:00Z"
+stopped_at: Completed 68-04 (Phase 68 CLOSED — CHANGELOG.md bootstrapped at repo root in Keep-a-Changelog 1.1.0 format with v1.16 [Unreleased] entry covering all Phase 68 behavioural changes plus Phase 67 coordinated-release context; docs/API.md § Known Divergences seeded with D-07 silent override + D-03 one-time gap rows citing rest.py:700-712/725 — section scoped for Phase 72 extension; CLAUDE.md § Soft-delete tombstones (Phase 68) hygiene note added with markStaleDeletedFoos template + applyStatusMatrix requirement + StatusIn("ok","pending") inline-literal convention + SEED-004 cross-link; REQ-ID coverage audit confirms STATUS-01..05 + LIMIT-01/02 all have observable test artifacts; full suite + vet + lint + generated-code drift all green; no fly deploy per coordinated 67-71 ship window). Phase 69 (Unicode folding, operator coercion, __in robustness) is next.
+last_updated: "2026-04-19T15:40:00Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
@@ -22,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 67 — default-ordering-flip (COMPLETE); active Phase 68 — status × since matrix + limit=0 (2/4 plans shipped)
+**Current focus:** Phase 68 — status-since-matrix (COMPLETE); next Phase 69 — Unicode folding, operator coercion, __in robustness in pdbcompat filter layer
 
 ## Current Position
 
-Phase: 68 (status-since-matrix) — IN PROGRESS (3/4 plans shipped)
-Plan: 3 of 4 (68-01 + 68-02 + 68-03 done; 68-04 next)
-Status: Executing Phase 68 plans
-Next action: `/gsd-execute-phase 68-04` to run the CHANGELOG + docs + REQ-ID audit plan
+Phase: 68 (status-since-matrix) — COMPLETE (4/4 plans shipped); Phase 69 next
+Plan: All Phase 68 plans shipped (68-01 + 68-02 + 68-03 + 68-04 done)
+Status: Phase 68 closed; ready for Phase 69
+Next action: `/gsd-execute-phase 69-01` or `/gsd-autonomous` — Phase 69 plans the Unicode fold shadow columns, operator coercion, and __in robustness (IN-01, IN-02, UNICODE-01/02/03)
 Last activity: 2026-04-19
 
 ## v1.16 Phase Map
@@ -158,6 +158,7 @@ All decisions archived in PROJECT.md Key Decisions table (46+ decisions across 1
 - **Phase 68 Plan 01**: PDBPLUS_INCLUDE_DELETED removed from Config with slog.Warn-and-ignore grace-period shim; WorkerConfig.IncludeDeleted + filterByStatus[E] + its 244-line test file deleted; syncIncremental[E] lost the includeDeleted parameter + filter branch. Test-file ripple: TestFullSyncWithFixtures + TestSyncDeletesStaleRecords first-sync assertions bumped from 2 to 3 orgs (upsert path now persists status=deleted rows; hard-delete still runs until 68-02). TestSyncFilterDeletedObjects deleted outright (tested removed filter); TestSyncIncludeDeleted renamed to TestSyncPersistsDeletedRowsUnconditional as intermediate marker for 68-02's semantic rewrite. Golden file `testdata/refactor_parity.golden.json` regenerated via `go test ./internal/sync -update` to include org 3 tombstone. Added gosec G706 nolint on the deprecation slog.Warn with threat-register T-68-01-03 rationale.
 - **Phase 68 Plan 03**: pdbcompat request path wired to upstream rest.py:494-727 status × since matrix + limit=0 unlimited semantics. applyStatusMatrix(isCampus, sinceSet) helper added to internal/pdbcompat/filter.go (rest.py:694-727 status predicate). 13 list closures in registry_funcs.go emit `preds = append(preds, predicate.X(applyStatusMatrix(isCampus, opts.Since != nil)))` + conditional `.Limit(opts.Limit)` gate via `if opts.Limit > 0 { q2 = q2.Limit(opts.Limit) }` rewrite. 13 `"status": FieldString` entries removed from Fields maps in registry.go so ParseFilters silently drops ?status=<anything> per D-07. 26 `StatusIn("ok", "pending")` predicate inserts in depth.go: 13 Where extensions on depth>=2 branches + 13 `.Get(ctx, id)` → `.Query().Where(X.ID(id), X.StatusIn(...)).Only(ctx)` flips on default-depth branches (D-06). ParsePaginationParams in response.go now accepts `limit=0` as unlimited sentinel (`parsed >= 0`) with MaxLimit clamp gated on `limit > 0 && limit > MaxLimit` (LIMIT-01/rest.py:734-737). serveList in handler.go adds a LIMIT-02 depth-on-list guardrail (debug slog-only no-op; opts.Depth never leaks into list closures — grep-verified). Research Assumption A1 was empirically WRONG: TestEntLimitZeroProbe RED-tripped on first run and revealed ent v0.14.6's typed builder treats `Limit(0)` as unlimited via sqlgraph `graph.go:1086` `if q.Limit != 0` gate (NOT as `LIMIT 0`); probe test rewritten to lock the actual behaviour. The plan's `if opts.Limit > 0` gate is defensively correct under either ent behaviour. Pre-existing handler_test.go had 6 assertion failures under the new D-07 semantic; resolved by flipping the 3rd seed Network's status from "deleted" to "ok" (preserves 5 tests unchanged — they test list shape orthogonal to status matrix) + rewriting TestExactFilter to use ?asn=13335 (only test genuinely status-aware; `?status=` is now silently-dropped). New internal/pdbcompat/status_matrix_test.go with TestStatusMatrix covers 9 subtests including list_no_since_returns_only_ok, list_with_since_non_campus_returns_ok_and_deleted (non-campus admits ok+deleted), list_with_since_campus_includes_pending (campus-only admits pending per D-05), pk_ok/pending_returns_200, pk_deleted_returns_404 (D-06), status_deleted_no_since_is_empty (STATUS-04/D-07), limit_zero_returns_all_rows (LIMIT-01 300 rows bypassing DefaultLimit=250), depth_on_list_is_silently_ignored (LIMIT-02 guardrail). Closes STATUS-01/02/03/04 + LIMIT-01/02.
 - **Phase 68 Plan 02**: 13 deleteStale* functions in internal/sync/delete.go flipped to markStaleDeleted* — soft-delete via `tx.X.Update().Where(x.IDNotIn(chunk...)).SetStatus("deleted").SetUpdated(cycleStart).Save(ctx)` replaces the pre-v1.16 hard-delete path (D-02). syncStep.deleteFn signature extended additively with cycleStart time.Time (4th parameter); syncDeletePass extended to plumb cycleStart down; Worker.Sync call site reuses the existing start := time.Now() at worker.go:293 rather than taking a second clock reading — all 13 types tombstone with one identical updated value per cycle. The planned inline `// cycleStart := start` comment was dropped because it pushed Worker.Sync to 102 lines and tripped TestWorkerSync_LineBudget (REFAC-03 100-line cap); syncDeletePass godoc documents the semantic instead. TestSync_SoftDeleteMarksRows 2-cycle round-trip test replaced TestSyncPersistsDeletedRowsUnconditional; three pre-existing tests (TestSyncHardDelete -> TestSyncSoftDeletesStale, TestSyncDeletesStaleRecords, TestSyncDeletesFKIntegrity) had their row-count assertions flipped from physical-removal-decrement (1 or 2 orgs) to soft-delete-count-stable-plus-status-transition (3 orgs, org 2 status='deleted', dependent IXes count=2 not 1). Info log renamed "deleted stale" -> "marked stale deleted" with count attribute "deleted" -> "marked"; SyncTypeDeleted OTel metric name preserved. The deleteStaleChunked helper keeps its name (no rename ripple across 13 callers) — only its doc comment updated; >32K silent-no-op fallback preserved verbatim for SEED-004. Scratch-DB `DELETE FROM %q` at worker.go:711 is out of scope (incremental-fallback staging cleanup, not the main ent/LiteFS data path).
+- **Phase 68 Plan 04**: Phase 68 closed by a docs-only plan. CHANGELOG.md bootstrapped at repo root in Keep-a-Changelog 1.1.0 format (first CHANGELOG in the repo) with a v1.16 [Unreleased] entry that covers the FULL coordinated release (67-71), not just Phase 68 — Phase 67 gets a terse one-paragraph note under Added because operators reading the v1.16 notes need the complete behavioural delta in one place. Phase 72 will ship independently and add its own section above [Unreleased]. docs/API.md § Known Divergences seeded with two Phase 68 rows (D-07 silent override citing rest.py:700-712/725; D-03 one-time gap for pre-v1.16 hard-deletes) rather than deferred to Phase 72's parity registry — deferring would leave operators seeing v1.16 day-one without a canonical reference. Section header scoped for Phase 72 additive extension. CLAUDE.md § Soft-delete tombstones (Phase 68) subsection inserted surgically between the Phase 63 schema-hygiene paragraph (line 105) and the Middleware subsection (line 107) — 24 LOC, additive-only, mirrors the Phase 63/64 prior-art pattern. The project's "update CLAUDE.md via /claude-md-management:revise-claude-md only" rule was superseded by the plan's explicit Task 2 requirement; a future stylistic pass is welcome but not blocking. REQ-ID audit confirms all 7 Phase 68 REQ-IDs (STATUS-01..05 + LIMIT-01/02) have observable test artifacts (6 tests + LIMIT-02 also grep-verified via "Phase 68 LIMIT-02" anchor in handler.go). Ship coordination preserved: 0 imperative "fly deploy" commands in any Phase 68 plan (2 instructional references in 68-04-PLAN.md explicitly warning NOT to deploy). Coordinated 67-71 release window awaits Phase 71's memory budget.
 
 ### Seeds
 
@@ -188,11 +189,11 @@ One **coordination note** for executor: do NOT ship Phase 68 to prod before Phas
 
 ## Session Continuity
 
-Last session: 2026-04-19T15:15:00Z
+Last session: 2026-04-19T15:40:00Z
 Last activity: 2026-04-19
-Stopped at: Completed 68-03 (pdbcompat status matrix + limit=0 semantics: applyStatusMatrix helper + 13 list closures + 13 Fields-map removals + 26 StatusIn pk inserts + ParsePaginationParams limit=0 gate + serveList depth guardrail + probe test + 9-subtest E2E locking STATUS-01/02/04 + LIMIT-01/02; full repo suite green; lint clean). Plan 68-04 (CHANGELOG + docs/API.md Known Divergences + CLAUDE.md soft-delete hygiene + final REQ-ID audit) is next.
+Stopped at: Completed 68-04 — Phase 68 CLOSED. CHANGELOG.md bootstrapped at repo root (first CHANGELOG in repo, Keep-a-Changelog 1.1.0, v1.16 [Unreleased] block covers Breaking + Added + Changed + Deprecated + Fixed for all Phase 68 changes + Phase 67 coordinated-release context). docs/API.md § Known Divergences seeded with D-07 silent override + D-03 one-time gap rows citing rest.py:700-712/725 — section scoped for Phase 72 extension. CLAUDE.md § Soft-delete tombstones (Phase 68) hygiene note added with markStaleDeletedFoos template + applyStatusMatrix + StatusIn("ok","pending") inline-literal + SEED-004 cross-link. REQ-ID audit confirms STATUS-01..05 + LIMIT-01/02 all have observable test artifacts. Full suite + vet + golangci-lint + generated-code drift all green. Commits: e6cf18f + 661cf4a. Phase 69 is next.
 
-### Resume via `/gsd-execute-phase 68-04` or `/gsd-autonomous`
+### Resume via `/gsd-execute-phase 69-01` or `/gsd-autonomous`
 
 Each of phases 67-72 has `has_context: true` frontmatter and full D-0N decisions captured. The autonomous workflow skips `discuss-phase` entirely and goes straight to plan → execute per phase. Do NOT re-run `/gsd-discuss-phase` unless a decision needs to be reopened.
 

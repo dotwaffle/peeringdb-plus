@@ -11,7 +11,7 @@
 **v1.16 — Django-compat Correctness (current)**
 
 - [x] **Phase 67: Default ordering flip** — Pdbcompat, grpcserver, entrest list paths return rows in upstream `(-updated, -created)` order
-- [ ] **Phase 68: Status × since matrix + limit=0 semantics** — Pdbcompat applies upstream status-filter rules and treats `limit=0` as unlimited
+- [x] **Phase 68: Status × since matrix + limit=0 semantics** — Pdbcompat applies upstream status-filter rules and treats `limit=0` as unlimited
 - [ ] **Phase 69: Filter-value Unicode folding, operator coercion, `__in` robustness** — Pdbcompat filter layer matches upstream `rest.py:544-662` value handling
 - [ ] **Phase 70: Cross-entity `__` traversal (Path A + Path B + 2-hop)** — Pdbcompat resolves filter paths across FKs like upstream serializers
 - [ ] **Phase 71: Memory-safe response paths on 256 MB replicas** — Depth=2 / `limit=0` / large traversals stay within the replica memory envelope
@@ -62,11 +62,11 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. `GET /api/<type>?status=deleted` (no `since`) returns an empty set — the final `status=ok` list filter is applied unconditionally
   4. `GET /api/<type>?limit=0` returns every matching row with no upper bound (NOT a count envelope); `depth>0` responses continue to cap at the upstream `API_DEPTH_ROW_LIMIT=250`
   5. `PDBPLUS_INCLUDE_DELETED` controls whether sync persists deleted rows locally; pdbcompat status-matrix filtering is independent of this gate and matches upstream regardless of its value
-**Plans:** 4 plans
+**Plans:** 4/4 plans executed
 - [x] 68-01-PLAN.md — Remove PDBPLUS_INCLUDE_DELETED from Config + WorkerConfig + syncIncremental; delete filterByStatus helper; strip test fixtures
 - [x] 68-02-PLAN.md — Soft-delete flip: rename 13 deleteStale* → markStaleDeleted*; plumb cycleStart through syncStep.deleteFn; add TestSync_SoftDeleteMarksRows
 - [x] 68-03-PLAN.md — pdbcompat status matrix helper + 13 list-closure edits + 26 depth.go StatusIn predicates + limit=0 gate fix + list-depth guardrail + status_matrix_test.go
-- [ ] 68-04-PLAN.md — CHANGELOG.md bootstrap + docs/API.md Known Divergences + CLAUDE.md soft-delete hygiene note + final REQ-ID coverage audit
+- [x] 68-04-PLAN.md — CHANGELOG.md bootstrap + docs/API.md Known Divergences + CLAUDE.md soft-delete hygiene note + final REQ-ID coverage audit
 
 ### Phase 69: Filter-value Unicode folding, operator coercion, `__in` robustness
 **Goal**: The pdbcompat filter layer reproduces upstream value-handling: `unidecode`-equivalent folding before SQL, `__contains`/`__startswith` coerced to case-insensitive variants, and arbitrarily-large `__in` lists without SQLite's 999-variable limit.
