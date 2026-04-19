@@ -115,7 +115,13 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   2. A response exceeding `PDBPLUS_RESPONSE_MEMORY_LIMIT` (default sized against the 256 MB replica budget minus operating headroom) is truncated with an RFC 9457 `application/problem+json` 413 response before the process gets OOM-killed
   3. Per-request OTel span attributes and a Prometheus gauge expose response-path peak heap and RSS, reusing the v1.15 Phase 66 `runtime.MemStats` harness; Grafana's SEED-001 watch row shows response-path peaks alongside sync-path peaks
   4. `docs/ARCHITECTURE.md` documents the per-endpoint memory envelope (worst-case depth/limit combinations per type) and the operator-actionable knobs that cap it
-**Plans**: TBD
+**Plans:** 6 plans
+- [ ] 71-01-PLAN.md — internal/pdbcompat/stream.go StreamListResponse + iterator shape + unit tests (Wave 1, isolated)
+- [ ] 71-02-PLAN.md — internal/pdbcompat/rowsize.go typical_row_bytes map + bench_row_size_test.go calibration (Wave 2; human checkpoint for calibration)
+- [ ] 71-03-PLAN.md — Config.ResponseMemoryLimit (default 128 MiB) + internal/pdbcompat/budget.go CheckBudget + WriteBudgetProblem (Wave 3)
+- [ ] 71-04-PLAN.md — pdbcompat registry CountFunc sibling + serveList pre-flight budget check + StreamListResponse wiring (Wave 4)
+- [ ] 71-05-PLAN.md — internal/pdbcompat/telemetry.go recordResponseHeapDelta + OTel span attr + Prometheus histogram + Grafana panel (Wave 5)
+- [ ] 71-06-PLAN.md — docs/ARCHITECTURE.md § Response Memory Envelope + CHANGELOG + CLAUDE.md + REQ traceability (Wave 6)
 
 ### Phase 72: Upstream parity regression + divergence docs
 **Goal**: Lock the v1.16 semantics in place by porting the ground-truth assertions from upstream `pdb_api_test.py` and documenting any intentional divergences so future conformance audits can distinguish them from regressions.
