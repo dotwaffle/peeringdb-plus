@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 69-05 (fuzz corpus extension + build-tag-gated bench shim + shadow-index decision DEFERRED). FuzzFilterParser seeds extended per D-07 (21 new cases — diacritics/CJK/RTL/RLO/ZWJ/combining/null/>64KB + IN-01 1201-element + IN-02 empty + unicode/all-empty parts); local 60s fuzz on Ryzen 5 3600 = 469197 executions, 65 new interesting, ZERO panics. New //go:build bench-gated filter_bench.go + bench_test.go declare directContainsPredicate/shadowContainsPredicate helpers and four BenchmarkNameContains_{100,10000}_{Direct,Shadow} (chunked 500-row CreateBulk to stay under SQLite SQLITE_MAX_VARIABLE_NUMBER=32766). benchstat n=6: shadow 101.4 ms ± 1% vs direct 102.2 ms ± 1% at 10k rows, p=0.065 (statistically indistinguishable, geomean Δ -0.25%) → Option B SKIP indexes; ent/schema/{network,facility,internetexchange,organization,campus,carrier}.go NOT edited; no ent/ regen. INVARIANT held: `git diff HEAD~1..HEAD -- internal/pdbcompat/filter.go` = 0 lines (production code untouched, GO-CC-3 compliant). Two deviations rolled in: Rule 3 chunked seed (SQLite var limit blocker) + Rule 1 query-value swap (Direct returned 0 rows on "Zurich" — apples-to-oranges fix). go test -race ./... ALL packages PASS; go build ./... clean (no tags, bench symbols invisible); golangci-lint run + golangci-lint run --build-tags=bench both 0 issues. Commit 298033d. Next: 69-06 (docs: CHANGELOG + docs/API.md divergence + CLAUDE.md convention + REQ-ID audit).
-last_updated: "2026-04-19T17:50:00Z"
+stopped_at: Completed 69-06 — Phase 69 closed. CHANGELOG.md v1.16 [Unreleased] gained 4 Added bullets (Unicode folding via internal/unifold + 16 _fold shadow columns × 6 entities; operator coercion __contains→__icontains/__startswith→__istartswith per rest.py:638-641; __in json_each(?) single-bind + empty-__in sentinel; fuzz corpus extension to 469k execs / 0 panics) + 1 Known issues bullet (one-time ASCII-only window between v1.16 deploy and the first post-deploy sync cycle, ≤1h with default PDBPLUS_SYNC_INTERVAL=1h, no manual backfill). docs/API.md § Known Divergences gained one Phase 69 row citing upstream's unidecode.unidecode(v) at rest.py:576 vs our shadow-column staging + benchstat-evidenced trade-off invisibility (p=0.065 at 10k rows). CLAUDE.md gained ### Shadow-column folding (Phase 69) subsection — internal/unifold single source of truth, 16-field × 6-entity table, sync-side .SetXxxFold(unifold.Fold(...)) chain template, pdbcompat filter-side FoldedFields routing pattern, 5-step "add a NEW searchable text field" checklist, "add shadow columns on a 7th entity" checklist, 3-item "Do NOT" list, and pointer to Plan 05's index DEFER decision. REQ-ID audit: UNICODE-01 (TestFold + TestUpsertPopulatesFoldColumns + TestShadowRouting_Network_NameFold), UNICODE-02 (TestCoerce_OnlyContainsAndStartswith_Untouched), UNICODE-03 (FuzzFilterParser 469k execs), IN-01 (TestInJsonEach_Large_Bypasses_SQLite_Limit + TestInJsonEach_ExplainQueryPlan), IN-02 (TestInJsonEach_EmptyString_ReturnsEmpty + 13 opts.EmptyResult guards) — all 5 grep-verified, REQUIREMENTS.md already had all 5 marked complete (this plan audited rather than flipped). No fly deploy emitted; coordinated 67-71 release window preserved. go vet + go build + golangci-lint + go test -race ./internal/{pdbcompat,sync,unifold}/... all PASS. Commit 0b1e6a1. Next: Phase 70 (cross-entity __ traversal: Path A allowlists + Path B introspection + 2-hop) per CONTEXT.md.
+last_updated: "2026-04-19T16:55:30Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
-  completed_phases: 2
-  total_plans: 10
-  completed_plans: 10
+  completed_phases: 3
+  total_plans: 11
+  completed_plans: 11
   percent: 100
 ---
 
@@ -22,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 69 — Unicode folding, operator coercion, __in robustness in pdbcompat filter layer (in flight: 5/6 plans shipped)
+**Current focus:** Phase 69 CLOSED (6/6 plans shipped). Next: Phase 70 — cross-entity `__` traversal (Path A allowlists + Path B introspection + 2-hop).
 
 ## Current Position
 
-Phase: 69 (unicode-operator-in-robustness) — IN FLIGHT (5/6 plans shipped: 69-01 unifold package, 69-02 ent shadow columns, 69-03 sync upserts, 69-04 pdbcompat filter layer, 69-05 fuzz corpus + bench + index decision)
-Plan: Last completed 69-05 (fuzz corpus extension to 469k local execs, build-tag-gated bench shim, shadow-index decision DEFERRED via benchstat n=6 evidence). Next 69-06 (CHANGELOG + docs/API.md divergence + CLAUDE.md convention + REQ-ID audit).
-Status: Plan 69-05 closed cleanly — production filter.go untouched (B1 invariant held, 0-line diff), bench shim invisible to default builds (//go:build bench), shadow path within 1% of direct at 10k rows (p=0.065 statistically indistinguishable). Two auto-fixes rolled in (Rule 3 chunked CreateBulk for SQLite var limit, Rule 1 query-value equivalence to avoid apples-to-oranges measurement). Full test suite + vet (default + bench) + golangci-lint (default + --build-tags=bench) all green.
-Next action: `/gsd-execute-phase 69-06` — docs (CHANGELOG + docs/API.md divergence + CLAUDE.md convention + REQ-ID audit)
+Phase: 69 (unicode-operator-in-robustness) — CLOSED (6/6 plans shipped: 69-01 unifold package, 69-02 ent shadow columns, 69-03 sync upserts, 69-04 pdbcompat filter layer, 69-05 fuzz corpus + bench + index decision, 69-06 docs close)
+Plan: Last completed 69-06 (CHANGELOG + docs/API.md § Known Divergences row + CLAUDE.md § Shadow-column folding convention + REQ-ID audit confirming all 5 Phase 69 REQ-IDs map to grep-verifiable test artifacts). Phase 69 fully closed; awaiting coordinated 67-71 v1.16 deploy window.
+Status: Plan 69-06 closed cleanly — docs-only plan, no behavioural code change. CHANGELOG canonical-phrase grep ≥4 PASS; docs/API.md row added preserving Phase 68 D-07/D-03 rows byte-identical; CLAUDE.md subsection inserted between Phase 68 Soft-delete tombstones and Middleware (additive, ~46 LOC). REQUIREMENTS.md table already had IN-01/02 + UNICODE-01/02/03 marked `complete (69-0N)` from Plans 03/04/05; this plan audited rather than flipped. go vet + go build + golangci-lint + go test -race ./internal/{pdbcompat,sync,unifold}/... all PASS. Commit 0b1e6a1.
+Next action: `/gsd-execute-phase 70` — cross-entity `__` traversal (TRAVERSAL-01..04). CONTEXT.md already locked (7 D-0N decisions).
 Last activity: 2026-04-19
 
 ## v1.16 Phase Map

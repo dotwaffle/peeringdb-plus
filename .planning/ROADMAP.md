@@ -84,7 +84,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 - [x] 69-03-PLAN.md — 6 upsertX funcs populate _fold columns via unifold.Fold (16 calls wired); 7 unaffected upserts byte-identical; golang.org/x/text promoted to direct dep; commits 8ce16ab+cdad023
 - [x] 69-04-PLAN.md — filter.go: coerceToCaseInsensitive + shadow-column routing + json_each __in + empty-__in sentinel; 16 folded fields across 6 TypeConfigs; 13 EmptyResult guards in list closures; commits 9839273 (RED) + 9aa661d (GREEN)
 - [x] 69-05-PLAN.md — fuzz corpus extension (469k local execs, 0 panics) + build-tag-gated bench shim + shadow-index decision DEFERRED (benchstat n=6: shadow within 1% of direct at 10k rows, p=0.065); commit 298033d
-- [ ] 69-06-PLAN.md — CHANGELOG + docs/API.md divergence + CLAUDE.md convention + REQ-ID audit
+- [x] 69-06-PLAN.md — CHANGELOG + docs/API.md § Known Divergences row + CLAUDE.md § Shadow-column folding (Phase 69) convention + REQ-ID audit (5/5 grep-verified); Phase 69 CLOSED; commit 0b1e6a1
 
 ### Phase 70: Cross-entity `__` traversal (Path A + Path B + 2-hop)
 **Goal**: Pdbcompat resolves `<fk>__<field>` and `<fk>__<fk>__<field>` filter paths the way upstream does — per-serializer `prepare_query` allowlists (Path A) AND automatic relation introspection minus a `FILTER_EXCLUDE` list (Path B), with 2-hop support.
