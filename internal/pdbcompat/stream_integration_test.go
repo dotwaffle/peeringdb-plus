@@ -2,14 +2,19 @@ package pdbcompat_test
 
 import (
 	"bytes"
+	"compress/gzip"
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
@@ -276,5 +281,180 @@ func TestServeList_EmptyResultShortCircuitsBeforeBudget(t *testing.T) {
 	trimmed := strings.TrimSpace(string(body))
 	if trimmed != `{"meta":{},"data":[]}` {
 		t.Errorf("empty-result body: got %q, want %q", trimmed, `{"meta":{},"data":[]}`)
+	}
+}
+
+// seedBulkNetworks creates n rows in client.Network using CreateBulk in
+// 500-row chunks (under SQLite's 32,766-variable cap for Network's ~30
+// columns per row). Intended for the WR-03 streaming integration test —
+// a production-shape row count (5,000 rows) is needed so the response
+// exceeds gzhttp's minimum-size threshold and the flush cadence is
+// actually stressed by the middleware chain.
+func seedBulkNetworks(tb testing.TB, client *ent.Client, n int) {
+	tb.Helper()
+	ctx := context.Background()
+	now := time.Now().UTC()
+
+	// One Org to parent every network; FK constraint would fail without it.
+	org, err := client.Organization.Create().
+		SetID(1).
+		SetName("WR-03 Bulk Org").
+		SetStatus("ok").
+		SetCreated(now).
+		SetUpdated(now).
+		Save(ctx)
+	if err != nil {
+		tb.Fatalf("seed bulk org: %v", err)
+	}
+
+	const chunk = 500
+	for start := 0; start < n; start += chunk {
+		end := start + chunk
+		if end > n {
+			end = n
+		}
+		builders := make([]*ent.NetworkCreate, 0, end-start)
+		for i := start; i < end; i++ {
+			id := i + 1
+			builders = append(builders, client.Network.Create().
+				SetID(id).
+				SetName(fmt.Sprintf("WR03-Net-%06d", id)).
+				SetAsn(64000+id).
+				SetOrgID(org.ID).
+				SetAllowIxpUpdate(false).
+				SetInfoIpv6(false).
+				SetInfoMulticast(false).
+				SetInfoNeverViaRouteServers(false).
+				SetInfoUnicast(false).
+				SetPolicyRatio(false).
+				SetStatus("ok").
+				SetCreated(now).
+				SetUpdated(now))
+		}
+		if err := client.Network.CreateBulk(builders...).Exec(ctx); err != nil {
+			tb.Fatalf("seed networks [%d,%d): %v", start, end, err)
+		}
+	}
+}
+
+// TestServeList_StreamingThroughGzipMiddleware is the Phase 71 WR-03
+// full-middleware streaming integration test. The
+// httptest.NewRecorder-based tests elsewhere in this file exercise
+// StreamListResponse directly; this test plugs the handler into the
+// gzip middleware from internal/middleware/compression.go and proves
+// streaming invariants hold end-to-end:
+//
+//   - Status 200 (under the 64 MiB budget at 5,000 × ~1.6 KiB/row).
+//   - No Content-Length header (gzip wrapping + Flusher ⇒ chunked).
+//   - Transfer-Encoding: chunked (streaming confirmed on the wire).
+//   - Decoded gzip body is valid JSON with >= 5,000 rows in `data`.
+//
+// If the gzip wrapper were to buffer the whole response before emitting
+// (for example, because the Flusher interface assertion regressed and
+// the handler stopped flushing) net/http would set Content-Length and
+// omit Transfer-Encoding: chunked. That would silently defeat
+// StreamListResponse's bounded-allocation guarantee and re-expose the
+// OOM vector Phase 71 closed.
+//
+// The test is gated on testing.Short() because seeding 5,000 rows is a
+// ~1-2s operation — trivial under the normal CI matrix but visible in a
+// tight inner dev loop running `go test -short`.
+func TestServeList_StreamingThroughGzipMiddleware(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping 5,000-row streaming integration test under -short")
+	}
+	t.Parallel()
+
+	client := testutil.SetupClient(t)
+	seedBulkNetworks(t, client, 5000)
+
+	// 64 MiB budget ≫ 5,000 × ~1.6 KiB ≈ 8 MiB — confirms the 200 path
+	// exercises the streaming envelope rather than tripping the 413 gate.
+	mux := http.NewServeMux()
+	pdbcompat.NewHandler(client, 64*1024*1024).Register(mux)
+
+	// Anonymous privacy tier stamped on every request so serveList sees
+	// the same context shape it gets in production behind the middleware
+	// chain. Wrapped by the gzip middleware under test.
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := privctx.WithTier(r.Context(), privctx.TierPublic)
+		mux.ServeHTTP(w, r.WithContext(ctx))
+	})
+	gzipMW := middleware.Compression()
+	srv := httptest.NewServer(gzipMW(handler))
+	t.Cleanup(srv.Close)
+
+	// Disable the transport's own gzip handling so we can inspect the
+	// wire headers (Content-Encoding, Transfer-Encoding, Content-Length)
+	// directly. Without DisableCompression net/http silently decompresses
+	// AND strips Content-Encoding, which would invalidate our assertions.
+	tr := &http.Transport{DisableCompression: true}
+	httpClient := &http.Client{Transport: tr, Timeout: 30 * time.Second}
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/api/net?limit=0", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Accept-Encoding", "gzip")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		t.Fatalf("GET /api/net?limit=0: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("status: got %d, want 200: %s", resp.StatusCode, string(body))
+	}
+	if ce := resp.Header.Get("Content-Encoding"); ce != "gzip" {
+		t.Fatalf("Content-Encoding: got %q, want %q (gzip middleware regressed or filter excluded application/json)", ce, "gzip")
+	}
+
+	// Streaming invariants — both must hold. A present Content-Length
+	// header proves the response was buffered whole before headers were
+	// flushed, which is exactly the OOM vector Phase 71 closes.
+	if cl := resp.Header.Get("Content-Length"); cl != "" {
+		t.Errorf("Content-Length: got %q, want empty (streaming response should not pre-declare length)", cl)
+	}
+	// net/http populates resp.TransferEncoding from the Transfer-Encoding
+	// response header (lower-level than Header.Get) and clears the
+	// header itself — inspect the slice instead.
+	chunked := false
+	for _, te := range resp.TransferEncoding {
+		if te == "chunked" {
+			chunked = true
+			break
+		}
+	}
+	if !chunked {
+		t.Errorf("Transfer-Encoding: got %v, want to contain \"chunked\" (flush cadence not preserved through gzip middleware)", resp.TransferEncoding)
+	}
+
+	gz, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		t.Fatalf("gzip.NewReader: %v", err)
+	}
+	defer gz.Close()
+
+	decoded, err := io.ReadAll(gz)
+	if err != nil {
+		t.Fatalf("read gzip body: %v", err)
+	}
+
+	var env struct {
+		Meta json.RawMessage   `json:"meta"`
+		Data []json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(decoded, &env); err != nil {
+		// Dump a prefix so a regression is debuggable without re-running.
+		head := decoded
+		if len(head) > 200 {
+			head = head[:200]
+		}
+		t.Fatalf("unmarshal streamed+gzip body: %v\nhead=%s", err, string(head))
+	}
+	if len(env.Data) < 5000 {
+		t.Errorf("rows in data: got %d, want >= 5000 (bulk seed didn't land, or budget short-circuited the response)", len(env.Data))
 	}
 }
