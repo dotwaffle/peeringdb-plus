@@ -72,11 +72,9 @@ func TestFold_NoPanic(t *testing.T) {
 		"\u202e\u200f",                       // RTL/LTR overrides
 		"a" + strings.Repeat("\u0301", 1000), // zalgo: many combining marks on one base
 	}
-	for i, in := range inputs {
+	for _, in := range inputs {
 		// Contract: Fold must not panic on any input. We do not assert
 		// the output value — see TestFold for behavioural cases.
-		got := Fold(in)
-		_ = got
-		_ = i
+		_ = Fold(in)
 	}
 }
