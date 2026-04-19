@@ -215,6 +215,31 @@ Filter keys like `<fk>__<field>` and `<fk>__<fk>__<field>` on pdbcompat endpoint
 
 **Known gap (DEFER-70-06-01).** `cmd/pdb-compat-allowlist` emits `TargetTable: "campus"` instead of `"campuses"` because `entc.LoadGraph` skips `fixCampusInflection`. Any `<entity>?campus__<field>=X` Path A or Path B query returns `500 SQL logic error: no such table: campus (1)`. Fix (queued): add `entsql.Annotation{Table: "campuses"}` to `ent/schema/campus.go` so the pluralised name is explicit. See `.planning/phases/70-cross-entity-traversal/deferred-items.md`.
 
+### Response memory envelope (Phase 71)
+
+pdbcompat list handlers stream responses via `StreamListResponse` in `internal/pdbcompat/stream.go` and gate their size via a pre-flight `CheckBudget` call in `internal/pdbcompat/budget.go`. Over-budget requests get RFC 9457 `application/problem+json` 413 up-front (via `WriteBudgetProblem`) BEFORE any row data is fetched; under-budget requests serialise token-by-token with `http.Flusher.Flush()` every 100 rows. The budget default is 128 MiB (256 MB replica − 80 MB Go runtime baseline − 48 MB slack); operators tune via `PDBPLUS_RESPONSE_MEMORY_LIMIT` (unit suffix required — `KB`/`MB`/`GB`/`TB`; bare `0` disables — dev only). The 413 body carries `max_rows` and `budget_bytes` so clients can re-slice; no `Retry-After` because the 413 is request-shape, not transient (D-04).
+
+Per-entity row sizing lives in `internal/pdbcompat/rowsize.go` as a hardcoded `map[string]RowSize{Depth0, Depth2}`, calibrated via `BenchmarkRowSize` against `seed.Full` and then DOUBLED per D-03. The `org`@depth=2 row is the envelope's worst case (~8.6 KiB/row via expanded `*_set` children); unknown entities fall back to `defaultRowSize = 4096` (fail-closed). Recalibrate every major milestone — if a round-trip `BenchmarkRowSize_*` shows drift >20%, rerun the bench and update the map in a dedicated PR using the procedure documented in the `typicalRowBytes` godoc.
+
+Per-entity `ListFunc` and `CountFunc` closures in `internal/pdbcompat/registry_funcs.go` MUST share a `<entity>Predicates` local helper so the budget check and the served response can never disagree on filter semantics. The 13 existing pairs (one per entity) established in Plan 71-04 preserve the Phase 68 `applyStatusMatrix(isCampus, opts.Since != nil)` invariant and the Phase 69 `opts.EmptyResult` short-circuit.
+
+Telemetry: `runtime.ReadMemStats` is STW (~µs at our heap size); D-06 allows ONE sample per request but NEVER per row. Sampler lives in `internal/pdbcompat/telemetry.go` (`memStatsHeapInuseKiB` — the SINGLE call site in the package, grep-verified — plus `recordResponseHeapDelta`). Invoked via `defer` at the top of `serveList` so every terminal path (200 success, 413 budget-exceeded, 400 filter-error, 500 query-error) fires exactly once. OTel span attr is `pdbplus.response.heap_delta_kib`; Prometheus histogram is `pdbplus_response_heap_delta_kib{endpoint,entity}` (registered via `pdbotel.InitResponseHeapHistogram` alongside the v1.15 Phase 66 sync-cycle `InitMemoryGauges`). Grafana panel id 36 at y=33 (full-width, 24 cols) shows p50/p95/p99 by endpoint in the SEED-001 watch row.
+
+**Maintainer checklist — adding a new entity type:**
+
+1. `internal/pdbcompat/rowsize.go` — add a `typicalRowBytes` entry with `Depth0` + `Depth2` (run `go test -run=NONE -bench=BenchmarkRowSize ./internal/pdbcompat -benchtime=20x -count=3` against a seeded fixture, double the measured mean, round UP to the nearest 64 bytes).
+2. `internal/pdbcompat/registry_funcs.go` — pair a `ListFunc` closure with a sibling `CountFunc` closure via a shared `<entity>Predicates` local helper (preserves Phase 68 `applyStatusMatrix` + Phase 69 `EmptyResult` invariants; never let the two closures diverge).
+3. `docs/ARCHITECTURE.md § Response Memory Envelope` — add a row to the per-entity sizing table with the computed `max_rows @ 128 MiB`.
+4. Extend `cmd/peeringdb-plus/*_e2e_test.go` (or `internal/pdbcompat/stream_integration_test.go`) with an under-budget smoke case and an over-budget 413 assertion mirroring `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
+
+**Do NOT:**
+
+- Call `runtime.ReadMemStats` per row — STW cost is µs but compounds quickly; the single-call-site `memStatsHeapInuseKiB` invariant is grep-enforceable.
+- Skip the `CheckBudget` pre-flight for "trusted" entity types — none are trusted; the 256 MB replica cap is symmetric across all 13 types.
+- Add a per-endpoint budget override — D-07 rejected this; a single global budget keeps the operator mental model (and the Grafana panel legend) manageable.
+- Let the `CountFunc` closure diverge from its `ListFunc` sibling's predicates — if they disagree, the budget check and the served response become different queries and the 413 guarantee breaks.
+- Extend streaming/budget to grpcserver / entrest / GraphQL / Web UI — those surfaces have their own memory stories (D-07, see `docs/ARCHITECTURE.md § Response Memory Envelope` → Out of scope).
+
 ### Middleware
 - Response writer wrappers MUST implement `http.Flusher` (delegate to underlying writer) — gRPC streaming requires it.
 - Add `Unwrap() http.ResponseWriter` for middleware-aware interface detection.
@@ -241,6 +266,7 @@ Filter keys like `<fk>__<field>` and `<fk>__<fk>__<field>` on pdbcompat endpoint
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | `400MB` | Peak Go heap ceiling checked after Phase A fetch; unit suffix required (KB/MB/GB/TB); `0` disables guardrail |
 | `PDBPLUS_HEAP_WARN_MIB` | `400` | Peak Go heap (MiB) threshold. End-of-sync-cycle `slog.Warn("heap threshold crossed", ...)` fires when `runtime.MemStats.HeapInuse` exceeds this; OTel span attr `pdbplus.sync.peak_heap_mib` emits on every cycle regardless. `0` disables the warn. Sustained breach = SEED-001 trigger fired. |
 | `PDBPLUS_RSS_WARN_MIB` | `384` | Peak OS RSS (MiB) threshold from `/proc/self/status` VmHWM (Linux only). OTel span attr `pdbplus.sync.peak_rss_mib`. `0` disables the warn. Attr omitted on non-Linux (RSS not available). |
+| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `128MiB` | Per-response memory budget for pdbcompat list endpoints; unit suffix required (KB/MB/GB/TB); bare numbers rejected except literal `0` (disabled — dev only). Over-budget requests get RFC 9457 413 up-front via `internal/pdbcompat/budget.go` `CheckBudget` + `WriteBudgetProblem` before any row data is fetched. Default = 256 MB replica − 80 MB Go runtime baseline − 48 MB slack. |
 | `PDBPLUS_CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
 | `PDBPLUS_CSP_ENFORCE` | `false` | When `true`, serve enforcing `Content-Security-Policy` on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only`. |
 | `PDBPLUS_DRAIN_TIMEOUT` | `10s` | Graceful shutdown drain timeout |

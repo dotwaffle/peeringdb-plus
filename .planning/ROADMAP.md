@@ -14,7 +14,7 @@
 - [x] **Phase 68: Status × since matrix + limit=0 semantics** — Pdbcompat applies upstream status-filter rules and treats `limit=0` as unlimited
 - [ ] **Phase 69: Filter-value Unicode folding, operator coercion, `__in` robustness** — Pdbcompat filter layer matches upstream `rest.py:544-662` value handling
 - [x] **Phase 70: Cross-entity `__` traversal (Path A + Path B + 2-hop)** — Pdbcompat resolves filter paths across FKs like upstream serializers
-- [ ] **Phase 71: Memory-safe response paths on 256 MB replicas** — Depth=2 / `limit=0` / large traversals stay within the replica memory envelope
+- [x] **Phase 71: Memory-safe response paths on 256 MB replicas** — Depth=2 / `limit=0` / large traversals stay within the replica memory envelope
 - [ ] **Phase 72: Upstream parity regression + divergence docs** — Ported `pdb_api_test.py` ground-truth tests lock the new semantics
 
 <details>
@@ -115,13 +115,13 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   2. A response exceeding `PDBPLUS_RESPONSE_MEMORY_LIMIT` (default sized against the 256 MB replica budget minus operating headroom) is truncated with an RFC 9457 `application/problem+json` 413 response before the process gets OOM-killed
   3. Per-request OTel span attributes and a Prometheus gauge expose response-path peak heap and RSS, reusing the v1.15 Phase 66 `runtime.MemStats` harness; Grafana's SEED-001 watch row shows response-path peaks alongside sync-path peaks
   4. `docs/ARCHITECTURE.md` documents the per-endpoint memory envelope (worst-case depth/limit combinations per type) and the operator-actionable knobs that cap it
-**Plans:** 6 plans
-- [ ] 71-01-PLAN.md — internal/pdbcompat/stream.go StreamListResponse + iterator shape + unit tests (Wave 1, isolated)
-- [ ] 71-02-PLAN.md — internal/pdbcompat/rowsize.go typical_row_bytes map + bench_row_size_test.go calibration (Wave 2; human checkpoint for calibration)
-- [ ] 71-03-PLAN.md — Config.ResponseMemoryLimit (default 128 MiB) + internal/pdbcompat/budget.go CheckBudget + WriteBudgetProblem (Wave 3)
+**Plans:** 6/6 plans executed
+- [x] 71-01-PLAN.md — internal/pdbcompat/stream.go StreamListResponse + iterator shape + 7 unit tests (Wave 1, isolated)
+- [x] 71-02-PLAN.md — internal/pdbcompat/rowsize.go typical_row_bytes map + bench_row_size_test.go calibration (13 types × 2 depths, doubled per D-03; calibrated 2026-04-19 from seed.Full at benchtime=20x × count=3)
+- [x] 71-03-PLAN.md — Config.ResponseMemoryLimit (default 128 MiB via parseByteSize) + internal/pdbcompat/budget.go CheckBudget + WriteBudgetProblem (D-04 RFC 9457 413); docs/CONFIGURATION.md env-var row + validation row
 - [x] 71-04-PLAN.md — pdbcompat registry CountFunc sibling + serveList pre-flight budget check + StreamListResponse wiring; 2 commits (27ba127 registry refactor + 28408e1 handler wiring); 4 new integration tests; 13 list-path goldens regenerated for D-07 trailing-newline divergence; MEMORY-01 + MEMORY-02 shipped
 - [x] 71-05-PLAN.md — internal/pdbcompat/telemetry.go recordResponseHeapDelta + OTel span attr + Prometheus histogram + Grafana panel (Wave 5); 2 commits (c2304ae metric registration + 292e758 sampler + handler wire + dashboard); 5 new pdbcompat tests + 3 new otel tests; panel id 36 at y=33 with p50/p95/p99 by endpoint; MEMORY-03 shipped
-- [ ] 71-06-PLAN.md — docs/ARCHITECTURE.md § Response Memory Envelope + CHANGELOG + CLAUDE.md + REQ traceability (Wave 6)
+- [x] 71-06-PLAN.md — docs/ARCHITECTURE.md § Response Memory Envelope + CHANGELOG v1.16 Phase 71 Added bullets + coordinated-release ship-ready note + CLAUDE.md § Response memory envelope (Phase 71) convention + PDBPLUS_RESPONSE_MEMORY_LIMIT env-var row + REQ-ID audit (MEMORY-01..04 all grep-verifiable); MEMORY-04 shipped; Phase 71 CLOSED
 
 ### Phase 72: Upstream parity regression + divergence docs
 **Goal**: Lock the v1.16 semantics in place by porting the ground-truth assertions from upstream `pdb_api_test.py` and documenting any intentional divergences so future conformance audits can distinguish them from regressions.
@@ -160,7 +160,7 @@ Notes on parallelism:
 | 68. Status × since matrix + limit=0 | 1/4 | In progress | - |
 | 69. Unicode + operator + __in | 3/6 | In progress | - |
 | 70. Cross-entity __ traversal | 8/8 | Complete | 2026-04-19 |
-| 71. Memory-safe response paths | 3/6 | In progress | - |
+| 71. Memory-safe response paths | 6/6 | Complete | 2026-04-19 |
 | 72. Upstream parity regression | 0/? | Not started | - |
 
 ## Backlog

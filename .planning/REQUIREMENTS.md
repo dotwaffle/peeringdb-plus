@@ -59,7 +59,7 @@ All requirements below cite upstream code by path and line. The canonical refere
 - [x] **MEMORY-01**: Depth=2 and `limit=0` responses stream JSON encoding through the response writer with bounded intermediate allocations; no full-result materialisation to a single slice before flush
 - [x] **MEMORY-02**: A configurable per-response memory ceiling (`PDBPLUS_RESPONSE_MEMORY_LIMIT`, default matches the 256 MB replica budget minus operating headroom) triggers graceful truncation with an RFC 9457 problem-detail 413 response before Fly OOM-kills the machine
 - [x] **MEMORY-03**: Response-path peak heap / RSS telemetry is recorded per-request (OTel span attributes + optional Prometheus gauge) reusing the v1.15 Phase 66 `runtime.MemStats` harness, so replicas that approach the ceiling are observable in Grafana
-- [ ] **MEMORY-04**: The per-endpoint memory envelope (worst-case depth/limit combinations) is documented in `docs/ARCHITECTURE.md` with operator-actionable knobs
+- [x] **MEMORY-04**: The per-endpoint memory envelope (worst-case depth/limit combinations) is documented in `docs/ARCHITECTURE.md` with operator-actionable knobs
 
 ### Upstream Parity Regression (PARITY)
 
@@ -111,6 +111,6 @@ Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% covera
 | MEMORY-01 | 71 | complete (71-04; `internal/pdbcompat/stream.go` `StreamListResponse` + `iterFromSlice`; `serveList` replaces `WriteResponse` with `StreamListResponse(ctx, w, struct{}{}, iterFromSlice(results))` in commit 28408e1; TestServeList_UnderBudgetStreams in stream_integration_test.go) |
 | MEMORY-02 | 71 | complete (71-03/04; `Config.ResponseMemoryLimit` default 128 MiB via PDBPLUS_RESPONSE_MEMORY_LIMIT; `CheckBudget` + `WriteBudgetProblem` in budget.go; serveList pre-flight SELECT COUNT(\*) → CheckBudget → 413 gate with RFC 9457 body in commit 28408e1; TestServeList_OverBudget413 in stream_integration_test.go) |
 | MEMORY-03 | 71 | complete (71-05; `internal/otel.ResponseHeapDeltaKiB` Int64Histogram + `InitResponseHeapHistogram` in metrics.go wired from main.go; `internal/pdbcompat/telemetry.go` `memStatsHeapInuseKiB` single-call-site + `recordResponseHeapDelta` emits OTel span attr `pdbplus.response.heap_delta_kib` + Prometheus histogram `pdbplus_response_heap_delta_kib{endpoint,entity}`; `serveList` defer fires once per request on every terminal path; Grafana panel id 36 at y=33 with p50/p95/p99 histogram_quantile; 5 new pdbcompat tests + 3 otel tests; commits c2304ae + 292e758) |
-| MEMORY-04 | 71 | pending |
+| MEMORY-04 | 71 | complete (71-06; `docs/ARCHITECTURE.md § Response Memory Envelope` with envelope derivation, per-entity `typical_row_bytes` table × computed `max_rows @ 128 MiB`, request lifecycle, telemetry wire-up, out-of-scope note, and extending-new-entity checklist; `CLAUDE.md § Response memory envelope (Phase 71)` sibling convention + `PDBPLUS_RESPONSE_MEMORY_LIMIT` env-var row; `CHANGELOG.md v1.16 [Unreleased]` Phase 71 bullets + coordinated-release ready-to-deploy note) |
 | PARITY-01 | 72 | pending |
 | PARITY-02 | 72 | pending |

@@ -16,6 +16,12 @@ follow independently. Do not deploy any individual Phase 68 commit in
 isolation — pdbcompat `?limit=0` now returns all matching rows, and the
 memory-safe response paths that bound that behaviour land in Phase 71.
 
+> **Coordinated release window:** v1.16 phases 67-71 are now complete
+> and ready to deploy as a bundle. `limit=0` unbounded semantics
+> (Phase 68) are safe in prod only with the Phase 71 memory budget in
+> place — do NOT ship 67-70 without 71. Phase 72 (parity regression
+> test lock-in) ships independently as a follow-up.
+
 ### Breaking
 
 - **Removed `PDBPLUS_INCLUDE_DELETED` environment variable.** Sync now
@@ -118,6 +124,44 @@ memory-safe response paths that bound that behaviour land in Phase 71.
   (`.github/workflows/bench.yml`) regression-gates via benchstat —
   prevents a future Cartesian-join regression from landing silently
   (Phase 70 D-07).
+
+- **Phase 71 (MEMORY-01..04): Memory-safe response paths on 256 MB replicas.**
+  - **Streaming JSON emission** for pdbcompat list responses —
+    `internal/pdbcompat/stream.go` `StreamListResponse` writes
+    `{"meta":…,"data":[…]}` token-by-token via per-row `json.Marshal`
+    and `http.Flusher.Flush()` every 100 rows. Replaces the legacy
+    full-slice `json.NewEncoder` materialisation on the `serveList`
+    path. Closes MEMORY-01.
+  - **`PDBPLUS_RESPONSE_MEMORY_LIMIT` env var** (default 128 MiB =
+    256 MB replica − 80 MB Go runtime baseline − 48 MB slack). Gates
+    response size via a pre-flight `SELECT COUNT(*) × typical_row_bytes`
+    heuristic in `internal/pdbcompat/budget.go` `CheckBudget`.
+    Over-budget requests receive RFC 9457
+    `application/problem+json` 413 with `max_rows`, `budget_bytes`,
+    and a human-readable `detail` string BEFORE any row data is
+    fetched. Unit suffix required (`KB`/`MB`/`GB`/`TB`); the literal
+    `0` disables the check for local development. No `Retry-After` —
+    413 is request-shape, not transient. Per-entity
+    `typical_row_bytes` calibrated via `BenchmarkRowSize_*` and
+    doubled per D-03 (13 types × 2 depths in
+    `internal/pdbcompat/rowsize.go`). Closes MEMORY-02.
+  - **Per-request heap-delta telemetry.** New OTel span attribute
+    `pdbplus.response.heap_delta_kib` (sampled once at handler entry
+    and once at exit via `defer`; STW ~µs, NEVER per row) plus
+    Prometheus histogram
+    `pdbplus_response_heap_delta_kib{endpoint,entity}`. Registered
+    via `pdbotel.InitResponseHeapHistogram()`. Grafana gains a
+    "Response Heap Delta (KiB) — p50/p95/p99 by endpoint" panel (id
+    36) at the bottom of the SEED-001 watch row in
+    `deploy/grafana/dashboards/pdbplus-overview.json`. Closes
+    MEMORY-03.
+  - **`docs/ARCHITECTURE.md` § Response Memory Envelope** documents
+    the envelope derivation, the three moving parts (stream / rowsize
+    / budget), a per-entity worst-case sizing table with computed
+    `max_rows` at the 128 MiB default, the request lifecycle, and the
+    telemetry wire-up. `CLAUDE.md` gains a sibling § Response memory
+    envelope (Phase 71) convention with the maintainer checklist for
+    adding new entity types. Closes MEMORY-04.
 
 ### Changed
 
