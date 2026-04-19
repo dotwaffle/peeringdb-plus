@@ -55,7 +55,7 @@ func orEmptySlice[T any](v []T) []any {
 func getOrgWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		o, err := client.Organization.Query().
-			Where(organization.ID(id)).
+			Where(organization.ID(id), organization.StatusIn("ok", "pending")).
 			WithNetworks().
 			WithFacilities().
 			WithInternetExchanges().
@@ -75,7 +75,9 @@ func getOrgWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		return m, nil
 	}
 
-	o, err := client.Organization.Get(ctx, id)
+	o, err := client.Organization.Query().
+		Where(organization.ID(id), organization.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get organization %d: %w", id, err)
 	}
@@ -87,7 +89,7 @@ func getOrgWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		n, err := client.Network.Query().
-			Where(network.ID(id)).
+			Where(network.ID(id), network.StatusIn("ok", "pending")).
 			WithOrganization().
 			WithPocs().
 			WithNetworkFacilities().
@@ -107,7 +109,9 @@ func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		return m, nil
 	}
 
-	n, err := client.Network.Get(ctx, id)
+	n, err := client.Network.Query().
+		Where(network.ID(id), network.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get network %d: %w", id, err)
 	}
@@ -120,7 +124,7 @@ func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		f, err := client.Facility.Query().
-			Where(facility.ID(id)).
+			Where(facility.ID(id), facility.StatusIn("ok", "pending")).
 			WithOrganization().
 			WithCampus().
 			WithNetworkFacilities().
@@ -144,7 +148,9 @@ func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		return m, nil
 	}
 
-	f, err := client.Facility.Get(ctx, id)
+	f, err := client.Facility.Query().
+		Where(facility.ID(id), facility.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get facility %d: %w", id, err)
 	}
@@ -156,7 +162,7 @@ func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		ix, err := client.InternetExchange.Query().
-			Where(internetexchange.ID(id)).
+			Where(internetexchange.ID(id), internetexchange.StatusIn("ok", "pending")).
 			WithOrganization().
 			WithIxLans().
 			WithIxFacilities().
@@ -174,7 +180,9 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 		return m, nil
 	}
 
-	ix, err := client.InternetExchange.Get(ctx, id)
+	ix, err := client.InternetExchange.Query().
+		Where(internetexchange.ID(id), internetexchange.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get internet exchange %d: %w", id, err)
 	}
@@ -186,7 +194,7 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		l, err := client.IxLan.Query().
-			Where(ixlan.ID(id)).
+			Where(ixlan.ID(id), ixlan.StatusIn("ok", "pending")).
 			WithInternetExchange().
 			WithIxPrefixes().
 			WithNetworkIxLans().
@@ -204,7 +212,9 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		return m, nil
 	}
 
-	l, err := client.IxLan.Get(ctx, id)
+	l, err := client.IxLan.Query().
+		Where(ixlan.ID(id), ixlan.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get ixlan %d: %w", id, err)
 	}
@@ -216,7 +226,7 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		c, err := client.Carrier.Query().
-			Where(carrier.ID(id)).
+			Where(carrier.ID(id), carrier.StatusIn("ok", "pending")).
 			WithOrganization().
 			WithCarrierFacilities().
 			Only(ctx)
@@ -232,7 +242,9 @@ func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int)
 		return m, nil
 	}
 
-	c, err := client.Carrier.Get(ctx, id)
+	c, err := client.Carrier.Query().
+		Where(carrier.ID(id), carrier.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get carrier %d: %w", id, err)
 	}
@@ -244,7 +256,7 @@ func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int)
 func getCampusWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		c, err := client.Campus.Query().
-			Where(campus.ID(id)).
+			Where(campus.ID(id), campus.StatusIn("ok", "pending")).
 			WithOrganization().
 			WithFacilities().
 			Only(ctx)
@@ -260,7 +272,9 @@ func getCampusWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 		return m, nil
 	}
 
-	c, err := client.Campus.Get(ctx, id)
+	c, err := client.Campus.Query().
+		Where(campus.ID(id), campus.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get campus %d: %w", id, err)
 	}
@@ -275,7 +289,7 @@ func getCampusWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 func getNetFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		nf, err := client.NetworkFacility.Query().
-			Where(networkfacility.ID(id)).
+			Where(networkfacility.ID(id), networkfacility.StatusIn("ok", "pending")).
 			WithNetwork().
 			WithFacility().
 			Only(ctx)
@@ -293,7 +307,9 @@ func getNetFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 		return m, nil
 	}
 
-	nf, err := client.NetworkFacility.Get(ctx, id)
+	nf, err := client.NetworkFacility.Query().
+		Where(networkfacility.ID(id), networkfacility.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get networkfacility %d: %w", id, err)
 	}
@@ -305,7 +321,7 @@ func getNetFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		nixl, err := client.NetworkIxLan.Query().
-			Where(networkixlan.ID(id)).
+			Where(networkixlan.ID(id), networkixlan.StatusIn("ok", "pending")).
 			WithNetwork().
 			WithIxLan().
 			Only(ctx)
@@ -323,7 +339,9 @@ func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int
 		return m, nil
 	}
 
-	nixl, err := client.NetworkIxLan.Get(ctx, id)
+	nixl, err := client.NetworkIxLan.Query().
+		Where(networkixlan.ID(id), networkixlan.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get networkixlan %d: %w", id, err)
 	}
@@ -335,7 +353,7 @@ func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int
 func getIXFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		ixf, err := client.IxFacility.Query().
-			Where(ixfacility.ID(id)).
+			Where(ixfacility.ID(id), ixfacility.StatusIn("ok", "pending")).
 			WithInternetExchange().
 			WithFacility().
 			Only(ctx)
@@ -353,7 +371,9 @@ func getIXFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		return m, nil
 	}
 
-	ixf, err := client.IxFacility.Get(ctx, id)
+	ixf, err := client.IxFacility.Query().
+		Where(ixfacility.ID(id), ixfacility.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get ixfacility %d: %w", id, err)
 	}
@@ -365,7 +385,7 @@ func getIXFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 func getCarrierFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		cf, err := client.CarrierFacility.Query().
-			Where(carrierfacility.ID(id)).
+			Where(carrierfacility.ID(id), carrierfacility.StatusIn("ok", "pending")).
 			WithCarrier().
 			WithFacility().
 			Only(ctx)
@@ -383,7 +403,9 @@ func getCarrierFacWithDepth(ctx context.Context, client *ent.Client, id, depth i
 		return m, nil
 	}
 
-	cf, err := client.CarrierFacility.Get(ctx, id)
+	cf, err := client.CarrierFacility.Query().
+		Where(carrierfacility.ID(id), carrierfacility.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get carrierfacility %d: %w", id, err)
 	}
@@ -394,7 +416,7 @@ func getCarrierFacWithDepth(ctx context.Context, client *ent.Client, id, depth i
 func getPocWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		p, err := client.Poc.Query().
-			Where(poc.ID(id)).
+			Where(poc.ID(id), poc.StatusIn("ok", "pending")).
 			WithNetwork().
 			Only(ctx)
 		if err != nil {
@@ -408,7 +430,9 @@ func getPocWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		return m, nil
 	}
 
-	p, err := client.Poc.Get(ctx, id)
+	p, err := client.Poc.Query().
+		Where(poc.ID(id), poc.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get poc %d: %w", id, err)
 	}
@@ -420,7 +444,7 @@ func getPocWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 func getIXPfxWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		p, err := client.IxPrefix.Query().
-			Where(ixprefix.ID(id)).
+			Where(ixprefix.ID(id), ixprefix.StatusIn("ok", "pending")).
 			WithIxLan().
 			Only(ctx)
 		if err != nil {
@@ -434,7 +458,9 @@ func getIXPfxWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		return m, nil
 	}
 
-	p, err := client.IxPrefix.Get(ctx, id)
+	p, err := client.IxPrefix.Query().
+		Where(ixprefix.ID(id), ixprefix.StatusIn("ok", "pending")).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get ixprefix %d: %w", id, err)
 	}
