@@ -29,6 +29,7 @@ documented in their own sections below.
 | `PDBPLUS_CORS_ORIGINS` | No | `*` | string | Comma-separated list of allowed CORS origins. |
 | `PDBPLUS_CSP_ENFORCE` | No | `false` | bool | When `true`, serve the enforcing `Content-Security-Policy` header on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only` — enforcement is opt-in per deploy through v1.13 (SEC-07 rollout). |
 | `PDBPLUS_DRAIN_TIMEOUT` | No | `10s` | duration | Graceful shutdown drain timeout. Must be greater than 0. |
+| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | No | `128MB` | byte size | Per-response memory budget (bytes). pdbcompat list handlers run a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic; requests whose estimated response size exceeds this budget receive an RFC 9457 413 problem-detail up-front before any row data is materialised. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). A bare number is rejected. Literal `0` disables the check (local development only — the guardrail is the reason Phase 68's `limit=0` unlimited semantic is safe to expose in prod). Default sized against the 256 MB replica cap minus an 80 MB Go runtime baseline and 48 MB slack for other in-flight requests + GC overhead (Phase 71 D-05). Must be non-negative. |
 | `PDBPLUS_STREAM_TIMEOUT` | No | `60s` | duration | Maximum duration for a single streaming RPC. |
 
 ### Sync Worker
@@ -188,6 +189,7 @@ Validation errors (which do abort startup) are produced for:
 | `PDBPLUS_PEERINGDB_URL` | Non-empty; `https://` always allowed; `http://` only to loopback or RFC 1918; scheme must be set; host must be set | Multiple messages, one per rejection class (empty, missing scheme, unsupported scheme, empty host, non-local `http://`). |
 | `PDBPLUS_DRAIN_TIMEOUT` | `> 0` after duration parse | `PDBPLUS_DRAIN_TIMEOUT must be greater than 0` |
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | `≥ 0`; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected (except literal `0`) | `PDBPLUS_SYNC_MEMORY_LIMIT must be non-negative (0 = disabled)`, plus several parse-level messages. |
+| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `≥ 0`; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected (except literal `0`) | `PDBPLUS_RESPONSE_MEMORY_LIMIT must be non-negative (0 = disabled)`, plus several parse-level messages. |
 | `PDBPLUS_SYNC_MODE` | Must be `full` or `incremental` | `invalid sync mode %q for PDBPLUS_SYNC_MODE: must be 'full' or 'incremental'` |
 
 Duration-typed variables accept any value parseable by

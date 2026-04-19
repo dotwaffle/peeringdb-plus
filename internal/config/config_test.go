@@ -752,6 +752,71 @@ func TestLoad_HeapWarnMiB_Parse(t *testing.T) {
 	}
 }
 
+// TestLoad_ResponseMemoryLimit_Default asserts the default (no env var set)
+// resolves to 128 MiB per Phase 71 D-05. Sized against the 256 MB replica
+// cap minus 80 MB Go runtime baseline minus 48 MB slack for in-flight
+// requests and GC overhead.
+func TestLoad_ResponseMemoryLimit_Default(t *testing.T) {
+	t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := int64(128 * 1024 * 1024)
+	if cfg.ResponseMemoryLimit != want {
+		t.Errorf("default ResponseMemoryLimit = %d, want %d", cfg.ResponseMemoryLimit, want)
+	}
+}
+
+// TestLoad_ResponseMemoryLimit_Parse covers the parseByteSize branches for
+// PDBPLUS_RESPONSE_MEMORY_LIMIT: valid units, short-form aliases, lowercase,
+// explicit "0" disable, and REJECTED forms (bare number, unknown unit,
+// negative, missing prefix, non-numeric prefix). Mirrors the shape of
+// TestLoad_SyncMemoryLimit_Parse since both share parseByteSize.
+func TestLoad_ResponseMemoryLimit_Parse(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    int64
+		wantErr bool
+	}{
+		{name: "128MB", envVal: "128MB", want: 128 * 1024 * 1024},
+		{name: "1GB", envVal: "1GB", want: 1024 * 1024 * 1024},
+		{name: "512KB", envVal: "512KB", want: 512 * 1024},
+		{name: "short_alias_M", envVal: "256M", want: 256 * 1024 * 1024},
+		{name: "lowercase_mb", envVal: "64mb", want: 64 * 1024 * 1024},
+		{name: "explicit_zero_disable", envVal: "0", want: 0},
+		{name: "bare_number_rejected", envVal: "128", wantErr: true},
+		{name: "unknown_unit_XB", envVal: "128XB", wantErr: true},
+		{name: "negative_rejected", envVal: "-5MB", wantErr: true},
+		{name: "missing_prefix", envVal: "MB", wantErr: true},
+		{name: "non_numeric_prefix", envVal: "abcMB", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("PDBPLUS_RESPONSE_MEMORY_LIMIT", tt.envVal)
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_RESPONSE_MEMORY_LIMIT=%q, got nil", tt.envVal)
+				}
+				if !strings.Contains(err.Error(), "PDBPLUS_RESPONSE_MEMORY_LIMIT") {
+					t.Errorf("error must name env var; got %q", err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.ResponseMemoryLimit != tt.want {
+				t.Errorf("ResponseMemoryLimit = %d, want %d", cfg.ResponseMemoryLimit, tt.want)
+			}
+		})
+	}
+}
+
 // TestLoad_RSSWarnMiB_Parse is identical in shape to
 // TestLoad_HeapWarnMiB_Parse but for PDBPLUS_RSS_WARN_MIB (default 384).
 func TestLoad_RSSWarnMiB_Parse(t *testing.T) {

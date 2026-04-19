@@ -127,6 +127,22 @@ type Config struct {
 	// are rejected for unambiguous operator configuration.
 	SyncMemoryLimit int64
 
+	// ResponseMemoryLimit is the per-response memory budget in bytes.
+	// Before streaming a pdbcompat list response, the handler runs a
+	// pre-flight SELECT COUNT(*) and multiplies by a conservative
+	// per-row byte estimate; if the product exceeds this budget, the
+	// request is rejected with an RFC 9457 413 problem-detail BEFORE
+	// any row data is materialised.
+	//
+	// Configured via PDBPLUS_RESPONSE_MEMORY_LIMIT. Default is 128 MiB
+	// (134217728 bytes) per Phase 71 D-05 — sized against the 256 MB
+	// replica total minus an 80 MB Go runtime baseline and 48 MB slack
+	// for other in-flight requests + GC overhead. Unit suffix is
+	// REQUIRED (KB/MB/GB/TB, base 1024); bare numbers are rejected.
+	// Set to 0 to disable the check (local dev only; guardrail is the
+	// reason Phase 68's limit=0 is safe to expose in prod).
+	ResponseMemoryLimit int64
+
 	// HeapWarnBytes is the peak Go heap threshold (bytes) above which the
 	// sync worker emits slog.Warn("heap threshold crossed", ...) at the
 	// end of each sync cycle. The OTel span attribute
@@ -239,6 +255,12 @@ func Load() (*Config, error) {
 	}
 	cfg.SyncMemoryLimit = syncMemoryLimit
 
+	responseMemoryLimit, err := parseByteSize("PDBPLUS_RESPONSE_MEMORY_LIMIT", 128*1024*1024)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_RESPONSE_MEMORY_LIMIT: %w", err)
+	}
+	cfg.ResponseMemoryLimit = responseMemoryLimit
+
 	heapWarn, err := parseMiB("PDBPLUS_HEAP_WARN_MIB", 400)
 	if err != nil {
 		return nil, fmt.Errorf("parsing PDBPLUS_HEAP_WARN_MIB: %w", err)
@@ -279,6 +301,9 @@ func (c *Config) validate() error {
 	}
 	if c.SyncMemoryLimit < 0 {
 		return errors.New("PDBPLUS_SYNC_MEMORY_LIMIT must be non-negative (0 = disabled)")
+	}
+	if c.ResponseMemoryLimit < 0 {
+		return errors.New("PDBPLUS_RESPONSE_MEMORY_LIMIT must be non-negative (0 = disabled)")
 	}
 	if c.HeapWarnBytes < 0 {
 		return errors.New("PDBPLUS_HEAP_WARN_MIB must be non-negative (0 = disabled)")
