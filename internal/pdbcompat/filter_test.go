@@ -1,6 +1,7 @@
 package pdbcompat
 
 import (
+	"context"
 	"net/url"
 	"strings"
 	"testing"
@@ -649,5 +650,127 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 				t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
 			}
 		})
+	}
+}
+
+// TestParseFilters_AllThirteenEntitiesCoverPathA iterates the Allowlists
+// map and asserts that AT LEAST ONE Path A key resolves to a predicate
+// for each entity with a non-empty allowlist. Rationale: upstream
+// PeeringDB's Django reverse-accessor aliases (e.g. "fac__*" on ix
+// meaning "via ix_facilities") don't all map 1:1 to forward ent edges —
+// codegen emits the literal allowlist entries from serializers.py but
+// the Path A resolver falls through to silent-ignore when LookupEdge
+// can't find a matching forward edge. That's the upstream-documented
+// behaviour (rest.py:658-662: unknown filter fields are silently
+// dropped). This test guards the regression where an entity's ENTIRE
+// allowlist becomes unresolvable — i.e. an entity loses all its Path A
+// plumbing due to a schema rename or annotation drop.
+//
+// Dynamically driven by the Allowlists map so adding a 14th entity via
+// future phases auto-extends coverage. Phase 70 TRAVERSAL-01 lock-in.
+func TestParseFilters_AllThirteenEntitiesCoverPathA(t *testing.T) {
+	t.Parallel()
+
+	// Seed value is pedestrian so int/string parse paths both resolve
+	// without triggering the empty-IN sentinel.
+	const probeValue = "1"
+
+	for pdbType, entry := range Allowlists {
+		tc, ok := Registry[pdbType]
+		if !ok {
+			t.Errorf("Allowlists[%q] has no Registry entry — skipping", pdbType)
+			continue
+		}
+		// Gather every allowlist key: Direct entries + Via joined keys.
+		keys := make([]string, 0, len(entry.Direct))
+		keys = append(keys, entry.Direct...)
+		for firstHop, tails := range entry.Via {
+			for _, tail := range tails {
+				keys = append(keys, firstHop+"__"+tail)
+			}
+		}
+		if len(keys) == 0 {
+			// Entity has an empty allowlist — structurally harmless.
+			continue
+		}
+		t.Run(pdbType, func(t *testing.T) {
+			t.Parallel()
+			var anyResolved bool
+			var resolvedKey string
+			for _, k := range keys {
+				params := url.Values{k: {probeValue}}
+				preds, emptyResult, err := ParseFilters(params, tc)
+				if err != nil {
+					// Unexpected for a probe value like "1". Surface.
+					t.Errorf("ParseFilters(%q=%q) on %s: unexpected error: %v",
+						k, probeValue, pdbType, err)
+					continue
+				}
+				if emptyResult {
+					t.Errorf("ParseFilters(%q=%q) on %s: emptyResult=true, want false",
+						k, probeValue, pdbType)
+					continue
+				}
+				if len(preds) == 1 {
+					anyResolved = true
+					resolvedKey = k
+					break
+				}
+			}
+			if !anyResolved {
+				t.Errorf("%s: no allowlist key resolved to a predicate (tried %d keys: %v) — entity's Path A plumbing is broken",
+					pdbType, len(keys), keys)
+			}
+			_ = resolvedKey // kept for debugging; could be t.Logged
+		})
+	}
+}
+
+// TestParseFilters_UnknownFieldsAppendToCtx asserts Phase 70 D-05
+// diagnostics — unknown filter keys (per TRAVERSAL-04) are silently
+// dropped from the predicate slice AND appended to the ctx accumulator
+// so handlers can emit slog.Debug + OTel span attr. Three distinct
+// unknown-field shapes exercised: unknown top-level, 3-hop over-cap,
+// unknown edge. ParseFiltersCtx is the diagnostic-aware entrypoint; the
+// handler always uses ctx with WithUnknownFields before calling.
+func TestParseFilters_UnknownFieldsAppendToCtx(t *testing.T) {
+	t.Parallel()
+
+	tc := Registry["net"]
+	ctx := WithUnknownFields(context.Background())
+	params := url.Values{
+		"totally_bogus":     {"x"},
+		"a__b__c__d":        {"y"}, // over-cap 3-hop per D-04
+		"bogus_edge__name":  {"z"},
+	}
+	preds, emptyResult, err := ParseFiltersCtx(ctx, params, tc)
+	if err != nil {
+		t.Fatalf("ParseFiltersCtx: unexpected error: %v", err)
+	}
+	if emptyResult {
+		t.Errorf("emptyResult = true, want false")
+	}
+	if len(preds) != 0 {
+		t.Errorf("preds count = %d, want 0 (all keys are unknown)", len(preds))
+	}
+	got := UnknownFieldsFromCtx(ctx)
+	if len(got) != 3 {
+		t.Fatalf("UnknownFieldsFromCtx len = %d, want 3; got=%v", len(got), got)
+	}
+	// Accumulator order follows range-iteration order which is
+	// randomised for maps — normalise via a seen-set for assertion.
+	wantSet := map[string]bool{
+		"totally_bogus":    true,
+		"a__b__c__d":       true,
+		"bogus_edge__name": true,
+	}
+	for _, k := range got {
+		if !wantSet[k] {
+			t.Errorf("unexpected unknown field %q; want one of %v", k, wantSet)
+		}
+		delete(wantSet, k)
+	}
+	if len(wantSet) > 0 {
+		t.Errorf("missing unknown fields in accumulator: %v", wantSet)
 	}
 }
