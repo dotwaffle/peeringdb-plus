@@ -536,3 +536,18 @@ headers required by Connect / gRPC / gRPC-Web in addition to standard
 application headers; see `internal/middleware/cors.go`. The REST handler
 additionally wraps its subtree in its own CORS middleware so that preflight
 requests for `/rest/v1/*` are handled even if another middleware short-circuits.
+
+## Known Divergences
+
+PeeringDB Plus strives for behavioural parity with the upstream PeeringDB API
+(`peeringdb/peeringdb`) at the `/api/` surface. Divergences are documented
+here with upstream source-line citations so operators can audit the
+boundaries intentionally. This section is the Phase 68 seed; Phase 72's
+upstream-parity regression work will expand it into a full divergence
+registry.
+
+| Request | Upstream behaviour | peeringdb-plus behaviour | Rationale | Since |
+|---------|-------------------|-------------------------|-----------|-------|
+| `GET /api/<type>?status=<value>` (list, no `?since`) | Upstream `rest.py:700-712` builds `allowed_status` from the caller's `?status=` parameter (or a default set), then applies a final unconditional `filter(status='ok')` on `rest.py:725`. The caller-supplied value is effectively overridden by the final filter — only `status=ok` rows ever reach the response. | pdbcompat drops `?status=` at the filter layer (the `status` entry is removed from all 13 `Fields` maps in `internal/pdbcompat/registry.go`) so the predicate never reaches ent. The observable outcome is identical to upstream; the implementation is explicit rather than implicit. | Upstream's double-filter is a no-op by design. We model the intent rather than the mechanism, which makes the D-07 semantic greppable in one place. | v1.16 (Phase 68) |
+| `GET /api/<type>?status=deleted&since=N` for a row hard-deleted by sync cycles before v1.16 | Upstream returns the tombstone row with its deletion timestamp (upstream has always soft-deleted). | peeringdb-plus returns empty for such rows. Tombstone population begins at the first post-upgrade sync cycle; anything hard-deleted before v1.16 shipped is gone forever. Rows deleted from v1.16 onwards are visible via both `?since=N` windows and pk lookup (pk admits `status IN (ok, pending)`; tombstones are reachable only via the `since` window). | No retroactive reconstruction is possible — PeeringDB's public API does not expose historical state, and we did not persist deleted rows prior to the Phase 68 soft-delete flip (D-03). Documented intentional one-time gap. | v1.16 (Phase 68) |
+
