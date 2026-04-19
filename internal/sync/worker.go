@@ -47,9 +47,8 @@ var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 
 
 // WorkerConfig holds configuration for the sync worker.
 type WorkerConfig struct {
-	IncludeDeleted bool
-	IsPrimary      func() bool // live primary detection; nil defaults to always-primary
-	SyncMode       config.SyncMode
+	IsPrimary func() bool // live primary detection; nil defaults to always-primary
+	SyncMode  config.SyncMode
 	// OnSyncComplete is called after a successful sync with per-type object
 	// counts and the completion timestamp. The timestamp is the same
 	// value persisted into the sync_status row by recordSuccess, so
@@ -721,10 +720,9 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 // each scratch staging table in FK parent-first order, chunking the rows
 // into memory-bounded slices (scratchChunkSize rows at a time) so peak
 // Go heap stays under ~10 MB per chunk. Each chunk is decoded to its
-// typed Go struct, filtered by deleted-status (unless IncludeDeleted is
-// set), upserted into the real ent table, and then IMMEDIATELY freed
-// via `batches[step.name] = syncBatch{}` to release the slice backing
-// array before the next chunk loads. This is the core memory
+// typed Go struct, upserted into the real ent table, and then
+// IMMEDIATELY freed via `batches[step.name] = syncBatch{}` to release
+// the slice backing array before the next chunk loads. This is the core memory
 // optimization for PERF-05 — without it, Phase B peak memory would
 // double during the handover between chunks. DO NOT remove the
 // batch-free line.
@@ -815,10 +813,9 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 }
 
 // drainAndUpsertType reads scratch[type] in chunks of scratchChunkSize
-// rows, decodes each chunk into typed Go structs, filters deleted rows
-// (unless IncludeDeleted is set), upserts the chunk into the real ent
-// table, and frees the chunk memory before reading the next. Returns
-// the total row count across all chunks.
+// rows, decodes each chunk into typed Go structs, upserts the chunk
+// into the real ent table, and frees the chunk memory before reading
+// the next. Returns the total row count across all chunks.
 //
 // The chunked replay is the difference between peak heap ~20 MB and
 // peak heap ~600 MB: netixlan is ~200K rows × ~200 bytes = ~40 MB if
@@ -896,28 +893,6 @@ func (w *Worker) collectScratchIDs(ctx context.Context, scratch *scratchDB, name
 	return ids, nil
 }
 
-// filterByStatus is the generic replacement for the 13 pre-REFAC-04
-// filterXByStatus functions in filter.go (now deleted). Identical
-// semantics, one implementation, preserves the allocation profile
-// (preallocate cap(items)). Each element is kept unless getStatus(item)
-// returns the literal "deleted" string — matches the PeeringDB D-32
-// status filtering contract.
-//
-// Decision (CONTEXT.md §REFAC-04): getStatus is a function parameter,
-// NOT an interface method on the PeeringDB types. Keeping the PeeringDB
-// types as plain data structs preserves their role as wire-format
-// representations and avoids coupling the peeringdb package to sync-
-// specific behavior.
-func filterByStatus[E any](items []E, getStatus func(E) string) []E {
-	result := make([]E, 0, len(items))
-	for _, item := range items {
-		if getStatus(item) != "deleted" {
-			result = append(result, item)
-		}
-	}
-	return result
-}
-
 // syncIncrementalInput bundles the per-type parameters for
 // syncIncremental[E]. Declared immediately before the consuming
 // function per GO-CS-6. objectType is used for error-wrap context;
@@ -944,17 +919,23 @@ type syncIncrementalInput[E any] struct {
 }
 
 // syncIncremental decodes a chunk of raw scratch rows for a single
-// PeeringDB type into typed Go structs, applies the deleted-status
-// filter (unless includeDeleted is set), and upserts the chunk into
-// the real ent table via the per-type upsert closure. Returns the
-// count of upserted rows.
+// PeeringDB type into typed Go structs and upserts the chunk into the
+// real ent table via the per-type upsert closure. Returns the count of
+// upserted rows.
 //
 // REFAC-04 (Commit E): this generic helper replaces the 13 per-type
 // arms that used to live in decodeScratchChunk and upsertOneType. The
 // type-specific behavior is now carried by the closure arguments on
-// syncIncrementalInput[E], so the bookkeeping code (decode, filter,
-// upsert, error-wrap) lives in exactly one place instead of being
-// copy-pasted 13 times with only type names changed.
+// syncIncrementalInput[E], so the bookkeeping code (decode, upsert,
+// error-wrap) lives in exactly one place instead of being copy-pasted
+// 13 times with only type names changed.
+//
+// Phase 68 Plan 01 (D-01): removed the `includeDeleted` parameter and
+// the `filterByStatus` branch. Sync now unconditionally persists rows
+// with any upstream status (including "deleted") through the upsert
+// path; the row-level status × since matrix is applied by serializer
+// surfaces (pdbcompat in Plan 68-03). Plan 68-02 then flips the delete
+// pass from hard-delete to soft-delete, closing the STATUS-03 loop.
 //
 // Each call processes ONE chunk (<=scratchChunkSize rows). The typed
 // `items` slice is local to this function, so the chunk backing array
@@ -964,9 +945,8 @@ type syncIncrementalInput[E any] struct {
 // caller, and every real-DB write still runs inside that single tx.
 //
 // Package-level function (not a method) because Go does not allow
-// method-level type parameters; the worker's includeDeleted setting is
-// passed explicitly by the Worker.dispatchScratchChunk caller.
-func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalInput[E], rows []scratchRow, includeDeleted bool) (int, error) {
+// method-level type parameters.
+func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalInput[E], rows []scratchRow) (int, error) {
 	items := make([]E, 0, len(rows))
 	for _, r := range rows {
 		var v E
@@ -974,9 +954,6 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 			return 0, fmt.Errorf("decode %s id=%d: %w", in.objectType, r.id, err)
 		}
 		items = append(items, v)
-	}
-	if !includeDeleted {
-		items = filterByStatus(items, in.getStatus)
 	}
 	if in.fkFilter != nil {
 		kept := make([]E, 0, len(items))
@@ -1019,7 +996,6 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 // PeeringDB snapshots that expose live children pointing at
 // server-side-suppressed parents (e.g. NTT America carrier → org).
 func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name string, rows []scratchRow) (int, error) {
-	includeDeleted := w.config.IncludeDeleted
 	switch name {
 	case peeringdb.TypeOrg:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Organization]{
@@ -1027,7 +1003,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			getStatus:  func(v peeringdb.Organization) string { return v.Status },
 			recordIDs:  func(ids []int) { w.fkRegisterIDs(peeringdb.TypeOrg, ids) },
 			upsert:     upsertOrganizations,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypeCampus:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Campus]{
 			objectType: name,
@@ -1038,7 +1014,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCampus, ids) },
 			upsert:    upsertCampuses,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypeFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Facility]{
 			objectType: name,
@@ -1066,7 +1042,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeFac, ids) },
 			upsert:    upsertFacilities,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypeCarrier:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Carrier]{
 			objectType: name,
@@ -1077,7 +1053,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCarrier, ids) },
 			upsert:    upsertCarriers,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypeCarrierFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.CarrierFacility]{
 			objectType: name,
@@ -1092,7 +1068,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCarrierFac, ids) },
 			upsert:    upsertCarrierFacilities,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypeIX:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.InternetExchange]{
 			objectType: name,
@@ -1103,7 +1079,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIX, ids) },
 			upsert:    upsertInternetExchanges,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypeIXLan:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxLan]{
 			objectType: name,
@@ -1114,7 +1090,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXLan, ids) },
 			upsert:    upsertIxLans,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypeIXPfx:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxPrefix]{
 			objectType: name,
@@ -1125,7 +1101,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXPfx, ids) },
 			upsert:    upsertIxPrefixes,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypeIXFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxFacility]{
 			objectType: name,
@@ -1140,7 +1116,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXFac, ids) },
 			upsert:    upsertIxFacilities,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypeNet:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Network]{
 			objectType: name,
@@ -1151,7 +1127,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNet, ids) },
 			upsert:    upsertNetworks,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypePoc:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Poc]{
 			objectType: name,
@@ -1162,7 +1138,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypePoc, ids) },
 			upsert:    upsertPocs,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypeNetFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkFacility]{
 			objectType: name,
@@ -1177,7 +1153,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetFac, ids) },
 			upsert:    upsertNetworkFacilities,
-		}, rows, includeDeleted)
+		}, rows)
 	case peeringdb.TypeNetIXLan:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkIxLan]{
 			objectType: name,
@@ -1196,7 +1172,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetIXLan, ids) },
 			upsert:    upsertNetworkIxLans,
-		}, rows, includeDeleted)
+		}, rows)
 	}
 	return 0, fmt.Errorf("unknown sync type: %s", name)
 }

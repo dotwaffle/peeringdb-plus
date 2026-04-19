@@ -230,9 +230,8 @@ func main() {
 
 	// Create sync worker.
 	syncWorker := pdbsync.NewWorker(pdbClient, entClient, db, pdbsync.WorkerConfig{
-		IncludeDeleted: cfg.IncludeDeleted,
-		IsPrimary:      isPrimaryFn,
-		SyncMode:       cfg.SyncMode,
+		IsPrimary: isPrimaryFn,
+		SyncMode:  cfg.SyncMode,
 		OnSyncComplete: func(counts map[string]int, syncTime time.Time) {
 			m := make(map[string]int64, len(counts))
 			for k, v := range counts {
