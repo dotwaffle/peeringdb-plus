@@ -191,6 +191,14 @@ memory-safe response paths that bound that behaviour land in Phase 71.
   `entsql.Annotation{Table: "campuses"}` to `ent/schema/campus.go`).
   See `.planning/phases/70-cross-entity-traversal/deferred-items.md`.
 
+- **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is
+  silent-ignored** — requires 3-hop traversal via `ixfac` which
+  exceeds the documented 2-hop cap; Phase 72 will lock this as
+  documented divergence. Tracked as DEFER-70-verifier-01 in
+  `.planning/phases/70-cross-entity-traversal/deferred-items.md`. The
+  generic 2-hop mechanism works for entity pairs with direct edges
+  (e.g. `ixpfx?ixlan__ix__id=20`).
+
 ---
 
 Historical release notes (v1.0 through v1.15) are archived in

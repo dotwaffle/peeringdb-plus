@@ -48,3 +48,66 @@ carrier via org__name) plus the 2 upstream parity + 1 Path B cases.
 task) applying fix option (c) — add `entsql.Annotation` to `ent/schema/campus.go`,
 rerun `go generate ./...`, extend `TestTraversal_E2E_Matrix` with a
 `path_a_1hop_fac_campus_name` subtest asserting `[8001]`.
+
+## DEFER-70-verifier-01 — `fac?ixlan__ix__fac_count__gt=0` requires 3-hop-via-ixfac or entity-specific prepare_query
+
+**Discovered by:** Phase 70 verifier (`70-VERIFICATION.md` Gap 1, 2026-04-19)
+
+**Owner:** Phase 72 (parity regression test will lock the silent-ignore
+semantics OR reopen if scope widens).
+
+**Symptom:** The TRAVERSAL-03-cited canonical upstream case
+`GET /api/fac?ixlan__ix__fac_count__gt=0` (upstream citation
+`pdb_api_test.py:2340, 2348`) is silently ignored by the generic 2-hop
+mechanism rather than resolved. The E2E case
+`upstream_2340_fac_ixlan_ix_fac_count_gt` at
+`internal/pdbcompat/traversal_e2e_test.go:161-173` explicitly asserts
+the silent-ignore outcome (returns all live facs, unfiltered). The
+generic 2-hop mechanism does work for entity pairs with direct edges:
+`ixpfx?ixlan__ix__id=20` resolves end-to-end (covered by
+`TestBuildTraversal_TwoHop_Integration`).
+
+**Root cause:** `fac` has no direct `ixlan` edge in the ent schema —
+`ent/schema/facility.go` Edges list (lines 223-234) does not declare
+one, because in the PeeringDB data model `ixlan` belongs to `ix`
+(InternetExchange), not to `fac`. The Path A allowlist entry
+`Allowlists["fac"].Via["ixlan"] = ["ix__fac_count"]` emitted into
+`internal/pdbcompat/allowlist_gen.go` is therefore effectively dead
+code — it references an edge that does not exist in the Path B `Edges`
+map, so `buildTwoHop` returns `(nil, false, false, nil)` and the filter
+key falls through to the unknown-field silent-ignore path.
+
+Upstream Django reaches this via a `prepare_query`-specific SQL
+construction that joins through `ixfac` (IXFacility — the
+many-to-many bridge between `ix` and `fac`), which is a 3-hop walk
+(`fac` → `ixfac` → `ix` → `fac_count`) and therefore exceeds the hard
+2-hop cap decided in Phase 70 D-04. The generic 2-hop mechanism cannot
+reach this without either (a) relaxing the 2-hop cap, which re-opens
+the cost-ceiling concerns D-04 was designed to contain, or (b) adding a
+custom per-serializer hook that emits entity-specific SQL for this
+single case, which is the mechanism upstream uses but which doesn't fit
+the D-01/D-04 generic model cleanly.
+
+**Scope:** Documentation-only in Phase 70 Verifier fix (2026-04-19). The
+generic 2-hop mechanism ships working; the specific upstream citation
+case remains silent-ignored with a documented divergence entry in
+`docs/API.md` § Known Divergences and a one-line Phase 70 known-issue
+note in `CHANGELOG.md`.
+
+**Reasoning:** upstream uses a bespoke per-serializer `prepare_query`
+that exceeds our 2-hop cap; the generic mechanism cannot reach it
+without a custom hook. The risk of relaxing the cap (unbounded
+Cartesian-product joins in SQLite under replica memory pressure)
+outweighs the payoff of paving this single upstream citation case —
+the TRAVERSAL-03 requirement is satisfied in the generic sense
+(2-hop traversal works for entity pairs with direct edges; test
+coverage via `ixpfx→ixlan→ix`).
+
+**Next step:** Phase 72 (upstream parity regression) either:
+
+- Lock the silent-ignore semantics for `fac?ixlan__ix__fac_count__gt=0`
+  as a documented divergence — add an upstream parity test that
+  asserts the unfiltered-facs response and cross-references this item.
+- OR reopen this item if the scope widens to a bespoke per-serializer
+  hook model (entity-specific SQL for high-value upstream citation
+  cases beyond the generic 2-hop mechanism).
