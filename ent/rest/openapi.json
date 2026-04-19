@@ -36,7 +36,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/CampusSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -49,7 +49,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -398,7 +398,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/FacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -411,7 +411,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -789,7 +789,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/CarrierFacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -802,7 +802,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -1131,7 +1131,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/CarrierSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -1144,7 +1144,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -1403,7 +1403,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/CarrierFacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -1416,7 +1416,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -1647,7 +1647,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/FacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -1660,7 +1660,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -2072,7 +2072,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/CarrierFacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -2085,7 +2085,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -2252,7 +2252,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/IxFacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -2265,7 +2265,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -2492,7 +2492,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/NetworkFacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -2505,7 +2505,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -2796,7 +2796,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/InternetExchangeSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -2809,7 +2809,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -3128,7 +3128,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/IxFacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -3141,7 +3141,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -3368,7 +3368,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/IxLanSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -3381,7 +3381,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -3600,7 +3600,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/IxFacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -3613,7 +3613,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -4002,7 +4002,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/IxLanSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -4015,7 +4015,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -4268,7 +4268,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/IxPrefixSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -4281,7 +4281,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -4406,7 +4406,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/NetworkIxLanSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -4419,7 +4419,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -4671,7 +4671,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/IxPrefixSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -4684,7 +4684,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -4920,7 +4920,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/NetworkFacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -4933,7 +4933,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -5322,7 +5322,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/NetworkIxLanSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -5335,7 +5335,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -5736,7 +5736,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/NetworkSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -5749,7 +5749,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -6032,7 +6032,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/NetworkFacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -6045,7 +6045,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -6272,7 +6272,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/NetworkIxLanSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -6285,7 +6285,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -6575,7 +6575,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/PocSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -6588,7 +6588,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -6884,7 +6884,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/OrganizationSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -6897,7 +6897,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -7234,7 +7234,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/CampusSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -7247,7 +7247,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -7549,7 +7549,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/CarrierSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -7562,7 +7562,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -7774,7 +7774,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/FacilitySortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -7787,7 +7787,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -8101,7 +8101,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/InternetExchangeSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -8114,7 +8114,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -8386,7 +8386,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/NetworkSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -8399,7 +8399,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -8648,7 +8648,7 @@
                         "description": "Sort entity results by the given field.",
                         "schema": {
                             "$ref": "#/components/schemas/PocSortableFields",
-                            "default": "id"
+                            "default": "updated"
                         }
                     },
                     {
@@ -8661,7 +8661,7 @@
                                 "asc",
                                 "desc"
                             ],
-                            "default": "asc"
+                            "default": "desc"
                         }
                     },
                     {
@@ -9167,7 +9167,9 @@
                 "enum": [
                     "facilities.count",
                     "id",
-                    "random"
+                    "organization.updated",
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -9392,8 +9394,11 @@
                 "description": "All potential sortable fields for CarrierFacility entities.",
                 "type": "string",
                 "enum": [
+                    "carrier.updated",
+                    "facility.updated",
                     "id",
-                    "random"
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -9444,7 +9449,9 @@
                 "enum": [
                     "carrier_facilities.count",
                     "id",
-                    "random"
+                    "organization.updated",
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -10028,11 +10035,14 @@
                 "description": "All potential sortable fields for Facility entities.",
                 "type": "string",
                 "enum": [
+                    "campus.updated",
                     "carrier_facilities.count",
                     "id",
                     "ix_facilities.count",
                     "network_facilities.count",
-                    "random"
+                    "organization.updated",
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -10337,7 +10347,9 @@
                     "id",
                     "ix_facilities.count",
                     "ix_lans.count",
-                    "random"
+                    "organization.updated",
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -10453,8 +10465,11 @@
                 "description": "All potential sortable fields for IxFacility entities.",
                 "type": "string",
                 "enum": [
+                    "facility.updated",
                     "id",
-                    "random"
+                    "internet_exchange.updated",
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -10628,9 +10643,11 @@
                 "type": "string",
                 "enum": [
                     "id",
+                    "internet_exchange.updated",
                     "ix_prefixes.count",
                     "network_ix_lans.count",
-                    "random"
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -10740,7 +10757,9 @@
                 "type": "string",
                 "enum": [
                     "id",
-                    "random"
+                    "ix_lan.updated",
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -11138,8 +11157,11 @@
                 "description": "All potential sortable fields for NetworkFacility entities.",
                 "type": "string",
                 "enum": [
+                    "facility.updated",
                     "id",
-                    "random"
+                    "network.updated",
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -11303,7 +11325,10 @@
                 "type": "string",
                 "enum": [
                     "id",
-                    "random"
+                    "ix_lan.updated",
+                    "network.updated",
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -11376,8 +11401,10 @@
                     "id",
                     "network_facilities.count",
                     "network_ix_lans.count",
+                    "organization.updated",
                     "pocs.count",
-                    "random"
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -11649,7 +11676,8 @@
                     "id",
                     "internet_exchanges.count",
                     "networks.count",
-                    "random"
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             },
@@ -11807,7 +11835,9 @@
                 "type": "string",
                 "enum": [
                     "id",
-                    "random"
+                    "network.updated",
+                    "random",
+                    "updated"
                 ],
                 "default": "id"
             }

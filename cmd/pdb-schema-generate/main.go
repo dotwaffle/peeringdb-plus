@@ -570,6 +570,10 @@ func generateIndexes(apiPath string, ot ObjectType) []string {
 	// Always index status (common field).
 	indexes = append(indexes, "status")
 
+	// Always index updated (Phase 67 D-08: supports (-updated, -id) ORDER BY
+	// index scan for default list ordering across all 13 entities).
+	indexes = append(indexes, "updated")
+
 	slices.Sort(indexes)
 	// Deduplicate.
 	result := indexes[:0]
@@ -659,7 +663,10 @@ func ({{.ModelName}}) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
-			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
+			Annotations(
+				entrest.WithFilter(entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE),
+				entrest.WithSortable(true),
+			).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			Default("ok").
@@ -696,6 +703,8 @@ func ({{.ModelName}}) Annotations() []schema.Annotation {
 		entgql.RelayConnection(),
 		entgql.QueryField(),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
+		entrest.WithDefaultSort("updated"),
+		entrest.WithDefaultOrder(entrest.OrderDesc),
 	}
 }
 

@@ -91,41 +91,51 @@ var (
 		Fields: []string{
 			"facilities.count",
 			"id",
+			"organization.updated",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// CarrierSortConfig defines the default sort configuration for Carrier.
 	CarrierSortConfig = &SortConfig{
 		Fields: []string{
 			"carrier_facilities.count",
 			"id",
+			"organization.updated",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// CarrierFacilitySortConfig defines the default sort configuration for CarrierFacility.
 	CarrierFacilitySortConfig = &SortConfig{
 		Fields: []string{
+			"carrier.updated",
+			"facility.updated",
 			"id",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// FacilitySortConfig defines the default sort configuration for Facility.
 	FacilitySortConfig = &SortConfig{
 		Fields: []string{
+			"campus.updated",
 			"carrier_facilities.count",
 			"id",
 			"ix_facilities.count",
 			"network_facilities.count",
+			"organization.updated",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// InternetExchangeSortConfig defines the default sort configuration for InternetExchange.
 	InternetExchangeSortConfig = &SortConfig{
@@ -133,39 +143,48 @@ var (
 			"id",
 			"ix_facilities.count",
 			"ix_lans.count",
+			"organization.updated",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// IxFacilitySortConfig defines the default sort configuration for IxFacility.
 	IxFacilitySortConfig = &SortConfig{
 		Fields: []string{
+			"facility.updated",
 			"id",
+			"internet_exchange.updated",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// IxLanSortConfig defines the default sort configuration for IxLan.
 	IxLanSortConfig = &SortConfig{
 		Fields: []string{
 			"id",
+			"internet_exchange.updated",
 			"ix_prefixes.count",
 			"network_ix_lans.count",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// IxPrefixSortConfig defines the default sort configuration for IxPrefix.
 	IxPrefixSortConfig = &SortConfig{
 		Fields: []string{
 			"id",
+			"ix_lan.updated",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// NetworkSortConfig defines the default sort configuration for Network.
 	NetworkSortConfig = &SortConfig{
@@ -173,29 +192,37 @@ var (
 			"id",
 			"network_facilities.count",
 			"network_ix_lans.count",
+			"organization.updated",
 			"pocs.count",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// NetworkFacilitySortConfig defines the default sort configuration for NetworkFacility.
 	NetworkFacilitySortConfig = &SortConfig{
 		Fields: []string{
+			"facility.updated",
 			"id",
+			"network.updated",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// NetworkIxLanSortConfig defines the default sort configuration for NetworkIxLan.
 	NetworkIxLanSortConfig = &SortConfig{
 		Fields: []string{
 			"id",
+			"ix_lan.updated",
+			"network.updated",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// OrganizationSortConfig defines the default sort configuration for Organization.
 	OrganizationSortConfig = &SortConfig{
@@ -207,18 +234,21 @@ var (
 			"internet_exchanges.count",
 			"networks.count",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 	// PocSortConfig defines the default sort configuration for Poc.
 	PocSortConfig = &SortConfig{
 		Fields: []string{
 			"id",
+			"network.updated",
 			"random",
+			"updated",
 		},
-		DefaultField: "id",
-		DefaultOrder: "asc",
+		DefaultField: "updated",
+		DefaultOrder: "desc",
 	}
 )
 

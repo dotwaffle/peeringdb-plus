@@ -57,6 +57,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{CampusesColumns[15]},
 			},
+			{
+				Name:    "campus_updated",
+				Unique:  false,
+				Columns: []*schema.Column{CampusesColumns[14]},
+			},
 		},
 	}
 	// CarriersColumns holds the columns for the "carriers" table.
@@ -105,6 +110,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{CarriersColumns[12]},
 			},
+			{
+				Name:    "carrier_updated",
+				Unique:  false,
+				Columns: []*schema.Column{CarriersColumns[11]},
+			},
 		},
 	}
 	// CarrierFacilitiesColumns holds the columns for the "carrier_facilities" table.
@@ -151,6 +161,11 @@ var (
 				Name:    "carrierfacility_status",
 				Unique:  false,
 				Columns: []*schema.Column{CarrierFacilitiesColumns[4]},
+			},
+			{
+				Name:    "carrierfacility_updated",
+				Unique:  false,
+				Columns: []*schema.Column{CarrierFacilitiesColumns[3]},
 			},
 		},
 	}
@@ -236,6 +251,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{FacilitiesColumns[36]},
 			},
+			{
+				Name:    "facility_updated",
+				Unique:  false,
+				Columns: []*schema.Column{FacilitiesColumns[35]},
+			},
 		},
 	}
 	// InternetExchangesColumns holds the columns for the "internet_exchanges" table.
@@ -305,6 +325,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{InternetExchangesColumns[33]},
 			},
+			{
+				Name:    "internetexchange_updated",
+				Unique:  false,
+				Columns: []*schema.Column{InternetExchangesColumns[32]},
+			},
 		},
 	}
 	// IxFacilitiesColumns holds the columns for the "ix_facilities" table.
@@ -354,6 +379,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{IxFacilitiesColumns[6]},
 			},
+			{
+				Name:    "ixfacility_updated",
+				Unique:  false,
+				Columns: []*schema.Column{IxFacilitiesColumns[5]},
+			},
 		},
 	}
 	// IxLansColumns holds the columns for the "ix_lans" table.
@@ -402,6 +432,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{IxLansColumns[12]},
 			},
+			{
+				Name:    "ixlan_updated",
+				Unique:  false,
+				Columns: []*schema.Column{IxLansColumns[11]},
+			},
 		},
 	}
 	// IxPrefixesColumns holds the columns for the "ix_prefixes" table.
@@ -443,6 +478,11 @@ var (
 				Name:    "ixprefix_status",
 				Unique:  false,
 				Columns: []*schema.Column{IxPrefixesColumns[6]},
+			},
+			{
+				Name:    "ixprefix_updated",
+				Unique:  false,
+				Columns: []*schema.Column{IxPrefixesColumns[5]},
 			},
 		},
 	}
@@ -524,6 +564,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{NetworksColumns[39]},
 			},
+			{
+				Name:    "network_updated",
+				Unique:  false,
+				Columns: []*schema.Column{NetworksColumns[38]},
+			},
 		},
 	}
 	// NetworkFacilitiesColumns holds the columns for the "network_facilities" table.
@@ -573,6 +618,11 @@ var (
 				Name:    "networkfacility_status",
 				Unique:  false,
 				Columns: []*schema.Column{NetworkFacilitiesColumns[7]},
+			},
+			{
+				Name:    "networkfacility_updated",
+				Unique:  false,
+				Columns: []*schema.Column{NetworkFacilitiesColumns[6]},
 			},
 		},
 	}
@@ -642,6 +692,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{NetworkIxLansColumns[15]},
 			},
+			{
+				Name:    "networkixlan_updated",
+				Unique:  false,
+				Columns: []*schema.Column{NetworkIxLansColumns[14]},
+			},
 		},
 	}
 	// OrganizationsColumns holds the columns for the "organizations" table.
@@ -683,6 +738,11 @@ var (
 				Name:    "organization_status",
 				Unique:  false,
 				Columns: []*schema.Column{OrganizationsColumns[20]},
+			},
+			{
+				Name:    "organization_updated",
+				Unique:  false,
+				Columns: []*schema.Column{OrganizationsColumns[19]},
 			},
 		},
 	}
@@ -733,6 +793,11 @@ var (
 				Name:    "poc_status",
 				Unique:  false,
 				Columns: []*schema.Column{PocsColumns[9]},
+			},
+			{
+				Name:    "poc_updated",
+				Unique:  false,
+				Columns: []*schema.Column{PocsColumns[8]},
 			},
 		},
 	}

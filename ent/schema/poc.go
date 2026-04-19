@@ -62,7 +62,10 @@ func (Poc) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
-			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
+			Annotations(
+				entrest.WithFilter(entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE),
+				entrest.WithSortable(true),
+			).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			Default("ok").
@@ -89,6 +92,7 @@ func (Poc) Indexes() []ent.Index {
 		index.Fields("net_id"),
 		index.Fields("role"),
 		index.Fields("status"),
+		index.Fields("updated"),
 	}
 }
 
@@ -98,6 +102,8 @@ func (Poc) Annotations() []schema.Annotation {
 		entgql.RelayConnection(),
 		entgql.QueryField(),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
+		entrest.WithDefaultSort("updated"),
+		entrest.WithDefaultOrder(entrest.OrderDesc),
 	}
 }
 

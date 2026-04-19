@@ -47,7 +47,10 @@ func (CarrierFacility) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
 			Comment("PeeringDB creation timestamp"),
 		field.Time("updated").
-			Annotations(entrest.WithFilter(entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE)).
+			Annotations(
+				entrest.WithFilter(entrest.FilterGT|entrest.FilterGTE|entrest.FilterLT|entrest.FilterLTE),
+				entrest.WithSortable(true),
+			).
 			Comment("PeeringDB last update timestamp"),
 		field.String("status").
 			Default("ok").
@@ -78,6 +81,7 @@ func (CarrierFacility) Indexes() []ent.Index {
 		index.Fields("carrier_id"),
 		index.Fields("fac_id"),
 		index.Fields("status"),
+		index.Fields("updated"),
 	}
 }
 
@@ -87,6 +91,8 @@ func (CarrierFacility) Annotations() []schema.Annotation {
 		entgql.RelayConnection(),
 		entgql.QueryField(),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
+		entrest.WithDefaultSort("updated"),
+		entrest.WithDefaultOrder(entrest.OrderDesc),
 	}
 }
 
