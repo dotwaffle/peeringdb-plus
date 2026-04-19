@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -137,12 +136,12 @@ func TestStreamListResponse_CommaPlacement(t *testing.T) {
 			}
 			if tc.commas > 0 {
 				// Count commas INSIDE the data array only.
-				open := strings.Index(got, "[")
-				close := strings.LastIndex(got, "]")
-				if open < 0 || close < 0 || close <= open {
+				openIdx := strings.Index(got, "[")
+				closeIdx := strings.LastIndex(got, "]")
+				if openIdx < 0 || closeIdx < 0 || closeIdx <= openIdx {
 					t.Fatalf("malformed envelope: %s", got)
 				}
-				inner := got[open+1 : close]
+				inner := got[openIdx+1 : closeIdx]
 				if c := strings.Count(inner, ","); c != tc.commas {
 					t.Fatalf("commas inside data = %d, want %d; inner=%q", c, tc.commas, inner)
 				}
@@ -274,7 +273,3 @@ func TestStreamListResponse_CustomMeta(t *testing.T) {
 		t.Fatalf("data len = %d, want 1", len(parsed.Data))
 	}
 }
-
-// Defensive: ensure we reference the sentinel so unused-import linters don't
-// complain if fmt becomes unused in a future revision.
-var _ = fmt.Sprintf
