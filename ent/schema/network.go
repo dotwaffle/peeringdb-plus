@@ -265,12 +265,24 @@ func (Network) Annotations() []schema.Annotation {
 		// regression — upstream spelling "network_facilities__facility__name"
 		// renamed to "netfac__fac__name" here to match the runtime lookup
 		// convention already used elsewhere in this schema).
+		//
+		// TRAVERSAL-gap: ix__name, ixlan__name, and fac__name on net are
+		// listed here for upstream-parity readability only — NONE resolve
+		// at runtime. Network has no direct edges to ix / ixlan / fac in
+		// our ent schema; those targets are reachable only through the
+		// junction entities (netixlan, netfac), which would require a
+		// 3-hop traversal (net→netixlan→ixlan→ix or net→netfac→fac) and
+		// exceeds the D-04 2-hop cap. The parser silent-ignores these
+		// keys (TestTraversal_E2E_Matrix.upstream_5081_net_ix_name_contains
+		// locks the behaviour). Kept in the list as a comment-like marker
+		// so upstream-parity readers see the mapping; removing them would
+		// hide the upstream shape without changing behaviour.
 		schemaannot.WithPrepareQueryAllow(
 			"org__name",
 			"org__id",
-			"ix__name",
-			"ixlan__name",
-			"fac__name",
+			"ix__name",    // TRAVERSAL-gap: junction via netixlan, >2 hops
+			"ixlan__name", // TRAVERSAL-gap: junction via netixlan, >2 hops
+			"fac__name",   // TRAVERSAL-gap: junction via netfac, >2 hops
 			"netfac__fac__name",
 		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
