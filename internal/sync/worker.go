@@ -366,8 +366,6 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		w.rollbackAndRecord(ctx, tx, statusID, start, err)
 		return err
 	}
-	// cycleStart := start (Phase 68 D-02 soft-delete uses the same timestamp
-	// captured at Sync entry so all 13 types share one updated value).
 	if err := w.syncDeletePass(ctx, tx, remoteIDsByType, start); err != nil {
 		w.rollbackAndRecord(ctx, tx, statusID, start, err)
 		return err

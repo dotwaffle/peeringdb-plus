@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/time/rate"
 
@@ -328,20 +329,25 @@ func TestSyncDeletesStaleRecords(t *testing.T) {
 		}
 	]`))
 
-	// Second sync should delete org 2 (and its dependents).
+	// Second sync should soft-delete org 2 (and its dependents).
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
 
+	// Post-Phase-68 D-02 soft-delete: row counts stay the same; org 2 and
+	// its dependents transition to status='deleted' rather than being
+	// physically removed. Org 3 (already status='deleted' from the fixture)
+	// remains marked deleted because it was absent from the second sync's
+	// remoteIDs.
 	orgCount, err = client.Organization.Query().Count(ctx)
 	if err != nil {
-		t.Fatalf("query org count after delete: %v", err)
+		t.Fatalf("query org count after soft-delete: %v", err)
 	}
-	if orgCount != 1 {
-		t.Errorf("expected 1 org after stale deletion, got %d", orgCount)
+	if orgCount != 3 {
+		t.Errorf("expected 3 orgs (soft-delete preserves rows), got %d", orgCount)
 	}
 
-	// Verify org 1 still exists.
+	// Verify org 1 still exists with status='ok'.
 	org, err := client.Organization.Get(ctx, 1)
 	if err != nil {
 		t.Errorf("org 1 should still exist: %v", err)
@@ -349,22 +355,47 @@ func TestSyncDeletesStaleRecords(t *testing.T) {
 	if org != nil && org.Name != "Example Organization" {
 		t.Errorf("org 1 name mismatch: %s", org.Name)
 	}
+	if org != nil && org.Status != "ok" {
+		t.Errorf("org 1 status: want 'ok', got %q", org.Status)
+	}
 
-	// Verify dependent records of org 2 were also removed.
+	// Verify org 2 is now soft-deleted (was 'ok' after cycle 1, absent in cycle 2).
+	org2, err := client.Organization.Get(ctx, 2)
+	if err != nil {
+		t.Fatalf("org 2 should still exist as tombstone: %v", err)
+	}
+	if org2.Status != "deleted" {
+		t.Errorf("org 2 status after soft-delete: want 'deleted', got %q", org2.Status)
+	}
+
+	// Verify dependent records of org 2 are also soft-deleted, not removed.
 	ixCount, err := client.InternetExchange.Query().Count(ctx)
 	if err != nil {
 		t.Fatalf("query ix count: %v", err)
 	}
-	if ixCount != 1 {
-		t.Errorf("expected 1 IX after stale deletion, got %d", ixCount)
+	if ixCount != 2 {
+		t.Errorf("expected 2 IXes (soft-delete preserves rows), got %d", ixCount)
 	}
 }
 
-// TestSyncPersistsDeletedRowsUnconditional verifies that deleted upstream rows
-// are persisted by default after Phase 68 D-01 (PDBPLUS_INCLUDE_DELETED
-// removed). Plan 68-02 rewrites this to TestSync_SoftDeleteMarksRows once the
-// soft-delete flip lands.
-func TestSyncPersistsDeletedRowsUnconditional(t *testing.T) {
+// TestSync_SoftDeleteMarksRows asserts the Phase 68 D-02 soft-delete flip.
+// A row absent from the upstream response on a subsequent sync cycle is
+// marked status='deleted' with updated=cycleStart instead of physically
+// removed. This enables upstream rest.py:700-712 status × since matrix
+// queries to return tombstones — the prerequisite for STATUS-03.
+//
+// Replaces the intermediate TestSyncPersistsDeletedRowsUnconditional from
+// Plan 68-01 (which only asserted the upsert path; the delete pass was
+// still hard-delete at that point).
+//
+// Shape:
+//  1. Cycle 1 syncs 3 orgs (fixture default). All land; counts stable.
+//  2. Drop org 1 ("Example Organization") from the fixture.
+//  3. Cycle 2 syncs 2 orgs. Row count stays 3; org 1 now has
+//     status='deleted' and a fresh updated timestamp.
+//  4. Org 3 (pre-existing status='deleted' in the fixture) remains marked
+//     deleted — the mark-stale path is idempotent.
+func TestSync_SoftDeleteMarksRows(t *testing.T) {
 	t.Parallel()
 	fs := newFixtureServer(t)
 	client, db := testutil.SetupClientWithDB(t)
@@ -378,38 +409,107 @@ func TestSyncPersistsDeletedRowsUnconditional(t *testing.T) {
 	}
 
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{}, slog.Default())
-
 	ctx := t.Context()
 
+	// Cycle 1: fixture serves 3 orgs. Run full sync.
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
-		t.Fatalf("sync failed: %v", err)
+		t.Fatalf("cycle 1 sync: %v", err)
 	}
-
-	// With PDBPLUS_INCLUDE_DELETED removed (Phase 68 D-01), all 3 orgs are persisted by default.
 	orgCount, err := client.Organization.Query().Count(ctx)
 	if err != nil {
-		t.Fatalf("query org count: %v", err)
+		t.Fatalf("query org count after cycle 1: %v", err)
 	}
 	if orgCount != 3 {
-		t.Errorf("expected 3 orgs (deleted persisted by default), got %d", orgCount)
+		t.Fatalf("cycle 1: want 3 orgs, got %d", orgCount)
+	}
+	// Sanity-check org 1 is status='ok' before cycle 2.
+	org1, err := client.Organization.Get(ctx, 1)
+	if err != nil {
+		t.Fatalf("get org 1 after cycle 1: %v", err)
+	}
+	if org1.Status != "ok" {
+		t.Fatalf("cycle 1: org 1 status = %q, want %q", org1.Status, "ok")
 	}
 
-	// Verify org 3 (status=deleted) exists and has correct status.
+	// Drop org 1 from the fixture so cycle 2 sees only 2 orgs (ids 2 + 3).
+	// The fixture's dependent records on org 1 would normally orphan under a
+	// hard-delete pass; under soft-delete they stay in place (status remains
+	// whatever the upstream fixture says). Post-Phase-68 the orphan risk is
+	// moot because no rows are physically removed.
+	fs.setFixtureData("org", json.RawMessage(`[
+		{
+			"id": 2, "name": "Regional Networks", "aka": "",
+			"name_long": "", "website": "",
+			"social_media": [], "notes": "", "address1": "", "address2": "",
+			"city": "", "state": "", "country": "US", "zipcode": "",
+			"suite": "", "floor": "",
+			"created": "2024-02-01T00:00:00Z", "updated": "2024-06-15T12:30:00Z",
+			"status": "ok"
+		},
+		{
+			"id": 3, "name": "Defunct Telecom", "aka": "",
+			"name_long": "", "website": "",
+			"social_media": [], "notes": "", "address1": "", "address2": "",
+			"city": "", "state": "", "country": "US", "zipcode": "",
+			"suite": "", "floor": "",
+			"created": "2024-03-01T00:00:00Z", "updated": "2024-06-15T12:30:00Z",
+			"status": "deleted"
+		}
+	]`))
+
+	cycle2Start := time.Now()
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("cycle 2 sync: %v", err)
+	}
+
+	// Row count unchanged (soft-delete, not hard-delete).
+	orgCount, err = client.Organization.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("query org count after cycle 2: %v", err)
+	}
+	if orgCount != 3 {
+		t.Fatalf("cycle 2: want 3 orgs still (soft-delete preserves rows), got %d", orgCount)
+	}
+
+	// Org 1 now has status='deleted' and a fresh updated timestamp.
+	org1, err = client.Organization.Get(ctx, 1)
+	if err != nil {
+		t.Fatalf("org 1 missing after soft-delete: %v", err)
+	}
+	if org1.Status != "deleted" {
+		t.Errorf("org 1 status = %q, want %q", org1.Status, "deleted")
+	}
+	// Tolerance: cycle2Start is captured by the test, cycleStart is captured
+	// by Worker.Sync on entry. They should be within a few ms; 1 minute is
+	// generous and prevents sub-second flakiness.
+	if !org1.Updated.After(cycle2Start.Add(-time.Minute)) {
+		t.Errorf("org 1 updated = %v, want >= cycle2Start (%v)", org1.Updated, cycle2Start)
+	}
+
+	// Org 2 still has status='ok' (in the cycle-2 remoteIDs).
+	org2, err := client.Organization.Get(ctx, 2)
+	if err != nil {
+		t.Fatalf("get org 2: %v", err)
+	}
+	if org2.Status != "ok" {
+		t.Errorf("org 2 status = %q, want %q", org2.Status, "ok")
+	}
+
+	// Org 3 was already status='deleted' from the fixture; it remains so.
 	org3, err := client.Organization.Get(ctx, 3)
 	if err != nil {
 		t.Fatalf("get org 3: %v", err)
 	}
 	if org3.Status != "deleted" {
-		t.Errorf("org 3 status: expected deleted, got %s", org3.Status)
-	}
-	if org3.Name != "Defunct Telecom" {
-		t.Errorf("org 3 name: expected Defunct Telecom, got %s", org3.Name)
+		t.Errorf("org 3 status = %q, want %q", org3.Status, "deleted")
 	}
 }
 
-// TestSyncDeletesFKIntegrity verifies that after deleting a parent and all its
-// children, no FK violations remain. This validates that the two-pass sync
-// (upsert parent-first, delete child-first) produces a consistent end state.
+// TestSyncDeletesFKIntegrity verifies that after soft-deleting a parent and
+// all its children, no FK violations remain. Post-Phase-68 D-02 this is
+// necessarily trivial for the soft-delete path (no rows physically removed
+// means no dangling FKs), but the test still runs foreign_key_check to
+// regression-lock the two-pass sync invariant.
 func TestSyncDeletesFKIntegrity(t *testing.T) {
 	t.Parallel()
 	fs := newFixtureServer(t)
@@ -509,22 +609,31 @@ func TestSyncDeletesFKIntegrity(t *testing.T) {
 		}
 	]`))
 
-	// Second sync should delete org 2 and all dependents.
+	// Second sync should soft-delete org 2 and all dependents (Phase 68 D-02).
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
 
-	// Verify org 2 was deleted.
+	// Row counts stay the same post-soft-delete. Org 2 transitions to
+	// status='deleted'; org 3 (fixture-seeded status='deleted') stays marked.
 	orgCount, err := client.Organization.Query().Count(ctx)
 	if err != nil {
 		t.Fatalf("query org count: %v", err)
 	}
-	if orgCount != 1 {
-		t.Errorf("expected 1 org, got %d", orgCount)
+	if orgCount != 3 {
+		t.Errorf("expected 3 orgs (soft-delete preserves rows), got %d", orgCount)
+	}
+	org2, err := client.Organization.Get(ctx, 2)
+	if err != nil {
+		t.Fatalf("org 2 should still exist as tombstone: %v", err)
+	}
+	if org2.Status != "deleted" {
+		t.Errorf("org 2 status after soft-delete: want 'deleted', got %q", org2.Status)
 	}
 
 	// Re-enable FK constraints and run foreign_key_check to verify
-	// no orphaned child rows remain after the delete pass.
+	// no FK violations remain after the soft-delete pass (trivially true
+	// because rows physically remain, but the check locks the invariant).
 	if _, err := db.ExecContext(ctx, "PRAGMA foreign_keys = ON"); err != nil {
 		t.Fatalf("enable FK constraints: %v", err)
 	}

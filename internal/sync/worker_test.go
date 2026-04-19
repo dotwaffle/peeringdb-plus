@@ -264,8 +264,11 @@ func TestSyncUpsertUpdatesExisting(t *testing.T) {
 	}
 }
 
-// TestSyncHardDelete verifies sync removes rows not in remote response.
-func TestSyncHardDelete(t *testing.T) {
+// TestSyncSoftDeletesStale verifies sync marks rows absent from the remote
+// response as status='deleted' (Phase 68 D-02) rather than hard-deleting
+// them. The row count stays 3 after cycle 2; org 2 transitions from 'ok'
+// to 'deleted' while org 1 and org 3 retain status='ok'.
+func TestSyncSoftDeletesStale(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
 	// First sync with 3 orgs.
@@ -293,9 +296,26 @@ func TestSyncHardDelete(t *testing.T) {
 	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
+	// Post-Phase-68 soft-delete: row count unchanged, org 2 transitions to
+	// status='deleted'. Org 1 and org 3 stay 'ok'.
 	count, _ = w.entClient.Organization.Query().Count(t.Context())
-	if count != 2 {
-		t.Errorf("expected 2 orgs after delete, got %d", count)
+	if count != 3 {
+		t.Errorf("expected 3 orgs after soft-delete, got %d", count)
+	}
+	okCount, _ := w.entClient.Organization.Query().Where(organization.Status("ok")).Count(t.Context())
+	if okCount != 2 {
+		t.Errorf("expected 2 orgs with status='ok' after soft-delete, got %d", okCount)
+	}
+	deletedCount, _ := w.entClient.Organization.Query().Where(organization.Status("deleted")).Count(t.Context())
+	if deletedCount != 1 {
+		t.Errorf("expected 1 org with status='deleted' after soft-delete, got %d", deletedCount)
+	}
+	org2, err := w.entClient.Organization.Get(t.Context(), 2)
+	if err != nil {
+		t.Fatalf("org 2 should still exist after soft-delete: %v", err)
+	}
+	if org2.Status != "deleted" {
+		t.Errorf("org 2 status: want 'deleted', got %q", org2.Status)
 	}
 }
 
