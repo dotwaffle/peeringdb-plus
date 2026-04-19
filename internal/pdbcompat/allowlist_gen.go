@@ -137,3 +137,85 @@ var Allowlists = map[string]AllowlistEntry{
 // Outer key: entity Go name (e.g. "Network"). Inner key: edge name
 // (e.g. "pocs"). Value is always true; the map is used as a set.
 var FilterExcludes = map[string]map[string]bool{}
+
+// Edges maps a PeeringDB type name (e.g. "net") to a slice of
+// EdgeMetadata describing its outgoing ent edges. Consumed at request
+// time by internal/pdbcompat.LookupEdge for Path B traversal.
+//
+// Phase 70 D-02 (amended 2026-04-19): the map is emitted at
+// `go generate` time from gen.Graph — no runtime client.Schema walk,
+// no sync.Once, no init-order coupling. Freshness is enforced by the
+// existing go-generate drift-check CI gate (same precedent as
+// v1.15 Phase 63 hygiene drops).
+//
+// TraversalKey is the <fk> token in filter params (equals TargetType
+// today). Excluded edges (WithFilterExcludeFromTraversal annotation)
+// are emitted with Excluded=true; LookupEdge hides them from its
+// callers so consumers see them as missing.
+//
+// ParentFKColumn, TargetTable, TargetIDColumn carry SQL-level metadata
+// for Plan 70-05's subquery construction. Edges whose FK column or
+// target table could not be resolved at codegen time are logged and
+// skipped entirely (never emitted with blank metadata).
+var Edges = map[string][]EdgeMetadata{
+	"campus": {
+		{Name: "facilities", TargetType: "fac", TraversalKey: "fac", Excluded: false, ParentFKColumn: "campus_id", TargetTable: "facilities", TargetIDColumn: "id"},
+		{Name: "organization", TargetType: "org", TraversalKey: "org", Excluded: false, ParentFKColumn: "org_id", TargetTable: "organizations", TargetIDColumn: "id"},
+	},
+	"carrier": {
+		{Name: "carrier_facilities", TargetType: "carrierfac", TraversalKey: "carrierfac", Excluded: false, ParentFKColumn: "carrier_id", TargetTable: "carrier_facilities", TargetIDColumn: "id"},
+		{Name: "organization", TargetType: "org", TraversalKey: "org", Excluded: false, ParentFKColumn: "org_id", TargetTable: "organizations", TargetIDColumn: "id"},
+	},
+	"carrierfac": {
+		{Name: "carrier", TargetType: "carrier", TraversalKey: "carrier", Excluded: false, ParentFKColumn: "carrier_id", TargetTable: "carriers", TargetIDColumn: "id"},
+		{Name: "facility", TargetType: "fac", TraversalKey: "fac", Excluded: false, ParentFKColumn: "fac_id", TargetTable: "facilities", TargetIDColumn: "id"},
+	},
+	"fac": {
+		{Name: "campus", TargetType: "campus", TraversalKey: "campus", Excluded: false, ParentFKColumn: "campus_id", TargetTable: "campus", TargetIDColumn: "id"},
+		{Name: "carrier_facilities", TargetType: "carrierfac", TraversalKey: "carrierfac", Excluded: false, ParentFKColumn: "fac_id", TargetTable: "carrier_facilities", TargetIDColumn: "id"},
+		{Name: "ix_facilities", TargetType: "ixfac", TraversalKey: "ixfac", Excluded: false, ParentFKColumn: "fac_id", TargetTable: "ix_facilities", TargetIDColumn: "id"},
+		{Name: "network_facilities", TargetType: "netfac", TraversalKey: "netfac", Excluded: false, ParentFKColumn: "fac_id", TargetTable: "network_facilities", TargetIDColumn: "id"},
+		{Name: "organization", TargetType: "org", TraversalKey: "org", Excluded: false, ParentFKColumn: "org_id", TargetTable: "organizations", TargetIDColumn: "id"},
+	},
+	"ix": {
+		{Name: "ix_facilities", TargetType: "ixfac", TraversalKey: "ixfac", Excluded: false, ParentFKColumn: "ix_id", TargetTable: "ix_facilities", TargetIDColumn: "id"},
+		{Name: "ix_lans", TargetType: "ixlan", TraversalKey: "ixlan", Excluded: false, ParentFKColumn: "ix_id", TargetTable: "ix_lans", TargetIDColumn: "id"},
+		{Name: "organization", TargetType: "org", TraversalKey: "org", Excluded: false, ParentFKColumn: "org_id", TargetTable: "organizations", TargetIDColumn: "id"},
+	},
+	"ixfac": {
+		{Name: "facility", TargetType: "fac", TraversalKey: "fac", Excluded: false, ParentFKColumn: "fac_id", TargetTable: "facilities", TargetIDColumn: "id"},
+		{Name: "internet_exchange", TargetType: "ix", TraversalKey: "ix", Excluded: false, ParentFKColumn: "ix_id", TargetTable: "internet_exchanges", TargetIDColumn: "id"},
+	},
+	"ixlan": {
+		{Name: "internet_exchange", TargetType: "ix", TraversalKey: "ix", Excluded: false, ParentFKColumn: "ix_id", TargetTable: "internet_exchanges", TargetIDColumn: "id"},
+		{Name: "ix_prefixes", TargetType: "ixpfx", TraversalKey: "ixpfx", Excluded: false, ParentFKColumn: "ixlan_id", TargetTable: "ix_prefixes", TargetIDColumn: "id"},
+		{Name: "network_ix_lans", TargetType: "netixlan", TraversalKey: "netixlan", Excluded: false, ParentFKColumn: "ixlan_id", TargetTable: "network_ix_lans", TargetIDColumn: "id"},
+	},
+	"ixpfx": {
+		{Name: "ix_lan", TargetType: "ixlan", TraversalKey: "ixlan", Excluded: false, ParentFKColumn: "ixlan_id", TargetTable: "ix_lans", TargetIDColumn: "id"},
+	},
+	"net": {
+		{Name: "network_facilities", TargetType: "netfac", TraversalKey: "netfac", Excluded: false, ParentFKColumn: "net_id", TargetTable: "network_facilities", TargetIDColumn: "id"},
+		{Name: "network_ix_lans", TargetType: "netixlan", TraversalKey: "netixlan", Excluded: false, ParentFKColumn: "net_id", TargetTable: "network_ix_lans", TargetIDColumn: "id"},
+		{Name: "organization", TargetType: "org", TraversalKey: "org", Excluded: false, ParentFKColumn: "org_id", TargetTable: "organizations", TargetIDColumn: "id"},
+		{Name: "pocs", TargetType: "poc", TraversalKey: "poc", Excluded: false, ParentFKColumn: "net_id", TargetTable: "pocs", TargetIDColumn: "id"},
+	},
+	"netfac": {
+		{Name: "facility", TargetType: "fac", TraversalKey: "fac", Excluded: false, ParentFKColumn: "fac_id", TargetTable: "facilities", TargetIDColumn: "id"},
+		{Name: "network", TargetType: "net", TraversalKey: "net", Excluded: false, ParentFKColumn: "net_id", TargetTable: "networks", TargetIDColumn: "id"},
+	},
+	"netixlan": {
+		{Name: "ix_lan", TargetType: "ixlan", TraversalKey: "ixlan", Excluded: false, ParentFKColumn: "ixlan_id", TargetTable: "ix_lans", TargetIDColumn: "id"},
+		{Name: "network", TargetType: "net", TraversalKey: "net", Excluded: false, ParentFKColumn: "net_id", TargetTable: "networks", TargetIDColumn: "id"},
+	},
+	"org": {
+		{Name: "campuses", TargetType: "campus", TraversalKey: "campus", Excluded: false, ParentFKColumn: "org_id", TargetTable: "campus", TargetIDColumn: "id"},
+		{Name: "carriers", TargetType: "carrier", TraversalKey: "carrier", Excluded: false, ParentFKColumn: "org_id", TargetTable: "carriers", TargetIDColumn: "id"},
+		{Name: "facilities", TargetType: "fac", TraversalKey: "fac", Excluded: false, ParentFKColumn: "org_id", TargetTable: "facilities", TargetIDColumn: "id"},
+		{Name: "internet_exchanges", TargetType: "ix", TraversalKey: "ix", Excluded: false, ParentFKColumn: "org_id", TargetTable: "internet_exchanges", TargetIDColumn: "id"},
+		{Name: "networks", TargetType: "net", TraversalKey: "net", Excluded: false, ParentFKColumn: "org_id", TargetTable: "networks", TargetIDColumn: "id"},
+	},
+	"poc": {
+		{Name: "network", TargetType: "net", TraversalKey: "net", Excluded: false, ParentFKColumn: "net_id", TargetTable: "networks", TargetIDColumn: "id"},
+	},
+}

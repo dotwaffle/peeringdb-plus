@@ -1,9 +1,16 @@
 // Command pdb-compat-allowlist reads the ent schema graph and emits
-// internal/pdbcompat/allowlist_gen.go with per-entity Path A allowlists
-// (upstream PeeringDB prepare_query lists) and FILTER_EXCLUDE data.
+// internal/pdbcompat/allowlist_gen.go with:
+//
+//   - Path A per-entity prepare_query allowlists (Phase 70 D-01),
+//   - FilterExcludes (Phase 70 D-03 FILTER_EXCLUDE parity), and
+//   - Path B edge map keyed by PeeringDB type string (Phase 70 D-02
+//     amended 2026-04-19: codegen-time static emission replaces a
+//     runtime client.Schema.Tables walk — deterministic, testable,
+//     no init-order coupling, freshness-gated by the existing
+//     go-generate drift check).
 //
 // Invoked from ent/generate.go after ent codegen so the gen.Graph
-// reflects the latest schema annotations. See Phase 70 D-01.
+// reflects the latest schema annotations.
 //
 // Usage:
 //
@@ -39,8 +46,9 @@ const (
 
 // AllowlistData is the template input assembled by main() before render.
 type AllowlistData struct {
-	Entries        []NodeEntry    // sorted by PDBType
-	FilterExcludes []ExcludeEntry // sorted by entity+edge
+	Entries        []NodeEntry     // sorted by PDBType (Path A — per-entity prepare_query allowlist)
+	FilterExcludes []ExcludeEntry  // sorted by entity+edge (upstream FILTER_EXCLUDE parity)
+	EdgeEntries    []EdgeMapEntry  // sorted by PDBType (Path B — codegen-emitted edge map, Phase 70 D-02 amended)
 }
 
 // NodeEntry carries one PeeringDB type's Path A allowlist.
@@ -64,6 +72,38 @@ type ExcludeEntry struct {
 	Edge   string // edge name, e.g. "pocs"
 }
 
+// EdgeMapEntry groups the outgoing edges of one PeeringDB type for
+// the Path B (automatic introspection) lookup map.
+type EdgeMapEntry struct {
+	PDBType string       // e.g. "net"
+	Edges   []EdgeMapRow // sorted by Name
+}
+
+// EdgeMapRow is the codegen-side mirror of internal/pdbcompat.EdgeMetadata.
+// Kept as a separate type in this cmd/ tool so the tool has zero import
+// dependency on the runtime package it generates.
+//
+// Source fields (from gen.Edge / gen.Type):
+//   - Name           = edge.Name
+//   - TargetType     = pdbTypeFor(edge.Type.Name)
+//   - TraversalKey   = TargetType (parser lookup key is the target PeeringDB type)
+//   - Excluded       = edge.Annotations[FilterExcludeFromTraversal] present
+//   - ParentFKColumn = edge.Rel.Column()   (O2O/O2M/M2O; edge is skipped if Columns is empty)
+//   - TargetTable    = edge.Type.Table()
+//   - TargetIDColumn = edge.Type.ID.StorageKey() (typically "id")
+//
+// Per Phase 70 D-02 amended: this map is emitted once at `go generate`
+// time and read-only at runtime. No sync.Once, no init-order coupling.
+type EdgeMapRow struct {
+	Name           string
+	TargetType     string
+	TraversalKey   string
+	Excluded       bool
+	ParentFKColumn string
+	TargetTable    string
+	TargetIDColumn string
+}
+
 func main() {
 	graph, err := entc.LoadGraph("./ent/schema", &gen.Config{})
 	if err != nil {
@@ -77,6 +117,9 @@ func main() {
 			data.Entries = append(data.Entries, *entry)
 		}
 		data.FilterExcludes = append(data.FilterExcludes, extractExcludes(node)...)
+		if edgeEntry := extractEdges(node); edgeEntry != nil {
+			data.EdgeEntries = append(data.EdgeEntries, *edgeEntry)
+		}
 	}
 
 	// Deterministic ordering for byte-stable output across runs.
@@ -88,6 +131,9 @@ func main() {
 			return data.FilterExcludes[i].Entity < data.FilterExcludes[j].Entity
 		}
 		return data.FilterExcludes[i].Edge < data.FilterExcludes[j].Edge
+	})
+	sort.Slice(data.EdgeEntries, func(i, j int) bool {
+		return data.EdgeEntries[i].PDBType < data.EdgeEntries[j].PDBType
 	})
 
 	src, err := render(data)
@@ -202,6 +248,88 @@ func extractExcludes(node *gen.Type) []ExcludeEntry {
 	return out
 }
 
+// extractEdges walks a node's edges and produces the Path B EdgeMapEntry
+// for internal/pdbcompat.Edges. Per Phase 70 D-02 amended, this is the
+// codegen-time source of truth for the runtime lookup — no
+// client.Schema.Tables walk exists at request time.
+//
+// SQL-join metadata (ParentFKColumn, TargetTable, TargetIDColumn) is
+// sourced from gen.Edge.Rel.Column() and gen.Type.Table() /
+// gen.Type.ID.StorageKey(). Edges whose Rel.Columns slice is empty are
+// logged and skipped rather than emitted with a blank column — Plan
+// 70-05's subquery construction must not receive empty column names.
+//
+// Edges whose target type has no pdbTypeFor mapping (e.g. if a future
+// schema introduces a non-PeeringDB-visible table) are silently skipped.
+func extractEdges(node *gen.Type) *EdgeMapEntry {
+	pdbType := pdbTypeFor(node.Name)
+	if pdbType == "" {
+		return nil
+	}
+	entry := &EdgeMapEntry{PDBType: pdbType}
+	for _, e := range node.Edges {
+		targetPDB := pdbTypeFor(e.Type.Name)
+		if targetPDB == "" {
+			continue
+		}
+		_, excluded := e.Annotations[filterExcludeName]
+		parentFK := resolveParentFKColumn(e)
+		if parentFK == "" {
+			log.Printf("pdb-compat-allowlist: %s.%s — unable to resolve FK column (no Rel.Columns); skipping edge", node.Name, e.Name)
+			continue
+		}
+		targetTable := e.Type.Table()
+		if targetTable == "" {
+			log.Printf("pdb-compat-allowlist: %s.%s — target type %q has empty Table(); skipping edge", node.Name, e.Name, e.Type.Name)
+			continue
+		}
+		targetID := "id"
+		if e.Type.ID != nil {
+			if k := e.Type.ID.StorageKey(); k != "" {
+				targetID = k
+			}
+		}
+		entry.Edges = append(entry.Edges, EdgeMapRow{
+			Name:           e.Name,
+			TargetType:     targetPDB,
+			TraversalKey:   targetPDB,
+			Excluded:       excluded,
+			ParentFKColumn: parentFK,
+			TargetTable:    targetTable,
+			TargetIDColumn: targetID,
+		})
+	}
+	if len(entry.Edges) == 0 {
+		return nil
+	}
+	sort.Slice(entry.Edges, func(i, j int) bool {
+		return entry.Edges[i].Name < entry.Edges[j].Name
+	})
+	return entry
+}
+
+// resolveParentFKColumn returns the FK column name for a gen.Edge. For
+// O2O, O2M, and M2O edges, gen.Relation.Columns has a single entry —
+// we return Columns[0]. For M2M edges the slice has two entries (join
+// table owner_id, reference_id); we take the first since our schema has
+// no M2M edges today (and emit empty so the caller skips with a log).
+//
+// Column semantics note: for M2O edges (edge.From with Ref().Field())
+// the column lives on the PARENT table (e.g. networks.org_id). For O2M
+// edges (edge.To) the column lives on the CHILD table (e.g. netfac.
+// network_id). The EdgeMetadata consumer in Plan 70-05 uses OwnFK
+// knowledge indirectly via edge direction to construct the correct
+// subquery shape. For Path B today (<fk>__<field> where <fk> is the
+// target PeeringDB type), both directions produce valid subqueries
+// using the same {ParentFKColumn, TargetTable, TargetIDColumn} triple;
+// only the WHERE/IN pairing differs and that's Plan 70-05 territory.
+func resolveParentFKColumn(e *gen.Edge) string {
+	if len(e.Rel.Columns) > 0 {
+		return e.Rel.Columns[0]
+	}
+	return ""
+}
+
 // pdbTypeFor maps ent Go type names to PeeringDB API type strings (the
 // "net" / "fac" / "ix" namespace used by pdbcompat Registry keys and
 // URLs). Mirrors the map in internal/peeringdb/types.go and
@@ -279,6 +407,35 @@ var Allowlists = map[string]AllowlistEntry{
 var FilterExcludes = map[string]map[string]bool{
 {{- range .FilterExcludes }}
 	{{ printf "%q" .Entity }}: {{"{"}}{{ printf "%q" .Edge }}: true{{"}"}},
+{{- end }}
+}
+
+// Edges maps a PeeringDB type name (e.g. "net") to a slice of
+// EdgeMetadata describing its outgoing ent edges. Consumed at request
+// time by internal/pdbcompat.LookupEdge for Path B traversal.
+//
+// Phase 70 D-02 (amended 2026-04-19): the map is emitted at
+// ` + "`go generate`" + ` time from gen.Graph — no runtime client.Schema walk,
+// no sync.Once, no init-order coupling. Freshness is enforced by the
+// existing go-generate drift-check CI gate (same precedent as
+// v1.15 Phase 63 hygiene drops).
+//
+// TraversalKey is the <fk> token in filter params (equals TargetType
+// today). Excluded edges (WithFilterExcludeFromTraversal annotation)
+// are emitted with Excluded=true; LookupEdge hides them from its
+// callers so consumers see them as missing.
+//
+// ParentFKColumn, TargetTable, TargetIDColumn carry SQL-level metadata
+// for Plan 70-05's subquery construction. Edges whose FK column or
+// target table could not be resolved at codegen time are logged and
+// skipped entirely (never emitted with blank metadata).
+var Edges = map[string][]EdgeMetadata{
+{{- range .EdgeEntries }}
+	{{ printf "%q" .PDBType }}: {
+{{- range .Edges }}
+		{Name: {{ printf "%q" .Name }}, TargetType: {{ printf "%q" .TargetType }}, TraversalKey: {{ printf "%q" .TraversalKey }}, Excluded: {{ .Excluded }}, ParentFKColumn: {{ printf "%q" .ParentFKColumn }}, TargetTable: {{ printf "%q" .TargetTable }}, TargetIDColumn: {{ printf "%q" .TargetIDColumn }}},
+{{- end }}
+	},
 {{- end }}
 }
 `
