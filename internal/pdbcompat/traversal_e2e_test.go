@@ -20,7 +20,7 @@ func setupTraversalHandler(t *testing.T) *http.ServeMux {
 	t.Helper()
 	client := testutil.SetupClient(t)
 	_ = seed.Full(t, client)
-	h := NewHandler(client)
+	h := NewHandler(client, 0)
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return mux

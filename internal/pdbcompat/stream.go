@@ -106,3 +106,24 @@ func StreamListResponse(ctx context.Context, w http.ResponseWriter, meta any, ro
 	}
 	return nil
 }
+
+// iterFromSlice returns a RowsIter that yields the slice rows in order
+// and signals clean EOF after the last one. Useful when a caller has
+// already materialised rows (e.g. tc.List) but still wants the
+// token-writer's bounded-allocation emission path.
+//
+// This is a deliberate half-step toward full cursor-based streaming:
+// Plan 71-04 adopts it so the handler contract lands today; a future
+// plan can flip tc.List to a true pull-iterator without touching
+// serveList.
+func iterFromSlice(rows []any) RowsIter {
+	i := 0
+	return func() (any, bool, error) {
+		if i >= len(rows) {
+			return nil, false, nil
+		}
+		row := rows[i]
+		i++
+		return row, true, nil
+	}
+}

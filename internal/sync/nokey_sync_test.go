@@ -232,7 +232,10 @@ func TestNoKeySync(t *testing.T) {
 	// exactly the row set the worker persisted, given no Users rows
 	// exist to filter".
 	mux := http.NewServeMux()
-	pdbcompat.NewHandler(client).Register(mux)
+	// Budget=0 disables Phase 71 pre-flight budget check — this test
+	// exercises surface-level post-sync anonymous row parity, not
+	// memory guardrails.
+	pdbcompat.NewHandler(client, 0).Register(mux)
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := privctx.WithTier(r.Context(), privctx.TierPublic)
 		mux.ServeHTTP(w, r.WithContext(ctx))

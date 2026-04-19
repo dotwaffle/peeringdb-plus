@@ -48,7 +48,7 @@ func setupBenchHandlerTB(tb testing.TB) (*Handler, *ent.Client) {
 	// testing.TB satisfies — same for *testing.B and *testing.T.
 	client := enttest.Open(tb, dialect.SQLite, dsn)
 	tb.Cleanup(func() { _ = client.Close() })
-	return NewHandler(client), client
+	return NewHandler(client, 0), client
 }
 
 // dispatchBench runs one GET request through the handler and fails on

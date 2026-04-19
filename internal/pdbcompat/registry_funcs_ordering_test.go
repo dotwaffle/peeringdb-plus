@@ -290,7 +290,7 @@ func seedThreeIXes(t *testing.T, o *orderingTestCtx) []int {
 // newMuxForOrdering registers a pdbcompat handler on a fresh mux for use
 // with httptest.NewServer.
 func newMuxForOrdering(client *ent.Client) *http.ServeMux {
-	h := NewHandler(client)
+	h := NewHandler(client, 0)
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return mux

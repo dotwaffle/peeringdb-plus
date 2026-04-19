@@ -12,18 +12,8 @@ import (
 	"testing"
 )
 
-// iterFromSlice returns a RowsIter that drains the given slice one row per call.
-func iterFromSlice(rows []any) RowsIter {
-	i := 0
-	return func() (any, bool, error) {
-		if i >= len(rows) {
-			return nil, false, nil
-		}
-		row := rows[i]
-		i++
-		return row, true, nil
-	}
-}
+// iterFromSlice moved to stream.go in Plan 71-04 Task 2 — it is now
+// production code driven by serveList, not a test-only helper.
 
 // iterWithError returns a RowsIter that yields rows 1..failAt-1 cleanly, then
 // returns (nil, false, err) on the failAt-th call (1-indexed).

@@ -28,7 +28,7 @@ import (
 // newPhase69Mux is a copy of newMuxForOrdering to avoid coupling to that file's
 // test fixtures. Kept local to make the Phase 69 test suite self-contained.
 func newPhase69Mux(client *ent.Client) *http.ServeMux {
-	h := NewHandler(client)
+	h := NewHandler(client, 0)
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return mux

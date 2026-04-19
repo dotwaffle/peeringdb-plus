@@ -250,7 +250,7 @@ func setupGoldenTestData(t *testing.T) (*http.ServeMux, map[string]int) {
 		t.Fatalf("create carrierfac: %v", err)
 	}
 
-	h := NewHandler(client)
+	h := NewHandler(client, 0)
 	mux := http.NewServeMux()
 	h.Register(mux)
 

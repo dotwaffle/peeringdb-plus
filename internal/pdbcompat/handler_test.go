@@ -87,7 +87,7 @@ func setupTestHandler(t *testing.T) (*Handler, *http.ServeMux) {
 		t.Fatalf("create network 3: %v", err)
 	}
 
-	h := NewHandler(client)
+	h := NewHandler(client, 0)
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return h, mux
@@ -546,7 +546,7 @@ func TestSearchFacility(t *testing.T) {
 		}
 	}
 
-	h := NewHandler(client)
+	h := NewHandler(client, 0)
 	mux := http.NewServeMux()
 	h.Register(mux)
 

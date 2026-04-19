@@ -316,7 +316,7 @@ func main() {
 
 	// Mount PeeringDB compatibility API at /api/ per D-27, D-28.
 	// Readiness gating applies automatically (not in bypass list) per D-29.
-	compatHandler := pdbcompat.NewHandler(entClient)
+	compatHandler := pdbcompat.NewHandler(entClient, cfg.ResponseMemoryLimit)
 	compatHandler.Register(mux)
 	logger.Info("PeeringDB compat API mounted", slog.String("prefix", "/api/"))
 

@@ -22,11 +22,21 @@ import (
 // Handler serves PeeringDB-compatible API endpoints.
 type Handler struct {
 	client *ent.Client
+	// responseMemoryLimit is the per-response byte budget consumed by
+	// the pre-flight CheckBudget gate (Phase 71 D-02). 0 disables the
+	// check entirely — documented local-dev / test escape hatch. See
+	// cmd/peeringdb-plus/main.go for the Config.ResponseMemoryLimit
+	// wiring (default 128 MiB per D-05).
+	responseMemoryLimit int64
 }
 
 // NewHandler creates a Handler for PeeringDB-compatible API endpoints.
-func NewHandler(client *ent.Client) *Handler {
-	return &Handler{client: client}
+// responseMemoryLimit is the per-response byte budget consumed by the
+// pre-flight CheckBudget gate (Phase 71 D-02). Pass 0 to disable the
+// budget check (local dev / tests only; operators ship a non-zero
+// PDBPLUS_RESPONSE_MEMORY_LIMIT in prod — default 128 MiB per D-05).
+func NewHandler(client *ent.Client, responseMemoryLimit int64) *Handler {
+	return &Handler{client: client, responseMemoryLimit: responseMemoryLimit}
 }
 
 // Register sets up PeeringDB-compatible routes on the given mux.
@@ -219,6 +229,46 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		EmptyResult: emptyResult,
 	}
 
+	// Phase 71 pre-flight budget check (D-02).
+	//
+	// Runs BEFORE tc.List so an over-budget response 413s without
+	// committing to the expensive .All(ctx) + serialise path. Two
+	// explicit bypass conditions:
+	//
+	//   - h.responseMemoryLimit <= 0: budget disabled (local dev / tests).
+	//     CheckBudget already treats budget<=0 as "always fits" but we
+	//     avoid the round-trip to COUNT(*) for the dev path.
+	//   - emptyResult: Phase 69 IN-02 short-circuit (?asn__in=). The
+	//     result is known-empty; counting 0 rows and then streaming []
+	//     is wasted work and would paper over a broken CountFunc.
+	//
+	// List depth is always 0 per Phase 68 LIMIT-02 guardrail (the
+	// ?depth= param is ignored on list endpoints; opts.Depth is never
+	// populated by ParsePaginationParams).
+	if h.responseMemoryLimit > 0 && !emptyResult && tc.Count != nil {
+		count, err := tc.Count(r.Context(), h.client, opts)
+		if err != nil {
+			WriteProblem(w, httperr.WriteProblemInput{
+				Status:   http.StatusInternalServerError,
+				Detail:   fmt.Sprintf("count error: %v", err),
+				Instance: r.URL.Path,
+			})
+			return
+		}
+		if info, ok := CheckBudget(count, tc.Name, 0 /*list depth=0 per Phase 68 LIMIT-02*/, h.responseMemoryLimit); !ok {
+			slog.WarnContext(r.Context(), "pdbcompat: response budget exceeded",
+				slog.String("endpoint", r.URL.Path),
+				slog.String("type", tc.Name),
+				slog.Int("count", info.Count),
+				slog.Int64("estimated_bytes", info.EstimatedBytes),
+				slog.Int64("budget_bytes", info.BudgetBytes),
+				slog.Int("max_rows", info.MaxRows),
+			)
+			WriteBudgetProblem(w, r.URL.Path, info)
+			return
+		}
+	}
+
 	results, _, err := tc.List(r.Context(), h.client, opts)
 	if err != nil {
 		WriteProblem(w, httperr.WriteProblemInput{
@@ -234,7 +284,25 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		results = applyFieldProjection(results, fields)
 	}
 
-	WriteResponse(w, results)
+	// Stream via Plan 01's StreamListResponse (replaces legacy
+	// WriteResponse). Meta envelope stays as struct{}{} for on-the-wire
+	// parity with the legacy path. iterFromSlice is a half-step toward
+	// true cursor-based streaming: a future plan flips tc.List to a
+	// pull-iterator and serveList is unaffected.
+	//
+	// If streaming fails mid-response, bytes are already committed to
+	// the wire — no way to issue a 500/problem-detail. Log for operator
+	// visibility and drop the connection by returning (Go's net/http
+	// closes the response on handler return).
+	iter := iterFromSlice(results)
+	if err := StreamListResponse(r.Context(), w, struct{}{}, iter); err != nil {
+		slog.ErrorContext(r.Context(), "pdbcompat: stream encode failed mid-response",
+			slog.String("endpoint", r.URL.Path),
+			slog.String("type", tc.Name),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
 }
 
 // serveDetail handles detail requests for a single object by ID.

@@ -141,7 +141,9 @@ func buildPrivacySurfacesFixture(t *testing.T) *surfacesFixture {
 	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restSrv.Handler())))
 
 	// pdbcompat (/api/…).
-	compatHandler := pdbcompat.NewHandler(client)
+	// Budget=0 disables Phase 71 pre-flight budget check — this test
+	// targets privacy-surface leak regression, not memory guardrails.
+	compatHandler := pdbcompat.NewHandler(client, 0)
 	compatHandler.Register(mux)
 
 	// Web UI (/ui/ and /static/, plus /favicon.ico).

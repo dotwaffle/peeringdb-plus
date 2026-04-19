@@ -86,7 +86,10 @@ func TestAnonParityFixtures(t *testing.T) {
 	// policy on the output path, matching what internal/middleware.PrivacyTier
 	// does in production without the chainConfig dependency.
 	mux := http.NewServeMux()
-	pdbcompat.NewHandler(client).Register(mux)
+	// Budget=0 disables Phase 71 pre-flight budget check — this test
+	// replays anonymous fixtures for shape parity, not memory
+	// guardrails.
+	pdbcompat.NewHandler(client, 0).Register(mux)
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := privctx.WithTier(r.Context(), privctx.TierPublic)
 		mux.ServeHTTP(w, r.WithContext(ctx))

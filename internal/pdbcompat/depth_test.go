@@ -185,7 +185,7 @@ func setupDepthTestData(t *testing.T) (*Handler, *http.ServeMux) {
 	_ = campus
 	_ = netfac
 
-	h := NewHandler(client)
+	h := NewHandler(client, 0)
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return h, mux
@@ -371,7 +371,7 @@ func TestDepth(t *testing.T) {
 			t.Fatalf("create org: %v", err)
 		}
 
-		h := NewHandler(client)
+		h := NewHandler(client, 0)
 		mux := http.NewServeMux()
 		h.Register(mux)
 

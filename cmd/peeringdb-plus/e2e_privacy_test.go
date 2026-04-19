@@ -265,7 +265,9 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restFieldRedactMiddleware(restSrv.Handler()))))
 
 	// pdbcompat (/api/). Registers /api/{rest...} internally.
-	compatHandler := pdbcompat.NewHandler(client)
+	// Budget=0 disables Phase 71 pre-flight budget check — this test
+	// targets privacy/tier behaviour, not memory guardrails.
+	compatHandler := pdbcompat.NewHandler(client, 0)
 	compatHandler.Register(mux)
 
 	// Web UI (/ui/ and /static/, plus /favicon.ico).

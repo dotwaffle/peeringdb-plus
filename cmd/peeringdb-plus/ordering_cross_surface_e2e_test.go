@@ -74,7 +74,9 @@ func buildOrderingFixture(t *testing.T) *orderingFixture {
 	mux := http.NewServeMux()
 
 	// pdbcompat (/api/*) — Register binds all 13 types to /api/<type>.
-	compatHandler := pdbcompat.NewHandler(client)
+	// Budget=0 disables Phase 71 pre-flight budget check — this test
+	// targets cross-surface ordering parity, not memory guardrails.
+	compatHandler := pdbcompat.NewHandler(client, 0)
 	compatHandler.Register(mux)
 
 	// entrest (/rest/v1/*). No middleware wrap needed here — the
