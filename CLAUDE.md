@@ -104,6 +104,30 @@ The runtime migrate call in `cmd/peeringdb-plus/main.go` now passes `migrate.Wit
 
 Proto is frozen since v1.6 (`entproto.SkipGenFile` in `ent/entc.go`), so dropped ent fields whose proto wrappers still exist (e.g. `IxPrefix.notes`, `Organization.{fac,net}_count`) remain declared in `proto/peeringdb/v1/v1.proto` but are no longer populated by the server — they serialize as zero-value pointers (absent on the wire). Server-side filter tables in `internal/grpcserver/*` exempt such fields via `deprecatedFilterFields` in `filter_test.go`.
 
+### Soft-delete tombstones (Phase 68)
+
+Sync uses soft-delete (`UPDATE ... SET status='deleted', updated=<cycleStart>`) rather than hard-delete across all 13 entity types. The 13 functions live in `internal/sync/delete.go` as `markStaleDeleted*` (renamed from `deleteStale*` in v1.16 Phase 68 D-02). `cycleStart` is the `start := time.Now()` timestamp captured at the top of `Worker.Sync` and plumbed through `syncStep.deleteFn` — one timestamp is stamped on every tombstone produced within a single sync cycle so `?since=N` windows stay atomic. Do NOT call `time.Now()` inside per-entity closures; the per-cycle invariant is load-bearing for test assertions and for the pdbcompat status × since matrix.
+
+When adding a new entity type, write the soft-delete function using the established pattern:
+
+```go
+func markStaleDeletedFoos(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
+    return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+        return tx.Foo.Update().
+            Where(foo.IDNotIn(chunk...)).
+            SetStatus("deleted").
+            SetUpdated(cycleStart).
+            Save(ctx)
+    }, "foos")
+}
+```
+
+The pdbcompat list path in `internal/pdbcompat/registry_funcs.go` MUST append `applyStatusMatrix(isCampus, opts.Since != nil)` to `preds` for every new entity so upstream `rest.py:694-727`'s status × since matrix applies uniformly. The pdbcompat pk-lookup path in `internal/pdbcompat/depth.go` MUST use `Query().Where(foo.ID(id), foo.StatusIn("ok", "pending")).Only(ctx)` — never `client.Foo.Get(ctx, id)` bare — so tombstone rows return 404 on direct-ID GETs (`ent.IsNotFound` flows through `Only`). Inline the `StatusIn("ok", "pending")` literal at each of the 26 pk-lookup call sites; grep-ability trumps DRY for security-relevant allowlists (a future PR can't accidentally add a third status without 26 reviewable edits).
+
+Related convention: `PDBPLUS_INCLUDE_DELETED` was removed in v1.16 Phase 68 D-01 with a slog.Warn-and-ignore grace-period shim through v1.17 (`internal/config/config.go`). `docs/CONFIGURATION.md § Removed in v1.16` has the migration note; `CHANGELOG.md § Breaking` carries the user-facing announcement.
+
+Tombstone GC is [SEED-004](./.planning/seeds/SEED-004-tombstone-gc.md) (dormant as of 2026-04-19). Triggers: storage growth >5% MoM, tombstone ratio >10%, or operator request. The existing `deleteStaleChunked` fallback silently no-ops when `len(remoteIDs) > 32766` (SQLite variable limit) — this edge case is also tracked under SEED-004 and should be folded into any future GC work rather than patched in-situ.
+
 ### Middleware
 - Response writer wrappers MUST implement `http.Flusher` (delegate to underlying writer) — gRPC streaming requires it.
 - Add `Unwrap() http.ResponseWriter` for middleware-aware interface detection.
