@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -232,45 +234,44 @@ func TestLoad_SyncInterval(t *testing.T) {
 	}
 }
 
-func TestLoad_IncludeDeleted(t *testing.T) {
-	tests := []struct {
-		name    string
-		envVal  string
-		want    bool
-		wantErr bool
-		wantMsg string
-	}{
-		{name: "default is true", envVal: "", want: true},
-		{name: "explicit true", envVal: "true", want: true},
-		{name: "explicit false", envVal: "false", want: false},
-		{name: "invalid bool", envVal: "maybe", wantErr: true, wantMsg: "PDBPLUS_INCLUDE_DELETED"},
-	}
+// TestLoad_IncludeDeleted_Deprecated asserts PDBPLUS_INCLUDE_DELETED is ignored
+// with a WARN log during the v1.16 → v1.17 grace period (Phase 68 D-01). The
+// env var is no longer a Config field; setting it must not fail Load().
+//
+// Subtests must NOT call t.Parallel() — slog.SetDefault is process-global.
+func TestLoad_IncludeDeleted_Deprecated(t *testing.T) {
+	t.Run("env_set_warns", func(t *testing.T) {
+		t.Setenv("PDBPLUS_INCLUDE_DELETED", "true")
+		t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.envVal != "" {
-				t.Setenv("PDBPLUS_INCLUDE_DELETED", tt.envVal)
-			}
-			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+		var buf bytes.Buffer
+		prev := slog.Default()
+		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn})))
+		t.Cleanup(func() { slog.SetDefault(prev) })
 
-			cfg, err := Load()
-			if tt.wantErr {
-				if err == nil {
-					t.Fatalf("expected error for PDBPLUS_INCLUDE_DELETED=%q, got nil", tt.envVal)
-				}
-				if tt.wantMsg != "" && !strings.Contains(err.Error(), tt.wantMsg) {
-					t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if cfg.IncludeDeleted != tt.want {
-				t.Errorf("IncludeDeleted = %v, want %v", cfg.IncludeDeleted, tt.want)
-			}
-		})
-	}
+		if _, err := Load(); err != nil {
+			t.Fatalf("Load() unexpected error: %v", err)
+		}
+		if !strings.Contains(buf.String(), "PDBPLUS_INCLUDE_DELETED is deprecated") {
+			t.Fatalf("expected deprecation WARN in log output; got: %q", buf.String())
+		}
+	})
+
+	t.Run("env_unset_no_warn", func(t *testing.T) {
+		t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+		var buf bytes.Buffer
+		prev := slog.Default()
+		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn})))
+		t.Cleanup(func() { slog.SetDefault(prev) })
+
+		if _, err := Load(); err != nil {
+			t.Fatalf("Load() unexpected error: %v", err)
+		}
+		if strings.Contains(buf.String(), "PDBPLUS_INCLUDE_DELETED") {
+			t.Fatalf("unexpected deprecation log when env unset: %q", buf.String())
+		}
+	})
 }
 
 func TestLoad_CSPEnforce(t *testing.T) {

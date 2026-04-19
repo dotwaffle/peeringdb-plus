@@ -5,6 +5,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"net"
 	"net/url"
@@ -62,9 +63,6 @@ type Config struct {
 
 	// SyncInterval is the duration between automatic sync runs.
 	SyncInterval time.Duration
-
-	// IncludeDeleted controls whether objects with status=deleted are synced.
-	IncludeDeleted bool
 
 	// ListenAddr is the address the HTTP server binds to.
 	ListenAddr string
@@ -176,11 +174,17 @@ func Load() (*Config, error) {
 	}
 	cfg.SyncInterval = syncInterval
 
-	includeDeleted, err := parseBool("PDBPLUS_INCLUDE_DELETED", true)
-	if err != nil {
-		return nil, fmt.Errorf("parsing PDBPLUS_INCLUDE_DELETED: %w", err)
+	// PDBPLUS_INCLUDE_DELETED was removed in v1.16 Phase 68 (D-01). Sync now
+	// always persists deleted rows as tombstones (Phase 68 Plan 02 lands the
+	// soft-delete flip); pdbcompat applies the upstream status × since matrix
+	// regardless of any legacy gate. During the v1.16 → v1.17 grace period,
+	// the variable is logged and ignored. Flipping to fail-fast in v1.17 is a
+	// one-line swap (slog.Warn → return nil, errors.New(...)).
+	if v := os.Getenv("PDBPLUS_INCLUDE_DELETED"); v != "" {
+		slog.Warn("PDBPLUS_INCLUDE_DELETED is deprecated and ignored; remove it from your environment. This will be a startup error in v1.17.",
+			slog.String("value", v),
+		)
 	}
-	cfg.IncludeDeleted = includeDeleted
 
 	drainTimeout, err := parseDuration("PDBPLUS_DRAIN_TIMEOUT", 10*time.Second)
 	if err != nil {
