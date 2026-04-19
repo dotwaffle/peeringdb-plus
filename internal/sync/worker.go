@@ -538,8 +538,10 @@ func readLinuxVMHWM() (int64, bool) {
 // Logs the rollback error at ERROR level — a failing rollback inside a
 // failing sync is worth surfacing in the error stream.
 func (w *Worker) rollbackAndRecord(ctx context.Context, tx *ent.Tx, statusID int64, start time.Time, syncErr error) {
-	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
-	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
+	// Memory telemetry is emitted exactly once in recordFailure below — do not
+	// emit here as well (REVIEW WR-01). Double emission caused duplicate
+	// "heap threshold crossed" WARN records on every rollback path that
+	// breached thresholds.
 	if rbErr := tx.Rollback(); rbErr != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
 			slog.Any("error", rbErr))
