@@ -56,6 +56,10 @@ func applySince(opts QueryOptions) func(*sql.Selector) {
 func wireOrgFuncs() {
 	setFuncs(peeringdb.TypeOrg,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.Organization](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Organization(s))
@@ -89,6 +93,10 @@ func wireOrgFuncs() {
 func wireNetFuncs() {
 	setFuncs(peeringdb.TypeNet,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.Network](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Network(s))
@@ -122,6 +130,10 @@ func wireNetFuncs() {
 func wireFacFuncs() {
 	setFuncs(peeringdb.TypeFac,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.Facility](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Facility(s))
@@ -155,6 +167,10 @@ func wireFacFuncs() {
 func wireIXFuncs() {
 	setFuncs(peeringdb.TypeIX,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.InternetExchange](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.InternetExchange(s))
@@ -188,6 +204,10 @@ func wireIXFuncs() {
 func wirePocFuncs() {
 	setFuncs(peeringdb.TypePoc,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.Poc](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Poc(s))
@@ -221,6 +241,10 @@ func wirePocFuncs() {
 func wireIXLanFuncs() {
 	setFuncs(peeringdb.TypeIXLan,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.IxLan](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.IxLan(s))
@@ -254,6 +278,10 @@ func wireIXLanFuncs() {
 func wireIXPfxFuncs() {
 	setFuncs(peeringdb.TypeIXPfx,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.IxPrefix](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.IxPrefix(s))
@@ -287,6 +315,10 @@ func wireIXPfxFuncs() {
 func wireNetIXLanFuncs() {
 	setFuncs(peeringdb.TypeNetIXLan,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.NetworkIxLan](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.NetworkIxLan(s))
@@ -320,6 +352,10 @@ func wireNetIXLanFuncs() {
 func wireNetFacFuncs() {
 	setFuncs(peeringdb.TypeNetFac,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.NetworkFacility](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.NetworkFacility(s))
@@ -353,6 +389,10 @@ func wireNetFacFuncs() {
 func wireIXFacFuncs() {
 	setFuncs(peeringdb.TypeIXFac,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.IxFacility](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.IxFacility(s))
@@ -386,6 +426,10 @@ func wireIXFacFuncs() {
 func wireCarrierFuncs() {
 	setFuncs(peeringdb.TypeCarrier,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.Carrier](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Carrier(s))
@@ -419,6 +463,10 @@ func wireCarrierFuncs() {
 func wireCarrierFacFuncs() {
 	setFuncs(peeringdb.TypeCarrierFac,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.CarrierFacility](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.CarrierFacility(s))
@@ -452,6 +500,10 @@ func wireCarrierFacFuncs() {
 func wireCampusFuncs() {
 	setFuncs(peeringdb.TypeCampus,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
+			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			if opts.EmptyResult {
+				return []any{}, 0, nil
+			}
 			preds := castPredicates[predicate.Campus](opts.Filters)
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Campus(s))

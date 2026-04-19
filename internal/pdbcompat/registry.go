@@ -38,6 +38,13 @@ type QueryOptions struct {
 	Search  string   // ?q= parameter
 	Fields  []string // ?fields= parameter
 	Depth   int      // depth parameter (only used on detail)
+
+	// EmptyResult is set by ParseFilters when the request contains an
+	// __in filter with zero values (e.g. ?asn__in=). Each list closure in
+	// registry_funcs.go short-circuits on this flag and returns an empty
+	// result set without issuing any SQL — matches Django ORM
+	// Model.objects.filter(id__in=[]) per Phase 69 D-06 (IN-02).
+	EmptyResult bool
 }
 
 // ListFunc queries entities and returns serialized objects plus total count.
@@ -53,6 +60,14 @@ type TypeConfig struct {
 	SearchFields []string
 	List         ListFunc
 	Get          GetFunc
+
+	// FoldedFields lists the string fields on this type that have a sibling
+	// <field>_fold column populated by the sync worker (Phase 69 Plan 03).
+	// When non-nil, substring / prefix / iexact filters on these fields are
+	// routed to the _fold column with unifold.Fold(value) on the RHS for
+	// diacritic-insensitive matching (Phase 69 UNICODE-01). Nil is safe —
+	// map reads on nil return the zero value (false).
+	FoldedFields map[string]bool
 }
 
 // reservedParams lists query parameter names that are not filter fields.
@@ -92,6 +107,7 @@ var Registry = map[string]TypeConfig{
 			"updated":   FieldTime,
 		},
 		SearchFields: []string{"name", "aka", "name_long"},
+		FoldedFields: map[string]bool{"name": true, "aka": true, "city": true},
 	},
 	peeringdb.TypeNet: {
 		Name: peeringdb.TypeNet,
@@ -136,6 +152,7 @@ var Registry = map[string]TypeConfig{
 			"updated":                     FieldTime,
 		},
 		SearchFields: []string{"name", "aka", "name_long", "irr_as_set"},
+		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true},
 	},
 	peeringdb.TypeFac: {
 		Name: peeringdb.TypeFac,
@@ -178,6 +195,7 @@ var Registry = map[string]TypeConfig{
 			"updated":                      FieldTime,
 		},
 		SearchFields: []string{"name", "aka", "name_long", "city", "country"},
+		FoldedFields: map[string]bool{"name": true, "aka": true, "city": true},
 	},
 	peeringdb.TypeIX: {
 		Name: peeringdb.TypeIX,
@@ -217,6 +235,7 @@ var Registry = map[string]TypeConfig{
 			"updated":                     FieldTime,
 		},
 		SearchFields: []string{"name", "aka", "name_long", "city", "country"},
+		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true, "city": true},
 	},
 	peeringdb.TypePoc: {
 		Name: peeringdb.TypePoc,
@@ -334,6 +353,7 @@ var Registry = map[string]TypeConfig{
 			"updated":   FieldTime,
 		},
 		SearchFields: []string{"name", "aka", "name_long"},
+		FoldedFields: map[string]bool{"name": true, "aka": true},
 	},
 	peeringdb.TypeCarrierFac: {
 		Name: peeringdb.TypeCarrierFac,
@@ -367,5 +387,6 @@ var Registry = map[string]TypeConfig{
 			"updated":   FieldTime,
 		},
 		SearchFields: []string{"name"},
+		FoldedFields: map[string]bool{"name": true},
 	},
 }

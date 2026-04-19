@@ -22,18 +22,25 @@ func FuzzFilterParser(f *testing.F) {
 	f.Add("", "")                           // empty key
 	f.Add("__", "val")                      // empty field name with operator separator
 
-	// fields map with entries for all 5 FieldType values.
-	fields := map[string]FieldType{
-		"name":         FieldString,
-		"asn":          FieldInt,
-		"info_unicast": FieldBool,
-		"created":      FieldTime,
-		"latitude":     FieldFloat,
+	// TypeConfig with entries for all 5 FieldType values. Phase 69 Plan 04:
+	// ParseFilters takes TypeConfig so it can consult FoldedFields. Leave
+	// FoldedFields nil — fuzz target exercises both shadow and non-shadow
+	// paths via the empty map's zero-value reads; explicit shadow coverage
+	// lives in TestShadowRouting_* (phase69_filter_test.go).
+	tc := TypeConfig{
+		Name: "fuzz",
+		Fields: map[string]FieldType{
+			"name":         FieldString,
+			"asn":          FieldInt,
+			"info_unicast": FieldBool,
+			"created":      FieldTime,
+			"latitude":     FieldFloat,
+		},
 	}
 
 	f.Fuzz(func(_ *testing.T, key, value string) {
 		params := url.Values{key: {value}}
 		// Must not panic. Errors are acceptable.
-		_, _ = ParseFilters(params, fields)
+		_, _, _ = ParseFilters(params, tc)
 	})
 }

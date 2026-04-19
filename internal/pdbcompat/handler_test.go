@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
+	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
 // testEnvelope is used to decode PeeringDB-style JSON responses.
@@ -38,8 +39,13 @@ func setupTestHandler(t *testing.T) (*Handler, *http.ServeMux) {
 	future := now.Add(2 * time.Hour)
 
 	// Create 3 networks with different names, ASNs, statuses, and timestamps.
+	// Phase 69 Plan 04: name_fold must be populated manually in tests — the
+	// production path populates it inside sync.upsert but direct ent.Create
+	// calls skip that step. Filter-layer shadow routing (UNICODE-01) reads
+	// <field>_fold for gated columns.
 	_, err := client.Network.Create().
 		SetName("CloudNet").
+		SetNameFold(unifold.Fold("CloudNet")).
 		SetAsn(13335).
 		SetStatus("ok").
 		SetCreated(past).
@@ -51,6 +57,7 @@ func setupTestHandler(t *testing.T) (*Handler, *http.ServeMux) {
 
 	_, err = client.Network.Create().
 		SetName("EdgeProvider").
+		SetNameFold(unifold.Fold("EdgeProvider")).
 		SetAsn(64496).
 		SetStatus("ok").
 		SetCreated(now).
@@ -70,6 +77,7 @@ func setupTestHandler(t *testing.T) (*Handler, *http.ServeMux) {
 	// status_matrix_test.go which seeds its own mixed-status fixtures.
 	_, err = client.Network.Create().
 		SetName("CloudySkies Corp").
+		SetNameFold(unifold.Fold("CloudySkies Corp")).
 		SetAsn(65000).
 		SetStatus("ok").
 		SetCreated(future).

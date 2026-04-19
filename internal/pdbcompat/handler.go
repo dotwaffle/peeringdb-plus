@@ -144,8 +144,10 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// Parse pagination per D-16.
 	limit, skip := ParsePaginationParams(params)
 
-	// Parse filters per D-09, D-11.
-	filters, err := ParseFilters(params, tc.Fields)
+	// Parse filters per D-09, D-11. Phase 69 Plan 04 adds the emptyResult
+	// short-circuit for ?field__in= (IN-02) and threads TypeConfig so that
+	// shadow-column routing (UNICODE-01) can consult tc.FoldedFields.
+	filters, emptyResult, err := ParseFilters(params, tc)
 	if err != nil {
 		WriteProblem(w, httperr.WriteProblemInput{
 			Status:   http.StatusBadRequest,
@@ -186,10 +188,11 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	}
 
 	opts := QueryOptions{
-		Filters: filters,
-		Limit:   limit,
-		Skip:    skip,
-		Since:   since,
+		Filters:     filters,
+		Limit:       limit,
+		Skip:        skip,
+		Since:       since,
+		EmptyResult: emptyResult,
 	}
 
 	results, _, err := tc.List(r.Context(), h.client, opts)

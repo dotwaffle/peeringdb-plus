@@ -70,25 +70,31 @@ func TestParseFieldOp(t *testing.T) {
 func TestParseFilters(t *testing.T) {
 	t.Parallel()
 
-	// Test fields map simulating "net" type.
-	fields := map[string]FieldType{
-		"id":            FieldInt,
-		"name":          FieldString,
-		"aka":           FieldString,
-		"asn":           FieldInt,
-		"info_unicast":  FieldBool,
-		"created":       FieldTime,
-		"updated":       FieldTime,
-		"info_traffic":  FieldString,
-		"info_prefixes4": FieldInt,
-		"status":        FieldString,
+	// Test TypeConfig simulating "net" type. Phase 69 Plan 04: ParseFilters
+	// takes TypeConfig so it can consult FoldedFields for shadow-column
+	// routing.
+	tc := TypeConfig{
+		Name: "net",
+		Fields: map[string]FieldType{
+			"id":             FieldInt,
+			"name":           FieldString,
+			"aka":            FieldString,
+			"asn":            FieldInt,
+			"info_unicast":   FieldBool,
+			"created":        FieldTime,
+			"updated":        FieldTime,
+			"info_traffic":   FieldString,
+			"info_prefixes4": FieldInt,
+			"status":         FieldString,
+		},
 	}
 
 	tests := []struct {
-		name       string
-		params     url.Values
-		wantCount  int
-		wantErr    bool
+		name           string
+		params         url.Values
+		wantCount      int
+		wantErr        bool
+		wantEmptyRes   bool
 	}{
 		{
 			name:      "exact match on string field",
@@ -186,12 +192,20 @@ func TestParseFilters(t *testing.T) {
 			params:    url.Values{"status__in": {"ok,pending"}},
 			wantCount: 1,
 		},
+		{
+			// Phase 69 IN-02: empty __in short-circuits with emptyResult=true
+			// and no predicates are emitted (caller returns []).
+			name:         "empty __in triggers emptyResult sentinel",
+			params:       url.Values{"asn__in": {""}},
+			wantCount:    0,
+			wantEmptyRes: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			predicates, err := ParseFilters(tt.params, fields)
+			predicates, emptyResult, err := ParseFilters(tt.params, tc)
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("ParseFilters() expected error, got nil")
@@ -201,6 +215,9 @@ func TestParseFilters(t *testing.T) {
 			if err != nil {
 				t.Errorf("ParseFilters() unexpected error: %v", err)
 				return
+			}
+			if emptyResult != tt.wantEmptyRes {
+				t.Errorf("ParseFilters() emptyResult = %v, want %v", emptyResult, tt.wantEmptyRes)
 			}
 			if len(predicates) != tt.wantCount {
 				t.Errorf("ParseFilters() returned %d predicates, want %d", len(predicates), tt.wantCount)
@@ -260,7 +277,7 @@ func TestBuildExactErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := buildExact(tt.field, tt.value, tt.ft)
+			_, err := buildExact(tt.field, tt.value, tt.ft, false /*folded*/)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -298,7 +315,7 @@ func TestBuildContainsErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := buildContains(tt.field, "value", tt.ft)
+			_, err := buildContains(tt.field, "value", tt.ft, false /*folded*/)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -330,7 +347,7 @@ func TestBuildStartsWithErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := buildStartsWith(tt.field, "value", tt.ft)
+			_, err := buildStartsWith(tt.field, "value", tt.ft, false /*folded*/)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -474,12 +491,15 @@ func TestParseTimeErrors(t *testing.T) {
 func TestParseFiltersErrorPaths(t *testing.T) {
 	t.Parallel()
 
-	fields := map[string]FieldType{
-		"asn":          FieldInt,
-		"info_unicast": FieldBool,
-		"created":      FieldTime,
-		"latitude":     FieldFloat,
-		"name":         FieldString,
+	tc := TypeConfig{
+		Name: "test",
+		Fields: map[string]FieldType{
+			"asn":          FieldInt,
+			"info_unicast": FieldBool,
+			"created":      FieldTime,
+			"latitude":     FieldFloat,
+			"name":         FieldString,
+		},
 	}
 
 	tests := []struct {
@@ -532,7 +552,7 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := ParseFilters(tt.params, fields)
+			_, _, err := ParseFilters(tt.params, tc)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
