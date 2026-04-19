@@ -257,6 +257,39 @@ same ent client:
   server. The health check is held in `NOT_SERVING` until the first sync completes, then flips to
   `SERVING` for the root service and every registered service name.
 
+## Ordering
+
+All list endpoints return rows in compound `(-updated, -created, -id)` order by default, matching
+upstream PeeringDB's `django-handleref` base `Meta.ordering = ("-updated", "-created")` plus a
+deterministic `id DESC` tertiary tiebreaker for cross-replica consistency. The ordering contract
+spans three surfaces — pdbcompat `/api/<type>`, entrest `/rest/v1/<type>`, and ConnectRPC
+`List*`/`Stream*` RPCs — with parity verified end-to-end by
+`cmd/peeringdb-plus/ordering_cross_surface_e2e_test.go`.
+
+- **pdbcompat** and **ConnectRPC** emit the full compound `ORDER BY` directly via ent
+  (`internal/pdbcompat/registry_funcs.go` and the `List<Entity>`/`Stream<Entity>` closures in
+  `internal/grpcserver/*.go`).
+- **entrest** uses an in-tree template override at `ent/templates/entrest-sorting/sorting.tmpl`
+  because entrest's annotation API is single-field; the template injects `created, id` tie-breakers
+  (in the requested sort direction) whenever the request's sort field matches each schema's
+  declared default (`updated`). Explicit `?sort=<field>&order=<dir>` overrides are honoured
+  unchanged.
+- **Nested `_set` arrays at depth ≥ 1** (entrest only): entrest's eager-load template calls
+  `applySorting<Type>` on auto-eagerloaded relations, so `/rest/v1/<type>` responses also carry
+  nested `edges.<relation>` arrays in compound order — matching upstream PeeringDB's Django
+  serializer behaviour for nested relations. Covered by `TestEntrestNestedSetOrder`.
+- **ConnectRPC streaming** uses a compound `(last_updated, last_id)` keyset cursor
+  (base64-encoded as `RFC3339Nano:id`) for stable pagination under concurrent mutation. The
+  `page_token` proto field is opaque `string`; no proto regeneration or client-facing change was
+  required. Covered by `TestCursorResume_CompoundKeyset` in `internal/grpcserver/`.
+- **GraphQL** uses the Relay Connection spec with its own opaque cursors and is unaffected by this
+  contract. **Web UI** ordering is handler-local and not part of the list-endpoint guarantee.
+- **Performance:** every one of the 13 entity tables carries an `updated` index declared via
+  `index.Fields("updated")` in `ent/schema/<entity>.go`, so `ORDER BY updated DESC, id DESC` hits
+  an index scan rather than a full-table sort. Post-deploy verification:
+  `sqlite3 /litefs/peeringdb-plus.db '.schema'` should list a `<entity>_updated` index for every
+  entity.
+
 ## Privacy layer
 
 PeeringDB tags per-row visibility (`visible="Public" | "Users" | "Private"`
