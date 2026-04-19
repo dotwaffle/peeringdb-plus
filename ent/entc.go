@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	_ "unsafe" // Required for go:linkname.
 
@@ -99,9 +100,44 @@ func main() {
 		// PocQueryRuleFunc adapter is sufficient; EntQL dynamic filters are
 		// not required for our row-level visibility rule.
 		entc.FeatureNames("sql/upsert", "sql/execquery", "privacy"),
+		// Phase 67 D-07: project-local override of entrest's `rest/sorting`
+		// template. Injects a compound (_field, FieldCreated, FieldID)
+		// tie-break into applySorting<Type> when _field matches the entity's
+		// declared DefaultField, so REST default ORDER BY matches pdbcompat
+		// and grpcserver. Path is relative to entc.Generate's working dir,
+		// which is `ent/` (this file's dir) when invoked via `go generate ./ent`.
+		//
+		// We cannot use entc.TemplateDir here because it constructs the template
+		// with only ent's default funcmap (gen.Funcs) — the upstream entrest
+		// sorting template depends on entrest-provided funcs such as
+		// `getAnnotation` and `getSortableFields` (see entrest/templates.go
+		// funcMap). entrest.FuncMaps() exports those. We build a *gen.Template
+		// with both ent's defaults (via gen.NewTemplate) and entrest's funcmap,
+		// parse our override from disk, then append to cfg.Templates via the
+		// same mechanism entc.TemplateDir uses internally (templateOption →
+		// cfg.Templates). gen.Graph.templates() at codegen time merges the
+		// funcmap into the root template tree, so the override's `rest/sorting`
+		// definition wins over entrest's baseTemplates entry.
+		entrestSortingOverride("./templates/entrest-sorting"),
 	}
 
 	if err := entc.Generate("./schema", &gen.Config{}, opts...); err != nil {
 		log.Fatalf("running ent codegen: %v", err)
+	}
+}
+
+// entrestSortingOverride is a minimal replica of entc.TemplateDir that registers
+// entrest's funcmap on the template before parsing. This is required because
+// our project-local override of entrest's sorting.tmpl uses entrest-provided
+// template funcs (getAnnotation, getSortableFields) which aren't in ent's
+// default funcmap. See Phase 67 Plan 02.
+func entrestSortingOverride(path string) entc.Option {
+	return func(cfg *gen.Config) error {
+		t := gen.NewTemplate("entrest-override").Funcs(entrest.FuncMaps())
+		if _, err := t.ParseDir(path); err != nil {
+			return fmt.Errorf("parsing entrest sorting override from %q: %w", path, err)
+		}
+		cfg.Templates = append(cfg.Templates, t)
+		return nil
 	}
 }

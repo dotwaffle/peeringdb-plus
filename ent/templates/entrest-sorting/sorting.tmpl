@@ -1,0 +1,184 @@
+{{/*
+  PROJECT-LOCAL OVERRIDE of entrest sorting template.
+  Base source: github.com/lrstanley/entrest@v1.0.3/templates/sorting.tmpl
+  Change: applySorting<Type> emits compound (_field, FieldCreated, FieldID) tie-break
+          when _field matches the entity's declared DefaultField. See CONTEXT.md D-02/D-07.
+  Upgrade path: when bumping entrest, diff the new upstream sorting.tmpl against this file,
+                re-apply the compound-tie-break injection, re-run `go generate ./ent`.
+*/}}
+{{- /*
+  Copyright (c) Liam Stanley <liam@liam.sh>. All rights reserved. Use of
+  this source code is governed by the MIT license that can be found in
+  the LICENSE file.
+*/ -}}
+{{- define "rest/sorting" }}
+{{- with extend $ "Package" "rest" }}{{ template "header" . }}{{ end }}
+
+import (
+    {{- template "helper/rest/standard-imports" . }}
+    {{- template "helper/rest/schema-imports" . }}
+)
+
+type Sorted struct {
+    // Field is the field to sort by. Can be a standard field name (e.g. "name"), or a custom field
+    // name (e.g. "pets.age.sum"). If no field is provided, the default field will be used.
+    Field *string `json:"sort" form:"sort,omitempty"`
+
+    // Order is the order to sort by. Can be either "asc" or "desc". If no order is provided, the
+    // default order will be used.
+    Order *orderDirection `json:"order" form:"order,omitempty"`
+}
+
+// Validate validates the sorting fields and applies any necessary defaults.
+func (s *Sorted) Validate(_cfg *SortConfig) error {
+    if s.Field == nil {
+        if _cfg.DefaultField == "" {
+            return nil
+        }
+        s.Field = &_cfg.DefaultField
+    }
+    if s.Order == nil {
+        s.Order = &_cfg.DefaultOrder
+    }
+
+    if !slices.Contains(_cfg.Fields, *s.Field) {
+        return &ErrBadRequest{Err: fmt.Errorf("invalid sort field: %s", *s.Field)}
+    }
+
+    if !slices.Contains(OrderDirections, *s.Order) {
+        return &ErrBadRequest{Err: fmt.Errorf("invalid order: %s", *s.Order)}
+    }
+
+    return nil
+}
+
+// withOrderTerm returns the OrderTermOption (asc/desc) based on the provided order string.
+func withOrderTerm(_order orderDirection) sql.OrderTermOption {
+    if _order == orderAsc {
+        return sql.OrderAsc()
+    }
+    return sql.OrderDesc()
+}
+
+func withFieldSelector(_field string, _order orderDirection) func(*sql.Selector) {
+    if _order == orderAsc {
+        return ent.Asc(_field)
+    }
+    return ent.Desc(_field)
+}
+
+type SortConfig struct {
+    Fields       []string
+    DefaultField string
+    DefaultOrder orderDirection
+}
+
+type orderDirection string
+
+var (
+    orderAsc  orderDirection = "asc"
+    orderDesc orderDirection = "desc"
+
+    // OrderDirections are the allowed order directions that can be provided.
+    OrderDirections = []orderDirection{orderAsc, orderDesc}
+
+    {{- range $t := $.Nodes }}
+        {{- if (($t|getAnnotation).GetSkip $.Annotations.RestConfig) }}{{ continue }}{{ end }}
+        // {{ $t.Name|zsingular }}SortConfig defines the default sort configuration for {{ $t.Name|zsingular }}.
+        {{ $t.Name|zsingular }}SortConfig = &SortConfig{
+            Fields: []string{
+                {{- range getSortableFields $t nil }}
+                "{{ . }}",
+                {{- end }}
+            },
+            {{- $sortField := ($t|getAnnotation).GetDefaultSort (ne $t.ID nil) }}
+            {{- if $sortField }}
+              DefaultField: {{ $sortField | quote }},
+            {{- end }}
+            DefaultOrder: {{ printf "%s" ($t|getAnnotation).GetDefaultOrder| quote }},
+        }
+    {{- end }}
+)
+
+// isSpecializedSort checks if the sort field is a specialized sort field.
+func isSpecializedSort(_parts []string) (isCount, isSum bool) {
+    switch {
+    case len(_parts) == 3:
+        switch _parts[2] {
+        case "count":
+            isCount = true
+        case "sum":
+            isSum = true
+        }
+    case len(_parts) == 2:
+        switch _parts[1] {
+        case "count":
+            isCount = true
+        case "sum":
+            isSum = true
+        }
+    }
+    return isCount, isSum
+}
+
+{{- range $t := $.Nodes }}
+    {{- if (($t|getAnnotation).GetSkip $.Annotations.RestConfig) }}{{ continue }}{{ end }}
+
+    // applySorting{{ $t.Name|zsingular }} applies sorting to the query based on the provided sort and
+    // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
+    func applySorting{{ $t.Name|zsingular }}(_query *ent.{{ $t.Name }}Query, _field string, _order orderDirection) *ent.{{ $t.Name }}Query {
+        {{- if $t.Edges }}
+        if _parts := strings.Split(_field, "."); len(_parts) > 1 {
+            _dir := withOrderTerm(_order)
+
+            {{- range $e := $t.Edges }}
+                {{ if not $e.Unique }}
+                    isCount, isSum := isSpecializedSort(_parts)
+                    {{ break }}
+                {{ end }}
+            {{ end }}
+
+            switch _parts[0] {
+            {{- range $e := $t.Edges }}
+                case {{ $t.Package }}.Edge{{ $e.StructField }}:
+                    {{- if $e.Unique }}
+                        return _query.Order({{ $t.Package }}.By{{ $e.StructField }}Field(_parts[1], _dir))
+                    {{- else }}
+                        switch {
+                        {{- if ne $e.Name "count" }}
+                        case isCount:
+                            return _query.Order({{ $t.Package }}.By{{ $e.StructField }}Count(_dir))
+                        {{- end }}
+                        {{- if ne $e.Name "sum" }}
+                        case isSum:
+                            return _query.Order({{ $t.Package }}.By{{ $e.StructField }}(sql.OrderBySum(_parts[1], _dir)))
+                        {{- end }}
+                        default:
+                            return _query.Order({{ $t.Package }}.By{{ $e.StructField }}(sql.OrderByField(_parts[1], _dir)))
+                        }
+                    {{- end }}
+            {{- end }}
+            }
+        }
+        {{- end }}
+        if _field == "random" {
+            return _query.Order(sql.OrderByRand())
+        }
+        {{- $defaultSort := ($t|getAnnotation).GetDefaultSort (ne $t.ID nil) }}
+        {{- if $defaultSort }}
+        // Phase 67 compound-default tie-break: when the requested sort field is the
+        // entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+        // same order direction for parity with pdbcompat and grpcserver. See
+        // .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+        if _field == {{ $defaultSort | quote }} {
+            return _query.Order(
+                withFieldSelector(_field, _order),
+                withFieldSelector({{ $t.Package }}.FieldCreated, _order),
+                withFieldSelector({{ $t.Package }}.FieldID, _order),
+            )
+        }
+        {{- end }}
+        return _query.Order(withFieldSelector(_field, _order))
+    }
+{{- end }}{{/* end range */}}
+{{- end }}{{/* end template */}}

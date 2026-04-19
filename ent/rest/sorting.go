@@ -298,6 +298,17 @@ func applySortingCampus(_query *ent.CampusQuery, _field string, _order orderDire
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
 	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(campus.FieldCreated, _order),
+			withFieldSelector(campus.FieldID, _order),
+		)
+	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
 
@@ -326,6 +337,17 @@ func applySortingCarrier(_query *ent.CarrierQuery, _field string, _order orderDi
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
 	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(carrier.FieldCreated, _order),
+			withFieldSelector(carrier.FieldID, _order),
+		)
+	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
 
@@ -344,6 +366,17 @@ func applySortingCarrierFacility(_query *ent.CarrierFacilityQuery, _field string
 	}
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
+	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(carrierfacility.FieldCreated, _order),
+			withFieldSelector(carrierfacility.FieldID, _order),
+		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
@@ -393,6 +426,17 @@ func applySortingFacility(_query *ent.FacilityQuery, _field string, _order order
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
 	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(facility.FieldCreated, _order),
+			withFieldSelector(facility.FieldID, _order),
+		)
+	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
 
@@ -430,6 +474,17 @@ func applySortingInternetExchange(_query *ent.InternetExchangeQuery, _field stri
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
 	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(internetexchange.FieldCreated, _order),
+			withFieldSelector(internetexchange.FieldID, _order),
+		)
+	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
 
@@ -448,6 +503,17 @@ func applySortingIxFacility(_query *ent.IxFacilityQuery, _field string, _order o
 	}
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
+	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(ixfacility.FieldCreated, _order),
+			withFieldSelector(ixfacility.FieldID, _order),
+		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
@@ -486,6 +552,17 @@ func applySortingIxLan(_query *ent.IxLanQuery, _field string, _order orderDirect
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
 	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(ixlan.FieldCreated, _order),
+			withFieldSelector(ixlan.FieldID, _order),
+		)
+	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
 
@@ -502,6 +579,17 @@ func applySortingIxPrefix(_query *ent.IxPrefixQuery, _field string, _order order
 	}
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
+	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(ixprefix.FieldCreated, _order),
+			withFieldSelector(ixprefix.FieldID, _order),
+		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
@@ -549,6 +637,17 @@ func applySortingNetwork(_query *ent.NetworkQuery, _field string, _order orderDi
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
 	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(network.FieldCreated, _order),
+			withFieldSelector(network.FieldID, _order),
+		)
+	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
 
@@ -568,6 +667,17 @@ func applySortingNetworkFacility(_query *ent.NetworkFacilityQuery, _field string
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
 	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(networkfacility.FieldCreated, _order),
+			withFieldSelector(networkfacility.FieldID, _order),
+		)
+	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
 
@@ -586,6 +696,17 @@ func applySortingNetworkIxLan(_query *ent.NetworkIxLanQuery, _field string, _ord
 	}
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
+	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(networkixlan.FieldCreated, _order),
+			withFieldSelector(networkixlan.FieldID, _order),
+		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
@@ -649,6 +770,17 @@ func applySortingOrganization(_query *ent.OrganizationQuery, _field string, _ord
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
 	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(organization.FieldCreated, _order),
+			withFieldSelector(organization.FieldID, _order),
+		)
+	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
 
@@ -665,6 +797,17 @@ func applySortingPoc(_query *ent.PocQuery, _field string, _order orderDirection)
 	}
 	if _field == "random" {
 		return _query.Order(sql.OrderByRand())
+	}
+	// Phase 67 compound-default tie-break: when the requested sort field is the
+	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
+	// same order direction for parity with pdbcompat and grpcserver. See
+	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	if _field == "updated" {
+		return _query.Order(
+			withFieldSelector(_field, _order),
+			withFieldSelector(poc.FieldCreated, _order),
+			withFieldSelector(poc.FieldID, _order),
+		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
 }
