@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: "Completed 72-05 — Phase 72 plan 05 of 06 shipped. internal/pdbcompat/parity/bench_test.go added (237 LOC) with 3 b.Loop()-style benchmarks locking v1.16 performance envelopes: BenchmarkParity_TwoHopTraversal (ixpfx?ixlan__ix__id=20, ~580μs/op, ~43KB/op, ~650 allocs/op at small N on Ryzen 5 3600) + BenchmarkParity_LimitZeroStreaming (5000-row seeded Phase 71 stream.go end-to-end, ~82.7ms/op, ~34MB/op, ~437k allocs/op) + BenchmarkParity_InFiveThousandElements (5001-id IN via Phase 69 json_each rewrite, reuses InFixtures 100000..105000, ~98.6ms/op, ~34.7MB/op, ~437k allocs/op). All 3 benchmarks use b.Loop() + b.ReportAllocs() per GO-TOOL-1; 0 hand-rolled b.N loops (grep-verified). testing.TB widening: testutil.SetupClient/SetupClientWithDB (internal/testutil/testutil.go) + 9 parity harness helpers (newTestServer, newTestServerWithBudget, httpGet, decodeDataArray, extractIDs, mustDecodeProblem, seedFixtures, persistFixture, ensureFixtureOrgParent in internal/pdbcompat/parity/harness_helpers_test.go) widened from *testing.T to testing.TB — type-only change, every *testing.T call site still satisfies the interface; full-repo `go test -race ./...` green across 40+ packages post-widening. Single atomic commit e325752. Race-enabled bench smoke completed in 24.8s (under the 120s gate). benchstat-ready `-count=3 -benchtime=5x` run captured in 72-05-SUMMARY.md. Zero deferred follow-ups in scope — CI benchstat-on-main is out of plan per CONTEXT.md D-06 (standard `go test -race` tier). Next: Plan 72-06 (milestone closer — docs/API.md § Known Divergences + § Validation Notes)."
-last_updated: "2026-04-19T23:36:27.000Z"
+stopped_at: "Completed 72-06 — Phase 72 plan 06 of 06 shipped. v1.16 Django-compat Correctness milestone COMPLETE. docs/API.md § Known Divergences extended with 3 new rows (pre-Phase-68 hard-delete gap parity cross-ref + pdbfe limit=0 count-only invalid claim + depth-on-list silent-drop LIMIT-02 guardrail) + TestParity_Traversal/DIVERGENCE_* cross-refs appended to the 2 existing DEFER-70-06-01 / DEFER-70-verifier-01 rows. docs/API.md § Validation Notes NEW sub-section added with 5 invalid-pdbfe-claims (net?country=NL not valid + limit=0 unlimited not count-only + default ordering (-updated,-created) not id ASC + unicode folding Python unidecode not MySQL collation + filter surface prepare_query + queryable_relations not DRF filterset_class), all 5 pinned to peeringdb/peeringdb@99e92c726172ead7d224ce34c344eff0bccb3e63 matching the fixtures.go header. CLAUDE.md gains § Upstream parity regression (Phase 72) convention subsection under Conventions covering 5 maintainer blocks (add parity test / port fixtures / quarterly drift check / divergence registry / benchmarks). CHANGELOG.md v1.16 [Unreleased] Phase 72 Added block (5 bullets: parity suite + pdb-fixture-port tool + bench_test.go + Known Divergences extension + Validation Notes) + v1.16 milestone-complete note flipped. REQUIREMENTS.md PARITY-02 [ ] → [x]; all 25 v1.16 REQ-IDs now show complete across 8 categories (ORDER/STATUS/LIMIT/IN/UNICODE/TRAVERSAL/MEMORY/PARITY). ROADMAP.md Phase 72 [x] 6/6; v1.16 🟡 → ✅ complete 2026-04-19; Progress table corrected for stale 68 (1/4→4/4) + 69 (3/6→6/6) rows. Commits 1f0b120 (Task 1 — docs/API.md) + aaef0d1 (Task 2 — CLAUDE+CHANGELOG+REQ+ROADMAP). docs/API.md grep invariants: 2 Validation Notes refs, 8 peeringdb/peeringdb@ SHA refs, 10 TestParity_ cross-refs. No fly deploy imperatives added (Phase 72 is a CI regression gate only, ships independently of 67-71). go build ./... clean. Next: /gsd-complete-milestone to archive v1.16 into .planning/milestones/v1.16-*."
+last_updated: "2026-04-19T23:55:00.000Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 6
   total_plans: 30
-  completed_plans: 32
-  percent: 89
+  completed_plans: 30
+  percent: 100
 ---
 
 # Project State
@@ -22,15 +22,15 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 72 in progress. Plans 72-01/02/03/04/05 shipped (cmd/pdb-fixture-port/ codegen tool + 5560 fixtures across 6 category vars + internal/pdbcompat/parity/ consumer suite with 31 hard-pass tests covering ORDER-01..03 / STATUS-01..06 / LIMIT-01/01b/02 / UNICODE-01/02 / IN-01/02/03 / TRAVERSAL-01..04 + 2 explicit DIVERGENCE asserts + 3 b.Loop() benchmarks locking 2-hop traversal / limit=0 streaming / 5001-IN performance envelopes). Plan 72-06 closes Phase 72 with docs/API.md § Known Divergences / § Validation Notes.
+**Current focus:** v1.16 Django-compat Correctness milestone COMPLETE (2026-04-19). All 6 phases (67-72) shipped across 30/30 plans. 25/25 requirements across 8 categories (ORDER, STATUS, LIMIT, IN, UNICODE, TRAVERSAL, MEMORY, PARITY) traced and complete. Next action: `/gsd-complete-milestone` to archive v1.16 into `.planning/milestones/v1.16-*`.
 
 ## Current Position
 
-Phase: 72 (upstream-parity-regression) — IN PROGRESS (5/6 plans complete). Plans 72-01..05 shipped: cmd/pdb-fixture-port/ scaffold + all 6 category fixture sets at peeringdb/peeringdb@99e92c72 + internal/pdbcompat/parity/ regression suite locking v1.16 semantics + 3 b.Loop() performance benchmarks. Plan 72-06 remaining (milestone-closer docs).
+Phase: 72 (upstream-parity-regression) — COMPLETE (6/6 plans shipped). Final plan 72-06 closed with docs/API.md § Known Divergences + § Validation Notes + CLAUDE.md convention + CHANGELOG v1.16 milestone-close + REQUIREMENTS.md PARITY-02 complete + ROADMAP.md Phase 72 [x] v1.16 ✅.
 
-Plan: Last completed 72-05 (internal/pdbcompat/parity/bench_test.go — 3 b.Loop() benchmarks per CONTEXT.md D-07). Single atomic commit e325752. 237 LOC with BenchmarkParity_TwoHopTraversal (~580μs/op on Ryzen 5 3600) + BenchmarkParity_LimitZeroStreaming (~82.7ms/op, 5000-row seeded stream.go path) + BenchmarkParity_InFiveThousandElements (~98.6ms/op, reuses InFixtures 100000..105000). All 3 use b.Loop() + b.ReportAllocs() per GO-TOOL-1; 0 hand-rolled b.N loops (grep-verified). testing.TB widening plumbed through testutil.SetupClient/SetupClientWithDB + 9 parity harness helpers (type-only change; full-repo `go test -race ./...` green across 40+ packages post-widening; golangci-lint 0 issues). Race-enabled bench smoke passed in 24.8s (<120s gate). benchstat-ready -count=3 -benchtime=5x run captured in SUMMARY. No deferred follow-ups in-scope — CI benchstat-on-main is out of plan per CONTEXT.md D-06.
-Status: Phase 71 CLOSED. v1.16 phases 67-71 ready to deploy as a coordinated bundle. Phase 72 (parity regression lock-in) ships independently — 5/6 plans complete.
-Next action: `/gsd-execute-phase 72` continues — Plan 72-06 (milestone-closer — docs/API.md § Known Divergences extension + § Validation Notes per CONTEXT.md D-04/D-05).
+Plan: Last completed 72-06 (docs close + milestone traceability). 2 atomic commits: 1f0b120 (docs/API.md — 3 new Known Divergences rows + 5-row Validation Notes sub-section with pinned peeringdb/peeringdb@99e92c72... SHA refs + TestParity_* cross-refs) + aaef0d1 (CLAUDE.md § Upstream parity regression convention + CHANGELOG.md v1.16 Phase 72 Added block + REQUIREMENTS.md PARITY-02 flipped complete + ROADMAP.md Phase 72 [x]). Grep invariants: 2 Validation Notes refs, 8 peeringdb/peeringdb@ SHA refs, 10 TestParity_ cross-refs, 25/25 v1.16 REQ-IDs complete. Zero code changes; go build ./... clean.
+Status: v1.16 MILESTONE COMPLETE 2026-04-19. Phases 67-71 ship as a coordinated deploy bundle via fly deploy; Phase 72 ships independently as a CI regression gate only (no production change). Ready for /gsd-complete-milestone archival.
+Next action: `/gsd-complete-milestone` — archive v1.16 (Django-compat Correctness) into `.planning/milestones/v1.16-*`. Snapshots: ROADMAP.md + REQUIREMENTS.md (25 REQ-IDs traced) + move `.planning/phases/{67,68,69,70,71,72}-*/` → `.planning/milestones/v1.16-phases/`.
 Last activity: 2026-04-19
 
 ## v1.16 Phase Map
