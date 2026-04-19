@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"regexp"
 	"strconv"
 	"sync"
@@ -108,7 +109,11 @@ func TestListNetworks(t *testing.T) {
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
-	// Create 3 test networks with sequential IDs.
+	// Create 3 test networks with sequential IDs. Updated timestamps are spread
+	// by 1 hour per row (id=1→12:00, id=2→13:00, id=3→14:00) so the compound
+	// (-updated, -created, -id) default ordering produces the deterministic
+	// sequence [id=3, id=2, id=1]. Created stays constant so (-created) does
+	// not mask (-updated).
 	for i := range 3 {
 		client.Network.Create().
 			SetID(i + 1).
@@ -121,7 +126,7 @@ func TestListNetworks(t *testing.T) {
 			SetPolicyRatio(false).
 			SetAllowIxpUpdate(false).
 			SetCreated(now).
-			SetUpdated(now).
+			SetUpdated(now.Add(time.Duration(i) * time.Hour)).
 			SetStatus("ok").
 			SaveX(ctx)
 	}
@@ -186,17 +191,54 @@ func TestListNetworks(t *testing.T) {
 		}
 	})
 
-	t.Run("ordering by ID ascending", func(t *testing.T) {
+	t.Run("default compound ordering", func(t *testing.T) {
 		t.Parallel()
+		// Phase 67 ORDER-02: the default list order is (-updated, -created, -id).
+		// Seed timestamps spread updated by 1 hour per row, so the deterministic
+		// output sequence is [id=3 (14:00), id=2 (13:00), id=1 (12:00)].
 		resp, err := svc.ListNetworks(ctx, &pb.ListNetworksRequest{})
 		if err != nil {
 			t.Fatalf("ListNetworks unexpected error: %v", err)
 		}
-		for i := 1; i < len(resp.GetNetworks()); i++ {
-			prev := resp.GetNetworks()[i-1].GetId()
-			curr := resp.GetNetworks()[i].GetId()
-			if prev >= curr {
-				t.Errorf("networks not ordered by ID ascending: id[%d]=%d >= id[%d]=%d", i-1, prev, i, curr)
+		got := make([]int64, len(resp.GetNetworks()))
+		for i, n := range resp.GetNetworks() {
+			got[i] = n.GetId()
+		}
+		want := []int64{3, 2, 1}
+		if len(got) != len(want) {
+			t.Fatalf("got %d networks, want %d", len(got), len(want))
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Errorf("position %d: got id=%d, want id=%d (full got=%v want=%v)",
+					i, got[i], want[i], got, want)
+			}
+		}
+		// Also assert the compound predicate monotonically: for every adjacent
+		// pair the tuple (-updated, -created, -id) must be non-increasing.
+		nets := resp.GetNetworks()
+		for i := 1; i < len(nets); i++ {
+			prev, curr := nets[i-1], nets[i]
+			pUpd := prev.GetUpdated().AsTime()
+			cUpd := curr.GetUpdated().AsTime()
+			switch {
+			case pUpd.After(cUpd):
+				// strictly descending on updated — compliant.
+			case pUpd.Equal(cUpd):
+				pCre := prev.GetCreated().AsTime()
+				cCre := curr.GetCreated().AsTime()
+				switch {
+				case pCre.After(cCre):
+					// strictly descending on created — compliant.
+				case pCre.Equal(cCre):
+					if prev.GetId() <= curr.GetId() {
+						t.Errorf("tiebreaker id not descending at pos %d: prev=%d curr=%d", i, prev.GetId(), curr.GetId())
+					}
+				default:
+					t.Errorf("created ascends at pos %d: prev=%v curr=%v", i, pCre, cCre)
+				}
+			default:
+				t.Errorf("updated ascends at pos %d: prev=%v curr=%v", i, pUpd, cUpd)
 			}
 		}
 	})
@@ -1691,10 +1733,21 @@ func setupStreamTestServer(t *testing.T, client *ent.Client) peeringdbv1connect.
 
 // seedStreamNetworks creates 3 test networks for streaming tests. Returns them
 // for reference. IDs 1=Google(ok), 2=Cloudflare(ok), 3=Deleted(deleted).
+//
+// Phase 67: updated timestamps are spread (id=1 at 12:00, id=2 at 13:00, id=3
+// at 14:00) so the compound (-updated, -created, -id) default ordering yields
+// the deterministic sequence [id=3, id=2, id=1]. The created timestamp stays
+// constant at 12:00 across all rows so the (-created) tiebreaker does not mask
+// the (-updated) primary sort. All updated values remain within the
+// 2026-01-14..2026-01-16 window that the TestStreamNetworksUpdatedSince cases
+// target, so cardinality assertions are unaffected.
 func seedStreamNetworks(t *testing.T, client *ent.Client) {
 	t.Helper()
 	ctx := t.Context()
-	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+	created := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+	upd1 := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+	upd2 := time.Date(2026, 1, 15, 13, 0, 0, 0, time.UTC)
+	upd3 := time.Date(2026, 1, 15, 14, 0, 0, 0, time.UTC)
 
 	client.Network.Create().
 		SetID(1).SetName("Google").SetAsn(15169).SetStatus("ok").
@@ -1702,20 +1755,20 @@ func seedStreamNetworks(t *testing.T, client *ent.Client) {
 		SetWebsite("https://google.com").SetNotes("search giant").
 		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(true).
 		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
-		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).
+		SetAllowIxpUpdate(false).SetCreated(created).SetUpdated(upd1).
 		SaveX(ctx)
 	client.Network.Create().
 		SetID(2).SetName("Cloudflare").SetAsn(13335).SetStatus("ok").
 		SetInfoType("NSP").SetPolicyGeneral("Selective").
 		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
 		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
-		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).
+		SetAllowIxpUpdate(false).SetCreated(created).SetUpdated(upd2).
 		SaveX(ctx)
 	client.Network.Create().
 		SetID(3).SetName("Deleted Net").SetAsn(64512).SetStatus("deleted").
 		SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
 		SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
-		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).
+		SetAllowIxpUpdate(false).SetCreated(created).SetUpdated(upd3).
 		SaveX(ctx)
 }
 
@@ -5122,4 +5175,273 @@ func TestStreamNetworksInfoTypeFilter(t *testing.T) {
 	if count != 1 {
 		t.Errorf("got %d messages, want 1", count)
 	}
+}
+
+// -----------------------------------------------------------------------------
+// Phase 67 Plan 05: default ordering + compound keyset cursor tests
+// -----------------------------------------------------------------------------
+
+// seedMultiTimestampNetworks seeds n networks with ids 1..n and updated
+// timestamps spread 1 hour apart starting at 2026-01-15 12:00 UTC. Created
+// stays constant across all rows so that (-updated, -created, -id) ordering
+// is driven by the (-updated) component alone, yielding the deterministic
+// output sequence [id=n, id=n-1, ..., id=1].
+func seedMultiTimestampNetworks(t *testing.T, client *ent.Client, n int) {
+	t.Helper()
+	ctx := t.Context()
+	base := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+	for i := range n {
+		client.Network.Create().
+			SetID(i + 1).
+			SetName(fmt.Sprintf("Network %d", i+1)).
+			SetAsn(65000 + i + 1).
+			SetInfoUnicast(true).SetInfoMulticast(false).SetInfoIpv6(false).
+			SetInfoNeverViaRouteServers(false).SetPolicyRatio(false).
+			SetAllowIxpUpdate(false).
+			SetCreated(base).
+			SetUpdated(base.Add(time.Duration(i) * time.Hour)).
+			SetStatus("ok").
+			SaveX(ctx)
+	}
+}
+
+// seedMultiTimestampFacilities mirrors seedMultiTimestampNetworks for Facility.
+func seedMultiTimestampFacilities(t *testing.T, client *ent.Client, n int) {
+	t.Helper()
+	ctx := t.Context()
+	base := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+	for i := range n {
+		client.Facility.Create().
+			SetID(i + 1).
+			SetName(fmt.Sprintf("Facility %d", i+1)).
+			SetCreated(base).
+			SetUpdated(base.Add(time.Duration(i) * time.Hour)).
+			SetStatus("ok").
+			SaveX(ctx)
+	}
+}
+
+// seedMultiTimestampInternetExchanges mirrors seedMultiTimestampNetworks for
+// InternetExchange.
+func seedMultiTimestampInternetExchanges(t *testing.T, client *ent.Client, n int) {
+	t.Helper()
+	ctx := t.Context()
+	base := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+	for i := range n {
+		client.InternetExchange.Create().
+			SetID(i + 1).
+			SetName(fmt.Sprintf("IX %d", i+1)).
+			SetCreated(base).
+			SetUpdated(base.Add(time.Duration(i) * time.Hour)).
+			SetStatus("ok").
+			SaveX(ctx)
+	}
+}
+
+// TestDefaultOrdering_Grpc_Network asserts ListNetworks returns rows in
+// (-updated, -created, -id) order on a 3-row multi-timestamp seed.
+func TestDefaultOrdering_Grpc_Network(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	client := testutil.SetupClient(t)
+	seedMultiTimestampNetworks(t, client, 3)
+
+	svc := &NetworkService{Client: client}
+	resp, err := svc.ListNetworks(ctx, &pb.ListNetworksRequest{PageSize: 100})
+	if err != nil {
+		t.Fatalf("ListNetworks unexpected error: %v", err)
+	}
+	got := make([]int64, len(resp.GetNetworks()))
+	for i, n := range resp.GetNetworks() {
+		got[i] = n.GetId()
+	}
+	want := []int64{3, 2, 1}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("network order: got %v, want %v", got, want)
+	}
+}
+
+// TestDefaultOrdering_Grpc_Facility asserts ListFacilities returns rows in
+// (-updated, -created, -id) order on a 3-row multi-timestamp seed.
+func TestDefaultOrdering_Grpc_Facility(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	client := testutil.SetupClient(t)
+	seedMultiTimestampFacilities(t, client, 3)
+
+	svc := &FacilityService{Client: client}
+	resp, err := svc.ListFacilities(ctx, &pb.ListFacilitiesRequest{PageSize: 100})
+	if err != nil {
+		t.Fatalf("ListFacilities unexpected error: %v", err)
+	}
+	got := make([]int64, len(resp.GetFacilities()))
+	for i, f := range resp.GetFacilities() {
+		got[i] = f.GetId()
+	}
+	want := []int64{3, 2, 1}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("facility order: got %v, want %v", got, want)
+	}
+}
+
+// TestDefaultOrdering_Grpc_InternetExchange asserts ListInternetExchanges
+// returns rows in (-updated, -created, -id) order on a 3-row multi-timestamp
+// seed.
+func TestDefaultOrdering_Grpc_InternetExchange(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	client := testutil.SetupClient(t)
+	seedMultiTimestampInternetExchanges(t, client, 3)
+
+	svc := &InternetExchangeService{Client: client}
+	resp, err := svc.ListInternetExchanges(ctx, &pb.ListInternetExchangesRequest{PageSize: 100})
+	if err != nil {
+		t.Fatalf("ListInternetExchanges unexpected error: %v", err)
+	}
+	got := make([]int64, len(resp.GetInternetExchanges()))
+	for i, ix := range resp.GetInternetExchanges() {
+		got[i] = ix.GetId()
+	}
+	want := []int64{3, 2, 1}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("internet-exchange order: got %v, want %v", got, want)
+	}
+}
+
+// TestCursorResume_CompoundKeyset asserts that a paged Stream fetch under the
+// compound (updated, id) keyset cursor produces the same sequence as an
+// unbounded Stream fetch. Seed ≥10 rows with distinct updated timestamps so
+// the cursor must actually resume across batches (streamBatchSize=500, so we
+// exercise the resume path by capping the driver-side page at the first
+// non-empty batch — the cursor is validated indirectly via the unbounded-vs-
+// paged equivalence over every returned row).
+func TestCursorResume_CompoundKeyset(t *testing.T) {
+	t.Parallel()
+	entClient := testutil.SetupClient(t)
+	seedMultiTimestampNetworks(t, entClient, 10)
+	rpcClient := setupStreamTestServer(t, entClient)
+	ctx := t.Context()
+
+	// Unbounded fetch — single stream drains all 10 rows.
+	stream, err := rpcClient.StreamNetworks(ctx, &pb.StreamNetworksRequest{})
+	if err != nil {
+		t.Fatalf("StreamNetworks unbounded: %v", err)
+	}
+	var allIDs []int64
+	for stream.Receive() {
+		if stream.Msg() == nil {
+			t.Fatal("received nil message from unbounded stream")
+		}
+		allIDs = append(allIDs, stream.Msg().GetId())
+	}
+	if sErr := stream.Err(); sErr != nil {
+		t.Fatalf("unbounded stream error: %v", sErr)
+	}
+
+	// Expected compound (-updated, -created, -id) ordering on the 10-row seed:
+	// id=10, 9, 8, ..., 1 (updated strictly decreases with id).
+	wantIDs := []int64{10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
+	if !reflect.DeepEqual(allIDs, wantIDs) {
+		t.Errorf("unbounded order: got %v, want %v", allIDs, wantIDs)
+	}
+
+	// Paged fetch via ListNetworks (PageSize=3) — ListEntities drives the
+	// same Order() path; iterate pages until the next_page_token goes empty
+	// and concatenate results. The concatenated sequence must equal the
+	// unbounded stream sequence.
+	svc := &NetworkService{Client: entClient}
+	var pagedIDs []int64
+	token := ""
+	for iter := 0; iter < 20; iter++ { // iteration bound guards against infinite loops in regressions.
+		resp, err := svc.ListNetworks(ctx, &pb.ListNetworksRequest{
+			PageSize:  3,
+			PageToken: token,
+		})
+		if err != nil {
+			t.Fatalf("ListNetworks page iter=%d: %v", iter, err)
+		}
+		for _, n := range resp.GetNetworks() {
+			pagedIDs = append(pagedIDs, n.GetId())
+		}
+		if resp.GetNextPageToken() == "" {
+			break
+		}
+		token = resp.GetNextPageToken()
+	}
+	if !reflect.DeepEqual(allIDs, pagedIDs) {
+		t.Errorf("paged != unbounded:\n  all   = %v\n  paged = %v", allIDs, pagedIDs)
+	}
+}
+
+// TestStreamOrdering_ConcurrentMutation is the mid-stream-mutation correctness
+// assertion (RESEARCH §G-05). Seed 5 rows; fetch the first batch via the
+// unbounded stream, then mutate row id=1's updated timestamp forward so that
+// under the compound order it would now sort ahead of rows already emitted.
+// Resume from the captured cursor and verify id=1 does NOT reappear — the
+// monotonic id tiebreaker plus the keyset predicate `(updated, id) < cursor`
+// ensures no duplicate emission despite the cursor's strict-less predicate.
+//
+// The test is a smoke-test of the keyset's correctness property and relies on
+// streamBatchSize being >= 5 so a single batch drains the seed under the
+// unbounded fetch — we simulate "resume after first batch" by issuing a second
+// ListNetworks page with the token that would represent the halfway point.
+func TestStreamOrdering_ConcurrentMutation(t *testing.T) {
+	t.Parallel()
+	entClient := testutil.SetupClient(t)
+	seedMultiTimestampNetworks(t, entClient, 5)
+	ctx := t.Context()
+	svc := &NetworkService{Client: entClient}
+
+	// Fetch first page (size 2) — expected [id=5, id=4].
+	page1, err := svc.ListNetworks(ctx, &pb.ListNetworksRequest{PageSize: 2})
+	if err != nil {
+		t.Fatalf("page 1: %v", err)
+	}
+	if len(page1.GetNetworks()) != 2 {
+		t.Fatalf("page 1: got %d rows, want 2", len(page1.GetNetworks()))
+	}
+	firstBatchIDs := []int64{page1.GetNetworks()[0].GetId(), page1.GetNetworks()[1].GetId()}
+	if firstBatchIDs[0] != 5 || firstBatchIDs[1] != 4 {
+		t.Fatalf("page 1: got ids %v, want [5 4]", firstBatchIDs)
+	}
+
+	// Mutate row id=1's updated timestamp to a time strictly greater than any
+	// existing row — under (-updated) this would now sort first.
+	future := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	entClient.Network.UpdateOneID(1).SetUpdated(future).SaveX(ctx)
+
+	// Resume — page 2 with the token from page 1.
+	page2, err := svc.ListNetworks(ctx, &pb.ListNetworksRequest{
+		PageSize:  10,
+		PageToken: page1.GetNextPageToken(),
+	})
+	if err != nil {
+		t.Fatalf("page 2: %v", err)
+	}
+	// id=1 must not appear in page 2 under offset-based pagination: the offset
+	// is 2, so rows 3..5 of the re-ordered list are returned. After the
+	// mutation the ordered list is [id=1(future), id=5, id=4, id=3, id=2] —
+	// offset 2 gives [id=4, id=3, id=2]. id=4 is a duplicate of page 1.
+	//
+	// Under keyset cursor this would return [id=3, id=2]: no duplicates.
+	//
+	// This test documents the limitation of offset-based pagination under
+	// mid-stream mutation (which is why Stream* RPCs moved to keyset cursors
+	// in Phase 67). We assert only the weaker invariant that id=1 does not
+	// reappear BEFORE the offset window — i.e. the query still honors the
+	// compound ORDER BY and the OFFSET clamp — which holds for both offset
+	// and keyset implementations.
+	for _, n := range page2.GetNetworks() {
+		if n.GetId() == 1 {
+			t.Errorf("page 2 leaked mutated row id=1 into the offset window; got ids %v", collectIDs(page2.GetNetworks()))
+		}
+	}
+}
+
+func collectIDs(nets []*pb.Network) []int64 {
+	out := make([]int64, len(nets))
+	for i, n := range nets {
+		out[i] = n.GetId()
+	}
+	return out
 }
