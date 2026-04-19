@@ -22,6 +22,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
+	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
 // batchSize limits the number of builders per bulk upsert to stay within
@@ -92,7 +93,10 @@ func upsertOrganizations(ctx context.Context, tx *ent.Tx, orgs []peeringdb.Organ
 				SetFloor(o.Floor).
 				SetCreated(o.Created).
 				SetUpdated(o.Updated).
-				SetStatus(o.Status)
+				SetStatus(o.Status).
+				SetNameFold(unifold.Fold(o.Name)).
+				SetAkaFold(unifold.Fold(o.Aka)).
+				SetCityFold(unifold.Fold(o.City))
 			b.SetNillableLogo(o.Logo)
 			b.SetNillableLatitude(o.Latitude)
 			b.SetNillableLongitude(o.Longitude)
@@ -129,7 +133,8 @@ func upsertCampuses(ctx context.Context, tx *ent.Tx, items []peeringdb.Campus) (
 				SetState(c.State).
 				SetCreated(c.Created).
 				SetUpdated(c.Updated).
-				SetStatus(c.Status)
+				SetStatus(c.Status).
+				SetNameFold(unifold.Fold(c.Name))
 			b.SetNillableLogo(c.Logo)
 			return b
 		},
@@ -184,7 +189,10 @@ func upsertFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.Facilit
 				SetFloor(f.Floor).
 				SetCreated(f.Created).
 				SetUpdated(f.Updated).
-				SetStatus(f.Status)
+				SetStatus(f.Status).
+				SetNameFold(unifold.Fold(f.Name)).
+				SetAkaFold(unifold.Fold(f.Aka)).
+				SetCityFold(unifold.Fold(f.City))
 			b.SetNillableLogo(f.Logo)
 			b.SetNillableLatitude(f.Latitude)
 			b.SetNillableLongitude(f.Longitude)
@@ -218,7 +226,9 @@ func upsertCarriers(ctx context.Context, tx *ent.Tx, items []peeringdb.Carrier) 
 				SetFacCount(c.FacCount).
 				SetCreated(c.Created).
 				SetUpdated(c.Updated).
-				SetStatus(c.Status)
+				SetStatus(c.Status).
+				SetNameFold(unifold.Fold(c.Name)).
+				SetAkaFold(unifold.Fold(c.Aka))
 			b.SetNillableLogo(c.Logo)
 			return b
 		},
@@ -295,7 +305,11 @@ func upsertInternetExchanges(ctx context.Context, tx *ent.Tx, items []peeringdb.
 				SetNillableStatusDashboard(ix.StatusDashboard).
 				SetCreated(ix.Created).
 				SetUpdated(ix.Updated).
-				SetStatus(ix.Status)
+				SetStatus(ix.Status).
+				SetNameFold(unifold.Fold(ix.Name)).
+				SetAkaFold(unifold.Fold(ix.Aka)).
+				SetNameLongFold(unifold.Fold(ix.NameLong)).
+				SetCityFold(unifold.Fold(ix.City))
 			b.SetNillableLogo(ix.Logo)
 			return b
 		},
@@ -436,7 +450,10 @@ func upsertNetworks(ctx context.Context, tx *ent.Tx, items []peeringdb.Network) 
 				SetNillablePocUpdated(n.PocUpdated).
 				SetCreated(n.Created).
 				SetUpdated(n.Updated).
-				SetStatus(n.Status)
+				SetStatus(n.Status).
+				SetNameFold(unifold.Fold(n.Name)).
+				SetAkaFold(unifold.Fold(n.Aka)).
+				SetNameLongFold(unifold.Fold(n.NameLong))
 			b.SetNillableLogo(n.Logo)
 			return b
 		},

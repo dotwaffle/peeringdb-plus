@@ -27,9 +27,9 @@
       "created": "2024-01-01T00:00:00Z",
       "updated": "2024-06-15T12:30:00Z",
       "status": "ok",
-      "name_fold": "",
-      "aka_fold": "",
-      "city_fold": "",
+      "name_fold": "example organization",
+      "aka_fold": "exorg",
+      "city_fold": "san francisco",
       "edges": {}
     },
     {
@@ -63,9 +63,9 @@
       "created": "2024-02-15T10:00:00Z",
       "updated": "2024-08-01T09:15:00Z",
       "status": "ok",
-      "name_fold": "",
-      "aka_fold": "",
-      "city_fold": "",
+      "name_fold": "cloudnet services",
+      "aka_fold": "cloudnet",
+      "city_fold": "berlin",
       "edges": {}
     },
     {
@@ -90,9 +90,9 @@
       "created": "2023-06-01T00:00:00Z",
       "updated": "2024-03-01T00:00:00Z",
       "status": "deleted",
-      "name_fold": "",
+      "name_fold": "defunct telecom",
       "aka_fold": "",
-      "city_fold": "",
+      "city_fold": "london",
       "edges": {}
     }
   ],
@@ -115,7 +115,7 @@
       "created": "2024-01-15T08:00:00Z",
       "updated": "2024-07-01T14:00:00Z",
       "status": "ok",
-      "name_fold": "",
+      "name_fold": "example campus west",
       "edges": {}
     },
     {
@@ -136,7 +136,7 @@
       "created": "2024-03-01T10:00:00Z",
       "updated": "2024-09-15T16:30:00Z",
       "status": "ok",
-      "name_fold": "",
+      "name_fold": "cloudnet berlin campus",
       "edges": {}
     }
   ],
@@ -189,9 +189,9 @@
       "created": "2024-01-20T12:00:00Z",
       "updated": "2024-08-10T10:00:00Z",
       "status": "ok",
-      "name_fold": "",
-      "aka_fold": "",
-      "city_fold": "",
+      "name_fold": "example dc1",
+      "aka_fold": "edc1",
+      "city_fold": "san francisco",
       "edges": {}
     },
     {
@@ -234,9 +234,9 @@
       "created": "2024-03-10T09:00:00Z",
       "updated": "2024-09-20T11:30:00Z",
       "status": "ok",
-      "name_fold": "",
-      "aka_fold": "",
-      "city_fold": "",
+      "name_fold": "cloudnet berlin dc",
+      "aka_fold": "cnbdc",
+      "city_fold": "berlin",
       "edges": {}
     }
   ],
@@ -256,8 +256,8 @@
       "created": "2024-02-01T10:00:00Z",
       "updated": "2024-07-15T08:00:00Z",
       "status": "ok",
-      "name_fold": "",
-      "aka_fold": "",
+      "name_fold": "example carrier",
+      "aka_fold": "ec",
       "edges": {}
     }
   ],
@@ -315,10 +315,10 @@
       "created": "2024-01-25T09:00:00Z",
       "updated": "2024-08-15T14:00:00Z",
       "status": "ok",
-      "name_fold": "",
-      "aka_fold": "",
-      "name_long_fold": "",
-      "city_fold": "",
+      "name_fold": "bay area ix",
+      "aka_fold": "baix",
+      "name_long_fold": "bay area internet exchange",
+      "city_fold": "san francisco",
       "edges": {}
     },
     {
@@ -357,10 +357,10 @@
       "created": "2024-03-15T10:00:00Z",
       "updated": "2024-09-01T16:00:00Z",
       "status": "ok",
-      "name_fold": "",
-      "aka_fold": "",
-      "name_long_fold": "",
-      "city_fold": "",
+      "name_fold": "berlin ix",
+      "aka_fold": "blix",
+      "name_long_fold": "berlin internet exchange",
+      "city_fold": "berlin",
       "edges": {}
     }
   ],
@@ -489,9 +489,9 @@
       "created": "2024-01-30T08:00:00Z",
       "updated": "2024-08-20T10:00:00Z",
       "status": "ok",
-      "name_fold": "",
-      "aka_fold": "",
-      "name_long_fold": "",
+      "name_fold": "example network",
+      "aka_fold": "exnet",
+      "name_long_fold": "example network services",
       "edges": {}
     },
     {
@@ -538,7 +538,7 @@
       "created": "2024-04-01T10:00:00Z",
       "updated": "2024-09-10T12:00:00Z",
       "status": "ok",
-      "name_fold": "",
+      "name_fold": "cloudnet network",
       "aka_fold": "",
       "name_long_fold": "",
       "edges": {}

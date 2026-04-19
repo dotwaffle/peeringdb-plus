@@ -36,6 +36,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0
 	golang.org/x/net v0.53.0
 	golang.org/x/sync v0.20.0
+	golang.org/x/text v0.36.0
 	golang.org/x/time v0.15.0
 	google.golang.org/protobuf v1.36.11
 	modernc.org/sqlite v1.48.2
@@ -191,7 +192,6 @@ require (
 	golang.org/x/mod v0.35.0 // indirect
 	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/term v0.42.0 // indirect
-	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/tools v0.44.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260406210006-6f92a3bedf2d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260406210006-6f92a3bedf2d // indirect
