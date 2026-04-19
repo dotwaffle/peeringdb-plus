@@ -20,7 +20,7 @@ All requirements below cite upstream code by path and line. The canonical refere
 ### Default Ordering (ORDER)
 
 - [ ] **ORDER-01**: `pdbcompat` list endpoints (`/api/<type>`) return rows ordered by `(-updated, -created)` matching `django-handleref` base `Meta.ordering`
-- [ ] **ORDER-02**: `grpcserver` List and Stream RPCs return rows ordered by `(-updated, -created)`; cursor pagination remains stable under this order
+- [x] **ORDER-02**: `grpcserver` List and Stream RPCs return rows ordered by `(-updated, -created)`; cursor pagination remains stable under this order
 - [x] **ORDER-03**: `entrest` (`/rest/v1/*`) default list ordering matches upstream; explicit `?sort=` overrides still honoured
 
 ### Status × Since Matrix (STATUS)
@@ -90,7 +90,7 @@ Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% covera
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
 | ORDER-01 | 67 | pending |
-| ORDER-02 | 67 | pending |
+| ORDER-02 | 67 | Complete |
 | ORDER-03 | 67 | Complete |
 | STATUS-01 | 68 | pending |
 | STATUS-02 | 68 | pending |
