@@ -354,7 +354,7 @@ func TestFixturePort_CategoryAll(t *testing.T) {
 	limitIdx := strings.Index(string(body), "var LimitFixtures")
 	orderIdx := strings.Index(string(body), "var OrderingFixtures")
 	statusIdx := strings.Index(string(body), "var StatusFixtures")
-	if !(limitIdx < orderIdx && orderIdx < statusIdx) {
+	if limitIdx >= orderIdx || orderIdx >= statusIdx {
 		t.Errorf("vars not alphabetical: limit=%d order=%d status=%d", limitIdx, orderIdx, statusIdx)
 	}
 	// Single SHA-pinned header (one Upstream: header line, plus per-fixture citations).

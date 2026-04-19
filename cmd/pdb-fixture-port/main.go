@@ -43,6 +43,11 @@ const upstreamPath = "src/peeringdb_server/management/commands/pdb_api_test.py"
 // in a PR. Plans 72-02/03 replace this cap with per-category filters.
 const poCCap = 12
 
+// allCategoryOrder is the ordered list of (varName, parser) tuples
+// emitted by `--category all`. Order is alphabetical-by-var-name to
+// keep the on-disk file stable across category additions.
+var allCategoryOrder = []string{"limit", "ordering", "status"}
+
 // Fixture mirrors internal/testutil/parity.Fixture. Declared locally
 // to avoid importing the target package from the codegen tool (keeps
 // the tool independent of the runtime layering it generates).
@@ -69,10 +74,20 @@ type renderData struct {
 	UpstreamCommit string // git SHA of peeringdb/peeringdb (or "local" when --upstream-file)
 	UpstreamPath   string
 	UpstreamHash   string // sha256 hex of the upstream bytes
-	Category       string
-	CategoryTitle  string // e.g. "Ordering" — precomputed so template stays simple
+	Category       string // "ordering" | "status" | "limit" | "all"
 	Ported         string // YYYY-MM-DD
-	Fixtures       []Fixture
+	Sections       []section
+}
+
+// section carries one var declaration's worth of fixtures plus its
+// per-section preamble comment (used by `--category limit` to flag
+// the synthesised bulk per Plan 72-02 D-02).
+type section struct {
+	Category string // "ordering" | "status" | "limit" — for downstream tooling
+	VarName  string // e.g. "OrderingFixtures"
+	Title    string // e.g. "Ordering"
+	Preamble string // optional comment line emitted above the var
+	Fixtures []Fixture
 }
 
 // entityGoName maps Python Django model names to the short PeeringDB
@@ -137,6 +152,7 @@ type runOptions struct {
 	Check        bool
 	Pinned       string
 	Date         string
+	Append       bool
 }
 
 // run is the testable entry point. Returns a process exit code.
@@ -149,14 +165,15 @@ func run(args []string, stdout, stderr io.Writer) int {
 	fs.StringVar(&opts.UpstreamFile, "upstream-file", "", "local path to pdb_api_test.py (overrides --upstream-ref)")
 	fs.StringVar(&opts.UpstreamRef, "upstream-ref", "master", "git ref to fetch via `gh api` when --upstream-file is empty")
 	fs.StringVar(&opts.Out, "out", "internal/testutil/parity/fixtures.go", "output file path")
-	fs.StringVar(&opts.Category, "category", "ordering", "fixture category: ordering")
+	fs.StringVar(&opts.Category, "category", "ordering", "fixture category: ordering | status | limit | all")
 	fs.BoolVar(&opts.Check, "check", false, "advisory drift-check mode; does not write")
 	fs.StringVar(&opts.Pinned, "pinned", "", "expected sha256 of upstream file for --check")
 	fs.StringVar(&opts.Date, "date", time.Now().UTC().Format("2006-01-02"), "ported-on date stamp (UTC)")
+	fs.BoolVar(&opts.Append, "append", false, "rewrite only the requested category in --out, preserving other category blocks byte-identically")
 	fs.Usage = func() {
 		fmt.Fprintln(stderr, "pdb-fixture-port: port peeringdb/peeringdb pdb_api_test.py fixtures to Go.")
 		fmt.Fprintln(stderr, "")
-		fmt.Fprintln(stderr, "Usage: pdb-fixture-port [--upstream-file path | --upstream-ref ref] [--out path] [--category ordering] [--check --pinned SHA256]")
+		fmt.Fprintln(stderr, "Usage: pdb-fixture-port [--upstream-file path | --upstream-ref ref] [--out path] [--category ordering|status|limit|all] [--append] [--check --pinned SHA256]")
 		fmt.Fprintln(stderr, "")
 		fs.PrintDefaults()
 	}
@@ -182,30 +199,26 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return doCheck(opts, hash, stdout, stderr)
 	}
 
-	fixtures, err := parseCategory(srcBytes, opts.Category)
+	sections, err := buildSections(srcBytes, opts.Category)
 	if err != nil {
 		fmt.Fprintf(stderr, "pdb-fixture-port: parse %q: %v\n", opts.Category, err)
 		return exitInternal
 	}
 
-	// Determinism: sort by (Entity, ID) before render. Matches the
+	// Determinism: sort each section by (Entity, ID). Matches the
 	// pattern used by cmd/pdb-compat-allowlist so two runs with the
 	// same upstream bytes produce byte-identical output.
-	sort.Slice(fixtures, func(i, j int) bool {
-		if fixtures[i].Entity != fixtures[j].Entity {
-			return fixtures[i].Entity < fixtures[j].Entity
-		}
-		return fixtures[i].ID < fixtures[j].ID
-	})
+	for i := range sections {
+		sortFixtures(sections[i].Fixtures)
+	}
 
 	data := renderData{
 		UpstreamCommit: commitSHA,
 		UpstreamPath:   upstreamPath,
 		UpstreamHash:   hash,
 		Category:       opts.Category,
-		CategoryTitle:  titleCase(opts.Category),
 		Ported:         opts.Date,
-		Fixtures:       fixtures,
+		Sections:       sections,
 	}
 
 	src, err := renderTemplate(data)
@@ -220,19 +233,96 @@ func run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "pdb-fixture-port: gofmt output: %v (raw at %s.broken)\n", err, opts.Out)
 		return exitInternal
 	}
-	if err := writeAtomic(opts.Out, formatted); err != nil {
+
+	finalBytes := formatted
+	if opts.Append {
+		// Append mode: rewrite ONLY the requested category's var
+		// block in the existing --out file, preserving other vars
+		// byte-identically (and the existing header). Falls back to
+		// a full write when --out doesn't yet exist.
+		merged, mergeErr := appendCategory(opts.Out, formatted, opts.Category)
+		if mergeErr != nil {
+			fmt.Fprintf(stderr, "pdb-fixture-port: --append merge: %v\n", mergeErr)
+			return exitInternal
+		}
+		finalBytes = merged
+	}
+
+	if err := writeAtomic(opts.Out, finalBytes); err != nil {
 		fmt.Fprintf(stderr, "pdb-fixture-port: write %s: %v\n", opts.Out, err)
 		return exitInternal
 	}
 
+	totalFixtures := 0
+	for _, s := range sections {
+		totalFixtures += len(s.Fixtures)
+	}
 	logger.Info("fixtures emitted",
 		slog.String("out", opts.Out),
 		slog.String("category", opts.Category),
-		slog.Int("count", len(fixtures)),
+		slog.Int("count", totalFixtures),
 		slog.String("upstream_commit", commitSHA),
 		slog.String("upstream_sha256", hash),
 	)
 	return exitOK
+}
+
+// sortFixtures applies the determinism contract: sort by (Entity, ID)
+// in-place. Extracted so each per-category parser need not re-implement
+// the pattern, and so future sections inherit the same invariant.
+func sortFixtures(fxs []Fixture) {
+	sort.Slice(fxs, func(i, j int) bool {
+		if fxs[i].Entity != fxs[j].Entity {
+			return fxs[i].Entity < fxs[j].Entity
+		}
+		return fxs[i].ID < fxs[j].ID
+	})
+}
+
+// buildSections expands --category into the list of (varName,
+// fixtures, comment) sections to emit. For singular categories
+// (`ordering`/`status`/`limit`) returns one section; for `all`
+// returns three sections in alphabetical-by-var-name order.
+func buildSections(srcBytes []byte, category string) ([]section, error) {
+	switch category {
+	case "ordering":
+		return []section{newSection("ordering", parseOrdering(srcBytes))}, nil
+	case "status":
+		return []section{newSection("status", parseStatus(srcBytes))}, nil
+	case "limit":
+		return []section{newSection("limit", parseLimit(srcBytes))}, nil
+	case "all":
+		out := make([]section, 0, len(allCategoryOrder))
+		for _, cat := range allCategoryOrder {
+			subs, err := buildSections(srcBytes, cat)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, subs...)
+		}
+		return out, nil
+	default:
+		return nil, fmt.Errorf("unknown category %q (supported: ordering|status|limit|all)", category)
+	}
+}
+
+// newSection assembles a section{} with the per-category varName,
+// title, and provenance preamble (synthesised marker for limit).
+func newSection(category string, fixtures []Fixture) section {
+	s := section{
+		Category: category,
+		VarName:  titleCase(category) + "Fixtures",
+		Title:    titleCase(category),
+		Fixtures: fixtures,
+	}
+	if category == "limit" {
+		// Plan 72-02 D-02 path: limit bulk Network rows are
+		// synthesised because upstream pdb_api_test.py does not
+		// include a literal 260-row block. The provenance
+		// preamble points at the authoritative behaviour citation.
+		s.Preamble = "// synthesised per Plan 72-02 D-02: covers LIMIT-01 unlimited boundary at upstream rest.py:494-497"
+	}
+	return s
 }
 
 // doCheck compares the observed upstream-file sha256 to the expected
@@ -313,17 +403,6 @@ func runGhAPI(path string, extra ...string) (string, error) {
 	return out.String(), nil
 }
 
-// parseCategory selects the category-specific parser. Plan 72-01
-// implements only "ordering"; 72-02/03 extend this switch.
-func parseCategory(srcBytes []byte, category string) ([]Fixture, error) {
-	switch category {
-	case "ordering":
-		return parseOrdering(srcBytes), nil
-	default:
-		return nil, fmt.Errorf("unknown category %q (supported: ordering)", category)
-	}
-}
-
 // parseOrdering scans the upstream Python file for Django fixture
 // blocks and extracts a curated slice relevant to the ordering
 // category (rows created via `X.objects.create(...)` with keyword
@@ -386,7 +465,7 @@ func parseOrdering(srcBytes []byte) []Fixture {
 			Entity:   entity,
 			ID:       id,
 			Fields:   fields,
-			Upstream: fmt.Sprintf("pdb_api_test.py:%d", startLine),
+			Upstream: lineCitation(startLine),
 		})
 		if len(out) >= poCCap {
 			// Stop scanning once the PoC cap is hit. Keeps fixtures.go
@@ -474,6 +553,13 @@ func parenDelta(s string) int {
 // Lines starting with `**` (Python kwargs-splat — e.g.
 // `**self.make_data_net()`) are skipped because their resolved fields
 // live in a helper function we don't evaluate.
+//
+// NOTE on backward compatibility: this parser folds same-line trailing
+// kwargs into the leading kwarg's value (e.g. `status="ok",
+// name="X"` becomes `status: "ok", name=\"X\"`). Plan 72-01 OrderingFixtures
+// were generated with this behaviour and the byte-identical-to-72-01
+// constraint requires preserving it. parseStatus / parseLimit use
+// extractFieldsSharp instead — they need per-kwarg fidelity.
 func extractFields(block string) map[string]string {
 	out := map[string]string{}
 	lines := strings.Split(block, "\n")
@@ -504,6 +590,85 @@ func extractFields(block string) map[string]string {
 		}
 		out[key] = val
 	}
+	return out
+}
+
+// extractFieldsSharp is a per-kwarg-fidelity extractor used by
+// parseStatus / parseLimit. It splits every fixture-block line on
+// top-level commas (commas not inside strings or nested parens) and
+// applies fieldPat to each fragment. Each kwarg ends up as a
+// separate map entry, so `status="pending", name="X"` produces
+// `{"status": "\"pending\"", "name": "\"X\""}` rather than the
+// folded form extractFields produces.
+//
+// Same skip rules as extractFields: blank lines, comment lines,
+// lone `)`, kwargs-splat `**...`, and values that span across
+// lines (paren-delta != 0). Per-kwarg fragments are evaluated
+// independently — folding never happens.
+func extractFieldsSharp(block string) map[string]string {
+	out := map[string]string{}
+	lines := strings.Split(block, "\n")
+	for i, ln := range lines {
+		if i == 0 {
+			// Skip the `X.objects.create(` header line.
+			continue
+		}
+		trim := strings.TrimSpace(ln)
+		if trim == "" || trim == ")" || strings.HasPrefix(trim, "#") {
+			continue
+		}
+		trim = strings.TrimSuffix(trim, ",")
+		// Split on top-level commas to separate same-line kwargs.
+		for _, frag := range splitTopLevelCommas(trim) {
+			frag = strings.TrimSpace(frag)
+			if frag == "" || strings.HasPrefix(frag, "**") {
+				continue
+			}
+			m := fieldPat.FindStringSubmatch(frag)
+			if m == nil {
+				continue
+			}
+			key, val := m[1], strings.TrimSpace(m[2])
+			val = strings.TrimSuffix(val, ",")
+			if parenDelta(val) != 0 {
+				continue
+			}
+			out[key] = val
+		}
+	}
+	return out
+}
+
+// splitTopLevelCommas splits s at commas that are not inside
+// quoted strings or nested parentheses/brackets/braces. Used by
+// extractFieldsSharp to break `status="ok", name="X"` into two
+// kwarg fragments.
+func splitTopLevelCommas(s string) []string {
+	var out []string
+	depth := 0
+	inSingle, inDouble := false, false
+	start := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c == '\\' && (inSingle || inDouble):
+			if i+1 < len(s) {
+				i++
+			}
+		case c == '\'' && !inDouble:
+			inSingle = !inSingle
+		case c == '"' && !inSingle:
+			inDouble = !inDouble
+		case (c == '(' || c == '[' || c == '{') && !inSingle && !inDouble:
+			depth++
+		case (c == ')' || c == ']' || c == '}') && !inSingle && !inDouble:
+			depth--
+		case c == ',' && depth == 0 && !inSingle && !inDouble:
+			out = append(out, s[start:i])
+			start = i + 1
+		}
+	}
+	out = append(out, s[start:])
 	return out
 }
 
@@ -621,11 +786,10 @@ type Fixture struct {
 	Fields   map[string]string
 	Upstream string
 }
-
-// {{.CategoryTitle}}Fixtures is the ported set for Plan 72-01's proof-
-// of-concept category. Plans 72-02 / 72-03 add the remaining categories
-// as sibling slices in this file.
-var {{.CategoryTitle}}Fixtures = []Fixture{
+{{range .Sections}}
+{{if .Preamble}}{{.Preamble}}
+{{end}}// {{.VarName}} is the ported set for the {{.Title}} category.
+var {{.VarName}} = []Fixture{
 {{- range .Fixtures}}
 	{
 		Entity: {{printf "%q" .Entity}},
@@ -640,7 +804,7 @@ var {{.CategoryTitle}}Fixtures = []Fixture{
 	},
 {{- end}}
 }
-`
+{{end}}`
 
 // renderTemplate executes outputTemplate against d and returns raw
 // (pre-gofmt) Go source bytes.
@@ -654,4 +818,77 @@ func renderTemplate(d renderData) ([]byte, error) {
 		return nil, fmt.Errorf("execute template: %w", err)
 	}
 	return buf.Bytes(), nil
+}
+
+// appendCategory implements --append: read the current --out file,
+// locate the var block matching the requested category (e.g.
+// "OrderingFixtures"), and replace just that block with the
+// corresponding block from rendered (a freshly-rendered single-
+// section file). Other vars and the file header are preserved
+// byte-identically.
+//
+// If --out doesn't exist yet, the rendered bytes are returned
+// verbatim (first-write semantics). If --out exists but the target
+// var block doesn't, the new block is appended just before the file
+// trailer.
+//
+// The merge is gofmt-stable: both halves come from format.Source(),
+// and the splice happens on whole-line boundaries.
+func appendCategory(outPath string, rendered []byte, category string) ([]byte, error) {
+	existing, err := os.ReadFile(outPath) // #nosec G304 — operator-supplied flag.
+	if err != nil {
+		if os.IsNotExist(err) {
+			return rendered, nil
+		}
+		return nil, fmt.Errorf("read existing --out: %w", err)
+	}
+	varName := titleCase(category) + "Fixtures"
+	newBlock := extractVarBlockBytes(rendered, varName)
+	if len(newBlock) == 0 {
+		return nil, fmt.Errorf("rendered output missing var %s block", varName)
+	}
+	oldBlock := extractVarBlockBytes(existing, varName)
+	var merged []byte
+	if len(oldBlock) > 0 {
+		merged = bytes.Replace(existing, oldBlock, newBlock, 1)
+	} else {
+		// Var doesn't exist in existing file: append to end with a
+		// blank line separator so gofmt keeps the trailing newline.
+		merged = append(append(existing, '\n'), newBlock...)
+		merged = append(merged, '\n')
+	}
+	// Re-format to absorb any whitespace mismatches at the splice
+	// boundary (extractVarBlockBytes returns the raw `var ... }`
+	// substring; the file may have a comment line preceding the
+	// `var` we just removed that gofmt re-attaches).
+	formatted, err := format.Source(merged)
+	if err != nil {
+		return nil, fmt.Errorf("re-format spliced output: %w", err)
+	}
+	return formatted, nil
+}
+
+// extractVarBlockBytes returns the substring of src starting at
+// `var <name> = []Fixture{` and ending at the matching closing `}`.
+// Returns nil if not found. Tolerates nested `{}` (Fields:
+// map[string]string{...}) via depth tracking.
+func extractVarBlockBytes(src []byte, varName string) []byte {
+	marker := []byte("var " + varName + " = []Fixture{")
+	start := bytes.Index(src, marker)
+	if start < 0 {
+		return nil
+	}
+	depth := 0
+	for i := start + len(marker) - 1; i < len(src); i++ {
+		switch src[i] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return src[start : i+1]
+			}
+		}
+	}
+	return nil
 }
