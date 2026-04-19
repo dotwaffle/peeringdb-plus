@@ -66,7 +66,8 @@ type StreamParams[E any, P any] struct {
 	UpdatedSince *timestamppb.Timestamp
 	ApplyFilters func() ([]func(*sql.Selector), error)
 	Count        func(ctx context.Context, predicates []func(*sql.Selector)) (int, error)
-	QueryBatch   func(ctx context.Context, predicates []func(*sql.Selector), afterID, limit int) ([]*E, error)
+	// TODO(phase-67 plan 05): replace afterID with streamCursor for compound keyset pagination.
+	QueryBatch func(ctx context.Context, predicates []func(*sql.Selector), afterID, limit int) ([]*E, error)
 	Convert      func(*E) *P
 	GetID        func(*E) int
 }
