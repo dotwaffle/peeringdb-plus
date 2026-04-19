@@ -51,12 +51,16 @@ var foldMap = map[rune]string{
 // or strings exceeding 64 KB — returns a string without panicking. The
 // empty string maps to the empty string.
 //
-// Fast-path contract: an input that is already pure ASCII lower-case
-// (bytes in the closed ranges informally covering [0x00, 0x40] ∪
-// [0x5B, 0x7F] plus 'a'-'z') is returned unchanged without allocating.
-// This makes Fold cheap for the common case of folding an
-// already-folded value (e.g. when the sync worker reads back a value
-// it has just persisted into a `_fold` column).
+// Fast-path contract: an input whose bytes are all within the 7-bit
+// ASCII range (< 0x80) and contain no upper-case letters ('A'-'Z') is
+// returned unchanged without allocating. The set admits digits,
+// punctuation, and control characters in addition to 'a'-'z' — any
+// such input is idempotent under the full fold pipeline (NFKD is a
+// no-op on ASCII, the Mn guard never fires, ToLower is identity on
+// non-letters and lower-case letters). This makes Fold cheap for the
+// common case of folding an already-folded value (e.g. when the sync
+// worker reads back a value it has just persisted into a `_fold`
+// column).
 func Fold(s string) string {
 	if s == "" {
 		return ""
