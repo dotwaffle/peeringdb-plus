@@ -134,7 +134,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 **Plans**: 6 plans
 
 Plans:
-- [ ] 72-01-PLAN.md — cmd/pdb-fixture-port/ tool scaffold + PoC ordering-category fixture emission into internal/testutil/parity/fixtures.go (SHA-pinned header)
+- [x] 72-01-PLAN.md — cmd/pdb-fixture-port/ tool scaffold + PoC ordering-category fixture emission into internal/testutil/parity/fixtures.go (SHA-pinned header)
 - [ ] 72-02-PLAN.md — Extend pdb-fixture-port to STATUS + LIMIT category fixtures (STATUS-01..05 matrix + LIMIT-01 unbounded + LIMIT-02 depth-on-list guardrail)
 - [ ] 72-03-PLAN.md — Extend pdb-fixture-port to UNICODE + IN + TRAVERSAL fixtures; `--category all` emits the full 6-category file deterministically
 - [ ] 72-04-PLAN.md — internal/pdbcompat/parity/ — 6 category-split regression test files + shared harness.go locking ORDER/STATUS/LIMIT/UNICODE/IN/TRAVERSAL semantics (PARITY-01)
@@ -169,7 +169,7 @@ Notes on parallelism:
 | 69. Unicode + operator + __in | 3/6 | In progress | - |
 | 70. Cross-entity __ traversal | 8/8 | Complete | 2026-04-19 |
 | 71. Memory-safe response paths | 6/6 | Complete | 2026-04-19 |
-| 72. Upstream parity regression | 0/6 | Not started | - |
+| 72. Upstream parity regression | 1/6 | In progress | - |
 
 ## Backlog
 

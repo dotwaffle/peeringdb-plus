@@ -63,7 +63,7 @@ All requirements below cite upstream code by path and line. The canonical refere
 
 ### Upstream Parity Regression (PARITY)
 
-- [ ] **PARITY-01**: Behavioural regression tests port the ground-truth assertions from upstream `pdb_api_test.py` covering: default ordering (added via ORDER), status × since matrix (STATUS), `limit=0` semantics (LIMIT), `__in` behaviour (IN), and the six 1-hop + 2-hop traversal cases cited in the validation audit (TRAVERSAL)
+- [ ] **PARITY-01**: Behavioural regression tests port the ground-truth assertions from upstream `pdb_api_test.py` covering: default ordering (added via ORDER), status × since matrix (STATUS), `limit=0` semantics (LIMIT), `__in` behaviour (IN), and the six 1-hop + 2-hop traversal cases cited in the validation audit (TRAVERSAL) — _foundation shipped in 72-01: cmd/pdb-fixture-port/ tool + 12 ordering fixtures pinned to upstream 99e92c72; remaining plans (72-02..06) extend to other categories + register the parity test suite_
 - [ ] **PARITY-02**: A docs update records the NEW divergences we deliberately accept from upstream (if any emerge during implementation) in `docs/API.md`, so future conformance audits can distinguish intentional-divergence from regression
 
 ## Future Requirements
@@ -112,5 +112,5 @@ Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% covera
 | MEMORY-02 | 71 | complete (71-03/04; `Config.ResponseMemoryLimit` default 128 MiB via PDBPLUS_RESPONSE_MEMORY_LIMIT; `CheckBudget` + `WriteBudgetProblem` in budget.go; serveList pre-flight SELECT COUNT(\*) → CheckBudget → 413 gate with RFC 9457 body in commit 28408e1; TestServeList_OverBudget413 in stream_integration_test.go) |
 | MEMORY-03 | 71 | complete (71-05; `internal/otel.ResponseHeapDeltaKiB` Int64Histogram + `InitResponseHeapHistogram` in metrics.go wired from main.go; `internal/pdbcompat/telemetry.go` `memStatsHeapInuseKiB` single-call-site + `recordResponseHeapDelta` emits OTel span attr `pdbplus.response.heap_delta_kib` + Prometheus histogram `pdbplus_response_heap_delta_kib{endpoint,entity}`; `serveList` defer fires once per request on every terminal path; Grafana panel id 36 at y=33 with p50/p95/p99 histogram_quantile; 5 new pdbcompat tests + 3 otel tests; commits c2304ae + 292e758) |
 | MEMORY-04 | 71 | complete (71-06; `docs/ARCHITECTURE.md § Response Memory Envelope` with envelope derivation, per-entity `typical_row_bytes` table × computed `max_rows @ 128 MiB`, request lifecycle, telemetry wire-up, out-of-scope note, and extending-new-entity checklist; `CLAUDE.md § Response memory envelope (Phase 71)` sibling convention + `PDBPLUS_RESPONSE_MEMORY_LIMIT` env-var row; `CHANGELOG.md v1.16 [Unreleased]` Phase 71 bullets + coordinated-release ready-to-deploy note) |
-| PARITY-01 | 72 | pending |
+| PARITY-01 | 72 | in progress (72-01 foundation: cmd/pdb-fixture-port/ + internal/testutil/parity/ OrderingFixtures pinned to peeringdb/peeringdb@99e92c72; plans 72-02..06 remaining) |
 | PARITY-02 | 72 | pending |
