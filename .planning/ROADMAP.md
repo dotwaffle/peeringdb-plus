@@ -80,7 +80,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   5. Behaviour for ASCII-only inputs is unchanged — existing golden files and conformance tests pass without regeneration
 **Plans:** 6 plans
 - [ ] 69-01-PLAN.md — internal/unifold package (Fold + NFKD + hand-rolled fold map + unit tests)
-- [ ] 69-02-PLAN.md — 16 field.String("*_fold") across 6 ent schemas + go generate ./...
+- [x] 69-02-PLAN.md — 16 field.String("*_fold") across 6 ent schemas + scoped ent regen (entgql.Skip+entrest.WithSkip annotations keep _fold off all wire surfaces; commit 9e408de)
 - [ ] 69-03-PLAN.md — 6 upsertX funcs populate _fold columns via unifold.Fold; 7 unaffected upserts untouched
 - [ ] 69-04-PLAN.md — filter.go: coerceToCaseInsensitive + shadow-column routing + json_each __in + empty-__in sentinel
 - [ ] 69-05-PLAN.md — fuzz corpus extension (500k exec) + bench_test + shadow-index decision

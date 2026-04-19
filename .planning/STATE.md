@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 68-04 (Phase 68 CLOSED — CHANGELOG.md bootstrapped at repo root in Keep-a-Changelog 1.1.0 format with v1.16 [Unreleased] entry covering all Phase 68 behavioural changes plus Phase 67 coordinated-release context; docs/API.md § Known Divergences seeded with D-07 silent override + D-03 one-time gap rows citing rest.py:700-712/725 — section scoped for Phase 72 extension; CLAUDE.md § Soft-delete tombstones (Phase 68) hygiene note added with markStaleDeletedFoos template + applyStatusMatrix requirement + StatusIn("ok","pending") inline-literal convention + SEED-004 cross-link; REQ-ID coverage audit confirms STATUS-01..05 + LIMIT-01/02 all have observable test artifacts; full suite + vet + lint + generated-code drift all green; no fly deploy per coordinated 67-71 ship window). Phase 69 (Unicode folding, operator coercion, __in robustness) is next.
-last_updated: "2026-04-19T15:40:00Z"
+stopped_at: Completed 69-02 (16 *_fold shadow columns added to 6 ent schemas — network/facility/internetexchange/organization/campus/carrier — with entgql.Skip(SkipAll)+entrest.WithSkip(true) annotations preventing wire-surface leakage to GraphQL/REST/proto; scoped codegen via `go generate ./ent/... && go generate ./internal/web/templates/...` deliberately omits ./schema regen which would strip annotations per CLAUDE.md § Code Generation; sync parity golden refreshed to absorb 16 new "" defaults; full build/vet/race-test/lint green; commit 9e408de — 40 files changed, 5181/24). Plan 69-03 (sync upserts call unifold.Fold to populate the columns) is next.
+last_updated: "2026-04-19T16:02:00Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
@@ -22,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 68 — status-since-matrix (COMPLETE); next Phase 69 — Unicode folding, operator coercion, __in robustness in pdbcompat filter layer
+**Current focus:** Phase 69 — Unicode folding, operator coercion, __in robustness in pdbcompat filter layer (in flight: 2/6 plans shipped)
 
 ## Current Position
 
-Phase: 68 (status-since-matrix) — COMPLETE (4/4 plans shipped); Phase 69 next
-Plan: All Phase 68 plans shipped (68-01 + 68-02 + 68-03 + 68-04 done)
-Status: Phase 68 closed; ready for Phase 69
-Next action: `/gsd-execute-phase 69-01` or `/gsd-autonomous` — Phase 69 plans the Unicode fold shadow columns, operator coercion, and __in robustness (IN-01, IN-02, UNICODE-01/02/03)
+Phase: 69 (unicode-operator-in-robustness) — IN FLIGHT (2/6 plans shipped: 69-01 unifold package, 69-02 ent shadow columns)
+Plan: Last completed 69-02 (16 *_fold shadow columns + scoped ent regen); next 69-03 (sync upserts call unifold.Fold to populate the new columns)
+Status: Plan 69-02 closed cleanly with full surface-hygiene check (zero leakage to REST/GraphQL/proto)
+Next action: `/gsd-execute-phase 69-03` — populate the 16 shadow columns from sync upsert paths via internal/unifold.Fold
 Last activity: 2026-04-19
 
 ## v1.16 Phase Map
