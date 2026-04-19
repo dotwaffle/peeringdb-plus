@@ -276,6 +276,48 @@ func (_c *OrganizationCreate) SetNillableStatus(v *string) *OrganizationCreate {
 	return _c
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_c *OrganizationCreate) SetNameFold(v string) *OrganizationCreate {
+	_c.mutation.SetNameFold(v)
+	return _c
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableNameFold(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetNameFold(*v)
+	}
+	return _c
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_c *OrganizationCreate) SetAkaFold(v string) *OrganizationCreate {
+	_c.mutation.SetAkaFold(v)
+	return _c
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableAkaFold(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetAkaFold(*v)
+	}
+	return _c
+}
+
+// SetCityFold sets the "city_fold" field.
+func (_c *OrganizationCreate) SetCityFold(v string) *OrganizationCreate {
+	_c.mutation.SetCityFold(v)
+	return _c
+}
+
+// SetNillableCityFold sets the "city_fold" field if the given value is not nil.
+func (_c *OrganizationCreate) SetNillableCityFold(v *string) *OrganizationCreate {
+	if v != nil {
+		_c.SetCityFold(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *OrganizationCreate) SetID(v int) *OrganizationCreate {
 	_c.mutation.SetID(v)
@@ -446,6 +488,18 @@ func (_c *OrganizationCreate) defaults() error {
 		v := organization.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.NameFold(); !ok {
+		v := organization.DefaultNameFold
+		_c.mutation.SetNameFold(v)
+	}
+	if _, ok := _c.mutation.AkaFold(); !ok {
+		v := organization.DefaultAkaFold
+		_c.mutation.SetAkaFold(v)
+	}
+	if _, ok := _c.mutation.CityFold(); !ok {
+		v := organization.DefaultCityFold
+		_c.mutation.SetCityFold(v)
+	}
 	return nil
 }
 
@@ -585,6 +639,18 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(organization.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.NameFold(); ok {
+		_spec.SetField(organization.FieldNameFold, field.TypeString, value)
+		_node.NameFold = value
+	}
+	if value, ok := _c.mutation.AkaFold(); ok {
+		_spec.SetField(organization.FieldAkaFold, field.TypeString, value)
+		_node.AkaFold = value
+	}
+	if value, ok := _c.mutation.CityFold(); ok {
+		_spec.SetField(organization.FieldCityFold, field.TypeString, value)
+		_node.CityFold = value
 	}
 	if nodes := _c.mutation.CampusesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1054,6 +1120,60 @@ func (u *OrganizationUpsert) UpdateStatus() *OrganizationUpsert {
 	return u
 }
 
+// SetNameFold sets the "name_fold" field.
+func (u *OrganizationUpsert) SetNameFold(v string) *OrganizationUpsert {
+	u.Set(organization.FieldNameFold, v)
+	return u
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateNameFold() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldNameFold)
+	return u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *OrganizationUpsert) ClearNameFold() *OrganizationUpsert {
+	u.SetNull(organization.FieldNameFold)
+	return u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *OrganizationUpsert) SetAkaFold(v string) *OrganizationUpsert {
+	u.Set(organization.FieldAkaFold, v)
+	return u
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateAkaFold() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldAkaFold)
+	return u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *OrganizationUpsert) ClearAkaFold() *OrganizationUpsert {
+	u.SetNull(organization.FieldAkaFold)
+	return u
+}
+
+// SetCityFold sets the "city_fold" field.
+func (u *OrganizationUpsert) SetCityFold(v string) *OrganizationUpsert {
+	u.Set(organization.FieldCityFold, v)
+	return u
+}
+
+// UpdateCityFold sets the "city_fold" field to the value that was provided on create.
+func (u *OrganizationUpsert) UpdateCityFold() *OrganizationUpsert {
+	u.SetExcluded(organization.FieldCityFold)
+	return u
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (u *OrganizationUpsert) ClearCityFold() *OrganizationUpsert {
+	u.SetNull(organization.FieldCityFold)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1494,6 +1614,69 @@ func (u *OrganizationUpsertOne) SetStatus(v string) *OrganizationUpsertOne {
 func (u *OrganizationUpsertOne) UpdateStatus() *OrganizationUpsertOne {
 	return u.Update(func(s *OrganizationUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *OrganizationUpsertOne) SetNameFold(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateNameFold() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *OrganizationUpsertOne) ClearNameFold() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearNameFold()
+	})
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *OrganizationUpsertOne) SetAkaFold(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetAkaFold(v)
+	})
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateAkaFold() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateAkaFold()
+	})
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *OrganizationUpsertOne) ClearAkaFold() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearAkaFold()
+	})
+}
+
+// SetCityFold sets the "city_fold" field.
+func (u *OrganizationUpsertOne) SetCityFold(v string) *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetCityFold(v)
+	})
+}
+
+// UpdateCityFold sets the "city_fold" field to the value that was provided on create.
+func (u *OrganizationUpsertOne) UpdateCityFold() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateCityFold()
+	})
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (u *OrganizationUpsertOne) ClearCityFold() *OrganizationUpsertOne {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearCityFold()
 	})
 }
 
@@ -2103,6 +2286,69 @@ func (u *OrganizationUpsertBulk) SetStatus(v string) *OrganizationUpsertBulk {
 func (u *OrganizationUpsertBulk) UpdateStatus() *OrganizationUpsertBulk {
 	return u.Update(func(s *OrganizationUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *OrganizationUpsertBulk) SetNameFold(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateNameFold() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *OrganizationUpsertBulk) ClearNameFold() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearNameFold()
+	})
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *OrganizationUpsertBulk) SetAkaFold(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetAkaFold(v)
+	})
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateAkaFold() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateAkaFold()
+	})
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *OrganizationUpsertBulk) ClearAkaFold() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearAkaFold()
+	})
+}
+
+// SetCityFold sets the "city_fold" field.
+func (u *OrganizationUpsertBulk) SetCityFold(v string) *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.SetCityFold(v)
+	})
+}
+
+// UpdateCityFold sets the "city_fold" field to the value that was provided on create.
+func (u *OrganizationUpsertBulk) UpdateCityFold() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.UpdateCityFold()
+	})
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (u *OrganizationUpsertBulk) ClearCityFold() *OrganizationUpsertBulk {
+	return u.Update(func(s *OrganizationUpsert) {
+		s.ClearCityFold()
 	})
 }
 

@@ -520,6 +520,48 @@ func (_c *FacilityCreate) SetNillableStatus(v *string) *FacilityCreate {
 	return _c
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_c *FacilityCreate) SetNameFold(v string) *FacilityCreate {
+	_c.mutation.SetNameFold(v)
+	return _c
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableNameFold(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetNameFold(*v)
+	}
+	return _c
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_c *FacilityCreate) SetAkaFold(v string) *FacilityCreate {
+	_c.mutation.SetAkaFold(v)
+	return _c
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableAkaFold(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetAkaFold(*v)
+	}
+	return _c
+}
+
+// SetCityFold sets the "city_fold" field.
+func (_c *FacilityCreate) SetCityFold(v string) *FacilityCreate {
+	_c.mutation.SetCityFold(v)
+	return _c
+}
+
+// SetNillableCityFold sets the "city_fold" field if the given value is not nil.
+func (_c *FacilityCreate) SetNillableCityFold(v *string) *FacilityCreate {
+	if v != nil {
+		_c.SetCityFold(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *FacilityCreate) SetID(v int) *FacilityCreate {
 	_c.mutation.SetID(v)
@@ -728,6 +770,18 @@ func (_c *FacilityCreate) defaults() error {
 		v := facility.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.NameFold(); !ok {
+		v := facility.DefaultNameFold
+		_c.mutation.SetNameFold(v)
+	}
+	if _, ok := _c.mutation.AkaFold(); !ok {
+		v := facility.DefaultAkaFold
+		_c.mutation.SetAkaFold(v)
+	}
+	if _, ok := _c.mutation.CityFold(); !ok {
+		v := facility.DefaultCityFold
+		_c.mutation.SetCityFold(v)
+	}
 	return nil
 }
 
@@ -931,6 +985,18 @@ func (_c *FacilityCreate) createSpec() (*Facility, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(facility.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.NameFold(); ok {
+		_spec.SetField(facility.FieldNameFold, field.TypeString, value)
+		_node.NameFold = value
+	}
+	if value, ok := _c.mutation.AkaFold(); ok {
+		_spec.SetField(facility.FieldAkaFold, field.TypeString, value)
+		_node.AkaFold = value
+	}
+	if value, ok := _c.mutation.CityFold(); ok {
+		_spec.SetField(facility.FieldCityFold, field.TypeString, value)
+		_node.CityFold = value
 	}
 	if nodes := _c.mutation.CampusIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1741,6 +1807,60 @@ func (u *FacilityUpsert) SetStatus(v string) *FacilityUpsert {
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *FacilityUpsert) UpdateStatus() *FacilityUpsert {
 	u.SetExcluded(facility.FieldStatus)
+	return u
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *FacilityUpsert) SetNameFold(v string) *FacilityUpsert {
+	u.Set(facility.FieldNameFold, v)
+	return u
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateNameFold() *FacilityUpsert {
+	u.SetExcluded(facility.FieldNameFold)
+	return u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *FacilityUpsert) ClearNameFold() *FacilityUpsert {
+	u.SetNull(facility.FieldNameFold)
+	return u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *FacilityUpsert) SetAkaFold(v string) *FacilityUpsert {
+	u.Set(facility.FieldAkaFold, v)
+	return u
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateAkaFold() *FacilityUpsert {
+	u.SetExcluded(facility.FieldAkaFold)
+	return u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *FacilityUpsert) ClearAkaFold() *FacilityUpsert {
+	u.SetNull(facility.FieldAkaFold)
+	return u
+}
+
+// SetCityFold sets the "city_fold" field.
+func (u *FacilityUpsert) SetCityFold(v string) *FacilityUpsert {
+	u.Set(facility.FieldCityFold, v)
+	return u
+}
+
+// UpdateCityFold sets the "city_fold" field to the value that was provided on create.
+func (u *FacilityUpsert) UpdateCityFold() *FacilityUpsert {
+	u.SetExcluded(facility.FieldCityFold)
+	return u
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (u *FacilityUpsert) ClearCityFold() *FacilityUpsert {
+	u.SetNull(facility.FieldCityFold)
 	return u
 }
 
@@ -2583,6 +2703,69 @@ func (u *FacilityUpsertOne) SetStatus(v string) *FacilityUpsertOne {
 func (u *FacilityUpsertOne) UpdateStatus() *FacilityUpsertOne {
 	return u.Update(func(s *FacilityUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *FacilityUpsertOne) SetNameFold(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateNameFold() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *FacilityUpsertOne) ClearNameFold() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearNameFold()
+	})
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *FacilityUpsertOne) SetAkaFold(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetAkaFold(v)
+	})
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateAkaFold() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateAkaFold()
+	})
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *FacilityUpsertOne) ClearAkaFold() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearAkaFold()
+	})
+}
+
+// SetCityFold sets the "city_fold" field.
+func (u *FacilityUpsertOne) SetCityFold(v string) *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetCityFold(v)
+	})
+}
+
+// UpdateCityFold sets the "city_fold" field to the value that was provided on create.
+func (u *FacilityUpsertOne) UpdateCityFold() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateCityFold()
+	})
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (u *FacilityUpsertOne) ClearCityFold() *FacilityUpsertOne {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearCityFold()
 	})
 }
 
@@ -3591,6 +3774,69 @@ func (u *FacilityUpsertBulk) SetStatus(v string) *FacilityUpsertBulk {
 func (u *FacilityUpsertBulk) UpdateStatus() *FacilityUpsertBulk {
 	return u.Update(func(s *FacilityUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *FacilityUpsertBulk) SetNameFold(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateNameFold() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *FacilityUpsertBulk) ClearNameFold() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearNameFold()
+	})
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *FacilityUpsertBulk) SetAkaFold(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetAkaFold(v)
+	})
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateAkaFold() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateAkaFold()
+	})
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *FacilityUpsertBulk) ClearAkaFold() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearAkaFold()
+	})
+}
+
+// SetCityFold sets the "city_fold" field.
+func (u *FacilityUpsertBulk) SetCityFold(v string) *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.SetCityFold(v)
+	})
+}
+
+// UpdateCityFold sets the "city_fold" field to the value that was provided on create.
+func (u *FacilityUpsertBulk) UpdateCityFold() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.UpdateCityFold()
+	})
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (u *FacilityUpsertBulk) ClearCityFold() *FacilityUpsertBulk {
+	return u.Update(func(s *FacilityUpsert) {
+		s.ClearCityFold()
 	})
 }
 

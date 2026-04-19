@@ -68,6 +68,10 @@ func init() {
 	campusDescStatus := campusFields[16].Descriptor()
 	// campus.DefaultStatus holds the default value on creation for the status field.
 	campus.DefaultStatus = campusDescStatus.Default.(string)
+	// campusDescNameFold is the schema descriptor for name_fold field.
+	campusDescNameFold := campusFields[17].Descriptor()
+	// campus.DefaultNameFold holds the default value on creation for the name_fold field.
+	campus.DefaultNameFold = campusDescNameFold.Default.(string)
 	// campusDescID is the schema descriptor for id field.
 	campusDescID := campusFields[0].Descriptor()
 	// campus.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -108,6 +112,14 @@ func init() {
 	carrierDescStatus := carrierFields[13].Descriptor()
 	// carrier.DefaultStatus holds the default value on creation for the status field.
 	carrier.DefaultStatus = carrierDescStatus.Default.(string)
+	// carrierDescNameFold is the schema descriptor for name_fold field.
+	carrierDescNameFold := carrierFields[14].Descriptor()
+	// carrier.DefaultNameFold holds the default value on creation for the name_fold field.
+	carrier.DefaultNameFold = carrierDescNameFold.Default.(string)
+	// carrierDescAkaFold is the schema descriptor for aka_fold field.
+	carrierDescAkaFold := carrierFields[15].Descriptor()
+	// carrier.DefaultAkaFold holds the default value on creation for the aka_fold field.
+	carrier.DefaultAkaFold = carrierDescAkaFold.Default.(string)
 	// carrierDescID is the schema descriptor for id field.
 	carrierDescID := carrierFields[0].Descriptor()
 	// carrier.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -232,6 +244,18 @@ func init() {
 	facilityDescStatus := facilityFields[38].Descriptor()
 	// facility.DefaultStatus holds the default value on creation for the status field.
 	facility.DefaultStatus = facilityDescStatus.Default.(string)
+	// facilityDescNameFold is the schema descriptor for name_fold field.
+	facilityDescNameFold := facilityFields[39].Descriptor()
+	// facility.DefaultNameFold holds the default value on creation for the name_fold field.
+	facility.DefaultNameFold = facilityDescNameFold.Default.(string)
+	// facilityDescAkaFold is the schema descriptor for aka_fold field.
+	facilityDescAkaFold := facilityFields[40].Descriptor()
+	// facility.DefaultAkaFold holds the default value on creation for the aka_fold field.
+	facility.DefaultAkaFold = facilityDescAkaFold.Default.(string)
+	// facilityDescCityFold is the schema descriptor for city_fold field.
+	facilityDescCityFold := facilityFields[41].Descriptor()
+	// facility.DefaultCityFold holds the default value on creation for the city_fold field.
+	facility.DefaultCityFold = facilityDescCityFold.Default.(string)
 	// facilityDescID is the schema descriptor for id field.
 	facilityDescID := facilityFields[0].Descriptor()
 	// facility.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -344,6 +368,22 @@ func init() {
 	internetexchangeDescStatus := internetexchangeFields[34].Descriptor()
 	// internetexchange.DefaultStatus holds the default value on creation for the status field.
 	internetexchange.DefaultStatus = internetexchangeDescStatus.Default.(string)
+	// internetexchangeDescNameFold is the schema descriptor for name_fold field.
+	internetexchangeDescNameFold := internetexchangeFields[35].Descriptor()
+	// internetexchange.DefaultNameFold holds the default value on creation for the name_fold field.
+	internetexchange.DefaultNameFold = internetexchangeDescNameFold.Default.(string)
+	// internetexchangeDescAkaFold is the schema descriptor for aka_fold field.
+	internetexchangeDescAkaFold := internetexchangeFields[36].Descriptor()
+	// internetexchange.DefaultAkaFold holds the default value on creation for the aka_fold field.
+	internetexchange.DefaultAkaFold = internetexchangeDescAkaFold.Default.(string)
+	// internetexchangeDescNameLongFold is the schema descriptor for name_long_fold field.
+	internetexchangeDescNameLongFold := internetexchangeFields[37].Descriptor()
+	// internetexchange.DefaultNameLongFold holds the default value on creation for the name_long_fold field.
+	internetexchange.DefaultNameLongFold = internetexchangeDescNameLongFold.Default.(string)
+	// internetexchangeDescCityFold is the schema descriptor for city_fold field.
+	internetexchangeDescCityFold := internetexchangeFields[38].Descriptor()
+	// internetexchange.DefaultCityFold holds the default value on creation for the city_fold field.
+	internetexchange.DefaultCityFold = internetexchangeDescCityFold.Default.(string)
 	// internetexchangeDescID is the schema descriptor for id field.
 	internetexchangeDescID := internetexchangeFields[0].Descriptor()
 	// internetexchange.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -548,6 +588,18 @@ func init() {
 	networkDescStatus := networkFields[40].Descriptor()
 	// network.DefaultStatus holds the default value on creation for the status field.
 	network.DefaultStatus = networkDescStatus.Default.(string)
+	// networkDescNameFold is the schema descriptor for name_fold field.
+	networkDescNameFold := networkFields[41].Descriptor()
+	// network.DefaultNameFold holds the default value on creation for the name_fold field.
+	network.DefaultNameFold = networkDescNameFold.Default.(string)
+	// networkDescAkaFold is the schema descriptor for aka_fold field.
+	networkDescAkaFold := networkFields[42].Descriptor()
+	// network.DefaultAkaFold holds the default value on creation for the aka_fold field.
+	network.DefaultAkaFold = networkDescAkaFold.Default.(string)
+	// networkDescNameLongFold is the schema descriptor for name_long_fold field.
+	networkDescNameLongFold := networkFields[43].Descriptor()
+	// network.DefaultNameLongFold holds the default value on creation for the name_long_fold field.
+	network.DefaultNameLongFold = networkDescNameLongFold.Default.(string)
 	// networkDescID is the schema descriptor for id field.
 	networkDescID := networkFields[0].Descriptor()
 	// network.IDValidator is a validator for the "id" field. It is called by the builders before save.
@@ -672,6 +724,18 @@ func init() {
 	organizationDescStatus := organizationFields[20].Descriptor()
 	// organization.DefaultStatus holds the default value on creation for the status field.
 	organization.DefaultStatus = organizationDescStatus.Default.(string)
+	// organizationDescNameFold is the schema descriptor for name_fold field.
+	organizationDescNameFold := organizationFields[21].Descriptor()
+	// organization.DefaultNameFold holds the default value on creation for the name_fold field.
+	organization.DefaultNameFold = organizationDescNameFold.Default.(string)
+	// organizationDescAkaFold is the schema descriptor for aka_fold field.
+	organizationDescAkaFold := organizationFields[22].Descriptor()
+	// organization.DefaultAkaFold holds the default value on creation for the aka_fold field.
+	organization.DefaultAkaFold = organizationDescAkaFold.Default.(string)
+	// organizationDescCityFold is the schema descriptor for city_fold field.
+	organizationDescCityFold := organizationFields[23].Descriptor()
+	// organization.DefaultCityFold holds the default value on creation for the city_fold field.
+	organization.DefaultCityFold = organizationDescCityFold.Default.(string)
 	// organizationDescID is the schema descriptor for id field.
 	organizationDescID := organizationFields[0].Descriptor()
 	// organization.IDValidator is a validator for the "id" field. It is called by the builders before save.

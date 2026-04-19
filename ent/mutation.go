@@ -74,6 +74,7 @@ type CampusMutation struct {
 	created             *time.Time
 	updated             *time.Time
 	status              *string
+	name_fold           *string
 	clearedFields       map[string]struct{}
 	facilities          map[int]struct{}
 	removedfacilities   map[int]struct{}
@@ -937,6 +938,55 @@ func (m *CampusMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetNameFold sets the "name_fold" field.
+func (m *CampusMutation) SetNameFold(s string) {
+	m.name_fold = &s
+}
+
+// NameFold returns the value of the "name_fold" field in the mutation.
+func (m *CampusMutation) NameFold() (r string, exists bool) {
+	v := m.name_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameFold returns the old "name_fold" field's value of the Campus entity.
+// If the Campus object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CampusMutation) OldNameFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameFold: %w", err)
+	}
+	return oldValue.NameFold, nil
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (m *CampusMutation) ClearNameFold() {
+	m.name_fold = nil
+	m.clearedFields[campus.FieldNameFold] = struct{}{}
+}
+
+// NameFoldCleared returns if the "name_fold" field was cleared in this mutation.
+func (m *CampusMutation) NameFoldCleared() bool {
+	_, ok := m.clearedFields[campus.FieldNameFold]
+	return ok
+}
+
+// ResetNameFold resets all changes to the "name_fold" field.
+func (m *CampusMutation) ResetNameFold() {
+	m.name_fold = nil
+	delete(m.clearedFields, campus.FieldNameFold)
+}
+
 // AddFacilityIDs adds the "facilities" edge to the Facility entity by ids.
 func (m *CampusMutation) AddFacilityIDs(ids ...int) {
 	if m.facilities == nil {
@@ -1065,7 +1115,7 @@ func (m *CampusMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CampusMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.organization != nil {
 		fields = append(fields, campus.FieldOrgID)
 	}
@@ -1114,6 +1164,9 @@ func (m *CampusMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, campus.FieldStatus)
 	}
+	if m.name_fold != nil {
+		fields = append(fields, campus.FieldNameFold)
+	}
 	return fields
 }
 
@@ -1154,6 +1207,8 @@ func (m *CampusMutation) Field(name string) (ent.Value, bool) {
 		return m.Updated()
 	case campus.FieldStatus:
 		return m.Status()
+	case campus.FieldNameFold:
+		return m.NameFold()
 	}
 	return nil, false
 }
@@ -1195,6 +1250,8 @@ func (m *CampusMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldUpdated(ctx)
 	case campus.FieldStatus:
 		return m.OldStatus(ctx)
+	case campus.FieldNameFold:
+		return m.OldNameFold(ctx)
 	}
 	return nil, fmt.Errorf("unknown Campus field %s", name)
 }
@@ -1316,6 +1373,13 @@ func (m *CampusMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatus(v)
 		return nil
+	case campus.FieldNameFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameFold(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Campus field %s", name)
 }
@@ -1385,6 +1449,9 @@ func (m *CampusMutation) ClearedFields() []string {
 	if m.FieldCleared(campus.FieldOrgName) {
 		fields = append(fields, campus.FieldOrgName)
 	}
+	if m.FieldCleared(campus.FieldNameFold) {
+		fields = append(fields, campus.FieldNameFold)
+	}
 	return fields
 }
 
@@ -1434,6 +1501,9 @@ func (m *CampusMutation) ClearField(name string) error {
 		return nil
 	case campus.FieldOrgName:
 		m.ClearOrgName()
+		return nil
+	case campus.FieldNameFold:
+		m.ClearNameFold()
 		return nil
 	}
 	return fmt.Errorf("unknown Campus nullable field %s", name)
@@ -1490,6 +1560,9 @@ func (m *CampusMutation) ResetField(name string) error {
 		return nil
 	case campus.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case campus.FieldNameFold:
+		m.ResetNameFold()
 		return nil
 	}
 	return fmt.Errorf("unknown Campus field %s", name)
@@ -1617,6 +1690,8 @@ type CarrierMutation struct {
 	created                   *time.Time
 	updated                   *time.Time
 	status                    *string
+	name_fold                 *string
+	aka_fold                  *string
 	clearedFields             map[string]struct{}
 	carrier_facilities        map[int]struct{}
 	removedcarrier_facilities map[int]struct{}
@@ -2354,6 +2429,104 @@ func (m *CarrierMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetNameFold sets the "name_fold" field.
+func (m *CarrierMutation) SetNameFold(s string) {
+	m.name_fold = &s
+}
+
+// NameFold returns the value of the "name_fold" field in the mutation.
+func (m *CarrierMutation) NameFold() (r string, exists bool) {
+	v := m.name_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameFold returns the old "name_fold" field's value of the Carrier entity.
+// If the Carrier object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CarrierMutation) OldNameFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameFold: %w", err)
+	}
+	return oldValue.NameFold, nil
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (m *CarrierMutation) ClearNameFold() {
+	m.name_fold = nil
+	m.clearedFields[carrier.FieldNameFold] = struct{}{}
+}
+
+// NameFoldCleared returns if the "name_fold" field was cleared in this mutation.
+func (m *CarrierMutation) NameFoldCleared() bool {
+	_, ok := m.clearedFields[carrier.FieldNameFold]
+	return ok
+}
+
+// ResetNameFold resets all changes to the "name_fold" field.
+func (m *CarrierMutation) ResetNameFold() {
+	m.name_fold = nil
+	delete(m.clearedFields, carrier.FieldNameFold)
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (m *CarrierMutation) SetAkaFold(s string) {
+	m.aka_fold = &s
+}
+
+// AkaFold returns the value of the "aka_fold" field in the mutation.
+func (m *CarrierMutation) AkaFold() (r string, exists bool) {
+	v := m.aka_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAkaFold returns the old "aka_fold" field's value of the Carrier entity.
+// If the Carrier object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CarrierMutation) OldAkaFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAkaFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAkaFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAkaFold: %w", err)
+	}
+	return oldValue.AkaFold, nil
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (m *CarrierMutation) ClearAkaFold() {
+	m.aka_fold = nil
+	m.clearedFields[carrier.FieldAkaFold] = struct{}{}
+}
+
+// AkaFoldCleared returns if the "aka_fold" field was cleared in this mutation.
+func (m *CarrierMutation) AkaFoldCleared() bool {
+	_, ok := m.clearedFields[carrier.FieldAkaFold]
+	return ok
+}
+
+// ResetAkaFold resets all changes to the "aka_fold" field.
+func (m *CarrierMutation) ResetAkaFold() {
+	m.aka_fold = nil
+	delete(m.clearedFields, carrier.FieldAkaFold)
+}
+
 // AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by ids.
 func (m *CarrierMutation) AddCarrierFacilityIDs(ids ...int) {
 	if m.carrier_facilities == nil {
@@ -2482,7 +2655,7 @@ func (m *CarrierMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CarrierMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 15)
 	if m.organization != nil {
 		fields = append(fields, carrier.FieldOrgID)
 	}
@@ -2522,6 +2695,12 @@ func (m *CarrierMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, carrier.FieldStatus)
 	}
+	if m.name_fold != nil {
+		fields = append(fields, carrier.FieldNameFold)
+	}
+	if m.aka_fold != nil {
+		fields = append(fields, carrier.FieldAkaFold)
+	}
 	return fields
 }
 
@@ -2556,6 +2735,10 @@ func (m *CarrierMutation) Field(name string) (ent.Value, bool) {
 		return m.Updated()
 	case carrier.FieldStatus:
 		return m.Status()
+	case carrier.FieldNameFold:
+		return m.NameFold()
+	case carrier.FieldAkaFold:
+		return m.AkaFold()
 	}
 	return nil, false
 }
@@ -2591,6 +2774,10 @@ func (m *CarrierMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldUpdated(ctx)
 	case carrier.FieldStatus:
 		return m.OldStatus(ctx)
+	case carrier.FieldNameFold:
+		return m.OldNameFold(ctx)
+	case carrier.FieldAkaFold:
+		return m.OldAkaFold(ctx)
 	}
 	return nil, fmt.Errorf("unknown Carrier field %s", name)
 }
@@ -2691,6 +2878,20 @@ func (m *CarrierMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatus(v)
 		return nil
+	case carrier.FieldNameFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameFold(v)
+		return nil
+	case carrier.FieldAkaFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAkaFold(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Carrier field %s", name)
 }
@@ -2763,6 +2964,12 @@ func (m *CarrierMutation) ClearedFields() []string {
 	if m.FieldCleared(carrier.FieldFacCount) {
 		fields = append(fields, carrier.FieldFacCount)
 	}
+	if m.FieldCleared(carrier.FieldNameFold) {
+		fields = append(fields, carrier.FieldNameFold)
+	}
+	if m.FieldCleared(carrier.FieldAkaFold) {
+		fields = append(fields, carrier.FieldAkaFold)
+	}
 	return fields
 }
 
@@ -2803,6 +3010,12 @@ func (m *CarrierMutation) ClearField(name string) error {
 		return nil
 	case carrier.FieldFacCount:
 		m.ClearFacCount()
+		return nil
+	case carrier.FieldNameFold:
+		m.ClearNameFold()
+		return nil
+	case carrier.FieldAkaFold:
+		m.ClearAkaFold()
 		return nil
 	}
 	return fmt.Errorf("unknown Carrier nullable field %s", name)
@@ -2850,6 +3063,12 @@ func (m *CarrierMutation) ResetField(name string) error {
 		return nil
 	case carrier.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case carrier.FieldNameFold:
+		m.ResetNameFold()
+		return nil
+	case carrier.FieldAkaFold:
+		m.ResetAkaFold()
 		return nil
 	}
 	return fmt.Errorf("unknown Carrier field %s", name)
@@ -3784,6 +4003,9 @@ type FacilityMutation struct {
 	created                          *time.Time
 	updated                          *time.Time
 	status                           *string
+	name_fold                        *string
+	aka_fold                         *string
+	city_fold                        *string
 	clearedFields                    map[string]struct{}
 	campus                           *int
 	clearedcampus                    bool
@@ -5854,6 +6076,153 @@ func (m *FacilityMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetNameFold sets the "name_fold" field.
+func (m *FacilityMutation) SetNameFold(s string) {
+	m.name_fold = &s
+}
+
+// NameFold returns the value of the "name_fold" field in the mutation.
+func (m *FacilityMutation) NameFold() (r string, exists bool) {
+	v := m.name_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameFold returns the old "name_fold" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldNameFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameFold: %w", err)
+	}
+	return oldValue.NameFold, nil
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (m *FacilityMutation) ClearNameFold() {
+	m.name_fold = nil
+	m.clearedFields[facility.FieldNameFold] = struct{}{}
+}
+
+// NameFoldCleared returns if the "name_fold" field was cleared in this mutation.
+func (m *FacilityMutation) NameFoldCleared() bool {
+	_, ok := m.clearedFields[facility.FieldNameFold]
+	return ok
+}
+
+// ResetNameFold resets all changes to the "name_fold" field.
+func (m *FacilityMutation) ResetNameFold() {
+	m.name_fold = nil
+	delete(m.clearedFields, facility.FieldNameFold)
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (m *FacilityMutation) SetAkaFold(s string) {
+	m.aka_fold = &s
+}
+
+// AkaFold returns the value of the "aka_fold" field in the mutation.
+func (m *FacilityMutation) AkaFold() (r string, exists bool) {
+	v := m.aka_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAkaFold returns the old "aka_fold" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldAkaFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAkaFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAkaFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAkaFold: %w", err)
+	}
+	return oldValue.AkaFold, nil
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (m *FacilityMutation) ClearAkaFold() {
+	m.aka_fold = nil
+	m.clearedFields[facility.FieldAkaFold] = struct{}{}
+}
+
+// AkaFoldCleared returns if the "aka_fold" field was cleared in this mutation.
+func (m *FacilityMutation) AkaFoldCleared() bool {
+	_, ok := m.clearedFields[facility.FieldAkaFold]
+	return ok
+}
+
+// ResetAkaFold resets all changes to the "aka_fold" field.
+func (m *FacilityMutation) ResetAkaFold() {
+	m.aka_fold = nil
+	delete(m.clearedFields, facility.FieldAkaFold)
+}
+
+// SetCityFold sets the "city_fold" field.
+func (m *FacilityMutation) SetCityFold(s string) {
+	m.city_fold = &s
+}
+
+// CityFold returns the value of the "city_fold" field in the mutation.
+func (m *FacilityMutation) CityFold() (r string, exists bool) {
+	v := m.city_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCityFold returns the old "city_fold" field's value of the Facility entity.
+// If the Facility object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FacilityMutation) OldCityFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCityFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCityFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCityFold: %w", err)
+	}
+	return oldValue.CityFold, nil
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (m *FacilityMutation) ClearCityFold() {
+	m.city_fold = nil
+	m.clearedFields[facility.FieldCityFold] = struct{}{}
+}
+
+// CityFoldCleared returns if the "city_fold" field was cleared in this mutation.
+func (m *FacilityMutation) CityFoldCleared() bool {
+	_, ok := m.clearedFields[facility.FieldCityFold]
+	return ok
+}
+
+// ResetCityFold resets all changes to the "city_fold" field.
+func (m *FacilityMutation) ResetCityFold() {
+	m.city_fold = nil
+	delete(m.clearedFields, facility.FieldCityFold)
+}
+
 // ClearCampus clears the "campus" edge to the Campus entity.
 func (m *FacilityMutation) ClearCampus() {
 	m.clearedcampus = true
@@ -6117,7 +6486,7 @@ func (m *FacilityMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FacilityMutation) Fields() []string {
-	fields := make([]string, 0, 38)
+	fields := make([]string, 0, 41)
 	if m.campus != nil {
 		fields = append(fields, facility.FieldCampusID)
 	}
@@ -6232,6 +6601,15 @@ func (m *FacilityMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, facility.FieldStatus)
 	}
+	if m.name_fold != nil {
+		fields = append(fields, facility.FieldNameFold)
+	}
+	if m.aka_fold != nil {
+		fields = append(fields, facility.FieldAkaFold)
+	}
+	if m.city_fold != nil {
+		fields = append(fields, facility.FieldCityFold)
+	}
 	return fields
 }
 
@@ -6316,6 +6694,12 @@ func (m *FacilityMutation) Field(name string) (ent.Value, bool) {
 		return m.Updated()
 	case facility.FieldStatus:
 		return m.Status()
+	case facility.FieldNameFold:
+		return m.NameFold()
+	case facility.FieldAkaFold:
+		return m.AkaFold()
+	case facility.FieldCityFold:
+		return m.CityFold()
 	}
 	return nil, false
 }
@@ -6401,6 +6785,12 @@ func (m *FacilityMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldUpdated(ctx)
 	case facility.FieldStatus:
 		return m.OldStatus(ctx)
+	case facility.FieldNameFold:
+		return m.OldNameFold(ctx)
+	case facility.FieldAkaFold:
+		return m.OldAkaFold(ctx)
+	case facility.FieldCityFold:
+		return m.OldCityFold(ctx)
 	}
 	return nil, fmt.Errorf("unknown Facility field %s", name)
 }
@@ -6676,6 +7066,27 @@ func (m *FacilityMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatus(v)
 		return nil
+	case facility.FieldNameFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameFold(v)
+		return nil
+	case facility.FieldAkaFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAkaFold(v)
+		return nil
+	case facility.FieldCityFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCityFold(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Facility field %s", name)
 }
@@ -6871,6 +7282,15 @@ func (m *FacilityMutation) ClearedFields() []string {
 	if m.FieldCleared(facility.FieldCarrierCount) {
 		fields = append(fields, facility.FieldCarrierCount)
 	}
+	if m.FieldCleared(facility.FieldNameFold) {
+		fields = append(fields, facility.FieldNameFold)
+	}
+	if m.FieldCleared(facility.FieldAkaFold) {
+		fields = append(fields, facility.FieldAkaFold)
+	}
+	if m.FieldCleared(facility.FieldCityFold) {
+		fields = append(fields, facility.FieldCityFold)
+	}
 	return fields
 }
 
@@ -6986,6 +7406,15 @@ func (m *FacilityMutation) ClearField(name string) error {
 		return nil
 	case facility.FieldCarrierCount:
 		m.ClearCarrierCount()
+		return nil
+	case facility.FieldNameFold:
+		m.ClearNameFold()
+		return nil
+	case facility.FieldAkaFold:
+		m.ClearAkaFold()
+		return nil
+	case facility.FieldCityFold:
+		m.ClearCityFold()
 		return nil
 	}
 	return fmt.Errorf("unknown Facility nullable field %s", name)
@@ -7108,6 +7537,15 @@ func (m *FacilityMutation) ResetField(name string) error {
 		return nil
 	case facility.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case facility.FieldNameFold:
+		m.ResetNameFold()
+		return nil
+	case facility.FieldAkaFold:
+		m.ResetAkaFold()
+		return nil
+	case facility.FieldCityFold:
+		m.ResetCityFold()
 		return nil
 	}
 	return fmt.Errorf("unknown Facility field %s", name)
@@ -7328,6 +7766,10 @@ type InternetExchangeMutation struct {
 	created                   *time.Time
 	updated                   *time.Time
 	status                    *string
+	name_fold                 *string
+	aka_fold                  *string
+	name_long_fold            *string
+	city_fold                 *string
 	clearedFields             map[string]struct{}
 	ix_facilities             map[int]struct{}
 	removedix_facilities      map[int]struct{}
@@ -9100,6 +9542,202 @@ func (m *InternetExchangeMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetNameFold sets the "name_fold" field.
+func (m *InternetExchangeMutation) SetNameFold(s string) {
+	m.name_fold = &s
+}
+
+// NameFold returns the value of the "name_fold" field in the mutation.
+func (m *InternetExchangeMutation) NameFold() (r string, exists bool) {
+	v := m.name_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameFold returns the old "name_fold" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldNameFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameFold: %w", err)
+	}
+	return oldValue.NameFold, nil
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (m *InternetExchangeMutation) ClearNameFold() {
+	m.name_fold = nil
+	m.clearedFields[internetexchange.FieldNameFold] = struct{}{}
+}
+
+// NameFoldCleared returns if the "name_fold" field was cleared in this mutation.
+func (m *InternetExchangeMutation) NameFoldCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldNameFold]
+	return ok
+}
+
+// ResetNameFold resets all changes to the "name_fold" field.
+func (m *InternetExchangeMutation) ResetNameFold() {
+	m.name_fold = nil
+	delete(m.clearedFields, internetexchange.FieldNameFold)
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (m *InternetExchangeMutation) SetAkaFold(s string) {
+	m.aka_fold = &s
+}
+
+// AkaFold returns the value of the "aka_fold" field in the mutation.
+func (m *InternetExchangeMutation) AkaFold() (r string, exists bool) {
+	v := m.aka_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAkaFold returns the old "aka_fold" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldAkaFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAkaFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAkaFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAkaFold: %w", err)
+	}
+	return oldValue.AkaFold, nil
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (m *InternetExchangeMutation) ClearAkaFold() {
+	m.aka_fold = nil
+	m.clearedFields[internetexchange.FieldAkaFold] = struct{}{}
+}
+
+// AkaFoldCleared returns if the "aka_fold" field was cleared in this mutation.
+func (m *InternetExchangeMutation) AkaFoldCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldAkaFold]
+	return ok
+}
+
+// ResetAkaFold resets all changes to the "aka_fold" field.
+func (m *InternetExchangeMutation) ResetAkaFold() {
+	m.aka_fold = nil
+	delete(m.clearedFields, internetexchange.FieldAkaFold)
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (m *InternetExchangeMutation) SetNameLongFold(s string) {
+	m.name_long_fold = &s
+}
+
+// NameLongFold returns the value of the "name_long_fold" field in the mutation.
+func (m *InternetExchangeMutation) NameLongFold() (r string, exists bool) {
+	v := m.name_long_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameLongFold returns the old "name_long_fold" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldNameLongFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameLongFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameLongFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameLongFold: %w", err)
+	}
+	return oldValue.NameLongFold, nil
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (m *InternetExchangeMutation) ClearNameLongFold() {
+	m.name_long_fold = nil
+	m.clearedFields[internetexchange.FieldNameLongFold] = struct{}{}
+}
+
+// NameLongFoldCleared returns if the "name_long_fold" field was cleared in this mutation.
+func (m *InternetExchangeMutation) NameLongFoldCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldNameLongFold]
+	return ok
+}
+
+// ResetNameLongFold resets all changes to the "name_long_fold" field.
+func (m *InternetExchangeMutation) ResetNameLongFold() {
+	m.name_long_fold = nil
+	delete(m.clearedFields, internetexchange.FieldNameLongFold)
+}
+
+// SetCityFold sets the "city_fold" field.
+func (m *InternetExchangeMutation) SetCityFold(s string) {
+	m.city_fold = &s
+}
+
+// CityFold returns the value of the "city_fold" field in the mutation.
+func (m *InternetExchangeMutation) CityFold() (r string, exists bool) {
+	v := m.city_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCityFold returns the old "city_fold" field's value of the InternetExchange entity.
+// If the InternetExchange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InternetExchangeMutation) OldCityFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCityFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCityFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCityFold: %w", err)
+	}
+	return oldValue.CityFold, nil
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (m *InternetExchangeMutation) ClearCityFold() {
+	m.city_fold = nil
+	m.clearedFields[internetexchange.FieldCityFold] = struct{}{}
+}
+
+// CityFoldCleared returns if the "city_fold" field was cleared in this mutation.
+func (m *InternetExchangeMutation) CityFoldCleared() bool {
+	_, ok := m.clearedFields[internetexchange.FieldCityFold]
+	return ok
+}
+
+// ResetCityFold resets all changes to the "city_fold" field.
+func (m *InternetExchangeMutation) ResetCityFold() {
+	m.city_fold = nil
+	delete(m.clearedFields, internetexchange.FieldCityFold)
+}
+
 // AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by ids.
 func (m *InternetExchangeMutation) AddIxFacilityIDs(ids ...int) {
 	if m.ix_facilities == nil {
@@ -9282,7 +9920,7 @@ func (m *InternetExchangeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *InternetExchangeMutation) Fields() []string {
-	fields := make([]string, 0, 34)
+	fields := make([]string, 0, 38)
 	if m.organization != nil {
 		fields = append(fields, internetexchange.FieldOrgID)
 	}
@@ -9385,6 +10023,18 @@ func (m *InternetExchangeMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, internetexchange.FieldStatus)
 	}
+	if m.name_fold != nil {
+		fields = append(fields, internetexchange.FieldNameFold)
+	}
+	if m.aka_fold != nil {
+		fields = append(fields, internetexchange.FieldAkaFold)
+	}
+	if m.name_long_fold != nil {
+		fields = append(fields, internetexchange.FieldNameLongFold)
+	}
+	if m.city_fold != nil {
+		fields = append(fields, internetexchange.FieldCityFold)
+	}
 	return fields
 }
 
@@ -9461,6 +10111,14 @@ func (m *InternetExchangeMutation) Field(name string) (ent.Value, bool) {
 		return m.Updated()
 	case internetexchange.FieldStatus:
 		return m.Status()
+	case internetexchange.FieldNameFold:
+		return m.NameFold()
+	case internetexchange.FieldAkaFold:
+		return m.AkaFold()
+	case internetexchange.FieldNameLongFold:
+		return m.NameLongFold()
+	case internetexchange.FieldCityFold:
+		return m.CityFold()
 	}
 	return nil, false
 }
@@ -9538,6 +10196,14 @@ func (m *InternetExchangeMutation) OldField(ctx context.Context, name string) (e
 		return m.OldUpdated(ctx)
 	case internetexchange.FieldStatus:
 		return m.OldStatus(ctx)
+	case internetexchange.FieldNameFold:
+		return m.OldNameFold(ctx)
+	case internetexchange.FieldAkaFold:
+		return m.OldAkaFold(ctx)
+	case internetexchange.FieldNameLongFold:
+		return m.OldNameLongFold(ctx)
+	case internetexchange.FieldCityFold:
+		return m.OldCityFold(ctx)
 	}
 	return nil, fmt.Errorf("unknown InternetExchange field %s", name)
 }
@@ -9785,6 +10451,34 @@ func (m *InternetExchangeMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetStatus(v)
 		return nil
+	case internetexchange.FieldNameFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameFold(v)
+		return nil
+	case internetexchange.FieldAkaFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAkaFold(v)
+		return nil
+	case internetexchange.FieldNameLongFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameLongFold(v)
+		return nil
+	case internetexchange.FieldCityFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCityFold(v)
+		return nil
 	}
 	return fmt.Errorf("unknown InternetExchange field %s", name)
 }
@@ -9935,6 +10629,18 @@ func (m *InternetExchangeMutation) ClearedFields() []string {
 	if m.FieldCleared(internetexchange.FieldIxfImportRequestStatus) {
 		fields = append(fields, internetexchange.FieldIxfImportRequestStatus)
 	}
+	if m.FieldCleared(internetexchange.FieldNameFold) {
+		fields = append(fields, internetexchange.FieldNameFold)
+	}
+	if m.FieldCleared(internetexchange.FieldAkaFold) {
+		fields = append(fields, internetexchange.FieldAkaFold)
+	}
+	if m.FieldCleared(internetexchange.FieldNameLongFold) {
+		fields = append(fields, internetexchange.FieldNameLongFold)
+	}
+	if m.FieldCleared(internetexchange.FieldCityFold) {
+		fields = append(fields, internetexchange.FieldCityFold)
+	}
 	return fields
 }
 
@@ -10029,6 +10735,18 @@ func (m *InternetExchangeMutation) ClearField(name string) error {
 		return nil
 	case internetexchange.FieldIxfImportRequestStatus:
 		m.ClearIxfImportRequestStatus()
+		return nil
+	case internetexchange.FieldNameFold:
+		m.ClearNameFold()
+		return nil
+	case internetexchange.FieldAkaFold:
+		m.ClearAkaFold()
+		return nil
+	case internetexchange.FieldNameLongFold:
+		m.ClearNameLongFold()
+		return nil
+	case internetexchange.FieldCityFold:
+		m.ClearCityFold()
 		return nil
 	}
 	return fmt.Errorf("unknown InternetExchange nullable field %s", name)
@@ -10139,6 +10857,18 @@ func (m *InternetExchangeMutation) ResetField(name string) error {
 		return nil
 	case internetexchange.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case internetexchange.FieldNameFold:
+		m.ResetNameFold()
+		return nil
+	case internetexchange.FieldAkaFold:
+		m.ResetAkaFold()
+		return nil
+	case internetexchange.FieldNameLongFold:
+		m.ResetNameLongFold()
+		return nil
+	case internetexchange.FieldCityFold:
+		m.ResetCityFold()
 		return nil
 	}
 	return fmt.Errorf("unknown InternetExchange field %s", name)
@@ -13469,6 +14199,9 @@ type NetworkMutation struct {
 	created                      *time.Time
 	updated                      *time.Time
 	status                       *string
+	name_fold                    *string
+	aka_fold                     *string
+	name_long_fold               *string
 	clearedFields                map[string]struct{}
 	network_facilities           map[int]struct{}
 	removednetwork_facilities    map[int]struct{}
@@ -15543,6 +16276,153 @@ func (m *NetworkMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetNameFold sets the "name_fold" field.
+func (m *NetworkMutation) SetNameFold(s string) {
+	m.name_fold = &s
+}
+
+// NameFold returns the value of the "name_fold" field in the mutation.
+func (m *NetworkMutation) NameFold() (r string, exists bool) {
+	v := m.name_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameFold returns the old "name_fold" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldNameFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameFold: %w", err)
+	}
+	return oldValue.NameFold, nil
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (m *NetworkMutation) ClearNameFold() {
+	m.name_fold = nil
+	m.clearedFields[network.FieldNameFold] = struct{}{}
+}
+
+// NameFoldCleared returns if the "name_fold" field was cleared in this mutation.
+func (m *NetworkMutation) NameFoldCleared() bool {
+	_, ok := m.clearedFields[network.FieldNameFold]
+	return ok
+}
+
+// ResetNameFold resets all changes to the "name_fold" field.
+func (m *NetworkMutation) ResetNameFold() {
+	m.name_fold = nil
+	delete(m.clearedFields, network.FieldNameFold)
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (m *NetworkMutation) SetAkaFold(s string) {
+	m.aka_fold = &s
+}
+
+// AkaFold returns the value of the "aka_fold" field in the mutation.
+func (m *NetworkMutation) AkaFold() (r string, exists bool) {
+	v := m.aka_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAkaFold returns the old "aka_fold" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldAkaFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAkaFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAkaFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAkaFold: %w", err)
+	}
+	return oldValue.AkaFold, nil
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (m *NetworkMutation) ClearAkaFold() {
+	m.aka_fold = nil
+	m.clearedFields[network.FieldAkaFold] = struct{}{}
+}
+
+// AkaFoldCleared returns if the "aka_fold" field was cleared in this mutation.
+func (m *NetworkMutation) AkaFoldCleared() bool {
+	_, ok := m.clearedFields[network.FieldAkaFold]
+	return ok
+}
+
+// ResetAkaFold resets all changes to the "aka_fold" field.
+func (m *NetworkMutation) ResetAkaFold() {
+	m.aka_fold = nil
+	delete(m.clearedFields, network.FieldAkaFold)
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (m *NetworkMutation) SetNameLongFold(s string) {
+	m.name_long_fold = &s
+}
+
+// NameLongFold returns the value of the "name_long_fold" field in the mutation.
+func (m *NetworkMutation) NameLongFold() (r string, exists bool) {
+	v := m.name_long_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameLongFold returns the old "name_long_fold" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldNameLongFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameLongFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameLongFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameLongFold: %w", err)
+	}
+	return oldValue.NameLongFold, nil
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (m *NetworkMutation) ClearNameLongFold() {
+	m.name_long_fold = nil
+	m.clearedFields[network.FieldNameLongFold] = struct{}{}
+}
+
+// NameLongFoldCleared returns if the "name_long_fold" field was cleared in this mutation.
+func (m *NetworkMutation) NameLongFoldCleared() bool {
+	_, ok := m.clearedFields[network.FieldNameLongFold]
+	return ok
+}
+
+// ResetNameLongFold resets all changes to the "name_long_fold" field.
+func (m *NetworkMutation) ResetNameLongFold() {
+	m.name_long_fold = nil
+	delete(m.clearedFields, network.FieldNameLongFold)
+}
+
 // AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by ids.
 func (m *NetworkMutation) AddNetworkFacilityIDs(ids ...int) {
 	if m.network_facilities == nil {
@@ -15779,7 +16659,7 @@ func (m *NetworkMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NetworkMutation) Fields() []string {
-	fields := make([]string, 0, 40)
+	fields := make([]string, 0, 43)
 	if m.organization != nil {
 		fields = append(fields, network.FieldOrgID)
 	}
@@ -15900,6 +16780,15 @@ func (m *NetworkMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, network.FieldStatus)
 	}
+	if m.name_fold != nil {
+		fields = append(fields, network.FieldNameFold)
+	}
+	if m.aka_fold != nil {
+		fields = append(fields, network.FieldAkaFold)
+	}
+	if m.name_long_fold != nil {
+		fields = append(fields, network.FieldNameLongFold)
+	}
 	return fields
 }
 
@@ -15988,6 +16877,12 @@ func (m *NetworkMutation) Field(name string) (ent.Value, bool) {
 		return m.Updated()
 	case network.FieldStatus:
 		return m.Status()
+	case network.FieldNameFold:
+		return m.NameFold()
+	case network.FieldAkaFold:
+		return m.AkaFold()
+	case network.FieldNameLongFold:
+		return m.NameLongFold()
 	}
 	return nil, false
 }
@@ -16077,6 +16972,12 @@ func (m *NetworkMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldUpdated(ctx)
 	case network.FieldStatus:
 		return m.OldStatus(ctx)
+	case network.FieldNameFold:
+		return m.OldNameFold(ctx)
+	case network.FieldAkaFold:
+		return m.OldAkaFold(ctx)
+	case network.FieldNameLongFold:
+		return m.OldNameLongFold(ctx)
 	}
 	return nil, fmt.Errorf("unknown Network field %s", name)
 }
@@ -16366,6 +17267,27 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatus(v)
 		return nil
+	case network.FieldNameFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameFold(v)
+		return nil
+	case network.FieldAkaFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAkaFold(v)
+		return nil
+	case network.FieldNameLongFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameLongFold(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Network field %s", name)
 }
@@ -16546,6 +17468,15 @@ func (m *NetworkMutation) ClearedFields() []string {
 	if m.FieldCleared(network.FieldPocUpdated) {
 		fields = append(fields, network.FieldPocUpdated)
 	}
+	if m.FieldCleared(network.FieldNameFold) {
+		fields = append(fields, network.FieldNameFold)
+	}
+	if m.FieldCleared(network.FieldAkaFold) {
+		fields = append(fields, network.FieldAkaFold)
+	}
+	if m.FieldCleared(network.FieldNameLongFold) {
+		fields = append(fields, network.FieldNameLongFold)
+	}
 	return fields
 }
 
@@ -16646,6 +17577,15 @@ func (m *NetworkMutation) ClearField(name string) error {
 		return nil
 	case network.FieldPocUpdated:
 		m.ClearPocUpdated()
+		return nil
+	case network.FieldNameFold:
+		m.ClearNameFold()
+		return nil
+	case network.FieldAkaFold:
+		m.ClearAkaFold()
+		return nil
+	case network.FieldNameLongFold:
+		m.ClearNameLongFold()
 		return nil
 	}
 	return fmt.Errorf("unknown Network nullable field %s", name)
@@ -16774,6 +17714,15 @@ func (m *NetworkMutation) ResetField(name string) error {
 		return nil
 	case network.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case network.FieldNameFold:
+		m.ResetNameFold()
+		return nil
+	case network.FieldAkaFold:
+		m.ResetAkaFold()
+		return nil
+	case network.FieldNameLongFold:
+		m.ResetNameLongFold()
 		return nil
 	}
 	return fmt.Errorf("unknown Network field %s", name)
@@ -19653,6 +20602,9 @@ type OrganizationMutation struct {
 	created                   *time.Time
 	updated                   *time.Time
 	status                    *string
+	name_fold                 *string
+	aka_fold                  *string
+	city_fold                 *string
 	clearedFields             map[string]struct{}
 	campuses                  map[int]struct{}
 	removedcampuses           map[int]struct{}
@@ -20764,6 +21716,153 @@ func (m *OrganizationMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetNameFold sets the "name_fold" field.
+func (m *OrganizationMutation) SetNameFold(s string) {
+	m.name_fold = &s
+}
+
+// NameFold returns the value of the "name_fold" field in the mutation.
+func (m *OrganizationMutation) NameFold() (r string, exists bool) {
+	v := m.name_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameFold returns the old "name_fold" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldNameFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameFold: %w", err)
+	}
+	return oldValue.NameFold, nil
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (m *OrganizationMutation) ClearNameFold() {
+	m.name_fold = nil
+	m.clearedFields[organization.FieldNameFold] = struct{}{}
+}
+
+// NameFoldCleared returns if the "name_fold" field was cleared in this mutation.
+func (m *OrganizationMutation) NameFoldCleared() bool {
+	_, ok := m.clearedFields[organization.FieldNameFold]
+	return ok
+}
+
+// ResetNameFold resets all changes to the "name_fold" field.
+func (m *OrganizationMutation) ResetNameFold() {
+	m.name_fold = nil
+	delete(m.clearedFields, organization.FieldNameFold)
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (m *OrganizationMutation) SetAkaFold(s string) {
+	m.aka_fold = &s
+}
+
+// AkaFold returns the value of the "aka_fold" field in the mutation.
+func (m *OrganizationMutation) AkaFold() (r string, exists bool) {
+	v := m.aka_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAkaFold returns the old "aka_fold" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldAkaFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAkaFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAkaFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAkaFold: %w", err)
+	}
+	return oldValue.AkaFold, nil
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (m *OrganizationMutation) ClearAkaFold() {
+	m.aka_fold = nil
+	m.clearedFields[organization.FieldAkaFold] = struct{}{}
+}
+
+// AkaFoldCleared returns if the "aka_fold" field was cleared in this mutation.
+func (m *OrganizationMutation) AkaFoldCleared() bool {
+	_, ok := m.clearedFields[organization.FieldAkaFold]
+	return ok
+}
+
+// ResetAkaFold resets all changes to the "aka_fold" field.
+func (m *OrganizationMutation) ResetAkaFold() {
+	m.aka_fold = nil
+	delete(m.clearedFields, organization.FieldAkaFold)
+}
+
+// SetCityFold sets the "city_fold" field.
+func (m *OrganizationMutation) SetCityFold(s string) {
+	m.city_fold = &s
+}
+
+// CityFold returns the value of the "city_fold" field in the mutation.
+func (m *OrganizationMutation) CityFold() (r string, exists bool) {
+	v := m.city_fold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCityFold returns the old "city_fold" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldCityFold(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCityFold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCityFold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCityFold: %w", err)
+	}
+	return oldValue.CityFold, nil
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (m *OrganizationMutation) ClearCityFold() {
+	m.city_fold = nil
+	m.clearedFields[organization.FieldCityFold] = struct{}{}
+}
+
+// CityFoldCleared returns if the "city_fold" field was cleared in this mutation.
+func (m *OrganizationMutation) CityFoldCleared() bool {
+	_, ok := m.clearedFields[organization.FieldCityFold]
+	return ok
+}
+
+// ResetCityFold resets all changes to the "city_fold" field.
+func (m *OrganizationMutation) ResetCityFold() {
+	m.city_fold = nil
+	delete(m.clearedFields, organization.FieldCityFold)
+}
+
 // AddCampusIDs adds the "campuses" edge to the Campus entity by ids.
 func (m *OrganizationMutation) AddCampusIDs(ids ...int) {
 	if m.campuses == nil {
@@ -21068,7 +22167,7 @@ func (m *OrganizationMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OrganizationMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 23)
 	if m.address1 != nil {
 		fields = append(fields, organization.FieldAddress1)
 	}
@@ -21129,6 +22228,15 @@ func (m *OrganizationMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, organization.FieldStatus)
 	}
+	if m.name_fold != nil {
+		fields = append(fields, organization.FieldNameFold)
+	}
+	if m.aka_fold != nil {
+		fields = append(fields, organization.FieldAkaFold)
+	}
+	if m.city_fold != nil {
+		fields = append(fields, organization.FieldCityFold)
+	}
 	return fields
 }
 
@@ -21177,6 +22285,12 @@ func (m *OrganizationMutation) Field(name string) (ent.Value, bool) {
 		return m.Updated()
 	case organization.FieldStatus:
 		return m.Status()
+	case organization.FieldNameFold:
+		return m.NameFold()
+	case organization.FieldAkaFold:
+		return m.AkaFold()
+	case organization.FieldCityFold:
+		return m.CityFold()
 	}
 	return nil, false
 }
@@ -21226,6 +22340,12 @@ func (m *OrganizationMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldUpdated(ctx)
 	case organization.FieldStatus:
 		return m.OldStatus(ctx)
+	case organization.FieldNameFold:
+		return m.OldNameFold(ctx)
+	case organization.FieldAkaFold:
+		return m.OldAkaFold(ctx)
+	case organization.FieldCityFold:
+		return m.OldCityFold(ctx)
 	}
 	return nil, fmt.Errorf("unknown Organization field %s", name)
 }
@@ -21375,6 +22495,27 @@ func (m *OrganizationMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatus(v)
 		return nil
+	case organization.FieldNameFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameFold(v)
+		return nil
+	case organization.FieldAkaFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAkaFold(v)
+		return nil
+	case organization.FieldCityFold:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCityFold(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Organization field %s", name)
 }
@@ -21480,6 +22621,15 @@ func (m *OrganizationMutation) ClearedFields() []string {
 	if m.FieldCleared(organization.FieldZipcode) {
 		fields = append(fields, organization.FieldZipcode)
 	}
+	if m.FieldCleared(organization.FieldNameFold) {
+		fields = append(fields, organization.FieldNameFold)
+	}
+	if m.FieldCleared(organization.FieldAkaFold) {
+		fields = append(fields, organization.FieldAkaFold)
+	}
+	if m.FieldCleared(organization.FieldCityFold) {
+		fields = append(fields, organization.FieldCityFold)
+	}
 	return fields
 }
 
@@ -21541,6 +22691,15 @@ func (m *OrganizationMutation) ClearField(name string) error {
 		return nil
 	case organization.FieldZipcode:
 		m.ClearZipcode()
+		return nil
+	case organization.FieldNameFold:
+		m.ClearNameFold()
+		return nil
+	case organization.FieldAkaFold:
+		m.ClearAkaFold()
+		return nil
+	case organization.FieldCityFold:
+		m.ClearCityFold()
 		return nil
 	}
 	return fmt.Errorf("unknown Organization nullable field %s", name)
@@ -21609,6 +22768,15 @@ func (m *OrganizationMutation) ResetField(name string) error {
 		return nil
 	case organization.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case organization.FieldNameFold:
+		m.ResetNameFold()
+		return nil
+	case organization.FieldAkaFold:
+		m.ResetAkaFold()
+		return nil
+	case organization.FieldCityFold:
+		m.ResetCityFold()
 		return nil
 	}
 	return fmt.Errorf("unknown Organization field %s", name)

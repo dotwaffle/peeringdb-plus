@@ -26,6 +26,7 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "org_id", Type: field.TypeInt, Nullable: true},
 	}
 	// CampusesTable holds the schema information for the "campuses" table.
@@ -36,7 +37,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "campuses_organizations_campuses",
-				Columns:    []*schema.Column{CampusesColumns[16]},
+				Columns:    []*schema.Column{CampusesColumns[17]},
 				RefColumns: []*schema.Column{OrganizationsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -50,7 +51,7 @@ var (
 			{
 				Name:    "campus_org_id",
 				Unique:  false,
-				Columns: []*schema.Column{CampusesColumns[16]},
+				Columns: []*schema.Column{CampusesColumns[17]},
 			},
 			{
 				Name:    "campus_status",
@@ -79,6 +80,8 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "org_id", Type: field.TypeInt, Nullable: true},
 	}
 	// CarriersTable holds the schema information for the "carriers" table.
@@ -89,7 +92,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "carriers_organizations_carriers",
-				Columns:    []*schema.Column{CarriersColumns[13]},
+				Columns:    []*schema.Column{CarriersColumns[15]},
 				RefColumns: []*schema.Column{OrganizationsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -103,7 +106,7 @@ var (
 			{
 				Name:    "carrier_org_id",
 				Unique:  false,
-				Columns: []*schema.Column{CarriersColumns[13]},
+				Columns: []*schema.Column{CarriersColumns[15]},
 			},
 			{
 				Name:    "carrier_status",
@@ -208,6 +211,9 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "city_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "campus_id", Type: field.TypeInt, Nullable: true},
 		{Name: "org_id", Type: field.TypeInt, Nullable: true},
 	}
@@ -219,13 +225,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "facilities_campuses_facilities",
-				Columns:    []*schema.Column{FacilitiesColumns[37]},
+				Columns:    []*schema.Column{FacilitiesColumns[40]},
 				RefColumns: []*schema.Column{CampusesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "facilities_organizations_facilities",
-				Columns:    []*schema.Column{FacilitiesColumns[38]},
+				Columns:    []*schema.Column{FacilitiesColumns[41]},
 				RefColumns: []*schema.Column{OrganizationsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -234,7 +240,7 @@ var (
 			{
 				Name:    "facility_campus_id",
 				Unique:  false,
-				Columns: []*schema.Column{FacilitiesColumns[37]},
+				Columns: []*schema.Column{FacilitiesColumns[40]},
 			},
 			{
 				Name:    "facility_name",
@@ -244,7 +250,7 @@ var (
 			{
 				Name:    "facility_org_id",
 				Unique:  false,
-				Columns: []*schema.Column{FacilitiesColumns[38]},
+				Columns: []*schema.Column{FacilitiesColumns[41]},
 			},
 			{
 				Name:    "facility_status",
@@ -294,6 +300,10 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "name_long_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "city_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "org_id", Type: field.TypeInt, Nullable: true},
 	}
 	// InternetExchangesTable holds the schema information for the "internet_exchanges" table.
@@ -304,7 +314,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "internet_exchanges_organizations_internet_exchanges",
-				Columns:    []*schema.Column{InternetExchangesColumns[34]},
+				Columns:    []*schema.Column{InternetExchangesColumns[38]},
 				RefColumns: []*schema.Column{OrganizationsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -318,7 +328,7 @@ var (
 			{
 				Name:    "internetexchange_org_id",
 				Unique:  false,
-				Columns: []*schema.Column{InternetExchangesColumns[34]},
+				Columns: []*schema.Column{InternetExchangesColumns[38]},
 			},
 			{
 				Name:    "internetexchange_status",
@@ -528,6 +538,9 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "name_long_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "org_id", Type: field.TypeInt, Nullable: true},
 	}
 	// NetworksTable holds the schema information for the "networks" table.
@@ -538,7 +551,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "networks_organizations_networks",
-				Columns:    []*schema.Column{NetworksColumns[40]},
+				Columns:    []*schema.Column{NetworksColumns[43]},
 				RefColumns: []*schema.Column{OrganizationsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -557,7 +570,7 @@ var (
 			{
 				Name:    "network_org_id",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[40]},
+				Columns: []*schema.Column{NetworksColumns[43]},
 			},
 			{
 				Name:    "network_status",
@@ -722,6 +735,9 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "city_fold", Type: field.TypeString, Nullable: true, Default: ""},
 	}
 	// OrganizationsTable holds the schema information for the "organizations" table.
 	OrganizationsTable = &schema.Table{

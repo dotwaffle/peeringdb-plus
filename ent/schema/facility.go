@@ -192,6 +192,27 @@ func (Facility) Fields() []ent.Field {
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
+
+		// Phase 69 UNICODE-01 shadow columns — internal plumbing for pdbcompat
+		// diacritic-insensitive matching; populated by internal/sync.upsert via
+		// internal/unifold.Fold. Skipped from entrest + entgql so they stay
+		// server-side and do not leak to any wire surface (proto is already
+		// frozen via entproto.SkipGenFile in ent/entc.go).
+		field.String("name_fold").
+			Optional().
+			Default("").
+			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
+			Comment("Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
+		field.String("aka_fold").
+			Optional().
+			Default("").
+			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
+			Comment("Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
+		field.String("city_fold").
+			Optional().
+			Default("").
+			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
+			Comment("Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
 	}
 }
 

@@ -45,6 +45,8 @@ const (
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldNameFold holds the string denoting the name_fold field in the database.
+	FieldNameFold = "name_fold"
 	// EdgeFacilities holds the string denoting the facilities edge name in mutations.
 	EdgeFacilities = "facilities"
 	// EdgeOrganization holds the string denoting the organization edge name in mutations.
@@ -86,6 +88,7 @@ var Columns = []string{
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
+	FieldNameFold,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -123,6 +126,8 @@ var (
 	DefaultOrgName string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
+	// DefaultNameFold holds the default value on creation for the "name_fold" field.
+	DefaultNameFold string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )
@@ -208,6 +213,11 @@ func ByUpdated(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByNameFold orders the results by the name_fold field.
+func ByNameFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNameFold, opts...).ToFunc()
 }
 
 // ByFacilitiesCount orders the results by facilities count.

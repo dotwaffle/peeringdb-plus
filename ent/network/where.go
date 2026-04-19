@@ -245,6 +245,21 @@ func Status(v string) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldStatus, v))
 }
 
+// NameFold applies equality check predicate on the "name_fold" field. It's identical to NameFoldEQ.
+func NameFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldNameFold, v))
+}
+
+// AkaFold applies equality check predicate on the "aka_fold" field. It's identical to AkaFoldEQ.
+func AkaFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldAkaFold, v))
+}
+
+// NameLongFold applies equality check predicate on the "name_long_fold" field. It's identical to NameLongFoldEQ.
+func NameLongFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldNameLongFold, v))
+}
+
 // OrgIDEQ applies the EQ predicate on the "org_id" field.
 func OrgIDEQ(v int) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldOrgID, v))
@@ -2353,6 +2368,231 @@ func StatusEqualFold(v string) predicate.Network {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.Network {
 	return predicate.Network(sql.FieldContainsFold(FieldStatus, v))
+}
+
+// NameFoldEQ applies the EQ predicate on the "name_fold" field.
+func NameFoldEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldNameFold, v))
+}
+
+// NameFoldNEQ applies the NEQ predicate on the "name_fold" field.
+func NameFoldNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldNameFold, v))
+}
+
+// NameFoldIn applies the In predicate on the "name_fold" field.
+func NameFoldIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldNameFold, vs...))
+}
+
+// NameFoldNotIn applies the NotIn predicate on the "name_fold" field.
+func NameFoldNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldNameFold, vs...))
+}
+
+// NameFoldGT applies the GT predicate on the "name_fold" field.
+func NameFoldGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldNameFold, v))
+}
+
+// NameFoldGTE applies the GTE predicate on the "name_fold" field.
+func NameFoldGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldNameFold, v))
+}
+
+// NameFoldLT applies the LT predicate on the "name_fold" field.
+func NameFoldLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldNameFold, v))
+}
+
+// NameFoldLTE applies the LTE predicate on the "name_fold" field.
+func NameFoldLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldNameFold, v))
+}
+
+// NameFoldContains applies the Contains predicate on the "name_fold" field.
+func NameFoldContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldNameFold, v))
+}
+
+// NameFoldHasPrefix applies the HasPrefix predicate on the "name_fold" field.
+func NameFoldHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldNameFold, v))
+}
+
+// NameFoldHasSuffix applies the HasSuffix predicate on the "name_fold" field.
+func NameFoldHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldNameFold, v))
+}
+
+// NameFoldIsNil applies the IsNil predicate on the "name_fold" field.
+func NameFoldIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldNameFold))
+}
+
+// NameFoldNotNil applies the NotNil predicate on the "name_fold" field.
+func NameFoldNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldNameFold))
+}
+
+// NameFoldEqualFold applies the EqualFold predicate on the "name_fold" field.
+func NameFoldEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldNameFold, v))
+}
+
+// NameFoldContainsFold applies the ContainsFold predicate on the "name_fold" field.
+func NameFoldContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldNameFold, v))
+}
+
+// AkaFoldEQ applies the EQ predicate on the "aka_fold" field.
+func AkaFoldEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldAkaFold, v))
+}
+
+// AkaFoldNEQ applies the NEQ predicate on the "aka_fold" field.
+func AkaFoldNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldAkaFold, v))
+}
+
+// AkaFoldIn applies the In predicate on the "aka_fold" field.
+func AkaFoldIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldAkaFold, vs...))
+}
+
+// AkaFoldNotIn applies the NotIn predicate on the "aka_fold" field.
+func AkaFoldNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldAkaFold, vs...))
+}
+
+// AkaFoldGT applies the GT predicate on the "aka_fold" field.
+func AkaFoldGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldAkaFold, v))
+}
+
+// AkaFoldGTE applies the GTE predicate on the "aka_fold" field.
+func AkaFoldGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldAkaFold, v))
+}
+
+// AkaFoldLT applies the LT predicate on the "aka_fold" field.
+func AkaFoldLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldAkaFold, v))
+}
+
+// AkaFoldLTE applies the LTE predicate on the "aka_fold" field.
+func AkaFoldLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldAkaFold, v))
+}
+
+// AkaFoldContains applies the Contains predicate on the "aka_fold" field.
+func AkaFoldContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldAkaFold, v))
+}
+
+// AkaFoldHasPrefix applies the HasPrefix predicate on the "aka_fold" field.
+func AkaFoldHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldAkaFold, v))
+}
+
+// AkaFoldHasSuffix applies the HasSuffix predicate on the "aka_fold" field.
+func AkaFoldHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldAkaFold, v))
+}
+
+// AkaFoldIsNil applies the IsNil predicate on the "aka_fold" field.
+func AkaFoldIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldAkaFold))
+}
+
+// AkaFoldNotNil applies the NotNil predicate on the "aka_fold" field.
+func AkaFoldNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldAkaFold))
+}
+
+// AkaFoldEqualFold applies the EqualFold predicate on the "aka_fold" field.
+func AkaFoldEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldAkaFold, v))
+}
+
+// AkaFoldContainsFold applies the ContainsFold predicate on the "aka_fold" field.
+func AkaFoldContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldAkaFold, v))
+}
+
+// NameLongFoldEQ applies the EQ predicate on the "name_long_fold" field.
+func NameLongFoldEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldNameLongFold, v))
+}
+
+// NameLongFoldNEQ applies the NEQ predicate on the "name_long_fold" field.
+func NameLongFoldNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldNameLongFold, v))
+}
+
+// NameLongFoldIn applies the In predicate on the "name_long_fold" field.
+func NameLongFoldIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldNameLongFold, vs...))
+}
+
+// NameLongFoldNotIn applies the NotIn predicate on the "name_long_fold" field.
+func NameLongFoldNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldNameLongFold, vs...))
+}
+
+// NameLongFoldGT applies the GT predicate on the "name_long_fold" field.
+func NameLongFoldGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldNameLongFold, v))
+}
+
+// NameLongFoldGTE applies the GTE predicate on the "name_long_fold" field.
+func NameLongFoldGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldNameLongFold, v))
+}
+
+// NameLongFoldLT applies the LT predicate on the "name_long_fold" field.
+func NameLongFoldLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldNameLongFold, v))
+}
+
+// NameLongFoldLTE applies the LTE predicate on the "name_long_fold" field.
+func NameLongFoldLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldNameLongFold, v))
+}
+
+// NameLongFoldContains applies the Contains predicate on the "name_long_fold" field.
+func NameLongFoldContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldNameLongFold, v))
+}
+
+// NameLongFoldHasPrefix applies the HasPrefix predicate on the "name_long_fold" field.
+func NameLongFoldHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldNameLongFold, v))
+}
+
+// NameLongFoldHasSuffix applies the HasSuffix predicate on the "name_long_fold" field.
+func NameLongFoldHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldNameLongFold, v))
+}
+
+// NameLongFoldIsNil applies the IsNil predicate on the "name_long_fold" field.
+func NameLongFoldIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldNameLongFold))
+}
+
+// NameLongFoldNotNil applies the NotNil predicate on the "name_long_fold" field.
+func NameLongFoldNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldNameLongFold))
+}
+
+// NameLongFoldEqualFold applies the EqualFold predicate on the "name_long_fold" field.
+func NameLongFoldEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldNameLongFold, v))
+}
+
+// NameLongFoldContainsFold applies the ContainsFold predicate on the "name_long_fold" field.
+func NameLongFoldContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldNameLongFold, v))
 }
 
 // HasNetworkFacilities applies the HasEdge predicate on the "network_facilities" edge.

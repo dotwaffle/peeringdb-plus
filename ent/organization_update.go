@@ -409,6 +409,66 @@ func (_u *OrganizationUpdate) SetNillableStatus(v *string) *OrganizationUpdate {
 	return _u
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_u *OrganizationUpdate) SetNameFold(v string) *OrganizationUpdate {
+	_u.mutation.SetNameFold(v)
+	return _u
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_u *OrganizationUpdate) SetNillableNameFold(v *string) *OrganizationUpdate {
+	if v != nil {
+		_u.SetNameFold(*v)
+	}
+	return _u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (_u *OrganizationUpdate) ClearNameFold() *OrganizationUpdate {
+	_u.mutation.ClearNameFold()
+	return _u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_u *OrganizationUpdate) SetAkaFold(v string) *OrganizationUpdate {
+	_u.mutation.SetAkaFold(v)
+	return _u
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_u *OrganizationUpdate) SetNillableAkaFold(v *string) *OrganizationUpdate {
+	if v != nil {
+		_u.SetAkaFold(*v)
+	}
+	return _u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (_u *OrganizationUpdate) ClearAkaFold() *OrganizationUpdate {
+	_u.mutation.ClearAkaFold()
+	return _u
+}
+
+// SetCityFold sets the "city_fold" field.
+func (_u *OrganizationUpdate) SetCityFold(v string) *OrganizationUpdate {
+	_u.mutation.SetCityFold(v)
+	return _u
+}
+
+// SetNillableCityFold sets the "city_fold" field if the given value is not nil.
+func (_u *OrganizationUpdate) SetNillableCityFold(v *string) *OrganizationUpdate {
+	if v != nil {
+		_u.SetCityFold(*v)
+	}
+	return _u
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (_u *OrganizationUpdate) ClearCityFold() *OrganizationUpdate {
+	_u.mutation.ClearCityFold()
+	return _u
+}
+
 // AddCampusIDs adds the "campuses" edge to the Campus entity by IDs.
 func (_u *OrganizationUpdate) AddCampusIDs(ids ...int) *OrganizationUpdate {
 	_u.mutation.AddCampusIDs(ids...)
@@ -758,6 +818,24 @@ func (_u *OrganizationUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(organization.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.NameFold(); ok {
+		_spec.SetField(organization.FieldNameFold, field.TypeString, value)
+	}
+	if _u.mutation.NameFoldCleared() {
+		_spec.ClearField(organization.FieldNameFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.AkaFold(); ok {
+		_spec.SetField(organization.FieldAkaFold, field.TypeString, value)
+	}
+	if _u.mutation.AkaFoldCleared() {
+		_spec.ClearField(organization.FieldAkaFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.CityFold(); ok {
+		_spec.SetField(organization.FieldCityFold, field.TypeString, value)
+	}
+	if _u.mutation.CityFoldCleared() {
+		_spec.ClearField(organization.FieldCityFold, field.TypeString)
 	}
 	if _u.mutation.CampusesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1378,6 +1456,66 @@ func (_u *OrganizationUpdateOne) SetNillableStatus(v *string) *OrganizationUpdat
 	return _u
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_u *OrganizationUpdateOne) SetNameFold(v string) *OrganizationUpdateOne {
+	_u.mutation.SetNameFold(v)
+	return _u
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_u *OrganizationUpdateOne) SetNillableNameFold(v *string) *OrganizationUpdateOne {
+	if v != nil {
+		_u.SetNameFold(*v)
+	}
+	return _u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (_u *OrganizationUpdateOne) ClearNameFold() *OrganizationUpdateOne {
+	_u.mutation.ClearNameFold()
+	return _u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_u *OrganizationUpdateOne) SetAkaFold(v string) *OrganizationUpdateOne {
+	_u.mutation.SetAkaFold(v)
+	return _u
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_u *OrganizationUpdateOne) SetNillableAkaFold(v *string) *OrganizationUpdateOne {
+	if v != nil {
+		_u.SetAkaFold(*v)
+	}
+	return _u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (_u *OrganizationUpdateOne) ClearAkaFold() *OrganizationUpdateOne {
+	_u.mutation.ClearAkaFold()
+	return _u
+}
+
+// SetCityFold sets the "city_fold" field.
+func (_u *OrganizationUpdateOne) SetCityFold(v string) *OrganizationUpdateOne {
+	_u.mutation.SetCityFold(v)
+	return _u
+}
+
+// SetNillableCityFold sets the "city_fold" field if the given value is not nil.
+func (_u *OrganizationUpdateOne) SetNillableCityFold(v *string) *OrganizationUpdateOne {
+	if v != nil {
+		_u.SetCityFold(*v)
+	}
+	return _u
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (_u *OrganizationUpdateOne) ClearCityFold() *OrganizationUpdateOne {
+	_u.mutation.ClearCityFold()
+	return _u
+}
+
 // AddCampusIDs adds the "campuses" edge to the Campus entity by IDs.
 func (_u *OrganizationUpdateOne) AddCampusIDs(ids ...int) *OrganizationUpdateOne {
 	_u.mutation.AddCampusIDs(ids...)
@@ -1757,6 +1895,24 @@ func (_u *OrganizationUpdateOne) sqlSave(ctx context.Context) (_node *Organizati
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(organization.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.NameFold(); ok {
+		_spec.SetField(organization.FieldNameFold, field.TypeString, value)
+	}
+	if _u.mutation.NameFoldCleared() {
+		_spec.ClearField(organization.FieldNameFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.AkaFold(); ok {
+		_spec.SetField(organization.FieldAkaFold, field.TypeString, value)
+	}
+	if _u.mutation.AkaFoldCleared() {
+		_spec.ClearField(organization.FieldAkaFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.CityFold(); ok {
+		_spec.SetField(organization.FieldCityFold, field.TypeString, value)
+	}
+	if _u.mutation.CityFoldCleared() {
+		_spec.ClearField(organization.FieldCityFold, field.TypeString)
 	}
 	if _u.mutation.CampusesCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -98,6 +98,12 @@ type Facility struct {
 	Updated time.Time `json:"updated"`
 	// Record status
 	Status string `json:"status"`
+	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	NameFold string `json:"name_fold"`
+	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	AkaFold string `json:"aka_fold"`
+	// Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	CityFold string `json:"city_fold"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the FacilityQuery when eager-loading is set.
 	Edges        FacilityEdges `json:"edges"`
@@ -189,7 +195,7 @@ func (*Facility) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case facility.FieldID, facility.FieldCampusID, facility.FieldOrgID, facility.FieldNetCount, facility.FieldIxCount, facility.FieldCarrierCount:
 			values[i] = new(sql.NullInt64)
-		case facility.FieldAddress1, facility.FieldAddress2, facility.FieldAka, facility.FieldCity, facility.FieldClli, facility.FieldCountry, facility.FieldFloor, facility.FieldLogo, facility.FieldName, facility.FieldNameLong, facility.FieldNotes, facility.FieldNpanxx, facility.FieldProperty, facility.FieldRegionContinent, facility.FieldRencode, facility.FieldSalesEmail, facility.FieldSalesPhone, facility.FieldState, facility.FieldStatusDashboard, facility.FieldSuite, facility.FieldTechEmail, facility.FieldTechPhone, facility.FieldWebsite, facility.FieldZipcode, facility.FieldOrgName, facility.FieldStatus:
+		case facility.FieldAddress1, facility.FieldAddress2, facility.FieldAka, facility.FieldCity, facility.FieldClli, facility.FieldCountry, facility.FieldFloor, facility.FieldLogo, facility.FieldName, facility.FieldNameLong, facility.FieldNotes, facility.FieldNpanxx, facility.FieldProperty, facility.FieldRegionContinent, facility.FieldRencode, facility.FieldSalesEmail, facility.FieldSalesPhone, facility.FieldState, facility.FieldStatusDashboard, facility.FieldSuite, facility.FieldTechEmail, facility.FieldTechPhone, facility.FieldWebsite, facility.FieldZipcode, facility.FieldOrgName, facility.FieldStatus, facility.FieldNameFold, facility.FieldAkaFold, facility.FieldCityFold:
 			values[i] = new(sql.NullString)
 		case facility.FieldCreated, facility.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -455,6 +461,24 @@ func (_m *Facility) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = value.String
 			}
+		case facility.FieldNameFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_fold", values[i])
+			} else if value.Valid {
+				_m.NameFold = value.String
+			}
+		case facility.FieldAkaFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field aka_fold", values[i])
+			} else if value.Valid {
+				_m.AkaFold = value.String
+			}
+		case facility.FieldCityFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field city_fold", values[i])
+			} else if value.Valid {
+				_m.CityFold = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -647,6 +671,15 @@ func (_m *Facility) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
+	builder.WriteString(", ")
+	builder.WriteString("name_fold=")
+	builder.WriteString(_m.NameFold)
+	builder.WriteString(", ")
+	builder.WriteString("aka_fold=")
+	builder.WriteString(_m.AkaFold)
+	builder.WriteString(", ")
+	builder.WriteString("city_fold=")
+	builder.WriteString(_m.CityFold)
 	builder.WriteByte(')')
 	return builder.String()
 }

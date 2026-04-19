@@ -470,6 +470,62 @@ func (_c *InternetExchangeCreate) SetNillableStatus(v *string) *InternetExchange
 	return _c
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_c *InternetExchangeCreate) SetNameFold(v string) *InternetExchangeCreate {
+	_c.mutation.SetNameFold(v)
+	return _c
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableNameFold(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetNameFold(*v)
+	}
+	return _c
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_c *InternetExchangeCreate) SetAkaFold(v string) *InternetExchangeCreate {
+	_c.mutation.SetAkaFold(v)
+	return _c
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableAkaFold(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetAkaFold(*v)
+	}
+	return _c
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (_c *InternetExchangeCreate) SetNameLongFold(v string) *InternetExchangeCreate {
+	_c.mutation.SetNameLongFold(v)
+	return _c
+}
+
+// SetNillableNameLongFold sets the "name_long_fold" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableNameLongFold(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetNameLongFold(*v)
+	}
+	return _c
+}
+
+// SetCityFold sets the "city_fold" field.
+func (_c *InternetExchangeCreate) SetCityFold(v string) *InternetExchangeCreate {
+	_c.mutation.SetCityFold(v)
+	return _c
+}
+
+// SetNillableCityFold sets the "city_fold" field if the given value is not nil.
+func (_c *InternetExchangeCreate) SetNillableCityFold(v *string) *InternetExchangeCreate {
+	if v != nil {
+		_c.SetCityFold(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *InternetExchangeCreate) SetID(v int) *InternetExchangeCreate {
 	_c.mutation.SetID(v)
@@ -661,6 +717,22 @@ func (_c *InternetExchangeCreate) defaults() error {
 	if _, ok := _c.mutation.Status(); !ok {
 		v := internetexchange.DefaultStatus
 		_c.mutation.SetStatus(v)
+	}
+	if _, ok := _c.mutation.NameFold(); !ok {
+		v := internetexchange.DefaultNameFold
+		_c.mutation.SetNameFold(v)
+	}
+	if _, ok := _c.mutation.AkaFold(); !ok {
+		v := internetexchange.DefaultAkaFold
+		_c.mutation.SetAkaFold(v)
+	}
+	if _, ok := _c.mutation.NameLongFold(); !ok {
+		v := internetexchange.DefaultNameLongFold
+		_c.mutation.SetNameLongFold(v)
+	}
+	if _, ok := _c.mutation.CityFold(); !ok {
+		v := internetexchange.DefaultCityFold
+		_c.mutation.SetCityFold(v)
 	}
 	return nil
 }
@@ -862,6 +934,22 @@ func (_c *InternetExchangeCreate) createSpec() (*InternetExchange, *sqlgraph.Cre
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(internetexchange.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.NameFold(); ok {
+		_spec.SetField(internetexchange.FieldNameFold, field.TypeString, value)
+		_node.NameFold = value
+	}
+	if value, ok := _c.mutation.AkaFold(); ok {
+		_spec.SetField(internetexchange.FieldAkaFold, field.TypeString, value)
+		_node.AkaFold = value
+	}
+	if value, ok := _c.mutation.NameLongFold(); ok {
+		_spec.SetField(internetexchange.FieldNameLongFold, field.TypeString, value)
+		_node.NameLongFold = value
+	}
+	if value, ok := _c.mutation.CityFold(); ok {
+		_spec.SetField(internetexchange.FieldCityFold, field.TypeString, value)
+		_node.CityFold = value
 	}
 	if nodes := _c.mutation.IxFacilitiesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1537,6 +1625,78 @@ func (u *InternetExchangeUpsert) SetStatus(v string) *InternetExchangeUpsert {
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *InternetExchangeUpsert) UpdateStatus() *InternetExchangeUpsert {
 	u.SetExcluded(internetexchange.FieldStatus)
+	return u
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *InternetExchangeUpsert) SetNameFold(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldNameFold, v)
+	return u
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateNameFold() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldNameFold)
+	return u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *InternetExchangeUpsert) ClearNameFold() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldNameFold)
+	return u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *InternetExchangeUpsert) SetAkaFold(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldAkaFold, v)
+	return u
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateAkaFold() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldAkaFold)
+	return u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *InternetExchangeUpsert) ClearAkaFold() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldAkaFold)
+	return u
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (u *InternetExchangeUpsert) SetNameLongFold(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldNameLongFold, v)
+	return u
+}
+
+// UpdateNameLongFold sets the "name_long_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateNameLongFold() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldNameLongFold)
+	return u
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (u *InternetExchangeUpsert) ClearNameLongFold() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldNameLongFold)
+	return u
+}
+
+// SetCityFold sets the "city_fold" field.
+func (u *InternetExchangeUpsert) SetCityFold(v string) *InternetExchangeUpsert {
+	u.Set(internetexchange.FieldCityFold, v)
+	return u
+}
+
+// UpdateCityFold sets the "city_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsert) UpdateCityFold() *InternetExchangeUpsert {
+	u.SetExcluded(internetexchange.FieldCityFold)
+	return u
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (u *InternetExchangeUpsert) ClearCityFold() *InternetExchangeUpsert {
+	u.SetNull(internetexchange.FieldCityFold)
 	return u
 }
 
@@ -2260,6 +2420,90 @@ func (u *InternetExchangeUpsertOne) SetStatus(v string) *InternetExchangeUpsertO
 func (u *InternetExchangeUpsertOne) UpdateStatus() *InternetExchangeUpsertOne {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *InternetExchangeUpsertOne) SetNameFold(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateNameFold() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *InternetExchangeUpsertOne) ClearNameFold() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearNameFold()
+	})
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *InternetExchangeUpsertOne) SetAkaFold(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetAkaFold(v)
+	})
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateAkaFold() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateAkaFold()
+	})
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *InternetExchangeUpsertOne) ClearAkaFold() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearAkaFold()
+	})
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (u *InternetExchangeUpsertOne) SetNameLongFold(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetNameLongFold(v)
+	})
+}
+
+// UpdateNameLongFold sets the "name_long_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateNameLongFold() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateNameLongFold()
+	})
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (u *InternetExchangeUpsertOne) ClearNameLongFold() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearNameLongFold()
+	})
+}
+
+// SetCityFold sets the "city_fold" field.
+func (u *InternetExchangeUpsertOne) SetCityFold(v string) *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetCityFold(v)
+	})
+}
+
+// UpdateCityFold sets the "city_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsertOne) UpdateCityFold() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateCityFold()
+	})
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (u *InternetExchangeUpsertOne) ClearCityFold() *InternetExchangeUpsertOne {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearCityFold()
 	})
 }
 
@@ -3149,6 +3393,90 @@ func (u *InternetExchangeUpsertBulk) SetStatus(v string) *InternetExchangeUpsert
 func (u *InternetExchangeUpsertBulk) UpdateStatus() *InternetExchangeUpsertBulk {
 	return u.Update(func(s *InternetExchangeUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *InternetExchangeUpsertBulk) SetNameFold(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateNameFold() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *InternetExchangeUpsertBulk) ClearNameFold() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearNameFold()
+	})
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *InternetExchangeUpsertBulk) SetAkaFold(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetAkaFold(v)
+	})
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateAkaFold() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateAkaFold()
+	})
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *InternetExchangeUpsertBulk) ClearAkaFold() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearAkaFold()
+	})
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (u *InternetExchangeUpsertBulk) SetNameLongFold(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetNameLongFold(v)
+	})
+}
+
+// UpdateNameLongFold sets the "name_long_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateNameLongFold() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateNameLongFold()
+	})
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (u *InternetExchangeUpsertBulk) ClearNameLongFold() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearNameLongFold()
+	})
+}
+
+// SetCityFold sets the "city_fold" field.
+func (u *InternetExchangeUpsertBulk) SetCityFold(v string) *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.SetCityFold(v)
+	})
+}
+
+// UpdateCityFold sets the "city_fold" field to the value that was provided on create.
+func (u *InternetExchangeUpsertBulk) UpdateCityFold() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.UpdateCityFold()
+	})
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (u *InternetExchangeUpsertBulk) ClearCityFold() *InternetExchangeUpsertBulk {
+	return u.Update(func(s *InternetExchangeUpsert) {
+		s.ClearCityFold()
 	})
 }
 

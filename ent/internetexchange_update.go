@@ -676,6 +676,86 @@ func (_u *InternetExchangeUpdate) SetNillableStatus(v *string) *InternetExchange
 	return _u
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_u *InternetExchangeUpdate) SetNameFold(v string) *InternetExchangeUpdate {
+	_u.mutation.SetNameFold(v)
+	return _u
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableNameFold(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetNameFold(*v)
+	}
+	return _u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (_u *InternetExchangeUpdate) ClearNameFold() *InternetExchangeUpdate {
+	_u.mutation.ClearNameFold()
+	return _u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_u *InternetExchangeUpdate) SetAkaFold(v string) *InternetExchangeUpdate {
+	_u.mutation.SetAkaFold(v)
+	return _u
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableAkaFold(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetAkaFold(*v)
+	}
+	return _u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (_u *InternetExchangeUpdate) ClearAkaFold() *InternetExchangeUpdate {
+	_u.mutation.ClearAkaFold()
+	return _u
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (_u *InternetExchangeUpdate) SetNameLongFold(v string) *InternetExchangeUpdate {
+	_u.mutation.SetNameLongFold(v)
+	return _u
+}
+
+// SetNillableNameLongFold sets the "name_long_fold" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableNameLongFold(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetNameLongFold(*v)
+	}
+	return _u
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (_u *InternetExchangeUpdate) ClearNameLongFold() *InternetExchangeUpdate {
+	_u.mutation.ClearNameLongFold()
+	return _u
+}
+
+// SetCityFold sets the "city_fold" field.
+func (_u *InternetExchangeUpdate) SetCityFold(v string) *InternetExchangeUpdate {
+	_u.mutation.SetCityFold(v)
+	return _u
+}
+
+// SetNillableCityFold sets the "city_fold" field if the given value is not nil.
+func (_u *InternetExchangeUpdate) SetNillableCityFold(v *string) *InternetExchangeUpdate {
+	if v != nil {
+		_u.SetCityFold(*v)
+	}
+	return _u
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (_u *InternetExchangeUpdate) ClearCityFold() *InternetExchangeUpdate {
+	_u.mutation.ClearCityFold()
+	return _u
+}
+
 // AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by IDs.
 func (_u *InternetExchangeUpdate) AddIxFacilityIDs(ids ...int) *InternetExchangeUpdate {
 	_u.mutation.AddIxFacilityIDs(ids...)
@@ -1014,6 +1094,30 @@ func (_u *InternetExchangeUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(internetexchange.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.NameFold(); ok {
+		_spec.SetField(internetexchange.FieldNameFold, field.TypeString, value)
+	}
+	if _u.mutation.NameFoldCleared() {
+		_spec.ClearField(internetexchange.FieldNameFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.AkaFold(); ok {
+		_spec.SetField(internetexchange.FieldAkaFold, field.TypeString, value)
+	}
+	if _u.mutation.AkaFoldCleared() {
+		_spec.ClearField(internetexchange.FieldAkaFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.NameLongFold(); ok {
+		_spec.SetField(internetexchange.FieldNameLongFold, field.TypeString, value)
+	}
+	if _u.mutation.NameLongFoldCleared() {
+		_spec.ClearField(internetexchange.FieldNameLongFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.CityFold(); ok {
+		_spec.SetField(internetexchange.FieldCityFold, field.TypeString, value)
+	}
+	if _u.mutation.CityFoldCleared() {
+		_spec.ClearField(internetexchange.FieldCityFold, field.TypeString)
 	}
 	if _u.mutation.IxFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1797,6 +1901,86 @@ func (_u *InternetExchangeUpdateOne) SetNillableStatus(v *string) *InternetExcha
 	return _u
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_u *InternetExchangeUpdateOne) SetNameFold(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetNameFold(v)
+	return _u
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableNameFold(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetNameFold(*v)
+	}
+	return _u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (_u *InternetExchangeUpdateOne) ClearNameFold() *InternetExchangeUpdateOne {
+	_u.mutation.ClearNameFold()
+	return _u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_u *InternetExchangeUpdateOne) SetAkaFold(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetAkaFold(v)
+	return _u
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableAkaFold(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetAkaFold(*v)
+	}
+	return _u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (_u *InternetExchangeUpdateOne) ClearAkaFold() *InternetExchangeUpdateOne {
+	_u.mutation.ClearAkaFold()
+	return _u
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (_u *InternetExchangeUpdateOne) SetNameLongFold(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetNameLongFold(v)
+	return _u
+}
+
+// SetNillableNameLongFold sets the "name_long_fold" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableNameLongFold(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetNameLongFold(*v)
+	}
+	return _u
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (_u *InternetExchangeUpdateOne) ClearNameLongFold() *InternetExchangeUpdateOne {
+	_u.mutation.ClearNameLongFold()
+	return _u
+}
+
+// SetCityFold sets the "city_fold" field.
+func (_u *InternetExchangeUpdateOne) SetCityFold(v string) *InternetExchangeUpdateOne {
+	_u.mutation.SetCityFold(v)
+	return _u
+}
+
+// SetNillableCityFold sets the "city_fold" field if the given value is not nil.
+func (_u *InternetExchangeUpdateOne) SetNillableCityFold(v *string) *InternetExchangeUpdateOne {
+	if v != nil {
+		_u.SetCityFold(*v)
+	}
+	return _u
+}
+
+// ClearCityFold clears the value of the "city_fold" field.
+func (_u *InternetExchangeUpdateOne) ClearCityFold() *InternetExchangeUpdateOne {
+	_u.mutation.ClearCityFold()
+	return _u
+}
+
 // AddIxFacilityIDs adds the "ix_facilities" edge to the IxFacility entity by IDs.
 func (_u *InternetExchangeUpdateOne) AddIxFacilityIDs(ids ...int) *InternetExchangeUpdateOne {
 	_u.mutation.AddIxFacilityIDs(ids...)
@@ -2165,6 +2349,30 @@ func (_u *InternetExchangeUpdateOne) sqlSave(ctx context.Context) (_node *Intern
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(internetexchange.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.NameFold(); ok {
+		_spec.SetField(internetexchange.FieldNameFold, field.TypeString, value)
+	}
+	if _u.mutation.NameFoldCleared() {
+		_spec.ClearField(internetexchange.FieldNameFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.AkaFold(); ok {
+		_spec.SetField(internetexchange.FieldAkaFold, field.TypeString, value)
+	}
+	if _u.mutation.AkaFoldCleared() {
+		_spec.ClearField(internetexchange.FieldAkaFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.NameLongFold(); ok {
+		_spec.SetField(internetexchange.FieldNameLongFold, field.TypeString, value)
+	}
+	if _u.mutation.NameLongFoldCleared() {
+		_spec.ClearField(internetexchange.FieldNameLongFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.CityFold(); ok {
+		_spec.SetField(internetexchange.FieldCityFold, field.TypeString, value)
+	}
+	if _u.mutation.CityFoldCleared() {
+		_spec.ClearField(internetexchange.FieldCityFold, field.TypeString)
 	}
 	if _u.mutation.IxFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{

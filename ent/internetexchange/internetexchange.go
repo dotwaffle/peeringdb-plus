@@ -81,6 +81,14 @@ const (
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldNameFold holds the string denoting the name_fold field in the database.
+	FieldNameFold = "name_fold"
+	// FieldAkaFold holds the string denoting the aka_fold field in the database.
+	FieldAkaFold = "aka_fold"
+	// FieldNameLongFold holds the string denoting the name_long_fold field in the database.
+	FieldNameLongFold = "name_long_fold"
+	// FieldCityFold holds the string denoting the city_fold field in the database.
+	FieldCityFold = "city_fold"
 	// EdgeIxFacilities holds the string denoting the ix_facilities edge name in mutations.
 	EdgeIxFacilities = "ix_facilities"
 	// EdgeIxLans holds the string denoting the ix_lans edge name in mutations.
@@ -149,6 +157,10 @@ var Columns = []string{
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
+	FieldNameFold,
+	FieldAkaFold,
+	FieldNameLongFold,
+	FieldCityFold,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -220,6 +232,14 @@ var (
 	DefaultIxfImportRequestStatus string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
+	// DefaultNameFold holds the default value on creation for the "name_fold" field.
+	DefaultNameFold string
+	// DefaultAkaFold holds the default value on creation for the "aka_fold" field.
+	DefaultAkaFold string
+	// DefaultNameLongFold holds the default value on creation for the "name_long_fold" field.
+	DefaultNameLongFold string
+	// DefaultCityFold holds the default value on creation for the "city_fold" field.
+	DefaultCityFold string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )
@@ -395,6 +415,26 @@ func ByUpdated(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByNameFold orders the results by the name_fold field.
+func ByNameFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNameFold, opts...).ToFunc()
+}
+
+// ByAkaFold orders the results by the aka_fold field.
+func ByAkaFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAkaFold, opts...).ToFunc()
+}
+
+// ByNameLongFold orders the results by the name_long_fold field.
+func ByNameLongFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNameLongFold, opts...).ToFunc()
+}
+
+// ByCityFold orders the results by the city_fold field.
+func ByCityFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCityFold, opts...).ToFunc()
 }
 
 // ByIxFacilitiesCount orders the results by ix_facilities count.

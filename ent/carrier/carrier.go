@@ -39,6 +39,10 @@ const (
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldNameFold holds the string denoting the name_fold field in the database.
+	FieldNameFold = "name_fold"
+	// FieldAkaFold holds the string denoting the aka_fold field in the database.
+	FieldAkaFold = "aka_fold"
 	// EdgeCarrierFacilities holds the string denoting the carrier_facilities edge name in mutations.
 	EdgeCarrierFacilities = "carrier_facilities"
 	// EdgeOrganization holds the string denoting the organization edge name in mutations.
@@ -77,6 +81,8 @@ var Columns = []string{
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
+	FieldNameFold,
+	FieldAkaFold,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -112,6 +118,10 @@ var (
 	DefaultFacCount int
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
+	// DefaultNameFold holds the default value on creation for the "name_fold" field.
+	DefaultNameFold string
+	// DefaultAkaFold holds the default value on creation for the "aka_fold" field.
+	DefaultAkaFold string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )
@@ -182,6 +192,16 @@ func ByUpdated(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByNameFold orders the results by the name_fold field.
+func ByNameFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNameFold, opts...).ToFunc()
+}
+
+// ByAkaFold orders the results by the aka_fold field.
+func ByAkaFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAkaFold, opts...).ToFunc()
 }
 
 // ByCarrierFacilitiesCount orders the results by carrier_facilities count.

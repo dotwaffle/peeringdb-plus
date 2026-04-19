@@ -175,6 +175,34 @@ func (_c *CarrierCreate) SetNillableStatus(v *string) *CarrierCreate {
 	return _c
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_c *CarrierCreate) SetNameFold(v string) *CarrierCreate {
+	_c.mutation.SetNameFold(v)
+	return _c
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_c *CarrierCreate) SetNillableNameFold(v *string) *CarrierCreate {
+	if v != nil {
+		_c.SetNameFold(*v)
+	}
+	return _c
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_c *CarrierCreate) SetAkaFold(v string) *CarrierCreate {
+	_c.mutation.SetAkaFold(v)
+	return _c
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_c *CarrierCreate) SetNillableAkaFold(v *string) *CarrierCreate {
+	if v != nil {
+		_c.SetAkaFold(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *CarrierCreate) SetID(v int) *CarrierCreate {
 	_c.mutation.SetID(v)
@@ -279,6 +307,14 @@ func (_c *CarrierCreate) defaults() error {
 	if _, ok := _c.mutation.Status(); !ok {
 		v := carrier.DefaultStatus
 		_c.mutation.SetStatus(v)
+	}
+	if _, ok := _c.mutation.NameFold(); !ok {
+		v := carrier.DefaultNameFold
+		_c.mutation.SetNameFold(v)
+	}
+	if _, ok := _c.mutation.AkaFold(); !ok {
+		v := carrier.DefaultAkaFold
+		_c.mutation.SetAkaFold(v)
 	}
 	return nil
 }
@@ -387,6 +423,14 @@ func (_c *CarrierCreate) createSpec() (*Carrier, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(carrier.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.NameFold(); ok {
+		_spec.SetField(carrier.FieldNameFold, field.TypeString, value)
+		_node.NameFold = value
+	}
+	if value, ok := _c.mutation.AkaFold(); ok {
+		_spec.SetField(carrier.FieldAkaFold, field.TypeString, value)
+		_node.AkaFold = value
 	}
 	if nodes := _c.mutation.CarrierFacilitiesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -677,6 +721,42 @@ func (u *CarrierUpsert) UpdateStatus() *CarrierUpsert {
 	return u
 }
 
+// SetNameFold sets the "name_fold" field.
+func (u *CarrierUpsert) SetNameFold(v string) *CarrierUpsert {
+	u.Set(carrier.FieldNameFold, v)
+	return u
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *CarrierUpsert) UpdateNameFold() *CarrierUpsert {
+	u.SetExcluded(carrier.FieldNameFold)
+	return u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *CarrierUpsert) ClearNameFold() *CarrierUpsert {
+	u.SetNull(carrier.FieldNameFold)
+	return u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *CarrierUpsert) SetAkaFold(v string) *CarrierUpsert {
+	u.Set(carrier.FieldAkaFold, v)
+	return u
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *CarrierUpsert) UpdateAkaFold() *CarrierUpsert {
+	u.SetExcluded(carrier.FieldAkaFold)
+	return u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *CarrierUpsert) ClearAkaFold() *CarrierUpsert {
+	u.SetNull(carrier.FieldAkaFold)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -963,6 +1043,48 @@ func (u *CarrierUpsertOne) SetStatus(v string) *CarrierUpsertOne {
 func (u *CarrierUpsertOne) UpdateStatus() *CarrierUpsertOne {
 	return u.Update(func(s *CarrierUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *CarrierUpsertOne) SetNameFold(v string) *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *CarrierUpsertOne) UpdateNameFold() *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *CarrierUpsertOne) ClearNameFold() *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.ClearNameFold()
+	})
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *CarrierUpsertOne) SetAkaFold(v string) *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.SetAkaFold(v)
+	})
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *CarrierUpsertOne) UpdateAkaFold() *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.UpdateAkaFold()
+	})
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *CarrierUpsertOne) ClearAkaFold() *CarrierUpsertOne {
+	return u.Update(func(s *CarrierUpsert) {
+		s.ClearAkaFold()
 	})
 }
 
@@ -1418,6 +1540,48 @@ func (u *CarrierUpsertBulk) SetStatus(v string) *CarrierUpsertBulk {
 func (u *CarrierUpsertBulk) UpdateStatus() *CarrierUpsertBulk {
 	return u.Update(func(s *CarrierUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *CarrierUpsertBulk) SetNameFold(v string) *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *CarrierUpsertBulk) UpdateNameFold() *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *CarrierUpsertBulk) ClearNameFold() *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.ClearNameFold()
+	})
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *CarrierUpsertBulk) SetAkaFold(v string) *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.SetAkaFold(v)
+	})
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *CarrierUpsertBulk) UpdateAkaFold() *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.UpdateAkaFold()
+	})
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *CarrierUpsertBulk) ClearAkaFold() *CarrierUpsertBulk {
+	return u.Update(func(s *CarrierUpsert) {
+		s.ClearAkaFold()
 	})
 }
 
