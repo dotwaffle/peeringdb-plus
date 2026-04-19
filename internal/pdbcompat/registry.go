@@ -50,6 +50,16 @@ type QueryOptions struct {
 // ListFunc queries entities and returns serialized objects plus total count.
 type ListFunc func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error)
 
+// CountFunc runs the predicate chain for a list query and returns the
+// matching row count WITHOUT fetching row data. Used by Phase 71
+// serveList pre-flight budget check to decide whether to 413 up-front
+// before committing to an expensive .All(ctx) fetch.
+//
+// The returned count reflects what WOULD be served after Offset/Limit
+// are applied — not the raw total. This matches the budget math that
+// multiplies count × typicalRowBytes.
+type CountFunc func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error)
+
 // GetFunc queries a single entity by ID and returns its serialized form.
 type GetFunc func(ctx context.Context, client *ent.Client, id int, depth int) (any, error)
 
@@ -59,6 +69,7 @@ type TypeConfig struct {
 	Fields       map[string]FieldType
 	SearchFields []string
 	List         ListFunc
+	Count        CountFunc
 	Get          GetFunc
 
 	// FoldedFields lists the string fields on this type that have a sibling
