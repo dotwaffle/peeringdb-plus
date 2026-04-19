@@ -83,7 +83,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 - [x] 69-02-PLAN.md — 16 field.String("*_fold") across 6 ent schemas + scoped ent regen (entgql.Skip+entrest.WithSkip annotations keep _fold off all wire surfaces; commit 9e408de)
 - [x] 69-03-PLAN.md — 6 upsertX funcs populate _fold columns via unifold.Fold (16 calls wired); 7 unaffected upserts byte-identical; golang.org/x/text promoted to direct dep; commits 8ce16ab+cdad023
 - [x] 69-04-PLAN.md — filter.go: coerceToCaseInsensitive + shadow-column routing + json_each __in + empty-__in sentinel; 16 folded fields across 6 TypeConfigs; 13 EmptyResult guards in list closures; commits 9839273 (RED) + 9aa661d (GREEN)
-- [ ] 69-05-PLAN.md — fuzz corpus extension (500k exec) + bench_test + shadow-index decision
+- [x] 69-05-PLAN.md — fuzz corpus extension (469k local execs, 0 panics) + build-tag-gated bench shim + shadow-index decision DEFERRED (benchstat n=6: shadow within 1% of direct at 10k rows, p=0.065); commit 298033d
 - [ ] 69-06-PLAN.md — CHANGELOG + docs/API.md divergence + CLAUDE.md convention + REQ-ID audit
 
 ### Phase 70: Cross-entity `__` traversal (Path A + Path B + 2-hop)

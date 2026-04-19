@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 69-04 (pdbcompat filter layer — UNICODE-02 coercion + UNICODE-01 shadow-column routing + IN-01 json_each single-bind + IN-02 empty-__in sentinel). ParseFilters(url.Values, TypeConfig) ([]func(*sql.Selector), bool, error) threads QueryOptions.EmptyResult through all 13 list closures; 16 folded fields across 6 types (org/net/fac/ix/carrier/campus) route substring+prefix+iexact via <field>_fold LIKE ? with unifold.Fold(value); sql.ExprP (confirmed at ent@v0.14.6/dialect/sql/builder.go:767) carries WHERE <col> IN (SELECT value FROM json_each(?)); errEmptyIn sentinel short-circuits whole request when ?field__in= supplied. TDD RED commit 9839273 (5 new behavioural tests failing) → GREEN commit 9aa661d (tests pass, Rule 1 fix — setupTestHandler seed rows gained .SetNameFold(unifold.Fold(name)) because production sync populates _fold but tests bypass sync). Phase 68 status × since matrix intact in all 13 closures; golangci-lint run clean; go test -race ./... all packages PASS. Next: 69-05 (fuzz corpus + bench + shadow-index decision) or 69-06 (docs).
-last_updated: "2026-04-19T17:10:00Z"
+stopped_at: Completed 69-05 (fuzz corpus extension + build-tag-gated bench shim + shadow-index decision DEFERRED). FuzzFilterParser seeds extended per D-07 (21 new cases — diacritics/CJK/RTL/RLO/ZWJ/combining/null/>64KB + IN-01 1201-element + IN-02 empty + unicode/all-empty parts); local 60s fuzz on Ryzen 5 3600 = 469197 executions, 65 new interesting, ZERO panics. New //go:build bench-gated filter_bench.go + bench_test.go declare directContainsPredicate/shadowContainsPredicate helpers and four BenchmarkNameContains_{100,10000}_{Direct,Shadow} (chunked 500-row CreateBulk to stay under SQLite SQLITE_MAX_VARIABLE_NUMBER=32766). benchstat n=6: shadow 101.4 ms ± 1% vs direct 102.2 ms ± 1% at 10k rows, p=0.065 (statistically indistinguishable, geomean Δ -0.25%) → Option B SKIP indexes; ent/schema/{network,facility,internetexchange,organization,campus,carrier}.go NOT edited; no ent/ regen. INVARIANT held: `git diff HEAD~1..HEAD -- internal/pdbcompat/filter.go` = 0 lines (production code untouched, GO-CC-3 compliant). Two deviations rolled in: Rule 3 chunked seed (SQLite var limit blocker) + Rule 1 query-value swap (Direct returned 0 rows on "Zurich" — apples-to-oranges fix). go test -race ./... ALL packages PASS; go build ./... clean (no tags, bench symbols invisible); golangci-lint run + golangci-lint run --build-tags=bench both 0 issues. Commit 298033d. Next: 69-06 (docs: CHANGELOG + docs/API.md divergence + CLAUDE.md convention + REQ-ID audit).
+last_updated: "2026-04-19T17:50:00Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
@@ -22,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 69 — Unicode folding, operator coercion, __in robustness in pdbcompat filter layer (in flight: 4/6 plans shipped)
+**Current focus:** Phase 69 — Unicode folding, operator coercion, __in robustness in pdbcompat filter layer (in flight: 5/6 plans shipped)
 
 ## Current Position
 
-Phase: 69 (unicode-operator-in-robustness) — IN FLIGHT (4/6 plans shipped: 69-01 unifold package, 69-02 ent shadow columns, 69-03 sync upserts, 69-04 pdbcompat filter layer)
-Plan: Last completed 69-04 (filter layer: coerceToCaseInsensitive + <field>_fold routing + json_each __in + empty-__in sentinel); next 69-05 (fuzz corpus extension + bench + shadow-index decision) and 69-06 (CHANGELOG + docs/API.md divergence + CLAUDE.md convention)
-Status: Plan 69-04 closed cleanly — TDD RED→GREEN, one Rule 1 test-fixture fix rolled into GREEN commit, all acceptance greps pass (13 opts.EmptyResult guards, 13 applyStatusMatrix intact, json_each single occurrence in SQL), full test suite + vet + golangci-lint all green
-Next action: `/gsd-execute-phase 69-05` — fuzz corpus extension / bench / shadow-index
+Phase: 69 (unicode-operator-in-robustness) — IN FLIGHT (5/6 plans shipped: 69-01 unifold package, 69-02 ent shadow columns, 69-03 sync upserts, 69-04 pdbcompat filter layer, 69-05 fuzz corpus + bench + index decision)
+Plan: Last completed 69-05 (fuzz corpus extension to 469k local execs, build-tag-gated bench shim, shadow-index decision DEFERRED via benchstat n=6 evidence). Next 69-06 (CHANGELOG + docs/API.md divergence + CLAUDE.md convention + REQ-ID audit).
+Status: Plan 69-05 closed cleanly — production filter.go untouched (B1 invariant held, 0-line diff), bench shim invisible to default builds (//go:build bench), shadow path within 1% of direct at 10k rows (p=0.065 statistically indistinguishable). Two auto-fixes rolled in (Rule 3 chunked CreateBulk for SQLite var limit, Rule 1 query-value equivalence to avoid apples-to-oranges measurement). Full test suite + vet (default + bench) + golangci-lint (default + --build-tags=bench) all green.
+Next action: `/gsd-execute-phase 69-06` — docs (CHANGELOG + docs/API.md divergence + CLAUDE.md convention + REQ-ID audit)
 Last activity: 2026-04-19
 
 ## v1.16 Phase Map

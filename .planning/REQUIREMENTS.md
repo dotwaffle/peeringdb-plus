@@ -45,7 +45,7 @@ All requirements below cite upstream code by path and line. The canonical refere
 
 - [x] **UNICODE-01**: Filter values passed to `__contains` / `__startswith` / `__iexact` are Unicode-folded before reaching SQL, matching `rest.py:576` (`unidecode.unidecode(v)`); `?name__contains=Zürich` matches rows containing `zurich`
 - [x] **UNICODE-02**: `__contains` operator coerced to `__icontains` behaviour at the query layer; `__startswith` coerced to `__istartswith` (matches `rest.py:638-641`)
-- [ ] **UNICODE-03**: `ParseFilters` fuzz corpus extended to cover non-ASCII inputs (diacritics, CJK, combining marks, zero-width joiners); zero panics under fuzz
+- [x] **UNICODE-03**: `ParseFilters` fuzz corpus extended to cover non-ASCII inputs (diacritics, CJK, combining marks, zero-width joiners); zero panics under fuzz
 
 ### Cross-Entity `__` Traversal (TRAVERSAL)
 
@@ -103,7 +103,7 @@ Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% covera
 | IN-02 | 69 | complete (69-04; errEmptyIn sentinel + QueryOptions.EmptyResult flag + 13 closure guards) |
 | UNICODE-01 | 69 | complete (69-04; 16 fields across 6 TypeConfigs route via <field>_fold with unifold.Fold on RHS) |
 | UNICODE-02 | 69 | complete (69-04; coerceToCaseInsensitive in filter.go maps __contains → __icontains, __startswith → __istartswith) |
-| UNICODE-03 | 69 | pending |
+| UNICODE-03 | 69 | complete (69-05; FuzzFilterParser corpus extended with 21 D-07 cases — diacritics/CJK/RTL/RLO/ZWJ/combining/null/>64KB + IN edges; local 60s fuzz on Ryzen 5 3600 = 469197 execs / 65 new interesting / zero panics) |
 | TRAVERSAL-01 | 70 | pending |
 | TRAVERSAL-02 | 70 | pending |
 | TRAVERSAL-03 | 70 | pending |
