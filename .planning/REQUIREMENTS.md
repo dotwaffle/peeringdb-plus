@@ -101,7 +101,7 @@ Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% covera
 | LIMIT-02 | 68 | complete (68-03 guardrail; functional list+depth deferred to Phase 71) |
 | IN-01 | 69 | pending |
 | IN-02 | 69 | pending |
-| UNICODE-01 | 69 | pending |
+| UNICODE-01 | 69 | in progress (data path complete 69-03; filter routing pending 69-04) |
 | UNICODE-02 | 69 | pending |
 | UNICODE-03 | 69 | pending |
 | TRAVERSAL-01 | 70 | pending |
