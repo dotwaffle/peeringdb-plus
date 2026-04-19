@@ -204,30 +204,33 @@ func (w *Worker) fkMarkSkipped(typeName string, id int) {
 // After PERF-05 (Plan 54-02 Commit D), the fetch and upsert paths dispatch
 // via fetchOneTypeFull / fetchOneTypeIncremental / upsertOneType type
 // switches on step.name — the old upsertFn/incrementalFn fields were
-// removed because fetch now runs outside the tx. Only deleteFn survives
-// because deletes still go through per-type methods inside the tx.
+// removed because fetch now runs outside the tx. The deleteFn closure
+// soft-deletes rows (Phase 68 D-02): rows absent from the remote response
+// are marked status='deleted' with updated=cycleStart rather than physically
+// removed, so upstream rest.py:700-712 status × since matrix queries can
+// return tombstones.
 type syncStep struct {
 	name     string
-	deleteFn func(ctx context.Context, tx *ent.Tx, remoteIDs []int) (deleted int, err error)
+	deleteFn func(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (marked int, err error)
 }
 
 // syncSteps returns the ordered list of sync steps in FK dependency order per D-06.
 // Upserts are processed in this order (parents first); deletes in reverse (children first).
 func (w *Worker) syncSteps() []syncStep {
 	return []syncStep{
-		{"org", deleteStaleOrganizations},
-		{"campus", deleteStaleCampuses},
-		{"fac", deleteStaleFacilities},
-		{"carrier", deleteStaleCarriers},
-		{"carrierfac", deleteStaleCarrierFacilities},
-		{"ix", deleteStaleInternetExchanges},
-		{"ixlan", deleteStaleIxLans},
-		{"ixpfx", deleteStaleIxPrefixes},
-		{"ixfac", deleteStaleIxFacilities},
-		{"net", deleteStaleNetworks},
-		{"poc", deleteStalePocs},
-		{"netfac", deleteStaleNetworkFacilities},
-		{"netixlan", deleteStaleNetworkIxLans},
+		{"org", markStaleDeletedOrganizations},
+		{"campus", markStaleDeletedCampuses},
+		{"fac", markStaleDeletedFacilities},
+		{"carrier", markStaleDeletedCarriers},
+		{"carrierfac", markStaleDeletedCarrierFacilities},
+		{"ix", markStaleDeletedInternetExchanges},
+		{"ixlan", markStaleDeletedIxLans},
+		{"ixpfx", markStaleDeletedIxPrefixes},
+		{"ixfac", markStaleDeletedIxFacilities},
+		{"net", markStaleDeletedNetworks},
+		{"poc", markStaleDeletedPocs},
+		{"netfac", markStaleDeletedNetworkFacilities},
+		{"netixlan", markStaleDeletedNetworkIxLans},
 	}
 }
 
@@ -363,7 +366,9 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		w.rollbackAndRecord(ctx, tx, statusID, start, err)
 		return err
 	}
-	if err := w.syncDeletePass(ctx, tx, remoteIDsByType); err != nil {
+	// cycleStart := start (Phase 68 D-02 soft-delete uses the same timestamp
+	// captured at Sync entry so all 13 types share one updated value).
+	if err := w.syncDeletePass(ctx, tx, remoteIDsByType, start); err != nil {
 		w.rollbackAndRecord(ctx, tx, statusID, start, err)
 		return err
 	}
@@ -1198,10 +1203,13 @@ func (w *Worker) fkCheckParent(ctx context.Context, childType string, childID in
 	return false
 }
 
-// syncDeletePass runs the per-type delete loop in child-first (reverse FK)
-// order, skipping types that have no remoteIDs (incremental sync succeeded).
+// syncDeletePass runs the per-type soft-delete loop in child-first (reverse
+// FK) order, skipping types that have no remoteIDs (incremental sync
+// succeeded). cycleStart is the single timestamp stamped on every row marked
+// status='deleted' during this cycle (Phase 68 D-02) — reused from the
+// Worker.Sync-entry time.Now() so all 13 types see identical timestamps.
 // The orchestrator handles rollback + recordFailure on error.
-func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType map[string][]int) error {
+func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType map[string][]int, cycleStart time.Time) error {
 	steps := w.syncSteps()
 	for i := len(steps) - 1; i >= 0; i-- {
 		step := steps[i]
@@ -1213,23 +1221,26 @@ func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType
 
 		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-delete-"+step.name)
 
-		deleted, stepErr := step.deleteFn(ctx, tx, remoteIDs)
+		marked, stepErr := step.deleteFn(ctx, tx, remoteIDs, cycleStart)
 
 		stepSpan.End()
 
 		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
 
 		if stepErr != nil {
-			return fmt.Errorf("delete stale %s: %w", step.name, stepErr)
+			return fmt.Errorf("mark stale deleted %s: %w", step.name, stepErr)
 		}
 
-		// Record per-type delete metrics per D-08.
-		pdbotel.SyncTypeDeleted.Add(ctx, int64(deleted), typeAttr)
+		// Record per-type delete metrics per D-08. The metric name stays
+		// SyncTypeDeleted — operator semantics for a row absent from the
+		// visible list are still "it's gone", even though the row physically
+		// remains as a tombstone post-Phase-68 D-02.
+		pdbotel.SyncTypeDeleted.Add(ctx, int64(marked), typeAttr)
 
-		if deleted > 0 {
-			w.logger.LogAttrs(ctx, slog.LevelInfo, "deleted stale",
+		if marked > 0 {
+			w.logger.LogAttrs(ctx, slog.LevelInfo, "marked stale deleted",
 				slog.String("type", step.name),
-				slog.Int("deleted", deleted),
+				slog.Int("marked", marked),
 			)
 		}
 	}
