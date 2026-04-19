@@ -4,7 +4,7 @@
 
 - ✅ **v1.0 – v1.14** — shipped (see [MILESTONES.md](./MILESTONES.md))
 - ✅ **v1.15 — Infrastructure Polish & Schema Hygiene** — shipped 2026-04-18 (Phases 63-66, 11 requirements)
-- 🟡 **v1.16 — Django-compat Correctness** — defined 2026-04-18 (Phases 67-72, 25 requirements)
+- ✅ **v1.16 — Django-compat Correctness** — complete 2026-04-19 (Phases 67-72, 25 requirements; ready for `/gsd-complete-milestone` archival)
 
 ## Phases
 
@@ -15,7 +15,7 @@
 - [ ] **Phase 69: Filter-value Unicode folding, operator coercion, `__in` robustness** — Pdbcompat filter layer matches upstream `rest.py:544-662` value handling
 - [x] **Phase 70: Cross-entity `__` traversal (Path A + Path B + 2-hop)** — Pdbcompat resolves filter paths across FKs like upstream serializers
 - [x] **Phase 71: Memory-safe response paths on 256 MB replicas** — Depth=2 / `limit=0` / large traversals stay within the replica memory envelope
-- [ ] **Phase 72: Upstream parity regression + divergence docs** — Ported `pdb_api_test.py` ground-truth tests lock the new semantics
+- [x] **Phase 72: Upstream parity regression + divergence docs** — Ported `pdb_api_test.py` ground-truth tests lock the new semantics
 
 <details>
 <summary>✅ v1.15 — Infrastructure Polish & Schema Hygiene (Phases 63-66) — SHIPPED 2026-04-18</summary>
@@ -131,7 +131,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   1. A regression test suite ported from `pdb_api_test.py` asserts: default ordering (Phase 67), status × since matrix (Phase 68), `limit=0` unlimited semantics (Phase 68), `__in` behaviour for both large and empty lists (Phase 69), and the six 1-hop + 2-hop traversal cases cited in the validation audit (Phase 70) — all passing in CI
   2. Every intentional divergence from upstream discovered during Phase 67-71 execution is enumerated in `docs/API.md` with a rationale, so future conformance audits can distinguish intentional-divergence from regression
   3. A follow-up conformance run against `beta.peeringdb.com` (or recorded fixtures) shows zero unexpected diffs — any new diffs surfacing are either codified in `docs/API.md` or flagged as bugs
-**Plans**: 6 plans
+**Plans**: 6/6 plans executed
 
 Plans:
 - [x] 72-01-PLAN.md — cmd/pdb-fixture-port/ tool scaffold + PoC ordering-category fixture emission into internal/testutil/parity/fixtures.go (SHA-pinned header)
@@ -139,7 +139,7 @@ Plans:
 - [x] 72-03-PLAN.md — Extend pdb-fixture-port to UNICODE + IN + TRAVERSAL fixtures; `--category all` emits the full 6-category file deterministically (5560 fixtures total: 12 ord + 46 status + 270 limit byte-identical to 72-02 + 216 unicode + 5002 in + 14 traversal; same pinned SHA peeringdb/peeringdb@99e92c72; --upstream-commit override flag added for SHA-preservation during pinned-snapshot regeneration)
 - [x] 72-04-PLAN.md — internal/pdbcompat/parity/ — 6 category-split regression test files + shared harness locking ORDER/STATUS/LIMIT/UNICODE/IN/TRAVERSAL semantics (31 hard-pass tests; 4 harness probes + 27 v1.16-semantic subtests; 2 explicit DIVERGENCE asserts for DEFER-70-verifier-01 + DEFER-70-06-01; 15 citation hits + 36 t.Parallel + 4 DIVERGENCE markers per CONTEXT.md grep invariants; harness file is *_test.go to satisfy internal/sync TestTestutilIsTestOnly invariant) (PARITY-01)
 - [x] 72-05-PLAN.md — internal/pdbcompat/parity/bench_test.go — 3 b.Loop()-style benchmarks (2-hop traversal ~580μs/op, limit=0 streaming ~82.7ms/op, 5001-element __in ~98.6ms/op on Ryzen 5 3600) per D-07; testing.TB widening across testutil.SetupClient + 9 parity harness helpers; single atomic commit e325752; full-repo `go test -race ./...` green post-widening (PARITY-01)
-- [ ] 72-06-PLAN.md — docs/API.md § Known Divergences extension + NEW § Validation Notes (5 invalid-pdbfe-claims with upstream SHA refs) + CLAUDE.md convention + CHANGELOG v1.16 close + REQ-ID audit + ROADMAP flip (PARITY-02)
+- [x] 72-06-PLAN.md — docs/API.md § Known Divergences extension + NEW § Validation Notes (5 invalid-pdbfe-claims with peeringdb/peeringdb@99e92c72 upstream SHA refs) + CLAUDE.md § Upstream parity regression (Phase 72) convention + CHANGELOG.md v1.16 [Unreleased] Phase 72 Added bullets + milestone-close note + REQUIREMENTS.md PARITY-02 flipped complete + ROADMAP.md Phase 72 [x] (PARITY-02) — v1.16 milestone COMPLETE
 
 ## Phase Dependency Graph
 
@@ -165,11 +165,11 @@ Notes on parallelism:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 67. Default ordering flip | 6/6 | Complete | 2026-04-19 |
-| 68. Status × since matrix + limit=0 | 1/4 | In progress | - |
-| 69. Unicode + operator + __in | 3/6 | In progress | - |
+| 68. Status × since matrix + limit=0 | 4/4 | Complete | 2026-04-19 |
+| 69. Unicode + operator + __in | 6/6 | Complete | 2026-04-19 |
 | 70. Cross-entity __ traversal | 8/8 | Complete | 2026-04-19 |
 | 71. Memory-safe response paths | 6/6 | Complete | 2026-04-19 |
-| 72. Upstream parity regression | 5/6 | In progress | - |
+| 72. Upstream parity regression | 6/6 | Complete | 2026-04-19 |
 
 ## Backlog
 

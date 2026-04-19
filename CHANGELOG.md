@@ -11,16 +11,24 @@ Historical release notes prior to v1.16 live in
 ## [Unreleased] — v1.16
 
 v1.16 is a coordinated milestone release. Phases 67, 68, 69, 70, and 71 ship
-together in a single deploy window; Phase 72 (upstream parity regression) may
-follow independently. Do not deploy any individual Phase 68 commit in
-isolation — pdbcompat `?limit=0` now returns all matching rows, and the
-memory-safe response paths that bound that behaviour land in Phase 71.
+together in a single deploy window; Phase 72 (upstream parity regression)
+ships independently as a code-only test lock-in. Do not deploy any individual
+Phase 68 commit in isolation — pdbcompat `?limit=0` now returns all matching
+rows, and the memory-safe response paths that bound that behaviour land in
+Phase 71.
 
 > **Coordinated release window:** v1.16 phases 67-71 are now complete
 > and ready to deploy as a bundle. `limit=0` unbounded semantics
 > (Phase 68) are safe in prod only with the Phase 71 memory budget in
 > place — do NOT ship 67-70 without 71. Phase 72 (parity regression
-> test lock-in) ships independently as a follow-up.
+> test lock-in) ships independently as a follow-up — no production
+> deploy required; it is a CI regression gate only.
+>
+> **v1.16 milestone complete (2026-04-19):** All 6 phases (67, 68, 69,
+> 70, 71, 72) shipped. 25/25 requirements across 8 categories (ORDER,
+> STATUS, LIMIT, IN, UNICODE, TRAVERSAL, MEMORY, PARITY) traced and
+> complete. Next action: `/gsd-complete-milestone` to archive v1.16
+> into `.planning/milestones/v1.16-*`.
 
 ### Breaking
 
@@ -162,6 +170,64 @@ memory-safe response paths that bound that behaviour land in Phase 71.
     telemetry wire-up. `CLAUDE.md` gains a sibling § Response memory
     envelope (Phase 71) convention with the maintainer checklist for
     adding new entity types. Closes MEMORY-04.
+
+- **Phase 72 (PARITY-01, PARITY-02): Upstream parity regression lock-in.**
+  - **`internal/pdbcompat/parity/` category-split regression suite** —
+    6 test files (`ordering_test.go`, `status_test.go`,
+    `limit_test.go`, `unicode_test.go`, `in_test.go`,
+    `traversal_test.go`) + a shared `harness_helpers_test.go`. 31
+    hard-pass tests total: 27 v1.16-semantic sub-tests covering
+    ORDER-01..03 / STATUS-01..06 / LIMIT-01/01b/02 / UNICODE-01/02 /
+    IN-01/02/03 / TRAVERSAL-01..04 plus 4 harness probes. 2 explicit
+    `DIVERGENCE_` sub-tests lock the v1.16 silent-ignore semantic for
+    DEFER-70-verifier-01 (`fac?ixlan__ix__fac_count__gt=0`) and the
+    HTTP 500 outcome for DEFER-70-06-01 (`fac?campus__name=X`). 15
+    `pdb_api_test.py`-or-synthesised citation hits, 36 `t.Parallel()`
+    call sites, 4 `DIVERGENCE` markers per CONTEXT.md grep invariants.
+    Suite wall time 15.4s under `-race`. Closes PARITY-01.
+  - **`cmd/pdb-fixture-port/` fixture-porting tool** reads upstream
+    `src/peeringdb_server/management/commands/pdb_api_test.py` and
+    emits Go fixture literals into
+    `internal/testutil/parity/fixtures.go`. 5560 ported rows across 6
+    category vars pinned to `peeringdb/peeringdb@99e92c72` (full SHA
+    `99e92c726172ead7d224ce34c344eff0bccb3e63`) with
+    `sha256:75c7a6fab734db7…` source-file hash recorded in the
+    generated header. `--upstream-commit <sha>` override preserves the
+    pinned SHA during snapshot-replay regeneration;
+    `--check` flag compares current upstream against the pinned SHA
+    and reports drift (advisory only per CONTEXT.md D-03, not
+    blocking).
+  - **`internal/pdbcompat/parity/bench_test.go` performance lock-in** —
+    3 `b.Loop()`-style benchmarks per GO-TOOL-1:
+    `BenchmarkParity_TwoHopTraversal` (`ixpfx?ixlan__ix__id=20`,
+    ~580μs/op on Ryzen 5 3600),
+    `BenchmarkParity_LimitZeroStreaming` (5000-row seeded end-to-end
+    Phase 71 `stream.go` path, ~82.7ms/op),
+    `BenchmarkParity_InFiveThousandElements` (5001-id IN via Phase 69
+    `json_each` rewrite, ~98.6ms/op). Benchstat-on-main is out of
+    scope per CONTEXT.md D-06 — benchmarks are local-run only, gated
+    by the standard `go test -race ./...` tier. `testing.TB` widening
+    plumbed through `testutil.SetupClient` + 9 parity harness helpers
+    (type-only change, every `*testing.T` call site still satisfies
+    the interface).
+  - **`docs/API.md § Known Divergences` extended** with 3 new rows
+    (pre-Phase-68 hard-delete gap parity cross-ref; pdbfe `limit=0`
+    count-only invalid claim; depth-on-list silent-drop LIMIT-02
+    guardrail) plus `TestParity_*` cross-refs appended to the Since
+    columns of the existing DEFER-70-06-01 + DEFER-70-verifier-01
+    rows. Closes PARITY-02.
+  - **`docs/API.md § Validation Notes` NEW sub-section** documenting
+    5 invalid third-party claims about upstream behaviour with pinned
+    `peeringdb/peeringdb@99e92c72…` SHA refs: (1) `net?country=NL` is
+    not a valid filter (country lives on `org`), (2) `?limit=0` is
+    unlimited not count-only, (3) default ordering is
+    `(-updated, -created)` not `id ASC`, (4) Unicode folding is Python
+    `unidecode` not MySQL collation, (5) filter surface is
+    `prepare_query` + `queryable_relations` not a DRF `filterset_class`.
+    Each row cites the specific upstream file:line and cross-
+    references the parity sub-test locking the corrected behaviour.
+    Future conformance audits against pdbfe's gotchas doc don't re-
+    research the same invalid claims. Closes PARITY-02.
 
 ### Changed
 
