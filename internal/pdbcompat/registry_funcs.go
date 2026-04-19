@@ -25,6 +25,27 @@ func init() {
 	wireCarrierFuncs()
 	wireCarrierFacFuncs()
 	wireCampusFuncs()
+
+	// Phase 71 WR-01 invariant: every entity that exposes a List closure
+	// MUST also expose a Count closure. serveList's pre-flight budget
+	// check in handler.go is gated on `tc.Count != nil` — a missing Count
+	// would silently bypass the 413 guardrail and put the process back at
+	// OOM risk on an unbounded list. Failing fast at startup is cheap;
+	// silent DoS exposure is not. See CONTEXT.md D-02.
+	//
+	// Runs as the LAST step of init() so it observes the fully-wired
+	// Registry. Iteration order over a map is unspecified but the panic
+	// message includes every offending name so a future contributor sees
+	// the complete list on the first failure.
+	var missing []string
+	for name, tc := range Registry {
+		if tc.List != nil && tc.Count == nil {
+			missing = append(missing, name)
+		}
+	}
+	if len(missing) > 0 {
+		panic(fmt.Sprintf("pdbcompat: Registry entries have List without CountFunc (Phase 71 WR-01): %v", missing))
+	}
 }
 
 // setFuncs updates a Registry entry's List, Count, and Get functions.
