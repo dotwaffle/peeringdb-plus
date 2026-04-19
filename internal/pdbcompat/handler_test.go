@@ -776,3 +776,78 @@ func TestSearchNetworkByASN(t *testing.T) {
 		})
 	}
 }
+
+// TestTraversal_StatusMatrix_Preserved guards Phase 68 D-07 + STATUS-01
+// under the Phase 70 parser refactor. seed.Full seeds org 8001 (TestOrg1)
+// with 3 networks: id=8001 (ok), id=8002 (ok), id=8003 (status=deleted).
+// GET /api/net?org__name=TestOrg1 MUST return 8001 and 8002 and NOT 8003
+// because a list without ?since unconditionally filters to status=ok
+// regardless of any traversal predicate in play.
+func TestTraversal_StatusMatrix_Preserved(t *testing.T) {
+	t.Parallel()
+	mux := setupTraversalHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/net?org__name=TestOrg1", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+	}
+	ids := extractIDs(t, rec.Body.Bytes())
+	want := []int{8001, 8002}
+	if !equalIntSets(ids, want) {
+		t.Errorf("got IDs %v, want %v (DeletedNet id=8003 must be filtered by Phase 68 status matrix; response: %s)",
+			ids, want, rec.Body.String())
+	}
+	// Defensive: explicitly assert 8003 is absent.
+	if slices.Contains(ids, 8003) {
+		t.Errorf("DeletedNet (id=8003, status=deleted) leaked into response — Phase 68 D-07 regression")
+	}
+}
+
+// TestTraversal_FoldRouting_Preserved guards Phase 69 UNICODE-01 under
+// the Phase 70 parser refactor. seed.Full includes net 8002 "Zürich GmbH"
+// with name_fold="zurich gmbh" and net 8001 "TestNet1-Zurich" with
+// name_fold="testnet1-zurich". Both rows match a diacritic-free
+// name__contains=zurich query when routed through the _fold shadow
+// column; regression would cause one or both to be missing.
+func TestTraversal_FoldRouting_Preserved(t *testing.T) {
+	t.Parallel()
+	mux := setupTraversalHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/net?name__contains=zurich", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+	}
+	ids := extractIDs(t, rec.Body.Bytes())
+	if !slices.Contains(ids, 8002) {
+		t.Errorf("id=8002 (Zürich GmbH) missing from name__contains=zurich response — Phase 69 _fold routing regression. got=%v",
+			ids)
+	}
+}
+
+// TestTraversal_EmptyIn_ShortCircuits guards Phase 69 IN-02 under the
+// Phase 70 parser refactor. An empty __in parameter short-circuits the
+// handler to return 200 with an empty data array — no SQL is executed.
+// seed.Full has multiple networks; without the short-circuit a naive
+// IN(empty) would either error or return all rows.
+func TestTraversal_EmptyIn_ShortCircuits(t *testing.T) {
+	t.Parallel()
+	mux := setupTraversalHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/net?asn__in=", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+	}
+	ids := extractIDs(t, rec.Body.Bytes())
+	if len(ids) != 0 {
+		t.Errorf("empty __in short-circuit regression: got %d rows (ids=%v), want 0", len(ids), ids)
+	}
+}
