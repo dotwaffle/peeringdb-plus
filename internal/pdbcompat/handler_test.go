@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
-	"sort"
 	"testing"
 	"time"
 
@@ -415,7 +414,13 @@ func TestResponseHeaders(t *testing.T) {
 	}
 }
 
-func TestResultsSortedByID(t *testing.T) {
+// TestResultsSortedByDefaultOrder asserts the Phase 67 default-ordering
+// contract: pdbcompat list endpoints return rows in (-updated, -created, -id)
+// order per upstream django-handleref Meta.ordering. setupTestHandler seeds
+// three Network rows with distinct (created, updated) stamps: past, now,
+// future — so the expected id sequence is [3, 2, 1]. See Phase 67 Plan 03 /
+// CONTEXT.md D-02, D-07.
+func TestResultsSortedByDefaultOrder(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)
 
@@ -437,8 +442,12 @@ func TestResultsSortedByID(t *testing.T) {
 		ids[i] = int(item["id"].(float64))
 	}
 
-	if !sort.IntsAreSorted(ids) {
-		t.Errorf("results not sorted by ID: %v", ids)
+	// setupTestHandler creates 3 networks with updated = past < now < future
+	// and ids 1, 2, 3 (sequential). Under (-updated, -created, -id) we
+	// expect the newest-updated row first: [3, 2, 1].
+	want := []int{3, 2, 1}
+	if !slices.Equal(ids, want) {
+		t.Errorf("default-order results: got %v, want %v", ids, want)
 	}
 }
 

@@ -60,7 +60,7 @@ func wireOrgFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Organization(s))
 			}
-			q := client.Organization.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.Organization.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count organizations: %w", err)
@@ -87,7 +87,7 @@ func wireNetFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Network(s))
 			}
-			q := client.Network.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.Network.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count networks: %w", err)
@@ -114,7 +114,7 @@ func wireFacFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Facility(s))
 			}
-			q := client.Facility.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.Facility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count facilities: %w", err)
@@ -141,7 +141,7 @@ func wireIXFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.InternetExchange(s))
 			}
-			q := client.InternetExchange.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.InternetExchange.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count internet exchanges: %w", err)
@@ -168,7 +168,7 @@ func wirePocFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Poc(s))
 			}
-			q := client.Poc.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.Poc.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count pocs: %w", err)
@@ -195,7 +195,7 @@ func wireIXLanFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.IxLan(s))
 			}
-			q := client.IxLan.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.IxLan.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count ixlans: %w", err)
@@ -222,7 +222,7 @@ func wireIXPfxFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.IxPrefix(s))
 			}
-			q := client.IxPrefix.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.IxPrefix.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count ixprefixes: %w", err)
@@ -249,7 +249,7 @@ func wireNetIXLanFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.NetworkIxLan(s))
 			}
-			q := client.NetworkIxLan.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.NetworkIxLan.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count networkixlans: %w", err)
@@ -276,7 +276,7 @@ func wireNetFacFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.NetworkFacility(s))
 			}
-			q := client.NetworkFacility.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.NetworkFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count networkfacilities: %w", err)
@@ -303,7 +303,7 @@ func wireIXFacFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.IxFacility(s))
 			}
-			q := client.IxFacility.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.IxFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count ixfacilities: %w", err)
@@ -330,7 +330,7 @@ func wireCarrierFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Carrier(s))
 			}
-			q := client.Carrier.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.Carrier.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count carriers: %w", err)
@@ -357,7 +357,7 @@ func wireCarrierFacFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.CarrierFacility(s))
 			}
-			q := client.CarrierFacility.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.CarrierFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count carrierfacilities: %w", err)
@@ -384,7 +384,7 @@ func wireCampusFuncs() {
 			if s := applySince(opts); s != nil {
 				preds = append(preds, predicate.Campus(s))
 			}
-			q := client.Campus.Query().Where(preds...).Order(ent.Asc("id"))
+			q := client.Campus.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
 			total, err := q.Count(ctx)
 			if err != nil {
 				return nil, 0, fmt.Errorf("count campuses: %w", err)

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/conformance"
@@ -126,7 +127,22 @@ func TestAnonParityFixtures(t *testing.T) {
 			// CompareResponses helper probes array shape via data[0] (see
 			// internal/conformance/compare.go:94-101), so one local row is
 			// sufficient to characterise envelope + per-row structure.
-			url := srv.URL + "/api/" + typeName + "?limit=1"
+			//
+			// Phase 67 Plan 03: under the new default ordering
+			// (-updated, -created, -id), seed.Full's two ixlan rows
+			// (id=100 gated / id=101 Public; identical timestamps) tie
+			// on updated+created and resolve id DESC => id=101 wins.
+			// id=101 is Public so `ixf_ixp_member_list_url` surfaces —
+			// introducing an extra-field shape mismatch vs the Private
+			// reference fixture. Pin to id=100 (the gated row, matching
+			// the fixture's Private data[0] shape) via the id filter so
+			// this test stays ordering-independent and keeps exercising
+			// the same redaction path as before.
+			extra := ""
+			if typeName == "ixlan" {
+				extra = "&id=" + strconv.Itoa(seed.IxLanGatedID)
+			}
+			url := srv.URL + "/api/" + typeName + "?limit=1" + extra
 			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, nil)
 			if err != nil {
 				t.Fatalf("build request: %v", err)
