@@ -86,3 +86,37 @@ def test_limit_unlimited_001(self):
     org_seed = Organization.objects.create(
         status="ok", name="LimitOrg-Seed",
     )
+
+
+def test_unicode_filter_001(self):
+    # UNICODE-01/02: upstream-ish Unicode-folding inputs. These are
+    # NOT comprehensive — parseUnicode synthesises the full 6-entity
+    # × non-ASCII matrix; the seed line below anchors the citation.
+    fac_zurich = Facility.objects.create(
+        status="ok", name="Zürich GmbH",
+    )
+    org_munchen = Organization.objects.create(
+        status="ok", name="München AG",
+    )
+
+
+def test_in_filter_large_001(self):
+    # IN-01: seed row used by parseIn.findInSeedLine to anchor the
+    # 5001-row bulk citation.
+    in_seed = Network.objects.create(
+        status="ok", name="InBulkNet-Seed", asn=65301,
+    )
+
+
+def test_traversal_2hop_001(self):
+    # TRAVERSAL-01..04 seed rows. parseTraversal emits the ring
+    # topology synthesised; this stub anchors the citation lines.
+    org_root = Organization.objects.create(
+        status="ok", name="TraversalOrg-Root",
+    )
+    ix_root = InternetExchange.objects.create(
+        status="ok", name="TraversalIX-Root", org=org_root,
+    )
+    # Upstream-cited 2-hop assertion: pdb_api_test.py:2340/2348
+    # ixlan__ix__fac_count__gt=0
+    self.assertGreater(ix_root.fac_count, 0)

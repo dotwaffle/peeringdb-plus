@@ -583,6 +583,222 @@ func TestFixturePort_StatusCarveOutCampus(t *testing.T) {
 	}
 }
 
+// TestFixturePort_UnicodeCategory exercises --category unicode: the
+// emitted file must declare `var UnicodeFixtures = []Fixture{` with
+// at least one non-ASCII name field. Plan 72-03 Task 1 Test 1.
+func TestFixturePort_UnicodeCategory(t *testing.T) {
+	t.Parallel()
+	tmp := filepath.Join(t.TempDir(), "fixtures.go")
+	args := []string{
+		"--upstream-file", testDataMinPy,
+		"--out", tmp,
+		"--category", "unicode",
+		"--date", "2026-04-19",
+	}
+	var out, errb bytes.Buffer
+	if code := run(args, &out, &errb); code != exitOK {
+		t.Fatalf("run() = %d; stderr=%q", code, errb.String())
+	}
+	body, err := os.ReadFile(tmp) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if !strings.Contains(string(body), "var UnicodeFixtures = []Fixture{") {
+		t.Errorf("output missing UnicodeFixtures slice declaration; got %s", body)
+	}
+	// Sanity: at least one non-ASCII name field — look for a known
+	// diacritic ("ü") which the synth set must include.
+	if !strings.Contains(string(body), "ü") {
+		t.Errorf("UnicodeFixtures missing diacritic samples (no 'ü'); got %s", body)
+	}
+}
+
+// TestFixturePort_InCategory exercises --category in: the emitted
+// file must declare `var InFixtures = []Fixture{` with ≥5001 network
+// entries at IDs 100000..105000 (the IN-01 large-list boundary).
+// Plan 72-03 Task 1 Test 2.
+func TestFixturePort_InCategory(t *testing.T) {
+	t.Parallel()
+	tmp := filepath.Join(t.TempDir(), "fixtures.go")
+	args := []string{
+		"--upstream-file", testDataMinPy,
+		"--out", tmp,
+		"--category", "in",
+		"--date", "2026-04-19",
+	}
+	var out, errb bytes.Buffer
+	if code := run(args, &out, &errb); code != exitOK {
+		t.Fatalf("run() = %d; stderr=%q", code, errb.String())
+	}
+	body, err := os.ReadFile(tmp) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if !strings.Contains(string(body), "var InFixtures = []Fixture{") {
+		t.Errorf("output missing InFixtures slice declaration; got %s", body)
+	}
+	// Boundary check: the IN-01 bulk emitter must produce ≥5001
+	// network entries (the SQLite 999-variable limit boundary).
+	netCount := strings.Count(string(body), `Entity: "net"`)
+	if netCount < 5001 {
+		t.Errorf("IN bulk: want ≥5001 net entries; got %d", netCount)
+	}
+	// Sentinel for empty-__in tests.
+	if !strings.Contains(string(body), "ID:     999999") {
+		t.Errorf("InFixtures missing empty-__in sentinel (ID=999999)")
+	}
+}
+
+// TestFixturePort_TraversalCategory exercises --category traversal:
+// the emitted file must declare `var TraversalFixtures = []Fixture{`
+// with at least one entity tagged 2-hop (Fields["__hop"]="2") and a
+// silent-ignore fixture. Plan 72-03 Task 1 Test 3.
+func TestFixturePort_TraversalCategory(t *testing.T) {
+	t.Parallel()
+	tmp := filepath.Join(t.TempDir(), "fixtures.go")
+	args := []string{
+		"--upstream-file", testDataMinPy,
+		"--out", tmp,
+		"--category", "traversal",
+		"--date", "2026-04-19",
+	}
+	var out, errb bytes.Buffer
+	if code := run(args, &out, &errb); code != exitOK {
+		t.Fatalf("run() = %d; stderr=%q", code, errb.String())
+	}
+	body, err := os.ReadFile(tmp) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if !strings.Contains(string(body), "var TraversalFixtures = []Fixture{") {
+		t.Errorf("output missing TraversalFixtures slice declaration; got %s", body)
+	}
+	// 2-hop marker (Fields stays map[string]string per byte-identical
+	// preservation constraint, so the marker is "2" not the int 2).
+	if !strings.Contains(string(body), `"__hop": "2"`) {
+		t.Errorf("TraversalFixtures missing 2-hop marker (\"__hop\": \"2\"); got %s", body)
+	}
+	// Silent-ignore fixture (TRAVERSAL-04).
+	if !strings.Contains(string(body), `"__expected_outcome": "silent-ignore"`) {
+		t.Errorf("TraversalFixtures missing silent-ignore fixture; got %s", body)
+	}
+}
+
+// TestFixturePort_CategoryAll_AllSixVars asserts --category all now
+// emits all six vars in alphabetical-by-var-name order. Plan 72-03
+// Task 1 Test 4.
+func TestFixturePort_CategoryAll_AllSixVars(t *testing.T) {
+	t.Parallel()
+	tmp := filepath.Join(t.TempDir(), "fixtures.go")
+	args := []string{
+		"--upstream-file", testDataMinPy,
+		"--out", tmp,
+		"--category", "all",
+		"--date", "2026-04-19",
+	}
+	var out, errb bytes.Buffer
+	if code := run(args, &out, &errb); code != exitOK {
+		t.Fatalf("run() = %d; stderr=%q", code, errb.String())
+	}
+	body, err := os.ReadFile(tmp) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	wantDecls := []string{
+		"var InFixtures = []Fixture{",
+		"var LimitFixtures = []Fixture{",
+		"var OrderingFixtures = []Fixture{",
+		"var StatusFixtures = []Fixture{",
+		"var TraversalFixtures = []Fixture{",
+		"var UnicodeFixtures = []Fixture{",
+	}
+	for _, decl := range wantDecls {
+		if !strings.Contains(string(body), decl) {
+			t.Errorf("output missing %q", decl)
+		}
+	}
+	// Alphabetical-by-var-name order: In < Limit < Ordering < Status
+	// < Traversal < Unicode as Go identifiers.
+	idxIn := strings.Index(string(body), "var InFixtures")
+	idxLimit := strings.Index(string(body), "var LimitFixtures")
+	idxOrder := strings.Index(string(body), "var OrderingFixtures")
+	idxStatus := strings.Index(string(body), "var StatusFixtures")
+	idxTrav := strings.Index(string(body), "var TraversalFixtures")
+	idxUni := strings.Index(string(body), "var UnicodeFixtures")
+	if !(idxIn < idxLimit && idxLimit < idxOrder && idxOrder < idxStatus && idxStatus < idxTrav && idxTrav < idxUni) {
+		t.Errorf("vars not alphabetical: in=%d limit=%d order=%d status=%d trav=%d uni=%d",
+			idxIn, idxLimit, idxOrder, idxStatus, idxTrav, idxUni)
+	}
+}
+
+// TestFixturePort_CategoryAll_DeterminismSixVars runs --category all
+// (now with 6 vars) twice and asserts byte-identical output. Plan
+// 72-03 Task 1 Test 4 (determinism strand).
+func TestFixturePort_CategoryAll_DeterminismSixVars(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+	pathA := filepath.Join(tmpDir, "a.go")
+	pathB := filepath.Join(tmpDir, "b.go")
+	for _, p := range []string{pathA, pathB} {
+		args := []string{
+			"--upstream-file", testDataMinPy,
+			"--out", p,
+			"--category", "all",
+			"--date", "2026-04-19",
+		}
+		var out, errb bytes.Buffer
+		if code := run(args, &out, &errb); code != exitOK {
+			t.Fatalf("run %s = %d; stderr=%q", p, code, errb.String())
+		}
+	}
+	a, err := os.ReadFile(pathA) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read A: %v", err)
+	}
+	b, err := os.ReadFile(pathB) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read B: %v", err)
+	}
+	hashA := sha256.Sum256(a)
+	hashB := sha256.Sum256(b)
+	if hashA != hashB {
+		t.Fatalf("two --category all (6-var) runs differ:\n A sha256=%x\n B sha256=%x", hashA, hashB)
+	}
+}
+
+// TestFixturePort_NewCategoriesUpstreamCitation asserts Plan 72-03
+// Task 1 Test 5: every entry across the three new categories carries
+// a non-empty Upstream citation. Mitigates T-72-02-02 (every fixture
+// traces back to upstream).
+func TestFixturePort_NewCategoriesUpstreamCitation(t *testing.T) {
+	t.Parallel()
+	for _, category := range []string{"unicode", "in", "traversal"} {
+		category := category
+		t.Run(category, func(t *testing.T) {
+			t.Parallel()
+			tmp := filepath.Join(t.TempDir(), "fixtures.go")
+			args := []string{
+				"--upstream-file", testDataMinPy,
+				"--out", tmp,
+				"--category", category,
+				"--date", "2026-04-19",
+			}
+			var out, errb bytes.Buffer
+			if code := run(args, &out, &errb); code != exitOK {
+				t.Fatalf("run() = %d; stderr=%q", code, errb.String())
+			}
+			body, err := os.ReadFile(tmp) // #nosec G304 — tempdir.
+			if err != nil {
+				t.Fatalf("read output: %v", err)
+			}
+			// No `Upstream: ""` should be present anywhere.
+			if strings.Contains(string(body), `Upstream: ""`) {
+				t.Errorf("category %s has empty Upstream citation in body", category)
+			}
+		})
+	}
+}
+
 // TestEntityGoNameCovers13 locks the invariant that the tool
 // recognises all 13 PeeringDB entity types. Matches the same check
 // cmd/pdb-compat-allowlist enforces via TestPdbTypeFor_AllThirteen.
