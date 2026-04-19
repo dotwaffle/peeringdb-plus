@@ -255,15 +255,23 @@ func (Network) Annotations() []schema.Annotation {
 		// NetworkSerializer.finalize_query_params — legacy info_type → info_types
 		// rewrite). get_relation_filters seeds ["ixlan", "ix", "netixlan",
 		// "netfac", "fac", ...] plus org__* derived from select_related("org").
-		// Translated from Django "netfac_set" reverse-accessor to our forward
-		// edge "network_facilities" (ent/schema/network.go Edges()).
+		//
+		// Keys use TraversalKey tokens (equivalent to PeeringDB type names
+		// like "netfac", "netixlan") — NOT the ent edge Go name
+		// ("network_facilities", "network_ix_lans"). The parser resolves
+		// allowlist entries via LookupEdge, which indexes Edges[] by
+		// TraversalKey; a Go-name key is silently ignored and behaves
+		// identically to an unconfigured filter (Phase 70 REVIEW WR-01
+		// regression — upstream spelling "network_facilities__facility__name"
+		// renamed to "netfac__fac__name" here to match the runtime lookup
+		// convention already used elsewhere in this schema).
 		schemaannot.WithPrepareQueryAllow(
 			"org__name",
 			"org__id",
 			"ix__name",
 			"ixlan__name",
 			"fac__name",
-			"network_facilities__facility__name",
+			"netfac__fac__name",
 		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),

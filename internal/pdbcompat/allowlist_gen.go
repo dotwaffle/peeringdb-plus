@@ -94,8 +94,8 @@ var Allowlists = map[string]AllowlistEntry{
 			"org__name",
 		},
 		Via: map[string][]string{
-			"network_facilities": {
-				"facility__name",
+			"netfac": {
+				"fac__name",
 			},
 		},
 	},
