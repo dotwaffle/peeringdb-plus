@@ -149,14 +149,15 @@ func main() {
 // runOptions captures the CLI flag surface. Extracted to a struct so
 // tests can exercise run() with typed configurations.
 type runOptions struct {
-	UpstreamFile string
-	UpstreamRef  string
-	Out          string
-	Category     string
-	Check        bool
-	Pinned       string
-	Date         string
-	Append       bool
+	UpstreamFile   string
+	UpstreamRef    string
+	UpstreamCommit string // when --upstream-file is set, override the "local" sentinel with this SHA
+	Out            string
+	Category       string
+	Check          bool
+	Pinned         string
+	Date           string
+	Append         bool
 }
 
 // run is the testable entry point. Returns a process exit code.
@@ -168,6 +169,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	opts := &runOptions{}
 	fs.StringVar(&opts.UpstreamFile, "upstream-file", "", "local path to pdb_api_test.py (overrides --upstream-ref)")
 	fs.StringVar(&opts.UpstreamRef, "upstream-ref", "master", "git ref to fetch via `gh api` when --upstream-file is empty")
+	fs.StringVar(&opts.UpstreamCommit, "upstream-commit", "", "override the 'local' sentinel commit SHA recorded in fixtures.go header (only used with --upstream-file)")
 	fs.StringVar(&opts.Out, "out", "internal/testutil/parity/fixtures.go", "output file path")
 	fs.StringVar(&opts.Category, "category", "ordering", "fixture category: ordering | status | limit | all")
 	fs.BoolVar(&opts.Check, "check", false, "advisory drift-check mode; does not write")
@@ -390,7 +392,15 @@ func resolveUpstream(opts *runOptions, logger *slog.Logger) ([]byte, string, err
 		if err != nil {
 			return nil, "", fmt.Errorf("read --upstream-file %s: %w", opts.UpstreamFile, err)
 		}
-		return b, "local", nil
+		// --upstream-commit lets the operator pin the recorded SHA
+		// when the local file is known to match a specific upstream
+		// ref (e.g. mirroring a downloaded snapshot). Defaults to
+		// "local" sentinel when not provided.
+		commitSHA := "local"
+		if opts.UpstreamCommit != "" {
+			commitSHA = opts.UpstreamCommit
+		}
+		return b, commitSHA, nil
 	}
 
 	// `gh api … --jq .content` returns base64-encoded content. gh
