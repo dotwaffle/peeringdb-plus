@@ -21,6 +21,22 @@ func parseFieldOp(key string) (field, op string) {
 	return key[:idx], key[idx+2:]
 }
 
+// applyStatusMatrix returns the upstream rest.py:694-727 status predicate
+// for list requests. sinceSet=false => status=ok (rest.py:725); sinceSet=true
+// => status IN (ok, deleted), plus pending when isCampus (rest.py:700-712).
+// Always returns a non-nil predicate — every list request needs a status
+// filter per Phase 68 D-05/D-07.
+func applyStatusMatrix(isCampus, sinceSet bool) func(*sql.Selector) {
+	if !sinceSet {
+		return sql.FieldEQ("status", "ok")
+	}
+	allowed := []string{"ok", "deleted"}
+	if isCampus {
+		allowed = append(allowed, "pending")
+	}
+	return sql.FieldIn("status", allowed...)
+}
+
 // ParseFilters translates Django-style query parameters into ent sql.Selector
 // predicates. Reserved parameters (limit, skip, etc.) are skipped. Unknown
 // fields are silently ignored per D-20. Returns an error only for known fields
