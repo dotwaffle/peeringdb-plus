@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
@@ -36,7 +37,7 @@ const maxSQLVars = 30000
 // type has more than ~35K records, we just pass the full slice if it fits,
 // and fall back to a no-op (nothing to soft-delete on first sync) if it
 // doesn't.
-func deleteStaleChunked(_ context.Context, remoteIDs []int, deleteFn func([]int) (int, error), typeName string) (int, error) {
+func deleteStaleChunked(ctx context.Context, remoteIDs []int, deleteFn func([]int) (int, error), typeName string) (int, error) {
 	if len(remoteIDs) <= maxSQLVars {
 		n, err := deleteFn(remoteIDs)
 		if err != nil {
@@ -49,6 +50,16 @@ func deleteStaleChunked(_ context.Context, remoteIDs []int, deleteFn func([]int)
 	// chunks because each chunk would re-mark rows kept by earlier chunks.
 	// Pre-v1.16 hard-delete shared this fallback (no-op). SEED-004 covers the
 	// tombstone-GC strategy and will subsume the >32K case.
+	//
+	// REVIEW WR-02: emit a WARN so the silent fallthrough is visible to
+	// operators. Once any PeeringDB entity crosses the chunk limit, soft-delete
+	// stops working for that type without this log signal. SEED-004 trigger
+	// candidate.
+	slog.WarnContext(ctx, "soft-delete skipped: remoteIDs exceed maxSQLVars chunk limit, SEED-004 trigger candidate",
+		slog.String("type", typeName),
+		slog.Int("remote_ids", len(remoteIDs)),
+		slog.Int("max_vars", maxSQLVars),
+	)
 	return 0, nil
 }
 
