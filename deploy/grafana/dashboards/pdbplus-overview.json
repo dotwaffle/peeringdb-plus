@@ -2090,6 +2090,89 @@
           "calcs": []
         }
       }
+    },
+    {
+      "id": 36,
+      "type": "timeseries",
+      "title": "Response Heap Delta (KiB) — p50/p95/p99 by endpoint (Phase 71)",
+      "description": "Per-request Go HeapInuse delta on pdbcompat list handlers, from pdbplus_response_heap_delta_kib histogram. p50/p95/p99 quantiles over a 5-minute rolling window, grouped by endpoint. Phase 71 D-06 / MEMORY-03: surfaces per-request memory cost before budget-breach 413s trigger.",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "datasource": {
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "expr": "histogram_quantile(0.5, sum(rate(pdbplus_response_heap_delta_kib_bucket{fly_region=~\"$region\"}[5m])) by (le, endpoint))",
+          "legendFormat": "{{endpoint}} p50",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "expr": "histogram_quantile(0.95, sum(rate(pdbplus_response_heap_delta_kib_bucket{fly_region=~\"$region\"}[5m])) by (le, endpoint))",
+          "legendFormat": "{{endpoint}} p95",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "expr": "histogram_quantile(0.99, sum(rate(pdbplus_response_heap_delta_kib_bucket{fly_region=~\"$region\"}[5m])) by (le, endpoint))",
+          "legendFormat": "{{endpoint}} p99",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "KiB",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        }
+      }
     }
   ]
 }

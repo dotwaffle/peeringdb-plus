@@ -136,6 +136,20 @@ func (h *Handler) serveIndex(w http.ResponseWriter) {
 
 // serveList handles list requests for the given type.
 func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Request) {
+	// Phase 71 Plan 05 (MEMORY-03, D-06): per-request heap-delta sampler.
+	// Samples HeapInuse once at entry and once at handler exit (via defer);
+	// emits OTel span attribute pdbplus.response.heap_delta_kib and a
+	// Prometheus histogram observation. runtime.ReadMemStats is STW but
+	// acceptable once per request. MUST NOT be called per-row.
+	//
+	// Fires on EVERY terminal path (200 success, 413 budget-exceeded, 400
+	// filter-error, 500 query-error) — that's the point of a defer; a
+	// budget-exceeded 413 is still a useful data point for the
+	// distribution, and observing the small delta of a cheap error path
+	// gives us a noise floor reference.
+	startHeapKiB := memStatsHeapInuseKiB()
+	defer recordResponseHeapDelta(r.Context(), r.URL.Path, tc.Name, startHeapKiB)
+
 	params := r.URL.Query()
 
 	// Phase 68 LIMIT-02 guardrail (research Open Question 1, recommendation b):
