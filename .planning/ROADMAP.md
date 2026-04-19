@@ -98,7 +98,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   5. The documented `FILTER_EXCLUDE` list is recorded in `docs/API.md` so operators can predict which relations are intentionally un-traversable
 **Plans:** 8 plans
 - [x] 70-01-PLAN.md — pdbcompat annotation types (WithPrepareQueryAllow, WithFilterExcludeFromTraversal, AllowlistEntry); internal/pdbcompat/annotations.go + annotations_test.go land 92+68 LOC; Name() strings locked by round-trip test; commits 268346b (feat) + 41f2ceb (test)
-- [ ] 70-02-PLAN.md — cmd/pdb-compat-allowlist codegen tool + ent/generate.go wiring + allowlist_gen.go bootstrap
+- [x] 70-02-PLAN.md — cmd/pdb-compat-allowlist codegen tool + ent/generate.go wiring + allowlist_gen.go bootstrap; 299+99+19 LOC (main.go + main_test.go + allowlist_gen.go); entc.LoadGraph-based schema walk with deterministic sort-before-render; two-run SHA256 byte-stable (6b0857fd...); commit dd8ffcc
 - [ ] 70-03-PLAN.md — 13 ent schema WithPrepareQueryAllow annotations mirroring upstream serializers.py
 - [ ] 70-04-PLAN.md — Edges map emission + internal/pdbcompat/introspect.go (LookupEdge/ResolveEdges/TargetFields)
 - [ ] 70-05-PLAN.md — parseFieldOp 3-tuple + ParseFiltersCtx + 1-hop/2-hop predicate builders + handler diagnostics
