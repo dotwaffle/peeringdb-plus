@@ -143,10 +143,10 @@ func main() {
 	formatted, err := format.Source(src)
 	if err != nil {
 		// Persist raw output so the developer can diagnose template bugs.
-		_ = os.WriteFile("internal/pdbcompat/allowlist_gen.go.broken", src, 0o644)
+		_ = os.WriteFile("internal/pdbcompat/allowlist_gen.go.broken", src, 0o600)
 		log.Fatalf("gofmt allowlist_gen.go: %v (raw output at internal/pdbcompat/allowlist_gen.go.broken)", err)
 	}
-	if err := os.WriteFile("internal/pdbcompat/allowlist_gen.go", formatted, 0o644); err != nil {
+	if err := os.WriteFile("internal/pdbcompat/allowlist_gen.go", formatted, 0o600); err != nil {
 		log.Fatalf("write allowlist_gen.go: %v", err)
 	}
 }
