@@ -179,6 +179,42 @@ b := tx.Network.Create().
 
 **Index decision (Phase 69 Plan 05):** `index.Fields("*_fold")` annotations were considered and DEFERRED based on benchstat evidence — at 10k rows, shadow path was 99.22% of direct (statistically indistinguishable, `p=0.065`, n=6). See `.planning/phases/69-unicode-operator-in-robustness/69-05-SUMMARY.md` for the benchmark output. Re-evaluation trigger: if a future benchmark with a >100k-row corpus shows shadow regression >10%, add indexes at that point with fresh benchmark evidence.
 
+### Cross-entity `__` traversal (Phase 70)
+
+Filter keys like `<fk>__<field>` and `<fk>__<fk>__<field>` on pdbcompat endpoints resolve via two paths, both driven by codegen-time emission from ent schema annotations (D-02 amended 2026-04-19 — static map emission, NOT runtime `client.Schema.Tables` walk):
+
+- **Path A (explicit):** `pdbcompat.WithPrepareQueryAllow(...)` on a schema's `Annotations()` lists upstream-blessed traversal keys verbatim from `peeringdb_server/serializers.py`. Codegen tool `cmd/pdb-compat-allowlist` walks the ent `gen.Graph` via `entc.LoadGraph` and emits `internal/pdbcompat/allowlist_gen.go` `Allowlists` map. Every allowlist entry carries a `// serializers.py:<line>` comment — required for audit.
+- **Path B (introspection):** The same codegen tool emits an `Edges` map (local edge name → PeeringDB type string of target + FK column metadata). When a filter key doesn't match Path A, `LookupEdge(entity, name)` / `ResolveEdges(entity)` / `TargetFields(entity, edge)` (all in `internal/pdbcompat/introspect.go`) consult the generated map. Edges annotated with `pdbcompat.WithFilterExcludeFromTraversal()` are hidden.
+
+**3-tuple `parseFieldOp` (D-06).** `parseFieldOp` in `internal/pdbcompat/filter.go` returns `(relationSegments []string, finalField string, op string)`. The parser splits on `__`, peels off an optional trailing operator (`contains`, `icontains`, `startswith`, `istartswith`, `exact`, `iexact`, `gt`, `lt`, `gte`, `lte`, `in`), and treats all leading non-final segments as FK-relation hops. `len(relationSegments) > 2` is rejected by the caller and routed to the unknown-field handler — NO recursion into the edge walker.
+
+**2-hop cap (D-04).** Hard. Keys with 3+ `__`-separated relation segments are silently ignored (TRAVERSAL-04 + D-05). The cap is enforced in the parser (not the walker) so hostile inputs cannot cause recursion blow-up. Upstream PeeringDB has no hard cap; we trade limitless traversal for the <50ms/op @ 10k-rows ceiling gated by `internal/pdbcompat/bench_traversal_test.go` (D-07).
+
+**Adding a new 1-hop filter for a schema.** Two steps:
+
+1. Edit the schema's `Annotations()` and add the new key to `pdbcompat.WithPrepareQueryAllow(...)` with a `// serializers.py:<line>` comment.
+2. `go generate ./ent/...` — regenerates `internal/pdbcompat/allowlist_gen.go`. (Do NOT run `go generate ./schema` — that strips entproto/entgql annotations per the Code Generation convention above.)
+
+**Adding a new 2-hop filter.** Same pattern; the key string looks like `"first__second__field"`. Codegen routes 3-segment keys into `AllowlistEntry.Via` automatically.
+
+**Adding a new excluded edge.** Attach `pdbcompat.WithFilterExcludeFromTraversal()` to the edge definition (not the schema's Annotations), then regenerate. Codegen emits into the `FilterExcludes` map.
+
+**Extending to a 14th entity.** Add the Go type → PeeringDB type mapping in `cmd/pdb-compat-allowlist/main.go` `pdbTypeFor(...)`; the test `TestPdbTypeFor_AllThirteen` will fail and force the author to extend it (grep-able reminder).
+
+**Do NOT:**
+
+- Do NOT hand-edit `internal/pdbcompat/allowlist_gen.go` — overwritten on every codegen run; the CI drift check (`go generate ./...` diff gate) catches stale output.
+- Do NOT add traversal allowlists to grpcserver / entrest / GraphQL — out of v1.16 scope (REQUIREMENTS.md § Out of Scope). Those surfaces have their own filter models.
+- Do NOT invent filter keys that don't exist upstream — the contract is parity with `peeringdb_server/serializers.py@99e92c72`.
+- Do NOT add 3+-hop keys — they're dropped by codegen (key string with 4+ underscore-separated segments will fail the generator's sanity check) AND by the 2-hop cap in `parseFieldOp` at request time.
+- Do NOT introduce runtime ent-client introspection or `sync.Once` lazy-init for the Edges map — D-02 amended specifically to avoid init-order coupling. The map is codegen-time static.
+
+**Unknown-field diagnostics (D-05).** When a key fails Path A, Path B, and the 2-hop cap, it is accumulated via `WithUnknownFields(ctx)` / `UnknownFieldsFromCtx(ctx)` in the request context, and the handler emits ONE aggregated `slog.DebugContext("pdbcompat: unknown filter fields silently ignored (Phase 70 TRAVERSAL-04)", ...)` plus a single OTel span attribute `pdbplus.filter.unknown_fields` (CSV) per request. DEBUG level only — INFO and higher stay quiet so naive clients probing field names don't flood the logs.
+
+**Phase 68 + 69 composition.** Traversal predicates compose with the Phase 68 status matrix (`applyStatusMatrix(isCampus, opts.Since != nil)` still appended as the LAST predicate in all 13 `registry_funcs.go` closures) and with Phase 69's `_fold` routing (a traversal target field that happens to be folded uses `<field>_fold` with `unifold.Fold(value)` on the RHS even when reached via `<fk>__<field>`). Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, and `TestTraversal_EmptyIn_ShortCircuits` in `internal/pdbcompat/handler_test.go`.
+
+**Known gap (DEFER-70-06-01).** `cmd/pdb-compat-allowlist` emits `TargetTable: "campus"` instead of `"campuses"` because `entc.LoadGraph` skips `fixCampusInflection`. Any `<entity>?campus__<field>=X` Path A or Path B query returns `500 SQL logic error: no such table: campus (1)`. Fix (queued): add `entsql.Annotation{Table: "campuses"}` to `ent/schema/campus.go` so the pluralised name is explicit. See `.planning/phases/70-cross-entity-traversal/deferred-items.md`.
+
 ### Middleware
 - Response writer wrappers MUST implement `http.Flusher` (delegate to underlying writer) — gRPC streaming requires it.
 - Add `Unwrap() http.ResponseWriter` for middleware-aware interface detection.

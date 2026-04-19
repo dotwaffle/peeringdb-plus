@@ -84,6 +84,41 @@ memory-safe response paths that bound that behaviour land in Phase 71.
   3600 logged 469k executions / 65 new interesting / zero panics.
   Closes UNICODE-03.
 
+- **Cross-entity `__` traversal in pdbcompat (Phase 70).** The
+  `/api/<type>?<fk>__<field>=` and
+  `/api/<type>?<fk>__<fk>__<field>=` query shapes now resolve across
+  foreign-key edges, mirroring upstream PeeringDB's `prepare_query`
+  allowlists (Path A) and `queryable_relations()` auto-introspection
+  (Path B). Hard-capped at 2 hops (cite: Phase 70 D-04). Every 13-entity
+  allowlist was translated 1:1 from `peeringdb_server/serializers.py`
+  (SHA `99e92c72`); each annotation carries a `serializers.py:<line>`
+  source comment for audit. A new codegen tool `cmd/pdb-compat-allowlist`
+  reads ent schema annotations and emits
+  `internal/pdbcompat/allowlist_gen.go` (Path A allowlists + Path B
+  `Edges` map) wired into `go generate ./...` after ent codegen and
+  before buf codegen. Example 2-hop case working:
+  `GET /api/fac?ixlan__ix__fac_count__gt=0`. Closes TRAVERSAL-01,
+  TRAVERSAL-02, and TRAVERSAL-03.
+
+- **Unknown filter fields silently ignored (TRAVERSAL-04).**
+  `GET /api/net?totally_unknown_field=x` returns HTTP 200 with a
+  silently-unfiltered result rather than 400, matching upstream
+  `rest.py:544-662`. Operators gain DEBUG-level visibility via
+  `slog.DebugContext("pdbcompat: unknown filter fields silently ignored
+  (Phase 70 TRAVERSAL-04)", ...)` and OTel span attribute
+  `pdbplus.filter.unknown_fields` (CSV of all unknowns per request).
+  The same diagnostic fires for typos, deprecated field names, and
+  filter keys with >2 `__`-separated relation segments (the 2-hop cap
+  per Phase 70 D-04). Closes TRAVERSAL-04.
+
+- **2-hop cost ceiling (<50ms/op @ 10k rows).** New
+  `BenchmarkTraversal_*` in `internal/pdbcompat/bench_traversal_test.go`
+  plus a go-test-time `TestBenchTraversal_D07_Ceiling` gate guard the
+  2-hop query cost ceiling. A nightly CI workflow
+  (`.github/workflows/bench.yml`) regression-gates via benchstat —
+  prevents a future Cartesian-join regression from landing silently
+  (Phase 70 D-07).
+
 ### Changed
 
 - **Sync now soft-deletes** instead of hard-deleting. The 13
@@ -94,6 +129,20 @@ memory-safe response paths that bound that behaviour land in Phase 71.
   within a cycle so `?since=N` windows stay atomic. Tombstone
   garbage-collection policy is deferred to SEED-004 (planted
   2026-04-19).
+
+- **`parseFieldOp` signature extended** in
+  `internal/pdbcompat/filter.go`. Return tuple expanded from
+  `(field, op string)` to `(relationSegments []string, finalField,
+  op string)` so the parser can detect `<fk>__<field>` patterns before
+  consulting Path A / Path B and enforce the 2-hop cap (Phase 70 D-06).
+  Internal-only — no callers exist outside `internal/pdbcompat`.
+
+- **`ParseFilters` gains a context-aware sibling.** New
+  `ParseFiltersCtx(ctx, params, tc)` threads an unknown-field
+  accumulator via `context.Value` so the handler emits one aggregated
+  `slog.DebugContext` call and a single OTel span attribute per
+  request, rather than one per unknown field. Legacy `ParseFilters`
+  kept as a shim for existing call sites.
 
 ### Deprecated
 
@@ -118,6 +167,29 @@ memory-safe response paths that bound that behaviour land in Phase 71.
   next standard sync cycle rewrites every affected row via the
   `OnConflict().UpdateNewValues()` path. See
   [`docs/API.md` § Known Divergences](./docs/API.md#known-divergences).
+
+- **Unknown filter fields silently ignored is a feature, not a bug
+  (Phase 70 TRAVERSAL-04).** Typos (`?nmae=x`), deprecated field names,
+  and filter keys with >2 `__`-separated relation segments do not
+  return HTTP 400 — the filter is silently dropped and the response
+  contains the full unfiltered result set. This matches upstream
+  PeeringDB (`rest.py:544-662`) and preserves existing client
+  integrations that probe field names. Clients that want strict
+  validation should inspect the OTel span attribute
+  `pdbplus.filter.unknown_fields` or enable DEBUG-level logging to
+  surface the dropped keys.
+
+- **`campus` edge table-name codegen bug (DEFER-70-06-01).**
+  `cmd/pdb-compat-allowlist` emits `TargetTable: "campus"` instead
+  of the correct `"campuses"` for all edges targeting the Campus
+  entity, because `entc.LoadGraph` does not apply the
+  `fixCampusInflection` patch used by the ent runtime codegen. Affected
+  queries (e.g. `GET /api/fac?campus__name=X`) return
+  `500 SQL logic error: no such table: campus (1)`. The outgoing
+  edges FROM Campus are correct. Documented one-time gap; fix
+  scheduled as a follow-up (preferred approach: add
+  `entsql.Annotation{Table: "campuses"}` to `ent/schema/campus.go`).
+  See `.planning/phases/70-cross-entity-traversal/deferred-items.md`.
 
 ---
 

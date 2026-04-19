@@ -104,10 +104,10 @@ Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% covera
 | UNICODE-01 | 69 | complete (69-04; 16 fields across 6 TypeConfigs route via <field>_fold with unifold.Fold on RHS) |
 | UNICODE-02 | 69 | complete (69-04; coerceToCaseInsensitive in filter.go maps __contains → __icontains, __startswith → __istartswith) |
 | UNICODE-03 | 69 | complete (69-05; FuzzFilterParser corpus extended with 21 D-07 cases — diacritics/CJK/RTL/RLO/ZWJ/combining/null/>64KB + IN edges; local 60s fuzz on Ryzen 5 3600 = 469197 execs / 65 new interesting / zero panics) |
-| TRAVERSAL-01 | 70 | pending |
-| TRAVERSAL-02 | 70 | pending |
-| TRAVERSAL-03 | 70 | pending |
-| TRAVERSAL-04 | 70 | pending |
+| TRAVERSAL-01 | 70 | complete (70-03; 13 `pdbcompat.WithPrepareQueryAllow` annotations in ent/schema/*.go + populated entries in `internal/pdbcompat/allowlist_gen.go` Allowlists map; TestParseFilters_AllThirteenEntitiesCoverPathA in filter_test.go) |
+| TRAVERSAL-02 | 70 | complete (70-04; `Edges` map emitted by cmd/pdb-compat-allowlist + `LookupEdge`/`ResolveEdges`/`TargetFields` API in internal/pdbcompat/introspect.go; TestLookupEdge_AllThirteenEntitiesCovered + TestLookupEdge_KnownHops in introspect_test.go) |
+| TRAVERSAL-03 | 70 | complete (70-05/06/07; BenchmarkTraversal_2Hop_UpstreamParity + BenchmarkTraversal_2Hop_WithLimitAndSkip + TestBenchTraversal_D07_Ceiling in bench_traversal_test.go lock <50ms/op @ 10k rows; E2E case ixlan__ix__fac_count__gt=0 + ixlan__ix__id in traversal_e2e_test.go) |
+| TRAVERSAL-04 | 70 | complete (70-05/06; ParseFiltersCtx silent-ignore + WithUnknownFields ctx accumulator in filter.go; slog.DebugContext + OTel attr `pdbplus.filter.unknown_fields` in handler.go; TestParseFilters_UnknownFieldsAppendToCtx in filter_test.go; E2E cases unknown_local_field / unknown_fk_segment / unknown_target_field / too_deep_three_hop / too_deep_four_hop in traversal_e2e_test.go) |
 | MEMORY-01 | 71 | pending |
 | MEMORY-02 | 71 | pending |
 | MEMORY-03 | 71 | pending |

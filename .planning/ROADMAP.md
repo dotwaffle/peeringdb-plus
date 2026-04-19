@@ -13,7 +13,7 @@
 - [x] **Phase 67: Default ordering flip** — Pdbcompat, grpcserver, entrest list paths return rows in upstream `(-updated, -created)` order
 - [x] **Phase 68: Status × since matrix + limit=0 semantics** — Pdbcompat applies upstream status-filter rules and treats `limit=0` as unlimited
 - [ ] **Phase 69: Filter-value Unicode folding, operator coercion, `__in` robustness** — Pdbcompat filter layer matches upstream `rest.py:544-662` value handling
-- [ ] **Phase 70: Cross-entity `__` traversal (Path A + Path B + 2-hop)** — Pdbcompat resolves filter paths across FKs like upstream serializers
+- [x] **Phase 70: Cross-entity `__` traversal (Path A + Path B + 2-hop)** — Pdbcompat resolves filter paths across FKs like upstream serializers
 - [ ] **Phase 71: Memory-safe response paths on 256 MB replicas** — Depth=2 / `limit=0` / large traversals stay within the replica memory envelope
 - [ ] **Phase 72: Upstream parity regression + divergence docs** — Ported `pdb_api_test.py` ground-truth tests lock the new semantics
 
@@ -96,15 +96,15 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. 2-hop traversal works: `GET /api/fac?ixlan__ix__fac_count__gt=0` resolves through netixlan → ix → fac_count and returns the same rows as the upstream `pdb_api_test.py:2340,2348` assertion
   4. Unknown filter fields (typos, deprecated names) are silently ignored with a 200 response rather than a 400 — matches upstream `rest.py:544-662` and avoids breaking existing integrations
   5. The documented `FILTER_EXCLUDE` list is recorded in `docs/API.md` so operators can predict which relations are intentionally un-traversable
-**Plans:** 8 plans
+**Plans:** 8/8 plans executed
 - [x] 70-01-PLAN.md — pdbcompat annotation types (WithPrepareQueryAllow, WithFilterExcludeFromTraversal, AllowlistEntry); internal/pdbcompat/annotations.go + annotations_test.go land 92+68 LOC; Name() strings locked by round-trip test; commits 268346b (feat) + 41f2ceb (test)
 - [x] 70-02-PLAN.md — cmd/pdb-compat-allowlist codegen tool + ent/generate.go wiring + allowlist_gen.go bootstrap; 299+99+19 LOC (main.go + main_test.go + allowlist_gen.go); entc.LoadGraph-based schema walk with deterministic sort-before-render; two-run SHA256 byte-stable (6b0857fd...); commit dd8ffcc
-- [ ] 70-03-PLAN.md — 13 ent schema WithPrepareQueryAllow annotations mirroring upstream serializers.py
-- [ ] 70-04-PLAN.md — Edges map emission + internal/pdbcompat/introspect.go (LookupEdge/ResolveEdges/TargetFields)
-- [ ] 70-05-PLAN.md — parseFieldOp 3-tuple + ParseFiltersCtx + 1-hop/2-hop predicate builders + handler diagnostics
-- [ ] 70-06-PLAN.md — Exhaustive E2E traversal matrix + per-entity unit + Phase 68/69 regression guards
-- [ ] 70-07-PLAN.md — BenchmarkTraversal_* + TestBenchTraversal_D07_Ceiling + nightly bench CI workflow
-- [ ] 70-08-PLAN.md — CHANGELOG + docs/API.md + CLAUDE.md + REQ-ID close
+- [x] 70-03-PLAN.md — 13 ent schema WithPrepareQueryAllow annotations mirroring upstream serializers.py@99e92c72 (line refs 1823/2244/2361/2423/2573/2732/2947/2995/3315/3451/3622/3925/4041); populated Allowlists map regenerated into allowlist_gen.go; commit 1c1c5b4
+- [x] 70-04-PLAN.md — Edges map emission + internal/pdbcompat/introspect.go (LookupEdge/ResolveEdges/TargetFields); codegen-time static emission per amended D-02 (no runtime client.Schema.Tables walk, no sync.Once, no init-order coupling); commit a1319a1
+- [x] 70-05-PLAN.md — parseFieldOp 3-tuple (relationSegments, finalField, op) + ParseFiltersCtx (ctx-threaded unknown-field accumulator) + 1-hop/2-hop predicate builders + handler diagnostics (slog.DebugContext + OTel attr `pdbplus.filter.unknown_fields`); commit 7e0d3f4
+- [x] 70-06-PLAN.md — Exhaustive E2E traversal matrix (17 subtests in traversal_e2e_test.go) + dynamic 13-entity Path A coverage in filter_test.go + 3 Phase 68/69 regression guards in handler_test.go; seed.Full gains 8 fixture rows at IDs 8001+; DEFER-70-06-01 logged; commits 88472a1 + a27f092 + 4d93383 + e5834da
+- [x] 70-07-PLAN.md — BenchmarkTraversal_1Hop_Direct + BenchmarkTraversal_2Hop_UpstreamParity + BenchmarkTraversal_2Hop_WithLimitAndSkip + TestBenchTraversal_D07_Ceiling go-test-time gate (<50ms/op @ 10k rows) + nightly `.github/workflows/bench.yml` CI regression-gating via benchstat; commit 4a0bd45
+- [x] 70-08-PLAN.md — CHANGELOG.md v1.16 [Unreleased] Phase 70 bullets + docs/API.md § Cross-entity traversal (Phase 70) + 2 Known Divergences rows + CLAUDE.md § Cross-entity __ traversal convention + REQUIREMENTS.md traceability close; Phase 70 CLOSED
 
 ### Phase 71: Memory-safe response paths on 256 MB replicas
 **Goal**: Depth=2, `limit=0`, and wide traversal queries stream JSON encoding with bounded intermediate allocations, enforce a per-response memory ceiling that trips before Fly OOM-kills the machine, and expose per-request heap/RSS telemetry.
@@ -153,7 +153,7 @@ Notes on parallelism:
 | 67. Default ordering flip | 6/6 | Complete | 2026-04-19 |
 | 68. Status × since matrix + limit=0 | 1/4 | In progress | - |
 | 69. Unicode + operator + __in | 3/6 | In progress | - |
-| 70. Cross-entity __ traversal | 0/8 | Planned | - |
+| 70. Cross-entity __ traversal | 8/8 | Complete | 2026-04-19 |
 | 71. Memory-safe response paths | 0/? | Not started | - |
 | 72. Upstream parity regression | 0/? | Not started | - |
 

@@ -551,4 +551,114 @@ registry.
 | `GET /api/<type>?status=<value>` (list, no `?since`) | Upstream `rest.py:700-712` builds `allowed_status` from the caller's `?status=` parameter (or a default set), then applies a final unconditional `filter(status='ok')` on `rest.py:725`. The caller-supplied value is effectively overridden by the final filter — only `status=ok` rows ever reach the response. | pdbcompat drops `?status=` at the filter layer (the `status` entry is removed from all 13 `Fields` maps in `internal/pdbcompat/registry.go`) so the predicate never reaches ent. The observable outcome is identical to upstream; the implementation is explicit rather than implicit. | Upstream's double-filter is a no-op by design. We model the intent rather than the mechanism, which makes the D-07 semantic greppable in one place. | v1.16 (Phase 68) |
 | `GET /api/<type>?status=deleted&since=N` for a row hard-deleted by sync cycles before v1.16 | Upstream returns the tombstone row with its deletion timestamp (upstream has always soft-deleted). | peeringdb-plus returns empty for such rows. Tombstone population begins at the first post-upgrade sync cycle; anything hard-deleted before v1.16 shipped is gone forever. Rows deleted from v1.16 onwards are visible via both `?since=N` windows and pk lookup (pk admits `status IN (ok, pending)`; tombstones are reachable only via the `since` window). | No retroactive reconstruction is possible — PeeringDB's public API does not expose historical state, and we did not persist deleted rows prior to the Phase 68 soft-delete flip (D-03). Documented intentional one-time gap. | v1.16 (Phase 68) |
 | `?<field>__contains=<non-ASCII>` / `?<field>__startswith=<non-ASCII>` against searchable text fields on `network`, `facility`, `ix`, `organization`, `campus`, `carrier` (16 fields total — `name`, `aka`, `name_long`, `city` per entity) | Upstream applies `unidecode.unidecode(v)` to BOTH the query value and the column at query time (`rest.py:576`), producing diacritic-insensitive matches in a single SQL pass. | peeringdb-plus precomputes the folded value into a sibling `<field>_fold` shadow column at sync time (via `internal/unifold.Fold` — NFKD normalisation + a small ligature map for `ß`/`æ`/`ø`/`ł`/`þ`/`đ`), then routes `__contains` / `__startswith` to `<field>_fold LIKE ?` with `unifold.Fold(query)` on the RHS. The end-state semantic match is identical, but it is staged differently: a brief one-time ASCII-only window exists between v1.16 deploy and the first post-deploy sync cycle (≤1h with default `PDBPLUS_SYNC_INTERVAL=1h`) during which rows have `<field>_fold = ''` and return no match for non-ASCII queries. ASCII queries continue to work via the non-folded columns throughout the window. No manual backfill is required — the next sync cycle's `OnConflict().UpdateNewValues()` path rewrites every row's `_fold` columns. | Shadow columns let SQLite use a single indexable comparison path (no per-query `unidecode` call), and Phase 69 benchstat (n=6, 10k rows) shows the shadow path within ±1% of the direct path so the trade-off is invisible at production scale. The folded columns carry `entgql.Skip(SkipAll)` + `entrest.WithSkip(true)` annotations and are never exposed on the GraphQL / REST / proto wire surfaces — they are server-side plumbing only. | v1.16 (Phase 69) |
+| `GET /api/<type>?a__b__c__d=X` (3+ `__`-separated relation segments) | Upstream walks arbitrary Django ORM chains — no hard depth cap (bounded only by the Django ORM query planner). | peeringdb-plus silently ignores the filter (HTTP 200, unfiltered) per Phase 70 D-04. One aggregated `slog.DebugContext("pdbcompat: unknown filter fields silently ignored (Phase 70 TRAVERSAL-04)", ...)` plus OTel span attribute `pdbplus.filter.unknown_fields` record the dropped key. Keys with exactly 1 or 2 relation segments resolve normally via Path A (explicit allowlist) or Path B (ent edge introspection). | DoS protection: 3+-hop joins in SQLite can trigger super-linear query plan scans at scale, and the replica memory envelope (256 MB post-Phase-65) cannot absorb unbounded Cartesian-product row counts. The 2-hop cap trades limitless traversal for a predictable cost ceiling gated in CI by `internal/pdbcompat/bench_traversal_test.go` (`<50ms/op @ 10k rows`). | v1.16 (Phase 70) |
+| `GET /api/fac?campus__name=X` and any `<entity>?campus__<field>=X` via Path A or Path B (DEFER-70-06-01) | Upstream resolves through the `campus` FK edge and returns matching rows. | peeringdb-plus returns `500 SQL logic error: no such table: campus (1)` because `cmd/pdb-compat-allowlist` emits `TargetTable: "campus"` instead of `"campuses"` when `entc.LoadGraph` walks the Campus ent type — the inflection patch that the ent runtime codegen applies via `fixCampusInflection` is not applied on the codegen-tool path. Outgoing edges FROM Campus are unaffected (the table name is resolved on the non-Campus peer). | Known one-time gap documented in `.planning/phases/70-cross-entity-traversal/deferred-items.md`. Fix is scheduled as a follow-up plan — preferred approach is `entsql.Annotation{Table: "campuses"}` on `ent/schema/campus.go` so the pluralised name is explicit and survives every codegen path. | v1.16 (Phase 70) |
+
+## Cross-entity traversal (Phase 70)
+
+pdbcompat resolves `<fk>__<field>` and `<fk>__<fk>__<field>` filter
+paths through two mechanisms, both driven by codegen from ent schema
+annotations at `go generate` time:
+
+- **Path A — per-serializer allowlists.** Mirrors upstream
+  `peeringdb_server/serializers.py` `prepare_query(...)` /
+  `get_relation_filters(...)` lists verbatim. Generated from ent schema
+  `pdbcompat.WithPrepareQueryAllow(...)` annotations via
+  `cmd/pdb-compat-allowlist`; emitted into
+  `internal/pdbcompat/allowlist_gen.go`. This is the "explicitly
+  blessed" set of filter keys — every entry carries a
+  `// serializers.py:<line>` comment anchoring it to upstream.
+- **Path B — ent edge introspection.** When a filter key does not
+  match Path A, the parser consults the generated `Edges` map (also
+  emitted into `allowlist_gen.go`). Every non-excluded FK edge
+  auto-exposes `<fk>__<field>` for any filterable field on the target
+  entity. Mirrors upstream `queryable_relations()`. Resolution uses a
+  codegen-time static map — no runtime ent-client introspection, no
+  `sync.Once`, no init-order coupling (Phase 70 D-02 as amended
+  2026-04-19).
+
+### Supported shapes per entity (1-hop + 2-hop)
+
+All 13 entity types support Path A 1-hop shapes via
+`?<fk>__<field>=X`. The 2-hop subset tracks upstream
+`pdb_api_test.py`:
+
+| Query | Hops | Path | Upstream citation |
+|-------|------|------|-------------------|
+| `?org__name=X` (net, fac, ix, carrier, campus) | 1 | A | `serializers.py:1823, 2244, 2361, 2423, 2573, 2732, 2947, 2995, 3315, 3451, 3622, 3925, 4041` |
+| `?net__asn=X` (netfac, netixlan, poc) | 1 | A | (same allowlist block) |
+| `?ix__name=X` (ixfac, ixlan, ixpfx) | 1 | A | (same allowlist block) |
+| `?fac__name=X` (netfac, ixfac, carrierfac) | 1 | A | (same allowlist block) |
+| `?ixlan__ix__fac_count__gt=0` (fac) | 2 | A | `pdb_api_test.py:2340, 2348` |
+| `?ixlan__ix__id=N` (fac) | 2 | A | `pdb_api_test.py:5081` |
+| `?<fk>__<field>=X` for any non-excluded edge | 1 | B | `serializers.py:754-780` (`queryable_relations()`) |
+
+1-hop Path B fallthrough means the explicit Path A allowlists are
+**additive, not restrictive**: a key that is not in Path A but is a
+valid ent FK edge still resolves via Path B. The exclusion list
+(below) is the only way to block a Path B key.
+
+### FILTER_EXCLUDE list (TRAVERSAL success criterion #5)
+
+The `pdbcompat.WithFilterExcludeFromTraversal()` ent edge annotation
+(Phase 70 D-03) hides specific edges from Path B traversal. Mirrors
+upstream `serializers.py:128-157`.
+
+| Entity | Edge | Reason |
+|--------|------|--------|
+| _(none — all FK edges exposed in v1.16)_ | _—_ | Initial release. Phase 64's field-level privacy (`ixlan.ixf_ixp_member_list_url_visible`) operates at the **serializer layer**, not the edge layer, so no edge exclusion is required for the v1.16 surface. Future OAuth-gated relations (post-VIS-08 OAuth work) will populate this table. |
+
+### 2-hop cap (Phase 70 D-04)
+
+Filter keys with more than 2 `__`-separated relation segments are
+silently ignored. Examples:
+
+- `?org__name=X` — 1 hop, resolves via Path A (every primary entity).
+- `?ixlan__ix__fac_count__gt=0` — 2 hops, resolves via Path A
+  (upstream `pdb_api_test.py:2340` assertion).
+- `?ixlan__ix__org__name=X` — 3 hops, SILENTLY IGNORED (HTTP 200,
+  result set is unfiltered).
+
+Upstream PeeringDB has no hard cap but is bound by Django ORM's query
+planner. We trade limitless traversal for a predictable cost ceiling
+gated in CI at `<50ms/op @ 10k rows` via
+`internal/pdbcompat/bench_traversal_test.go` (Phase 70 D-07). If a
+legitimate 3-hop use case emerges, raise the cap together with a
+fresh benchstat run and a docs update here.
+
+### Unknown-field diagnostics (Phase 70 D-05)
+
+When a filter key fails Path A, Path B, and the 2-hop cap check,
+the following observability signals fire:
+
+- `slog.DebugContext(ctx, "pdbcompat: unknown filter fields silently
+  ignored (Phase 70 TRAVERSAL-04)", slog.String("endpoint", ...),
+  slog.String("type", ...), slog.Any("unknown_fields", ...))`
+- OTel span attribute `pdbplus.filter.unknown_fields` (CSV of all
+  unknown keys in the request)
+
+Both are DEBUG-level; INFO and higher are untouched so that naive
+clients probing field names don't flood structured logs. To surface
+these in production, set `OTEL_LOG_LEVEL=debug` or query the span
+attribute in Grafana/Tempo.
+
+### DEFER-70-06-01 — campus edge codegen bug (v1.16 gap)
+
+`cmd/pdb-compat-allowlist` emits `TargetTable: "campus"` instead of
+`"campuses"` for every edge targeting the Campus entity, because
+`entc.LoadGraph` does not apply the `fixCampusInflection` patch used
+by the ent runtime codegen. Any `<entity>?campus__<field>=X` query
+hitting Path A or Path B returns
+`500 SQL logic error: no such table: campus (1)`. Outgoing edges FROM
+Campus (`?org__campuses__name=X` would walk Org→Campuses) are correct
+because the `.Table()` call resolves on the non-Campus peer.
+
+**Workaround:** Use the direct Campus list endpoint
+(`GET /api/campus?name=X`) — single-entity queries are unaffected.
+
+**Fix (scheduled as a follow-up plan):** Add
+`entsql.Annotation{Table: "campuses"}` to `ent/schema/campus.go` so
+the pluralised name is explicit in the schema and survives every
+codegen path. This mirrors v1.15 Phase 63's preference for explicit
+schema annotations over inflection heuristics.
 
