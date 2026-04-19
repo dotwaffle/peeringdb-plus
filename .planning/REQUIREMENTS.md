@@ -56,8 +56,8 @@ All requirements below cite upstream code by path and line. The canonical refere
 
 ### Memory-Safe Response Paths (MEMORY)
 
-- [ ] **MEMORY-01**: Depth=2 and `limit=0` responses stream JSON encoding through the response writer with bounded intermediate allocations; no full-result materialisation to a single slice before flush
-- [ ] **MEMORY-02**: A configurable per-response memory ceiling (`PDBPLUS_RESPONSE_MEMORY_LIMIT`, default matches the 256 MB replica budget minus operating headroom) triggers graceful truncation with an RFC 9457 problem-detail 413 response before Fly OOM-kills the machine
+- [x] **MEMORY-01**: Depth=2 and `limit=0` responses stream JSON encoding through the response writer with bounded intermediate allocations; no full-result materialisation to a single slice before flush
+- [x] **MEMORY-02**: A configurable per-response memory ceiling (`PDBPLUS_RESPONSE_MEMORY_LIMIT`, default matches the 256 MB replica budget minus operating headroom) triggers graceful truncation with an RFC 9457 problem-detail 413 response before Fly OOM-kills the machine
 - [ ] **MEMORY-03**: Response-path peak heap / RSS telemetry is recorded per-request (OTel span attributes + optional Prometheus gauge) reusing the v1.15 Phase 66 `runtime.MemStats` harness, so replicas that approach the ceiling are observable in Grafana
 - [ ] **MEMORY-04**: The per-endpoint memory envelope (worst-case depth/limit combinations) is documented in `docs/ARCHITECTURE.md` with operator-actionable knobs
 
@@ -108,8 +108,8 @@ Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% covera
 | TRAVERSAL-02 | 70 | complete (70-04; `Edges` map emitted by cmd/pdb-compat-allowlist + `LookupEdge`/`ResolveEdges`/`TargetFields` API in internal/pdbcompat/introspect.go; TestLookupEdge_AllThirteenEntitiesCovered + TestLookupEdge_KnownHops in introspect_test.go) |
 | TRAVERSAL-03 | 70 | complete (70-05/06/07; BenchmarkTraversal_2Hop_UpstreamParity + BenchmarkTraversal_2Hop_WithLimitAndSkip + TestBenchTraversal_D07_Ceiling in bench_traversal_test.go lock <50ms/op @ 10k rows; E2E case ixlan__ix__fac_count__gt=0 + ixlan__ix__id in traversal_e2e_test.go) |
 | TRAVERSAL-04 | 70 | complete (70-05/06; ParseFiltersCtx silent-ignore + WithUnknownFields ctx accumulator in filter.go; slog.DebugContext + OTel attr `pdbplus.filter.unknown_fields` in handler.go; TestParseFilters_UnknownFieldsAppendToCtx in filter_test.go; E2E cases unknown_local_field / unknown_fk_segment / unknown_target_field / too_deep_three_hop / too_deep_four_hop in traversal_e2e_test.go) |
-| MEMORY-01 | 71 | pending |
-| MEMORY-02 | 71 | pending |
+| MEMORY-01 | 71 | complete (71-04; `internal/pdbcompat/stream.go` `StreamListResponse` + `iterFromSlice`; `serveList` replaces `WriteResponse` with `StreamListResponse(ctx, w, struct{}{}, iterFromSlice(results))` in commit 28408e1; TestServeList_UnderBudgetStreams in stream_integration_test.go) |
+| MEMORY-02 | 71 | complete (71-03/04; `Config.ResponseMemoryLimit` default 128 MiB via PDBPLUS_RESPONSE_MEMORY_LIMIT; `CheckBudget` + `WriteBudgetProblem` in budget.go; serveList pre-flight SELECT COUNT(\*) → CheckBudget → 413 gate with RFC 9457 body in commit 28408e1; TestServeList_OverBudget413 in stream_integration_test.go) |
 | MEMORY-03 | 71 | pending |
 | MEMORY-04 | 71 | pending |
 | PARITY-01 | 72 | pending |

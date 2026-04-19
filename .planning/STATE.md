@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in-progress
-stopped_at: "Completed 71-03 — pdbcompat memory budget primitives landed (pre-flight math + config knob + RFC 9457 413 writer). Config.ResponseMemoryLimit int64 loaded from PDBPLUS_RESPONSE_MEMORY_LIMIT via existing parseByteSize (mandatory KB/MB/GB/TB suffix; default 128 MiB per D-05 = 256 MB replica − 80 MB Go runtime − 48 MB slack; literal 0 disables). ResponseTooLargeType constant = https://peeringdb-plus.fly.dev/errors/response-too-large (D-04). CheckBudget(count, entity, depth, budgetBytes) → (BudgetExceeded, bool) multiplies count × TypicalRowBytes (Plan 71-02 map); returns populated struct with MaxRows=budget/perRow + BudgetBytes + EstimatedBytes + Count + Entity + Depth diagnostics when over. WriteBudgetProblem emits 413 w/ hand-rolled budgetProblemBody struct (Plan allowed the local extension — httperr.ProblemDetail hardcodes Type=about:blank and lacks max_rows/budget_bytes). No Retry-After (request-shape, not transient). 7 unit tests green (under/over/zero-disable/max-rows-math/unknown-entity/body-shape/detail-string). 12 config tests green (default + 11 parse subtests incl. short aliases, lowercase, explicit-zero, bare-number rejection, unknown unit, negative, missing prefix, non-numeric prefix). No handler wiring — that's Plan 04. No changes to handler.go/registry_funcs.go/response.go/stream.go/rowsize.go. 3 atomic commits (7debbcd config + 3740f27 test RED + dc6aec2 feat GREEN). CLAUDE.md env-var table update deferred to Plan 71-06 (docs close) to avoid double-touch. Full suite green (go test -race ./..., go vet, go build, golangci-lint run = 0 issues). MEMORY-02 primitive layer complete but REQ stays pending until Plan 04 wires the emission path. Next: Plan 71-04 — wire serveList pre-flight count + CheckBudget + WriteBudgetProblem."
-last_updated: "2026-04-19T21:30:00.000Z"
+status: completed
+stopped_at: "Completed 71-04 — pdbcompat serveList now runs pre-flight SELECT COUNT(*) → CheckBudget → WriteBudgetProblem on breach (413 / RFC 9457); under-budget requests stream via StreamListResponse + iterFromSlice (replaces legacy WriteResponse on list path; serveDetail untouched per D-07). 2 atomic commits: 27ba127 registry CountFunc sibling via shared <x>Predicates helper (13 List + 13 Count; applyStatusMatrix still 13x + opts.EmptyResult now 26x invariants), 28408e1 handler wiring + 4 integration tests + 13 list goldens regenerated for the intentional trailing-newline divergence (D-07). cmd/peeringdb-plus/main.go plumbs cfg.ResponseMemoryLimit; 10 test-helper callers of NewHandler(client) flipped to NewHandler(client, 0) (budget=0 disables). Full suite green under -race; golangci-lint 0 issues. Next: Plan 71-05 — OTel per-request heap-delta telemetry + Prometheus gauge."
+last_updated: "2026-04-19T21:10:32.266Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 6
-  completed_phases: 4
-  total_plans: 35
-  completed_plans: 29
-  percent: 83
+  completed_phases: 2
+  total_plans: 30
+  completed_plans: 23
+  percent: 77
 ---
 
 # Project State
@@ -22,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 71 in progress (3/6 plans shipped: 71-01 streaming token writer, 71-02 rowsize map, 71-03 budget math + config + 413 writer). Plan 71-04 next: wire serveList pre-flight count + CheckBudget + WriteBudgetProblem.
+**Current focus:** Phase 71 in progress (4/6 plans shipped: 71-01 streaming token writer, 71-02 rowsize map, 71-03 budget math + config + 413 writer, 71-04 serveList wiring). Plan 71-05 next: per-request heap-delta telemetry via OTel span attr + Prometheus gauge.
 
 ## Current Position
 
-Phase: 71 (memory-safe-response-paths) — IN PROGRESS (3/6 plans: 71-01 stream.go StreamListResponse, 71-02 rowsize.go TypicalRowBytes map calibrated from BenchmarkRowSize, 71-03 budget.go CheckBudget + WriteBudgetProblem + Config.ResponseMemoryLimit)
-Plan: Last completed 71-03 (pdbcompat memory budget primitives + config knob + RFC 9457 413 writer). Pure-math + config-only plan; no handler wiring — that is 71-04. 2 atomic tasks + 3 commits (feat config + test RED + feat GREEN). Full suite green; golangci-lint 0 issues.
-Status: Plan 71-03 complete. Primitives layer for MEMORY-02 is in place. No handler integration yet — Plan 04 owns serveList wiring; Plan 05 owns OTel / Prometheus wiring; Plan 06 is docs close. MEMORY-02 REQ-ID stays pending until 71-04 lands.
-Next action: `/gsd-execute-phase 71` or `/gsd-execute-plan 71-04` — wire serveList pre-flight count + CheckBudget + WriteBudgetProblem.
+Phase: 71 (memory-safe-response-paths) — IN PROGRESS (4/6 plans: 71-01 stream.go StreamListResponse, 71-02 rowsize.go TypicalRowBytes map calibrated from BenchmarkRowSize, 71-03 budget.go CheckBudget + WriteBudgetProblem + Config.ResponseMemoryLimit, 71-04 handler.go pre-flight budget + streaming wired)
+Plan: Last completed 71-04 (pdbcompat serveList pre-flight budget check + streaming). 2 atomic commits: 27ba127 registry CountFunc sibling via shared <x>Predicates helper (13 List + 13 Count; applyStatusMatrix stays 13x, opts.EmptyResult now 26x); 28408e1 handler wiring with pre-flight CheckBudget → WriteBudgetProblem → StreamListResponse; 4 new integration tests (413 over-budget, 200 under-budget stream, byte-exact parity modulo trailing-newline D-07 divergence, IN-02 empty-result bypass). 13 list-path goldens regenerated (detail goldens untouched per D-07 list-only scope). 10 test-helper callers flipped to NewHandler(client, 0). cmd/peeringdb-plus/main.go plumbs cfg.ResponseMemoryLimit (default 128 MiB). MEMORY-01 + MEMORY-02 requirements shipped.
+Status: Plan 71-04 complete. Full -race suite green; golangci-lint 0 issues. Remaining Phase 71 work: 71-05 (OTel / Prometheus telemetry on the wired handler), 71-06 (docs close on § Response Memory Envelope).
+Next action: `/gsd-execute-phase 71` or `/gsd-execute-plan 71-05` — wire per-request heap-delta telemetry (OTel span attr + Prometheus histogram).
 Last activity: 2026-04-19
 
 ## v1.16 Phase Map
