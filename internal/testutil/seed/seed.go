@@ -313,6 +313,128 @@ func Full(tb testing.TB, client *ent.Client) *Result {
 
 	r.AllPocs = []*ent.Poc{r.Poc, r.UsersPoc, r.UsersPoc2}
 
+	// Phase 70 traversal fixtures — deterministic rows referenced by name
+	// and ID from internal/pdbcompat/traversal_e2e_test.go and the Phase
+	// 68/69 regression guards in handler_test.go. High-ID range (8000+)
+	// avoids collision with the pre-existing 13-entity fixtures so any
+	// caller reading r.Org (id=1), r.Network (id=10), etc. is unaffected.
+	//
+	// Layout:
+	//   org 8001 "TestOrg1"
+	//   campus 8001 "TestCampus1" (owner: org 8001)
+	//   ix 8001 "TestIX" (owner: org 8001)
+	//   ixlan 8001 (owner: ix 8001)
+	//   fac 8001 "TestFac1-Campus" (owner: org 8001, campus: campus 8001)
+	//   net 8001 "TestNet1-Zurich" (owner: org 8001) — ASCII fold check
+	//   net 8002 "Zürich GmbH" (owner: org 8001) — UNICODE-01 fold check
+	//   net 8003 "DeletedNet" (owner: org 8001, status="deleted") — STATUS matrix
+	//
+	// Naming follows the Phase 70 contract:
+	//   - "TestOrg1" is the org used to target traversal filter rows via
+	//     ?org__name=TestOrg1. Only rows under this org appear in traversal
+	//     results; the pre-existing "Test Organization" (id=1) fixture is
+	//     a separate tenant, so traversal tests scoped to TestOrg1 don't
+	//     collide with Phase 58/60 visibility tests that target org=1.
+	//   - name_fold values are set explicitly (sync-bypass path) because
+	//     direct ent.Create skips the upsert builder that would normally
+	//     populate <field>_fold (Phase 69 Plan 03).
+	_, err = client.Organization.Create().
+		SetID(8001).
+		SetName("TestOrg1").
+		SetNameFold("testorg1").
+		SetStatus("ok").
+		SetCreated(Timestamp).SetUpdated(Timestamp).
+		Save(ctx)
+	if err != nil {
+		tb.Fatalf("seed: create TestOrg1: %v", err)
+	}
+
+	_, err = client.Campus.Create().
+		SetID(8001).
+		SetName("TestCampus1").
+		SetNameFold("testcampus1").
+		SetStatus("ok").
+		SetOrgID(8001).
+		SetCreated(Timestamp).SetUpdated(Timestamp).
+		Save(ctx)
+	if err != nil {
+		tb.Fatalf("seed: create TestCampus1: %v", err)
+	}
+
+	_, err = client.InternetExchange.Create().
+		SetID(8001).
+		SetName("TestIX").
+		SetNameFold("testix").
+		SetStatus("ok").
+		SetOrgID(8001).
+		SetCreated(Timestamp).SetUpdated(Timestamp).
+		Save(ctx)
+	if err != nil {
+		tb.Fatalf("seed: create TestIX: %v", err)
+	}
+
+	_, err = client.IxLan.Create().
+		SetID(8001).
+		SetStatus("ok").
+		SetIxID(8001).
+		SetCreated(Timestamp).SetUpdated(Timestamp).
+		Save(ctx)
+	if err != nil {
+		tb.Fatalf("seed: create IxLan 8001: %v", err)
+	}
+
+	_, err = client.Facility.Create().
+		SetID(8001).
+		SetName("TestFac1-Campus").
+		SetNameFold("testfac1-campus").
+		SetStatus("ok").
+		SetOrgID(8001).
+		SetCampusID(8001).
+		SetCreated(Timestamp).SetUpdated(Timestamp).
+		Save(ctx)
+	if err != nil {
+		tb.Fatalf("seed: create TestFac1-Campus: %v", err)
+	}
+
+	_, err = client.Network.Create().
+		SetID(8001).
+		SetName("TestNet1-Zurich").
+		SetNameFold("testnet1-zurich").
+		SetAsn(800001).
+		SetStatus("ok").
+		SetOrgID(8001).
+		SetCreated(Timestamp).SetUpdated(Timestamp).
+		Save(ctx)
+	if err != nil {
+		tb.Fatalf("seed: create TestNet1-Zurich: %v", err)
+	}
+
+	_, err = client.Network.Create().
+		SetID(8002).
+		SetName("Zürich GmbH").
+		SetNameFold("zurich gmbh").
+		SetAsn(800002).
+		SetStatus("ok").
+		SetOrgID(8001).
+		SetCreated(Timestamp).SetUpdated(Timestamp).
+		Save(ctx)
+	if err != nil {
+		tb.Fatalf("seed: create Zürich GmbH: %v", err)
+	}
+
+	_, err = client.Network.Create().
+		SetID(8003).
+		SetName("DeletedNet").
+		SetNameFold("deletednet").
+		SetAsn(800003).
+		SetStatus("deleted").
+		SetOrgID(8001).
+		SetCreated(Timestamp).SetUpdated(Timestamp).
+		Save(ctx)
+	if err != nil {
+		tb.Fatalf("seed: create DeletedNet: %v", err)
+	}
+
 	return r
 }
 

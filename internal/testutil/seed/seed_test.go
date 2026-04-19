@@ -96,18 +96,23 @@ func TestFull_EntityCounts(t *testing.T) {
 	Full(t, client)
 
 	ctx := t.Context()
+	// Counts include Phase 70 traversal fixture rows (id=8001+) added to
+	// seed.Full for internal/pdbcompat/traversal_e2e_test.go assertions.
+	// Pre-Phase-70 baseline: Org=1, Net=2, IX=1, Fac=2, Campus=1, Carrier=1, IxLan=2.
+	// Phase 70 additions: +1 Org (8001), +3 Net (8001-8003 incl. deleted), +1 IX (8001),
+	// +1 Fac (8001), +1 Campus (8001), +1 IxLan (8001).
 	counts := []struct {
 		name string
 		got  int
 		want int
 	}{
-		{"Organization", must(client.Organization.Query().Count(ctx)), 1},
-		{"Network", must(client.Network.Query().Count(ctx)), 2},
-		{"InternetExchange", must(client.InternetExchange.Query().Count(ctx)), 1},
-		{"Facility", must(client.Facility.Query().Count(ctx)), 2},
-		{"Campus", must(client.Campus.Query().Count(ctx)), 1},
+		{"Organization", must(client.Organization.Query().Count(ctx)), 2},
+		{"Network", must(client.Network.Query().Count(ctx)), 5},
+		{"InternetExchange", must(client.InternetExchange.Query().Count(ctx)), 2},
+		{"Facility", must(client.Facility.Query().Count(ctx)), 3},
+		{"Campus", must(client.Campus.Query().Count(ctx)), 2},
 		{"Carrier", must(client.Carrier.Query().Count(ctx)), 1},
-		{"IxLan", must(client.IxLan.Query().Count(ctx)), 2}, // Phase 64 VIS-09: seed.Full seeds two ixlans (IxLanGatedID, IxLanPublicID)
+		{"IxLan", must(client.IxLan.Query().Count(ctx)), 3}, // Phase 64 VIS-09: two ixlans (100, 101). Phase 70: +1 (8001).
 		{"IxPrefix", must(client.IxPrefix.Query().Count(ctx)), 1},
 		{"NetworkIxLan", must(client.NetworkIxLan.Query().Count(ctx)), 1},
 		{"NetworkFacility", must(client.NetworkFacility.Query().Count(ctx)), 1},

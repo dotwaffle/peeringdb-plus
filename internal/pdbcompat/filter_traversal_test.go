@@ -210,13 +210,17 @@ func TestBuildTraversal_SingleHop_Integration(t *testing.T) {
 		t.Errorf("expected 0 networks with nonexistent org, got %d", len(nets2))
 	}
 
-	// Sanity: unfiltered returns the full seed set (both networks).
+	// Sanity: unfiltered returns the full seed set (live networks only —
+	// status=ok filters out the Phase 70 DeletedNet tombstone at id=8003).
+	// Phase 70 seed.Full extension adds 3 rows (id=8001 TestNet1-Zurich,
+	// id=8002 Zürich GmbH, id=8003 DeletedNet); after the status filter,
+	// 4 live networks remain: 10, 11, 8001, 8002.
 	all, err := client.Network.Query().Where(network.StatusEQ("ok")).All(ctx)
 	if err != nil {
 		t.Fatalf("unfiltered: %v", err)
 	}
-	if len(all) != 2 {
-		t.Errorf("unfiltered network count = %d, want 2 (seed invariant)", len(all))
+	if len(all) != 4 {
+		t.Errorf("unfiltered network count = %d, want 4 (seed invariant post-Phase-70)", len(all))
 	}
 }
 
