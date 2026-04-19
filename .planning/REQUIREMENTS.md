@@ -94,7 +94,7 @@ Each REQ-ID maps to exactly one phase. 25/25 requirements mapped — 100% covera
 | ORDER-03 | 67 | Complete |
 | STATUS-01 | 68 | pending |
 | STATUS-02 | 68 | pending |
-| STATUS-03 | 68 | pending |
+| STATUS-03 | 68 | data prereq delivered (68-02 soft-delete flip); pdbcompat surface pending (68-03) |
 | STATUS-04 | 68 | pending |
 | STATUS-05 | 68 | complete (68-01) |
 | LIMIT-01 | 68 | pending |
