@@ -26,6 +26,18 @@ var SyncPeakRSSMiB atomic.Int64
 // SyncDuration records the duration of sync operations in seconds.
 var SyncDuration metric.Float64Histogram
 
+// ResponseHeapDeltaKiB records the per-request Go heap HeapInuse delta
+// (exit - entry) for pdbcompat list handlers, in KiB. Populated by
+// internal/pdbcompat.recordResponseHeapDelta via defer at the top of
+// serveList. Unit is KiB (vs sync's MiB) because per-request deltas
+// are typically 10-1000× smaller than per-cycle peaks.
+//
+// Attributes: endpoint (e.g. "/api/net"), entity (e.g. "net"). Low-cardinality
+// by construction — 1 endpoint per type × 13 types = 13 label combinations.
+//
+// Registered by InitResponseHeapHistogram (Phase 71 Plan 05, D-06).
+var ResponseHeapDeltaKiB metric.Int64Histogram
+
 // SyncOperations counts sync operations by status (success/failed).
 var SyncOperations metric.Int64Counter
 
@@ -178,6 +190,32 @@ func InitMemoryGauges() error {
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.sync.peak_rss_mib gauge: %w", err)
 	}
+	return nil
+}
+
+// InitResponseHeapHistogram registers the per-request heap-delta histogram
+// for pdbcompat response paths (Phase 71 D-06, MEMORY-03). Called from
+// main.go at startup after the OTel SDK is ready. Analogous to
+// InitMemoryGauges but records a histogram (distribution over p50/p95/p99)
+// rather than a point-in-time gauge, because per-request deltas are the
+// thing operators want a distribution over — not a last-write-wins value.
+//
+// Bucket boundaries span 0.5 KiB to 512 MiB: the low end catches
+// near-zero-delta responses (cached small payloads), the high end the
+// budget-breach neighbourhood (PDBPLUS_RESPONSE_MEMORY_LIMIT default 128
+// MiB in KiB = 131072; buckets step past that into 256/512 MiB territory
+// so outliers still get counted).
+func InitResponseHeapHistogram() error {
+	meter := otel.Meter("peeringdb-plus")
+	h, err := meter.Int64Histogram("pdbplus.response.heap_delta_kib",
+		metric.WithDescription("Per-request Go heap HeapInuse delta on pdbcompat list handlers, in KiB"),
+		metric.WithUnit("KiB"),
+		metric.WithExplicitBucketBoundaries(0.5, 1, 4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144, 524288),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.response.heap_delta_kib histogram: %w", err)
+	}
+	ResponseHeapDeltaKiB = h
 	return nil
 }
 

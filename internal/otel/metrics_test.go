@@ -343,3 +343,89 @@ func findMetric(rm metricdata.ResourceMetrics, name string) *metricdata.Metrics 
 	}
 	return nil
 }
+
+// TestInitResponseHeapHistogram_NoError verifies the per-request heap-delta
+// histogram registration succeeds. Phase 71 Plan 05 (MEMORY-03, D-06).
+func TestInitResponseHeapHistogram_NoError(t *testing.T) {
+	t.Setenv("OTEL_METRICS_EXPORTER", "none")
+
+	if err := InitResponseHeapHistogram(); err != nil {
+		t.Fatalf("InitResponseHeapHistogram returned error: %v", err)
+	}
+	if ResponseHeapDeltaKiB == nil {
+		t.Fatal("ResponseHeapDeltaKiB is nil after InitResponseHeapHistogram")
+	}
+}
+
+// TestResponseHeapDeltaKiB_RecordDoesNotPanic verifies the histogram
+// instrument records samples without panicking when no reader is wired,
+// matching the best-effort behaviour expected from
+// internal/pdbcompat.recordResponseHeapDelta on a misconfigured exporter.
+func TestResponseHeapDeltaKiB_RecordDoesNotPanic(t *testing.T) {
+	t.Setenv("OTEL_METRICS_EXPORTER", "none")
+
+	if err := InitResponseHeapHistogram(); err != nil {
+		t.Fatalf("InitResponseHeapHistogram returned error: %v", err)
+	}
+
+	ResponseHeapDeltaKiB.Record(t.Context(), 42,
+		metric.WithAttributes(
+			attribute.String("endpoint", "/api/net"),
+			attribute.String("entity", "net"),
+		),
+	)
+}
+
+// TestInitResponseHeapHistogram_RecordsValues verifies an actual observation
+// flows through the OTel manual reader with the expected attributes.
+func TestInitResponseHeapHistogram_RecordsValues(t *testing.T) {
+	reader := sdkmetric.NewManualReader()
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(mp)
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
+
+	if err := InitResponseHeapHistogram(); err != nil {
+		t.Fatalf("InitResponseHeapHistogram: %v", err)
+	}
+
+	ctx := t.Context()
+	ResponseHeapDeltaKiB.Record(ctx, 128,
+		metric.WithAttributes(
+			attribute.String("endpoint", "/api/net"),
+			attribute.String("entity", "net"),
+		),
+	)
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(ctx, &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+
+	found := findMetric(rm, "pdbplus.response.heap_delta_kib")
+	if found == nil {
+		t.Fatal("expected pdbplus.response.heap_delta_kib metric, not found")
+	}
+	hist, ok := found.Data.(metricdata.Histogram[int64])
+	if !ok {
+		t.Fatalf("expected Histogram[int64], got %T", found.Data)
+	}
+	if len(hist.DataPoints) == 0 {
+		t.Fatal("expected at least one histogram data point")
+	}
+	// Verify the endpoint+entity attributes landed on the data point.
+	var gotEndpoint, gotEntity string
+	for _, a := range hist.DataPoints[0].Attributes.ToSlice() {
+		switch a.Key {
+		case "endpoint":
+			gotEndpoint = a.Value.AsString()
+		case "entity":
+			gotEntity = a.Value.AsString()
+		}
+	}
+	if gotEndpoint != "/api/net" {
+		t.Errorf("endpoint attr = %q, want %q", gotEndpoint, "/api/net")
+	}
+	if gotEntity != "net" {
+		t.Errorf("entity attr = %q, want %q", gotEntity, "net")
+	}
+}

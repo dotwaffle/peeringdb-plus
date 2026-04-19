@@ -103,6 +103,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Phase 71 Plan 05 (MEMORY-03, D-06): per-request response heap-delta
+	// histogram for pdbcompat list handlers. Populated by
+	// internal/pdbcompat.recordResponseHeapDelta via defer in serveList.
+	if err := pdbotel.InitResponseHeapHistogram(); err != nil {
+		logger.Error("failed to init response heap histogram", slog.Any("error", err))
+		os.Exit(1)
+	}
+
 	// Open database per D-28, D-34.
 	entClient, db, err := database.Open(cfg.DBPath)
 	if err != nil {
