@@ -94,3 +94,131 @@ func unquote(s string) string {
 	}
 	return s
 }
+
+// TestStatusFixtures_NonEmpty asserts plan 72-02 Task 2 Test 1: the
+// ported StatusFixtures must be non-empty so parity tests have
+// rows to seed.
+func TestStatusFixtures_NonEmpty(t *testing.T) {
+	t.Parallel()
+	if len(StatusFixtures) == 0 {
+		t.Fatal("StatusFixtures empty")
+	}
+}
+
+// TestLimitFixtures_NonEmptyAndBoundary asserts Plan 72-02 Task 2
+// Test 2: LimitFixtures non-empty + ≥260 Network entries to exercise
+// the LIMIT-01 unlimited-pagination boundary above the 250 default
+// page cap.
+func TestLimitFixtures_NonEmptyAndBoundary(t *testing.T) {
+	t.Parallel()
+	if len(LimitFixtures) == 0 {
+		t.Fatal("LimitFixtures empty")
+	}
+	var networkCount int
+	for _, f := range LimitFixtures {
+		if f.Entity == "net" {
+			networkCount++
+		}
+	}
+	if networkCount < 260 {
+		t.Errorf("LIMIT-01 unlimited boundary: want ≥260 net fixtures; got %d", networkCount)
+	}
+}
+
+// TestStatusFixtures_DistinctStatuses asserts Plan 72-02 Task 2
+// Test 3: at least 3 distinct status values across {ok, pending,
+// deleted} are present.
+func TestStatusFixtures_DistinctStatuses(t *testing.T) {
+	t.Parallel()
+	statuses := map[string]int{}
+	for _, f := range StatusFixtures {
+		raw, ok := f.Fields["status"]
+		if !ok {
+			continue
+		}
+		statuses[unquote(raw)]++
+	}
+	if len(statuses) < 3 {
+		t.Errorf("want ≥3 distinct statuses; got %v", statuses)
+	}
+	for _, want := range []string{"ok", "pending", "deleted"} {
+		if statuses[want] == 0 {
+			t.Errorf("StatusFixtures missing any status=%q row", want)
+		}
+	}
+}
+
+// TestStatusFixtures_CampusPendingCarveOut asserts Plan 72-02 Task 2
+// Test 4: STATUS-03 carve-out — at least one (Entity="campus",
+// status="pending") entry must be present so the campus pending-
+// admission rule on since>0 list queries can be exercised.
+func TestStatusFixtures_CampusPendingCarveOut(t *testing.T) {
+	t.Parallel()
+	for _, f := range StatusFixtures {
+		if f.Entity != "campus" {
+			continue
+		}
+		if raw, ok := f.Fields["status"]; ok && unquote(raw) == "pending" {
+			return
+		}
+	}
+	t.Error("STATUS-03 carve-out: no (campus, pending) fixture in StatusFixtures")
+}
+
+// TestAllFixtures_NoDuplicateIDsWithinCategory asserts Plan 72-02
+// Task 2 Test 5: no duplicate (Entity, ID) pairs WITHIN each
+// category slice. Crosses between slices are allowed by design.
+func TestAllFixtures_NoDuplicateIDsWithinCategory(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name     string
+		fixtures []Fixture
+	}{
+		{"ordering", OrderingFixtures},
+		{"status", StatusFixtures},
+		{"limit", LimitFixtures},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			seen := map[string]int{}
+			for i, f := range tc.fixtures {
+				key := fmt.Sprintf("%s|%d", f.Entity, f.ID)
+				if prev, ok := seen[key]; ok {
+					t.Errorf("duplicate (Entity=%q, ID=%d) in %s: indices %d and %d", f.Entity, f.ID, tc.name, prev, i)
+					continue
+				}
+				seen[key] = i
+			}
+		})
+	}
+}
+
+// TestAllFixtures_UpstreamCitationPresent asserts Plan 72-02 Task 2
+// Test 6: every entry across all three slices has a non-empty
+// Upstream citation. Required by threat T-72-02-02 (repudiation
+// mitigation: every fixture must trace back to upstream source).
+func TestAllFixtures_UpstreamCitationPresent(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name     string
+		fixtures []Fixture
+	}{
+		{"ordering", OrderingFixtures},
+		{"status", StatusFixtures},
+		{"limit", LimitFixtures},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			for i, f := range tc.fixtures {
+				if f.Upstream == "" {
+					t.Errorf("%s[%d] (%s@%d) missing Upstream citation", tc.name, i, f.Entity, f.ID)
+				}
+				if f.Entity == "" {
+					t.Errorf("%s[%d] missing Entity (Upstream=%q)", tc.name, i, f.Upstream)
+				}
+			}
+		})
+	}
+}
