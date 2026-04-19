@@ -40,7 +40,12 @@ documented in their own sections below.
 | `PDBPLUS_SYNC_MODE` | No | `full` | enum | Sync strategy. Accepted values: `full` (complete re-fetch), `incremental` (only objects modified since last sync). Any other value is rejected at startup. |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | No | `24h` | duration | Maximum age of sync data before `/readyz` reports the service as degraded. |
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | No | `400MB` | byte size | Peak Go heap ceiling checked after the sync worker's Phase A fetch pass. If `runtime.ReadMemStats` reports `HeapAlloc` above this value, the sync aborts with a WARN log and returns `sync.ErrSyncMemoryLimitExceeded`; the next scheduled cycle retries normally. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). A bare number is rejected. Literal `0` disables the guardrail (local development only). Must be non-negative. |
-| `PDBPLUS_INCLUDE_DELETED` | No | `true` | bool | Include objects with `status=deleted` during sync. Defaults to `true` to match the upstream PeeringDB API, which returns deleted rows in default fetches. Set to `false` to filter them client-side. |
+
+### Removed in v1.16
+
+| Variable | Removed in | Replacement | Migration |
+|----------|------------|-------------|-----------|
+| `PDBPLUS_INCLUDE_DELETED` | v1.16 (Phase 68, D-01) | None — deleted rows are always persisted as tombstones (soft-delete, Plan 68-02) and exposed via `?since=N` / pk lookup per upstream `rest.py:694-727` status × since matrix. | Remove from your environment. During the v1.16 → v1.17 grace period a startup WARN is emitted; v1.17 upgrades this to a fatal startup error. |
 
 ### Observability
 

@@ -61,6 +61,30 @@
       "updated": "2024-08-01T09:15:00Z",
       "status": "ok",
       "edges": {}
+    },
+    {
+      "id": 3,
+      "address1": "1 Old Road",
+      "address2": "",
+      "aka": "",
+      "city": "London",
+      "country": "GB",
+      "floor": "",
+      "latitude": null,
+      "logo": null,
+      "longitude": null,
+      "name": "Defunct Telecom",
+      "name_long": "Defunct Telecom LLC",
+      "notes": "This organization has been decommissioned",
+      "social_media": [],
+      "state": "",
+      "suite": "",
+      "website": "",
+      "zipcode": "EC1A 1BB",
+      "created": "2023-06-01T00:00:00Z",
+      "updated": "2024-03-01T00:00:00Z",
+      "status": "deleted",
+      "edges": {}
     }
   ],
   "campuses": [

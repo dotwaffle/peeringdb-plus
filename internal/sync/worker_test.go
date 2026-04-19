@@ -129,7 +129,7 @@ func newFastPDBClient(t *testing.T, baseURL string) *peeringdb.Client {
 	return c
 }
 
-func newTestWorker(t *testing.T, f *fixture, includeDeleted bool) (*Worker, *sql.DB) {
+func newTestWorker(t *testing.T, f *fixture) (*Worker, *sql.DB) {
 	t.Helper()
 	client, db := testutil.SetupClientWithDB(t)
 	pdbClient := newFastPDBClient(t, f.server.URL)
@@ -139,9 +139,7 @@ func newTestWorker(t *testing.T, f *fixture, includeDeleted bool) (*Worker, *sql
 		t.Fatalf("init status table: %v", err)
 	}
 
-	w := NewWorker(pdbClient, client, db, WorkerConfig{
-		IncludeDeleted: includeDeleted,
-	}, slog.Default())
+	w := NewWorker(pdbClient, client, db, WorkerConfig{}, slog.Default())
 	return w, db
 }
 
@@ -195,7 +193,7 @@ func TestSyncFetchesAll13Types(t *testing.T) {
 	f := newFixture(t)
 	// Set up minimal data for org (all other types will return empty).
 	f.responses["org"] = []any{makeOrg(1, "TestOrg", "ok")}
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 
 	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err != nil {
@@ -220,7 +218,7 @@ func TestSyncTransaction(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 
 	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err != nil {
@@ -242,7 +240,7 @@ func TestSyncUpsertUpdatesExisting(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "OriginalName", "ok")}
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 
 	// First sync.
 	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
@@ -276,7 +274,7 @@ func TestSyncHardDelete(t *testing.T) {
 		makeOrg(2, "Org2", "ok"),
 		makeOrg(3, "Org3", "ok"),
 	}
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 
 	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("first sync: %v", err)
@@ -307,7 +305,7 @@ func TestSyncMutex(t *testing.T) {
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 
 	// Manually set running to true.
 	w.running.Store(true)
@@ -331,7 +329,7 @@ func TestSyncLogsProgress(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 
 	// Just verify sync completes without error -- log output is verified by
 	// the presence of slog.String("type", ...) calls in the worker code.
@@ -346,7 +344,7 @@ func TestSyncRecordsStatusSuccess(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
-	w, db := newTestWorker(t, f, false)
+	w, db := newTestWorker(t, f)
 
 	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err != nil {
@@ -374,7 +372,7 @@ func TestSyncRecordsStatusFailure(t *testing.T) {
 	f := newFixture(t)
 	// Make org endpoint fail.
 	f.failTypes["org"] = true
-	w, db := newTestWorker(t, f, false)
+	w, db := newTestWorker(t, f)
 
 	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err == nil {
@@ -402,7 +400,7 @@ func TestSyncRollbackOnFailure(t *testing.T) {
 	f := newFixture(t)
 	// First sync succeeds.
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 
 	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("first sync: %v", err)
@@ -432,54 +430,13 @@ func TestSyncRollbackOnFailure(t *testing.T) {
 	}
 }
 
-// TestSyncFilterDeletedObjects verifies status=deleted filtering.
-func TestSyncFilterDeletedObjects(t *testing.T) {
-	t.Parallel()
-
-	t.Run("exclude_deleted", func(t *testing.T) {
-		t.Parallel()
-		f := newFixture(t)
-		f.responses["org"] = []any{
-			makeOrg(1, "Active", "ok"),
-			makeOrg(2, "Deleted", "deleted"),
-		}
-		w, _ := newTestWorker(t, f, false)
-
-		if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
-			t.Fatalf("sync: %v", err)
-		}
-		count, _ := w.entClient.Organization.Query().Count(t.Context())
-		if count != 1 {
-			t.Errorf("expected 1 org (deleted excluded), got %d", count)
-		}
-	})
-
-	t.Run("include_deleted", func(t *testing.T) {
-		t.Parallel()
-		f := newFixture(t)
-		f.responses["org"] = []any{
-			makeOrg(1, "Active", "ok"),
-			makeOrg(2, "Deleted", "deleted"),
-		}
-		w, _ := newTestWorker(t, f, true)
-
-		if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
-			t.Fatalf("sync: %v", err)
-		}
-		count, _ := w.entClient.Organization.Query().Count(t.Context())
-		if count != 2 {
-			t.Errorf("expected 2 orgs (deleted included), got %d", count)
-		}
-	})
-}
-
 // TestSyncScheduler verifies scheduler starts periodic sync via time.Ticker.
 func TestSyncScheduler(t *testing.T) {
 	t.Parallel()
 	ensureMetrics(t)
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond, 2 * time.Millisecond, 3 * time.Millisecond})
 
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
@@ -506,7 +463,7 @@ func TestHasCompletedSync(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 
 	if w.HasCompletedSync() {
 		t.Error("expected false before sync")
@@ -579,7 +536,7 @@ func TestSyncWithRetryExhaustsRetries(t *testing.T) {
 
 	f := newFixture(t)
 	f.failTypes["org"] = true
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond, 2 * time.Millisecond, 3 * time.Millisecond})
 
 	err := w.SyncWithRetry(t.Context(), config.SyncModeFull)
@@ -669,7 +626,7 @@ func TestSyncWithRetryContextCancellation(t *testing.T) {
 
 	f := newFixture(t)
 	f.failTypes["org"] = true
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 	w.SetRetryBackoffs([]time.Duration{10 * time.Second, 10 * time.Second, 10 * time.Second})
 
 	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
@@ -695,7 +652,7 @@ func TestSyncWithNetAndFac(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "TestOrg", "ok")}
 	f.responses["fac"] = []any{makeFac(10, 1, fmt.Sprintf("Fac-%d", 10), "ok")}
 	f.responses["net"] = []any{makeNet(100, 1, 65000, fmt.Sprintf("Net-%d", 100), "ok")}
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 
 	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("sync: %v", err)
@@ -750,7 +707,7 @@ func TestSyncRecordsMetrics(t *testing.T) {
 
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 
 	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("sync failed: %v", err)
@@ -798,7 +755,7 @@ func TestSyncRecordsFailureMetrics(t *testing.T) {
 
 	f := newFixture(t)
 	f.failTypes["org"] = true
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 
 	err := w.Sync(t.Context(), config.SyncModeFull)
 	if err == nil {
@@ -940,7 +897,7 @@ func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
 	return f
 }
 
-func newTestWorkerWithMode(t *testing.T, baseURL string, mode config.SyncMode, includeDeleted bool) (*Worker, *sql.DB) {
+func newTestWorkerWithMode(t *testing.T, baseURL string, mode config.SyncMode) (*Worker, *sql.DB) {
 	t.Helper()
 	client, db := testutil.SetupClientWithDB(t)
 	pdbClient := newFastPDBClient(t, baseURL)
@@ -950,8 +907,7 @@ func newTestWorkerWithMode(t *testing.T, baseURL string, mode config.SyncMode, i
 	}
 
 	w := NewWorker(pdbClient, client, db, WorkerConfig{
-		IncludeDeleted: includeDeleted,
-		SyncMode:       mode,
+		SyncMode: mode,
 	}, slog.Default())
 	return w, db
 }
@@ -964,7 +920,7 @@ func TestIncrementalSync(t *testing.T) {
 	f := newFixtureWithMeta(t, generated)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 
-	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
 	// First sync: no cursors, so full fetch runs.
@@ -1019,7 +975,7 @@ func TestIncrementalFirstSyncFull(t *testing.T) {
 	f := newFixtureWithMeta(t, generated)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 
-	w, _ := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
+	w, _ := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
 	// First sync with no cursors should use full fetch.
@@ -1049,7 +1005,7 @@ func TestIncrementalFallback(t *testing.T) {
 	f := newFixtureWithMeta(t, generated)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 
-	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
 	// Establish cursors with a full sync first.
@@ -1106,7 +1062,7 @@ func TestCursorsUpdatedAfterCommit(t *testing.T) {
 	f := newFixtureWithMeta(t, generated)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 
-	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeFull, false)
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeFull)
 	ctx := t.Context()
 
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
@@ -1137,7 +1093,7 @@ func TestCursorsNotUpdatedOnRollback(t *testing.T) {
 	// Make net fail, which causes rollback.
 	f.failTypes["net"] = true
 
-	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeFull, false)
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeFull)
 	ctx := t.Context()
 
 	err := w.Sync(ctx, config.SyncModeFull)
@@ -1166,7 +1122,7 @@ func TestSyncWithRetryPassesMode(t *testing.T) {
 	f := newFixtureWithMeta(t, generated)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 
-	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 	ctx := t.Context()
 
@@ -1207,7 +1163,7 @@ func TestIncrementalSkipsDeleteStale(t *testing.T) {
 		makeOrg(3, "Org3", "ok"),
 	}
 
-	w, _ := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental, false)
+	w, _ := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
 	// Full sync to establish data and cursors.
@@ -1245,7 +1201,7 @@ func TestSchedulerSkipsSyncWithExistingData(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
-	w, db := newTestWorker(t, f, false)
+	w, db := newTestWorker(t, f)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
 	ctx := t.Context()
@@ -1295,7 +1251,7 @@ func TestSchedulerSyncsImmediatelyOnEmptyDB(t *testing.T) {
 	ensureMetrics(t)
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
@@ -1329,7 +1285,7 @@ func TestSchedulerSyncsWhenOverdue(t *testing.T) {
 	ensureMetrics(t)
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
-	w, db := newTestWorker(t, f, false)
+	w, db := newTestWorker(t, f)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
 	ctx := t.Context()
@@ -1396,7 +1352,7 @@ func TestStartScheduler_SkipsOnReplica(t *testing.T) {
 	ps := &primarySwitch{}
 	ps.v.Store(false) // Always replica.
 
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 	w.config.IsPrimary = ps.IsPrimary
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
@@ -1428,7 +1384,7 @@ func TestStartScheduler_PromotionSync(t *testing.T) {
 	ps := &primarySwitch{}
 	ps.v.Store(false) // Start as replica.
 
-	w, _ := newTestWorker(t, f, false)
+	w, _ := newTestWorker(t, f)
 	w.config.IsPrimary = ps.IsPrimary
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
@@ -1800,9 +1756,7 @@ func TestSync_RefactorParity(t *testing.T) {
 		t.Fatalf("init status table: %v", err)
 	}
 
-	w := NewWorker(pdbClient, client, db, WorkerConfig{
-		IncludeDeleted: false,
-	}, slog.Default())
+	w := NewWorker(pdbClient, client, db, WorkerConfig{}, slog.Default())
 
 	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
 		t.Fatalf("sync failed: %v", err)
@@ -2154,9 +2108,8 @@ func TestSync_D19Atomicity(t *testing.T) {
 	pdbClient.SetRetryBaseDelay(0)
 
 	worker := NewWorker(pdbClient, client, db, WorkerConfig{
-		IncludeDeleted: false,
-		SyncMode:       config.SyncModeFull,
-		IsPrimary:      func() bool { return true },
+		SyncMode:  config.SyncModeFull,
+		IsPrimary: func() bool { return true },
 	}, slog.Default())
 	if err := InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("init status table: %v", err)
@@ -2223,7 +2176,6 @@ func TestSync_MemoryLimitAbort(t *testing.T) {
 	pdbClient := newFastPDBClient(t, f.server.URL)
 
 	worker := NewWorker(pdbClient, client, db, WorkerConfig{
-		IncludeDeleted:  false,
 		IsPrimary:       func() bool { return true },
 		SyncMode:        config.SyncModeFull,
 		SyncMemoryLimit: 1, // 1 byte — guaranteed to trip after Phase A
@@ -2286,7 +2238,6 @@ func TestSync_MemoryLimitDisabled(t *testing.T) {
 	pdbClient := newFastPDBClient(t, f.server.URL)
 
 	worker := NewWorker(pdbClient, client, db, WorkerConfig{
-		IncludeDeleted:  false,
 		IsPrimary:       func() bool { return true },
 		SyncMode:        config.SyncModeFull,
 		SyncMemoryLimit: 0, // disabled

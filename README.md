@@ -80,7 +80,6 @@ All configuration is via environment variables, validated at startup (fail-fast)
 | `PDBPLUS_SYNC_INTERVAL` | `1h` | Duration between automatic syncs |
 | `PDBPLUS_SYNC_MODE` | `full` | Sync strategy: `full` or `incremental` |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | `24h` | Max sync age before readiness degrades |
-| `PDBPLUS_INCLUDE_DELETED` | `true` | Include objects with status=deleted (matches upstream PeeringDB) |
 | `PDBPLUS_CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
 | `PDBPLUS_DRAIN_TIMEOUT` | `10s` | Graceful shutdown drain timeout |
 | `PDBPLUS_OTEL_SAMPLE_RATE` | `1.0` | Trace sampling ratio (0.0-1.0) |

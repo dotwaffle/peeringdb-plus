@@ -181,7 +181,12 @@ func Load() (*Config, error) {
 	// the variable is logged and ignored. Flipping to fail-fast in v1.17 is a
 	// one-line swap (slog.Warn → return nil, errors.New(...)).
 	if v := os.Getenv("PDBPLUS_INCLUDE_DELETED"); v != "" {
-		slog.Warn("PDBPLUS_INCLUDE_DELETED is deprecated and ignored; remove it from your environment. This will be a startup error in v1.17.",
+		// gosec G706 log-injection: value is operator-supplied env var
+		// contents attached as a structured slog attribute (not interpolated
+		// into the message), the variable is a boolean flag with no secret
+		// content, and slog.String quotes the value on output. Safe per
+		// GO-SEC-2 (no secrets in env) + threat register T-68-01-03.
+		slog.Warn("PDBPLUS_INCLUDE_DELETED is deprecated and ignored; remove it from your environment. This will be a startup error in v1.17.", //nolint:gosec // G706: boolean flag, structured attr, threat register T-68-01-03
 			slog.String("value", v),
 		)
 	}

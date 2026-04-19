@@ -170,9 +170,7 @@ func TestNoKeySync(t *testing.T) {
 		t.Fatalf("init status table: %v", err)
 	}
 
-	w := NewWorker(pdbClient, client, db, WorkerConfig{
-		IncludeDeleted: true, // match production default; some anon fixtures contain status!=ok rows
-	}, slog.Default())
+	w := NewWorker(pdbClient, client, db, WorkerConfig{}, slog.Default())
 
 	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("sync failed: %v", err)

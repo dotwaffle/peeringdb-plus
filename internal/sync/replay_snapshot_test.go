@@ -68,9 +68,8 @@ func TestReplaySnapshot(t *testing.T) {
 	pdbClient.SetRetryBaseDelay(0)
 
 	worker := NewWorker(pdbClient, client, db, WorkerConfig{
-		IncludeDeleted: true,
-		SyncMode:       config.SyncModeFull,
-		IsPrimary:      func() bool { return true },
+		SyncMode:  config.SyncModeFull,
+		IsPrimary: func() bool { return true },
 	}, slog.Default())
 
 	if err := worker.Sync(t.Context(), config.SyncModeFull); err != nil {

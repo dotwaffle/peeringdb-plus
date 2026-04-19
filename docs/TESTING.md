@@ -179,9 +179,7 @@ pagination.
     if err := sync.InitStatusTable(t.Context(), db); err != nil {
         t.Fatalf("init status table: %v", err)
     }
-    w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-        IncludeDeleted: false,
-    }, slog.Default())
+    w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{}, slog.Default())
 
     if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
         t.Fatalf("sync failed: %v", err)

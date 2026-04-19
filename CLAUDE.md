@@ -130,7 +130,6 @@ Proto is frozen since v1.6 (`entproto.SkipGenFile` in `ent/entc.go`), so dropped
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | `400MB` | Peak Go heap ceiling checked after Phase A fetch; unit suffix required (KB/MB/GB/TB); `0` disables guardrail |
 | `PDBPLUS_HEAP_WARN_MIB` | `400` | Peak Go heap (MiB) threshold. End-of-sync-cycle `slog.Warn("heap threshold crossed", ...)` fires when `runtime.MemStats.HeapInuse` exceeds this; OTel span attr `pdbplus.sync.peak_heap_mib` emits on every cycle regardless. `0` disables the warn. Sustained breach = SEED-001 trigger fired. |
 | `PDBPLUS_RSS_WARN_MIB` | `384` | Peak OS RSS (MiB) threshold from `/proc/self/status` VmHWM (Linux only). OTel span attr `pdbplus.sync.peak_rss_mib`. `0` disables the warn. Attr omitted on non-Linux (RSS not available). |
-| `PDBPLUS_INCLUDE_DELETED` | `true` | Include objects with status=deleted (matches PeeringDB API which returns deleted rows in default fetches; set `false` to filter them out client-side) |
 | `PDBPLUS_CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
 | `PDBPLUS_CSP_ENFORCE` | `false` | When `true`, serve enforcing `Content-Security-Policy` on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only`. |
 | `PDBPLUS_DRAIN_TIMEOUT` | `10s` | Graceful shutdown drain timeout |

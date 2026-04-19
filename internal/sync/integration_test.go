@@ -124,9 +124,7 @@ func TestFullSyncWithFixtures(t *testing.T) {
 		t.Fatalf("init status table: %v", err)
 	}
 
-	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		IncludeDeleted: false,
-	}, slog.Default())
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{}, slog.Default())
 
 	ctx := t.Context()
 
@@ -135,14 +133,16 @@ func TestFullSyncWithFixtures(t *testing.T) {
 		t.Fatalf("sync failed: %v", err)
 	}
 
-	// Verify record counts. Org has 3 records but org 3 is status=deleted
-	// and IncludeDeleted=false, so expect 2.
+	// Verify record counts. Phase 68 D-01: PDBPLUS_INCLUDE_DELETED was removed,
+	// so the upsert path now unconditionally persists org 3 (status=deleted).
+	// Plan 68-02 flips the delete pass to soft-delete; in the meantime the
+	// hard-delete pass still runs but org 3's ID is in remoteIDs so it stays.
 	tests := []struct {
 		name     string
 		queryFn  func() (int, error)
 		expected int
 	}{
-		{"organizations", func() (int, error) { return client.Organization.Query().Count(ctx) }, 2},
+		{"organizations", func() (int, error) { return client.Organization.Query().Count(ctx) }, 3},
 		{"campuses", func() (int, error) { return client.Campus.Query().Count(ctx) }, 2},
 		{"facilities", func() (int, error) { return client.Facility.Query().Count(ctx) }, 2},
 		{"carriers", func() (int, error) { return client.Carrier.Query().Count(ctx) }, 1},
@@ -228,9 +228,7 @@ func TestSyncDeletesStaleRecords(t *testing.T) {
 		t.Fatalf("init status table: %v", err)
 	}
 
-	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		IncludeDeleted: false,
-	}, slog.Default())
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{}, slog.Default())
 
 	ctx := t.Context()
 
@@ -239,13 +237,15 @@ func TestSyncDeletesStaleRecords(t *testing.T) {
 		t.Fatalf("first sync: %v", err)
 	}
 
-	// Verify org 1 and org 2 exist (org 3 is deleted, excluded).
+	// Verify all 3 orgs exist. Post-Phase-68 D-01 the upsert path persists
+	// deleted rows unconditionally; the hard-delete pass keeps them because
+	// their IDs are still in remoteIDs from the fixture server.
 	orgCount, err := client.Organization.Query().Count(ctx)
 	if err != nil {
 		t.Fatalf("query org count: %v", err)
 	}
-	if orgCount != 2 {
-		t.Fatalf("expected 2 orgs after first sync, got %d", orgCount)
+	if orgCount != 3 {
+		t.Fatalf("expected 3 orgs after first sync, got %d", orgCount)
 	}
 
 	// Remove org 2 and all dependent records from fixture responses.
@@ -360,9 +360,11 @@ func TestSyncDeletesStaleRecords(t *testing.T) {
 	}
 }
 
-// TestSyncIncludeDeleted verifies that IncludeDeleted=true includes
-// status=deleted records in the database.
-func TestSyncIncludeDeleted(t *testing.T) {
+// TestSyncPersistsDeletedRowsUnconditional verifies that deleted upstream rows
+// are persisted by default after Phase 68 D-01 (PDBPLUS_INCLUDE_DELETED
+// removed). Plan 68-02 rewrites this to TestSync_SoftDeleteMarksRows once the
+// soft-delete flip lands.
+func TestSyncPersistsDeletedRowsUnconditional(t *testing.T) {
 	t.Parallel()
 	fs := newFixtureServer(t)
 	client, db := testutil.SetupClientWithDB(t)
@@ -375,9 +377,7 @@ func TestSyncIncludeDeleted(t *testing.T) {
 		t.Fatalf("init status table: %v", err)
 	}
 
-	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		IncludeDeleted: true,
-	}, slog.Default())
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{}, slog.Default())
 
 	ctx := t.Context()
 
@@ -385,13 +385,13 @@ func TestSyncIncludeDeleted(t *testing.T) {
 		t.Fatalf("sync failed: %v", err)
 	}
 
-	// With IncludeDeleted=true, all 3 orgs should be present.
+	// With PDBPLUS_INCLUDE_DELETED removed (Phase 68 D-01), all 3 orgs are persisted by default.
 	orgCount, err := client.Organization.Query().Count(ctx)
 	if err != nil {
 		t.Fatalf("query org count: %v", err)
 	}
 	if orgCount != 3 {
-		t.Errorf("expected 3 orgs with IncludeDeleted=true, got %d", orgCount)
+		t.Errorf("expected 3 orgs (deleted persisted by default), got %d", orgCount)
 	}
 
 	// Verify org 3 (status=deleted) exists and has correct status.
@@ -423,9 +423,7 @@ func TestSyncDeletesFKIntegrity(t *testing.T) {
 		t.Fatalf("init status table: %v", err)
 	}
 
-	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		IncludeDeleted: false,
-	}, slog.Default())
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{}, slog.Default())
 
 	ctx := t.Context()
 
@@ -567,9 +565,7 @@ func TestSyncIdempotent(t *testing.T) {
 		t.Fatalf("init status table: %v", err)
 	}
 
-	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		IncludeDeleted: false,
-	}, slog.Default())
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{}, slog.Default())
 
 	ctx := t.Context()
 

@@ -624,9 +624,8 @@ func BenchmarkSyncWorker_FullMemoryPeak(b *testing.B) {
 		pdbClient.SetRetryBaseDelay(0)
 
 		worker := NewWorker(pdbClient, client, db, WorkerConfig{
-			IncludeDeleted: false,
-			SyncMode:       config.SyncModeFull,
-			IsPrimary:      func() bool { return true },
+			SyncMode:  config.SyncModeFull,
+			IsPrimary: func() bool { return true },
 		}, slog.Default())
 
 		// Start the peak sampler BEFORE the timed region so it captures the
