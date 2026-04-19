@@ -3,7 +3,7 @@
 // Upstream:     peeringdb/peeringdb@99e92c726172ead7d224ce34c344eff0bccb3e63
 // UpstreamHash: sha256:75c7a6fab734db782b9035a6bc23ae11abcce5901a6017a051f76bbb51399043
 // Source:       src/peeringdb_server/management/commands/pdb_api_test.py
-// Category:     ordering
+// Category:     all
 // Ported:       2026-04-19
 //
 // Regenerate via `go generate ./internal/testutil/parity`.
@@ -29,9 +29,2702 @@ type Fixture struct {
 	Upstream string
 }
 
-// OrderingFixtures is the ported set for Plan 72-01's proof-
-// of-concept category. Plans 72-02 / 72-03 add the remaining categories
-// as sibling slices in this file.
+// synthesised per Plan 72-02 D-02: covers LIMIT-01 unlimited boundary at upstream rest.py:494-497
+// LimitFixtures is the ported set for the Limit category.
+var LimitFixtures = []Fixture{
+	{
+		Entity: "ix",
+		ID:     19000,
+		Fields: map[string]string{
+			"name":   "\"LimitDepthIX-00\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "ix",
+		ID:     19001,
+		Fields: map[string]string{
+			"name":   "\"LimitDepthIX-01\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "ix",
+		ID:     19002,
+		Fields: map[string]string{
+			"name":   "\"LimitDepthIX-02\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "ix",
+		ID:     19003,
+		Fields: map[string]string{
+			"name":   "\"LimitDepthIX-03\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "ix",
+		ID:     19004,
+		Fields: map[string]string{
+			"name":   "\"LimitDepthIX-04\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23000,
+		Fields: map[string]string{
+			"asn":    "4200000000",
+			"name":   "\"LimitBulkNet-0000\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23001,
+		Fields: map[string]string{
+			"asn":    "4200000001",
+			"name":   "\"LimitBulkNet-0001\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23002,
+		Fields: map[string]string{
+			"asn":    "4200000002",
+			"name":   "\"LimitBulkNet-0002\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23003,
+		Fields: map[string]string{
+			"asn":    "4200000003",
+			"name":   "\"LimitBulkNet-0003\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23004,
+		Fields: map[string]string{
+			"asn":    "4200000004",
+			"name":   "\"LimitBulkNet-0004\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23005,
+		Fields: map[string]string{
+			"asn":    "4200000005",
+			"name":   "\"LimitBulkNet-0005\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23006,
+		Fields: map[string]string{
+			"asn":    "4200000006",
+			"name":   "\"LimitBulkNet-0006\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23007,
+		Fields: map[string]string{
+			"asn":    "4200000007",
+			"name":   "\"LimitBulkNet-0007\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23008,
+		Fields: map[string]string{
+			"asn":    "4200000008",
+			"name":   "\"LimitBulkNet-0008\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23009,
+		Fields: map[string]string{
+			"asn":    "4200000009",
+			"name":   "\"LimitBulkNet-0009\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23010,
+		Fields: map[string]string{
+			"asn":    "4200000010",
+			"name":   "\"LimitBulkNet-0010\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23011,
+		Fields: map[string]string{
+			"asn":    "4200000011",
+			"name":   "\"LimitBulkNet-0011\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23012,
+		Fields: map[string]string{
+			"asn":    "4200000012",
+			"name":   "\"LimitBulkNet-0012\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23013,
+		Fields: map[string]string{
+			"asn":    "4200000013",
+			"name":   "\"LimitBulkNet-0013\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23014,
+		Fields: map[string]string{
+			"asn":    "4200000014",
+			"name":   "\"LimitBulkNet-0014\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23015,
+		Fields: map[string]string{
+			"asn":    "4200000015",
+			"name":   "\"LimitBulkNet-0015\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23016,
+		Fields: map[string]string{
+			"asn":    "4200000016",
+			"name":   "\"LimitBulkNet-0016\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23017,
+		Fields: map[string]string{
+			"asn":    "4200000017",
+			"name":   "\"LimitBulkNet-0017\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23018,
+		Fields: map[string]string{
+			"asn":    "4200000018",
+			"name":   "\"LimitBulkNet-0018\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23019,
+		Fields: map[string]string{
+			"asn":    "4200000019",
+			"name":   "\"LimitBulkNet-0019\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23020,
+		Fields: map[string]string{
+			"asn":    "4200000020",
+			"name":   "\"LimitBulkNet-0020\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23021,
+		Fields: map[string]string{
+			"asn":    "4200000021",
+			"name":   "\"LimitBulkNet-0021\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23022,
+		Fields: map[string]string{
+			"asn":    "4200000022",
+			"name":   "\"LimitBulkNet-0022\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23023,
+		Fields: map[string]string{
+			"asn":    "4200000023",
+			"name":   "\"LimitBulkNet-0023\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23024,
+		Fields: map[string]string{
+			"asn":    "4200000024",
+			"name":   "\"LimitBulkNet-0024\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23025,
+		Fields: map[string]string{
+			"asn":    "4200000025",
+			"name":   "\"LimitBulkNet-0025\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23026,
+		Fields: map[string]string{
+			"asn":    "4200000026",
+			"name":   "\"LimitBulkNet-0026\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23027,
+		Fields: map[string]string{
+			"asn":    "4200000027",
+			"name":   "\"LimitBulkNet-0027\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23028,
+		Fields: map[string]string{
+			"asn":    "4200000028",
+			"name":   "\"LimitBulkNet-0028\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23029,
+		Fields: map[string]string{
+			"asn":    "4200000029",
+			"name":   "\"LimitBulkNet-0029\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23030,
+		Fields: map[string]string{
+			"asn":    "4200000030",
+			"name":   "\"LimitBulkNet-0030\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23031,
+		Fields: map[string]string{
+			"asn":    "4200000031",
+			"name":   "\"LimitBulkNet-0031\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23032,
+		Fields: map[string]string{
+			"asn":    "4200000032",
+			"name":   "\"LimitBulkNet-0032\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23033,
+		Fields: map[string]string{
+			"asn":    "4200000033",
+			"name":   "\"LimitBulkNet-0033\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23034,
+		Fields: map[string]string{
+			"asn":    "4200000034",
+			"name":   "\"LimitBulkNet-0034\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23035,
+		Fields: map[string]string{
+			"asn":    "4200000035",
+			"name":   "\"LimitBulkNet-0035\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23036,
+		Fields: map[string]string{
+			"asn":    "4200000036",
+			"name":   "\"LimitBulkNet-0036\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23037,
+		Fields: map[string]string{
+			"asn":    "4200000037",
+			"name":   "\"LimitBulkNet-0037\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23038,
+		Fields: map[string]string{
+			"asn":    "4200000038",
+			"name":   "\"LimitBulkNet-0038\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23039,
+		Fields: map[string]string{
+			"asn":    "4200000039",
+			"name":   "\"LimitBulkNet-0039\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23040,
+		Fields: map[string]string{
+			"asn":    "4200000040",
+			"name":   "\"LimitBulkNet-0040\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23041,
+		Fields: map[string]string{
+			"asn":    "4200000041",
+			"name":   "\"LimitBulkNet-0041\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23042,
+		Fields: map[string]string{
+			"asn":    "4200000042",
+			"name":   "\"LimitBulkNet-0042\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23043,
+		Fields: map[string]string{
+			"asn":    "4200000043",
+			"name":   "\"LimitBulkNet-0043\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23044,
+		Fields: map[string]string{
+			"asn":    "4200000044",
+			"name":   "\"LimitBulkNet-0044\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23045,
+		Fields: map[string]string{
+			"asn":    "4200000045",
+			"name":   "\"LimitBulkNet-0045\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23046,
+		Fields: map[string]string{
+			"asn":    "4200000046",
+			"name":   "\"LimitBulkNet-0046\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23047,
+		Fields: map[string]string{
+			"asn":    "4200000047",
+			"name":   "\"LimitBulkNet-0047\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23048,
+		Fields: map[string]string{
+			"asn":    "4200000048",
+			"name":   "\"LimitBulkNet-0048\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23049,
+		Fields: map[string]string{
+			"asn":    "4200000049",
+			"name":   "\"LimitBulkNet-0049\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23050,
+		Fields: map[string]string{
+			"asn":    "4200000050",
+			"name":   "\"LimitBulkNet-0050\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23051,
+		Fields: map[string]string{
+			"asn":    "4200000051",
+			"name":   "\"LimitBulkNet-0051\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23052,
+		Fields: map[string]string{
+			"asn":    "4200000052",
+			"name":   "\"LimitBulkNet-0052\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23053,
+		Fields: map[string]string{
+			"asn":    "4200000053",
+			"name":   "\"LimitBulkNet-0053\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23054,
+		Fields: map[string]string{
+			"asn":    "4200000054",
+			"name":   "\"LimitBulkNet-0054\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23055,
+		Fields: map[string]string{
+			"asn":    "4200000055",
+			"name":   "\"LimitBulkNet-0055\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23056,
+		Fields: map[string]string{
+			"asn":    "4200000056",
+			"name":   "\"LimitBulkNet-0056\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23057,
+		Fields: map[string]string{
+			"asn":    "4200000057",
+			"name":   "\"LimitBulkNet-0057\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23058,
+		Fields: map[string]string{
+			"asn":    "4200000058",
+			"name":   "\"LimitBulkNet-0058\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23059,
+		Fields: map[string]string{
+			"asn":    "4200000059",
+			"name":   "\"LimitBulkNet-0059\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23060,
+		Fields: map[string]string{
+			"asn":    "4200000060",
+			"name":   "\"LimitBulkNet-0060\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23061,
+		Fields: map[string]string{
+			"asn":    "4200000061",
+			"name":   "\"LimitBulkNet-0061\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23062,
+		Fields: map[string]string{
+			"asn":    "4200000062",
+			"name":   "\"LimitBulkNet-0062\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23063,
+		Fields: map[string]string{
+			"asn":    "4200000063",
+			"name":   "\"LimitBulkNet-0063\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23064,
+		Fields: map[string]string{
+			"asn":    "4200000064",
+			"name":   "\"LimitBulkNet-0064\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23065,
+		Fields: map[string]string{
+			"asn":    "4200000065",
+			"name":   "\"LimitBulkNet-0065\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23066,
+		Fields: map[string]string{
+			"asn":    "4200000066",
+			"name":   "\"LimitBulkNet-0066\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23067,
+		Fields: map[string]string{
+			"asn":    "4200000067",
+			"name":   "\"LimitBulkNet-0067\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23068,
+		Fields: map[string]string{
+			"asn":    "4200000068",
+			"name":   "\"LimitBulkNet-0068\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23069,
+		Fields: map[string]string{
+			"asn":    "4200000069",
+			"name":   "\"LimitBulkNet-0069\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23070,
+		Fields: map[string]string{
+			"asn":    "4200000070",
+			"name":   "\"LimitBulkNet-0070\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23071,
+		Fields: map[string]string{
+			"asn":    "4200000071",
+			"name":   "\"LimitBulkNet-0071\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23072,
+		Fields: map[string]string{
+			"asn":    "4200000072",
+			"name":   "\"LimitBulkNet-0072\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23073,
+		Fields: map[string]string{
+			"asn":    "4200000073",
+			"name":   "\"LimitBulkNet-0073\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23074,
+		Fields: map[string]string{
+			"asn":    "4200000074",
+			"name":   "\"LimitBulkNet-0074\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23075,
+		Fields: map[string]string{
+			"asn":    "4200000075",
+			"name":   "\"LimitBulkNet-0075\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23076,
+		Fields: map[string]string{
+			"asn":    "4200000076",
+			"name":   "\"LimitBulkNet-0076\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23077,
+		Fields: map[string]string{
+			"asn":    "4200000077",
+			"name":   "\"LimitBulkNet-0077\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23078,
+		Fields: map[string]string{
+			"asn":    "4200000078",
+			"name":   "\"LimitBulkNet-0078\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23079,
+		Fields: map[string]string{
+			"asn":    "4200000079",
+			"name":   "\"LimitBulkNet-0079\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23080,
+		Fields: map[string]string{
+			"asn":    "4200000080",
+			"name":   "\"LimitBulkNet-0080\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23081,
+		Fields: map[string]string{
+			"asn":    "4200000081",
+			"name":   "\"LimitBulkNet-0081\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23082,
+		Fields: map[string]string{
+			"asn":    "4200000082",
+			"name":   "\"LimitBulkNet-0082\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23083,
+		Fields: map[string]string{
+			"asn":    "4200000083",
+			"name":   "\"LimitBulkNet-0083\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23084,
+		Fields: map[string]string{
+			"asn":    "4200000084",
+			"name":   "\"LimitBulkNet-0084\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23085,
+		Fields: map[string]string{
+			"asn":    "4200000085",
+			"name":   "\"LimitBulkNet-0085\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23086,
+		Fields: map[string]string{
+			"asn":    "4200000086",
+			"name":   "\"LimitBulkNet-0086\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23087,
+		Fields: map[string]string{
+			"asn":    "4200000087",
+			"name":   "\"LimitBulkNet-0087\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23088,
+		Fields: map[string]string{
+			"asn":    "4200000088",
+			"name":   "\"LimitBulkNet-0088\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23089,
+		Fields: map[string]string{
+			"asn":    "4200000089",
+			"name":   "\"LimitBulkNet-0089\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23090,
+		Fields: map[string]string{
+			"asn":    "4200000090",
+			"name":   "\"LimitBulkNet-0090\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23091,
+		Fields: map[string]string{
+			"asn":    "4200000091",
+			"name":   "\"LimitBulkNet-0091\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23092,
+		Fields: map[string]string{
+			"asn":    "4200000092",
+			"name":   "\"LimitBulkNet-0092\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23093,
+		Fields: map[string]string{
+			"asn":    "4200000093",
+			"name":   "\"LimitBulkNet-0093\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23094,
+		Fields: map[string]string{
+			"asn":    "4200000094",
+			"name":   "\"LimitBulkNet-0094\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23095,
+		Fields: map[string]string{
+			"asn":    "4200000095",
+			"name":   "\"LimitBulkNet-0095\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23096,
+		Fields: map[string]string{
+			"asn":    "4200000096",
+			"name":   "\"LimitBulkNet-0096\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23097,
+		Fields: map[string]string{
+			"asn":    "4200000097",
+			"name":   "\"LimitBulkNet-0097\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23098,
+		Fields: map[string]string{
+			"asn":    "4200000098",
+			"name":   "\"LimitBulkNet-0098\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23099,
+		Fields: map[string]string{
+			"asn":    "4200000099",
+			"name":   "\"LimitBulkNet-0099\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23100,
+		Fields: map[string]string{
+			"asn":    "4200000100",
+			"name":   "\"LimitBulkNet-0100\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23101,
+		Fields: map[string]string{
+			"asn":    "4200000101",
+			"name":   "\"LimitBulkNet-0101\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23102,
+		Fields: map[string]string{
+			"asn":    "4200000102",
+			"name":   "\"LimitBulkNet-0102\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23103,
+		Fields: map[string]string{
+			"asn":    "4200000103",
+			"name":   "\"LimitBulkNet-0103\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23104,
+		Fields: map[string]string{
+			"asn":    "4200000104",
+			"name":   "\"LimitBulkNet-0104\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23105,
+		Fields: map[string]string{
+			"asn":    "4200000105",
+			"name":   "\"LimitBulkNet-0105\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23106,
+		Fields: map[string]string{
+			"asn":    "4200000106",
+			"name":   "\"LimitBulkNet-0106\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23107,
+		Fields: map[string]string{
+			"asn":    "4200000107",
+			"name":   "\"LimitBulkNet-0107\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23108,
+		Fields: map[string]string{
+			"asn":    "4200000108",
+			"name":   "\"LimitBulkNet-0108\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23109,
+		Fields: map[string]string{
+			"asn":    "4200000109",
+			"name":   "\"LimitBulkNet-0109\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23110,
+		Fields: map[string]string{
+			"asn":    "4200000110",
+			"name":   "\"LimitBulkNet-0110\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23111,
+		Fields: map[string]string{
+			"asn":    "4200000111",
+			"name":   "\"LimitBulkNet-0111\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23112,
+		Fields: map[string]string{
+			"asn":    "4200000112",
+			"name":   "\"LimitBulkNet-0112\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23113,
+		Fields: map[string]string{
+			"asn":    "4200000113",
+			"name":   "\"LimitBulkNet-0113\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23114,
+		Fields: map[string]string{
+			"asn":    "4200000114",
+			"name":   "\"LimitBulkNet-0114\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23115,
+		Fields: map[string]string{
+			"asn":    "4200000115",
+			"name":   "\"LimitBulkNet-0115\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23116,
+		Fields: map[string]string{
+			"asn":    "4200000116",
+			"name":   "\"LimitBulkNet-0116\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23117,
+		Fields: map[string]string{
+			"asn":    "4200000117",
+			"name":   "\"LimitBulkNet-0117\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23118,
+		Fields: map[string]string{
+			"asn":    "4200000118",
+			"name":   "\"LimitBulkNet-0118\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23119,
+		Fields: map[string]string{
+			"asn":    "4200000119",
+			"name":   "\"LimitBulkNet-0119\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23120,
+		Fields: map[string]string{
+			"asn":    "4200000120",
+			"name":   "\"LimitBulkNet-0120\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23121,
+		Fields: map[string]string{
+			"asn":    "4200000121",
+			"name":   "\"LimitBulkNet-0121\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23122,
+		Fields: map[string]string{
+			"asn":    "4200000122",
+			"name":   "\"LimitBulkNet-0122\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23123,
+		Fields: map[string]string{
+			"asn":    "4200000123",
+			"name":   "\"LimitBulkNet-0123\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23124,
+		Fields: map[string]string{
+			"asn":    "4200000124",
+			"name":   "\"LimitBulkNet-0124\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23125,
+		Fields: map[string]string{
+			"asn":    "4200000125",
+			"name":   "\"LimitBulkNet-0125\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23126,
+		Fields: map[string]string{
+			"asn":    "4200000126",
+			"name":   "\"LimitBulkNet-0126\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23127,
+		Fields: map[string]string{
+			"asn":    "4200000127",
+			"name":   "\"LimitBulkNet-0127\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23128,
+		Fields: map[string]string{
+			"asn":    "4200000128",
+			"name":   "\"LimitBulkNet-0128\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23129,
+		Fields: map[string]string{
+			"asn":    "4200000129",
+			"name":   "\"LimitBulkNet-0129\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23130,
+		Fields: map[string]string{
+			"asn":    "4200000130",
+			"name":   "\"LimitBulkNet-0130\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23131,
+		Fields: map[string]string{
+			"asn":    "4200000131",
+			"name":   "\"LimitBulkNet-0131\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23132,
+		Fields: map[string]string{
+			"asn":    "4200000132",
+			"name":   "\"LimitBulkNet-0132\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23133,
+		Fields: map[string]string{
+			"asn":    "4200000133",
+			"name":   "\"LimitBulkNet-0133\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23134,
+		Fields: map[string]string{
+			"asn":    "4200000134",
+			"name":   "\"LimitBulkNet-0134\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23135,
+		Fields: map[string]string{
+			"asn":    "4200000135",
+			"name":   "\"LimitBulkNet-0135\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23136,
+		Fields: map[string]string{
+			"asn":    "4200000136",
+			"name":   "\"LimitBulkNet-0136\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23137,
+		Fields: map[string]string{
+			"asn":    "4200000137",
+			"name":   "\"LimitBulkNet-0137\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23138,
+		Fields: map[string]string{
+			"asn":    "4200000138",
+			"name":   "\"LimitBulkNet-0138\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23139,
+		Fields: map[string]string{
+			"asn":    "4200000139",
+			"name":   "\"LimitBulkNet-0139\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23140,
+		Fields: map[string]string{
+			"asn":    "4200000140",
+			"name":   "\"LimitBulkNet-0140\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23141,
+		Fields: map[string]string{
+			"asn":    "4200000141",
+			"name":   "\"LimitBulkNet-0141\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23142,
+		Fields: map[string]string{
+			"asn":    "4200000142",
+			"name":   "\"LimitBulkNet-0142\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23143,
+		Fields: map[string]string{
+			"asn":    "4200000143",
+			"name":   "\"LimitBulkNet-0143\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23144,
+		Fields: map[string]string{
+			"asn":    "4200000144",
+			"name":   "\"LimitBulkNet-0144\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23145,
+		Fields: map[string]string{
+			"asn":    "4200000145",
+			"name":   "\"LimitBulkNet-0145\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23146,
+		Fields: map[string]string{
+			"asn":    "4200000146",
+			"name":   "\"LimitBulkNet-0146\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23147,
+		Fields: map[string]string{
+			"asn":    "4200000147",
+			"name":   "\"LimitBulkNet-0147\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23148,
+		Fields: map[string]string{
+			"asn":    "4200000148",
+			"name":   "\"LimitBulkNet-0148\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23149,
+		Fields: map[string]string{
+			"asn":    "4200000149",
+			"name":   "\"LimitBulkNet-0149\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23150,
+		Fields: map[string]string{
+			"asn":    "4200000150",
+			"name":   "\"LimitBulkNet-0150\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23151,
+		Fields: map[string]string{
+			"asn":    "4200000151",
+			"name":   "\"LimitBulkNet-0151\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23152,
+		Fields: map[string]string{
+			"asn":    "4200000152",
+			"name":   "\"LimitBulkNet-0152\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23153,
+		Fields: map[string]string{
+			"asn":    "4200000153",
+			"name":   "\"LimitBulkNet-0153\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23154,
+		Fields: map[string]string{
+			"asn":    "4200000154",
+			"name":   "\"LimitBulkNet-0154\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23155,
+		Fields: map[string]string{
+			"asn":    "4200000155",
+			"name":   "\"LimitBulkNet-0155\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23156,
+		Fields: map[string]string{
+			"asn":    "4200000156",
+			"name":   "\"LimitBulkNet-0156\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23157,
+		Fields: map[string]string{
+			"asn":    "4200000157",
+			"name":   "\"LimitBulkNet-0157\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23158,
+		Fields: map[string]string{
+			"asn":    "4200000158",
+			"name":   "\"LimitBulkNet-0158\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23159,
+		Fields: map[string]string{
+			"asn":    "4200000159",
+			"name":   "\"LimitBulkNet-0159\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23160,
+		Fields: map[string]string{
+			"asn":    "4200000160",
+			"name":   "\"LimitBulkNet-0160\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23161,
+		Fields: map[string]string{
+			"asn":    "4200000161",
+			"name":   "\"LimitBulkNet-0161\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23162,
+		Fields: map[string]string{
+			"asn":    "4200000162",
+			"name":   "\"LimitBulkNet-0162\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23163,
+		Fields: map[string]string{
+			"asn":    "4200000163",
+			"name":   "\"LimitBulkNet-0163\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23164,
+		Fields: map[string]string{
+			"asn":    "4200000164",
+			"name":   "\"LimitBulkNet-0164\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23165,
+		Fields: map[string]string{
+			"asn":    "4200000165",
+			"name":   "\"LimitBulkNet-0165\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23166,
+		Fields: map[string]string{
+			"asn":    "4200000166",
+			"name":   "\"LimitBulkNet-0166\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23167,
+		Fields: map[string]string{
+			"asn":    "4200000167",
+			"name":   "\"LimitBulkNet-0167\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23168,
+		Fields: map[string]string{
+			"asn":    "4200000168",
+			"name":   "\"LimitBulkNet-0168\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23169,
+		Fields: map[string]string{
+			"asn":    "4200000169",
+			"name":   "\"LimitBulkNet-0169\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23170,
+		Fields: map[string]string{
+			"asn":    "4200000170",
+			"name":   "\"LimitBulkNet-0170\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23171,
+		Fields: map[string]string{
+			"asn":    "4200000171",
+			"name":   "\"LimitBulkNet-0171\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23172,
+		Fields: map[string]string{
+			"asn":    "4200000172",
+			"name":   "\"LimitBulkNet-0172\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23173,
+		Fields: map[string]string{
+			"asn":    "4200000173",
+			"name":   "\"LimitBulkNet-0173\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23174,
+		Fields: map[string]string{
+			"asn":    "4200000174",
+			"name":   "\"LimitBulkNet-0174\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23175,
+		Fields: map[string]string{
+			"asn":    "4200000175",
+			"name":   "\"LimitBulkNet-0175\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23176,
+		Fields: map[string]string{
+			"asn":    "4200000176",
+			"name":   "\"LimitBulkNet-0176\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23177,
+		Fields: map[string]string{
+			"asn":    "4200000177",
+			"name":   "\"LimitBulkNet-0177\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23178,
+		Fields: map[string]string{
+			"asn":    "4200000178",
+			"name":   "\"LimitBulkNet-0178\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23179,
+		Fields: map[string]string{
+			"asn":    "4200000179",
+			"name":   "\"LimitBulkNet-0179\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23180,
+		Fields: map[string]string{
+			"asn":    "4200000180",
+			"name":   "\"LimitBulkNet-0180\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23181,
+		Fields: map[string]string{
+			"asn":    "4200000181",
+			"name":   "\"LimitBulkNet-0181\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23182,
+		Fields: map[string]string{
+			"asn":    "4200000182",
+			"name":   "\"LimitBulkNet-0182\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23183,
+		Fields: map[string]string{
+			"asn":    "4200000183",
+			"name":   "\"LimitBulkNet-0183\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23184,
+		Fields: map[string]string{
+			"asn":    "4200000184",
+			"name":   "\"LimitBulkNet-0184\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23185,
+		Fields: map[string]string{
+			"asn":    "4200000185",
+			"name":   "\"LimitBulkNet-0185\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23186,
+		Fields: map[string]string{
+			"asn":    "4200000186",
+			"name":   "\"LimitBulkNet-0186\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23187,
+		Fields: map[string]string{
+			"asn":    "4200000187",
+			"name":   "\"LimitBulkNet-0187\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23188,
+		Fields: map[string]string{
+			"asn":    "4200000188",
+			"name":   "\"LimitBulkNet-0188\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23189,
+		Fields: map[string]string{
+			"asn":    "4200000189",
+			"name":   "\"LimitBulkNet-0189\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23190,
+		Fields: map[string]string{
+			"asn":    "4200000190",
+			"name":   "\"LimitBulkNet-0190\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23191,
+		Fields: map[string]string{
+			"asn":    "4200000191",
+			"name":   "\"LimitBulkNet-0191\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23192,
+		Fields: map[string]string{
+			"asn":    "4200000192",
+			"name":   "\"LimitBulkNet-0192\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23193,
+		Fields: map[string]string{
+			"asn":    "4200000193",
+			"name":   "\"LimitBulkNet-0193\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23194,
+		Fields: map[string]string{
+			"asn":    "4200000194",
+			"name":   "\"LimitBulkNet-0194\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23195,
+		Fields: map[string]string{
+			"asn":    "4200000195",
+			"name":   "\"LimitBulkNet-0195\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23196,
+		Fields: map[string]string{
+			"asn":    "4200000196",
+			"name":   "\"LimitBulkNet-0196\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23197,
+		Fields: map[string]string{
+			"asn":    "4200000197",
+			"name":   "\"LimitBulkNet-0197\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23198,
+		Fields: map[string]string{
+			"asn":    "4200000198",
+			"name":   "\"LimitBulkNet-0198\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23199,
+		Fields: map[string]string{
+			"asn":    "4200000199",
+			"name":   "\"LimitBulkNet-0199\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23200,
+		Fields: map[string]string{
+			"asn":    "4200000200",
+			"name":   "\"LimitBulkNet-0200\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23201,
+		Fields: map[string]string{
+			"asn":    "4200000201",
+			"name":   "\"LimitBulkNet-0201\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23202,
+		Fields: map[string]string{
+			"asn":    "4200000202",
+			"name":   "\"LimitBulkNet-0202\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23203,
+		Fields: map[string]string{
+			"asn":    "4200000203",
+			"name":   "\"LimitBulkNet-0203\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23204,
+		Fields: map[string]string{
+			"asn":    "4200000204",
+			"name":   "\"LimitBulkNet-0204\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23205,
+		Fields: map[string]string{
+			"asn":    "4200000205",
+			"name":   "\"LimitBulkNet-0205\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23206,
+		Fields: map[string]string{
+			"asn":    "4200000206",
+			"name":   "\"LimitBulkNet-0206\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23207,
+		Fields: map[string]string{
+			"asn":    "4200000207",
+			"name":   "\"LimitBulkNet-0207\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23208,
+		Fields: map[string]string{
+			"asn":    "4200000208",
+			"name":   "\"LimitBulkNet-0208\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23209,
+		Fields: map[string]string{
+			"asn":    "4200000209",
+			"name":   "\"LimitBulkNet-0209\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23210,
+		Fields: map[string]string{
+			"asn":    "4200000210",
+			"name":   "\"LimitBulkNet-0210\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23211,
+		Fields: map[string]string{
+			"asn":    "4200000211",
+			"name":   "\"LimitBulkNet-0211\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23212,
+		Fields: map[string]string{
+			"asn":    "4200000212",
+			"name":   "\"LimitBulkNet-0212\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23213,
+		Fields: map[string]string{
+			"asn":    "4200000213",
+			"name":   "\"LimitBulkNet-0213\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23214,
+		Fields: map[string]string{
+			"asn":    "4200000214",
+			"name":   "\"LimitBulkNet-0214\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23215,
+		Fields: map[string]string{
+			"asn":    "4200000215",
+			"name":   "\"LimitBulkNet-0215\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23216,
+		Fields: map[string]string{
+			"asn":    "4200000216",
+			"name":   "\"LimitBulkNet-0216\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23217,
+		Fields: map[string]string{
+			"asn":    "4200000217",
+			"name":   "\"LimitBulkNet-0217\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23218,
+		Fields: map[string]string{
+			"asn":    "4200000218",
+			"name":   "\"LimitBulkNet-0218\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23219,
+		Fields: map[string]string{
+			"asn":    "4200000219",
+			"name":   "\"LimitBulkNet-0219\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23220,
+		Fields: map[string]string{
+			"asn":    "4200000220",
+			"name":   "\"LimitBulkNet-0220\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23221,
+		Fields: map[string]string{
+			"asn":    "4200000221",
+			"name":   "\"LimitBulkNet-0221\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23222,
+		Fields: map[string]string{
+			"asn":    "4200000222",
+			"name":   "\"LimitBulkNet-0222\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23223,
+		Fields: map[string]string{
+			"asn":    "4200000223",
+			"name":   "\"LimitBulkNet-0223\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23224,
+		Fields: map[string]string{
+			"asn":    "4200000224",
+			"name":   "\"LimitBulkNet-0224\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23225,
+		Fields: map[string]string{
+			"asn":    "4200000225",
+			"name":   "\"LimitBulkNet-0225\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23226,
+		Fields: map[string]string{
+			"asn":    "4200000226",
+			"name":   "\"LimitBulkNet-0226\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23227,
+		Fields: map[string]string{
+			"asn":    "4200000227",
+			"name":   "\"LimitBulkNet-0227\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23228,
+		Fields: map[string]string{
+			"asn":    "4200000228",
+			"name":   "\"LimitBulkNet-0228\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23229,
+		Fields: map[string]string{
+			"asn":    "4200000229",
+			"name":   "\"LimitBulkNet-0229\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23230,
+		Fields: map[string]string{
+			"asn":    "4200000230",
+			"name":   "\"LimitBulkNet-0230\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23231,
+		Fields: map[string]string{
+			"asn":    "4200000231",
+			"name":   "\"LimitBulkNet-0231\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23232,
+		Fields: map[string]string{
+			"asn":    "4200000232",
+			"name":   "\"LimitBulkNet-0232\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23233,
+		Fields: map[string]string{
+			"asn":    "4200000233",
+			"name":   "\"LimitBulkNet-0233\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23234,
+		Fields: map[string]string{
+			"asn":    "4200000234",
+			"name":   "\"LimitBulkNet-0234\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23235,
+		Fields: map[string]string{
+			"asn":    "4200000235",
+			"name":   "\"LimitBulkNet-0235\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23236,
+		Fields: map[string]string{
+			"asn":    "4200000236",
+			"name":   "\"LimitBulkNet-0236\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23237,
+		Fields: map[string]string{
+			"asn":    "4200000237",
+			"name":   "\"LimitBulkNet-0237\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23238,
+		Fields: map[string]string{
+			"asn":    "4200000238",
+			"name":   "\"LimitBulkNet-0238\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23239,
+		Fields: map[string]string{
+			"asn":    "4200000239",
+			"name":   "\"LimitBulkNet-0239\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23240,
+		Fields: map[string]string{
+			"asn":    "4200000240",
+			"name":   "\"LimitBulkNet-0240\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23241,
+		Fields: map[string]string{
+			"asn":    "4200000241",
+			"name":   "\"LimitBulkNet-0241\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23242,
+		Fields: map[string]string{
+			"asn":    "4200000242",
+			"name":   "\"LimitBulkNet-0242\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23243,
+		Fields: map[string]string{
+			"asn":    "4200000243",
+			"name":   "\"LimitBulkNet-0243\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23244,
+		Fields: map[string]string{
+			"asn":    "4200000244",
+			"name":   "\"LimitBulkNet-0244\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23245,
+		Fields: map[string]string{
+			"asn":    "4200000245",
+			"name":   "\"LimitBulkNet-0245\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23246,
+		Fields: map[string]string{
+			"asn":    "4200000246",
+			"name":   "\"LimitBulkNet-0246\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23247,
+		Fields: map[string]string{
+			"asn":    "4200000247",
+			"name":   "\"LimitBulkNet-0247\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23248,
+		Fields: map[string]string{
+			"asn":    "4200000248",
+			"name":   "\"LimitBulkNet-0248\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23249,
+		Fields: map[string]string{
+			"asn":    "4200000249",
+			"name":   "\"LimitBulkNet-0249\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23250,
+		Fields: map[string]string{
+			"asn":    "4200000250",
+			"name":   "\"LimitBulkNet-0250\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23251,
+		Fields: map[string]string{
+			"asn":    "4200000251",
+			"name":   "\"LimitBulkNet-0251\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23252,
+		Fields: map[string]string{
+			"asn":    "4200000252",
+			"name":   "\"LimitBulkNet-0252\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23253,
+		Fields: map[string]string{
+			"asn":    "4200000253",
+			"name":   "\"LimitBulkNet-0253\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23254,
+		Fields: map[string]string{
+			"asn":    "4200000254",
+			"name":   "\"LimitBulkNet-0254\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23255,
+		Fields: map[string]string{
+			"asn":    "4200000255",
+			"name":   "\"LimitBulkNet-0255\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23256,
+		Fields: map[string]string{
+			"asn":    "4200000256",
+			"name":   "\"LimitBulkNet-0256\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23257,
+		Fields: map[string]string{
+			"asn":    "4200000257",
+			"name":   "\"LimitBulkNet-0257\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23258,
+		Fields: map[string]string{
+			"asn":    "4200000258",
+			"name":   "\"LimitBulkNet-0258\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "net",
+		ID:     23259,
+		Fields: map[string]string{
+			"asn":    "4200000259",
+			"name":   "\"LimitBulkNet-0259\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "org",
+		ID:     26000,
+		Fields: map[string]string{
+			"name":   "\"LimitDepthOrg-00\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "org",
+		ID:     26001,
+		Fields: map[string]string{
+			"name":   "\"LimitDepthOrg-01\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "org",
+		ID:     26002,
+		Fields: map[string]string{
+			"name":   "\"LimitDepthOrg-02\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "org",
+		ID:     26003,
+		Fields: map[string]string{
+			"name":   "\"LimitDepthOrg-03\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+	{
+		Entity: "org",
+		ID:     26004,
+		Fields: map[string]string{
+			"name":   "\"LimitDepthOrg-04\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1",
+	},
+}
+
+// OrderingFixtures is the ported set for the Ordering category.
 var OrderingFixtures = []Fixture{
 	{
 		Entity: "fac",
@@ -171,5 +2864,442 @@ var OrderingFixtures = []Fixture{
 			"updated": "\"2024-05-17T18:00:00Z\"",
 		},
 		Upstream: "pdb_api_test.py:3282",
+	},
+}
+
+// StatusFixtures is the ported set for the Status category.
+var StatusFixtures = []Fixture{
+	{
+		Entity: "campus",
+		ID:     18000,
+		Fields: map[string]string{
+			"name":   "\"Synth-campus-CarveOut\"",
+			"status": "\"pending\"",
+		},
+		Upstream: "pdb_api_test.py:3965",
+	},
+	{
+		Entity: "carrierfac",
+		ID:     20004,
+		Fields: map[string]string{
+			"name":   "\"Synth-carrierfac-AttrAssign\"",
+			"status": "\"pending\"",
+		},
+		Upstream: "pdb_api_test.py:1211",
+	},
+	{
+		Entity: "fac",
+		ID:     13237,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1317",
+	},
+	{
+		Entity: "fac",
+		ID:     13586,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:2478",
+	},
+	{
+		Entity: "fac",
+		ID:     13659,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1242",
+	},
+	{
+		Entity: "fac",
+		ID:     14400,
+		Fields: map[string]string{
+			"name":   "\"fac unaccented\"",
+			"org":    "org",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:5133",
+	},
+	{
+		Entity: "fac",
+		ID:     14626,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1247",
+	},
+	{
+		Entity: "fac",
+		ID:     14634,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1341",
+	},
+	{
+		Entity: "fac",
+		ID:     15205,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1363",
+	},
+	{
+		Entity: "fac",
+		ID:     15344,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:2487",
+	},
+	{
+		Entity: "fac",
+		ID:     15735,
+		Fields: map[string]string{
+			"name":   "\"Facility Issue 901\"",
+			"org":    "org",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:3644",
+	},
+	{
+		Entity: "fac",
+		ID:     16324,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1280",
+	},
+	{
+		Entity: "fac",
+		ID:     16702,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:4932",
+	},
+	{
+		Entity: "ix",
+		ID:     15346,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:4420",
+	},
+	{
+		Entity: "ix",
+		ID:     16398,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1479",
+	},
+	{
+		Entity: "ix",
+		ID:     17400,
+		Fields: map[string]string{
+			"name":   "\"ix unaccented\"",
+			"org":    "org",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:5132",
+	},
+	{
+		Entity: "ix",
+		ID:     17420,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1482",
+	},
+	{
+		Entity: "ix",
+		ID:     17964,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1485",
+	},
+	{
+		Entity: "ixfac",
+		ID:     23003,
+		Fields: map[string]string{
+			"name":   "\"Synth-ixfac-AttrAssign\"",
+			"status": "\"pending\"",
+		},
+		Upstream: "pdb_api_test.py:1201",
+	},
+	{
+		Entity: "ixpfx",
+		ID:     18779,
+		Fields: map[string]string{
+			"ixlan":    "SHARED[\"ixlan_rw_ok\"]",
+			"prefix":   "\"203.0.113.0/24\"",
+			"protocol": "\"IPv4\"",
+			"status":   "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:3317",
+	},
+	{
+		Entity: "ixpfx",
+		ID:     18789,
+		Fields: map[string]string{
+			"ixlan":    "SHARED[\"ixlan_rw_ok\"]",
+			"prefix":   "\"203.0.113.0/24\"",
+			"protocol": "\"IPv4\"",
+			"status":   "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:3229",
+	},
+	{
+		Entity: "ixpfx",
+		ID:     20311,
+		Fields: map[string]string{
+			"ixlan":  "ix.ixlan",
+			"prefix": "self.get_prefix4()",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:3684",
+	},
+	{
+		Entity: "ixpfx",
+		ID:     20590,
+		Fields: map[string]string{
+			"ixlan":    "SHARED[\"ixlan_rw_ok\"]",
+			"prefix":   "\"206.126.236.0/24\"",
+			"protocol": "\"IPv4\"",
+			"status":   "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:3275",
+	},
+	{
+		Entity: "ixpfx",
+		ID:     20826,
+		Fields: map[string]string{
+			"ixlan":  "ix.ixlan",
+			"prefix": "prefix",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:3723",
+	},
+	{
+		Entity: "ixpfx",
+		ID:     25005,
+		Fields: map[string]string{
+			"name":   "\"Synth-ixpfx-FilterTarget\"",
+			"status": "\"deleted\"",
+		},
+		Upstream: "pdb_api_test.py:3260",
+	},
+	{
+		Entity: "net",
+		ID:     18477,
+		Fields: map[string]string{
+			"asn":    "90009000",
+			"name":   "\"Unprotected Network\"",
+			"org":    "net.org",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1604",
+	},
+	{
+		Entity: "net",
+		ID:     19184,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:4926",
+	},
+	{
+		Entity: "net",
+		ID:     19642,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:4414",
+	},
+	{
+		Entity: "net",
+		ID:     19780,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:2758",
+	},
+	{
+		Entity: "net",
+		ID:     21023,
+		Fields: map[string]string{
+			"asn":    "12345",
+			"name":   "\"net unaccented\"",
+			"org":    "org",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:5131",
+	},
+	{
+		Entity: "net",
+		ID:     26001,
+		Fields: map[string]string{
+			"name":   "\"Synth-net-Baseline\"",
+			"status": "\"deleted\"",
+		},
+		Upstream: "pdb_api_test.py:3952",
+	},
+	{
+		Entity: "netfac",
+		ID:     20190,
+		Fields: map[string]string{
+			"facility": "facilities[1]",
+			"network":  "net",
+			"status":   "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:4944",
+	},
+	{
+		Entity: "netfac",
+		ID:     20460,
+		Fields: map[string]string{
+			"facility": "facilities[0]",
+			"network":  "net",
+			"status":   "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:4938",
+	},
+	{
+		Entity: "netfac",
+		ID:     27002,
+		Fields: map[string]string{
+			"name":   "\"Synth-netfac-AttrAssign\"",
+			"status": "\"pending\"",
+		},
+		Upstream: "pdb_api_test.py:1206",
+	},
+	{
+		Entity: "netixlan",
+		ID:     20181,
+		Fields: map[string]string{
+			"asn":     "net.asn",
+			"ixlan":   "ixlans[1]",
+			"network": "net",
+			"speed":   "0",
+			"status":  "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:4435",
+	},
+	{
+		Entity: "netixlan",
+		ID:     20377,
+		Fields: map[string]string{
+			"asn":     "SHARED[\"net_rw_ok\"].asn",
+			"ipaddr4": "\"203.0.113.10\"",
+			"ixlan":   "SHARED[\"ixlan_rw_ok\"]",
+			"network": "SHARED[\"net_rw_ok\"]",
+			"speed":   "1000",
+			"status":  "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:3236",
+	},
+	{
+		Entity: "netixlan",
+		ID:     21770,
+		Fields: map[string]string{
+			"asn":     "SHARED[\"net_rw_ok\"].asn",
+			"ipaddr4": "\"203.0.113.250\"",
+			"ixlan":   "SHARED[\"ixlan_rw_ok\"]",
+			"network": "SHARED[\"net_rw_ok\"]",
+			"speed":   "1000",
+			"status":  "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:3324",
+	},
+	{
+		Entity: "netixlan",
+		ID:     22060,
+		Fields: map[string]string{
+			"asn":     "net.asn",
+			"ixlan":   "ixlans[0]",
+			"network": "net",
+			"speed":   "0",
+			"status":  "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:4429",
+	},
+	{
+		Entity: "netixlan",
+		ID:     23396,
+		Fields: map[string]string{
+			"asn":     "SHARED[\"net_rw_ok\"].asn",
+			"ipaddr4": "\"206.126.236.10\"",
+			"ixlan":   "SHARED[\"ixlan_rw_ok\"]",
+			"network": "SHARED[\"net_rw_ok\"]",
+			"speed":   "1000",
+			"status":  "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:3282",
+	},
+	{
+		Entity: "org",
+		ID:     21015,
+		Fields: map[string]string{
+			"name":   "ORG_RW_PENDING",
+			"status": "\"pending\"",
+		},
+		Upstream: "pdb_api_test.py:6252",
+	},
+	{
+		Entity: "org",
+		ID:     21318,
+		Fields: map[string]string{
+			"name":   "ORG_RW",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:6234",
+	},
+	{
+		Entity: "org",
+		ID:     21977,
+		Fields: map[string]string{
+			"name":   "\"Deletable org\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:3611",
+	},
+	{
+		Entity: "org",
+		ID:     22102,
+		Fields: map[string]string{
+			"id":     "settings.SUGGEST_ENTITY_ORG",
+			"name":   "\"Suggested Entitites\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:6475",
+	},
+	{
+		Entity: "org",
+		ID:     23732,
+		Fields: map[string]string{
+			"name":   "ORG_R",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:6265",
+	},
+	{
+		Entity: "org",
+		ID:     23825,
+		Fields: map[string]string{
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:1294",
+	},
+	{
+		Entity: "org",
+		ID:     25020,
+		Fields: map[string]string{
+			"name":   "\"org unaccented\"",
+			"status": "\"ok\"",
+		},
+		Upstream: "pdb_api_test.py:5130",
 	},
 }

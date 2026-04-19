@@ -605,15 +605,36 @@ func extractFields(block string) map[string]string {
 // lone `)`, kwargs-splat `**...`, and values that span across
 // lines (paren-delta != 0). Per-kwarg fragments are evaluated
 // independently — folding never happens.
+//
+// Unlike extractFields, the header line is NOT blindly skipped:
+// upstream contains many one-line `Foo.objects.create(status="...",
+// name="...")` blocks (e.g. line 6252 of the 99e92c72 ref). For
+// those, the first (and only) line carries all kwargs between the
+// outermost parens. The implementation strips the `Foo.objects.
+// create(` prefix and trailing `)` from the first line before
+// splitting; multi-line blocks have their first-line kwargs (after
+// the `(`) parsed too.
 func extractFieldsSharp(block string) map[string]string {
 	out := map[string]string{}
 	lines := strings.Split(block, "\n")
 	for i, ln := range lines {
-		if i == 0 {
-			// Skip the `X.objects.create(` header line.
-			continue
-		}
 		trim := strings.TrimSpace(ln)
+		if i == 0 {
+			// Strip the `X.objects.create(` prefix; if the block is
+			// single-line, also strip the trailing `)`. Anything left
+			// is one or more kwargs.
+			openIdx := strings.Index(trim, ".objects.create(")
+			if openIdx < 0 {
+				continue
+			}
+			trim = trim[openIdx+len(".objects.create("):]
+			// If the closing `)` is on this same line, drop it (and
+			// anything after — typically nothing, but defensively
+			// handle `)  # comment` or assignment trailers).
+			if endIdx := strings.LastIndex(trim, ")"); endIdx >= 0 && parenDelta(trim[:endIdx]) == 0 {
+				trim = trim[:endIdx]
+			}
+		}
 		if trim == "" || trim == ")" || strings.HasPrefix(trim, "#") {
 			continue
 		}

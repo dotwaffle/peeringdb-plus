@@ -18,4 +18,4 @@
 
 package parity
 
-//go:generate sh -c "cd ../../.. && go run ./cmd/pdb-fixture-port --category ordering --out internal/testutil/parity/fixtures.go --date 2026-04-19"
+//go:generate sh -c "cd ../../.. && go run ./cmd/pdb-fixture-port --category all --out internal/testutil/parity/fixtures.go --date 2026-04-19"
