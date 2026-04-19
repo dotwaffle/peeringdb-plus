@@ -434,12 +434,13 @@ func TestGenerateIndexes(t *testing.T) {
 
 	indexes := generateIndexes("net", ot)
 
-	// Should contain name, org_id, asn, and status.
+	// Should contain name, org_id, asn, status, and updated (Phase 67).
 	wantIndexes := map[string]bool{
-		"name":   true,
-		"org_id": true,
-		"asn":    true,
-		"status": true,
+		"name":    true,
+		"org_id":  true,
+		"asn":     true,
+		"status":  true,
+		"updated": true,
 	}
 
 	for _, idx := range indexes {
