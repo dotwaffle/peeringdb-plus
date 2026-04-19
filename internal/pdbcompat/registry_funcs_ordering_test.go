@@ -300,7 +300,7 @@ func newMuxForOrdering(client *ent.Client) *http.ServeMux {
 // returns the id order in response.data.
 func fetchIDOrder(t *testing.T, url string) []int {
 	t.Helper()
-	resp, err := http.Get(url) //nolint:gosec,noctx // test code, local httptest server
+	resp, err := http.Get(url) //nolint:noctx // test code, local httptest server
 	if err != nil {
 		t.Fatalf("GET %s: %v", url, err)
 	}
