@@ -208,6 +208,7 @@ One **coordination note** for executor: do NOT ship Phase 68 to prod before Phas
 | 20260417-v114-lint-cleanup | Clear 7 golangci-lint findings post-v1.14 (gosec/exhaustive/nolintlint/revive); resolves Phase 58 deferred-items.md | 2026-04-17 | d15dd02 | [20260417-v114-lint-cleanup](./quick/20260417-v114-lint-cleanup/) |
 | 260418-1cn | Add sqlite3 to Dockerfile.prod + fly deploy + verify on primary & replica (pre-Phase-65 prep) | 2026-04-18 | 4dfc52a | [260418-1cn-add-sqlite3-binary-to-dockerfile-prod-de](./quick/260418-1cn-add-sqlite3-binary-to-dockerfile-prod-de/) |
 | 260418-gf0 | Fix pdb-schema-generate — move Poc.Policy to poc_policy.go + add ixlan URL to schema JSON; resolves backlog 999.1 | 2026-04-18 | 73bbe04 | [260418-gf0-fix-pdb-schema-generate-preserve-policy-](./quick/260418-gf0-fix-pdb-schema-generate-preserve-policy-/) |
+| 260419-ski | Auth-conditional PDBPLUS_SYNC_INTERVAL default (15m when API key set, 1h unauthenticated); startup slog announces effective interval | 2026-04-19 | c242d90 | [260419-ski-auth-sync-interval](./quick/260419-ski-auth-sync-interval/) |
 
 ## Session Continuity
 
