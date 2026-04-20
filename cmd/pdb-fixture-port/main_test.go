@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -912,5 +914,72 @@ func TestEntityGoNameCovers13(t *testing.T) {
 		if entityGoName[k] != v {
 			t.Errorf("entityGoName[%q] = %q, want %q", k, entityGoName[k], v)
 		}
+	}
+}
+
+// TestIsTransientGhErr exercises the retry-classification helper.
+// Offline and 5xx-class errors retry; auth/404 failures must NOT.
+// Guards against a regression where the retry loop would mask a
+// persistent upstream incident.
+func TestIsTransientGhErr(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{name: "nil", err: nil, want: false},
+		{name: "offline_wrapped", err: fmt.Errorf("gh api foo: %w", errFetchOffline), want: true},
+		{name: "http_500", err: errors.New("gh api foo: HTTP 500 Internal Server Error"), want: true},
+		{name: "http_502", err: errors.New("gh api foo: HTTP 502 Bad Gateway"), want: true},
+		{name: "http_503", err: errors.New("gh api foo: HTTP 503 Service Unavailable"), want: true},
+		{name: "http_504", err: errors.New("gh api foo: HTTP 504 Gateway Timeout"), want: true},
+		{name: "rate_limit", err: errors.New("gh api foo: rate limit exceeded"), want: true},
+		{name: "try_again", err: errors.New("gh api foo: please try again later"), want: true},
+		// Permanent failures — must NOT retry.
+		{name: "auth_401", err: errors.New("gh api foo: HTTP 401 Unauthorized"), want: false},
+		{name: "not_found_404", err: errors.New("gh api foo: HTTP 404 Not Found"), want: false},
+		{name: "bad_request_400", err: errors.New("gh api foo: HTTP 400 Bad Request"), want: false},
+		{name: "plain_non_transient", err: errors.New("some unrelated error"), want: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := isTransientGhErr(tc.err); got != tc.want {
+				t.Errorf("isTransientGhErr(%v) = %v, want %v", tc.err, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestLooksLikeOfflineStderr covers the stderr-signature classifier.
+// Clear offline signals route to errFetchOffline; ambiguous or
+// upstream-legitimate errors must not.
+func TestLooksLikeOfflineStderr(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		stderr string
+		want   bool
+	}{
+		{name: "empty", stderr: "", want: false},
+		{name: "connection_refused", stderr: "dial tcp 140.82.114.6:443: connect: connection refused", want: true},
+		{name: "no_such_host", stderr: "dial tcp: lookup api.github.com: no such host", want: true},
+		{name: "network_unreachable", stderr: "dial tcp: network is unreachable", want: true},
+		{name: "io_timeout", stderr: "Get \"https://api.github.com/...\": i/o timeout", want: true},
+		{name: "dns_failure", stderr: "could not resolve host: api.github.com", want: true},
+		{name: "case_insensitive_timeout", stderr: "Operation Timed Out", want: true},
+		// NOT offline.
+		{name: "auth_error", stderr: "gh: Not Found (HTTP 404)", want: false},
+		{name: "bad_ref", stderr: "gh: unknown ref", want: false},
+		{name: "generic_5xx", stderr: "gh: HTTP 500 Internal Server Error", want: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := looksLikeOfflineStderr(tc.stderr); got != tc.want {
+				t.Errorf("looksLikeOfflineStderr(%q) = %v, want %v", tc.stderr, got, tc.want)
+			}
+		})
 	}
 }

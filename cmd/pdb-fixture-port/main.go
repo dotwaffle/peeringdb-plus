@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -32,6 +33,37 @@ const (
 	exitInternal   = 3
 	exitFetchError = 4
 )
+
+// exitCheckInconclusive is the exit code returned when --check is
+// active and the upstream fetch fails (offline, timeout, gh auth
+// blip, transient 5xx). Per WR-02 the drift check degrades
+// gracefully — a failed fetch is advisory, not a hard fail, so the
+// scheduled CI job can distinguish "drift detected" (exitDrift=1)
+// from "could not verify" (this code). Numerically identical to
+// exitUsage=2; the named alias documents the intent at the call
+// site.
+const exitCheckInconclusive = exitUsage
+
+// ghAPITimeout caps every `gh api` subprocess so a hung network
+// call (auth prompt, rate-limit backoff, dropped connection) fails
+// fast instead of blocking the tool forever. 30s is comfortably
+// longer than a healthy GitHub API round-trip (typically <2s) while
+// still short enough that an interactive operator hitting --check
+// mid-deploy notices the failure before the pipeline times out.
+const ghAPITimeout = 30 * time.Second
+
+// ghAPIRetryBackoff sleeps between the first and second `gh api`
+// attempts on transient failure. Two attempts total (one retry) per
+// WR-02 — more aggressive retries would mask persistent upstream
+// incidents.
+const ghAPIRetryBackoff = 2 * time.Second
+
+// errFetchOffline signals that the upstream fetch failed because
+// the network is unreachable (timeout or connection refused) rather
+// than because the upstream source has changed. Callers in --check
+// mode use errors.Is to downgrade to the advisory
+// exitCheckInconclusive instead of failing hard.
+var errFetchOffline = errors.New("upstream unreachable (offline)")
 
 // upstreamPath is the canonical location of the ground-truth file in
 // peeringdb/peeringdb. Embedded in the output header so future readers
@@ -196,6 +228,15 @@ func run(args []string, stdout, stderr io.Writer) int {
 	srcBytes, commitSHA, err := resolveUpstream(opts, logger)
 	if err != nil {
 		fmt.Fprintf(stderr, "pdb-fixture-port: resolve upstream: %v\n", err)
+		// Per WR-02: in --check mode, a failed upstream fetch is
+		// advisory rather than a hard failure. The drift check cannot
+		// be performed, but that is not the same as drift being
+		// detected. Scheduled CI jobs that rely on --check should
+		// treat this exit code as "needs investigation, but do NOT
+		// fail the build".
+		if opts.Check {
+			return exitCheckInconclusive
+		}
 		return exitFetchError
 	}
 
@@ -430,17 +471,109 @@ func resolveUpstream(opts *runOptions, logger *slog.Logger) ([]byte, string, err
 
 // runGhAPI shells out to `gh api <path> <extra...>` and returns
 // stdout. Kept as a single helper so tests can swap it out if needed.
+//
+// Per WR-02, each attempt is bounded by ghAPITimeout via
+// exec.CommandContext. Transient failures (timeout, connection
+// refused, HTTP 5xx, rate-limit-style stderr signals) trigger ONE
+// retry after ghAPIRetryBackoff. Offline failures (no network,
+// timeout) are wrapped with errFetchOffline so --check can downgrade
+// to exitCheckInconclusive with an actionable "use --upstream-file"
+// hint instead of hanging.
 func runGhAPI(path string, extra ...string) (string, error) {
 	args := append([]string{"api", path}, extra...)
+	const maxAttempts = 2
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		out, err := runGhAPIOnce(args)
+		if err == nil {
+			return out, nil
+		}
+		lastErr = err
+		// Only retry on transient classes. Errors that are clearly
+		// permanent (auth, 404, malformed ref) should fail fast.
+		if attempt < maxAttempts && isTransientGhErr(err) {
+			time.Sleep(ghAPIRetryBackoff)
+			continue
+		}
+		break
+	}
+	return "", lastErr
+}
+
+// runGhAPIOnce performs a single bounded `gh api` invocation.
+// Offline-class failures (context deadline, dial errors in stderr)
+// are returned with errFetchOffline wrapped in so callers can
+// distinguish "offline" from "upstream changed".
+func runGhAPIOnce(args []string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), ghAPITimeout)
+	defer cancel()
 	// #nosec G204 — arguments constructed from fixed path + internal flags.
-	cmd := exec.Command("gh", args...)
+	cmd := exec.CommandContext(ctx, "gh", args...)
 	var out, errBuf bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errBuf
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("gh %s: %w (stderr: %s)", strings.Join(args, " "), err, strings.TrimSpace(errBuf.String()))
+		stderr := strings.TrimSpace(errBuf.String())
+		// Deadline-exceeded is always offline — the gh process was
+		// alive but couldn't complete the request in the allotted
+		// window. Surface an actionable hint.
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return "", fmt.Errorf("gh %s: timed out after %s (use --upstream-file for offline operation): %w",
+				strings.Join(args, " "), ghAPITimeout, errFetchOffline)
+		}
+		if looksLikeOfflineStderr(stderr) {
+			return "", fmt.Errorf("gh %s: %w (stderr: %s) — use --upstream-file for offline operation",
+				strings.Join(args, " "), errFetchOffline, stderr)
+		}
+		return "", fmt.Errorf("gh %s: %w (stderr: %s)", strings.Join(args, " "), err, stderr)
 	}
 	return out.String(), nil
+}
+
+// isTransientGhErr reports whether err looks like a retryable
+// failure: offline (covered by errFetchOffline), HTTP 5xx from the
+// GitHub API, or a generic rate-limit-style signal. Permanent
+// failures (auth, 404, malformed ref) return false so the caller
+// doesn't waste backoff on them.
+func isTransientGhErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, errFetchOffline) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	for _, needle := range []string{
+		"http 500", "http 502", "http 503", "http 504",
+		"rate limit", "temporarily unavailable", "try again",
+	} {
+		if strings.Contains(msg, needle) {
+			return true
+		}
+	}
+	return false
+}
+
+// looksLikeOfflineStderr reports whether the trimmed gh stderr
+// output matches a known offline signature. Fairly conservative —
+// the goal is to route clear "you have no network" cases to the
+// errFetchOffline path without mis-classifying legitimate upstream
+// errors (auth, 404, unknown ref).
+func looksLikeOfflineStderr(stderr string) bool {
+	if stderr == "" {
+		return false
+	}
+	s := strings.ToLower(stderr)
+	for _, needle := range []string{
+		"connection refused", "no such host", "network is unreachable",
+		"dial tcp", "could not resolve host", "temporary failure in name resolution",
+		"operation timed out", "i/o timeout",
+	} {
+		if strings.Contains(s, needle) {
+			return true
+		}
+	}
+	return false
 }
 
 // parseOrdering scans the upstream Python file for Django fixture
