@@ -20,6 +20,12 @@ type Organization struct {
 	// ID of the ent.
 	// PeeringDB organization ID
 	ID int `json:"id,omitempty"`
+	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	NameFold string `json:"name_fold"`
+	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	AkaFold string `json:"aka_fold"`
+	// Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	CityFold string `json:"city_fold"`
 	// Address line 1
 	Address1 string `json:"address1"`
 	// Address line 2
@@ -60,12 +66,6 @@ type Organization struct {
 	Updated time.Time `json:"updated"`
 	// Record status
 	Status string `json:"status"`
-	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	NameFold string `json:"name_fold"`
-	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	AkaFold string `json:"aka_fold"`
-	// Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	CityFold string `json:"city_fold"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the OrganizationQuery when eager-loading is set.
 	Edges        OrganizationEdges `json:"edges"`
@@ -153,7 +153,7 @@ func (*Organization) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case organization.FieldID:
 			values[i] = new(sql.NullInt64)
-		case organization.FieldAddress1, organization.FieldAddress2, organization.FieldAka, organization.FieldCity, organization.FieldCountry, organization.FieldFloor, organization.FieldLogo, organization.FieldName, organization.FieldNameLong, organization.FieldNotes, organization.FieldState, organization.FieldSuite, organization.FieldWebsite, organization.FieldZipcode, organization.FieldStatus, organization.FieldNameFold, organization.FieldAkaFold, organization.FieldCityFold:
+		case organization.FieldNameFold, organization.FieldAkaFold, organization.FieldCityFold, organization.FieldAddress1, organization.FieldAddress2, organization.FieldAka, organization.FieldCity, organization.FieldCountry, organization.FieldFloor, organization.FieldLogo, organization.FieldName, organization.FieldNameLong, organization.FieldNotes, organization.FieldState, organization.FieldSuite, organization.FieldWebsite, organization.FieldZipcode, organization.FieldStatus:
 			values[i] = new(sql.NullString)
 		case organization.FieldCreated, organization.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -178,6 +178,24 @@ func (_m *Organization) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
+		case organization.FieldNameFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_fold", values[i])
+			} else if value.Valid {
+				_m.NameFold = value.String
+			}
+		case organization.FieldAkaFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field aka_fold", values[i])
+			} else if value.Valid {
+				_m.AkaFold = value.String
+			}
+		case organization.FieldCityFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field city_fold", values[i])
+			} else if value.Valid {
+				_m.CityFold = value.String
+			}
 		case organization.FieldAddress1:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field address1", values[i])
@@ -303,24 +321,6 @@ func (_m *Organization) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = value.String
 			}
-		case organization.FieldNameFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name_fold", values[i])
-			} else if value.Valid {
-				_m.NameFold = value.String
-			}
-		case organization.FieldAkaFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field aka_fold", values[i])
-			} else if value.Valid {
-				_m.AkaFold = value.String
-			}
-		case organization.FieldCityFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field city_fold", values[i])
-			} else if value.Valid {
-				_m.CityFold = value.String
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -382,6 +382,15 @@ func (_m *Organization) String() string {
 	var builder strings.Builder
 	builder.WriteString("Organization(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("name_fold=")
+	builder.WriteString(_m.NameFold)
+	builder.WriteString(", ")
+	builder.WriteString("aka_fold=")
+	builder.WriteString(_m.AkaFold)
+	builder.WriteString(", ")
+	builder.WriteString("city_fold=")
+	builder.WriteString(_m.CityFold)
+	builder.WriteString(", ")
 	builder.WriteString("address1=")
 	builder.WriteString(_m.Address1)
 	builder.WriteString(", ")
@@ -447,15 +456,6 @@ func (_m *Organization) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
-	builder.WriteString(", ")
-	builder.WriteString("name_fold=")
-	builder.WriteString(_m.NameFold)
-	builder.WriteString(", ")
-	builder.WriteString("aka_fold=")
-	builder.WriteString(_m.AkaFold)
-	builder.WriteString(", ")
-	builder.WriteString("city_fold=")
-	builder.WriteString(_m.CityFold)
 	builder.WriteByte(')')
 	return builder.String()
 }

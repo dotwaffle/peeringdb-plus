@@ -13,6 +13,8 @@ const (
 	Label = "campus"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldNameFold holds the string denoting the name_fold field in the database.
+	FieldNameFold = "name_fold"
 	// FieldOrgID holds the string denoting the org_id field in the database.
 	FieldOrgID = "org_id"
 	// FieldAka holds the string denoting the aka field in the database.
@@ -45,8 +47,6 @@ const (
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// FieldNameFold holds the string denoting the name_fold field in the database.
-	FieldNameFold = "name_fold"
 	// EdgeFacilities holds the string denoting the facilities edge name in mutations.
 	EdgeFacilities = "facilities"
 	// EdgeOrganization holds the string denoting the organization edge name in mutations.
@@ -72,6 +72,7 @@ const (
 // Columns holds all SQL columns for campus fields.
 var Columns = []string{
 	FieldID,
+	FieldNameFold,
 	FieldOrgID,
 	FieldAka,
 	FieldCity,
@@ -88,7 +89,6 @@ var Columns = []string{
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
-	FieldNameFold,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -108,6 +108,8 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
+	// DefaultNameFold holds the default value on creation for the "name_fold" field.
+	DefaultNameFold string
 	// DefaultCity holds the default value on creation for the "city" field.
 	DefaultCity string
 	// DefaultCountry holds the default value on creation for the "country" field.
@@ -126,8 +128,6 @@ var (
 	DefaultOrgName string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// DefaultNameFold holds the default value on creation for the "name_fold" field.
-	DefaultNameFold string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )
@@ -138,6 +138,11 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByNameFold orders the results by the name_fold field.
+func ByNameFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNameFold, opts...).ToFunc()
 }
 
 // ByOrgID orders the results by the org_id field.
@@ -213,11 +218,6 @@ func ByUpdated(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
-}
-
-// ByNameFold orders the results by the name_fold field.
-func ByNameFold(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNameFold, opts...).ToFunc()
 }
 
 // ByFacilitiesCount orders the results by facilities count.

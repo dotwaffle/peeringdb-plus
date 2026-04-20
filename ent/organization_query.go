@@ -450,12 +450,12 @@ func (_q *OrganizationQuery) WithNetworks(opts ...func(*NetworkQuery)) *Organiza
 // Example:
 //
 //	var v []struct {
-//		Address1 string `json:"address1"`
+//		NameFold string `json:"name_fold"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Organization.Query().
-//		GroupBy(organization.FieldAddress1).
+//		GroupBy(organization.FieldNameFold).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *OrganizationQuery) GroupBy(field string, fields ...string) *OrganizationGroupBy {
@@ -473,11 +473,11 @@ func (_q *OrganizationQuery) GroupBy(field string, fields ...string) *Organizati
 // Example:
 //
 //	var v []struct {
-//		Address1 string `json:"address1"`
+//		NameFold string `json:"name_fold"`
 //	}
 //
 //	client.Organization.Query().
-//		Select(organization.FieldAddress1).
+//		Select(organization.FieldNameFold).
 //		Scan(ctx, &v)
 func (_q *OrganizationQuery) Select(fields ...string) *OrganizationSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

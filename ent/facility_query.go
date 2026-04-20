@@ -448,12 +448,12 @@ func (_q *FacilityQuery) WithOrganization(opts ...func(*OrganizationQuery)) *Fac
 // Example:
 //
 //	var v []struct {
-//		CampusID int `json:"campus_id"`
+//		NameFold string `json:"name_fold"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Facility.Query().
-//		GroupBy(facility.FieldCampusID).
+//		GroupBy(facility.FieldNameFold).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *FacilityQuery) GroupBy(field string, fields ...string) *FacilityGroupBy {
@@ -471,11 +471,11 @@ func (_q *FacilityQuery) GroupBy(field string, fields ...string) *FacilityGroupB
 // Example:
 //
 //	var v []struct {
-//		CampusID int `json:"campus_id"`
+//		NameFold string `json:"name_fold"`
 //	}
 //
 //	client.Facility.Query().
-//		Select(facility.FieldCampusID).
+//		Select(facility.FieldNameFold).
 //		Scan(ctx, &v)
 func (_q *FacilityQuery) Select(fields ...string) *FacilitySelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

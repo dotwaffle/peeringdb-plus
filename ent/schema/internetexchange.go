@@ -10,7 +10,6 @@ import (
 	"github.com/lrstanley/entrest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
-	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // InternetExchange holds the schema definition for the InternetExchange entity.
@@ -173,32 +172,6 @@ func (InternetExchange) Fields() []ent.Field {
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
-
-		// Phase 69 UNICODE-01 shadow columns — internal plumbing for pdbcompat
-		// diacritic-insensitive matching; populated by internal/sync.upsert via
-		// internal/unifold.Fold. Skipped from entrest + entgql so they stay
-		// server-side and do not leak to any wire surface (proto is already
-		// frozen via entproto.SkipGenFile in ent/entc.go).
-		field.String("name_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
-		field.String("aka_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
-		field.String("name_long_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of name_long for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
-		field.String("city_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
 	}
 }
 
@@ -232,23 +205,6 @@ func (InternetExchange) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
-		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
-		// peeringdb_server/serializers.py:3622 InternetExchangeSerializer.prepare_query.
-		// get_relation_filters seeds ["ixlan", "ixfac", "fac", "net", ...] plus
-		// org__* derived from select_related("org"). ixpfx__prefix exposed as
-		// PDB-surface alias resolving through ix_lans.ix_prefixes (1-hop
-		// via reverse FK).
-		// DROP: capacity — special aggregator filter (Model.filter_capacity
-		// line 3665), not a relation field.
-		schemaannot.WithPrepareQueryAllow(
-			"org__name",
-			"ixlan__name",
-			"ixpfx__prefix",
-			"net__name",
-			"net__asn",
-			"fac__name",
-			"fac__country",
-		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

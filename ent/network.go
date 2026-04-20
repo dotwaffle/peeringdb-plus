@@ -21,6 +21,12 @@ type Network struct {
 	// ID of the ent.
 	// PeeringDB network ID
 	ID int `json:"id,omitempty"`
+	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	NameFold string `json:"name_fold"`
+	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	AkaFold string `json:"aka_fold"`
+	// Unicode-folded form of name_long for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	NameLongFold string `json:"name_long_fold"`
 	// FK to organization
 	OrgID *int `json:"org_id"`
 	// Also known as
@@ -101,12 +107,6 @@ type Network struct {
 	Updated time.Time `json:"updated"`
 	// Record status
 	Status string `json:"status"`
-	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	NameFold string `json:"name_fold"`
-	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	AkaFold string `json:"aka_fold"`
-	// Unicode-folded form of name_long for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	NameLongFold string `json:"name_long_fold"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NetworkQuery when eager-loading is set.
 	Edges        NetworkEdges `json:"edges"`
@@ -183,7 +183,7 @@ func (*Network) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case network.FieldID, network.FieldOrgID, network.FieldAsn, network.FieldInfoPrefixes4, network.FieldInfoPrefixes6, network.FieldIxCount, network.FieldFacCount:
 			values[i] = new(sql.NullInt64)
-		case network.FieldAka, network.FieldInfoRatio, network.FieldInfoScope, network.FieldInfoTraffic, network.FieldInfoType, network.FieldIrrAsSet, network.FieldLogo, network.FieldLookingGlass, network.FieldName, network.FieldNameLong, network.FieldNotes, network.FieldPolicyContracts, network.FieldPolicyGeneral, network.FieldPolicyLocations, network.FieldPolicyURL, network.FieldRirStatus, network.FieldRouteServer, network.FieldStatusDashboard, network.FieldWebsite, network.FieldStatus, network.FieldNameFold, network.FieldAkaFold, network.FieldNameLongFold:
+		case network.FieldNameFold, network.FieldAkaFold, network.FieldNameLongFold, network.FieldAka, network.FieldInfoRatio, network.FieldInfoScope, network.FieldInfoTraffic, network.FieldInfoType, network.FieldIrrAsSet, network.FieldLogo, network.FieldLookingGlass, network.FieldName, network.FieldNameLong, network.FieldNotes, network.FieldPolicyContracts, network.FieldPolicyGeneral, network.FieldPolicyLocations, network.FieldPolicyURL, network.FieldRirStatus, network.FieldRouteServer, network.FieldStatusDashboard, network.FieldWebsite, network.FieldStatus:
 			values[i] = new(sql.NullString)
 		case network.FieldRirStatusUpdated, network.FieldNetixlanUpdated, network.FieldNetfacUpdated, network.FieldPocUpdated, network.FieldCreated, network.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -208,6 +208,24 @@ func (_m *Network) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
+		case network.FieldNameFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_fold", values[i])
+			} else if value.Valid {
+				_m.NameFold = value.String
+			}
+		case network.FieldAkaFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field aka_fold", values[i])
+			} else if value.Valid {
+				_m.AkaFold = value.String
+			}
+		case network.FieldNameLongFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_long_fold", values[i])
+			} else if value.Valid {
+				_m.NameLongFold = value.String
+			}
 		case network.FieldOrgID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field org_id", values[i])
@@ -462,24 +480,6 @@ func (_m *Network) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = value.String
 			}
-		case network.FieldNameFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name_fold", values[i])
-			} else if value.Valid {
-				_m.NameFold = value.String
-			}
-		case network.FieldAkaFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field aka_fold", values[i])
-			} else if value.Valid {
-				_m.AkaFold = value.String
-			}
-		case network.FieldNameLongFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name_long_fold", values[i])
-			} else if value.Valid {
-				_m.NameLongFold = value.String
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -536,6 +536,15 @@ func (_m *Network) String() string {
 	var builder strings.Builder
 	builder.WriteString("Network(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("name_fold=")
+	builder.WriteString(_m.NameFold)
+	builder.WriteString(", ")
+	builder.WriteString("aka_fold=")
+	builder.WriteString(_m.AkaFold)
+	builder.WriteString(", ")
+	builder.WriteString("name_long_fold=")
+	builder.WriteString(_m.NameLongFold)
+	builder.WriteString(", ")
 	if v := _m.OrgID; v != nil {
 		builder.WriteString("org_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
@@ -675,15 +684,6 @@ func (_m *Network) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
-	builder.WriteString(", ")
-	builder.WriteString("name_fold=")
-	builder.WriteString(_m.NameFold)
-	builder.WriteString(", ")
-	builder.WriteString("aka_fold=")
-	builder.WriteString(_m.AkaFold)
-	builder.WriteString(", ")
-	builder.WriteString("name_long_fold=")
-	builder.WriteString(_m.NameLongFold)
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/lrstanley/entrest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
-	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // Facility holds the schema definition for the Facility entity.
@@ -193,27 +192,6 @@ func (Facility) Fields() []ent.Field {
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
-
-		// Phase 69 UNICODE-01 shadow columns — internal plumbing for pdbcompat
-		// diacritic-insensitive matching; populated by internal/sync.upsert via
-		// internal/unifold.Fold. Skipped from entrest + entgql so they stay
-		// server-side and do not leak to any wire surface (proto is already
-		// frozen via entproto.SkipGenFile in ent/entc.go).
-		field.String("name_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
-		field.String("aka_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
-		field.String("city_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
 	}
 }
 
@@ -255,20 +233,6 @@ func (Facility) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
-		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
-		// peeringdb_server/serializers.py:1823 FacilitySerializer.prepare_query.
-		// Concrete <fk>__<field> keys derived from the get_relation_filters
-		// seed list ("net", "ix", "org_name", ...) plus the ixlan__ix__fac_count
-		// 2-hop test case from pdb_api_test.py:5047,5081.
-		schemaannot.WithPrepareQueryAllow(
-			"org__name",
-			"campus__name",
-			"net__name",
-			"net__asn",
-			"ix__name",
-			"ix__id",
-			"ixlan__ix__fac_count",
-		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

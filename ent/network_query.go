@@ -412,12 +412,12 @@ func (_q *NetworkQuery) WithPocs(opts ...func(*PocQuery)) *NetworkQuery {
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id"`
+//		NameFold string `json:"name_fold"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Network.Query().
-//		GroupBy(network.FieldOrgID).
+//		GroupBy(network.FieldNameFold).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *NetworkQuery) GroupBy(field string, fields ...string) *NetworkGroupBy {
@@ -435,11 +435,11 @@ func (_q *NetworkQuery) GroupBy(field string, fields ...string) *NetworkGroupBy 
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id"`
+//		NameFold string `json:"name_fold"`
 //	}
 //
 //	client.Network.Query().
-//		Select(network.FieldOrgID).
+//		Select(network.FieldNameFold).
 //		Scan(ctx, &v)
 func (_q *NetworkQuery) Select(fields ...string) *NetworkSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

@@ -11,6 +11,7 @@ var (
 	// CampusesColumns holds the columns for the "campuses" table.
 	CampusesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "aka", Type: field.TypeString, Nullable: true},
 		{Name: "city", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "country", Type: field.TypeString, Nullable: true, Default: ""},
@@ -26,7 +27,6 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
-		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "org_id", Type: field.TypeInt, Nullable: true},
 	}
 	// CampusesTable holds the schema information for the "campuses" table.
@@ -46,7 +46,7 @@ var (
 			{
 				Name:    "campus_name",
 				Unique:  false,
-				Columns: []*schema.Column{CampusesColumns[5]},
+				Columns: []*schema.Column{CampusesColumns[6]},
 			},
 			{
 				Name:    "campus_org_id",
@@ -56,18 +56,20 @@ var (
 			{
 				Name:    "campus_status",
 				Unique:  false,
-				Columns: []*schema.Column{CampusesColumns[15]},
+				Columns: []*schema.Column{CampusesColumns[16]},
 			},
 			{
 				Name:    "campus_updated",
 				Unique:  false,
-				Columns: []*schema.Column{CampusesColumns[14]},
+				Columns: []*schema.Column{CampusesColumns[15]},
 			},
 		},
 	}
 	// CarriersColumns holds the columns for the "carriers" table.
 	CarriersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "aka", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "logo", Type: field.TypeString, Nullable: true},
 		{Name: "name", Type: field.TypeString},
@@ -80,8 +82,6 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
-		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
-		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "org_id", Type: field.TypeInt, Nullable: true},
 	}
 	// CarriersTable holds the schema information for the "carriers" table.
@@ -101,7 +101,7 @@ var (
 			{
 				Name:    "carrier_name",
 				Unique:  false,
-				Columns: []*schema.Column{CarriersColumns[3]},
+				Columns: []*schema.Column{CarriersColumns[5]},
 			},
 			{
 				Name:    "carrier_org_id",
@@ -111,12 +111,12 @@ var (
 			{
 				Name:    "carrier_status",
 				Unique:  false,
-				Columns: []*schema.Column{CarriersColumns[12]},
+				Columns: []*schema.Column{CarriersColumns[14]},
 			},
 			{
 				Name:    "carrier_updated",
 				Unique:  false,
-				Columns: []*schema.Column{CarriersColumns[11]},
+				Columns: []*schema.Column{CarriersColumns[13]},
 			},
 		},
 	}
@@ -175,6 +175,9 @@ var (
 	// FacilitiesColumns holds the columns for the "facilities" table.
 	FacilitiesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "city_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "address1", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "address2", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "aka", Type: field.TypeString, Nullable: true, Default: ""},
@@ -211,9 +214,6 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
-		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
-		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
-		{Name: "city_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "campus_id", Type: field.TypeInt, Nullable: true},
 		{Name: "org_id", Type: field.TypeInt, Nullable: true},
 	}
@@ -245,7 +245,7 @@ var (
 			{
 				Name:    "facility_name",
 				Unique:  false,
-				Columns: []*schema.Column{FacilitiesColumns[13]},
+				Columns: []*schema.Column{FacilitiesColumns[16]},
 			},
 			{
 				Name:    "facility_org_id",
@@ -255,18 +255,22 @@ var (
 			{
 				Name:    "facility_status",
 				Unique:  false,
-				Columns: []*schema.Column{FacilitiesColumns[36]},
+				Columns: []*schema.Column{FacilitiesColumns[39]},
 			},
 			{
 				Name:    "facility_updated",
 				Unique:  false,
-				Columns: []*schema.Column{FacilitiesColumns[35]},
+				Columns: []*schema.Column{FacilitiesColumns[38]},
 			},
 		},
 	}
 	// InternetExchangesColumns holds the columns for the "internet_exchanges" table.
 	InternetExchangesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "name_long_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "city_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "aka", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "city", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "country", Type: field.TypeString, Nullable: true, Default: ""},
@@ -300,10 +304,6 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
-		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
-		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
-		{Name: "name_long_fold", Type: field.TypeString, Nullable: true, Default: ""},
-		{Name: "city_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "org_id", Type: field.TypeInt, Nullable: true},
 	}
 	// InternetExchangesTable holds the schema information for the "internet_exchanges" table.
@@ -323,7 +323,7 @@ var (
 			{
 				Name:    "internetexchange_name",
 				Unique:  false,
-				Columns: []*schema.Column{InternetExchangesColumns[8]},
+				Columns: []*schema.Column{InternetExchangesColumns[12]},
 			},
 			{
 				Name:    "internetexchange_org_id",
@@ -333,12 +333,12 @@ var (
 			{
 				Name:    "internetexchange_status",
 				Unique:  false,
-				Columns: []*schema.Column{InternetExchangesColumns[33]},
+				Columns: []*schema.Column{InternetExchangesColumns[37]},
 			},
 			{
 				Name:    "internetexchange_updated",
 				Unique:  false,
-				Columns: []*schema.Column{InternetExchangesColumns[32]},
+				Columns: []*schema.Column{InternetExchangesColumns[36]},
 			},
 		},
 	}
@@ -499,6 +499,9 @@ var (
 	// NetworksColumns holds the columns for the "networks" table.
 	NetworksColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "name_long_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "aka", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "allow_ixp_update", Type: field.TypeBool, Default: false},
 		{Name: "asn", Type: field.TypeInt, Unique: true},
@@ -538,9 +541,6 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
-		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
-		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
-		{Name: "name_long_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "org_id", Type: field.TypeInt, Nullable: true},
 	}
 	// NetworksTable holds the schema information for the "networks" table.
@@ -560,12 +560,12 @@ var (
 			{
 				Name:    "network_asn",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[3]},
+				Columns: []*schema.Column{NetworksColumns[6]},
 			},
 			{
 				Name:    "network_name",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[18]},
+				Columns: []*schema.Column{NetworksColumns[21]},
 			},
 			{
 				Name:    "network_org_id",
@@ -575,12 +575,12 @@ var (
 			{
 				Name:    "network_status",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[39]},
+				Columns: []*schema.Column{NetworksColumns[42]},
 			},
 			{
 				Name:    "network_updated",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[38]},
+				Columns: []*schema.Column{NetworksColumns[41]},
 			},
 		},
 	}
@@ -715,6 +715,9 @@ var (
 	// OrganizationsColumns holds the columns for the "organizations" table.
 	OrganizationsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "city_fold", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "address1", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "address2", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "aka", Type: field.TypeString, Nullable: true, Default: ""},
@@ -735,9 +738,6 @@ var (
 		{Name: "created", Type: field.TypeTime},
 		{Name: "updated", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeString, Default: "ok"},
-		{Name: "name_fold", Type: field.TypeString, Nullable: true, Default: ""},
-		{Name: "aka_fold", Type: field.TypeString, Nullable: true, Default: ""},
-		{Name: "city_fold", Type: field.TypeString, Nullable: true, Default: ""},
 	}
 	// OrganizationsTable holds the schema information for the "organizations" table.
 	OrganizationsTable = &schema.Table{
@@ -748,17 +748,17 @@ var (
 			{
 				Name:    "organization_name",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationsColumns[10]},
+				Columns: []*schema.Column{OrganizationsColumns[13]},
 			},
 			{
 				Name:    "organization_status",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationsColumns[20]},
+				Columns: []*schema.Column{OrganizationsColumns[23]},
 			},
 			{
 				Name:    "organization_updated",
 				Unique:  false,
-				Columns: []*schema.Column{OrganizationsColumns[19]},
+				Columns: []*schema.Column{OrganizationsColumns[22]},
 			},
 		},
 	}

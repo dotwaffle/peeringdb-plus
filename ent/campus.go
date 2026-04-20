@@ -21,6 +21,8 @@ type Campus struct {
 	// ID of the ent.
 	// PeeringDB campus ID
 	ID int `json:"id,omitempty"`
+	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	NameFold string `json:"name_fold"`
 	// FK to organization
 	OrgID *int `json:"org_id"`
 	// Also known as
@@ -53,8 +55,6 @@ type Campus struct {
 	Updated time.Time `json:"updated"`
 	// Record status
 	Status string `json:"status"`
-	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	NameFold string `json:"name_fold"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CampusQuery when eager-loading is set.
 	Edges        CampusEdges `json:"edges"`
@@ -105,7 +105,7 @@ func (*Campus) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case campus.FieldID, campus.FieldOrgID:
 			values[i] = new(sql.NullInt64)
-		case campus.FieldAka, campus.FieldCity, campus.FieldCountry, campus.FieldLogo, campus.FieldName, campus.FieldNameLong, campus.FieldNotes, campus.FieldState, campus.FieldWebsite, campus.FieldZipcode, campus.FieldOrgName, campus.FieldStatus, campus.FieldNameFold:
+		case campus.FieldNameFold, campus.FieldAka, campus.FieldCity, campus.FieldCountry, campus.FieldLogo, campus.FieldName, campus.FieldNameLong, campus.FieldNotes, campus.FieldState, campus.FieldWebsite, campus.FieldZipcode, campus.FieldOrgName, campus.FieldStatus:
 			values[i] = new(sql.NullString)
 		case campus.FieldCreated, campus.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -130,6 +130,12 @@ func (_m *Campus) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
+		case campus.FieldNameFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_fold", values[i])
+			} else if value.Valid {
+				_m.NameFold = value.String
+			}
 		case campus.FieldOrgID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field org_id", values[i])
@@ -232,12 +238,6 @@ func (_m *Campus) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = value.String
 			}
-		case campus.FieldNameFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name_fold", values[i])
-			} else if value.Valid {
-				_m.NameFold = value.String
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -284,6 +284,9 @@ func (_m *Campus) String() string {
 	var builder strings.Builder
 	builder.WriteString("Campus(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("name_fold=")
+	builder.WriteString(_m.NameFold)
+	builder.WriteString(", ")
 	if v := _m.OrgID; v != nil {
 		builder.WriteString("org_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
@@ -339,9 +342,6 @@ func (_m *Campus) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
-	builder.WriteString(", ")
-	builder.WriteString("name_fold=")
-	builder.WriteString(_m.NameFold)
 	builder.WriteByte(')')
 	return builder.String()
 }

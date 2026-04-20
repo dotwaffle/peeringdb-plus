@@ -13,6 +13,12 @@ const (
 	Label = "facility"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldNameFold holds the string denoting the name_fold field in the database.
+	FieldNameFold = "name_fold"
+	// FieldAkaFold holds the string denoting the aka_fold field in the database.
+	FieldAkaFold = "aka_fold"
+	// FieldCityFold holds the string denoting the city_fold field in the database.
+	FieldCityFold = "city_fold"
 	// FieldCampusID holds the string denoting the campus_id field in the database.
 	FieldCampusID = "campus_id"
 	// FieldOrgID holds the string denoting the org_id field in the database.
@@ -89,12 +95,6 @@ const (
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// FieldNameFold holds the string denoting the name_fold field in the database.
-	FieldNameFold = "name_fold"
-	// FieldAkaFold holds the string denoting the aka_fold field in the database.
-	FieldAkaFold = "aka_fold"
-	// FieldCityFold holds the string denoting the city_fold field in the database.
-	FieldCityFold = "city_fold"
 	// EdgeCampus holds the string denoting the campus edge name in mutations.
 	EdgeCampus = "campus"
 	// EdgeCarrierFacilities holds the string denoting the carrier_facilities edge name in mutations.
@@ -147,6 +147,9 @@ const (
 // Columns holds all SQL columns for facility fields.
 var Columns = []string{
 	FieldID,
+	FieldNameFold,
+	FieldAkaFold,
+	FieldCityFold,
 	FieldCampusID,
 	FieldOrgID,
 	FieldAddress1,
@@ -185,9 +188,6 @@ var Columns = []string{
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
-	FieldNameFold,
-	FieldAkaFold,
-	FieldCityFold,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -207,6 +207,12 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
+	// DefaultNameFold holds the default value on creation for the "name_fold" field.
+	DefaultNameFold string
+	// DefaultAkaFold holds the default value on creation for the "aka_fold" field.
+	DefaultAkaFold string
+	// DefaultCityFold holds the default value on creation for the "city_fold" field.
+	DefaultCityFold string
 	// DefaultAddress1 holds the default value on creation for the "address1" field.
 	DefaultAddress1 string
 	// DefaultAddress2 holds the default value on creation for the "address2" field.
@@ -257,12 +263,6 @@ var (
 	DefaultCarrierCount int
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// DefaultNameFold holds the default value on creation for the "name_fold" field.
-	DefaultNameFold string
-	// DefaultAkaFold holds the default value on creation for the "aka_fold" field.
-	DefaultAkaFold string
-	// DefaultCityFold holds the default value on creation for the "city_fold" field.
-	DefaultCityFold string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )
@@ -273,6 +273,21 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByNameFold orders the results by the name_fold field.
+func ByNameFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNameFold, opts...).ToFunc()
+}
+
+// ByAkaFold orders the results by the aka_fold field.
+func ByAkaFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAkaFold, opts...).ToFunc()
+}
+
+// ByCityFold orders the results by the city_fold field.
+func ByCityFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCityFold, opts...).ToFunc()
 }
 
 // ByCampusID orders the results by the campus_id field.
@@ -453,21 +468,6 @@ func ByUpdated(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
-}
-
-// ByNameFold orders the results by the name_fold field.
-func ByNameFold(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNameFold, opts...).ToFunc()
-}
-
-// ByAkaFold orders the results by the aka_fold field.
-func ByAkaFold(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAkaFold, opts...).ToFunc()
-}
-
-// ByCityFold orders the results by the city_fold field.
-func ByCityFold(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCityFold, opts...).ToFunc()
 }
 
 // ByCampusField orders the results by campus field.

@@ -338,12 +338,12 @@ func (_q *CampusQuery) WithOrganization(opts ...func(*OrganizationQuery)) *Campu
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id"`
+//		NameFold string `json:"name_fold"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Campus.Query().
-//		GroupBy(campus.FieldOrgID).
+//		GroupBy(campus.FieldNameFold).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *CampusQuery) GroupBy(field string, fields ...string) *CampusGroupBy {
@@ -361,11 +361,11 @@ func (_q *CampusQuery) GroupBy(field string, fields ...string) *CampusGroupBy {
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id"`
+//		NameFold string `json:"name_fold"`
 //	}
 //
 //	client.Campus.Query().
-//		Select(campus.FieldOrgID).
+//		Select(campus.FieldNameFold).
 //		Scan(ctx, &v)
 func (_q *CampusQuery) Select(fields ...string) *CampusSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

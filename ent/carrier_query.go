@@ -338,12 +338,12 @@ func (_q *CarrierQuery) WithOrganization(opts ...func(*OrganizationQuery)) *Carr
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id"`
+//		NameFold string `json:"name_fold"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Carrier.Query().
-//		GroupBy(carrier.FieldOrgID).
+//		GroupBy(carrier.FieldNameFold).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *CarrierQuery) GroupBy(field string, fields ...string) *CarrierGroupBy {
@@ -361,11 +361,11 @@ func (_q *CarrierQuery) GroupBy(field string, fields ...string) *CarrierGroupBy 
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id"`
+//		NameFold string `json:"name_fold"`
 //	}
 //
 //	client.Carrier.Query().
-//		Select(carrier.FieldOrgID).
+//		Select(carrier.FieldNameFold).
 //		Scan(ctx, &v)
 func (_q *CarrierQuery) Select(fields ...string) *CarrierSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

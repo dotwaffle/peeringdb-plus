@@ -25,6 +25,20 @@ type CampusCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_c *CampusCreate) SetNameFold(v string) *CampusCreate {
+	_c.mutation.SetNameFold(v)
+	return _c
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_c *CampusCreate) SetNillableNameFold(v *string) *CampusCreate {
+	if v != nil {
+		_c.SetNameFold(*v)
+	}
+	return _c
+}
+
 // SetOrgID sets the "org_id" field.
 func (_c *CampusCreate) SetOrgID(v int) *CampusCreate {
 	_c.mutation.SetOrgID(v)
@@ -217,20 +231,6 @@ func (_c *CampusCreate) SetNillableStatus(v *string) *CampusCreate {
 	return _c
 }
 
-// SetNameFold sets the "name_fold" field.
-func (_c *CampusCreate) SetNameFold(v string) *CampusCreate {
-	_c.mutation.SetNameFold(v)
-	return _c
-}
-
-// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
-func (_c *CampusCreate) SetNillableNameFold(v *string) *CampusCreate {
-	if v != nil {
-		_c.SetNameFold(*v)
-	}
-	return _c
-}
-
 // SetID sets the "id" field.
 func (_c *CampusCreate) SetID(v int) *CampusCreate {
 	_c.mutation.SetID(v)
@@ -308,6 +308,10 @@ func (_c *CampusCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *CampusCreate) defaults() error {
+	if _, ok := _c.mutation.NameFold(); !ok {
+		v := campus.DefaultNameFold
+		_c.mutation.SetNameFold(v)
+	}
 	if _, ok := _c.mutation.City(); !ok {
 		v := campus.DefaultCity
 		_c.mutation.SetCity(v)
@@ -339,10 +343,6 @@ func (_c *CampusCreate) defaults() error {
 	if _, ok := _c.mutation.Status(); !ok {
 		v := campus.DefaultStatus
 		_c.mutation.SetStatus(v)
-	}
-	if _, ok := _c.mutation.NameFold(); !ok {
-		v := campus.DefaultNameFold
-		_c.mutation.SetNameFold(v)
 	}
 	return nil
 }
@@ -404,6 +404,10 @@ func (_c *CampusCreate) createSpec() (*Campus, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.NameFold(); ok {
+		_spec.SetField(campus.FieldNameFold, field.TypeString, value)
+		_node.NameFold = value
+	}
 	if value, ok := _c.mutation.Aka(); ok {
 		_spec.SetField(campus.FieldAka, field.TypeString, value)
 		_node.Aka = &value
@@ -464,10 +468,6 @@ func (_c *CampusCreate) createSpec() (*Campus, *sqlgraph.CreateSpec) {
 		_spec.SetField(campus.FieldStatus, field.TypeString, value)
 		_node.Status = value
 	}
-	if value, ok := _c.mutation.NameFold(); ok {
-		_spec.SetField(campus.FieldNameFold, field.TypeString, value)
-		_node.NameFold = value
-	}
 	if nodes := _c.mutation.FacilitiesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -508,7 +508,7 @@ func (_c *CampusCreate) createSpec() (*Campus, *sqlgraph.CreateSpec) {
 // of the `INSERT` statement. For example:
 //
 //	client.Campus.Create().
-//		SetOrgID(v).
+//		SetNameFold(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -517,7 +517,7 @@ func (_c *CampusCreate) createSpec() (*Campus, *sqlgraph.CreateSpec) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.CampusUpsert) {
-//			SetOrgID(v+v).
+//			SetNameFold(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *CampusCreate) OnConflict(opts ...sql.ConflictOption) *CampusUpsertOne {
@@ -552,6 +552,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetNameFold sets the "name_fold" field.
+func (u *CampusUpsert) SetNameFold(v string) *CampusUpsert {
+	u.Set(campus.FieldNameFold, v)
+	return u
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *CampusUpsert) UpdateNameFold() *CampusUpsert {
+	u.SetExcluded(campus.FieldNameFold)
+	return u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *CampusUpsert) ClearNameFold() *CampusUpsert {
+	u.SetNull(campus.FieldNameFold)
+	return u
+}
 
 // SetOrgID sets the "org_id" field.
 func (u *CampusUpsert) SetOrgID(v int) *CampusUpsert {
@@ -805,24 +823,6 @@ func (u *CampusUpsert) UpdateStatus() *CampusUpsert {
 	return u
 }
 
-// SetNameFold sets the "name_fold" field.
-func (u *CampusUpsert) SetNameFold(v string) *CampusUpsert {
-	u.Set(campus.FieldNameFold, v)
-	return u
-}
-
-// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
-func (u *CampusUpsert) UpdateNameFold() *CampusUpsert {
-	u.SetExcluded(campus.FieldNameFold)
-	return u
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (u *CampusUpsert) ClearNameFold() *CampusUpsert {
-	u.SetNull(campus.FieldNameFold)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -872,6 +872,27 @@ func (u *CampusUpsertOne) Update(set func(*CampusUpsert)) *CampusUpsertOne {
 		set(&CampusUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *CampusUpsertOne) SetNameFold(v string) *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *CampusUpsertOne) UpdateNameFold() *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *CampusUpsertOne) ClearNameFold() *CampusUpsertOne {
+	return u.Update(func(s *CampusUpsert) {
+		s.ClearNameFold()
+	})
 }
 
 // SetOrgID sets the "org_id" field.
@@ -1168,27 +1189,6 @@ func (u *CampusUpsertOne) UpdateStatus() *CampusUpsertOne {
 	})
 }
 
-// SetNameFold sets the "name_fold" field.
-func (u *CampusUpsertOne) SetNameFold(v string) *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.SetNameFold(v)
-	})
-}
-
-// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
-func (u *CampusUpsertOne) UpdateNameFold() *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.UpdateNameFold()
-	})
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (u *CampusUpsertOne) ClearNameFold() *CampusUpsertOne {
-	return u.Update(func(s *CampusUpsert) {
-		s.ClearNameFold()
-	})
-}
-
 // Exec executes the query.
 func (u *CampusUpsertOne) Exec(ctx context.Context) error {
 	if len(u.create.conflict) == 0 {
@@ -1324,7 +1324,7 @@ func (_c *CampusCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.CampusUpsert) {
-//			SetOrgID(v+v).
+//			SetNameFold(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *CampusCreateBulk) OnConflict(opts ...sql.ConflictOption) *CampusUpsertBulk {
@@ -1404,6 +1404,27 @@ func (u *CampusUpsertBulk) Update(set func(*CampusUpsert)) *CampusUpsertBulk {
 		set(&CampusUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *CampusUpsertBulk) SetNameFold(v string) *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *CampusUpsertBulk) UpdateNameFold() *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *CampusUpsertBulk) ClearNameFold() *CampusUpsertBulk {
+	return u.Update(func(s *CampusUpsert) {
+		s.ClearNameFold()
+	})
 }
 
 // SetOrgID sets the "org_id" field.
@@ -1697,27 +1718,6 @@ func (u *CampusUpsertBulk) SetStatus(v string) *CampusUpsertBulk {
 func (u *CampusUpsertBulk) UpdateStatus() *CampusUpsertBulk {
 	return u.Update(func(s *CampusUpsert) {
 		s.UpdateStatus()
-	})
-}
-
-// SetNameFold sets the "name_fold" field.
-func (u *CampusUpsertBulk) SetNameFold(v string) *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.SetNameFold(v)
-	})
-}
-
-// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
-func (u *CampusUpsertBulk) UpdateNameFold() *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.UpdateNameFold()
-	})
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (u *CampusUpsertBulk) ClearNameFold() *CampusUpsertBulk {
-	return u.Update(func(s *CampusUpsert) {
-		s.ClearNameFold()
 	})
 }
 

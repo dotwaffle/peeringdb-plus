@@ -21,6 +21,10 @@ type Carrier struct {
 	// ID of the ent.
 	// PeeringDB carrier ID
 	ID int `json:"id,omitempty"`
+	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	NameFold string `json:"name_fold"`
+	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	AkaFold string `json:"aka_fold"`
 	// FK to organization
 	OrgID *int `json:"org_id"`
 	// Also known as
@@ -47,10 +51,6 @@ type Carrier struct {
 	Updated time.Time `json:"updated"`
 	// Record status
 	Status string `json:"status"`
-	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	NameFold string `json:"name_fold"`
-	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	AkaFold string `json:"aka_fold"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CarrierQuery when eager-loading is set.
 	Edges        CarrierEdges `json:"edges"`
@@ -101,7 +101,7 @@ func (*Carrier) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case carrier.FieldID, carrier.FieldOrgID, carrier.FieldFacCount:
 			values[i] = new(sql.NullInt64)
-		case carrier.FieldAka, carrier.FieldLogo, carrier.FieldName, carrier.FieldNameLong, carrier.FieldNotes, carrier.FieldWebsite, carrier.FieldOrgName, carrier.FieldStatus, carrier.FieldNameFold, carrier.FieldAkaFold:
+		case carrier.FieldNameFold, carrier.FieldAkaFold, carrier.FieldAka, carrier.FieldLogo, carrier.FieldName, carrier.FieldNameLong, carrier.FieldNotes, carrier.FieldWebsite, carrier.FieldOrgName, carrier.FieldStatus:
 			values[i] = new(sql.NullString)
 		case carrier.FieldCreated, carrier.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -126,6 +126,18 @@ func (_m *Carrier) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
+		case carrier.FieldNameFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_fold", values[i])
+			} else if value.Valid {
+				_m.NameFold = value.String
+			}
+		case carrier.FieldAkaFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field aka_fold", values[i])
+			} else if value.Valid {
+				_m.AkaFold = value.String
+			}
 		case carrier.FieldOrgID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field org_id", values[i])
@@ -208,18 +220,6 @@ func (_m *Carrier) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = value.String
 			}
-		case carrier.FieldNameFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name_fold", values[i])
-			} else if value.Valid {
-				_m.NameFold = value.String
-			}
-		case carrier.FieldAkaFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field aka_fold", values[i])
-			} else if value.Valid {
-				_m.AkaFold = value.String
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -266,6 +266,12 @@ func (_m *Carrier) String() string {
 	var builder strings.Builder
 	builder.WriteString("Carrier(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("name_fold=")
+	builder.WriteString(_m.NameFold)
+	builder.WriteString(", ")
+	builder.WriteString("aka_fold=")
+	builder.WriteString(_m.AkaFold)
+	builder.WriteString(", ")
 	if v := _m.OrgID; v != nil {
 		builder.WriteString("org_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
@@ -308,12 +314,6 @@ func (_m *Carrier) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
-	builder.WriteString(", ")
-	builder.WriteString("name_fold=")
-	builder.WriteString(_m.NameFold)
-	builder.WriteString(", ")
-	builder.WriteString("aka_fold=")
-	builder.WriteString(_m.AkaFold)
 	builder.WriteByte(')')
 	return builder.String()
 }

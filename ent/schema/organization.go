@@ -10,7 +10,6 @@ import (
 	"github.com/lrstanley/entrest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
-	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // Organization holds the schema definition for the Organization entity.
@@ -118,27 +117,6 @@ func (Organization) Fields() []ent.Field {
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
-
-		// Phase 69 UNICODE-01 shadow columns — internal plumbing for pdbcompat
-		// diacritic-insensitive matching; populated by internal/sync.upsert via
-		// internal/unifold.Fold. Skipped from entrest + entgql so they stay
-		// server-side and do not leak to any wire surface (proto is already
-		// frozen via entproto.SkipGenFile in ent/entc.go).
-		field.String("name_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
-		field.String("aka_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
-		field.String("city_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
 	}
 }
 
@@ -172,21 +150,6 @@ func (Organization) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
-		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
-		// peeringdb_server/serializers.py:4041 OrganizationSerializer.prepare_query.
-		// Upstream does NOT call get_relation_filters; it only special-cases
-		// the asn kwarg as net_set__asn=X (line 4053). Relation-filter surface
-		// derives from queryable_relations auto-introspection (Path B). We
-		// enumerate the commonly-used reverse-FK aliases.
-		// DROP: distance — spatial search (convert_to_spatial_search line 4056),
-		// out of Phase 70 scope.
-		schemaannot.WithPrepareQueryAllow(
-			"net__name",
-			"net__asn",
-			"ix__name",
-			"fac__name",
-			"fac__country",
-		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

@@ -32,6 +32,46 @@ func (_u *CarrierUpdate) Where(ps ...predicate.Carrier) *CarrierUpdate {
 	return _u
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_u *CarrierUpdate) SetNameFold(v string) *CarrierUpdate {
+	_u.mutation.SetNameFold(v)
+	return _u
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_u *CarrierUpdate) SetNillableNameFold(v *string) *CarrierUpdate {
+	if v != nil {
+		_u.SetNameFold(*v)
+	}
+	return _u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (_u *CarrierUpdate) ClearNameFold() *CarrierUpdate {
+	_u.mutation.ClearNameFold()
+	return _u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_u *CarrierUpdate) SetAkaFold(v string) *CarrierUpdate {
+	_u.mutation.SetAkaFold(v)
+	return _u
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_u *CarrierUpdate) SetNillableAkaFold(v *string) *CarrierUpdate {
+	if v != nil {
+		_u.SetAkaFold(*v)
+	}
+	return _u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (_u *CarrierUpdate) ClearAkaFold() *CarrierUpdate {
+	_u.mutation.ClearAkaFold()
+	return _u
+}
+
 // SetOrgID sets the "org_id" field.
 func (_u *CarrierUpdate) SetOrgID(v int) *CarrierUpdate {
 	_u.mutation.SetOrgID(v)
@@ -259,46 +299,6 @@ func (_u *CarrierUpdate) SetNillableStatus(v *string) *CarrierUpdate {
 	return _u
 }
 
-// SetNameFold sets the "name_fold" field.
-func (_u *CarrierUpdate) SetNameFold(v string) *CarrierUpdate {
-	_u.mutation.SetNameFold(v)
-	return _u
-}
-
-// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
-func (_u *CarrierUpdate) SetNillableNameFold(v *string) *CarrierUpdate {
-	if v != nil {
-		_u.SetNameFold(*v)
-	}
-	return _u
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (_u *CarrierUpdate) ClearNameFold() *CarrierUpdate {
-	_u.mutation.ClearNameFold()
-	return _u
-}
-
-// SetAkaFold sets the "aka_fold" field.
-func (_u *CarrierUpdate) SetAkaFold(v string) *CarrierUpdate {
-	_u.mutation.SetAkaFold(v)
-	return _u
-}
-
-// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
-func (_u *CarrierUpdate) SetNillableAkaFold(v *string) *CarrierUpdate {
-	if v != nil {
-		_u.SetAkaFold(*v)
-	}
-	return _u
-}
-
-// ClearAkaFold clears the value of the "aka_fold" field.
-func (_u *CarrierUpdate) ClearAkaFold() *CarrierUpdate {
-	_u.mutation.ClearAkaFold()
-	return _u
-}
-
 // AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by IDs.
 func (_u *CarrierUpdate) AddCarrierFacilityIDs(ids ...int) *CarrierUpdate {
 	_u.mutation.AddCarrierFacilityIDs(ids...)
@@ -414,6 +414,18 @@ func (_u *CarrierUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.NameFold(); ok {
+		_spec.SetField(carrier.FieldNameFold, field.TypeString, value)
+	}
+	if _u.mutation.NameFoldCleared() {
+		_spec.ClearField(carrier.FieldNameFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.AkaFold(); ok {
+		_spec.SetField(carrier.FieldAkaFold, field.TypeString, value)
+	}
+	if _u.mutation.AkaFoldCleared() {
+		_spec.ClearField(carrier.FieldAkaFold, field.TypeString)
+	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(carrier.FieldAka, field.TypeString, value)
 	}
@@ -478,18 +490,6 @@ func (_u *CarrierUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(carrier.FieldStatus, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.NameFold(); ok {
-		_spec.SetField(carrier.FieldNameFold, field.TypeString, value)
-	}
-	if _u.mutation.NameFoldCleared() {
-		_spec.ClearField(carrier.FieldNameFold, field.TypeString)
-	}
-	if value, ok := _u.mutation.AkaFold(); ok {
-		_spec.SetField(carrier.FieldAkaFold, field.TypeString, value)
-	}
-	if _u.mutation.AkaFoldCleared() {
-		_spec.ClearField(carrier.FieldAkaFold, field.TypeString)
 	}
 	if _u.mutation.CarrierFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -583,6 +583,46 @@ type CarrierUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *CarrierMutation
+}
+
+// SetNameFold sets the "name_fold" field.
+func (_u *CarrierUpdateOne) SetNameFold(v string) *CarrierUpdateOne {
+	_u.mutation.SetNameFold(v)
+	return _u
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_u *CarrierUpdateOne) SetNillableNameFold(v *string) *CarrierUpdateOne {
+	if v != nil {
+		_u.SetNameFold(*v)
+	}
+	return _u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (_u *CarrierUpdateOne) ClearNameFold() *CarrierUpdateOne {
+	_u.mutation.ClearNameFold()
+	return _u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_u *CarrierUpdateOne) SetAkaFold(v string) *CarrierUpdateOne {
+	_u.mutation.SetAkaFold(v)
+	return _u
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_u *CarrierUpdateOne) SetNillableAkaFold(v *string) *CarrierUpdateOne {
+	if v != nil {
+		_u.SetAkaFold(*v)
+	}
+	return _u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (_u *CarrierUpdateOne) ClearAkaFold() *CarrierUpdateOne {
+	_u.mutation.ClearAkaFold()
+	return _u
 }
 
 // SetOrgID sets the "org_id" field.
@@ -812,46 +852,6 @@ func (_u *CarrierUpdateOne) SetNillableStatus(v *string) *CarrierUpdateOne {
 	return _u
 }
 
-// SetNameFold sets the "name_fold" field.
-func (_u *CarrierUpdateOne) SetNameFold(v string) *CarrierUpdateOne {
-	_u.mutation.SetNameFold(v)
-	return _u
-}
-
-// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
-func (_u *CarrierUpdateOne) SetNillableNameFold(v *string) *CarrierUpdateOne {
-	if v != nil {
-		_u.SetNameFold(*v)
-	}
-	return _u
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (_u *CarrierUpdateOne) ClearNameFold() *CarrierUpdateOne {
-	_u.mutation.ClearNameFold()
-	return _u
-}
-
-// SetAkaFold sets the "aka_fold" field.
-func (_u *CarrierUpdateOne) SetAkaFold(v string) *CarrierUpdateOne {
-	_u.mutation.SetAkaFold(v)
-	return _u
-}
-
-// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
-func (_u *CarrierUpdateOne) SetNillableAkaFold(v *string) *CarrierUpdateOne {
-	if v != nil {
-		_u.SetAkaFold(*v)
-	}
-	return _u
-}
-
-// ClearAkaFold clears the value of the "aka_fold" field.
-func (_u *CarrierUpdateOne) ClearAkaFold() *CarrierUpdateOne {
-	_u.mutation.ClearAkaFold()
-	return _u
-}
-
 // AddCarrierFacilityIDs adds the "carrier_facilities" edge to the CarrierFacility entity by IDs.
 func (_u *CarrierUpdateOne) AddCarrierFacilityIDs(ids ...int) *CarrierUpdateOne {
 	_u.mutation.AddCarrierFacilityIDs(ids...)
@@ -997,6 +997,18 @@ func (_u *CarrierUpdateOne) sqlSave(ctx context.Context) (_node *Carrier, err er
 			}
 		}
 	}
+	if value, ok := _u.mutation.NameFold(); ok {
+		_spec.SetField(carrier.FieldNameFold, field.TypeString, value)
+	}
+	if _u.mutation.NameFoldCleared() {
+		_spec.ClearField(carrier.FieldNameFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.AkaFold(); ok {
+		_spec.SetField(carrier.FieldAkaFold, field.TypeString, value)
+	}
+	if _u.mutation.AkaFoldCleared() {
+		_spec.ClearField(carrier.FieldAkaFold, field.TypeString)
+	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(carrier.FieldAka, field.TypeString, value)
 	}
@@ -1061,18 +1073,6 @@ func (_u *CarrierUpdateOne) sqlSave(ctx context.Context) (_node *Carrier, err er
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(carrier.FieldStatus, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.NameFold(); ok {
-		_spec.SetField(carrier.FieldNameFold, field.TypeString, value)
-	}
-	if _u.mutation.NameFoldCleared() {
-		_spec.ClearField(carrier.FieldNameFold, field.TypeString)
-	}
-	if value, ok := _u.mutation.AkaFold(); ok {
-		_spec.SetField(carrier.FieldAkaFold, field.TypeString, value)
-	}
-	if _u.mutation.AkaFoldCleared() {
-		_spec.ClearField(carrier.FieldAkaFold, field.TypeString)
 	}
 	if _u.mutation.CarrierFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{

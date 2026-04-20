@@ -55,6 +55,21 @@ func IDLTE(id int) predicate.Organization {
 	return predicate.Organization(sql.FieldLTE(FieldID, id))
 }
 
+// NameFold applies equality check predicate on the "name_fold" field. It's identical to NameFoldEQ.
+func NameFold(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldEQ(FieldNameFold, v))
+}
+
+// AkaFold applies equality check predicate on the "aka_fold" field. It's identical to AkaFoldEQ.
+func AkaFold(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldEQ(FieldAkaFold, v))
+}
+
+// CityFold applies equality check predicate on the "city_fold" field. It's identical to CityFoldEQ.
+func CityFold(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldEQ(FieldCityFold, v))
+}
+
 // Address1 applies equality check predicate on the "address1" field. It's identical to Address1EQ.
 func Address1(v string) predicate.Organization {
 	return predicate.Organization(sql.FieldEQ(FieldAddress1, v))
@@ -150,19 +165,229 @@ func Status(v string) predicate.Organization {
 	return predicate.Organization(sql.FieldEQ(FieldStatus, v))
 }
 
-// NameFold applies equality check predicate on the "name_fold" field. It's identical to NameFoldEQ.
-func NameFold(v string) predicate.Organization {
+// NameFoldEQ applies the EQ predicate on the "name_fold" field.
+func NameFoldEQ(v string) predicate.Organization {
 	return predicate.Organization(sql.FieldEQ(FieldNameFold, v))
 }
 
-// AkaFold applies equality check predicate on the "aka_fold" field. It's identical to AkaFoldEQ.
-func AkaFold(v string) predicate.Organization {
+// NameFoldNEQ applies the NEQ predicate on the "name_fold" field.
+func NameFoldNEQ(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldNEQ(FieldNameFold, v))
+}
+
+// NameFoldIn applies the In predicate on the "name_fold" field.
+func NameFoldIn(vs ...string) predicate.Organization {
+	return predicate.Organization(sql.FieldIn(FieldNameFold, vs...))
+}
+
+// NameFoldNotIn applies the NotIn predicate on the "name_fold" field.
+func NameFoldNotIn(vs ...string) predicate.Organization {
+	return predicate.Organization(sql.FieldNotIn(FieldNameFold, vs...))
+}
+
+// NameFoldGT applies the GT predicate on the "name_fold" field.
+func NameFoldGT(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldGT(FieldNameFold, v))
+}
+
+// NameFoldGTE applies the GTE predicate on the "name_fold" field.
+func NameFoldGTE(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldGTE(FieldNameFold, v))
+}
+
+// NameFoldLT applies the LT predicate on the "name_fold" field.
+func NameFoldLT(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldLT(FieldNameFold, v))
+}
+
+// NameFoldLTE applies the LTE predicate on the "name_fold" field.
+func NameFoldLTE(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldLTE(FieldNameFold, v))
+}
+
+// NameFoldContains applies the Contains predicate on the "name_fold" field.
+func NameFoldContains(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldContains(FieldNameFold, v))
+}
+
+// NameFoldHasPrefix applies the HasPrefix predicate on the "name_fold" field.
+func NameFoldHasPrefix(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldHasPrefix(FieldNameFold, v))
+}
+
+// NameFoldHasSuffix applies the HasSuffix predicate on the "name_fold" field.
+func NameFoldHasSuffix(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldHasSuffix(FieldNameFold, v))
+}
+
+// NameFoldIsNil applies the IsNil predicate on the "name_fold" field.
+func NameFoldIsNil() predicate.Organization {
+	return predicate.Organization(sql.FieldIsNull(FieldNameFold))
+}
+
+// NameFoldNotNil applies the NotNil predicate on the "name_fold" field.
+func NameFoldNotNil() predicate.Organization {
+	return predicate.Organization(sql.FieldNotNull(FieldNameFold))
+}
+
+// NameFoldEqualFold applies the EqualFold predicate on the "name_fold" field.
+func NameFoldEqualFold(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldEqualFold(FieldNameFold, v))
+}
+
+// NameFoldContainsFold applies the ContainsFold predicate on the "name_fold" field.
+func NameFoldContainsFold(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldContainsFold(FieldNameFold, v))
+}
+
+// AkaFoldEQ applies the EQ predicate on the "aka_fold" field.
+func AkaFoldEQ(v string) predicate.Organization {
 	return predicate.Organization(sql.FieldEQ(FieldAkaFold, v))
 }
 
-// CityFold applies equality check predicate on the "city_fold" field. It's identical to CityFoldEQ.
-func CityFold(v string) predicate.Organization {
+// AkaFoldNEQ applies the NEQ predicate on the "aka_fold" field.
+func AkaFoldNEQ(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldNEQ(FieldAkaFold, v))
+}
+
+// AkaFoldIn applies the In predicate on the "aka_fold" field.
+func AkaFoldIn(vs ...string) predicate.Organization {
+	return predicate.Organization(sql.FieldIn(FieldAkaFold, vs...))
+}
+
+// AkaFoldNotIn applies the NotIn predicate on the "aka_fold" field.
+func AkaFoldNotIn(vs ...string) predicate.Organization {
+	return predicate.Organization(sql.FieldNotIn(FieldAkaFold, vs...))
+}
+
+// AkaFoldGT applies the GT predicate on the "aka_fold" field.
+func AkaFoldGT(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldGT(FieldAkaFold, v))
+}
+
+// AkaFoldGTE applies the GTE predicate on the "aka_fold" field.
+func AkaFoldGTE(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldGTE(FieldAkaFold, v))
+}
+
+// AkaFoldLT applies the LT predicate on the "aka_fold" field.
+func AkaFoldLT(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldLT(FieldAkaFold, v))
+}
+
+// AkaFoldLTE applies the LTE predicate on the "aka_fold" field.
+func AkaFoldLTE(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldLTE(FieldAkaFold, v))
+}
+
+// AkaFoldContains applies the Contains predicate on the "aka_fold" field.
+func AkaFoldContains(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldContains(FieldAkaFold, v))
+}
+
+// AkaFoldHasPrefix applies the HasPrefix predicate on the "aka_fold" field.
+func AkaFoldHasPrefix(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldHasPrefix(FieldAkaFold, v))
+}
+
+// AkaFoldHasSuffix applies the HasSuffix predicate on the "aka_fold" field.
+func AkaFoldHasSuffix(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldHasSuffix(FieldAkaFold, v))
+}
+
+// AkaFoldIsNil applies the IsNil predicate on the "aka_fold" field.
+func AkaFoldIsNil() predicate.Organization {
+	return predicate.Organization(sql.FieldIsNull(FieldAkaFold))
+}
+
+// AkaFoldNotNil applies the NotNil predicate on the "aka_fold" field.
+func AkaFoldNotNil() predicate.Organization {
+	return predicate.Organization(sql.FieldNotNull(FieldAkaFold))
+}
+
+// AkaFoldEqualFold applies the EqualFold predicate on the "aka_fold" field.
+func AkaFoldEqualFold(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldEqualFold(FieldAkaFold, v))
+}
+
+// AkaFoldContainsFold applies the ContainsFold predicate on the "aka_fold" field.
+func AkaFoldContainsFold(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldContainsFold(FieldAkaFold, v))
+}
+
+// CityFoldEQ applies the EQ predicate on the "city_fold" field.
+func CityFoldEQ(v string) predicate.Organization {
 	return predicate.Organization(sql.FieldEQ(FieldCityFold, v))
+}
+
+// CityFoldNEQ applies the NEQ predicate on the "city_fold" field.
+func CityFoldNEQ(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldNEQ(FieldCityFold, v))
+}
+
+// CityFoldIn applies the In predicate on the "city_fold" field.
+func CityFoldIn(vs ...string) predicate.Organization {
+	return predicate.Organization(sql.FieldIn(FieldCityFold, vs...))
+}
+
+// CityFoldNotIn applies the NotIn predicate on the "city_fold" field.
+func CityFoldNotIn(vs ...string) predicate.Organization {
+	return predicate.Organization(sql.FieldNotIn(FieldCityFold, vs...))
+}
+
+// CityFoldGT applies the GT predicate on the "city_fold" field.
+func CityFoldGT(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldGT(FieldCityFold, v))
+}
+
+// CityFoldGTE applies the GTE predicate on the "city_fold" field.
+func CityFoldGTE(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldGTE(FieldCityFold, v))
+}
+
+// CityFoldLT applies the LT predicate on the "city_fold" field.
+func CityFoldLT(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldLT(FieldCityFold, v))
+}
+
+// CityFoldLTE applies the LTE predicate on the "city_fold" field.
+func CityFoldLTE(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldLTE(FieldCityFold, v))
+}
+
+// CityFoldContains applies the Contains predicate on the "city_fold" field.
+func CityFoldContains(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldContains(FieldCityFold, v))
+}
+
+// CityFoldHasPrefix applies the HasPrefix predicate on the "city_fold" field.
+func CityFoldHasPrefix(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldHasPrefix(FieldCityFold, v))
+}
+
+// CityFoldHasSuffix applies the HasSuffix predicate on the "city_fold" field.
+func CityFoldHasSuffix(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldHasSuffix(FieldCityFold, v))
+}
+
+// CityFoldIsNil applies the IsNil predicate on the "city_fold" field.
+func CityFoldIsNil() predicate.Organization {
+	return predicate.Organization(sql.FieldIsNull(FieldCityFold))
+}
+
+// CityFoldNotNil applies the NotNil predicate on the "city_fold" field.
+func CityFoldNotNil() predicate.Organization {
+	return predicate.Organization(sql.FieldNotNull(FieldCityFold))
+}
+
+// CityFoldEqualFold applies the EqualFold predicate on the "city_fold" field.
+func CityFoldEqualFold(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldEqualFold(FieldCityFold, v))
+}
+
+// CityFoldContainsFold applies the ContainsFold predicate on the "city_fold" field.
+func CityFoldContainsFold(v string) predicate.Organization {
+	return predicate.Organization(sql.FieldContainsFold(FieldCityFold, v))
 }
 
 // Address1EQ applies the EQ predicate on the "address1" field.
@@ -1458,231 +1683,6 @@ func StatusEqualFold(v string) predicate.Organization {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.Organization {
 	return predicate.Organization(sql.FieldContainsFold(FieldStatus, v))
-}
-
-// NameFoldEQ applies the EQ predicate on the "name_fold" field.
-func NameFoldEQ(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldEQ(FieldNameFold, v))
-}
-
-// NameFoldNEQ applies the NEQ predicate on the "name_fold" field.
-func NameFoldNEQ(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldNEQ(FieldNameFold, v))
-}
-
-// NameFoldIn applies the In predicate on the "name_fold" field.
-func NameFoldIn(vs ...string) predicate.Organization {
-	return predicate.Organization(sql.FieldIn(FieldNameFold, vs...))
-}
-
-// NameFoldNotIn applies the NotIn predicate on the "name_fold" field.
-func NameFoldNotIn(vs ...string) predicate.Organization {
-	return predicate.Organization(sql.FieldNotIn(FieldNameFold, vs...))
-}
-
-// NameFoldGT applies the GT predicate on the "name_fold" field.
-func NameFoldGT(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldGT(FieldNameFold, v))
-}
-
-// NameFoldGTE applies the GTE predicate on the "name_fold" field.
-func NameFoldGTE(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldGTE(FieldNameFold, v))
-}
-
-// NameFoldLT applies the LT predicate on the "name_fold" field.
-func NameFoldLT(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldLT(FieldNameFold, v))
-}
-
-// NameFoldLTE applies the LTE predicate on the "name_fold" field.
-func NameFoldLTE(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldLTE(FieldNameFold, v))
-}
-
-// NameFoldContains applies the Contains predicate on the "name_fold" field.
-func NameFoldContains(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldContains(FieldNameFold, v))
-}
-
-// NameFoldHasPrefix applies the HasPrefix predicate on the "name_fold" field.
-func NameFoldHasPrefix(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldHasPrefix(FieldNameFold, v))
-}
-
-// NameFoldHasSuffix applies the HasSuffix predicate on the "name_fold" field.
-func NameFoldHasSuffix(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldHasSuffix(FieldNameFold, v))
-}
-
-// NameFoldIsNil applies the IsNil predicate on the "name_fold" field.
-func NameFoldIsNil() predicate.Organization {
-	return predicate.Organization(sql.FieldIsNull(FieldNameFold))
-}
-
-// NameFoldNotNil applies the NotNil predicate on the "name_fold" field.
-func NameFoldNotNil() predicate.Organization {
-	return predicate.Organization(sql.FieldNotNull(FieldNameFold))
-}
-
-// NameFoldEqualFold applies the EqualFold predicate on the "name_fold" field.
-func NameFoldEqualFold(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldEqualFold(FieldNameFold, v))
-}
-
-// NameFoldContainsFold applies the ContainsFold predicate on the "name_fold" field.
-func NameFoldContainsFold(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldContainsFold(FieldNameFold, v))
-}
-
-// AkaFoldEQ applies the EQ predicate on the "aka_fold" field.
-func AkaFoldEQ(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldEQ(FieldAkaFold, v))
-}
-
-// AkaFoldNEQ applies the NEQ predicate on the "aka_fold" field.
-func AkaFoldNEQ(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldNEQ(FieldAkaFold, v))
-}
-
-// AkaFoldIn applies the In predicate on the "aka_fold" field.
-func AkaFoldIn(vs ...string) predicate.Organization {
-	return predicate.Organization(sql.FieldIn(FieldAkaFold, vs...))
-}
-
-// AkaFoldNotIn applies the NotIn predicate on the "aka_fold" field.
-func AkaFoldNotIn(vs ...string) predicate.Organization {
-	return predicate.Organization(sql.FieldNotIn(FieldAkaFold, vs...))
-}
-
-// AkaFoldGT applies the GT predicate on the "aka_fold" field.
-func AkaFoldGT(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldGT(FieldAkaFold, v))
-}
-
-// AkaFoldGTE applies the GTE predicate on the "aka_fold" field.
-func AkaFoldGTE(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldGTE(FieldAkaFold, v))
-}
-
-// AkaFoldLT applies the LT predicate on the "aka_fold" field.
-func AkaFoldLT(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldLT(FieldAkaFold, v))
-}
-
-// AkaFoldLTE applies the LTE predicate on the "aka_fold" field.
-func AkaFoldLTE(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldLTE(FieldAkaFold, v))
-}
-
-// AkaFoldContains applies the Contains predicate on the "aka_fold" field.
-func AkaFoldContains(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldContains(FieldAkaFold, v))
-}
-
-// AkaFoldHasPrefix applies the HasPrefix predicate on the "aka_fold" field.
-func AkaFoldHasPrefix(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldHasPrefix(FieldAkaFold, v))
-}
-
-// AkaFoldHasSuffix applies the HasSuffix predicate on the "aka_fold" field.
-func AkaFoldHasSuffix(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldHasSuffix(FieldAkaFold, v))
-}
-
-// AkaFoldIsNil applies the IsNil predicate on the "aka_fold" field.
-func AkaFoldIsNil() predicate.Organization {
-	return predicate.Organization(sql.FieldIsNull(FieldAkaFold))
-}
-
-// AkaFoldNotNil applies the NotNil predicate on the "aka_fold" field.
-func AkaFoldNotNil() predicate.Organization {
-	return predicate.Organization(sql.FieldNotNull(FieldAkaFold))
-}
-
-// AkaFoldEqualFold applies the EqualFold predicate on the "aka_fold" field.
-func AkaFoldEqualFold(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldEqualFold(FieldAkaFold, v))
-}
-
-// AkaFoldContainsFold applies the ContainsFold predicate on the "aka_fold" field.
-func AkaFoldContainsFold(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldContainsFold(FieldAkaFold, v))
-}
-
-// CityFoldEQ applies the EQ predicate on the "city_fold" field.
-func CityFoldEQ(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldEQ(FieldCityFold, v))
-}
-
-// CityFoldNEQ applies the NEQ predicate on the "city_fold" field.
-func CityFoldNEQ(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldNEQ(FieldCityFold, v))
-}
-
-// CityFoldIn applies the In predicate on the "city_fold" field.
-func CityFoldIn(vs ...string) predicate.Organization {
-	return predicate.Organization(sql.FieldIn(FieldCityFold, vs...))
-}
-
-// CityFoldNotIn applies the NotIn predicate on the "city_fold" field.
-func CityFoldNotIn(vs ...string) predicate.Organization {
-	return predicate.Organization(sql.FieldNotIn(FieldCityFold, vs...))
-}
-
-// CityFoldGT applies the GT predicate on the "city_fold" field.
-func CityFoldGT(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldGT(FieldCityFold, v))
-}
-
-// CityFoldGTE applies the GTE predicate on the "city_fold" field.
-func CityFoldGTE(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldGTE(FieldCityFold, v))
-}
-
-// CityFoldLT applies the LT predicate on the "city_fold" field.
-func CityFoldLT(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldLT(FieldCityFold, v))
-}
-
-// CityFoldLTE applies the LTE predicate on the "city_fold" field.
-func CityFoldLTE(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldLTE(FieldCityFold, v))
-}
-
-// CityFoldContains applies the Contains predicate on the "city_fold" field.
-func CityFoldContains(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldContains(FieldCityFold, v))
-}
-
-// CityFoldHasPrefix applies the HasPrefix predicate on the "city_fold" field.
-func CityFoldHasPrefix(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldHasPrefix(FieldCityFold, v))
-}
-
-// CityFoldHasSuffix applies the HasSuffix predicate on the "city_fold" field.
-func CityFoldHasSuffix(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldHasSuffix(FieldCityFold, v))
-}
-
-// CityFoldIsNil applies the IsNil predicate on the "city_fold" field.
-func CityFoldIsNil() predicate.Organization {
-	return predicate.Organization(sql.FieldIsNull(FieldCityFold))
-}
-
-// CityFoldNotNil applies the NotNil predicate on the "city_fold" field.
-func CityFoldNotNil() predicate.Organization {
-	return predicate.Organization(sql.FieldNotNull(FieldCityFold))
-}
-
-// CityFoldEqualFold applies the EqualFold predicate on the "city_fold" field.
-func CityFoldEqualFold(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldEqualFold(FieldCityFold, v))
-}
-
-// CityFoldContainsFold applies the ContainsFold predicate on the "city_fold" field.
-func CityFoldContainsFold(v string) predicate.Organization {
-	return predicate.Organization(sql.FieldContainsFold(FieldCityFold, v))
 }
 
 // HasCampuses applies the HasEdge predicate on the "campuses" edge.

@@ -55,6 +55,26 @@ func IDLTE(id int) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldLTE(FieldID, id))
 }
 
+// NameFold applies equality check predicate on the "name_fold" field. It's identical to NameFoldEQ.
+func NameFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldNameFold, v))
+}
+
+// AkaFold applies equality check predicate on the "aka_fold" field. It's identical to AkaFoldEQ.
+func AkaFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldAkaFold, v))
+}
+
+// NameLongFold applies equality check predicate on the "name_long_fold" field. It's identical to NameLongFoldEQ.
+func NameLongFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldNameLongFold, v))
+}
+
+// CityFold applies equality check predicate on the "city_fold" field. It's identical to CityFoldEQ.
+func CityFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEQ(FieldCityFold, v))
+}
+
 // OrgID applies equality check predicate on the "org_id" field. It's identical to OrgIDEQ.
 func OrgID(v int) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldOrgID, v))
@@ -220,24 +240,304 @@ func Status(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldStatus, v))
 }
 
-// NameFold applies equality check predicate on the "name_fold" field. It's identical to NameFoldEQ.
-func NameFold(v string) predicate.InternetExchange {
+// NameFoldEQ applies the EQ predicate on the "name_fold" field.
+func NameFoldEQ(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldNameFold, v))
 }
 
-// AkaFold applies equality check predicate on the "aka_fold" field. It's identical to AkaFoldEQ.
-func AkaFold(v string) predicate.InternetExchange {
+// NameFoldNEQ applies the NEQ predicate on the "name_fold" field.
+func NameFoldNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldNameFold, v))
+}
+
+// NameFoldIn applies the In predicate on the "name_fold" field.
+func NameFoldIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldNameFold, vs...))
+}
+
+// NameFoldNotIn applies the NotIn predicate on the "name_fold" field.
+func NameFoldNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldNameFold, vs...))
+}
+
+// NameFoldGT applies the GT predicate on the "name_fold" field.
+func NameFoldGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldNameFold, v))
+}
+
+// NameFoldGTE applies the GTE predicate on the "name_fold" field.
+func NameFoldGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldNameFold, v))
+}
+
+// NameFoldLT applies the LT predicate on the "name_fold" field.
+func NameFoldLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldNameFold, v))
+}
+
+// NameFoldLTE applies the LTE predicate on the "name_fold" field.
+func NameFoldLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldNameFold, v))
+}
+
+// NameFoldContains applies the Contains predicate on the "name_fold" field.
+func NameFoldContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldNameFold, v))
+}
+
+// NameFoldHasPrefix applies the HasPrefix predicate on the "name_fold" field.
+func NameFoldHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldNameFold, v))
+}
+
+// NameFoldHasSuffix applies the HasSuffix predicate on the "name_fold" field.
+func NameFoldHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldNameFold, v))
+}
+
+// NameFoldIsNil applies the IsNil predicate on the "name_fold" field.
+func NameFoldIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldNameFold))
+}
+
+// NameFoldNotNil applies the NotNil predicate on the "name_fold" field.
+func NameFoldNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldNameFold))
+}
+
+// NameFoldEqualFold applies the EqualFold predicate on the "name_fold" field.
+func NameFoldEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldNameFold, v))
+}
+
+// NameFoldContainsFold applies the ContainsFold predicate on the "name_fold" field.
+func NameFoldContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldNameFold, v))
+}
+
+// AkaFoldEQ applies the EQ predicate on the "aka_fold" field.
+func AkaFoldEQ(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldAkaFold, v))
 }
 
-// NameLongFold applies equality check predicate on the "name_long_fold" field. It's identical to NameLongFoldEQ.
-func NameLongFold(v string) predicate.InternetExchange {
+// AkaFoldNEQ applies the NEQ predicate on the "aka_fold" field.
+func AkaFoldNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldAkaFold, v))
+}
+
+// AkaFoldIn applies the In predicate on the "aka_fold" field.
+func AkaFoldIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldAkaFold, vs...))
+}
+
+// AkaFoldNotIn applies the NotIn predicate on the "aka_fold" field.
+func AkaFoldNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldAkaFold, vs...))
+}
+
+// AkaFoldGT applies the GT predicate on the "aka_fold" field.
+func AkaFoldGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldAkaFold, v))
+}
+
+// AkaFoldGTE applies the GTE predicate on the "aka_fold" field.
+func AkaFoldGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldAkaFold, v))
+}
+
+// AkaFoldLT applies the LT predicate on the "aka_fold" field.
+func AkaFoldLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldAkaFold, v))
+}
+
+// AkaFoldLTE applies the LTE predicate on the "aka_fold" field.
+func AkaFoldLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldAkaFold, v))
+}
+
+// AkaFoldContains applies the Contains predicate on the "aka_fold" field.
+func AkaFoldContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldAkaFold, v))
+}
+
+// AkaFoldHasPrefix applies the HasPrefix predicate on the "aka_fold" field.
+func AkaFoldHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldAkaFold, v))
+}
+
+// AkaFoldHasSuffix applies the HasSuffix predicate on the "aka_fold" field.
+func AkaFoldHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldAkaFold, v))
+}
+
+// AkaFoldIsNil applies the IsNil predicate on the "aka_fold" field.
+func AkaFoldIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldAkaFold))
+}
+
+// AkaFoldNotNil applies the NotNil predicate on the "aka_fold" field.
+func AkaFoldNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldAkaFold))
+}
+
+// AkaFoldEqualFold applies the EqualFold predicate on the "aka_fold" field.
+func AkaFoldEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldAkaFold, v))
+}
+
+// AkaFoldContainsFold applies the ContainsFold predicate on the "aka_fold" field.
+func AkaFoldContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldAkaFold, v))
+}
+
+// NameLongFoldEQ applies the EQ predicate on the "name_long_fold" field.
+func NameLongFoldEQ(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldNameLongFold, v))
 }
 
-// CityFold applies equality check predicate on the "city_fold" field. It's identical to CityFoldEQ.
-func CityFold(v string) predicate.InternetExchange {
+// NameLongFoldNEQ applies the NEQ predicate on the "name_long_fold" field.
+func NameLongFoldNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldNameLongFold, v))
+}
+
+// NameLongFoldIn applies the In predicate on the "name_long_fold" field.
+func NameLongFoldIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldNameLongFold, vs...))
+}
+
+// NameLongFoldNotIn applies the NotIn predicate on the "name_long_fold" field.
+func NameLongFoldNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldNameLongFold, vs...))
+}
+
+// NameLongFoldGT applies the GT predicate on the "name_long_fold" field.
+func NameLongFoldGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldNameLongFold, v))
+}
+
+// NameLongFoldGTE applies the GTE predicate on the "name_long_fold" field.
+func NameLongFoldGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldNameLongFold, v))
+}
+
+// NameLongFoldLT applies the LT predicate on the "name_long_fold" field.
+func NameLongFoldLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldNameLongFold, v))
+}
+
+// NameLongFoldLTE applies the LTE predicate on the "name_long_fold" field.
+func NameLongFoldLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldNameLongFold, v))
+}
+
+// NameLongFoldContains applies the Contains predicate on the "name_long_fold" field.
+func NameLongFoldContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldNameLongFold, v))
+}
+
+// NameLongFoldHasPrefix applies the HasPrefix predicate on the "name_long_fold" field.
+func NameLongFoldHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldNameLongFold, v))
+}
+
+// NameLongFoldHasSuffix applies the HasSuffix predicate on the "name_long_fold" field.
+func NameLongFoldHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldNameLongFold, v))
+}
+
+// NameLongFoldIsNil applies the IsNil predicate on the "name_long_fold" field.
+func NameLongFoldIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldNameLongFold))
+}
+
+// NameLongFoldNotNil applies the NotNil predicate on the "name_long_fold" field.
+func NameLongFoldNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldNameLongFold))
+}
+
+// NameLongFoldEqualFold applies the EqualFold predicate on the "name_long_fold" field.
+func NameLongFoldEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldNameLongFold, v))
+}
+
+// NameLongFoldContainsFold applies the ContainsFold predicate on the "name_long_fold" field.
+func NameLongFoldContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldNameLongFold, v))
+}
+
+// CityFoldEQ applies the EQ predicate on the "city_fold" field.
+func CityFoldEQ(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldEQ(FieldCityFold, v))
+}
+
+// CityFoldNEQ applies the NEQ predicate on the "city_fold" field.
+func CityFoldNEQ(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNEQ(FieldCityFold, v))
+}
+
+// CityFoldIn applies the In predicate on the "city_fold" field.
+func CityFoldIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIn(FieldCityFold, vs...))
+}
+
+// CityFoldNotIn applies the NotIn predicate on the "city_fold" field.
+func CityFoldNotIn(vs ...string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotIn(FieldCityFold, vs...))
+}
+
+// CityFoldGT applies the GT predicate on the "city_fold" field.
+func CityFoldGT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGT(FieldCityFold, v))
+}
+
+// CityFoldGTE applies the GTE predicate on the "city_fold" field.
+func CityFoldGTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldGTE(FieldCityFold, v))
+}
+
+// CityFoldLT applies the LT predicate on the "city_fold" field.
+func CityFoldLT(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLT(FieldCityFold, v))
+}
+
+// CityFoldLTE applies the LTE predicate on the "city_fold" field.
+func CityFoldLTE(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldLTE(FieldCityFold, v))
+}
+
+// CityFoldContains applies the Contains predicate on the "city_fold" field.
+func CityFoldContains(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContains(FieldCityFold, v))
+}
+
+// CityFoldHasPrefix applies the HasPrefix predicate on the "city_fold" field.
+func CityFoldHasPrefix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasPrefix(FieldCityFold, v))
+}
+
+// CityFoldHasSuffix applies the HasSuffix predicate on the "city_fold" field.
+func CityFoldHasSuffix(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldHasSuffix(FieldCityFold, v))
+}
+
+// CityFoldIsNil applies the IsNil predicate on the "city_fold" field.
+func CityFoldIsNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldIsNull(FieldCityFold))
+}
+
+// CityFoldNotNil applies the NotNil predicate on the "city_fold" field.
+func CityFoldNotNil() predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldNotNull(FieldCityFold))
+}
+
+// CityFoldEqualFold applies the EqualFold predicate on the "city_fold" field.
+func CityFoldEqualFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldEqualFold(FieldCityFold, v))
+}
+
+// CityFoldContainsFold applies the ContainsFold predicate on the "city_fold" field.
+func CityFoldContainsFold(v string) predicate.InternetExchange {
+	return predicate.InternetExchange(sql.FieldContainsFold(FieldCityFold, v))
 }
 
 // OrgIDEQ applies the EQ predicate on the "org_id" field.
@@ -2293,306 +2593,6 @@ func StatusEqualFold(v string) predicate.InternetExchange {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.InternetExchange {
 	return predicate.InternetExchange(sql.FieldContainsFold(FieldStatus, v))
-}
-
-// NameFoldEQ applies the EQ predicate on the "name_fold" field.
-func NameFoldEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldNameFold, v))
-}
-
-// NameFoldNEQ applies the NEQ predicate on the "name_fold" field.
-func NameFoldNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldNameFold, v))
-}
-
-// NameFoldIn applies the In predicate on the "name_fold" field.
-func NameFoldIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldNameFold, vs...))
-}
-
-// NameFoldNotIn applies the NotIn predicate on the "name_fold" field.
-func NameFoldNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldNameFold, vs...))
-}
-
-// NameFoldGT applies the GT predicate on the "name_fold" field.
-func NameFoldGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldNameFold, v))
-}
-
-// NameFoldGTE applies the GTE predicate on the "name_fold" field.
-func NameFoldGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldNameFold, v))
-}
-
-// NameFoldLT applies the LT predicate on the "name_fold" field.
-func NameFoldLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldNameFold, v))
-}
-
-// NameFoldLTE applies the LTE predicate on the "name_fold" field.
-func NameFoldLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldNameFold, v))
-}
-
-// NameFoldContains applies the Contains predicate on the "name_fold" field.
-func NameFoldContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldNameFold, v))
-}
-
-// NameFoldHasPrefix applies the HasPrefix predicate on the "name_fold" field.
-func NameFoldHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldNameFold, v))
-}
-
-// NameFoldHasSuffix applies the HasSuffix predicate on the "name_fold" field.
-func NameFoldHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldNameFold, v))
-}
-
-// NameFoldIsNil applies the IsNil predicate on the "name_fold" field.
-func NameFoldIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldNameFold))
-}
-
-// NameFoldNotNil applies the NotNil predicate on the "name_fold" field.
-func NameFoldNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldNameFold))
-}
-
-// NameFoldEqualFold applies the EqualFold predicate on the "name_fold" field.
-func NameFoldEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldNameFold, v))
-}
-
-// NameFoldContainsFold applies the ContainsFold predicate on the "name_fold" field.
-func NameFoldContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldNameFold, v))
-}
-
-// AkaFoldEQ applies the EQ predicate on the "aka_fold" field.
-func AkaFoldEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldAkaFold, v))
-}
-
-// AkaFoldNEQ applies the NEQ predicate on the "aka_fold" field.
-func AkaFoldNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldAkaFold, v))
-}
-
-// AkaFoldIn applies the In predicate on the "aka_fold" field.
-func AkaFoldIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldAkaFold, vs...))
-}
-
-// AkaFoldNotIn applies the NotIn predicate on the "aka_fold" field.
-func AkaFoldNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldAkaFold, vs...))
-}
-
-// AkaFoldGT applies the GT predicate on the "aka_fold" field.
-func AkaFoldGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldAkaFold, v))
-}
-
-// AkaFoldGTE applies the GTE predicate on the "aka_fold" field.
-func AkaFoldGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldAkaFold, v))
-}
-
-// AkaFoldLT applies the LT predicate on the "aka_fold" field.
-func AkaFoldLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldAkaFold, v))
-}
-
-// AkaFoldLTE applies the LTE predicate on the "aka_fold" field.
-func AkaFoldLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldAkaFold, v))
-}
-
-// AkaFoldContains applies the Contains predicate on the "aka_fold" field.
-func AkaFoldContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldAkaFold, v))
-}
-
-// AkaFoldHasPrefix applies the HasPrefix predicate on the "aka_fold" field.
-func AkaFoldHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldAkaFold, v))
-}
-
-// AkaFoldHasSuffix applies the HasSuffix predicate on the "aka_fold" field.
-func AkaFoldHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldAkaFold, v))
-}
-
-// AkaFoldIsNil applies the IsNil predicate on the "aka_fold" field.
-func AkaFoldIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldAkaFold))
-}
-
-// AkaFoldNotNil applies the NotNil predicate on the "aka_fold" field.
-func AkaFoldNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldAkaFold))
-}
-
-// AkaFoldEqualFold applies the EqualFold predicate on the "aka_fold" field.
-func AkaFoldEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldAkaFold, v))
-}
-
-// AkaFoldContainsFold applies the ContainsFold predicate on the "aka_fold" field.
-func AkaFoldContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldAkaFold, v))
-}
-
-// NameLongFoldEQ applies the EQ predicate on the "name_long_fold" field.
-func NameLongFoldEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldNameLongFold, v))
-}
-
-// NameLongFoldNEQ applies the NEQ predicate on the "name_long_fold" field.
-func NameLongFoldNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldNameLongFold, v))
-}
-
-// NameLongFoldIn applies the In predicate on the "name_long_fold" field.
-func NameLongFoldIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldNameLongFold, vs...))
-}
-
-// NameLongFoldNotIn applies the NotIn predicate on the "name_long_fold" field.
-func NameLongFoldNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldNameLongFold, vs...))
-}
-
-// NameLongFoldGT applies the GT predicate on the "name_long_fold" field.
-func NameLongFoldGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldNameLongFold, v))
-}
-
-// NameLongFoldGTE applies the GTE predicate on the "name_long_fold" field.
-func NameLongFoldGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldNameLongFold, v))
-}
-
-// NameLongFoldLT applies the LT predicate on the "name_long_fold" field.
-func NameLongFoldLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldNameLongFold, v))
-}
-
-// NameLongFoldLTE applies the LTE predicate on the "name_long_fold" field.
-func NameLongFoldLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldNameLongFold, v))
-}
-
-// NameLongFoldContains applies the Contains predicate on the "name_long_fold" field.
-func NameLongFoldContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldNameLongFold, v))
-}
-
-// NameLongFoldHasPrefix applies the HasPrefix predicate on the "name_long_fold" field.
-func NameLongFoldHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldNameLongFold, v))
-}
-
-// NameLongFoldHasSuffix applies the HasSuffix predicate on the "name_long_fold" field.
-func NameLongFoldHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldNameLongFold, v))
-}
-
-// NameLongFoldIsNil applies the IsNil predicate on the "name_long_fold" field.
-func NameLongFoldIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldNameLongFold))
-}
-
-// NameLongFoldNotNil applies the NotNil predicate on the "name_long_fold" field.
-func NameLongFoldNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldNameLongFold))
-}
-
-// NameLongFoldEqualFold applies the EqualFold predicate on the "name_long_fold" field.
-func NameLongFoldEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldNameLongFold, v))
-}
-
-// NameLongFoldContainsFold applies the ContainsFold predicate on the "name_long_fold" field.
-func NameLongFoldContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldNameLongFold, v))
-}
-
-// CityFoldEQ applies the EQ predicate on the "city_fold" field.
-func CityFoldEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEQ(FieldCityFold, v))
-}
-
-// CityFoldNEQ applies the NEQ predicate on the "city_fold" field.
-func CityFoldNEQ(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNEQ(FieldCityFold, v))
-}
-
-// CityFoldIn applies the In predicate on the "city_fold" field.
-func CityFoldIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIn(FieldCityFold, vs...))
-}
-
-// CityFoldNotIn applies the NotIn predicate on the "city_fold" field.
-func CityFoldNotIn(vs ...string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotIn(FieldCityFold, vs...))
-}
-
-// CityFoldGT applies the GT predicate on the "city_fold" field.
-func CityFoldGT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGT(FieldCityFold, v))
-}
-
-// CityFoldGTE applies the GTE predicate on the "city_fold" field.
-func CityFoldGTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldGTE(FieldCityFold, v))
-}
-
-// CityFoldLT applies the LT predicate on the "city_fold" field.
-func CityFoldLT(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLT(FieldCityFold, v))
-}
-
-// CityFoldLTE applies the LTE predicate on the "city_fold" field.
-func CityFoldLTE(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldLTE(FieldCityFold, v))
-}
-
-// CityFoldContains applies the Contains predicate on the "city_fold" field.
-func CityFoldContains(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContains(FieldCityFold, v))
-}
-
-// CityFoldHasPrefix applies the HasPrefix predicate on the "city_fold" field.
-func CityFoldHasPrefix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasPrefix(FieldCityFold, v))
-}
-
-// CityFoldHasSuffix applies the HasSuffix predicate on the "city_fold" field.
-func CityFoldHasSuffix(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldHasSuffix(FieldCityFold, v))
-}
-
-// CityFoldIsNil applies the IsNil predicate on the "city_fold" field.
-func CityFoldIsNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldIsNull(FieldCityFold))
-}
-
-// CityFoldNotNil applies the NotNil predicate on the "city_fold" field.
-func CityFoldNotNil() predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldNotNull(FieldCityFold))
-}
-
-// CityFoldEqualFold applies the EqualFold predicate on the "city_fold" field.
-func CityFoldEqualFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldEqualFold(FieldCityFold, v))
-}
-
-// CityFoldContainsFold applies the ContainsFold predicate on the "city_fold" field.
-func CityFoldContainsFold(v string) predicate.InternetExchange {
-	return predicate.InternetExchange(sql.FieldContainsFold(FieldCityFold, v))
 }
 
 // HasIxFacilities applies the HasEdge predicate on the "ix_facilities" edge.

@@ -8,8 +8,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/lrstanley/entrest"
-
-	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // Poc holds the schema definition for the Poc entity.
@@ -103,17 +101,6 @@ func (Poc) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
-		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
-		// peeringdb_server/serializers.py:2423
-		// NetworkContactSerializer.prepare_query. Upstream returns (qset, {})
-		// (no get_relation_filters); client-facing net__* filters derive from
-		// Meta.related_fields = ["net"] (serializers.py:2416) and
-		// queryable_relations auto-introspection. Row-level visibility still
-		// governed by ent Privacy policy in ent/schema/poc_policy.go.
-		schemaannot.WithPrepareQueryAllow(
-			"net__name",
-			"net__asn",
-		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

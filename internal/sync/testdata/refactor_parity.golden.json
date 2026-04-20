@@ -2,6 +2,9 @@
   "organizations": [
     {
       "id": 1,
+      "name_fold": "example organization",
+      "aka_fold": "exorg",
+      "city_fold": "san francisco",
       "address1": "123 Main St",
       "address2": "Suite 400",
       "aka": "ExOrg",
@@ -27,13 +30,13 @@
       "created": "2024-01-01T00:00:00Z",
       "updated": "2024-06-15T12:30:00Z",
       "status": "ok",
-      "name_fold": "example organization",
-      "aka_fold": "exorg",
-      "city_fold": "san francisco",
       "edges": {}
     },
     {
       "id": 2,
+      "name_fold": "cloudnet services",
+      "aka_fold": "cloudnet",
+      "city_fold": "berlin",
       "address1": "Alexanderplatz 1",
       "address2": "",
       "aka": "CloudNet",
@@ -63,13 +66,13 @@
       "created": "2024-02-15T10:00:00Z",
       "updated": "2024-08-01T09:15:00Z",
       "status": "ok",
-      "name_fold": "cloudnet services",
-      "aka_fold": "cloudnet",
-      "city_fold": "berlin",
       "edges": {}
     },
     {
       "id": 3,
+      "name_fold": "defunct telecom",
+      "aka_fold": "",
+      "city_fold": "london",
       "address1": "1 Old Road",
       "address2": "",
       "aka": "",
@@ -90,15 +93,13 @@
       "created": "2023-06-01T00:00:00Z",
       "updated": "2024-03-01T00:00:00Z",
       "status": "deleted",
-      "name_fold": "defunct telecom",
-      "aka_fold": "",
-      "city_fold": "london",
       "edges": {}
     }
   ],
   "campuses": [
     {
       "id": 1,
+      "name_fold": "example campus west",
       "org_id": 1,
       "aka": "ECW",
       "city": "San Francisco",
@@ -115,11 +116,11 @@
       "created": "2024-01-15T08:00:00Z",
       "updated": "2024-07-01T14:00:00Z",
       "status": "ok",
-      "name_fold": "example campus west",
       "edges": {}
     },
     {
       "id": 2,
+      "name_fold": "cloudnet berlin campus",
       "org_id": 2,
       "aka": null,
       "city": "Berlin",
@@ -136,13 +137,15 @@
       "created": "2024-03-01T10:00:00Z",
       "updated": "2024-09-15T16:30:00Z",
       "status": "ok",
-      "name_fold": "cloudnet berlin campus",
       "edges": {}
     }
   ],
   "facilities": [
     {
       "id": 1,
+      "name_fold": "example dc1",
+      "aka_fold": "edc1",
+      "city_fold": "san francisco",
       "campus_id": 1,
       "org_id": 1,
       "address1": "200 Paul Ave",
@@ -189,13 +192,13 @@
       "created": "2024-01-20T12:00:00Z",
       "updated": "2024-08-10T10:00:00Z",
       "status": "ok",
-      "name_fold": "example dc1",
-      "aka_fold": "edc1",
-      "city_fold": "san francisco",
       "edges": {}
     },
     {
       "id": 2,
+      "name_fold": "cloudnet berlin dc",
+      "aka_fold": "cnbdc",
+      "city_fold": "berlin",
       "campus_id": null,
       "org_id": 2,
       "address1": "Friedrichstr 100",
@@ -234,15 +237,14 @@
       "created": "2024-03-10T09:00:00Z",
       "updated": "2024-09-20T11:30:00Z",
       "status": "ok",
-      "name_fold": "cloudnet berlin dc",
-      "aka_fold": "cnbdc",
-      "city_fold": "berlin",
       "edges": {}
     }
   ],
   "carriers": [
     {
       "id": 1,
+      "name_fold": "example carrier",
+      "aka_fold": "ec",
       "org_id": 1,
       "aka": "EC",
       "logo": null,
@@ -256,8 +258,6 @@
       "created": "2024-02-01T10:00:00Z",
       "updated": "2024-07-15T08:00:00Z",
       "status": "ok",
-      "name_fold": "example carrier",
-      "aka_fold": "ec",
       "edges": {}
     }
   ],
@@ -276,6 +276,10 @@
   "internet_exchanges": [
     {
       "id": 1,
+      "name_fold": "bay area ix",
+      "aka_fold": "baix",
+      "name_long_fold": "bay area internet exchange",
+      "city_fold": "san francisco",
       "org_id": 1,
       "aka": "BAIX",
       "city": "San Francisco",
@@ -315,14 +319,14 @@
       "created": "2024-01-25T09:00:00Z",
       "updated": "2024-08-15T14:00:00Z",
       "status": "ok",
-      "name_fold": "bay area ix",
-      "aka_fold": "baix",
-      "name_long_fold": "bay area internet exchange",
-      "city_fold": "san francisco",
       "edges": {}
     },
     {
       "id": 2,
+      "name_fold": "berlin ix",
+      "aka_fold": "blix",
+      "name_long_fold": "berlin internet exchange",
+      "city_fold": "berlin",
       "org_id": 2,
       "aka": "BLIX",
       "city": "Berlin",
@@ -357,10 +361,6 @@
       "created": "2024-03-15T10:00:00Z",
       "updated": "2024-09-01T16:00:00Z",
       "status": "ok",
-      "name_fold": "berlin ix",
-      "aka_fold": "blix",
-      "name_long_fold": "berlin internet exchange",
-      "city_fold": "berlin",
       "edges": {}
     }
   ],
@@ -441,6 +441,9 @@
   "networks": [
     {
       "id": 1,
+      "name_fold": "example network",
+      "aka_fold": "exnet",
+      "name_long_fold": "example network services",
       "org_id": 1,
       "aka": "ExNet",
       "allow_ixp_update": true,
@@ -489,13 +492,13 @@
       "created": "2024-01-30T08:00:00Z",
       "updated": "2024-08-20T10:00:00Z",
       "status": "ok",
-      "name_fold": "example network",
-      "aka_fold": "exnet",
-      "name_long_fold": "example network services",
       "edges": {}
     },
     {
       "id": 2,
+      "name_fold": "cloudnet network",
+      "aka_fold": "",
+      "name_long_fold": "",
       "org_id": 2,
       "aka": "",
       "allow_ixp_update": false,
@@ -538,9 +541,6 @@
       "created": "2024-04-01T10:00:00Z",
       "updated": "2024-09-10T12:00:00Z",
       "status": "ok",
-      "name_fold": "cloudnet network",
-      "aka_fold": "",
-      "name_long_fold": "",
       "edges": {}
     }
   ],

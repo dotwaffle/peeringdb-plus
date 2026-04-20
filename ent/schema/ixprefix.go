@@ -8,8 +8,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/lrstanley/entrest"
-
-	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // IxPrefix holds the schema definition for the IxPrefix entity.
@@ -85,18 +83,6 @@ func (IxPrefix) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
-		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
-		// peeringdb_server/serializers.py:3315 IXLanPrefixSerializer.prepare_query.
-		// get_relation_filters seed ["ix_id", "ix", "whereis"]; we expose the
-		// 2-hop ixlan__ix__{name,id} paths implied by the eager-load chain
-		// select_related("ixlan", "ixlan__ix", "ixlan__ix__org") at line 3316.
-		// DROP: whereis — not a relation filter (IP-in-prefix spatial search
-		// via Model.whereis_ip line 3327); out of Phase 70 scope.
-		schemaannot.WithPrepareQueryAllow(
-			"ixlan__name",
-			"ixlan__ix__name",
-			"ixlan__ix__id",
-		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

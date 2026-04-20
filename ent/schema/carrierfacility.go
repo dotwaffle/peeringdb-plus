@@ -8,8 +8,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/lrstanley/entrest"
-
-	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // CarrierFacility holds the schema definition for the CarrierFacility entity.
@@ -92,19 +90,6 @@ func (CarrierFacility) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
-		// Phase 70 TRAVERSAL-01: Path A allowlist derived from upstream
-		// peeringdb_server/serializers.py:2124 CarrierFacilitySerializer (no
-		// prepare_query classmethod — inherits ModelSerializer default plus
-		// queryable_relations auto-introspection). Paired upstream anchor:
-		// serializers.py:2244 CarrierSerializer.prepare_query — same FK
-		// reach-set as Carrier ↔ Facility via this junction table.
-		// Meta.related_fields = ["carrier", "facility"] (implicit, parallels
-		// IxFacility and NetworkFacility junction-table conventions).
-		schemaannot.WithPrepareQueryAllow(
-			"carrier__name",
-			"fac__name",
-			"fac__country",
-		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

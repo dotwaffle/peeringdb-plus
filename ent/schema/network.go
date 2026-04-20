@@ -10,7 +10,6 @@ import (
 	"github.com/lrstanley/entrest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
-	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // Network holds the schema definition for the Network entity.
@@ -192,27 +191,6 @@ func (Network) Fields() []ent.Field {
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
-
-		// Phase 69 UNICODE-01 shadow columns — internal plumbing for pdbcompat
-		// diacritic-insensitive matching; populated by internal/sync.upsert via
-		// internal/unifold.Fold. Skipped from entrest + entgql so they stay
-		// server-side and do not leak to any wire surface (proto is already
-		// frozen via entproto.SkipGenFile in ent/entc.go).
-		field.String("name_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
-		field.String("aka_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
-		field.String("name_long_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of name_long for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
 	}
 }
 
@@ -249,42 +227,6 @@ func (Network) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
-		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
-		// peeringdb_server/serializers.py:2947 NetworkSerializer.prepare_query
-		// (secondary cite: serializers.py:2995
-		// NetworkSerializer.finalize_query_params — legacy info_type → info_types
-		// rewrite). get_relation_filters seeds ["ixlan", "ix", "netixlan",
-		// "netfac", "fac", ...] plus org__* derived from select_related("org").
-		//
-		// Keys use TraversalKey tokens (equivalent to PeeringDB type names
-		// like "netfac", "netixlan") — NOT the ent edge Go name
-		// ("network_facilities", "network_ix_lans"). The parser resolves
-		// allowlist entries via LookupEdge, which indexes Edges[] by
-		// TraversalKey; a Go-name key is silently ignored and behaves
-		// identically to an unconfigured filter (Phase 70 REVIEW WR-01
-		// regression — upstream spelling "network_facilities__facility__name"
-		// renamed to "netfac__fac__name" here to match the runtime lookup
-		// convention already used elsewhere in this schema).
-		//
-		// TRAVERSAL-gap: ix__name, ixlan__name, and fac__name on net are
-		// listed here for upstream-parity readability only — NONE resolve
-		// at runtime. Network has no direct edges to ix / ixlan / fac in
-		// our ent schema; those targets are reachable only through the
-		// junction entities (netixlan, netfac), which would require a
-		// 3-hop traversal (net→netixlan→ixlan→ix or net→netfac→fac) and
-		// exceeds the D-04 2-hop cap. The parser silent-ignores these
-		// keys (TestTraversal_E2E_Matrix.upstream_5081_net_ix_name_contains
-		// locks the behaviour). Kept in the list as a comment-like marker
-		// so upstream-parity readers see the mapping; removing them would
-		// hide the upstream shape without changing behaviour.
-		schemaannot.WithPrepareQueryAllow(
-			"org__name",
-			"org__id",
-			"ix__name",    // TRAVERSAL-gap: junction via netixlan, >2 hops
-			"ixlan__name", // TRAVERSAL-gap: junction via netixlan, >2 hops
-			"fac__name",   // TRAVERSAL-gap: junction via netfac, >2 hops
-			"netfac__fac__name",
-		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

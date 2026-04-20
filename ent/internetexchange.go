@@ -21,6 +21,14 @@ type InternetExchange struct {
 	// ID of the ent.
 	// PeeringDB internetexchange ID
 	ID int `json:"id,omitempty"`
+	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	NameFold string `json:"name_fold"`
+	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	AkaFold string `json:"aka_fold"`
+	// Unicode-folded form of name_long for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	NameLongFold string `json:"name_long_fold"`
+	// Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	CityFold string `json:"city_fold"`
 	// FK to organization
 	OrgID *int `json:"org_id"`
 	// Also known as
@@ -89,14 +97,6 @@ type InternetExchange struct {
 	Updated time.Time `json:"updated"`
 	// Record status
 	Status string `json:"status"`
-	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	NameFold string `json:"name_fold"`
-	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	AkaFold string `json:"aka_fold"`
-	// Unicode-folded form of name_long for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	NameLongFold string `json:"name_long_fold"`
-	// Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	CityFold string `json:"city_fold"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the InternetExchangeQuery when eager-loading is set.
 	Edges        InternetExchangeEdges `json:"edges"`
@@ -161,7 +161,7 @@ func (*InternetExchange) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case internetexchange.FieldID, internetexchange.FieldOrgID, internetexchange.FieldIxfNetCount, internetexchange.FieldNetCount, internetexchange.FieldFacCount:
 			values[i] = new(sql.NullInt64)
-		case internetexchange.FieldAka, internetexchange.FieldCity, internetexchange.FieldCountry, internetexchange.FieldLogo, internetexchange.FieldMedia, internetexchange.FieldName, internetexchange.FieldNameLong, internetexchange.FieldNotes, internetexchange.FieldPolicyEmail, internetexchange.FieldPolicyPhone, internetexchange.FieldRegionContinent, internetexchange.FieldSalesEmail, internetexchange.FieldSalesPhone, internetexchange.FieldServiceLevel, internetexchange.FieldStatusDashboard, internetexchange.FieldTechEmail, internetexchange.FieldTechPhone, internetexchange.FieldTerms, internetexchange.FieldURLStats, internetexchange.FieldWebsite, internetexchange.FieldIxfImportRequest, internetexchange.FieldIxfImportRequestStatus, internetexchange.FieldStatus, internetexchange.FieldNameFold, internetexchange.FieldAkaFold, internetexchange.FieldNameLongFold, internetexchange.FieldCityFold:
+		case internetexchange.FieldNameFold, internetexchange.FieldAkaFold, internetexchange.FieldNameLongFold, internetexchange.FieldCityFold, internetexchange.FieldAka, internetexchange.FieldCity, internetexchange.FieldCountry, internetexchange.FieldLogo, internetexchange.FieldMedia, internetexchange.FieldName, internetexchange.FieldNameLong, internetexchange.FieldNotes, internetexchange.FieldPolicyEmail, internetexchange.FieldPolicyPhone, internetexchange.FieldRegionContinent, internetexchange.FieldSalesEmail, internetexchange.FieldSalesPhone, internetexchange.FieldServiceLevel, internetexchange.FieldStatusDashboard, internetexchange.FieldTechEmail, internetexchange.FieldTechPhone, internetexchange.FieldTerms, internetexchange.FieldURLStats, internetexchange.FieldWebsite, internetexchange.FieldIxfImportRequest, internetexchange.FieldIxfImportRequestStatus, internetexchange.FieldStatus:
 			values[i] = new(sql.NullString)
 		case internetexchange.FieldIxfLastImport, internetexchange.FieldCreated, internetexchange.FieldUpdated:
 			values[i] = new(sql.NullTime)
@@ -186,6 +186,30 @@ func (_m *InternetExchange) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
+		case internetexchange.FieldNameFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_fold", values[i])
+			} else if value.Valid {
+				_m.NameFold = value.String
+			}
+		case internetexchange.FieldAkaFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field aka_fold", values[i])
+			} else if value.Valid {
+				_m.AkaFold = value.String
+			}
+		case internetexchange.FieldNameLongFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name_long_fold", values[i])
+			} else if value.Valid {
+				_m.NameLongFold = value.String
+			}
+		case internetexchange.FieldCityFold:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field city_fold", values[i])
+			} else if value.Valid {
+				_m.CityFold = value.String
+			}
 		case internetexchange.FieldOrgID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field org_id", values[i])
@@ -397,30 +421,6 @@ func (_m *InternetExchange) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = value.String
 			}
-		case internetexchange.FieldNameFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name_fold", values[i])
-			} else if value.Valid {
-				_m.NameFold = value.String
-			}
-		case internetexchange.FieldAkaFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field aka_fold", values[i])
-			} else if value.Valid {
-				_m.AkaFold = value.String
-			}
-		case internetexchange.FieldNameLongFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name_long_fold", values[i])
-			} else if value.Valid {
-				_m.NameLongFold = value.String
-			}
-		case internetexchange.FieldCityFold:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field city_fold", values[i])
-			} else if value.Valid {
-				_m.CityFold = value.String
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -472,6 +472,18 @@ func (_m *InternetExchange) String() string {
 	var builder strings.Builder
 	builder.WriteString("InternetExchange(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("name_fold=")
+	builder.WriteString(_m.NameFold)
+	builder.WriteString(", ")
+	builder.WriteString("aka_fold=")
+	builder.WriteString(_m.AkaFold)
+	builder.WriteString(", ")
+	builder.WriteString("name_long_fold=")
+	builder.WriteString(_m.NameLongFold)
+	builder.WriteString(", ")
+	builder.WriteString("city_fold=")
+	builder.WriteString(_m.CityFold)
+	builder.WriteString(", ")
 	if v := _m.OrgID; v != nil {
 		builder.WriteString("org_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
@@ -583,18 +595,6 @@ func (_m *InternetExchange) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
-	builder.WriteString(", ")
-	builder.WriteString("name_fold=")
-	builder.WriteString(_m.NameFold)
-	builder.WriteString(", ")
-	builder.WriteString("aka_fold=")
-	builder.WriteString(_m.AkaFold)
-	builder.WriteString(", ")
-	builder.WriteString("name_long_fold=")
-	builder.WriteString(_m.NameLongFold)
-	builder.WriteString(", ")
-	builder.WriteString("city_fold=")
-	builder.WriteString(_m.CityFold)
 	builder.WriteByte(')')
 	return builder.String()
 }

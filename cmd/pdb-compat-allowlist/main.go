@@ -33,15 +33,21 @@ import (
 
 	"entgo.io/ent/entc"
 	"entgo.io/ent/entc/gen"
+
+	"github.com/dotwaffle/peeringdb-plus/ent/schema"
 )
 
 // Annotation name constants — must match internal/pdbcompat/annotations.go.
 // Redeclared here as local strings to avoid importing internal/pdbcompat
 // from a cmd/ tool that runs during `go generate` (keeps the codegen tool
 // independent of the runtime package layering).
+//
+// Only FilterExcludeFromTraversal is still consumed here: Path A
+// PrepareQueryAllow is now read directly from schema.PrepareQueryAllows
+// (ent/schema/pdb_allowlists.go) per the 260420-esb sibling-files
+// refactor.
 const (
-	prepareQueryAllowName = "PrepareQueryAllow"
-	filterExcludeName     = "FilterExcludeFromTraversal"
+	filterExcludeName = "FilterExcludeFromTraversal"
 )
 
 // AllowlistData is the template input assembled by main() before render.
@@ -117,11 +123,25 @@ func main() {
 	}
 
 	data := AllowlistData{}
-	for _, node := range graph.Nodes {
-		entry := extractAllowlist(node)
+
+	// Path A: read directly from the hand-written schema.PrepareQueryAllows
+	// map (ent/schema/pdb_allowlists.go). Moved off per-schema Annotations()
+	// calls in the 260420-esb sibling-files refactor so cmd/pdb-schema-generate
+	// can freely regenerate ent/schema/{type}.go without stripping hand-edits.
+	//
+	// Keys in the map are PeeringDB type strings ("net", "fac", etc.) — the
+	// same namespace this tool emits into allowlist_gen.go.
+	for pdbType, annot := range schema.PrepareQueryAllows {
+		entry := buildAllowlistEntry(pdbType, annot.Fields)
 		if entry != nil {
 			data.Entries = append(data.Entries, *entry)
 		}
+	}
+
+	// Path B + FilterExcludes still walk the ent gen.Graph — they describe
+	// edge relationships that are authoritatively modelled in ent schema,
+	// not hand-authored annotations.
+	for _, node := range graph.Nodes {
 		data.FilterExcludes = append(data.FilterExcludes, extractExcludes(node)...)
 		if edgeEntry := extractEdges(node); edgeEntry != nil {
 			data.EdgeEntries = append(data.EdgeEntries, *edgeEntry)
@@ -157,32 +177,27 @@ func main() {
 	}
 }
 
-// extractAllowlist pulls PrepareQueryAllow.Fields from a node's
-// Annotations map. ent's LoadGraph serializes annotations via JSON, so
-// the concrete type in graph.Nodes[i].Annotations[<name>] is
-// map[string]any (the JSON-decoded form of the struct). We tolerate
-// both that and the concrete struct in case a future ent upgrade
-// changes behaviour.
-func extractAllowlist(node *gen.Type) *NodeEntry {
-	raw, ok := node.Annotations[prepareQueryAllowName]
-	if !ok {
-		return nil
-	}
-	fields := decodeFields(raw)
-	if len(fields) == 0 {
-		return nil
-	}
-	pdbType := pdbTypeFor(node.Name)
-	if pdbType == "" {
+// buildAllowlistEntry converts a PDB type ("net") + a verbatim list of
+// upstream-shaped filter keys ("org__name", "ixlan__ix__fac_count") into
+// the NodeEntry shape consumed by the outputTemplate. Splits on "__" to
+// route 2-segment keys into Direct and 3-segment keys into Via; drops
+// keys with 0/1 or 4+ segments with a logged warning.
+//
+// This replaces the previous ent-graph-annotation walk. Source-of-truth
+// for Path A is now ent/schema/pdb_allowlists.go (the 260420-esb
+// sibling-files refactor); the ent graph is still consulted for Path B
+// (Edges) and FilterExcludes, which encode edge-relationship metadata
+// that only ent knows.
+func buildAllowlistEntry(pdbType string, fields []string) *NodeEntry {
+	if pdbType == "" || len(fields) == 0 {
 		return nil
 	}
 	entry := &NodeEntry{
-		GoName:  node.Name,
+		GoName:  goNameFor(pdbType),
 		PDBType: pdbType,
 	}
 	viaMap := make(map[string][]string)
 	for _, f := range fields {
-		// Count "__" separators to decide direct vs 2-hop vs drop.
 		parts := strings.Split(f, "__")
 		switch len(parts) {
 		case 2:
@@ -191,10 +206,10 @@ func extractAllowlist(node *gen.Type) *NodeEntry {
 			// "ixlan__ix__fac_count" → Via["ixlan"] = ["ix__fac_count"]
 			viaMap[parts[0]] = append(viaMap[parts[0]], strings.Join(parts[1:], "__"))
 		case 0, 1:
-			log.Printf("pdb-compat-allowlist: %s skipping malformed field %q (needs at least one __)", node.Name, f)
+			log.Printf("pdb-compat-allowlist: %s skipping malformed field %q (needs at least one __)", pdbType, f)
 		default:
 			// 4+ segments — violates D-04 2-hop cap. Drop with warn.
-			log.Printf("pdb-compat-allowlist: %s dropping >2-hop field %q (D-04 cap)", node.Name, f)
+			log.Printf("pdb-compat-allowlist: %s dropping >2-hop field %q (D-04 cap)", pdbType, f)
 		}
 	}
 	sort.Strings(entry.Direct)
@@ -210,34 +225,6 @@ func extractAllowlist(node *gen.Type) *NodeEntry {
 		entry.Via = append(entry.Via, ViaEntry{FirstHop: h, Tails: viaMap[h]})
 	}
 	return entry
-}
-
-// decodeFields accepts EITHER the JSON-roundtripped map form
-// (map[string]any with a "Fields" key → []any of strings) OR a concrete
-// struct implementing a GetFields() []string accessor. The map form is
-// what ent's load.Config.Load() produces today; the interface form is a
-// belt-and-suspenders fallback for future ent releases that might stop
-// JSON-serializing annotation payloads.
-func decodeFields(raw any) []string {
-	if raw == nil {
-		return nil
-	}
-	if m, ok := raw.(map[string]any); ok {
-		arr, _ := m["Fields"].([]any)
-		out := make([]string, 0, len(arr))
-		for _, x := range arr {
-			if s, ok := x.(string); ok {
-				out = append(out, s)
-			}
-		}
-		return out
-	}
-	// Best-effort reflection-free struct match via a minimal interface.
-	type fieldser interface{ GetFields() []string }
-	if f, ok := raw.(fieldser); ok {
-		return f.GetFields()
-	}
-	return nil
 }
 
 // extractExcludes walks a node's edges and collects those carrying the
@@ -350,26 +337,46 @@ func resolveParentFKColumn(e *gen.Edge) string {
 // modelNameOverrides in cmd/pdb-schema-generate/main.go. Unknown names
 // return "" and are skipped by the caller.
 func pdbTypeFor(goName string) string {
-	m := map[string]string{
-		"Organization":     "org",
-		"Network":          "net",
-		"Facility":         "fac",
-		"InternetExchange": "ix",
-		"Poc":              "poc",
-		"IxLan":            "ixlan",
-		"IxPrefix":         "ixpfx",
-		"NetworkIxLan":     "netixlan",
-		"NetworkFacility":  "netfac",
-		"IxFacility":       "ixfac",
-		"Carrier":          "carrier",
-		"CarrierFacility":  "carrierfac",
-		"Campus":           "campus",
-	}
-	if v, ok := m[goName]; ok {
+	if v, ok := pdbTypeMap[goName]; ok {
 		return v
 	}
 	log.Printf("pdb-compat-allowlist: no PeeringDB type mapping for %q — skipping", goName)
 	return ""
+}
+
+// goNameFor is the reverse of pdbTypeFor — maps a PeeringDB type string
+// ("net") back to its ent Go type name ("Network"). Used when building
+// NodeEntry records from schema.PrepareQueryAllows (whose keys are PDB
+// type strings). Unknown inputs return "" and are logged — the caller
+// skips the entry.
+func goNameFor(pdbType string) string {
+	for goName, pt := range pdbTypeMap {
+		if pt == pdbType {
+			return goName
+		}
+	}
+	log.Printf("pdb-compat-allowlist: no Go type mapping for PDB type %q — skipping", pdbType)
+	return ""
+}
+
+// pdbTypeMap is the single source-of-truth for the PDB-type ↔ Go-name
+// correspondence. Exposed as a package-level var (not built inline in
+// pdbTypeFor) so goNameFor can do a reverse lookup without maintaining
+// a second parallel declaration.
+var pdbTypeMap = map[string]string{
+	"Organization":     "org",
+	"Network":          "net",
+	"Facility":         "fac",
+	"InternetExchange": "ix",
+	"Poc":              "poc",
+	"IxLan":            "ixlan",
+	"IxPrefix":         "ixpfx",
+	"NetworkIxLan":     "netixlan",
+	"NetworkFacility":  "netfac",
+	"IxFacility":       "ixfac",
+	"Carrier":          "carrier",
+	"CarrierFacility":  "carrierfac",
+	"Campus":           "campus",
 }
 
 // outputTemplate is the Go source template for allowlist_gen.go. Every

@@ -27,6 +27,48 @@ type NetworkCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_c *NetworkCreate) SetNameFold(v string) *NetworkCreate {
+	_c.mutation.SetNameFold(v)
+	return _c
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableNameFold(v *string) *NetworkCreate {
+	if v != nil {
+		_c.SetNameFold(*v)
+	}
+	return _c
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_c *NetworkCreate) SetAkaFold(v string) *NetworkCreate {
+	_c.mutation.SetAkaFold(v)
+	return _c
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableAkaFold(v *string) *NetworkCreate {
+	if v != nil {
+		_c.SetAkaFold(*v)
+	}
+	return _c
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (_c *NetworkCreate) SetNameLongFold(v string) *NetworkCreate {
+	_c.mutation.SetNameLongFold(v)
+	return _c
+}
+
+// SetNillableNameLongFold sets the "name_long_fold" field if the given value is not nil.
+func (_c *NetworkCreate) SetNillableNameLongFold(v *string) *NetworkCreate {
+	if v != nil {
+		_c.SetNameLongFold(*v)
+	}
+	return _c
+}
+
 // SetOrgID sets the "org_id" field.
 func (_c *NetworkCreate) SetOrgID(v int) *NetworkCreate {
 	_c.mutation.SetOrgID(v)
@@ -539,48 +581,6 @@ func (_c *NetworkCreate) SetNillableStatus(v *string) *NetworkCreate {
 	return _c
 }
 
-// SetNameFold sets the "name_fold" field.
-func (_c *NetworkCreate) SetNameFold(v string) *NetworkCreate {
-	_c.mutation.SetNameFold(v)
-	return _c
-}
-
-// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableNameFold(v *string) *NetworkCreate {
-	if v != nil {
-		_c.SetNameFold(*v)
-	}
-	return _c
-}
-
-// SetAkaFold sets the "aka_fold" field.
-func (_c *NetworkCreate) SetAkaFold(v string) *NetworkCreate {
-	_c.mutation.SetAkaFold(v)
-	return _c
-}
-
-// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableAkaFold(v *string) *NetworkCreate {
-	if v != nil {
-		_c.SetAkaFold(*v)
-	}
-	return _c
-}
-
-// SetNameLongFold sets the "name_long_fold" field.
-func (_c *NetworkCreate) SetNameLongFold(v string) *NetworkCreate {
-	_c.mutation.SetNameLongFold(v)
-	return _c
-}
-
-// SetNillableNameLongFold sets the "name_long_fold" field if the given value is not nil.
-func (_c *NetworkCreate) SetNillableNameLongFold(v *string) *NetworkCreate {
-	if v != nil {
-		_c.SetNameLongFold(*v)
-	}
-	return _c
-}
-
 // SetID sets the "id" field.
 func (_c *NetworkCreate) SetID(v int) *NetworkCreate {
 	_c.mutation.SetID(v)
@@ -688,6 +688,18 @@ func (_c *NetworkCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *NetworkCreate) defaults() error {
+	if _, ok := _c.mutation.NameFold(); !ok {
+		v := network.DefaultNameFold
+		_c.mutation.SetNameFold(v)
+	}
+	if _, ok := _c.mutation.AkaFold(); !ok {
+		v := network.DefaultAkaFold
+		_c.mutation.SetAkaFold(v)
+	}
+	if _, ok := _c.mutation.NameLongFold(); !ok {
+		v := network.DefaultNameLongFold
+		_c.mutation.SetNameLongFold(v)
+	}
 	if _, ok := _c.mutation.Aka(); !ok {
 		v := network.DefaultAka
 		_c.mutation.SetAka(v)
@@ -784,18 +796,6 @@ func (_c *NetworkCreate) defaults() error {
 		v := network.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
-	if _, ok := _c.mutation.NameFold(); !ok {
-		v := network.DefaultNameFold
-		_c.mutation.SetNameFold(v)
-	}
-	if _, ok := _c.mutation.AkaFold(); !ok {
-		v := network.DefaultAkaFold
-		_c.mutation.SetAkaFold(v)
-	}
-	if _, ok := _c.mutation.NameLongFold(); !ok {
-		v := network.DefaultNameLongFold
-		_c.mutation.SetNameLongFold(v)
-	}
 	return nil
 }
 
@@ -881,6 +881,18 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
+	}
+	if value, ok := _c.mutation.NameFold(); ok {
+		_spec.SetField(network.FieldNameFold, field.TypeString, value)
+		_node.NameFold = value
+	}
+	if value, ok := _c.mutation.AkaFold(); ok {
+		_spec.SetField(network.FieldAkaFold, field.TypeString, value)
+		_node.AkaFold = value
+	}
+	if value, ok := _c.mutation.NameLongFold(); ok {
+		_spec.SetField(network.FieldNameLongFold, field.TypeString, value)
+		_node.NameLongFold = value
 	}
 	if value, ok := _c.mutation.Aka(); ok {
 		_spec.SetField(network.FieldAka, field.TypeString, value)
@@ -1038,18 +1050,6 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 		_spec.SetField(network.FieldStatus, field.TypeString, value)
 		_node.Status = value
 	}
-	if value, ok := _c.mutation.NameFold(); ok {
-		_spec.SetField(network.FieldNameFold, field.TypeString, value)
-		_node.NameFold = value
-	}
-	if value, ok := _c.mutation.AkaFold(); ok {
-		_spec.SetField(network.FieldAkaFold, field.TypeString, value)
-		_node.AkaFold = value
-	}
-	if value, ok := _c.mutation.NameLongFold(); ok {
-		_spec.SetField(network.FieldNameLongFold, field.TypeString, value)
-		_node.NameLongFold = value
-	}
 	if nodes := _c.mutation.NetworkFacilitiesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -1122,7 +1122,7 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 // of the `INSERT` statement. For example:
 //
 //	client.Network.Create().
-//		SetOrgID(v).
+//		SetNameFold(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -1131,7 +1131,7 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.NetworkUpsert) {
-//			SetOrgID(v+v).
+//			SetNameFold(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *NetworkCreate) OnConflict(opts ...sql.ConflictOption) *NetworkUpsertOne {
@@ -1166,6 +1166,60 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetNameFold sets the "name_fold" field.
+func (u *NetworkUpsert) SetNameFold(v string) *NetworkUpsert {
+	u.Set(network.FieldNameFold, v)
+	return u
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateNameFold() *NetworkUpsert {
+	u.SetExcluded(network.FieldNameFold)
+	return u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *NetworkUpsert) ClearNameFold() *NetworkUpsert {
+	u.SetNull(network.FieldNameFold)
+	return u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *NetworkUpsert) SetAkaFold(v string) *NetworkUpsert {
+	u.Set(network.FieldAkaFold, v)
+	return u
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateAkaFold() *NetworkUpsert {
+	u.SetExcluded(network.FieldAkaFold)
+	return u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *NetworkUpsert) ClearAkaFold() *NetworkUpsert {
+	u.SetNull(network.FieldAkaFold)
+	return u
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (u *NetworkUpsert) SetNameLongFold(v string) *NetworkUpsert {
+	u.Set(network.FieldNameLongFold, v)
+	return u
+}
+
+// UpdateNameLongFold sets the "name_long_fold" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateNameLongFold() *NetworkUpsert {
+	u.SetExcluded(network.FieldNameLongFold)
+	return u
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (u *NetworkUpsert) ClearNameLongFold() *NetworkUpsert {
+	u.SetNull(network.FieldNameLongFold)
+	return u
+}
 
 // SetOrgID sets the "org_id" field.
 func (u *NetworkUpsert) SetOrgID(v int) *NetworkUpsert {
@@ -1839,60 +1893,6 @@ func (u *NetworkUpsert) UpdateStatus() *NetworkUpsert {
 	return u
 }
 
-// SetNameFold sets the "name_fold" field.
-func (u *NetworkUpsert) SetNameFold(v string) *NetworkUpsert {
-	u.Set(network.FieldNameFold, v)
-	return u
-}
-
-// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateNameFold() *NetworkUpsert {
-	u.SetExcluded(network.FieldNameFold)
-	return u
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (u *NetworkUpsert) ClearNameFold() *NetworkUpsert {
-	u.SetNull(network.FieldNameFold)
-	return u
-}
-
-// SetAkaFold sets the "aka_fold" field.
-func (u *NetworkUpsert) SetAkaFold(v string) *NetworkUpsert {
-	u.Set(network.FieldAkaFold, v)
-	return u
-}
-
-// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateAkaFold() *NetworkUpsert {
-	u.SetExcluded(network.FieldAkaFold)
-	return u
-}
-
-// ClearAkaFold clears the value of the "aka_fold" field.
-func (u *NetworkUpsert) ClearAkaFold() *NetworkUpsert {
-	u.SetNull(network.FieldAkaFold)
-	return u
-}
-
-// SetNameLongFold sets the "name_long_fold" field.
-func (u *NetworkUpsert) SetNameLongFold(v string) *NetworkUpsert {
-	u.Set(network.FieldNameLongFold, v)
-	return u
-}
-
-// UpdateNameLongFold sets the "name_long_fold" field to the value that was provided on create.
-func (u *NetworkUpsert) UpdateNameLongFold() *NetworkUpsert {
-	u.SetExcluded(network.FieldNameLongFold)
-	return u
-}
-
-// ClearNameLongFold clears the value of the "name_long_fold" field.
-func (u *NetworkUpsert) ClearNameLongFold() *NetworkUpsert {
-	u.SetNull(network.FieldNameLongFold)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1942,6 +1942,69 @@ func (u *NetworkUpsertOne) Update(set func(*NetworkUpsert)) *NetworkUpsertOne {
 		set(&NetworkUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *NetworkUpsertOne) SetNameFold(v string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateNameFold() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *NetworkUpsertOne) ClearNameFold() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearNameFold()
+	})
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *NetworkUpsertOne) SetAkaFold(v string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetAkaFold(v)
+	})
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateAkaFold() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateAkaFold()
+	})
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *NetworkUpsertOne) ClearAkaFold() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearAkaFold()
+	})
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (u *NetworkUpsertOne) SetNameLongFold(v string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetNameLongFold(v)
+	})
+}
+
+// UpdateNameLongFold sets the "name_long_fold" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateNameLongFold() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateNameLongFold()
+	})
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (u *NetworkUpsertOne) ClearNameLongFold() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearNameLongFold()
+	})
 }
 
 // SetOrgID sets the "org_id" field.
@@ -2728,69 +2791,6 @@ func (u *NetworkUpsertOne) UpdateStatus() *NetworkUpsertOne {
 	})
 }
 
-// SetNameFold sets the "name_fold" field.
-func (u *NetworkUpsertOne) SetNameFold(v string) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetNameFold(v)
-	})
-}
-
-// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateNameFold() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateNameFold()
-	})
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (u *NetworkUpsertOne) ClearNameFold() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearNameFold()
-	})
-}
-
-// SetAkaFold sets the "aka_fold" field.
-func (u *NetworkUpsertOne) SetAkaFold(v string) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetAkaFold(v)
-	})
-}
-
-// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateAkaFold() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateAkaFold()
-	})
-}
-
-// ClearAkaFold clears the value of the "aka_fold" field.
-func (u *NetworkUpsertOne) ClearAkaFold() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearAkaFold()
-	})
-}
-
-// SetNameLongFold sets the "name_long_fold" field.
-func (u *NetworkUpsertOne) SetNameLongFold(v string) *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetNameLongFold(v)
-	})
-}
-
-// UpdateNameLongFold sets the "name_long_fold" field to the value that was provided on create.
-func (u *NetworkUpsertOne) UpdateNameLongFold() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateNameLongFold()
-	})
-}
-
-// ClearNameLongFold clears the value of the "name_long_fold" field.
-func (u *NetworkUpsertOne) ClearNameLongFold() *NetworkUpsertOne {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearNameLongFold()
-	})
-}
-
 // Exec executes the query.
 func (u *NetworkUpsertOne) Exec(ctx context.Context) error {
 	if len(u.create.conflict) == 0 {
@@ -2926,7 +2926,7 @@ func (_c *NetworkCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.NetworkUpsert) {
-//			SetOrgID(v+v).
+//			SetNameFold(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *NetworkCreateBulk) OnConflict(opts ...sql.ConflictOption) *NetworkUpsertBulk {
@@ -3006,6 +3006,69 @@ func (u *NetworkUpsertBulk) Update(set func(*NetworkUpsert)) *NetworkUpsertBulk 
 		set(&NetworkUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetNameFold sets the "name_fold" field.
+func (u *NetworkUpsertBulk) SetNameFold(v string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetNameFold(v)
+	})
+}
+
+// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateNameFold() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateNameFold()
+	})
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (u *NetworkUpsertBulk) ClearNameFold() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearNameFold()
+	})
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (u *NetworkUpsertBulk) SetAkaFold(v string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetAkaFold(v)
+	})
+}
+
+// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateAkaFold() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateAkaFold()
+	})
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (u *NetworkUpsertBulk) ClearAkaFold() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearAkaFold()
+	})
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (u *NetworkUpsertBulk) SetNameLongFold(v string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetNameLongFold(v)
+	})
+}
+
+// UpdateNameLongFold sets the "name_long_fold" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateNameLongFold() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateNameLongFold()
+	})
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (u *NetworkUpsertBulk) ClearNameLongFold() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearNameLongFold()
+	})
 }
 
 // SetOrgID sets the "org_id" field.
@@ -3789,69 +3852,6 @@ func (u *NetworkUpsertBulk) SetStatus(v string) *NetworkUpsertBulk {
 func (u *NetworkUpsertBulk) UpdateStatus() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
 		s.UpdateStatus()
-	})
-}
-
-// SetNameFold sets the "name_fold" field.
-func (u *NetworkUpsertBulk) SetNameFold(v string) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetNameFold(v)
-	})
-}
-
-// UpdateNameFold sets the "name_fold" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateNameFold() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateNameFold()
-	})
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (u *NetworkUpsertBulk) ClearNameFold() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearNameFold()
-	})
-}
-
-// SetAkaFold sets the "aka_fold" field.
-func (u *NetworkUpsertBulk) SetAkaFold(v string) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetAkaFold(v)
-	})
-}
-
-// UpdateAkaFold sets the "aka_fold" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateAkaFold() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateAkaFold()
-	})
-}
-
-// ClearAkaFold clears the value of the "aka_fold" field.
-func (u *NetworkUpsertBulk) ClearAkaFold() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearAkaFold()
-	})
-}
-
-// SetNameLongFold sets the "name_long_fold" field.
-func (u *NetworkUpsertBulk) SetNameLongFold(v string) *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.SetNameLongFold(v)
-	})
-}
-
-// UpdateNameLongFold sets the "name_long_fold" field to the value that was provided on create.
-func (u *NetworkUpsertBulk) UpdateNameLongFold() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.UpdateNameLongFold()
-	})
-}
-
-// ClearNameLongFold clears the value of the "name_long_fold" field.
-func (u *NetworkUpsertBulk) ClearNameLongFold() *NetworkUpsertBulk {
-	return u.Update(func(s *NetworkUpsert) {
-		s.ClearNameLongFold()
 	})
 }
 

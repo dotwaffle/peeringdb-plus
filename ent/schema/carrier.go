@@ -10,7 +10,6 @@ import (
 	"github.com/lrstanley/entrest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
-	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat/schemaannot"
 )
 
 // Carrier holds the schema definition for the Carrier entity.
@@ -90,22 +89,6 @@ func (Carrier) Fields() []ent.Field {
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Record status"),
-
-		// Phase 69 UNICODE-01 shadow columns — internal plumbing for pdbcompat
-		// diacritic-insensitive matching; populated by internal/sync.upsert via
-		// internal/unifold.Fold. Skipped from entrest + entgql so they stay
-		// server-side and do not leak to any wire surface (proto is already
-		// frozen via entproto.SkipGenFile in ent/entc.go).
-		field.String("name_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
-		field.String("aka_fold").
-			Optional().
-			Default("").
-			Annotations(entgql.Skip(entgql.SkipAll), entrest.WithSkip(true)).
-			Comment("Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
 	}
 }
 
@@ -137,17 +120,6 @@ func (Carrier) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
-		// Phase 70 TRAVERSAL-01: Path A allowlist mirrored from upstream
-		// peeringdb_server/serializers.py:2244 CarrierSerializer.prepare_query.
-		// Upstream seed is the reverse-accessor "carrierfac_set__facility_id";
-		// we translate to PDB-surface aliases fac__name / fac__country that
-		// resolve through the local forward edges
-		// carrier.carrier_facilities.facility at parse time (Plan 70-05).
-		schemaannot.WithPrepareQueryAllow(
-			"org__name",
-			"fac__name",
-			"fac__country",
-		),
 		entrest.WithIncludeOperations(entrest.OperationRead, entrest.OperationList),
 		entrest.WithDefaultSort("updated"),
 		entrest.WithDefaultOrder(entrest.OrderDesc),

@@ -375,12 +375,12 @@ func (_q *InternetExchangeQuery) WithOrganization(opts ...func(*OrganizationQuer
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id"`
+//		NameFold string `json:"name_fold"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.InternetExchange.Query().
-//		GroupBy(internetexchange.FieldOrgID).
+//		GroupBy(internetexchange.FieldNameFold).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *InternetExchangeQuery) GroupBy(field string, fields ...string) *InternetExchangeGroupBy {
@@ -398,11 +398,11 @@ func (_q *InternetExchangeQuery) GroupBy(field string, fields ...string) *Intern
 // Example:
 //
 //	var v []struct {
-//		OrgID int `json:"org_id"`
+//		NameFold string `json:"name_fold"`
 //	}
 //
 //	client.InternetExchange.Query().
-//		Select(internetexchange.FieldOrgID).
+//		Select(internetexchange.FieldNameFold).
 //		Scan(ctx, &v)
 func (_q *InternetExchangeQuery) Select(fields ...string) *InternetExchangeSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

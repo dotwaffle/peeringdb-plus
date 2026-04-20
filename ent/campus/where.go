@@ -55,6 +55,11 @@ func IDLTE(id int) predicate.Campus {
 	return predicate.Campus(sql.FieldLTE(FieldID, id))
 }
 
+// NameFold applies equality check predicate on the "name_fold" field. It's identical to NameFoldEQ.
+func NameFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEQ(FieldNameFold, v))
+}
+
 // OrgID applies equality check predicate on the "org_id" field. It's identical to OrgIDEQ.
 func OrgID(v int) predicate.Campus {
 	return predicate.Campus(sql.FieldEQ(FieldOrgID, v))
@@ -130,9 +135,79 @@ func Status(v string) predicate.Campus {
 	return predicate.Campus(sql.FieldEQ(FieldStatus, v))
 }
 
-// NameFold applies equality check predicate on the "name_fold" field. It's identical to NameFoldEQ.
-func NameFold(v string) predicate.Campus {
+// NameFoldEQ applies the EQ predicate on the "name_fold" field.
+func NameFoldEQ(v string) predicate.Campus {
 	return predicate.Campus(sql.FieldEQ(FieldNameFold, v))
+}
+
+// NameFoldNEQ applies the NEQ predicate on the "name_fold" field.
+func NameFoldNEQ(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldNEQ(FieldNameFold, v))
+}
+
+// NameFoldIn applies the In predicate on the "name_fold" field.
+func NameFoldIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldIn(FieldNameFold, vs...))
+}
+
+// NameFoldNotIn applies the NotIn predicate on the "name_fold" field.
+func NameFoldNotIn(vs ...string) predicate.Campus {
+	return predicate.Campus(sql.FieldNotIn(FieldNameFold, vs...))
+}
+
+// NameFoldGT applies the GT predicate on the "name_fold" field.
+func NameFoldGT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGT(FieldNameFold, v))
+}
+
+// NameFoldGTE applies the GTE predicate on the "name_fold" field.
+func NameFoldGTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldGTE(FieldNameFold, v))
+}
+
+// NameFoldLT applies the LT predicate on the "name_fold" field.
+func NameFoldLT(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLT(FieldNameFold, v))
+}
+
+// NameFoldLTE applies the LTE predicate on the "name_fold" field.
+func NameFoldLTE(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldLTE(FieldNameFold, v))
+}
+
+// NameFoldContains applies the Contains predicate on the "name_fold" field.
+func NameFoldContains(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContains(FieldNameFold, v))
+}
+
+// NameFoldHasPrefix applies the HasPrefix predicate on the "name_fold" field.
+func NameFoldHasPrefix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasPrefix(FieldNameFold, v))
+}
+
+// NameFoldHasSuffix applies the HasSuffix predicate on the "name_fold" field.
+func NameFoldHasSuffix(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldHasSuffix(FieldNameFold, v))
+}
+
+// NameFoldIsNil applies the IsNil predicate on the "name_fold" field.
+func NameFoldIsNil() predicate.Campus {
+	return predicate.Campus(sql.FieldIsNull(FieldNameFold))
+}
+
+// NameFoldNotNil applies the NotNil predicate on the "name_fold" field.
+func NameFoldNotNil() predicate.Campus {
+	return predicate.Campus(sql.FieldNotNull(FieldNameFold))
+}
+
+// NameFoldEqualFold applies the EqualFold predicate on the "name_fold" field.
+func NameFoldEqualFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldEqualFold(FieldNameFold, v))
+}
+
+// NameFoldContainsFold applies the ContainsFold predicate on the "name_fold" field.
+func NameFoldContainsFold(v string) predicate.Campus {
+	return predicate.Campus(sql.FieldContainsFold(FieldNameFold, v))
 }
 
 // OrgIDEQ applies the EQ predicate on the "org_id" field.
@@ -1133,81 +1208,6 @@ func StatusEqualFold(v string) predicate.Campus {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.Campus {
 	return predicate.Campus(sql.FieldContainsFold(FieldStatus, v))
-}
-
-// NameFoldEQ applies the EQ predicate on the "name_fold" field.
-func NameFoldEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEQ(FieldNameFold, v))
-}
-
-// NameFoldNEQ applies the NEQ predicate on the "name_fold" field.
-func NameFoldNEQ(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldNEQ(FieldNameFold, v))
-}
-
-// NameFoldIn applies the In predicate on the "name_fold" field.
-func NameFoldIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldIn(FieldNameFold, vs...))
-}
-
-// NameFoldNotIn applies the NotIn predicate on the "name_fold" field.
-func NameFoldNotIn(vs ...string) predicate.Campus {
-	return predicate.Campus(sql.FieldNotIn(FieldNameFold, vs...))
-}
-
-// NameFoldGT applies the GT predicate on the "name_fold" field.
-func NameFoldGT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGT(FieldNameFold, v))
-}
-
-// NameFoldGTE applies the GTE predicate on the "name_fold" field.
-func NameFoldGTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldGTE(FieldNameFold, v))
-}
-
-// NameFoldLT applies the LT predicate on the "name_fold" field.
-func NameFoldLT(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLT(FieldNameFold, v))
-}
-
-// NameFoldLTE applies the LTE predicate on the "name_fold" field.
-func NameFoldLTE(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldLTE(FieldNameFold, v))
-}
-
-// NameFoldContains applies the Contains predicate on the "name_fold" field.
-func NameFoldContains(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContains(FieldNameFold, v))
-}
-
-// NameFoldHasPrefix applies the HasPrefix predicate on the "name_fold" field.
-func NameFoldHasPrefix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasPrefix(FieldNameFold, v))
-}
-
-// NameFoldHasSuffix applies the HasSuffix predicate on the "name_fold" field.
-func NameFoldHasSuffix(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldHasSuffix(FieldNameFold, v))
-}
-
-// NameFoldIsNil applies the IsNil predicate on the "name_fold" field.
-func NameFoldIsNil() predicate.Campus {
-	return predicate.Campus(sql.FieldIsNull(FieldNameFold))
-}
-
-// NameFoldNotNil applies the NotNil predicate on the "name_fold" field.
-func NameFoldNotNil() predicate.Campus {
-	return predicate.Campus(sql.FieldNotNull(FieldNameFold))
-}
-
-// NameFoldEqualFold applies the EqualFold predicate on the "name_fold" field.
-func NameFoldEqualFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldEqualFold(FieldNameFold, v))
-}
-
-// NameFoldContainsFold applies the ContainsFold predicate on the "name_fold" field.
-func NameFoldContainsFold(v string) predicate.Campus {
-	return predicate.Campus(sql.FieldContainsFold(FieldNameFold, v))
 }
 
 // HasFacilities applies the HasEdge predicate on the "facilities" edge.

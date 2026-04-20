@@ -34,6 +34,66 @@ func (_u *NetworkUpdate) Where(ps ...predicate.Network) *NetworkUpdate {
 	return _u
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_u *NetworkUpdate) SetNameFold(v string) *NetworkUpdate {
+	_u.mutation.SetNameFold(v)
+	return _u
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableNameFold(v *string) *NetworkUpdate {
+	if v != nil {
+		_u.SetNameFold(*v)
+	}
+	return _u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (_u *NetworkUpdate) ClearNameFold() *NetworkUpdate {
+	_u.mutation.ClearNameFold()
+	return _u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_u *NetworkUpdate) SetAkaFold(v string) *NetworkUpdate {
+	_u.mutation.SetAkaFold(v)
+	return _u
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableAkaFold(v *string) *NetworkUpdate {
+	if v != nil {
+		_u.SetAkaFold(*v)
+	}
+	return _u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (_u *NetworkUpdate) ClearAkaFold() *NetworkUpdate {
+	_u.mutation.ClearAkaFold()
+	return _u
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (_u *NetworkUpdate) SetNameLongFold(v string) *NetworkUpdate {
+	_u.mutation.SetNameLongFold(v)
+	return _u
+}
+
+// SetNillableNameLongFold sets the "name_long_fold" field if the given value is not nil.
+func (_u *NetworkUpdate) SetNillableNameLongFold(v *string) *NetworkUpdate {
+	if v != nil {
+		_u.SetNameLongFold(*v)
+	}
+	return _u
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (_u *NetworkUpdate) ClearNameLongFold() *NetworkUpdate {
+	_u.mutation.ClearNameLongFold()
+	return _u
+}
+
 // SetOrgID sets the "org_id" field.
 func (_u *NetworkUpdate) SetOrgID(v int) *NetworkUpdate {
 	_u.mutation.SetOrgID(v)
@@ -785,66 +845,6 @@ func (_u *NetworkUpdate) SetNillableStatus(v *string) *NetworkUpdate {
 	return _u
 }
 
-// SetNameFold sets the "name_fold" field.
-func (_u *NetworkUpdate) SetNameFold(v string) *NetworkUpdate {
-	_u.mutation.SetNameFold(v)
-	return _u
-}
-
-// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableNameFold(v *string) *NetworkUpdate {
-	if v != nil {
-		_u.SetNameFold(*v)
-	}
-	return _u
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (_u *NetworkUpdate) ClearNameFold() *NetworkUpdate {
-	_u.mutation.ClearNameFold()
-	return _u
-}
-
-// SetAkaFold sets the "aka_fold" field.
-func (_u *NetworkUpdate) SetAkaFold(v string) *NetworkUpdate {
-	_u.mutation.SetAkaFold(v)
-	return _u
-}
-
-// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableAkaFold(v *string) *NetworkUpdate {
-	if v != nil {
-		_u.SetAkaFold(*v)
-	}
-	return _u
-}
-
-// ClearAkaFold clears the value of the "aka_fold" field.
-func (_u *NetworkUpdate) ClearAkaFold() *NetworkUpdate {
-	_u.mutation.ClearAkaFold()
-	return _u
-}
-
-// SetNameLongFold sets the "name_long_fold" field.
-func (_u *NetworkUpdate) SetNameLongFold(v string) *NetworkUpdate {
-	_u.mutation.SetNameLongFold(v)
-	return _u
-}
-
-// SetNillableNameLongFold sets the "name_long_fold" field if the given value is not nil.
-func (_u *NetworkUpdate) SetNillableNameLongFold(v *string) *NetworkUpdate {
-	if v != nil {
-		_u.SetNameLongFold(*v)
-	}
-	return _u
-}
-
-// ClearNameLongFold clears the value of the "name_long_fold" field.
-func (_u *NetworkUpdate) ClearNameLongFold() *NetworkUpdate {
-	_u.mutation.ClearNameLongFold()
-	return _u
-}
-
 // AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by IDs.
 func (_u *NetworkUpdate) AddNetworkFacilityIDs(ids ...int) *NetworkUpdate {
 	_u.mutation.AddNetworkFacilityIDs(ids...)
@@ -1036,6 +1036,24 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.NameFold(); ok {
+		_spec.SetField(network.FieldNameFold, field.TypeString, value)
+	}
+	if _u.mutation.NameFoldCleared() {
+		_spec.ClearField(network.FieldNameFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.AkaFold(); ok {
+		_spec.SetField(network.FieldAkaFold, field.TypeString, value)
+	}
+	if _u.mutation.AkaFoldCleared() {
+		_spec.ClearField(network.FieldAkaFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.NameLongFold(); ok {
+		_spec.SetField(network.FieldNameLongFold, field.TypeString, value)
+	}
+	if _u.mutation.NameLongFoldCleared() {
+		_spec.ClearField(network.FieldNameLongFold, field.TypeString)
 	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(network.FieldAka, field.TypeString, value)
@@ -1260,24 +1278,6 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(network.FieldStatus, field.TypeString, value)
 	}
-	if value, ok := _u.mutation.NameFold(); ok {
-		_spec.SetField(network.FieldNameFold, field.TypeString, value)
-	}
-	if _u.mutation.NameFoldCleared() {
-		_spec.ClearField(network.FieldNameFold, field.TypeString)
-	}
-	if value, ok := _u.mutation.AkaFold(); ok {
-		_spec.SetField(network.FieldAkaFold, field.TypeString, value)
-	}
-	if _u.mutation.AkaFoldCleared() {
-		_spec.ClearField(network.FieldAkaFold, field.TypeString)
-	}
-	if value, ok := _u.mutation.NameLongFold(); ok {
-		_spec.SetField(network.FieldNameLongFold, field.TypeString, value)
-	}
-	if _u.mutation.NameLongFoldCleared() {
-		_spec.ClearField(network.FieldNameLongFold, field.TypeString)
-	}
 	if _u.mutation.NetworkFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -1460,6 +1460,66 @@ type NetworkUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *NetworkMutation
+}
+
+// SetNameFold sets the "name_fold" field.
+func (_u *NetworkUpdateOne) SetNameFold(v string) *NetworkUpdateOne {
+	_u.mutation.SetNameFold(v)
+	return _u
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableNameFold(v *string) *NetworkUpdateOne {
+	if v != nil {
+		_u.SetNameFold(*v)
+	}
+	return _u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (_u *NetworkUpdateOne) ClearNameFold() *NetworkUpdateOne {
+	_u.mutation.ClearNameFold()
+	return _u
+}
+
+// SetAkaFold sets the "aka_fold" field.
+func (_u *NetworkUpdateOne) SetAkaFold(v string) *NetworkUpdateOne {
+	_u.mutation.SetAkaFold(v)
+	return _u
+}
+
+// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableAkaFold(v *string) *NetworkUpdateOne {
+	if v != nil {
+		_u.SetAkaFold(*v)
+	}
+	return _u
+}
+
+// ClearAkaFold clears the value of the "aka_fold" field.
+func (_u *NetworkUpdateOne) ClearAkaFold() *NetworkUpdateOne {
+	_u.mutation.ClearAkaFold()
+	return _u
+}
+
+// SetNameLongFold sets the "name_long_fold" field.
+func (_u *NetworkUpdateOne) SetNameLongFold(v string) *NetworkUpdateOne {
+	_u.mutation.SetNameLongFold(v)
+	return _u
+}
+
+// SetNillableNameLongFold sets the "name_long_fold" field if the given value is not nil.
+func (_u *NetworkUpdateOne) SetNillableNameLongFold(v *string) *NetworkUpdateOne {
+	if v != nil {
+		_u.SetNameLongFold(*v)
+	}
+	return _u
+}
+
+// ClearNameLongFold clears the value of the "name_long_fold" field.
+func (_u *NetworkUpdateOne) ClearNameLongFold() *NetworkUpdateOne {
+	_u.mutation.ClearNameLongFold()
+	return _u
 }
 
 // SetOrgID sets the "org_id" field.
@@ -2213,66 +2273,6 @@ func (_u *NetworkUpdateOne) SetNillableStatus(v *string) *NetworkUpdateOne {
 	return _u
 }
 
-// SetNameFold sets the "name_fold" field.
-func (_u *NetworkUpdateOne) SetNameFold(v string) *NetworkUpdateOne {
-	_u.mutation.SetNameFold(v)
-	return _u
-}
-
-// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableNameFold(v *string) *NetworkUpdateOne {
-	if v != nil {
-		_u.SetNameFold(*v)
-	}
-	return _u
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (_u *NetworkUpdateOne) ClearNameFold() *NetworkUpdateOne {
-	_u.mutation.ClearNameFold()
-	return _u
-}
-
-// SetAkaFold sets the "aka_fold" field.
-func (_u *NetworkUpdateOne) SetAkaFold(v string) *NetworkUpdateOne {
-	_u.mutation.SetAkaFold(v)
-	return _u
-}
-
-// SetNillableAkaFold sets the "aka_fold" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableAkaFold(v *string) *NetworkUpdateOne {
-	if v != nil {
-		_u.SetAkaFold(*v)
-	}
-	return _u
-}
-
-// ClearAkaFold clears the value of the "aka_fold" field.
-func (_u *NetworkUpdateOne) ClearAkaFold() *NetworkUpdateOne {
-	_u.mutation.ClearAkaFold()
-	return _u
-}
-
-// SetNameLongFold sets the "name_long_fold" field.
-func (_u *NetworkUpdateOne) SetNameLongFold(v string) *NetworkUpdateOne {
-	_u.mutation.SetNameLongFold(v)
-	return _u
-}
-
-// SetNillableNameLongFold sets the "name_long_fold" field if the given value is not nil.
-func (_u *NetworkUpdateOne) SetNillableNameLongFold(v *string) *NetworkUpdateOne {
-	if v != nil {
-		_u.SetNameLongFold(*v)
-	}
-	return _u
-}
-
-// ClearNameLongFold clears the value of the "name_long_fold" field.
-func (_u *NetworkUpdateOne) ClearNameLongFold() *NetworkUpdateOne {
-	_u.mutation.ClearNameLongFold()
-	return _u
-}
-
 // AddNetworkFacilityIDs adds the "network_facilities" edge to the NetworkFacility entity by IDs.
 func (_u *NetworkUpdateOne) AddNetworkFacilityIDs(ids ...int) *NetworkUpdateOne {
 	_u.mutation.AddNetworkFacilityIDs(ids...)
@@ -2494,6 +2494,24 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.NameFold(); ok {
+		_spec.SetField(network.FieldNameFold, field.TypeString, value)
+	}
+	if _u.mutation.NameFoldCleared() {
+		_spec.ClearField(network.FieldNameFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.AkaFold(); ok {
+		_spec.SetField(network.FieldAkaFold, field.TypeString, value)
+	}
+	if _u.mutation.AkaFoldCleared() {
+		_spec.ClearField(network.FieldAkaFold, field.TypeString)
+	}
+	if value, ok := _u.mutation.NameLongFold(); ok {
+		_spec.SetField(network.FieldNameLongFold, field.TypeString, value)
+	}
+	if _u.mutation.NameLongFoldCleared() {
+		_spec.ClearField(network.FieldNameLongFold, field.TypeString)
 	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(network.FieldAka, field.TypeString, value)
@@ -2717,24 +2735,6 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(network.FieldStatus, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.NameFold(); ok {
-		_spec.SetField(network.FieldNameFold, field.TypeString, value)
-	}
-	if _u.mutation.NameFoldCleared() {
-		_spec.ClearField(network.FieldNameFold, field.TypeString)
-	}
-	if value, ok := _u.mutation.AkaFold(); ok {
-		_spec.SetField(network.FieldAkaFold, field.TypeString, value)
-	}
-	if _u.mutation.AkaFoldCleared() {
-		_spec.ClearField(network.FieldAkaFold, field.TypeString)
-	}
-	if value, ok := _u.mutation.NameLongFold(); ok {
-		_spec.SetField(network.FieldNameLongFold, field.TypeString, value)
-	}
-	if _u.mutation.NameLongFoldCleared() {
-		_spec.ClearField(network.FieldNameLongFold, field.TypeString)
 	}
 	if _u.mutation.NetworkFacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -13,6 +13,10 @@ const (
 	Label = "carrier"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldNameFold holds the string denoting the name_fold field in the database.
+	FieldNameFold = "name_fold"
+	// FieldAkaFold holds the string denoting the aka_fold field in the database.
+	FieldAkaFold = "aka_fold"
 	// FieldOrgID holds the string denoting the org_id field in the database.
 	FieldOrgID = "org_id"
 	// FieldAka holds the string denoting the aka field in the database.
@@ -39,10 +43,6 @@ const (
 	FieldUpdated = "updated"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// FieldNameFold holds the string denoting the name_fold field in the database.
-	FieldNameFold = "name_fold"
-	// FieldAkaFold holds the string denoting the aka_fold field in the database.
-	FieldAkaFold = "aka_fold"
 	// EdgeCarrierFacilities holds the string denoting the carrier_facilities edge name in mutations.
 	EdgeCarrierFacilities = "carrier_facilities"
 	// EdgeOrganization holds the string denoting the organization edge name in mutations.
@@ -68,6 +68,8 @@ const (
 // Columns holds all SQL columns for carrier fields.
 var Columns = []string{
 	FieldID,
+	FieldNameFold,
+	FieldAkaFold,
 	FieldOrgID,
 	FieldAka,
 	FieldLogo,
@@ -81,8 +83,6 @@ var Columns = []string{
 	FieldCreated,
 	FieldUpdated,
 	FieldStatus,
-	FieldNameFold,
-	FieldAkaFold,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -102,6 +102,10 @@ func ValidColumn(column string) bool {
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
 	Hooks [1]ent.Hook
+	// DefaultNameFold holds the default value on creation for the "name_fold" field.
+	DefaultNameFold string
+	// DefaultAkaFold holds the default value on creation for the "aka_fold" field.
+	DefaultAkaFold string
 	// DefaultAka holds the default value on creation for the "aka" field.
 	DefaultAka string
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
@@ -118,10 +122,6 @@ var (
 	DefaultFacCount int
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
-	// DefaultNameFold holds the default value on creation for the "name_fold" field.
-	DefaultNameFold string
-	// DefaultAkaFold holds the default value on creation for the "aka_fold" field.
-	DefaultAkaFold string
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int) error
 )
@@ -132,6 +132,16 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByNameFold orders the results by the name_fold field.
+func ByNameFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNameFold, opts...).ToFunc()
+}
+
+// ByAkaFold orders the results by the aka_fold field.
+func ByAkaFold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAkaFold, opts...).ToFunc()
 }
 
 // ByOrgID orders the results by the org_id field.
@@ -192,16 +202,6 @@ func ByUpdated(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
-}
-
-// ByNameFold orders the results by the name_fold field.
-func ByNameFold(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNameFold, opts...).ToFunc()
-}
-
-// ByAkaFold orders the results by the aka_fold field.
-func ByAkaFold(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAkaFold, opts...).ToFunc()
 }
 
 // ByCarrierFacilitiesCount orders the results by carrier_facilities count.

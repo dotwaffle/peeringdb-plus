@@ -32,6 +32,26 @@ func (_u *CampusUpdate) Where(ps ...predicate.Campus) *CampusUpdate {
 	return _u
 }
 
+// SetNameFold sets the "name_fold" field.
+func (_u *CampusUpdate) SetNameFold(v string) *CampusUpdate {
+	_u.mutation.SetNameFold(v)
+	return _u
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_u *CampusUpdate) SetNillableNameFold(v *string) *CampusUpdate {
+	if v != nil {
+		_u.SetNameFold(*v)
+	}
+	return _u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (_u *CampusUpdate) ClearNameFold() *CampusUpdate {
+	_u.mutation.ClearNameFold()
+	return _u
+}
+
 // SetOrgID sets the "org_id" field.
 func (_u *CampusUpdate) SetOrgID(v int) *CampusUpdate {
 	_u.mutation.SetOrgID(v)
@@ -312,26 +332,6 @@ func (_u *CampusUpdate) SetNillableStatus(v *string) *CampusUpdate {
 	return _u
 }
 
-// SetNameFold sets the "name_fold" field.
-func (_u *CampusUpdate) SetNameFold(v string) *CampusUpdate {
-	_u.mutation.SetNameFold(v)
-	return _u
-}
-
-// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
-func (_u *CampusUpdate) SetNillableNameFold(v *string) *CampusUpdate {
-	if v != nil {
-		_u.SetNameFold(*v)
-	}
-	return _u
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (_u *CampusUpdate) ClearNameFold() *CampusUpdate {
-	_u.mutation.ClearNameFold()
-	return _u
-}
-
 // AddFacilityIDs adds the "facilities" edge to the Facility entity by IDs.
 func (_u *CampusUpdate) AddFacilityIDs(ids ...int) *CampusUpdate {
 	_u.mutation.AddFacilityIDs(ids...)
@@ -447,6 +447,12 @@ func (_u *CampusUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.NameFold(); ok {
+		_spec.SetField(campus.FieldNameFold, field.TypeString, value)
+	}
+	if _u.mutation.NameFoldCleared() {
+		_spec.ClearField(campus.FieldNameFold, field.TypeString)
+	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(campus.FieldAka, field.TypeString, value)
 	}
@@ -526,12 +532,6 @@ func (_u *CampusUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(campus.FieldStatus, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.NameFold(); ok {
-		_spec.SetField(campus.FieldNameFold, field.TypeString, value)
-	}
-	if _u.mutation.NameFoldCleared() {
-		_spec.ClearField(campus.FieldNameFold, field.TypeString)
 	}
 	if _u.mutation.FacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -625,6 +625,26 @@ type CampusUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *CampusMutation
+}
+
+// SetNameFold sets the "name_fold" field.
+func (_u *CampusUpdateOne) SetNameFold(v string) *CampusUpdateOne {
+	_u.mutation.SetNameFold(v)
+	return _u
+}
+
+// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
+func (_u *CampusUpdateOne) SetNillableNameFold(v *string) *CampusUpdateOne {
+	if v != nil {
+		_u.SetNameFold(*v)
+	}
+	return _u
+}
+
+// ClearNameFold clears the value of the "name_fold" field.
+func (_u *CampusUpdateOne) ClearNameFold() *CampusUpdateOne {
+	_u.mutation.ClearNameFold()
+	return _u
 }
 
 // SetOrgID sets the "org_id" field.
@@ -907,26 +927,6 @@ func (_u *CampusUpdateOne) SetNillableStatus(v *string) *CampusUpdateOne {
 	return _u
 }
 
-// SetNameFold sets the "name_fold" field.
-func (_u *CampusUpdateOne) SetNameFold(v string) *CampusUpdateOne {
-	_u.mutation.SetNameFold(v)
-	return _u
-}
-
-// SetNillableNameFold sets the "name_fold" field if the given value is not nil.
-func (_u *CampusUpdateOne) SetNillableNameFold(v *string) *CampusUpdateOne {
-	if v != nil {
-		_u.SetNameFold(*v)
-	}
-	return _u
-}
-
-// ClearNameFold clears the value of the "name_fold" field.
-func (_u *CampusUpdateOne) ClearNameFold() *CampusUpdateOne {
-	_u.mutation.ClearNameFold()
-	return _u
-}
-
 // AddFacilityIDs adds the "facilities" edge to the Facility entity by IDs.
 func (_u *CampusUpdateOne) AddFacilityIDs(ids ...int) *CampusUpdateOne {
 	_u.mutation.AddFacilityIDs(ids...)
@@ -1072,6 +1072,12 @@ func (_u *CampusUpdateOne) sqlSave(ctx context.Context) (_node *Campus, err erro
 			}
 		}
 	}
+	if value, ok := _u.mutation.NameFold(); ok {
+		_spec.SetField(campus.FieldNameFold, field.TypeString, value)
+	}
+	if _u.mutation.NameFoldCleared() {
+		_spec.ClearField(campus.FieldNameFold, field.TypeString)
+	}
 	if value, ok := _u.mutation.Aka(); ok {
 		_spec.SetField(campus.FieldAka, field.TypeString, value)
 	}
@@ -1151,12 +1157,6 @@ func (_u *CampusUpdateOne) sqlSave(ctx context.Context) (_node *Campus, err erro
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(campus.FieldStatus, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.NameFold(); ok {
-		_spec.SetField(campus.FieldNameFold, field.TypeString, value)
-	}
-	if _u.mutation.NameFoldCleared() {
-		_spec.ClearField(campus.FieldNameFold, field.TypeString)
 	}
 	if _u.mutation.FacilitiesCleared() {
 		edge := &sqlgraph.EdgeSpec{
