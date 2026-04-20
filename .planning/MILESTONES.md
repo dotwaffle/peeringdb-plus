@@ -1,5 +1,29 @@
 # Milestones
 
+## v1.16 Django-compat Correctness (Shipped: 2026-04-19)
+
+**Phases completed:** 6 phases (67-72), 36 plans, 25 requirements across 8 categories
+
+**Key accomplishments:**
+
+- Phase 67: Default ordering flip — all list endpoints (pdbcompat, grpcserver, entrest) return rows in upstream `(-updated, -created, -id)` order; 13 `.Order()` call sites flipped; 39 goldens regenerated; streamCursor compound keyset pagination (ORDER-01..03).
+- Phase 68: Status × since matrix + limit=0 semantics — pdbcompat matches upstream `rest.py:494-727` status-filter rules; `PDBPLUS_INCLUDE_DELETED` env var removed (WARN-and-ignore grace period); 13 `deleteStale*` renamed to `markStaleDeleted*` (soft-delete flip); `cycleStart` plumbed for atomic `?since=N` windows; SEED-004 tombstone GC planted (STATUS-01..05, LIMIT-01/02).
+- Phase 69: Unicode folding, operator coercion, `__in` robustness — new `internal/unifold` package (NFKD + hand-rolled fold map); 16 `*_fold` shadow columns across 6 ent schemas (entgql.Skip + entrest.WithSkip keep them off all wire surfaces); `coerceToCaseInsensitive` (`__contains→__icontains`, `__startswith→__istartswith`); `json_each(?)` single-bind rewrite for `__in` (bypasses SQLite 999-variable limit); empty-`__in` short-circuit sentinel; 500k fuzz executions zero panics (UNICODE-01..03, IN-01/02).
+- Phase 70: Cross-entity `__` traversal — new `pdbcompat.WithPrepareQueryAllow` ent annotation + `cmd/pdb-compat-allowlist/` codegen tool emits `Allowlists` + `Edges` maps; 13 ent schemas annotated mirroring upstream `serializers.py` line-for-line; `parseFieldOp` 3-tuple (relationSegments, finalField, op); `buildSinglHop`/`buildTwoHop` with O2M/M2O FK direction detection; hard 2-hop cap; unknown-field silent-ignore with slog.Debug + OTel attr `pdbplus.filter.unknown_fields` (TRAVERSAL-01..04).
+- Phase 71: Memory-safe response paths — hand-rolled `StreamListResponse` token writer (no full-slice materialization); `TypicalRowBytes` calibration map (2× conservative multiplier); `Config.ResponseMemoryLimit` default 128 MiB with pre-flight `SELECT COUNT(*)` gate + RFC 9457 413 before unbounded queries; per-request heap-delta telemetry (OTel attr + Prometheus histogram + Grafana panel); Registry startup-panic invariant for missing CountFunc; full-middleware streaming test (MEMORY-01..04).
+- Phase 72: Upstream parity regression — new `cmd/pdb-fixture-port/` tool fetches pinned `peeringdb/peeringdb@99e92c72 pdb_api_test.py` via `gh api`; 5560 fixtures ported across 6 categories into `internal/testutil/parity/fixtures.go`; 6 category-split test files under `internal/pdbcompat/parity/` + 3 `b.Loop()` benchmarks; `docs/API.md § Known Divergences` extended; new `§ Validation Notes` with 5 SHA-pinned invalid-pdbfe-claims; 2 explicit `DIVERGENCE_` canary tests for DEFER-70-verifier-01 (fac→ixlan 3-hop exceeds 2-hop cap) + DEFER-70-06-01 (campus TargetTable codegen gap) (PARITY-01/02).
+
+**Intentional divergences (documented at `docs/API.md § Known Divergences`):**
+- DEFER-70-verifier-01 — `fac?ixlan__ix__fac_count__gt=0` silent-ignored (upstream path requires 3-hop via `ixfac`, exceeds D-04 2-hop cap).
+- DEFER-70-06-01 — `<entity>?campus__<field>=X` returns HTTP 500 (codegen emits `TargetTable: "campus"` instead of `"campuses"`; follow-up quick task).
+- Pre-Phase-68 hard-deleted rows are gone (`?status=deleted&since=N` returns only post-v1.16 tombstones).
+
+**Ship coordination:** Phases 67-71 ship as a coordinated release bundle. Phase 72 is CI regression lock-in and can ship independently.
+
+**Audit:** tech_debt (ship-ready). All 18 cross-phase integration must-haves verified. All 25 REQ-IDs complete.
+
+---
+
 ## v1.15 Infrastructure Polish & Schema Hygiene (Shipped: 2026-04-18)
 
 **Phases completed:** 5 phases, 9 plans, 11 tasks
