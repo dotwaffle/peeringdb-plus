@@ -37,10 +37,26 @@ documented in their own sections below.
 | Variable | Required | Default | Type | Description |
 |----------|----------|---------|------|-------------|
 | `PDBPLUS_SYNC_TOKEN` | No | (empty) | secret | Shared secret for the `POST /sync` on-demand trigger. When empty, the endpoint rejects every request — on-demand sync is effectively disabled. Compared in constant time against the `X-Sync-Token` request header. |
-| `PDBPLUS_SYNC_INTERVAL` | No | `1h` | duration | Duration between automatic sync runs. Must be greater than 0. |
+| `PDBPLUS_SYNC_INTERVAL` | No | `1h` (unauthenticated) / `15m` (when `PDBPLUS_PEERINGDB_API_KEY` is set) | duration | Duration between automatic sync runs. Default is auth-conditional: `15m` when an API key is configured, `1h` otherwise. Explicit value overrides both defaults. Must be greater than 0. See [Sync cadence](#sync-cadence) for the rationale. |
 | `PDBPLUS_SYNC_MODE` | No | `full` | enum | Sync strategy. Accepted values: `full` (complete re-fetch), `incremental` (only objects modified since last sync). Any other value is rejected at startup. |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | No | `24h` | duration | Maximum age of sync data before `/readyz` reports the service as degraded. |
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | No | `400MB` | byte size | Peak Go heap ceiling checked after the sync worker's Phase A fetch pass. If `runtime.ReadMemStats` reports `HeapAlloc` above this value, the sync aborts with a WARN log and returns `sync.ErrSyncMemoryLimitExceeded`; the next scheduled cycle retries normally. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). A bare number is rejected. Literal `0` disables the guardrail (local development only). Must be non-negative. |
+
+#### Sync cadence
+
+`PDBPLUS_SYNC_INTERVAL` defaults to **15 minutes** when `PDBPLUS_PEERINGDB_API_KEY`
+is non-empty and **1 hour** otherwise. Authenticated callers have a much higher
+PeeringDB rate-limit budget, so the tighter cadence keeps the mirror fresher
+without risking throttling; unauthenticated deployments stay on the
+conservative 1h default to avoid burning the shared anonymous ceiling.
+
+Override precedence is explicit-wins: setting `PDBPLUS_SYNC_INTERVAL=5m`
+forces 5-minute syncs regardless of whether an API key is configured. An
+unset `PDBPLUS_SYNC_INTERVAL` selects the auth-conditional default; an
+empty string (`PDBPLUS_SYNC_INTERVAL=`) is treated as unset. On startup
+the effective interval, authentication state, and whether the operator
+supplied an explicit override are announced in a single structured log
+line (`sync interval configured`) — the API key itself is never logged.
 
 ### Removed in v1.16
 

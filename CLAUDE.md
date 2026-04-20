@@ -274,7 +274,7 @@ Telemetry: `runtime.ReadMemStats` is STW (~µs at our heap size); D-06 allows ON
 | `PDBPLUS_PEERINGDB_URL` | `https://api.peeringdb.com` | PeeringDB API base URL |
 | `PDBPLUS_PEERINGDB_API_KEY` | (empty) | Optional PeeringDB API key; empty = unauthenticated (recommended: set this for production) |
 | `PDBPLUS_SYNC_TOKEN` | (empty) | Shared secret for on-demand sync trigger; empty = disabled |
-| `PDBPLUS_SYNC_INTERVAL` | `1h` | Duration between automatic syncs |
+| `PDBPLUS_SYNC_INTERVAL` | `1h` (unauthenticated) / `15m` (when `PDBPLUS_PEERINGDB_API_KEY` is set) | Duration between automatic syncs. Default tightens to 15m when an API key is configured since the authenticated rate-limit budget absorbs the 4× cadence; unauthenticated stays conservative against the shared anonymous ceiling. Explicit value overrides both defaults. |
 | `PDBPLUS_SYNC_MODE` | `full` | Sync strategy: `full` or `incremental` |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | `24h` | Max age of sync data before health reports degraded |
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | `400MB` | Peak Go heap ceiling checked after Phase A fetch; unit suffix required (KB/MB/GB/TB); `0` disables guardrail |

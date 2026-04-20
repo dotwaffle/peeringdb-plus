@@ -234,6 +234,57 @@ func TestLoad_SyncInterval(t *testing.T) {
 	}
 }
 
+// TestLoad_SyncInterval_AuthConditional asserts the 4-cell truth table for
+// PDBPLUS_SYNC_INTERVAL + PDBPLUS_PEERINGDB_API_KEY:
+//
+//	unauth + unset      → 1h
+//	unauth + "30m"      → 30m
+//	auth   + unset      → 15m
+//	auth   + "45m"      → 45m
+//
+// Explicit operator override always wins regardless of auth state.
+// Authenticated callers enjoy a much higher PeeringDB rate-limit budget, so
+// the default sync cadence tightens to 15m.
+//
+// Subtests must NOT call t.Parallel() — t.Setenv and process-global env vars
+// are shared across parallel subtests.
+func TestLoad_SyncInterval_AuthConditional(t *testing.T) {
+	tests := []struct {
+		name         string
+		apiKey       string // "" means unset
+		syncInterval string // "" means unset
+		want         time.Duration
+	}{
+		{name: "unauth_default", apiKey: "", syncInterval: "", want: 1 * time.Hour},
+		{name: "unauth_explicit", apiKey: "", syncInterval: "30m", want: 30 * time.Minute},
+		{name: "auth_default", apiKey: "test-key", syncInterval: "", want: 15 * time.Minute},
+		{name: "auth_explicit", apiKey: "test-key", syncInterval: "45m", want: 45 * time.Minute},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Minimum env vars required for Load() to succeed, same pattern
+			// as the other TestLoad_* tests in this file.
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+			if tt.apiKey != "" {
+				t.Setenv("PDBPLUS_PEERINGDB_API_KEY", tt.apiKey)
+			}
+			if tt.syncInterval != "" {
+				t.Setenv("PDBPLUS_SYNC_INTERVAL", tt.syncInterval)
+			}
+
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.SyncInterval != tt.want {
+				t.Errorf("SyncInterval = %v, want %v (apiKey=%q, syncInterval=%q)",
+					cfg.SyncInterval, tt.want, tt.apiKey, tt.syncInterval)
+			}
+		})
+	}
+}
+
 // TestLoad_IncludeDeleted_Deprecated asserts PDBPLUS_INCLUDE_DELETED is ignored
 // with a WARN log during the v1.16 → v1.17 grace period (Phase 68 D-01). The
 // env var is no longer a Config field; setting it must not fail Load().

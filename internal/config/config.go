@@ -184,11 +184,26 @@ func Load() (*Config, error) {
 		PeeringDBAPIKey:  envOrDefault("PDBPLUS_PEERINGDB_API_KEY", ""),
 	}
 
-	syncInterval, err := parseDuration("PDBPLUS_SYNC_INTERVAL", 1*time.Hour)
-	if err != nil {
-		return nil, fmt.Errorf("parsing PDBPLUS_SYNC_INTERVAL: %w", err)
+	// PDBPLUS_SYNC_INTERVAL has an auth-conditional default: 15m when an API
+	// key is configured (the authenticated rate-limit budget comfortably
+	// absorbs a 4× sync frequency), 1h when unauthenticated (stay conservative
+	// against the shared anonymous ceiling). An explicit override wins in
+	// either case. os.LookupEnv distinguishes "unset" from "" so the operator
+	// can deliberately revert to the unauthenticated default with an empty
+	// string if desired — though in practice they would just unset it.
+	syncIntervalRaw, intervalExplicit := os.LookupEnv("PDBPLUS_SYNC_INTERVAL")
+	switch {
+	case intervalExplicit && syncIntervalRaw != "":
+		d, err := time.ParseDuration(syncIntervalRaw)
+		if err != nil {
+			return nil, fmt.Errorf("parsing PDBPLUS_SYNC_INTERVAL: invalid duration %q for PDBPLUS_SYNC_INTERVAL: %w", syncIntervalRaw, err)
+		}
+		cfg.SyncInterval = d
+	case cfg.PeeringDBAPIKey != "":
+		cfg.SyncInterval = 15 * time.Minute
+	default:
+		cfg.SyncInterval = 1 * time.Hour
 	}
-	cfg.SyncInterval = syncInterval
 
 	// PDBPLUS_INCLUDE_DELETED was removed in v1.16 Phase 68 (D-01). Sync now
 	// always persists deleted rows as tombstones (Phase 68 Plan 02 lands the
@@ -276,6 +291,17 @@ func Load() (*Config, error) {
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
 	}
+
+	// Single-line operator-visible announcement of the effective sync interval
+	// and which inputs produced it. The API key itself is NEVER logged — only
+	// the boolean "was one configured" is emitted. `explicit_override` makes
+	// support triage trivial: "did the operator set SYNC_INTERVAL, or is the
+	// 15m/1h default in play?"
+	slog.Info("sync interval configured",
+		slog.Duration("interval", cfg.SyncInterval),
+		slog.Bool("authenticated", cfg.PeeringDBAPIKey != ""),
+		slog.Bool("explicit_override", intervalExplicit),
+	)
 
 	return cfg, nil
 }
