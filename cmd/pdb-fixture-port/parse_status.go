@@ -158,7 +158,12 @@ func synthesiseMissingStatusRows(srcBytes []byte, parsed []Fixture) []Fixture {
 		if have[key] {
 			continue
 		}
-		assertLine := findAssertionLine(srcBytes, spec.AssertCite)
+		// findFirstSubstringLine locates the assertion line whose
+		// text matches spec.AssertCite — the upstream citation anchor
+		// for this synthesised row (the row needs a non-empty Upstream
+		// cite per T-72-02-02; we use the upstream assertion line
+		// that exercises the behaviour this synthesised row supports).
+		assertLine := findFirstSubstringLine(srcBytes, spec.AssertCite)
 		// Use a deterministic ID slot above the per-entity offset
 		// hash range (offset+0..4095) so synth rows can't collide
 		// with parsed rows. Offset+8000+i gives 100+ distinct slots
@@ -180,28 +185,16 @@ func synthesiseMissingStatusRows(srcBytes []byte, parsed []Fixture) []Fixture {
 	return out
 }
 
-// findAssertionLine returns the line number of the first occurrence
-// of needle in srcBytes, or statusSynthFallbackLine if not found.
-// Used by synthesiseMissingStatusRows to derive Upstream citations
-// from upstream assertion locations.
-func findAssertionLine(srcBytes []byte, needle string) int {
-	scanner := bufio.NewScanner(bytes.NewReader(srcBytes))
-	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
-	lineNum := 0
-	for scanner.Scan() {
-		lineNum++
-		if strings.Contains(scanner.Text(), needle) {
-			return lineNum
-		}
-	}
-	return statusSynthFallbackLine
-}
-
 // findFirstSubstringLine is a generic line-locator used by per-
 // category parsers that need an upstream citation for a specific
 // substring (e.g. parseUnicode citing the first line containing
-// "Zürich"). Returns 1 (sentinel) when not found so emitted
-// citations stay non-empty per T-72-02-02.
+// "Zürich", parseStatus citing the assertion line for a
+// synthesised row). Returns statusSynthFallbackLine (1) when not
+// found so emitted citations stay non-empty per T-72-02-02.
+//
+// WR-03: formerly duplicated as findAssertionLine; the two
+// functions were byte-identical so the assertion caller now routes
+// through here.
 func findFirstSubstringLine(srcBytes []byte, needle string) int {
 	scanner := bufio.NewScanner(bytes.NewReader(srcBytes))
 	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
