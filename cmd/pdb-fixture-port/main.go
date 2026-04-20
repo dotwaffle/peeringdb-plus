@@ -929,18 +929,46 @@ func appendCategory(outPath string, rendered []byte, category string) ([]byte, e
 	return formatted, nil
 }
 
-// extractVarBlockBytes returns the substring of src starting at
-// `var <name> = []Fixture{` and ending at the matching closing `}`.
-// Returns nil if not found. Tolerates nested `{}` (Fields:
+// extractVarBlockBytes returns the substring of src starting at the
+// leading `// ...` comment block above `var <name> = []Fixture{` (when
+// present) and ending at the matching closing `}`. Returns nil if the
+// var declaration is not found. Tolerates nested `{}` (Fields:
 // map[string]string{...}) via depth tracking.
+//
+// The leading-comment walk-back exists because the render template
+// emits an optional `section.Preamble` line (plus the always-present
+// `// <VarName> is the ported set for the <Title> category.` line)
+// immediately above the var keyword. `--append` must splice the new
+// preamble atomically with the new var body — otherwise the OLD
+// preamble sticks above the NEW var contents, which is a silent
+// provenance lie for the limit/unicode/in/traversal categories that
+// carry load-bearing citation comments per Plans 72-02 D-02 / 72-03
+// D-04. See WR-01 in Phase 72 REVIEW.md.
 func extractVarBlockBytes(src []byte, varName string) []byte {
 	marker := []byte("var " + varName + " = []Fixture{")
-	start := bytes.Index(src, marker)
-	if start < 0 {
+	varStart := bytes.Index(src, marker)
+	if varStart < 0 {
 		return nil
 	}
+	// Walk backward over contiguous `// ...` comment lines that sit
+	// immediately above the var declaration. Stops at the first
+	// blank line or non-comment line — matches the template's
+	// "comments directly above var" invariant without over-grabbing
+	// an unrelated adjacent comment block.
+	start := varStart
+	for start > 0 {
+		// Find the start of the line that ends at start-1 (the
+		// newline preceding the var keyword or the previous comment).
+		prevNL := bytes.LastIndexByte(src[:start-1], '\n')
+		lineStart := prevNL + 1 // 0 when no earlier newline exists.
+		line := bytes.TrimLeft(src[lineStart:start-1], " \t")
+		if !bytes.HasPrefix(line, []byte("//")) {
+			break
+		}
+		start = lineStart
+	}
 	depth := 0
-	for i := start + len(marker) - 1; i < len(src); i++ {
+	for i := varStart + len(marker) - 1; i < len(src); i++ {
 		switch src[i] {
 		case '{':
 			depth++

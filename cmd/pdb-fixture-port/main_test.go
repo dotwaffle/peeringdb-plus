@@ -499,6 +499,86 @@ func TestFixturePort_AppendPreservesOtherCategories(t *testing.T) {
 	}
 }
 
+// TestFixturePort_AppendPreservesPreamble_Limit locks the WR-01 fix:
+// when --append rewrites the limit category, the freshly-rendered
+// section.Preamble comment line MUST replace whatever preamble sits
+// above the existing var declaration (not the other way round).
+//
+// Regression: extractVarBlockBytes previously started the splice at
+// `var LimitFixtures = []Fixture{`, which silently preserved the OLD
+// preamble and discarded the NEW one — a provenance lie that only
+// surfaced if the template preamble text ever changed. This test
+// contrives exactly that scenario: tamper the preamble in the
+// existing file, run --append --category limit, and assert the
+// canonical preamble wins.
+func TestFixturePort_AppendPreservesPreamble_Limit(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+	baseline := filepath.Join(tmpDir, "base.go")
+
+	// Step 1: baseline via --category limit. Emits canonical preamble.
+	{
+		var out, errb bytes.Buffer
+		code := run([]string{
+			"--upstream-file", testDataMinPy,
+			"--out", baseline,
+			"--category", "limit",
+			"--date", "2026-04-19",
+		}, &out, &errb)
+		if code != exitOK {
+			t.Fatalf("baseline run = %d; stderr=%q", code, errb.String())
+		}
+	}
+	baseBytes, err := os.ReadFile(baseline) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read baseline: %v", err)
+	}
+	const canonicalPreamble = "// synthesised per Plan 72-02 D-02: covers LIMIT-01 unlimited boundary at upstream rest.py:494-497"
+	if !strings.Contains(string(baseBytes), canonicalPreamble) {
+		t.Fatalf("baseline missing canonical LIMIT preamble:\n%s", baseBytes)
+	}
+
+	// Step 2: tamper — replace the canonical preamble with a stale
+	// counterfactual that a pre-WR-01 extractor would have left intact.
+	const tamperedPreamble = "// TAMPERED: this line simulates a stale preamble that --append must overwrite"
+	tampered := strings.Replace(string(baseBytes), canonicalPreamble, tamperedPreamble, 1)
+	if tampered == string(baseBytes) {
+		t.Fatalf("tamper replace was a no-op; canonical preamble not found")
+	}
+	if err := os.WriteFile(baseline, []byte(tampered), 0o600); err != nil {
+		t.Fatalf("write tampered: %v", err)
+	}
+
+	// Step 3: --category limit --append — should splice the canonical
+	// preamble back in (WR-01 fix), replacing the tampered line.
+	{
+		var out, errb bytes.Buffer
+		code := run([]string{
+			"--upstream-file", testDataMinPy,
+			"--out", baseline,
+			"--category", "limit",
+			"--append",
+			"--date", "2026-04-19",
+		}, &out, &errb)
+		if code != exitOK {
+			t.Fatalf("append run = %d; stderr=%q", code, errb.String())
+		}
+	}
+	afterBytes, err := os.ReadFile(baseline) // #nosec G304 — tempdir.
+	if err != nil {
+		t.Fatalf("read after-append: %v", err)
+	}
+
+	// Canonical preamble restored.
+	if !strings.Contains(string(afterBytes), canonicalPreamble) {
+		t.Errorf("after --append, canonical LIMIT preamble missing; got:\n%s", afterBytes)
+	}
+	// Tampered preamble gone (the fix must excise the stale line).
+	if strings.Contains(string(afterBytes), tamperedPreamble) {
+		t.Errorf("after --append, tampered preamble still present — WR-01 regression; got:\n%s", afterBytes)
+	}
+}
+
 // extractVarBlock returns the substring of src starting at
 // `var <name> = []Fixture{` and ending at the matching closing `}`.
 // Used by tests to compare per-var bodies across --append runs.
