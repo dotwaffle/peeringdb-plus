@@ -1,4 +1,5 @@
 ---
+status: complete
 task: 260419-ski-auth-sync-interval
 completed: 2026-04-19
 type: quick

@@ -1,8 +1,8 @@
 ---
+status: complete
 task: 260420-esb-ent-schema-siblings
 completed: 2026-04-20
 type: quick
-status: complete
 commit: 559b5fa
 ---
 

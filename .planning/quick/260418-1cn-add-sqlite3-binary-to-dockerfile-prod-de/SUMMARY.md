@@ -1,8 +1,8 @@
 ---
+status: complete
 gsd_summary_version: 1.0
 plan_id: 260418-1cn
 mode: quick
-status: complete
 completed: "2026-04-18"
 commit: 4dfc52a
 ---

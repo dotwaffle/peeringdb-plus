@@ -1,4 +1,5 @@
 ---
+status: complete
 phase: quick
 plan: 260414-2rc
 subsystem: observability

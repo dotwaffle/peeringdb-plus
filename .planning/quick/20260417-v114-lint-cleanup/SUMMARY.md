@@ -1,9 +1,9 @@
 ---
+status: complete
 slug: v114-lint-cleanup
 type: quick
 created: 2026-04-17
 completed: 2026-04-17
-status: complete
 ---
 
 # Quick Task Summary: v1.14 Post-Ship Lint Cleanup

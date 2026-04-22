@@ -1,8 +1,8 @@
 ---
+status: complete
 gsd_summary_version: 1.0
 plan_id: 260418-gf0
 mode: quick
-status: complete
 completed: "2026-04-18"
 commit: 73bbe04
 resolves_backlog: 999.1
