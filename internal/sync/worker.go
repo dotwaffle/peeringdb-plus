@@ -23,6 +23,19 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/ent/campus"
+	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
+	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/facility"
+	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
+	"github.com/dotwaffle/peeringdb-plus/ent/network"
+	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/organization"
+	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/ent/privacy"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
@@ -167,21 +180,72 @@ func (w *Worker) fkRegisterIDs(typeName string, ids []int) {
 // fkHasParent reports whether the given ID is registered for the named
 // parent type. An id of zero is treated as a null/unset FK and passes
 // through unchanged — ent's schema nullability is the source of truth
-// for whether zero/null is actually allowed on the column. If the
-// parent set is missing entirely (parent type not yet upserted) the
-// row is allowed through on the assumption that syncSteps is in
-// parent-first FK order and a missing entry represents a programming
-// mistake that should surface at commit rather than silently drop data.
-func (w *Worker) fkHasParent(typeName string, id int) bool {
+// for whether zero/null is actually allowed on the column.
+//
+// State-aware fallback (Phase v1.16+): if the parent set is missing or
+// the ID is not found in memory (common during incremental syncs), we
+// query the local database to check if the record exists there before
+// declaring it an orphan.
+func (w *Worker) fkHasParent(ctx context.Context, tx *ent.Tx, typeName string, id int) bool {
 	if id == 0 {
 		return true
 	}
 	set, ok := w.fkRegistry[typeName]
-	if !ok {
-		return true
+	if ok {
+		if _, exists := set[id]; exists {
+			return true
+		}
 	}
-	_, ok = set[id]
-	return ok
+	// Memory check failed: check the DB to distinguish true orphans from
+	// untouched parents during incremental syncs.
+	return w.dbHasRecord(ctx, tx, typeName, id)
+}
+
+// dbHasRecord checks the real database for the existence of an ID for
+// the named PeeringDB type.
+func (w *Worker) dbHasRecord(ctx context.Context, tx *ent.Tx, typeName string, id int) bool {
+	var err error
+	var exists bool
+	switch typeName {
+	case peeringdb.TypeOrg:
+		exists, err = tx.Organization.Query().Where(organization.ID(id)).Exist(ctx)
+	case peeringdb.TypeCampus:
+		exists, err = tx.Campus.Query().Where(campus.ID(id)).Exist(ctx)
+	case peeringdb.TypeFac:
+		exists, err = tx.Facility.Query().Where(facility.ID(id)).Exist(ctx)
+	case peeringdb.TypeCarrier:
+		exists, err = tx.Carrier.Query().Where(carrier.ID(id)).Exist(ctx)
+	case peeringdb.TypeCarrierFac:
+		exists, err = tx.CarrierFacility.Query().Where(carrierfacility.ID(id)).Exist(ctx)
+	case peeringdb.TypeIX:
+		exists, err = tx.InternetExchange.Query().Where(internetexchange.ID(id)).Exist(ctx)
+	case peeringdb.TypeIXLan:
+		exists, err = tx.IxLan.Query().Where(ixlan.ID(id)).Exist(ctx)
+	case peeringdb.TypeIXPfx:
+		exists, err = tx.IxPrefix.Query().Where(ixprefix.ID(id)).Exist(ctx)
+	case peeringdb.TypeIXFac:
+		exists, err = tx.IxFacility.Query().Where(ixfacility.ID(id)).Exist(ctx)
+	case peeringdb.TypeNet:
+		exists, err = tx.Network.Query().Where(network.ID(id)).Exist(ctx)
+	case peeringdb.TypePoc:
+		exists, err = tx.Poc.Query().Where(poc.ID(id)).Exist(ctx)
+	case peeringdb.TypeNetFac:
+		exists, err = tx.NetworkFacility.Query().Where(networkfacility.ID(id)).Exist(ctx)
+	case peeringdb.TypeNetIXLan:
+		exists, err = tx.NetworkIxLan.Query().Where(networkixlan.ID(id)).Exist(ctx)
+	default:
+		w.logger.LogAttrs(ctx, slog.LevelError, "unknown type for DB record check", slog.String("type", typeName))
+		return false
+	}
+	if err != nil {
+		w.logger.LogAttrs(ctx, slog.LevelError, "failed to check DB for record",
+			slog.String("type", typeName),
+			slog.Int("id", id),
+			slog.Any("error", err),
+		)
+		return false
+	}
+	return exists
 }
 
 // fkMarkSkipped records that the given child ID was dropped by the
@@ -1014,7 +1078,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.Campus) string { return v.Status },
 			fkFilter: func(v *peeringdb.Campus) bool {
-				return w.fkCheckParent(ctx, peeringdb.TypeCampus, v.ID,
+				return w.fkCheckParent(ctx, tx, peeringdb.TypeCampus, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCampus, ids) },
@@ -1025,7 +1089,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.Facility) string { return v.Status },
 			fkFilter: func(v *peeringdb.Facility) bool {
-				if !w.fkCheckParent(ctx, peeringdb.TypeFac, v.ID,
+				if !w.fkCheckParent(ctx, tx, peeringdb.TypeFac, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id") {
 					return false
 				}
@@ -1034,7 +1098,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 				// null the reference out and keep the facility
 				// (avoids cascading the drop through netfac /
 				// ixfac / carrierfac children of the facility).
-				if v.CampusID != nil && !w.fkHasParent(peeringdb.TypeCampus, *v.CampusID) {
+				if v.CampusID != nil && !w.fkHasParent(ctx, tx, peeringdb.TypeCampus, *v.CampusID) {
 					w.logger.LogAttrs(ctx, slog.LevelWarn, "nulling orphan FK",
 						slog.String("child_type", peeringdb.TypeFac),
 						slog.Int("child_id", v.ID),
@@ -1053,7 +1117,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.Carrier) string { return v.Status },
 			fkFilter: func(v *peeringdb.Carrier) bool {
-				return w.fkCheckParent(ctx, peeringdb.TypeCarrier, v.ID,
+				return w.fkCheckParent(ctx, tx, peeringdb.TypeCarrier, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCarrier, ids) },
@@ -1064,11 +1128,11 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.CarrierFacility) string { return v.Status },
 			fkFilter: func(v *peeringdb.CarrierFacility) bool {
-				if !w.fkCheckParent(ctx, peeringdb.TypeCarrierFac, v.ID,
+				if !w.fkCheckParent(ctx, tx, peeringdb.TypeCarrierFac, v.ID,
 					peeringdb.TypeCarrier, v.CarrierID, "carrier_id") {
 					return false
 				}
-				return w.fkCheckParent(ctx, peeringdb.TypeCarrierFac, v.ID,
+				return w.fkCheckParent(ctx, tx, peeringdb.TypeCarrierFac, v.ID,
 					peeringdb.TypeFac, v.FacID, "fac_id")
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCarrierFac, ids) },
@@ -1079,7 +1143,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.InternetExchange) string { return v.Status },
 			fkFilter: func(v *peeringdb.InternetExchange) bool {
-				return w.fkCheckParent(ctx, peeringdb.TypeIX, v.ID,
+				return w.fkCheckParent(ctx, tx, peeringdb.TypeIX, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIX, ids) },
@@ -1090,7 +1154,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.IxLan) string { return v.Status },
 			fkFilter: func(v *peeringdb.IxLan) bool {
-				return w.fkCheckParent(ctx, peeringdb.TypeIXLan, v.ID,
+				return w.fkCheckParent(ctx, tx, peeringdb.TypeIXLan, v.ID,
 					peeringdb.TypeIX, v.IXID, "ix_id")
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXLan, ids) },
@@ -1101,7 +1165,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.IxPrefix) string { return v.Status },
 			fkFilter: func(v *peeringdb.IxPrefix) bool {
-				return w.fkCheckParent(ctx, peeringdb.TypeIXPfx, v.ID,
+				return w.fkCheckParent(ctx, tx, peeringdb.TypeIXPfx, v.ID,
 					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXPfx, ids) },
@@ -1112,11 +1176,11 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.IxFacility) string { return v.Status },
 			fkFilter: func(v *peeringdb.IxFacility) bool {
-				if !w.fkCheckParent(ctx, peeringdb.TypeIXFac, v.ID,
+				if !w.fkCheckParent(ctx, tx, peeringdb.TypeIXFac, v.ID,
 					peeringdb.TypeIX, v.IXID, "ix_id") {
 					return false
 				}
-				return w.fkCheckParent(ctx, peeringdb.TypeIXFac, v.ID,
+				return w.fkCheckParent(ctx, tx, peeringdb.TypeIXFac, v.ID,
 					peeringdb.TypeFac, v.FacID, "fac_id")
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXFac, ids) },
@@ -1127,7 +1191,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.Network) string { return v.Status },
 			fkFilter: func(v *peeringdb.Network) bool {
-				return w.fkCheckParent(ctx, peeringdb.TypeNet, v.ID,
+				return w.fkCheckParent(ctx, tx, peeringdb.TypeNet, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNet, ids) },
@@ -1138,7 +1202,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.Poc) string { return v.Status },
 			fkFilter: func(v *peeringdb.Poc) bool {
-				return w.fkCheckParent(ctx, peeringdb.TypePoc, v.ID,
+				return w.fkCheckParent(ctx, tx, peeringdb.TypePoc, v.ID,
 					peeringdb.TypeNet, v.NetID, "net_id")
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypePoc, ids) },
@@ -1149,11 +1213,11 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.NetworkFacility) string { return v.Status },
 			fkFilter: func(v *peeringdb.NetworkFacility) bool {
-				if !w.fkCheckParent(ctx, peeringdb.TypeNetFac, v.ID,
+				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetFac, v.ID,
 					peeringdb.TypeNet, v.NetID, "net_id") {
 					return false
 				}
-				return w.fkCheckParent(ctx, peeringdb.TypeNetFac, v.ID,
+				return w.fkCheckParent(ctx, tx, peeringdb.TypeNetFac, v.ID,
 					peeringdb.TypeFac, v.FacID, "fac_id")
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetFac, ids) },
@@ -1164,15 +1228,15 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.NetworkIxLan) string { return v.Status },
 			fkFilter: func(v *peeringdb.NetworkIxLan) bool {
-				if !w.fkCheckParent(ctx, peeringdb.TypeNetIXLan, v.ID,
+				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
 					peeringdb.TypeNet, v.NetID, "net_id") {
 					return false
 				}
-				if !w.fkCheckParent(ctx, peeringdb.TypeNetIXLan, v.ID,
+				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
 					peeringdb.TypeIX, v.IXID, "ix_id") {
 					return false
 				}
-				return w.fkCheckParent(ctx, peeringdb.TypeNetIXLan, v.ID,
+				return w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
 					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetIXLan, ids) },
@@ -1188,8 +1252,8 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 // the orphan at WARN, records the child id in fkSkippedIDs so the
 // delete pass can reconcile, and returns false so syncIncremental
 // drops the row from the chunk.
-func (w *Worker) fkCheckParent(ctx context.Context, childType string, childID int, parentType string, parentID int, field string) bool {
-	if w.fkHasParent(parentType, parentID) {
+func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string, childID int, parentType string, parentID int, field string) bool {
+	if w.fkHasParent(ctx, tx, parentType, parentID) {
 		return true
 	}
 	w.fkMarkSkipped(childType, childID)
@@ -1198,7 +1262,7 @@ func (w *Worker) fkCheckParent(ctx context.Context, childType string, childID in
 		slog.Int("child_id", childID),
 		slog.String("field", field),
 		slog.String("parent_type", parentType),
-		slog.Int("parent_id", parentID),
+		slog.Int("orphan_parent_id", parentID),
 	)
 	return false
 }

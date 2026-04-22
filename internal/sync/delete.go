@@ -2,10 +2,11 @@ package sync
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"log/slog"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
 	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
@@ -22,45 +23,16 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 )
 
-// maxSQLVars is the maximum number of SQL variables per statement.
-// SQLite's default SQLITE_MAX_VARIABLE_NUMBER is 32766.
-const maxSQLVars = 30000
-
-// deleteStaleChunked splits remoteIDs into chunks under maxSQLVars and runs
-// the per-entity soft-delete closure (Phase 68 D-02: UPDATE ... SET
-// status='deleted', updated=cycleStart WHERE id NOT IN (...)). Rows beyond
-// maxSQLVars are silently NOT soft-deleted — same edge-case behaviour as the
-// pre-v1.16 hard-delete path, flagged for SEED-004 tombstone-GC follow-up
-// (Phase 68 research Open Question 4).
-//
-// For simplicity, since SQLite's limit is 32766 and no single PeeringDB
-// type has more than ~35K records, we just pass the full slice if it fits,
-// and fall back to a no-op (nothing to soft-delete on first sync) if it
-// doesn't.
-func deleteStaleChunked(ctx context.Context, remoteIDs []int, deleteFn func([]int) (int, error), typeName string) (int, error) {
-	if len(remoteIDs) <= maxSQLVars {
-		n, err := deleteFn(remoteIDs)
-		if err != nil {
-			return 0, fmt.Errorf("mark stale deleted %s: %w", typeName, err)
-		}
-		return n, nil
+// markStaleDeletedJSON marshals remoteIDs to a JSON array and passes it to the
+// provided deleteFn. Leverages SQLite's json_each(?) function to bypass the
+// 32766 variable limit (maxSQLVars) that previously caused syncs to skip
+// deletes on large types like netixlan (200K+ rows).
+func markStaleDeletedJSON(remoteIDs []int, deleteFn func(string) (int, error), typeName string) (int, error) {
+	jsonIDs, err := json.Marshal(remoteIDs)
+	if err != nil {
+		return 0, fmt.Errorf("marshal remote ids %s: %w", typeName, err)
 	}
-
-	// Over the limit: chunked NOT-IN predicates cannot be AND-combined across
-	// chunks because each chunk would re-mark rows kept by earlier chunks.
-	// Pre-v1.16 hard-delete shared this fallback (no-op). SEED-004 covers the
-	// tombstone-GC strategy and will subsume the >32K case.
-	//
-	// REVIEW WR-02: emit a WARN so the silent fallthrough is visible to
-	// operators. Once any PeeringDB entity crosses the chunk limit, soft-delete
-	// stops working for that type without this log signal. SEED-004 trigger
-	// candidate.
-	slog.WarnContext(ctx, "soft-delete skipped: remoteIDs exceed maxSQLVars chunk limit, SEED-004 trigger candidate",
-		slog.String("type", typeName),
-		slog.Int("remote_ids", len(remoteIDs)),
-		slog.Int("max_vars", maxSQLVars),
-	)
-	return 0, nil
+	return deleteFn(string(jsonIDs))
 }
 
 // markStaleDeletedOrganizations soft-deletes local organizations absent from
@@ -68,9 +40,11 @@ func deleteStaleChunked(ctx context.Context, remoteIDs []int, deleteFn func([]in
 // (Phase 68 D-02). Replaces the pre-v1.16 hard-delete path so the upstream
 // rest.py:700-712 status × since matrix returns tombstones.
 func markStaleDeletedOrganizations(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.Organization.Update().
-			Where(organization.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(organization.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -81,9 +55,11 @@ func markStaleDeletedOrganizations(ctx context.Context, tx *ent.Tx, remoteIDs []
 // response by setting status='deleted' and updated=cycleStart (Phase 68 D-02).
 // Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedCampuses(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.Campus.Update().
-			Where(campus.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(campus.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -94,9 +70,11 @@ func markStaleDeletedCampuses(ctx context.Context, tx *ent.Tx, remoteIDs []int, 
 // remote response by setting status='deleted' and updated=cycleStart
 // (Phase 68 D-02). Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedFacilities(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.Facility.Update().
-			Where(facility.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(facility.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -107,9 +85,11 @@ func markStaleDeletedFacilities(ctx context.Context, tx *ent.Tx, remoteIDs []int
 // response by setting status='deleted' and updated=cycleStart (Phase 68 D-02).
 // Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedCarriers(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.Carrier.Update().
-			Where(carrier.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(carrier.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -120,9 +100,11 @@ func markStaleDeletedCarriers(ctx context.Context, tx *ent.Tx, remoteIDs []int, 
 // absent from the remote response by setting status='deleted' and
 // updated=cycleStart (Phase 68 D-02). Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedCarrierFacilities(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.CarrierFacility.Update().
-			Where(carrierfacility.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(carrierfacility.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -133,9 +115,11 @@ func markStaleDeletedCarrierFacilities(ctx context.Context, tx *ent.Tx, remoteID
 // absent from the remote response by setting status='deleted' and
 // updated=cycleStart (Phase 68 D-02). Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedInternetExchanges(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.InternetExchange.Update().
-			Where(internetexchange.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(internetexchange.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -146,9 +130,11 @@ func markStaleDeletedInternetExchanges(ctx context.Context, tx *ent.Tx, remoteID
 // response by setting status='deleted' and updated=cycleStart (Phase 68 D-02).
 // Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedIxLans(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.IxLan.Update().
-			Where(ixlan.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(ixlan.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -159,9 +145,11 @@ func markStaleDeletedIxLans(ctx context.Context, tx *ent.Tx, remoteIDs []int, cy
 // remote response by setting status='deleted' and updated=cycleStart
 // (Phase 68 D-02). Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedIxPrefixes(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.IxPrefix.Update().
-			Where(ixprefix.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(ixprefix.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -172,9 +160,11 @@ func markStaleDeletedIxPrefixes(ctx context.Context, tx *ent.Tx, remoteIDs []int
 // the remote response by setting status='deleted' and updated=cycleStart
 // (Phase 68 D-02). Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedIxFacilities(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.IxFacility.Update().
-			Where(ixfacility.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(ixfacility.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -185,9 +175,11 @@ func markStaleDeletedIxFacilities(ctx context.Context, tx *ent.Tx, remoteIDs []i
 // response by setting status='deleted' and updated=cycleStart (Phase 68 D-02).
 // Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedNetworks(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.Network.Update().
-			Where(network.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(network.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -198,9 +190,11 @@ func markStaleDeletedNetworks(ctx context.Context, tx *ent.Tx, remoteIDs []int, 
 // response by setting status='deleted' and updated=cycleStart (Phase 68 D-02).
 // Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedPocs(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.Poc.Update().
-			Where(poc.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(poc.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -211,9 +205,11 @@ func markStaleDeletedPocs(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycl
 // absent from the remote response by setting status='deleted' and
 // updated=cycleStart (Phase 68 D-02). Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedNetworkFacilities(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.NetworkFacility.Update().
-			Where(networkfacility.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(networkfacility.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
@@ -224,9 +220,11 @@ func markStaleDeletedNetworkFacilities(ctx context.Context, tx *ent.Tx, remoteID
 // from the remote response by setting status='deleted' and updated=cycleStart
 // (Phase 68 D-02). Replaces the pre-v1.16 hard-delete path.
 func markStaleDeletedNetworkIxLans(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error) {
-	return deleteStaleChunked(ctx, remoteIDs, func(chunk []int) (int, error) {
+	return markStaleDeletedJSON(remoteIDs, func(jsonStr string) (int, error) {
 		return tx.NetworkIxLan.Update().
-			Where(networkixlan.IDNotIn(chunk...)).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.ExprP(s.C(networkixlan.FieldID)+" NOT IN (SELECT value FROM json_each(?))", jsonStr))
+			}).
 			SetStatus("deleted").
 			SetUpdated(cycleStart).
 			Save(ctx)
