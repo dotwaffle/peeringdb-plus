@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/time/rate"
@@ -113,11 +111,15 @@ func WithAPIKey(key string) ClientOption {
 // logger. By default, the client enforces a 20 req/min rate limit and a
 // 30-second HTTP timeout. Use WithAPIKey to enable authenticated access
 // with a higher 60 req/min rate limit.
+//
+// Internal requests bypass otelhttp instrumentation to avoid span bloat
+// during bulk syncs (PERF-08). Metrics and retries are still recorded
+// via events on the parent stream span.
 func NewClient(baseURL string, logger *slog.Logger, opts ...ClientOption) *Client {
 	c := &Client{
 		http: &http.Client{
 			Timeout:   30 * time.Second,
-			Transport: otelhttp.NewTransport(http.DefaultTransport),
+			Transport: http.DefaultTransport,
 		},
 		// 20 requests per minute = 1 request per 3 seconds.
 		limiter:        rate.NewLimiter(rate.Every(3*time.Second), 1),
@@ -260,8 +262,11 @@ func (c *Client) FetchRawPage(ctx context.Context, objectType string, page int) 
 // doWithRetry executes an HTTP GET with rate limiting and exponential
 // backoff retry on transient errors (429, 500, 502, 503, 504).
 // Non-retryable 4xx errors return immediately.
+//
+// Redundant per-request spans are omitted (PERF-08); errors and
+// rate-limiting events are recorded on the parent span.
 func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, error) {
-	tracer := otel.Tracer("peeringdb")
+	span := trace.SpanFromContext(ctx)
 	var lastErr error
 
 	for attempt := range maxRetries {
@@ -270,31 +275,22 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 			return nil, fmt.Errorf("fetch %s: %w", url, err)
 		}
 
-		// Create per-attempt span as a child of the FetchAll span.
-		// CRITICAL: use ctx (not attemptCtx) so attempts are siblings, not chained.
-		attemptCtx, attemptSpan := tracer.Start(ctx, "peeringdb.request",
-			trace.WithAttributes(
-				attribute.Int("http.request.resend_count", attempt),
-			),
-		)
-
 		// Wait for rate limiter.
 		waitStart := time.Now()
-		if err := c.limiter.Wait(attemptCtx); err != nil {
-			attemptSpan.End()
+		if err := c.limiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limiter for %s: %w", url, err)
 		}
 		if waitDuration := time.Since(waitStart); waitDuration > time.Millisecond {
-			attemptSpan.AddEvent("rate_limiter.wait",
+			span.AddEvent("rate_limiter.wait",
 				trace.WithAttributes(
 					attribute.Float64("wait_duration_ms", float64(waitDuration.Milliseconds())),
+					attribute.String("url", url),
 				),
 			)
 		}
 
-		req, err := http.NewRequestWithContext(attemptCtx, http.MethodGet, url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
-			attemptSpan.End()
 			return nil, fmt.Errorf("create request for %s: %w", url, err)
 		}
 		req.Header.Set("User-Agent", userAgent)
@@ -305,14 +301,11 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 		resp, err := c.http.Do(req)
 		if err != nil {
 			// Network-level error -- may be context cancellation.
-			attemptSpan.RecordError(err)
-			attemptSpan.End()
 			return nil, fmt.Errorf("fetch %s: %w", url, err)
 		}
 
 		// Success.
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			attemptSpan.End()
 			return resp, nil
 		}
 
@@ -332,8 +325,6 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 				slog.String("url", url),
 			)
 			authErr := fmt.Errorf("fetch %s: HTTP %d (API key may be invalid)", url, resp.StatusCode)
-			attemptSpan.RecordError(authErr)
-			attemptSpan.End()
 			return nil, authErr
 		}
 
@@ -354,16 +345,13 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 				slog.Int("status", resp.StatusCode),
 				slog.Duration("retry_after", retryAfter),
 			)
-			attemptSpan.RecordError(rlErr)
-			attemptSpan.End()
+			span.RecordError(rlErr)
 			return nil, rlErr
 		}
 
 		// Determine if retryable.
 		if isRetryable(resp.StatusCode) {
 			lastErr = fmt.Errorf("fetch %s: HTTP %d", url, resp.StatusCode)
-			attemptSpan.RecordError(lastErr)
-			attemptSpan.End()
 			if attempt < maxRetries-1 {
 				delay := c.retryDelay(attempt)
 				c.logger.LogAttrs(ctx, slog.LevelWarn, "retrying request",
@@ -371,6 +359,13 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 					slog.Int("status", resp.StatusCode),
 					slog.Int("attempt", attempt+1),
 					slog.Duration("delay", delay),
+				)
+				span.AddEvent("request.retry",
+					trace.WithAttributes(
+						attribute.Int("attempt", attempt+1),
+						attribute.Int("status", resp.StatusCode),
+						attribute.String("url", url),
+					),
 				)
 				select {
 				case <-time.After(delay):
@@ -383,8 +378,6 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 
 		// Non-retryable error.
 		nonRetryErr := fmt.Errorf("fetch %s: HTTP %d", url, resp.StatusCode)
-		attemptSpan.RecordError(nonRetryErr)
-		attemptSpan.End()
 		return nil, nonRetryErr
 	}
 

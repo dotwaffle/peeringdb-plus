@@ -72,6 +72,7 @@ func (c *Client) StreamAll(ctx context.Context, objectType string, handler func(
 
 	// Incremental path: paginate through delta results.
 	var combined FetchMeta
+	totalCount := 0
 	for skip := 0; ; skip += pageSize {
 		page := skip / pageSize
 		url := fmt.Sprintf("%s/api/%s?limit=%d&skip=%d&depth=0&since=%d",
@@ -91,6 +92,7 @@ func (c *Client) StreamAll(ctx context.Context, objectType string, handler func(
 		if pageCount == 0 {
 			break
 		}
+		totalCount += pageCount
 		// Track earliest generated timestamp across pages, matching the
 		// legacy FetchAll aggregation rule.
 		if !pageMeta.Generated.IsZero() {
@@ -98,14 +100,8 @@ func (c *Client) StreamAll(ctx context.Context, objectType string, handler func(
 				combined.Generated = pageMeta.Generated
 			}
 		}
-
-		span.AddEvent("page.streamed",
-			trace.WithAttributes(
-				attribute.Int("page", page),
-				attribute.Int("count", pageCount),
-			),
-		)
 	}
+	span.AddEvent("streamed", trace.WithAttributes(attribute.Int("count", totalCount)))
 	return combined, nil
 }
 

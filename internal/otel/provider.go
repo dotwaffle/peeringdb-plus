@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
+	"time"
 
 	"go.opentelemetry.io/contrib/exporters/autoexport"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
@@ -48,12 +49,17 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	metricRes := buildMetricResource(ctx, in.ServiceName)
 
 	// TracerProvider with configurable sampling per D-02.
+	// Batching is explicitly enabled per PERF-08; defaults to 5s/512 items,
+	// tuneable via OTEL_BSP_SCHEDULE_DELAY and OTEL_BSP_MAX_EXPORT_BATCH_SIZE.
 	spanExporter, err := autoexport.NewSpanExporter(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating span exporter: %w", err)
 	}
 	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(spanExporter),
+		sdktrace.WithBatcher(spanExporter,
+			sdktrace.WithBatchTimeout(5*time.Second),
+			sdktrace.WithMaxExportBatchSize(512),
+		),
 		sdktrace.WithResource(res),
 		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(in.SampleRate)),
 	)

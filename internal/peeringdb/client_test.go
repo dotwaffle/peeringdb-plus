@@ -632,38 +632,18 @@ func TestFetchAllCreatesSpanHierarchy(t *testing.T) {
 		t.Fatal("expected peeringdb.stream/net span, not found")
 	}
 
-	// Verify at least one request span exists.
+	// PERF-08: Individual request spans are omitted.
 	requestSpans := findSpansByName(spans, "peeringdb.request")
-	if len(requestSpans) == 0 {
-		t.Fatal("expected at least one peeringdb.request span, found none")
-	}
-
-	// Verify request spans are children of the fetch span.
-	for _, rs := range requestSpans {
-		if rs.Parent.SpanID() != fetchSpan.SpanContext.SpanID() {
-			t.Errorf("peeringdb.request span parent=%s, want %s (peeringdb.stream/net)",
-				rs.Parent.SpanID(), fetchSpan.SpanContext.SpanID())
-		}
-	}
-
-	// Verify resend_count attribute on first request span.
-	found := false
-	for _, attr := range requestSpans[0].Attributes {
-		if attr.Key == "http.request.resend_count" && attr.Value == attribute.IntValue(0) {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Error("first peeringdb.request span missing http.request.resend_count=0 attribute")
+	if len(requestSpans) != 0 {
+		t.Fatalf("expected no peeringdb.request spans due to PERF-08, found %d", len(requestSpans))
 	}
 }
 
-func TestFetchAllRecordsPageEvents(t *testing.T) {
+func TestFetchAllRecordsStreamedEvent(t *testing.T) {
 	// Not parallel: mutates global TracerProvider.
 	exporter := setupTraceTest(t)
 
-	// Incremental sync (WithSince) paginates and records page events.
+	// Incremental sync (WithSince) paginates and records final streamed event.
 	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
@@ -696,32 +676,21 @@ func TestFetchAllRecordsPageEvents(t *testing.T) {
 		t.Fatal("expected peeringdb.stream/org span, not found")
 	}
 
-	// Count page.streamed events.
-	var pageFetchedCount int
+	// PERF-08: page.streamed events are omitted to avoid event bloat.
+	// Only the final "streamed" event with the total count is recorded.
+	var streamedEvent *sdktrace.Event
 	for _, evt := range fetchSpan.Events {
-		if evt.Name == "page.streamed" {
-			pageFetchedCount++
+		if evt.Name == "streamed" {
+			evtCopy := evt
+			streamedEvent = &evtCopy
+			break
 		}
 	}
-	if pageFetchedCount < 2 {
-		t.Fatalf("expected at least 2 page.streamed events, got %d", pageFetchedCount)
+	if streamedEvent == nil {
+		t.Fatal("expected 'streamed' event, got none")
 	}
 
-	// Verify first page event attributes.
-	firstEvt := fetchSpan.Events[0]
-	if firstEvt.Name != "page.streamed" {
-		t.Fatalf("first event name=%q, want page.streamed", firstEvt.Name)
-	}
-	assertEventAttr(t, firstEvt.Attributes, "page", attribute.IntValue(0))
-	assertEventAttr(t, firstEvt.Attributes, "count", attribute.IntValue(250))
-
-	// Verify second page event attributes.
-	secondEvt := fetchSpan.Events[1]
-	if secondEvt.Name != "page.streamed" {
-		t.Fatalf("second event name=%q, want page.streamed", secondEvt.Name)
-	}
-	assertEventAttr(t, secondEvt.Attributes, "page", attribute.IntValue(1))
-	assertEventAttr(t, secondEvt.Attributes, "count", attribute.IntValue(50))
+	assertEventAttr(t, streamedEvent.Attributes, "count", attribute.IntValue(300))
 }
 
 // assertEventAttr checks that the given attributes contain a key with the expected value.
@@ -738,7 +707,7 @@ func assertEventAttr(t *testing.T, attrs []attribute.KeyValue, key string, want 
 	t.Errorf("attribute %s not found", key)
 }
 
-func TestDoWithRetryCreatesPerAttemptSpans(t *testing.T) {
+func TestDoWithRetryRecordsRetryEvents(t *testing.T) {
 	// Not parallel: mutates global TracerProvider.
 	exporter := setupTraceTest(t)
 
@@ -747,13 +716,11 @@ func TestDoWithRetryCreatesPerAttemptSpans(t *testing.T) {
 		n := attempt.Add(1)
 		switch n {
 		case 1:
-			// First request for page 0: return a retryable 5xx error.
-			// (429 no longer retries — it short-circuits via RateLimitError,
-			// so use 502 Bad Gateway to exercise the retry span hierarchy.)
+			// First request: return a retryable error.
 			w.WriteHeader(http.StatusBadGateway)
 			_, _ = w.Write([]byte(`{"detail":"Bad gateway"}`))
 		case 2:
-			// Second request for page 0: succeed.
+			// Second request: succeed.
 			_, _ = w.Write(makeOrgPage(1, 5))
 		default:
 			// Page 1: empty (end pagination).
@@ -776,34 +743,28 @@ func TestDoWithRetryCreatesPerAttemptSpans(t *testing.T) {
 	}
 
 	spans := exporter.GetSpans()
-	requestSpans := findSpansByName(spans, "peeringdb.request")
-
-	// Expect at least 3 request spans: 2 for page 0 (429 then 200), 1 for page 1 (empty).
-	if len(requestSpans) < 3 {
-		t.Fatalf("expected at least 3 peeringdb.request spans, got %d", len(requestSpans))
+	fetchSpan := findSpanByName(spans, "peeringdb.stream/org")
+	if fetchSpan == nil {
+		t.Fatal("expected peeringdb.stream/org span, not found")
 	}
 
-	// Verify first attempt has resend_count=0, second has resend_count=1.
-	first := requestSpans[0]
-	second := requestSpans[1]
-
-	assertSpanAttr(t, first.Attributes, "http.request.resend_count", attribute.IntValue(0))
-	assertSpanAttr(t, second.Attributes, "http.request.resend_count", attribute.IntValue(1))
-}
-
-// assertSpanAttr checks that the given attributes contain a key with the expected value.
-func assertSpanAttr(t *testing.T, attrs []attribute.KeyValue, key string, want attribute.Value) {
-	t.Helper()
-	for _, a := range attrs {
-		if string(a.Key) == key {
-			if a.Value != want {
-				t.Errorf("span attribute %s = %v, want %v", key, a.Value, want)
-			}
-			return
+	// PERF-08: Retries are recorded as events on the parent span.
+	var retryEvent *sdktrace.Event
+	for _, evt := range fetchSpan.Events {
+		if evt.Name == "request.retry" {
+			evtCopy := evt
+			retryEvent = &evtCopy
+			break
 		}
 	}
-	t.Errorf("span attribute %s not found", key)
+	if retryEvent == nil {
+		t.Fatal("expected 'request.retry' event, got none")
+	}
+
+	assertEventAttr(t, retryEvent.Attributes, "attempt", attribute.IntValue(1))
+	assertEventAttr(t, retryEvent.Attributes, "status", attribute.IntValue(502))
 }
+
 
 func TestWithAPIKeyHeader(t *testing.T) {
 	t.Parallel()
