@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: null
 milestone_name: null
 status: ready
-stopped_at: "v1.16 ARCHIVED 2026-04-22. 6 phases (67-72), 36 plans, 25 requirements complete. Ready for v1.17."
+stopped_at: "v1.16 ARCHIVED 2026-04-22. 6 phases (67-72), 36 plans, 25 requirements complete. Ready for v1.18.0 (the v1.17.0 tag was used by quick task 260426-pms for the SEED-001 incremental-sync flip — not a milestone)."
 last_updated: "2026-04-22T17:15:00.000Z"
 last_activity: 2026-04-22
 progress:
@@ -22,18 +22,18 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Ready for v1.17 milestone definition. v1.16 Django-compat Correctness archived 2026-04-22.
+**Current focus:** Ready for v1.18.0 milestone definition. v1.16 Django-compat Correctness archived 2026-04-22; the v1.17.0 release tag was used by quick task 260426-pms (SEED-001 incremental-sync default flip) — not a milestone.
 
 ## Current Position
 
 Phase: none
 Plan: none
-Status: Ready for /gsd-new-milestone to start v1.17.
-Last activity: 2026-04-26 - Completed quick task 260426-pms: flip default PDBPLUS_SYNC_MODE to incremental (SEED-001)
+Status: Ready for /gsd-new-milestone to start v1.18.0.
+Last activity: 2026-04-26 - Completed quick task 260426-pms: flip default PDBPLUS_SYNC_MODE to incremental (SEED-001), shipped as v1.17.0
 
-## v1.17 Phase Map
+## v1.18.0 Phase Map
 
-_No phases defined for v1.17 yet._
+_No phases defined for v1.18.0 yet._
 
 ## Locked Decisions (abbreviated)
 
@@ -60,7 +60,7 @@ See `memory/project_human_verification.md` for the full backlog.
 
 ### Seeds
 
-- **SEED-001** — incremental sync evaluation. Dormant.
+- **SEED-001** — incremental sync evaluation. **Consumed 2026-04-26** by quick task 260426-pms (default `PDBPLUS_SYNC_MODE=incremental` shipped in v1.17.0).
 - **SEED-002** — asymmetric Fly fleet. **Consumed** by v1.15 Phase 65.
 - **SEED-003** — primary HA hot-standby. Dormant.
 - **SEED-004** — tombstone garbage collection. **Planted 2026-04-19**.
@@ -88,4 +88,4 @@ None.
 
 ## Session Continuity
 
-Milestone v1.16 completed and archived. Ready for v1.17 definition.
+Milestone v1.16 completed and archived. Ready for v1.18.0 definition. (v1.17.0 was used as a release tag for the SEED-001 incremental-sync flip via quick task 260426-pms — not a milestone, so the next milestone bumps to v1.18.0.)

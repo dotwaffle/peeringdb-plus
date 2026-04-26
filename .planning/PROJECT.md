@@ -94,7 +94,7 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 
 ## Current Milestone: none
 
-**Status:** Ready for /gsd-new-milestone to start v1.17.
+**Status:** Ready for /gsd-new-milestone to start v1.18.0. (v1.17.0 was burned by quick task 260426-pms — SEED-001 incremental-sync default flip — shipped as a release tag, not a milestone.)
 **Theme:** n/a
 
 ### Recently Shipped: v1.15 Infrastructure Polish & Schema Hygiene

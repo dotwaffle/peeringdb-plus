@@ -3,7 +3,7 @@ id: SEED-004
 slug: tombstone-gc
 planted: 2026-04-19
 planted_after: v1.16
-surface_at: v1.17+
+surface_at: v1.18.0+
 status: dormant
 priority: watch
 triggers:

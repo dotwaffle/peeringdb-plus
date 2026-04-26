@@ -16,7 +16,7 @@ provides:
   - 6 folded entities accept upstream PII-scrubbed name="" tombstones at upsert time
   - TestSync_IncrementalDeletionTombstone regression guard for the empty-name path
   - pdbplus.sync.{duration,operations} carry mode={full,incremental} attribute
-affects: [v1.17 milestone planning, future operator dashboards, sync alerting]
+affects: [v1.18.0 milestone planning, future operator dashboards, sync alerting]
 
 # Tech tracking
 tech-stack:
@@ -137,7 +137,7 @@ This is a separate concern from this quick task (default flip + name PII path). 
 
 ## Next Phase Readiness
 
-- v1.17 milestone planning can proceed. SEED-001 has its trigger fired and remaining work shipped.
+- v1.18.0 milestone planning can proceed. SEED-001 has its trigger fired and remaining work shipped (as v1.17.0 release tag, not a milestone).
 - The conformance test (`TestSync_IncrementalDeletionTombstone`) is in place to catch any future regression of the empty-name path.
 - New `mode` label on `pdbplus_sync_operations_total` and `pdbplus_sync_duration_seconds` is available for operator dashboard consumption (Grafana / Mimir). Existing dashboards continue to work — `mode` is additive.
 
