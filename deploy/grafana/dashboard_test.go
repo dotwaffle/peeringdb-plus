@@ -3,6 +3,7 @@ package grafana_test
 import (
 	"encoding/json"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -347,24 +348,33 @@ func TestDashboard_NoOrphanTemplateVars(t *testing.T) {
 	dsBlob := dsUIDHaystack.String()
 
 	for _, v := range d.Templating.List {
-		// Variable references in panel queries: either $name or ${name}.
-		dollarRef := "$" + v.Name
-		braceRef := "${" + v.Name + "}"
+		// Variable references in panel queries: either $name or ${name} (with
+		// optional format suffix such as ${name:csv}). The match must be
+		// boundary-aware: a future variable named "type" must not be falsely
+		// flagged as referenced by an expression that contains "$type_total"
+		// or "${type_count}". Substring matching is unsound.
+		//
+		// Pattern: literal "$", then either
+		//   - "{" + name + ("}" or ":")  — brace form, possibly formatted
+		//   - name + (non-identifier byte or end-of-string) — bare form
+		// Identifier continuation chars per Grafana variable naming: [A-Za-z0-9_].
+		name := regexp.QuoteMeta(v.Name)
+		pat := regexp.MustCompile(`\$(?:\{` + name + `[}:]|` + name + `(?:[^A-Za-z0-9_]|$))`)
 
 		var referenced bool
 		switch v.Type {
 		case "datasource":
 			// Datasource variables are referenced via ${name} inside target
 			// datasource.uid fields, not inside expressions.
-			referenced = strings.Contains(dsBlob, braceRef) || strings.Contains(dsBlob, dollarRef)
+			referenced = pat.MatchString(dsBlob)
 		default:
 			// Query / interval / custom / textbox / constant variables are
 			// referenced inside panel expressions.
-			referenced = strings.Contains(exprBlob, braceRef) || strings.Contains(exprBlob, dollarRef)
+			referenced = pat.MatchString(exprBlob)
 		}
 
 		if !referenced {
-			t.Errorf("template variable %q (type=%q) is declared but no panel query references it (looked for %q and %q) — orphan UI cruft per Phase 74 D-02", v.Name, v.Type, dollarRef, braceRef)
+			t.Errorf("template variable %q (type=%q) is declared but no panel query references it (looked for $%s / ${%s} with boundary) — orphan UI cruft per Phase 74 D-02", v.Name, v.Type, v.Name, v.Name)
 		}
 	}
 }
