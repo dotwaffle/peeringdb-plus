@@ -104,7 +104,7 @@ type Worker struct {
 	db            *sql.DB // underlying sql.DB for sync_status table
 	config        WorkerConfig
 	running       atomic.Bool
-	synced        atomic.Bool     // true after first successful sync (D-30)
+	synced        atomic.Bool // true after first successful sync (D-30)
 	logger        *slog.Logger
 	retryBackoffs []time.Duration // per D-21; defaults to 30s, 2m, 8m
 	// fkRegistry maps parent type name to the set of IDs successfully
@@ -477,7 +477,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 
 	scratch, err := openScratchDB(ctx)
 	if err != nil {
-		w.recordFailure(ctx, statusID, start, err)
+		w.recordFailure(ctx, mode, statusID, start, err)
 		return err
 	}
 	defer closeScratchDB(ctx, scratch, w.logger)
@@ -486,14 +486,14 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	// HTTP + JSON decode stream into the scratch DB; Go heap stays bounded.
 	cursorUpdates, fromIncremental, err := w.syncFetchPass(ctx, scratch, mode, start)
 	if err != nil {
-		w.recordFailure(ctx, statusID, start, err)
+		w.recordFailure(ctx, mode, statusID, start, err)
 		return err
 	}
 	// Commit F guardrail: see checkMemoryLimit godoc (defense-in-depth).
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 	if memErr := w.checkMemoryLimit(ctx, ms.HeapAlloc, w.config.SyncMemoryLimit, len(fromIncremental)); memErr != nil {
-		w.recordFailure(ctx, statusID, start, memErr)
+		w.recordFailure(ctx, mode, statusID, start, memErr)
 		return memErr
 	}
 	// === Fetch Barrier ===
@@ -501,28 +501,28 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	tx, err := w.entClient.Tx(ctx)
 	if err != nil {
 		beginErr := fmt.Errorf("begin sync transaction: %w", err)
-		w.recordFailure(ctx, statusID, start, beginErr)
+		w.recordFailure(ctx, mode, statusID, start, beginErr)
 		return beginErr
 	}
 	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
 		fkErr := fmt.Errorf("defer FK checks: %w", err)
-		w.rollbackAndRecord(ctx, tx, statusID, start, fkErr)
+		w.rollbackAndRecord(ctx, mode, tx, statusID, start, fkErr)
 		return fkErr
 	}
 
 	// === Phase B — SINGLE REAL TX ===
 	objectCounts, remoteIDsByType, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental)
 	if err != nil {
-		w.rollbackAndRecord(ctx, tx, statusID, start, err)
+		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
 		return err
 	}
 	if err := w.syncDeletePass(ctx, tx, remoteIDsByType, start); err != nil {
-		w.rollbackAndRecord(ctx, tx, statusID, start, err)
+		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
 		return err
 	}
 	if err := tx.Commit(); err != nil {
 		syncErr := fmt.Errorf("commit sync transaction: %w", err)
-		w.recordFailure(ctx, statusID, start, syncErr)
+		w.recordFailure(ctx, mode, statusID, start, syncErr)
 		return syncErr
 	}
 
@@ -685,7 +685,11 @@ func readLinuxVMHWM() (int64, bool) {
 // so Worker.Sync's error paths stay a one-liner each (REFAC-03 line budget).
 // Logs the rollback error at ERROR level — a failing rollback inside a
 // failing sync is worth surfacing in the error stream.
-func (w *Worker) rollbackAndRecord(ctx context.Context, tx *ent.Tx, statusID int64, start time.Time, syncErr error) {
+//
+// mode is threaded through to recordFailure so the failure metric carries
+// the same {status,mode} attribute pair as the success metric (SEED-001
+// 260426-pms — explicit dataflow > implicit context lookup, GO-CFG-2).
+func (w *Worker) rollbackAndRecord(ctx context.Context, mode config.SyncMode, tx *ent.Tx, statusID int64, start time.Time, syncErr error) {
 	// Memory telemetry is emitted exactly once in recordFailure below — do not
 	// emit here as well (REVIEW WR-01). Double emission caused duplicate
 	// "heap threshold crossed" WARN records on every rollback path that
@@ -694,7 +698,7 @@ func (w *Worker) rollbackAndRecord(ctx context.Context, tx *ent.Tx, statusID int
 		w.logger.LogAttrs(ctx, slog.LevelError, "rollback failed",
 			slog.Any("error", rbErr))
 	}
-	w.recordFailure(ctx, statusID, start, syncErr)
+	w.recordFailure(ctx, mode, statusID, start, syncErr)
 }
 
 // recordSuccess runs all post-commit bookkeeping: per-type cursor updates,
@@ -719,9 +723,16 @@ func (w *Worker) recordSuccess(
 		}
 	}
 	elapsed := time.Since(start)
-	statusAttr := metric.WithAttributes(attribute.String("status", "success"))
-	pdbotel.SyncDuration.Record(ctx, elapsed.Seconds(), statusAttr)
-	pdbotel.SyncOperations.Add(ctx, 1, statusAttr)
+	// SEED-001 (260426-pms): label sync metrics with mode={full,incremental} so
+	// dashboards/alerts can distinguish cycle behaviour after the default flip.
+	// Cardinality: status (2) × mode (2) = 4 combinations on
+	// pdbplus_sync_operations_total — well under any concern.
+	attrs := metric.WithAttributes(
+		attribute.String("status", "success"),
+		attribute.String("mode", string(mode)),
+	)
+	pdbotel.SyncDuration.Record(ctx, elapsed.Seconds(), attrs)
+	pdbotel.SyncOperations.Add(ctx, 1, attrs)
 	w.logger.LogAttrs(ctx, slog.LevelInfo, "sync complete",
 		slog.String("mode", string(mode)),
 		slog.Duration("duration", elapsed),
@@ -1397,15 +1408,21 @@ func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType
 }
 
 // recordFailure records a failed sync in the sync_status table and metrics.
-func (w *Worker) recordFailure(ctx context.Context, statusID int64, start time.Time, syncErr error) {
+//
+// mode is threaded through so the failure metric carries the same
+// {status,mode} attribute pair as the success metric (SEED-001 260426-pms).
+func (w *Worker) recordFailure(ctx context.Context, mode config.SyncMode, statusID int64, start time.Time, syncErr error) {
 	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
 	// Called even on failure — memory pressure is interesting regardless of sync outcome.
 	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
 	w.emitOrphanSummary(ctx)
 	// Record sync-level failure metrics per D-06.
-	failedAttr := metric.WithAttributes(attribute.String("status", "failed"))
-	pdbotel.SyncDuration.Record(ctx, time.Since(start).Seconds(), failedAttr)
-	pdbotel.SyncOperations.Add(ctx, 1, failedAttr)
+	attrs := metric.WithAttributes(
+		attribute.String("status", "failed"),
+		attribute.String("mode", string(mode)),
+	)
+	pdbotel.SyncDuration.Record(ctx, time.Since(start).Seconds(), attrs)
+	pdbotel.SyncOperations.Add(ctx, 1, attrs)
 
 	if statusID > 0 {
 		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
@@ -1654,4 +1671,3 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 		nextAt = time.Now().Add(interval)
 	}
 }
-
