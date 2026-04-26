@@ -85,8 +85,6 @@ var (
 	DefaultName string
 	// DefaultPhone holds the default value on creation for the "phone" field.
 	DefaultPhone string
-	// RoleValidator is a validator for the "role" field. It is called by the builders before save.
-	RoleValidator func(string) error
 	// DefaultURL holds the default value on creation for the "url" field.
 	DefaultURL string
 	// DefaultVisible holds the default value on creation for the "visible" field.

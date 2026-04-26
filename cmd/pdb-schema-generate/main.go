@@ -44,16 +44,16 @@ type ObjectType struct {
 
 // FieldDef describes a single field within an object type.
 type FieldDef struct {
-	Type       string      `json:"type"`
-	MaxLength  int         `json:"max_length,omitempty"`
-	Required   bool        `json:"required"`
-	Unique     bool        `json:"unique,omitempty"`
-	Nullable   bool        `json:"nullable,omitempty"`
-	ReadOnly   bool        `json:"read_only"`
-	Deprecated bool        `json:"deprecated"`
-	HelpText   string      `json:"help_text,omitempty"`
-	Default    any `json:"default"`
-	References string      `json:"references,omitempty"`
+	Type       string `json:"type"`
+	MaxLength  int    `json:"max_length,omitempty"`
+	Required   bool   `json:"required"`
+	Unique     bool   `json:"unique,omitempty"`
+	Nullable   bool   `json:"nullable,omitempty"`
+	ReadOnly   bool   `json:"read_only"`
+	Deprecated bool   `json:"deprecated"`
+	HelpText   string `json:"help_text,omitempty"`
+	Default    any    `json:"default"`
+	References string `json:"references,omitempty"`
 }
 
 // Relationship describes a relationship between object types.
@@ -318,14 +318,15 @@ func generateFieldCode(name string, fd FieldDef) string {
 	case "string":
 		fmt.Fprintf(&b, "field.String(%q)", name)
 		// SEED-001 (active 2026-04-26): upstream PeeringDB ?since= responses
-		// emit status='deleted' tombstones with PII-scrubbed name="" for the
-		// 6 folded entities (org, network, facility, ix, carrier, campus).
-		// A NotEmpty() validator on the name field would reject those tombstones
-		// at upsert time, breaking incremental sync. Tombstones are first-class
-		// post-Phase 68. NotEmpty() is preserved for "prefix" (IP prefix —
-		// structurally meaningful, not in the PII scrub set) and "role" (poc;
-		// out of v1.16 default-flip scope, separate visibility story).
-		if fd.Required && !fd.Nullable && fd.References == "" && isNameField(name) && name != "name" {
+		// emit status='deleted' tombstones with PII-scrubbed empty strings on
+		// identity-correlated text fields. The 260426-pms quick task dropped
+		// NotEmpty() for "name" on the 6 folded entities after the live spike
+		// confirmed name="" tombstones. Phase 73 BUG-02 extends the same drop
+		// to "role" on poc — symmetric prevention for the next likely
+		// scrub target. NotEmpty() is preserved for "prefix" (ixprefix —
+		// structurally meaningful, IP prefix is row identity not PII).
+		// See isTombstoneVulnerableField below for the explicit drop list.
+		if fd.Required && !fd.Nullable && fd.References == "" && isNameField(name) && !isTombstoneVulnerableField(name) {
 			b.WriteString(".\n\t\t\tNotEmpty()")
 		}
 		if fd.Unique {
@@ -773,4 +774,29 @@ func sortedFieldNames(fields map[string]FieldDef) []string {
 // isNameField returns true if the field is a "name" type field that should have NotEmpty.
 func isNameField(name string) bool {
 	return name == "name" || name == "prefix" || name == "role"
+}
+
+// isTombstoneVulnerableField returns true if the field is structurally
+// likely to arrive empty on upstream PeeringDB tombstones (the GDPR-style
+// PII-scrub pattern empirically confirmed for ?since= responses on
+// 2026-04-26 — see SEED-001 spike). NotEmpty() validators on these fields
+// would reject incoming tombstones at the upsert builder, aborting
+// incremental sync cycles.
+//
+// Drops:
+//   - "name" — added 2026-04-26 by quick task 260426-pms after the
+//     SEED-001 spike confirmed name="" tombstones for the 6 folded
+//     entities (org, network, facility, ix, carrier, campus).
+//   - "role" — added in v1.18.0 Phase 73 BUG-02 (per CONTEXT.md D-02).
+//     poc.role is the next obvious PII-scrub target on the same poc rows
+//     that already shipped tombstones in the spike; surfacing now
+//     prevents the next "incremental sync silently aborted on first
+//     poc tombstone" incident.
+//
+// Keeps (NotEmpty stays — these fields are NOT tombstone-vulnerable):
+//   - "prefix" (ixprefix.prefix) — IP prefixes are structural row
+//     identity, not PII; upstream retains the prefix value on tombstones
+//     because the prefix IS the row's natural key.
+func isTombstoneVulnerableField(name string) bool {
+	return name == "name" || name == "role"
 }

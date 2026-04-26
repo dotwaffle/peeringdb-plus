@@ -760,10 +760,6 @@ func init() {
 	pocDescPhone := pocFields[4].Descriptor()
 	// poc.DefaultPhone holds the default value on creation for the phone field.
 	poc.DefaultPhone = pocDescPhone.Default.(string)
-	// pocDescRole is the schema descriptor for role field.
-	pocDescRole := pocFields[5].Descriptor()
-	// poc.RoleValidator is a validator for the "role" field. It is called by the builders before save.
-	poc.RoleValidator = pocDescRole.Validators[0].(func(string) error)
 	// pocDescURL is the schema descriptor for url field.
 	pocDescURL := pocFields[6].Descriptor()
 	// poc.DefaultURL holds the default value on creation for the url field.

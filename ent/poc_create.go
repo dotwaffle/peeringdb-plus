@@ -233,11 +233,6 @@ func (_c *PocCreate) check() error {
 	if _, ok := _c.mutation.Role(); !ok {
 		return &ValidationError{Name: "role", err: errors.New(`ent: missing required field "Poc.role"`)}
 	}
-	if v, ok := _c.mutation.Role(); ok {
-		if err := poc.RoleValidator(v); err != nil {
-			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Created(); !ok {
 		return &ValidationError{Name: "created", err: errors.New(`ent: missing required field "Poc.created"`)}
 	}

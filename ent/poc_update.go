@@ -248,20 +248,7 @@ func (_u *PocUpdate) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *PocUpdate) check() error {
-	if v, ok := _u.mutation.Role(); ok {
-		if err := poc.RoleValidator(v); err != nil {
-			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *PocUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(poc.Table, poc.Columns, sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -590,20 +577,7 @@ func (_u *PocUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *PocUpdateOne) check() error {
-	if v, ok := _u.mutation.Role(); ok {
-		if err := poc.RoleValidator(v); err != nil {
-			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "Poc.role": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *PocUpdateOne) sqlSave(ctx context.Context) (_node *Poc, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(poc.Table, poc.Columns, sqlgraph.NewFieldSpec(poc.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
 	if !ok {
