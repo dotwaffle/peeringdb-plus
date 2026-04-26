@@ -2043,7 +2043,7 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "sum by (service_namespace, cloud_region) (go_memory_used_bytes{service_name=\"peeringdb-plus\"})",
+          "expr": "sum by (service_namespace, cloud_region) (go_memory_used_bytes{service_name=\"peeringdb-plus\", service_namespace=~\"$process_group\"})",
           "legendFormat": "{{service_namespace}}/{{cloud_region}}",
           "refId": "A"
         }

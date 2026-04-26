@@ -313,28 +313,59 @@ func TestDashboard_FreshnessGaugeThresholds(t *testing.T) {
 	t.Error("Data Freshness stat panel not found")
 }
 
-func TestDashboard_RegionVariableUsed(t *testing.T) {
+// TestDashboard_NoOrphanTemplateVars asserts that every template variable
+// declared in templating.list is referenced by at least one panel query (or,
+// for datasource-type variables, by at least one target's datasource.uid).
+//
+// Phase 74 D-02 — replaces the prior TestDashboard_RegionVariableUsed which
+// checked only the cloud_region Prometheus label and silently passed even
+// after the $region template variable became dead UI cruft. This positive
+// structural invariant catches the whole class of orphan-template-var
+// accumulation.
+func TestDashboard_NoOrphanTemplateVars(t *testing.T) {
 	t.Parallel()
 	d := loadDashboard(t)
 
-	var exprs []string
-	for _, p := range allPanels(d) {
-		for _, tgt := range p.Targets {
-			if tgt.Expr != "" {
-				exprs = append(exprs, tgt.Expr)
-			}
-		}
+	if len(d.Templating.List) == 0 {
+		t.Fatal("templating.list is empty — dashboard has no template variables to validate")
 	}
 
-	found := false
-	for _, expr := range exprs {
-		if strings.Contains(expr, "cloud_region") {
-			found = true
-			break
+	// Collect all panel target exprs and datasource UIDs across the dashboard
+	// (including nested panels inside collapsed rows). One concatenated haystack
+	// per category; we then substring-search per variable name.
+	var exprHaystack strings.Builder
+	var dsUIDHaystack strings.Builder
+	for _, p := range allPanels(d) {
+		for _, tgt := range p.Targets {
+			exprHaystack.WriteString(tgt.Expr)
+			exprHaystack.WriteByte('\n')
+			dsUIDHaystack.WriteString(tgt.Datasource.UID)
+			dsUIDHaystack.WriteByte('\n')
 		}
 	}
-	if !found {
-		t.Error("no PromQL expression references the cloud_region label; $region variable is unused")
+	exprBlob := exprHaystack.String()
+	dsBlob := dsUIDHaystack.String()
+
+	for _, v := range d.Templating.List {
+		// Variable references in panel queries: either $name or ${name}.
+		dollarRef := "$" + v.Name
+		braceRef := "${" + v.Name + "}"
+
+		var referenced bool
+		switch v.Type {
+		case "datasource":
+			// Datasource variables are referenced via ${name} inside target
+			// datasource.uid fields, not inside expressions.
+			referenced = strings.Contains(dsBlob, braceRef) || strings.Contains(dsBlob, dollarRef)
+		default:
+			// Query / interval / custom / textbox / constant variables are
+			// referenced inside panel expressions.
+			referenced = strings.Contains(exprBlob, braceRef) || strings.Contains(exprBlob, dollarRef)
+		}
+
+		if !referenced {
+			t.Errorf("template variable %q (type=%q) is declared but no panel query references it (looked for %q and %q) — orphan UI cruft per Phase 74 D-02", v.Name, v.Type, dollarRef, braceRef)
+		}
 	}
 }
 
