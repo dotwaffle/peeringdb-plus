@@ -315,6 +315,8 @@ Same values are exported as Prometheus gauges via `internal/otel.InitMemoryGauge
 
 **Dashboard.** `deploy/grafana/dashboards/pdbplus-overview.json` has a "Sync Memory (SEED-001 watch)" row with three panels — "Peak Heap (MiB)", "Peak RSS (MiB)", and "Peak Heap by Process Group" (primary vs replica, post-Phase-65 asymmetric fleet).
 
+**OTel runtime metrics.** `go.opentelemetry.io/contrib/instrumentation/runtime` is wired at `internal/otel/provider.go` (`runtime.Start(...)`) and emits per-instance `go_memory_used_bytes`, `go_goroutine_count`, `go_gc_duration_seconds` (semconv v1.36.0 `goconv` naming, Prom-translated). These are LIVE tick gauges on every machine; they coexist with the `pdbplus_sync_peak_*` sync-cycle watermarks (primary only). Dashboard panel 35 ("Live Heap by Instance") sources from `go_memory_used_bytes` so all 8 fleet machines plot. Production alert rules live in `deploy/grafana/alerts/pdbplus-alerts.yaml` and apply via `mimirtool rules sync` (see `deploy/grafana/alerts/README.md` for the workflow).
+
 **OTel resource attributes (post-260426-lod).** Grafana Cloud's hosted OTLP receiver only promotes a small allowlist of OTel semconv resource attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`, `k8s.*`); custom `fly.*` keys are silently dropped on the metrics path. Resource attrs are emitted from `internal/otel/provider.go` `buildResourceFiltered`:
 
 | Env var | Resource attr | semconv | On metrics? | On traces/logs? |
