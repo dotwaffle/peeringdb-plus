@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"runtime/debug"
 	"time"
 
 	"go.opentelemetry.io/contrib/exporters/autoexport"
@@ -21,6 +20,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/buildinfo"
 )
 
 // SetupInput holds configuration for initializing the OTel pipeline.
@@ -176,23 +177,9 @@ func buildMetricResource(ctx context.Context, serviceName string) *resource.Reso
 // free. Emitting them on every signal lets dashboards filter by provider
 // without coupling to a Fly-specific env var.
 func buildResourceFiltered(_ context.Context, serviceName string, includeInstanceID bool) *resource.Resource {
-	version := "unknown"
-	if info, ok := debug.ReadBuildInfo(); ok {
-		version = info.Main.Version
-		if version == "(devel)" || version == "" {
-			// Try VCS revision from build settings.
-			for _, s := range info.Settings {
-				if s.Key == "vcs.revision" && len(s.Value) >= 7 {
-					version = s.Value[:7]
-					break
-				}
-			}
-		}
-	}
-
 	attrs := []attribute.KeyValue{
 		semconv.ServiceName(serviceName),
-		semconv.ServiceVersion(version),
+		semconv.ServiceVersion(buildinfo.Version()),
 	}
 
 	// Always-on: cloud provider / platform constants (1-cardinality, GC-allowlisted).

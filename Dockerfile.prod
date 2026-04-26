@@ -3,10 +3,24 @@ FROM cgr.dev/chainguard/go AS build
 
 WORKDIR /app
 COPY . .
+# Compute version from git: tagged release → `v1.17`, post-tag dev →
+# `v1.17-3-gabc1234`, dirty tree → trailing `-dirty`. Falls back to short
+# sha (`git rev-parse --short`) if no tags reachable, "unknown" if .git
+# is missing entirely (defensive — .git IS in the build context as of
+# 2026-04-26: no .dockerignore exists).
+#
+# Injected into internal/buildinfo via `-ldflags -X` so both the OTel
+# resource (service.version) and the PeeringDB User-Agent emit the
+# same string. Single source of truth — see internal/buildinfo/.
 RUN \
     --mount=type=cache,target=/root/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    GOOS=linux go build -trimpath -ldflags="-s -w" -o /bin/peeringdb-plus ./cmd/peeringdb-plus
+    VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo unknown) && \
+    echo "Building peeringdb-plus version=$VERSION" && \
+    GOOS=linux go build \
+        -trimpath \
+        -ldflags="-s -w -X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION" \
+        -o /bin/peeringdb-plus ./cmd/peeringdb-plus
 
 # Runtime stage
 FROM cgr.dev/chainguard/glibc-dynamic:latest-dev
