@@ -2050,8 +2050,8 @@
     {
       "id": 35,
       "type": "timeseries",
-      "title": "Peak Heap by Process Group",
-      "description": "Same pdbplus_sync_peak_heap_bytes grouped by service.namespace (Fly process group: primary vs replica). Resource attribute promoted to a Prometheus label by Grafana Cloud's OTLP receiver. Bytes unit; Grafana auto-formats MiB / GiB.",
+      "title": "Live Heap by Instance",
+      "description": "Live Go heap usage per instance from the OTel runtime contrib package (go.opentelemetry.io/contrib/instrumentation/runtime, semconv v1.36.0 goconv naming). Sums across go_memory_type (stack + other) so each line is one VM. Coexists with pdbplus_sync_peak_heap_bytes (sync-cycle watermark on primary only) — this gauge ticks per OTel push interval on every instance. Bytes unit; Grafana auto-formats MiB / GiB.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -2066,8 +2066,8 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "sum by(service_namespace, cloud_region)(pdbplus_sync_peak_heap_bytes)",
-          "legendFormat": "{{service_namespace}} / {{cloud_region}}",
+          "expr": "sum by (service_namespace, cloud_region) (go_memory_used_bytes{service_name=\"peeringdb-plus\"})",
+          "legendFormat": "{{service_namespace}}/{{cloud_region}}",
           "refId": "A"
         }
       ],
