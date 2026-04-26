@@ -24,6 +24,7 @@ import (
 	"connectrpc.com/otelconnect"
 	"github.com/KimMachineGun/automemlimit/memlimit"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/migrate"
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
@@ -476,7 +477,7 @@ func main() {
 	})
 
 	// Build middleware stack (outermost first):
-	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> mux
+	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux
 	//
 	// MaxBytesBody caps every non-gRPC request body at maxRequestBodySize (1 MB)
 	// per SEC-09. Per-route http.MaxBytesReader wraps at /sync and /graphql stay
@@ -785,12 +786,17 @@ type chainConfig struct {
 //
 //	Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging ->
 //	PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching ->
-//	Gzip -> innermost
+//	Gzip -> RouteTag -> innermost
 //
-// The code below wraps innermost-first (Gzip is wrapped first so it sits
-// closest to the handler; Recovery is wrapped last so it sits outermost).
-// This ordering is regression-locked by TestMiddlewareChain_Order, which
-// source-scans this function body and asserts the literal wrap order.
+// The code below wraps innermost-first (RouteTag is wrapped first so it
+// sits closest to the handler; Recovery is wrapped last so it sits
+// outermost). This ordering is regression-locked by
+// TestMiddlewareChain_Order, which source-scans this function body and
+// asserts the literal wrap order.
+//
+// RouteTag must be the innermost wrap so its `next.ServeHTTP(mux)` is the
+// real mux dispatch — only then does r.Pattern get populated, which
+// routeTagMiddleware reads to set the http.route metric label.
 //
 // SecurityHeaders (SEC-10) sits between Readiness and CSP so HSTS/XCTO fire
 // on every response, including the Readiness 503 syncing page, and XFO
@@ -805,7 +811,8 @@ type chainConfig struct {
 // Recovery/Logging free of tier coupling while still stamping the ctx
 // before any downstream observation of the request.
 func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
-	h := middleware.Compression()(inner)
+	h := routeTagMiddleware(inner)
+	h = middleware.Compression()(h)
 	h = cc.CachingState.Middleware()(h)
 	h = middleware.CSP(cc.CSPInput)(h)
 	h = middleware.SecurityHeaders(middleware.SecurityHeadersInput{
@@ -859,6 +866,34 @@ func logStartupClassification(logger *slog.Logger, cfg *config.Config) {
 			slog.String("env", "PDBPLUS_PUBLIC_TIER"),
 		)
 	}
+}
+
+// routeTagMiddleware injects http.route into the otelhttp labeler AFTER
+// the mux dispatches a request. otelhttp.NewMiddleware reads the labeler
+// AFTER its inner next.ServeHTTP returns (otelhttp@v0.68.0/handler.go:172
+// + 202), so a post-dispatch mutation here is visible to the metric
+// recording pass — see /home/dotwaffle/go/pkg/mod/go.opentelemetry.io/
+// contrib/instrumentation/net/http/otelhttp@v0.68.0/handler.go.
+//
+// Why a tail middleware instead of otelhttp.WithRouteTag: that option does
+// not exist in v0.68.0. The Labeler is the supported escape hatch for
+// adding metric attributes after the framework has dispatched.
+//
+// Empty r.Pattern (unmatched routes / NotFound) is skipped so we do not
+// emit an http.route="" label that would balloon Prometheus cardinality
+// for 404 traffic.
+func routeTagMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+		if r.Pattern == "" {
+			return
+		}
+		labeler, ok := otelhttp.LabelerFromContext(r.Context())
+		if !ok {
+			return
+		}
+		labeler.Add(attribute.String("http.route", r.Pattern))
+	})
 }
 
 // readinessMiddleware returns 503 for all routes except infrastructure paths

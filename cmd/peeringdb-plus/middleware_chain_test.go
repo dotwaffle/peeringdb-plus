@@ -55,6 +55,7 @@ func TestMiddlewareChain_Order(t *testing.T) {
 	// because the ETag cache moved to an atomic.Pointer that is updated
 	// from OnSyncComplete — the call-site pattern changed accordingly.
 	wantOrder := []string{
+		"routeTagMiddleware(",
 		"middleware.Compression(",
 		"cc.CachingState.Middleware(",
 		"middleware.CSP(",
