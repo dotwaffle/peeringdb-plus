@@ -187,6 +187,20 @@ func makeNet(id, orgID, asn int, name, status string) map[string]any {
 	}
 }
 
+// makePoc builds a fixture Poc JSON row matching the upstream PeeringDB
+// /api/poc shape (internal/peeringdb/types.go Poc struct). Used by Phase 73
+// BUG-02's TestSync_IncrementalRoleTombstone to drive a role="" tombstone
+// through an incremental sync cycle.
+func makePoc(id, netID int, name, role, status string) map[string]any {
+	return map[string]any{
+		"id": id, "net_id": netID,
+		"role": role, "visible": "Public",
+		"name": name, "phone": "", "email": "", "url": "",
+		"created": "2024-01-01T00:00:00Z", "updated": "2024-01-01T00:00:00Z",
+		"status": status,
+	}
+}
+
 // TestSyncFetchesAll13Types verifies sync fetches all 13 types in correct FK dependency order.
 func TestSyncFetchesAll13Types(t *testing.T) {
 	t.Parallel()
@@ -1186,6 +1200,128 @@ func TestSync_IncrementalDeletionTombstone(t *testing.T) {
 	}
 	if live[0].ID != 1 {
 		t.Errorf("expected live org ID 1, got %d", live[0].ID)
+	}
+}
+
+// TestSync_IncrementalRoleTombstone is the Phase 73 BUG-02 regression
+// guard: upstream PeeringDB ?since= responses can carry status='deleted'
+// poc tombstones with PII-scrubbed role="" (same GDPR pattern that
+// 260426-pms confirmed for name="" on the 6 folded entities). This drives
+// a tombstone for an existing poc through an incremental sync cycle and
+// asserts the row is soft-deleted (not hard-deleted) and excluded from
+// the anonymous (status="ok") list path.
+//
+// The empty-role path is the load-bearing assertion: if the NotEmpty()
+// validator removed from poc.role in Phase 73 ever re-appears (e.g.,
+// the cmd/pdb-schema-generate isTombstoneVulnerableField gate is
+// accidentally reverted), this test fails on the second sync's upsert
+// with "validator failed for field Poc.role".
+//
+// Mirrors TestSync_IncrementalDeletionTombstone (260426-pms) structure
+// — substitutes Poc for Organization and threads a parent network plus
+// org through cycle 1 to satisfy the FK chain.
+func TestSync_IncrementalRoleTombstone(t *testing.T) {
+	t.Parallel()
+	t1 := float64(time.Date(2026, 4, 26, 12, 0, 0, 0, time.UTC).Unix())
+	f := newFixtureWithMeta(t, t1)
+	// Seed parent org + network so the poc FK chain resolves.
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+	f.responses["net"] = []any{makeNet(50, 1, 64500, "ParentNet", "ok")}
+	f.responses["poc"] = []any{
+		makePoc(10, 50, "Alice", "Technical", "ok"),
+		makePoc(11, 50, "Bob", "Policy", "ok"),
+	}
+
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
+	ctx := t.Context()
+
+	// Cycle 1: cursor zero → falls back to full sync per
+	// stageOneTypeToScratch (cursor.IsZero() gate). Both pocs persisted.
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("first sync: %v", err)
+	}
+
+	pocCount, err := w.entClient.Poc.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("count pocs after cycle 1: %v", err)
+	}
+	if pocCount != 2 {
+		t.Fatalf("expected 2 pocs after cycle 1, got %d", pocCount)
+	}
+
+	cursor, err := GetCursor(ctx, db, "poc")
+	if err != nil {
+		t.Fatalf("get cursor after cycle 1: %v", err)
+	}
+	if cursor.IsZero() {
+		t.Fatal("expected non-zero cursor after cycle 1 (UpsertCursor stamps meta.generated)")
+	}
+
+	// Reset since-tracking before cycle 2 so we can prove the incremental
+	// path was taken (cursor present + ?since= sent).
+	for _, v := range f.sinceSeen {
+		v.Store(false)
+	}
+
+	// Cycle 2: upstream returns Alice unchanged + Bob as a PII-scrubbed
+	// tombstone (status="deleted", role=""). Bump generated so the cursor
+	// can advance.
+	t2 := t1 + 3600
+	f.generated = t2
+	f.responses["poc"] = []any{
+		makePoc(10, 50, "Alice", "Technical", "ok"),
+		makePoc(11, 50, "", "", "deleted"),
+	}
+
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("second sync: %v", err)
+	}
+
+	// (a) ?since= was sent — confirms incremental path (not full fallback).
+	if seen, ok := f.sinceSeen["poc"]; !ok || !seen.Load() {
+		t.Error("expected ?since= parameter for poc on cycle 2 (incremental cursor present)")
+	}
+
+	// (b) Soft-delete: row preserved, status flipped to "deleted", role
+	// scrubbed to "". This is the NotEmpty()-removal regression assertion.
+	totalCount, err := w.entClient.Poc.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("count pocs after cycle 2: %v", err)
+	}
+	if totalCount != 2 {
+		t.Fatalf("expected 2 pocs after cycle 2 (soft-delete preserves row), got %d", totalCount)
+	}
+
+	alice, err := w.entClient.Poc.Get(ctx, 10)
+	if err != nil {
+		t.Fatalf("get poc 10: %v", err)
+	}
+	if alice.Status != "ok" || alice.Role != "Technical" {
+		t.Errorf("alice = {status=%q, role=%q}, want {status=\"ok\", role=\"Technical\"}", alice.Status, alice.Role)
+	}
+
+	bob, err := w.entClient.Poc.Get(ctx, 11)
+	if err != nil {
+		t.Fatalf("get poc 11: %v", err)
+	}
+	if bob.Status != "deleted" {
+		t.Errorf("bob status = %q, want %q", bob.Status, "deleted")
+	}
+	if bob.Role != "" {
+		t.Errorf("bob role = %q, want %q (PII-scrubbed tombstone)", bob.Role, "")
+	}
+
+	// (c) Anonymous list path: only the live poc is returned when
+	// filtered to status="ok".
+	live, err := w.entClient.Poc.Query().Where(poc.StatusEQ("ok")).All(ctx)
+	if err != nil {
+		t.Fatalf("query live pocs: %v", err)
+	}
+	if len(live) != 1 {
+		t.Fatalf("expected 1 live poc, got %d", len(live))
+	}
+	if live[0].ID != 10 {
+		t.Errorf("expected live poc ID 10, got %d", live[0].ID)
 	}
 }
 
