@@ -587,6 +587,35 @@ func TestGenerateIndexes(t *testing.T) {
 	}
 }
 
+// TestExpectedIndexesFor_MatchesGenerator is the Phase 74 D-01 RED-gate
+// test: it asserts the new ExpectedIndexesFor helper agrees with
+// generateIndexes for the legacy minimal "net" fixture. The helper does
+// not yet exist when this test is first added — that is the failing
+// pre-condition that drives Task 1's GREEN implementation.
+func TestExpectedIndexesFor_MatchesGenerator(t *testing.T) {
+	t.Parallel()
+
+	ot := ObjectType{
+		Fields: map[string]FieldDef{
+			"name":   {Type: "string", Required: true},
+			"org_id": {Type: "integer", References: "org"},
+			"asn":    {Type: "integer", Unique: true},
+		},
+	}
+
+	got := generateIndexes("net", ot)
+	exp := ExpectedIndexesFor("net", ot)
+
+	if len(got) != len(exp) {
+		t.Fatalf("ExpectedIndexesFor(net) length = %d, generateIndexes length = %d", len(exp), len(got))
+	}
+	for i := range got {
+		if got[i] != exp[i] {
+			t.Errorf("index[%d]: ExpectedIndexesFor = %q, generateIndexes = %q", i, exp[i], got[i])
+		}
+	}
+}
+
 func TestGenerateTypesFile(t *testing.T) {
 	t.Parallel()
 
