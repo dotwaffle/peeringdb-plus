@@ -276,6 +276,22 @@ func main() {
 		RSSWarnBytes:    cfg.RSSWarnBytes,
 	}, logger)
 
+	// Phase 75 OBS-02 (D-02): pre-warm the 5 zero-rate counters so dashboard
+	// panels render `0` instead of `No data` on a freshly-deployed healthy
+	// fleet that hasn't fired any sync errors / fallbacks / role transitions /
+	// deletes yet. Without this, OTel cumulative counters only export a
+	// series after the first non-zero .Add() — which for some metrics
+	// (e.g. role-transitions on a single-primary fleet) may be never.
+	//
+	// MUST run AFTER InitMetrics() (line ~96) populates the counter vars
+	// (calling .Add on a nil counter panics) and BEFORE StartScheduler
+	// spawns the sync goroutine (preserves the "all observability set up
+	// before background work starts" startup ordering established by the
+	// other Init* calls above).
+	//
+	// Total baseline series introduced: 4 per-type × 13 types + 1 direction × 2 = 54.
+	pdbotel.PrewarmCounters(ctx)
+
 	// Start scheduler on all instances per D-22, D-29.
 	// The scheduler gates sync on live IsPrimary() checks per tick.
 	go syncWorker.StartScheduler(ctx, cfg.SyncInterval)
