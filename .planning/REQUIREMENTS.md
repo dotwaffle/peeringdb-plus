@@ -63,22 +63,22 @@ Every requirement below cites a deferred-items.md, a SUMMARY.md "Out of Scope" e
 
 ## Traceability
 
-_To be filled by the roadmapper. Maps each REQ-ID to its target phase._
+Maps each REQ-ID to its target phase. Filled by the roadmapper 2026-04-26.
 
 | REQ-ID | Phase | Status |
 |---|---|---|
-| BUG-01 | TBD | open |
-| BUG-02 | TBD | open |
-| TEST-01 | TBD | open |
-| TEST-02 | TBD | open |
-| TEST-03 | TBD | open |
-| OBS-01 | TBD | open |
-| OBS-02 | TBD | open |
-| OBS-03 | TBD | open |
-| OBS-04 | TBD | open |
-| OBS-05 | TBD | open |
-| OBS-06 | TBD | open |
-| OBS-07 | TBD | open |
-| UAT-01 | TBD | open |
-| UAT-02 | TBD | open |
-| UAT-03 | TBD | open |
+| BUG-01 | Phase 73 — Code Defect Fixes | open |
+| BUG-02 | Phase 73 — Code Defect Fixes | open |
+| TEST-01 | Phase 74 — Test & CI Debt | open |
+| TEST-02 | Phase 74 — Test & CI Debt | open |
+| TEST-03 | Phase 74 — Test & CI Debt | open |
+| OBS-01 | Phase 75 — Code-side Observability Fixes | open |
+| OBS-02 | Phase 75 — Code-side Observability Fixes | open |
+| OBS-03 | Phase 76 — Dashboard Hardening | open |
+| OBS-04 | Phase 75 — Code-side Observability Fixes | open |
+| OBS-05 | Phase 76 — Dashboard Hardening | open |
+| OBS-06 | Phase 77 — Telemetry Audit & Cleanup | open |
+| OBS-07 | Phase 77 — Telemetry Audit & Cleanup | open |
+| UAT-01 | Phase 78 — UAT Closeout | open |
+| UAT-02 | Phase 78 — UAT Closeout | open |
+| UAT-03 | Phase 78 — UAT Closeout | open |

@@ -6,7 +6,7 @@ status: planning
 last_updated: "2026-04-26T20:11:03.192Z"
 last_activity: 2026-04-26
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,22 +21,31 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Ready for v1.18.0 milestone definition. v1.16 Django-compat Correctness archived 2026-04-22; the v1.17.0 release tag was used by quick task 260426-pms (SEED-001 incremental-sync default flip) — not a milestone.
+**Current focus:** v1.18.0 roadmap created 2026-04-26. 6 phases (73-78), 15 requirements (BUG/TEST/OBS/UAT). Theme is cleanup & observability polish — no new feature scope. Ready for `/gsd-plan-phase 73`.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Not started (roadmap defined)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-26 — Milestone v1.18.0 started
+Status: Ready for `/gsd-plan-phase 73`
+Last activity: 2026-04-26 — v1.18.0 ROADMAP.md written, REQUIREMENTS.md traceability filled, 15/15 requirements mapped
 
 ## v1.18.0 Phase Map
 
-_No phases defined for v1.18.0 yet._
+| Phase | Goal | Requirements | Depends on |
+|-------|------|--------------|------------|
+| 73 — Code Defect Fixes | Fix campus inflection 500 + drop `poc.role` NotEmpty validator | BUG-01, BUG-02 | — |
+| 74 — Test & CI Debt | Three deferred test failures + 5 lint findings cleared | TEST-01, TEST-02, TEST-03 | — |
+| 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — |
+| 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) |
+| 77 — Telemetry Audit & Cleanup | Loki log-level audit + Tempo trace sampling/batching review | OBS-06, OBS-07 | Phase 75 |
+| 78 — UAT Closeout | v1.13 CSP + headers verification, v1.5 Phase 20 archive | UAT-01, UAT-02, UAT-03 | — |
+
+Phase numbering continues from v1.16 (last phase 72). v1.17.0 was a release tag (quick task 260426-pms), not a milestone — no phases consumed.
 
 ## Locked Decisions (abbreviated)
 
-_No active milestone decisions._
+_No active milestone decisions yet — Phase 73 CONTEXT lock pending `/gsd-plan-phase 73`._
 
 ## Recently Shipped
 
@@ -48,12 +57,13 @@ _No active milestone decisions._
 
 ## Outstanding Human Verification
 
-Deferred items tracked for manual confirmation:
+Tracked under v1.18.0 Phase 78 (UAT-01, UAT-02, UAT-03):
 
-- **Phase 52 (v1.13):** Chrome devtools CSP check on `/ui/`, `/ui/asn/13335`, `/ui/compare`
-- **Phase 53 (v1.13):** curl HSTS / X-Frame-Options / X-Content-Type-Options headers, 2 MB body-cap REST vs gRPC skip-list, slowloris TCP smoke test
+- **Phase 52 (v1.13):** Chrome devtools CSP check on `/ui/`, `/ui/asn/13335`, `/ui/compare` — under UAT-01
+- **Phase 53 (v1.13):** curl HSTS / X-Frame-Options / X-Content-Type-Options headers, 2 MB body-cap REST vs gRPC skip-list, slowloris TCP smoke test — under UAT-02
+- **Phase 20 (v1.5):** stale deferred-items pointer dir relocation — under UAT-03
 
-See `memory/project_human_verification.md` for the full backlog.
+See `memory/project_human_verification.md` for the full backlog (the v1.6/v1.7/v1.11 ~33 UI/visual items are explicitly out of scope per REQUIREMENTS.md and deferred to a future "UI verification sweep" milestone).
 
 ## Accumulated Context
 
@@ -62,7 +72,7 @@ See `memory/project_human_verification.md` for the full backlog.
 - **SEED-001** — incremental sync evaluation. **Consumed 2026-04-26** by quick task 260426-pms (default `PDBPLUS_SYNC_MODE=incremental` shipped in v1.17.0).
 - **SEED-002** — asymmetric Fly fleet. **Consumed** by v1.15 Phase 65.
 - **SEED-003** — primary HA hot-standby. Dormant.
-- **SEED-004** — tombstone garbage collection. **Planted 2026-04-19**.
+- **SEED-004** — tombstone garbage collection. **Planted 2026-04-19**. Explicitly out of scope for v1.18.0 per user 2026-04-26 ("data volume tiny").
 
 ### Pending Todos
 
@@ -87,4 +97,4 @@ None.
 
 ## Session Continuity
 
-Milestone v1.16 completed and archived. Ready for v1.18.0 definition. (v1.17.0 was used as a release tag for the SEED-001 incremental-sync flip via quick task 260426-pms — not a milestone, so the next milestone bumps to v1.18.0.)
+v1.18.0 ROADMAP.md written 2026-04-26 — 6 phases (73-78), 15/15 requirements mapped, no orphans, no duplicates. REQUIREMENTS.md traceability table filled. Ready for `/gsd-plan-phase 73` (Code Defect Fixes — BUG-01 campus inflection + BUG-02 `poc.role` NotEmpty drop).
