@@ -232,7 +232,7 @@ CI enforces this — see "Generated code drift check" below.
    ```bash
    go generate ./ent
    ```
-   This updates `ent/`, `graph/`, `gen/peeringdb/v1/v1.proto`, and the REST
+   This updates `ent/`, `graph/`, `proto/peeringdb/v1/v1.proto`, and the REST
    OpenAPI spec.
 4. Extend the ConnectRPC filter table in `internal/grpcserver/<entity>.go` so
    the new field is honoured at query time. See the `networkListFilters` slice
@@ -398,7 +398,7 @@ convention is documented in the repo; match existing patterns in
   local runs. `OTEL_*` env vars follow the autoexport conventions.
 - **ent schema change didn't propagate:** you probably skipped
   `go generate ./ent`. The `ent/` directory, `graph/schema.graphqls`,
-  `gen/peeringdb/v1/v1.proto`, and the REST OpenAPI spec are **all** derived
+  `proto/peeringdb/v1/v1.proto`, and the REST OpenAPI spec are **all** derived
   from `ent/schema/`.
 
 ## Next steps

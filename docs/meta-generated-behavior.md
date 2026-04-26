@@ -1,8 +1,8 @@
 # meta.generated Field Behavior in PeeringDB API Responses
 
-**Verified:** 2026-03-24 against beta.peeringdb.com
-**Relevant code:** `internal/peeringdb/client.go` (parseMeta), `internal/sync/worker.go` (fetchIncremental fallback)
-**Live test:** `internal/peeringdb/client_live_test.go` (TestMetaGeneratedLive, gated by -peeringdb-live flag)
+**Verified:** 2026-03-24 against beta.peeringdb.com (PeeringDB API observations); code references re-verified 2026-04-26.
+**Relevant code:** `internal/peeringdb/client.go` (`parseMeta`, `FetchMeta`), `internal/peeringdb/stream.go` (`StreamAll` — earliest-meta aggregation across pages), `internal/sync/scratch.go` (`stageType`), `internal/sync/worker.go` (`Worker.Sync`, `stageOneTypeToScratch`).
+**Live test:** `internal/peeringdb/client_live_test.go` (`TestMetaGeneratedLive`, gated by `-peeringdb-live` flag)
 
 ## Summary
 
@@ -80,28 +80,37 @@ Empty result sets also return an empty meta object.
 
 ## Impact on Sync Pipeline
 
-### Full Sync Path
+### Pagination aggregation (`StreamAll`)
 
-The full sync (`internal/sync/worker.go`, Sync method) fetches with `?depth=0` (no limit/skip). `parseMeta()` correctly extracts the `generated` timestamp from the cached response. This timestamp becomes the cursor for subsequent incremental syncs.
+`StreamAll` in `internal/peeringdb/stream.go` pages through the response and computes `FetchMeta.Generated` as the **earliest non-zero `meta.generated`** across all pages (lines 96–102). Pages with empty `meta` (Pattern 2) contribute nothing; the field stays zero only if **every** page returned empty meta.
 
-### Incremental Sync Path
+### Full sync path
 
-Incremental sync (`fetchIncremental` in worker.go) fetches with `?depth=0&limit=250&skip=0&since={cursor}`. Since paginated requests always return `meta: {}`, `parseMeta()` returns zero time for every page.
+`Worker.Sync` (`internal/sync/worker.go:346`) calls `stageOneTypeToScratch`, which calls `scratch.stageType(ctx, pdbClient, name, time.Time{})` (`scratch.go:221`) with a zero `since` — i.e. `?depth=0` only, no `since` parameter. The cached first page carries `meta.generated`, so `FetchMeta.Generated` is non-zero in practice.
 
-The fallback at `worker.go:731-733` handles this:
+However, the **cursor written to `sync_cursors` is the sync cycle's `start` timestamp, not the response's `meta.generated`**. See `worker.go:785`:
 
 ```go
-generated := result.Meta.Generated
-if generated.IsZero() {
-    generated = time.Now().Add(-5 * time.Minute)
+// Full sync (default, first sync, no cursor, or incremental-fallback).
+if _, err := scratch.stageType(ctx, w.pdbClient, name, time.Time{}); err != nil {
+    return time.Time{}, false, err
 }
+return start, false, nil
 ```
 
-This 5-minute buffer overlaps with the most recent sync window, ensuring no objects are missed between sync cycles. For hourly sync intervals, a 5-minute overlap is conservative and safe.
+This is conservatively safe: any object modified between `start` and the moment the response was generated will be re-picked-up in the next cycle's `?since=start` window. The sync cycle's `start` is captured once per cycle and reused across all 13 entity types.
 
-### parseMeta Implementation
+### Incremental sync path
 
-`parseMeta` in `client.go:108-119` handles the float64-to-time conversion:
+When `mode == SyncModeIncremental` and a non-zero cursor exists for the type, `stageOneTypeToScratch` calls `stageType` with the cursor as `since` (`worker.go:760`). Paginated `?since=` requests bypass the cache and return `meta: {}` per page (Pattern 2), so `FetchMeta.Generated` is **zero** for the entire response.
+
+The returned zero-time is propagated directly into the cursor map (`worker.go:744 → recordSuccess → UpsertCursor`). `UpsertCursor` (`internal/sync/status.go:72`) writes the zero timestamp without guarding against it. **There is no fallback like the v1.5-era `time.Now().Add(-5 * time.Minute)` line.** A successful incremental sync therefore writes `last_sync_at = 0` to `sync_cursors`, which would cause the next incremental tick to retry from epoch 0 — equivalent to a full re-sync, which is then absorbed by the same `stageType` machinery without harm.
+
+In practice, `PDBPLUS_SYNC_MODE` defaults to `full` (see `internal/config/config.go`), so the incremental path is opt-in and not exercised on the default deployment.
+
+### `parseMeta` implementation
+
+`parseMeta` in `client.go:169` handles the float64-to-time conversion:
 
 ```go
 func parseMeta(raw json.RawMessage) time.Time {
@@ -118,17 +127,19 @@ func parseMeta(raw json.RawMessage) time.Time {
 }
 ```
 
-Note: Sub-second precision is truncated to integer seconds. This is acceptable because the sync cursor only needs second-level granularity.
+Sub-second precision is truncated to integer seconds — acceptable because the sync cursor only needs second-level granularity.
 
 ## Key Takeaways
 
 1. **meta.generated is a cache artifact, not a guaranteed API field.** Do not rely on its presence for any request that includes `limit`, `skip`, or `since` parameters.
 
-2. **The existing fallback is correct.** The 5-minute buffer in `fetchIncremental` handles the absence of `meta.generated` on paginated responses without data loss.
+2. **The full sync cursor uses the sync cycle's `start` timestamp, not `meta.generated`.** This is conservatively safe — any window between `start` and the response's actual generation time gets re-fetched on the next cycle.
 
-3. **Full fetch responses are the only reliable source of cache timestamps.** If you need to know when PeeringDB last rebuilt its cache for a type, use a full fetch without parameters.
+3. **The incremental sync cursor will be zero on a clean run.** Paginated `?since=` requests return `meta: {}`, so `FetchMeta.Generated` aggregates to zero. `UpsertCursor` writes the zero value without guarding against it; the next cycle re-enters the full path. There is no `time.Now().Add(-5 * time.Minute)` fallback in current code (that existed pre-v1.5 and was refactored away).
 
-4. **This behavior is undocumented by PeeringDB.** The only reference is [GitHub issue #776](https://github.com/peeringdb/peeringdb/issues/776), which mentions the field exists but does not document when it appears or is absent.
+4. **Full fetch responses are the only reliable source of cache timestamps.** If you need to know when PeeringDB last rebuilt its cache for a type, use a full fetch without parameters.
+
+5. **This behavior is undocumented by PeeringDB.** The only reference is [GitHub issue #776](https://github.com/peeringdb/peeringdb/issues/776), which mentions the field exists but does not document when it appears or is absent.
 
 ---
 *Verified empirically against beta.peeringdb.com on 2026-03-24*

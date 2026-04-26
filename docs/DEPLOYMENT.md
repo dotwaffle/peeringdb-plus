@@ -98,7 +98,7 @@ the [privacy policy](./ARCHITECTURE.md#privacy-layer) on the read path.
    startup. With the key set, it reports `auth=authenticated`:
 
    ```bash
-   fly logs --app peeringdb-plus | grep -m1 sync.classification
+   fly logs --app peeringdb-plus | grep -m1 'sync mode'
    ```
 
    `fly secrets list --app peeringdb-plus` should also show
@@ -121,7 +121,7 @@ Users-tier so the privacy filter becomes a no-op:
 fly secrets set PDBPLUS_PUBLIC_TIER=users --app peeringdb-plus
 ```
 
-Startup then emits a WARN log (`privacy.override.active`) naming the override
+Startup then emits a WARN log (`public tier override active`) naming the override
 every time the app boots. This is intentional — the elevated default must
 never be silent. Use this only for deployments you would not want indexed by
 a search engine. See

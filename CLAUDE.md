@@ -176,7 +176,7 @@ See `docs/API.md § Cross-entity traversal (Phase 70)` for Path A (allowlist) / 
 
 **Phase 68 + 69 composition.** Traversal predicates compose with the Phase 68 status matrix (`applyStatusMatrix(isCampus, opts.Since != nil)` still appended as the LAST predicate in all 13 `registry_funcs.go` closures) and with Phase 69's `_fold` routing (a traversal target field that happens to be folded uses `<field>_fold` with `unifold.Fold(value)` on the RHS even when reached via `<fk>__<field>`). Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, and `TestTraversal_EmptyIn_ShortCircuits` in `internal/pdbcompat/handler_test.go`.
 
-**Known gap (DEFER-70-06-01).** `<entity>?campus__<field>=X` returns 500 (table-name inflection — see `.planning/phases/70-cross-entity-traversal/deferred-items.md`). Fix queued: `entsql.Annotation{Table: "campuses"}` on `ent/schema/campus.go`.
+**Known gap (DEFER-70-06-01).** `<entity>?campus__<field>=X` returns 500 (table-name inflection — see `.planning/milestones/v1.16-phases/70-cross-entity-traversal/deferred-items.md`). Fix queued: `entsql.Annotation{Table: "campuses"}` on `ent/schema/campus.go`.
 
 ### Response memory envelope (Phase 71)
 
