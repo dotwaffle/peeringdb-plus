@@ -2,6 +2,8 @@
 
 ## DEFER-70-06-01 — allowlist_gen.go emits wrong TargetTable for campus edges
 
+**Status:** CLOSED — fixed in v1.18.0 Phase 73 (2026-04-26). `entsql.Annotation{Table: "campuses"}` added to `ent/schema/campus_annotations.go` (sibling-file mixin per Phase 73 CONTEXT.md D-01 + CLAUDE.md § Schema & Visibility sibling-file convention). `internal/pdbcompat/allowlist_gen.go` lines 174 + 212 now emit `TargetTable: "campuses"`. The traversal E2E sub-test `path_a_1hop_fac_campus_name` (in `internal/pdbcompat/traversal_e2e_test.go`) and the parity sub-test `TRAVERSAL-05_path_a_1hop_fac_campus_name` (replacing the prior `DIVERGENCE_fac_campus_name_returns_500` canary in `internal/pdbcompat/parity/traversal_test.go`) lock the post-fix HTTP 200 contract. See `.planning/phases/73-code-defect-fixes/73-01-SUMMARY.md` for execution details.
+
 **Discovered by:** Plan 70-06 (traversal_e2e_test.go `path_a_1hop_fac_campus_name`)
 
 **Symptom:** `GET /api/fac?campus__name=TestCampus1` returns HTTP 500 with
