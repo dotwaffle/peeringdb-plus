@@ -74,7 +74,10 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   2. `go test ./deploy/grafana/...` passes — `TestDashboard_RegionVariableUsed` asserts against the post-260426-lod `cloud_region` label (or the `$region` template variable is reworked) and the assertion drives a real panel query rather than dead matching
   3. `golangci-lint run ./internal/visbaseline/...` returns `0 issues` — the 1 `exhaustive`, 3 `gosec G304`, and 1 `nolintlint` findings are either properly resolved (e.g. `filepath.Clean` + safe-root validation, `shapeUnknown` case added) or carry explicit per-line `//nolint:<linter> // reason` directives with sound justifications
   4. The full repo `go generate ./...` drift gate and the lint job stay green on PR + main
-**Plans**: TBD
+**Plans** (3 plans, all Wave 1, can run in parallel):
+- [ ] 74-01-PLAN.md — TEST-01: TestGenerateIndexes derived from schema/peeringdb.json (per D-01)
+- [ ] 74-02-PLAN.md — TEST-02: drop $region template var + flip TestDashboard_RegionVariableUsed to TestDashboard_NoOrphanTemplateVars (per D-02)
+- [ ] 74-03-PLAN.md — TEST-03: filepath.Clean + canonical nolint reason on visbaseline G304 sites (per D-03)
 
 ### Phase 75: Code-side Observability Fixes
 **Goal**: The three observability defects rooted in app-layer code (gauge cold-start, counter pre-warm, route-tag middleware) emit correct telemetry within 30s of process startup and cover all real routes.
