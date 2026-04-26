@@ -315,6 +315,21 @@ Same values are exported as Prometheus gauges via `internal/otel.InitMemoryGauge
 
 **Dashboard.** `deploy/grafana/dashboards/pdbplus-overview.json` has a "Sync Memory (SEED-001 watch)" row with three panels — "Peak Heap (MiB)", "Peak RSS (MiB)", and "Peak Heap by Process Group" (primary vs replica, post-Phase-65 asymmetric fleet).
 
+**OTel resource attributes (post-260426-lod).** Grafana Cloud's hosted OTLP receiver only promotes a small allowlist of OTel semconv resource attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`, `k8s.*`); custom `fly.*` keys are silently dropped on the metrics path. Resource attrs are emitted from `internal/otel/provider.go` `buildResourceFiltered`:
+
+| Env var | Resource attr | semconv | On metrics? | On traces/logs? |
+|---|---|---|---|---|
+| `FLY_REGION` | `cloud.region` | `semconv.CloudRegion` | yes | yes |
+| `FLY_PROCESS_GROUP` | `service.namespace` | `semconv.ServiceNamespace` | yes | yes |
+| `FLY_MACHINE_ID` | `service.instance.id` | `semconv.ServiceInstanceID` | NO (per-VM cardinality) | yes |
+| `FLY_APP_NAME` | `fly.app_name` | (custom) | dropped by GC | yes (human grep) |
+| (constant) | `cloud.provider="fly_io"` | `semconv.CloudProviderKey` | yes | yes |
+| (constant) | `cloud.platform="fly_io_apps"` | `semconv.CloudPlatformKey` | yes | yes |
+
+The `service.instance.id` strip on the metric resource is gated by `includeInstanceID` in `buildResourceFiltered` — same rationale as the prior `fly.machine_id` strip (8 machines × N metrics × M label combos). `service.namespace` (2-cardinality: primary / replica) and `cloud.region` (8-cardinality) stay on metrics because they answer the operator's actual breakdown questions; the dashboard's `process_group` template variable + panel 35 grouping depend on `service.namespace`.
+
+**`http.route` label on `http_server_request_duration_seconds`.** Injected via `routeTagMiddleware` in `cmd/peeringdb-plus/main.go`, wrapped as the innermost middleware (between `middleware.Compression` and the mux). otelhttp v0.68.0 has no `WithRouteTag`; the middleware mutates `otelhttp.LabelerFromContext` AFTER `next.ServeHTTP` (mux dispatch) so `r.Pattern` is populated. Empty `r.Pattern` (unmatched routes) is skipped to avoid `http.route=""` cardinality bloat on 404 traffic.
+
 **Incident-response debugging (OBS-04).** Prod image ships with `sqlite3` (added via quick task 260418-1cn pre-Phase-65). Use `fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'` for interactive DB inspection on the primary; replicas expose the same FUSE path read-only.
 <!-- GSD:conventions-end -->
 
