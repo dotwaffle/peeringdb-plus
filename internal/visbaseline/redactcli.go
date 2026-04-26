@@ -96,13 +96,15 @@ func RedactDir(ctx context.Context, cfg RedactDirConfig) error {
 		anonPath := filepath.Join(cfg.AnonDir, "api", typeName, fmt.Sprintf("page-%d.json", page))
 		// anonPath is derived from cfg.AnonDir (CLI caller path) joined with a
 		// vetted {type}/page-N.json basename; this tool is operator-driven.
-		anonBytes, err := os.ReadFile(anonPath) //nolint:gosec // G304: path derived from CLI caller.
+		anonPath = filepath.Clean(anonPath)
+		anonBytes, err := os.ReadFile(anonPath) //nolint:gosec // visbaseline is a CLI tool — paths are operator-supplied by contract
 		if err != nil {
 			return fmt.Errorf("read anon %s/%d: %w", typeName, page, err)
 		}
 		// path is an auth staging path supplied by the operator via -in; this
 		// is a CLI tool and by design reads arbitrary operator-provided paths.
-		authBytes, err := os.ReadFile(path) //nolint:gosec // G304: path supplied by CLI caller.
+		path = filepath.Clean(path)
+		authBytes, err := os.ReadFile(path) //nolint:gosec // visbaseline is a CLI tool — paths are operator-supplied by contract
 		if err != nil {
 			return fmt.Errorf("read auth %s/%d: %w", typeName, page, err)
 		}

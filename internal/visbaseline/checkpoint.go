@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -114,7 +115,8 @@ func (s *State) PendingTuples() []Tuple {
 func LoadState(path string) (*State, error) {
 	// path is an operator-supplied checkpoint location (-state flag or
 	// DefaultStatePath). Permitted by design — this is a CLI tool.
-	data, err := os.ReadFile(path) //nolint:gosec // G304: path is a deliberate CLI input.
+	path = filepath.Clean(path)
+	data, err := os.ReadFile(path) //nolint:gosec // visbaseline is a CLI tool — paths are operator-supplied by contract
 	if err != nil {
 		// os.ReadFile already wraps errors appropriately for errors.Is(err, os.ErrNotExist).
 		return nil, err
