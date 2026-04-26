@@ -43,7 +43,6 @@ func (Poc) Fields() []ent.Field {
 			Default("").
 			Comment("Phone number"),
 		field.String("role").
-			NotEmpty().
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
 			Comment("Contact role"),
 		field.String("url").
