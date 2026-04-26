@@ -905,14 +905,33 @@ func logStartupClassification(logger *slog.Logger, cfg *config.Config) {
 
 // routeTagMiddleware injects http.route into the otelhttp labeler AFTER
 // the mux dispatches a request. otelhttp.NewMiddleware reads the labeler
-// AFTER its inner next.ServeHTTP returns (otelhttp@v0.68.0/handler.go:172
-// + 202), so a post-dispatch mutation here is visible to the metric
-// recording pass — see /home/dotwaffle/go/pkg/mod/go.opentelemetry.io/
-// contrib/instrumentation/net/http/otelhttp@v0.68.0/handler.go.
+// for metric attributes inside RecordMetrics AFTER its inner
+// next.ServeHTTP returns; the Labeler pointer is INSTALLED into ctx at
+// otelhttp@v0.68.0/handler.go:172 (LabelerFromContext + ContextWithLabeler
+// backfill) and the *Labeler.Get() READ for metric attribute emission
+// happens at handler.go:202 inside the MetricAttributes literal that
+// RecordMetrics consumes. A post-dispatch labeler mutation here is
+// therefore visible to the metric record pass.
 //
 // Why a tail middleware instead of otelhttp.WithRouteTag: that option does
 // not exist in v0.68.0. The Labeler is the supported escape hatch for
 // adding metric attributes after the framework has dispatched.
+//
+// Why this middleware exists at all when otelhttp v0.68.0 ALREADY emits
+// http.route natively from req.Pattern at semconv/server.go:367-368:
+// production middleware between otelhttp and the mux (e.g.,
+// middleware.PrivacyTier) calls r.WithContext(...) which creates a NEW
+// *http.Request struct (per net/http/request.go:368-376
+// `r2 := *r; r2.ctx = ctx`). The mux populates Pattern on that NEW r2,
+// not on otelhttp's local r — so otelhttp's NATIVE Pattern-read returns
+// empty, and the labeler-add path here is the only source of http.route
+// in the metric attribute set on production-shaped chains. The shared
+// *Labeler pointer in ctx (installed via context.WithValue at
+// otelhttp/labeler.go:44) IS preserved across r.WithContext-derived
+// requests, so this middleware's post-dispatch mutation IS visible to
+// the otelhttp metric record pass even though Pattern is not.
+// See .planning/phases/75-code-side-observability/OBS-04-INVESTIGATION.md
+// for the empirical evidence that drove this design.
 //
 // Empty r.Pattern (unmatched routes / NotFound) is skipped so we do not
 // emit an http.route="" label that would balloon Prometheus cardinality
