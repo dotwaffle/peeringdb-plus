@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.18.0
 milestone_name: Cleanup & Observability Polish
-status: ready_to_plan
-last_updated: "2026-04-26T22:00:00.000Z"
-last_activity: 2026-04-26 -- Phase 73 shipped (BUG-01 + BUG-02); phases 74/75/78 ready to plan in parallel
+status: executing
+last_updated: "2026-04-26T22:23:17.782Z"
+last_activity: 2026-04-26 -- Phase 74 execution started
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 2
+  total_plans: 5
   completed_plans: 2
-  percent: 17
+  percent: 40
 ---
 
 # Project State
@@ -21,14 +21,14 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 73 shipped 2026-04-26. Next: any of phases 74 (Test & CI Debt), 75 (Code-side Observability Fixes), or 78 (UAT Closeout) — all three are independent and can be planned in parallel. Phase 75 unlocks 76 (soft) and 77 (hard).
+**Current focus:** Phase 74 — Test & CI Debt
 
 ## Current Position
 
-Phase: 74 (next up — also 75 and 78 available in parallel)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-04-26 -- Phase 73 shipped: BUG-01 campus inflection + BUG-02 poc.role NotEmpty drop; verification 18/18 must-haves passed
+Phase: 74 (Test & CI Debt) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 74
+Last activity: 2026-04-26 -- Phase 74 execution started
 
 ## v1.18.0 Phase Map
 
@@ -157,6 +157,7 @@ None.
 **Out-of-scope finding from 73-02 (informational, not blocking):** Existing Organization regression guard at `cmd/pdb-schema-generate/main_test.go:245-251` uses 4-tab source indent vs generator's 3-tab output — would never match if NotEmpty re-appeared on Org. The new Phase 73 Poc + role guards added by 73-02 use correct `\n\t\t\t` escape strings. Recorded in 73-VERIFICATION.md as a follow-up candidate.
 
 **Local-only commits** (22 since `634c96a`, NOT YET PUSHED):
+
 ```
 8684f2c  docs(phase-73): complete phase execution
 5ac40c8  docs(phase-73): update tracking after wave 1
@@ -181,6 +182,7 @@ fe724fc  docs(planning): lock CONTEXT.md for v1.18.0 phases 73-78
 4be90f4  docs: start milestone v1.18.0 Cleanup & Observability Polish
 d2acb43  docs(planning): retarget next milestone to v1.18.0
 ```
+
 The user said "/clear before I continue" — review the 22 commits and push when appropriate. Phase 73 fixes are NOT deployed until pushed and `fly deploy` runs.
 
 **Production state:** v1.17.0 deployed across 8-machine asymmetric Fly fleet (1 primary lhr + 7 replicas). Default sync mode = `incremental` running ~15min cadence. BUG-01 + BUG-02 fixes are local-only; production still has the bugs (campus traversal returns 500; poc.role NotEmpty would block any future role-empty tombstone). Dashboard at `https://dotwaffle.grafana.net/d/pdbplus-overview` (do NOT commit URL to repo per memory `feedback_no_pii_in_repo.md`).
