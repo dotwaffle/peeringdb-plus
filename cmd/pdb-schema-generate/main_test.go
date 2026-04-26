@@ -579,15 +579,15 @@ func TestGenerateIndexes(t *testing.T) {
 			},
 		}
 		got := generateIndexes("net", ot)
+		// Independent expectation: the historically-pinned index set for the
+		// "net" minimal fixture, hand-derived from the rules in generateIndexes
+		// (asn special-case, status+updated always-on, FK fields, named field).
+		// Comparing against ExpectedIndexesFor here would be tautological —
+		// that helper is currently a thin wrapper around generateIndexes — so
+		// the literal is the only assertion that can actually catch drift.
 		want := []string{"asn", "name", "org_id", "status", "updated"}
 		if !slicesEqual(got, want) {
 			t.Errorf("generateIndexes(net, fixture) = %v, want %v", got, want)
-		}
-		// ExpectedIndexesFor must agree with generateIndexes — they encode the
-		// same rules and must never drift.
-		exp := ExpectedIndexesFor("net", ot)
-		if !slicesEqual(got, exp) {
-			t.Errorf("ExpectedIndexesFor(net) = %v, want match generateIndexes = %v", exp, got)
 		}
 	})
 
@@ -628,12 +628,16 @@ func TestGenerateIndexes(t *testing.T) {
 				t.Parallel()
 
 				got := generateIndexes(apiPath, ot)
-				exp := ExpectedIndexesFor(apiPath, ot)
 
-				// Generator and expectation must agree at the slice level.
-				if !slicesEqual(got, exp) {
-					t.Errorf("generateIndexes(%s) = %v, ExpectedIndexesFor(%s) = %v — must match", apiPath, got, apiPath, exp)
-				}
+				// Note: an `ExpectedIndexesFor(apiPath, ot)` round-trip would
+				// be tautological — that helper is a thin wrapper around
+				// generateIndexes (see main.go doc comment on
+				// ExpectedIndexesFor). The drift protection in this loop comes
+				// from the structural-sanity invariants below (every emitted
+				// index is a real field, an always-on synthetic, or a
+				// documented apiPath special-case; the slice is strictly
+				// ascending). Re-deriving the same rules in two places adds
+				// no signal and dresses up dead assertion code as a check.
 
 				// Structural sanity: every emitted index is either an actual
 				// field, an always-on synthetic, or a documented special case.
