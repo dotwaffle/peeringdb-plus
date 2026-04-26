@@ -61,7 +61,9 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   2. The DEFER-70-06-01 entry in `.planning/milestones/v1.16-phases/70-cross-entity-traversal/deferred-items.md` and the matching `DIVERGENCE_` canary in `internal/pdbcompat/parity/traversal_test.go` flip from "documented divergence" to "fixed", with `docs/API.md § Known Divergences` updated accordingly
   3. `go generate ./...` produces an `ent/schema/poc.go` (and any other tombstone-vulnerable schema files surfaced during planning) without `.NotEmpty()` on `role`; the codegen drift gate stays green
   4. A conformance / unit test seeds a `poc` tombstone with `role=""` and the `internal/sync` upsert path completes the cycle without a validator-aborted rollback
-**Plans**: TBD
+**Plans** (2 plans, both Wave 1, can run in parallel):
+- [ ] 73-01-PLAN.md — BUG-01: Campus inflection — entsql.Annotation{Table: "campuses"} sibling-file mixin + traversal E2E un-skip + parity DIVERGENCE canary flip + docs cleanup
+- [ ] 73-02-PLAN.md — BUG-02: Audit + drop NotEmpty() on poc.role at codegen layer (cmd/pdb-schema-generate isTombstoneVulnerableField predicate); httptest TestSync_IncrementalRoleTombstone regression guard
 
 ### Phase 74: Test & CI Debt
 **Goal**: A clean-tree CI run (`go test ./... && golangci-lint run ./...`) passes without `-skip` flags or scope-boundary excuses — the three deferred test failures and the five `internal/visbaseline` lint findings are resolved.
