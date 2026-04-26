@@ -559,8 +559,19 @@ func TestUserAgent(t *testing.T) {
 
 	_, _ = client.FetchAll(t.Context(), TypeOrg)
 
-	if capturedUA != "peeringdb-plus/1.0" {
-		t.Errorf("User-Agent = %q, want %q", capturedUA, "peeringdb-plus/1.0")
+	// Shape: `peeringdb-plus/<version> (+<contact-url>)`. Version is
+	// build-time (tagged release, short sha, or "unknown" under `go test`
+	// without VCS embedding) — assert the surrounding contract, not the
+	// version literal.
+	const wantPrefix = "peeringdb-plus/"
+	wantSuffix := " (+" + contactURL + ")"
+	if !strings.HasPrefix(capturedUA, wantPrefix) || !strings.HasSuffix(capturedUA, wantSuffix) {
+		t.Errorf("User-Agent = %q, want prefix %q and suffix %q", capturedUA, wantPrefix, wantSuffix)
+	}
+	// Version segment must be non-empty between the prefix and suffix.
+	version := strings.TrimSuffix(strings.TrimPrefix(capturedUA, wantPrefix), wantSuffix)
+	if version == "" {
+		t.Errorf("User-Agent version segment empty: %q", capturedUA)
 	}
 }
 

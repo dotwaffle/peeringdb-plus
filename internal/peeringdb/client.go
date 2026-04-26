@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 	"time"
 
@@ -80,9 +81,36 @@ const (
 	// maxRetries is the maximum number of attempts per request.
 	maxRetries = 3
 
-	// userAgent identifies this client to the PeeringDB API.
-	userAgent = "peeringdb-plus/1.0"
+	// contactURL is the abuse / rate-limit contact landing page included in
+	// the User-Agent. Hosted on the project's public GitHub so PeeringDB ops
+	// have somewhere to file an issue if our traffic ever misbehaves.
+	contactURL = "https://github.com/dotwaffle/peeringdb-plus"
 )
+
+// userAgent identifies this client to the PeeringDB API. Resolved once at
+// package init via runtime/debug.ReadBuildInfo so tagged releases emit
+// `peeringdb-plus/v1.16` and dev builds emit `peeringdb-plus/<short-sha>`.
+// Format follows the standard bot UA convention with a `+url` contact field.
+var userAgent = "peeringdb-plus/" + buildVersion() + " (+" + contactURL + ")"
+
+// buildVersion returns the module version (for tagged builds) or the short
+// VCS revision (for dev builds), mirroring internal/otel/provider.go's
+// resolution logic so OTel resource and the User-Agent stay in lockstep.
+func buildVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "unknown"
+	}
+	if v := info.Main.Version; v != "" && v != "(devel)" {
+		return v
+	}
+	for _, s := range info.Settings {
+		if s.Key == "vcs.revision" && len(s.Value) >= 7 {
+			return s.Value[:7]
+		}
+	}
+	return "unknown"
+}
 
 // Client fetches data from the PeeringDB API with rate limiting,
 // pagination, and retry logic.
