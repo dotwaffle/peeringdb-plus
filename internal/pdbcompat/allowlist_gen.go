@@ -171,7 +171,7 @@ var Edges = map[string][]EdgeMetadata{
 		{Name: "facility", TargetType: "fac", TraversalKey: "fac", Excluded: false, ParentFKColumn: "fac_id", TargetTable: "facilities", TargetIDColumn: "id", OwnFK: true},
 	},
 	"fac": {
-		{Name: "campus", TargetType: "campus", TraversalKey: "campus", Excluded: false, ParentFKColumn: "campus_id", TargetTable: "campus", TargetIDColumn: "id", OwnFK: true},
+		{Name: "campus", TargetType: "campus", TraversalKey: "campus", Excluded: false, ParentFKColumn: "campus_id", TargetTable: "campuses", TargetIDColumn: "id", OwnFK: true},
 		{Name: "carrier_facilities", TargetType: "carrierfac", TraversalKey: "carrierfac", Excluded: false, ParentFKColumn: "fac_id", TargetTable: "carrier_facilities", TargetIDColumn: "id", OwnFK: false},
 		{Name: "ix_facilities", TargetType: "ixfac", TraversalKey: "ixfac", Excluded: false, ParentFKColumn: "fac_id", TargetTable: "ix_facilities", TargetIDColumn: "id", OwnFK: false},
 		{Name: "network_facilities", TargetType: "netfac", TraversalKey: "netfac", Excluded: false, ParentFKColumn: "fac_id", TargetTable: "network_facilities", TargetIDColumn: "id", OwnFK: false},
@@ -209,7 +209,7 @@ var Edges = map[string][]EdgeMetadata{
 		{Name: "network", TargetType: "net", TraversalKey: "net", Excluded: false, ParentFKColumn: "net_id", TargetTable: "networks", TargetIDColumn: "id", OwnFK: true},
 	},
 	"org": {
-		{Name: "campuses", TargetType: "campus", TraversalKey: "campus", Excluded: false, ParentFKColumn: "org_id", TargetTable: "campus", TargetIDColumn: "id", OwnFK: false},
+		{Name: "campuses", TargetType: "campus", TraversalKey: "campus", Excluded: false, ParentFKColumn: "org_id", TargetTable: "campuses", TargetIDColumn: "id", OwnFK: false},
 		{Name: "carriers", TargetType: "carrier", TraversalKey: "carrier", Excluded: false, ParentFKColumn: "org_id", TargetTable: "carriers", TargetIDColumn: "id", OwnFK: false},
 		{Name: "facilities", TargetType: "fac", TraversalKey: "fac", Excluded: false, ParentFKColumn: "org_id", TargetTable: "facilities", TargetIDColumn: "id", OwnFK: false},
 		{Name: "internet_exchanges", TargetType: "ix", TraversalKey: "ix", Excluded: false, ParentFKColumn: "org_id", TargetTable: "internet_exchanges", TargetIDColumn: "id", OwnFK: false},

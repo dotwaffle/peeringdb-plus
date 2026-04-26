@@ -3,6 +3,7 @@
 package migrate
 
 import (
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
@@ -837,6 +838,9 @@ var (
 
 func init() {
 	CampusesTable.ForeignKeys[0].RefTable = OrganizationsTable
+	CampusesTable.Annotation = &entsql.Annotation{
+		Table: "campuses",
+	}
 	CarriersTable.ForeignKeys[0].RefTable = OrganizationsTable
 	CarrierFacilitiesTable.ForeignKeys[0].RefTable = CarriersTable
 	CarrierFacilitiesTable.ForeignKeys[1].RefTable = FacilitiesTable
