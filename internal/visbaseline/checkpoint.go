@@ -113,10 +113,12 @@ func (s *State) PendingTuples() []Tuple {
 // a wrapped json error on parse failure, and an error for unsupported
 // versions.
 func LoadState(path string) (*State, error) {
-	// path is an operator-supplied checkpoint location (-state flag or
-	// DefaultStatePath). Permitted by design — this is a CLI tool.
+	// visbaseline is a CLI tool — paths are operator-supplied by contract
+	// (-state flag or DefaultStatePath). filepath.Clean as defense-in-depth
+	// against `..` traversal; the cleaned path also satisfies gosec G304's
+	// static analysis.
 	path = filepath.Clean(path)
-	data, err := os.ReadFile(path) //nolint:gosec // visbaseline is a CLI tool — paths are operator-supplied by contract
+	data, err := os.ReadFile(path)
 	if err != nil {
 		// os.ReadFile already wraps errors appropriately for errors.Is(err, os.ErrNotExist).
 		return nil, err

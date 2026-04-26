@@ -421,10 +421,11 @@ func writeReportArtifacts(outDir, mdName, jsonName string, rep Report) error {
 		return err
 	}
 	jsonPath := filepath.Join(outDir, jsonName)
-	// jsonPath is derived from outDir (CLI caller path) + validated basename;
-	// this tool is operator-driven.
+	// visbaseline is a CLI tool — paths are operator-supplied by contract.
+	// filepath.Clean as defense-in-depth against `..` traversal; the cleaned
+	// path also satisfies gosec G304's static analysis.
 	jsonPath = filepath.Clean(jsonPath)
-	f, err := os.OpenFile(jsonPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // visbaseline is a CLI tool — paths are operator-supplied by contract
+	f, err := os.OpenFile(jsonPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("open %s: %w", jsonPath, err)
 	}
@@ -438,10 +439,11 @@ func writeReportArtifacts(outDir, mdName, jsonName string, rep Report) error {
 // writeMarkdownOnly writes a DIFF-style Markdown to outDir/name.
 func writeMarkdownOnly(outDir, name string, rep Report) error {
 	p := filepath.Join(outDir, name)
-	// p is derived from outDir (CLI caller path) + validated basename;
-	// this tool is operator-driven.
+	// visbaseline is a CLI tool — paths are operator-supplied by contract.
+	// filepath.Clean as defense-in-depth against `..` traversal; the cleaned
+	// path also satisfies gosec G304's static analysis.
 	p = filepath.Clean(p)
-	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // visbaseline is a CLI tool — paths are operator-supplied by contract
+	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("open %s: %w", p, err)
 	}
