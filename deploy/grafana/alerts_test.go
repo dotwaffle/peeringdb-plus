@@ -196,8 +196,7 @@ func TestAlerts_MimirtoolCheck(t *testing.T) {
 	out, err := exec.CommandContext(ctx, bin, "rules", "check", alertsPath).CombinedOutput()
 	if err != nil {
 		// mimirtool may return non-zero on lint warnings; surface output for diagnosis.
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			t.Fatalf("mimirtool rules check failed (exit %d):\n%s",
 				exitErr.ExitCode(), out)
 		}

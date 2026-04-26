@@ -328,13 +328,13 @@ func TestDashboard_RegionVariableUsed(t *testing.T) {
 
 	found := false
 	for _, expr := range exprs {
-		if strings.Contains(expr, "fly_region") {
+		if strings.Contains(expr, "cloud_region") {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("no PromQL expression references the fly_region label; $region variable is unused")
+		t.Error("no PromQL expression references the cloud_region label; $region variable is unused")
 	}
 }
 
