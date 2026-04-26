@@ -92,10 +92,23 @@ Fast, reliable access to PeeringDB data from anywhere in the world, served from 
 - [x] Operator coercion (__contains -> __icontains etc.) — v1.16
 - [x] Memory-safe response paths for large results on 256MB replicas — v1.16
 
-## Current Milestone: none
+## Current Milestone: v1.18.0 Cleanup & Observability Polish
 
-**Status:** Ready for /gsd-new-milestone to start v1.18.0. (v1.17.0 was burned by quick task 260426-pms — SEED-001 incremental-sync default flip — shipped as a release tag, not a milestone.)
-**Theme:** n/a
+**Goal:** Close all outstanding deferred items from prior milestones and complete a telemetry audit + remediation pass against the live Grafana Cloud surface so the production observability story is durable into the next feature cycle.
+
+**Target features:**
+- Code defect fixes (campus inflection 500 in cross-entity traversal; `poc.role` NotEmpty validator extending the codegen-layer guard from 260426-pms)
+- Test/CI debt cleanup (3 deferred test failures + 5 lint findings in `internal/visbaseline`)
+- Telemetry audit & remediation (cold-start gauge population, zero-rate panel pre-warm, `service_name` filtering for cross-app collision protection, `http.route` middleware investigation, log-level audit, trace sampling review)
+- UAT closeout (v1.13's 2 outstanding human-verification items; archive v1.5 Phase 20 dir)
+
+**Out of scope:**
+- SEED-004 tombstone GC (data volume tiny — re-evaluate later if triggers fire)
+- v1.6 / v1.7 / v1.11 human-verification UI/visual items (~33 items — defer to a future "UI verification sweep" milestone)
+- SEED-003 primary HA hot-standby (separate seed, not raised)
+- Removing `full` sync mode (keep as explicit operator override per 260426-pms scope)
+
+**Theme:** Cleanup & Observability Polish
 
 ### Recently Shipped: v1.15 Infrastructure Polish & Schema Hygiene
 

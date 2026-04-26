@@ -1,11 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: null
-milestone_name: null
-status: ready
-stopped_at: "v1.16 ARCHIVED 2026-04-22. 6 phases (67-72), 36 plans, 25 requirements complete. Ready for v1.18.0 (the v1.17.0 tag was used by quick task 260426-pms for the SEED-001 incremental-sync flip — not a milestone)."
-last_updated: "2026-04-22T17:15:00.000Z"
-last_activity: 2026-04-22
+milestone: v1.18.0
+milestone_name: Cleanup & Observability Polish
+status: planning
+last_updated: "2026-04-26T20:11:03.192Z"
+last_activity: 2026-04-26
 progress:
   total_phases: 0
   completed_phases: 0
@@ -26,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 ## Current Position
 
-Phase: none
-Plan: none
-Status: Ready for /gsd-new-milestone to start v1.18.0.
-Last activity: 2026-04-26 - Completed quick task 260426-pms: flip default PDBPLUS_SYNC_MODE to incremental (SEED-001), shipped as v1.17.0
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-26 — Milestone v1.18.0 started
 
 ## v1.18.0 Phase Map
 
