@@ -37,22 +37,22 @@ func installInMemorySpanExporter(t *testing.T) *tracetest.InMemoryExporter {
 	return exporter
 }
 
-// TestMemStatsHeapInuseKiB_Positive sanity-checks that the sampler
-// returns a positive KiB value on a live process. Not a rigorous
+// TestMemStatsHeapInuseBytes_Positive sanity-checks that the sampler
+// returns a positive byte value on a live process. Not a rigorous
 // monotonicity test — GC between calls can legitimately shrink
 // HeapInuse.
-func TestMemStatsHeapInuseKiB_Positive(t *testing.T) {
+func TestMemStatsHeapInuseBytes_Positive(t *testing.T) {
 	t.Parallel()
 
-	got := memStatsHeapInuseKiB()
+	got := memStatsHeapInuseBytes()
 	if got <= 0 {
-		t.Errorf("memStatsHeapInuseKiB() = %d, want > 0 (test process has a non-empty heap)", got)
+		t.Errorf("memStatsHeapInuseBytes() = %d, want > 0 (test process has a non-empty heap)", got)
 	}
 }
 
 // TestRecordResponseHeapDelta_SetsSpanAttribute verifies
-// recordResponseHeapDelta stamps pdbplus.response.heap_delta_kib on the
-// active span (D-06 wire-level contract).
+// recordResponseHeapDelta stamps pdbplus.response.heap_delta_bytes on
+// the active span (D-06 wire-level contract).
 func TestRecordResponseHeapDelta_SetsSpanAttribute(t *testing.T) {
 	// Not parallel: installs global TracerProvider.
 	exporter := installInMemorySpanExporter(t)
@@ -67,19 +67,19 @@ func TestRecordResponseHeapDelta_SetsSpanAttribute(t *testing.T) {
 	}
 	var found bool
 	for _, a := range spans[0].Attributes {
-		if string(a.Key) == "pdbplus.response.heap_delta_kib" {
+		if string(a.Key) == "pdbplus.response.heap_delta_bytes" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Errorf("span missing attribute pdbplus.response.heap_delta_kib; attrs=%+v", spans[0].Attributes)
+		t.Errorf("span missing attribute pdbplus.response.heap_delta_bytes; attrs=%+v", spans[0].Attributes)
 	}
 }
 
 // TestRecordResponseHeapDelta_RecordsHistogram verifies
 // recordResponseHeapDelta records a histogram observation on the
-// pdbplus.response.heap_delta_kib instrument with endpoint + entity
+// pdbplus.response.heap_delta instrument with endpoint + entity
 // attributes.
 func TestRecordResponseHeapDelta_RecordsHistogram(t *testing.T) {
 	// Not parallel: installs global MeterProvider.
@@ -99,13 +99,13 @@ func TestRecordResponseHeapDelta_RecordsHistogram(t *testing.T) {
 	var found *metricdata.Metrics
 	for _, sm := range rm.ScopeMetrics {
 		for i := range sm.Metrics {
-			if sm.Metrics[i].Name == "pdbplus.response.heap_delta_kib" {
+			if sm.Metrics[i].Name == "pdbplus.response.heap_delta" {
 				found = &sm.Metrics[i]
 			}
 		}
 	}
 	if found == nil {
-		t.Fatal("pdbplus.response.heap_delta_kib metric not found in collected ResourceMetrics")
+		t.Fatal("pdbplus.response.heap_delta metric not found in collected ResourceMetrics")
 	}
 	hist, ok := found.Data.(metricdata.Histogram[int64])
 	if !ok {
@@ -146,8 +146,8 @@ func TestRecordResponseHeapDelta_FiresOnce(t *testing.T) {
 	}
 
 	handler := func(ctx context.Context) {
-		startKiB := memStatsHeapInuseKiB()
-		defer recordResponseHeapDelta(ctx, "/api/net", "net", startKiB)
+		startBytes := memStatsHeapInuseBytes()
+		defer recordResponseHeapDelta(ctx, "/api/net", "net", startBytes)
 		// Simulated handler body — no telemetry calls.
 	}
 
@@ -155,19 +155,19 @@ func TestRecordResponseHeapDelta_FiresOnce(t *testing.T) {
 	handler(ctx)
 	span.End()
 
-	// Exactly one span, exactly one heap_delta_kib attribute.
+	// Exactly one span, exactly one heap_delta_bytes attribute.
 	spans := exporter.GetSpans()
 	if len(spans) != 1 {
 		t.Fatalf("got %d spans, want 1", len(spans))
 	}
 	var attrCount int
 	for _, a := range spans[0].Attributes {
-		if string(a.Key) == "pdbplus.response.heap_delta_kib" {
+		if string(a.Key) == "pdbplus.response.heap_delta_bytes" {
 			attrCount++
 		}
 	}
 	if attrCount != 1 {
-		t.Errorf("pdbplus.response.heap_delta_kib attribute count = %d, want 1", attrCount)
+		t.Errorf("pdbplus.response.heap_delta_bytes attribute count = %d, want 1", attrCount)
 	}
 
 	// Exactly one histogram data point.
@@ -178,13 +178,13 @@ func TestRecordResponseHeapDelta_FiresOnce(t *testing.T) {
 	var found *metricdata.Metrics
 	for _, sm := range rm.ScopeMetrics {
 		for i := range sm.Metrics {
-			if sm.Metrics[i].Name == "pdbplus.response.heap_delta_kib" {
+			if sm.Metrics[i].Name == "pdbplus.response.heap_delta" {
 				found = &sm.Metrics[i]
 			}
 		}
 	}
 	if found == nil {
-		t.Fatal("pdbplus.response.heap_delta_kib metric not found")
+		t.Fatal("pdbplus.response.heap_delta metric not found")
 	}
 	hist, ok := found.Data.(metricdata.Histogram[int64])
 	if !ok {
@@ -203,10 +203,10 @@ func TestRecordResponseHeapDelta_FiresOnce(t *testing.T) {
 // global histogram pointer is nil (e.g. InitResponseHeapHistogram was
 // never called), the sampler does not panic — telemetry is best-effort.
 func TestRecordResponseHeapDelta_NilHistogramSafe(t *testing.T) {
-	// Not parallel: mutates package-level pdbotel.ResponseHeapDeltaKiB.
-	prev := pdbotel.ResponseHeapDeltaKiB
-	pdbotel.ResponseHeapDeltaKiB = nil
-	t.Cleanup(func() { pdbotel.ResponseHeapDeltaKiB = prev })
+	// Not parallel: mutates package-level pdbotel.ResponseHeapDeltaBytes.
+	prev := pdbotel.ResponseHeapDeltaBytes
+	pdbotel.ResponseHeapDeltaBytes = nil
+	t.Cleanup(func() { pdbotel.ResponseHeapDeltaBytes = prev })
 
 	// Must not panic.
 	recordResponseHeapDelta(context.Background(), "/api/net", "net", 0)

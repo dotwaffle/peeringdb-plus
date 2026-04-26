@@ -146,11 +146,12 @@ type Config struct {
 	// HeapWarnBytes is the peak Go heap threshold (bytes) above which the
 	// sync worker emits slog.Warn("heap threshold crossed", ...) at the
 	// end of each sync cycle. The OTel span attribute
-	// pdbplus.sync.peak_heap_mib is emitted regardless; only the Warn is
-	// threshold-gated. Configured via PDBPLUS_HEAP_WARN_MIB (integer MiB,
-	// no unit suffix). Default 400 MiB matches the Fly 512 MB VM cap minus
-	// a 112 MB safety margin (D-04). Zero disables the warn (attr still
-	// emitted so dashboards retain timeseries).
+	// pdbplus.sync.peak_heap_bytes is emitted regardless; only the Warn
+	// is threshold-gated. Configured via PDBPLUS_HEAP_WARN_MIB (integer
+	// MiB, no unit suffix — env var name retained for compatibility).
+	// Default 400 MiB matches the Fly 512 MB VM cap minus a 112 MB
+	// safety margin (D-04). Zero disables the warn (attr still emitted
+	// so dashboards retain timeseries).
 	//
 	// SEED-001: sustained breach is the escalation signal for considering
 	// PDBPLUS_SYNC_MODE=incremental.

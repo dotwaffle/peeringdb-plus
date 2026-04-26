@@ -292,7 +292,7 @@ for self-hosted Grafana instances.
 
 ### Sync memory watch (SEED-001)
 
-Every sync cycle, the worker samples `runtime.MemStats.HeapInuse` and (on Linux) `/proc/self/status` VmHWM, attaches both as OTel span attrs (`pdbplus.sync.peak_heap_mib`, `pdbplus.sync.peak_rss_mib`) on the `sync-full` / `sync-incremental` span, and fires `slog.Warn("heap threshold crossed", ...)` when either breaches its configured threshold. The same values are also exported as Prometheus gauges (`pdbplus_sync_peak_heap_mib`, `pdbplus_sync_peak_rss_mib`) for dashboard timeseries.
+Every sync cycle, the worker samples `runtime.MemStats.HeapInuse` and (on Linux) `/proc/self/status` VmHWM, attaches both as OTel span attrs (`pdbplus.sync.peak_heap_bytes`, `pdbplus.sync.peak_rss_bytes`) on the `sync-full` / `sync-incremental` span, and fires `slog.Warn("heap threshold crossed", ...)` when either breaches its configured threshold. The same values are exported as Prometheus gauges (`pdbplus_sync_peak_heap_bytes`, `pdbplus_sync_peak_rss_bytes`) for dashboard timeseries. Bytes is the canonical Prom unit (per the 2026-04-26 audit unit canonicalisation); Grafana formats MiB / GiB at render time.
 
 Thresholds via `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB` (default 384). Zero disables the warn for that metric (attrs still fire).
 

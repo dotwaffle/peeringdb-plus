@@ -547,22 +547,25 @@ production. Full table lives in `internal/pdbcompat/rowsize.go`.
 
 ### Telemetry (MEMORY-03)
 
-- **OTel span attribute** `pdbplus.response.heap_delta_kib` — per-request
+- **OTel span attribute** `pdbplus.response.heap_delta_bytes` — per-request
   `runtime.MemStats.HeapInuse` delta, sampled once at handler entry
   and once via `defer` at exit. `ReadMemStats` is STW (~µs at our heap
   size); D-06 permits ONE sample per request but NEVER per row. The
   sampler lives in `internal/pdbcompat/telemetry.go`
-  (`memStatsHeapInuseKiB` + `recordResponseHeapDelta`) and is called
+  (`memStatsHeapInuseBytes` + `recordResponseHeapDelta`) and is called
   via `defer` at the top of `serveList` so every terminal path (200
   success, 413 budget-exceeded, 400 filter-error, 500 query-error)
   fires exactly once.
-- **Prometheus histogram** `pdbplus_response_heap_delta_kib{endpoint,entity}` —
-  buckets 0.5, 1, 4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144,
-  524288 KiB (near-zero through 512 MiB, with the 128 MiB default
-  budget sitting at the 9th bucket boundary). Registered via
-  `pdbotel.InitResponseHeapHistogram()` in `internal/otel/metrics.go`.
-- **Grafana** — panel id 36 "Response Heap Delta (KiB) — p50/p95/p99
-  by endpoint" at the bottom of the SEED-001 watch row in
+- **Prometheus histogram** `pdbplus_response_heap_delta_bytes{endpoint,entity}` —
+  buckets 512 B, 1 KiB, 4 KiB, 16 KiB, 64 KiB, 256 KiB, 1 MiB, 4 MiB,
+  16 MiB, 64 MiB, 256 MiB, 512 MiB (near-zero through 512 MiB, with
+  the 128 MiB default budget sitting at the 9th bucket boundary).
+  Registered via `pdbotel.InitResponseHeapHistogram()` in
+  `internal/otel/metrics.go`. Bytes is the canonical Prom unit (per
+  the 2026-04-26 audit unit canonicalisation); Grafana formats KiB /
+  MiB at render time via the "bytes" field unit.
+- **Grafana** — panel id 36 "Response Heap Delta — p50/p95/p99 by
+  endpoint" at the bottom of the SEED-001 watch row in
   `deploy/grafana/dashboards/pdbplus-overview.json`. Companion to the
   v1.15 Phase 66 sync-cycle peak heap/RSS panels; two visual tiers now
   read "per-cycle peaks" (top) and "per-request deltas" (bottom).

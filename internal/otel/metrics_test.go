@@ -352,23 +352,23 @@ func TestInitResponseHeapHistogram_NoError(t *testing.T) {
 	if err := InitResponseHeapHistogram(); err != nil {
 		t.Fatalf("InitResponseHeapHistogram returned error: %v", err)
 	}
-	if ResponseHeapDeltaKiB == nil {
-		t.Fatal("ResponseHeapDeltaKiB is nil after InitResponseHeapHistogram")
+	if ResponseHeapDeltaBytes == nil {
+		t.Fatal("ResponseHeapDeltaBytes is nil after InitResponseHeapHistogram")
 	}
 }
 
-// TestResponseHeapDeltaKiB_RecordDoesNotPanic verifies the histogram
+// TestResponseHeapDeltaBytes_RecordDoesNotPanic verifies the histogram
 // instrument records samples without panicking when no reader is wired,
 // matching the best-effort behaviour expected from
 // internal/pdbcompat.recordResponseHeapDelta on a misconfigured exporter.
-func TestResponseHeapDeltaKiB_RecordDoesNotPanic(t *testing.T) {
+func TestResponseHeapDeltaBytes_RecordDoesNotPanic(t *testing.T) {
 	t.Setenv("OTEL_METRICS_EXPORTER", "none")
 
 	if err := InitResponseHeapHistogram(); err != nil {
 		t.Fatalf("InitResponseHeapHistogram returned error: %v", err)
 	}
 
-	ResponseHeapDeltaKiB.Record(t.Context(), 42,
+	ResponseHeapDeltaBytes.Record(t.Context(), 42,
 		metric.WithAttributes(
 			attribute.String("endpoint", "/api/net"),
 			attribute.String("entity", "net"),
@@ -389,7 +389,7 @@ func TestInitResponseHeapHistogram_RecordsValues(t *testing.T) {
 	}
 
 	ctx := t.Context()
-	ResponseHeapDeltaKiB.Record(ctx, 128,
+	ResponseHeapDeltaBytes.Record(ctx, 128,
 		metric.WithAttributes(
 			attribute.String("endpoint", "/api/net"),
 			attribute.String("entity", "net"),
@@ -401,9 +401,9 @@ func TestInitResponseHeapHistogram_RecordsValues(t *testing.T) {
 		t.Fatalf("Collect: %v", err)
 	}
 
-	found := findMetric(rm, "pdbplus.response.heap_delta_kib")
+	found := findMetric(rm, "pdbplus.response.heap_delta")
 	if found == nil {
-		t.Fatal("expected pdbplus.response.heap_delta_kib metric, not found")
+		t.Fatal("expected pdbplus.response.heap_delta metric, not found")
 	}
 	hist, ok := found.Data.(metricdata.Histogram[int64])
 	if !ok {

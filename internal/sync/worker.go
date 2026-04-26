@@ -81,7 +81,7 @@ type WorkerConfig struct {
 
 	// HeapWarnBytes is the peak Go heap threshold (bytes) above which
 	// the end-of-sync-cycle emitter fires slog.Warn("heap threshold
-	// crossed", ...). The OTel span attr pdbplus.sync.peak_heap_mib is
+	// crossed", ...). The OTel span attr pdbplus.sync.peak_heap_bytes is
 	// attached regardless. Zero disables only the Warn (not the attr).
 	// Wired from config.Config.HeapWarnBytes by main.go.
 	//
@@ -581,9 +581,10 @@ func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit i
 // configured threshold.
 //
 // Attribute naming follows the pdbplus.* convention established in
-// Phase 61 (pdbplus.privacy.tier): pdbplus.sync.peak_heap_mib and
-// pdbplus.sync.peak_rss_mib. Units are MiB so dashboards can plot them
-// directly without a divisor.
+// Phase 61 (pdbplus.privacy.tier): pdbplus.sync.peak_heap_bytes and
+// pdbplus.sync.peak_rss_bytes. Bytes is the canonical Prom unit (per
+// the 2026-04-26 audit unit canonicalisation); dashboards format MiB /
+// GiB at render time via Grafana's "bytes" field unit.
 //
 // On non-Linux the RSS attr is OMITTED entirely — zero is a valid
 // metric value and would produce misleading flat lines on dashboards.
@@ -602,25 +603,22 @@ func (w *Worker) emitMemoryTelemetry(ctx context.Context, heapWarnBytes, rssWarn
 	if ms.HeapInuse < maxInt64 {
 		heapBytes = int64(ms.HeapInuse)
 	}
-	heapMiB := heapBytes / (1024 * 1024)
 
 	rssBytes, rssOK := readLinuxVMHWM()
 
 	span := trace.SpanFromContext(ctx)
 	attrs := []attribute.KeyValue{
-		attribute.Int64("pdbplus.sync.peak_heap_mib", heapMiB),
+		attribute.Int64("pdbplus.sync.peak_heap_bytes", heapBytes),
 	}
-	var rssMiB int64
 	if rssOK {
-		rssMiB = rssBytes / (1024 * 1024)
-		attrs = append(attrs, attribute.Int64("pdbplus.sync.peak_rss_mib", rssMiB))
+		attrs = append(attrs, attribute.Int64("pdbplus.sync.peak_rss_bytes", rssBytes))
 	}
 	span.SetAttributes(attrs...)
 
 	// Publish to the ObservableGauges so Prometheus / Grafana pick them up.
-	pdbotel.SyncPeakHeapMiB.Store(heapMiB)
+	pdbotel.SyncPeakHeapBytes.Store(heapBytes)
 	if rssOK {
-		pdbotel.SyncPeakRSSMiB.Store(rssMiB)
+		pdbotel.SyncPeakRSSBytes.Store(rssBytes)
 	}
 
 	heapOver := heapWarnBytes > 0 && heapBytes > heapWarnBytes
@@ -629,13 +627,13 @@ func (w *Worker) emitMemoryTelemetry(ctx context.Context, heapWarnBytes, rssWarn
 		return
 	}
 	logAttrs := []slog.Attr{
-		slog.Int64("peak_heap_mib", heapMiB),
-		slog.Int64("heap_warn_mib", heapWarnBytes/(1024*1024)),
+		slog.Int64("peak_heap_bytes", heapBytes),
+		slog.Int64("heap_warn_bytes", heapWarnBytes),
 	}
 	if rssOK {
 		logAttrs = append(logAttrs,
-			slog.Int64("peak_rss_mib", rssMiB),
-			slog.Int64("rss_warn_mib", rssWarnBytes/(1024*1024)),
+			slog.Int64("peak_rss_bytes", rssBytes),
+			slog.Int64("rss_warn_bytes", rssWarnBytes),
 		)
 	}
 	logAttrs = append(logAttrs,

@@ -239,8 +239,8 @@ See `docs/ARCHITECTURE.md § Response Memory Envelope` for the budget breakdown,
 | `PDBPLUS_SYNC_MODE` | `full` | Sync strategy: `full` or `incremental` |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | `24h` | Max age of sync data before health reports degraded |
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | `400MB` | Peak Go heap ceiling checked after Phase A fetch; unit suffix required (KB/MB/GB/TB); `0` disables guardrail |
-| `PDBPLUS_HEAP_WARN_MIB` | `400` | Peak Go heap (MiB) threshold. End-of-sync-cycle `slog.Warn("heap threshold crossed", ...)` fires when `runtime.MemStats.HeapInuse` exceeds this; OTel span attr `pdbplus.sync.peak_heap_mib` emits on every cycle regardless. `0` disables the warn. Sustained breach = SEED-001 trigger fired. |
-| `PDBPLUS_RSS_WARN_MIB` | `384` | Peak OS RSS (MiB) threshold from `/proc/self/status` VmHWM (Linux only). OTel span attr `pdbplus.sync.peak_rss_mib`. `0` disables the warn. Attr omitted on non-Linux (RSS not available). |
+| `PDBPLUS_HEAP_WARN_MIB` | `400` | Peak Go heap (MiB) threshold. End-of-sync-cycle `slog.Warn("heap threshold crossed", ...)` fires when `runtime.MemStats.HeapInuse` exceeds this; OTel span attr `pdbplus.sync.peak_heap_bytes` (Prom: `pdbplus_sync_peak_heap_bytes`) emits on every cycle regardless. `0` disables the warn. Sustained breach = SEED-001 trigger fired. |
+| `PDBPLUS_RSS_WARN_MIB` | `384` | Peak OS RSS (MiB) threshold from `/proc/self/status` VmHWM (Linux only). OTel span attr `pdbplus.sync.peak_rss_bytes` (Prom: `pdbplus_sync_peak_rss_bytes`). `0` disables the warn. Attr omitted on non-Linux (RSS not available). |
 | `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `128MiB` | Per-response memory budget for pdbcompat list endpoints; unit suffix required (KB/MB/GB/TB); bare numbers rejected except literal `0` (disabled — dev only). Over-budget requests get RFC 9457 413 up-front via `internal/pdbcompat/budget.go` `CheckBudget` + `WriteBudgetProblem` before any row data is fetched. Default = 256 MB replica − 80 MB Go runtime baseline − 48 MB slack. |
 | `PDBPLUS_CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
 | `PDBPLUS_CSP_ENFORCE` | `false` | When `true`, serve enforcing `Content-Security-Policy` on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only`. |
@@ -300,12 +300,14 @@ Standard `OTEL_*` env vars also apply (autoexport).
 End-of-sync-cycle memory telemetry surfaces SEED-001's incremental-sync-consideration trigger. Implementation: `internal/sync/worker.go` function `emitMemoryTelemetry`, called from `recordSuccess`, `rollbackAndRecord`, and `recordFailure` (three terminal paths of `Worker.Sync`).
 
 OTel span attributes attached to the `sync-full` / `sync-incremental` cycle span:
-- `pdbplus.sync.peak_heap_mib` — `runtime.MemStats.HeapInuse` in MiB
-- `pdbplus.sync.peak_rss_mib` — `/proc/self/status` VmHWM in MiB (Linux only — attr omitted on other OSes)
+- `pdbplus.sync.peak_heap_bytes` — `runtime.MemStats.HeapInuse` in bytes
+- `pdbplus.sync.peak_rss_bytes` — `/proc/self/status` VmHWM in bytes (Linux only — attr omitted on other OSes)
 
-Same values are exported as Prometheus gauges via `internal/otel.InitMemoryGauges`: `pdbplus_sync_peak_heap_mib` and `pdbplus_sync_peak_rss_mib`. Zero-valued observations are suppressed so dashboards don't plot misleading flat lines before the first sync.
+Same values are exported as Prometheus gauges via `internal/otel.InitMemoryGauges`: `pdbplus_sync_peak_heap_bytes` and `pdbplus_sync_peak_rss_bytes`. Bytes is the canonical Prom unit (per the 2026-04-26 audit unit canonicalisation); dashboards format MiB / GiB at render time via Grafana's "bytes" field unit. Zero-valued observations are suppressed so dashboards don't plot misleading flat lines before the first sync.
 
-**Log signal.** When either threshold is breached, the worker calls `slog.Warn("heap threshold crossed", ...)` with typed attrs `peak_heap_mib`, `heap_warn_mib`, `peak_rss_mib`, `rss_warn_mib`, `heap_over`, `rss_over`.
+**Log signal.** When either threshold is breached, the worker calls `slog.Warn("heap threshold crossed", ...)` with typed attrs `peak_heap_bytes`, `heap_warn_bytes`, `peak_rss_bytes`, `rss_warn_bytes`, `heap_over`, `rss_over`.
+
+**FK-orphan summary.** Each sync cycle also emits one `slog.Warn("fk orphans summary", total, groups)` (or DEBUG with `total=0` on a clean cycle) and increments `pdbplus.sync.type.orphans{type, parent_type, field, action}` per row observed. The per-row events log at DEBUG. This replaces the prior per-row WARN spam that breached Tempo's 7.5 MB per-trace cap (audit 2026-04-26).
 
 **Thresholds** via env vars (see table above): `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB` (default 384). Defaults sit under the Fly 512 MB VM cap with margin so the order under pressure is: log → app crash → Fly OOM-kill.
 

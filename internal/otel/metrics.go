@@ -11,32 +11,32 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
-// SyncPeakHeapMiB holds the most-recent end-of-sync-cycle Go runtime
-// HeapInuse in MiB. Exposed via pdbplus.sync.peak_heap_mib ObservableGauge
-// for Grafana / Prometheus dashboards to plot over time. Zero means
-// "no sync has completed yet" — the gauge suppresses observation until
-// the first store.
-var SyncPeakHeapMiB atomic.Int64
+// SyncPeakHeapBytes holds the most-recent end-of-sync-cycle Go runtime
+// HeapInuse in bytes. Exposed via pdbplus.sync.peak_heap ObservableGauge
+// (Prom name: pdbplus_sync_peak_heap_bytes) for Grafana / Prometheus
+// dashboards to plot over time. Zero means "no sync has completed yet"
+// — the gauge suppresses observation until the first store. Bytes is
+// the canonical Prom unit; dashboards format MiB / GiB at render time.
+var SyncPeakHeapBytes atomic.Int64
 
-// SyncPeakRSSMiB holds the most-recent end-of-sync-cycle /proc/self/status
-// VmHWM in MiB (Linux only). Zero means "not Linux" or "no sync yet" —
-// the gauge suppresses observation when zero.
-var SyncPeakRSSMiB atomic.Int64
+// SyncPeakRSSBytes holds the most-recent end-of-sync-cycle
+// /proc/self/status VmHWM in bytes (Linux only). Zero means "not Linux"
+// or "no sync yet" — the gauge suppresses observation when zero.
+var SyncPeakRSSBytes atomic.Int64
 
 // SyncDuration records the duration of sync operations in seconds.
 var SyncDuration metric.Float64Histogram
 
-// ResponseHeapDeltaKiB records the per-request Go heap HeapInuse delta
-// (exit - entry) for pdbcompat list handlers, in KiB. Populated by
+// ResponseHeapDeltaBytes records the per-request Go heap HeapInuse delta
+// (exit - entry) for pdbcompat list handlers, in bytes. Populated by
 // internal/pdbcompat.recordResponseHeapDelta via defer at the top of
-// serveList. Unit is KiB (vs sync's MiB) because per-request deltas
-// are typically 10-1000× smaller than per-cycle peaks.
+// serveList.
 //
 // Attributes: endpoint (e.g. "/api/net"), entity (e.g. "net"). Low-cardinality
 // by construction — 1 endpoint per type × 13 types = 13 label combinations.
 //
 // Registered by InitResponseHeapHistogram (Phase 71 Plan 05, D-06).
-var ResponseHeapDeltaKiB metric.Int64Histogram
+var ResponseHeapDeltaBytes metric.Int64Histogram
 
 // SyncOperations counts sync operations by status (success/failed).
 var SyncOperations metric.Int64Counter
@@ -172,38 +172,41 @@ func InitFreshnessGauge(lastSyncFn func(ctx context.Context) (time.Time, bool)) 
 }
 
 // InitMemoryGauges registers observable gauges that report the most-recent
-// end-of-sync-cycle peak heap and RSS (MiB) for SEED-001 dashboard watch.
-// Values are updated by internal/sync.(*Worker).emitMemoryTelemetry via the
-// SyncPeakHeapMiB / SyncPeakRSSMiB atomics. A zero value suppresses the
-// observation (no sync yet, or non-Linux for RSS) so dashboards don't plot
-// misleading zeros.
+// end-of-sync-cycle peak heap and RSS (bytes) for SEED-001 dashboard
+// watch. Values are updated by internal/sync.(*Worker).emitMemoryTelemetry
+// via the SyncPeakHeapBytes / SyncPeakRSSBytes atomics. A zero value
+// suppresses the observation (no sync yet, or non-Linux for RSS) so
+// dashboards don't plot misleading zeros.
+//
+// Bytes is the canonical Prom unit (post-2026-04-26 audit); dashboards
+// format MiB / GiB at render time via Grafana's "bytes" field unit.
 func InitMemoryGauges() error {
 	meter := otel.Meter("peeringdb-plus")
-	_, err := meter.Int64ObservableGauge("pdbplus.sync.peak_heap_mib",
-		metric.WithDescription("Peak Go heap (HeapInuse) at end of last sync cycle, in MiB"),
-		metric.WithUnit("MiB"),
+	_, err := meter.Int64ObservableGauge("pdbplus.sync.peak_heap",
+		metric.WithDescription("Peak Go heap (HeapInuse) at end of last sync cycle, in bytes"),
+		metric.WithUnit("By"),
 		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
-			if v := SyncPeakHeapMiB.Load(); v > 0 {
+			if v := SyncPeakHeapBytes.Load(); v > 0 {
 				o.Observe(v)
 			}
 			return nil
 		}),
 	)
 	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.peak_heap_mib gauge: %w", err)
+		return fmt.Errorf("registering pdbplus.sync.peak_heap gauge: %w", err)
 	}
-	_, err = meter.Int64ObservableGauge("pdbplus.sync.peak_rss_mib",
-		metric.WithDescription("Peak OS RSS (/proc/self/status VmHWM) at end of last sync cycle, in MiB"),
-		metric.WithUnit("MiB"),
+	_, err = meter.Int64ObservableGauge("pdbplus.sync.peak_rss",
+		metric.WithDescription("Peak OS RSS (/proc/self/status VmHWM) at end of last sync cycle, in bytes"),
+		metric.WithUnit("By"),
 		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
-			if v := SyncPeakRSSMiB.Load(); v > 0 {
+			if v := SyncPeakRSSBytes.Load(); v > 0 {
 				o.Observe(v)
 			}
 			return nil
 		}),
 	)
 	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.peak_rss_mib gauge: %w", err)
+		return fmt.Errorf("registering pdbplus.sync.peak_rss gauge: %w", err)
 	}
 	return nil
 }
@@ -215,22 +218,26 @@ func InitMemoryGauges() error {
 // rather than a point-in-time gauge, because per-request deltas are the
 // thing operators want a distribution over — not a last-write-wins value.
 //
-// Bucket boundaries span 0.5 KiB to 512 MiB: the low end catches
-// near-zero-delta responses (cached small payloads), the high end the
-// budget-breach neighbourhood (PDBPLUS_RESPONSE_MEMORY_LIMIT default 128
-// MiB in KiB = 131072; buckets step past that into 256/512 MiB territory
-// so outliers still get counted).
+// Bucket boundaries span 512 B to 512 MiB (in bytes per the post-2026-04-26
+// audit unit canonicalisation): the low end catches near-zero-delta
+// responses (cached small payloads), the high end the budget-breach
+// neighbourhood (PDBPLUS_RESPONSE_MEMORY_LIMIT default 128 MiB; buckets
+// step past that into 256 / 512 MiB territory so outliers still get
+// counted).
 func InitResponseHeapHistogram() error {
 	meter := otel.Meter("peeringdb-plus")
-	h, err := meter.Int64Histogram("pdbplus.response.heap_delta_kib",
-		metric.WithDescription("Per-request Go heap HeapInuse delta on pdbcompat list handlers, in KiB"),
-		metric.WithUnit("KiB"),
-		metric.WithExplicitBucketBoundaries(0.5, 1, 4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144, 524288),
+	h, err := meter.Int64Histogram("pdbplus.response.heap_delta",
+		metric.WithDescription("Per-request Go heap HeapInuse delta on pdbcompat list handlers, in bytes"),
+		metric.WithUnit("By"),
+		metric.WithExplicitBucketBoundaries(
+			512, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304,
+			16777216, 67108864, 268435456, 536870912,
+		),
 	)
 	if err != nil {
-		return fmt.Errorf("registering pdbplus.response.heap_delta_kib histogram: %w", err)
+		return fmt.Errorf("registering pdbplus.response.heap_delta histogram: %w", err)
 	}
-	ResponseHeapDeltaKiB = h
+	ResponseHeapDeltaBytes = h
 	return nil
 }
 

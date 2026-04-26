@@ -2519,8 +2519,8 @@ func TestWorkerSync_ChildGoroutineInheritsBypass(t *testing.T) {
 }
 
 // TestEmitMemoryTelemetry_Attrs asserts that emitMemoryTelemetry attaches
-// pdbplus.sync.peak_heap_mib to the current span on every call, attaches
-// pdbplus.sync.peak_rss_mib on Linux, and fires the "heap threshold
+// pdbplus.sync.peak_heap_bytes to the current span on every call, attaches
+// pdbplus.sync.peak_rss_bytes on Linux, and fires the "heap threshold
 // crossed" slog.Warn only when at least one threshold is breached
 // (OBS-05 / D-02 / D-03 / D-09).
 func TestEmitMemoryTelemetry_Attrs(t *testing.T) {
@@ -2558,17 +2558,17 @@ func TestEmitMemoryTelemetry_Attrs(t *testing.T) {
 			haveRSS := false
 			for _, a := range attrs {
 				switch string(a.Key) {
-				case "pdbplus.sync.peak_heap_mib":
+				case "pdbplus.sync.peak_heap_bytes":
 					haveHeap = true
-				case "pdbplus.sync.peak_rss_mib":
+				case "pdbplus.sync.peak_rss_bytes":
 					haveRSS = true
 				}
 			}
 			if !haveHeap {
-				t.Errorf("missing span attr pdbplus.sync.peak_heap_mib (attrs=%v)", attrs)
+				t.Errorf("missing span attr pdbplus.sync.peak_heap_bytes (attrs=%v)", attrs)
 			}
 			if runtime.GOOS == "linux" && !haveRSS {
-				t.Errorf("on Linux expected pdbplus.sync.peak_rss_mib attr (attrs=%v)", attrs)
+				t.Errorf("on Linux expected pdbplus.sync.peak_rss_bytes attr (attrs=%v)", attrs)
 			}
 			warned := strings.Contains(buf.String(), "heap threshold crossed")
 			if warned != tt.wantWarn {
