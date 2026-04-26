@@ -178,6 +178,39 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 					},
 				},
 			},
+			"poc": {
+				ModelName: "Poc",
+				APIPath:   "poc",
+				Fields: map[string]FieldDef{
+					"net_id": {
+						Type:       "integer",
+						Required:   false,
+						Nullable:   true,
+						References: "net",
+						HelpText:   "FK to network",
+					},
+					"name": {
+						Type:     "string",
+						Required: false,
+						Default:  "",
+						HelpText: "Contact name",
+					},
+					"role": {
+						Type:      "string",
+						MaxLength: 27,
+						Required:  true,
+						Nullable:  false,
+						HelpText:  "Contact role",
+					},
+				},
+				Relationships: map[string]Relationship{
+					"network": {
+						Target: "net",
+						Type:   "many_to_one",
+						Field:  "net_id",
+					},
+				},
+			},
 		},
 	}
 
@@ -231,6 +264,34 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 				`otelMutationHook("Network")`,
 			},
 		},
+		{
+			// Phase 73 BUG-02: poc.role must NOT carry NotEmpty(). Upstream
+			// PeeringDB ?since= responses plausibly emit status='deleted' poc
+			// tombstones with PII-scrubbed role="" (same GDPR pattern that
+			// 260426-pms confirmed for name="" on the 6 folded entities). A
+			// NotEmpty() validator on poc.role would reject those tombstones
+			// at the upsert builder, aborting incremental sync. Regression
+			// guard against accidentally re-introducing NotEmpty() on role.
+			name:    "Poc",
+			apiPath: "poc",
+			wantParts: []string{
+				`field.Int("id")`,
+				`field.String("role")`,
+				`entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)`,
+				`index.Fields("role")`,
+				`otelMutationHook("Poc")`,
+			},
+			notWantParts: []string{
+				// The literal NotEmpty() emission shape — formatted exactly
+				// the way generateFieldCode produces it (period+newline+
+				// three tabs+NotEmpty). Built via string concatenation
+				// rather than a raw-string-with-source-indentation so the
+				// substring contains the EXACT three-tab depth the
+				// formatter emits, not however-many-tabs the source line
+				// happens to be indented at.
+				"field.String(\"role\").\n\t\t\tNotEmpty()",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -272,9 +333,10 @@ func TestGenerateFieldCode(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		field   FieldDef
-		wantSub []string
+		name       string
+		field      FieldDef
+		wantSub    []string
+		notWantSub []string
 	}{
 		{
 			// SEED-001 (active 2026-04-26): the "name" field is intentionally
@@ -282,8 +344,9 @@ func TestGenerateFieldCode(t *testing.T) {
 			// emits status='deleted' tombstones with PII-scrubbed name="".
 			// A NotEmpty() validator would reject those tombstones at upsert
 			// and break incremental sync. NotEmpty() is preserved for "prefix"
-			// (ixprefix) and "role" (poc) — structurally meaningful or out of
-			// v1.16 scope.
+			// (ixprefix — structurally meaningful row identity, not PII).
+			// "role" is dropped from NotEmpty() emission as of Phase 73 BUG-02
+			// (symmetric drop for the next likely PII-scrub target on poc rows).
 			name: "name",
 			field: FieldDef{
 				Type:      "string",
@@ -297,6 +360,61 @@ func TestGenerateFieldCode(t *testing.T) {
 				`Unique()`,
 				`entgql.OrderField("NAME")`,
 				`entrest.WithFilter(entrest.FilterGroupEqual`,
+			},
+			notWantSub: []string{
+				// SEED-001 regression guard mirroring the role case below:
+				// name must not regain NotEmpty() either. Match the literal
+				// emission shape `.\n\t\t\tNotEmpty()` produced by
+				// generateFieldCode (period+newline+three tabs+NotEmpty).
+				".\n\t\t\tNotEmpty()",
+			},
+		},
+		{
+			// Phase 73 BUG-02: poc.role is intentionally emitted WITHOUT
+			// NotEmpty() because upstream PeeringDB ?since= responses
+			// plausibly arrive with PII-scrubbed role="" on tombstones (same
+			// GDPR pattern empirically confirmed for name="" by the
+			// 260426-pms SEED-001 spike). Belt-and-braces drop — the
+			// validator would reject those tombstones at the sync upsert
+			// builder, aborting the cycle.
+			name: "role",
+			field: FieldDef{
+				Type:      "string",
+				MaxLength: 27,
+				Required:  true,
+				Nullable:  false,
+				HelpText:  "Contact role",
+			},
+			wantSub: []string{
+				`field.String("role")`,
+				`entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)`,
+			},
+			notWantSub: []string{
+				// The load-bearing assertion: role must never regain a
+				// NotEmpty() validator via codegen. Match the literal
+				// emission shape produced by generateFieldCode (period+
+				// newline+three tabs+NotEmpty).
+				".\n\t\t\tNotEmpty()",
+			},
+		},
+		{
+			// Regression guard for ixprefix.prefix: it MUST retain its
+			// NotEmpty() validator. IP prefixes are structural row identity,
+			// not PII; upstream retains the prefix value on tombstones
+			// because the prefix IS the row's natural key. Out of scope per
+			// CONTEXT.md D-02 ("ixprefix.prefix retains its validator").
+			name: "prefix",
+			field: FieldDef{
+				Type:     "string",
+				Required: true,
+				Nullable: false,
+				HelpText: "IP prefix",
+			},
+			wantSub: []string{
+				`field.String("prefix")`,
+				// Match the literal emission shape produced by
+				// generateFieldCode for the validator chain.
+				".\n\t\t\tNotEmpty()",
 			},
 		},
 		{
@@ -399,6 +517,11 @@ func TestGenerateFieldCode(t *testing.T) {
 			for _, sub := range tt.wantSub {
 				if !strings.Contains(code, sub) {
 					t.Errorf("field code missing %q\n\nCode: %s", sub, code)
+				}
+			}
+			for _, ns := range tt.notWantSub {
+				if strings.Contains(code, ns) {
+					t.Errorf("field code must NOT contain %q\n\nCode: %s", ns, code)
 				}
 			}
 		})
