@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.18.0
 milestone_name: Cleanup & Observability Polish
 status: executing
-last_updated: "2026-04-26T22:23:17.782Z"
-last_activity: 2026-04-26 -- Phase 74 execution started
+last_updated: "2026-04-26T23:25:55.632Z"
+last_activity: 2026-04-26 -- Phase 75 Plan 01 (OBS-01 cold-start gauge) shipped
 progress:
   total_phases: 6
-  completed_phases: 1
-  total_plans: 5
-  completed_plans: 2
-  percent: 40
+  completed_phases: 2
+  total_plans: 8
+  completed_plans: 6
+  percent: 75
 ---
 
 # Project State
@@ -21,14 +21,14 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 74 — Test & CI Debt
+**Current focus:** Phase 75 — Code-side Observability Fixes
 
 ## Current Position
 
-Phase: 74 (Test & CI Debt) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 74
-Last activity: 2026-04-26 -- Phase 74 execution started
+Phase: 75 (Code-side Observability Fixes) — EXECUTING
+Plan: 2 of 3
+Status: Plan 01 (OBS-01) shipped — ready to execute Plan 02 (OBS-02)
+Last activity: 2026-04-26 -- Phase 75 Plan 01 (OBS-01 cold-start gauge) shipped (commits 0c8ca6d, 0eae6a1, 5ea3e19)
 
 ## v1.18.0 Phase Map
 
@@ -36,7 +36,7 @@ Last activity: 2026-04-26 -- Phase 74 execution started
 |-------|------|--------------|------------|--------|
 | 73 — Code Defect Fixes | Fix campus inflection 500 + drop `poc.role` NotEmpty validator | BUG-01, BUG-02 | — | ✓ shipped 2026-04-26 |
 | 74 — Test & CI Debt | Three deferred test failures + 5 lint findings cleared | TEST-01, TEST-02, TEST-03 | — | Ready to plan |
-| 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — | Ready to plan |
+| 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — | In Progress (1/3 plans shipped: OBS-01 ✓) |
 | 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) | Ready to plan (planning before 75 complete is OK; Phase 75 dep is soft) |
 | 77 — Telemetry Audit & Cleanup | Loki log-level audit + Tempo trace sampling/batching review | OBS-06, OBS-07 | Phase 75 (hard for OBS-07) | Plan after Phase 75 ships (OBS-07 needs http.route populated) |
 | 78 — UAT Closeout | v1.13 CSP + headers verification, v1.5 Phase 20 archive | UAT-01, UAT-02, UAT-03 | — | Ready to plan |
@@ -61,9 +61,11 @@ All 6 phase CONTEXT.md committed `fe724fc` 2026-04-26. Full decisions live in ea
 
 **Phase 75 — Code-side Observability Fixes** (OBS-01, OBS-02, OBS-04)
 
-- **D-01**: OBS-01 — synchronous one-shot `COUNT(*)` per-table at process init (~1-2s startup cost acceptable); seeds the same cache currently primed by sync-completion.
+- **D-01**: OBS-01 — synchronous one-shot `COUNT(*)` per-table at process init (~1-2s startup cost acceptable); seeds the same cache currently primed by sync-completion. **✓ SHIPPED Plan 75-01 2026-04-26 (commits `0c8ca6d`..`5ea3e19`):** new `internal/sync/initialcounts.go` `InitialObjectCounts(ctx, *ent.Client)` helper (status-agnostic counts, fail-fast on error per GO-CFG-1) wired into `cmd/peeringdb-plus/main.go` between `database.Open` and `pdbotel.InitObjectCountGauges`. 3 unit tests lock the contract. OnSyncComplete unchanged.
 - **D-02**: OBS-02 — pre-warm 13 types only (`Counter.Add(0, type=t)` × 5 metrics × 13 types = 65 baseline series). Status dimension self-populates. `pdbplus_role_transitions_total` uses `direction=` instead of `type=`.
 - **D-03**: OBS-04 — investigate root cause + fix `routeTagMiddleware`. Suspects: `r.Pattern` empty for non-`METHOD /path` routes, middleware ordering, or labeler-context replacement downstream.
+
+Plan 75-01 deviations: 1 lint auto-fix (revive package-comments detached) folded into GREEN commit; 1 stale acceptance baseline (`os.Exit(1)` count `<=12` was based on 11+1; actual file has 13+1=14 — structural intent preserved, recorded as patterns-established note for future plans to use structural rather than count-equality assertions).
 
 **Phase 76 — Dashboard Hardening** (OBS-03, OBS-05)
 

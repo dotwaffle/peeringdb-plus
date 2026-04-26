@@ -89,7 +89,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   3. During normal traffic, `count by(http_route)(http_server_request_duration_seconds_count)` returns ≥5 distinct route patterns covering at least `/api/*`, `/rest/v1/*`, `/peeringdb.v1.*`, `/graphql`, and `/ui/*` — not just `GET /healthz`
   4. The "Request Rate by Route" dashboard panel shows multi-route breakdown after merge; the root cause for the prior single-route series (empty `r.Pattern` for non-mux routes / middleware ordering) is documented in the phase summary
 **Plans** (3 plans, sequential due to shared cmd/peeringdb-plus/main.go edits — Wave 1 / Wave 2 / Wave 3):
-- [ ] 75-01-PLAN.md — OBS-01: synchronous one-shot Count(ctx) per entity at startup; new internal/sync/initialcounts.go helper + main.go wire-up before InitObjectCountGauges (per D-01)
+- [x] 75-01-PLAN.md — OBS-01: synchronous one-shot Count(ctx) per entity at startup; new internal/sync/initialcounts.go helper + main.go wire-up before InitObjectCountGauges (per D-01)
 - [ ] 75-02-PLAN.md — OBS-02: pre-warm 4 per-type counters × 13 types + RoleTransitions × 2 directions = 54 baseline series; new internal/otel/prewarm.go + main.go call after InitMetrics (per D-02)
 - [ ] 75-03-PLAN.md — OBS-04: investigate root cause of http.route only populating /healthz, then ship minimal fix in routeTagMiddleware or buildMiddlewareChain; OBS-04-INVESTIGATION.md + new route_tag_e2e_test.go (per D-03)
 **UI hint**: yes
