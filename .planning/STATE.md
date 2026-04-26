@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 Phase: none
 Plan: none
 Status: Ready for /gsd-new-milestone to start v1.17.
-Last activity: 2026-04-26 - Completed quick task 260426-jke: observability cleanup (log noise, trace overflow, redundant metric names, dashboard repair)
+Last activity: 2026-04-26 - Completed quick task 260426-lod: observability label gaps — GC-allowlisted resource attrs + http.route extraction
 
 ## v1.17 Phase Map
 
@@ -82,6 +82,7 @@ None.
 | 20260420-esb | Ent schema siblings refactor | 2026-04-20 | 559b5fa | [20260420-esb-ent-schema-siblings](./quick/20260420-esb-ent-schema-siblings/) |
 | 20260422-remove-nightly-bench | Remove the "Nightly bench" GitHub Actions workflow | 2026-04-22 | 3ca8590 | [20260422-remove-nightly-bench](./quick/20260422-remove-nightly-bench/) |
 | 260426-jke | Observability cleanup — log noise, trace overflow, redundant metric names, dashboard repair | 2026-04-26 | cef357a | [260426-jke-obs-cleanup](./quick/260426-jke-obs-cleanup/) |
+| 260426-lod | Observability label gaps — GC-allowlisted resource attrs (service.namespace/cloud.region) + http.route via post-dispatch labeler | 2026-04-26 | cf1b558 | [260426-lod-observability-label-gaps-gc-allowlisted-](./quick/260426-lod-observability-label-gaps-gc-allowlisted-/) |
 
 ## Session Continuity
 
