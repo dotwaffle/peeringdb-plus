@@ -68,8 +68,8 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	// MeterProvider for metrics. Views drop HTTP body-size instruments (low
 	// debugging value, high cardinality) and override rpc.server.duration
 	// bucket boundaries to a 5-boundary set. Metric resource omits
-	// fly.machine_id to prevent per-VM metric fan-out; traces and logs keep
-	// it for per-VM debugging.
+	// service.instance.id to prevent per-VM metric fan-out; traces and logs
+	// keep it for per-VM debugging.
 	metricReader, err := autoexport.NewMetricReader(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating metric reader: %w", err)
@@ -138,23 +138,44 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 // buildResource creates an OTel resource with service name, version from
 // build info per D-08, and Fly.io environment attributes per D-10. Used
 // by TracerProvider and LoggerProvider so traces and logs keep per-VM
-// attribution via fly.machine_id.
+// attribution via service.instance.id.
 func buildResource(ctx context.Context, serviceName string) *resource.Resource {
 	return buildResourceFiltered(ctx, serviceName, true)
 }
 
-// buildMetricResource is like buildResource but omits fly.machine_id to
-// prevent per-VM metric fan-out. Use for MeterProvider only;
+// buildMetricResource is like buildResource but omits service.instance.id
+// to prevent per-VM metric fan-out. Use for MeterProvider only;
 // TracerProvider/LoggerProvider keep the full resource for per-VM
 // debugging.
 func buildMetricResource(ctx context.Context, serviceName string) *resource.Resource {
 	return buildResourceFiltered(ctx, serviceName, false)
 }
 
-// buildResourceFiltered builds the OTel resource, optionally including
-// the fly.machine_id attribute. Shared implementation backing
+// buildResourceFiltered builds the OTel resource, optionally including the
+// per-VM service.instance.id attribute. Shared implementation backing
 // buildResource (trace/log) and buildMetricResource (metrics).
-func buildResourceFiltered(_ context.Context, serviceName string, includeMachineID bool) *resource.Resource {
+//
+// Naming follows GC-allowlisted OTel semconv keys (service.*, cloud.*) so
+// Grafana Cloud's hosted OTLP receiver promotes them to Prometheus labels.
+// Custom keys outside that allowlist (e.g. legacy fly.*) are silently
+// dropped on the metrics path; only fly.app_name is kept on the trace/log
+// resource for human grep against historical telemetry.
+//
+// Why the metric resource keeps service.namespace + cloud.region:
+// the operator wants primary-vs-replica + per-region health breakdowns;
+// 2-cardinality and 8-cardinality respectively, well within budget.
+//
+// Why the metric resource strips service.instance.id:
+// per-VM = high cardinality, low value — the operator does not want 8
+// machine-id-prefixed series per metric. This is the same per-VM strip
+// that previously gated fly.machine_id; the includeInstanceID flag name
+// matches the new attr key.
+//
+// Why cloud.provider + cloud.platform are unconditional:
+// they are 1-cardinality semconv resource attrs that GC allowlists for
+// free. Emitting them on every signal lets dashboards filter by provider
+// without coupling to a Fly-specific env var.
+func buildResourceFiltered(_ context.Context, serviceName string, includeInstanceID bool) *resource.Resource {
 	version := "unknown"
 	if info, ok := debug.ReadBuildInfo(); ok {
 		version = info.Main.Version
@@ -174,20 +195,30 @@ func buildResourceFiltered(_ context.Context, serviceName string, includeMachine
 		semconv.ServiceVersion(version),
 	}
 
-	// Fly.io-specific resource attributes per D-10.
-	for _, env := range []struct {
-		key  string
-		attr string
-	}{
-		{"FLY_REGION", "fly.region"},
-		{"FLY_MACHINE_ID", "fly.machine_id"},
-		{"FLY_APP_NAME", "fly.app_name"},
-	} {
-		if !includeMachineID && env.attr == "fly.machine_id" {
-			continue
-		}
-		if v := os.Getenv(env.key); v != "" {
-			attrs = append(attrs, attribute.String(env.attr, v))
+	// Always-on: cloud provider / platform constants (1-cardinality, GC-allowlisted).
+	attrs = append(attrs,
+		attribute.String(string(semconv.CloudProviderKey), "fly_io"),
+		attribute.String(string(semconv.CloudPlatformKey), "fly_io_apps"),
+	)
+	// Env-driven: only emit when the env var is set (avoids empty-string attrs in local dev).
+	if v := os.Getenv("FLY_REGION"); v != "" {
+		attrs = append(attrs, semconv.CloudRegion(v))
+	}
+	if v := os.Getenv("FLY_PROCESS_GROUP"); v != "" {
+		attrs = append(attrs, semconv.ServiceNamespace(v))
+	}
+	if v := os.Getenv("FLY_APP_NAME"); v != "" {
+		// Custom key kept for human grep against historical logs/traces;
+		// GC drops this on the metrics path but harmless on traces/logs.
+		attrs = append(attrs, attribute.String("fly.app_name", v))
+	}
+	// Per-VM identity: stripped from metric resource to prevent per-VM
+	// metric fan-out (8 machines × N metrics × M label combos). Traces
+	// and logs keep it for per-VM debugging — that's the includeInstanceID
+	// gate.
+	if includeInstanceID {
+		if v := os.Getenv("FLY_MACHINE_ID"); v != "" {
+			attrs = append(attrs, semconv.ServiceInstanceID(v))
 		}
 	}
 
