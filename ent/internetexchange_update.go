@@ -885,20 +885,7 @@ func (_u *InternetExchangeUpdate) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *InternetExchangeUpdate) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := internetexchange.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *InternetExchangeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(internetexchange.Table, internetexchange.Columns, sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -2123,20 +2110,7 @@ func (_u *InternetExchangeUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *InternetExchangeUpdateOne) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := internetexchange.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *InternetExchangeUpdateOne) sqlSave(ctx context.Context) (_node *InternetExchange, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(internetexchange.Table, internetexchange.Columns, sqlgraph.NewFieldSpec(internetexchange.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
 	if !ok {

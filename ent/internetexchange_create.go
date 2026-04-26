@@ -742,11 +742,6 @@ func (_c *InternetExchangeCreate) check() error {
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "InternetExchange.name"`)}
 	}
-	if v, ok := _c.mutation.Name(); ok {
-		if err := internetexchange.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "InternetExchange.name": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.ProtoIpv6(); !ok {
 		return &ValidationError{Name: "proto_ipv6", err: errors.New(`ent: missing required field "InternetExchange.proto_ipv6"`)}
 	}

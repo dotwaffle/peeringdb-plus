@@ -114,8 +114,6 @@ var (
 	DefaultCity string
 	// DefaultCountry holds the default value on creation for the "country" field.
 	DefaultCountry string
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
 	// DefaultState holds the default value on creation for the "state" field.

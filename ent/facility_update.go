@@ -1024,20 +1024,7 @@ func (_u *FacilityUpdate) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *FacilityUpdate) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := facility.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Facility.name": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *FacilityUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(facility.Table, facility.Columns, sqlgraph.NewFieldSpec(facility.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -2505,20 +2492,7 @@ func (_u *FacilityUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *FacilityUpdateOne) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := facility.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Facility.name": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *FacilityUpdateOne) sqlSave(ctx context.Context) (_node *Facility, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(facility.Table, facility.Columns, sqlgraph.NewFieldSpec(facility.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
 	if !ok {

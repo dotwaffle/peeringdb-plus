@@ -65,7 +65,6 @@ func (Organization) Fields() []ent.Field {
 			Nillable().
 			Comment("Longitude"),
 		field.String("name").
-			NotEmpty().
 			Annotations(
 				entgql.OrderField("NAME"),
 				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),

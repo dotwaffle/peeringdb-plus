@@ -47,10 +47,6 @@ func init() {
 	campusDescCountry := campusFields[4].Descriptor()
 	// campus.DefaultCountry holds the default value on creation for the country field.
 	campus.DefaultCountry = campusDescCountry.Default.(string)
-	// campusDescName is the schema descriptor for name field.
-	campusDescName := campusFields[6].Descriptor()
-	// campus.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	campus.NameValidator = campusDescName.Validators[0].(func(string) error)
 	// campusDescNotes is the schema descriptor for notes field.
 	campusDescNotes := campusFields[8].Descriptor()
 	// campus.DefaultNotes holds the default value on creation for the notes field.
@@ -98,10 +94,6 @@ func init() {
 	carrierDescAka := carrierFields[2].Descriptor()
 	// carrier.DefaultAka holds the default value on creation for the aka field.
 	carrier.DefaultAka = carrierDescAka.Default.(string)
-	// carrierDescName is the schema descriptor for name field.
-	carrierDescName := carrierFields[4].Descriptor()
-	// carrier.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	carrier.NameValidator = carrierDescName.Validators[0].(func(string) error)
 	// carrierDescNameLong is the schema descriptor for name_long field.
 	carrierDescNameLong := carrierFields[5].Descriptor()
 	// carrier.DefaultNameLong holds the default value on creation for the name_long field.
@@ -193,10 +185,6 @@ func init() {
 	facilityDescFloor := facilityFields[11].Descriptor()
 	// facility.DefaultFloor holds the default value on creation for the floor field.
 	facility.DefaultFloor = facilityDescFloor.Default.(string)
-	// facilityDescName is the schema descriptor for name field.
-	facilityDescName := facilityFields[15].Descriptor()
-	// facility.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	facility.NameValidator = facilityDescName.Validators[0].(func(string) error)
 	// facilityDescNameLong is the schema descriptor for name_long field.
 	facilityDescNameLong := facilityFields[16].Descriptor()
 	// facility.DefaultNameLong holds the default value on creation for the name_long field.
@@ -312,10 +300,6 @@ func init() {
 	internetexchangeDescMedia := internetexchangeFields[8].Descriptor()
 	// internetexchange.DefaultMedia holds the default value on creation for the media field.
 	internetexchange.DefaultMedia = internetexchangeDescMedia.Default.(string)
-	// internetexchangeDescName is the schema descriptor for name field.
-	internetexchangeDescName := internetexchangeFields[9].Descriptor()
-	// internetexchange.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	internetexchange.NameValidator = internetexchangeDescName.Validators[0].(func(string) error)
 	// internetexchangeDescNameLong is the schema descriptor for name_long field.
 	internetexchangeDescNameLong := internetexchangeFields[10].Descriptor()
 	// internetexchange.DefaultNameLong holds the default value on creation for the name_long field.
@@ -563,10 +547,6 @@ func init() {
 	networkDescLookingGlass := networkFields[18].Descriptor()
 	// network.DefaultLookingGlass holds the default value on creation for the looking_glass field.
 	network.DefaultLookingGlass = networkDescLookingGlass.Default.(string)
-	// networkDescName is the schema descriptor for name field.
-	networkDescName := networkFields[19].Descriptor()
-	// network.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	network.NameValidator = networkDescName.Validators[0].(func(string) error)
 	// networkDescNameLong is the schema descriptor for name_long field.
 	networkDescNameLong := networkFields[20].Descriptor()
 	// network.DefaultNameLong holds the default value on creation for the name_long field.
@@ -722,10 +702,6 @@ func init() {
 	organizationDescFloor := organizationFields[6].Descriptor()
 	// organization.DefaultFloor holds the default value on creation for the floor field.
 	organization.DefaultFloor = organizationDescFloor.Default.(string)
-	// organizationDescName is the schema descriptor for name field.
-	organizationDescName := organizationFields[10].Descriptor()
-	// organization.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	organization.NameValidator = organizationDescName.Validators[0].(func(string) error)
 	// organizationDescNameLong is the schema descriptor for name_long field.
 	organizationDescNameLong := organizationFields[11].Descriptor()
 	// organization.DefaultNameLong holds the default value on creation for the name_long field.

@@ -1017,11 +1017,6 @@ func (_u *NetworkUpdate) check() error {
 			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "Network.asn": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Name(); ok {
-		if err := network.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -2456,11 +2451,6 @@ func (_u *NetworkUpdateOne) check() error {
 	if v, ok := _u.mutation.Asn(); ok {
 		if err := network.AsnValidator(v); err != nil {
 			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "Network.asn": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.Name(); ok {
-		if err := network.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
 		}
 	}
 	return nil

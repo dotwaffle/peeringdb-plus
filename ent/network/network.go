@@ -236,8 +236,6 @@ var (
 	DefaultIrrAsSet string
 	// DefaultLookingGlass holds the default value on creation for the "looking_glass" field.
 	DefaultLookingGlass string
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
 	// DefaultNameLong holds the default value on creation for the "name_long" field.
 	DefaultNameLong string
 	// DefaultNotes holds the default value on creation for the "notes" field.

@@ -207,11 +207,15 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 			},
 			notWantParts: []string{
 				// organizations.name must NOT be UNIQUE (see schema/peeringdb.json
-				// org.name.unique = false). This is a regression guard against
-				// accidentally re-adding .Unique() to the field.
+				// org.name.unique = false). Regression guard against accidentally
+				// re-adding .Unique() to the field.
 				`field.String("name").
-			NotEmpty().
 			Unique()`,
+				// SEED-001 (active 2026-04-26): organizations.name must NOT have
+				// NotEmpty() — upstream tombstones arrive with PII-scrubbed
+				// name="" and the validator would reject them at upsert.
+				`field.String("name").
+			NotEmpty()`,
 			},
 		},
 		{
@@ -273,6 +277,13 @@ func TestGenerateFieldCode(t *testing.T) {
 		wantSub []string
 	}{
 		{
+			// SEED-001 (active 2026-04-26): the "name" field is intentionally
+			// emitted WITHOUT NotEmpty() because upstream PeeringDB ?since=
+			// emits status='deleted' tombstones with PII-scrubbed name="".
+			// A NotEmpty() validator would reject those tombstones at upsert
+			// and break incremental sync. NotEmpty() is preserved for "prefix"
+			// (ixprefix) and "role" (poc) — structurally meaningful or out of
+			// v1.16 scope.
 			name: "name",
 			field: FieldDef{
 				Type:      "string",
@@ -283,7 +294,6 @@ func TestGenerateFieldCode(t *testing.T) {
 			},
 			wantSub: []string{
 				`field.String("name")`,
-				`NotEmpty()`,
 				`Unique()`,
 				`entgql.OrderField("NAME")`,
 				`entrest.WithFilter(entrest.FilterGroupEqual`,

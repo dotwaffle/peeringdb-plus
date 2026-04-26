@@ -236,7 +236,7 @@ See `docs/ARCHITECTURE.md § Response Memory Envelope` for the budget breakdown,
 | `PDBPLUS_PEERINGDB_API_KEY` | (empty) | Optional PeeringDB API key; empty = unauthenticated (recommended: set this for production) |
 | `PDBPLUS_SYNC_TOKEN` | (empty) | Shared secret for on-demand sync trigger; empty = disabled |
 | `PDBPLUS_SYNC_INTERVAL` | `1h` (unauthenticated) / `15m` (when `PDBPLUS_PEERINGDB_API_KEY` is set) | Duration between automatic syncs. Default tightens to 15m when an API key is configured since the authenticated rate-limit budget absorbs the 4× cadence; unauthenticated stays conservative against the shared anonymous ceiling. Explicit value overrides both defaults. |
-| `PDBPLUS_SYNC_MODE` | `full` | Sync strategy: `full` or `incremental` |
+| `PDBPLUS_SYNC_MODE` | `incremental` | Sync strategy: `full` or `incremental`. Default flipped 2026-04-26 (SEED-001 trigger fired — upstream `?since=` confirmed to emit `status='deleted'` tombstones). `full` remains an explicit operator override for first-sync, recovery, and operator escape-hatch. |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | `24h` | Max age of sync data before health reports degraded |
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | `400MB` | Peak Go heap ceiling checked after Phase A fetch; unit suffix required (KB/MB/GB/TB); `0` disables guardrail |
 | `PDBPLUS_HEAP_WARN_MIB` | `400` | Peak Go heap (MiB) threshold. End-of-sync-cycle `slog.Warn("heap threshold crossed", ...)` fires when `runtime.MemStats.HeapInuse` exceeds this; OTel span attr `pdbplus.sync.peak_heap_bytes` (Prom: `pdbplus_sync_peak_heap_bytes`) emits on every cycle regardless. `0` disables the warn. Sustained breach = SEED-001 trigger fired. |

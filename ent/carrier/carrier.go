@@ -108,8 +108,6 @@ var (
 	DefaultAkaFold string
 	// DefaultAka holds the default value on creation for the "aka" field.
 	DefaultAka string
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
 	// DefaultNameLong holds the default value on creation for the "name_long" field.
 	DefaultNameLong string
 	// DefaultNotes holds the default value on creation for the "notes" field.

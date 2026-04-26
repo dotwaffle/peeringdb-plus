@@ -95,7 +95,6 @@ func (Network) Fields() []ent.Field {
 			Default("").
 			Comment("Looking glass URL"),
 		field.String("name").
-			NotEmpty().
 			Annotations(
 				entgql.OrderField("NAME"),
 				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),

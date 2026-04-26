@@ -827,11 +827,6 @@ func (_c *NetworkCreate) check() error {
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Network.name"`)}
 	}
-	if v, ok := _c.mutation.Name(); ok {
-		if err := network.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Network.name": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.PolicyRatio(); !ok {
 		return &ValidationError{Name: "policy_ratio", err: errors.New(`ent: missing required field "Network.policy_ratio"`)}
 	}

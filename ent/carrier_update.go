@@ -392,20 +392,7 @@ func (_u *CarrierUpdate) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *CarrierUpdate) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := carrier.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Carrier.name": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *CarrierUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(carrier.Table, carrier.Columns, sqlgraph.NewFieldSpec(carrier.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -958,20 +945,7 @@ func (_u *CarrierUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *CarrierUpdateOne) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := carrier.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Carrier.name": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *CarrierUpdateOne) sqlSave(ctx context.Context) (_node *Carrier, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(carrier.Table, carrier.Columns, sqlgraph.NewFieldSpec(carrier.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
 	if !ok {

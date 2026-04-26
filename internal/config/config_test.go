@@ -89,6 +89,10 @@ func TestLoad_SyncStaleThreshold(t *testing.T) {
 	}
 }
 
+// TestLoad_SyncMode covers the default + explicit value matrix for
+// PDBPLUS_SYNC_MODE. Default flipped from "full" to "incremental" on 2026-04-26
+// (SEED-001 trigger fired — upstream ?since= empirically confirmed to emit
+// status='deleted' tombstones). "full" remains an explicit operator override.
 func TestLoad_SyncMode(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -96,7 +100,7 @@ func TestLoad_SyncMode(t *testing.T) {
 		want    SyncMode
 		wantErr bool
 	}{
-		{name: "default is full", envVal: "", want: SyncModeFull},
+		{name: "default is incremental", envVal: "", want: SyncModeIncremental},
 		{name: "explicit full", envVal: "full", want: SyncModeFull},
 		{name: "explicit incremental", envVal: "incremental", want: SyncModeIncremental},
 		{name: "invalid value", envVal: "invalid", wantErr: true},

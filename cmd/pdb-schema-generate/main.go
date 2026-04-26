@@ -11,12 +11,12 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"go/format"
 	"log"
 	"os"
-	"cmp"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -317,7 +317,15 @@ func generateFieldCode(name string, fd FieldDef) string {
 	switch fd.Type {
 	case "string":
 		fmt.Fprintf(&b, "field.String(%q)", name)
-		if fd.Required && !fd.Nullable && fd.References == "" && isNameField(name) {
+		// SEED-001 (active 2026-04-26): upstream PeeringDB ?since= responses
+		// emit status='deleted' tombstones with PII-scrubbed name="" for the
+		// 6 folded entities (org, network, facility, ix, carrier, campus).
+		// A NotEmpty() validator on the name field would reject those tombstones
+		// at upsert time, breaking incremental sync. Tombstones are first-class
+		// post-Phase 68. NotEmpty() is preserved for "prefix" (IP prefix —
+		// structurally meaningful, not in the PII scrub set) and "role" (poc;
+		// out of v1.16 default-flip scope, separate visibility story).
+		if fd.Required && !fd.Nullable && fd.References == "" && isNameField(name) && name != "name" {
 			b.WriteString(".\n\t\t\tNotEmpty()")
 		}
 		if fd.Unique {

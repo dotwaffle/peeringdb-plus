@@ -84,7 +84,10 @@ type Config struct {
 	SyncStaleThreshold time.Duration
 
 	// SyncMode controls whether sync uses full re-fetch or incremental delta fetch.
-	// Configured via PDBPLUS_SYNC_MODE. Default is "full".
+	// Configured via PDBPLUS_SYNC_MODE. Default is "incremental" (SEED-001 active
+	// 2026-04-26 — upstream ?since= empirically confirmed to emit status='deleted'
+	// tombstones for converged deletion semantics). 'full' remains an explicit
+	// operator override for first-sync, recovery, and escape-hatch use.
 	SyncMode SyncMode
 
 	// PublicTier is the resolved visibility tier for anonymous HTTP callers.
@@ -241,7 +244,7 @@ func Load() (*Config, error) {
 	}
 	cfg.SyncStaleThreshold = syncStaleThreshold
 
-	syncMode, err := parseSyncMode("PDBPLUS_SYNC_MODE", SyncModeFull)
+	syncMode, err := parseSyncMode("PDBPLUS_SYNC_MODE", SyncModeIncremental)
 	if err != nil {
 		return nil, fmt.Errorf("parsing PDBPLUS_SYNC_MODE: %w", err)
 	}
@@ -303,6 +306,12 @@ func Load() (*Config, error) {
 		slog.Bool("authenticated", cfg.PeeringDBAPIKey != ""),
 		slog.Bool("explicit_override", intervalExplicit),
 	)
+
+	// Operator-visible announcement of the resolved sync mode. The default
+	// flipped from full → incremental on 2026-04-26 (SEED-001). Surfacing the
+	// effective mode at startup makes triage trivial: "is this instance running
+	// the new default, or did the operator pin it to full?"
+	slog.Info("sync mode configured", slog.String("mode", string(cfg.SyncMode)))
 
 	return cfg, nil
 }

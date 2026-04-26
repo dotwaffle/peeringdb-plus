@@ -790,11 +790,6 @@ func (_c *FacilityCreate) check() error {
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Facility.name"`)}
 	}
-	if v, ok := _c.mutation.Name(); ok {
-		if err := facility.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Facility.name": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Created(); !ok {
 		return &ValidationError{Name: "created", err: errors.New(`ent: missing required field "Facility.created"`)}
 	}

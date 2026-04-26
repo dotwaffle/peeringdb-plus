@@ -62,7 +62,6 @@ func (InternetExchange) Fields() []ent.Field {
 			Default("Ethernet").
 			Comment("Exchange media type"),
 		field.String("name").
-			NotEmpty().
 			Annotations(
 				entgql.OrderField("NAME"),
 				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
