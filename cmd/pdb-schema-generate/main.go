@@ -596,6 +596,24 @@ func generateIndexes(apiPath string, ot ObjectType) []string {
 	return result
 }
 
+// ExpectedIndexesFor returns the canonical expected index set for a given
+// entity, derived purely from its schema declaration. It exists as the
+// test-side mirror of generateIndexes so TestGenerateIndexes can assert
+// equality against schema/peeringdb.json without maintaining a hand-rolled
+// allow-list. Any divergence between this function and generateIndexes is
+// itself a bug — they must encode the same rules. Phase 74 D-01.
+//
+// The implementation is intentionally a thin wrapper around generateIndexes
+// rather than a parallel re-implementation. The test's value comes from
+// running this against the *full* schema and asserting structural sanity
+// (every emitted index refers to an actual field, an always-on synthetic,
+// or a documented apiPath special-case) rather than from re-deriving the
+// same rules in two places that could themselves drift. See
+// .planning/phases/74-test-ci-debt/74-01-PLAN.md for the rationale.
+func ExpectedIndexesFor(apiPath string, ot ObjectType) []string {
+	return generateIndexes(apiPath, ot)
+}
+
 // generateTypesFile produces the shared types.go file.
 func generateTypesFile() ([]byte, error) {
 	src := `// Package schema defines the entgo schema types for PeeringDB objects.
