@@ -124,7 +124,7 @@
         "datasource": {
           "uid": "${datasource}"
         },
-        "definition": "label_values(pdbplus_sync_freshness_seconds, fly_region)",
+        "definition": "label_values(http_server_request_duration_seconds_count, fly_region)",
         "hide": 0,
         "includeAll": true,
         "allValue": ".*",
@@ -133,7 +133,7 @@
         "name": "region",
         "options": [],
         "query": {
-          "query": "label_values(pdbplus_sync_freshness_seconds, fly_region)",
+          "query": "label_values(http_server_request_duration_seconds_count, fly_region)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
@@ -212,7 +212,7 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "max(pdbplus_sync_freshness_seconds{fly_region=~\"$region\"})",
+          "expr": "max(pdbplus_sync_freshness_seconds)",
           "legendFormat": "Freshness",
           "refId": "A"
         }
@@ -278,7 +278,7 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(pdbplus_sync_operations_total{status=\"success\", fly_region=~\"$region\"}[$__rate_interval])) / sum(rate(pdbplus_sync_operations_total{fly_region=~\"$region\"}[$__rate_interval]))",
+          "expr": "sum(rate(pdbplus_sync_operations_total{status=\"success\"}[$__rate_interval])) / sum(rate(pdbplus_sync_operations_total[$__rate_interval]))",
           "legendFormat": "Success Rate",
           "refId": "A"
         }
@@ -346,7 +346,7 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.95, rate(pdbplus_sync_duration_seconds_bucket{fly_region=~\"$region\"}[$__rate_interval]))",
+          "expr": "histogram_quantile(0.95, rate(pdbplus_sync_duration_seconds_bucket[$__rate_interval]))",
           "legendFormat": "p95",
           "refId": "A"
         }
@@ -420,7 +420,7 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "sum(increase(pdbplus_sync_type_fallback_total{fly_region=~\"$region\"}[$__rate_interval]))",
+          "expr": "sum(increase(pdbplus_sync_type_fallback_total[$__rate_interval]))",
           "legendFormat": "Fallbacks",
           "refId": "A"
         }
@@ -482,7 +482,7 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "sum by(status)(rate(pdbplus_sync_operations_total{fly_region=~\"$region\"}[$__rate_interval]))",
+          "expr": "sum by(status)(rate(pdbplus_sync_operations_total[$__rate_interval]))",
           "legendFormat": "{{status}}",
           "refId": "A"
         }
@@ -587,7 +587,7 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "sum by(direction)(rate(pdbplus_role_transitions_total{fly_region=~\"$region\"}[$__rate_interval]))",
+          "expr": "sum by(direction)(rate(pdbplus_role_transitions_total[$__rate_interval]))",
           "legendFormat": "{{direction}}",
           "refId": "A"
         }
@@ -1046,7 +1046,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "histogram_quantile(0.95, sum by(type, le)(rate(pdbplus_sync_type_duration_seconds_bucket{type=~\"$type\", fly_region=~\"$region\"}[$__rate_interval])))",
+              "expr": "histogram_quantile(0.95, sum by(type, le)(rate(pdbplus_sync_type_duration_seconds_bucket{type=~\"$type\"}[$__rate_interval])))",
               "legendFormat": "{{type}}",
               "refId": "A"
             }
@@ -1120,7 +1120,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(type)(increase(pdbplus_sync_type_objects_total{type=~\"$type\", fly_region=~\"$region\"}[$__rate_interval]))",
+              "expr": "sum by(type)(increase(pdbplus_sync_type_objects_total{type=~\"$type\"}[$__rate_interval]))",
               "legendFormat": "{{type}}",
               "refId": "A"
             }
@@ -1178,7 +1178,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(type)(increase(pdbplus_sync_type_deleted_total{type=~\"$type\", fly_region=~\"$region\"}[$__rate_interval]))",
+              "expr": "sum by(type)(increase(pdbplus_sync_type_deleted_total{type=~\"$type\"}[$__rate_interval]))",
               "legendFormat": "{{type}}",
               "refId": "A"
             }
@@ -1252,7 +1252,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(type)(rate(pdbplus_sync_type_fetch_errors_total{type=~\"$type\", fly_region=~\"$region\"}[$__rate_interval]))",
+              "expr": "sum by(type)(rate(pdbplus_sync_type_fetch_errors_total{type=~\"$type\"}[$__rate_interval]))",
               "legendFormat": "fetch: {{type}}",
               "refId": "A"
             },
@@ -1260,7 +1260,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(type)(rate(pdbplus_sync_type_upsert_errors_total{type=~\"$type\", fly_region=~\"$region\"}[$__rate_interval]))",
+              "expr": "sum by(type)(rate(pdbplus_sync_type_upsert_errors_total{type=~\"$type\"}[$__rate_interval]))",
               "legendFormat": "upsert: {{type}}",
               "refId": "B"
             }
@@ -1367,7 +1367,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(go_goroutine_count{fly_region=~\"$region\"})",
+              "expr": "sum by(instance)(go_goroutine_count)",
               "legendFormat": "{{instance}}",
               "refId": "A"
             }
@@ -1441,7 +1441,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(go_memory_used_bytes{fly_region=~\"$region\"})",
+              "expr": "sum by(instance)(go_memory_used_bytes)",
               "legendFormat": "{{instance}}",
               "refId": "A"
             }
@@ -1515,7 +1515,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(rate(go_memory_allocated_bytes_total{fly_region=~\"$region\"}[$__rate_interval]))",
+              "expr": "sum by(instance)(rate(go_memory_allocated_bytes_total[$__rate_interval]))",
               "legendFormat": "{{instance}}",
               "refId": "A"
             }
@@ -1589,7 +1589,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(go_memory_gc_goal_bytes{fly_region=~\"$region\"})",
+              "expr": "sum by(instance)(go_memory_gc_goal_bytes)",
               "legendFormat": "{{instance}}",
               "refId": "A"
             }
@@ -1696,7 +1696,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum(max by(type)(pdbplus_data_type_count{fly_region=~\"$region\"}))",
+              "expr": "sum(max by(type)(pdbplus_data_type_count))",
               "legendFormat": "Total",
               "refId": "A"
             }
@@ -1754,7 +1754,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "max by(type)(pdbplus_data_type_count{type=~\"$type\", fly_region=~\"$region\"})",
+              "expr": "max by(type)(pdbplus_data_type_count{type=~\"$type\"})",
               "legendFormat": "{{type}}",
               "refId": "A"
             }
@@ -1812,7 +1812,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "max by(type)(pdbplus_data_type_count{type=~\"$type\", fly_region=~\"$region\"})",
+              "expr": "max by(type)(pdbplus_data_type_count{type=~\"$type\"})",
               "legendFormat": "{{type}}",
               "refId": "A"
             }
@@ -1885,8 +1885,8 @@
     {
       "id": 33,
       "type": "timeseries",
-      "title": "Peak Heap (MiB)",
-      "description": "End-of-sync-cycle Go runtime HeapInuse, in MiB. SEED-001 trigger: sustained values above PDBPLUS_HEAP_WARN_MIB (default 400) indicate time to evaluate incremental sync.",
+      "title": "Peak Heap",
+      "description": "End-of-sync-cycle Go runtime HeapInuse, in bytes (Grafana auto-formats MiB / GiB). SEED-001 trigger: sustained values above PDBPLUS_HEAP_WARN_MIB (default 400 MiB = 419430400 bytes) indicate time to evaluate incremental sync. Source: pdbplus_sync_peak_heap_bytes.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -1901,14 +1901,14 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "pdbplus_sync_peak_heap_mib{fly_region=~\"$region\"}",
+          "expr": "pdbplus_sync_peak_heap_bytes",
           "legendFormat": "{{fly_region}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "MiB",
+          "unit": "bytes",
           "color": {
             "mode": "palette-classic"
           },
@@ -1933,7 +1933,7 @@
               },
               {
                 "color": "red",
-                "value": 400
+                "value": 419430400
               }
             ]
           },
@@ -1956,8 +1956,8 @@
     {
       "id": 34,
       "type": "timeseries",
-      "title": "Peak RSS (MiB)",
-      "description": "End-of-sync-cycle /proc/self/status VmHWM, in MiB. Threshold line at PDBPLUS_RSS_WARN_MIB (default 384). Linux machines only — missing series on non-Linux is expected.",
+      "title": "Peak RSS",
+      "description": "End-of-sync-cycle /proc/self/status VmHWM, in bytes (Grafana auto-formats MiB / GiB). Threshold line at PDBPLUS_RSS_WARN_MIB (default 384 MiB = 402653184 bytes). Linux machines only — missing series on non-Linux is expected. Source: pdbplus_sync_peak_rss_bytes.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -1972,14 +1972,14 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "pdbplus_sync_peak_rss_mib{fly_region=~\"$region\"}",
+          "expr": "pdbplus_sync_peak_rss_bytes",
           "legendFormat": "{{fly_region}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "MiB",
+          "unit": "bytes",
           "color": {
             "mode": "palette-classic"
           },
@@ -2004,7 +2004,7 @@
               },
               {
                 "color": "red",
-                "value": 384
+                "value": 402653184
               }
             ]
           },
@@ -2028,7 +2028,7 @@
       "id": 35,
       "type": "timeseries",
       "title": "Peak Heap by Process Group",
-      "description": "Same pdbplus.sync.peak_heap_mib grouped by fly.process_group (Phase 65: primary vs replica). Requires fly.process_group to be exported as an OTel resource attribute — missing in v1.15; the panel will show a single series until that wiring lands.",
+      "description": "Same pdbplus_sync_peak_heap_bytes grouped by fly.process_group (Phase 65: primary vs replica). Requires fly.process_group to be exported as an OTel resource attribute — missing in v1.15; the panel will show a single series until that wiring lands. Bytes unit; Grafana auto-formats MiB / GiB.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -2043,14 +2043,14 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "pdbplus_sync_peak_heap_mib{fly_region=~\"$region\"}",
+          "expr": "pdbplus_sync_peak_heap_bytes",
           "legendFormat": "{{fly_process_group}} / {{fly_region}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "MiB",
+          "unit": "bytes",
           "color": {
             "mode": "palette-classic"
           },
@@ -2094,8 +2094,8 @@
     {
       "id": 36,
       "type": "timeseries",
-      "title": "Response Heap Delta (KiB) — p50/p95/p99 by endpoint (Phase 71)",
-      "description": "Per-request Go HeapInuse delta on pdbcompat list handlers, from pdbplus_response_heap_delta_kib histogram. p50/p95/p99 quantiles over a 5-minute rolling window, grouped by endpoint. Phase 71 D-06 / MEMORY-03: surfaces per-request memory cost before budget-breach 413s trigger.",
+      "title": "Response Heap Delta — p50/p95/p99 by endpoint (Phase 71)",
+      "description": "Per-request Go HeapInuse delta on pdbcompat list handlers, from pdbplus_response_heap_delta_bytes histogram. p50/p95/p99 quantiles over a 5-minute rolling window, grouped by endpoint. Bytes unit; Grafana auto-formats KiB / MiB. Phase 71 D-06 / MEMORY-03: surfaces per-request memory cost before budget-breach 413s trigger.",
       "gridPos": {
         "h": 8,
         "w": 24,
@@ -2110,7 +2110,7 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.5, sum(rate(pdbplus_response_heap_delta_kib_bucket{fly_region=~\"$region\"}[5m])) by (le, endpoint))",
+          "expr": "histogram_quantile(0.5, sum(rate(pdbplus_response_heap_delta_bytes_bucket[5m])) by (le, endpoint))",
           "legendFormat": "{{endpoint}} p50",
           "refId": "A"
         },
@@ -2118,7 +2118,7 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.95, sum(rate(pdbplus_response_heap_delta_kib_bucket{fly_region=~\"$region\"}[5m])) by (le, endpoint))",
+          "expr": "histogram_quantile(0.95, sum(rate(pdbplus_response_heap_delta_bytes_bucket[5m])) by (le, endpoint))",
           "legendFormat": "{{endpoint}} p95",
           "refId": "B"
         },
@@ -2126,14 +2126,14 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.99, sum(rate(pdbplus_response_heap_delta_kib_bucket{fly_region=~\"$region\"}[5m])) by (le, endpoint))",
+          "expr": "histogram_quantile(0.99, sum(rate(pdbplus_response_heap_delta_bytes_bucket[5m])) by (le, endpoint))",
           "legendFormat": "{{endpoint}} p99",
           "refId": "C"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "KiB",
+          "unit": "bytes",
           "color": {
             "mode": "palette-classic"
           },
