@@ -1074,6 +1074,121 @@ func TestIncrementalFallback(t *testing.T) {
 	_ = db // used for worker setup
 }
 
+// TestSync_IncrementalDeletionTombstone is the SEED-001 regression guard
+// (active 2026-04-26 spike against www.peeringdb.com): upstream ?since=
+// emits status='deleted' tombstones with PII-scrubbed name="" for the 6
+// folded entities. This drives a tombstone for an existing org through an
+// incremental sync cycle and asserts the row is soft-deleted (not hard-
+// deleted) and excluded from the anonymous (status="ok") list path.
+//
+// The empty-name path is the load-bearing assertion: if the NotEmpty()
+// validator removed from organization.name in Task 1 ever re-appears, this
+// test fails on the second sync's upsert with "validator failed for field
+// Organization.name".
+func TestSync_IncrementalDeletionTombstone(t *testing.T) {
+	t.Parallel()
+	t1 := float64(time.Date(2026, 4, 26, 12, 0, 0, 0, time.UTC).Unix())
+	f := newFixtureWithMeta(t, t1)
+	f.responses["org"] = []any{
+		makeOrg(1, "Org1", "ok"),
+		makeOrg(2, "Org2", "ok"),
+	}
+
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
+	ctx := t.Context()
+
+	// Cycle 1: cursor zero → falls back to full sync per
+	// stageOneTypeToScratch (cursor.IsZero() gate). Both orgs persisted.
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("first sync: %v", err)
+	}
+
+	orgCount, err := w.entClient.Organization.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("count orgs after cycle 1: %v", err)
+	}
+	if orgCount != 2 {
+		t.Fatalf("expected 2 orgs after cycle 1, got %d", orgCount)
+	}
+
+	cursor, err := GetCursor(ctx, db, "org")
+	if err != nil {
+		t.Fatalf("get cursor after cycle 1: %v", err)
+	}
+	if cursor.IsZero() {
+		t.Fatal("expected non-zero cursor after cycle 1 (UpsertCursor stamps meta.generated)")
+	}
+
+	// Reset since-tracking before cycle 2 so we can prove the incremental
+	// path was taken (cursor present + ?since= sent).
+	for _, v := range f.sinceSeen {
+		v.Store(false)
+	}
+
+	// Cycle 2: upstream returns Org1 unchanged + Org2 as a PII-scrubbed
+	// tombstone (status="deleted", name=""). Bump generated so the cursor
+	// can advance.
+	t2 := t1 + 3600
+	f.generated = t2
+	f.responses["org"] = []any{
+		makeOrg(1, "Org1", "ok"),
+		makeOrg(2, "", "deleted"),
+	}
+
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("second sync: %v", err)
+	}
+
+	// (a) ?since= was sent — confirms incremental path (not full fallback).
+	if seen, ok := f.sinceSeen["org"]; !ok || !seen.Load() {
+		t.Error("expected ?since= parameter for org on cycle 2 (incremental cursor present)")
+	}
+
+	// (b) Soft-delete: row preserved, status flipped to "deleted", name
+	// scrubbed to "". This is the NotEmpty()-removal regression assertion.
+	totalCount, err := w.entClient.Organization.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("count orgs after cycle 2: %v", err)
+	}
+	if totalCount != 2 {
+		t.Fatalf("expected 2 orgs after cycle 2 (soft-delete preserves row), got %d", totalCount)
+	}
+
+	org1, err := w.entClient.Organization.Get(ctx, 1)
+	if err != nil {
+		t.Fatalf("get org 1: %v", err)
+	}
+	if org1.Status != "ok" || org1.Name != "Org1" {
+		t.Errorf("org 1 = {status=%q, name=%q}, want {status=\"ok\", name=\"Org1\"}", org1.Status, org1.Name)
+	}
+
+	org2, err := w.entClient.Organization.Get(ctx, 2)
+	if err != nil {
+		t.Fatalf("get org 2: %v", err)
+	}
+	if org2.Status != "deleted" {
+		t.Errorf("org 2 status = %q, want %q", org2.Status, "deleted")
+	}
+	if org2.Name != "" {
+		t.Errorf("org 2 name = %q, want %q (PII-scrubbed tombstone)", org2.Name, "")
+	}
+
+	// (c) Anonymous list path (no ?since): pdbcompat applyStatusMatrix
+	// devolves to status IN ("ok", "pending"); for non-campus entities the
+	// "pending" arm is empty so this is equivalent to status="ok". Assert
+	// the live row alone is returned.
+	live, err := w.entClient.Organization.Query().Where(organization.StatusEQ("ok")).All(ctx)
+	if err != nil {
+		t.Fatalf("query live orgs: %v", err)
+	}
+	if len(live) != 1 {
+		t.Fatalf("expected 1 live org, got %d", len(live))
+	}
+	if live[0].ID != 1 {
+		t.Errorf("expected live org ID 1, got %d", live[0].ID)
+	}
+}
+
 // TestCursorsUpdatedAfterCommit verifies that cursors are updated for all types
 // after a successful sync commit.
 func TestCursorsUpdatedAfterCommit(t *testing.T) {
