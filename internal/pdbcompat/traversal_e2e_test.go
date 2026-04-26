@@ -150,13 +150,23 @@ func TestTraversal_E2E_Matrix(t *testing.T) {
 		// column resolution on a non-org edge without depending on
 		// name_fold priming — seed.Full's pre-Phase-70 rows don't populate
 		// the fold shadow columns.
-		// (A campus-targeting 1-hop case was deferred —
-		// see .planning/phases/70-cross-entity-traversal/deferred-items.md
-		// DEFER-70-06-01 for the campus inflection codegen bug.)
 		{
 			name:        "path_a_1hop_netfac_net_asn",
 			url:         "/api/netfac?net__asn=13335",
 			expectedIDs: []int{300},
+		},
+		// Phase 73 BUG-01: campus-target 1-hop traversal (DEFER-70-06-01
+		// fixed 2026-04-26 via entsql.Annotation{Table: "campuses"} on the
+		// Campus sibling-file mixin in ent/schema/campus_annotations.go).
+		// seed.Full creates campus 8001 "TestCampus1" (org 8001) and
+		// fac 8001 "TestFac1-Campus" with campus_id=8001 — the only fac
+		// linked to that campus. Filter resolves through Path A Allowlist
+		// for fac.campus__name and emits SQL targeting the (now correctly
+		// pluralised) "campuses" table.
+		{
+			name:        "path_a_1hop_fac_campus_name",
+			url:         "/api/fac?campus__name=TestCampus1",
+			expectedIDs: []int{8001},
 		},
 		// Upstream 2-hop parity cases — fac has no "ixlan" edge, so Path A
 		// matches the Via allowlist but buildTwoHop fails LookupEdge;

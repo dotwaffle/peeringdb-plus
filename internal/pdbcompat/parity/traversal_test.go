@@ -34,9 +34,11 @@ import (
 //     generic 2-hop mechanism cannot reach this — fac has no
 //     direct ixlan edge in the ent schema; upstream uses a
 //     bespoke per-serializer prepare_query.
-//   - DIVERGENCE: `fac?campus__name=` returns HTTP 500
-//     (DEFER-70-06-01). The allowlist generator emits the wrong
-//     TargetTable for incoming campus edges.
+//   - TRAVERSAL-05 (Path A 1-hop, campus target): `campus__name=`
+//     filter on fac. Previously a documented divergence
+//     (DEFER-70-06-01); fixed in v1.18.0 Phase 73 via
+//     entsql.Annotation{Table: "campuses"} on Campus
+//     (ent/schema/campus_annotations.go).
 //
 // upstream: peeringdb_server/serializers.py:754-780 (queryable_relations)
 // upstream: peeringdb_server/rest.py (filter dispatch)
@@ -211,32 +213,42 @@ func TestParity_Traversal(t *testing.T) {
 		}
 	})
 
-	t.Run("DIVERGENCE_fac_campus_name_returns_500", func(t *testing.T) {
+	t.Run("TRAVERSAL-05_path_a_1hop_fac_campus_name", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: `fac?campus__name=X` returns HTTP 500 with
-		// `SQL logic error: no such table: campus (1)`.
-		// Root cause: cmd/pdb-compat-allowlist/main.go emits
-		// TargetTable="campus" (singular) for incoming campus edges,
-		// but the runtime ent migrate uses "campuses" (plural). The
-		// inflection patch in ent/entc.go is not applied during
-		// allowlist codegen.
-		// See docs/API.md § Known Divergences row "DEFER-70-06-01"
-		// and .planning/phases/70-cross-entity-traversal/deferred-items.md.
-		// upstream: pdb_api_test.py (campus.name traversal via fac
-		// is a documented surface that upstream handles via the
+		// Phase 73 BUG-01: previously DEFER-70-06-01 documented a
+		// divergence where this query returned HTTP 500 ("no such
+		// table: campus"). Fixed 2026-04-26 by adding
+		// entsql.Annotation{Table: "campuses"} to
+		// ent/schema/campus_annotations.go (sibling-file mixin so
+		// cmd/pdb-schema-generate doesn't strip on regen). The Path A
+		// allowlist generator now emits TargetTable="campuses" for
+		// incoming campus edges.
+		// upstream: pdb_api_test.py (campus.name traversal via fac is
+		// a documented surface that upstream handles via the
 		// queryable-relations mechanism)
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
-		mustOrg(ctx, t, c, 1, "DivergenceOrg2", t0)
-		// Need at least one fac so the allowlist hit fires; the
-		// 500 is in the SQL execution path, not the parse path.
-		mustFac(ctx, t, c, 100, "Fac-X", 1, t0)
+		mustOrg(ctx, t, c, 1, "Phase73Org", t0)
+		mustCampus(ctx, t, c, 50, "Phase73Campus", 1, t0)
+		mustFac(ctx, t, c, 100, "Phase73FacOnCampus", 1, t0)
+		// Link fac 100 to campus 50.
+		if _, err := c.Facility.UpdateOneID(100).SetCampusID(50).Save(ctx); err != nil {
+			t.Fatalf("link fac to campus: %v", err)
+		}
+		// Seed a sibling campus + fac that should NOT match.
+		mustCampus(ctx, t, c, 51, "OtherCampus", 1, t0)
+		mustFac(ctx, t, c, 101, "Phase73FacOffCampus", 1, t0)
 
 		srv := newTestServer(t, c)
-		status, body := httpGet(t, srv, "/api/fac?campus__name=AnyName")
-		if status != http.StatusInternalServerError {
-			t.Errorf("DEFER-70-06-01 campus-name 500: got %d, want 500; body=%s",
-				status, string(body))
+		status, body := httpGet(t, srv, "/api/fac?campus__name=Phase73Campus")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", status, string(body))
+		}
+		got := slices.Clone(extractIDs(t, body))
+		slices.Sort(got)
+		want := []int{100}
+		if !slices.Equal(got, want) {
+			t.Errorf("TRAVERSAL-05: got %v, want %v", got, want)
 		}
 	})
 }
@@ -276,6 +288,17 @@ func mustFac(ctx context.Context, t *testing.T, c *ent.Client, id int, name stri
 		SetStatus("ok").SetCreated(t0).SetUpdated(t0).
 		Save(ctx); err != nil {
 		t.Fatalf("seed fac id=%d: %v", id, err)
+	}
+}
+
+func mustCampus(ctx context.Context, t *testing.T, c *ent.Client, id int, name string, orgID int, t0 time.Time) {
+	t.Helper()
+	if _, err := c.Campus.Create().
+		SetID(id).SetName(name).SetNameFold(unifold.Fold(name)).
+		SetOrgID(orgID).
+		SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+		Save(ctx); err != nil {
+		t.Fatalf("seed campus id=%d: %v", id, err)
 	}
 }
 
