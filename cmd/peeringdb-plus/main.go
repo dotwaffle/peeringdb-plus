@@ -181,10 +181,29 @@ func main() {
 	}
 
 	// Cached object counts for metrics gauge (PERF-02).
-	// Updated by sync worker after each successful sync.
+	// Updated by sync worker after each successful sync via OnSyncComplete.
+	//
+	// Phase 75 OBS-01 (D-01): synchronously seed the cache from a one-shot
+	// Count(ctx) per entity table at startup so pdbplus_data_type_count
+	// reports correct values within 30s of process start. Without this seed
+	// the gauge holds zeros until the first sync cycle completes
+	// (~15 min default), which renders the "Total Objects", "Objects by
+	// Type", and "Object Counts Over Time" Grafana panels as flat-zero
+	// for the entire pre-first-sync window after every deploy.
+	//
+	// Failure mode: if InitialObjectCounts errors (e.g. LiteFS not yet
+	// mounted on a replica boot race), log + exit. The cost is ~1-2s on a
+	// primed DB; replicas already cold-sync in 5-45s so the extra latency
+	// is noise on top of hydration.
 	var objectCountCache atomic.Pointer[map[string]int64]
-	initialCounts := make(map[string]int64)
-	objectCountCache.Store(&initialCounts)
+	seededCounts, err := pdbsync.InitialObjectCounts(ctx, entClient)
+	if err != nil {
+		logger.Error("failed to seed initial object counts", slog.Any("error", err))
+		os.Exit(1)
+	}
+	objectCountCache.Store(&seededCounts)
+	logger.LogAttrs(ctx, slog.LevelInfo, "seeded initial object counts",
+		slog.Int("type_count", len(seededCounts)))
 
 	// Initialize per-type object count gauges for business metrics dashboard.
 	// Reads from atomic cache instead of live COUNT queries per PERF-02.
