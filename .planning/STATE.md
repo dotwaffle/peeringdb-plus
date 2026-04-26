@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.18.0
 milestone_name: Cleanup & Observability Polish
 status: ready_to_plan
-last_updated: "2026-04-26T21:26:08.925Z"
-last_activity: 2026-04-26 -- Phase 73 execution started
+last_updated: "2026-04-26T22:00:00.000Z"
+last_activity: 2026-04-26 -- Phase 73 shipped (BUG-01 + BUG-02); phases 74/75/78 ready to plan in parallel
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 2
-  completed_plans: 0
+  completed_plans: 2
   percent: 17
 ---
 
@@ -21,25 +21,25 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 73 — Code Defect Fixes
+**Current focus:** Phase 73 shipped 2026-04-26. Next: any of phases 74 (Test & CI Debt), 75 (Code-side Observability Fixes), or 78 (UAT Closeout) — all three are independent and can be planned in parallel. Phase 75 unlocks 76 (soft) and 77 (hard).
 
 ## Current Position
 
-Phase: 74
+Phase: 74 (next up — also 75 and 78 available in parallel)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-04-26
+Last activity: 2026-04-26 -- Phase 73 shipped: BUG-01 campus inflection + BUG-02 poc.role NotEmpty drop; verification 18/18 must-haves passed
 
 ## v1.18.0 Phase Map
 
-| Phase | Goal | Requirements | Depends on |
-|-------|------|--------------|------------|
-| 73 — Code Defect Fixes | Fix campus inflection 500 + drop `poc.role` NotEmpty validator | BUG-01, BUG-02 | — |
-| 74 — Test & CI Debt | Three deferred test failures + 5 lint findings cleared | TEST-01, TEST-02, TEST-03 | — |
-| 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — |
-| 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) |
-| 77 — Telemetry Audit & Cleanup | Loki log-level audit + Tempo trace sampling/batching review | OBS-06, OBS-07 | Phase 75 |
-| 78 — UAT Closeout | v1.13 CSP + headers verification, v1.5 Phase 20 archive | UAT-01, UAT-02, UAT-03 | — |
+| Phase | Goal | Requirements | Depends on | Status |
+|-------|------|--------------|------------|--------|
+| 73 — Code Defect Fixes | Fix campus inflection 500 + drop `poc.role` NotEmpty validator | BUG-01, BUG-02 | — | ✓ shipped 2026-04-26 |
+| 74 — Test & CI Debt | Three deferred test failures + 5 lint findings cleared | TEST-01, TEST-02, TEST-03 | — | Ready to plan |
+| 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — | Ready to plan |
+| 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) | Ready to plan (planning before 75 complete is OK; Phase 75 dep is soft) |
+| 77 — Telemetry Audit & Cleanup | Loki log-level audit + Tempo trace sampling/batching review | OBS-06, OBS-07 | Phase 75 (hard for OBS-07) | Plan after Phase 75 ships (OBS-07 needs http.route populated) |
+| 78 — UAT Closeout | v1.13 CSP + headers verification, v1.5 Phase 20 archive | UAT-01, UAT-02, UAT-03 | — | Ready to plan |
 
 Phase numbering continues from v1.16 (last phase 72). v1.17.0 was a release tag (quick task 260426-pms), not a milestone — no phases consumed.
 
@@ -47,11 +47,11 @@ Phase numbering continues from v1.16 (last phase 72). v1.17.0 was a release tag 
 
 All 6 phase CONTEXT.md committed `fe724fc` 2026-04-26. Full decisions live in each phase's `CONTEXT.md`; abbreviated below for resume-after-/clear continuity.
 
-**Phase 73 — Code Defect Fixes** (BUG-01, BUG-02)
+**Phase 73 — Code Defect Fixes** ✓ SHIPPED 2026-04-26 (commits `6266b6b`..`8684f2c`)
 
-- **D-01**: BUG-01 fix via `entsql.Annotation{Table: "campuses"}` on `ent/schema/campus.go` (sibling-file convention if `Annotations()` doesn't already exist on the generated schema). Single source of truth — every entc.LoadGraph consumer benefits.
-- **D-02**: BUG-02 audit goes wide — scan all 13 entities' string fields for `NotEmpty()`; drop on every tombstone-vulnerable field (poc.role plus likely poc.email, poc.phone, poc.url, etc.). Document per-field decision in PLAN. Apply via `cmd/pdb-schema-generate` extension to existing `isNameField` predicate (codegen-layer per 260426-pms pattern).
-- **D-03**: Both unit test + httptest fake-upstream for the tombstone path (mirror 260426-pms pattern).
+- BUG-01 fixed: `ent/schema/campus_annotations.go` sibling-file mixin with `entsql.Annotation{Table: "campuses"}` makes `entc.LoadGraph` consumers (cmd/pdb-compat-allowlist) see the right table name. `internal/pdbcompat/allowlist_gen.go` `TargetTable: "campus"` count flipped 2→0. `path_a_1hop_fac_campus_name` un-skipped + `DIVERGENCE_` canary removed. DEFER-70-06-01 closed in deferred-items.md and `docs/API.md § Known Divergences`. `ent/schema/campus.go` and `ent/entc.go` byte-unchanged (sibling-file convention preserved).
+- BUG-02 fixed: `cmd/pdb-schema-generate/main.go` new `isTombstoneVulnerableField(name)` predicate drops `NotEmpty()` on `role`. Audit confirmed only 2 NotEmpty() in `ent/schema/`: poc.role (DROP — tombstone-vulnerable) + ixprefix.prefix (KEEP — IP prefix is structural row identity). Two regression guards committed: `TestPoc_RoleEmptyAcceptedByValidator` (unit, ~76ms) + `TestSync_IncrementalRoleTombstone` (httptest fake-upstream, ~330ms). Verification 18/18 must-haves passed.
+- Out-of-scope finding (recorded in 73-VERIFICATION.md, NOT auto-fixed): existing Org `notWantParts` regression guard at `cmd/pdb-schema-generate/main_test.go:245-251` uses 4-tab source indent vs generator's 3-tab output — guard would never match if NotEmpty re-appeared on Organization. New Phase 73 Poc + role guards use correct `\n\t\t\t` escape strings. Surface in a future hygiene quick task or fold into Phase 74.
 
 **Phase 74 — Test & CI Debt** (TEST-01, TEST-02, TEST-03)
 
@@ -87,6 +87,8 @@ All 6 phase CONTEXT.md committed `fe724fc` 2026-04-26. Full decisions live in ea
 - OBS-07: picked "audit + add new sampling rules proactively" over recommended "audit + tune if off-baseline". Phase 77 now has more code work + a hard dep on Phase 75.
 
 ## Recently Shipped
+
+**v1.18.0 Phase 73 — Code Defect Fixes** — shipped 2026-04-26. 2 plans (73-01 + 73-02), 18/18 verification, 16 commits (`6266b6b`..`8684f2c`). BUG-01 (campus inflection 500→200) and BUG-02 (poc.role NotEmpty drop) fully closed and regression-locked. NOT YET DEPLOYED — fixes are merged to main locally but not pushed/deployed.
 
 **v1.16 Django-compat Correctness** — shipped 2026-04-19, archived 2026-04-22. 6 phases (67-72), 25 requirements. `pdbcompat` surface now has full behavioural parity with upstream PeeringDB.
 
@@ -136,20 +138,53 @@ None.
 
 ## Session Continuity
 
-**Last session 2026-04-26 (single long arc):**
+**This session 2026-04-26 (Phase 73 plan→execute→verify arc):**
 
-1. Investigated "Objects Synced per Type" Grafana dashboard reporting 0 — diagnosed as `$__rate_interval` < sync cadence; confirmed sync was running every ~15min (not hourly) because `PDBPLUS_PEERINGDB_API_KEY` triggers the auth-aware default.
-2. Confirmed sync was still running `PDBPLUS_SYNC_MODE=full` despite user expecting incremental — surfaced SEED-001 status.
-3. Empirically validated upstream `?since=` returns `status="deleted"` tombstones via live spike against `www.peeringdb.com/api/poc?since=<30d>` (5/101 rows deleted). Resolved SEED-001's blocking unknown.
-4. Promoted SEED-001 from dormant→active, ran quick task `260426-pms` to flip `PDBPLUS_SYNC_MODE` default `full→incremental`. Codegen-layer `NotEmpty()` drop on `name` for 6 folded entities (planner caught — would have blocked first deletion). Deployed v1.17.0.
-5. Verified 2 post-deploy sync cycles via /loop — both `mode=incremental`, freshness sawtooth resetting cleanly, durations 12-19s vs full's 30-60s.
-6. Added build-info-derived User-Agent (`peeringdb-plus/v1.17.0 (+https://github.com/dotwaffle/peeringdb-plus)`) — new `internal/buildinfo` package; ldflags injection in Dockerfile.prod via `git describe`.
-7. Tag rotation: all 17 tags renamed v1.X → v1.X.0 for Go semver compliance. Local + remote.
-8. Telemetry audit against live Grafana Cloud surfaced 7 issues — became OBS-01..OBS-07 in v1.18.0.
-9. Created v1.18.0 milestone "Cleanup & Observability Polish" — 6 phases (73-78), 15 REQ-IDs (BUG/TEST/OBS/UAT). All CONTEXT.md committed.
+1. `/gsd-next` after `/clear` → routed to `/gsd-plan-phase 73` (CONTEXT.md locked, no plans yet).
+2. Skipped research (rich CONTEXT.md, well-understood bug fix); skipped pattern-mapper (CONTEXT.md plan hints already named analogue files including `260426-pms` precedent + `cmd/pdb-schema-generate/main.go` `isNameField`).
+3. Planner produced 2 plans (73-01, 73-02) in single Wave 1, disjoint `files_modified`, both autonomous. Initial commit `6266b6b`.
+4. Plan-checker first pass: 1 BLOCKER + 4 WARNINGS. Blocker: D-03 unit test descoped into Subtask 2C advisory prose with no enforcing acceptance criterion. Warnings: D-02 audit table omitted "no NotEmpty found" rows for 7 of 13 entities; Task 2 verify command had `! cmd1 | cmd2` shell-quoting fragility; Plan 73-01 referenced nonexistent Plan 73-03; Task 1 acceptance said "exactly 2" while verify said "≥ 2".
+5. Revision iteration 1/3: planner promoted unit test to Task 4 with `<files>`/`<verify>`/`<acceptance_criteria>`/`<done>` + `must_haves.artifacts` entry; expanded audit table to all 13 entities; rewrote shell command to `test "$(... \| grep -cF ...)" -eq 0`; removed stale 73-03 ref; reconciled "≥ 2" form. Commit `b3f374d`.
+6. Plan-checker second pass: VERIFICATION PASSED. All 5 prior issues fixed, no new issues introduced.
+7. Auto-advanced to execute-phase via `auto_advance: true` config + `--no-transition` flag.
+8. Wave 1 spawn: 2 parallel worktree executors (sequential dispatch, run_in_background). 73-01 finished in ~11min (4 commits including SUMMARY); 73-02 finished in ~19min (6 commits including SUMMARY). Both Self-Checks passed.
+9. Worktree merge ceremony: pre-merge deletion check empty for both; both merged with `--no-ff --no-edit`; bulk-deletion audit clean; orchestrator-owned files (STATE.md, ROADMAP.md) restored from backup; worktrees unlocked + removed; branches deleted. Merge commits `22199a3` (73-01) + `d830501` (73-02).
+10. Post-merge gates: `go build ./...` clean; `go test -count=1` on affected packages all OK; `go generate ./...` zero drift on first post-merge run (idempotent).
+11. ROADMAP.md plan-progress updated for both plans (`5ac40c8`).
+12. Verifier spawned: 18/18 must-haves PASSED. VERIFICATION.md written. Phase marked complete via `gsd-sdk query phase.complete 73` (`8684f2c`).
+13. Execute-phase ended cleanly per `--no-transition` (no auto-advance to phase 74).
 
-**Local-only commits** (8 since `634c96a`, NOT YET PUSHED): `f1e612b`, `c6ae276`, `a3ae545`, `198d60a`, `bc96a49`, `726645c`, `d2acb43`, `41ef406`, `fe724fc`. User said "I will be running /clear before I continue" — push when next session resumes if appropriate.
+**Out-of-scope finding from 73-02 (informational, not blocking):** Existing Organization regression guard at `cmd/pdb-schema-generate/main_test.go:245-251` uses 4-tab source indent vs generator's 3-tab output — would never match if NotEmpty re-appeared on Org. The new Phase 73 Poc + role guards added by 73-02 use correct `\n\t\t\t` escape strings. Recorded in 73-VERIFICATION.md as a follow-up candidate.
 
-**Production state:** v1.17.0 deployed and verified across 8-machine asymmetric Fly fleet (1 primary lhr + 7 replicas). Default sync mode = `incremental` running ~15min cadence. Dashboard at `https://dotwaffle.grafana.net/d/pdbplus-overview` (do NOT commit URL to repo per memory `feedback_no_pii_in_repo.md`).
+**Local-only commits** (22 since `634c96a`, NOT YET PUSHED):
+```
+8684f2c  docs(phase-73): complete phase execution
+5ac40c8  docs(phase-73): update tracking after wave 1
+d830501  chore: merge executor worktree (73-02)
+22199a3  chore: merge executor worktree (73-01)
+01a6bc2  docs(73-02): complete code defect fixes plan
+25cc834  test(73-02): TestPoc_RoleEmptyAcceptedByValidator unit guard
+b4d2b84  test(73-02): TestSync_IncrementalRoleTombstone httptest guard
+32ca6c7  docs(73-01): complete plan
+0e98048  chore(73-02): regenerate ent artefacts
+e7f8f20  docs(73-01): close DEFER-70-06-01
+d2ba190  feat(73-02): drop NotEmpty for poc.role at codegen layer
+e4c4478  test(73-01): un-skip E2E + flip parity canary
+0dc7b4a  test(73-02): RED phase
+583caba  fix(73-01): pin Campus SQL table name via sibling-file mixin
+b3f374d  docs(73): revise plans
+6266b6b  docs(73): plan phase 73
+4a97f57  docs(state): capture session continuity before /clear (prior session)
+fe724fc  docs(planning): lock CONTEXT.md for v1.18.0 phases 73-78
+41ef406  docs: create milestone v1.18.0 roadmap
+0e955ca  docs: define milestone v1.18.0 requirements
+4be90f4  docs: start milestone v1.18.0 Cleanup & Observability Polish
+d2acb43  docs(planning): retarget next milestone to v1.18.0
+```
+The user said "/clear before I continue" — review the 22 commits and push when appropriate. Phase 73 fixes are NOT deployed until pushed and `fly deploy` runs.
 
-**Ready for next session:** `/gsd-plan-phase 73` (Code Defect Fixes — BUG-01 campus inflection + BUG-02 NotEmpty audit). Phases 73, 74, 78 are independent and can be planned in parallel. Phase 75 unlocks 76 (soft) and 77 (hard).
+**Production state:** v1.17.0 deployed across 8-machine asymmetric Fly fleet (1 primary lhr + 7 replicas). Default sync mode = `incremental` running ~15min cadence. BUG-01 + BUG-02 fixes are local-only; production still has the bugs (campus traversal returns 500; poc.role NotEmpty would block any future role-empty tombstone). Dashboard at `https://dotwaffle.grafana.net/d/pdbplus-overview` (do NOT commit URL to repo per memory `feedback_no_pii_in_repo.md`).
+
+**Ready for next session:** any of `/gsd-plan-phase 74`, `/gsd-plan-phase 75`, or `/gsd-plan-phase 78` (all three independent — could plan all three in parallel sessions). Phase 76 plan can also start (its dep on 75 is soft); Phase 77 should wait until 75 ships (OBS-07 hard-deps on OBS-04's `http.route` populating). All five remaining phases have CONTEXT.md locked (committed `fe724fc`) — no need to re-discuss.
+
+`/gsd-progress` will show updated milestone status; `/gsd-ship` would package the local commits for review/PR if user wants to push before continuing.
