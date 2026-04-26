@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 Phase: none
 Plan: none
 Status: Ready for /gsd-new-milestone to start v1.17.
-Last activity: 2026-04-22
+Last activity: 2026-04-26 - Completed quick task 260426-jke: observability cleanup (log noise, trace overflow, redundant metric names, dashboard repair)
 
 ## v1.17 Phase Map
 
@@ -81,6 +81,7 @@ None.
 | 260419-ski | Auth-conditional PDBPLUS_SYNC_INTERVAL default | 2026-04-19 | c242d90 | [260419-ski-auth-sync-interval](./quick/260419-ski-auth-sync-interval/) |
 | 20260420-esb | Ent schema siblings refactor | 2026-04-20 | 559b5fa | [20260420-esb-ent-schema-siblings](./quick/20260420-esb-ent-schema-siblings/) |
 | 20260422-remove-nightly-bench | Remove the "Nightly bench" GitHub Actions workflow | 2026-04-22 | 3ca8590 | [20260422-remove-nightly-bench](./quick/20260422-remove-nightly-bench/) |
+| 260426-jke | Observability cleanup — log noise, trace overflow, redundant metric names, dashboard repair | 2026-04-26 | cef357a | [260426-jke-obs-cleanup](./quick/260426-jke-obs-cleanup/) |
 
 ## Session Continuity
 
