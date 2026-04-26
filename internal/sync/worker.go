@@ -12,6 +12,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
+	"sort"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -130,6 +131,22 @@ type Worker struct {
 	// violation at commit in steady-state syncs). Reset alongside
 	// fkRegistry in resetFKState.
 	fkSkippedIDs map[string]map[int]struct{}
+	// fkOrphanCounts aggregates per-cycle FK-orphan observations so they
+	// can be summarised in a single end-of-cycle WARN log + metric
+	// increments. Replaces the per-row WARN log spam that blew Tempo's
+	// 7.5 MB per-trace cap (audit 2026-04-26). Reset alongside fkRegistry
+	// in resetFKState.
+	fkOrphanCounts map[fkOrphanKey]int
+}
+
+// fkOrphanKey is the dimension grouping a single class of FK-orphan
+// observation: an action ("drop"|"null") taken on a particular child
+// type's FK field that pointed at a missing parent row.
+type fkOrphanKey struct {
+	ChildType  string
+	ParentType string
+	Field      string
+	Action     string // "drop" — row excluded; "null" — FK nulled, row kept
 }
 
 // NewWorker creates a new sync worker.
@@ -161,6 +178,75 @@ func (w *Worker) SetRetryBackoffs(backoffs []time.Duration) {
 func (w *Worker) resetFKState() {
 	w.fkRegistry = make(map[string]map[int]struct{}, 13)
 	w.fkSkippedIDs = make(map[string]map[int]struct{}, 13)
+	w.fkOrphanCounts = make(map[fkOrphanKey]int)
+}
+
+// recordOrphan tracks one FK-orphan observation for the per-cycle
+// summary. The per-row hot path logs at DEBUG (so individual rows are
+// still recoverable in a verbose run) and increments the
+// pdbplus.sync.type.orphans counter so the dashboard sees activity in
+// near-real time. emitOrphanSummary collapses these into one WARN log
+// per cycle.
+func (w *Worker) recordOrphan(ctx context.Context, key fkOrphanKey, childID, parentID int) {
+	w.fkOrphanCounts[key]++
+	pdbotel.SyncTypeOrphans.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("type", key.ChildType),
+		attribute.String("parent_type", key.ParentType),
+		attribute.String("field", key.Field),
+		attribute.String("action", key.Action),
+	))
+	w.logger.LogAttrs(ctx, slog.LevelDebug, "fk orphan",
+		slog.String("child_type", key.ChildType),
+		slog.Int("child_id", childID),
+		slog.String("field", key.Field),
+		slog.String("parent_type", key.ParentType),
+		slog.Int("orphan_parent_id", parentID),
+		slog.String("action", key.Action),
+	)
+}
+
+// emitOrphanSummary emits a single end-of-cycle log line summarising
+// the orphan FKs handled during the current sync. Called from the
+// terminal Sync paths (recordSuccess / rollbackAndRecord / recordFailure)
+// alongside emitMemoryTelemetry. Uses WARN when at least one orphan
+// fired; DEBUG when the cycle was clean. The structured "summary"
+// attribute is a stable []map[string]any so dashboards / alerts can
+// group on it.
+func (w *Worker) emitOrphanSummary(ctx context.Context) {
+	if len(w.fkOrphanCounts) == 0 {
+		w.logger.LogAttrs(ctx, slog.LevelDebug, "fk orphans summary", slog.Int("total", 0))
+		return
+	}
+	var total int
+	groups := make([]map[string]any, 0, len(w.fkOrphanCounts))
+	for k, count := range w.fkOrphanCounts {
+		total += count
+		groups = append(groups, map[string]any{
+			"child_type":  k.ChildType,
+			"parent_type": k.ParentType,
+			"field":       k.Field,
+			"action":      k.Action,
+			"count":       count,
+		})
+	}
+	sort.Slice(groups, func(i, j int) bool {
+		// Stable, grep-friendly ordering: child_type, parent_type, field, action.
+		gi, gj := groups[i], groups[j]
+		if a, b := gi["child_type"].(string), gj["child_type"].(string); a != b {
+			return a < b
+		}
+		if a, b := gi["parent_type"].(string), gj["parent_type"].(string); a != b {
+			return a < b
+		}
+		if a, b := gi["field"].(string), gj["field"].(string); a != b {
+			return a < b
+		}
+		return gi["action"].(string) < gj["action"].(string)
+	})
+	w.logger.LogAttrs(ctx, slog.LevelWarn, "fk orphans summary",
+		slog.Int("total", total),
+		slog.Any("groups", groups),
+	)
 }
 
 // fkRegisterIDs records successfully-upserted IDs for the named parent
@@ -627,6 +713,7 @@ func (w *Worker) recordSuccess(
 ) {
 	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
 	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
+	w.emitOrphanSummary(ctx)
 	for typeName, generated := range cursorUpdates {
 		if err := UpsertCursor(ctx, w.db, typeName, generated, "success"); err != nil {
 			w.logger.LogAttrs(ctx, slog.LevelError, "failed to update cursor",
@@ -1099,12 +1186,12 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 				// (avoids cascading the drop through netfac /
 				// ixfac / carrierfac children of the facility).
 				if v.CampusID != nil && !w.fkHasParent(ctx, tx, peeringdb.TypeCampus, *v.CampusID) {
-					w.logger.LogAttrs(ctx, slog.LevelWarn, "nulling orphan FK",
-						slog.String("child_type", peeringdb.TypeFac),
-						slog.Int("child_id", v.ID),
-						slog.String("field", "campus_id"),
-						slog.Int("orphan_parent_id", *v.CampusID),
-					)
+					w.recordOrphan(ctx, fkOrphanKey{
+						ChildType:  peeringdb.TypeFac,
+						ParentType: peeringdb.TypeCampus,
+						Field:      "campus_id",
+						Action:     "null",
+					}, v.ID, *v.CampusID)
 					v.CampusID = nil
 				}
 				return true
@@ -1248,22 +1335,22 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 
 // fkCheckParent is the per-row FK validation helper called from the
 // fkFilter closures in dispatchScratchChunk. Returns true if parentID
-// is registered for parentType (or is a zero/null FK); otherwise logs
-// the orphan at WARN, records the child id in fkSkippedIDs so the
-// delete pass can reconcile, and returns false so syncIncremental
-// drops the row from the chunk.
+// is registered for parentType (or is a zero/null FK); otherwise records
+// the orphan via Worker.recordOrphan (DEBUG log + per-cycle counter),
+// marks the child id in fkSkippedIDs so the delete pass can reconcile,
+// and returns false so syncIncremental drops the row from the chunk.
+// emitOrphanSummary surfaces the per-cycle aggregate at WARN.
 func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string, childID int, parentType string, parentID int, field string) bool {
 	if w.fkHasParent(ctx, tx, parentType, parentID) {
 		return true
 	}
 	w.fkMarkSkipped(childType, childID)
-	w.logger.LogAttrs(ctx, slog.LevelWarn, "dropping FK orphan",
-		slog.String("child_type", childType),
-		slog.Int("child_id", childID),
-		slog.String("field", field),
-		slog.String("parent_type", parentType),
-		slog.Int("orphan_parent_id", parentID),
-	)
+	w.recordOrphan(ctx, fkOrphanKey{
+		ChildType:  childType,
+		ParentType: parentType,
+		Field:      field,
+		Action:     "drop",
+	}, childID, parentID)
 	return false
 }
 
@@ -1316,6 +1403,7 @@ func (w *Worker) recordFailure(ctx context.Context, statusID int64, start time.T
 	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
 	// Called even on failure — memory pressure is interesting regardless of sync outcome.
 	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
+	w.emitOrphanSummary(ctx)
 	// Record sync-level failure metrics per D-06.
 	failedAttr := metric.WithAttributes(attribute.String("status", "failed"))
 	pdbotel.SyncDuration.Record(ctx, time.Since(start).Seconds(), failedAttr)

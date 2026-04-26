@@ -2578,6 +2578,56 @@ func TestEmitMemoryTelemetry_Attrs(t *testing.T) {
 	}
 }
 
+// TestEmitOrphanSummary_Aggregates asserts that recordOrphan increments
+// per-cycle counts and that emitOrphanSummary collapses them into a
+// single WARN log when any orphans were observed (and a DEBUG log on a
+// clean cycle). Replaces the per-row WARN spam that blew Tempo's 7.5 MB
+// per-trace budget per the 2026-04-26 audit.
+func TestEmitOrphanSummary_Aggregates(t *testing.T) {
+	t.Run("clean_cycle_logs_debug_total_zero", func(t *testing.T) {
+		var buf bytes.Buffer
+		logger := slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		w := &Worker{logger: logger}
+		w.resetFKState()
+		w.emitOrphanSummary(context.Background())
+		out := buf.String()
+		if !strings.Contains(out, `"level":"DEBUG"`) || !strings.Contains(out, `"msg":"fk orphans summary"`) {
+			t.Errorf("clean cycle should emit DEBUG fk-orphans-summary; got %s", out)
+		}
+		if strings.Contains(out, `"level":"WARN"`) {
+			t.Errorf("clean cycle must not emit WARN; got %s", out)
+		}
+	})
+
+	t.Run("dirty_cycle_logs_warn_total_summed", func(t *testing.T) {
+		var buf bytes.Buffer
+		logger := slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		w := &Worker{logger: logger}
+		w.resetFKState()
+
+		ctx := context.Background()
+		// Two of the same key, one different — should collapse to two groups, total=3.
+		w.recordOrphan(ctx, fkOrphanKey{ChildType: "carrierfac", ParentType: "fac", Field: "fac_id", Action: "drop"}, 100, 200)
+		w.recordOrphan(ctx, fkOrphanKey{ChildType: "carrierfac", ParentType: "fac", Field: "fac_id", Action: "drop"}, 101, 201)
+		w.recordOrphan(ctx, fkOrphanKey{ChildType: "fac", ParentType: "campus", Field: "campus_id", Action: "null"}, 300, 400)
+
+		// Clear the buf — the per-row DEBUG entries are noise for this assertion.
+		buf.Reset()
+		w.emitOrphanSummary(ctx)
+
+		out := buf.String()
+		if !strings.Contains(out, `"level":"WARN"`) {
+			t.Errorf("dirty cycle should emit WARN; got %s", out)
+		}
+		if !strings.Contains(out, `"total":3`) {
+			t.Errorf("expected total=3 in summary; got %s", out)
+		}
+		if !strings.Contains(out, `"action":"drop"`) || !strings.Contains(out, `"action":"null"`) {
+			t.Errorf("summary should reference both action variants; got %s", out)
+		}
+	})
+}
+
 // TestReadLinuxVmHWM asserts that on Linux, the helper returns a positive
 // byte count and ok=true. Skipped on non-Linux since /proc/self/status
 // does not exist. This guards against silent regression of the VmHWM

@@ -56,6 +56,13 @@ var SyncTypeUpsertErrors metric.Int64Counter
 // SyncTypeFallback counts incremental-to-full fallback events per type.
 var SyncTypeFallback metric.Int64Counter
 
+// SyncTypeOrphans counts FK-orphan rows observed per sync cycle, broken
+// down by {type, parent_type, field, action} where action is "drop"
+// (row excluded entirely from upsert) or "null" (FK column nulled but
+// row kept). Provides the per-cycle aggregate that replaces the per-row
+// WARN logs which previously blew Tempo's 7.5 MB per-trace budget.
+var SyncTypeOrphans metric.Int64Counter
+
 // RoleTransitions counts LiteFS role transition events (promoted/demoted).
 var RoleTransitions metric.Int64Counter
 
@@ -120,6 +127,14 @@ func InitMetrics() error {
 	)
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.sync.type.fallback counter: %w", err)
+	}
+
+	SyncTypeOrphans, err = meter.Int64Counter("pdbplus.sync.type.orphans",
+		metric.WithDescription("FK-orphan rows observed per sync cycle, by type/parent_type/field/action"),
+		metric.WithUnit("{row}"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.sync.type.orphans counter: %w", err)
 	}
 
 	RoleTransitions, err = meter.Int64Counter("pdbplus.role.transitions",
