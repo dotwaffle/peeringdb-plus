@@ -21,14 +21,14 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** v1.18.0 roadmap created 2026-04-26. 6 phases (73-78), 15 requirements (BUG/TEST/OBS/UAT). Theme is cleanup & observability polish — no new feature scope. Ready for `/gsd-plan-phase 73`.
+**Current focus:** v1.18.0 fully scoped 2026-04-26. 6 phases (73-78), 15 requirements (BUG/TEST/OBS/UAT). All 6 phase CONTEXT.md files locked (`status: context-locked`, `has_context: true`). Theme is cleanup & observability polish — no new feature scope. Ready for `/gsd-plan-phase 73` (or 74, or 78 — those three are independent and parallel-friendly).
 
 ## Current Position
 
-Phase: Not started (roadmap defined)
+Phase: Not started (all 6 CONTEXT.md locked)
 Plan: —
-Status: Ready for `/gsd-plan-phase 73`
-Last activity: 2026-04-26 — v1.18.0 ROADMAP.md written, REQUIREMENTS.md traceability filled, 15/15 requirements mapped
+Status: Ready for `/gsd-plan-phase <N>` — 73, 74, 78 independent; 75 unlocks 76 (soft) and 77 (hard)
+Last activity: 2026-04-26 — Phases 73-78 CONTEXT.md committed `fe724fc`; 15 D-IDs captured
 
 ## v1.18.0 Phase Map
 
@@ -45,7 +45,39 @@ Phase numbering continues from v1.16 (last phase 72). v1.17.0 was a release tag 
 
 ## Locked Decisions (abbreviated)
 
-_No active milestone decisions yet — Phase 73 CONTEXT lock pending `/gsd-plan-phase 73`._
+All 6 phase CONTEXT.md committed `fe724fc` 2026-04-26. Full decisions live in each phase's `CONTEXT.md`; abbreviated below for resume-after-/clear continuity.
+
+**Phase 73 — Code Defect Fixes** (BUG-01, BUG-02)
+- **D-01**: BUG-01 fix via `entsql.Annotation{Table: "campuses"}` on `ent/schema/campus.go` (sibling-file convention if `Annotations()` doesn't already exist on the generated schema). Single source of truth — every entc.LoadGraph consumer benefits.
+- **D-02**: BUG-02 audit goes wide — scan all 13 entities' string fields for `NotEmpty()`; drop on every tombstone-vulnerable field (poc.role plus likely poc.email, poc.phone, poc.url, etc.). Document per-field decision in PLAN. Apply via `cmd/pdb-schema-generate` extension to existing `isNameField` predicate (codegen-layer per 260426-pms pattern).
+- **D-03**: Both unit test + httptest fake-upstream for the tombstone path (mirror 260426-pms pattern).
+
+**Phase 74 — Test & CI Debt** (TEST-01, TEST-02, TEST-03)
+- **D-01**: TEST-01 — auto-derive expected indexes from `schema/peeringdb.json` + entgo declarations (most rigorous of three options; user explicitly picked over deny-list inversion).
+- **D-02**: TEST-02 — drop the `$region` template variable entirely from `pdbplus-overview.json`; flip test to assert no orphan template vars.
+- **D-03**: TEST-03 — per-finding mix: `filepath.Clean` + nolint where genuinely operator-supplied; fix `exhaustive` properly; remove stale nolintlint directive.
+
+**Phase 75 — Code-side Observability Fixes** (OBS-01, OBS-02, OBS-04)
+- **D-01**: OBS-01 — synchronous one-shot `COUNT(*)` per-table at process init (~1-2s startup cost acceptable); seeds the same cache currently primed by sync-completion.
+- **D-02**: OBS-02 — pre-warm 13 types only (`Counter.Add(0, type=t)` × 5 metrics × 13 types = 65 baseline series). Status dimension self-populates. `pdbplus_role_transitions_total` uses `direction=` instead of `type=`.
+- **D-03**: OBS-04 — investigate root cause + fix `routeTagMiddleware`. Suspects: `r.Pattern` empty for non-`METHOD /path` routes, middleware ordering, or labeler-context replacement downstream.
+
+**Phase 76 — Dashboard Hardening** (OBS-03, OBS-05)
+- **D-01**: OBS-03 — both `$service` template var AND explicit `{service_name="$service"}` in every `go_*` panel query. Affected panels: Goroutines, Heap Memory, Allocation Rate, GC Goal, Live Heap by Instance.
+- **D-02**: OBS-05 — confirm only. Verify new `_bytes_bucket` flowing on v1.17.0+. NO panel-description docs, NO Prom drop rule for legacy `_kib_KiB_bucket`. (User diverged from recommended "confirm + document".)
+
+**Phase 77 — Telemetry Audit & Cleanup** (OBS-06, OBS-07)
+- **D-01**: OBS-06 — audit + fix in same phase. Produce `AUDIT.md` AND apply slog level changes inline. Targets: per-step sync DEBUG, FK-orphan summary verification, `_visible` redaction logs, sync-cycle entry/exit, health-check 200s.
+- **D-02**: OBS-07 — **scope expansion**: audit + add proactive per-endpoint sampling rules (user picked the most aggressive option). Implementation via `sdktrace.ParentBased` composite sampler dispatching on `http.route`. **HARD DEPENDENCY on Phase 75 OBS-04** — without `http.route` populating, route-based sampler can't dispatch correctly.
+
+**Phase 78 — UAT Closeout** (UAT-01, UAT-02, UAT-03)
+- **D-01**: Hybrid — Claude drives UAT-02 (curl headers, body cap, slowloris Go probe) directly; user drives UAT-01 (CSP DevTools on `/ui/`, `/ui/asn/13335`, `/ui/compare` with `PDBPLUS_CSP_ENFORCE=true`). Claude produces UAT-RESULTS.md template.
+- **D-02**: UAT-03 — just relocate `.planning/milestones/v1.5-phases/20-deferred-human-verification/` to a `.archived/` sibling; trust the 2026-03-24 verification record. No re-verification.
+
+**Notable user-driven divergences from recommended options:**
+- TEST-01: picked "auto-derive from schema source" (most rigorous) over recommended deny-list inversion. More upfront work but immune to this whole class of test rot.
+- OBS-05: picked "confirm only" over recommended "confirm + document". No panel-description note for the legacy series.
+- OBS-07: picked "audit + add new sampling rules proactively" over recommended "audit + tune if off-baseline". Phase 77 now has more code work + a hard dep on Phase 75.
 
 ## Recently Shipped
 
@@ -97,4 +129,20 @@ None.
 
 ## Session Continuity
 
-v1.18.0 ROADMAP.md written 2026-04-26 — 6 phases (73-78), 15/15 requirements mapped, no orphans, no duplicates. REQUIREMENTS.md traceability table filled. Ready for `/gsd-plan-phase 73` (Code Defect Fixes — BUG-01 campus inflection + BUG-02 `poc.role` NotEmpty drop).
+**Last session 2026-04-26 (single long arc):**
+
+1. Investigated "Objects Synced per Type" Grafana dashboard reporting 0 — diagnosed as `$__rate_interval` < sync cadence; confirmed sync was running every ~15min (not hourly) because `PDBPLUS_PEERINGDB_API_KEY` triggers the auth-aware default.
+2. Confirmed sync was still running `PDBPLUS_SYNC_MODE=full` despite user expecting incremental — surfaced SEED-001 status.
+3. Empirically validated upstream `?since=` returns `status="deleted"` tombstones via live spike against `www.peeringdb.com/api/poc?since=<30d>` (5/101 rows deleted). Resolved SEED-001's blocking unknown.
+4. Promoted SEED-001 from dormant→active, ran quick task `260426-pms` to flip `PDBPLUS_SYNC_MODE` default `full→incremental`. Codegen-layer `NotEmpty()` drop on `name` for 6 folded entities (planner caught — would have blocked first deletion). Deployed v1.17.0.
+5. Verified 2 post-deploy sync cycles via /loop — both `mode=incremental`, freshness sawtooth resetting cleanly, durations 12-19s vs full's 30-60s.
+6. Added build-info-derived User-Agent (`peeringdb-plus/v1.17.0 (+https://github.com/dotwaffle/peeringdb-plus)`) — new `internal/buildinfo` package; ldflags injection in Dockerfile.prod via `git describe`.
+7. Tag rotation: all 17 tags renamed v1.X → v1.X.0 for Go semver compliance. Local + remote.
+8. Telemetry audit against live Grafana Cloud surfaced 7 issues — became OBS-01..OBS-07 in v1.18.0.
+9. Created v1.18.0 milestone "Cleanup & Observability Polish" — 6 phases (73-78), 15 REQ-IDs (BUG/TEST/OBS/UAT). All CONTEXT.md committed.
+
+**Local-only commits** (8 since `634c96a`, NOT YET PUSHED): `f1e612b`, `c6ae276`, `a3ae545`, `198d60a`, `bc96a49`, `726645c`, `d2acb43`, `41ef406`, `fe724fc`. User said "I will be running /clear before I continue" — push when next session resumes if appropriate.
+
+**Production state:** v1.17.0 deployed and verified across 8-machine asymmetric Fly fleet (1 primary lhr + 7 replicas). Default sync mode = `incremental` running ~15min cadence. Dashboard at `https://dotwaffle.grafana.net/d/pdbplus-overview` (do NOT commit URL to repo per memory `feedback_no_pii_in_repo.md`).
+
+**Ready for next session:** `/gsd-plan-phase 73` (Code Defect Fixes — BUG-01 campus inflection + BUG-02 NotEmpty audit). Phases 73, 74, 78 are independent and can be planned in parallel. Phase 75 unlocks 76 (soft) and 77 (hard).
