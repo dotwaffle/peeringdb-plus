@@ -228,29 +228,18 @@ See `docs/ARCHITECTURE.md § Response Memory Envelope` for the budget breakdown,
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `PDBPLUS_LISTEN_ADDR` | `:8080` | HTTP listen address (overridden by `PDBPLUS_PORT` if set) |
-| `PDBPLUS_DB_PATH` | `./peeringdb-plus.db` | SQLite database file path |
-| `PDBPLUS_PEERINGDB_URL` | `https://api.peeringdb.com` | PeeringDB API base URL |
-| `PDBPLUS_PEERINGDB_API_KEY` | (empty) | Optional PeeringDB API key; empty = unauthenticated (recommended: set this for production) |
-| `PDBPLUS_SYNC_TOKEN` | (empty) | Shared secret for on-demand sync trigger; empty = disabled |
-| `PDBPLUS_SYNC_INTERVAL` | `1h` (unauthenticated) / `15m` (when `PDBPLUS_PEERINGDB_API_KEY` is set) | Duration between automatic syncs. Default tightens to 15m when an API key is configured since the authenticated rate-limit budget absorbs the 4× cadence; unauthenticated stays conservative against the shared anonymous ceiling. Explicit value overrides both defaults. |
-| `PDBPLUS_SYNC_MODE` | `incremental` | Sync strategy: `full` or `incremental`. Default flipped 2026-04-26 (SEED-001 trigger fired — upstream `?since=` confirmed to emit `status='deleted'` tombstones). `full` remains an explicit operator override for first-sync, recovery, and operator escape-hatch. |
-| `PDBPLUS_SYNC_STALE_THRESHOLD` | `24h` | Max age of sync data before health reports degraded |
-| `PDBPLUS_SYNC_MEMORY_LIMIT` | `400MB` | Peak Go heap ceiling checked after Phase A fetch; unit suffix required (KB/MB/GB/TB); `0` disables guardrail |
-| `PDBPLUS_HEAP_WARN_MIB` | `400` | Peak Go heap (MiB) threshold. End-of-sync-cycle `slog.Warn("heap threshold crossed", ...)` fires when `runtime.MemStats.HeapInuse` exceeds this; OTel span attr `pdbplus.sync.peak_heap_bytes` (Prom: `pdbplus_sync_peak_heap_bytes`) emits on every cycle regardless. `0` disables the warn. Sustained breach = SEED-001 trigger fired. |
-| `PDBPLUS_RSS_WARN_MIB` | `384` | Peak OS RSS (MiB) threshold from `/proc/self/status` VmHWM (Linux only). OTel span attr `pdbplus.sync.peak_rss_bytes` (Prom: `pdbplus_sync_peak_rss_bytes`). `0` disables the warn. Attr omitted on non-Linux (RSS not available). |
-| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `128MiB` | Per-response memory budget for pdbcompat list endpoints; unit suffix required (KB/MB/GB/TB); bare numbers rejected except literal `0` (disabled — dev only). Over-budget requests get RFC 9457 413 up-front via `internal/pdbcompat/budget.go` `CheckBudget` + `WriteBudgetProblem` before any row data is fetched. Default = 256 MB replica − 80 MB Go runtime baseline − 48 MB slack. |
-| `PDBPLUS_CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
-| `PDBPLUS_CSP_ENFORCE` | `false` | When `true`, serve enforcing `Content-Security-Policy` on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only`. |
-| `PDBPLUS_DRAIN_TIMEOUT` | `10s` | Graceful shutdown drain timeout |
-| `PDBPLUS_OTEL_SAMPLE_RATE` | `1.0` | Trace sampling ratio 0.0-1.0 |
-| `PDBPLUS_STREAM_TIMEOUT` | `60s` | Max duration for a streaming RPC |
-| `PDBPLUS_IS_PRIMARY` | `true` | Fallback primary detection when LiteFS not present |
-| `PDBPLUS_PUBLIC_TIER` | `public` | Effective privacy tier for anonymous callers. `public` (default) = Public-only rows; `users` = treat anonymous as Users-tier (private deployments only, WARN at startup). |
+Authoritative table: `docs/CONFIGURATION.md`. Standard `OTEL_*` env vars also apply (autoexport).
 
-Standard `OTEL_*` env vars also apply (autoexport).
+Operationally-critical defaults worth retaining in-context (the surprising or load-bearing ones):
+
+- `PDBPLUS_SYNC_MODE=incremental` (default flipped 2026-04-26 post-SEED-001; `full` is operator escape-hatch for first-sync / recovery)
+- `PDBPLUS_SYNC_INTERVAL` defaults `1h` unauthenticated / `15m` when `PDBPLUS_PEERINGDB_API_KEY` is set (auth-conditional)
+- `PDBPLUS_RESPONSE_MEMORY_LIMIT=128MiB` — pdbcompat list pre-flight 413 budget; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected except literal `0` (disabled — dev only)
+- `PDBPLUS_SYNC_MEMORY_LIMIT=400MB` — sync-cycle peak heap ceiling; unit suffix required; `0` disables
+- `PDBPLUS_HEAP_WARN_MIB=400`, `PDBPLUS_RSS_WARN_MIB=384` — sync-cycle telemetry warn thresholds (Fly 512 MB cap; sustained breach re-fires SEED-001 trigger)
+- `PDBPLUS_CSP_ENFORCE=false` — defaults to report-only; flip to `true` after v1.13 UAT-01 verification
+- `PDBPLUS_PUBLIC_TIER=public` — set `users` only for private deployments (WARN at startup)
+- `PDBPLUS_IS_PRIMARY=true` — fallback primary detection when LiteFS not present
 
 ### Testing
 - Live tests (against `beta.peeringdb.com`): gated by `-peeringdb-live` flag, not run in CI.
@@ -279,6 +268,9 @@ Standard `OTEL_*` env vars also apply (autoexport).
 ### Go Module
 - `GONOSUMCHECK=* GONOSUMDB=*` may be needed for `go mod tidy` / `go get` when sumdb is read-only.
 - `TMPDIR=/tmp/claude-1000` required for go commands in sandbox mode.
+
+### Shell environment
+- The Bash tool runs under `zsh`, which performs history expansion on `!` even in non-interactive scripts. Avoid `if ! cmd; then` and `! cmd1 | cmd2` — they silently drop the negation. Use count-based equivalents instead: `test "$(cmd | grep -c X)" -eq 0`.
 
 ### Deployment
 - `fly deploy` from project root. App: peeringdb-plus. Primary region: lhr.
