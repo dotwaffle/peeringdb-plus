@@ -315,14 +315,20 @@ func TestDashboard_FreshnessGaugeThresholds(t *testing.T) {
 }
 
 // TestDashboard_NoOrphanTemplateVars asserts that every template variable
-// declared in templating.list is referenced by at least one panel query (or,
-// for datasource-type variables, by at least one target's datasource.uid).
+// declared in templating.list is referenced somewhere in the dashboard JSON.
 //
 // Phase 74 D-02 — replaces the prior TestDashboard_RegionVariableUsed which
 // checked only the cloud_region Prometheus label and silently passed even
 // after the $region template variable became dead UI cruft. This positive
 // structural invariant catches the whole class of orphan-template-var
 // accumulation.
+//
+// Implementation note: the haystack is built by walking the raw JSON tree
+// (map[string]any) and concatenating every string leaf. This catches every
+// surface where a variable is valid — Expr, Datasource.UID, LegendFormat,
+// panel Title/Description, alert annotations, links, options.content, etc.
+// — without per-field plumbing that would inevitably drift behind Grafana
+// schema additions (the prior typed-struct walk missed five surfaces).
 func TestDashboard_NoOrphanTemplateVars(t *testing.T) {
 	t.Parallel()
 	d := loadDashboard(t)
@@ -331,28 +337,31 @@ func TestDashboard_NoOrphanTemplateVars(t *testing.T) {
 		t.Fatal("templating.list is empty — dashboard has no template variables to validate")
 	}
 
-	// Collect all panel target exprs and datasource UIDs across the dashboard
-	// (including nested panels inside collapsed rows). One concatenated haystack
-	// per category; we then substring-search per variable name.
-	var exprHaystack strings.Builder
-	var dsUIDHaystack strings.Builder
-	for _, p := range allPanels(d) {
-		for _, tgt := range p.Targets {
-			exprHaystack.WriteString(tgt.Expr)
-			exprHaystack.WriteByte('\n')
-			dsUIDHaystack.WriteString(tgt.Datasource.UID)
-			dsUIDHaystack.WriteByte('\n')
-		}
+	// Re-parse the dashboard JSON as an untyped tree so the haystack covers
+	// every string value, not just the fields modelled in the typed structs.
+	raw, err := os.ReadFile(dashboardPath)
+	if err != nil {
+		t.Fatalf("reading dashboard JSON: %v", err)
 	}
-	exprBlob := exprHaystack.String()
-	dsBlob := dsUIDHaystack.String()
+	var tree any
+	if err := json.Unmarshal(raw, &tree); err != nil {
+		t.Fatalf("re-parsing dashboard JSON: %v", err)
+	}
+
+	// Collect every string leaf in the dashboard JSON tree, except the
+	// templating.list subtree itself — a variable referencing its own
+	// definition (in `query`, `current.text`, etc.) does not count as a
+	// panel-side reference and would defeat the orphan check.
+	var hay strings.Builder
+	collectStringLeaves(tree, "", &hay)
+	haystack := hay.String()
 
 	for _, v := range d.Templating.List {
-		// Variable references in panel queries: either $name or ${name} (with
+		// Variable references in dashboard JSON: either $name or ${name} (with
 		// optional format suffix such as ${name:csv}). The match must be
 		// boundary-aware: a future variable named "type" must not be falsely
-		// flagged as referenced by an expression that contains "$type_total"
-		// or "${type_count}". Substring matching is unsound.
+		// flagged as referenced by a string that contains "$type_total" or
+		// "${type_count}". Substring matching is unsound.
 		//
 		// Pattern: literal "$", then either
 		//   - "{" + name + ("}" or ":")  — brace form, possibly formatted
@@ -361,20 +370,38 @@ func TestDashboard_NoOrphanTemplateVars(t *testing.T) {
 		name := regexp.QuoteMeta(v.Name)
 		pat := regexp.MustCompile(`\$(?:\{` + name + `[}:]|` + name + `(?:[^A-Za-z0-9_]|$))`)
 
-		var referenced bool
-		switch v.Type {
-		case "datasource":
-			// Datasource variables are referenced via ${name} inside target
-			// datasource.uid fields, not inside expressions.
-			referenced = pat.MatchString(dsBlob)
-		default:
-			// Query / interval / custom / textbox / constant variables are
-			// referenced inside panel expressions.
-			referenced = pat.MatchString(exprBlob)
+		if !pat.MatchString(haystack) {
+			t.Errorf("template variable %q (type=%q) is declared but no dashboard string references it (looked for $%s / ${%s} with boundary across all JSON string leaves) — orphan UI cruft per Phase 74 D-02", v.Name, v.Type, v.Name, v.Name)
 		}
+	}
+}
 
-		if !referenced {
-			t.Errorf("template variable %q (type=%q) is declared but no panel query references it (looked for $%s / ${%s} with boundary) — orphan UI cruft per Phase 74 D-02", v.Name, v.Type, v.Name, v.Name)
+// collectStringLeaves walks the JSON tree v and writes every string leaf to
+// out (one per line). The path argument carries the dotted JSON path of the
+// current node and is used to skip the templating.list subtree — a variable
+// definition naturally contains its own name in `query`, `current.text`,
+// etc., and counting those as references would defeat the orphan check.
+func collectStringLeaves(v any, path string, out *strings.Builder) {
+	if strings.HasPrefix(path, "templating.list") {
+		return
+	}
+	switch t := v.(type) {
+	case string:
+		out.WriteString(t)
+		out.WriteByte('\n')
+	case map[string]any:
+		for k, child := range t {
+			next := k
+			if path != "" {
+				next = path + "." + k
+			}
+			collectStringLeaves(child, next, out)
+		}
+	case []any:
+		for _, child := range t {
+			// Index suffix is omitted from path; templating.list[i] still
+			// matches the prefix check above via "templating.list".
+			collectStringLeaves(child, path, out)
 		}
 	}
 }
