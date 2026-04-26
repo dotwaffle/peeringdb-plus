@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 Phase: none
 Plan: none
 Status: Ready for /gsd-new-milestone to start v1.17.
-Last activity: 2026-04-26 - Completed quick task 260426-mei: production observability — alerts + per-instance memory dashboard re-source
+Last activity: 2026-04-26 - Completed quick task 260426-pms: flip default PDBPLUS_SYNC_MODE to incremental (SEED-001)
 
 ## v1.17 Phase Map
 
@@ -84,6 +84,7 @@ None.
 | 260426-jke | Observability cleanup — log noise, trace overflow, redundant metric names, dashboard repair | 2026-04-26 | cef357a | [260426-jke-obs-cleanup](./quick/260426-jke-obs-cleanup/) |
 | 260426-lod | Observability label gaps — GC-allowlisted resource attrs (service.namespace/cloud.region) + http.route via post-dispatch labeler | 2026-04-26 | cf1b558 | [260426-lod-observability-label-gaps-gc-allowlisted-](./quick/260426-lod-observability-label-gaps-gc-allowlisted-/) |
 | 260426-mei | Production observability — Prom alert rules (6, 2-tier severity) + dashboard panel 35 re-sourced to per-instance go.memory.used | 2026-04-26 | d2d337d | [260426-mei-production-observability-alerts-per-inst](./quick/260426-mei-production-observability-alerts-per-inst/) |
+| 260426-pms | Flip default PDBPLUS_SYNC_MODE to incremental (SEED-001) — codegen-layer NotEmpty() drop on `name` for 6 folded entities + tombstone conformance test + sync metrics `mode` label | 2026-04-26 | a3ae545 | [260426-pms-flip-default-pdbplus-sync-mode-to-increm](./quick/260426-pms-flip-default-pdbplus-sync-mode-to-increm/) |
 
 ## Session Continuity
 

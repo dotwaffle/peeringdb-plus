@@ -4,61 +4,91 @@ slug: incremental-sync-evaluation
 planted: 2026-04-17
 planted_after: v1.14
 surface_at: v1.15+
-status: dormant
-priority: watch
+status: ready
+priority: active
+resolved_unknown: 2026-04-26
 triggers:
+  - name: deletion_semantics_confirmed
+    condition: "Upstream ?since= empirically confirmed to emit status='deleted' tombstones with bumped updated timestamps"
+    signal: "Live spike against www.peeringdb.com 2026-04-26 — see Empirical findings below"
+    fired: true
   - name: peak_heap_pressure
     condition: "Peak Go heap sustained >380 MiB on authenticated full sync"
     signal: "/readyz metric or Grafana pdbplus-overview.json dashboard"
+    fired: false
   - name: rate_limit_throttle
     condition: "PeeringDB returns 429s despite authenticated-sync utilisation ~4%"
     signal: "RateLimitError log lines from internal/peeringdb client"
+    fired: false
   - name: sync_duration_pressure
     condition: "Full sync wall-clock approaches PDBPLUS_SYNC_INTERVAL (default 1h)"
     signal: "sync worker duration span in OTel traces"
+    fired: false
 ---
 
-# SEED-001: Evaluate PDBPLUS_SYNC_MODE=incremental for production
+# SEED-001: Switch PDBPLUS_SYNC_MODE default to incremental
 
-## Context
+## Status (2026-04-26)
 
-v1.14 shipped authenticated sync on 2026-04-17. DB now holds full PeeringDB dataset (Public + Users-tier, ~22,320 POCs + scale on other types); ent privacy policy filters Users-tier anonymously. `PDBPLUS_SYNC_MODE=full` is the default and remains unoverridden in `fly.toml`.
+**Active.** The blocking unknown ("does `?since=` emit tombstones for deleted rows") is resolved positively. Pressure-based triggers haven't fired, but the original "wait until forced" rationale is moot — the change is now small, safe, and offers genuine wins (sub-second cycles, lower upstream load, faster deletion convergence than 15-minute full re-fetch).
 
-Every sync cycle (`PDBPLUS_SYNC_INTERVAL`, default 1h) does a full re-fetch of all 13 PeeringDB types. Post-rollout:
-- Rate budget: ~100 req/cycle × 24 cycles/day vs 57,600/day authenticated ceiling ≈ 4% utilised
-- Bandwidth: few MB per sync, negligible on Fly
-- Memory (observed 2026-04-17, 512 MB VMs): primary peak VmHWM **~84 MB**; 7 replicas steady ~58-59 MB. ~4.5× headroom below the 380 MiB flip trigger. v1.13's 380 MiB was Go runtime heap; OS-level RSS is lower.
+## Empirical findings (2026-04-26 spike)
 
-## Why keep full for now
+Live request: `GET https://www.peeringdb.com/api/poc?since=<30d-ago>&limit=200`
 
-1. **Stale-row cleanup gap.** `internal/sync/worker.go` has `deleteStaleOrganizations`, `deleteStaleFacilities`, etc. that run at the end of every full sync and remove rows that vanished upstream by diffing the fetched set against the DB. Incremental's `since` cursor pulls only modified rows; deletions get missed. Whether PeeringDB's `?since=` response emits tombstones for deleted rows is not confirmed — no conformance test exists.
-2. **No cost pressure.** All three budgets (rate, bandwidth, memory) comfortably within bounds at authenticated full-sync scale.
-3. **Switching is not a flag flip.** Needs a dedicated phase with prerequisites (below).
+Result: 101 rows returned. **96 with `status="ok"`, 5 with `status="deleted"`** (no `pending`). Sample tombstones:
+- `id=80069`, `status="deleted"`, `updated=2026-03-28T17:45:40Z`
+- `id=64287`, `status="deleted"`, `updated=2026-03-30T08:01:49Z`
+- `id=80378`, `status="deleted"`, `updated=2026-03-30T22:02:17Z`
 
-## Trigger conditions that flip the recommendation
+Tombstones have `name=""` (PII scrubbed on delete — GDPR-style soft-delete with field-level scrub). Upstream behaviour confirmed:
 
-Switch to incremental becomes worth implementing when ANY trigger fires:
+- **No `?since`**: returns `status='ok'` only.
+- **With `?since=<ts>`**: returns `status IN (ok, deleted)`, plus `pending` for campus.
 
-- **peak_heap_pressure**: peak heap sustained >380 MiB on authenticated full sync. Watch `/readyz` heap metric or Grafana dashboard.
-- **rate_limit_throttle**: upstream returns 429s despite ~4% utilisation (e.g. new per-endpoint sub-throttle).
-- **sync_duration_pressure**: full sync wall-clock approaches the 1h interval (it shouldn't at current scale, but upstream can grow).
+This matches our existing `applyStatusMatrix` port (`internal/pdbcompat/filter.go:80-94`) of upstream `rest.py:694-727`.
 
-## Prerequisites before flipping (work for the triggering milestone)
+## What this resolves
 
-1. **Conformance test for deletion semantics.** Seed a row via httptest fake upstream, delete it (remove from fixture), run incremental, assert row removed from DB. If `?since=` doesn't emit tombstones, document that a periodic full pass is required and implement a hybrid schedule.
-2. **Hybrid schedule decision.** Options:
-   - 23 × incremental + 1 × full per day (incremental catches modifications, nightly full catches deletions)
-   - 6h full / 4h incremental alternating (faster deletion convergence)
-   - Operator-configurable
-3. **Audit `deleteStale*` + cursor management interaction.** Ensure incremental runs don't advance the cursor past unprocessed deletions; ensure the periodic full pass correctly resets/coexists with the cursor.
+1. ~~"Stale-row cleanup gap" (was: incremental misses deletions)~~ — **resolved.** Tombstones arrive on the same cursor as ordinary updates. Existing upsert builders (`internal/sync/upsert.go`) all chain `.SetStatus(x.Status)`; `OnConflict().UpdateNewValues()` flips `'ok'` → `'deleted'` on receipt. No separate deletion code path required.
+2. ~~"Hybrid schedule decision" (23×incremental + 1×full, etc.)~~ — **unnecessary.** Pure incremental cycles converge on deletions naturally.
+
+## Plumbing already in place
+
+- **Cursor source**: `internal/peeringdb/client.go:174-179` parses upstream `meta.generated` (Unix epoch float).
+- **Cursor advance**: `internal/peeringdb/client.go:156-158` uses the **earliest** `meta.generated` across paginated pages — defensive; prevents the cursor jumping past rows in unprocessed earlier pages.
+- **Cursor persistence**: `internal/sync/worker.go:715-718` `UpsertCursor` stores per-type watermarks in the DB.
+- **Cursor read + fallback**: `internal/sync/worker.go:842-866` `stageOneTypeToScratch` — incremental falls back to full sync when cursor is zero (first sync, or cursor data lost).
+- **Status field threading**: 13 entity upsert builders all chain `.SetStatus(x.Status)`.
+- **Soft-delete tombstone storage**: Phase 68 already migrated 13 `deleteStale*` → `markStaleDeleted*`; rows with `status='deleted'` and `cycleStart` updated timestamp are first-class.
+
+## Remaining work (small phase)
+
+1. **Default flip**. `internal/config/config.go` `PDBPLUS_SYNC_MODE` default `full` → `incremental`. Update CLAUDE.md env var table.
+2. **httptest conformance test (regression guard)**. Stand up a fake upstream that:
+   - Emits a row, lets sync persist it.
+   - Removes the row from `?since=` responses by replacing it with a `status='deleted'` tombstone with bumped `updated`.
+   - Asserts the DB row is flipped to `status='deleted'` and the next anonymous list (no `?since`) excludes it.
+   Empirical behaviour is already confirmed; this is a regression guard.
+3. **`markStaleDeleted*` interaction audit**. On incremental cycles, the diff-pass finds no rows to tombstone (the `?since=` window is partial — most IDs are absent from the fetch). Confirm it's a no-op on incremental, not a bug. Either gate the diff-pass to full sync only, or document the no-op.
+4. **PII handling test**. Tombstones have `name=""`. Confirm `unifold.Fold("")` setters and ent schema constraints accept empty strings on the 6 folded entities (org, network, facility, ix, carrier, campus).
+5. **Cursor recovery story**. If a cursor is lost (DB recreated, replica-cold-boot edge case, operator pgreset), `stageOneTypeToScratch` already falls back to full sync via the `!cursor.IsZero()` gate. Document and test.
+6. **Observability**. Per-cycle metric label `mode={full,incremental}` so dashboards distinguish; sync duration histograms split. Already mostly in place via `pdbplus_sync_operations_total{status}`; add `mode` if not present.
+
+## Out of scope (future work)
+
+- **Tombstone GC** ([SEED-004](./SEED-004-tombstone-gc.md)). Independent of this flip.
+- **Full sync removal**. Keep `full` as an explicit override for first-sync, recovery, and operator escape hatch. The default flips; the mode stays optional.
 
 ## Scope estimate
 
-- 1 small phase (~1-2 plans). Mostly test infrastructure (fake upstream + deletion fixture) + scheduler refactor. Not a major undertaking if triggers force it.
+- 1 quick task or small phase. Default flip + conformance test + audit + observability label = ~3-5 plans of work. Most plumbing exists.
 
 ## References
 
-- Full rationale: `memory/project_sync_mode_decision.md`
+- Empirical spike: this document, `## Empirical findings` section above.
+- Upstream code: `peeringdb_server/rest.py:694-727` (status × since matrix); ported to `internal/pdbcompat/filter.go:80-94`.
+- Memory: `memory/project_sync_mode_decision.md`
 - Milestone context: `.planning/milestones/v1.14-MILESTONE-AUDIT.md`
-- Relevant code: `internal/sync/worker.go` (Sync entry, runSyncCycle, deleteStale* functions, cursor management)
+- Relevant code: `internal/sync/worker.go` (Sync entry, syncFetchPass, stageOneTypeToScratch, markStaleDeleted* functions, cursor management); `internal/peeringdb/client.go` (Generated parsing, paginated cursor advance); `internal/sync/upsert.go` (status threading).
 - Feature flag: `PDBPLUS_SYNC_MODE=full|incremental` in `internal/config/config.go`
