@@ -557,34 +557,126 @@ func TestToSnakeCase(t *testing.T) {
 func TestGenerateIndexes(t *testing.T) {
 	t.Parallel()
 
-	ot := ObjectType{
-		Fields: map[string]FieldDef{
-			"name":   {Type: "string", Required: true},
-			"org_id": {Type: "integer", References: "org"},
-			"asn":    {Type: "integer", Unique: true},
-		},
-	}
+	// Phase 74 D-01: replace the previous hand-maintained allow-list with a
+	// derivation-driven assertion. The expected index set comes from the same
+	// schema/peeringdb.json source the generator consumes; if a future schema
+	// edit introduces a new index rule, this test passes without an allow-list
+	// edit. If generateIndexes accidentally emits a typo'd or non-existent
+	// field name, the structural sanity check in the per-entity loop catches
+	// it because the field will not appear in ot.Fields.
 
-	indexes := generateIndexes("net", ot)
-
-	// Should contain name, org_id, asn, status, and updated (Phase 67).
-	wantIndexes := map[string]bool{
-		"name":    true,
-		"org_id":  true,
-		"asn":     true,
-		"status":  true,
-		"updated": true,
-	}
-
-	for _, idx := range indexes {
-		if !wantIndexes[idx] {
-			t.Errorf("unexpected index %q", idx)
+	// Sub-test 1: legacy unit fixture — proves generateIndexes still produces
+	// the historically-expected set for the "net" minimal fixture. Pinning this
+	// guards against accidental rule changes (e.g. someone removing the asn
+	// special-case for net).
+	t.Run("legacy_net_fixture", func(t *testing.T) {
+		t.Parallel()
+		ot := ObjectType{
+			Fields: map[string]FieldDef{
+				"name":   {Type: "string", Required: true},
+				"org_id": {Type: "integer", References: "org"},
+				"asn":    {Type: "integer", Unique: true},
+			},
 		}
-		delete(wantIndexes, idx)
+		got := generateIndexes("net", ot)
+		want := []string{"asn", "name", "org_id", "status", "updated"}
+		if !slicesEqual(got, want) {
+			t.Errorf("generateIndexes(net, fixture) = %v, want %v", got, want)
+		}
+		// ExpectedIndexesFor must agree with generateIndexes — they encode the
+		// same rules and must never drift.
+		exp := ExpectedIndexesFor("net", ot)
+		if !slicesEqual(got, exp) {
+			t.Errorf("ExpectedIndexesFor(net) = %v, want match generateIndexes = %v", exp, got)
+		}
+	})
+
+	// Sub-test 2: per-entity drive from schema/peeringdb.json — derivation
+	// proper. Asserts that every index emitted for every real entity refers to
+	// a field that actually exists, OR to one of the always-on schema fields
+	// (status, updated), OR to a documented apiPath-special case.
+	t.Run("per_entity_from_schema_source", func(t *testing.T) {
+		t.Parallel()
+		schemaPath := filepath.Join("..", "..", "schema", "peeringdb.json")
+		raw, err := os.ReadFile(schemaPath)
+		if err != nil {
+			t.Fatalf("reading %s: %v", schemaPath, err)
+		}
+		var sch Schema
+		if err := json.Unmarshal(raw, &sch); err != nil {
+			t.Fatalf("unmarshalling %s: %v", schemaPath, err)
+		}
+		if len(sch.ObjectTypes) == 0 {
+			t.Fatal("schema/peeringdb.json contains no ObjectTypes — schema source missing or malformed")
+		}
+
+		// Always-on indexes that may not appear as fields in the schema JSON
+		// but are appended unconditionally by generateIndexes.
+		alwaysOn := map[string]bool{"status": true, "updated": true}
+
+		// Documented apiPath-special-case indexes (mirrors the switch in
+		// generateIndexes). Keep this set explicit so a future addition forces
+		// the maintainer to update both sides.
+		apiPathSpecials := map[string]map[string]bool{
+			"net":   {"asn": true},
+			"ixpfx": {"prefix": true},
+			"poc":   {"role": true},
+		}
+
+		for apiPath, ot := range sch.ObjectTypes {
+			t.Run(apiPath, func(t *testing.T) {
+				t.Parallel()
+
+				got := generateIndexes(apiPath, ot)
+				exp := ExpectedIndexesFor(apiPath, ot)
+
+				// Generator and expectation must agree at the slice level.
+				if !slicesEqual(got, exp) {
+					t.Errorf("generateIndexes(%s) = %v, ExpectedIndexesFor(%s) = %v — must match", apiPath, got, apiPath, exp)
+				}
+
+				// Structural sanity: every emitted index is either an actual
+				// field, an always-on synthetic, or a documented special case.
+				specials := apiPathSpecials[apiPath]
+				for _, idx := range got {
+					_, isField := ot.Fields[idx]
+					if isField {
+						continue
+					}
+					if alwaysOn[idx] {
+						continue
+					}
+					if specials[idx] {
+						continue
+					}
+					t.Errorf("entity %q: index %q refers to no field in schema, is not always-on (status/updated), and is not a documented apiPath special-case — likely a typo or stale rule", apiPath, idx)
+				}
+
+				// Sort + dedup invariant: the result must be sorted ascending
+				// and contain no duplicates.
+				for i := 1; i < len(got); i++ {
+					if got[i-1] >= got[i] {
+						t.Errorf("entity %q: indexes not strictly ascending: %v", apiPath, got)
+						break
+					}
+				}
+			})
+		}
+	})
+}
+
+// slicesEqual returns true when a and b contain the same elements in the
+// same order.
+func slicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
 	}
-	for missing := range wantIndexes {
-		t.Errorf("missing expected index %q", missing)
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
 	}
+	return true
 }
 
 func TestGenerateTypesFile(t *testing.T) {
