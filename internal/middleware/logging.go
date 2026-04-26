@@ -34,6 +34,16 @@ func (rw *responseWriter) Unwrap() http.ResponseWriter {
 	return rw.ResponseWriter
 }
 
+// accessLogSkipPaths lists paths that bypass the per-request access log.
+// Fly Proxy hits /healthz / /readyz once per ~15s on every machine; emitting
+// an INFO line per probe drowned the access log (87% of all log volume in
+// the 24h sample taken on 2026-04-26). Skipping here keeps the rest of the
+// access-log surface (real traffic + 404 scanner probes) intact.
+var accessLogSkipPaths = map[string]struct{}{
+	"/healthz": {},
+	"/readyz":  {},
+}
+
 // Logging returns middleware that logs each HTTP request with method, path, status,
 // duration, and trace context (trace_id, span_id) when available.
 // Uses structured slog per OBS-1, OBS-5 with LogAttrs for attribute-based API.
@@ -43,6 +53,10 @@ func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 			start := time.Now()
 			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 			next.ServeHTTP(wrapped, r)
+
+			if _, skip := accessLogSkipPaths[r.URL.Path]; skip {
+				return
+			}
 
 			spanCtx := trace.SpanContextFromContext(r.Context())
 			attrs := []slog.Attr{

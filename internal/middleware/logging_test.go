@@ -152,6 +152,66 @@ func TestLogging_Flush(t *testing.T) {
 	}
 }
 
+func TestLogging_SkipsHealthAndReady(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "healthz suppressed", path: "/healthz"},
+		{name: "readyz suppressed", path: "/readyz"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ch := &captureHandler{}
+			logger := slog.New(ch)
+
+			inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
+			handler := middleware.Logging(logger)(inner)
+
+			req := httptest.NewRequest("GET", tc.path, nil)
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+
+			ch.mu.Lock()
+			defer ch.mu.Unlock()
+			if got := len(ch.records); got != 0 {
+				t.Errorf("expected 0 access log records for %s, got %d", tc.path, got)
+			}
+		})
+	}
+}
+
+// TestLogging_NonSkippedPathStillLogs guards against accidentally extending
+// the skip set to swallow real traffic.
+func TestLogging_NonSkippedPathStillLogs(t *testing.T) {
+	t.Parallel()
+
+	ch := &captureHandler{}
+	logger := slog.New(ch)
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := middleware.Logging(logger)(inner)
+
+	req := httptest.NewRequest("GET", "/api/net", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	ch.mu.Lock()
+	defer ch.mu.Unlock()
+	if got := len(ch.records); got != 1 {
+		t.Fatalf("expected 1 record for /api/net, got %d", got)
+	}
+}
+
 func TestLogging_Unwrap(t *testing.T) {
 	t.Parallel()
 
