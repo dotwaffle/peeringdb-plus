@@ -5,11 +5,11 @@
 // https://peeringdb-plus.fly.dev) for capacity validation, dashboard
 // warmup, and load reproduction.
 //
-// SAFETY: this binary is build-tag-isolated behind `//go:build
-// loadtest` so `go build ./...`, `go test ./...`, and CI never
-// compile or run it. NEVER point --base at https://www.peeringdb.com
-// — upstream PeeringDB enforces 1 req/hour per IP and will block
-// your address.
+// SAFETY: this binary is build-tag-isolated (see the build
+// constraint at the top of every file in this package) so
+// `go build ./...`, `go test ./...`, and CI never compile or run
+// it. NEVER point --base at https://www.peeringdb.com — upstream
+// PeeringDB enforces 1 req/hour per IP and will block your address.
 //
 // Three modes are supported:
 //
@@ -47,7 +47,7 @@ enforces a 1-request-per-hour rate limit per IP address and will
 block your IP if you exceed it. This tool is for the MIRROR only.
 
 Do NOT run this tool from CI. It is intentionally build-tag-isolated
-(//go:build loadtest) so that go build ./... and go test ./... ignore it.
+(loadtest tag) so that go build ./... and go test ./... ignore it.
 
 `
 
