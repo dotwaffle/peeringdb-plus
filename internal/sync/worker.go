@@ -812,7 +812,7 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 	fromIncremental = make(map[string]bool, len(steps))
 
 	for _, step := range steps {
-		w.logger.LogAttrs(ctx, slog.LevelInfo, "fetching",
+		w.logger.LogAttrs(ctx, slog.LevelDebug, "fetching",
 			slog.String("type", step.name),
 			slog.String("mode", string(mode)),
 		)
@@ -821,7 +821,7 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 
 		cursor, cursorErr := GetCursor(ctx, w.db, step.name)
 		if cursorErr != nil {
-			w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to get cursor, using full sync",
+			w.logger.LogAttrs(ctx, slog.LevelInfo, "failed to get cursor, using full sync",
 				slog.String("type", step.name),
 				slog.Any("error", cursorErr),
 			)
@@ -968,7 +968,7 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 		// peak heap on the 512 MB fly.toml VM.
 		runtime.GC()
 
-		w.logger.LogAttrs(ctx, slog.LevelInfo, "upserted",
+		w.logger.LogAttrs(ctx, slog.LevelDebug, "upserted",
 			slog.String("type", step.name),
 			slog.Int("count", count),
 		)
@@ -1398,7 +1398,7 @@ func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType
 		pdbotel.SyncTypeDeleted.Add(ctx, int64(marked), typeAttr)
 
 		if marked > 0 {
-			w.logger.LogAttrs(ctx, slog.LevelInfo, "marked stale deleted",
+			w.logger.LogAttrs(ctx, slog.LevelDebug, "marked stale deleted",
 				slog.String("type", step.name),
 				slog.Int("marked", marked),
 			)
@@ -1449,7 +1449,7 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 		return nil
 	}
 	if rateLimited(err) {
-		w.logger.LogAttrs(ctx, slog.LevelWarn, "sync rate-limited, deferring to next scheduled tick",
+		w.logger.LogAttrs(ctx, slog.LevelInfo, "sync rate-limited, deferring to next scheduled tick",
 			slog.Any("error", err),
 		)
 		return err
@@ -1481,7 +1481,7 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 		// If the NEXT attempt also hit the rate limit, stop retrying for
 		// the same reason as the initial short-circuit above.
 		if rateLimited(err) {
-			w.logger.LogAttrs(ctx, slog.LevelWarn, "sync rate-limited during retry, deferring",
+			w.logger.LogAttrs(ctx, slog.LevelInfo, "sync rate-limited during retry, deferring",
 				slog.Int("attempt", attempt+1),
 				slog.Any("error", err),
 			)
@@ -1574,7 +1574,7 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 
 	lastSync, err := GetLastSuccessfulSyncTime(ctx, w.db)
 	if err != nil {
-		w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to get last sync time",
+		w.logger.LogAttrs(ctx, slog.LevelDebug, "failed to get last sync time",
 			slog.Any("error", err),
 		)
 	}

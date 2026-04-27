@@ -120,7 +120,7 @@ func checkSync(ctx context.Context, db *sql.DB, staleThreshold time.Duration, lo
 	}
 
 	if status == nil {
-		logger.LogAttrs(ctx, slog.LevelWarn,
+		logger.LogAttrs(ctx, slog.LevelDebug,
 			"readyz no sync completed",
 			slog.String("component", "sync"),
 		)
@@ -145,7 +145,7 @@ func checkSync(ctx context.Context, db *sql.DB, staleThreshold time.Duration, lo
 			return false
 		}
 		if lastCompleted == nil {
-			logger.LogAttrs(ctx, slog.LevelWarn,
+			logger.LogAttrs(ctx, slog.LevelDebug,
 				"readyz no sync completed",
 				slog.String("component", "sync"),
 			)
