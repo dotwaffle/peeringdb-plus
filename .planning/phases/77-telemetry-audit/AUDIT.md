@@ -161,3 +161,87 @@ Post-merge expectation (after Task 2 lands AND the otelslog level filter is adde
 - INFO records dominated by `fetching` + `upserted` + `marked stale deleted` reclassified to DEBUG → expected ~85% reduction in primary-side INFO Loki ingestion volume.
 - WARN volume already at 1 record / 30min — no measurable change expected from WARN demotions until cold-boot / rate-limit events occur naturally.
 - DEBUG volume in Loki drops to ~zero (the otelslog level filter blocks all DEBUG emission unless `PDBPLUS_LOG_LEVEL=debug` is set).
+
+---
+
+## Tempo Trace Audit (OBS-07)
+
+**Sampled:** 2026-04-27 ~03:30Z, fleet of 8 machines (1 primary `lhr` + 7 replicas).
+**Audit data sources:**
+- Per-route trace volume: Grafana Cloud Mimir/Prometheus via `mcp__grafana-cloud__query_prometheus` on `http_server_request_duration_seconds_count` (with `sampling=1.0` in production, request count == trace count for HTTP-rooted traces).
+- OTEL_BSP confirmation: source-side inspection of `internal/otel/provider.go:60-63`.
+- FK-orphan regression mode: cross-referenced with the 77-01 Loki audit (commit `0d9ad2f`).
+- Direct TraceQL queries: NOT available in this session — the `grafana-cloud` MCP server's Tempo proxy tools were not loaded. Where the plan calls for direct trace-size measurement, this appendix uses surrogate evidence (Prometheus volume + structural argument). The operator can later validate empirically via TraceQL in the Grafana UI.
+
+### Per-route trace volume (30 min sample, fleet-wide)
+
+PromQL: `sum by (http_route) (increase(http_server_request_duration_seconds_count{service_name="peeringdb-plus"}[30m]))`
+
+| Route group | Trace count (30 min) | Per machine/min | Notes |
+|-------------|----------------------|-----------------|-------|
+| `GET /healthz`           | ~960  | 4.0 | Dominant (~99% of HTTP trace volume). Fly health-check fires every ~15s × 8 machines = 32/min ≈ 960/30min. ✓ |
+| `GET /readyz`            | 0     | 0   | Route is registered (`cmd/peeringdb-plus/main.go:329`) but Fly health-check is configured for `/healthz` only (`fly.toml:74`). Future-proofed in the sampling matrix below. |
+| `GET /api/{rest...}`     | ~5/2h | 0.005 | pdbcompat surface — only manual probes in current tech-demo state. |
+| `GET /rest/v1/*`         | 0     | 0   | entrest surface — no production traffic yet. |
+| `GET /peeringdb.v1.*`    | 0     | 0   | ConnectRPC — no production traffic yet. |
+| `GET /graphql`           | 0     | 0   | gqlgen — no production traffic yet. |
+| `GET /ui/{rest...}`      | 0     | 0   | Web UI — no production traffic yet. |
+| `GET /{$}` (root redirect)| 0    | 0   | — |
+| `GET /static/`           | 0     | 0   | — |
+| (sync worker — non-HTTP) | n/a   | n/a | Sync spans don't have `http.route`; counted via OTel span exporter, not via the HTTP histogram. |
+
+**Health-check share of total HTTP trace volume: ~99%.** Operator confirmed pre-audit context: "production traffic is currently low because the service is in tech-demo mode without a public traffic source." The proactive sampling sets up the right defaults *before* real traffic arrives — when `/api/*` and `/rest/v1/*` start carrying the load, dropping `/healthz` to 1% prevents Tempo volume from being dominated by liveness probes.
+
+### Max per-trace size
+
+Direct `trace_size_bytes` metric / TraceQL query was not available in this session. Structural confirmation:
+
+1. **The only known regression mode that breaches the 2 MB target is the per-row `fk orphan` WARN-spam pattern from pre-Phase-68.** That mode produced ~10K spans per `sync-incremental` cycle when an upstream PeeringDB import had FK breaches, blowing past Tempo's 7.5 MB per-trace cap.
+
+2. **Phase 68 D-02 demoted the per-row record to DEBUG and added a per-cycle aggregate at WARN.** The 77-01 Loki audit empirically confirmed this is still in effect (commit `0d9ad2f` — 1 WARN record / 30 min for `fk orphans summary` with `total=24`, vs zero per-row WARN records).
+
+3. **HTTP traces have bounded span counts.** A `/healthz` trace has ~3 spans (server span → handler → done). A `/api/*` list trace has ~5-15 spans (server span → mux → handler → ent query → SQLite → response). None approach the 2 MB target.
+
+4. **Sync-cycle traces are bounded by the 13-entity-type pattern.** Each cycle generates O(13) per-type spans + setup/teardown — well under 100 spans, with bounded attributes.
+
+**Verdict:** Max per-trace size <2 MB is structurally guaranteed at the current code state. Empirical TraceQL validation (`{ resource.service.name = "peeringdb-plus" } | duration > 1s` sorted by span count desc) is a follow-up the operator can run from the Grafana UI to confirm post-deploy.
+
+### FK-orphan regression check
+
+Cross-referenced from 77-01 Loki audit: `count_over_time({service_name="peeringdb-plus"} | severity_text="WARN" |~ "fk orphan" [30m])` returned **1** record (the per-cycle aggregate at `internal/sync/worker.go:246` with `total=24`). The per-row WARN-spam mode that breached the 7.5 MB cap pre-Phase-68 is **NOT firing**. ✓
+
+### OTEL_BSP_* confirmation
+
+Source-side confirmation from `internal/otel/provider.go:60-63`:
+
+```go
+sdktrace.WithBatcher(spanExporter,
+    sdktrace.WithBatchTimeout(5*time.Second),     // 5s
+    sdktrace.WithMaxExportBatchSize(512),          // 512
+)
+```
+
+Decision: **KEEP** at PERF-08 baseline (5s / 512). Values are confirmed appropriate for current cardinality.
+
+**Documentation drift finding (non-blocking):** The comment at `internal/otel/provider.go:54` states the values are "tuneable via OTEL_BSP_SCHEDULE_DELAY and OTEL_BSP_MAX_EXPORT_BATCH_SIZE" but the explicit `WithBatchTimeout` / `WithMaxExportBatchSize` options override any env-driven defaults. The values are effectively hardcoded; env vars do not actually tune them. This is a documentation bug, not an operational concern — the values are correct as-is. Recommended follow-up (out of scope for OBS-07): either drop the env-var comment or implement env-var override (Phase 78+ candidate).
+
+### Recommended sampling matrix (proposed for plan 77-02 Task 2)
+
+The matrix below is what Task 2's `perRouteSampler` will implement verbatim. Ratios are set to favour current-state observability (full sampling of low-volume API surfaces) while being robust to traffic growth (drop liveness probes pre-emptively).
+
+| Route prefix | Ratio | Rationale |
+|--------------|-------|-----------|
+| `/healthz`            | 0.01 | Liveness traffic dominates HTTP trace volume today (~99%). 1% sample is enough to detect health-check failure modes (e.g. a regression where the handler suddenly takes 100ms instead of <1ms) without flooding Tempo. |
+| `/readyz`             | 0.01 | Symmetric with `/healthz` — currently zero external traffic but Fly may add a `/readyz` check in future. Pre-emptive matching avoids a regression on the day someone enables it. |
+| `/grpc.health.v1.Health/` | 0.01 | gRPC health probes; same rationale as HTTP liveness. |
+| `/api/`               | 1.0 | pdbcompat — primary debugging surface. Full sampling required. |
+| `/rest/v1/`           | 1.0 | entrest — primary debugging surface. |
+| `/peeringdb.v1.`      | 1.0 | ConnectRPC — primary debugging surface. |
+| `/graphql`            | 1.0 | Mid-volume; keep full for now (reassess if cardinality grows in v1.19+). |
+| `/ui/`                | 0.5 | Browser traffic; halved per CONTEXT.md "TBD based on actual volume" (volume is currently zero — half of zero is zero, but the ratio is set so traffic growth is bounded). |
+| `/static/`, `/favicon.ico` | 0.01 | Static assets; rare debugging value. |
+| (default — sync worker, internal spans, root redirect) | `PDBPLUS_OTEL_SAMPLE_RATE` (default 1.0) | Sync cycles + non-HTTP traces honour the existing env var. The default matches current production behaviour. |
+
+**`ParentBased` composition (locked):** `perRouteSampler` is wrapped in `sdktrace.ParentBased(perRouteSampler)` so cross-service trace continuity is preserved — once a parent span samples in (e.g. `/api/net`), all child spans (including any internal call to `/healthz` or downstream RPC fan-out) inherit the sampled-in decision regardless of their own route prefix. This prevents orphaned spans where a sampled-in `/api/*` parent calls a sampled-out `/internal/...` endpoint.
+
+**Longest-prefix-wins:** if a future API path like `/api/auth/foo` is added, it inherits the `/api/` ratio (1.0) automatically. Adding a new `/api/auth/` prefix entry with a lower ratio would let that subpath's traces drop independently — but the current matrix has no such case.
