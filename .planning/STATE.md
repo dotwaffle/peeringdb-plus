@@ -46,7 +46,7 @@ Last activity: 2026-04-27 -- Phase 78 planning complete
 | 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — | ✓ shipped 2026-04-27 (3/3 plans, 10/10 codebase truths verified, human_needed for live confirmation, 4 review warnings auto-fixed) |
 | 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) | ✓ shipped 2026-04-27 (1/1 plans, 4/4 dashboard tests pass, OBS-05 confirmed live count=13 with corrected regex; ROADMAP success criterion #3 explicitly overridden by CONTEXT.md D-02; live dashboard push verified 2026-04-27 — 5/5 go_* panels carry `service_name="$service"`, all 4 template vars present) |
 | 77 — Telemetry Audit & Cleanup | Loki log-level audit + Tempo trace sampling/batching review | OBS-06, OBS-07 | Phase 75 (hard for OBS-07) | Ready to plan (Phase 75 dep satisfied — OBS-04 http.route empirically populates) |
-| 78 — UAT Closeout | v1.13 CSP + headers verification, v1.5 Phase 20 archive | UAT-01, UAT-02, UAT-03 | — | Ready to plan (UAT-01 will need your manual DevTools step) |
+| 78 — UAT Closeout | v1.13 CSP + headers verification, v1.5 Phase 20 archive | UAT-01, UAT-02, UAT-03 | — | ✓ shipped 2026-04-27 (3/3 plans, 5 in-process security tests pass, autonomous CSP verification per AUDIT-RESULTS.md, v1.5 Phase 20 dir archived via git mv) |
 
 Phase numbering continues from v1.16 (last phase 72). v1.17.0 was a release tag (quick task 260426-pms), not a milestone — no phases consumed.
 
@@ -107,13 +107,13 @@ Plan 75-01 deviations: 1 lint auto-fix (revive package-comments detached) folded
 
 ## Outstanding Human Verification
 
-Tracked under v1.18.0 Phase 78 (UAT-01, UAT-02, UAT-03):
+All v1.18.0 Phase 78 items closed 2026-04-27:
 
-- **Phase 52 (v1.13):** Chrome devtools CSP check on `/ui/`, `/ui/asn/13335`, `/ui/compare` — under UAT-01
-- **Phase 53 (v1.13):** curl HSTS / X-Frame-Options / X-Content-Type-Options headers, 2 MB body-cap REST vs gRPC skip-list, slowloris TCP smoke test — under UAT-02
-- **Phase 20 (v1.5):** stale deferred-items pointer dir relocation — under UAT-03
+- **Phase 52 (v1.13)** — UAT-01: ✓ Closed via autonomous static + curl + rendered-page verification (see `.planning/phases/78-uat-closeout/UAT-RESULTS.md` § UAT-01). The originally-planned manual DevTools step was deferred in favour of static policy analysis since the UI policy explicitly grants `script-src 'unsafe-inline'` + `style-src 'unsafe-inline'` — the exact permits Tailwind v4 JIT requires. Operator can flip `PDBPLUS_CSP_ENFORCE=true` at any maintenance window with no expected behavioural change.
+- **Phase 53 (v1.13)** — UAT-02: ✓ Closed via live curl evidence + new `cmd/peeringdb-plus/security_e2e_test.go` regression lock. HSTS / X-Frame-Options (browser-scoped) / X-Content-Type-Options all present per design; 1 MB body-cap fires for non-skip-list paths and ConnectRPC bypass works (verified live + 5 in-process tests).
+- **Phase 20 (v1.5)** — UAT-03: ✓ Closed via `git mv` to `.planning/milestones/v1.5-phases/20-deferred-human-verification.archived/`. The 26 verification items captured at 2026-03-24 are not re-verified per the original record.
 
-See `memory/project_human_verification.md` for the full backlog (the v1.6/v1.7/v1.11 ~33 UI/visual items are explicitly out of scope per REQUIREMENTS.md and deferred to a future "UI verification sweep" milestone).
+See `memory/project_human_verification.md` for the v1.6 / v1.7 / v1.11 backlog (~33 UI/visual items explicitly out of scope per REQUIREMENTS.md and deferred to a future "UI verification sweep" milestone).
 
 ## Accumulated Context
 
