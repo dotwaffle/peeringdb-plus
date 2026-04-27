@@ -24,6 +24,7 @@ import (
 	"fmt"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
 // InitialObjectCounts runs a one-shot Count(ctx) against each of the 13
@@ -52,7 +53,21 @@ import (
 // rows the dashboard wants to see in "Total Objects" until tombstone GC
 // ships (SEED-004 dormant). If a future requirement wants live-only
 // counts, that's a separate metric.
+//
+// Tier elevation (quick task 260427-ojm): the input ctx is wrapped with
+// privctx.WithTier(ctx, privctx.TierUsers) before any Count(...) call.
+// Without this, the Poc privacy policy (ent/schema/poc_policy.go)
+// filters out rows where visible="Users" because TierPublic is the
+// fail-closed default — and the gauge would then under-report Poc by
+// however many private contacts exist (the same value flips between
+// "filtered" and "raw upserted-row count" depending on whether the cache
+// was last primed by InitialObjectCounts vs OnSyncComplete, hence the
+// "poc-count-doubling-halving" symptom). The bypass-audit invariant
+// (internal/sync/bypass_audit_test.go) is preserved: we use
+// privctx.WithTier — the supported non-sync tier-elevation channel —
+// not privacy.DecisionContext(ctx, privacy.Allow).
 func InitialObjectCounts(ctx context.Context, client *ent.Client) (map[string]int64, error) {
+	ctx = privctx.WithTier(ctx, privctx.TierUsers)
 	counts := make(map[string]int64, 13)
 
 	type counter struct {

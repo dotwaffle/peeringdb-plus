@@ -27,7 +27,7 @@ import (
 func TestOnSyncComplete_Signature(t *testing.T) {
 	t.Parallel()
 
-	wantSig := reflect.TypeOf(func(ctx context.Context, syncTime time.Time) {})
+	wantSig := reflect.TypeOf(func(_ context.Context, _ time.Time) {})
 
 	cfgType := reflect.TypeOf(pdbsync.WorkerConfig{})
 	field, ok := cfgType.FieldByName("OnSyncComplete")

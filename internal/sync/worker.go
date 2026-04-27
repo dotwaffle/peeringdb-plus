@@ -63,13 +63,23 @@ var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 
 type WorkerConfig struct {
 	IsPrimary func() bool // live primary detection; nil defaults to always-primary
 	SyncMode  config.SyncMode
-	// OnSyncComplete is called after a successful sync with per-type object
-	// counts and the completion timestamp. The timestamp is the same
-	// value persisted into the sync_status row by recordSuccess, so
-	// downstream consumers (e.g. the caching middleware ETag setter wired
-	// in cmd/peeringdb-plus/main.go for PERF-07) stay in lock-step with
-	// the database without an extra round-trip.
-	OnSyncComplete func(counts map[string]int, syncTime time.Time)
+	// OnSyncComplete is called after a successful sync with the worker's
+	// ctx and the completion timestamp. The timestamp is the same value
+	// persisted into the sync_status row by recordSuccess, so downstream
+	// consumers (e.g. the caching middleware ETag setter wired in
+	// cmd/peeringdb-plus/main.go for PERF-07) stay in lock-step with the
+	// database without an extra round-trip.
+	//
+	// Quick task 260427-ojm: the per-cycle upsert-count map (the old
+	// `counts map[string]int` arg) was removed. It was the wrong value to
+	// feed into the pdbplus_data_type_count gauge cache — for incremental
+	// syncs it was a delta, and for Poc it never agreed with the
+	// privacy-filtered Count(ctx) used at startup ("doubling-halving").
+	// Consumers should run pdbsync.InitialObjectCounts(ctx, client) on
+	// the supplied ctx if they want live row counts, or query
+	// sync_status (which still persists the raw upsert deltas) if they
+	// want cycle telemetry.
+	OnSyncComplete func(ctx context.Context, syncTime time.Time)
 
 	// SyncMemoryLimit is the peak Go heap ceiling (bytes) checked
 	// after Phase A fetch completes and before the ent.Tx opens. If
@@ -752,7 +762,10 @@ func (w *Worker) recordSuccess(
 	}
 	w.synced.Store(true)
 	if w.config.OnSyncComplete != nil {
-		w.config.OnSyncComplete(objectCounts, completedAt)
+		// 260427-ojm: pass the worker ctx instead of the per-cycle
+		// upsert-count map. The callback decides what to compute (typically
+		// pdbsync.InitialObjectCounts for live row counts).
+		w.config.OnSyncComplete(ctx, completedAt)
 	}
 }
 
