@@ -24,6 +24,7 @@ import (
 	"fmt"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
 // InitialObjectCounts runs a one-shot Count(ctx) against each of the 13
@@ -52,7 +53,38 @@ import (
 // rows the dashboard wants to see in "Total Objects" until tombstone GC
 // ships (SEED-004 dormant). If a future requirement wants live-only
 // counts, that's a separate metric.
+//
+// Tier elevation: ctx is stamped with TierUsers via privctx.WithTier
+// before each Count call. Without this, Poc.Policy() (the only entity
+// with a row-level Privacy policy) would filter visible!="Public" rows
+// out of this counter while the OnSyncComplete writer — which runs
+// under privacy.DecisionContext(ctx, privacy.Allow) — counts every
+// row. The cross-writer disagreement specifically on POC produced the
+// `pdbplus_data_type_count{type="poc"}` 2x/0.5x oscillation that was
+// visible on the Grafana "Object Counts Over Time" panel: replicas
+// (which only ever run InitialObjectCounts) held the public-only count
+// `P` while the primary's cache flipped between `T ≈ 2P` (just after a
+// full sync) and tiny incremental deltas, and `max by(type)` across
+// the 8-instance fleet alternated between `T` and `P` accordingly.
+// See .planning/debug/poc-count-doubling-halving.md for the full
+// analysis.
+//
+// We use privctx.WithTier(ctx, TierUsers) rather than
+// privacy.DecisionContext(ctx, privacy.Allow) deliberately — the
+// internal/sync/bypass_audit_test.go invariant restricts privacy.Allow
+// to exactly one production call site (Worker.Sync). TierUsers is the
+// documented mechanism for "non-sync tier elevation" (see
+// internal/sync/bypass_audit_test.go:208 and internal/privctx/privctx.go
+// godoc) and produces the same effect on Poc.Policy without diluting
+// the bypass audit.
 func InitialObjectCounts(ctx context.Context, client *ent.Client) (map[string]int64, error) {
+	// Tier-elevate so Poc.Policy admits visible="Users" rows. Symmetry
+	// with the OnSyncComplete writer: both must count the same row set
+	// or the gauge oscillates between writer values across the
+	// 8-instance fleet (replicas hold this value forever since they
+	// never sync).
+	ctx = privctx.WithTier(ctx, privctx.TierUsers)
+
 	counts := make(map[string]int64, 13)
 
 	type counter struct {

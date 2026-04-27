@@ -88,3 +88,42 @@ func TestInitialObjectCounts_KeyParityWithSyncSteps(t *testing.T) {
 		}
 	}
 }
+
+// TestInitialObjectCounts_PocPolicyBypass locks the regression fix for the
+// `pdbplus_data_type_count{type="poc"}` 2x/0.5x oscillation documented in
+// .planning/debug/poc-count-doubling-halving.md.
+//
+// seed.Full creates 3 POCs: 1 visible="Public" (ID 500) + 2 visible="Users"
+// (IDs 9000, 9001). Without the privctx.TierUsers stamp inside
+// InitialObjectCounts, the Poc.Policy() filter would drop the 2 Users-tier
+// rows from the count (TierPublic is the fail-closed default for any
+// un-stamped context per privctx.TierFrom), yielding 1 instead of 3.
+//
+// The OnSyncComplete writer counts all 3 rows because it runs under
+// privacy.DecisionContext(ctx, privacy.Allow). If the two writers
+// disagree, the gauge cache holds different values on instances that
+// never sync (replicas) versus instances that just synced (primary),
+// and `max by(type)` across the 8-instance fleet oscillates between
+// the two values every sync cycle. Locking POC count = 3 here proves
+// the startup primer is symmetric with the sync-completion writer.
+func TestInitialObjectCounts_PocPolicyBypass(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seed.Full(t, client)
+
+	counts, err := InitialObjectCounts(context.Background(), client)
+	if err != nil {
+		t.Fatalf("InitialObjectCounts: %v", err)
+	}
+
+	// 3 = 1 Public (Result.Poc, ID 500) + 2 Users (Result.UsersPoc 9000,
+	// Result.UsersPoc2 9001) per seed.Full's mixed-visibility contract
+	// locked by TestFull_HasUsersPocs in the seed package.
+	if got := counts["poc"]; got != 3 {
+		t.Fatalf("counts[\"poc\"] = %d, want 3 (1 Public + 2 Users); "+
+			"a value of 1 means the Poc.Policy() filter still applies — "+
+			"InitialObjectCounts must stamp privctx.TierUsers before Count "+
+			"to match the OnSyncComplete writer's privacy.DecisionContext "+
+			"bypass. See .planning/debug/poc-count-doubling-halving.md.", got)
+	}
+}
