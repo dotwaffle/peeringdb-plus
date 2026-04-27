@@ -76,6 +76,16 @@ func InitialObjectCounts(ctx context.Context, client *ent.Client) (map[string]in
 	}
 
 	for _, q := range queries {
+		// Honour ctx cancellation between queries so a SIGTERM mid-boot
+		// (e.g. Fly killing a stuck instance during cold-start) unwinds
+		// promptly rather than running all 13 sequential SQLite COUNT(*)
+		// calls to completion. The SQLite driver does check ctx, but on
+		// a FUSE-backed LiteFS mount that's still hydrating, syscall
+		// blocking can swallow cancellation for seconds at a time.
+		// REVIEW WR-02.
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("count %s: %w", q.name, err)
+		}
 		n, err := q.run(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("count %s: %w", q.name, err)
