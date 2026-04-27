@@ -37,8 +37,6 @@ Last activity: 2026-04-27 -- Phase 77 execution started
 - `/gsd-autonomous --from 77` — runs all remaining phases (77 → 78 → audit → complete → cleanup) without further checkpoints except Phase 78's UAT-01 manual DevTools step.
 - Phase-by-phase: `/gsd-plan-phase 77` then `/gsd-execute-phase 77` then `/gsd-plan-phase 78` etc.
 
-**Outstanding manual step from Phase 76:** Push the updated `deploy/grafana/dashboards/pdbplus-overview.json` (commit c2abc93) to the operator's Grafana stack so the new $service template var + 5 panel filter sweeps render in the live UI. The repo JSON is the source of truth (`deploy/grafana/alerts/README.md` documents the same convention for alerts: manual operator-applied via mimirtool / grizzly / UI import). Local dashboard tests pass against the file; the live Grafana copy is still the unfiltered version until pushed.
-
 ## v1.18.0 Phase Map
 
 | Phase | Goal | Requirements | Depends on | Status |
@@ -46,7 +44,7 @@ Last activity: 2026-04-27 -- Phase 77 execution started
 | 73 — Code Defect Fixes | Fix campus inflection 500 + drop `poc.role` NotEmpty validator | BUG-01, BUG-02 | — | ✓ shipped 2026-04-26 |
 | 74 — Test & CI Debt | Three deferred test failures + 5 lint findings cleared | TEST-01, TEST-02, TEST-03 | — | ✓ shipped 2026-04-27 (3/3 plans, 13/13 verified, 3 review warnings auto-fixed) |
 | 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — | ✓ shipped 2026-04-27 (3/3 plans, 10/10 codebase truths verified, human_needed for live confirmation, 4 review warnings auto-fixed) |
-| 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) | ✓ shipped 2026-04-27 (1/1 plans, 4/4 dashboard tests pass, OBS-05 confirmed live count=13 with corrected regex; ROADMAP success criterion #3 explicitly overridden by CONTEXT.md D-02; needs manual `pdbplus-overview.json` push to operator Grafana stack) |
+| 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) | ✓ shipped 2026-04-27 (1/1 plans, 4/4 dashboard tests pass, OBS-05 confirmed live count=13 with corrected regex; ROADMAP success criterion #3 explicitly overridden by CONTEXT.md D-02; live dashboard push verified 2026-04-27 — 5/5 go_* panels carry `service_name="$service"`, all 4 template vars present) |
 | 77 — Telemetry Audit & Cleanup | Loki log-level audit + Tempo trace sampling/batching review | OBS-06, OBS-07 | Phase 75 (hard for OBS-07) | Ready to plan (Phase 75 dep satisfied — OBS-04 http.route empirically populates) |
 | 78 — UAT Closeout | v1.13 CSP + headers verification, v1.5 Phase 20 archive | UAT-01, UAT-02, UAT-03 | — | Ready to plan (UAT-01 will need your manual DevTools step) |
 
