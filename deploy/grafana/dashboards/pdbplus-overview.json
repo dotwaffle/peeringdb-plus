@@ -201,34 +201,15 @@
       "panels": []
     },
     {
-      "id": 2,
-      "type": "text",
-      "title": "Sync Health Guide",
-      "description": "Documentation for sync health metrics",
-      "gridPos": {
-        "h": 3,
-        "w": 24,
-        "x": 0,
-        "y": 1
-      },
-      "options": {
-        "mode": "markdown",
-        "content": "## Sync Health\n\nMonitors the PeeringDB data synchronization pipeline.\n\n- **Data Freshness** shows seconds since last successful sync. Green (<1h) is healthy, yellow (1-2h) means sync may be delayed, red (>2h) indicates a problem.\n- **Success Rate** should be near 100%. Drops indicate PeeringDB API issues or database write failures.\n- **Sync Duration (p95)** shows the 95th percentile sync cycle time. Normal is 30-120s depending on data volume.\n- **Fallback Events** count incremental-to-full sync fallbacks. Should be 0 under normal operation. Non-zero means the incremental sync failed and a full re-fetch was triggered.\n\n**Troubleshooting:** If freshness is red, check sync operations timeline for errors. If duration is high, check per-type sync detail row for slow types."
-      },
-      "datasource": {
-        "uid": "${datasource}"
-      }
-    },
-    {
       "id": 3,
       "type": "stat",
       "title": "Data Freshness",
-      "description": "Seconds since last successful sync",
+      "description": "Seconds since last successful sync. Green <1h healthy, yellow 1-2h delayed, red >2h indicates a problem.",
       "gridPos": {
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 4
+        "y": 1
       },
       "datasource": {
         "uid": "${datasource}"
@@ -289,12 +270,12 @@
       "id": 4,
       "type": "stat",
       "title": "Sync Success Rate",
-      "description": "Ratio of successful syncs to total syncs",
+      "description": "Should be near 100%. Drops indicate PeeringDB API issues or database write failures.",
       "gridPos": {
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 4
+        "y": 1
       },
       "datasource": {
         "uid": "${datasource}"
@@ -357,12 +338,12 @@
       "id": 5,
       "type": "timeseries",
       "title": "Sync Duration (p95)",
-      "description": "95th percentile sync cycle duration over time",
+      "description": "95th percentile sync cycle time. Normal range is 30-120s depending on data volume and mode (incremental vs full).",
       "gridPos": {
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 4
+        "y": 1
       },
       "datasource": {
         "uid": "${datasource}"
@@ -431,12 +412,12 @@
       "id": 6,
       "type": "stat",
       "title": "Fallback Events",
-      "description": "Count of incremental-to-full sync fallback events",
+      "description": "Count of incremental-to-full sync fallbacks. Should be 0 under normal operation. Non-zero means incremental sync failed and a full re-fetch was triggered.",
       "gridPos": {
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 4
+        "y": 1
       },
       "datasource": {
         "uid": "${datasource}"
@@ -493,12 +474,12 @@
       "id": 7,
       "type": "timeseries",
       "title": "Sync Operations",
-      "description": "Sync operation rate over time by status (success/failed)",
+      "description": "Sync cycles by status (success/failed) and mode (incremental/full). If freshness is red, check this timeline for errors.",
       "gridPos": {
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 5
       },
       "datasource": {
         "uid": "${datasource}"
@@ -603,7 +584,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 11
       },
       "datasource": {
         "uid": "${datasource}"
@@ -708,28 +689,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 17
       },
       "panels": [
-        {
-          "id": 9,
-          "type": "text",
-          "title": "HTTP RED Guide",
-          "description": "Documentation for HTTP RED (Rate, Errors, Duration) metrics",
-          "gridPos": {
-            "h": 3,
-            "w": 24,
-            "x": 0,
-            "y": 15
-          },
-          "options": {
-            "mode": "markdown",
-            "content": "## HTTP RED Metrics\n\nMonitors HTTP request traffic using the RED method: Rate, Errors, Duration.\n\n- **Request Rate by Route** shows requests per second grouped by HTTP route (e.g., /graphql, /rest/v1/, /api/, /ui/).\n- **Error Rate (5xx)** is the ratio of server errors to total requests. Should be near 0%. Above 1% warrants investigation, above 5% is critical.\n- **Active Requests** shows in-flight HTTP requests. Sustained high values may indicate slow backends or connection pooling issues.\n- **Latency p95/p99** shows response time percentiles. p95 under 100ms is healthy for cached reads.\n\n**Troubleshooting:** High error rates with normal latency often indicate application logic errors. High latency with low error rates suggests database or upstream slowness."
-          },
-          "datasource": {
-            "uid": "${datasource}"
-          }
-        },
         {
           "id": 10,
           "type": "timeseries",
@@ -739,7 +701,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 18
+            "y": 15
           },
           "datasource": {
             "uid": "${datasource}"
@@ -813,7 +775,7 @@
             "h": 6,
             "w": 6,
             "x": 12,
-            "y": 18
+            "y": 15
           },
           "datasource": {
             "uid": "${datasource}"
@@ -881,7 +843,7 @@
             "h": 6,
             "w": 6,
             "x": 18,
-            "y": 18
+            "y": 15
           },
           "datasource": {
             "uid": "${datasource}"
@@ -947,7 +909,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 24
+            "y": 21
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1031,38 +993,19 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 18
       },
       "panels": [
         {
-          "id": 15,
-          "type": "text",
-          "title": "Per-Type Sync Guide",
-          "description": "Documentation for per-type sync metrics",
-          "gridPos": {
-            "h": 3,
-            "w": 24,
-            "x": 0,
-            "y": 16
-          },
-          "options": {
-            "mode": "markdown",
-            "content": "## Per-Type Sync Detail\n\nBreaks down sync metrics by PeeringDB object type (org, campus, fac, carrier, carrierfac, ix, ixlan, ixpfx, ixfac, net, poc, netfac, netixlan).\n\n- **Sync Duration by Type (p95)** shows which types take the longest to sync. Network (net) and NetworkIxLan (netixlan) are typically the largest and slowest.\n- **Objects Synced per Type** shows how many objects were upserted in the selected time range. Large counts are normal for types like netixlan (~100K+ objects).\n- **Deletes per Type** tracks object removals. Non-zero deletes are normal during sync as PeeringDB data changes.\n- **Fetch/Upsert Errors** shows API fetch failures (upstream PeeringDB issues) and database upsert failures (local issues) separately.\n\n**Troubleshooting:** Use the $type variable to filter to specific types. If one type consistently errors, check the PeeringDB API status page. Upsert errors may indicate schema drift."
-          },
-          "datasource": {
-            "uid": "${datasource}"
-          }
-        },
-        {
           "id": 16,
           "type": "timeseries",
-          "title": "Sync Duration by Type (p95)",
-          "description": "95th percentile sync duration per PeeringDB object type",
+          "title": "Sync Throughput by Type",
+          "description": "Per-type upsert rate during sync windows. Network (net) and NetworkIxLan (netixlan) are typically the largest and slowest.",
           "gridPos": {
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 19
+            "y": 16
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1072,14 +1015,14 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "histogram_quantile(0.95, sum by(type, le)(rate(pdbplus_sync_type_duration_seconds_bucket{type=~\"$type\"}[$__rate_interval])))",
+              "expr": "sum by(type)(rate(pdbplus_sync_type_objects_total{type=~\"$type\"}[$__rate_interval]))",
               "legendFormat": "{{type}}",
               "refId": "A"
             }
           ],
           "fieldConfig": {
             "defaults": {
-              "unit": "s",
+              "unit": "ops",
               "color": {
                 "mode": "palette-classic"
               },
@@ -1131,12 +1074,12 @@
           "id": 17,
           "type": "bargauge",
           "title": "Objects Synced per Type",
-          "description": "Total objects upserted per type in selected time range",
+          "description": "Total objects upserted per type over the dashboard's selected time range. Large counts are normal for types like netixlan (~100K+ objects).",
           "gridPos": {
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 19
+            "y": 16
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1146,7 +1089,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(type)(increase(pdbplus_sync_type_objects_total{type=~\"$type\"}[$__rate_interval]))",
+              "expr": "sum by(type)(increase(pdbplus_sync_type_objects_total{type=~\"$type\"}[$__range]))",
               "legendFormat": "{{type}}",
               "refId": "A"
             }
@@ -1189,12 +1132,12 @@
           "id": 18,
           "type": "timeseries",
           "title": "Deletes per Type",
-          "description": "Objects deleted per type during sync",
+          "description": "Soft-delete tombstones marked per type per sync (Phase 68). Non-zero deletes are normal as PeeringDB data churns.",
           "gridPos": {
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 25
+            "y": 22
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1268,7 +1211,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 25
+            "y": 22
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1352,38 +1295,19 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 19
       },
       "panels": [
-        {
-          "id": 21,
-          "type": "text",
-          "title": "Go Runtime Guide",
-          "description": "Documentation for Go runtime metrics",
-          "gridPos": {
-            "h": 3,
-            "w": 24,
-            "x": 0,
-            "y": 17
-          },
-          "options": {
-            "mode": "markdown",
-            "content": "## Go Runtime\n\nMonitors the Go application runtime internals.\n\n- **Goroutines** shows the current count of active goroutines. Normal baseline is 10-50 for this application. Sustained increases may indicate goroutine leaks.\n- **Heap Memory** shows memory currently in use by the Go heap. Normal range is 50-200MB depending on cached data. The Go 1.26 Green Tea GC keeps overhead low.\n- **Allocation Rate** shows bytes allocated per second. Spikes correlate with sync operations or high request volume. Sustained high rates increase GC pressure.\n- **GC Goal** shows the target heap size the garbage collector aims for. This is managed by the Go runtime and increases with live data.\n\n**Troubleshooting:** Rising goroutine count without corresponding load increase suggests a goroutine leak. High allocation rate with stable heap suggests good GC throughput. If heap keeps growing, check for memory leaks with pprof."
-          },
-          "datasource": {
-            "uid": "${datasource}"
-          }
-        },
         {
           "id": 22,
           "type": "timeseries",
           "title": "Goroutines",
-          "description": "Number of active goroutines",
+          "description": "Live goroutine count. Sustained growth is a leak signal.",
           "gridPos": {
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 20
+            "y": 17
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1457,7 +1381,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 20
+            "y": 17
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1531,7 +1455,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 26
+            "y": 23
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1605,7 +1529,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 26
+            "y": 23
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1681,38 +1605,19 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 23
+        "y": 20
       },
       "panels": [
-        {
-          "id": 27,
-          "type": "text",
-          "title": "Business Metrics Guide",
-          "description": "Documentation for business metrics",
-          "gridPos": {
-            "h": 3,
-            "w": 24,
-            "x": 0,
-            "y": 18
-          },
-          "options": {
-            "mode": "markdown",
-            "content": "## Business Metrics\n\nTracks the actual PeeringDB data stored in the local mirror.\n\n- **Total Objects** is the sum of all PeeringDB object counts across all 13 types. A healthy mirror with current PeeringDB data should show ~500K+ total objects.\n- **Objects by Type** breaks down counts per PeeringDB type. The largest types are typically netixlan (network-to-IXP connections), netfac (network-to-facility), and net (networks).\n- **Object Counts Over Time** shows how counts change over the dashboard time range. Sudden drops indicate sync issues or data loss. Gradual growth is normal as PeeringDB data expands.\n\n**Troubleshooting:** If total objects drops suddenly, check the sync health row for failed syncs. If specific types show zero, check per-type sync errors. Compare counts against https://www.peeringdb.com/apidocs/ meta counts for validation."
-          },
-          "datasource": {
-            "uid": "${datasource}"
-          }
-        },
         {
           "id": 28,
           "type": "stat",
           "title": "Total Objects",
-          "description": "Sum of all PeeringDB objects stored locally",
+          "description": "Sum of all rows across 13 entity types. ~1.5M is the steady-state size.",
           "gridPos": {
             "h": 4,
             "w": 6,
             "x": 0,
-            "y": 21
+            "y": 18
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1770,7 +1675,7 @@
             "h": 4,
             "w": 18,
             "x": 6,
-            "y": 21
+            "y": 18
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1828,7 +1733,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 25
+            "y": 22
           },
           "datasource": {
             "uid": "${datasource}"
@@ -1904,7 +1809,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 21
       },
       "panels": []
     },
@@ -1912,12 +1817,12 @@
       "id": 33,
       "type": "timeseries",
       "title": "Peak Heap",
-      "description": "End-of-sync-cycle Go runtime HeapInuse, in bytes (Grafana auto-formats MiB / GiB). SEED-001 trigger: sustained values above PDBPLUS_HEAP_WARN_MIB (default 400 MiB = 419430400 bytes) indicate time to evaluate incremental sync. Source: pdbplus_sync_peak_heap_bytes.",
+      "description": "Sync-cycle peak HeapInuse on the primary. Threshold line at 400 MiB \u2014 sustained breach re-fires SEED-001 (Fly 512 MB VM cap).",
       "gridPos": {
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 25
+        "y": 22
       },
       "datasource": {
         "uid": "${datasource}"
@@ -1983,12 +1888,12 @@
       "id": 34,
       "type": "timeseries",
       "title": "Peak RSS",
-      "description": "End-of-sync-cycle /proc/self/status VmHWM, in bytes (Grafana auto-formats MiB / GiB). Threshold line at PDBPLUS_RSS_WARN_MIB (default 384 MiB = 402653184 bytes). Linux machines only — missing series on non-Linux is expected. Source: pdbplus_sync_peak_rss_bytes.",
+      "description": "Sync-cycle peak RSS on the primary (VmHWM from /proc/self/status). Threshold line at 384 MiB.",
       "gridPos": {
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 25
+        "y": 22
       },
       "datasource": {
         "uid": "${datasource}"
@@ -2054,12 +1959,12 @@
       "id": 35,
       "type": "timeseries",
       "title": "Live Heap by Instance",
-      "description": "Live Go heap usage per instance from the OTel runtime contrib package (go.opentelemetry.io/contrib/instrumentation/runtime, semconv v1.36.0 goconv naming). Sums across go_memory_type (stack + other) so each line is one VM. Coexists with pdbplus_sync_peak_heap_bytes (sync-cycle watermark on primary only) — this gauge ticks per OTel push interval on every instance. Bytes unit; Grafana auto-formats MiB / GiB.",
+      "description": "Per-VM Go heap from go_memory_used_bytes (OTel runtime gauge). Plots all fleet machines (primary + replicas) post-Phase-65 asymmetric fleet.",
       "gridPos": {
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 25
+        "y": 22
       },
       "datasource": {
         "uid": "${datasource}"
@@ -2120,13 +2025,13 @@
     {
       "id": 36,
       "type": "timeseries",
-      "title": "Response Heap Delta — p50/p95/p99 by endpoint (Phase 71)",
-      "description": "Per-request Go HeapInuse delta on pdbcompat list handlers, from pdbplus_response_heap_delta_bytes histogram. p50/p95/p99 quantiles over a 5-minute rolling window, grouped by endpoint. Bytes unit; Grafana auto-formats KiB / MiB. Phase 71 D-06 / MEMORY-03: surfaces per-request memory cost before budget-breach 413s trigger.",
+      "title": "Response Heap Delta \u2014 p50/p95/p99 by endpoint (Phase 71)",
+      "description": "Per-request Go HeapInuse delta on pdbcompat list handlers (/api/*) from pdbplus_response_heap_delta_bytes histogram. p50/p95/p99 quantiles over a 5-minute rolling window, grouped by endpoint. Shows 'No data' when there is no /api/ traffic in the selected window \u2014 the histogram is only observed on pdbcompat list requests, not on /healthz, /ui/, /rest/v1/, /graphql, or ConnectRPC.",
       "gridPos": {
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 30
       },
       "datasource": {
         "uid": "${datasource}"
