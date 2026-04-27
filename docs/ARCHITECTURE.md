@@ -424,11 +424,44 @@ OTel is set up once at startup in `internal/otel/provider.go` (`Setup`). Three s
 are configured via the OpenTelemetry autoexport package, which reads standard `OTEL_*` env vars
 to select exporters (OTLP, stdout, none):
 
-- **`TracerProvider`** — Sampler is `TraceIDRatioBased(PDBPLUS_OTEL_SAMPLE_RATE)` (default `1.0`).
-  Spans are created automatically by `otelhttp` middleware for HTTP requests, by
-  `otelconnect.NewInterceptor` for ConnectRPC RPCs, and by the sync worker for sync cycles.
-  Ent schema hooks (`ent/runtime` imported for side effects in `cmd/peeringdb-plus/main.go:27`)
-  emit mutation spans for every ent write.
+- **`TracerProvider`** — Sampler is `sdktrace.ParentBased(NewPerRouteSampler(...))` per Phase 77
+  OBS-07. Per-route ratios live in `internal/otel/sampler.go` (`perRouteSampler`); see the
+  Sampling Matrix below. The default ratio honours `PDBPLUS_OTEL_SAMPLE_RATE` (default `1.0`)
+  for sync-worker spans and any other non-HTTP traces. Spans are created automatically by
+  `otelhttp` middleware for HTTP requests, by `otelconnect.NewInterceptor` for ConnectRPC RPCs,
+  and by the sync worker for sync cycles. Ent schema hooks (`ent/runtime` imported for side
+  effects in `cmd/peeringdb-plus/main.go:27`) emit mutation spans for every ent write.
+
+### Sampling Matrix
+
+Per-route sampling is configured in `internal/otel/sampler.go` (`perRouteSampler`) and wrapped
+in `sdktrace.ParentBased` so child spans inherit the root decision (cross-service trace
+continuity invariant from Phase 77 CONTEXT.md D-02):
+
+| Route prefix | Ratio | Rationale |
+|--------------|-------|-----------|
+| `/healthz`, `/readyz`, `/grpc.health.v1.Health/` | 0.01 | Fly health probes — 1% sample is enough for liveness debugging without dominating Tempo volume. Pre-Phase-77 measurement: `/healthz` was ~99% of HTTP trace volume. |
+| `/api/`, `/rest/v1/`, `/peeringdb.v1.` | 1.0 | Primary API surfaces — full sampling for debugging. |
+| `/graphql` | 1.0 | Mid-volume; full sampling pending v1.19+ cardinality reassessment. |
+| `/ui/` | 0.5 | Browser traffic; halved per the Phase 77 audit. |
+| `/static/`, `/favicon.ico` | 0.01 | Static assets; rare debugging value. |
+| (default — sync worker, internal spans) | `PDBPLUS_OTEL_SAMPLE_RATE` (default 1.0) | Sync cycles + non-HTTP traces honour the existing env var. |
+
+`ParentBased` composition guarantees that once a parent span samples in (e.g. an `/api/net`
+request), all child spans (including any internal call to a lower-ratio endpoint or downstream
+RPC fan-out) inherit the sampled decision regardless of their own route prefix. This prevents
+orphaned spans where a sampled-in parent calls a sampled-out endpoint.
+
+Longest-prefix-wins applies inside the sampler: future paths like `/api/auth/foo` would inherit
+the `/api/` ratio (1.0) by default, but adding a more-specific `/api/auth/` entry with a lower
+ratio would let that subpath drop independently. Boundary rule: prefixes that end in an
+alphanumeric character (e.g. `/api`) require `/` after them; prefixes that end in a non-
+alphanumeric character (e.g. `/peeringdb.v1.` or `/static/`) accept any next character —
+needed for ConnectRPC's dot-terminated package prefixes.
+
+`OTEL_BSP_SCHEDULE_DELAY=5s` and `OTEL_BSP_MAX_EXPORT_BATCH_SIZE=512` (PERF-08 baseline) are
+hardcoded in `internal/otel/provider.go` and confirmed appropriate for current cardinality per
+the Phase 77 audit (`.planning/phases/77-telemetry-audit/AUDIT.md`).
 
 - **`MeterProvider`** — Exposes standard `http.server.*` metrics (from otelhttp) and custom sync
   metrics registered in `internal/otel/metrics.go` (`InitMetrics`):
